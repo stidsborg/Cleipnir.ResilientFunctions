@@ -9,8 +9,8 @@ namespace Cleipnir.ResilientFunctions.Tests.ReactiveTests;
 
 public class TestSource : Source
 {
-    public TestSource(IRegisteredTimeouts? timeoutProvider = null, SyncStore? syncStore = null) : base(
-        timeoutProvider ?? NoOpRegisteredTimeouts.Instance,
+    public TestSource(IRegisteredTimeouts? registeredTimeouts = null, SyncStore? syncStore = null) : base(
+        registeredTimeouts ?? NoOpRegisteredTimeouts.Instance,
         syncStore: syncStore ?? (_ => new InterruptCount(0).ToTask()),
         defaultDelay: TimeSpan.FromMilliseconds(10), 
         defaultMaxWait: TimeSpan.MaxValue,

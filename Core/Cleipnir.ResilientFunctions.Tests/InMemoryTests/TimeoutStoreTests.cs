@@ -21,16 +21,16 @@ public class TimeoutStoreTests : TestTemplates.TimeoutStoreTests
         => OverwriteFalseDoesNotAffectExistingTimeout(new InMemoryTimeoutStore().CastTo<ITimeoutStore>().ToTask());
 
     [TestMethod]
-    public override Task RegisteredTimeoutIsReturnedFromTimeoutProvider()
-        => RegisteredTimeoutIsReturnedFromTimeoutProvider(new InMemoryTimeoutStore().CastTo<ITimeoutStore>().ToTask());
+    public override Task RegisteredTimeoutIsReturnedFromRegisteredTimeouts()
+        => RegisteredTimeoutIsReturnedFromRegisteredTimeouts(new InMemoryTimeoutStore().CastTo<ITimeoutStore>().ToTask());
 
     [TestMethod]
     public override Task TimeoutStoreCanBeInitializedMultipleTimes()
         => TimeoutStoreCanBeInitializedMultipleTimes(new InMemoryTimeoutStore().CastTo<ITimeoutStore>().ToTask());
 
     [TestMethod]
-    public override Task RegisteredTimeoutIsReturnedFromTimeoutProviderForFunctionId()
-        => RegisteredTimeoutIsReturnedFromTimeoutProviderForFunctionId(new InMemoryTimeoutStore().CastTo<ITimeoutStore>().ToTask());
+    public override Task RegisteredTimeoutIsReturnedFromRegisteredTimeoutsForFunctionId()
+        => RegisteredTimeoutIsReturnedFromRegisteredTimeoutsForFunctionId(new InMemoryTimeoutStore().CastTo<ITimeoutStore>().ToTask());
 
     [TestMethod]
     public override Task TimeoutIsNotRegisteredAgainWhenProviderAlreadyContainsTimeout()

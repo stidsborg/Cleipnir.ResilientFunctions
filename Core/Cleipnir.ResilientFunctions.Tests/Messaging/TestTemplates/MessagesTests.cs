@@ -29,7 +29,7 @@ public abstract class MessagesTests
             timestamp: DateTime.UtcNow.Ticks
         );
         var messagesWriter = new MessageWriter(functionId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
-        var timeoutProvider = new RegisteredTimeouts(functionId, functionStore.TimeoutStore);
+        var registeredTimeouts = new RegisteredTimeouts(functionId, functionStore.TimeoutStore);
         var messagesPullerAndEmitter = new MessagesPullerAndEmitter(
             functionId,
             defaultDelay: TimeSpan.FromMilliseconds(250),
@@ -37,9 +37,9 @@ public abstract class MessagesTests
             isWorkflowRunning: () => true,
             functionStore,
             DefaultSerializer.Instance,
-            timeoutProvider
+            registeredTimeouts
         );
-        var messages = new Messages(messagesWriter, timeoutProvider, messagesPullerAndEmitter);
+        var messages = new Messages(messagesWriter, registeredTimeouts, messagesPullerAndEmitter);
         
         var task = messages.First();
         
@@ -64,7 +64,7 @@ public abstract class MessagesTests
             timestamp: DateTime.UtcNow.Ticks
         );
         var messagesWriter = new MessageWriter(functionId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
-        var timeoutProvider = new RegisteredTimeouts(functionId, functionStore.TimeoutStore);
+        var registeredTimeouts = new RegisteredTimeouts(functionId, functionStore.TimeoutStore);
         var messagesPullerAndEmitter = new MessagesPullerAndEmitter(
             functionId,
             defaultDelay: TimeSpan.FromMilliseconds(250),
@@ -72,9 +72,9 @@ public abstract class MessagesTests
             isWorkflowRunning: () => true,
             functionStore,
             DefaultSerializer.Instance,
-            timeoutProvider
+            registeredTimeouts
         );
-        var messages = new Messages(messagesWriter, timeoutProvider, messagesPullerAndEmitter);
+        var messages = new Messages(messagesWriter, registeredTimeouts, messagesPullerAndEmitter);
 
         await messages.AppendMessage("hello world");
 
@@ -102,7 +102,7 @@ public abstract class MessagesTests
             timestamp: DateTime.UtcNow.Ticks
         );
         var messagesWriter = new MessageWriter(functionId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
-        var timeoutProvider = new RegisteredTimeouts(functionId, functionStore.TimeoutStore);
+        var registeredTimeouts = new RegisteredTimeouts(functionId, functionStore.TimeoutStore);
         var messagesPullerAndEmitter = new MessagesPullerAndEmitter(
             functionId,
             defaultDelay: TimeSpan.FromMilliseconds(250),
@@ -110,9 +110,9 @@ public abstract class MessagesTests
             isWorkflowRunning: () => true,
             functionStore,
             DefaultSerializer.Instance,
-            timeoutProvider
+            registeredTimeouts
         );
-        var messages = new Messages(messagesWriter, timeoutProvider, messagesPullerAndEmitter);
+        var messages = new Messages(messagesWriter, registeredTimeouts, messagesPullerAndEmitter);
         
         var task = messages.Take(2).ToList();
         
@@ -145,7 +145,7 @@ public abstract class MessagesTests
             timestamp: DateTime.UtcNow.Ticks
         );
         var messagesWriter = new MessageWriter(functionId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
-        var timeoutProvider = new RegisteredTimeouts(functionId, functionStore.TimeoutStore);
+        var registeredTimeouts = new RegisteredTimeouts(functionId, functionStore.TimeoutStore);
         var messagesPullerAndEmitter = new MessagesPullerAndEmitter(
             functionId,
             defaultDelay: TimeSpan.FromMilliseconds(250),
@@ -153,9 +153,9 @@ public abstract class MessagesTests
             isWorkflowRunning: () => true,
             functionStore,
             DefaultSerializer.Instance,
-            timeoutProvider
+            registeredTimeouts
         );
-        var messages = new Messages(messagesWriter, timeoutProvider, messagesPullerAndEmitter);
+        var messages = new Messages(messagesWriter, registeredTimeouts, messagesPullerAndEmitter);
 
         var task = messages.Take(2).ToList();
         
@@ -187,7 +187,7 @@ public abstract class MessagesTests
             timestamp: DateTime.UtcNow.Ticks
         );
         var messagesWriter = new MessageWriter(functionId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
-        var timeoutProvider = new RegisteredTimeouts(functionId, functionStore.TimeoutStore);
+        var registeredTimeouts = new RegisteredTimeouts(functionId, functionStore.TimeoutStore);
         var messagesPullerAndEmitter = new MessagesPullerAndEmitter(
             functionId,
             defaultDelay: TimeSpan.FromMilliseconds(250),
@@ -195,9 +195,9 @@ public abstract class MessagesTests
             isWorkflowRunning: () => true,
             functionStore,
             DefaultSerializer.Instance,
-            timeoutProvider
+            registeredTimeouts
         );
-        var messages = new Messages(messagesWriter, timeoutProvider, messagesPullerAndEmitter);
+        var messages = new Messages(messagesWriter, registeredTimeouts, messagesPullerAndEmitter);
         
         var task = messages.First();
         
@@ -225,7 +225,7 @@ public abstract class MessagesTests
             timestamp: DateTime.UtcNow.Ticks
         );
         var messagesWriter = new MessageWriter(functionId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
-        var timeoutProvider = new RegisteredTimeouts(functionId, functionStore.TimeoutStore);
+        var registeredTimeouts = new RegisteredTimeouts(functionId, functionStore.TimeoutStore);
         var messagesPullerAndEmitter = new MessagesPullerAndEmitter(
             functionId,
             defaultDelay: TimeSpan.FromMilliseconds(250),
@@ -233,9 +233,9 @@ public abstract class MessagesTests
             isWorkflowRunning: () => true,
             functionStore,
             DefaultSerializer.Instance,
-            timeoutProvider
+            registeredTimeouts
         );
-        var messages = new Messages(messagesWriter, timeoutProvider, messagesPullerAndEmitter);
+        var messages = new Messages(messagesWriter, registeredTimeouts, messagesPullerAndEmitter);
 
         var task = messages.Take(2).ToList();
         
@@ -275,7 +275,7 @@ public abstract class MessagesTests
             timestamp: DateTime.UtcNow.Ticks
         );
         var messagesWriter = new MessageWriter(functionId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
-        var timeoutProvider = new RegisteredTimeouts(functionId, functionStore.TimeoutStore);
+        var registeredTimeouts = new RegisteredTimeouts(functionId, functionStore.TimeoutStore);
         var messagesPullerAndEmitter = new MessagesPullerAndEmitter(
             functionId,
             defaultDelay: TimeSpan.FromMilliseconds(250),
@@ -283,9 +283,9 @@ public abstract class MessagesTests
             isWorkflowRunning: () => true,
             functionStore,
             new ExceptionThrowingEventSerializer(typeof(int)),
-            timeoutProvider
+            registeredTimeouts
         );
-        var messages = new Messages(messagesWriter, timeoutProvider, messagesPullerAndEmitter);
+        var messages = new Messages(messagesWriter, registeredTimeouts, messagesPullerAndEmitter);
         
         await messages.AppendMessage("hello world");
         await Should.ThrowAsync<MessageProcessingException>(messages.AppendMessage(1));

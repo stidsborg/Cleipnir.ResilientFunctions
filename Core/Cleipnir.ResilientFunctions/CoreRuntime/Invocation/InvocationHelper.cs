@@ -363,7 +363,7 @@ internal class InvocationHelper<TParam, TReturn>
     public Messages CreateMessages(FlowId flowId, ScheduleReInvocation scheduleReInvocation, Func<bool> isWorkflowRunning)
     {
         var messageWriter = new MessageWriter(flowId, _functionStore, Serializer, scheduleReInvocation);
-        var timeoutProvider = new RegisteredTimeouts(flowId, _functionStore.TimeoutStore);
+        var registeredTimeouts = new RegisteredTimeouts(flowId, _functionStore.TimeoutStore);
         var messagesPullerAndEmitter = new MessagesPullerAndEmitter(
             flowId,
             defaultDelay: _settings.MessagesPullFrequency,
@@ -371,10 +371,10 @@ internal class InvocationHelper<TParam, TReturn>
             isWorkflowRunning,
             _functionStore,
             _settings.Serializer,
-            timeoutProvider
+            registeredTimeouts
         );
         
-        return new Messages(messageWriter, timeoutProvider, messagesPullerAndEmitter);
+        return new Messages(messageWriter, registeredTimeouts, messagesPullerAndEmitter);
     }
 
     public Effect CreateEffect(FlowId flowId)

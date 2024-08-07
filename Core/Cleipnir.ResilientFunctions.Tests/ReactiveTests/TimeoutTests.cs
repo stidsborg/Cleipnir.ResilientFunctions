@@ -22,14 +22,14 @@ public class TimeoutTests
         var timeoutId = "TimeoutId";
         var expiresAt = DateTime.UtcNow.Add(TimeSpan.FromMinutes(15));
         
-        var timeoutProviderStub = new RegisteredTimeoutsStub();
-        var source = new TestSource(timeoutProviderStub);
+        var registeredTimeoutsStub = new RegisteredTimeoutsStub();
+        var source = new TestSource(registeredTimeoutsStub);
 
         var task = source.TakeUntilTimeout(timeoutId, expiresAt).First();
         
-        await BusyWait.Until(() => timeoutProviderStub.Registrations.Any());
+        await BusyWait.Until(() => registeredTimeoutsStub.Registrations.Any());
         
-        var (id, expiry) = timeoutProviderStub.Registrations.Single();
+        var (id, expiry) = registeredTimeoutsStub.Registrations.Single();
         id.ShouldBe(timeoutId);
         expiry.ShouldBe(expiresAt);
         
@@ -47,12 +47,12 @@ public class TimeoutTests
         var timeoutId = "TimeoutId";
         var expiresAt = DateTime.UtcNow.Add(TimeSpan.FromMinutes(15));
         
-        var timeoutProviderStub = new RegisteredTimeoutsStub();
-        var source = new TestSource(timeoutProviderStub);
+        var registeredTimeoutsStub = new RegisteredTimeoutsStub();
+        var source = new TestSource(registeredTimeoutsStub);
 
         var task = source.TakeUntilTimeout(timeoutId, expiresAt).FirstOrNone();
         
-        await BusyWait.Until(() => timeoutProviderStub.Registrations.Any());
+        await BusyWait.Until(() => registeredTimeoutsStub.Registrations.Any());
         
         source.SignalNext(new TimeoutEvent(timeoutId, expiresAt), new InterruptCount(1));
 
@@ -62,7 +62,7 @@ public class TimeoutTests
         var option = await task;
         option.HasValue.ShouldBeFalse();
         
-        var (id, expiry) = timeoutProviderStub.Registrations.Single();
+        var (id, expiry) = registeredTimeoutsStub.Registrations.Single();
         id.ShouldBe(timeoutId);
         expiry.ShouldBe(expiresAt);
     }
@@ -73,8 +73,8 @@ public class TimeoutTests
         var timeoutId = "TimeoutId";
         var expiresAt = DateTime.UtcNow.Add(TimeSpan.FromMinutes(15));
         
-        var timeoutProviderStub = new RegisteredTimeoutsStub();
-        var source = new TestSource(timeoutProviderStub);
+        var registeredTimeoutsStub = new RegisteredTimeoutsStub();
+        var source = new TestSource(registeredTimeoutsStub);
 
         var task = source.TakeUntilTimeout(timeoutId, expiresAt).First();
         
@@ -91,8 +91,8 @@ public class TimeoutTests
         var timeoutId = "TimeoutId";
         var expiresAt = DateTime.UtcNow.Add(TimeSpan.FromMinutes(15));
         
-        var timeoutProviderStub = new RegisteredTimeoutsStub();
-        var source = new TestSource(timeoutProviderStub);
+        var registeredTimeoutsStub = new RegisteredTimeoutsStub();
+        var source = new TestSource(registeredTimeoutsStub);
 
         var task = source.TakeUntilTimeout(timeoutId, expiresAt).FirstOrNone();
         
@@ -104,7 +104,7 @@ public class TimeoutTests
         option.HasValue.ShouldBeTrue();
         option.Value.ShouldBe("Hello");
         
-        timeoutProviderStub.Cancelled.ShouldBe(timeoutId);
+        registeredTimeoutsStub.Cancelled.ShouldBe(timeoutId);
     }
     
     [TestMethod]
@@ -113,14 +113,14 @@ public class TimeoutTests
         var timeoutId = "TimeoutId";
         var expiresAt = DateTime.UtcNow.Add(TimeSpan.FromMinutes(15));
         
-        var timeoutProviderStub = new RegisteredTimeoutsStub();
-        var source = new TestSource(timeoutProviderStub);
+        var registeredTimeoutsStub = new RegisteredTimeoutsStub();
+        var source = new TestSource(registeredTimeoutsStub);
         source.SignalNext(new TimeoutEvent(timeoutId, expiresAt), new InterruptCount(2));
 
         var task = await source.TakeUntilTimeout(timeoutId, expiresAt).FirstOrNone();
         task.HasValue.ShouldBeFalse();
 
-        timeoutProviderStub.Cancelled.ShouldBeNull();
+        registeredTimeoutsStub.Cancelled.ShouldBeNull();
     }
     
     private class RegisteredTimeoutsStub : IRegisteredTimeouts

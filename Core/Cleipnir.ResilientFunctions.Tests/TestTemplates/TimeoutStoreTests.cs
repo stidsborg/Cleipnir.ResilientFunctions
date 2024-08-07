@@ -93,20 +93,20 @@ public abstract class TimeoutStoreTests
         timeouts[0].Expiry.ShouldBe(expiry);
     }
     
-    public abstract Task RegisteredTimeoutIsReturnedFromTimeoutProvider();
-    protected async Task RegisteredTimeoutIsReturnedFromTimeoutProvider(Task<ITimeoutStore> storeTask)
+    public abstract Task RegisteredTimeoutIsReturnedFromRegisteredTimeouts();
+    protected async Task RegisteredTimeoutIsReturnedFromRegisteredTimeouts(Task<ITimeoutStore> storeTask)
     {
         var store = await storeTask;
         var functionId = TestFlowId.Create();
 
-        var timeoutProvider = new RegisteredTimeouts(functionId, store);
+        var registeredTimeouts = new RegisteredTimeouts(functionId, store);
 
-        await timeoutProvider.RegisterTimeout("timeoutId1", expiresIn: TimeSpan.FromHours(1));
-        await timeoutProvider.RegisterTimeout("timeoutId2", expiresIn: TimeSpan.FromHours(2));
+        await registeredTimeouts.RegisterTimeout("timeoutId1", expiresIn: TimeSpan.FromHours(1));
+        await registeredTimeouts.RegisterTimeout("timeoutId2", expiresIn: TimeSpan.FromHours(2));
         
-        await BusyWait.Until(() => timeoutProvider.PendingTimeouts().SelectAsync(t => t.Count == 2));
+        await BusyWait.Until(() => registeredTimeouts.PendingTimeouts().SelectAsync(t => t.Count == 2));
        
-        var timeouts = await timeoutProvider.PendingTimeouts();
+        var timeouts = await registeredTimeouts.PendingTimeouts();
         timeouts.Count.ShouldBe(2);
         timeouts.Any(t => t.TimeoutId == "timeoutId1").ShouldBe(true);
         timeouts.Any(t => t.TimeoutId == "timeoutId2").ShouldBe(true);
@@ -120,26 +120,26 @@ public abstract class TimeoutStoreTests
         await store.Initialize();
     }
     
-    public abstract Task RegisteredTimeoutIsReturnedFromTimeoutProviderForFunctionId();
-    protected async Task RegisteredTimeoutIsReturnedFromTimeoutProviderForFunctionId(Task<ITimeoutStore> storeTask)
+    public abstract Task RegisteredTimeoutIsReturnedFromRegisteredTimeoutsForFunctionId();
+    protected async Task RegisteredTimeoutIsReturnedFromRegisteredTimeoutsForFunctionId(Task<ITimeoutStore> storeTask)
     {
         var store = await storeTask;
         var functionId = TestFlowId.Create();
 
-        var timeoutProvider = new RegisteredTimeouts(functionId, store);
+        var registeredTimeouts = new RegisteredTimeouts(functionId, store);
 
-        var otherInstanceTimeoutProvider = new RegisteredTimeouts(
+        var otherInstanceRegisteredTimeouts = new RegisteredTimeouts(
             new FlowId(functionId.Type, functionId.Instance.Value + "2"), 
             store
         );
 
-        await timeoutProvider.RegisterTimeout("timeoutId1", expiresIn: TimeSpan.FromHours(1));
-        await timeoutProvider.RegisterTimeout("timeoutId2", expiresIn: TimeSpan.FromHours(2));
-        await otherInstanceTimeoutProvider.RegisterTimeout("timeoutId3", expiresIn: TimeSpan.FromHours(3));
+        await registeredTimeouts.RegisterTimeout("timeoutId1", expiresIn: TimeSpan.FromHours(1));
+        await registeredTimeouts.RegisterTimeout("timeoutId2", expiresIn: TimeSpan.FromHours(2));
+        await otherInstanceRegisteredTimeouts.RegisterTimeout("timeoutId3", expiresIn: TimeSpan.FromHours(3));
         
-        await BusyWait.Until(() => timeoutProvider.PendingTimeouts().SelectAsync(t => t.Count == 2));
+        await BusyWait.Until(() => registeredTimeouts.PendingTimeouts().SelectAsync(t => t.Count == 2));
        
-        var timeouts = await timeoutProvider.PendingTimeouts();
+        var timeouts = await registeredTimeouts.PendingTimeouts();
         timeouts.Count.ShouldBe(2);
         timeouts.Any(t => t.TimeoutId == "timeoutId1").ShouldBe(true);
         timeouts.Any(t => t.TimeoutId == "timeoutId2").ShouldBe(true);
@@ -152,16 +152,16 @@ public abstract class TimeoutStoreTests
         var store = new TimeoutStoreDecorator(await storeTask, () => upsertCount++);
         var functionId = TestFlowId.Create();
 
-        var timeoutProvider = new RegisteredTimeouts(functionId, store);
+        var registeredTimeouts = new RegisteredTimeouts(functionId, store);
 
-        await timeoutProvider.RegisterTimeout("timeoutId1", expiresIn: TimeSpan.FromHours(1));
+        await registeredTimeouts.RegisterTimeout("timeoutId1", expiresIn: TimeSpan.FromHours(1));
         upsertCount.ShouldBe(1);
 
-        var pendingTimeouts = await timeoutProvider.PendingTimeouts();
+        var pendingTimeouts = await registeredTimeouts.PendingTimeouts();
         pendingTimeouts.Count.ShouldBe(1);
         pendingTimeouts.Single().TimeoutId.ShouldBe("timeoutId1");
 
-        await timeoutProvider.RegisterTimeout("timeoutId1", expiresIn: TimeSpan.FromHours(1));
+        await registeredTimeouts.RegisterTimeout("timeoutId1", expiresIn: TimeSpan.FromHours(1));
         upsertCount.ShouldBe(1);
     }
     
@@ -172,14 +172,14 @@ public abstract class TimeoutStoreTests
         var store = new TimeoutStoreDecorator(await storeTask, removeTimeoutCallback: () => removeCount++);
         var functionId = TestFlowId.Create();
 
-        var timeoutProvider = new RegisteredTimeouts(functionId, store);
+        var registeredTimeouts = new RegisteredTimeouts(functionId, store);
         
-        var pendingTimeouts = await timeoutProvider.PendingTimeouts();
+        var pendingTimeouts = await registeredTimeouts.PendingTimeouts();
         pendingTimeouts.ShouldBeEmpty();
 
-        await timeoutProvider.RegisterTimeout("SomeOtherTimeoutId", expiresIn: TimeSpan.FromHours(1));
+        await registeredTimeouts.RegisterTimeout("SomeOtherTimeoutId", expiresIn: TimeSpan.FromHours(1));
         
-        await timeoutProvider.CancelTimeout("SomeTimeoutId");
+        await registeredTimeouts.CancelTimeout("SomeTimeoutId");
         
         removeCount.ShouldBe(0);
     }

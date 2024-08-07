@@ -27,7 +27,7 @@ public abstract class CustomMessageSerializerTests
         );
         var eventSerializer = new EventSerializer();
         var messagesWriter = new MessageWriter(functionId, functionStore, eventSerializer, scheduleReInvocation: (_, _) => Task.CompletedTask);
-        var timeoutProvider = new RegisteredTimeouts(functionId, functionStore.TimeoutStore);
+        var registeredTimeouts = new RegisteredTimeouts(functionId, functionStore.TimeoutStore);
         var messagesPullerAndEmitter = new MessagesPullerAndEmitter(
             functionId,
             defaultDelay: TimeSpan.FromSeconds(1),
@@ -35,9 +35,9 @@ public abstract class CustomMessageSerializerTests
             isWorkflowRunning: () => true,
             functionStore,
             eventSerializer,
-            timeoutProvider
+            registeredTimeouts
         );
-        var messages = new Messages(messagesWriter, timeoutProvider, messagesPullerAndEmitter);
+        var messages = new Messages(messagesWriter, registeredTimeouts, messagesPullerAndEmitter);
         
         await messages.AppendMessage("hello world");
         
