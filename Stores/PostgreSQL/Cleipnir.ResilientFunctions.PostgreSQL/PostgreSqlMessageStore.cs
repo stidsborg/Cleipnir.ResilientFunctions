@@ -264,6 +264,6 @@ public class PostgreSqlMessageStore : IMessageStore
             return new FunctionStatus(status, epoch);
         }
         
-        throw new ConcurrentModificationException(flowId); //row must have been deleted concurrently
+        throw UnexpectedStateException.ConcurrentModification(flowId); //row must have been deleted concurrently
     }
 }

@@ -162,7 +162,7 @@ public abstract class BaseControlPanel<TParam, TReturn>
         );
 
         if (!success)
-            throw new ConcurrentModificationException(FlowId);
+            throw UnexpectedStateException.ConcurrentModification(FlowId);
         
         Epoch++;
         Status = Status.Succeeded;
@@ -180,7 +180,7 @@ public abstract class BaseControlPanel<TParam, TReturn>
         );
 
         if (!success)
-            throw new ConcurrentModificationException(FlowId);
+            throw UnexpectedStateException.ConcurrentModification(FlowId);
         
         Epoch++;
         Status = Status.Postponed;
@@ -200,7 +200,7 @@ public abstract class BaseControlPanel<TParam, TReturn>
         );
 
         if (!success)
-            throw new ConcurrentModificationException(FlowId);
+            throw UnexpectedStateException.ConcurrentModification(FlowId);
         
         Epoch++;
         Status = Status.Failed;
@@ -212,7 +212,7 @@ public abstract class BaseControlPanel<TParam, TReturn>
     {
         var success = await _invocationHelper.SaveControlPanelChanges(FlowId, InnerParam, InnerResult, Epoch);
         if (!success)
-            throw new ConcurrentModificationException(FlowId);
+            throw UnexpectedStateException.ConcurrentModification(FlowId);
         
         Epoch++;
         _innerParamChanged = false;

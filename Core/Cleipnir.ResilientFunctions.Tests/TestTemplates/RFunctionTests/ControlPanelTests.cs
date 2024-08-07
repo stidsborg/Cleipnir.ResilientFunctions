@@ -560,7 +560,7 @@ public abstract class ControlPanelTests
         }
         
         controlPanel.Param = "second";
-        await Should.ThrowAsync<ConcurrentModificationException>(() => controlPanel.ScheduleRestart());
+        await Should.ThrowAsync<UnexpectedStateException>(() => controlPanel.ScheduleRestart());
 
         unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
@@ -589,7 +589,7 @@ public abstract class ControlPanelTests
         }
         
         controlPanel.Param = "second";
-        await Should.ThrowAsync<ConcurrentModificationException>(() => controlPanel.ScheduleRestart());
+        await Should.ThrowAsync<UnexpectedStateException>(() => controlPanel.ScheduleRestart());
 
         unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }

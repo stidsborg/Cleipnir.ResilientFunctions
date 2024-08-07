@@ -280,7 +280,7 @@ public class Invoker<TParam, TReturn>
         switch (outcome)
         {
             case PersistResultOutcome.Failed:
-                throw new ConcurrentModificationException(flowId);
+                throw UnexpectedStateException.ConcurrentModification(flowId);
             case PersistResultOutcome.Success:
                 InvocationHelper<TParam, TReturn>.EnsureSuccess(flowId, result, allowPostponedOrSuspended);
                 break;

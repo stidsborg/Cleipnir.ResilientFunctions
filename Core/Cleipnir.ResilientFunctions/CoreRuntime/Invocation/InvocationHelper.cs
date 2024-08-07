@@ -117,7 +117,7 @@ internal class InvocationHelper<TParam, TReturn>
             )
         );
         if (!success) 
-            throw new ConcurrentModificationException(flowId);
+            throw UnexpectedStateException.ConcurrentModification(flowId);
     }
 
     public async Task<PersistResultOutcome> PersistResult(
