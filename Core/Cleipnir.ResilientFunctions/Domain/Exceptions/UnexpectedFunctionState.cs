@@ -2,7 +2,7 @@
 
 namespace Cleipnir.ResilientFunctions.Domain.Exceptions;
 
-public sealed class UnexpectedFunctionState : RFunctionException
+public sealed class UnexpectedFunctionState : FlowTypeException
 {
     public FlowId FlowId { get; }
 

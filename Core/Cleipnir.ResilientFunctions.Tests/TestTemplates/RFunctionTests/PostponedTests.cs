@@ -37,7 +37,7 @@ public abstract class PostponedTests
                 (string _) => Postpone.For(1_000).ToResult<string>().ToTask()
             ).Invoke;
 
-            await Should.ThrowAsync<FunctionInvocationPostponedException>(() =>
+            await Should.ThrowAsync<InvocationPostponedException>(() =>
                 rFunc(param, param)
             );
             crashableStore.Crash();
@@ -88,7 +88,7 @@ public abstract class PostponedTests
                     inner: (_, _) => throw new PostponeInvocationException(1_000)
                 ).Invoke;
 
-            await Should.ThrowAsync<FunctionInvocationPostponedException>(() => rFunc(param, param));
+            await Should.ThrowAsync<InvocationPostponedException>(() => rFunc(param, param));
             unhandledExceptionHandler.ShouldNotHaveExceptions();
         }
         {
@@ -168,7 +168,7 @@ public abstract class PostponedTests
                 (string _) => Postpone.Until(DateTime.UtcNow.AddMilliseconds(1_000)).ToResult().ToTask()
             ).Invoke;
 
-            await Should.ThrowAsync<FunctionInvocationPostponedException>(() => rAction(flowInstance.Value, param));
+            await Should.ThrowAsync<InvocationPostponedException>(() => rAction(flowInstance.Value, param));
             unhandledExceptionHandler.ShouldNotHaveExceptions();
         }
         {
@@ -214,7 +214,7 @@ public abstract class PostponedTests
                 (string _, Workflow _) => Postpone.For(1_000).ToResult().ToTask()
             ).Invoke;
 
-            await Should.ThrowAsync<FunctionInvocationPostponedException>(() => 
+            await Should.ThrowAsync<InvocationPostponedException>(() => 
                 rAction(flowInstance.Value, param)
             );
             unhandledExceptionHandler.ShouldNotHaveExceptions();
@@ -274,7 +274,7 @@ public abstract class PostponedTests
                 .Invoke;
 
             var instanceId = functionId.Instance.ToString();
-            await Should.ThrowAsync<FunctionInvocationPostponedException>(() => _ = rFunc(instanceId, "param"));
+            await Should.ThrowAsync<InvocationPostponedException>(() => _ = rFunc(instanceId, "param"));
             crashableStore.Crash();
         }
         {
@@ -314,7 +314,7 @@ public abstract class PostponedTests
 
         //invoke
         {
-            Should.Throw<FunctionInvocationPostponedException>(
+            Should.Throw<InvocationPostponedException>(
                 () => rAction.Invoke("invoke", "hello")
             );
             var (status, postponedUntil) = await store
@@ -351,7 +351,7 @@ public abstract class PostponedTests
                 timestamp: DateTime.UtcNow.Ticks
             ).ShouldBeTrueAsync();
             
-            Should.Throw<FunctionInvocationPostponedException>(
+            Should.Throw<InvocationPostponedException>(
                 () => rAction.ControlPanel(functionId.Instance.Value).Result!.Restart()
             );
             
@@ -404,7 +404,7 @@ public abstract class PostponedTests
         //invoke
         {
             var functionId = new FlowId(flowType, "invoke");
-            Should.Throw<FunctionInvocationPostponedException>(
+            Should.Throw<InvocationPostponedException>(
                 () => rAction.Invoke(functionId.Instance.Value, "hello")
             );
             var (status, postponedUntil) = await store.GetFunction(functionId).Map(sf => Tuple.Create(sf?.Status, sf?.PostponedUntil));
@@ -438,7 +438,7 @@ public abstract class PostponedTests
                 timestamp: DateTime.UtcNow.Ticks
             ).ShouldBeTrueAsync();
             
-            Should.Throw<FunctionInvocationPostponedException>(
+            Should.Throw<InvocationPostponedException>(
                 () => rAction.ControlPanel(functionId.Instance).Result!.Restart()
             );
             
@@ -489,7 +489,7 @@ public abstract class PostponedTests
 
         //invoke
         {
-            Should.Throw<FunctionInvocationPostponedException>(
+            Should.Throw<InvocationPostponedException>(
                 () => rFunc.Invoke("invoke", "hello")
             );
             var (status, postponedUntil) = await store
@@ -527,7 +527,7 @@ public abstract class PostponedTests
                 timestamp: DateTime.UtcNow.Ticks
             ).ShouldBeTrueAsync();
             var controlPanel = await rFunc.ControlPanel(functionId.Instance).ShouldNotBeNullAsync();
-            Should.Throw<FunctionInvocationPostponedException>(() => controlPanel.Restart());
+            Should.Throw<InvocationPostponedException>(() => controlPanel.Restart());
             
             var (status, postponedUntil) = await store.GetFunction(functionId).Map(sf => Tuple.Create(sf?.Status, sf?.PostponedUntil));
             status.ShouldBe(Status.Postponed);
@@ -578,7 +578,7 @@ public abstract class PostponedTests
         //invoke
         {
             var functionId = new FlowId(flowType, "invoke");
-            Should.Throw<FunctionInvocationPostponedException>(
+            Should.Throw<InvocationPostponedException>(
                 () => rFunc.Invoke(functionId.Instance.Value, "hello")
             );
             var (status, postponedUntil) = await store.GetFunction(functionId).Map(sf => Tuple.Create(sf?.Status, sf?.PostponedUntil));
@@ -614,7 +614,7 @@ public abstract class PostponedTests
             ).ShouldBeTrueAsync();
 
             var controlPanel = await rFunc.ControlPanel(functionId.Instance).ShouldNotBeNullAsync();
-            Should.Throw<FunctionInvocationPostponedException>(() => controlPanel.Restart());
+            Should.Throw<InvocationPostponedException>(() => controlPanel.Restart());
             
             var (status, postponedUntil) = await store.GetFunction(functionId).Map(sf => Tuple.Create(sf?.Status, sf?.PostponedUntil));
             status.ShouldBe(Status.Postponed);
@@ -819,7 +819,7 @@ public abstract class PostponedTests
                 (string _, Workflow workflow) => workflow.Delay("Delay", TimeSpan.FromDays(1))
             );
 
-        await Should.ThrowAsync<FunctionInvocationPostponedException>(
+        await Should.ThrowAsync<InvocationPostponedException>(
             () => rFunc.Invoke(functionId.Instance.Value, "test")
         );
         
@@ -848,7 +848,7 @@ public abstract class PostponedTests
                 (string _, Workflow workflow) => workflow.Delay("Delay", tomorrow)
             );
 
-        await Should.ThrowAsync<FunctionInvocationPostponedException>(
+        await Should.ThrowAsync<InvocationPostponedException>(
             () => registration.Invoke(functionId.Instance.Value, "test")
         );
 

@@ -29,7 +29,7 @@ public class ReactiveIntegrationTests
                 await messages.SuspendFor(timeoutEventId: "timeout", resumeAfter: TimeSpan.FromSeconds(1));
             });
         
-        await Should.ThrowAsync<FunctionInvocationSuspendedException>(rAction.Invoke(flowInstance.Value, "param"));
+        await Should.ThrowAsync<InvocationSuspendedException>(rAction.Invoke(flowInstance.Value, "param"));
 
         await BusyWait.Until(() =>
             store.GetFunction(functionId).SelectAsync(sf => sf?.Status == Status.Succeeded)

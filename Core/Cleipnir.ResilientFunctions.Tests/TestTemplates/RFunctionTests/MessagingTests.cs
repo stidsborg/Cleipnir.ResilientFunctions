@@ -66,7 +66,7 @@ public abstract class MessagingTests
             }
         );
 
-        await Should.ThrowAsync<FunctionInvocationSuspendedException>(() =>
+        await Should.ThrowAsync<InvocationSuspendedException>(() =>
             rAction.Invoke(functionId.Instance.Value, "")
         );
         var sf = await store.GetFunction(functionId);
@@ -105,7 +105,7 @@ public abstract class MessagingTests
             }
         );
 
-        await Should.ThrowAsync<FunctionInvocationSuspendedException>(() =>
+        await Should.ThrowAsync<InvocationSuspendedException>(() =>
             rFunc.Invoke(functionId.Instance.Value, "")
         );
 

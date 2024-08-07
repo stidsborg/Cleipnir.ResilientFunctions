@@ -8,7 +8,7 @@ namespace Cleipnir.ResilientFunctions.Domain;
 
 public class Settings
 {
-    internal Action<RFunctionException>? UnhandledExceptionHandler { get; }
+    internal Action<FlowTypeException>? UnhandledExceptionHandler { get; }
     internal TimeSpan? RetentionPeriod { get; }
     internal TimeSpan? RetentionCleanUpFrequency { get; }
     internal TimeSpan? LeaseLength { get; }
@@ -22,7 +22,7 @@ public class Settings
     internal IEnumerable<RoutingInformation>? Routes { get; }
 
     public Settings(
-        Action<RFunctionException>? unhandledExceptionHandler = null, 
+        Action<FlowTypeException>? unhandledExceptionHandler = null, 
         TimeSpan? retentionPeriod = null,
         TimeSpan? retentionCleanUpFrequency = null,
         TimeSpan? leaseLength = null,

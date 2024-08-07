@@ -77,7 +77,7 @@ public abstract class DoubleInvocationTests
         var secondInvocationTask = rFunc.Invoke(flowInstance.Value, param: "Hallo World");
         await BusyWait.Until(() => secondInvocationTask.IsCompleted);
 
-        await Should.ThrowAsync<FunctionInvocationSuspendedException>(secondInvocationTask);
+        await Should.ThrowAsync<InvocationSuspendedException>(secondInvocationTask);
         
         if (unhandledExceptionHandler.ThrownExceptions.Any())
             throw new Exception("Unhandled exception occurred", unhandledExceptionHandler.ThrownExceptions[0]);
@@ -109,7 +109,7 @@ public abstract class DoubleInvocationTests
         var secondInvocationTask = rFunc.Invoke(flowInstance.Value, param: "Hallo World");
         await BusyWait.Until(() => secondInvocationTask.IsCompleted);
 
-        await Should.ThrowAsync<FunctionInvocationPostponedException>(secondInvocationTask);
+        await Should.ThrowAsync<InvocationPostponedException>(secondInvocationTask);
         
         if (unhandledExceptionHandler.ThrownExceptions.Any())
             throw new Exception("Unhandled exception occurred", unhandledExceptionHandler.ThrownExceptions[0]);

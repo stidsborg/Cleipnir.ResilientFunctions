@@ -2,7 +2,7 @@
 
 namespace Cleipnir.ResilientFunctions.Domain.Exceptions;
 
-public sealed class ConcurrentModificationException : RFunctionException
+public sealed class ConcurrentModificationException : FlowTypeException
 {
     public FlowId FlowId { get; }
 

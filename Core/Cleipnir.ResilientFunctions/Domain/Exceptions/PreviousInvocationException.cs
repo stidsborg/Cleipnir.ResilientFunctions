@@ -1,14 +1,8 @@
 ﻿namespace Cleipnir.ResilientFunctions.Domain.Exceptions;
 
-public sealed class PreviousInvocationException : RFunctionException
+public sealed class PreviousInvocationException(FlowId flowId, PreviouslyThrownException exception)
+    : FlowTypeException(flowId.Type, $"'{flowId}' invocation previously failed")
 {
-    public FlowId FlowId { get; }
-    public PreviouslyThrownException Exception { get; }
-
-    public PreviousInvocationException(FlowId flowId, PreviouslyThrownException exception) 
-        : base(flowId.Type, $"'{flowId}' invocation previously failed")
-    {
-        FlowId = flowId;
-        Exception = exception;
-    }
+    public FlowId FlowId { get; } = flowId;
+    public PreviouslyThrownException Exception { get; } = exception;
 }

@@ -1,6 +1,6 @@
 namespace Cleipnir.ResilientFunctions.Domain.Exceptions;
 
-public class EffectException : RFunctionException
+public class EffectException : FlowTypeException
 {
     public FlowId FlowId { get; }
     public PreviouslyThrownException Exception { get; }

@@ -87,13 +87,13 @@ internal class InvocationHelper<TParam, TReturn>
                     throw new PreviousInvocationException(flowId, error);
                 case Status.Postponed:
                     if (allowPostponedAndSuspended) { await Task.Delay(250); continue;}
-                    throw new FunctionInvocationPostponedException(
+                    throw new InvocationPostponedException(
                         flowId,
                         postponedUntil: new DateTime(storedFunction.PostponedUntil!.Value, DateTimeKind.Utc)
                     );
                 case Status.Suspended:
                     if (allowPostponedAndSuspended) { await Task.Delay(250); continue; }
-                    throw new FunctionInvocationSuspendedException(flowId);
+                    throw new InvocationSuspendedException(flowId);
                 default:
                     throw new ArgumentOutOfRangeException(); 
             }
@@ -196,14 +196,14 @@ internal class InvocationHelper<TParam, TReturn>
                 if (allowPostponedOrSuspended)
                     return;
                 else
-                    throw new FunctionInvocationPostponedException(flowId, result.Postpone!.DateTime);
+                    throw new InvocationPostponedException(flowId, result.Postpone!.DateTime);
             case Outcome.Fail:
                 throw result.Fail!;
             case Outcome.Suspend:
                 if (allowPostponedOrSuspended)
                     return;
                 else
-                    throw new FunctionInvocationSuspendedException(flowId);
+                    throw new InvocationSuspendedException(flowId);
             default:
                 throw new ArgumentOutOfRangeException();
         }

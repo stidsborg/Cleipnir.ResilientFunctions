@@ -34,7 +34,7 @@ public abstract class SuspensionTests
             Task<Result> (string _) => throw new SuspendInvocationException(expectedInterruptCount: new InterruptCount(0))
         );
 
-        await Should.ThrowAsync<FunctionInvocationSuspendedException>(
+        await Should.ThrowAsync<InvocationSuspendedException>(
             () => rAction.Invoke(flowInstance.Value, "hello world")
         );
 
@@ -68,7 +68,7 @@ public abstract class SuspensionTests
             Task<Result<string>>(string _) => Suspend.While(0).ToResult<string>().ToTask()
         );
 
-        await Should.ThrowAsync<FunctionInvocationSuspendedException>(
+        await Should.ThrowAsync<InvocationSuspendedException>(
             () => rFunc.Invoke(instanceId.Value, "hello world")
         );
         
@@ -113,7 +113,7 @@ public abstract class SuspensionTests
                 return Result.SucceedWithValue("completed").ToTask();
             });
 
-        await Should.ThrowAsync<FunctionInvocationSuspendedException>(
+        await Should.ThrowAsync<InvocationSuspendedException>(
             () => rFunc.Invoke(flowInstance.Value, "hello world")
         );
 
@@ -156,7 +156,7 @@ public abstract class SuspensionTests
                 return Result.SucceedWithValue("completed").ToTask();
             });
 
-        await Should.ThrowAsync<FunctionInvocationPostponedException>(
+        await Should.ThrowAsync<InvocationPostponedException>(
             () => rFunc.Invoke(flowInstance.Value, "hello world")
         );
 
@@ -195,7 +195,7 @@ public abstract class SuspensionTests
                 return Suspend.While(0).ToResult<string>().ToTask();
             });
 
-        await Should.ThrowAsync<FunctionInvocationSuspendedException>(
+        await Should.ThrowAsync<InvocationSuspendedException>(
             () => rFunc.Invoke(flowInstance, "hello world")
         );
 
@@ -231,7 +231,7 @@ public abstract class SuspensionTests
             }
         );
 
-        await Should.ThrowAsync<FunctionInvocationSuspendedException>(() =>
+        await Should.ThrowAsync<InvocationSuspendedException>(() =>
             registration.Invoke(flowInstance, "hello world")
         );
 
@@ -277,7 +277,7 @@ public abstract class SuspensionTests
             }
         );
 
-        await Should.ThrowAsync<FunctionInvocationSuspendedException>(() =>
+        await Should.ThrowAsync<InvocationSuspendedException>(() =>
             registration.Invoke(flowInstance.Value, "hello world")
         );
 
