@@ -2,6 +2,7 @@ using System;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
+using Cleipnir.ResilientFunctions.Domain.Exceptions.Commands;
 using Cleipnir.ResilientFunctions.Reactive.Extensions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Shouldly;
