@@ -88,7 +88,7 @@ public class MessagesPullerAndEmitter
 
             var interruptCount = await _functionStore.GetInterruptCount(_flowId);
             if (interruptCount == null)
-                throw new UnexpectedFunctionState(_flowId, "Function was not found when fetching interrupt count");
+                throw UnexpectedStateException.NotFound(_flowId);
 
             lock (_sync)
                 _interruptCount = interruptCount.Value;

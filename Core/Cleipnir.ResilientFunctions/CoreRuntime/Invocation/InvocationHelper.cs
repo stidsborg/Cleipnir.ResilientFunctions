@@ -251,7 +251,7 @@ internal class InvocationHelper<TParam, TReturn>
             runningFunction.Dispose();
             sf = await _functionStore.GetFunction(flowId);
             if (sf == null)
-                throw new UnexpectedFunctionState(flowId, $"Function '{flowId}' was not found");
+                throw UnexpectedStateException.NotFound(flowId);
             
             await _functionStore.FailFunction(
                 flowId,

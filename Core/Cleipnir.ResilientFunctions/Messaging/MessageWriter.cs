@@ -59,7 +59,7 @@ public class MessageWriter
             {
                 await _scheduleReInvocation(_flowId.Instance.Value, expectedEpoch: epoch);
             }
-            catch (UnexpectedFunctionState) { }
+            catch (UnexpectedStateException) { }
 
         return Finding.Found;
     }

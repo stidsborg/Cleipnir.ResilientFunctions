@@ -46,7 +46,7 @@ public abstract class ControlPanelTests
         var controlPanel = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
         await controlPanel.Delete();
         
-        await Should.ThrowAsync<UnexpectedFunctionState>(controlPanel.Refresh());
+        await Should.ThrowAsync<UnexpectedStateException>(controlPanel.Refresh());
 
         await store.GetFunction(functionId).ShouldBeNullAsync();
 
@@ -106,7 +106,7 @@ public abstract class ControlPanelTests
         var controlPanel = await rFunc.ControlPanel(flowInstance).ShouldNotBeNullAsync();
         await controlPanel.Delete();
 
-        await Should.ThrowAsync<UnexpectedFunctionState>(controlPanel.Refresh());
+        await Should.ThrowAsync<UnexpectedStateException>(controlPanel.Refresh());
 
         await store.GetFunction(functionId).ShouldBeNullAsync();
         

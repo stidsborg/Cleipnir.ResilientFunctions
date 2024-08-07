@@ -215,7 +215,7 @@ public class Invoker<TParam, TReturn>
     {
         var restartedFunction = await _invocationHelper.RestartFunction(flowId, expectedEpoch);
         if (restartedFunction == null)
-            throw new UnexpectedFunctionState(flowId, $"Function '{flowId}' did not have expected epoch '{expectedEpoch}' on re-invocation");
+            throw UnexpectedStateException.EpochMismatch(flowId);
 
         return await PrepareForReInvocation(flowId, restartedFunction);
     }
@@ -289,7 +289,7 @@ public class Invoker<TParam, TReturn>
                 try
                 {
                     await ScheduleRestart(flowId.Instance.Value, expectedEpoch);
-                } catch (UnexpectedFunctionState) {} //allow this exception - the invocation has been surpassed by other execution
+                } catch (UnexpectedStateException) {} //allow this exception - the invocation has been surpassed by other execution
                 InvocationHelper<TParam, TReturn>.EnsureSuccess(flowId, result, allowPostponedOrSuspended);
                 break;
             }

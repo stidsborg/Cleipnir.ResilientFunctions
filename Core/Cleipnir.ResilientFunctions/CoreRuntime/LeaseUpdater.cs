@@ -68,12 +68,7 @@ internal class LeaseUpdater : IDisposable
                 if (!success)
                 {
                     _disposed = true;
-                    _unhandledExceptionHandler.Invoke(
-                        new UnexpectedFunctionState(
-                            _flowId,
-                            $"{nameof(LeaseUpdater)} failed to update lease for executing function: '{_flowId}'"
-                        )
-                    );
+                    _unhandledExceptionHandler.Invoke(UnexpectedStateException.LeaseUpdateFailed(_flowId));
                 }
             }
             catch (Exception e)
@@ -82,7 +77,7 @@ internal class LeaseUpdater : IDisposable
                 _unhandledExceptionHandler.Invoke(
                     new FrameworkException(
                         _flowId.Type,
-                        $"{nameof(LeaseUpdater)} failed while executing function: '{_flowId}'",
+                        $"{nameof(LeaseUpdater)} failed for '{_flowId}'",
                         e
                     )
                 );

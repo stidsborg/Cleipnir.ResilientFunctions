@@ -239,7 +239,7 @@ public abstract class BaseControlPanel<TParam, TReturn>
     {
         var sf = await _invocationHelper.GetFunction(FlowId);
         if (sf == null)
-            throw new UnexpectedFunctionState(FlowId, $"Function '{FlowId}' not found");
+            throw UnexpectedStateException.NotFound(FlowId);
 
         Status = sf.Status;
         Epoch = sf.Epoch;

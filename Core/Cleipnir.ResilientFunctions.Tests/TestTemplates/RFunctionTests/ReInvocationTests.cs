@@ -342,7 +342,7 @@ public abstract class ReInvocationTests
         var controlPanel2 = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
         await controlPanel1.Delete();
         
-        await Should.ThrowAsync<UnexpectedFunctionState>(() => controlPanel2.Restart());
+        await Should.ThrowAsync<UnexpectedStateException>(() => controlPanel2.Restart());
 
         unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
