@@ -18,31 +18,24 @@ public enum ResiliencyLevel
     AtMostOnce
 }
 
-public class Effect
+public class Effect(
+    FlowId flowId,
+    Func<Task<IEnumerable<StoredEffect>>> existingEffectsFunc,
+    IEffectsStore effectsStore,
+    ISerializer serializer
+    )
 {
-    private readonly Func<Task<IEnumerable<StoredEffect>>> _existingEffectsFunc;
+    private readonly ImplicitIds _implicitIds = new();
     private Dictionary<EffectId, StoredEffect>? _effectResults;
-
-    private readonly IEffectsStore _effectsStore;
-    private readonly ISerializer _serializer;
-    private readonly FlowId _flowId;
     private readonly object _sync = new();
-    
-    public Effect(FlowId flowId, Func<Task<IEnumerable<StoredEffect>>> existingEffectsFunc, IEffectsStore effectsStore, ISerializer serializer)
-    {
-        _flowId = flowId;
-        _existingEffectsFunc = existingEffectsFunc;
-        _effectsStore = effectsStore;
-        _serializer = serializer;
-    }
-    
+
     private async Task<Dictionary<EffectId, StoredEffect>> GetEffectResults()
     {
         lock (_sync)
             if (_effectResults is not null)
                 return _effectResults;
 
-        var existingEffects = await _existingEffectsFunc();
+        var existingEffects = await existingEffectsFunc();
         var effectResults = existingEffects
             .ToDictionary(e => e.EffectId, e => e); 
         
@@ -69,14 +62,14 @@ public class Effect
         lock (_sync)
         {
             if (effectResults.TryGetValue(id, out var existing) && existing.WorkStatus == WorkStatus.Completed)
-                return _serializer.DeserializeEffectResult<T>(existing.Result!);
+                return serializer.DeserializeEffectResult<T>(existing.Result!);
             
             if (existing?.StoredException != null)
-                throw new EffectException(_flowId, id, _serializer.DeserializeException(existing.StoredException!));
+                throw new EffectException(flowId, id, serializer.DeserializeException(existing.StoredException!));
         }
         
-        var storedEffect = new StoredEffect(id, WorkStatus.Completed, _serializer.SerializeEffectResult(value), StoredException: null);
-        await _effectsStore.SetEffectResult(_flowId, storedEffect);
+        var storedEffect = new StoredEffect(id, WorkStatus.Completed, serializer.SerializeEffectResult(value), StoredException: null);
+        await effectsStore.SetEffectResult(flowId, storedEffect);
 
         lock (_sync)
             effectResults[id] = storedEffect;
@@ -88,8 +81,8 @@ public class Effect
     {
         var effectResults = await GetEffectResults();
         
-        var storedEffect = new StoredEffect(id, WorkStatus.Completed, _serializer.SerializeEffectResult(value), StoredException: null);
-        await _effectsStore.SetEffectResult(_flowId, storedEffect);
+        var storedEffect = new StoredEffect(id, WorkStatus.Completed, serializer.SerializeEffectResult(value), StoredException: null);
+        await effectsStore.SetEffectResult(flowId, storedEffect);
         
         lock (_sync)
             effectResults[id] = storedEffect;
@@ -105,12 +98,12 @@ public class Effect
             {
                 if (storedEffect.WorkStatus == WorkStatus.Completed)
                 {
-                    var value = _serializer.DeserializeEffectResult<T>(storedEffect.Result!)!;
+                    var value = serializer.DeserializeEffectResult<T>(storedEffect.Result!)!;
                     return new Option<T>(value);    
                 }
                 
                 if (storedEffect.StoredException != null)
-                    throw new EffectException(_flowId, id, _serializer.DeserializeException(storedEffect.StoredException!));
+                    throw new EffectException(flowId, id, serializer.DeserializeException(storedEffect.StoredException!));
             }
         }
         
@@ -126,12 +119,24 @@ public class Effect
 
         return option.Value;
     }
+
+    #region Implicit ids
+
+    public Task Capture(Action work, ResiliencyLevel resiliency = ResiliencyLevel.AtLeastOnce)
+        => Capture(id: _implicitIds.Next(), work, resiliency);
+    public Task<T> Capture<T>(Func<T> work, ResiliencyLevel resiliency = ResiliencyLevel.AtLeastOnce)
+        => Capture(id: _implicitIds.Next(), work: () => work().ToTask(), resiliency);
+    public Task Capture(Func<Task> work, ResiliencyLevel resiliency = ResiliencyLevel.AtLeastOnce)
+        => Capture(id: _implicitIds.Next(), work, resiliency);
+    public Task<T> Capture<T>(Func<Task<T>> work, ResiliencyLevel resiliency = ResiliencyLevel.AtLeastOnce)
+        => Capture(id: _implicitIds.Next(), work, resiliency);
+    
+    #endregion
     
     public Task Capture(string id, Action work, ResiliencyLevel resiliency = ResiliencyLevel.AtLeastOnce)
         => Capture(id, work: () => { work(); return Task.CompletedTask; }, resiliency);
     public Task<T> Capture<T>(string id, Func<T> work, ResiliencyLevel resiliency = ResiliencyLevel.AtLeastOnce)
         => Capture(id, work: () => work().ToTask(), resiliency);
-
     public async Task Capture(string id, Func<Task> work, ResiliencyLevel resiliency = ResiliencyLevel.AtLeastOnce)
     {
         var effectResults = await GetEffectResults();
@@ -141,15 +146,15 @@ public class Effect
             if (success && storedEffect!.WorkStatus == WorkStatus.Completed)
                 return;
             if (success && storedEffect!.WorkStatus == WorkStatus.Failed)
-                throw new EffectException(_flowId, id, _serializer.DeserializeException(storedEffect.StoredException!));
+                throw new EffectException(flowId, id, serializer.DeserializeException(storedEffect.StoredException!));
             if (success && resiliency == ResiliencyLevel.AtMostOnce)
                 throw new InvalidOperationException($"Effect '{id}' started but did not complete previously");
         }
 
         if (resiliency == ResiliencyLevel.AtMostOnce)
         {
-            await _effectsStore.SetEffectResult(
-                _flowId,
+            await effectsStore.SetEffectResult(
+                flowId,
                 new StoredEffect(id, WorkStatus.Started, Result: null, StoredException: null)
             );
             lock (_sync)
@@ -170,9 +175,9 @@ public class Effect
         }
         catch (Exception exception)
         {
-            var storedException = _serializer.SerializeException(exception);
+            var storedException = serializer.SerializeException(exception);
             var storedEffect = new StoredEffect(id, WorkStatus.Failed, Result: null, storedException);
-            await _effectsStore.SetEffectResult(_flowId, storedEffect);
+            await effectsStore.SetEffectResult(flowId, storedEffect);
             
             lock (_sync)
                 effectResults[id] = new StoredEffect(id, WorkStatus.Failed, Result: null, StoredException: storedException);
@@ -181,7 +186,7 @@ public class Effect
         }
 
         var effectResult = new StoredEffect(id, WorkStatus.Completed, Result: null, StoredException: null);
-        await _effectsStore.SetEffectResult(_flowId,effectResult);
+        await effectsStore.SetEffectResult(flowId,effectResult);
 
         lock (_sync)
             effectResults[id] = effectResult;
@@ -196,15 +201,15 @@ public class Effect
             if (success && storedEffect!.WorkStatus == WorkStatus.Completed)
                 return (storedEffect.Result == null ? default : JsonSerializer.Deserialize<T>(storedEffect.Result))!;
             if (success && storedEffect!.WorkStatus == WorkStatus.Failed)
-                throw new PreviousInvocationException(_flowId, _serializer.DeserializeException(storedEffect.StoredException!));
+                throw new PreviousInvocationException(flowId, serializer.DeserializeException(storedEffect.StoredException!));
             if (success && resiliency == ResiliencyLevel.AtMostOnce)
                 throw new InvalidOperationException($"Effect '{id}' started but did not complete previously");
         }
 
         if (resiliency == ResiliencyLevel.AtMostOnce)
         {
-            await _effectsStore.SetEffectResult(
-                _flowId,
+            await effectsStore.SetEffectResult(
+                flowId,
                 new StoredEffect(id, WorkStatus.Started, Result: null, StoredException: null)
             );
             lock (_sync)
@@ -226,9 +231,9 @@ public class Effect
         }
         catch (Exception exception)
         {
-            var storedException = _serializer.SerializeException(exception);
+            var storedException = serializer.SerializeException(exception);
             var storedEffect = new StoredEffect(id, WorkStatus.Failed, Result: null, storedException);
-            await _effectsStore.SetEffectResult(_flowId, storedEffect);
+            await effectsStore.SetEffectResult(flowId, storedEffect);
             
             lock (_sync)
                 effectResults[id] = new StoredEffect(id, WorkStatus.Failed, Result: null, StoredException: storedException);
@@ -236,8 +241,8 @@ public class Effect
             throw;
         }
 
-        var effectResult = new StoredEffect(id, WorkStatus.Completed, Result: _serializer.SerializeEffectResult(result), StoredException: null);
-        await _effectsStore.SetEffectResult(_flowId,effectResult);
+        var effectResult = new StoredEffect(id, WorkStatus.Completed, Result: serializer.SerializeEffectResult(result), StoredException: null);
+        await effectsStore.SetEffectResult(flowId,effectResult);
 
         lock (_sync)
             effectResults[id] = effectResult;
@@ -252,14 +257,18 @@ public class Effect
             if (!effectResults.ContainsKey(id))
                 return;
         
-        await _effectsStore.DeleteEffectResult(_flowId, id);
+        await effectsStore.DeleteEffectResult(flowId, id);
         lock (_sync)
             effectResults.Remove(id);
     }
     
     public Task<T> WhenAny<T>(string id, params Task<T>[] tasks)
         => Capture(id, work: async () => await await Task.WhenAny(tasks));
-    
     public Task<T[]> WhenAll<T>(string id, params Task<T>[] tasks)
         => Capture(id, work: () => Task.WhenAll(tasks));
+
+    public Task<T> WhenAny<T>(params Task<T>[] tasks)
+        => WhenAny(_implicitIds.Next(), tasks);
+    public Task<T[]> WhenAll<T>(params Task<T>[] tasks)
+        => WhenAll(_implicitIds.Next(), tasks);
 }

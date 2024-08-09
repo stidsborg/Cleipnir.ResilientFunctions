@@ -17,6 +17,7 @@ public interface IRegisteredTimeouts
 
 public class RegisteredTimeouts(FlowId flowId, ITimeoutStore timeoutStore) : IRegisteredTimeouts
 {
+    private readonly ImplicitIds _implicitIds = new();
     private Dictionary<TimeoutId, RegisteredTimeout>? _localTimeouts;
     private readonly object _sync = new();
 
@@ -41,6 +42,8 @@ public class RegisteredTimeouts(FlowId flowId, ITimeoutStore timeoutStore) : IRe
 
         return localTimeouts;
     }
+
+    public string GetNextImplicitId() => _implicitIds.Next();
     
     public async Task RegisterTimeout(TimeoutId timeoutId, DateTime expiresAt)
     {

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Domain;
@@ -118,6 +119,56 @@ public abstract class TimeoutTests
             .All
             .SelectAsync(ts => ts.Count == 0)
             .ShouldBeTrueAsync();
+        
+        unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
+    }
+    
+    public abstract Task ExpiredImplicitTimeoutsAreAddedToMessages();
+    protected async Task ExpiredImplicitTimeoutsAreAddedToMessages(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var flowId = TestFlowId.Create();
+        var (flowType, flowInstance) = flowId;
+        
+        var unhandledExceptionHandler = new UnhandledExceptionCatcher();
+        using var functionsRegistry = new FunctionsRegistry
+        (
+            store,
+            new Settings(
+                unhandledExceptionHandler.Catch,
+                watchdogCheckFrequency: TimeSpan.FromMilliseconds(250),
+                messagesDefaultMaxWaitForCompletion: TimeSpan.MaxValue
+            )
+        );
+        
+        var expiresAt1 = DateTime.UtcNow.AddMilliseconds(10);
+        var expiresAt2 = DateTime.UtcNow.AddMilliseconds(20);
+        
+        var registration = functionsRegistry.RegisterAction(
+            flowType,
+            inner: async Task (string _, Workflow workflow) =>
+            {
+                var messages = workflow.Messages;
+                await messages.TakeUntilTimeout(expiresAt1).OfType<string>().FirstOrNone();
+                await messages.TakeUntilTimeout(expiresAt2).OfType<string>().FirstOrNone();
+            }
+        );
+        
+        await registration.Invoke(flowInstance.Value, "param");
+
+        var controlPanel = await registration.ControlPanel(flowInstance);
+        controlPanel.ShouldNotBeNull();
+
+        await controlPanel.Restart();
+        await controlPanel.Refresh();
+        
+        (await controlPanel.RegisteredTimeouts.All).Count.ShouldBe(0);
+
+        var messages = await controlPanel.Messages.AsObjects;
+        messages.Count.ShouldBe(2);
+        messages.OfType<TimeoutEvent>().Count().ShouldBe(2);
+        messages.OfType<TimeoutEvent>().Single(t => t.TimeoutId == "0").Expiration.ShouldBe(expiresAt1);
+        messages.OfType<TimeoutEvent>().Single(t => t.TimeoutId == "1").Expiration.ShouldBe(expiresAt2);
         
         unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
     }
