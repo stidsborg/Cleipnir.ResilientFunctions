@@ -56,6 +56,17 @@ public class Effect(
             return effectResults.ContainsKey(id);
     }
 
+    public async Task<WorkStatus?> GetStatus(string id)
+    {
+        var effectResults = await GetEffectResults();
+
+        lock (_sync)
+            if (effectResults.TryGetValue(id, out var value))
+                return value.WorkStatus;
+            else
+                return null;
+    }
+
     public async Task<T> CreateOrGet<T>(string id, T value)
     {
         var effectResults = await GetEffectResults();
