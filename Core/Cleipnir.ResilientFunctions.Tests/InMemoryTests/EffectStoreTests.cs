@@ -1,4 +1,5 @@
 ﻿using System.Threading.Tasks;
+using Cleipnir.ResilientFunctions.Helpers;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Cleipnir.ResilientFunctions.Tests.InMemoryTests;
@@ -8,25 +9,25 @@ public class EffectStoreTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.
 {
     [TestMethod]
     public override Task SunshineScenarioTest()
-        => SunshineScenarioTest(FunctionStoreFactory.CreateEffectStore());
+        => SunshineScenarioTest(FunctionStoreFactory.Create().SelectAsync(fs => fs.EffectsStore));
 
     [TestMethod]
     public override Task SingleEffectWithResultLifeCycle()
-        => SingleEffectWithResultLifeCycle(FunctionStoreFactory.CreateEffectStore());
+        => SingleEffectWithResultLifeCycle(FunctionStoreFactory.Create().SelectAsync(fs => fs.EffectsStore));
 
     [TestMethod]
     public override Task SingleFailingEffectLifeCycle()
-        => SingleFailingEffectLifeCycle(FunctionStoreFactory.CreateEffectStore());
+        => SingleFailingEffectLifeCycle(FunctionStoreFactory.Create().SelectAsync(fs => fs.EffectsStore));
 
     [TestMethod]
     public override Task EffectCanBeDeleted()
-        => EffectCanBeDeleted(FunctionStoreFactory.CreateEffectStore());
+        => EffectCanBeDeleted(FunctionStoreFactory.Create().SelectAsync(fs => fs.EffectsStore));
 
     [TestMethod]
     public override Task DeleteFunctionIdDeletesAllRelatedEffects()
-        => DeleteFunctionIdDeletesAllRelatedEffects(FunctionStoreFactory.CreateEffectStore());
+        => DeleteFunctionIdDeletesAllRelatedEffects(FunctionStoreFactory.Create().SelectAsync(fs => fs.EffectsStore));
 
     [TestMethod]
     public override Task TruncateDeletesAllEffects()
-        => TruncateDeletesAllEffects(FunctionStoreFactory.CreateEffectStore());
+        => TruncateDeletesAllEffects(FunctionStoreFactory.Create().SelectAsync(fs => fs.EffectsStore));
 }

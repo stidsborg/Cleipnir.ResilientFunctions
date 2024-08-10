@@ -10,31 +10,31 @@ public class TimeoutStoreTests : TestTemplates.TimeoutStoreTests
 {
     [TestMethod]
     public override Task TimeoutCanBeCreatedFetchedAndRemoveSuccessfully()
-        => TimeoutCanBeCreatedFetchedAndRemoveSuccessfully(new InMemoryTimeoutStore().CastTo<ITimeoutStore>().ToTask());
+        => TimeoutCanBeCreatedFetchedAndRemoveSuccessfully(FunctionStoreFactory.Create().SelectAsync(fs => fs.TimeoutStore));
 
     [TestMethod]
     public override Task ExistingTimeoutCanUpdatedSuccessfully()
-        => ExistingTimeoutCanUpdatedSuccessfully(new InMemoryTimeoutStore().CastTo<ITimeoutStore>().ToTask());
+        => ExistingTimeoutCanUpdatedSuccessfully(FunctionStoreFactory.Create().SelectAsync(fs => fs.TimeoutStore));
 
     [TestMethod]
     public override Task OverwriteFalseDoesNotAffectExistingTimeout()
-        => OverwriteFalseDoesNotAffectExistingTimeout(new InMemoryTimeoutStore().CastTo<ITimeoutStore>().ToTask());
+        => OverwriteFalseDoesNotAffectExistingTimeout(FunctionStoreFactory.Create().SelectAsync(fs => fs.TimeoutStore));
 
     [TestMethod]
     public override Task RegisteredTimeoutIsReturnedFromRegisteredTimeouts()
-        => RegisteredTimeoutIsReturnedFromRegisteredTimeouts(new InMemoryTimeoutStore().CastTo<ITimeoutStore>().ToTask());
+        => RegisteredTimeoutIsReturnedFromRegisteredTimeouts(FunctionStoreFactory.Create().SelectAsync(fs => fs.TimeoutStore));
 
     [TestMethod]
     public override Task TimeoutStoreCanBeInitializedMultipleTimes()
-        => TimeoutStoreCanBeInitializedMultipleTimes(new InMemoryTimeoutStore().CastTo<ITimeoutStore>().ToTask());
+        => TimeoutStoreCanBeInitializedMultipleTimes(FunctionStoreFactory.Create().SelectAsync(fs => fs.TimeoutStore));
 
     [TestMethod]
     public override Task RegisteredTimeoutIsReturnedFromRegisteredTimeoutsForFunctionId()
-        => RegisteredTimeoutIsReturnedFromRegisteredTimeoutsForFunctionId(new InMemoryTimeoutStore().CastTo<ITimeoutStore>().ToTask());
+        => RegisteredTimeoutIsReturnedFromRegisteredTimeoutsForFunctionId(FunctionStoreFactory.Create().SelectAsync(fs => fs.TimeoutStore));
 
     [TestMethod]
     public override Task TimeoutIsNotRegisteredAgainWhenProviderAlreadyContainsTimeout()
-        => TimeoutIsNotRegisteredAgainWhenProviderAlreadyContainsTimeout(new InMemoryTimeoutStore().CastTo<ITimeoutStore>().ToTask());
+        => TimeoutIsNotRegisteredAgainWhenProviderAlreadyContainsTimeout(FunctionStoreFactory.Create().SelectAsync(fs => fs.TimeoutStore));
 
     [TestMethod]
     public override Task CancellingNonExistingTimeoutDoesNotResultInIO()

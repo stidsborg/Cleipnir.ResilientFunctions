@@ -10,41 +10,41 @@ public class EffectTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.RFunc
 {
     [TestMethod]
     public override Task SunshineActionTest()
-        => SunshineActionTest(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+        => SunshineActionTest(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task SunshineAsyncActionTest()
-        => SunshineAsyncActionTest(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+        => SunshineAsyncActionTest(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task SunshineFuncTest()
-        => SunshineFuncTest(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+        => SunshineFuncTest(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task SunshineAsyncFuncTest()
-        => SunshineAsyncFuncTest(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+        => SunshineAsyncFuncTest(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task ExceptionThrowingActionTest()
-        => ExceptionThrowingActionTest(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+        => ExceptionThrowingActionTest(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task TaskWhenAnyFuncTest()
-        => TaskWhenAnyFuncTest(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+        => TaskWhenAnyFuncTest(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task TaskWhenAllFuncTest()
-        => TaskWhenAllFuncTest(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+        => TaskWhenAllFuncTest(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task ClearEffectsTest()
-        => ClearEffectsTest(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+        => ClearEffectsTest(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task EffectsCrudTest()
-        => EffectsCrudTest(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+        => EffectsCrudTest(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task ExistingEffectsFuncIsOnlyInvokedAfterGettingValue()
-        => ExistingEffectsFuncIsOnlyInvokedAfterGettingValue(new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask());
+        => ExistingEffectsFuncIsOnlyInvokedAfterGettingValue(FunctionStoreFactory.Create());
 }

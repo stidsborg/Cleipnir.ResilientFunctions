@@ -8,7 +8,4 @@ public static class FunctionStoreFactory
 {
     public static Task<IFunctionStore> Create()
         => new InMemoryFunctionStore().CastTo<IFunctionStore>().ToTask();
-
-    public static Task<IEffectsStore> CreateEffectStore()
-        => Create().SelectAsync(fs => fs.EffectsStore);
 }
