@@ -1359,6 +1359,7 @@ public abstract class ControlPanelTests
         
         await secondControlPanel.Refresh();
         await secondControlPanel.Effects.GetValue<string>("Id").ShouldBeAsync("SomeResult");
+        await secondControlPanel.Effects.GetStatus("Id").ShouldBeAsync(WorkStatus.Completed);
         
         unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }

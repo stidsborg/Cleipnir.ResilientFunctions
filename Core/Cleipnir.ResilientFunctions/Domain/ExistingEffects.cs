@@ -36,7 +36,13 @@ public class ExistingEffects(FlowId flowId, IEffectsStore effectsStore, ISeriali
         return storedEffect.Result == null 
             ? default 
             : serializer.DeserializeEffectResult<TResult>(storedEffects[effectId].Result!);
-    } 
+    }
+
+    public async Task<WorkStatus> GetStatus(EffectId effectId)
+    {
+        var storedEffects = await GetStoredEffects();
+        return storedEffects[effectId].WorkStatus;
+    }
     
     public async Task Remove(string effectId)
     {
