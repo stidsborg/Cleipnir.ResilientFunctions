@@ -30,23 +30,20 @@ public abstract class RoutingTests
         
         var registration = functionsRegistry.RegisterParamless(
             flowType,
-            inner: async (Workflow workflow) =>
+            inner: async workflow =>
             {
                 var someMessage = await workflow.Messages.FirstOfType<SomeMessage>();
                 syncedValue.Value = someMessage.Value;
                 syncedFlag.Raise();
-            },
-            new Settings(routes: new RoutingInformation[]
-            {
-                new RoutingInformation<SomeMessage>(
-                    someMsg => Route.To(someMsg.RouteTo)
-                )
-            })
+            }
         );
 
         await registration.Schedule(flowInstance);
 
-        await registration.Postman.RouteMessage(new SomeMessage(RouteTo: flowInstance.Value, Value: "SomeValue!"));
+        await registration.SendMessage(
+            flowInstance,
+            new SomeMessage(RouteTo: flowInstance.Value, Value: "SomeValue!")
+        );
         
         await syncedFlag.WaitForRaised();
         syncedValue.Value.ShouldBe("SomeValue!");
@@ -77,18 +74,15 @@ public abstract class RoutingTests
                 var someMessage = await workflow.Messages.FirstOfType<SomeMessage>();
                 syncedValue.Value = someMessage.Value;
                 syncedFlag.Raise();
-            },
-            new Settings(routes: new RoutingInformation[]
-            {
-                new RoutingInformation<SomeMessage>(
-                    someMsg => Route.To(someMsg.RouteTo)
-                )
-            })
+            }
         );
 
         await registration.Schedule(flowInstance.Value, param: "SomeParam");
 
-        await registration.Postman.RouteMessage(new SomeMessage(RouteTo: flowInstance.Value, Value: "SomeValue!"));
+        await registration.SendMessage(
+            flowInstance,
+            new SomeMessage(RouteTo: flowInstance.Value, Value: "SomeValue!")
+        );
         
         await syncedFlag.WaitForRaised();
         syncedValue.Value.ShouldBe("SomeValue!");
@@ -121,18 +115,15 @@ public abstract class RoutingTests
                 syncedFlag.Raise();
                 
                 return "SomeResult";
-            },
-            new Settings(routes: new RoutingInformation[]
-            {
-                new RoutingInformation<SomeMessage>(
-                    someMsg => Route.To(someMsg.RouteTo)
-                )
-            })
+            }
         );
 
         await registration.Schedule(flowInstance.Value, param: "SomeParam");
 
-        await registration.Postman.RouteMessage(new SomeMessage(RouteTo: flowInstance.Value, Value: "SomeValue!"));
+        await registration.SendMessage(
+            flowInstance,
+            new SomeMessage(RouteTo: flowInstance.Value, Value: "SomeValue!")
+        );
         
         await syncedFlag.WaitForRaised();
         syncedValue.Value.ShouldBe("SomeValue!");
@@ -166,9 +157,9 @@ public abstract class RoutingTests
             }
         );
 
-        await registration.Postman.RouteMessage(
-            new SomeMessage(RouteTo: flowInstance.Value, Value: "SomeValue!"),
-            Route.To(flowInstance.Value)
+        await registration.SendMessage(
+            flowInstance,
+            new SomeMessage(RouteTo: flowInstance.Value, Value: "SomeValue!")
         );
         
         await syncedFlag.WaitForRaised(1_000);
@@ -208,19 +199,16 @@ public abstract class RoutingTests
                 var someMessage = await workflow.Messages.FirstOfType<SomeCorrelatedMessage>();
                 syncedValue.Value = someMessage.Value;
                 syncedFlag.Raise();
-            },
-            new Settings(routes: new RoutingInformation[]
-            {
-                new RoutingInformation<SomeCorrelatedMessage>(
-                    someMsg => Route.Using(someMsg.Correlation)
-                )
-            })
+            }
         );
 
         await registration.Schedule(flowInstance);
         await correlationIdRegisteredFlag.WaitForRaised();
-        
-        await registration.Postman.RouteMessage(new SomeCorrelatedMessage(correlationId, "SomeValue!"));
+
+        await registration.RouteMessage(
+            new SomeCorrelatedMessage(correlationId, "SomeValue!"),
+            correlationId
+        );
         
         await syncedFlag.WaitForRaised();
         syncedValue.Value.ShouldBe("SomeValue!");
@@ -250,13 +238,7 @@ public abstract class RoutingTests
             {
                 await workflow.RegisterCorrelation(correlationId);
                 await workflow.Messages.FirstOfType<SomeCorrelatedMessage>();
-            },
-            new Settings(routes: new RoutingInformation[]
-            {
-                new RoutingInformation<SomeCorrelatedMessage>(
-                    someMsg => Route.Using(someMsg.Correlation)
-                )
-            })
+            }
         );
 
         await registration.Schedule(flowInstance1);
@@ -267,8 +249,11 @@ public abstract class RoutingTests
             .GetCorrelations(correlationId)
             .SelectAsync(l => l.Count == 2)
         );
-        
-        await registration.Postman.RouteMessage(new SomeCorrelatedMessage(correlationId, "SomeValue!"));
+
+        await registration.RouteMessage(
+            new SomeCorrelatedMessage(correlationId, "SomeValue!"),
+            correlationId
+        );
 
         var controlPanel1 = await registration.ControlPanel(flowInstance1);
         controlPanel1.ShouldNotBeNull();
@@ -319,18 +304,14 @@ public abstract class RoutingTests
                 syncedFlag.Raise();
             },
             new Settings(
-                messagesDefaultMaxWaitForCompletion: TimeSpan.MaxValue,
-                routes: new RoutingInformation[]
-                {
-                    new RoutingInformation<SomeMessage>(
-                        someMsg => Route.To(someMsg.RouteTo)
-                    )
-
-                }
+                messagesDefaultMaxWaitForCompletion: TimeSpan.MaxValue
             )
         );
 
-        await registration.Postman.RouteMessage(new SomeMessage(RouteTo: flowInstance.Value, Value: "SomeValue!"));
+        await registration.SendMessage(
+            flowInstance,
+            new SomeMessage(RouteTo: flowInstance.Value, Value: "SomeValue!")
+        );
         
         await syncedFlag.WaitForRaised(5_000);
         syncedValue.Value.ShouldBe("SomeValue!");

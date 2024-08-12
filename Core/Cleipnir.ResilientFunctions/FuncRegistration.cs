@@ -78,4 +78,10 @@ public class FuncRegistration<TParam, TReturn> : BaseRegistration where TParam :
 
     public Task ScheduleIn(string flowInstance, TParam param, TimeSpan delay) 
         => ScheduleAt(flowInstance, param, delayUntil: DateTime.UtcNow.Add(delay));
+    
+    public async Task<Finding> SendMessage<T>(
+        FlowInstance flowInstance,
+        T message,
+        string? idempotencyKey = null
+    ) where T : notnull => await Postman.SendMessage(flowInstance, message, idempotencyKey);
 }

@@ -56,4 +56,17 @@ public class ParamlessRegistration : BaseRegistration
     
     public Task ScheduleIn(string flowInstance, TimeSpan delay) 
         => ScheduleAt(flowInstance, DateTime.UtcNow.Add(delay));
+
+    public async Task<Finding> SendMessage<T>(
+        FlowInstance flowInstance,
+        T message,
+        bool create = true,
+        string? idempotencyKey = null) where T : notnull
+    {
+        var finding = await Postman.SendMessage(flowInstance, message, idempotencyKey);
+        if (create && finding == Finding.NotFound)
+            await Schedule(flowInstance);
+
+        return finding;
+    }
 }

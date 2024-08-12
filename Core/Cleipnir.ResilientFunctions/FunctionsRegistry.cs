@@ -230,10 +230,8 @@ public class FunctionsRegistry : IDisposable
 
             var postman = new Postman(
                 flowType,
-                settingsWithDefaults.Routes,
                 _functionStore.CorrelationStore,
-                messageWriters,
-                scheduleParamless: _ => Task.CompletedTask
+                messageWriters
             );
             
             var registration = new FuncRegistration<TParam, TReturn>(
@@ -308,10 +306,8 @@ public class FunctionsRegistry : IDisposable
 
             var postman = new Postman(
                 flowType,
-                settingsWithDefaults.Routes,
                 _functionStore.CorrelationStore,
-                messageWriters,
-                instance => invoker.ScheduleInvoke(instance.Value, Unit.Instance)
+                messageWriters
             );
 
             var registration = new ParamlessRegistration(
@@ -385,10 +381,8 @@ public class FunctionsRegistry : IDisposable
             );
             var postman = new Postman(
                 flowType,
-                settingsWithDefaults.Routes,
                 _functionStore.CorrelationStore,
-                messageWriters,
-                scheduleParamless: _ => Task.CompletedTask
+                messageWriters
             );
             
             var registration = new ActionRegistration<TParam>(

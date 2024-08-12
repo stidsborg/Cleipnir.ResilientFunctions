@@ -19,7 +19,6 @@ public class Settings
     internal TimeSpan? MessagesPullFrequency { get; }
     public TimeSpan? MessagesDefaultMaxWaitForCompletion { get; }
     internal ISerializer? Serializer { get; }
-    internal IEnumerable<RoutingInformation>? Routes { get; }
 
     public Settings(
         Action<FlowTypeException>? unhandledExceptionHandler = null, 
@@ -32,8 +31,7 @@ public class Settings
         TimeSpan? messagesDefaultMaxWaitForCompletion = null,
         TimeSpan? delayStartup = null, 
         int? maxParallelRetryInvocations = null, 
-        ISerializer? serializer = null,
-        IEnumerable<RoutingInformation>? routes = null)
+        ISerializer? serializer = null)
     {
         UnhandledExceptionHandler = unhandledExceptionHandler;
         RetentionPeriod = retentionPeriod;
@@ -46,7 +44,6 @@ public class Settings
         Serializer = serializer;
         MessagesPullFrequency = messagesPullFrequency;
         MessagesDefaultMaxWaitForCompletion = messagesDefaultMaxWaitForCompletion;
-        Routes = routes;
     }
 }
 
@@ -61,8 +58,7 @@ public record SettingsWithDefaults(
     TimeSpan MessagesDefaultMaxWaitForCompletion,
     TimeSpan DelayStartup,
     int MaxParallelRetryInvocations,
-    ISerializer Serializer,
-    IEnumerable<RoutingInformation> Routes)
+    ISerializer Serializer)
 {
     public SettingsWithDefaults Merge(Settings? child)
     {
@@ -81,8 +77,7 @@ public record SettingsWithDefaults(
             child.MessagesDefaultMaxWaitForCompletion ?? MessagesDefaultMaxWaitForCompletion,
             child.DelayStartup ?? DelayStartup,
             child.MaxParallelRetryInvocations ?? MaxParallelRetryInvocations,
-            child.Serializer ?? Serializer,
-            child.Routes ?? Routes
+            child.Serializer ?? Serializer
         );
     }
 
@@ -98,7 +93,6 @@ public record SettingsWithDefaults(
             MessagesDefaultMaxWaitForCompletion: TimeSpan.Zero, 
             DelayStartup: TimeSpan.FromSeconds(0),
             MaxParallelRetryInvocations: 100,
-            Serializer: DefaultSerializer.Instance,
-            Routes: []
+            Serializer: DefaultSerializer.Instance
         );
 }
