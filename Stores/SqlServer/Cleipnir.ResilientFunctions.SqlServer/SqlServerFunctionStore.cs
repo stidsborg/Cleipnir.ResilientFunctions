@@ -315,7 +315,7 @@ public class SqlServerFunctionStore : IFunctionStore
         await using var conn = await _connFunc();
         _getPostponedFunctionsSql ??= @$"
             SELECT flowInstance, Epoch
-            FROM {_tablePrefix} 
+            FROM {_tablePrefix} WITH (NOLOCK) 
             WHERE FlowType = @FlowType 
               AND Status = {(int) Status.Postponed} 
               AND PostponedUntil <= @PostponedUntil";
@@ -342,7 +342,7 @@ public class SqlServerFunctionStore : IFunctionStore
     }
 
     private string? _getSucceededFunctionsSql;
-    public async Task<IReadOnlyList<FlowInstance>> GetSucceededFunctions(FlowType FlowType, long completedBefore)
+    public async Task<IReadOnlyList<FlowInstance>> GetSucceededFunctions(FlowType flowType, long completedBefore)
     {
         await using var conn = await _connFunc();
         _getSucceededFunctionsSql ??= @$"
@@ -353,7 +353,7 @@ public class SqlServerFunctionStore : IFunctionStore
               AND Timestamp <= @CompletedBefore";
 
         await using var command = new SqlCommand(_getSucceededFunctionsSql, conn);
-        command.Parameters.AddWithValue("@FlowType", FlowType.Value);
+        command.Parameters.AddWithValue("@FlowType", flowType.Value);
         command.Parameters.AddWithValue("@CompletedBefore", completedBefore);
 
         await using var reader = await command.ExecuteReaderAsync();
