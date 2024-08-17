@@ -37,6 +37,7 @@ public class BufferOperator<T> : IReactiveChain<List<T>>
 
         public TimeSpan DefaultMessageSyncDelay => _subscription.DefaultMessageSyncDelay;
         public TimeSpan DefaultMessageMaxWait => _subscription.DefaultMessageMaxWait;
+        public InterruptCount InterruptCount => _subscription.InterruptCount;
 
         public Subscription(
             IReactiveChain<T> inner,
@@ -59,7 +60,7 @@ public class BufferOperator<T> : IReactiveChain<List<T>>
         public Task Initialize() => _subscription.Initialize();
 
         public Task SyncStore(TimeSpan maxSinceLastSynced) => _subscription.SyncStore(maxSinceLastSynced);
-        public InterruptCount PushMessages() => _subscription.PushMessages();
+        public void PushMessages() => _subscription.PushMessages();
 
         public Task RegisterTimeout() => _subscription.RegisterTimeout();
         public Task CancelTimeout() => _subscription.CancelTimeout();

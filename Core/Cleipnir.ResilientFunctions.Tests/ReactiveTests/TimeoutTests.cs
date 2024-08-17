@@ -33,7 +33,7 @@ public class TimeoutTests
         id.ShouldBe(timeoutId);
         expiry.ShouldBe(expiresAt);
         
-        source.SignalNext(new TimeoutEvent(timeoutId, expiresAt), new InterruptCount(1));
+        source.SignalNext(new TimeoutEvent(timeoutId, expiresAt));
 
         await BusyWait.Until(() => task.IsCompleted);
         task.IsCompleted.ShouldBeTrue();
@@ -54,7 +54,7 @@ public class TimeoutTests
         
         await BusyWait.Until(() => registeredTimeoutsStub.Registrations.Any());
         
-        source.SignalNext(new TimeoutEvent(timeoutId, expiresAt), new InterruptCount(1));
+        source.SignalNext(new TimeoutEvent(timeoutId, expiresAt));
 
         await BusyWait.Until(() => task.IsCompleted);
         task.IsCompletedSuccessfully.ShouldBeTrue();
@@ -78,7 +78,7 @@ public class TimeoutTests
 
         var task = source.TakeUntilTimeout(timeoutId, expiresAt).First();
         
-        source.SignalNext("Hello", new InterruptCount(1));
+        source.SignalNext("Hello");
 
         await BusyWait.Until(() => task.IsCompleted);
         task.IsCompletedSuccessfully.ShouldBeTrue();
@@ -96,7 +96,7 @@ public class TimeoutTests
 
         var task = source.TakeUntilTimeout(timeoutId, expiresAt).FirstOrNone();
         
-        source.SignalNext("Hello", new InterruptCount(1));
+        source.SignalNext("Hello");
 
         await BusyWait.Until(() => task.IsCompleted);
         task.IsCompletedSuccessfully.ShouldBeTrue();
@@ -115,7 +115,7 @@ public class TimeoutTests
         
         var registeredTimeoutsStub = new RegisteredTimeoutsStub();
         var source = new TestSource(registeredTimeoutsStub);
-        source.SignalNext(new TimeoutEvent(timeoutId, expiresAt), new InterruptCount(2));
+        source.SignalNext(new TimeoutEvent(timeoutId, expiresAt));
 
         var task = await source.TakeUntilTimeout(timeoutId, expiresAt).FirstOrNone();
         task.HasValue.ShouldBeFalse();

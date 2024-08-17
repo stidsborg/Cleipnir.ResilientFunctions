@@ -46,11 +46,11 @@ public class ReactiveIntegrationTests
             syncStore: _ =>
             {
                 counter.Increment();
-                return new InterruptCount(1).ToTask();
+                return Task.CompletedTask;
             });
 
         var listTask = source.Take(1).ToList();
-        source.SignalNext(1, new InterruptCount(1));
+        source.SignalNext(1);
         
         await listTask;
         var beforeDelayCounter = counter.Current;

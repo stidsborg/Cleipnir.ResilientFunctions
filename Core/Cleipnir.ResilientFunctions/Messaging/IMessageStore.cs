@@ -15,5 +15,4 @@ public interface IMessageStore
     Task Truncate(FlowId flowId);
     
     Task<IReadOnlyList<StoredMessage>> GetMessages(FlowId flowId, int skip);
-    Task<bool> HasMoreMessages(FlowId flowId, int skip);
 }

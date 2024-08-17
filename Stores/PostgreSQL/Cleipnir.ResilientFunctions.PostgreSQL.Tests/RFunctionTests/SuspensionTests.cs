@@ -49,4 +49,8 @@ public class SuspensionTests : ResilientFunctions.Tests.TestTemplates.RFunctionT
     [TestMethod]
     public override Task PublishFromChildActionStressTest()
         => PublishFromChildActionStressTest(FunctionStoreFactory.Create());
+    
+    [TestMethod]
+    public override Task InterruptCountIsUpdatedWhenMaxWaitDetectsIt()
+        => InterruptCountIsUpdatedWhenMaxWaitDetectsIt(FunctionStoreFactory.Create());
 }

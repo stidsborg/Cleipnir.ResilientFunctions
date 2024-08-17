@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.ParameterSerialization;
@@ -27,7 +28,11 @@ public abstract class MessagesSubscriptionTests
         );
         var messageStore = functionStore.MessageStore;
 
-        await messageStore.HasMoreMessages(functionId, skip: 0).ShouldBeFalseAsync();
+        await messageStore
+            .GetMessages(functionId, skip: 0)
+            .SelectAsync(msgs => msgs.Any())
+            .ShouldBeFalseAsync();
+        
         var events = await messageStore.GetMessages(functionId, skip: 0);
         events.ShouldBeEmpty();
         
@@ -35,8 +40,7 @@ public abstract class MessagesSubscriptionTests
             functionId,
             new StoredMessage("hello world". ToJson(), typeof(string).SimpleQualifiedName())
         );
-
-        await messageStore.HasMoreMessages(functionId, skip: 0).ShouldBeTrueAsync();
+        
         events = await messageStore.GetMessages(functionId, skip: 0);
         events.Count.ShouldBe(1);
         DefaultSerializer
@@ -44,7 +48,6 @@ public abstract class MessagesSubscriptionTests
             .DeserializeMessage(events[0].MessageJson, events[0].MessageType)
             .ShouldBe("hello world");
         
-        await messageStore.HasMoreMessages(functionId, skip: 1).ShouldBeFalseAsync();
         events = await messageStore.GetMessages(functionId, skip: 1);
         events.ShouldBeEmpty();
         
@@ -52,8 +55,7 @@ public abstract class MessagesSubscriptionTests
             functionId,
             new StoredMessage("hello universe".ToJson(), typeof(string).SimpleQualifiedName())
         );
-
-        await messageStore.HasMoreMessages(functionId, skip: 0).ShouldBeTrueAsync();
+        
         events = await messageStore.GetMessages(functionId, skip: 1);
         events.Count.ShouldBe(1);
         

@@ -18,6 +18,7 @@ public class Source : IReactiveChain<object>
     private readonly Func<bool> _isWorkflowRunning;
     private readonly Func<bool> _initialSyncPerformed;
     private readonly EmittedEvents _emittedEvents = new();
+    private readonly InterruptCount _interruptCount;
 
     public IEnumerable<object> Existing
     {
@@ -39,7 +40,8 @@ public class Source : IReactiveChain<object>
         TimeSpan defaultDelay, 
         TimeSpan defaultMaxWait, 
         Func<bool> isWorkflowRunning,
-        Func<bool> initialSyncPerformed
+        Func<bool> initialSyncPerformed,
+        InterruptCount interruptCount
     )
     {
         _registeredTimeouts = registeredTimeouts;
@@ -48,6 +50,7 @@ public class Source : IReactiveChain<object>
         
         _isWorkflowRunning = isWorkflowRunning;
         _initialSyncPerformed = initialSyncPerformed;
+        _interruptCount = interruptCount;
         _defaultMaxWait = defaultMaxWait;
     }
 
@@ -57,28 +60,24 @@ public class Source : IReactiveChain<object>
             onNext, onCompletion, onError,
             source: this,
             _emittedEvents, _syncStore, _initialSyncPerformed, _isWorkflowRunning, _registeredTimeouts,
-            _defaultDelay, _defaultMaxWait
+            _defaultDelay, _defaultMaxWait, _interruptCount
         );
 
         return subscription;
     }
     
-    public void SignalNext(object toEmit, InterruptCount interruptCount)
+    public void SignalNext(object toEmit)
     {
         if (_completed) 
             throw new StreamCompletedException();
-
-        _emittedEvents.InterruptCount = interruptCount;
         
         var emittedEvent = new EmittedEvent(toEmit, completion: false, emittedException: null);
         _emittedEvents.Append(emittedEvent);
     }
     
-    public void SignalNext(IEnumerable<object> toEmits, InterruptCount interruptCount)
+    public void SignalNext(IEnumerable<object> toEmits)
     {
         if (_completed) throw new StreamCompletedException();
-
-        _emittedEvents.InterruptCount = interruptCount;
         
         var emittedEvents = toEmits
             .Select(toEmit => new EmittedEvent(toEmit, completion: false, emittedException: null))

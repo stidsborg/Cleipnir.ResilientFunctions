@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
+using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Events;
 using Cleipnir.ResilientFunctions.Domain.Exceptions.Commands;
 using Cleipnir.ResilientFunctions.Helpers;
@@ -27,7 +28,7 @@ public static class LeafOperators
         );
         await subscription.Initialize();
         
-        var interruptCount = subscription.PushMessages();
+        subscription.PushMessages();
 
         //short-circuit
         if (tcs.Task.IsCompleted)
@@ -40,7 +41,7 @@ public static class LeafOperators
         
         maxWait ??= subscription.DefaultMessageMaxWait;
         if (maxWait == TimeSpan.Zero)
-            throw new SuspendInvocationException(interruptCount);
+            throw new SuspendInvocationException(subscription.InterruptCount);
 
         var stopWatch = new Stopwatch();
         stopWatch.Start();
@@ -49,8 +50,19 @@ public static class LeafOperators
         {
             await Task.Delay(subscription.DefaultMessageSyncDelay);
             await subscription.SyncStore(maxSinceLastSynced: subscription.DefaultMessageSyncDelay);
-            interruptCount = subscription.PushMessages();
+            subscription.PushMessages();
         }
+
+        if (tcs.Task.IsCompleted)
+        {
+            await subscription.CancelTimeout();
+            return await tcs.Task;
+        }
+
+        // fetch latest interrupt count and sync subsequently (thus avoid a race-condition)
+        var interruptCount = await subscription.InterruptCount.GetLatest();
+        await subscription.SyncStore(maxSinceLastSynced: subscription.DefaultMessageSyncDelay);
+        subscription.PushMessages();
 
         if (tcs.Task.IsCompleted)
         {
@@ -159,13 +171,13 @@ public static class LeafOperators
             );
         await subscription.Initialize();
         
-        var interruptCount = subscription.PushMessages();
+        subscription.PushMessages();
         
         if (timeoutEmitted)
             return;
 
         await subscription.RegisteredTimeouts.RegisterTimeout(timeoutEventId, resumeAt);
-        throw new SuspendInvocationException(interruptCount);
+        throw new SuspendInvocationException(subscription.InterruptCount);
     }
 
     public static Task SuspendFor(this Messages s, string timeoutEventId, TimeSpan resumeAfter)

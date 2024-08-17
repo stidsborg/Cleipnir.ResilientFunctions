@@ -13,10 +13,11 @@ public interface ISubscription
  
     TimeSpan DefaultMessageSyncDelay { get; }
     TimeSpan DefaultMessageMaxWait { get; }
+    InterruptCount InterruptCount { get; }
 
     Task Initialize();
     Task SyncStore(TimeSpan maxSinceLastSynced);
-    InterruptCount PushMessages();
+    void PushMessages();
     
     Task RegisterTimeout();
     Task CancelTimeout();

@@ -51,6 +51,7 @@ public class CustomOperator<TIn, TOut> : IReactiveChain<TOut>
         public IReactiveChain<object> Source => _innerSubscription.Source;
         public TimeSpan DefaultMessageSyncDelay => _innerSubscription.DefaultMessageSyncDelay;
         public TimeSpan DefaultMessageMaxWait => _innerSubscription.DefaultMessageMaxWait;
+        public InterruptCount InterruptCount => _innerSubscription.InterruptCount;
 
         public Subscription(
             IReactiveChain<TIn> inner,
@@ -73,7 +74,7 @@ public class CustomOperator<TIn, TOut> : IReactiveChain<TOut>
         public Task Initialize() => _innerSubscription.Initialize();
 
         public Task SyncStore(TimeSpan maxSinceLastSynced) => _innerSubscription.SyncStore(maxSinceLastSynced);
-        public InterruptCount PushMessages() => _innerSubscription.PushMessages();
+        public void PushMessages() => _innerSubscription.PushMessages();
         
         public Task RegisterTimeout() => _innerSubscription.RegisterTimeout();
         public Task CancelTimeout() => _innerSubscription.CancelTimeout();

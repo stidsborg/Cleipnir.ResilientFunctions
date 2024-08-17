@@ -17,7 +17,6 @@ public class MessagesPullerAndEmitter
     private readonly ISerializer _serializer;
 
     private DateTime _lastSynced = default;
-    private long _interruptCount;
     private readonly FlowId _flowId;
     private readonly IFunctionStore _functionStore;
     private readonly IMessageStore _messageStore;
@@ -46,6 +45,7 @@ public class MessagesPullerAndEmitter
         TimeSpan defaultDelay,
         TimeSpan defaultMaxWait,
         Func<bool> isWorkflowRunning,
+        InterruptCount interruptCount,
         IFunctionStore functionStore, ISerializer serializer, IRegisteredTimeouts registeredTimeouts)
     {
         _flowId = flowId;
@@ -60,43 +60,35 @@ public class MessagesPullerAndEmitter
             defaultDelay,
             defaultMaxWait,
             isWorkflowRunning,
-            initialSyncPerformed: () => InitialSyncPerformed
+            initialSyncPerformed: () => InitialSyncPerformed,
+            interruptCount
         );
     }
 
-    public async Task<InterruptCount> PullEvents(TimeSpan maxSinceLastSynced)
+    public async Task PullEvents(TimeSpan maxSinceLastSynced)
     {
         lock (_sync)
             if (
-                _lastSynced != default && 
-                maxSinceLastSynced > TimeSpan.Zero && 
+                _lastSynced != default &&
+                maxSinceLastSynced > TimeSpan.Zero &&
                 DateTime.UtcNow - maxSinceLastSynced < _lastSynced
-            ) return new InterruptCount(_interruptCount);
+            ) return;
 
         using var @lock = await _semaphore.Take();
         if (_thrownException != null)
             throw new MessageProcessingException(_thrownException);
         if (DateTime.UtcNow - maxSinceLastSynced < _lastSynced)
-            return new InterruptCount(_interruptCount);
+            return;
 
         try
         {
-            var hasMoreMessages = await _messageStore.HasMoreMessages(_flowId, _skip);
-
-            if (!hasMoreMessages)
-                return new InterruptCount(_interruptCount);
-
-            var interruptCount = await _functionStore.GetInterruptCount(_flowId);
-            if (interruptCount == null)
-                throw UnexpectedStateException.NotFound(_flowId);
-
-            lock (_sync)
-                _interruptCount = interruptCount.Value;
-
             var storedMessages = await _messageStore.GetMessages(_flowId, _skip);
             
             _lastSynced = DateTime.UtcNow;
             _skip += storedMessages.Count;
+
+            if (storedMessages.Count == 0)
+                return;
             
             var filterStoredMessages = new List<StoredMessage>(storedMessages.Count);
             foreach (var storedMessage in storedMessages)
@@ -113,7 +105,7 @@ public class MessagesPullerAndEmitter
                 storedEvent => _serializer.DeserializeMessage(storedEvent.MessageJson, storedEvent.MessageType)
             );
 
-            Source.SignalNext(events, new InterruptCount(_interruptCount));
+            Source.SignalNext(events);
         }
         catch (Exception e)
         {
@@ -125,6 +117,6 @@ public class MessagesPullerAndEmitter
             throw eventHandlingException;
         }
 
-        return new InterruptCount(_interruptCount);
+        return;
     }
 }

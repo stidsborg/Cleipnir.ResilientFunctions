@@ -24,8 +24,8 @@ namespace Cleipnir.ResilientFunctions.Tests.ReactiveTests
             
             t.IsCompleted.ShouldBeFalse();
             
-            source.SignalNext(3, new InterruptCount(1));
-            source.SignalNext(5, new InterruptCount(2));
+            source.SignalNext(3);
+            source.SignalNext(5);
             
             source.SignalCompletion();
 
@@ -73,7 +73,7 @@ namespace Cleipnir.ResilientFunctions.Tests.ReactiveTests
 
             t.IsCompleted.ShouldBeFalse();
             
-            source.SignalNext(5, new InterruptCount(1));
+            source.SignalNext(5);
 
             source.SignalError(new TestException());
 

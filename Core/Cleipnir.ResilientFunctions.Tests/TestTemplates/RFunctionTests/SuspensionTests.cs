@@ -9,8 +9,10 @@ using Cleipnir.ResilientFunctions.Domain.Exceptions.Commands;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Reactive.Extensions;
 using Cleipnir.ResilientFunctions.Storage;
+using Cleipnir.ResilientFunctions.Tests.Messaging.Utils;
 using Cleipnir.ResilientFunctions.Tests.Utils;
 using Shouldly;
+using SyncedFlag = Cleipnir.ResilientFunctions.Tests.Utils.SyncedFlag;
 
 namespace Cleipnir.ResilientFunctions.Tests.TestTemplates.RFunctionTests;
 
@@ -31,7 +33,7 @@ public abstract class SuspensionTests
 
         var rAction = functionsRegistry.RegisterAction(
             flowType,
-            Task<Result> (string _) => throw new SuspendInvocationException(expectedInterruptCount: new InterruptCount(0))
+            Task<Result> (string _) => throw new SuspendInvocationException(expectedInterruptCount: TestInterruptCount.Create())
         );
 
         await Should.ThrowAsync<InvocationSuspendedException>(
@@ -488,5 +490,56 @@ public abstract class SuspensionTests
         var result = controlPanel.Result!.ToHashSet();
         for (var i = 0; i < numberOfChildren; i++)
             result.Contains(i.ToString()).ShouldBeTrue();
+    }
+    
+    public abstract Task InterruptCountIsUpdatedWhenMaxWaitDetectsIt();
+    protected async Task InterruptCountIsUpdatedWhenMaxWaitDetectsIt(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var functionId = TestFlowId.Create();
+        var (flowType, flowInstance) = functionId;
+
+        var unhandledExceptionHandler = new UnhandledExceptionCatcher();
+        using var functionsRegistry = new FunctionsRegistry
+        (
+            store,
+            new Settings(unhandledExceptionHandler.Catch)
+        );
+
+        var syncFlag = new SyncedFlag();
+        var syncedValued = new Synced<SuspendInvocationException?>();
+        
+        var registration = functionsRegistry.RegisterParamless(
+            flowType,
+            inner: async Task (workflow) =>
+            {
+                syncFlag.Raise();
+                try
+                {
+                    await workflow.Messages.FirstOfType<int>(maxWait: TimeSpan.FromSeconds(2));
+                    await workflow.Messages.FirstOfType<string>(maxWait: TimeSpan.FromMilliseconds(100));
+                }
+                catch (SuspendInvocationException suspendInvocationException)
+                {
+                    syncedValued.Value = suspendInvocationException;
+                }
+            }
+        );
+        
+        await registration.Schedule(flowInstance);
+        await syncFlag.WaitForRaised();
+
+        await registration.SendMessage(flowInstance, message: 32);
+        var controlPanel = await registration.ControlPanel(flowInstance);
+        controlPanel.ShouldNotBeNull();
+
+        await BusyWait.Until(async () =>
+        {
+            await controlPanel.Refresh();
+            return controlPanel.Status != Status.Executing;
+        });
+            
+        syncedValued.Value.ShouldNotBeNull();
+        syncedValued.Value.ExpectedInterruptCount.Value.ShouldBe(1);
     }
 }

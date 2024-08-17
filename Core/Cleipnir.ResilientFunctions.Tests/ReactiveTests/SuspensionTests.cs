@@ -16,11 +16,11 @@ namespace Cleipnir.ResilientFunctions.Tests.ReactiveTests
         public async Task SuspensionExceptionIsThrownWhenNoEventHasBeenEmittedFromLeafOperator()
         {
             var source = new TestSource();
-            source.SignalNext("hello", new InterruptCount(1));
-            source.SignalNext("world", new InterruptCount(2));
+            source.SignalNext("hello");
+            source.SignalNext("world");
 
             await Should.ThrowAsync<SuspendInvocationException>(
-                () => source.FirstOfType<int>(TimeSpan.Zero)
+                () => source.FirstOfType<int>(maxWait: TimeSpan.Zero)
             );
         }
         
@@ -28,11 +28,11 @@ namespace Cleipnir.ResilientFunctions.Tests.ReactiveTests
         public async Task EventIsEmittedInResultWhenEventHasBeenEmittedFromLeafOperator()
         {
             var source = new TestSource();
-            source.SignalNext("hello", new InterruptCount(1));
-            source.SignalNext(1, new InterruptCount(2));
-            source.SignalNext("world", new InterruptCount(3));
+            source.SignalNext("hello");
+            source.SignalNext(1);
+            source.SignalNext("world");
 
-            var next = await source.FirstOfType<int>(TimeSpan.Zero);
+            var next = await source.FirstOfType<int>(maxWait: TimeSpan.Zero);
 
             next.ShouldBe(1);
         }
@@ -41,8 +41,8 @@ namespace Cleipnir.ResilientFunctions.Tests.ReactiveTests
         public void TrySuspensionIsDetectedWhenNoEventHasBeenEmittedFromLeafOperator()
         {
             var source = new TestSource();
-            source.SignalNext("hello", new InterruptCount(1));
-            source.SignalNext("world", new InterruptCount(2));
+            source.SignalNext("hello");
+            source.SignalNext("world");
 
             var existing = source.Existing(out var streamCompleted);
             
@@ -54,10 +54,10 @@ namespace Cleipnir.ResilientFunctions.Tests.ReactiveTests
         public void EventIsEmittedInOptionResultWhenEventHasBeenEmittedFromLeafOperator()
         {
             var source = new TestSource();
-            source.SignalNext("hello", new InterruptCount(1));
-            source.SignalNext(1, new InterruptCount(2));
-            source.SignalNext(2, new InterruptCount(3));
-            source.SignalNext("world", new InterruptCount(4));
+            source.SignalNext("hello");
+            source.SignalNext(1);
+            source.SignalNext(2);
+            source.SignalNext("world");
 
             var existing = source
                 .OfType<int>()

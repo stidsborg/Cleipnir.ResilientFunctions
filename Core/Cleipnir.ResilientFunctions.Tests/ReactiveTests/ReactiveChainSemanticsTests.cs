@@ -15,8 +15,8 @@ public class ReactiveChainSemanticsTests
     public void StreamCanBeReplayedToCertainEventCountWhenCompletedEarlySuccessfully()
     {
         var source = new TestSource();
-        source.SignalNext("hello", new InterruptCount(1));
-        source.SignalNext("world", new InterruptCount(2));
+        source.SignalNext("hello");
+        source.SignalNext("world");
 
         var completed = false;
         var failed = false;
@@ -42,8 +42,8 @@ public class ReactiveChainSemanticsTests
     public void StreamCanBeReplayedToCertainEventCountWhenFailedEarlySuccessfully()
     {
         var source = new TestSource();
-        source.SignalNext("hello", new InterruptCount(1));
-        source.SignalNext("world", new InterruptCount(2));
+        source.SignalNext("hello");
+        source.SignalNext("world");
 
         var completed = false;
         var failed = false;
@@ -72,12 +72,12 @@ public class ReactiveChainSemanticsTests
     public void ExistingPropertyContainsPreviouslyEmittedEvents()
     {
         var source = new TestSource();
-        source.SignalNext("hello", new InterruptCount(1));
+        source.SignalNext("hello");
         var existing = source.Existing.ToList();
         existing.Count.ShouldBe(1);
         existing[0].ShouldBe("hello");
 
-        source.SignalNext("world", new InterruptCount(2)); 
+        source.SignalNext("world"); 
         
         existing = source.Existing.ToList();
         existing.Count.ShouldBe(2);
@@ -91,7 +91,7 @@ public class ReactiveChainSemanticsTests
         var source = new TestSource();
         var emitted = 0;
 
-        source.SignalNext("hello", new InterruptCount(1));
+        source.SignalNext("hello");
         
         var subscription = source
             .Subscribe(
@@ -104,7 +104,7 @@ public class ReactiveChainSemanticsTests
         
         emitted.ShouldBe(1);
 
-        source.SignalNext("world", new InterruptCount(1));
+        source.SignalNext("world");
         
         emitted.ShouldBe(1);
     }

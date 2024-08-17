@@ -17,7 +17,7 @@ public class AsyncEnumerableTests
     {
         var source = new TestSource();
         var emits = new SyncedList<string>();
-        source.SignalNext("hello", new InterruptCount(1));
+        source.SignalNext("hello");
 
         async Task AwaitForeach()
         {
@@ -31,7 +31,7 @@ public class AsyncEnumerableTests
         emits[0].ShouldBe("hello");
         task.IsCompleted.ShouldBeFalse();
 
-        source.SignalNext("world", new InterruptCount(2));
+        source.SignalNext("world");
         await BusyWait.Until(() => emits.Count == 2);
         emits.Count.ShouldBe(2);
         emits[1].ShouldBe("world");
@@ -49,7 +49,7 @@ public class AsyncEnumerableTests
     {
         var source = new TestSource();
         var emits = new SyncedList<string>();
-        source.SignalNext("hello", new InterruptCount(1));
+        source.SignalNext("hello");
 
         async Task AwaitForeach()
         {

@@ -1,11 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Runtime.Serialization;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.Helpers.Disposables;
-using Cleipnir.ResilientFunctions.Messaging;
 
 namespace Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 
@@ -182,16 +180,19 @@ public class Invoker<TParam, TReturn>
             var isWorkflowRunningDisposable = new PropertyDisposable();
             disposables.Add(isWorkflowRunningDisposable);
             success = persisted;
+            
+            var interruptCount = new InterruptCount(0, () => _invocationHelper.GetLatestInterruptCount(flowId));
             var messages = _invocationHelper.CreateMessages(
                 flowId, 
                 ScheduleRestart, 
-                isWorkflowRunning: () => !isWorkflowRunningDisposable.Disposed
+                isWorkflowRunning: () => !isWorkflowRunningDisposable.Disposed,
+                interruptCount
             );
             
             var effect = _invocationHelper.CreateEffect(flowId);
             var states = _invocationHelper.CreateStates(flowId, defaultState: null);
             var correlations = _invocationHelper.CreateCorrelations(flowId);
-            var workflow = new Workflow(flowId, messages, effect, states, _utilities, correlations);
+            var workflow = new Workflow(flowId, messages, effect, states, _utilities, correlations, interruptCount);
 
             return new PreparedInvocation(
                 persisted,
@@ -232,20 +233,27 @@ public class Invoker<TParam, TReturn>
             var isWorkflowRunningDisposable = new PropertyDisposable();
             disposables.Add(isWorkflowRunningDisposable);
 
+            var interruptCount = new InterruptCount(
+                restartedFunction.StoredFlow.InterruptCount,
+                getLatestInterrupt: () => _invocationHelper.GetLatestInterruptCount(flowId)
+            );
             var messages = _invocationHelper.CreateMessages(
                 flowId,
                 ScheduleRestart,
-                isWorkflowRunning: () => !isWorkflowRunningDisposable.Disposed
+                isWorkflowRunning: () => !isWorkflowRunningDisposable.Disposed,
+                interruptCount
             );
             var states = _invocationHelper.CreateStates(flowId, defaultState);
             var correlations = _invocationHelper.CreateCorrelations(flowId);
+          
             var workflow = new Workflow(
                 flowId,
                 messages,
                 _invocationHelper.CreateEffect(flowId),
                 states,
                 _utilities,
-                correlations
+                correlations,
+                interruptCount
             );
 
             return new PreparedReInvocation(

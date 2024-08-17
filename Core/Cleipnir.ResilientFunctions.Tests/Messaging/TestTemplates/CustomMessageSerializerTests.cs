@@ -6,6 +6,7 @@ using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Storage;
+using Cleipnir.ResilientFunctions.Tests.Messaging.Utils;
 using Cleipnir.ResilientFunctions.Tests.Utils;
 using Shouldly;
 
@@ -33,6 +34,7 @@ public abstract class CustomMessageSerializerTests
             defaultDelay: TimeSpan.FromSeconds(1),
             defaultMaxWait: TimeSpan.Zero,
             isWorkflowRunning: () => true,
+            TestInterruptCount.Create(),
             functionStore,
             eventSerializer,
             registeredTimeouts

@@ -47,7 +47,8 @@ public class TimeoutOperator<T> : IReactiveChain<T>
 
         public TimeSpan DefaultMessageSyncDelay => _innerSubscription.DefaultMessageSyncDelay;
         public TimeSpan DefaultMessageMaxWait => _innerSubscription.DefaultMessageMaxWait;
-        
+        public InterruptCount InterruptCount => _innerSubscription.InterruptCount;
+
         public Subscription(
             IReactiveChain<T> inner,
             string timeoutId, DateTime expiresAt,
@@ -70,7 +71,7 @@ public class TimeoutOperator<T> : IReactiveChain<T>
 
         public Task SyncStore(TimeSpan maxSinceLastSynced) => _innerSubscription.SyncStore(maxSinceLastSynced);
 
-        public InterruptCount PushMessages() => _innerSubscription.PushMessages();
+        public void PushMessages() => _innerSubscription.PushMessages();
 
         public Task RegisterTimeout() => _innerSubscription.RegisteredTimeouts.RegisterTimeout(_timeoutId, _expiresAt);
         public Task CancelTimeout()

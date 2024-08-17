@@ -8,26 +8,9 @@ internal class EmittedEvents
 {
     private EmittedEvent[] _backingArray = new EmittedEvent[8];
     private int _count;
-
-    private InterruptCount _interruptCount = new(0);
     
     private readonly object _sync = new();
-
-    public InterruptCount InterruptCount
-    {
-        get
-        {
-            lock (_sync)
-                return _interruptCount;
-        }
-
-        set
-        {
-            lock (_sync)
-                _interruptCount = value;
-        }
-    }
-
+    
     public int Count
     {
         get

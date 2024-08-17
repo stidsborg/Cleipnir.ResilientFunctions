@@ -284,7 +284,7 @@ public class SqlServerFunctionStore : IFunctionStore
     {
         await using var conn = await _connFunc();
         _getCrashedFunctionsSql ??= @$"
-            SELECT flowInstance, Epoch
+            SELECT FlowInstance, Epoch
             FROM {_tablePrefix} WITH (NOLOCK)
             WHERE FlowType = @FlowType AND LeaseExpiration < @LeaseExpiration AND Status = {(int) Status.Executing}";
 
@@ -314,7 +314,7 @@ public class SqlServerFunctionStore : IFunctionStore
     {
         await using var conn = await _connFunc();
         _getPostponedFunctionsSql ??= @$"
-            SELECT flowInstance, Epoch
+            SELECT FlowInstance, Epoch
             FROM {_tablePrefix} WITH (NOLOCK) 
             WHERE FlowType = @FlowType 
               AND Status = {(int) Status.Postponed} 
@@ -346,7 +346,7 @@ public class SqlServerFunctionStore : IFunctionStore
     {
         await using var conn = await _connFunc();
         _getSucceededFunctionsSql ??= @$"
-            SELECT flowInstance
+            SELECT FlowInstance
             FROM {_tablePrefix} 
             WHERE FlowType = @FlowType 
               AND Status = {(int) Status.Succeeded} 
