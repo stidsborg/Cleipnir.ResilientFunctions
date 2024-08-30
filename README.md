@@ -4,7 +4,7 @@
 [![Changelog](https://img.shields.io/badge/-Changelog-darkred)](./CHANGELOG.md)
 
 <p align="center">
-  <img src="./Docs/cleipnir.png" alt="logo" />
+  <img src="https://github.com/stidsborg/Cleipnir.ResilientFunctions/blob/main/Docs/cleipnir.png" alt="logo" />
   <br>
   Simply making fault-tolerant code simple
   <br>
