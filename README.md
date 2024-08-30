@@ -41,13 +41,6 @@ Out-of-the-box you also get:
 | --- |
 | Unlike other saga frameworks Resilient Functions does not require a message-broker to operate.<br /> It is a fully self-contained solution - which operates on top of a database of choice or in-memory when testing.<br />|
 
-## Sections
-* [Getting Started](#getting-started)
-* [Show me more code](#show-me-more-code)
-  * [Hello World](#hello-world) 
-  * [HTTP-call & Database](#http-call--database)
-  * [Sending customer emails](#sending-customer-emails)
-
 ## Getting Started
 Only three steps needs to be performed to get started.
 
