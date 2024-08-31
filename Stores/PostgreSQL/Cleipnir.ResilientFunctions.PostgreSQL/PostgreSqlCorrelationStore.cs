@@ -6,31 +6,22 @@ using Npgsql;
 
 namespace Cleipnir.ResilientFunctions.PostgreSQL;
 
-public class PostgresCorrelationStore : ICorrelationStore
+public class PostgreSqlCorrelationStore(string connectionString, string tablePrefix = "") : ICorrelationStore
 {
-    private readonly string _connectionString;
-    private readonly string _tablePrefix;
-
-    public PostgresCorrelationStore(string connectionString, string tablePrefix = "")
-    {
-        _connectionString = connectionString;
-        _tablePrefix = tablePrefix;
-    }
-
     private string? _initializeSql;
     public async Task Initialize()
     {
         await using var conn = await CreateConnection();
         _initializeSql ??= @$"
-            CREATE TABLE IF NOT EXISTS {_tablePrefix}_correlations (
+            CREATE TABLE IF NOT EXISTS {tablePrefix}_correlations (
                 type VARCHAR(255),
                 instance VARCHAR(255),
                 correlation VARCHAR(255) NOT NULL,
                 PRIMARY KEY(type, instance, correlation)
             );
 
-            CREATE UNIQUE INDEX IF NOT EXISTS idx_{_tablePrefix}_correlations
-            ON {_tablePrefix}_correlations(correlation, type, instance);";
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_{tablePrefix}_correlations
+            ON {tablePrefix}_correlations(correlation, type, instance);";
         var command = new NpgsqlCommand(_initializeSql, conn);
         await command.ExecuteNonQueryAsync();
     }
@@ -39,7 +30,7 @@ public class PostgresCorrelationStore : ICorrelationStore
     public async Task Truncate()
     {
         await using var conn = await CreateConnection();
-        _truncateSql ??= $"TRUNCATE TABLE {_tablePrefix}_correlations";
+        _truncateSql ??= $"TRUNCATE TABLE {tablePrefix}_correlations";
         var command = new NpgsqlCommand(_truncateSql, conn);
         await command.ExecuteNonQueryAsync();
     }
@@ -51,7 +42,7 @@ public class PostgresCorrelationStore : ICorrelationStore
         
         await using var conn = await CreateConnection();
         _setCorrelationSql ??= $@"
-          INSERT INTO {_tablePrefix}_correlations 
+          INSERT INTO {tablePrefix}_correlations 
               (type, instance, correlation)
           VALUES
               ($1, $2, $3) 
@@ -76,7 +67,7 @@ public class PostgresCorrelationStore : ICorrelationStore
         await using var conn = await CreateConnection();
         _getCorrelationsSql ??= @$"
             SELECT type, instance
-            FROM {_tablePrefix}_correlations
+            FROM {tablePrefix}_correlations
             WHERE correlation = $1";
         await using var command = new NpgsqlCommand(_getCorrelationsSql, conn)
         {
@@ -106,7 +97,7 @@ public class PostgresCorrelationStore : ICorrelationStore
         await using var conn = await CreateConnection();
         _getInstancesForFlowTypeAndCorrelation ??= @$"
             SELECT instance
-            FROM {_tablePrefix}_correlations
+            FROM {tablePrefix}_correlations
             WHERE type = $1 AND correlation = $2";
         await using var command = new NpgsqlCommand(_getInstancesForFlowTypeAndCorrelation, conn)
         {
@@ -136,7 +127,7 @@ public class PostgresCorrelationStore : ICorrelationStore
         await using var conn = await CreateConnection();
         _getCorrelationsForFunction ??= @$"
             SELECT correlation
-            FROM {_tablePrefix}_correlations
+            FROM {tablePrefix}_correlations
             WHERE type = $1 AND instance = $2";
         await using var command = new NpgsqlCommand(_getCorrelationsForFunction, conn)
         {
@@ -166,7 +157,7 @@ public class PostgresCorrelationStore : ICorrelationStore
         
         await using var conn = await CreateConnection();
         _removeCorrelationsSql ??= $@"
-          DELETE FROM {_tablePrefix}_correlations 
+          DELETE FROM {tablePrefix}_correlations 
           WHERE type = $1 AND instance = $2";
         
         await using var command = new NpgsqlCommand(_removeCorrelationsSql, conn)
@@ -188,7 +179,7 @@ public class PostgresCorrelationStore : ICorrelationStore
         
         await using var conn = await CreateConnection();
         _removeCorrelationSql ??= $@"
-          DELETE FROM {_tablePrefix}_correlations 
+          DELETE FROM {tablePrefix}_correlations 
           WHERE type = $1 AND instance = $2 AND correlation = $3";
         
         await using var command = new NpgsqlCommand(_removeCorrelationSql, conn)
@@ -206,7 +197,7 @@ public class PostgresCorrelationStore : ICorrelationStore
     
     private async Task<NpgsqlConnection> CreateConnection()
     {
-        var conn = new NpgsqlConnection(_connectionString);
+        var conn = new NpgsqlConnection(connectionString);
         await conn.OpenAsync();
         return conn;
     }

@@ -6,16 +6,9 @@ using Npgsql;
 
 namespace Cleipnir.ResilientFunctions.PostgreSQL;
 
-public class PostgreSqlTimeoutStore : ITimeoutStore
+public class PostgreSqlTimeoutStore(string connectionString, string tablePrefix = "") : ITimeoutStore
 {
-    private readonly string _connectionString;
-    private readonly string _tablePrefix;
-
-    public PostgreSqlTimeoutStore(string connectionString, string tablePrefix = "")
-    {
-        _connectionString = connectionString;
-        _tablePrefix = tablePrefix.ToLower();
-    }
+    private readonly string _tablePrefix = tablePrefix.ToLower();
 
     private string? _initializeSql;
     public async Task Initialize()
@@ -44,7 +37,7 @@ public class PostgreSqlTimeoutStore : ITimeoutStore
     
     private async Task<NpgsqlConnection> CreateConnection()
     {
-        var conn = new NpgsqlConnection(_connectionString);
+        var conn = new NpgsqlConnection(connectionString);
         await conn.OpenAsync();
         return conn;
     }

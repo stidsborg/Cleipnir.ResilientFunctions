@@ -8,20 +8,13 @@ using Npgsql;
 
 namespace Cleipnir.ResilientFunctions.PostgreSQL;
 
-public class PostgreSqlMessageStore : IMessageStore
+public class PostgreSqlMessageStore(string connectionString, string tablePrefix = "") : IMessageStore
 {
-    private readonly string _connectionString;
-    private readonly string _tablePrefix;
-    
-    public PostgreSqlMessageStore(string connectionString, string tablePrefix = "")
-    {
-        _connectionString = connectionString;
-        _tablePrefix = tablePrefix.ToLower();
-    } 
+    private readonly string _tablePrefix = tablePrefix.ToLower();
 
     private async Task<NpgsqlConnection> CreateConnection()
     {
-        var conn = new NpgsqlConnection(_connectionString);
+        var conn = new NpgsqlConnection(connectionString);
         await conn.OpenAsync();
         return conn;
     }

@@ -7,23 +7,14 @@ using Npgsql;
 
 namespace Cleipnir.ResilientFunctions.PostgreSQL;
 
-public class PostgresStatesStore : IStatesStore
+public class PostgreSqlStatesStore(string connectionString, string tablePrefix = "") : IStatesStore
 {
-    private readonly string _connectionString;
-    private readonly string _tablePrefix;
-
-    public PostgresStatesStore(string connectionString, string tablePrefix = "")
-    {
-        _connectionString = connectionString;
-        _tablePrefix = tablePrefix;
-    }
-
     private string? _initializeSql;
     public async Task Initialize()
     {
         await using var conn = await CreateConnection();
         _initializeSql ??= @$"
-            CREATE TABLE IF NOT EXISTS {_tablePrefix}_states (
+            CREATE TABLE IF NOT EXISTS {tablePrefix}_states (
                 id VARCHAR(450) PRIMARY KEY,
                 state TEXT NOT NULL
             );";
@@ -35,7 +26,7 @@ public class PostgresStatesStore : IStatesStore
     public async Task Truncate()
     {
         await using var conn = await CreateConnection();
-        _truncateSql ??= $"TRUNCATE TABLE {_tablePrefix}_states";
+        _truncateSql ??= $"TRUNCATE TABLE {tablePrefix}_states";
         var command = new NpgsqlCommand(_truncateSql, conn);
         await command.ExecuteNonQueryAsync();
     }
@@ -47,7 +38,7 @@ public class PostgresStatesStore : IStatesStore
         
         await using var conn = await CreateConnection();
         _upsertStateSql ??= $@"
-          INSERT INTO {_tablePrefix}_states 
+          INSERT INTO {tablePrefix}_states 
               (id, state)
           VALUES
               ($1, $2) 
@@ -73,7 +64,7 @@ public class PostgresStatesStore : IStatesStore
         await using var conn = await CreateConnection();
         _getStatesSql ??= @$"
             SELECT id, state
-            FROM {_tablePrefix}_states
+            FROM {tablePrefix}_states
             WHERE id LIKE $1";
         await using var command = new NpgsqlCommand(_getStatesSql, conn)
         {
@@ -101,7 +92,7 @@ public class PostgresStatesStore : IStatesStore
     public async Task RemoveState(FlowId flowId, StateId stateId)
     {
         await using var conn = await CreateConnection();
-        _removeStateSql ??= $"DELETE FROM {_tablePrefix}_states WHERE id = $1";
+        _removeStateSql ??= $"DELETE FROM {tablePrefix}_states WHERE id = $1";
         
         var id = Escaper.Escape(flowId.Type.Value, flowId.Instance.Value, stateId.Value);
         await using var command = new NpgsqlCommand(_removeStateSql, conn)
@@ -116,7 +107,7 @@ public class PostgresStatesStore : IStatesStore
     public async Task Remove(FlowId flowId)
     {
         await using var conn = await CreateConnection();
-        _removeSql ??= $"DELETE FROM {_tablePrefix}_states WHERE id LIKE $1";
+        _removeSql ??= $"DELETE FROM {tablePrefix}_states WHERE id LIKE $1";
         
         var idPrefix = Escaper.Escape(flowId.Type.Value, flowId.Instance.Value) + $"{Escaper.Separator}%";
         await using var command = new NpgsqlCommand(_removeSql, conn)
@@ -129,7 +120,7 @@ public class PostgresStatesStore : IStatesStore
 
     private async Task<NpgsqlConnection> CreateConnection()
     {
-        var conn = new NpgsqlConnection(_connectionString);
+        var conn = new NpgsqlConnection(connectionString);
         await conn.OpenAsync();
         return conn;
     }

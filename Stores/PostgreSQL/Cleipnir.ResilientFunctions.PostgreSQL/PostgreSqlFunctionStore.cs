@@ -19,10 +19,10 @@ public class PostgreSqlFunctionStore : IFunctionStore
     private readonly PostgreSqlMessageStore _messageStore;
     public IMessageStore MessageStore => _messageStore;
 
-    private readonly PostgresStatesStore _statesStore;
+    private readonly PostgreSqlStatesStore _statesStore;
     public IStatesStore StatesStore => _statesStore;
     
-    private readonly PostgresEffectsStore _effectsStore;
+    private readonly PostgreSqlEffectsStore _effectsStore;
     public IEffectsStore EffectsStore => _effectsStore;
 
     private readonly PostgreSqlTimeoutStore _timeoutStore;
@@ -39,10 +39,10 @@ public class PostgreSqlFunctionStore : IFunctionStore
         _connectionString = connectionString;
         
         _messageStore = new PostgreSqlMessageStore(connectionString, _tablePrefix);
-        _effectsStore = new PostgresEffectsStore(connectionString, _tablePrefix);
-        _statesStore = new PostgresStatesStore(connectionString, _tablePrefix);
+        _effectsStore = new PostgreSqlEffectsStore(connectionString, _tablePrefix);
+        _statesStore = new PostgreSqlStatesStore(connectionString, _tablePrefix);
         _timeoutStore = new PostgreSqlTimeoutStore(connectionString, _tablePrefix);
-        _correlationStore = new PostgresCorrelationStore(connectionString, _tablePrefix);
+        _correlationStore = new PostgreSqlCorrelationStore(connectionString, _tablePrefix);
         _postgresSqlUnderlyingRegister = new(connectionString, _tablePrefix);
         Utilities = new Utilities(_postgresSqlUnderlyingRegister);
     } 

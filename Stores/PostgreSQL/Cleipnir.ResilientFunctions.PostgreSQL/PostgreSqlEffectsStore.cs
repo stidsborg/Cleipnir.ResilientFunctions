@@ -8,24 +8,15 @@ using Npgsql;
 
 namespace Cleipnir.ResilientFunctions.PostgreSQL;
 
-public class PostgresEffectsStore : IEffectsStore
+public class PostgreSqlEffectsStore(string connectionString, string tablePrefix = "") : IEffectsStore
 {
-    private readonly string _connectionString;
-    private readonly string _tablePrefix;
-
-    public PostgresEffectsStore(string connectionString, string tablePrefix = "")
-    {
-        _connectionString = connectionString;
-        _tablePrefix = tablePrefix;
-    }
-
     private string? _initializeSql;
     public async Task Initialize()
     {
         
         await using var conn = await CreateConnection();
         _initializeSql ??= @$"
-            CREATE TABLE IF NOT EXISTS {_tablePrefix}_effects (
+            CREATE TABLE IF NOT EXISTS {tablePrefix}_effects (
                 id VARCHAR(450) PRIMARY KEY,
                 status INT NOT NULL,
                 result TEXT NULL,
@@ -39,7 +30,7 @@ public class PostgresEffectsStore : IEffectsStore
     public async Task Truncate()
     {
         await using var conn = await CreateConnection();
-        _truncateSql ??= $"TRUNCATE TABLE {_tablePrefix}_effects";
+        _truncateSql ??= $"TRUNCATE TABLE {tablePrefix}_effects";
         var command = new NpgsqlCommand(_truncateSql, conn);
         await command.ExecuteNonQueryAsync();
     }
@@ -51,7 +42,7 @@ public class PostgresEffectsStore : IEffectsStore
         
         await using var conn = await CreateConnection();
         _setEffectResultSql ??= $@"
-          INSERT INTO {_tablePrefix}_effects 
+          INSERT INTO {tablePrefix}_effects 
               (id, status, result, exception)
           VALUES
               ($1, $2, $3, $4) 
@@ -79,7 +70,7 @@ public class PostgresEffectsStore : IEffectsStore
         await using var conn = await CreateConnection();
         _getEffectResultsSql ??= @$"
             SELECT id, status, result, exception
-            FROM {_tablePrefix}_effects
+            FROM {tablePrefix}_effects
             WHERE id LIKE $1";
         await using var command = new NpgsqlCommand(_getEffectResultsSql, conn)
         {
@@ -109,7 +100,7 @@ public class PostgresEffectsStore : IEffectsStore
     public async Task DeleteEffectResult(FlowId flowId, EffectId effectId)
     {
         await using var conn = await CreateConnection();
-        _deleteEffectResultSql ??= $"DELETE FROM {_tablePrefix}_effects WHERE id = $1";
+        _deleteEffectResultSql ??= $"DELETE FROM {tablePrefix}_effects WHERE id = $1";
         
         var id = Escaper.Escape(flowId.Type.Value, flowId.Instance.Value, effectId.Value);
         await using var command = new NpgsqlCommand(_deleteEffectResultSql, conn)
@@ -124,7 +115,7 @@ public class PostgresEffectsStore : IEffectsStore
     public async Task Remove(FlowId flowId)
     {
         await using var conn = await CreateConnection();
-        _removeSql ??= $"DELETE FROM {_tablePrefix}_effects WHERE id LIKE $1";
+        _removeSql ??= $"DELETE FROM {tablePrefix}_effects WHERE id LIKE $1";
         
         var id = Escaper.Escape(flowId.Type.Value, flowId.Instance.Value) + $"{Escaper.Separator}%";
         await using var command = new NpgsqlCommand(_removeSql, conn)
@@ -137,7 +128,7 @@ public class PostgresEffectsStore : IEffectsStore
 
     private async Task<NpgsqlConnection> CreateConnection()
     {
-        var conn = new NpgsqlConnection(_connectionString);
+        var conn = new NpgsqlConnection(connectionString);
         await conn.OpenAsync();
         return conn;
     }
