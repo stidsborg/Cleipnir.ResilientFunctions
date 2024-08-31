@@ -20,7 +20,8 @@ public class CrashableFunctionStore : IFunctionStore
     public ITimeoutStore TimeoutStore => _inner.TimeoutStore;
     public ICorrelationStore CorrelationStore => _inner.CorrelationStore;
     public Utilities Utilities => _inner.Utilities;
-    
+    public IMigrator Migrator => _inner.Migrator;
+
     public CrashableFunctionStore(IFunctionStore inner) => _inner = inner;
 
     public void Crash() => _crashed = true;

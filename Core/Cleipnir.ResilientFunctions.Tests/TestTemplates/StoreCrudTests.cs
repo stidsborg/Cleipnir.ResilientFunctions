@@ -25,7 +25,6 @@ public abstract class StoreCrudTests
     {
         var store = await storeTask;
         await store.Initialize();
-        await store.Initialize();
         
         var leaseExpiration = DateTime.UtcNow.Ticks;
         await store.CreateFunction(

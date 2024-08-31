@@ -21,6 +21,7 @@ public class SqlServerFunctionStore : IFunctionStore
     private readonly SqlServerStatesStore _statesStore;
     private readonly SqlServerMessageStore _messageStore;
     private readonly SqlServerCorrelationsStore _correlationStore;
+    private readonly SqlServerMigrator _migrator;
     
     public IEffectsStore EffectsStore => _effectsStore;
     public IStatesStore StatesStore => _statesStore;
@@ -28,6 +29,8 @@ public class SqlServerFunctionStore : IFunctionStore
     public ICorrelationStore CorrelationStore => _correlationStore;
     public IMessageStore MessageStore => _messageStore;
     public Utilities Utilities { get; }
+    public IMigrator Migrator => _migrator;
+    
     private readonly SqlServerUnderlyingRegister _underlyingRegister;
 
     public SqlServerFunctionStore(string connectionString, string tablePrefix = "")
@@ -41,6 +44,7 @@ public class SqlServerFunctionStore : IFunctionStore
         _effectsStore = new SqlServerEffectsStore(connectionString, _tablePrefix);
         _statesStore = new SqlServerStatesStore(connectionString, _tablePrefix);
         _correlationStore = new SqlServerCorrelationsStore(connectionString, _tablePrefix);
+        _migrator = new SqlServerMigrator(connectionString, _tablePrefix);
         Utilities = new Utilities(_underlyingRegister);
     }
     
@@ -57,6 +61,10 @@ public class SqlServerFunctionStore : IFunctionStore
     private string? _initializeSql;
     public async Task Initialize()
     {
+        var createTables = await _migrator.InitializeAndMigrate();
+        if (!createTables)
+            return;
+        
         await _underlyingRegister.Initialize();
         await _messageStore.Initialize();
         await _effectsStore.Initialize();

@@ -28,6 +28,9 @@ public class MySqlFunctionStore : IFunctionStore
     private readonly MySqlCorrelationStore _correlationStore;
     public ICorrelationStore CorrelationStore => _correlationStore;
 
+    public IMigrator Migrator => _migrator;
+    private readonly MySqlMigrator _migrator;
+
     public Utilities Utilities { get; }
     private readonly MySqlUnderlyingRegister _mySqlUnderlyingRegister;
 
@@ -44,6 +47,7 @@ public class MySqlFunctionStore : IFunctionStore
         _correlationStore = new MySqlCorrelationStore(connectionString, tablePrefix);
         _timeoutStore = new MySqlTimeoutStore(connectionString, tablePrefix);
         _mySqlUnderlyingRegister = new MySqlUnderlyingRegister(connectionString, tablePrefix);
+        _migrator  = new MySqlMigrator(connectionString, tablePrefix);
         
         Utilities = new Utilities(_mySqlUnderlyingRegister);
     }
@@ -51,6 +55,10 @@ public class MySqlFunctionStore : IFunctionStore
     private string? _initializeSql;
     public async Task Initialize()
     {
+        var createTables = await _migrator.InitializeAndMigrate();
+        if (!createTables)
+            return;
+        
         await _mySqlUnderlyingRegister.Initialize();
         await MessageStore.Initialize();
         await EffectsStore.Initialize();

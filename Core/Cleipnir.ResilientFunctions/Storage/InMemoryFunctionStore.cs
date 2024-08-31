@@ -29,6 +29,8 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
     public ICorrelationStore CorrelationStore => _correlationStore;
     public Utilities Utilities { get; }
     
+    public IMigrator Migrator { get; } = new InMemoryMigrator();
+
     public Task Initialize() => Task.CompletedTask;
 
     public InMemoryFunctionStore()

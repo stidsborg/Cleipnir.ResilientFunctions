@@ -31,6 +31,9 @@ public class PostgreSqlFunctionStore : IFunctionStore
     private readonly ICorrelationStore _correlationStore;
     public ICorrelationStore CorrelationStore => _correlationStore;
     public Utilities Utilities { get; }
+    public IMigrator Migrator => _migrator;
+    private readonly PostgreSqlMigrator _migrator;
+    
     private readonly PostgresSqlUnderlyingRegister _postgresSqlUnderlyingRegister;
 
     public PostgreSqlFunctionStore(string connectionString, string tablePrefix = "")
@@ -43,7 +46,8 @@ public class PostgreSqlFunctionStore : IFunctionStore
         _statesStore = new PostgreSqlStatesStore(connectionString, _tablePrefix);
         _timeoutStore = new PostgreSqlTimeoutStore(connectionString, _tablePrefix);
         _correlationStore = new PostgreSqlCorrelationStore(connectionString, _tablePrefix);
-        _postgresSqlUnderlyingRegister = new(connectionString, _tablePrefix);
+        _postgresSqlUnderlyingRegister = new PostgresSqlUnderlyingRegister(connectionString, _tablePrefix);
+        _migrator = new PostgreSqlMigrator(connectionString, _tablePrefix);
         Utilities = new Utilities(_postgresSqlUnderlyingRegister);
     } 
 
@@ -57,6 +61,10 @@ public class PostgreSqlFunctionStore : IFunctionStore
     private string? _initializeSql;
     public async Task Initialize()
     {
+        var createTables = await _migrator.InitializeAndMigrate();
+        if (!createTables)
+            return;
+        
         await _postgresSqlUnderlyingRegister.Initialize();
         await _messageStore.Initialize();
         await _statesStore.Initialize();

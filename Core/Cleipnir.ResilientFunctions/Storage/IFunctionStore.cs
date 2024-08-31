@@ -14,6 +14,7 @@ public interface IFunctionStore
     public ITimeoutStore TimeoutStore { get; }
     public ICorrelationStore CorrelationStore { get; }
     public Utilities Utilities { get; }
+    public IMigrator Migrator { get; }
     public Task Initialize();
     
     Task<bool> CreateFunction(
