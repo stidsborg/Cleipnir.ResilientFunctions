@@ -22,7 +22,7 @@ public class MySqlMigrator(string connectionString, string tablePrefix = "") : I
             );
            
             INSERT INTO {tablePrefix}_schema (version) 
-            VALUES (1);
+            VALUES (0);
             ";
             await using var command = new MySqlCommand(sql, conn);
             await command.ExecuteNonQueryAsync();
