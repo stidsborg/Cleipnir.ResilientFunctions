@@ -21,7 +21,11 @@ public class PostgreSqlTimeoutStore(string connectionString, string tablePrefix 
                 timeout_id VARCHAR(255),
                 expires BIGINT,
                 PRIMARY KEY (type, instance, timeout_id)
-            )";
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_{_tablePrefix}_timeouts
+            ON {_tablePrefix}_timeouts (expires, type, instance, timeout_id);
+            ";
         var command = new NpgsqlCommand(_initializeSql, conn);
         await command.ExecuteNonQueryAsync();
     }

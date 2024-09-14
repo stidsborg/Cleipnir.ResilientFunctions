@@ -25,7 +25,8 @@ public class MySqlTimeoutStore : ITimeoutStore
                 instance VARCHAR(255),
                 timeout_id VARCHAR(255),
                 expires BIGINT,
-                PRIMARY KEY (type, instance, timeout_id)
+                PRIMARY KEY (type, instance, timeout_id),
+                INDEX (expires, type, instance, timeout_id)
             )";
         var command = new MySqlCommand(_initializeSql, conn);
         await command.ExecuteNonQueryAsync();
