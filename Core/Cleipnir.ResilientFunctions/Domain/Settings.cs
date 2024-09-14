@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using Cleipnir.ResilientFunctions.CoreRuntime;
 using Cleipnir.ResilientFunctions.CoreRuntime.ParameterSerialization;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
@@ -8,7 +7,7 @@ namespace Cleipnir.ResilientFunctions.Domain;
 
 public class Settings
 {
-    internal Action<FlowTypeException>? UnhandledExceptionHandler { get; }
+    internal Action<FrameworkException>? UnhandledExceptionHandler { get; }
     internal TimeSpan? RetentionPeriod { get; }
     internal TimeSpan? RetentionCleanUpFrequency { get; }
     internal TimeSpan? LeaseLength { get; }
@@ -21,7 +20,7 @@ public class Settings
     internal ISerializer? Serializer { get; }
 
     public Settings(
-        Action<FlowTypeException>? unhandledExceptionHandler = null, 
+        Action<FrameworkException>? unhandledExceptionHandler = null, 
         TimeSpan? retentionPeriod = null,
         TimeSpan? retentionCleanUpFrequency = null,
         TimeSpan? leaseLength = null,

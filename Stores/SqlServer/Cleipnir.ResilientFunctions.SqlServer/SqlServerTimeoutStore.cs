@@ -121,25 +121,25 @@ public class SqlServerTimeoutStore : ITimeoutStore
     }
 
     private string? _getTimeoutsExpiresBeforeSql;
-    public async Task<IEnumerable<StoredTimeout>> GetTimeouts(string flowType, long expiresBefore)
+    public async Task<IEnumerable<StoredTimeout>> GetTimeouts(long expiresBefore)
     {
         await using var conn = await CreateConnection();
         _getTimeoutsExpiresBeforeSql ??= @$"    
-            SELECT flowInstance, TimeoutId, Expires
+            SELECT flowType, flowInstance, TimeoutId, Expires
             FROM {_tablePrefix}_Timeouts
-            WHERE flowType = @flowType AND Expires <= @ExpiresBefore";
+            WHERE Expires <= @ExpiresBefore";
         
         await using var command = new SqlCommand(_getTimeoutsExpiresBeforeSql, conn);
-        command.Parameters.AddWithValue("@flowType", flowType);
         command.Parameters.AddWithValue("@ExpiresBefore", expiresBefore);
         
         var storedTimeouts = new List<StoredTimeout>();
         await using var reader = await command.ExecuteReaderAsync();
         while (await reader.ReadAsync())
         {
-            var flowInstance = reader.GetString(0);
-            var timeoutId = reader.GetString(1);
-            var expires = reader.GetInt64(2);
+            var flowType = reader.GetString(0); 
+            var flowInstance = reader.GetString(1);
+            var timeoutId = reader.GetString(2);
+            var expires = reader.GetInt64(3);
             var functionId = new FlowId(flowType, flowInstance);
             storedTimeouts.Add(new StoredTimeout(functionId, timeoutId, expires));
         }

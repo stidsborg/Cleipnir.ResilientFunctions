@@ -76,9 +76,9 @@ internal class LeaseUpdater : IDisposable
                 _disposed = true;
                 _unhandledExceptionHandler.Invoke(
                     new FrameworkException(
-                        _flowId.Type,
                         $"{nameof(LeaseUpdater)} failed for '{_flowId}'",
-                        e
+                        e,
+                        _flowId
                     )
                 );
             }

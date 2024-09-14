@@ -120,19 +120,18 @@ public class MySqlTimeoutStore : ITimeoutStore
     }
 
     private string? _getTimeoutsSqlExpiresBefore;
-    public async Task<IEnumerable<StoredTimeout>> GetTimeouts(string flowType, long expiresBefore)
+    public async Task<IEnumerable<StoredTimeout>> GetTimeouts(long expiresBefore)
     {
         await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);;
         _getTimeoutsSqlExpiresBefore ??= @$"    
-            SELECT instance, timeout_id, expires
+            SELECT type, instance, timeout_id, expires
             FROM {_tablePrefix}_timeouts
-            WHERE type = ? AND expires <= ?";
+            WHERE expires <= ?";
         
         await using var command = new MySqlCommand(_getTimeoutsSqlExpiresBefore, conn)
         {
             Parameters =
             {
-                new() {Value = flowType},
                 new() {Value = expiresBefore},
             }
         };
@@ -141,9 +140,10 @@ public class MySqlTimeoutStore : ITimeoutStore
         await using var reader = await command.ExecuteReaderAsync();
         while (await reader.ReadAsync())
         {
-            var flowInstance = reader.GetString(0);
-            var timeoutId = reader.GetString(1);
-            var expires = reader.GetInt64(2);
+            var flowType = reader.GetString(0);
+            var flowInstance = reader.GetString(1);
+            var timeoutId = reader.GetString(2);
+            var expires = reader.GetInt64(3);
             var functionId = new FlowId(flowType, flowInstance);
             storedTimeouts.Add(new StoredTimeout(functionId, timeoutId, expires));
         }

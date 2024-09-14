@@ -123,21 +123,18 @@ public class PostgreSqlTimeoutStore(string connectionString, string tablePrefix 
     }
 
     private string? _getTimeoutsSqlExpiresBefore;
-    public async Task<IEnumerable<StoredTimeout>> GetTimeouts(string flowType, long expiresBefore)
+    public async Task<IEnumerable<StoredTimeout>> GetTimeouts(long expiresBefore)
     {
         await using var conn = await CreateConnection();
         _getTimeoutsSqlExpiresBefore ??= @$"
-            SELECT instance, timeout_id, expires
+            SELECT type, instance, timeout_id, expires
             FROM {_tablePrefix}_timeouts 
-            WHERE 
-                type = $1 AND 
-                expires <= $2";
+            WHERE expires <= $1";
         
         await using var command = new NpgsqlCommand(_getTimeoutsSqlExpiresBefore, conn)
         {
             Parameters =
             {
-                new() {Value = flowType},
                 new() {Value = expiresBefore}
             }
         };
@@ -146,9 +143,10 @@ public class PostgreSqlTimeoutStore(string connectionString, string tablePrefix 
         await using var reader = await command.ExecuteReaderAsync();
         while (await reader.ReadAsync())
         {
-            var flowInstance = reader.GetString(0);
-            var timeoutId = reader.GetString(1);
-            var expires = reader.GetInt64(2);
+            var flowType = reader.GetString(0);
+            var flowInstance = reader.GetString(1);
+            var timeoutId = reader.GetString(2);
+            var expires = reader.GetInt64(3);
             var functionId = new FlowId(flowType, flowInstance);
             storedMessages.Add(new StoredTimeout(functionId, timeoutId, expires));
         }

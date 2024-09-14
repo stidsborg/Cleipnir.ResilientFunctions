@@ -20,6 +20,8 @@ public class FunctionsRegistry : IDisposable
     private readonly IFunctionStore _functionStore;
     private readonly ShutdownCoordinator _shutdownCoordinator;
     private readonly SettingsWithDefaults _settings;
+
+    private readonly TimeoutWatchdog _timeoutWatchdog;
     
     private volatile bool _disposed;
     private readonly object _sync = new();
@@ -29,6 +31,14 @@ public class FunctionsRegistry : IDisposable
         _functionStore = functionStore;
         _shutdownCoordinator = new ShutdownCoordinator();
         _settings = SettingsWithDefaults.Default.Merge(settings);
+
+        _timeoutWatchdog = new TimeoutWatchdog(
+            functionStore.TimeoutStore,
+            _settings.WatchdogCheckFrequency,
+            _settings.DelayStartup,
+            _settings.UnhandledExceptionHandler,
+            _shutdownCoordinator
+        );
     }
 
     // ** !! FUNC !! ** //
@@ -208,6 +218,7 @@ public class FunctionsRegistry : IDisposable
             WatchDogsFactory.CreateAndStart(
                 flowType,
                 _functionStore,
+                _timeoutWatchdog,
                 invoker.Restart,
                 invocationHelper.RestartFunction,
                 invoker.ScheduleRestart,
@@ -284,6 +295,7 @@ public class FunctionsRegistry : IDisposable
             WatchDogsFactory.CreateAndStart(
                 flowType,
                 _functionStore,
+                _timeoutWatchdog,
                 invoker.Restart,
                 invocationHelper.RestartFunction,
                 invoker.ScheduleRestart,
@@ -360,6 +372,7 @@ public class FunctionsRegistry : IDisposable
             WatchDogsFactory.CreateAndStart(
                 flowType,
                 _functionStore,
+                _timeoutWatchdog,
                 rActionInvoker.Restart,
                 invocationHelper.RestartFunction,
                 rActionInvoker.ScheduleRestart,

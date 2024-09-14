@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
@@ -14,25 +15,24 @@ namespace Cleipnir.ResilientFunctions.CoreRuntime.Watchdogs;
 
 internal class TimeoutWatchdog
 {
-    private readonly FlowType _flowType;
     private readonly ITimeoutStore _timeoutStore;
     private readonly TimeSpan _checkFrequency;
     private readonly TimeSpan _delayStartUp;
     private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
     private readonly ShutdownCoordinator _shutdownCoordinator;
-    private readonly MessageWriters _messageWriters;
+    
+    private volatile ImmutableDictionary<FlowType, MessageWriters> _messageWriters = ImmutableDictionary<FlowType, MessageWriters>.Empty;
+
+    private bool _started = false;
+    private readonly object _sync = new();
 
     public TimeoutWatchdog(
-        FlowType flowType,
-        MessageWriters messageWriters,
         ITimeoutStore timeoutStore,
         TimeSpan checkFrequency, 
         TimeSpan delayStartUp,
         UnhandledExceptionHandler unhandledExceptionHandler,
         ShutdownCoordinator shutdownCoordinator)
     {
-        _flowType = flowType;
-        _messageWriters = messageWriters;
         _timeoutStore = timeoutStore;
 
         _checkFrequency = checkFrequency;
@@ -41,7 +41,22 @@ internal class TimeoutWatchdog
         _shutdownCoordinator = shutdownCoordinator;
     }
 
-    public async Task Start()
+    public void Add(FlowType flowType, MessageWriters messageWriters)
+    {
+        _messageWriters = _messageWriters.Add(flowType, messageWriters);
+
+        var started = false;
+        lock (_sync)
+        {
+            started = _started;
+            _started = true;
+        }
+
+        if (!started)
+            Task.Run(Start);
+    }
+
+    private async Task Start()
     {
         await Task.Delay(_delayStartUp);
         var stopWatch = new Stopwatch();
@@ -52,7 +67,7 @@ internal class TimeoutWatchdog
             while (!_shutdownCoordinator.ShutdownInitiated)
             {
                 var nextTimeoutSlot = DateTime.UtcNow.Add(_checkFrequency).Ticks;
-                var upcomingTimeouts = await _timeoutStore.GetTimeouts(_flowType.Value, nextTimeoutSlot);
+                var upcomingTimeouts = await _timeoutStore.GetTimeouts(nextTimeoutSlot);
 
                 stopWatch.Restart();
                 await HandleUpcomingTimeouts(upcomingTimeouts);
@@ -65,8 +80,7 @@ internal class TimeoutWatchdog
         {
             _unhandledExceptionHandler.Invoke(
                 new FrameworkException(
-                    _flowType,
-                    $"{nameof(TimeoutWatchdog)} failed while executing: '{_flowType}' - retrying in 5 seconds",
+                    $"{nameof(TimeoutWatchdog)} failed while executing - retrying in 5 seconds",
                     innerException
                 )
             );
@@ -78,12 +92,13 @@ internal class TimeoutWatchdog
 
     private async Task HandleUpcomingTimeouts(IEnumerable<StoredTimeout> upcomingTimeouts)
     {
-        foreach (var (functionId, timeoutId, expiry) in upcomingTimeouts.OrderBy(t => t.Expiry))
+        var messageWriters = _messageWriters;
+        foreach (var (functionId, timeoutId, expiry) in upcomingTimeouts.Where(t => messageWriters.ContainsKey(t.FlowId.Type)).OrderBy(t => t.Expiry))
         {
             var expiresAt = new DateTime(expiry, DateTimeKind.Utc);
             var delay = (expiresAt - DateTime.UtcNow).RoundUpToZero();
             await Task.Delay(delay);
-            await _messageWriters.For(functionId.Instance).AppendMessage(new TimeoutEvent(timeoutId, expiresAt), idempotencyKey: $"Timeout¤{timeoutId}");
+            await messageWriters[functionId.Type].For(functionId.Instance).AppendMessage(new TimeoutEvent(timeoutId, expiresAt), idempotencyKey: $"Timeout¤{timeoutId}");
             await _timeoutStore.RemoveTimeout(functionId, timeoutId);
         }
     }

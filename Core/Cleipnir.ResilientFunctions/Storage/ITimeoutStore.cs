@@ -11,7 +11,7 @@ public interface ITimeoutStore
     Task UpsertTimeout(StoredTimeout storedTimeout, bool overwrite);
     Task RemoveTimeout(FlowId flowId, string timeoutId);
     Task Remove(FlowId flowId);
-    Task<IEnumerable<StoredTimeout>> GetTimeouts(string flowType, long expiresBefore);
+    Task<IEnumerable<StoredTimeout>> GetTimeouts(long expiresBefore);
     Task<IEnumerable<StoredTimeout>> GetTimeouts(FlowId flowId);
 }
 

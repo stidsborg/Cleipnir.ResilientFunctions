@@ -12,6 +12,7 @@ internal static class WatchDogsFactory
     public static void CreateAndStart(
         FlowType flowType, 
         IFunctionStore functionStore,
+        TimeoutWatchdog timeoutWatchdog,
         Restart restart, 
         RestartFunction restartFunction,
         ScheduleRestartFromWatchdog scheduleRestart,
@@ -46,16 +47,7 @@ internal static class WatchDogsFactory
             settings.Serializer,
             scheduleReInvocation: (id, epoch) => restart(id, epoch)
         );
-        
-        var timeoutWatchdog = new TimeoutWatchdog(
-            flowType,
-            messagesWriters,
-            functionStore.TimeoutStore,
-            settings.WatchdogCheckFrequency,
-            settings.DelayStartup,
-            settings.UnhandledExceptionHandler,
-            shutdownCoordinator
-        );
+        timeoutWatchdog.Add(flowType, messagesWriters);
 
         var retentionWatchdog = new RetentionWatchdog(
             flowType,
@@ -69,7 +61,6 @@ internal static class WatchDogsFactory
 
         Task.Run(crashedWatchdog.Start);
         Task.Run(postponedWatchdog.Start);
-        Task.Run(timeoutWatchdog.Start);
         Task.Run(retentionWatchdog.Start);
     }
 }

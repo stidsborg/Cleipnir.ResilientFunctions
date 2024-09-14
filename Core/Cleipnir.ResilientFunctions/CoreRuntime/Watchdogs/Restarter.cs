@@ -110,9 +110,9 @@ internal class Restarter
         {
             _unhandledExceptionHandler.Invoke(
                 new FrameworkException(
-                    _flowType,
                     $"{watchdogName} for '{_flowType}' failed - retrying in 5 seconds",
-                    innerException: thrownException
+                    innerException: thrownException,
+                    _flowType
                 )
             );
             

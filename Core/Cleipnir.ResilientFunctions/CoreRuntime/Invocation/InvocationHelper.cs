@@ -70,7 +70,7 @@ internal class InvocationHelper<TParam, TReturn>
         {
             var storedFunction = await _functionStore.GetFunction(flowId);
             if (storedFunction == null)
-                throw new FrameworkException(flowId.Type, $"Function {flowId} does not exist");
+                throw UnexpectedStateException.NotFound(flowId);
 
             switch (storedFunction.Status)
             {

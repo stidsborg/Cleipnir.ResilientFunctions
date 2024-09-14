@@ -7,18 +7,18 @@ namespace Cleipnir.ResilientFunctions.CoreRuntime;
 
 public class UnhandledExceptionHandler
 {
-    private readonly Action<FlowTypeException> _exceptionHandler;
+    private readonly Action<FrameworkException> _exceptionHandler;
 
-    public UnhandledExceptionHandler(Action<FlowTypeException> exceptionHandler) 
+    public UnhandledExceptionHandler(Action<FrameworkException> exceptionHandler) 
         => _exceptionHandler = exceptionHandler;
 
-    public void Invoke(FlowTypeException exception) => SafeTry(() => _exceptionHandler(exception));
+    public void Invoke(FrameworkException exception) => SafeTry(() => _exceptionHandler(exception));
     
     public void Invoke(FlowType flowType, Exception exception)
     {
-        if (exception is FlowTypeException re)
+        if (exception is FrameworkException re)
             Invoke(re);
         else 
-            Invoke(new FrameworkException(flowType, "Unhandled exception", exception));
+            Invoke(new FrameworkException($"Unhandled exception for flow '{flowType}'", exception));
     }
 }

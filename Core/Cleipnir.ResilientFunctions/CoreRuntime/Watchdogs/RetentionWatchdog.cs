@@ -67,9 +67,9 @@ internal class RetentionWatchdog
         {
             _unhandledExceptionHandler.Invoke(
                 new FrameworkException(
-                    _flowType,
                     $"{nameof(RetentionWatchdog)} for '{_flowType}' failed - retrying in 5 seconds",
-                    innerException: thrownException
+                    innerException: thrownException,
+                    _flowType
                 )
             );
             
