@@ -1181,4 +1181,39 @@ public abstract class StoreTests
             eligibleFunctions.Any(f => f.FlowId == flowId).ShouldBeTrue();
         }
     }
+    
+    public abstract Task DifferentTypesAreFetchedByGetExpiredFunctionsCall();
+    protected async Task DifferentTypesAreFetchedByGetExpiredFunctionsCall(Task<IFunctionStore> storeTask)
+    {
+        var flowId1 = TestFlowId.Create();
+        var flowId2 = TestFlowId.Create();
+        
+        var store = await storeTask;
+        var paramJson = PARAM.ToJson();
+        var storedParameter = paramJson;
+
+        var leaseExpiration = DateTime.UtcNow.Ticks;
+        var timestamp = leaseExpiration + 1;
+        await store.CreateFunction(
+            flowId1,
+            storedParameter,
+            leaseExpiration,
+            postponeUntil: 0,
+            timestamp
+        ).ShouldBeTrueAsync();
+        await store.CreateFunction(
+            flowId2,
+            storedParameter,
+            leaseExpiration,
+            postponeUntil: 0,
+            timestamp
+        ).ShouldBeTrueAsync();
+        
+        var expires = await store.GetExpiredFunctions(expiresBefore: DateTime.UtcNow.Ticks);
+        
+        expires.Count.ShouldBe(2);
+        var flowIds = expires.Select(x => x.FlowId).ToHashSet();
+        flowIds.Contains(flowId1).ShouldBeTrue();
+        flowIds.Contains(flowId2).ShouldBeTrue();
+    }
 }
