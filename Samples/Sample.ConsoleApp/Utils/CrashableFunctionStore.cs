@@ -59,15 +59,10 @@ public class CrashableFunctionStore : IFunctionStore
             ? Task.FromException<bool>(new TimeoutException())
             : _inner.RenewLease(flowId, expectedEpoch, leaseExpiration);
 
-    public Task<IReadOnlyList<InstanceAndEpoch>> GetCrashedFunctions(FlowType flowType, long leaseExpiresBefore)
+    public Task<IReadOnlyList<IdAndEpoch>> GetExpiredFunctions(long expiresBefore)
         => _crashed
-            ? Task.FromException<IReadOnlyList<InstanceAndEpoch>>(new TimeoutException())
-            : _inner.GetCrashedFunctions(flowType, leaseExpiresBefore);
-
-    public Task<IReadOnlyList<InstanceAndEpoch>> GetPostponedFunctions(FlowType flowType, long isEligibleBefore)
-        => _crashed
-            ? Task.FromException<IReadOnlyList<InstanceAndEpoch>>(new TimeoutException())
-            : _inner.GetPostponedFunctions(flowType, isEligibleBefore);
+            ? Task.FromException<IReadOnlyList<IdAndEpoch>>(new TimeoutException())
+            : _inner.GetExpiredFunctions(expiresBefore);
 
     public Task<IReadOnlyList<FlowInstance>> GetSucceededFunctions(FlowType flowType, long completedBefore)
         => _crashed
@@ -77,14 +72,14 @@ public class CrashableFunctionStore : IFunctionStore
     public Task<bool> SetFunctionState(
         FlowId flowId, Status status, string? storedParameter,
         string? storedResult, StoredException? storedException, 
-        long? postponeUntil, 
+        long expires, 
         int expectedEpoch
     ) => _crashed
             ? Task.FromException<bool>(new TimeoutException())
             : _inner.SetFunctionState(
                 flowId, status, 
                 storedParameter, storedResult, 
-                storedException, postponeUntil, 
+                storedException, expires, 
                 expectedEpoch
             );
 

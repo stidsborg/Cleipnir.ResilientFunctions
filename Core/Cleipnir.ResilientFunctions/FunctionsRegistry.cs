@@ -22,6 +22,7 @@ public class FunctionsRegistry : IDisposable
     private readonly SettingsWithDefaults _settings;
 
     private readonly TimeoutWatchdog _timeoutWatchdog;
+    private readonly CrashedOrPostponedWatchdog _crashedOrPostponedWatchdog;
     
     private volatile bool _disposed;
     private readonly object _sync = new();
@@ -38,6 +39,13 @@ public class FunctionsRegistry : IDisposable
             _settings.DelayStartup,
             _settings.UnhandledExceptionHandler,
             _shutdownCoordinator
+        );
+        _crashedOrPostponedWatchdog = new CrashedOrPostponedWatchdog(
+            _functionStore,
+            _shutdownCoordinator,
+            _settings.UnhandledExceptionHandler,
+            _settings.WatchdogCheckFrequency,
+            _settings.DelayStartup
         );
     }
 
@@ -219,6 +227,7 @@ public class FunctionsRegistry : IDisposable
                 flowType,
                 _functionStore,
                 _timeoutWatchdog,
+                _crashedOrPostponedWatchdog,
                 invoker.Restart,
                 invocationHelper.RestartFunction,
                 invoker.ScheduleRestart,
@@ -296,6 +305,7 @@ public class FunctionsRegistry : IDisposable
                 flowType,
                 _functionStore,
                 _timeoutWatchdog,
+                _crashedOrPostponedWatchdog,
                 invoker.Restart,
                 invocationHelper.RestartFunction,
                 invoker.ScheduleRestart,
@@ -373,6 +383,7 @@ public class FunctionsRegistry : IDisposable
                 flowType,
                 _functionStore,
                 _timeoutWatchdog,
+                _crashedOrPostponedWatchdog,
                 rActionInvoker.Restart,
                 invocationHelper.RestartFunction,
                 rActionInvoker.ScheduleRestart,

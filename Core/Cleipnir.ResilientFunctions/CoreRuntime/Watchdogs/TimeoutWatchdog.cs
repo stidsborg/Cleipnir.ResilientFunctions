@@ -41,7 +41,7 @@ internal class TimeoutWatchdog
         _shutdownCoordinator = shutdownCoordinator;
     }
 
-    public void Add(FlowType flowType, MessageWriters messageWriters)
+    public void Register(FlowType flowType, MessageWriters messageWriters)
     {
         _messageWriters = _messageWriters.Add(flowType, messageWriters);
 

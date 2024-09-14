@@ -168,8 +168,7 @@ public abstract class ControlPanelTests
         var sf = await store.GetFunction(functionId);
         sf.ShouldNotBeNull();
         sf.Status.ShouldBe(Status.Postponed);
-        sf.PostponedUntil.ShouldNotBeNull();
-        sf.PostponedUntil.Value.ShouldBe(1_000_000);
+        sf.Expires.ShouldBe(1_000_000);
         
         unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
@@ -205,8 +204,7 @@ public abstract class ControlPanelTests
         var sf = await store.GetFunction(functionId);
         sf.ShouldNotBeNull();
         sf.Status.ShouldBe(Status.Postponed);
-        sf.PostponedUntil.ShouldNotBeNull();
-        sf.PostponedUntil.Value.ShouldBe(1_000_000);
+        sf.Expires.ShouldBe(1_000_000);
         
         unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }

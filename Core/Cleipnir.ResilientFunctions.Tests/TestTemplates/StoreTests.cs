@@ -33,16 +33,13 @@ public abstract class StoreTests
             postponeUntil: null,
             timestamp
         ).ShouldBeTrueAsync();
-
-        await BusyWait.Until(() => 
-            store.GetCrashedFunctions(functionId.Type, leaseExpiresBefore: DateTime.UtcNow.Ticks).SelectAsync(efs => efs.Any())
-        );
         
-        var nonCompletes = await store.GetCrashedFunctions(functionId.Type, leaseExpiresBefore: DateTime.UtcNow.Ticks);
+        var nonCompletes = await store.GetExpiredFunctions(expiresBefore: DateTime.UtcNow.Ticks);
             
         nonCompletes.Count.ShouldBe(1);
         var nonCompleted = nonCompletes[0];
-        nonCompleted.Instance.ShouldBe(functionId.Instance);
+        nonCompleted.FlowId.Type.ShouldBe(functionId.Type);
+        nonCompleted.FlowId.Instance.ShouldBe(functionId.Instance);
         nonCompleted.Epoch.ShouldBe(0);
 
         var storedFunction = await store.GetFunction(functionId);
@@ -50,14 +47,12 @@ public abstract class StoreTests
         storedFunction.FlowId.ShouldBe(functionId);
         storedFunction.Parameter.ShouldBe(paramJson);
         storedFunction.Epoch.ShouldBe(0);
-        storedFunction.LeaseExpiration.ShouldBe(leaseExpiration);
+        storedFunction.Expires.ShouldBe(leaseExpiration);
         storedFunction.Timestamp.ShouldBe(timestamp);
-        storedFunction.PostponedUntil.ShouldBeNull();
         storedFunction.DefaultState.ShouldBeNull();
 
         const string result = "hello world";
         var resultJson = result.ToJson();
-        var resultType = result.GetType().SimpleQualifiedName();
         await store.SucceedFunction(
             functionId,
             result: resultJson,
@@ -117,7 +112,7 @@ public abstract class StoreTests
         var sf = await store.GetFunction(functionId);
         sf.ShouldNotBeNull();
         sf.Epoch.ShouldBe(0);
-        sf.LeaseExpiration.ShouldBe(1);
+        sf.Expires.ShouldBe(1);
     }
 
     public abstract Task LeaseIsNotUpdatedWhenNotAsExpected();
@@ -144,14 +139,14 @@ public abstract class StoreTests
         ).ShouldBeFalseAsync();
 
         await store
-            .GetCrashedFunctions(functionId.Type, leaseExpiresBefore: leaseExpiration + 1)
+            .GetExpiredFunctions(expiresBefore: leaseExpiration + 1)
             .ShouldBeNonEmptyAsync();
 
         var sf = await store.GetFunction(functionId);
         sf.ShouldNotBeNull();
         
         sf.Epoch.ShouldBe(0);
-        sf.LeaseExpiration.ShouldBe(leaseExpiration);
+        sf.Expires.ShouldBe(leaseExpiration);
     }
         
     public abstract Task BecomeLeaderSucceedsWhenEpochIsAsExpected();
@@ -181,7 +176,7 @@ public abstract class StoreTests
         var storedFunction = await store.GetFunction(functionId);
         storedFunction.ShouldNotBeNull();
         storedFunction.Epoch.ShouldBe(1);
-        storedFunction.LeaseExpiration.ShouldBe(leaseExpiration);
+        storedFunction.Expires.ShouldBe(leaseExpiration);
     }
         
     public abstract Task BecomeLeaderFailsWhenEpochIsNotAsExpected();
@@ -211,7 +206,7 @@ public abstract class StoreTests
         var storedFunction = await store.GetFunction(functionId);
         storedFunction.ShouldNotBeNull();
         storedFunction.Epoch.ShouldBe(0);
-        storedFunction.LeaseExpiration.ShouldBe(leaseExpiration);
+        storedFunction.Expires.ShouldBe(leaseExpiration);
     }
 
     public abstract Task CreatingTheSameFunctionTwiceReturnsFalse();
@@ -221,7 +216,6 @@ public abstract class StoreTests
         
         var store = await storeTask;
         var paramJson = PARAM.ToJson();
-        var paramType = PARAM.GetType().SimpleQualifiedName();
 
         await store.CreateFunction(
             functionId,
@@ -248,7 +242,6 @@ public abstract class StoreTests
         
         var store = await storeTask;
         var paramJson = PARAM.ToJson();
-        var paramType = PARAM.GetType().SimpleQualifiedName();
 
         await store.CreateFunction(
             functionId,
@@ -269,7 +262,6 @@ public abstract class StoreTests
 
         var store = await storeTask;
         var paramJson = PARAM.ToJson();
-        var paramType = PARAM.GetType().SimpleQualifiedName();
         var nowTicks = DateTime.UtcNow.Ticks;
 
         var storedParameter = paramJson;
@@ -290,16 +282,8 @@ public abstract class StoreTests
             expectedEpoch: 0,
             complimentaryState: new ComplimentaryState(storedParameter.ToFunc(), LeaseLength: 0)
         ).ShouldBeTrueAsync();
-
-        await BusyWait.Until(() => store
-            .GetPostponedFunctions(functionId.Type, isEligibleBefore: nowTicks + 100)
-            .SelectAsync(pfs => pfs.Any())
-        );
         
-        var postponedFunctions = await store.GetPostponedFunctions(
-            functionId.Type,
-            isEligibleBefore: nowTicks - 100
-        );
+        var postponedFunctions = await store.GetExpiredFunctions(expiresBefore: nowTicks - 100);
         postponedFunctions.ShouldBeEmpty();
     }
     
@@ -331,16 +315,8 @@ public abstract class StoreTests
             expectedEpoch: 0,
             complimentaryState: new ComplimentaryState(storedParameter.ToFunc(), LeaseLength: 0)
         ).ShouldBeTrueAsync();
-
-        await BusyWait.Until(() => store
-            .GetPostponedFunctions(functionId.Type, nowTicks + 100)
-            .SelectAsync(pfs => pfs.Any())
-        );
         
-        var postponedFunctions = await store.GetPostponedFunctions(
-            functionId.Type,
-            isEligibleBefore: nowTicks + 100
-        );
+        var postponedFunctions = await store.GetExpiredFunctions(expiresBefore: nowTicks + 100);
         postponedFunctions.Count().ShouldBe(1);
     }
     
@@ -405,12 +381,12 @@ public abstract class StoreTests
             timestamp: DateTime.UtcNow.Ticks
         );
         
-        var storedFunctions = await store.GetCrashedFunctions(functionId.Type, leaseExpiresBefore: DateTime.UtcNow.Ticks);
+        var storedFunctions = await store.GetExpiredFunctions(expiresBefore: DateTime.UtcNow.Ticks);
         storedFunctions.Count.ShouldBe(1);
 
         var sf = await store.GetFunction(functionId);
         sf.ShouldNotBeNull();
-        sf.LeaseExpiration.ShouldBe(leaseExpiration);
+        sf.Expires.ShouldBe(leaseExpiration);
     }
     
     public abstract Task OnlyEligibleCrashedFunctionsAreReturnedFromStore();
@@ -436,10 +412,10 @@ public abstract class StoreTests
             timestamp: DateTime.UtcNow.Ticks
         );
         
-        var storedFunctions = await store.GetCrashedFunctions(function1Id.Type, leaseExpiresBefore: 1);
+        var storedFunctions = await store.GetExpiredFunctions(expiresBefore: 1);
         storedFunctions.Count.ShouldBe(1);
-        var (flowInstance, epoch) = storedFunctions[0];
-        flowInstance.ShouldBe(function1Id.Instance);
+        var (flowId, epoch) = storedFunctions[0];
+        flowId.ShouldBe(function1Id);
         epoch.ShouldBe(0);
     }
     
@@ -581,7 +557,7 @@ public abstract class StoreTests
             storedParameter,
             "completed".ToJson(),
             storedException: null,
-            postponeUntil: null,
+            expires: DateTime.UtcNow.Ticks,
             expectedEpoch: 0
         ).ShouldBeTrueAsync();
 
@@ -623,7 +599,7 @@ public abstract class StoreTests
             storedParameter,
             "completed".ToJson(),
             storedException: null,
-            postponeUntil: null,
+            expires: DateTime.Now.Ticks,
             expectedEpoch: 0
         ).ShouldBeTrueAsync();
 
@@ -769,7 +745,7 @@ public abstract class StoreTests
             storedParameter,
             "completed".ToJson(),
             storedException: null,
-            postponeUntil: null,
+            expires: DateTime.Now.Ticks,
             expectedEpoch: 0
         ).ShouldBeTrueAsync();
 
@@ -1197,12 +1173,12 @@ public abstract class StoreTests
         );
 
         var eligibleFunctions = 
-            await store.GetPostponedFunctions(typeId, DateTime.UtcNow.Ticks);
+            await store.GetExpiredFunctions(DateTime.UtcNow.Ticks);
         
         eligibleFunctions.Count.ShouldBe(functionIds.Count);
-        foreach (var (_, instanceId) in functionIds)
+        foreach (var flowId in functionIds)
         {
-            eligibleFunctions.Any(f => f.Instance == instanceId).ShouldBeTrue();
+            eligibleFunctions.Any(f => f.FlowId == flowId).ShouldBeTrue();
         }
     }
 }

@@ -76,24 +76,23 @@ public class SqlServerFunctionStore : IFunctionStore
             CREATE TABLE {_tablePrefix} (
                 FlowType NVARCHAR(200) NOT NULL,
                 flowInstance NVARCHAR(200) NOT NULL,
-                ParamJson NVARCHAR(MAX) NULL,                        
                 Status INT NOT NULL,
+                Epoch INT NOT NULL,               
+                Expires BIGINT NOT NULL,
+                InterruptCount BIGINT NOT NULL DEFAULT 0,
+                ParamJson NVARCHAR(MAX) NULL,                                        
                 ResultJson NVARCHAR(MAX) NULL,
                 DefaultStateJson NVARCHAR(MAX) NULL,
-                ExceptionJson NVARCHAR(MAX) NULL,
-                PostponedUntil BIGINT NULL,            
-                Epoch INT NOT NULL,
-                LeaseExpiration BIGINT NOT NULL,
-                InterruptCount BIGINT NOT NULL DEFAULT 0,
+                ExceptionJson NVARCHAR(MAX) NULL,                                                                        
                 Timestamp BIGINT NOT NULL,
                 PRIMARY KEY (FlowType, flowInstance)
             );
             CREATE INDEX {_tablePrefix}_idx_Executing
-                ON {_tablePrefix} (FlowType, LeaseExpiration, flowInstance)
+                ON {_tablePrefix} (Expires, FlowType, flowInstance)
                 INCLUDE (Epoch)
-                WHERE Status = {(int)Status.Executing};
+                WHERE Status = {(int)Status.Executing};           
             CREATE INDEX {_tablePrefix}_idx_Postponed
-                ON {_tablePrefix} (FlowType, PostponedUntil, flowInstance)
+                ON {_tablePrefix} (Expires, FlowType, flowInstance)
                 INCLUDE (Epoch)
                 WHERE Status = {(int)Status.Postponed};
             CREATE INDEX {_tablePrefix}_idx_Succeeded
@@ -141,16 +140,14 @@ public class SqlServerFunctionStore : IFunctionStore
                     ParamJson, 
                     Status,
                     Epoch, 
-                    LeaseExpiration,
-                    PostponedUntil,
+                    Expires,
                     Timestamp)
                 VALUES(
                     @FlowType, @flowInstance, 
                     @ParamJson,   
                     @Status,
-                    0, 
-                    @LeaseExpiration,
-                    @PostponeUntil,
+                    0,
+                    @Expires,
                     @Timestamp
                 )";
 
@@ -160,8 +157,7 @@ public class SqlServerFunctionStore : IFunctionStore
             command.Parameters.AddWithValue("@flowInstance", flowId.Instance.Value);
             command.Parameters.AddWithValue("@Status", (int) (postponeUntil == null ? Status.Executing : Status.Postponed));
             command.Parameters.AddWithValue("@ParamJson", param == null ? DBNull.Value : param);
-            command.Parameters.AddWithValue("@LeaseExpiration", leaseExpiration);
-            command.Parameters.AddWithValue("@PostponeUntil", postponeUntil == null ? DBNull.Value : postponeUntil.Value);
+            command.Parameters.AddWithValue("@Expires", postponeUntil ?? leaseExpiration);
             command.Parameters.AddWithValue("@Timestamp", timestamp);
 
             await command.ExecuteNonQueryAsync();
@@ -186,16 +182,15 @@ public class SqlServerFunctionStore : IFunctionStore
                 ParamJson, 
                 Status,
                 Epoch, 
-                LeaseExpiration,
-                PostponedUntil,
+                Expires,
                 Timestamp
             )
             ON {_tablePrefix}.FlowType = source.FlowType AND {_tablePrefix}.flowInstance = source.flowInstance         
             WHEN NOT MATCHED THEN
-              INSERT (FlowType, flowInstance, ParamJson, Status, Epoch, LeaseExpiration, PostponedUntil, Timestamp)
-              VALUES (source.FlowType, source.flowInstance, source.ParamJson, source.Status, source.Epoch, source.LeaseExpiration, source.PostponedUntil, source.Timestamp);";
+              INSERT (FlowType, flowInstance, ParamJson, Status, Epoch, Expires, Timestamp)
+              VALUES (source.FlowType, source.flowInstance, source.ParamJson, source.Status, source.Epoch, source.Expires, source.Timestamp);";
 
-        var valueSql = $"(@FlowType, @flowInstance, @ParamJson, {(int)Status.Postponed}, 0, 0, 0, 0)";
+        var valueSql = $"(@FlowType, @flowInstance, @ParamJson, {(int)Status.Postponed}, 0, 0, 0)";
         var chunk = functionsWithParam
             .Select(
                 fp =>
@@ -235,17 +230,16 @@ public class SqlServerFunctionStore : IFunctionStore
             UPDATE {_tablePrefix}
             SET Epoch = Epoch + 1, 
                 Status = {(int)Status.Executing}, 
-                LeaseExpiration = @LeaseExpiration
+                Expires = @LeaseExpiration
             WHERE FlowType = @FlowType AND flowInstance = @flowInstance AND Epoch = @ExpectedEpoch;
 
             SELECT ParamJson,                
                    Status,
                    ResultJson, 
                    DefaultStateJson,
-                   ExceptionJson,
-                   PostponedUntil,
-                   Epoch, 
-                   LeaseExpiration,
+                   ExceptionJson,                   
+                   Expires,
+                   Epoch,
                    InterruptCount,
                    Timestamp
             FROM {_tablePrefix}
@@ -274,11 +268,11 @@ public class SqlServerFunctionStore : IFunctionStore
         await using var conn = await _connFunc();
         _renewLeaseSql ??= @$"
             UPDATE {_tablePrefix}
-            SET LeaseExpiration = @LeaseExpiration
+            SET Expires = @Expires
             WHERE FlowType = @FlowType AND flowInstance = @flowInstance AND Epoch = @Epoch";
         
         await using var command = new SqlCommand(_renewLeaseSql, conn);
-        command.Parameters.AddWithValue("@LeaseExpiration", leaseExpiration);
+        command.Parameters.AddWithValue("@Expires", leaseExpiration);
         command.Parameters.AddWithValue("@FlowType", flowId.Type.Value);
         command.Parameters.AddWithValue("@flowInstance", flowId.Instance.Value);
         command.Parameters.AddWithValue("@Epoch", expectedEpoch);
@@ -286,61 +280,30 @@ public class SqlServerFunctionStore : IFunctionStore
         var affectedRows = await command.ExecuteNonQueryAsync();
         return affectedRows > 0;
     }
-
-    private string? _getCrashedFunctionsSql;
-    public async Task<IReadOnlyList<InstanceAndEpoch>> GetCrashedFunctions(FlowType FlowType, long leaseExpiresBefore)
+    
+    private string? _getExpiredFunctionsSql;
+    public async Task<IReadOnlyList<IdAndEpoch>> GetExpiredFunctions(long expiresBefore)
     {
         await using var conn = await _connFunc();
-        _getCrashedFunctionsSql ??= @$"
-            SELECT FlowInstance, Epoch
-            FROM {_tablePrefix} WITH (NOLOCK)
-            WHERE FlowType = @FlowType AND LeaseExpiration < @LeaseExpiration AND Status = {(int) Status.Executing}";
-
-        await using var command = new SqlCommand(_getCrashedFunctionsSql, conn);
-        command.Parameters.AddWithValue("@FlowType", FlowType.Value);
-        command.Parameters.AddWithValue("@LeaseExpiration", leaseExpiresBefore);
-
-        await using var reader = await command.ExecuteReaderAsync();
-        var rows = new List<InstanceAndEpoch>(); 
-        while (reader.HasRows)
-        {
-            while (reader.Read())
-            {
-                var flowInstance = reader.GetString(0);
-                var epoch = reader.GetInt32(1);
-                rows.Add(new InstanceAndEpoch(flowInstance, epoch));    
-            }
-
-            reader.NextResult();
-        }
-
-        return rows;
-    }
-
-    private string? _getPostponedFunctionsSql;
-    public async Task<IReadOnlyList<InstanceAndEpoch>> GetPostponedFunctions(FlowType FlowType, long isEligibleBefore)
-    {
-        await using var conn = await _connFunc();
-        _getPostponedFunctionsSql ??= @$"
-            SELECT FlowInstance, Epoch
+        _getExpiredFunctionsSql ??= @$"
+            SELECT FlowType, FlowInstance, Epoch
             FROM {_tablePrefix} WITH (NOLOCK) 
-            WHERE FlowType = @FlowType 
-              AND Status = {(int) Status.Postponed} 
-              AND PostponedUntil <= @PostponedUntil";
+            WHERE Expires <= @Expires AND (Status = { (int)Status.Executing } OR Status = { (int)Status.Postponed})";
 
-        await using var command = new SqlCommand(_getPostponedFunctionsSql, conn);
-        command.Parameters.AddWithValue("@FlowType", FlowType.Value);
-        command.Parameters.AddWithValue("@PostponedUntil", isEligibleBefore);
+        await using var command = new SqlCommand(_getExpiredFunctionsSql, conn);
+        command.Parameters.AddWithValue("@Expires", expiresBefore);
 
         await using var reader = await command.ExecuteReaderAsync();
-        var rows = new List<InstanceAndEpoch>(); 
+        var rows = new List<IdAndEpoch>(); 
         while (reader.HasRows)
         {
             while (reader.Read())
             {
-                var flowInstance = reader.GetString(0);
-                var epoch = reader.GetInt32(1);
-                rows.Add(new InstanceAndEpoch(flowInstance, epoch));    
+                var flowType = reader.GetString(0);
+                var flowInstance = reader.GetString(1);
+                var flowId = new FlowId(flowType, flowInstance);
+                var epoch = reader.GetInt32(2);
+                rows.Add(new IdAndEpoch(flowId, epoch));    
             }
 
             reader.NextResult();
@@ -385,7 +348,7 @@ public class SqlServerFunctionStore : IFunctionStore
         FlowId flowId, Status status, 
         string? param, string? result, 
         StoredException? storedException, 
-        long? postponeUntil,
+        long expires,
         int expectedEpoch)
     {
         await using var conn = await _connFunc();
@@ -397,7 +360,7 @@ public class SqlServerFunctionStore : IFunctionStore
                 ParamJson = @ParamJson,             
                 ResultJson = @ResultJson,
                 ExceptionJson = @ExceptionJson,
-                PostponedUntil = @PostponedUntil,
+                Expires = @Expires,
                 Epoch = Epoch + 1
             WHERE FlowType = @FlowType
             AND flowInstance = @flowInstance
@@ -409,7 +372,7 @@ public class SqlServerFunctionStore : IFunctionStore
         command.Parameters.AddWithValue("@ResultJson", result == null ? DBNull.Value : result);
         var exceptionJson = storedException == null ? null : JsonSerializer.Serialize(storedException);
         command.Parameters.AddWithValue("@ExceptionJson", exceptionJson ?? (object) DBNull.Value);
-        command.Parameters.AddWithValue("@PostponedUntil", postponeUntil ?? (object) DBNull.Value);
+        command.Parameters.AddWithValue("@Expires", expires);
         command.Parameters.AddWithValue("@flowInstance", flowId.Instance.Value);
         command.Parameters.AddWithValue("@FlowType", flowId.Type.Value);
         command.Parameters.AddWithValue("@ExpectedEpoch", expectedEpoch);
@@ -461,7 +424,7 @@ public class SqlServerFunctionStore : IFunctionStore
         
         _postponedFunctionSql ??= @$"
             UPDATE {_tablePrefix}
-            SET Status = {(int) Status.Postponed}, PostponedUntil = @PostponedUntil, DefaultStateJson = @DefaultState, Timestamp = @Timestamp, Epoch = @ExpectedEpoch
+            SET Status = {(int) Status.Postponed}, Expires = @PostponedUntil, DefaultStateJson = @DefaultState, Timestamp = @Timestamp, Epoch = @ExpectedEpoch
             WHERE FlowType = @FlowType
             AND flowInstance = @flowInstance
             AND Epoch = @ExpectedEpoch";
@@ -654,9 +617,8 @@ public class SqlServerFunctionStore : IFunctionStore
                     ResultJson, 
                     DefaultStateJson,
                     ExceptionJson,
-                    PostponedUntil,
+                    Expires,
                     Epoch, 
-                    LeaseExpiration,
                     InterruptCount,
                     Timestamp
             FROM {_tablePrefix}
@@ -685,11 +647,10 @@ public class SqlServerFunctionStore : IFunctionStore
                 var storedException = exceptionJson == null
                     ? null
                     : JsonSerializer.Deserialize<StoredException>(exceptionJson);
-                var postponedUntil = reader.IsDBNull(5) ? default(long?) : reader.GetInt64(5);
+                var expires = reader.GetInt64(5);
                 var epoch = reader.GetInt32(6);
-                var leaseExpiration = reader.GetInt64(7);
-                var interruptCount = reader.GetInt64(8);
-                var timestamp = reader.GetInt64(9);
+                var interruptCount = reader.GetInt64(7);
+                var timestamp = reader.GetInt64(8);
 
                 return new StoredFlow(
                     flowId,
@@ -698,9 +659,8 @@ public class SqlServerFunctionStore : IFunctionStore
                     status,
                     result,
                     storedException,
-                    postponedUntil,
                     epoch,
-                    leaseExpiration,
+                    expires,
                     timestamp,
                     interruptCount
                 );

@@ -46,11 +46,8 @@ public class LeaseUpdaterTestFunctionStore : IFunctionStore
         return success.ToTask();
     }
 
-    public Task<IReadOnlyList<InstanceAndEpoch>> GetCrashedFunctions(FlowType flowType, long leaseExpiresBefore)
-        => _inner.GetCrashedFunctions(flowType, leaseExpiresBefore);
-
-    public Task<IReadOnlyList<InstanceAndEpoch>> GetPostponedFunctions(FlowType flowType, long isEligibleBefore)
-        => _inner.GetPostponedFunctions(flowType, isEligibleBefore);
+    public Task<IReadOnlyList<IdAndEpoch>> GetExpiredFunctions(long expiresBefore)
+        => _inner.GetExpiredFunctions(expiresBefore);
 
     public Task<IReadOnlyList<FlowInstance>> GetSucceededFunctions(FlowType flowType, long completedBefore)
         => _inner.GetSucceededFunctions(flowType, completedBefore);
@@ -59,9 +56,9 @@ public class LeaseUpdaterTestFunctionStore : IFunctionStore
         FlowId flowId, Status status, 
         string? storedParameter, string? storedResult, 
         StoredException? storedException, 
-        long? postponeUntil, 
+        long expires, 
         int expectedEpoch
-    ) => _inner.SetFunctionState(flowId, status, storedParameter, storedResult, storedException, postponeUntil, expectedEpoch);
+    ) => _inner.SetFunctionState(flowId, status, storedParameter, storedResult, storedException, expires, expectedEpoch);
 
     public Task<bool> SucceedFunction(
         FlowId flowId, 

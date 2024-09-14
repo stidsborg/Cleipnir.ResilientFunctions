@@ -12,13 +12,13 @@ public class ControlPanel : BaseControlPanel<Unit, Unit>
         Invoker<Unit, Unit> invoker, 
         InvocationHelper<Unit, Unit> invocationHelper, 
         FlowId flowId, 
-        Status status, int epoch, long leaseExpiration,  
-        DateTime? postponedUntil, ExistingEffects effects,
+        Status status, int epoch, long expires,  
+        ExistingEffects effects,
         ExistingStates states, ExistingMessages messages, ExistingRegisteredTimeouts registeredTimeouts, Correlations correlations,
         PreviouslyThrownException? previouslyThrownException
     ) : base(
         invoker, invocationHelper, flowId, status, epoch, 
-        leaseExpiration, innerParam: Unit.Instance, innerResult: Unit.Instance, postponedUntil, effects,
+        expires, innerParam: Unit.Instance, innerResult: Unit.Instance, effects,
         states, messages, registeredTimeouts, correlations, previouslyThrownException
     ) { }
     
@@ -31,13 +31,13 @@ public class ControlPanel<TParam> : BaseControlPanel<TParam, Unit> where TParam 
         Invoker<TParam, Unit> invoker, 
         InvocationHelper<TParam, Unit> invocationHelper, 
         FlowId flowId, 
-        Status status, int epoch, long leaseExpiration, TParam innerParam, 
-        DateTime? postponedUntil, ExistingEffects effects,
+        Status status, int epoch, long expires, TParam innerParam, 
+        ExistingEffects effects,
         ExistingStates states, ExistingMessages messages, ExistingRegisteredTimeouts registeredTimeouts, Correlations correlations, 
         PreviouslyThrownException? previouslyThrownException
     ) : base(
         invoker, invocationHelper, flowId, status, epoch, 
-        leaseExpiration, innerParam, innerResult: Unit.Instance, postponedUntil, effects,
+        expires, innerParam, innerResult: Unit.Instance, effects,
         states, messages, registeredTimeouts, correlations, previouslyThrownException
     ) { }
     
@@ -56,13 +56,13 @@ public class ControlPanel<TParam, TReturn> : BaseControlPanel<TParam, TReturn> w
         Invoker<TParam, TReturn> invoker, 
         InvocationHelper<TParam, TReturn> invocationHelper, 
         FlowId flowId, Status status, int epoch, 
-        long leaseExpiration, TParam innerParam, 
+        long expires, TParam innerParam, 
         TReturn? innerResult, 
-        DateTime? postponedUntil, ExistingEffects effects, ExistingStates states, ExistingMessages messages, 
+        ExistingEffects effects, ExistingStates states, ExistingMessages messages, 
         ExistingRegisteredTimeouts registeredTimeouts, Correlations correlations, PreviouslyThrownException? previouslyThrownException
     ) : base(
-        invoker, invocationHelper, flowId, status, epoch, leaseExpiration, 
-        innerParam, innerResult, postponedUntil, effects, states, messages, 
+        invoker, invocationHelper, flowId, status, epoch, expires, 
+        innerParam, innerResult, effects, states, messages, 
         registeredTimeouts, correlations, previouslyThrownException
     ) { }
 
@@ -88,10 +88,9 @@ public abstract class BaseControlPanel<TParam, TReturn>
         FlowId flowId, 
         Status status, 
         int epoch,
-        long leaseExpiration,
+        long expires,
         TParam innerParam, 
         TReturn? innerResult,
-        DateTime? postponedUntil, 
         ExistingEffects effects,
         ExistingStates states,
         ExistingMessages messages,
@@ -104,11 +103,13 @@ public abstract class BaseControlPanel<TParam, TReturn>
         FlowId = flowId;
         Status = status;
         Epoch = epoch;
-        LeaseExpiration = new DateTime(leaseExpiration, DateTimeKind.Utc);
+        LeaseExpiration = expires == long.MaxValue
+            ? DateTime.MaxValue 
+            : new DateTime(expires, DateTimeKind.Utc);
         
         _innerParam = innerParam;
         InnerResult = innerResult;
-        PostponedUntil = postponedUntil;
+        PostponedUntil = Status == Status.Postponed ? LeaseExpiration : null;
         Effects = effects;
         States = states;
         Messages = messages;
@@ -157,7 +158,8 @@ public abstract class BaseControlPanel<TParam, TReturn>
             FlowId, Status.Succeeded, 
             InnerParam, 
             result, 
-            PostponedUntil, exception: null, 
+            expires: long.MaxValue, 
+            exception: null, 
             Epoch
         );
 
@@ -174,7 +176,8 @@ public abstract class BaseControlPanel<TParam, TReturn>
         var success = await _invocationHelper.SetFunctionState(
             FlowId, Status.Postponed, 
             InnerParam,  
-            result: default, until, 
+            result: default, 
+            expires: until.Ticks, 
             exception: null, 
             Epoch
         );
@@ -195,7 +198,7 @@ public abstract class BaseControlPanel<TParam, TReturn>
         var success = await _invocationHelper.SetFunctionState(
             FlowId, Status.Failed, 
             InnerParam,  
-            result: default, postponeUntil: null, exception, 
+            result: default, expires: long.MaxValue, exception, 
             Epoch
         );
 
@@ -243,10 +246,12 @@ public abstract class BaseControlPanel<TParam, TReturn>
 
         Status = sf.Status;
         Epoch = sf.Epoch;
-        LeaseExpiration = new DateTime(sf.LeaseExpiration, DateTimeKind.Utc);
+        LeaseExpiration = sf.Expires == long.MaxValue
+            ? DateTime.MaxValue 
+            : new DateTime(sf.Expires, DateTimeKind.Utc);
         InnerParam = sf.Param!;
         InnerResult = sf.Result;
-        PostponedUntil = sf.PostponedUntil;
+        PostponedUntil = Status == Status.Postponed ? LeaseExpiration : null;
         PreviouslyThrownException = sf.PreviouslyThrownException;
         Effects = _invocationHelper.CreateExistingEffects(FlowId);
         Messages = _invocationHelper.CreateExistingMessages(FlowId);

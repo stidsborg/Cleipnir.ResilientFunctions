@@ -65,8 +65,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
                 Epoch = 0,
                 Exception = null,
                 Result = null,
-                PostponeUntil = postponeUntil,
-                LeaseExpiration = leaseExpiration,
+                Expires = postponeUntil ?? leaseExpiration,
                 Timestamp = timestamp
             };
             if (!_messages.ContainsKey(flowId)) //messages can already have been added - i.e. paramless started by received message
@@ -90,9 +89,8 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
                         Epoch = 0,
                         Exception = null,
                         InterruptCount = 0,
-                        LeaseExpiration = 0,
+                        Expires = 0,
                         Param = param,
-                        PostponeUntil = 0,
                         Result = null,
                         Status = Status.Postponed
                     };
@@ -115,7 +113,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
 
             state.Epoch += 1;
             state.Status = Status.Executing;
-            state.LeaseExpiration = leaseExpiration;
+            state.Expires = leaseExpiration;
             return GetFunction(flowId);
         }
     }
@@ -131,36 +129,21 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
             if (state.Epoch != expectedEpoch)
                 return false.ToTask();
 
-            state.LeaseExpiration = leaseExpiration;
+            state.Expires = leaseExpiration;
             return true.ToTask();
         }
     }
-
-    public virtual Task<IReadOnlyList<InstanceAndEpoch>> GetCrashedFunctions(FlowType flowType, long leaseExpiresBefore)
+    
+    public virtual Task<IReadOnlyList<IdAndEpoch>> GetExpiredFunctions(long expiresBefore)
     {
         lock (_sync)
             return _states
                 .Values
-                .Where(s => s.FlowId.Type == flowType)
-                .Where(s => s.Status == Status.Executing)
-                .Where(s => s.LeaseExpiration < leaseExpiresBefore)
-                .Select(s => new InstanceAndEpoch(s.FlowId.Instance, s.Epoch))
+                .Where(s => s.Status == Status.Executing || s.Status == Status.Postponed)
+                .Where(s => s.Expires <= expiresBefore)
+                .Select(s => new IdAndEpoch(s.FlowId, s.Epoch))
                 .ToList()
-                .CastTo<IReadOnlyList<InstanceAndEpoch>>()
-                .ToTask();
-    }
-
-    public virtual Task<IReadOnlyList<InstanceAndEpoch>> GetPostponedFunctions(FlowType flowType, long isEligibleBefore)
-    {
-        lock (_sync)
-            return _states
-                .Values
-                .Where(s => s.FlowId.Type == flowType)
-                .Where(s => s.Status == Status.Postponed)
-                .Where(s => s.PostponeUntil <= isEligibleBefore)
-                .Select(s => new InstanceAndEpoch(s.FlowId.Instance, s.Epoch))
-                .ToList()
-                .CastTo<IReadOnlyList<InstanceAndEpoch>>()
+                .CastTo<IReadOnlyList<IdAndEpoch>>()
                 .ToTask();
     }
 
@@ -182,7 +165,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         string? param,
         string? result,
         StoredException? storedException,
-        long? postponeUntil,
+        long expires,
         int expectedEpoch)
     {
         lock (_sync)
@@ -198,7 +181,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
             state.Param = param;
             state.Result = result;
             state.Exception = storedException;
-            state.PostponeUntil = postponeUntil;
+            state.Expires = expires;
 
             state.Epoch += 1;
 
@@ -246,7 +229,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
             if (state.Epoch != expectedEpoch) return false.ToTask();
 
             state.Status = Status.Postponed;
-            state.PostponeUntil = postponeUntil;
+            state.Expires = postponeUntil;
             state.Timestamp = timestamp;
             state.DefaultState = defaultState;
             
@@ -388,9 +371,8 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
                     state.Status,
                     state.Result,
                     state.Exception,
-                    state.PostponeUntil,
                     state.Epoch,
-                    state.LeaseExpiration,
+                    state.Expires,
                     state.Timestamp,
                     state.InterruptCount
                 )
@@ -421,10 +403,9 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         public Status Status { get; set; }
         public string? Result { get; set; }
         public StoredException? Exception { get; set; }
-        public long? PostponeUntil { get; set; }
         public int Epoch { get; set; }
         public long InterruptCount { get; set; }
-        public long LeaseExpiration { get; set; }
+        public long Expires { get; set; }
         public long Timestamp { get; set; }
     }
     #endregion

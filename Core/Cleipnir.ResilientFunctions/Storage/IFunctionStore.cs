@@ -32,9 +32,8 @@ public interface IFunctionStore
     Task<StoredFlow?> RestartExecution(FlowId flowId, int expectedEpoch, long leaseExpiration);
     
     Task<bool> RenewLease(FlowId flowId, int expectedEpoch, long leaseExpiration);
-
-    Task<IReadOnlyList<InstanceAndEpoch>> GetCrashedFunctions(FlowType flowType, long leaseExpiresBefore);
-    Task<IReadOnlyList<InstanceAndEpoch>> GetPostponedFunctions(FlowType flowType, long isEligibleBefore);
+    
+    Task<IReadOnlyList<IdAndEpoch>> GetExpiredFunctions(long expiresBefore);
     Task<IReadOnlyList<FlowInstance>> GetSucceededFunctions(FlowType flowType, long completedBefore);
     
     Task<bool> SetParameters(
@@ -50,7 +49,7 @@ public interface IFunctionStore
         string? param,
         string? result,
         StoredException? storedException,
-        long? postponeUntil,
+        long expires,
         int expectedEpoch
     );
 

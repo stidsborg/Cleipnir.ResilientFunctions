@@ -89,7 +89,7 @@ internal class InvocationHelper<TParam, TReturn>
                     if (allowPostponedAndSuspended) { await Task.Delay(250); continue;}
                     throw new InvocationPostponedException(
                         flowId,
-                        postponedUntil: new DateTime(storedFunction.PostponedUntil!.Value, DateTimeKind.Utc)
+                        postponedUntil: new DateTime(storedFunction.Expires, DateTimeKind.Utc)
                     );
                 case Status.Suspended:
                     if (allowPostponedAndSuspended) { await Task.Delay(250); continue; }
@@ -283,7 +283,7 @@ internal class InvocationHelper<TParam, TReturn>
         Status status,
         TParam param,
         TReturn? result,
-        DateTime? postponeUntil,
+        long expires,
         Exception? exception,
         int expectedEpoch
     )
@@ -295,7 +295,7 @@ internal class InvocationHelper<TParam, TReturn>
             param: SerializeParameter(param),
             result: SerializeResult(result),
             exception == null ? null : serializer.SerializeException(exception),
-            postponeUntil?.Ticks,
+            expires,
             expectedEpoch
         );
     }
@@ -331,7 +331,7 @@ internal class InvocationHelper<TParam, TReturn>
             flowId,
             sf.Status,
             sf.Epoch,
-            sf.LeaseExpiration,
+            sf.Expires,
             Param:
                 sf.Parameter == null 
                 ? default
@@ -340,7 +340,6 @@ internal class InvocationHelper<TParam, TReturn>
                 ? default 
                 : serializer.DeserializeResult<TReturn>(sf.Result),
             sf.DefaultState,
-            PostponedUntil: sf.PostponedUntil == null ? null : new DateTime(sf.PostponedUntil.Value),
             PreviouslyThrownException: sf.Exception == null 
                 ? null 
                 : serializer.DeserializeException(sf.Exception)

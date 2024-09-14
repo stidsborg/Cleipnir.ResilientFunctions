@@ -9,14 +9,13 @@ public record StoredFlow(
     Status Status,
     string? Result,
     StoredException? Exception,
-    long? PostponedUntil,
     int Epoch,
-    long LeaseExpiration,
+    long Expires,
     long Timestamp,
     long InterruptCount
 );
 
-public record InstanceAndEpoch(FlowInstance Instance, int Epoch);
+public record IdAndEpoch(FlowId FlowId, int Epoch);
 
 public record StoredException(string ExceptionMessage, string? ExceptionStackTrace, string ExceptionType);
 public record StatusAndEpoch(Status Status, int Epoch);

@@ -40,9 +40,8 @@ public abstract class StoreCrudTests
         stored.Parameter.ShouldBe(Param);
         stored.Result.ShouldBeNull();
         stored.Status.ShouldBe(Status.Executing);
-        stored.PostponedUntil.ShouldBeNull();
         stored.Epoch.ShouldBe(0);
-        stored.LeaseExpiration.ShouldBe(leaseExpiration);
+        stored.Expires.ShouldBe(leaseExpiration);
     }
 
     public abstract Task FunctionCanBeCreatedWithTwoParametersSuccessfully();
@@ -63,9 +62,8 @@ public abstract class StoreCrudTests
         stored.Parameter.ShouldBe(Param);
         stored.Result.ShouldBeNull();
         stored.Status.ShouldBe(Status.Executing);
-        stored.PostponedUntil.ShouldBeNull();
         stored.Epoch.ShouldBe(0);
-        stored.LeaseExpiration.ShouldBe(leaseExpiration);
+        stored.Expires.ShouldBe(leaseExpiration);
     }
         
     public abstract Task FunctionCanBeCreatedWithTwoParametersAndStateSuccessfully();
@@ -86,9 +84,8 @@ public abstract class StoreCrudTests
         stored.Parameter.ShouldBe(Param);
         stored.Result.ShouldBeNull();
         stored.Status.ShouldBe(Status.Executing);
-        stored.PostponedUntil.ShouldBeNull();
         stored.Epoch.ShouldBe(0);
-        stored.LeaseExpiration.ShouldBe(leaseExpiration);
+        stored.Expires.ShouldBe(leaseExpiration);
     }
 
     public abstract Task FetchingNonExistingFunctionReturnsNull();
@@ -114,7 +111,7 @@ public abstract class StoreCrudTests
 
         var storedFunction = await store.GetFunction(FlowId);
         storedFunction!.Epoch.ShouldBe(0);
-        storedFunction.LeaseExpiration.ShouldBe(1);
+        storedFunction.Expires.ShouldBe(1);
     }
     
     public abstract Task LeaseIsNotUpdatedWhenCurrentEpochIsDifferent();
@@ -134,7 +131,7 @@ public abstract class StoreCrudTests
 
         var storedFunction = await store.GetFunction(FlowId);
         storedFunction!.Epoch.ShouldBe(0);
-        storedFunction.LeaseExpiration.ShouldBe(leaseExpiration);
+        storedFunction.Expires.ShouldBe(leaseExpiration);
     }
 
     public abstract Task ExistingFunctionCanBeDeleted();

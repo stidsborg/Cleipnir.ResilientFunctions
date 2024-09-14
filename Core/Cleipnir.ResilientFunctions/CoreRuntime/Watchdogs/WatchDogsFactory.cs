@@ -13,6 +13,7 @@ internal static class WatchDogsFactory
         FlowType flowType, 
         IFunctionStore functionStore,
         TimeoutWatchdog timeoutWatchdog,
+        CrashedOrPostponedWatchdog crashedOrPostponedWatchdog,
         Restart restart, 
         RestartFunction restartFunction,
         ScheduleRestartFromWatchdog scheduleRestart,
@@ -26,20 +27,13 @@ internal static class WatchDogsFactory
             throw new InvalidOperationException(nameof(Settings.WatchdogCheckFrequency) + " is invalid");
         
         var asyncSemaphore = new AsyncSemaphore(settings.MaxParallelRetryInvocations);
-        var restarterFactory = new RestarterFactory(
+
+        crashedOrPostponedWatchdog.Register(
             flowType,
-            functionStore,
-            shutdownCoordinator,
-            settings.UnhandledExceptionHandler,
-            settings.WatchdogCheckFrequency,
-            settings.DelayStartup,
-            asyncSemaphore,
             restartFunction,
-            scheduleRestart
+            scheduleRestart,
+            asyncSemaphore
         );
-        
-        var crashedWatchdog = new CrashedWatchdog(restarterFactory);
-        var postponedWatchdog = new PostponedWatchdog(restarterFactory);
 
         var messagesWriters = new MessageWriters(
             flowType,
@@ -47,7 +41,7 @@ internal static class WatchDogsFactory
             settings.Serializer,
             scheduleReInvocation: (id, epoch) => restart(id, epoch)
         );
-        timeoutWatchdog.Add(flowType, messagesWriters);
+        timeoutWatchdog.Register(flowType, messagesWriters);
 
         var retentionWatchdog = new RetentionWatchdog(
             flowType,
@@ -58,9 +52,7 @@ internal static class WatchDogsFactory
             settings.UnhandledExceptionHandler,
             shutdownCoordinator
         );
-
-        Task.Run(crashedWatchdog.Start);
-        Task.Run(postponedWatchdog.Start);
+        
         Task.Run(retentionWatchdog.Start);
     }
 }

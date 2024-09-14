@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
@@ -11,12 +12,8 @@ using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.CoreRuntime.Watchdogs;
 
-internal class Restarter
+internal class CrashedOrPostponedWatchdog
 {
-    public delegate Task<IReadOnlyList<InstanceAndEpoch>> GetEligibleFunctions(FlowType flowType, IFunctionStore functionStore);
-    
-    private readonly FlowType _flowType;
-
     private readonly IFunctionStore _functionStore;
     private readonly ShutdownCoordinator _shutdownCoordinator;
     private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
@@ -24,35 +21,45 @@ internal class Restarter
     private readonly TimeSpan _checkFrequency;
     private readonly TimeSpan _delayStartUp;
     
-    private readonly AsyncSemaphore _asyncSemaphore;
-    
-    private readonly RestartFunction _restartFunction;
-    private readonly ScheduleRestartFromWatchdog _scheduleRestart;
-    private readonly GetEligibleFunctions _getEligibleFunctions;
 
-    public Restarter(
-        FlowType flowType, 
+    private volatile ImmutableDictionary<FlowType, Tuple<RestartFunction, ScheduleRestartFromWatchdog, AsyncSemaphore>> _flowsDictionary
+        = ImmutableDictionary<FlowType, Tuple<RestartFunction, ScheduleRestartFromWatchdog, AsyncSemaphore>>.Empty;
+    private readonly object _sync = new();
+    private bool _isStarted;
+
+    public CrashedOrPostponedWatchdog(
         IFunctionStore functionStore,
         ShutdownCoordinator shutdownCoordinator, UnhandledExceptionHandler unhandledExceptionHandler, 
-        TimeSpan checkFrequency, TimeSpan delayStartUp, 
-        AsyncSemaphore asyncSemaphore, 
-        RestartFunction restartFunction, ScheduleRestartFromWatchdog scheduleRestart,
-        GetEligibleFunctions getEligibleFunctions
+        TimeSpan checkFrequency, TimeSpan delayStartUp
     )
     {
-        _flowType = flowType;
         _functionStore = functionStore;
         _shutdownCoordinator = shutdownCoordinator;
         _unhandledExceptionHandler = unhandledExceptionHandler;
         _checkFrequency = checkFrequency;
         _delayStartUp = delayStartUp;
-        _asyncSemaphore = asyncSemaphore;
-        _restartFunction = restartFunction;
-        _scheduleRestart = scheduleRestart;
-        _getEligibleFunctions = getEligibleFunctions;
+    }
+
+    public void Register(
+        FlowType flowType, 
+        RestartFunction restartFunction, 
+        ScheduleRestartFromWatchdog scheduleRestart,
+        AsyncSemaphore asyncSemaphore)
+    {
+        _flowsDictionary = _flowsDictionary.SetItem(flowType, Tuple.Create(restartFunction, scheduleRestart, asyncSemaphore));
+
+        var isStarted = false;
+        lock (_sync)
+        {
+            isStarted = _isStarted;
+            _isStarted = true;
+        }
+
+        if (!isStarted)
+            Task.Run(Start);
     }
     
-    public async Task Start(string watchdogName)
+    public async Task Start()
     {
         await Task.Delay(_delayStartUp);
 
@@ -63,14 +70,20 @@ internal class Restarter
             {
                 var now = DateTime.UtcNow;
 
-                var eligibleFunctions = await _getEligibleFunctions(_flowType, _functionStore);
+                var eligibleFunctions = await _functionStore.GetExpiredFunctions(expiresBefore: now.Ticks);
                 #if DEBUG
-                    eligibleFunctions = await ReAssertEligibleFunctions(eligibleFunctions);
+                    eligibleFunctions = await ReAssertEligibleFunctions(eligibleFunctions, now);
                 #endif
+
+                var flowsDictionary = _flowsDictionary;     
                 
                 foreach (var sef in eligibleFunctions.WithRandomOffset())
                 {
-                    if (!_asyncSemaphore.TryTake(out var takenLock))
+                    if (!_flowsDictionary.TryGetValue(sef.FlowId.Type, out var tuple))
+                        continue;
+                    
+                    var (restartFunction, scheduleRestart, asyncSemaphore) = tuple;
+                    if (!asyncSemaphore.TryTake(out var takenLock))
                         break;
                     
                     var runningFunction = _shutdownCoordinator.TryRegisterRunningFunction();
@@ -80,8 +93,7 @@ internal class Restarter
                         return;
                     }
                     
-                    var functionId = new FlowId(_flowType, sef.Instance);
-                    var restartedFunction = await _restartFunction(functionId, sef.Epoch);
+                    var restartedFunction = await restartFunction(sef.FlowId, sef.Epoch);
                     if (restartedFunction == null)
                     {
                         runningFunction.Dispose();
@@ -89,8 +101,8 @@ internal class Restarter
                         break;
                     }
 
-                    await _scheduleRestart(
-                        sef.Instance,
+                    await scheduleRestart(
+                        sef.FlowId.Instance,
                         restartedFunction,
                         onCompletion: () =>
                         {
@@ -110,9 +122,8 @@ internal class Restarter
         {
             _unhandledExceptionHandler.Invoke(
                 new FrameworkException(
-                    $"{watchdogName} for '{_flowType}' failed - retrying in 5 seconds",
-                    innerException: thrownException,
-                    _flowType
+                    $"{nameof(CrashedOrPostponedWatchdog)} execution failed - retrying in 5 seconds",
+                    innerException: thrownException
                 )
             );
             
@@ -121,7 +132,7 @@ internal class Restarter
         }
     }
 
-    private async Task<IReadOnlyList<InstanceAndEpoch>> ReAssertEligibleFunctions(IReadOnlyList<InstanceAndEpoch> eligibleFunctions)
+    private async Task<IReadOnlyList<IdAndEpoch>> ReAssertEligibleFunctions(IReadOnlyList<IdAndEpoch> eligibleFunctions, DateTime expiresBefore)
     {
         //race-condition fix between re-invoker and lease-updater. Task.Delays are not respected when debugging.
         //fix is to allow lease updater to update lease before crashed watchdog asserts that the functions in question has crashed
@@ -131,7 +142,7 @@ internal class Restarter
         
         await Task.Delay(500);
         var eligibleFunctionsRepeated = 
-            (await _getEligibleFunctions(_flowType, _functionStore)).ToHashSet();
+            (await _functionStore.GetExpiredFunctions(expiresBefore.Ticks)).ToHashSet();
         
         return eligibleFunctions.Where(ie => eligibleFunctionsRepeated.Contains(ie)).ToList();
     }
