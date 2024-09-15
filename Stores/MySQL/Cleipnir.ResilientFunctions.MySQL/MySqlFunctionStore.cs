@@ -80,7 +80,7 @@ public class MySqlFunctionStore : IFunctionStore
                 exception_json TEXT NULL,                
                 timestamp BIGINT NOT NULL,
                 PRIMARY KEY (type, instance),
-                INDEX (type, status, instance)   
+                INDEX (expires, type, instance, status)   
             );";
 
         await using var command = new MySqlCommand(_initializeSql, conn);
