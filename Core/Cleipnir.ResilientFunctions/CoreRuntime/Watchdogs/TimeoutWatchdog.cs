@@ -44,16 +44,14 @@ internal class TimeoutWatchdog
     public void Register(FlowType flowType, MessageWriters messageWriters)
     {
         _messageWriters = _messageWriters.Add(flowType, messageWriters);
-
-        var started = false;
+        
         lock (_sync)
         {
-            started = _started;
+            if (!_started)
+                Task.Run(Start);
+            
             _started = true;
         }
-
-        if (!started)
-            Task.Run(Start);
     }
 
     private async Task Start()

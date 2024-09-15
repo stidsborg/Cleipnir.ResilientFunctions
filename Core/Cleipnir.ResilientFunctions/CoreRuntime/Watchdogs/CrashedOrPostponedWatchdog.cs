@@ -25,7 +25,7 @@ internal class CrashedOrPostponedWatchdog
     private volatile ImmutableDictionary<FlowType, Tuple<RestartFunction, ScheduleRestartFromWatchdog, AsyncSemaphore>> _flowsDictionary
         = ImmutableDictionary<FlowType, Tuple<RestartFunction, ScheduleRestartFromWatchdog, AsyncSemaphore>>.Empty;
     private readonly object _sync = new();
-    private bool _isStarted;
+    private bool _started;
 
     public CrashedOrPostponedWatchdog(
         IFunctionStore functionStore,
@@ -47,16 +47,14 @@ internal class CrashedOrPostponedWatchdog
         AsyncSemaphore asyncSemaphore)
     {
         _flowsDictionary = _flowsDictionary.SetItem(flowType, Tuple.Create(restartFunction, scheduleRestart, asyncSemaphore));
-
-        var isStarted = false;
+        
         lock (_sync)
         {
-            isStarted = _isStarted;
-            _isStarted = true;
+            if (!_started)
+                Task.Run(Start);    
+            
+            _started = true;
         }
-
-        if (!isStarted)
-            Task.Run(Start);
     }
 
     private async Task Start()
