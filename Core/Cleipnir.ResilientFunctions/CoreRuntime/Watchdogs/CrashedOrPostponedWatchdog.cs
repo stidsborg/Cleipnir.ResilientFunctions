@@ -58,8 +58,8 @@ internal class CrashedOrPostponedWatchdog
         if (!isStarted)
             Task.Run(Start);
     }
-    
-    public async Task Start()
+
+    private async Task Start()
     {
         await Task.Delay(_delayStartUp);
 
@@ -76,15 +76,14 @@ internal class CrashedOrPostponedWatchdog
                 #endif
 
                 var flowsDictionary = _flowsDictionary;     
-                
                 foreach (var sef in eligibleFunctions.WithRandomOffset())
                 {
-                    if (!_flowsDictionary.TryGetValue(sef.FlowId.Type, out var tuple))
+                    if (!flowsDictionary.TryGetValue(sef.FlowId.Type, out var tuple))
                         continue;
                     
                     var (restartFunction, scheduleRestart, asyncSemaphore) = tuple;
                     if (!asyncSemaphore.TryTake(out var takenLock))
-                        break;
+                        continue;
                     
                     var runningFunction = _shutdownCoordinator.TryRegisterRunningFunction();
                     if (runningFunction == null)
@@ -92,24 +91,33 @@ internal class CrashedOrPostponedWatchdog
                         takenLock.Dispose();
                         return;
                     }
-                    
-                    var restartedFunction = await restartFunction(sef.FlowId, sef.Epoch);
-                    if (restartedFunction == null)
+
+                    try
+                    {
+                        var restartedFunction = await restartFunction(sef.FlowId, sef.Epoch);
+                        if (restartedFunction == null)
+                        {
+                            runningFunction.Dispose();
+                            takenLock.Dispose();
+                            break;
+                        }
+
+                        await scheduleRestart(
+                            sef.FlowId.Instance,
+                            restartedFunction,
+                            onCompletion: () =>
+                            {
+                                takenLock.Dispose();
+                                runningFunction.Dispose();
+                            }
+                        );
+                    }
+                    catch
                     {
                         runningFunction.Dispose();
                         takenLock.Dispose();
-                        break;
+                        throw;
                     }
-
-                    await scheduleRestart(
-                        sef.FlowId.Instance,
-                        restartedFunction,
-                        onCompletion: () =>
-                        {
-                            takenLock.Dispose();
-                            runningFunction.Dispose();
-                        }
-                    );
                 }
                 
                 var timeElapsed = DateTime.UtcNow - now;
