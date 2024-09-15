@@ -41,8 +41,6 @@ public class MonitorTests : ResilientFunctions.Tests.TestTemplates.UtilsTests.Mo
     {
         var underlyingRegister = new MySqlUnderlyingRegister(Sql.ConnectionString);
         var monitor = new Monitor(underlyingRegister);
-        await underlyingRegister.DropUnderlyingTable();
-        await underlyingRegister.Initialize();
         await underlyingRegister.Initialize();
         return monitor;
     }

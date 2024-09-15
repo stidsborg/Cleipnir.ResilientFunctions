@@ -40,17 +40,6 @@ public class SqlServerUnderlyingRegister : IUnderlyingRegister
         }
     }
 
-    private string? _dropUnderlyingTableSql;
-    public async Task DropUnderlyingTable()
-    {
-        await using var conn = new SqlConnection(_connectionString);
-        await conn.OpenAsync();
-
-        _dropUnderlyingTableSql ??= $"DROP TABLE IF EXISTS {_tablePrefix}_Register";
-        await using var command = new SqlCommand(_dropUnderlyingTableSql, conn);
-        await command.ExecuteNonQueryAsync();
-    }
-
     private string? _setIfEmptySql;
     public async Task<bool> SetIfEmpty(RegisterType registerType, string group, string name, string value)
     {

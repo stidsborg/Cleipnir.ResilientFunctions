@@ -34,15 +34,6 @@ public class MySqlMessageStore : IMessageStore
         await command.ExecuteNonQueryAsync();
     }
 
-    private string? _dropUnderlyingTableSql;
-    public async Task DropUnderlyingTable()
-    {
-        await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
-        _dropUnderlyingTableSql ??= $"DROP TABLE IF EXISTS {_tablePrefix}_messages";
-        await using var command = new MySqlCommand(_dropUnderlyingTableSql, conn);
-        await command.ExecuteNonQueryAsync();
-    }
-
     private string? _truncateTableSql;
     public async Task TruncateTable()
     {

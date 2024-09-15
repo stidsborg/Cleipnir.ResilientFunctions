@@ -203,17 +203,7 @@ public class MySqlUnderlyingRegister : IUnderlyingRegister
         var count = (long) (await command.ExecuteScalarAsync() ?? 0);
         return count > 0;
     }
-
-    private string? _dropUnderlyingTableSql;
-    public async Task DropUnderlyingTable()
-    {
-        await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
-        _dropUnderlyingTableSql ??= $"DROP TABLE IF EXISTS {_tablePrefix}_register";
-        
-        await using var command = new MySqlCommand(_dropUnderlyingTableSql, conn);
-        await command.ExecuteNonQueryAsync();
-    }
-
+    
     private string? _truncateTableSql;
     public async Task TruncateTable()
     {

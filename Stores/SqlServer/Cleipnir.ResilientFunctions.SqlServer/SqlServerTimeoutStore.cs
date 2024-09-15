@@ -47,15 +47,6 @@ public class SqlServerTimeoutStore : ITimeoutStore
         await command.ExecuteNonQueryAsync();
     }
 
-    private string? _dropUnderlyingTableSql;
-    public async Task DropUnderlyingTable()
-    {
-        await using var conn = await CreateConnection();
-        _dropUnderlyingTableSql ??= $"DROP TABLE IF EXISTS {_tablePrefix}_Timeouts;";
-        var command = new SqlCommand(_dropUnderlyingTableSql, conn);
-        await command.ExecuteNonQueryAsync();
-    }
-
     private string? _upsertTimeoutSql;
     public async Task UpsertTimeout(StoredTimeout storedTimeout, bool overwrite)
     {

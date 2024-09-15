@@ -41,15 +41,6 @@ public class SqlServerMessageStore : IMessageStore
         } catch (SqlException exception) when (exception.Number == 2714) {}
     }
 
-    private string? _dropUnderlyingTableSql;
-    public async Task DropUnderlyingTable()
-    {
-        await using var conn = await CreateConnection();
-        _dropUnderlyingTableSql ??= $"DROP TABLE IF EXISTS {_tablePrefix}_Messages;";
-        var command = new SqlCommand(_dropUnderlyingTableSql, conn);
-        await command.ExecuteNonQueryAsync();
-    }
-
     private string? _truncateTableSql;
     public async Task TruncateTable()
     {

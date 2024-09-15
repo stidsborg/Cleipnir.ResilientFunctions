@@ -8,8 +8,6 @@ namespace Cleipnir.ResilientFunctions.MySQL.Tests.UtilTests;
 [TestClass]
 public class RegisterTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.UtilsTests.RegisterTests
 {
-    private readonly SyncedCounter _syncedCounter = new();
-    
     [TestMethod]
     public override Task SetValueWithNoExistingValueSucceeds()
         => SetValueWithNoExistingValueSucceeds(CreateAndInitializeRegister());
@@ -60,9 +58,7 @@ public class RegisterTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.Uti
 
     private async Task<IRegister> CreateAndInitializeRegister([CallerMemberName] string memberName = "")
     {
-        var count = _syncedCounter.Increment();
         var underlyingRegister = new MySqlUnderlyingRegister(Sql.ConnectionString);
-        await underlyingRegister.DropUnderlyingTable();
         await underlyingRegister.Initialize();
         return new Register(underlyingRegister);
     }

@@ -184,13 +184,4 @@ public class MySqlTimeoutStore : ITimeoutStore
     }
 
     private Task<MySqlConnection> CreateConnection() => DatabaseHelper.CreateOpenConnection(_connectionString);
-
-    private string? _dropUnderlyingTable;
-    public async Task DropUnderlyingTable()
-    {
-        await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
-        _dropUnderlyingTable ??= $"DROP TABLE IF EXISTS {_tablePrefix}_timeouts";
-        await using var command = new MySqlCommand(_dropUnderlyingTable, conn);
-        await command.ExecuteNonQueryAsync();
-    }
 }

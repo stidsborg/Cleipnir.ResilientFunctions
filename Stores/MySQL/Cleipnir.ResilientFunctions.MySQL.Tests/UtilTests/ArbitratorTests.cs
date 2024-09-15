@@ -29,8 +29,6 @@ public class ArbitratorTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.U
     {
         var underlyingRegister = new MySqlUnderlyingRegister(Sql.ConnectionString);
         var arbitrator = new Arbitrator(underlyingRegister);
-        await underlyingRegister.DropUnderlyingTable();
-        await underlyingRegister.Initialize();
         await underlyingRegister.Initialize();
         return arbitrator;
     }
