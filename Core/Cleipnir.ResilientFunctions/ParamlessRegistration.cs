@@ -25,11 +25,12 @@ public class ParamlessRegistration : BaseRegistration
         Func<FlowInstance, Task> schedule,
         Func<FlowInstance, DateTime, Task> scheduleAt,
         Func<IEnumerable<FlowInstance>, Task> bulkSchedule,
+        GetInstances getInstances,
         ControlPanelFactory controlPanelFactory, 
         MessageWriters messageWriters, 
         StateFetcher stateFetcher,
         Postman postman
-    ) : base(postman)
+    ) : base(postman, getInstances)
     {
         Type = flowType;
         

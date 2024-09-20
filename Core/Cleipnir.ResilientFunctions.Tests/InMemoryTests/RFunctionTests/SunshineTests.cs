@@ -47,4 +47,8 @@ public class SunshineTests : TestTemplates.RFunctionTests.SunshineTests
     [TestMethod]
     public override Task FunctionIsRemovedAfterRetentionPeriod()
         => FunctionIsRemovedAfterRetentionPeriod(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task InstancesCanBeFetched()
+        => InstancesCanBeFetched(FunctionStoreFactory.Create());
 }

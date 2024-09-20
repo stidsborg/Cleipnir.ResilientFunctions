@@ -253,13 +253,19 @@ public class FunctionsRegistry : IDisposable
                 _functionStore.CorrelationStore,
                 messageWriters
             );
-            
+
+            Task<IReadOnlyList<FlowInstance>> GetInstances(Status? status) =>
+                status == null
+                    ? _functionStore.GetInstances(flowType)
+                    : _functionStore.GetInstances(flowType, status.Value);
+
             var registration = new FuncRegistration<TParam, TReturn>(
                 flowType,
                 invoker.Invoke,
                 invoker.ScheduleInvoke,
                 invoker.ScheduleAt,
                 invocationHelper.BulkSchedule,
+                GetInstances,
                 controlPanels,
                 messageWriters,
                 new StateFetcher(_functionStore, settingsWithDefaults.Serializer),
@@ -331,6 +337,11 @@ public class FunctionsRegistry : IDisposable
                 _functionStore.CorrelationStore,
                 messageWriters
             );
+            
+            Task<IReadOnlyList<FlowInstance>> GetInstances(Status? status) =>
+                status == null
+                    ? _functionStore.GetInstances(flowType)
+                    : _functionStore.GetInstances(flowType, status.Value);
 
             var registration = new ParamlessRegistration(
                 flowType,
@@ -338,6 +349,7 @@ public class FunctionsRegistry : IDisposable
                 schedule: id => invoker.ScheduleInvoke(id.Value, param: Unit.Instance),
                 scheduleAt: (id, at) => invoker.ScheduleAt(id.Value, param: Unit.Instance, at),
                 bulkSchedule: ids => invocationHelper.BulkSchedule(ids.Select(id => new BulkWork<Unit>(id, Unit.Instance))),
+                GetInstances,
                 controlPanels,
                 messageWriters,
                 new StateFetcher(_functionStore, settingsWithDefaults.Serializer),
@@ -409,12 +421,18 @@ public class FunctionsRegistry : IDisposable
                 messageWriters
             );
             
+            Task<IReadOnlyList<FlowInstance>> GetInstances(Status? status) =>
+                status == null
+                    ? _functionStore.GetInstances(flowType)
+                    : _functionStore.GetInstances(flowType, status.Value);
+            
             var registration = new ActionRegistration<TParam>(
                 flowType,
                 rActionInvoker.Invoke,
                 rActionInvoker.ScheduleInvoke,
                 rActionInvoker.ScheduleAt,
                 invocationHelper.BulkSchedule,
+                GetInstances,
                 controlPanels,
                 messageWriters,
                 new StateFetcher(_functionStore, settingsWithDefaults.Serializer),

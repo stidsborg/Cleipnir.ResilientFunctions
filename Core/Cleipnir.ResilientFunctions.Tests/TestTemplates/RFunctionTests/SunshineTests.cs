@@ -328,4 +328,59 @@ public abstract class SunshineTests
         unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
     private class State : Domain.FlowState {}
+    
+    public abstract Task InstancesCanBeFetched();
+    protected async Task InstancesCanBeFetched(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
+        var flowType = TestFlowId.Create().Type;
+        
+        
+            using var functionsRegistry = new FunctionsRegistry(
+                store,
+                new Settings(
+                    unhandledExceptionCatcher.Catch,
+                    enableWatchdogs: false
+                )
+            );
+        
+            var registration = functionsRegistry.RegisterAction(
+                flowType,
+                inner: Task<Result> (bool postpone) => 
+                    Task.FromResult(
+                        postpone 
+                        ? Postpone.For(TimeSpan.FromHours(1)) 
+                        : Succeed.WithoutValue
+                    )
+            );
+            
+            await registration.Schedule("true", true);
+            await registration.Schedule("false", false);
+
+            var trueFlowControlPanel = (await registration.ControlPanel("true")).ShouldNotBeNull();
+            await BusyWait.Until(async () =>
+            {
+                await trueFlowControlPanel.Refresh();
+                return trueFlowControlPanel.Status == Status.Postponed;
+            });
+            
+            var falseFlowControlPanel = (await registration.ControlPanel("false")).ShouldNotBeNull();
+            await falseFlowControlPanel.WaitForCompletion();
+
+            var allInstances = await registration.GetInstances();
+            allInstances.Count.ShouldBe(2);
+            allInstances.Any(i => i == "true").ShouldBeTrue();
+            allInstances.Any(i => i == "false").ShouldBeTrue();
+
+            var succeeds = await registration.GetInstances(Status.Succeeded);
+            succeeds.Count.ShouldBe(1);
+            succeeds.Single().ShouldBe("false");
+            
+            var postponed = await registration.GetInstances(Status.Postponed);
+            postponed.Count.ShouldBe(1);
+            postponed.Single().ShouldBe("true");
+        
+        unhandledExceptionCatcher.ShouldNotHaveExceptions();
+    }
 }

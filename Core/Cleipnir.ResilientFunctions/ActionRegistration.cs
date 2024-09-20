@@ -38,11 +38,12 @@ public class ActionRegistration<TParam> : BaseRegistration where TParam : notnul
         ActionRegistration.Schedule<TParam> schedule,
         ActionRegistration.ScheduleAt<TParam> scheduleAt,
         ActionRegistration.BulkSchedule<TParam> bulkSchedule,
+        GetInstances getInstances,
         ControlPanelFactory<TParam> controlPanelFactory, 
         MessageWriters messageWriters, 
         StateFetcher stateFetcher,
         Postman postman
-    ) : base(postman)
+    ) : base(postman, getInstances)
     {
         Type = flowType;
         
