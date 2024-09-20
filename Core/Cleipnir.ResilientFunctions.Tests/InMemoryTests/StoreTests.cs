@@ -179,4 +179,8 @@ public class StoreTests : TestTemplates.StoreTests
     [TestMethod]
     public override Task DifferentTypesAreFetchedByGetExpiredFunctionsCall()
         => DifferentTypesAreFetchedByGetExpiredFunctionsCall(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task MultipleInstancesCanBeFetchedForFlowType()
+        => MultipleInstancesCanBeFetchedForFlowType(FunctionStoreFactory.Create());
 }

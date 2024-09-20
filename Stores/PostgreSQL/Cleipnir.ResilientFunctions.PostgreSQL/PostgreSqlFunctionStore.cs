@@ -14,7 +14,7 @@ namespace Cleipnir.ResilientFunctions.PostgreSQL;
 public class PostgreSqlFunctionStore : IFunctionStore
 {
     private readonly string _connectionString;
-    private readonly string _tablePrefix;
+    private readonly string _tableName;
 
     private readonly PostgreSqlMessageStore _messageStore;
     public IMessageStore MessageStore => _messageStore;
@@ -38,16 +38,16 @@ public class PostgreSqlFunctionStore : IFunctionStore
 
     public PostgreSqlFunctionStore(string connectionString, string tablePrefix = "")
     {
-        _tablePrefix = tablePrefix == "" ? "rfunctions" : tablePrefix;
+        _tableName = tablePrefix == "" ? "rfunctions" : tablePrefix;
         _connectionString = connectionString;
         
-        _messageStore = new PostgreSqlMessageStore(connectionString, _tablePrefix);
-        _effectsStore = new PostgreSqlEffectsStore(connectionString, _tablePrefix);
-        _statesStore = new PostgreSqlStatesStore(connectionString, _tablePrefix);
-        _timeoutStore = new PostgreSqlTimeoutStore(connectionString, _tablePrefix);
-        _correlationStore = new PostgreSqlCorrelationStore(connectionString, _tablePrefix);
-        _postgresSqlUnderlyingRegister = new PostgresSqlUnderlyingRegister(connectionString, _tablePrefix);
-        _migrator = new PostgreSqlMigrator(connectionString, _tablePrefix);
+        _messageStore = new PostgreSqlMessageStore(connectionString, _tableName);
+        _effectsStore = new PostgreSqlEffectsStore(connectionString, _tableName);
+        _statesStore = new PostgreSqlStatesStore(connectionString, _tableName);
+        _timeoutStore = new PostgreSqlTimeoutStore(connectionString, _tableName);
+        _correlationStore = new PostgreSqlCorrelationStore(connectionString, _tableName);
+        _postgresSqlUnderlyingRegister = new PostgresSqlUnderlyingRegister(connectionString, _tableName);
+        _migrator = new PostgreSqlMigrator(connectionString, _tableName);
         Utilities = new Utilities(_postgresSqlUnderlyingRegister);
     } 
 
@@ -73,7 +73,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         await _correlationStore.Initialize();
         await using var conn = await CreateConnection();
         _initializeSql ??= $@"
-            CREATE TABLE IF NOT EXISTS {_tablePrefix} (
+            CREATE TABLE IF NOT EXISTS {_tableName} (
                 type VARCHAR(200) NOT NULL,
                 instance VARCHAR(200) NOT NULL,
                 epoch INT NOT NULL DEFAULT 0,
@@ -87,13 +87,13 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 timestamp BIGINT NOT NULL,
                 PRIMARY KEY (type, instance)
             );
-            CREATE INDEX IF NOT EXISTS idx_{_tablePrefix}_expires
-            ON {_tablePrefix}(expires, type, instance)
+            CREATE INDEX IF NOT EXISTS idx_{_tableName}_expires
+            ON {_tableName}(expires, type, instance)
             INCLUDE (epoch)
             WHERE status = {(int) Status.Executing} OR status = {(int) Status.Postponed};           
 
-            CREATE INDEX IF NOT EXISTS idx_{_tablePrefix}_succeeded
-            ON {_tablePrefix}(type, instance)
+            CREATE INDEX IF NOT EXISTS idx_{_tableName}_succeeded
+            ON {_tableName}(type, instance)
             WHERE status = {(int) Status.Succeeded};
             ";
 
@@ -112,7 +112,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         await _correlationStore.Truncate();
         
         await using var conn = await CreateConnection();
-        _truncateTableSql ??= $"TRUNCATE TABLE {_tablePrefix}";
+        _truncateTableSql ??= $"TRUNCATE TABLE {_tableName}";
         await using var command = new NpgsqlCommand(_truncateTableSql, conn);
         await command.ExecuteNonQueryAsync();
     }
@@ -128,7 +128,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         await using var conn = await CreateConnection();
         
         _createFunctionSql ??= @$"
-            INSERT INTO {_tablePrefix}
+            INSERT INTO {_tableName}
                 (type, instance, status, param_json, expires, timestamp)
             VALUES
                 ($1, $2, $3, $4, $5, $6)
@@ -154,7 +154,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
     public async Task BulkScheduleFunctions(IEnumerable<IdWithParam> functionsWithParam)
     {
         _bulkScheduleFunctionsSql ??= @$"
-            INSERT INTO {_tablePrefix}
+            INSERT INTO {_tableName}
                 (type, instance, status, param_json, expires, timestamp)
             VALUES
                 ($1, $2, {(int) Status.Postponed}, $3, 0, 0)
@@ -189,7 +189,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         await using var conn = await CreateConnection();
 
         _restartExecutionSql ??= @$"
-            UPDATE {_tablePrefix}
+            UPDATE {_tableName}
             SET epoch = epoch + 1, status = {(int)Status.Executing}, expires = $1
             WHERE type = $2 AND instance = $3 AND epoch = $4
             RETURNING               
@@ -229,7 +229,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
     {
         await using var conn = await CreateConnection();
         _renewLeaseSql ??= $@"
-            UPDATE {_tablePrefix}
+            UPDATE {_tableName}
             SET expires = $1
             WHERE type = $2 AND instance = $3 AND epoch = $4";
         await using var command = new NpgsqlCommand(_renewLeaseSql, conn)
@@ -253,7 +253,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         await using var conn = await CreateConnection();
         _getExpiredFunctionsSql ??= @$"
             SELECT type, instance, epoch
-            FROM {_tablePrefix}
+            FROM {_tableName}
             WHERE expires <= $1 AND (status = {(int) Status.Postponed} OR status = {(int) Status.Executing})";
         await using var command = new NpgsqlCommand(_getExpiredFunctionsSql, conn)
         {
@@ -283,7 +283,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         await using var conn = await CreateConnection();
         _getSucceededFunctionsSql ??= @$"
             SELECT instance
-            FROM {_tablePrefix}
+            FROM {_tableName}
             WHERE type = $1 AND status = {(int) Status.Succeeded} AND timestamp <= $2";
         await using var command = new NpgsqlCommand(_getSucceededFunctionsSql, conn)
         {
@@ -316,7 +316,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         await using var conn = await CreateConnection();
        
         _setFunctionStateSql ??= $@"
-            UPDATE {_tablePrefix}
+            UPDATE {_tableName}
             SET status = $1,
                 param_json = $2, 
                 result_json = $3, 
@@ -356,7 +356,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
     {
         await using var conn = await CreateConnection();
         _succeedFunctionSql ??= $@"
-            UPDATE {_tablePrefix}
+            UPDATE {_tableName}
             SET status = {(int) Status.Succeeded}, result_json = $1, default_state = $2, timestamp = $3
             WHERE 
                 type = $4 AND 
@@ -390,7 +390,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
     {
         await using var conn = await CreateConnection();
         _postponeFunctionSql ??= $@"
-            UPDATE {_tablePrefix}
+            UPDATE {_tableName}
             SET status = {(int) Status.Postponed}, expires = $1, default_state = $2, timestamp = $3
             WHERE 
                 type = $4 AND 
@@ -424,7 +424,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
     {
         await using var conn = await CreateConnection();
         _failFunctionSql ??= $@"
-            UPDATE {_tablePrefix}
+            UPDATE {_tableName}
             SET status = {(int) Status.Failed}, exception_json = $1, default_state = $2, timestamp = $3
             WHERE 
                 type = $4 AND 
@@ -459,7 +459,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         await using var conn = await CreateConnection();
 
         _suspendFunctionSql ??= $@"
-            UPDATE {_tablePrefix}
+            UPDATE {_tableName}
             SET status = {(int)Status.Suspended}, default_state = $1, timestamp = $2
             WHERE type = $3 AND 
                   instance = $4 AND 
@@ -486,7 +486,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
     {
         await using var conn = await CreateConnection();
         _setDefaultStateSql ??= $@"
-            UPDATE {_tablePrefix}
+            UPDATE {_tableName}
             SET default_state = $1
             WHERE type = $2 AND instance = $3";
         await using var command = new NpgsqlCommand(_setDefaultStateSql, conn)
@@ -511,7 +511,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         await using var conn = await CreateConnection();
         
         _setParametersSql ??= $@"
-            UPDATE {_tablePrefix}
+            UPDATE {_tableName}
             SET param_json = $1,             
                 result_json = $2, 
                 epoch = epoch + 1
@@ -540,7 +540,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         await using var conn = await CreateConnection();
 
         _incrementInterruptCountSql ??= $@"
-                UPDATE {_tablePrefix}
+                UPDATE {_tableName}
                 SET interrupt_count = interrupt_count + 1
                 WHERE type = $1 AND instance = $2  AND status = {(int) Status.Executing};";
         await using var command = new NpgsqlCommand(_incrementInterruptCountSql, conn)
@@ -562,7 +562,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
 
         _getInterruptCountSql ??= $@"
                 SELECT interrupt_count 
-                FROM {_tablePrefix}
+                FROM {_tableName}
                 WHERE type = $1 AND instance = $2";
         await using var command = new NpgsqlCommand(_getInterruptCountSql, conn)
         {
@@ -581,7 +581,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         await using var conn = await CreateConnection();
         _getFunctionStatusSql ??= $@"
             SELECT status, epoch
-            FROM {_tablePrefix}
+            FROM {_tableName}
             WHERE type = $1 AND instance = $2;";
         await using var command = new NpgsqlCommand(_getFunctionStatusSql, conn)
         {
@@ -618,7 +618,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 epoch, 
                 interrupt_count,
                 timestamp
-            FROM {_tablePrefix}
+            FROM {_tableName}
             WHERE type = $1 AND instance = $2;";
         await using var command = new NpgsqlCommand(_getFunctionSql, conn)
         {
@@ -630,6 +630,64 @@ public class PostgreSqlFunctionStore : IFunctionStore
         
         await using var reader = await command.ExecuteReaderAsync();
         return await ReadToStoredFunction(flowId, reader);
+    }
+
+    private string? _getInstancesWithStatusSql;
+    public async Task<IReadOnlyList<FlowInstance>> GetInstances(FlowType flowType, Status status)
+    {
+        await using var conn = await CreateConnection();
+        _getInstancesWithStatusSql ??= @$"
+            SELECT instance
+            FROM {_tableName}
+            WHERE type = $1 AND status = $2";
+        
+        await using var command = new NpgsqlCommand(_getInstancesWithStatusSql, conn)
+        {
+            Parameters =
+            {
+                new() {Value = flowType.Value},
+                new() {Value = (int) status},
+            }
+        };
+        
+        await using var reader = await command.ExecuteReaderAsync();
+        var instances = new List<FlowInstance>();
+        while (await reader.ReadAsync())
+        {
+            var flowInstance = reader.GetString(0);
+            instances.Add(flowInstance);
+        }
+
+        return instances;
+    }
+
+    private string? _getInstancesSql;
+    public async Task<IReadOnlyList<FlowInstance>> GetInstances(FlowType flowType)
+    {
+        await using var conn = await CreateConnection();
+        
+        _getInstancesSql ??= @$"
+            SELECT instance
+            FROM {_tableName}
+            WHERE type = $1";
+        
+        await using var command = new NpgsqlCommand(_getInstancesSql, conn)
+        {
+            Parameters =
+            {
+                new() {Value = flowType.Value},
+            }
+        };
+        
+        await using var reader = await command.ExecuteReaderAsync();
+        var instances = new List<FlowInstance>();
+        while (await reader.ReadAsync())
+        {
+            var flowInstance = reader.GetString(0);
+            instances.Add(flowInstance);
+        }
+
+        return instances;
     }
 
     private async Task<StoredFlow?> ReadToStoredFunction(FlowId flowId, NpgsqlDataReader reader)
@@ -685,7 +743,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
     {
         await using var conn = await CreateConnection();
         _deleteFunctionSql ??= @$"
-            DELETE FROM {_tablePrefix}
+            DELETE FROM {_tableName}
             WHERE type = $1
             AND instance = $2 ";
 

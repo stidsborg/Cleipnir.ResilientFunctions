@@ -264,7 +264,6 @@ public class MySqlFunctionStore : IFunctionStore
     private string? _getSucceededFunctionsSql;
     public async Task<IReadOnlyList<FlowInstance>> GetSucceededFunctions(FlowType flowType, long completedBefore)
     {
-        
         await using var conn = await CreateOpenConnection(_connectionString);
         _getSucceededFunctionsSql ??= @$"
             SELECT instance
@@ -630,6 +629,61 @@ public class MySqlFunctionStore : IFunctionStore
         
         await using var reader = await command.ExecuteReaderAsync();
         return await ReadToStoredFunction(flowId, reader);
+    }
+
+    private string? _getInstancesWithStatusSql;
+    public async Task<IReadOnlyList<FlowInstance>> GetInstances(FlowType flowType, Status status)
+    {
+        await using var conn = await CreateOpenConnection(_connectionString);
+        _getInstancesWithStatusSql ??= @$"
+            SELECT instance
+            FROM {_tablePrefix}
+            WHERE type = ? AND status = ?";
+        await using var command = new MySqlCommand(_getInstancesWithStatusSql, conn)
+        {
+            Parameters =
+            {
+                new() {Value = flowType.Value},
+                new() {Value = (int) status}
+            }
+        };
+        
+        await using var reader = await command.ExecuteReaderAsync();
+        var instances = new List<FlowInstance>();
+        while (await reader.ReadAsync())
+        {
+            var flowInstance = reader.GetString(0);
+            instances.Add(flowInstance);
+        }
+        
+        return instances;
+    }
+
+    private string? _getInstancesSql;
+    public async Task<IReadOnlyList<FlowInstance>> GetInstances(FlowType flowType)
+    {
+        await using var conn = await CreateOpenConnection(_connectionString);
+        _getInstancesSql ??= @$"
+            SELECT instance
+            FROM {_tablePrefix}
+            WHERE type = ?";
+        await using var command = new MySqlCommand(_getInstancesSql, conn)
+        {
+            Parameters =
+            {
+                new() {Value = flowType.Value}
+            }
+        };
+        
+        await using var reader = await command.ExecuteReaderAsync();
+        var functions = new List<FlowInstance>();
+        while (await reader.ReadAsync())
+        {
+            var flowInstance = reader.GetString(0);
+            functions.Add(flowInstance);
+        }
+        
+        return functions;
     }
 
     private async Task<StoredFlow?> ReadToStoredFunction(FlowId flowId, MySqlDataReader reader)

@@ -14,7 +14,7 @@ namespace Cleipnir.ResilientFunctions.SqlServer;
 public class SqlServerFunctionStore : IFunctionStore
 {
     private readonly Func<Task<SqlConnection>> _connFunc;
-    private readonly string _tablePrefix;
+    private readonly string _tableName;
 
     private readonly SqlServerTimeoutStore _timeoutStore;
     private readonly SqlServerEffectsStore _effectsStore;
@@ -35,16 +35,16 @@ public class SqlServerFunctionStore : IFunctionStore
 
     public SqlServerFunctionStore(string connectionString, string tablePrefix = "")
     {
-        _tablePrefix = tablePrefix == "" ? "RFunctions" : tablePrefix;
+        _tableName = tablePrefix == "" ? "RFunctions" : tablePrefix;
         
         _connFunc = CreateConnection(connectionString);
-        _messageStore = new SqlServerMessageStore(connectionString, _tablePrefix);
-        _timeoutStore = new SqlServerTimeoutStore(connectionString, _tablePrefix);
-        _underlyingRegister = new SqlServerUnderlyingRegister(connectionString, _tablePrefix);
-        _effectsStore = new SqlServerEffectsStore(connectionString, _tablePrefix);
-        _statesStore = new SqlServerStatesStore(connectionString, _tablePrefix);
-        _correlationStore = new SqlServerCorrelationsStore(connectionString, _tablePrefix);
-        _migrator = new SqlServerMigrator(connectionString, _tablePrefix);
+        _messageStore = new SqlServerMessageStore(connectionString, _tableName);
+        _timeoutStore = new SqlServerTimeoutStore(connectionString, _tableName);
+        _underlyingRegister = new SqlServerUnderlyingRegister(connectionString, _tableName);
+        _effectsStore = new SqlServerEffectsStore(connectionString, _tableName);
+        _statesStore = new SqlServerStatesStore(connectionString, _tableName);
+        _correlationStore = new SqlServerCorrelationsStore(connectionString, _tableName);
+        _migrator = new SqlServerMigrator(connectionString, _tableName);
         Utilities = new Utilities(_underlyingRegister);
     }
     
@@ -73,7 +73,7 @@ public class SqlServerFunctionStore : IFunctionStore
         await _correlationStore.Initialize();
         await using var conn = await _connFunc();
         _initializeSql ??= @$"    
-            CREATE TABLE {_tablePrefix} (
+            CREATE TABLE {_tableName} (
                 FlowType NVARCHAR(200) NOT NULL,
                 flowInstance NVARCHAR(200) NOT NULL,
                 Status INT NOT NULL,
@@ -87,16 +87,16 @@ public class SqlServerFunctionStore : IFunctionStore
                 Timestamp BIGINT NOT NULL,
                 PRIMARY KEY (FlowType, flowInstance)
             );
-            CREATE INDEX {_tablePrefix}_idx_Executing
-                ON {_tablePrefix} (Expires, FlowType, flowInstance)
+            CREATE INDEX {_tableName}_idx_Executing
+                ON {_tableName} (Expires, FlowType, flowInstance)
                 INCLUDE (Epoch)
                 WHERE Status = {(int)Status.Executing};           
-            CREATE INDEX {_tablePrefix}_idx_Postponed
-                ON {_tablePrefix} (Expires, FlowType, flowInstance)
+            CREATE INDEX {_tableName}_idx_Postponed
+                ON {_tableName} (Expires, FlowType, flowInstance)
                 INCLUDE (Epoch)
                 WHERE Status = {(int)Status.Postponed};
-            CREATE INDEX {_tablePrefix}_idx_Succeeded
-                ON {_tablePrefix} (FlowType, flowInstance)
+            CREATE INDEX {_tableName}_idx_Succeeded
+                ON {_tableName} (FlowType, flowInstance)
                 WHERE Status = {(int)Status.Succeeded};";
 
         await using var command = new SqlCommand(_initializeSql, conn);
@@ -117,7 +117,7 @@ public class SqlServerFunctionStore : IFunctionStore
         await _correlationStore.Truncate();
         
         await using var conn = await _connFunc();
-        _truncateSql ??= $"TRUNCATE TABLE {_tablePrefix}";
+        _truncateSql ??= $"TRUNCATE TABLE {_tableName}";
         await using var command = new SqlCommand(_truncateSql, conn);
         await command.ExecuteNonQueryAsync();
     }
@@ -135,7 +135,7 @@ public class SqlServerFunctionStore : IFunctionStore
         try
         {
             _createFunctionSql ??= @$"
-                INSERT INTO {_tablePrefix}(
+                INSERT INTO {_tableName}(
                     FlowType, flowInstance, 
                     ParamJson, 
                     Status,
@@ -174,7 +174,7 @@ public class SqlServerFunctionStore : IFunctionStore
     public async Task BulkScheduleFunctions(IEnumerable<IdWithParam> functionsWithParam)
     {
         _bulkScheduleFunctionsSql ??= @$"
-            MERGE INTO {_tablePrefix}
+            MERGE INTO {_tableName}
             USING (VALUES @VALUES) 
             AS source (
                 FlowType, 
@@ -185,7 +185,7 @@ public class SqlServerFunctionStore : IFunctionStore
                 Expires,
                 Timestamp
             )
-            ON {_tablePrefix}.FlowType = source.FlowType AND {_tablePrefix}.flowInstance = source.flowInstance         
+            ON {_tableName}.FlowType = source.FlowType AND {_tableName}.flowInstance = source.flowInstance         
             WHEN NOT MATCHED THEN
               INSERT (FlowType, flowInstance, ParamJson, Status, Epoch, Expires, Timestamp)
               VALUES (source.FlowType, source.flowInstance, source.ParamJson, source.Status, source.Epoch, source.Expires, source.Timestamp);";
@@ -227,7 +227,7 @@ public class SqlServerFunctionStore : IFunctionStore
     {
         await using var conn = await _connFunc();
         _restartExecutionSql ??= @$"
-            UPDATE {_tablePrefix}
+            UPDATE {_tableName}
             SET Epoch = Epoch + 1, 
                 Status = {(int)Status.Executing}, 
                 Expires = @LeaseExpiration
@@ -242,7 +242,7 @@ public class SqlServerFunctionStore : IFunctionStore
                    Epoch,
                    InterruptCount,
                    Timestamp
-            FROM {_tablePrefix}
+            FROM {_tableName}
             WHERE FlowType = @FlowType
             AND flowInstance = @flowInstance";
 
@@ -256,7 +256,7 @@ public class SqlServerFunctionStore : IFunctionStore
         if (reader.RecordsAffected == 0)
             return default;
         
-        var sf = ReadToStoredFunction(flowId, reader);
+        var sf = ReadToStoredFlow(flowId, reader);
         return sf?.Epoch == expectedEpoch + 1
             ? sf
             : default;
@@ -267,7 +267,7 @@ public class SqlServerFunctionStore : IFunctionStore
     {
         await using var conn = await _connFunc();
         _renewLeaseSql ??= @$"
-            UPDATE {_tablePrefix}
+            UPDATE {_tableName}
             SET Expires = @Expires
             WHERE FlowType = @FlowType AND flowInstance = @flowInstance AND Epoch = @Epoch";
         
@@ -287,7 +287,7 @@ public class SqlServerFunctionStore : IFunctionStore
         await using var conn = await _connFunc();
         _getExpiredFunctionsSql ??= @$"
             SELECT FlowType, FlowInstance, Epoch
-            FROM {_tablePrefix} WITH (NOLOCK) 
+            FROM {_tableName} WITH (NOLOCK) 
             WHERE Expires <= @Expires AND (Status = { (int)Status.Executing } OR Status = { (int)Status.Postponed})";
 
         await using var command = new SqlCommand(_getExpiredFunctionsSql, conn);
@@ -318,7 +318,7 @@ public class SqlServerFunctionStore : IFunctionStore
         await using var conn = await _connFunc();
         _getSucceededFunctionsSql ??= @$"
             SELECT FlowInstance
-            FROM {_tablePrefix} 
+            FROM {_tableName} 
             WHERE FlowType = @FlowType 
               AND Status = {(int) Status.Succeeded} 
               AND Timestamp <= @CompletedBefore";
@@ -354,7 +354,7 @@ public class SqlServerFunctionStore : IFunctionStore
         await using var conn = await _connFunc();
     
         _setFunctionStateSql ??= @$"
-            UPDATE {_tablePrefix}
+            UPDATE {_tableName}
             SET
                 Status = @Status,
                 ParamJson = @ParamJson,             
@@ -393,7 +393,7 @@ public class SqlServerFunctionStore : IFunctionStore
         await using var conn = await _connFunc();
         
         _succeedFunctionSql ??= @$"
-            UPDATE {_tablePrefix}
+            UPDATE {_tableName}
             SET Status = {(int) Status.Succeeded}, ResultJson = @ResultJson, DefaultStateJson = @DefaultStateJson, Timestamp = @Timestamp, Epoch = @ExpectedEpoch
             WHERE FlowType = @FlowType
             AND flowInstance = @flowInstance
@@ -423,7 +423,7 @@ public class SqlServerFunctionStore : IFunctionStore
         await using var conn = await _connFunc();
         
         _postponedFunctionSql ??= @$"
-            UPDATE {_tablePrefix}
+            UPDATE {_tableName}
             SET Status = {(int) Status.Postponed}, Expires = @PostponedUntil, DefaultStateJson = @DefaultState, Timestamp = @Timestamp, Epoch = @ExpectedEpoch
             WHERE FlowType = @FlowType
             AND flowInstance = @flowInstance
@@ -454,7 +454,7 @@ public class SqlServerFunctionStore : IFunctionStore
         await using var conn = await _connFunc();
         
         _failFunctionSql ??= @$"
-            UPDATE {_tablePrefix}
+            UPDATE {_tableName}
             SET Status = {(int) Status.Failed}, ExceptionJson = @ExceptionJson, DefaultStateJson = @DefaultStateJson, Timestamp = @timestamp, Epoch = @ExpectedEpoch
             WHERE FlowType = @FlowType
             AND flowInstance = @flowInstance
@@ -484,7 +484,7 @@ public class SqlServerFunctionStore : IFunctionStore
         await using var conn = await _connFunc();
 
         _suspendFunctionSql ??= @$"
-                UPDATE {_tablePrefix}
+                UPDATE {_tableName}
                 SET Status = {(int)Status.Suspended}, DefaultStateJson = @DefaultStateJson, Timestamp = @Timestamp
                 WHERE FlowType = @FlowType AND 
                       flowInstance = @flowInstance AND                       
@@ -509,7 +509,7 @@ public class SqlServerFunctionStore : IFunctionStore
         await using var conn = await _connFunc();
 
         _setDefaultStateSql ??= @$"
-                UPDATE {_tablePrefix}
+                UPDATE {_tableName}
                 SET DefaultStateJson = @DefaultStateJson
                 WHERE FlowType = @FlowType AND flowInstance = @flowInstance";
 
@@ -530,7 +530,7 @@ public class SqlServerFunctionStore : IFunctionStore
         await using var conn = await _connFunc();
         
         _setParametersSql ??= @$"
-            UPDATE {_tablePrefix}
+            UPDATE {_tableName}
             SET ParamJson = @ParamJson,  
                 ResultJson = @ResultJson,
                 Epoch = Epoch + 1
@@ -552,7 +552,7 @@ public class SqlServerFunctionStore : IFunctionStore
     {
         await using var conn = await _connFunc();
         _incrementInterruptCountSql ??= @$"
-                UPDATE {_tablePrefix}
+                UPDATE {_tableName}
                 SET InterruptCount = InterruptCount + 1
                 WHERE FlowType = @FlowType AND flowInstance = @flowInstance AND Status = {(int) Status.Executing};";
 
@@ -570,7 +570,7 @@ public class SqlServerFunctionStore : IFunctionStore
         await using var conn = await _connFunc();
         _getInterruptCountSql ??= @$"
                 SELECT InterruptCount 
-                FROM {_tablePrefix}            
+                FROM {_tableName}            
                 WHERE FlowType = @FlowType AND flowInstance = @flowInstance;";
 
         await using var command = new SqlCommand(_getInterruptCountSql, conn);
@@ -587,7 +587,7 @@ public class SqlServerFunctionStore : IFunctionStore
         await using var conn = await _connFunc();
         _getFunctionStatusSql ??= @$"
             SELECT Status, Epoch
-            FROM {_tablePrefix}
+            FROM {_tableName}
             WHERE FlowType = @FlowType AND flowInstance = @flowInstance";
         
         await using var command = new SqlCommand(_getFunctionStatusSql, conn);
@@ -621,7 +621,7 @@ public class SqlServerFunctionStore : IFunctionStore
                     Epoch, 
                     InterruptCount,
                     Timestamp
-            FROM {_tablePrefix}
+            FROM {_tableName}
             WHERE FlowType = @FlowType
             AND flowInstance = @flowInstance";
         
@@ -630,10 +630,57 @@ public class SqlServerFunctionStore : IFunctionStore
         command.Parameters.AddWithValue("@flowInstance", flowId.Instance.Value);
         
         await using var reader = await command.ExecuteReaderAsync();
-        return ReadToStoredFunction(flowId, reader);
+        return ReadToStoredFlow(flowId, reader);
     }
 
-    private StoredFlow? ReadToStoredFunction(FlowId flowId, SqlDataReader reader)
+    private string? _getInstancesWithStatusSql;
+    public async Task<IReadOnlyList<FlowInstance>> GetInstances(FlowType flowType, Status status)
+    {
+        await using var conn = await _connFunc();
+        _getInstancesWithStatusSql ??= @$"
+            SELECT FlowInstance
+            FROM {_tableName} 
+            WHERE FlowType = @FlowType AND Status = @Status";
+
+        await using var command = new SqlCommand(_getInstancesWithStatusSql, conn);
+        command.Parameters.AddWithValue("@FlowType", flowType.Value);
+        command.Parameters.AddWithValue("@Status", (int) status);
+
+        await using var reader = await command.ExecuteReaderAsync();
+        var instances = new List<FlowInstance>(); 
+        while (reader.Read())
+        {
+            var flowInstance = reader.GetString(0);
+            instances.Add(flowInstance);    
+        }
+
+        return instances;
+    }
+
+    private string? _getInstancesSql;
+    public async Task<IReadOnlyList<FlowInstance>> GetInstances(FlowType flowType)
+    {
+        await using var conn = await _connFunc();
+        _getInstancesSql ??= @$"
+            SELECT FlowInstance
+            FROM {_tableName} 
+            WHERE FlowType = @FlowType";
+
+        await using var command = new SqlCommand(_getInstancesSql, conn);
+        command.Parameters.AddWithValue("@FlowType", flowType.Value);
+
+        await using var reader = await command.ExecuteReaderAsync();
+        var instances = new List<FlowInstance>();
+        while (reader.Read())
+        {
+            var flowInstance = reader.GetString(0);
+            instances.Add(flowInstance);
+        }
+
+        return instances;
+    }
+
+    private StoredFlow? ReadToStoredFlow(FlowId flowId, SqlDataReader reader)
     {
         while (reader.HasRows)
         {
@@ -686,7 +733,7 @@ public class SqlServerFunctionStore : IFunctionStore
     {
         await using var conn = await _connFunc();
         _deleteFunctionSql ??= @$"
-            DELETE FROM {_tablePrefix}
+            DELETE FROM {_tableName}
             WHERE FlowType = @FlowType
             AND flowInstance = @flowInstance ";
         

@@ -1216,4 +1216,59 @@ public abstract class StoreTests
         flowIds.Contains(flowId1).ShouldBeTrue();
         flowIds.Contains(flowId2).ShouldBeTrue();
     }
+    
+    public abstract Task MultipleInstancesCanBeFetchedForFlowType();
+    protected async Task MultipleInstancesCanBeFetchedForFlowType(Task<IFunctionStore> storeTask)
+    {
+        var flowType = TestFlowId.Create().Type; 
+        var flowId1 = TestFlowId.Create().WithTypeId(flowType);
+        var flowId2 = TestFlowId.Create().WithTypeId(flowType);
+        
+        var flowId3 = TestFlowId.Create();
+
+        var leaseExpiration = DateTime.UtcNow.Ticks;
+        var timestamp = leaseExpiration;
+        
+        var store = await storeTask;
+        
+        await store.CreateFunction(
+            flowId1,
+            Test.SimpleStoredParameter,
+            leaseExpiration,
+            postponeUntil: 0,
+            timestamp
+        ).ShouldBeTrueAsync();
+        await store.CreateFunction(
+            flowId2,
+            Test.SimpleStoredParameter,
+            leaseExpiration,
+            postponeUntil: 0,
+            timestamp
+        ).ShouldBeTrueAsync();
+        await store.CreateFunction(
+            flowId3,
+            Test.SimpleStoredParameter,
+            leaseExpiration,
+            postponeUntil: 0,
+            timestamp
+        ).ShouldBeTrueAsync();
+        
+        var instances = await store.GetInstances(flowType);
+        instances.Count.ShouldBe(2);
+        instances.Any(i => i == flowId1.Instance).ShouldBeTrue();
+        instances.Any(i => i == flowId2.Instance).ShouldBeTrue();
+
+        await store.SucceedFunction(
+            flowId1,
+            result: null,
+            defaultState: null,
+            timestamp,
+            expectedEpoch: 0,
+            new ComplimentaryState(StoredParameterFunc: () => default, LeaseLength: 0)
+        );
+
+        instances = await store.GetInstances(flowType, Status.Succeeded);
+        instances.Count.ShouldBe(1);
+        instances.Single().ShouldBe(flowId1.Instance);
+    }
 }

@@ -114,5 +114,11 @@ public class LeaseUpdaterTestFunctionStore : IFunctionStore
     public Task<StoredFlow?> GetFunction(FlowId flowId)
         => _inner.GetFunction(flowId);
 
+    public Task<IReadOnlyList<FlowInstance>> GetInstances(FlowType flowType, Status status)
+        => _inner.GetInstances(flowType, status);
+
+    public Task<IReadOnlyList<FlowInstance>> GetInstances(FlowType flowType)
+        => _inner.GetInstances(flowType);
+
     public Task<bool> DeleteFunction(FlowId flowId) => _inner.DeleteFunction(flowId);
 }

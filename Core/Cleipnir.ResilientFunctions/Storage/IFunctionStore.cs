@@ -96,6 +96,8 @@ public interface IFunctionStore
 
     Task<StatusAndEpoch?> GetFunctionStatus(FlowId flowId);
     Task<StoredFlow?> GetFunction(FlowId flowId);
+    Task<IReadOnlyList<FlowInstance>> GetInstances(FlowType flowType, Status status);
+    Task<IReadOnlyList<FlowInstance>> GetInstances(FlowType flowType);
 
     Task<bool> DeleteFunction(FlowId flowId);
 }

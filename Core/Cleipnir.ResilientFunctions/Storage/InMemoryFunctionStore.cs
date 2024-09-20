@@ -380,6 +380,29 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
                 .ToTask();
         }
     }
+
+    public Task<IReadOnlyList<FlowInstance>> GetInstances(FlowType flowType, Status status)
+    {
+        lock (_sync)
+            return _states
+                .Where(kv => kv.Key.Type == flowType)
+                .Where(kv => kv.Value.Status == status)
+                .Select(kv => kv.Key.Instance)
+                .ToList()
+                .CastTo<IReadOnlyList<FlowInstance>>()
+                .ToTask();
+    }
+
+    public Task<IReadOnlyList<FlowInstance>> GetInstances(FlowType flowType)
+    {
+        lock (_sync)
+            return _states
+                .Where(kv => kv.Key.Type == flowType)
+                .Select(kv => kv.Key.Instance)
+                .ToList()
+                .CastTo<IReadOnlyList<FlowInstance>>()
+                .ToTask();
+    }
     
     public virtual Task<bool> DeleteFunction(FlowId flowId)
     {
