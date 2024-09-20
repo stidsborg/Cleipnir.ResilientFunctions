@@ -403,7 +403,18 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
                 .CastTo<IReadOnlyList<FlowInstance>>()
                 .ToTask();
     }
-    
+
+    public Task<IReadOnlyList<FlowType>> GetTypes()
+    {
+        lock (_sync)
+            return _states
+                .Select(kv => kv.Key.Type)
+                .Distinct()
+                .ToList()
+                .CastTo<IReadOnlyList<FlowType>>()
+                .ToTask();
+    }
+
     public virtual Task<bool> DeleteFunction(FlowId flowId)
     {
         lock (_sync)

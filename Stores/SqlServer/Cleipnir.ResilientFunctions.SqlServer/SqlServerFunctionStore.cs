@@ -680,6 +680,25 @@ public class SqlServerFunctionStore : IFunctionStore
         return instances;
     }
 
+    private string? _getTypesSql;
+    public async Task<IReadOnlyList<FlowType>> GetTypes()
+    {
+        await using var conn = await _connFunc();
+        _getTypesSql ??= $"SELECT DISTINCT(FlowType) FROM {_tableName}";
+
+        await using var command = new SqlCommand(_getTypesSql, conn);
+
+        await using var reader = await command.ExecuteReaderAsync();
+        var flowTypes = new List<FlowType>();
+        while (reader.Read())
+        {
+            var flowType = reader.GetString(0);
+            flowTypes.Add(flowType);
+        }
+
+        return flowTypes;
+    }
+
     private StoredFlow? ReadToStoredFlow(FlowId flowId, SqlDataReader reader)
     {
         while (reader.HasRows)

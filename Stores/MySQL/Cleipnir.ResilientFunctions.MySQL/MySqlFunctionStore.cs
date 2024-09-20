@@ -686,6 +686,24 @@ public class MySqlFunctionStore : IFunctionStore
         return functions;
     }
 
+    private string? _getTypesSql;
+    public async Task<IReadOnlyList<FlowType>> GetTypes()
+    {
+        await using var conn = await CreateOpenConnection(_connectionString);
+        _getTypesSql ??= $"SELECT DISTINCT(type) FROM {_tablePrefix}";
+        await using var command = new MySqlCommand(_getTypesSql, conn);
+        
+        await using var reader = await command.ExecuteReaderAsync();
+        var flowTypes = new List<FlowType>();
+        while (await reader.ReadAsync())
+        {
+            var flowType = reader.GetString(0);
+            flowTypes.Add(flowType);
+        }
+        
+        return flowTypes;
+    }
+
     private async Task<StoredFlow?> ReadToStoredFunction(FlowId flowId, MySqlDataReader reader)
     {
         const int paramIndex = 0;

@@ -690,6 +690,25 @@ public class PostgreSqlFunctionStore : IFunctionStore
         return instances;
     }
 
+    private string? _getTypesSql;
+    public async Task<IReadOnlyList<FlowType>> GetTypes()
+    {
+        await using var conn = await CreateConnection();
+        
+        _getTypesSql ??= $"SELECT DISTINCT(type) FROM {_tableName}";
+        await using var command = new NpgsqlCommand(_getTypesSql, conn);
+        
+        await using var reader = await command.ExecuteReaderAsync();
+        var flowTypes = new List<FlowType>();
+        while (await reader.ReadAsync())
+        {
+            var flowType = reader.GetString(0);
+            flowTypes.Add(flowType);
+        }
+
+        return flowTypes;
+    }
+
     private async Task<StoredFlow?> ReadToStoredFunction(FlowId flowId, NpgsqlDataReader reader)
     {
         /*

@@ -1270,5 +1270,10 @@ public abstract class StoreTests
         instances = await store.GetInstances(flowType, Status.Succeeded);
         instances.Count.ShouldBe(1);
         instances.Single().ShouldBe(flowId1.Instance);
+
+        var flowTypes = await store.GetTypes();
+        flowTypes.Count.ShouldBe(2);
+        flowTypes.Any(t => t == flowId1.Type).ShouldBeTrue();
+        flowTypes.Any(t => t == flowId3.Type).ShouldBeTrue();
     }
 }
