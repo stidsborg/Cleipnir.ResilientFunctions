@@ -177,28 +177,4 @@ public class MySqlMessageStore : IMessageStore
 
         return storedMessages;
     }
-
-    private string? _hasMoreMessagesSql;
-    public async Task<bool> HasMoreMessages(FlowId flowId, int skip)
-    {
-        await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
-        _hasMoreMessagesSql ??= @$"    
-            SELECT COALESCE(MAX(position), -1)
-            FROM {_tablePrefix}_messages
-            WHERE type = ? AND instance = ?;";
-        await using var command = new MySqlCommand(_hasMoreMessagesSql, conn)
-        {
-            Parameters =
-            {
-                new() {Value = flowId.Type.Value},
-                new() {Value = flowId.Instance.Value}
-            }
-        };
-
-        var maxPosition = (long?) await command.ExecuteScalarAsync();
-        if (maxPosition == null)
-            return false;
-
-        return maxPosition.Value + 1 > skip;
-    }
 }

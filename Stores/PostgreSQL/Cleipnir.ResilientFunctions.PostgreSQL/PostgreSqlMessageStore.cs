@@ -200,30 +200,6 @@ public class PostgreSqlMessageStore(string connectionString, string tablePrefix 
         return storedMessages;
     }
 
-    private string? _hasMoreMessagesSql;
-    public async Task<bool> HasMoreMessages(FlowId flowId, int skip)
-    {
-        await using var conn = await CreateConnection();
-        _hasMoreMessagesSql ??= @$"    
-            SELECT COALESCE(MAX(position), -1) 
-            FROM {_tablePrefix}_messages 
-            WHERE type = $1 AND instance = $2";
-        await using var command = new NpgsqlCommand(_hasMoreMessagesSql, conn)
-        {
-            Parameters =
-            {
-                new() {Value = flowId.Type.Value},
-                new() {Value = flowId.Instance.Value}
-            }
-        };
-
-        var maxPosition = (int?) await command.ExecuteScalarAsync();
-        if (maxPosition == null)
-            return false;
-
-        return maxPosition + 1 > skip;
-    }
-
     private string? _getSuspensionStatusSql;
     private async Task<FunctionStatus> GetSuspensionStatus(FlowId flowId)
     {

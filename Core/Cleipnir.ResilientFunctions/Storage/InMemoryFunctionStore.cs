@@ -495,9 +495,6 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
 
     public virtual Task<IReadOnlyList<StoredMessage>> GetMessages(FlowId flowId, int skip)
         => ((IReadOnlyList<StoredMessage>)GetMessages(flowId).Skip(skip).ToList()).ToTask();
-
-    public Task<bool> HasMoreMessages(FlowId flowId, int skip)
-        => GetMessages(flowId, skip).SelectAsync(messages => messages.Any());
-
+    
     #endregion
 }

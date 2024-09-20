@@ -165,26 +165,6 @@ public class SqlServerMessageStore : IMessageStore
         return storedMessages;
     }
 
-    private string? _hasMoreMessagesSql;
-    public async Task<bool> HasMoreMessages(FlowId flowId, int skip)
-    {
-        await using var conn = await CreateConnection();
-        _hasMoreMessagesSql ??= @$"    
-            SELECT COALESCE(MAX(position), -1)
-            FROM {_tablePrefix}_Messages
-            WHERE FlowType = @FlowType AND FlowInstance = @FlowInstance";
-        
-        await using var command = new SqlCommand(_hasMoreMessagesSql, conn);
-        command.Parameters.AddWithValue("@FlowType", flowId.Type.Value);
-        command.Parameters.AddWithValue("@FlowInstance", flowId.Instance.Value);
-
-        var maxPosition = (int?) await command.ExecuteScalarAsync();
-        if (maxPosition == null)
-            return false;
-
-        return maxPosition.Value + 1 > skip;
-    }
-
     private async Task<SqlConnection> CreateConnection()
     {
         var conn = new SqlConnection(_connectionString);
