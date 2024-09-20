@@ -59,7 +59,6 @@ public class RegisterTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.Uti
     private async Task<IRegister> CreateAndInitializeRegister([CallerMemberName] string memberName = "")
     {
         var underlyingRegister = new PostgresSqlUnderlyingRegister(Sql.ConnectionString, tablePrefix: memberName);
-        await underlyingRegister.DropUnderlyingTable();
         await underlyingRegister.Initialize();
         return new Register(underlyingRegister);
     }

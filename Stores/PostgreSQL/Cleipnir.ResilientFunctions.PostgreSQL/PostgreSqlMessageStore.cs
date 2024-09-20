@@ -37,16 +37,7 @@ public class PostgreSqlMessageStore(string connectionString, string tablePrefix 
         var command = new NpgsqlCommand(_initializeSql, conn);
         await command.ExecuteNonQueryAsync();
     }
-
-    private string? _dropUnderlyingTableSql;
-    public async Task DropUnderlyingTable()
-    {
-        await using var conn = await CreateConnection();
-        _dropUnderlyingTableSql ??= $"DROP TABLE IF EXISTS {_tablePrefix}_messages;";
-        var command = new NpgsqlCommand(_dropUnderlyingTableSql, conn);
-        await command.ExecuteNonQueryAsync();
-    }
-
+    
     private string? _truncateTableSql;
     public async Task TruncateTable()
     {

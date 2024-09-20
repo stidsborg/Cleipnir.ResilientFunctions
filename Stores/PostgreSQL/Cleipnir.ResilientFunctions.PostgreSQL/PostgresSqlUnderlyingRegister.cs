@@ -23,17 +23,6 @@ public class PostgresSqlUnderlyingRegister(string connectionString, string table
         await command.ExecuteNonQueryAsync();
     }
 
-    private string? _dropUnderlyingTableSql;
-    public async Task DropUnderlyingTable()
-    {
-        await using var conn = new NpgsqlConnection(connectionString);
-        await conn.OpenAsync();
-
-        _dropUnderlyingTableSql ??= $"DROP TABLE IF EXISTS {tablePrefix}_register";
-        await using var command = new NpgsqlCommand(_dropUnderlyingTableSql, conn);
-        await command.ExecuteNonQueryAsync();
-    }
-
     private string? _setIfEmptySql;
     public async Task<bool> SetIfEmpty(RegisterType registerType, string group, string name, string value)
     {

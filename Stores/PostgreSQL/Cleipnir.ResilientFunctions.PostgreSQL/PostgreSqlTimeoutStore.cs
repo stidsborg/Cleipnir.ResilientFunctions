@@ -188,13 +188,4 @@ public class PostgreSqlTimeoutStore(string connectionString, string tablePrefix 
 
         return storedMessages;
     }
-
-    private string? _dropUnderlyingTableSql;
-    public async Task DropUnderlyingTable()
-    {
-        await using var conn = await CreateConnection();
-        _dropUnderlyingTableSql ??= $"DROP TABLE IF EXISTS {_tablePrefix}_timeouts;";
-        var command = new NpgsqlCommand(_dropUnderlyingTableSql, conn);
-        await command.ExecuteNonQueryAsync();
-    }
 }
