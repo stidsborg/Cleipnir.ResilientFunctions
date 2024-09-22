@@ -1164,7 +1164,7 @@ public abstract class StoreTests
         
         var typeId = TestFlowId.Create().Type;
         var functionIds = Enumerable
-            .Range(0, 101)
+            .Range(0, 500)
             .Select(_ => TestFlowId.Create().WithTypeId(typeId))
             .ToList();
         
