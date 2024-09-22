@@ -193,15 +193,14 @@ public class SqlServerFunctionStore : IFunctionStore
         var valueSql = $"(@FlowType, @flowInstance, @ParamJson, {(int)Status.Postponed}, 0, 0, 0)";
         var chunk = functionsWithParam
             .Select(
-                fp =>
+                (fp, i) =>
                 {
-                    var id = Guid.NewGuid().ToString("N");
                     var sql = valueSql
-                        .Replace("@FlowType", $"@FlowType{id}")
-                        .Replace("@flowInstance", $"@flowInstance{id}")
-                        .Replace("@ParamJson", $"@ParamJson{id}");
+                        .Replace("@FlowType", $"@FlowType{i}")
+                        .Replace("@flowInstance", $"@flowInstance{i}")
+                        .Replace("@ParamJson", $"@ParamJson{i}");
 
-                    return new { Id = id, Sql = sql, FunctionId = fp.FlowId, Param = fp.Param };
+                    return new { Id = i, Sql = sql, FunctionId = fp.FlowId, Param = fp.Param };
                 }).Chunk(100);
 
         await using var conn = await _connFunc();
