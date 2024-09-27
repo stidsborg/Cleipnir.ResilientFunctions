@@ -24,7 +24,8 @@ public abstract class CustomMessageSerializerTests
             Test.SimpleStoredParameter, 
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks
+            timestamp: DateTime.UtcNow.Ticks,
+            reference: Guid.NewGuid()
         );
         var eventSerializer = new EventSerializer();
         var messagesWriter = new MessageWriter(functionId, functionStore, eventSerializer, scheduleReInvocation: (_, _) => Task.CompletedTask);

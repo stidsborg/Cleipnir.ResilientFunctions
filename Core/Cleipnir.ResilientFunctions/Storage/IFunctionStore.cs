@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
@@ -22,7 +23,8 @@ public interface IFunctionStore
         string? param,
         long leaseExpiration,
         long? postponeUntil,
-        long timestamp
+        long timestamp,
+        Guid reference
     );
 
     Task BulkScheduleFunctions(

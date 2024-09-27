@@ -76,6 +76,7 @@ public class SqlServerFunctionStore : IFunctionStore
             CREATE TABLE {_tableName} (
                 FlowType NVARCHAR(200) NOT NULL,
                 flowInstance NVARCHAR(200) NOT NULL,
+                Ref UniqueIdentifier NOT NULL,
                 Status INT NOT NULL,
                 Epoch INT NOT NULL,               
                 Expires BIGINT NOT NULL,
@@ -128,7 +129,8 @@ public class SqlServerFunctionStore : IFunctionStore
         string? param, 
         long leaseExpiration,
         long? postponeUntil,
-        long timestamp)
+        long timestamp,
+        Guid reference)
     {
         await using var conn = await _connFunc();
         
@@ -137,6 +139,7 @@ public class SqlServerFunctionStore : IFunctionStore
             _createFunctionSql ??= @$"
                 INSERT INTO {_tableName}(
                     FlowType, flowInstance, 
+                    Ref,
                     ParamJson, 
                     Status,
                     Epoch, 
@@ -144,6 +147,7 @@ public class SqlServerFunctionStore : IFunctionStore
                     Timestamp)
                 VALUES(
                     @FlowType, @flowInstance, 
+                    @Ref,   
                     @ParamJson,   
                     @Status,
                     0,
@@ -155,6 +159,7 @@ public class SqlServerFunctionStore : IFunctionStore
             
             command.Parameters.AddWithValue("@FlowType", flowId.Type.Value);
             command.Parameters.AddWithValue("@flowInstance", flowId.Instance.Value);
+            command.Parameters.AddWithValue("@Ref", reference);
             command.Parameters.AddWithValue("@Status", (int) (postponeUntil == null ? Status.Executing : Status.Postponed));
             command.Parameters.AddWithValue("@ParamJson", param == null ? DBNull.Value : param);
             command.Parameters.AddWithValue("@Expires", postponeUntil ?? leaseExpiration);
@@ -187,8 +192,8 @@ public class SqlServerFunctionStore : IFunctionStore
             )
             ON {_tableName}.FlowType = source.FlowType AND {_tableName}.flowInstance = source.flowInstance         
             WHEN NOT MATCHED THEN
-              INSERT (FlowType, flowInstance, ParamJson, Status, Epoch, Expires, Timestamp)
-              VALUES (source.FlowType, source.flowInstance, source.ParamJson, source.Status, source.Epoch, source.Expires, source.Timestamp);";
+              INSERT (FlowType, flowInstance, ref, ParamJson, Status, Epoch, Expires, Timestamp)
+              VALUES (source.FlowType, source.flowInstance, NEWID(), source.ParamJson, source.Status, source.Epoch, source.Expires, source.Timestamp);";
 
         var valueSql = $"(@FlowType, @flowInstance, @ParamJson, {(int)Status.Postponed}, 0, 0, 0)";
         var chunk = functionsWithParam
@@ -240,7 +245,8 @@ public class SqlServerFunctionStore : IFunctionStore
                    Expires,
                    Epoch,
                    InterruptCount,
-                   Timestamp
+                   Timestamp,
+                   Ref
             FROM {_tableName}
             WHERE FlowType = @FlowType
             AND flowInstance = @flowInstance";
@@ -619,7 +625,8 @@ public class SqlServerFunctionStore : IFunctionStore
                     Expires,
                     Epoch, 
                     InterruptCount,
-                    Timestamp
+                    Timestamp,
+                    Ref
             FROM {_tableName}
             WHERE FlowType = @FlowType
             AND flowInstance = @flowInstance";
@@ -716,6 +723,7 @@ public class SqlServerFunctionStore : IFunctionStore
                 var epoch = reader.GetInt32(6);
                 var interruptCount = reader.GetInt64(7);
                 var timestamp = reader.GetInt64(8);
+                var reference = reader.GetGuid(9);
 
                 return new StoredFlow(
                     flowId,
@@ -727,7 +735,8 @@ public class SqlServerFunctionStore : IFunctionStore
                     epoch,
                     expires,
                     timestamp,
-                    interruptCount
+                    interruptCount,
+                    reference
                 );
             }
         }

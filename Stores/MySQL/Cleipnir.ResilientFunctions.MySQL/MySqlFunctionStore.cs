@@ -70,6 +70,7 @@ public class MySqlFunctionStore : IFunctionStore
             CREATE TABLE IF NOT EXISTS {_tablePrefix} (
                 type VARCHAR(200) NOT NULL,
                 instance VARCHAR(200) NOT NULL,
+                ref CHAR(32) NOT NULL,
                 epoch INT NOT NULL,
                 status INT NOT NULL,
                 expires BIGINT NOT NULL,
@@ -109,22 +110,24 @@ public class MySqlFunctionStore : IFunctionStore
         string? param, 
         long leaseExpiration,
         long? postponeUntil,
-        long timestamp)
+        long timestamp,
+        Guid reference)
     {
         await using var conn = await CreateOpenConnection(_connectionString);
 
         var status = postponeUntil == null ? Status.Executing : Status.Postponed;
         _createFunctionSql ??= @$"
             INSERT IGNORE INTO {_tablePrefix}
-                (type, instance, param_json, status, epoch, expires, timestamp)
+                (type, instance, ref, param_json, status, epoch, expires, timestamp)
             VALUES
-                (?, ?, ?, ?, 0, ?, ?)";
+                (?, ?, ?, ?, ?, 0, ?, ?)";
         await using var command = new MySqlCommand(_createFunctionSql, conn)
         {
             Parameters =
             {
                 new() {Value = flowId.Type.Value},
                 new() {Value = flowId.Instance.Value},
+                new() {Value = reference.ToString("N")},
                 new() {Value = param ?? (object) DBNull.Value},
                 new() {Value = (int) status}, 
                 new() {Value = postponeUntil ?? leaseExpiration},
@@ -181,7 +184,8 @@ public class MySqlFunctionStore : IFunctionStore
                 epoch, 
                 expires,
                 interrupt_count,
-                timestamp
+                timestamp,
+                ref
             FROM {_tablePrefix}
             WHERE type = ? AND instance = ?;";
 
@@ -616,7 +620,8 @@ public class MySqlFunctionStore : IFunctionStore
                 epoch, 
                 expires,
                 interrupt_count,
-                timestamp
+                timestamp,
+                ref
             FROM {_tablePrefix}
             WHERE type = ? AND instance = ?;";
         await using var command = new MySqlCommand(_getFunctionSql, conn)
@@ -715,6 +720,7 @@ public class MySqlFunctionStore : IFunctionStore
         const int expiresIndex = 6;
         const int interruptCountIndex = 7;
         const int timestampIndex = 8;
+        const int referenceIndex = 9;
         
         while (await reader.ReadAsync())
         {
@@ -737,7 +743,8 @@ public class MySqlFunctionStore : IFunctionStore
                 storedException, Epoch: reader.GetInt32(epochIndex),
                 Expires: reader.GetInt64(expiresIndex),
                 InterruptCount: reader.GetInt64(interruptCountIndex),
-                Timestamp: reader.GetInt64(timestampIndex)
+                Timestamp: reader.GetInt64(timestampIndex),
+                Reference: Guid.Parse(reader.GetString(referenceIndex))
             );
         }
 

@@ -24,7 +24,8 @@ public class DelayedStartUpTests
             "hello world".ToJson(),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks
+            timestamp: DateTime.UtcNow.Ticks,
+            reference: Guid.NewGuid()
         );
         var stopWatch = new Stopwatch();
         stopWatch.Start();
@@ -52,7 +53,8 @@ public class DelayedStartUpTests
             "hello world".ToJson(),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks
+            timestamp: DateTime.UtcNow.Ticks,
+            reference: Guid.NewGuid()
         );
         var stopWatch = new Stopwatch();
         stopWatch.Start();
@@ -77,7 +79,8 @@ public class DelayedStartUpTests
             storedParameter,
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks
+            timestamp: DateTime.UtcNow.Ticks,
+            reference: Guid.NewGuid()
         );
         await store.PostponeFunction(
             functionId,
@@ -115,7 +118,8 @@ public class DelayedStartUpTests
             storedParameter,
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks
+            timestamp: DateTime.UtcNow.Ticks,
+            reference: Guid.NewGuid()
         );
         await store.PostponeFunction(
             functionId,

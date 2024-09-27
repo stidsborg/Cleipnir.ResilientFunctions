@@ -24,7 +24,8 @@ public abstract class MessageStoreTests
             Test.SimpleStoredParameter, 
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks
+            timestamp: DateTime.UtcNow.Ticks,
+            reference: Guid.NewGuid()
         );
         var messageStore = functionStore.MessageStore;
 
@@ -59,7 +60,8 @@ public abstract class MessageStoreTests
             Test.SimpleStoredParameter, 
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks
+            timestamp: DateTime.UtcNow.Ticks,
+            reference: Guid.NewGuid()
         );
         var messageStore = functionStore.MessageStore;
 
@@ -100,7 +102,8 @@ public abstract class MessageStoreTests
             Test.SimpleStoredParameter, 
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks
+            timestamp: DateTime.UtcNow.Ticks,
+            reference: Guid.NewGuid()
         );
         var messageStore = functionStore.MessageStore;
 
@@ -142,7 +145,8 @@ public abstract class MessageStoreTests
             Test.SimpleStoredParameter, 
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks
+            timestamp: DateTime.UtcNow.Ticks,
+            reference: Guid.NewGuid()
         );
         var messageStore = functionStore.MessageStore;
 
@@ -184,7 +188,8 @@ public abstract class MessageStoreTests
             Test.SimpleStoredParameter, 
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks
+            timestamp: DateTime.UtcNow.Ticks,
+            reference: Guid.NewGuid()
         );
         var messageStore = functionStore.MessageStore;
 
@@ -223,7 +228,8 @@ public abstract class MessageStoreTests
             Test.SimpleStoredParameter, 
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks
+            timestamp: DateTime.UtcNow.Ticks,
+            reference: Guid.NewGuid()
         );
         var messageStore = functionStore.MessageStore;
 
@@ -249,7 +255,8 @@ public abstract class MessageStoreTests
             Test.SimpleStoredParameter, 
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks
+            timestamp: DateTime.UtcNow.Ticks,
+            reference: Guid.NewGuid()
         );
         var messageStore = functionStore.MessageStore;
 
@@ -276,7 +283,8 @@ public abstract class MessageStoreTests
             Test.SimpleStoredParameter, 
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks
+            timestamp: DateTime.UtcNow.Ticks,
+            reference: Guid.NewGuid()
         );
         var messageStore = functionStore.MessageStore;
         
@@ -295,7 +303,8 @@ public abstract class MessageStoreTests
             Test.SimpleStoredParameter, 
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks
+            timestamp: DateTime.UtcNow.Ticks,
+            reference: Guid.NewGuid()
         );
         var messageStore = functionStore.MessageStore;
 
@@ -332,7 +341,8 @@ public abstract class MessageStoreTests
             Test.SimpleStoredParameter, 
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks
+            timestamp: DateTime.UtcNow.Ticks,
+            reference: Guid.NewGuid()
         );
         var messageStore = functionStore.MessageStore;
 
@@ -370,7 +380,8 @@ public abstract class MessageStoreTests
             Test.SimpleStoredParameter, 
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks
+            timestamp: DateTime.UtcNow.Ticks,
+            reference: Guid.NewGuid()
         );
         var messageStore = functionStore.MessageStore;
 
@@ -406,7 +417,8 @@ public abstract class MessageStoreTests
             Test.SimpleStoredParameter, 
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks
+            timestamp: DateTime.UtcNow.Ticks,
+            reference: Guid.NewGuid()
         );
         var messageStore = functionStore.MessageStore;
 
@@ -431,7 +443,8 @@ public abstract class MessageStoreTests
             Test.SimpleStoredParameter, 
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks
+            timestamp: DateTime.UtcNow.Ticks,
+            reference: Guid.NewGuid()
         );
         var messageStore = functionStore.MessageStore;
         var events = await messageStore.GetMessages(functionId, skip: 0);
@@ -448,7 +461,8 @@ public abstract class MessageStoreTests
             Test.SimpleStoredParameter, 
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks
+            timestamp: DateTime.UtcNow.Ticks,
+            reference: Guid.NewGuid()
         );
         var messageStore = functionStore.MessageStore;
         
@@ -496,7 +510,8 @@ public abstract class MessageStoreTests
             Test.SimpleStoredParameter, 
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks
+            timestamp: DateTime.UtcNow.Ticks,
+            reference: Guid.NewGuid()
         );
         var messageStore = functionStore.MessageStore;
         

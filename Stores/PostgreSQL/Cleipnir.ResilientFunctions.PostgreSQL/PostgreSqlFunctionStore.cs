@@ -76,6 +76,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
             CREATE TABLE IF NOT EXISTS {_tableName} (
                 type VARCHAR(200) NOT NULL,
                 instance VARCHAR(200) NOT NULL,
+                ref uuid NOT NULL,
                 epoch INT NOT NULL DEFAULT 0,
                 expires BIGINT NOT NULL,
                 interrupt_count BIGINT NOT NULL DEFAULT 0,
@@ -123,15 +124,16 @@ public class PostgreSqlFunctionStore : IFunctionStore
         string? param, 
         long leaseExpiration,
         long? postponeUntil,
-        long timestamp)
+        long timestamp,
+        Guid reference)
     {
         await using var conn = await CreateConnection();
         
         _createFunctionSql ??= @$"
             INSERT INTO {_tableName}
-                (type, instance, status, param_json, expires, timestamp)
+                (type, instance, ref, status, param_json, expires, timestamp)
             VALUES
-                ($1, $2, $3, $4, $5, $6)
+                ($1, $2, $3, $4, $5, $6, $7)
             ON CONFLICT DO NOTHING;";
         await using var command = new NpgsqlCommand(_createFunctionSql, conn)
         {
@@ -139,6 +141,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
             {
                 new() {Value = flowId.Type.Value},
                 new() {Value = flowId.Instance.Value},
+                new() {Value = reference},
                 new() {Value = (int) (postponeUntil == null ? Status.Executing : Status.Postponed)},
                 new() {Value = param == null ? DBNull.Value : param},
                 new() {Value = postponeUntil ?? leaseExpiration},
@@ -155,9 +158,9 @@ public class PostgreSqlFunctionStore : IFunctionStore
     {
         _bulkScheduleFunctionsSql ??= @$"
             INSERT INTO {_tableName}
-                (type, instance, status, param_json, expires, timestamp)
+                (type, instance, status, param_json, expires, timestamp, ref)
             VALUES
-                ($1, $2, {(int) Status.Postponed}, $3, 0, 0)
+                ($1, $2, {(int) Status.Postponed}, $3, 0, 0, gen_random_uuid())
             ON CONFLICT DO NOTHING;";
 
         await using var conn = await CreateConnection();
@@ -201,7 +204,8 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 expires,
                 epoch, 
                 interrupt_count,
-                timestamp";
+                timestamp,
+                ref";
 
         await using var command = new NpgsqlCommand(_restartExecutionSql, conn)
         {
@@ -617,7 +621,8 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 expires,
                 epoch, 
                 interrupt_count,
-                timestamp
+                timestamp,
+                ref
             FROM {_tableName}
             WHERE type = $1 AND instance = $2;";
         await using var command = new NpgsqlCommand(_getFunctionSql, conn)
@@ -739,7 +744,8 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 Expires: reader.GetInt64(5),
                 Epoch: reader.GetInt32(6),
                 InterruptCount: reader.GetInt64(7),
-                Timestamp: reader.GetInt64(8)
+                Timestamp: reader.GetInt64(8),
+                Reference: reader.GetGuid(9)
             );
         }
 

@@ -21,7 +21,8 @@ public abstract class InitialInvocationFailedTests
             param: "hello world".ToJson(),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks
+            timestamp: DateTime.UtcNow.Ticks,
+            reference: Guid.NewGuid()
         );
 
         var flag = new SyncedFlag();
@@ -51,7 +52,8 @@ public abstract class InitialInvocationFailedTests
             param: "hello world".ToJson(),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks
+            timestamp: DateTime.UtcNow.Ticks,
+            reference: Guid.NewGuid()
         );
 
         var flag = new SyncedFlag();
@@ -81,7 +83,8 @@ public abstract class InitialInvocationFailedTests
             param: "hello world".ToJson(),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks
+            timestamp: DateTime.UtcNow.Ticks,
+            reference: Guid.NewGuid()
         );
 
         var flag = new SyncedFlag();
@@ -114,7 +117,8 @@ public abstract class InitialInvocationFailedTests
             param: "hello world".ToJson(),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks
+            timestamp: DateTime.UtcNow.Ticks,
+            reference: Guid.NewGuid()
         );
 
         var flag = new SyncedFlag();

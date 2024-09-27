@@ -87,7 +87,8 @@ public class Invoker<TParam, TReturn>
         var (_, disposable) = await _invocationHelper.PersistFunctionInStore(
             functionId,
             param,
-            scheduleAt
+            scheduleAt,
+            reference: null
         );
 
         disposable.Dispose();
@@ -167,13 +168,15 @@ public class Invoker<TParam, TReturn>
     {
         var disposables = new List<IDisposable>(capacity: 3);
         var success = false;
+        var reference = Guid.NewGuid();
         try
         {
             var (persisted, runningFunction) =
                 await _invocationHelper.PersistFunctionInStore(
                     flowId,
                     param,
-                    scheduleAt: null
+                    scheduleAt: null,
+                    reference
                 );
             disposables.Add(runningFunction);
             disposables.Add(_invocationHelper.StartLeaseUpdater(flowId, epoch: 0));

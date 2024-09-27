@@ -28,7 +28,8 @@ public static class CrashedTest
                 param: JsonSerializer.Serialize("hello world"),
                 leaseExpiration: DateTime.UtcNow.Ticks,
                 postponeUntil: null,
-                timestamp: DateTime.UtcNow.Ticks
+                timestamp: DateTime.UtcNow.Ticks,
+                reference: Guid.NewGuid()
             );
         }
         

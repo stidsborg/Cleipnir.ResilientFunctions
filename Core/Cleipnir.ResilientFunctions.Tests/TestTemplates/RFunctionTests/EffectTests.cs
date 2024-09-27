@@ -291,7 +291,8 @@ public abstract class EffectTests
             Test.SimpleStoredParameter,
             leaseExpiration: (DateTime.UtcNow + TimeSpan.FromMinutes(10)).Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks
+            timestamp: DateTime.UtcNow.Ticks,
+            reference: Guid.NewGuid()
         );
         
         var registration = functionsRegistry.RegisterAction(
