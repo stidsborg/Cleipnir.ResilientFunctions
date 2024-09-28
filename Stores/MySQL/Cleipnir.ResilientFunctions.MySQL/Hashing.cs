@@ -1,9 +1,9 @@
 using System.Security.Cryptography;
 using System.Text;
 
-namespace Cleipnir.ResilientFunctions.Helpers;
+namespace Cleipnir.ResilientFunctions.MySQL;
 
-public static class Hashing
+internal static class Hashing
 {
     public static string GenerateSHA256Hash(this string input)
     {

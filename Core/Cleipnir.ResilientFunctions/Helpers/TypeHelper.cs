@@ -3,7 +3,7 @@ using System.Text;
 
 namespace Cleipnir.ResilientFunctions.Helpers;
 
-public static class TypeHelper
+internal static class TypeHelper
 {
     public static string SimpleQualifiedName(this Type type)
     {

@@ -6,7 +6,7 @@ using System.Text.RegularExpressions;
 
 namespace Cleipnir.ResilientFunctions.Helpers;
 
-public static class Helpers
+internal static class Helpers
 {
     public static long GenerateRandomLong()
     {
