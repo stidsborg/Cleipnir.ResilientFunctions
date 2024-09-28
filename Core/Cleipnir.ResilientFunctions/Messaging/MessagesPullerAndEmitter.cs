@@ -6,7 +6,6 @@ using Cleipnir.ResilientFunctions.CoreRuntime;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.CoreRuntime.ParameterSerialization;
 using Cleipnir.ResilientFunctions.Domain;
-using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.Reactive.Origin;
 using Cleipnir.ResilientFunctions.Storage;
 
@@ -18,9 +17,8 @@ public class MessagesPullerAndEmitter
 
     private DateTime _lastSynced = default;
     private readonly FlowId _flowId;
-    private readonly IFunctionStore _functionStore;
-    private readonly IMessageStore _messageStore;
 
+    private readonly IMessageStore _messageStore;
     public Source Source { get; }
 
     private Exception? _thrownException;
@@ -49,7 +47,6 @@ public class MessagesPullerAndEmitter
         IFunctionStore functionStore, ISerializer serializer, IRegisteredTimeouts registeredTimeouts)
     {
         _flowId = flowId;
-        _functionStore = functionStore;
         _messageStore = functionStore.MessageStore;
         
         _serializer = serializer;
