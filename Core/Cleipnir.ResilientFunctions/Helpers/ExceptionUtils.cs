@@ -3,7 +3,7 @@ using System.Threading.Tasks;
 
 namespace Cleipnir.ResilientFunctions.Helpers;
 
-public static class ExceptionUtils
+internal static class ExceptionUtils
 {
     public static void SafeTry(Action a, Action<Exception>? onException = null)
     {
