@@ -102,5 +102,103 @@ public class SuspensionExtensionTests
         {
             ex.PostponeUntil.ShouldBe(suspendUntil);
         }
+    }
+
+    #region ValueTasks
+
+     [TestMethod]
+    public async Task OnExceptionSuspendForSunshineValueTask()
+    {
+        await ValueTask.CompletedTask
+            .OnExceptionSuspendFor(TimeSpan.FromMinutes(10));
     }  
+    
+    [TestMethod]
+    public async Task OnExceptionSuspendUntilSunshineValueTask()
+    {
+        await ValueTask.CompletedTask
+            .OnExceptionSuspendUntil(DateTime.Now);
+    }  
+    
+    [TestMethod]
+    public static async Task OnExceptionSuspendForWithResultSunshineValueTask()
+    {
+        var result = await ValueTask.FromResult("hello").OnExceptionSuspendFor(TimeSpan.FromMinutes(10));
+        result.ShouldBe("hello");
+    }
+    
+    [TestMethod]
+    public static async Task OnExceptionWithResultSuspendUntilSunshineValueTask()
+    {
+        var result = await ValueTask.FromResult("hello").OnExceptionSuspendUntil(DateTime.Now);
+        result.ShouldBe("hello");
+    }
+    
+    [TestMethod]
+    public async Task OnExceptionSuspendForExceptionValueTask()
+    {
+        var utcNow = DateTime.UtcNow;
+        try
+        {
+            await ValueTask
+                .FromException(new TimeoutException())
+                .OnExceptionSuspendFor(TimeSpan.FromMinutes(10));
+        }
+        catch (PostponeInvocationException ex)
+        {
+            ((ex.PostponeUntil - utcNow) - TimeSpan.FromMinutes(10) > TimeSpan.Zero).ShouldBeTrue();
+            ((ex.PostponeUntil - utcNow) - TimeSpan.FromMinutes(11) < TimeSpan.Zero).ShouldBeTrue();
+        }
+    }  
+
+    [TestMethod]
+    public async Task OnExceptionSuspendUntilExceptionValueTask()
+    {
+        var suspendUntil = DateTime.UtcNow.AddMinutes(10);
+        try
+        {
+            await ValueTask
+                .FromException(new TimeoutException())
+                .OnExceptionSuspendUntil(suspendUntil);
+        }
+        catch (PostponeInvocationException ex)
+        {
+            ex.PostponeUntil.ShouldBe(suspendUntil);
+        }
+    }  
+    
+    [TestMethod]
+    public async Task OnExceptionWithResultSuspendForExceptionValueTask()
+    {
+        var utcNow = DateTime.UtcNow;
+        try
+        {
+            await ValueTask
+                .FromException<string>(new TimeoutException())
+                .OnExceptionSuspendFor(TimeSpan.FromMinutes(10));
+        }
+        catch (PostponeInvocationException ex)
+        {
+            ((ex.PostponeUntil - utcNow) - TimeSpan.FromMinutes(10) > TimeSpan.Zero).ShouldBeTrue();
+            ((ex.PostponeUntil - utcNow) - TimeSpan.FromMinutes(11) < TimeSpan.Zero).ShouldBeTrue();
+        }
+    }  
+
+    [TestMethod]
+    public async Task OnExceptionWithResultSuspendUntilExceptionValueTask()
+    {
+        var suspendUntil = DateTime.UtcNow.AddMinutes(10);
+        try
+        {
+            await ValueTask
+                .FromException<string>(new TimeoutException())
+                .OnExceptionSuspendUntil(suspendUntil);
+        }
+        catch (PostponeInvocationException ex)
+        {
+            ex.PostponeUntil.ShouldBe(suspendUntil);
+        }
+    }
+
+    #endregion
 }

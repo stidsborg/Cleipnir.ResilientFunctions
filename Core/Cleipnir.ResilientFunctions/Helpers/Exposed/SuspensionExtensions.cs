@@ -57,4 +57,57 @@ public static class SuspensionExtensions
             throw new PostponeInvocationException(until);
         }
     }
+    
+    //
+    public static async ValueTask OnExceptionSuspendFor(this ValueTask task, TimeSpan duration, Action<Exception>? onException = null)
+    {
+        try
+        {
+            await task;
+        }
+        catch (Exception ex)
+        {
+            onException?.Invoke(ex);
+            throw new PostponeInvocationException(duration);
+        }
+    }
+    
+    public static async ValueTask OnExceptionSuspendUntil(this ValueTask task, DateTime until, Action<Exception>? onException = null)
+    {
+        try
+        {
+            await task;
+        }
+        catch (Exception ex)
+        {
+            onException?.Invoke(ex);
+            throw new PostponeInvocationException(until);
+        }
+    }  
+    
+    public static async ValueTask<T> OnExceptionSuspendFor<T>(this ValueTask<T> task, TimeSpan duration, Action<Exception>? onException = null)
+    {
+        try
+        {
+            return await task;
+        }
+        catch (Exception ex)
+        {
+            onException?.Invoke(ex);
+            throw new PostponeInvocationException(duration);
+        }
+    }
+    
+    public static async ValueTask<T> OnExceptionSuspendUntil<T>(this ValueTask<T> task, DateTime until, Action<Exception>? onException = null)
+    {
+        try
+        {
+            return await task;
+        }
+        catch (Exception ex)
+        {
+            onException?.Invoke(ex);
+            throw new PostponeInvocationException(until);
+        }
+    }
 }
