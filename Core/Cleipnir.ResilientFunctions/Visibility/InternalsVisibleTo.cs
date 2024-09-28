@@ -9,3 +9,4 @@
 [assembly: InternalsVisibleTo("Sample.ConsoleApp")]
 
 [assembly: InternalsVisibleTo("Cleipnir.Flows.Sample.ConsoleApp")]
+[assembly: InternalsVisibleTo("Cleipnir.Flows")]
