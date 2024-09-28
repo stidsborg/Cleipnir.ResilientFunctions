@@ -2,7 +2,7 @@ using System;
 
 namespace Cleipnir.ResilientFunctions.Helpers.Disposables;
 
-public class PropertyDisposable : IDisposable
+internal class PropertyDisposable : IDisposable
 {
     private volatile bool _disposed = false;
 

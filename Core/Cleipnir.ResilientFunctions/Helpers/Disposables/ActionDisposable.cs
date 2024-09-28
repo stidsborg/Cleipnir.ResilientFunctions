@@ -2,7 +2,7 @@
 
 namespace Cleipnir.ResilientFunctions.Helpers.Disposables;
 
-public class ActionDisposable : IDisposable
+internal class ActionDisposable : IDisposable
 {
     private readonly Action _dispose;
     private bool _disposed;

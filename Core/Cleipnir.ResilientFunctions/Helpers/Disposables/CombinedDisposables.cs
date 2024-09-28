@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace Cleipnir.ResilientFunctions.Helpers.Disposables;
 
-public class CombinedDisposables : IDisposable
+internal class CombinedDisposables : IDisposable
 {
     private readonly IEnumerable<IDisposable> _disposables;
 
