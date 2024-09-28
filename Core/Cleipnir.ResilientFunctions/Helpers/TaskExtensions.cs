@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 
 namespace Cleipnir.ResilientFunctions.Helpers;
 
-public static class TaskExtensions
+internal static class TaskExtensions
 {
     [Pure]
     public static async Task<TOut> SelectAsync<TIn, TOut>(this Task<TIn> task, Func<TIn, TOut> selector)
