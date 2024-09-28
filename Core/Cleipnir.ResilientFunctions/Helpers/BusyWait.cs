@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 
 namespace Cleipnir.ResilientFunctions.Helpers;
 
-public static class BusyWait
+internal static class BusyWait
 {
     private static readonly TimeSpan DefaultMaxWait = TimeSpan.FromSeconds(10);
     private static readonly TimeSpan DefaultCheckFrequency = TimeSpan.FromMilliseconds(5);
