@@ -98,8 +98,7 @@ public class RFunctionsShutdownTests
             param: "".ToJson(),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks,
-            reference: Guid.NewGuid()
+            timestamp: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
         
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
@@ -148,8 +147,7 @@ public class RFunctionsShutdownTests
             storedParameter,
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks,
-            reference: Guid.NewGuid()
+            timestamp: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
         await store.PostponeFunction(

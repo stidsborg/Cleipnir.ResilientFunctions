@@ -33,8 +33,7 @@ public class CrashableFunctionStore : IFunctionStore
         string? param,
         long leaseExpiration,
         long? postponeUntil,
-        long timestamp,
-        Guid reference
+        long timestamp
     ) => _crashed
         ? Task.FromException<bool>(new TimeoutException())
         : _inner.CreateFunction(
@@ -42,8 +41,7 @@ public class CrashableFunctionStore : IFunctionStore
             param,
             leaseExpiration,
             postponeUntil,
-            timestamp,
-            reference
+            timestamp
         );
 
     public Task BulkScheduleFunctions(IEnumerable<IdWithParam> functionsWithParam)

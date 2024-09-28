@@ -30,8 +30,7 @@ public static class PostponedTest
                 storedParameter,
                 leaseExpiration: DateTime.UtcNow.Ticks,
                 postponeUntil: null,
-                timestamp: DateTime.UtcNow.Ticks,
-                reference: Guid.NewGuid()
+                timestamp: DateTime.UtcNow.Ticks
             );
             await store.PostponeFunction(
                 functionId,

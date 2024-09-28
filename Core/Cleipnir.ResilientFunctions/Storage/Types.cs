@@ -1,4 +1,3 @@
-using System;
 using Cleipnir.ResilientFunctions.Domain;
 
 namespace Cleipnir.ResilientFunctions.Storage;
@@ -13,8 +12,7 @@ public record StoredFlow(
     int Epoch,
     long Expires,
     long Timestamp,
-    long InterruptCount,
-    Guid Reference
+    long InterruptCount
 );
 
 public record IdAndEpoch(FlowId FlowId, int Epoch);

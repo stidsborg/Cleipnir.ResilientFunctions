@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Domain;
@@ -32,9 +31,8 @@ public class LeaseUpdaterTestFunctionStore : IFunctionStore
         string? param, 
         long leaseExpiration,
         long? postponeUntil,
-        long timestamp,
-        Guid reference
-    ) => _inner.CreateFunction(flowId, param, leaseExpiration, postponeUntil, timestamp, reference);
+        long timestamp
+    ) => _inner.CreateFunction(flowId, param, leaseExpiration, postponeUntil, timestamp);
 
     public Task BulkScheduleFunctions(IEnumerable<IdWithParam> functionsWithParam)
         => _inner.BulkScheduleFunctions(functionsWithParam);

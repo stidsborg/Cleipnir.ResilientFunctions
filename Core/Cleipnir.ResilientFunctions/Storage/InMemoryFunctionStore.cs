@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
@@ -51,8 +50,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         string? param,
         long leaseExpiration,
         long? postponeUntil,
-        long timestamp,
-        Guid reference)
+        long timestamp)
     {
         lock (_sync)
         {
@@ -68,8 +66,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
                 Exception = null,
                 Result = null,
                 Expires = postponeUntil ?? leaseExpiration,
-                Timestamp = timestamp,
-                Ref = reference
+                Timestamp = timestamp
             };
             if (!_messages.ContainsKey(flowId)) //messages can already have been added - i.e. paramless started by received message
                 _messages[flowId] = new List<StoredMessage>();
@@ -377,8 +374,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
                     state.Epoch,
                     state.Expires,
                     state.Timestamp,
-                    state.InterruptCount,
-                    state.Ref
+                    state.InterruptCount
                 )
                 .ToNullable()
                 .ToTask();
@@ -445,7 +441,6 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         public long InterruptCount { get; set; }
         public long Expires { get; set; }
         public long Timestamp { get; set; }
-        public Guid Ref { get; set; }
     }
     #endregion
     

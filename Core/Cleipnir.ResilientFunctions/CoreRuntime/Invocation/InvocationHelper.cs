@@ -35,8 +35,7 @@ internal class InvocationHelper<TParam, TReturn>
     public async Task<Tuple<bool, IDisposable>> PersistFunctionInStore(
         FlowId flowId, 
         TParam param, 
-        DateTime? scheduleAt,
-        Guid? reference)
+        DateTime? scheduleAt)
     {
         if (!_isParamlessFunction)
             ArgumentNullException.ThrowIfNull(param);
@@ -50,10 +49,9 @@ internal class InvocationHelper<TParam, TReturn>
             var created = await _functionStore.CreateFunction(
                 flowId,
                 storedParameter,
-                leaseExpiration: utcNowTicks + _settings.LeaseLength.Ticks,
                 postponeUntil: scheduleAt?.ToUniversalTime().Ticks,
-                timestamp: utcNowTicks,
-                reference ?? Guid.NewGuid()
+                leaseExpiration: utcNowTicks + _settings.LeaseLength.Ticks,
+                timestamp: utcNowTicks
             );
 
             if (!created) runningFunction.Dispose();
