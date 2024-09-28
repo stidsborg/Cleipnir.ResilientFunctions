@@ -7,3 +7,5 @@
 [assembly: InternalsVisibleTo("Cleipnir.ResilientFunctions.MySQL.Tests")]
 [assembly: InternalsVisibleTo("Cleipnir.ResilientFunctions.StressTests")]
 [assembly: InternalsVisibleTo("Sample.ConsoleApp")]
+
+[assembly: InternalsVisibleTo("Cleipnir.Flows.Sample.ConsoleApp")]
