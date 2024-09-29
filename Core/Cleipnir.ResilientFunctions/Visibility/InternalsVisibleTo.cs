@@ -22,5 +22,5 @@
 [assembly: InternalsVisibleTo("Cleipnir.Flows.MassTransit.Console")]
 [assembly: InternalsVisibleTo("Cleipnir.Flows.MassTransit.Tests")]
 [assembly: InternalsVisibleTo("Cleipnir.Flows.MassTransit.RabbitMq.Console")]
-[assembly: InternalsVisibleTo("Cleipnir.Flows.Sample.MicrosoftOpen")]
+[assembly: InternalsVisibleTo("Cleipnir.Flows.Sample.Presentation.AspNet")]
 [assembly: InternalsVisibleTo("Cleipnir.Flows.Sample.Presentation")]
