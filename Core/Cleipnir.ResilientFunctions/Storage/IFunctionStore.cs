@@ -13,6 +13,7 @@ public interface IFunctionStore
     public IStatesStore StatesStore { get; }
     public ITimeoutStore TimeoutStore { get; }
     public ICorrelationStore CorrelationStore { get; }
+    public IReplicaStore ReplicaStore { get; }
     public Utilities Utilities { get; }
     public IMigrator Migrator { get; }
     public Task Initialize();

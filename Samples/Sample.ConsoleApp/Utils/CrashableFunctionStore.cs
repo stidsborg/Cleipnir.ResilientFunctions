@@ -12,13 +12,13 @@ public class CrashableFunctionStore : IFunctionStore
 {
     private readonly IFunctionStore _inner;
     private volatile bool _crashed;
-
-    private readonly object _sync = new();
+    
     public IMessageStore MessageStore => _inner.MessageStore;
     public IEffectsStore EffectsStore => _inner.EffectsStore;
     public IStatesStore StatesStore => _inner.StatesStore;
     public ITimeoutStore TimeoutStore => _inner.TimeoutStore;
     public ICorrelationStore CorrelationStore => _inner.CorrelationStore;
+    public IReplicaStore ReplicaStore => _inner.ReplicaStore;
     public Utilities Utilities => _inner.Utilities;
     public IMigrator Migrator => _inner.Migrator;
 
