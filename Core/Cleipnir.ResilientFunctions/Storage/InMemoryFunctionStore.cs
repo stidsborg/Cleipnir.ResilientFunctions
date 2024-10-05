@@ -27,7 +27,6 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
     public ITimeoutStore TimeoutStore => _timeoutStore;
     private readonly InMemoryCorrelationStore _correlationStore = new();
     public ICorrelationStore CorrelationStore => _correlationStore;
-    public IReplicaStore ReplicaStore { get; } = new InMemoryReplicaStore();
     public Utilities Utilities { get; }
     
     public IMigrator Migrator { get; } = new InMemoryMigrator();

@@ -21,7 +21,6 @@ public class CrashableFunctionStore : IFunctionStore
     public IStatesStore StatesStore => _crashed ? throw new TimeoutException() : _inner.StatesStore;
     public ITimeoutStore TimeoutStore => _crashed ? throw new TimeoutException() : _inner.TimeoutStore;
     public ICorrelationStore CorrelationStore => _crashed ? throw new TimeoutException() : _inner.CorrelationStore;
-    public IReplicaStore ReplicaStore => _crashed ? throw new TimeoutException() : _inner.ReplicaStore;
     public Utilities Utilities => _crashed ? throw new TimeoutException() : _inner.Utilities;
     public IMigrator Migrator => _crashed ? throw new TimeoutException() : _inner.Migrator;
 

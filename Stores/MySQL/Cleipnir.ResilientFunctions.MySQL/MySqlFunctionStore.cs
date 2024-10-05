@@ -27,8 +27,6 @@ public class MySqlFunctionStore : IFunctionStore
     public ITimeoutStore TimeoutStore => _timeoutStore;
     private readonly MySqlCorrelationStore _correlationStore;
     public ICorrelationStore CorrelationStore => _correlationStore;
-    private readonly MySqlReplicaStore _replicaStore;
-    public IReplicaStore ReplicaStore => _replicaStore;
 
     public IMigrator Migrator => _migrator;
     private readonly MySqlMigrator _migrator;
@@ -47,7 +45,6 @@ public class MySqlFunctionStore : IFunctionStore
         _effectsStore = new MySqlEffectsStore(connectionString, tablePrefix);
         _statesStore = new MySqlStatesStore(connectionString, tablePrefix);
         _correlationStore = new MySqlCorrelationStore(connectionString, tablePrefix);
-        _replicaStore = new MySqlReplicaStore(connectionString, tablePrefix);
         _timeoutStore = new MySqlTimeoutStore(connectionString, tablePrefix);
         _mySqlUnderlyingRegister = new MySqlUnderlyingRegister(connectionString, tablePrefix);
         _migrator  = new MySqlMigrator(connectionString, tablePrefix);
@@ -67,7 +64,6 @@ public class MySqlFunctionStore : IFunctionStore
         await EffectsStore.Initialize();
         await StatesStore.Initialize();
         await CorrelationStore.Initialize();
-        await ReplicaStore.Initialize();
         await TimeoutStore.Initialize();
         await using var conn = await CreateOpenConnection(_connectionString);
         _initializeSql ??= $@"
@@ -100,7 +96,6 @@ public class MySqlFunctionStore : IFunctionStore
         await _effectsStore.Truncate();
         await _statesStore.Truncate();
         await _correlationStore.Truncate();
-        await _replicaStore.Truncate();
         
         await using var conn = await CreateOpenConnection(_connectionString);
         _truncateTablesSql ??= $"TRUNCATE TABLE {_tablePrefix}";
