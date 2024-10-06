@@ -110,12 +110,29 @@ public static class LeafOperators
                 l => l.Any() ? new Option<T>(l.First()) : Option<T>.NoValue
             );
     
+    public static Task<EitherOrNone<T1, T2>> FirstOrNone<T1, T2>(this IReactiveChain<Either<T1, T2>> s, TimeSpan? maxWait = null)
+        => Firsts(s, count: 1, maxWait)
+            .SelectAsync(
+                either => either.Any() ? EitherOrNone<T1, T2>.CreateFromEither(either.First()) : EitherOrNone<T1, T2>.CreateNone()
+            );
+    
     public static Task<T> FirstOfType<T>(this IReactiveChain<object> s, TimeSpan? maxWait = null)
         => s.OfType<T>().First(maxWait);
     public static Task<Option<T>> FirstOfType<T>(this Messages messages, string timeoutId, DateTime expiresAt, TimeSpan? maxWait = null)
         => messages.TakeUntilTimeout(timeoutId, expiresAt).OfType<T>().FirstOrNone(maxWait);
     public static Task<Option<T>> FirstOfType<T>(this Messages messages, string timeoutId, TimeSpan expiresIn, TimeSpan? maxWait = null)
         => messages.TakeUntilTimeout(timeoutId, expiresIn).OfType<T>().FirstOrNone(maxWait);
+    
+    public static Task<Either<T1, T2>> FirstOfTypes<T1, T2>(this IReactiveChain<object> s, TimeSpan? maxWait = null)
+        => s.OfTypes<T1, T2>().First(maxWait);
+    public static Task<EitherOrNone<T1, T2>> FirstOfTypes<T1, T2>(this Messages messages, string timeoutId, DateTime expiresAt, TimeSpan? maxWait = null)
+        => messages.TakeUntilTimeout(timeoutId, expiresAt).OfTypes<T1, T2>().FirstOrNone(maxWait);
+    public static Task<EitherOrNone<T1, T2>> FirstOfTypes<T1, T2>(this Messages messages, string timeoutId, TimeSpan expiresIn, TimeSpan? maxWait = null)
+        => messages.TakeUntilTimeout(timeoutId, expiresIn).OfTypes<T1, T2>().FirstOrNone(maxWait);
+    public static Task<EitherOrNone<T1, T2>> FirstOfTypes<T1, T2>(this Messages messages, DateTime expiresAt, TimeSpan? maxWait = null)
+        => messages.TakeUntilTimeout(expiresAt).OfTypes<T1, T2>().FirstOrNone(maxWait);
+    public static Task<EitherOrNone<T1, T2>> FirstOfTypes<T1, T2>(this Messages messages, TimeSpan expiresIn, TimeSpan? maxWait = null)
+        => messages.TakeUntilTimeout(expiresIn).OfTypes<T1, T2>().FirstOrNone(maxWait);
 
     public static Task<T> FirstOf<T>(this IReactiveChain<object> s, TimeSpan? maxWait = null) 
         => s.FirstOfType<T>(maxWait);

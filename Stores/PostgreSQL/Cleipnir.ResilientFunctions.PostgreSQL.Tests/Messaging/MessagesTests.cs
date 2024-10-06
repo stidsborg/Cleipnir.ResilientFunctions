@@ -9,6 +9,18 @@ public class MessagesTests : ResilientFunctions.Tests.Messaging.TestTemplates.Me
     [TestMethod]
     public override Task MessagesSunshineScenario() 
         => MessagesSunshineScenario(FunctionStoreFactory.Create());
+        
+    [TestMethod]
+    public override Task MessagesFirstOfTypesReturnsNoneForFirstOfTypesOnTimeout()
+        => MessagesFirstOfTypesReturnsNoneForFirstOfTypesOnTimeout(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task MessagesFirstOfTypesReturnsFirstForFirstOfTypesOnFirst()
+        => MessagesFirstOfTypesReturnsFirstForFirstOfTypesOnFirst(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task MessagesFirstOfTypesReturnsSecondForFirstOfTypesOnSecond()
+        => MessagesFirstOfTypesReturnsSecondForFirstOfTypesOnSecond(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task ExistingEventsShouldBeSameAsAllAfterEmit()

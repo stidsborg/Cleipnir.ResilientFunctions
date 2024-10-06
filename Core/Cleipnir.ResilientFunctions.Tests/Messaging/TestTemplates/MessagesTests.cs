@@ -52,6 +52,106 @@ public abstract class MessagesTests
         (await task).ShouldBe("hello world");
     }
     
+    public abstract Task MessagesFirstOfTypesReturnsNoneForFirstOfTypesOnTimeout();
+    protected async Task MessagesFirstOfTypesReturnsNoneForFirstOfTypesOnTimeout(Task<IFunctionStore> functionStoreTask)
+    {
+        var flowId = TestFlowId.Create();
+        var functionStore = await functionStoreTask;
+
+        var functionRegistry = new FunctionsRegistry(
+            functionStore,
+            settings: new Settings(watchdogCheckFrequency: TimeSpan.FromSeconds(1), messagesDefaultMaxWaitForCompletion: TimeSpan.MaxValue)
+            );
+
+        var registration = functionRegistry.RegisterParamless(
+            flowId.Type,
+            async workflow =>
+            {
+                var messages = workflow.Messages;
+                var eitherOrNone = await messages.FirstOfTypes<string, int>(expiresIn: TimeSpan.Zero);
+                eitherOrNone.HasNone.ShouldBeTrue();
+                eitherOrNone.HasFirst.ShouldBeFalse();
+                eitherOrNone.HasSecond.ShouldBeFalse();
+            });
+
+
+        await registration.Invoke(flowId.Instance);
+    }
+    
+    public abstract Task MessagesFirstOfTypesReturnsFirstForFirstOfTypesOnFirst();
+    protected async Task MessagesFirstOfTypesReturnsFirstForFirstOfTypesOnFirst(Task<IFunctionStore> functionStoreTask)
+    {
+        var functionId = TestFlowId.Create();
+        var functionStore = await functionStoreTask;
+        await functionStore.CreateFunction(
+            functionId, 
+            Test.SimpleStoredParameter, 
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks
+        );
+        var messagesWriter = new MessageWriter(functionId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
+        var registeredTimeouts = new RegisteredTimeouts(functionId, functionStore.TimeoutStore);
+        var messagesPullerAndEmitter = new MessagesPullerAndEmitter(
+            functionId,
+            defaultDelay: TimeSpan.FromMilliseconds(250),
+            defaultMaxWait: TimeSpan.MaxValue, 
+            isWorkflowRunning: () => true,
+            TestInterruptCount.Create(),
+            functionStore,
+            DefaultSerializer.Instance,
+            registeredTimeouts
+        );
+        var messages = new Messages(messagesWriter, registeredTimeouts, messagesPullerAndEmitter);
+        
+        var eitherOrNoneTask = messages.FirstOfTypes<string, int>(expiresIn: TimeSpan.FromSeconds(10));
+
+        await messages.AppendMessage("Hello");
+
+        var eitherOrNone = await eitherOrNoneTask;
+        eitherOrNone.HasFirst.ShouldBeTrue();
+        eitherOrNone.First.ShouldBe("Hello");
+        eitherOrNone.HasNone.ShouldBeFalse();
+        eitherOrNone.HasSecond.ShouldBeFalse();
+    }
+    
+    public abstract Task MessagesFirstOfTypesReturnsSecondForFirstOfTypesOnSecond();
+    protected async Task MessagesFirstOfTypesReturnsSecondForFirstOfTypesOnSecond(Task<IFunctionStore> functionStoreTask)
+    {
+        var functionId = TestFlowId.Create();
+        var functionStore = await functionStoreTask;
+        await functionStore.CreateFunction(
+            functionId, 
+            Test.SimpleStoredParameter, 
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks
+        );
+        var messagesWriter = new MessageWriter(functionId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
+        var registeredTimeouts = new RegisteredTimeouts(functionId, functionStore.TimeoutStore);
+        var messagesPullerAndEmitter = new MessagesPullerAndEmitter(
+            functionId,
+            defaultDelay: TimeSpan.FromMilliseconds(250),
+            defaultMaxWait: TimeSpan.MaxValue, 
+            isWorkflowRunning: () => true,
+            TestInterruptCount.Create(),
+            functionStore,
+            DefaultSerializer.Instance,
+            registeredTimeouts
+        );
+        var messages = new Messages(messagesWriter, registeredTimeouts, messagesPullerAndEmitter);
+        
+        var eitherOrNoneTask = messages.FirstOfTypes<string, int>(expiresIn: TimeSpan.FromSeconds(10));
+
+        await messages.AppendMessage(1);
+
+        var eitherOrNone = await eitherOrNoneTask;
+        eitherOrNone.HasSecond.ShouldBeTrue();
+        eitherOrNone.Second.ShouldBe(1);
+        eitherOrNone.HasNone.ShouldBeFalse();
+        eitherOrNone.HasFirst.ShouldBeFalse();
+    }
+    
     public abstract Task ExistingEventsShouldBeSameAsAllAfterEmit();
     protected async Task ExistingEventsShouldBeSameAsAllAfterEmit(Task<IFunctionStore> functionStoreTask)
     {
