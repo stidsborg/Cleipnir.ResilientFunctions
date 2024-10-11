@@ -203,6 +203,129 @@ public class LeafOperatorsTests
         firstOfType.Result.ShouldBe(2);
     }
     
+    [TestMethod]
+    public async Task EitherOrNoneOfTwoReturnsNoneOnCompletedStreamWithoutEmits()
+    {
+        var source = new TestSource();
+        
+        source.SignalNext("stop");
+
+        var eitherOrNone = await source
+            .TakeUntil(msg => msg is "stop")
+            .OfTypes<int, string>()
+            .FirstOrNone();
+        
+        eitherOrNone.HasNone.ShouldBeTrue();
+        eitherOrNone.HasFirst.ShouldBeFalse();
+        eitherOrNone.HasSecond.ShouldBeFalse();
+    }
+    
+    [TestMethod]
+    public async Task EitherOrNoneOfTwoReturnsFirstOnCompletedStreamWithEmit()
+    {
+        var source = new TestSource();
+        
+        source.SignalNext(1);
+
+        var eitherOrNone = await source
+            .OfTypes<int, string>()
+            .FirstOrNone();
+        
+        eitherOrNone.HasNone.ShouldBeFalse();
+        eitherOrNone.HasFirst.ShouldBeTrue();
+        eitherOrNone.First.ShouldBe(1);
+        eitherOrNone.HasSecond.ShouldBeFalse();
+    }
+    
+    [TestMethod]
+    public async Task EitherOrNoneOfTwoReturnsSecondOnCompletedStreamWithEmit()
+    {
+        var source = new TestSource();
+        
+        source.SignalNext("1");
+
+        var eitherOrNone = await source
+            .OfTypes<int, string>()
+            .FirstOrNone();
+        
+        eitherOrNone.HasNone.ShouldBeFalse();
+        eitherOrNone.HasFirst.ShouldBeFalse();
+        eitherOrNone.HasSecond.ShouldBeTrue();
+        eitherOrNone.Second.ShouldBe("1");
+    }
+    
+    [TestMethod]
+    public async Task EitherOrNoneOfThreeReturnsNoneOnCompletedStreamWithoutEmits()
+    {
+        var source = new TestSource();
+        
+        source.SignalNext("stop");
+
+        var eitherOrNone = await source
+            .TakeUntil(msg => msg is "stop")
+            .OfTypes<int, string, long>()
+            .FirstOrNone();
+        
+        eitherOrNone.HasNone.ShouldBeTrue();
+        eitherOrNone.HasFirst.ShouldBeFalse();
+        eitherOrNone.HasSecond.ShouldBeFalse();
+        eitherOrNone.HasThird.ShouldBeFalse();
+    }
+    
+    [TestMethod]
+    public async Task EitherOrNoneOfThreeReturnsFirstOnCompletedStreamWithEmit()
+    {
+        var source = new TestSource();
+        
+        source.SignalNext(1);
+
+        var eitherOrNone = await source
+            .OfTypes<int, string, long>()
+            .FirstOrNone();
+        
+        eitherOrNone.HasNone.ShouldBeFalse();
+        eitherOrNone.HasFirst.ShouldBeTrue();
+        eitherOrNone.First.ShouldBe(1);
+        eitherOrNone.HasSecond.ShouldBeFalse();
+        eitherOrNone.HasThird.ShouldBeFalse();
+    }
+    
+    [TestMethod]
+    public async Task EitherOrNoneOfThreeReturnsSecondOnCompletedStreamWithEmit()
+    {
+        var source = new TestSource();
+        
+        source.SignalNext("1");
+
+        var eitherOrNone = await source
+            .OfTypes<int, string, long>()
+            .FirstOrNone();
+        
+        eitherOrNone.HasNone.ShouldBeFalse();
+        eitherOrNone.HasFirst.ShouldBeFalse();
+        eitherOrNone.HasSecond.ShouldBeTrue();
+        eitherOrNone.Second.ShouldBe("1");
+        eitherOrNone.HasThird.ShouldBeFalse();
+    }
+    
+    [TestMethod]
+    public async Task EitherOrNoneOfThreeReturnsThirdOnCompletedStreamWithEmit()
+    {
+        var source = new TestSource();
+        
+        source.SignalNext(1L);
+
+        var eitherOrNone = await source
+            .OfTypes<int, string, long>()
+            .FirstOrNone();
+        
+        eitherOrNone.HasNone.ShouldBeFalse();
+        eitherOrNone.HasFirst.ShouldBeFalse();
+        eitherOrNone.HasSecond.ShouldBeFalse();
+        eitherOrNone.HasThird.ShouldBeTrue();
+        eitherOrNone.Third.ShouldBe(1L);
+    }
+    
     #endregion
 
     #region Last(s)
