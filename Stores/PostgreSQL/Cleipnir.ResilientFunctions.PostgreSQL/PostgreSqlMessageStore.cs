@@ -63,7 +63,7 @@ public class PostgreSqlMessageStore(string connectionString, string tablePrefix 
                      $1, $2, 
                      (SELECT COALESCE(MAX(position), -1) + 1 FROM {_tablePrefix}_messages WHERE type = $1 AND instance = $2), 
                      $3, $4, $5
-                ) RETURNING position;";
+                );";
             var command = new NpgsqlBatchCommand(_appendMessageSql)
             {
                 Parameters =
@@ -97,9 +97,8 @@ public class PostgreSqlMessageStore(string connectionString, string tablePrefix 
         try
         {
             await using var reader = await batch.ExecuteReaderAsync();
-            
-            _ = await reader.ReadAsync();
-            _ = await reader.NextResultAsync();
+            //_ = await reader.ReadAsync();
+            //_ = await reader.NextResultAsync();
             
             while (await reader.ReadAsync())
             {
