@@ -520,6 +520,34 @@ public class SqlServerFunctionStore : IFunctionStore
         await command.ExecuteNonQueryAsync();
     }
 
+    public async Task<bool> Interrupt(FlowId flowId)
+    {
+        await using var conn = await _connFunc();
+        var sql = @$"
+                UPDATE {_tableName}
+                SET 
+                    InterruptCount = InterruptCount + 1,
+                    Status = 
+                        CASE 
+                            WHEN Status = {(int) Status.Suspended} THEN {(int) Status.Postponed}
+                            ELSE Status
+                        END,
+                    Expires = 
+                        CASE
+                            WHEN Status = {(int) Status.Postponed} THEN 0
+                            WHEN Status = {(int) Status.Suspended} THEN 0
+                            ELSE Expires
+                        END
+                WHERE FlowType = @FlowType AND flowInstance = @FlowInstance;";
+
+        await using var command = new SqlCommand(sql, conn);
+        command.Parameters.AddWithValue("@FlowType", flowId.Type.Value);
+        command.Parameters.AddWithValue("@FlowInstance", flowId.Instance.Value);
+
+        var affectedRows = await command.ExecuteNonQueryAsync();
+        return affectedRows == 1;
+    }
+
     private string? _setParametersSql;
     public async Task<bool> SetParameters(
         FlowId flowId,

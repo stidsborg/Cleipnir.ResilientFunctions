@@ -52,4 +52,12 @@ public class SuspensionTests : ResilientFunctions.Tests.TestTemplates.RFunctionT
     [TestMethod]
     public override Task InterruptCountIsUpdatedWhenMaxWaitDetectsIt()
         => InterruptCountIsUpdatedWhenMaxWaitDetectsIt(FunctionStoreFactory.Create());
+    
+    [TestMethod]
+    public override Task SuspendedFlowIsRestartedAfterInterrupt()
+        => SuspendedFlowIsRestartedAfterInterrupt(FunctionStoreFactory.Create());
+ 
+    [TestMethod]
+    public override Task ExecutingFlowIsReExecutedWhenSuspendedAfterInterrupt()
+        => ExecutingFlowIsReExecutedWhenSuspendedAfterInterrupt(FunctionStoreFactory.Create());   
 }

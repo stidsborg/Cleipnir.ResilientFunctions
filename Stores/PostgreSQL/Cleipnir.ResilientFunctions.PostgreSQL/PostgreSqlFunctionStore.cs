@@ -542,8 +542,40 @@ public class PostgreSqlFunctionStore : IFunctionStore
         _incrementInterruptCountSql ??= $@"
                 UPDATE {_tableName}
                 SET interrupt_count = interrupt_count + 1
-                WHERE type = $1 AND instance = $2  AND status = {(int) Status.Executing};";
+                WHERE type = $1 AND instance = $2 AND status = {(int) Status.Executing};";
         await using var command = new NpgsqlCommand(_incrementInterruptCountSql, conn)
+        {
+            Parameters =
+            {
+                new() { Value = flowId.Type.Value },
+                new() { Value = flowId.Instance.Value },
+            }
+        };
+        var affectedRows = await command.ExecuteNonQueryAsync();
+        return affectedRows == 1;
+    }
+    
+    public async Task<bool> Interrupt(FlowId flowId)
+    {
+        await using var conn = await CreateConnection();
+
+        var sql = $@"
+                UPDATE {_tableName}
+                SET 
+                    interrupt_count = interrupt_count + 1,
+                    status = 
+                        CASE 
+                            WHEN status = {(int) Status.Suspended} THEN {(int) Status.Postponed}
+                            ELSE status
+                        END,
+                    expires = 
+                        CASE
+                            WHEN status = {(int) Status.Postponed} THEN 0
+                            WHEN status = {(int) Status.Suspended} THEN 0
+                            ELSE expires
+                        END
+                WHERE type = $1 AND instance = $2";
+        await using var command = new NpgsqlCommand(sql, conn)
         {
             Parameters =
             {

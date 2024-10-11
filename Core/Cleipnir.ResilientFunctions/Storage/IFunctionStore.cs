@@ -91,6 +91,7 @@ public interface IFunctionStore
 
     Task SetDefaultState(FlowId flowId, string? stateJson);
 
+    Task<bool> Interrupt(FlowId flowId);
     Task<bool> IncrementInterruptCount(FlowId flowId);
     Task<long?> GetInterruptCount(FlowId flowId); 
 

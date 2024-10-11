@@ -132,6 +132,11 @@ public class CrashableFunctionStore : IFunctionStore
             ? Task.FromException(new TimeoutException())
             : _inner.SetDefaultState(flowId, stateJson);
 
+    public Task<bool> Interrupt(FlowId flowId) 
+        => _crashed
+            ? Task.FromException<bool>(new TimeoutException())
+            : _inner.Interrupt(flowId);
+
     public Task<bool> SetParameters(FlowId flowId, string? storedParameter, string? storedResult, int expectedEpoch)
         => _crashed
             ? Task.FromException<bool>(new TimeoutException())

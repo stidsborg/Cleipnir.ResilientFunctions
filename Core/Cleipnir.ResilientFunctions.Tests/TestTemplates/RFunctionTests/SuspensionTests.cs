@@ -542,4 +542,98 @@ public abstract class SuspensionTests
         syncedValued.Value.ShouldNotBeNull();
         syncedValued.Value.ExpectedInterruptCount.Value.ShouldBe(1);
     }
+    
+    public abstract Task SuspendedFlowIsRestartedAfterInterrupt();
+    protected async Task SuspendedFlowIsRestartedAfterInterrupt(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var id = TestFlowId.Create();
+        var (flowType, flowInstance) = id;
+
+        var unhandledExceptionHandler = new UnhandledExceptionCatcher();
+        using var functionsRegistry = new FunctionsRegistry
+        (
+            store,
+            new Settings(unhandledExceptionHandler.Catch)
+        );
+
+        var syncFlag = new SyncedFlag();
+        var registration = functionsRegistry.RegisterParamless(
+            flowType,
+            inner: Task (workflow) =>
+            {
+                if (syncFlag.IsRaised)
+                    return Task.CompletedTask;
+                
+                syncFlag.Raise();
+                throw new SuspendInvocationException(workflow.InterruptCount);
+            }
+        );
+        
+        await registration.Schedule(flowInstance);
+        await syncFlag.WaitForRaised();
+
+        var controlPanel = await registration.ControlPanel(flowInstance).ShouldNotBeNullAsync();
+
+        await BusyWait.Until(async () =>
+        {
+            await controlPanel.Refresh();
+            return controlPanel.Status == Status.Suspended;
+        });
+
+        await store.Interrupt(id);
+        
+        await BusyWait.Until(async () =>
+        {
+            await controlPanel.Refresh();
+            return controlPanel.Status == Status.Succeeded;
+        });
+        
+        unhandledExceptionHandler.ShouldNotHaveExceptions();
+    }
+    
+    public abstract Task ExecutingFlowIsReExecutedWhenSuspendedAfterInterrupt();
+    protected async Task ExecutingFlowIsReExecutedWhenSuspendedAfterInterrupt(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var id = TestFlowId.Create();
+        var (flowType, flowInstance) = id;
+
+        var unhandledExceptionHandler = new UnhandledExceptionCatcher();
+        using var functionsRegistry = new FunctionsRegistry
+        (
+            store,
+            new Settings(unhandledExceptionHandler.Catch)
+        );
+
+        var insideFlowFlag = new SyncedFlag();
+        var canContinueFlag = new SyncedFlag();
+        var executingAgainFlag = new SyncedFlag();
+        
+        var registration = functionsRegistry.RegisterParamless(
+            flowType,
+            inner: async Task (workflow) =>
+            {
+                if (insideFlowFlag.IsRaised)
+                {
+                    executingAgainFlag.Raise();
+                    return;
+                }
+
+                insideFlowFlag.Raise();
+                await canContinueFlag.WaitForRaised();
+                throw new SuspendInvocationException(workflow.InterruptCount);
+            }
+        );
+        
+        await registration.Schedule(flowInstance);
+        await insideFlowFlag.WaitForRaised();
+
+        await store.Interrupt(id);
+        canContinueFlag.Raise();
+        
+        await executingAgainFlag.WaitForRaised();
+        
+        unhandledExceptionHandler.ShouldNotHaveExceptions();
+    }
 }

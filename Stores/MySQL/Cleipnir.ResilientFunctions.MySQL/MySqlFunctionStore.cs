@@ -494,6 +494,40 @@ public class MySqlFunctionStore : IFunctionStore
         await command.ExecuteNonQueryAsync();
     }
 
+    public async Task<bool> Interrupt(FlowId flowId)
+    {
+        await using var conn = await CreateOpenConnection(_connectionString);
+        
+        var sql = $@"
+            UPDATE {_tablePrefix}
+            SET 
+                interrupt_count = interrupt_count + 1,
+                status = 
+                    CASE 
+                        WHEN status = {(int) Status.Suspended} THEN {(int) Status.Postponed}
+                        ELSE status
+                    END,
+                expires = 
+                    CASE
+                        WHEN status = {(int) Status.Postponed} THEN 0
+                        WHEN status = {(int) Status.Suspended} THEN 0
+                        ELSE expires
+                    END
+            WHERE type = ? AND instance = ?;";
+
+        await using var command = new MySqlCommand(sql, conn)
+        {
+            Parameters =
+            {
+                new() { Value = flowId.Type.Value },
+                new() { Value = flowId.Instance.Value },
+            }
+        };
+        
+        var affectedRows = await command.ExecuteNonQueryAsync();
+        return affectedRows == 1;
+    }
+
     private string? _setParametersSql;
     public async Task<bool> SetParameters(
         FlowId flowId,

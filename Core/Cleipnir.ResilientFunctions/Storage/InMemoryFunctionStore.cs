@@ -319,6 +319,25 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         return Task.CompletedTask;
     }
 
+    public Task<bool> Interrupt(FlowId flowId)
+    {
+        lock (_sync)
+        {
+            var success = _states.TryGetValue(flowId, out var state);
+            if (!success)
+                return false.ToTask();
+
+            if (state!.Status == Status.Postponed || state.Status == Status.Suspended)
+            {
+                state.Status = Status.Postponed;
+                state.Expires = 0;
+            }
+            
+            state.InterruptCount++;
+            return true.ToTask();
+        }
+    }
+
     public Task<bool> IncrementInterruptCount(FlowId flowId)
     {
         lock (_sync)
