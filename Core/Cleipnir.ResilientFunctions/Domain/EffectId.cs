@@ -13,7 +13,7 @@ public class EffectId
         Value = value;
     }
     
-    public static implicit operator EffectId(string flowInstance) => new(flowInstance);
+    public static implicit operator EffectId(string id) => new(id);
     public override string ToString() => Value;
     public static bool operator ==(EffectId id1, EffectId id2) => id1.Equals(id2);
     public static bool operator !=(EffectId id1, EffectId id2) => !(id1 == id2);
