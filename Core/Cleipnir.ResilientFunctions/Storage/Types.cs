@@ -20,7 +20,23 @@ public record IdAndEpoch(FlowId FlowId, int Epoch);
 public record StoredException(string ExceptionMessage, string? ExceptionStackTrace, string ExceptionType);
 public record StatusAndEpoch(Status Status, int Epoch);
 
-public record StoredEffect(EffectId EffectId, WorkStatus WorkStatus, string? Result, StoredException? StoredException);
+public record StoredEffect(
+    EffectId EffectId,
+    bool IsState,
+    WorkStatus WorkStatus,
+    string? Result,
+    StoredException? StoredException
+)
+{
+    public static StoredEffect CreateCompleted(EffectId effectId, string result)
+        => new(effectId, IsState: false, WorkStatus.Completed, result, StoredException: null);
+    public static StoredEffect CreateCompleted(EffectId effectId)
+        => new(effectId, IsState: false, WorkStatus.Completed, Result: null, StoredException: null);
+    public static StoredEffect CreateStarted(EffectId effectId)
+        => new(effectId, IsState: false, WorkStatus.Started, Result: null, StoredException: null);
+    public static StoredEffect CreateFailed(EffectId effectId, StoredException storedException)
+        => new(effectId, IsState: false, WorkStatus.Failed, Result: null, storedException);
+};
 public record StoredState(StateId StateId, string StateJson);
 
 public record IdWithParam(FlowId FlowId, string? Param);

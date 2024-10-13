@@ -26,10 +26,12 @@ public class SqlServerEffectsStore : IEffectsStore
         await using var conn = await _connFunc();
         _initializeSql ??= @$"    
             CREATE TABLE {_tablePrefix}_Effects (
-                Id NVARCHAR(450) PRIMARY KEY,
+                Id NVARCHAR(450),
+                IsState BIT,
                 Status INT NOT NULL,
                 Result NVARCHAR(MAX),
-                Exception NVARCHAR(MAX)
+                Exception NVARCHAR(MAX),
+                PRIMARY KEY (Id, IsState)
             );";
 
         await using var command = new SqlCommand(_initializeSql, conn);
@@ -55,18 +57,19 @@ public class SqlServerEffectsStore : IEffectsStore
         await using var conn = await _connFunc();
         _setEffectResultSql ??= $@"
             MERGE INTO {_tablePrefix}_Effects
-                USING (VALUES (@Id,@Status,@Result,@Exception)) 
-                AS source (Id,Status,Result,Exception)
-                ON {_tablePrefix}_Effects.Id = source.Id
+                USING (VALUES (@Id,@IsState,@Status,@Result,@Exception)) 
+                AS source (Id,IsState,Status,Result,Exception)
+                ON {_tablePrefix}_Effects.Id = source.Id AND {_tablePrefix}_Effects.IsState = source.IsState 
                 WHEN MATCHED THEN
                     UPDATE SET Status = source.Status, Result = source.Result, Exception = source.Exception 
                 WHEN NOT MATCHED THEN
-                    INSERT (Id, Status, Result, Exception)
-                    VALUES (source.Id, source.Status, source.Result, source.Exception);";
+                    INSERT (Id, IsState, Status, Result, Exception)
+                    VALUES (source.Id, source.IsState, source.Status, source.Result, source.Exception);";
         
         await using var command = new SqlCommand(_setEffectResultSql, conn);
         var escapedId = Escaper.Escape(flowType.ToString(), flowInstance.ToString(), storedEffect.EffectId.ToString());    
         command.Parameters.AddWithValue("@Id", escapedId);
+        command.Parameters.AddWithValue("@IsState", storedEffect.IsState);
         command.Parameters.AddWithValue("@Status", storedEffect.WorkStatus);
         command.Parameters.AddWithValue("@Result", storedEffect.Result ?? (object) DBNull.Value);
         command.Parameters.AddWithValue("@Exception", JsonHelper.ToJson(storedEffect.StoredException) ?? (object) DBNull.Value);
@@ -79,7 +82,7 @@ public class SqlServerEffectsStore : IEffectsStore
     {
         await using var conn = await _connFunc();
         _getEffectResultsSql ??= @$"
-            SELECT Id, Status, Result, Exception
+            SELECT Id, IsState, Status, Result, Exception
             FROM {_tablePrefix}_Effects
             WHERE Id LIKE @IdPrefix";
 
@@ -93,12 +96,13 @@ public class SqlServerEffectsStore : IEffectsStore
         {
             var id = reader.GetString(0);
             var effectId = Escaper.Unescape(id)[2];
-            var status = (WorkStatus) reader.GetInt32(1);
-            var result = reader.IsDBNull(2) ? default : reader.GetString(2);
-            var exception = reader.IsDBNull(3) ? default : reader.GetString(3);
+            var isState = reader.GetBoolean(1);
+            var status = (WorkStatus) reader.GetInt32(2);
+            var result = reader.IsDBNull(3) ? default : reader.GetString(3);
+            var exception = reader.IsDBNull(4) ? default : reader.GetString(4);
 
             var storedException = exception == null ? null : JsonSerializer.Deserialize<StoredException>(exception);
-            var storedEffect = new StoredEffect(effectId, status, result, storedException);
+            var storedEffect = new StoredEffect(effectId, isState, status, result, storedException);
             storedEffects.Add(storedEffect);
         }
 
@@ -106,16 +110,17 @@ public class SqlServerEffectsStore : IEffectsStore
     }
 
     private string? _deleteEffectResultSql;
-    public async Task DeleteEffectResult(FlowId flowId, EffectId effectId)
+    public async Task DeleteEffectResult(FlowId flowId, EffectId effectId, bool isState)
     {
         await using var conn = await _connFunc();
         _deleteEffectResultSql ??= @$"
             DELETE FROM {_tablePrefix}_Effects
-            WHERE Id = @Id";
+            WHERE Id = @Id AND IsState = @IsState";
 
         var id = Escaper.Escape(flowId.Type.Value, flowId.Instance.Value, effectId.Value);
         await using var command = new SqlCommand(_deleteEffectResultSql, conn);
         command.Parameters.AddWithValue("@Id", id);
+        command.Parameters.AddWithValue("@IsState", isState);
         
         await command.ExecuteNonQueryAsync();
     }

@@ -13,14 +13,15 @@ public class PostgreSqlEffectsStore(string connectionString, string tablePrefix 
     private string? _initializeSql;
     public async Task Initialize()
     {
-        
         await using var conn = await CreateConnection();
         _initializeSql ??= @$"
             CREATE TABLE IF NOT EXISTS {tablePrefix}_effects (
-                id VARCHAR(450) PRIMARY KEY,
+                id VARCHAR(450),
+                is_state BOOLEAN,
                 status INT NOT NULL,
                 result TEXT NULL,
-                exception TEXT NULL
+                exception TEXT NULL,
+                PRIMARY KEY (id, is_state)
             );";
         var command = new NpgsqlCommand(_initializeSql, conn);
         await command.ExecuteNonQueryAsync();
@@ -43,10 +44,10 @@ public class PostgreSqlEffectsStore(string connectionString, string tablePrefix 
         await using var conn = await CreateConnection();
         _setEffectResultSql ??= $@"
           INSERT INTO {tablePrefix}_effects 
-              (id, status, result, exception)
+              (id, is_state, status, result, exception)
           VALUES
-              ($1, $2, $3, $4) 
-          ON CONFLICT (id) 
+              ($1, $2, $3, $4, $5) 
+          ON CONFLICT (id, is_state) 
           DO 
             UPDATE SET status = EXCLUDED.status, result = EXCLUDED.result, exception = EXCLUDED.exception";
         
@@ -55,6 +56,7 @@ public class PostgreSqlEffectsStore(string connectionString, string tablePrefix 
             Parameters =
             {
                 new() {Value = Escaper.Escape(flowType.Value, flowInstance.Value, storedEffect.EffectId.Value)},
+                new() {Value = storedEffect.IsState},
                 new() {Value = (int) storedEffect.WorkStatus},
                 new() {Value = storedEffect.Result ?? (object) DBNull.Value},
                 new() {Value = JsonHelper.ToJson(storedEffect.StoredException) ?? (object) DBNull.Value}
@@ -69,7 +71,7 @@ public class PostgreSqlEffectsStore(string connectionString, string tablePrefix 
     {
         await using var conn = await CreateConnection();
         _getEffectResultsSql ??= @$"
-            SELECT id, status, result, exception
+            SELECT id, is_state, status, result, exception
             FROM {tablePrefix}_effects
             WHERE id LIKE $1";
         await using var command = new NpgsqlCommand(_getEffectResultsSql, conn)
@@ -86,26 +88,32 @@ public class PostgreSqlEffectsStore(string connectionString, string tablePrefix 
         while (await reader.ReadAsync())
         {
             var id = reader.GetString(0);
+            var isState = reader.GetBoolean(1);
             var effectId = Escaper.Unescape(id)[2];
-            var status = (WorkStatus) reader.GetInt32(1);
-            var result = reader.IsDBNull(2) ? null : reader.GetString(2);
-            var exception = reader.IsDBNull(3) ? null : reader.GetString(3);
-            functions.Add(new StoredEffect(effectId, status, result, JsonHelper.FromJson<StoredException>(exception)));
+            var status = (WorkStatus) reader.GetInt32(2);
+            var result = reader.IsDBNull(3) ? null : reader.GetString(3);
+            var exception = reader.IsDBNull(4) ? null : reader.GetString(4);
+            functions.Add(new StoredEffect(effectId, isState, status, result, JsonHelper.FromJson<StoredException>(exception)));
         }
 
         return functions;
     }
 
     private string? _deleteEffectResultSql;
-    public async Task DeleteEffectResult(FlowId flowId, EffectId effectId)
+    public async Task DeleteEffectResult(FlowId flowId, EffectId effectId, bool isState)
     {
         await using var conn = await CreateConnection();
-        _deleteEffectResultSql ??= $"DELETE FROM {tablePrefix}_effects WHERE id = $1";
+        _deleteEffectResultSql ??= $"DELETE FROM {tablePrefix}_effects WHERE id = $1 AND is_state = $2";
         
         var id = Escaper.Escape(flowId.Type.Value, flowId.Instance.Value, effectId.Value);
         await using var command = new NpgsqlCommand(_deleteEffectResultSql, conn)
         {
-            Parameters = { new() {Value = id } }
+            Parameters =
+            {
+                new() {Value = id },
+                new() {Value = isState },
+            },
+            
         };
 
         await command.ExecuteNonQueryAsync();

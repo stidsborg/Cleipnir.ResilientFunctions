@@ -22,10 +22,12 @@ public class MySqlEffectsStore : IEffectsStore
         await using var conn = await CreateConnection();
         _initializeSql ??= @$"
             CREATE TABLE IF NOT EXISTS {_tablePrefix}_effects (
-                id VARCHAR(450) PRIMARY KEY,
+                id VARCHAR(450),
+                is_state BIT,
                 status INT NOT NULL,
                 result TEXT NULL,
-                exception TEXT NULL
+                exception TEXT NULL,
+                PRIMARY KEY(id, is_state)
             );";
         var command = new MySqlCommand(_initializeSql, conn);
         await command.ExecuteNonQueryAsync();
@@ -47,9 +49,9 @@ public class MySqlEffectsStore : IEffectsStore
         await using var conn = await CreateConnection();
         _setEffectResultSql ??= $@"
           INSERT INTO {_tablePrefix}_effects 
-              (id, status, result, exception)
+              (id, is_state, status, result, exception)
           VALUES
-              (?, ?, ?, ?)  
+              (?, ?, ?, ?, ?)  
            ON DUPLICATE KEY UPDATE
                 status = VALUES(status), result = VALUES(result), exception = VALUES(exception)";
         
@@ -58,6 +60,7 @@ public class MySqlEffectsStore : IEffectsStore
             Parameters =
             {
                 new() {Value = Escaper.Escape(flowType.Value, flowInstance.Value, storedEffect.EffectId.Value)},
+                new() {Value = storedEffect.IsState},
                 new() {Value = (int) storedEffect.WorkStatus},
                 new() {Value = storedEffect.Result ?? (object) DBNull.Value},
                 new() {Value = JsonHelper.ToJson(storedEffect.StoredException) ?? (object) DBNull.Value}
@@ -72,7 +75,7 @@ public class MySqlEffectsStore : IEffectsStore
     {
         await using var conn = await CreateConnection();
         _getEffectResultsSql ??= @$"
-            SELECT id, status, result, exception
+            SELECT id, is_state, status, result, exception
             FROM {_tablePrefix}_effects
             WHERE id LIKE ?";
         await using var command = new MySqlCommand(_getEffectResultsSql, conn)
@@ -90,24 +93,37 @@ public class MySqlEffectsStore : IEffectsStore
         {
             var id = reader.GetString(0);
             var effectId = Escaper.Unescape(id)[2];
-            var status = (WorkStatus) reader.GetInt32(1);
-            var result = reader.IsDBNull(2) ? null : reader.GetString(2);
-            var exception = reader.IsDBNull(3) ? null : reader.GetString(3);
-            functions.Add(new StoredEffect(effectId, status, result, JsonHelper.FromJson<StoredException>(exception)));
+            var isState = reader.GetBoolean(1);
+            var status = (WorkStatus) reader.GetInt32(2);
+            var result = reader.IsDBNull(3) ? null : reader.GetString(3);
+            var exception = reader.IsDBNull(4) ? null : reader.GetString(4);
+            functions.Add(
+                new StoredEffect(
+                    effectId,
+                    isState,
+                    status,
+                    result,
+                    JsonHelper.FromJson<StoredException>(exception)
+                )
+            );
         }
 
         return functions;
     }
 
     private string? _deleteEffectResultSql;
-    public async Task DeleteEffectResult(FlowId flowId, EffectId effectId)
+    public async Task DeleteEffectResult(FlowId flowId, EffectId effectId, bool isState)
     {
         await using var conn = await CreateConnection();
-        _deleteEffectResultSql ??= $"DELETE FROM {_tablePrefix}_effects WHERE id = ?";
+        _deleteEffectResultSql ??= $"DELETE FROM {_tablePrefix}_effects WHERE id = ? AND is_state = ?";
         var id = Escaper.Escape(flowId.Type.Value, flowId.Instance.Value, effectId.Value);
         await using var command = new MySqlCommand(_deleteEffectResultSql, conn)
         {
-            Parameters = { new() { Value = id } }
+            Parameters =
+            {
+                new() { Value = id },
+                new() { Value = isState },
+            }
         };
 
         await command.ExecuteNonQueryAsync();

@@ -8,7 +8,8 @@ namespace Cleipnir.ResilientFunctions.Storage;
 
 public class InMemoryEffectsStore : IEffectsStore
 {
-    private readonly Dictionary<FlowId, Dictionary<EffectId, StoredEffect>> _effects = new();
+    private record EffectKey(EffectId EffectId, bool IsState);
+    private readonly Dictionary<FlowId, Dictionary<EffectKey, StoredEffect>> _effects = new();
     private readonly object _sync = new();
 
     public Task Initialize() => Task.CompletedTask;
@@ -25,10 +26,11 @@ public class InMemoryEffectsStore : IEffectsStore
     {
         lock (_sync)
         {
+            var key = new EffectKey(storedEffect.EffectId, storedEffect.IsState);
             if (!_effects.ContainsKey(flowId))
-                _effects[flowId] = new Dictionary<EffectId, StoredEffect>();
+                _effects[flowId] = new Dictionary<EffectKey, StoredEffect>();
                 
-            _effects[flowId][storedEffect.EffectId] = storedEffect;
+            _effects[flowId][key] = storedEffect;
         }
         
         return Task.CompletedTask;
@@ -42,11 +44,12 @@ public class InMemoryEffectsStore : IEffectsStore
                 : _effects[flowId].Values.ToList().AsEnumerable().ToTask();
     }
 
-    public Task DeleteEffectResult(FlowId flowId, EffectId effectId)
+    public Task DeleteEffectResult(FlowId flowId, EffectId effectId, bool isState)
     {
+        var key = new EffectKey(effectId, isState);
         lock (_sync)
             if (_effects.ContainsKey(flowId))
-                _effects[flowId].Remove(effectId);
+                _effects[flowId].Remove(key);
 
         return Task.CompletedTask;
     }

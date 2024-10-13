@@ -1283,6 +1283,7 @@ public abstract class ControlPanelTests
             functionId,
             new StoredEffect(
                 new EffectId("SomeId"),
+                IsState: false,
                 WorkStatus.Completed,
                 Result: "SomeResult".ToJson(),
                 StoredException: null
@@ -1319,6 +1320,7 @@ public abstract class ControlPanelTests
             functionId,
             new StoredEffect(
                 new EffectId("SomeId"),
+                IsState: false,
                 WorkStatus.Completed,
                 Result: "SomeResult".ToJson(),
                 StoredException: null

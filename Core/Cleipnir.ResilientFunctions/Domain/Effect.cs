@@ -78,8 +78,8 @@ public class Effect(
             if (existing?.StoredException != null)
                 throw new EffectException(flowId, id, serializer.DeserializeException(existing.StoredException!));
         }
-        
-        var storedEffect = new StoredEffect(id, WorkStatus.Completed, serializer.SerializeEffectResult(value), StoredException: null);
+
+        var storedEffect =  StoredEffect.CreateCompleted(id, serializer.SerializeEffectResult(value));
         await effectsStore.SetEffectResult(flowId, storedEffect);
 
         lock (_sync)
@@ -91,8 +91,8 @@ public class Effect(
     public async Task Upsert<T>(string id, T value)
     {
         var effectResults = await GetEffectResults();
-        
-        var storedEffect = new StoredEffect(id, WorkStatus.Completed, serializer.SerializeEffectResult(value), StoredException: null);
+
+        var storedEffect = StoredEffect.CreateCompleted(id, serializer.SerializeEffectResult(value));
         await effectsStore.SetEffectResult(flowId, storedEffect);
         
         lock (_sync)
@@ -164,12 +164,10 @@ public class Effect(
 
         if (resiliency == ResiliencyLevel.AtMostOnce)
         {
-            await effectsStore.SetEffectResult(
-                flowId,
-                new StoredEffect(id, WorkStatus.Started, Result: null, StoredException: null)
-            );
+            var storedEffect = StoredEffect.CreateStarted(id); 
+            await effectsStore.SetEffectResult(flowId, storedEffect);
             lock (_sync)
-                effectResults[id] = new StoredEffect(id, WorkStatus.Started, Result: null, StoredException: null);
+                effectResults[id] = storedEffect;
         }
         
         try
@@ -187,16 +185,16 @@ public class Effect(
         catch (Exception exception)
         {
             var storedException = serializer.SerializeException(exception);
-            var storedEffect = new StoredEffect(id, WorkStatus.Failed, Result: null, storedException);
+            var storedEffect = StoredEffect.CreateFailed(id, storedException);
             await effectsStore.SetEffectResult(flowId, storedEffect);
             
             lock (_sync)
-                effectResults[id] = new StoredEffect(id, WorkStatus.Failed, Result: null, StoredException: storedException);
+                effectResults[id] = storedEffect;
 
             throw;
         }
 
-        var effectResult = new StoredEffect(id, WorkStatus.Completed, Result: null, StoredException: null);
+        var effectResult = StoredEffect.CreateCompleted(id);
         await effectsStore.SetEffectResult(flowId,effectResult);
 
         lock (_sync)
@@ -219,12 +217,10 @@ public class Effect(
 
         if (resiliency == ResiliencyLevel.AtMostOnce)
         {
-            await effectsStore.SetEffectResult(
-                flowId,
-                new StoredEffect(id, WorkStatus.Started, Result: null, StoredException: null)
-            );
+            var storedEffect = StoredEffect.CreateStarted(id);
+            await effectsStore.SetEffectResult(flowId, storedEffect);
             lock (_sync)
-                effectResults[id] = new StoredEffect(id, WorkStatus.Started, Result: null, StoredException: null);
+                effectResults[id] = storedEffect;
         }
 
         T result;
@@ -243,17 +239,17 @@ public class Effect(
         catch (Exception exception)
         {
             var storedException = serializer.SerializeException(exception);
-            var storedEffect = new StoredEffect(id, WorkStatus.Failed, Result: null, storedException);
+            var storedEffect = StoredEffect.CreateFailed(id, storedException);
             await effectsStore.SetEffectResult(flowId, storedEffect);
-            
+
             lock (_sync)
-                effectResults[id] = new StoredEffect(id, WorkStatus.Failed, Result: null, StoredException: storedException);
+                effectResults[id] = storedEffect;
 
             throw;
         }
 
-        var effectResult = new StoredEffect(id, WorkStatus.Completed, Result: serializer.SerializeEffectResult(result), StoredException: null);
-        await effectsStore.SetEffectResult(flowId,effectResult);
+        var effectResult = StoredEffect.CreateCompleted(id, serializer.SerializeEffectResult(result)); 
+        await effectsStore.SetEffectResult(flowId, effectResult);
 
         lock (_sync)
             effectResults[id] = effectResult;
@@ -268,7 +264,7 @@ public class Effect(
             if (!effectResults.ContainsKey(id))
                 return;
         
-        await effectsStore.DeleteEffectResult(flowId, id);
+        await effectsStore.DeleteEffectResult(flowId, id, isState: false);
         lock (_sync)
             effectResults.Remove(id);
     }
