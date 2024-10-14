@@ -320,7 +320,7 @@ public abstract class EffectTests
         var flowId = TestFlowId.Create();
         var effect = new Effect(
             flowId,
-            lazyExstingEffects: new Lazy<Task<IReadOnlyList<StoredEffect>>>(() => store.EffectsStore.GetEffectResults(flowId)),
+            lazyExistingEffects: new Lazy<Task<IReadOnlyList<StoredEffect>>>(() => store.EffectsStore.GetEffectResults(flowId)),
             store.EffectsStore,
             DefaultSerializer.Instance
         );
@@ -356,7 +356,7 @@ public abstract class EffectTests
         
         var effect = new Effect(
             flowId,
-            lazyExstingEffects: new Lazy<Task<IReadOnlyList<StoredEffect>>>(
+            lazyExistingEffects: new Lazy<Task<IReadOnlyList<StoredEffect>>>(
                 () =>
                 {
                     syncedCounter.Increment();

@@ -20,7 +20,7 @@ public enum ResiliencyLevel
 
 public class Effect(
     FlowId flowId,
-    Lazy<Task<IReadOnlyList<StoredEffect>>> lazyExstingEffects,
+    Lazy<Task<IReadOnlyList<StoredEffect>>> lazyExistingEffects,
     IEffectsStore effectsStore,
     ISerializer serializer
     )
@@ -35,7 +35,7 @@ public class Effect(
             if (_effectResults is not null)
                 return _effectResults;
 
-        var existingEffects = await lazyExstingEffects.Value;
+        var existingEffects = await lazyExistingEffects.Value;
         var effectResults = existingEffects
             .ToDictionary(e => e.EffectId, e => e); 
         
