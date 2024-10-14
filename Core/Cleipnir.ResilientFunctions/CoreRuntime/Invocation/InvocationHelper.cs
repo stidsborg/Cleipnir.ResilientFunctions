@@ -379,11 +379,11 @@ internal class InvocationHelper<TParam, TReturn>
     
     private static Task<IReadOnlyList<StoredEffect>> EmptyList { get; }
         = Task.FromResult((IReadOnlyList<StoredEffect>) new List<StoredEffect>());
-    public Tuple<Effect, States> CreateEffectAndStates(FlowId flowId, string? defaultState, bool firstRun)
+    public Tuple<Effect, States> CreateEffectAndStates(FlowId flowId, string? defaultState, bool anyEffects)
     {
         var effectsStore = _functionStore.EffectsStore;
 
-        var lazyEffects = firstRun 
+        var lazyEffects = !anyEffects 
             ? new Lazy<Task<IReadOnlyList<StoredEffect>>>(EmptyList)
             : new Lazy<Task<IReadOnlyList<StoredEffect>>>(() => effectsStore.GetEffectResults(flowId));
         
