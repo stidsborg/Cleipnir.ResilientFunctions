@@ -36,12 +36,12 @@ public class InMemoryEffectsStore : IEffectsStore
         return Task.CompletedTask;
     }
 
-    public Task<IEnumerable<StoredEffect>> GetEffectResults(FlowId flowId)
+    public Task<IReadOnlyList<StoredEffect>> GetEffectResults(FlowId flowId)
     {
         lock (_sync)
             return !_effects.ContainsKey(flowId)
-                ? Enumerable.Empty<StoredEffect>().ToTask()
-                : _effects[flowId].Values.ToList().AsEnumerable().ToTask();
+                ? ((IReadOnlyList<StoredEffect>) new List<StoredEffect>()).ToTask()
+                : ((IReadOnlyList<StoredEffect>) _effects[flowId].Values.ToList()).ToTask();
     }
 
     public Task DeleteEffectResult(FlowId flowId, EffectId effectId, bool isState)

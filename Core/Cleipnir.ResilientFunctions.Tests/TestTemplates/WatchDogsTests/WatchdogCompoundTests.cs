@@ -253,9 +253,9 @@ public abstract class WatchdogCompoundTests
 
             var storedFunction = await store.GetFunction(functionId);
             storedFunction!.Result!.DeserializeFromJsonTo<string>().ShouldBe($"{param.Id}-{param.Value}");
-            var states = await store.StatesStore.GetStates(functionId);
-            states.Single(e => e.StateId == "Scraps")
-                .StateJson
+            var states = await store.EffectsStore.GetEffectResults(functionId);
+            states.Single(e => e.EffectId == "Scraps")
+                .Result!
                 .DeserializeFromJsonTo<ListState>()
                 .Scraps
                 .ShouldBe(new [] {1,2,3,4});
@@ -508,9 +508,9 @@ public abstract class WatchdogCompoundTests
             paramTcs.Task.Result.ShouldBe(param);
             
             var storedFunction = await store.GetFunction(functionId);
-            var states = await store.StatesStore.GetStates(functionId);
-            states.Single(e => e.StateId == "Scraps")
-                .StateJson
+            var states = await store.EffectsStore.GetEffectResults(functionId);
+            states.Single(e => e.EffectId == "Scraps")
+                .Result!
                 .DeserializeFromJsonTo<ListState>()
                 .Scraps
                 .ShouldBe(new[] {1, 2, 3, 4});

@@ -376,30 +376,29 @@ internal class InvocationHelper<TParam, TReturn>
         
         return new Messages(messageWriter, registeredTimeouts, messagesPullerAndEmitter);
     }
-
-    public Effect CreateEffect(FlowId flowId)
+    
+    public Tuple<Effect, States> CreateEffectAndStates(FlowId flowId, string? defaultState)
     {
         var effectsStore = _functionStore.EffectsStore;
-        return new Effect(
-            flowId,
-            () => effectsStore.GetEffectResults(flowId),
-            effectsStore,
-            _settings.Serializer
-        );
-    }
 
-    public States CreateStates(FlowId flowId, string? defaultState)
-    {
-        var statesStore = _functionStore.StatesStore;
-        var serializer = _settings.Serializer;
-
-        return new States(
+        var lazyEffects = new Lazy<Task<IReadOnlyList<StoredEffect>>>(effectsStore.GetEffectResults(flowId));
+        var states = new States(
             flowId,
             defaultState,
             _functionStore,
-            statesStore,
-            serializer
+            effectsStore,
+            lazyEffects,
+            _settings.Serializer
         );
+        
+        var effect = new Effect(
+            flowId,
+            lazyEffects,
+            effectsStore,
+            _settings.Serializer
+        );
+
+       return Tuple.Create(effect, states);
     }
     
     public Correlations CreateCorrelations(FlowId flowId)

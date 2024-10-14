@@ -18,9 +18,6 @@ public class PostgreSqlFunctionStore : IFunctionStore
 
     private readonly PostgreSqlMessageStore _messageStore;
     public IMessageStore MessageStore => _messageStore;
-
-    private readonly PostgreSqlStatesStore _statesStore;
-    public IStatesStore StatesStore => _statesStore;
     
     private readonly PostgreSqlEffectsStore _effectsStore;
     public IEffectsStore EffectsStore => _effectsStore;
@@ -43,7 +40,6 @@ public class PostgreSqlFunctionStore : IFunctionStore
         
         _messageStore = new PostgreSqlMessageStore(connectionString, _tableName);
         _effectsStore = new PostgreSqlEffectsStore(connectionString, _tableName);
-        _statesStore = new PostgreSqlStatesStore(connectionString, _tableName);
         _timeoutStore = new PostgreSqlTimeoutStore(connectionString, _tableName);
         _correlationStore = new PostgreSqlCorrelationStore(connectionString, _tableName);
         _postgresSqlUnderlyingRegister = new PostgresSqlUnderlyingRegister(connectionString, _tableName);
@@ -67,7 +63,6 @@ public class PostgreSqlFunctionStore : IFunctionStore
         
         await _postgresSqlUnderlyingRegister.Initialize();
         await _messageStore.Initialize();
-        await _statesStore.Initialize();
         await _effectsStore.Initialize();
         await _timeoutStore.Initialize();
         await _correlationStore.Initialize();
@@ -108,7 +103,6 @@ public class PostgreSqlFunctionStore : IFunctionStore
         await _timeoutStore.Truncate();
         await _postgresSqlUnderlyingRegister.TruncateTable();
         await _effectsStore.Truncate();
-        await _statesStore.Truncate();
         await _correlationStore.Truncate();
         
         await using var conn = await CreateConnection();
@@ -782,7 +776,6 @@ public class PostgreSqlFunctionStore : IFunctionStore
     {
         await _messageStore.Truncate(flowId);
         await _effectsStore.Remove(flowId);
-        await _statesStore.Remove(flowId);
         await _timeoutStore.Remove(flowId);
         await _correlationStore.RemoveCorrelations(flowId);
 

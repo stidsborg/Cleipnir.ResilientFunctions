@@ -36,6 +36,8 @@ public record StoredEffect(
         => new(effectId, IsState: false, WorkStatus.Started, Result: null, StoredException: null);
     public static StoredEffect CreateFailed(EffectId effectId, StoredException storedException)
         => new(effectId, IsState: false, WorkStatus.Failed, Result: null, storedException);
+    public static StoredEffect CreateState(StoredState storedState)
+        => new(storedState.StateId.Value, IsState: true, WorkStatus.Completed, storedState.StateJson, StoredException: null);
 };
 public record StoredState(StateId StateId, string StateJson);
 

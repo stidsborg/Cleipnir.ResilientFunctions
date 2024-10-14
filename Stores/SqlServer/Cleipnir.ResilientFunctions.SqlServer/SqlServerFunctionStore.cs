@@ -18,13 +18,11 @@ public class SqlServerFunctionStore : IFunctionStore
 
     private readonly SqlServerTimeoutStore _timeoutStore;
     private readonly SqlServerEffectsStore _effectsStore;
-    private readonly SqlServerStatesStore _statesStore;
     private readonly SqlServerMessageStore _messageStore;
     private readonly SqlServerCorrelationsStore _correlationStore;
     private readonly SqlServerMigrator _migrator;
     
     public IEffectsStore EffectsStore => _effectsStore;
-    public IStatesStore StatesStore => _statesStore;
     public ITimeoutStore TimeoutStore => _timeoutStore;
     public ICorrelationStore CorrelationStore => _correlationStore;
     public IMessageStore MessageStore => _messageStore;
@@ -42,7 +40,6 @@ public class SqlServerFunctionStore : IFunctionStore
         _timeoutStore = new SqlServerTimeoutStore(connectionString, _tableName);
         _underlyingRegister = new SqlServerUnderlyingRegister(connectionString, _tableName);
         _effectsStore = new SqlServerEffectsStore(connectionString, _tableName);
-        _statesStore = new SqlServerStatesStore(connectionString, _tableName);
         _correlationStore = new SqlServerCorrelationsStore(connectionString, _tableName);
         _migrator = new SqlServerMigrator(connectionString, _tableName);
         Utilities = new Utilities(_underlyingRegister);
@@ -68,7 +65,6 @@ public class SqlServerFunctionStore : IFunctionStore
         await _underlyingRegister.Initialize();
         await _messageStore.Initialize();
         await _effectsStore.Initialize();
-        await _statesStore.Initialize();
         await _timeoutStore.Initialize();
         await _correlationStore.Initialize();
         await using var conn = await _connFunc();
@@ -113,7 +109,6 @@ public class SqlServerFunctionStore : IFunctionStore
         await _messageStore.TruncateTable();
         await _timeoutStore.Truncate();
         await _effectsStore.Truncate();
-        await _statesStore.Truncate();
         await _correlationStore.Truncate();
         
         await using var conn = await _connFunc();
@@ -767,7 +762,6 @@ public class SqlServerFunctionStore : IFunctionStore
     {
         await _messageStore.Truncate(flowId);
         await _effectsStore.Remove(flowId);
-        await _statesStore.Remove(flowId);
         await _timeoutStore.Remove(flowId);
         await _correlationStore.RemoveCorrelations(flowId);
 

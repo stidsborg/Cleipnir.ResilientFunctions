@@ -10,7 +10,8 @@ namespace Cleipnir.ResilientFunctions.Domain;
 public class States
 {
     private readonly FlowId _flowId;
-    private readonly IStatesStore _statesStore;
+    private readonly IEffectsStore _effectStore;
+    private readonly Lazy<Task<IReadOnlyList<StoredEffect>>> _lazyEffects;
     private readonly IFunctionStore _functionStore;
     private readonly ISerializer _serializer;
     private Dictionary<StateId, StoredState>? _existingStoredStates;
@@ -26,11 +27,13 @@ public class States
         FlowId flowId, 
         string? defaultStateJson,
         IFunctionStore functionStore, 
-        IStatesStore statesStore, 
+        IEffectsStore effectStore, 
+        Lazy<Task<IReadOnlyList<StoredEffect>>> lazyEffects,
         ISerializer serializer)
     {
         _flowId = flowId;
-        _statesStore = statesStore;
+        _effectStore = effectStore;
+        _lazyEffects = lazyEffects;
         _functionStore = functionStore;
         _serializer = serializer;
         _defaultStateJson = defaultStateJson;
@@ -42,9 +45,9 @@ public class States
             if (_existingStoredStates is not null) 
                 return _existingStoredStates;
 
-        var existingStates = await _statesStore.GetStates(_flowId);
-        var existingStatesDict = existingStates
-            .ToDictionary(s => s.StateId, s => s);
+        var existingStatesDict = (await _lazyEffects.Value)
+            .Where(se => se.IsState)
+            .ToDictionary(se => new StateId(se.EffectId.Value), se => new StoredState(se.EffectId.Value, se.Result!));
         
         lock (_sync) 
             return _existingStoredStates ??= existingStatesDict;
@@ -115,7 +118,7 @@ public class States
             if (!existingStoredStates.ContainsKey(id))
                 return;
         
-        await _statesStore.RemoveState(_flowId, id);
+        await _effectStore.DeleteEffectResult(_flowId, id, isState: true);
 
         lock (_sync)
         {
@@ -128,6 +131,7 @@ public class States
     {
         var json = _serializer.SerializeState(state);
         var storedState = new StoredState(new StateId(id), json);
-        await _statesStore.UpsertState(_flowId, storedState);
+        var storedEffect = StoredEffect.CreateState(storedState);
+        await _effectStore.SetEffectResult(_flowId, storedEffect);
     }
 }

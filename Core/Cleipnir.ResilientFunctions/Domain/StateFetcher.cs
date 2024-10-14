@@ -8,13 +8,13 @@ namespace Cleipnir.ResilientFunctions.Domain;
 public class StateFetcher
 {
     private readonly IFunctionStore _functionStore;
-    private readonly IStatesStore _statesStore;
+    private readonly IEffectsStore _effectStore;
     private readonly ISerializer _serializer;
 
     public StateFetcher(IFunctionStore functionStore, ISerializer serializer)
     {
         _functionStore = functionStore;
-        _statesStore = functionStore.StatesStore;
+        _effectStore = functionStore.EffectsStore;
         _serializer = serializer;
     }
 
@@ -35,12 +35,12 @@ public class StateFetcher
     public async Task<TState?> FetchState<TState>(FlowId flowId, StateId stateId) where TState : FlowState, new() 
     {
         stateId ??= new StateId("");
-        var storedStates = await _statesStore.GetStates(flowId);
+        var storedStates = await _effectStore.GetEffectResults(flowId);
         
-        foreach (var storedState in storedStates)
-            if (storedState.StateId == stateId)
+        foreach (var storedEffect in storedStates)
+            if (storedEffect.EffectId == stateId.Value)
             {
-                var state = _serializer.DeserializeState<TState>(storedState.StateJson);
+                var state = _serializer.DeserializeState<TState>(storedEffect.Result!);
                 state.Initialize(
                     onSave: () => throw new InvalidOperationException("State cannot be modified from the outside - except when using control-panel")
                 );

@@ -63,8 +63,8 @@ public abstract class ControlPanelTests
             .ShouldBeAsync(0);
 
         await store
-            .StatesStore
-            .GetStates(functionId)
+            .EffectsStore
+            .GetEffectResults(functionId)
             .SelectAsync(states => states.Count())
             .ShouldBeAsync(0);
 
@@ -123,8 +123,8 @@ public abstract class ControlPanelTests
             .ShouldBeAsync(0);
 
         await store
-            .StatesStore
-            .GetStates(functionId)
+            .EffectsStore
+            .GetEffectResults(functionId)
             .SelectAsync(states => states.Count())
             .ShouldBeAsync(0);
         
@@ -1655,10 +1655,6 @@ public abstract class ControlPanelTests
 
         await store.TimeoutStore.GetTimeouts(functionId)
             .SelectAsync(ts => ts.Any())
-            .ShouldBeFalseAsync();
-
-        await store.StatesStore.GetStates(functionId)
-            .SelectAsync(s => s.Any())
             .ShouldBeFalseAsync();
 
         await store.CorrelationStore.GetCorrelations(functionId)

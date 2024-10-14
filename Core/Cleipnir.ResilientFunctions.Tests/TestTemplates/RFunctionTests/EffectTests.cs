@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
@@ -319,7 +320,7 @@ public abstract class EffectTests
         var flowId = TestFlowId.Create();
         var effect = new Effect(
             flowId,
-            existingEffectsFunc: () => store.EffectsStore.GetEffectResults(flowId),
+            lazyExstingEffects: new Lazy<Task<IReadOnlyList<StoredEffect>>>(() => store.EffectsStore.GetEffectResults(flowId)),
             store.EffectsStore,
             DefaultSerializer.Instance
         );
@@ -355,11 +356,15 @@ public abstract class EffectTests
         
         var effect = new Effect(
             flowId,
-            existingEffectsFunc: () =>
-            {
-                syncedCounter.Increment();
-                return Enumerable.Empty<StoredEffect>().ToTask();
-            },
+            lazyExstingEffects: new Lazy<Task<IReadOnlyList<StoredEffect>>>(
+                () =>
+                {
+                    syncedCounter.Increment();
+                    return new List<StoredEffect>()
+                        .CastTo<IReadOnlyList<StoredEffect>>()
+                        .ToTask();
+                })
+            ,
             store.EffectsStore,
             DefaultSerializer.Instance
         );

@@ -20,9 +20,6 @@ public class MySqlFunctionStore : IFunctionStore
     private readonly MySqlEffectsStore _effectsStore;
     public IEffectsStore EffectsStore => _effectsStore;
     
-    private readonly MySqlStatesStore _statesStore;
-    public IStatesStore StatesStore => _statesStore;
-    
     private readonly MySqlTimeoutStore _timeoutStore;
     public ITimeoutStore TimeoutStore => _timeoutStore;
     private readonly MySqlCorrelationStore _correlationStore;
@@ -43,7 +40,6 @@ public class MySqlFunctionStore : IFunctionStore
         
         _messageStore = new MySqlMessageStore(connectionString, tablePrefix);
         _effectsStore = new MySqlEffectsStore(connectionString, tablePrefix);
-        _statesStore = new MySqlStatesStore(connectionString, tablePrefix);
         _correlationStore = new MySqlCorrelationStore(connectionString, tablePrefix);
         _timeoutStore = new MySqlTimeoutStore(connectionString, tablePrefix);
         _mySqlUnderlyingRegister = new MySqlUnderlyingRegister(connectionString, tablePrefix);
@@ -62,7 +58,6 @@ public class MySqlFunctionStore : IFunctionStore
         await _mySqlUnderlyingRegister.Initialize();
         await MessageStore.Initialize();
         await EffectsStore.Initialize();
-        await StatesStore.Initialize();
         await CorrelationStore.Initialize();
         await TimeoutStore.Initialize();
         await using var conn = await CreateOpenConnection(_connectionString);
@@ -94,7 +89,6 @@ public class MySqlFunctionStore : IFunctionStore
         await _timeoutStore.Truncate();
         await _mySqlUnderlyingRegister.TruncateTable();
         await _effectsStore.Truncate();
-        await _statesStore.Truncate();
         await _correlationStore.Truncate();
         
         await using var conn = await CreateOpenConnection(_connectionString);
@@ -782,7 +776,6 @@ public class MySqlFunctionStore : IFunctionStore
     {
         await _messageStore.Truncate(flowId);
         await _effectsStore.Remove(flowId);
-        await _statesStore.Remove(flowId);
         await _timeoutStore.Remove(flowId);
         await _correlationStore.RemoveCorrelations(flowId);
 

@@ -31,30 +31,28 @@ public abstract class EffectStoreTests
         );
         await store
             .GetEffectResults(functionId)
-            .ToListAsync()
             .SelectAsync(l => l.Any())
             .ShouldBeFalseAsync();
         
         await store.SetEffectResult(functionId, storedEffect1);
         
         var storedEffects = await store
-            .GetEffectResults(functionId)
-            .ToListAsync();
+            .GetEffectResults(functionId);
         storedEffects.Count.ShouldBe(1);
         var se = storedEffects[0];
         se.ShouldBe(storedEffect1);
         
         await store.SetEffectResult(functionId, storedEffect2);
-        storedEffects = await store.GetEffectResults(functionId).ToListAsync();
+        storedEffects = await store.GetEffectResults(functionId);
         storedEffects.Count.ShouldBe(2);
         storedEffects[0].ShouldBe(storedEffect1);
         storedEffects[1].ShouldBe(storedEffect2);
         
         await store.SetEffectResult(functionId, storedEffect2);
-        await store.GetEffectResults(functionId).ToListAsync();
+        await store.GetEffectResults(functionId);
         
         await store.SetEffectResult(functionId, storedEffect2);
-        storedEffects = await store.GetEffectResults(functionId).ToListAsync();
+        storedEffects = await store.GetEffectResults(functionId);
         storedEffects.Count.ShouldBe(2);
         storedEffects[0].ShouldBe(storedEffect1);
         storedEffects[1].ShouldBe(storedEffect2);
@@ -147,12 +145,12 @@ public abstract class EffectStoreTests
             .ShouldBeTrueAsync();
 
         await store.DeleteEffectResult(functionId, storedEffect2.EffectId, isState: false);
-        var storedEffects = await store.GetEffectResults(functionId).ToListAsync();
+        var storedEffects = await store.GetEffectResults(functionId);
         storedEffects.Count.ShouldBe(1);
         storedEffects[0].EffectId.ShouldBe(storedEffect1.EffectId);
 
         await store.DeleteEffectResult(functionId, storedEffect2.EffectId, isState: false);
-        storedEffects = await store.GetEffectResults(functionId).ToListAsync();
+        storedEffects = await store.GetEffectResults(functionId);
         storedEffects.Count.ShouldBe(1);
         storedEffects[0].EffectId.ShouldBe(storedEffect1.EffectId);
         

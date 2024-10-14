@@ -71,7 +71,7 @@ public class MySqlEffectsStore : IEffectsStore
     }
 
     private string? _getEffectResultsSql;
-    public async Task<IEnumerable<StoredEffect>> GetEffectResults(FlowId flowId)
+    public async Task<IReadOnlyList<StoredEffect>> GetEffectResults(FlowId flowId)
     {
         await using var conn = await CreateConnection();
         _getEffectResultsSql ??= @$"

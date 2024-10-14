@@ -18,7 +18,6 @@ public class CrashableFunctionStore : IFunctionStore
     public SyncedFlag AfterPostponeFunctionFlag { get; } = new();
     public IMessageStore MessageStore => _crashed ? throw new TimeoutException() : _inner.MessageStore;
     public IEffectsStore EffectsStore => _crashed ? throw new TimeoutException() : _inner.EffectsStore;
-    public IStatesStore StatesStore => _crashed ? throw new TimeoutException() : _inner.StatesStore;
     public ITimeoutStore TimeoutStore => _crashed ? throw new TimeoutException() : _inner.TimeoutStore;
     public ICorrelationStore CorrelationStore => _crashed ? throw new TimeoutException() : _inner.CorrelationStore;
     public Utilities Utilities => _crashed ? throw new TimeoutException() : _inner.Utilities;

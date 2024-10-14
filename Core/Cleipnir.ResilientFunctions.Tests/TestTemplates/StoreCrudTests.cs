@@ -147,7 +147,10 @@ public abstract class StoreCrudTests
             timestamp: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
-        await store.StatesStore.UpsertState(functionId, new StoredState("SomeStateId", "SomeStateJson"));
+        await store.EffectsStore.SetEffectResult(
+            functionId,
+            StoredEffect.CreateState(new StoredState("SomeStateId", "SomeStateJson"))
+        );
         await store.CorrelationStore.SetCorrelation(functionId, "SomeCorrelationId");
         await store.EffectsStore.SetEffectResult(
             functionId,
@@ -162,7 +165,6 @@ public abstract class StoreCrudTests
         await store.DeleteFunction(functionId);
 
         await store.GetFunction(functionId).ShouldBeNullAsync();
-        await store.StatesStore.GetStates(functionId).ShouldBeEmptyAsync();
         await store.CorrelationStore.GetCorrelations(functionId).ShouldBeEmptyAsync();
         await store.EffectsStore.GetEffectResults(functionId).ShouldBeEmptyAsync();
         await store.MessageStore.GetMessages(functionId, skip: 0).ShouldBeEmptyAsync();

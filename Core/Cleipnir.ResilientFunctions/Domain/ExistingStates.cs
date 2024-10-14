@@ -11,7 +11,7 @@ public class ExistingStates
     private readonly FlowId _flowId;
     private Dictionary<StateId, StoredState>? _storedStates;
     private readonly IFunctionStore _functionStore;
-    private readonly IStatesStore _statesStore;
+    private readonly IEffectsStore _effectsStore;
     private readonly ISerializer _serializer;
     
     private string? _defaultStateJson;
@@ -21,7 +21,7 @@ public class ExistingStates
     {
         _flowId = flowId;
         _functionStore = functionStore;
-        _statesStore = functionStore.StatesStore;
+        _effectsStore = functionStore.EffectsStore;
         _serializer = serializer;
 
         _defaultStateJson = defaultState;
@@ -32,7 +32,9 @@ public class ExistingStates
         if (_storedStates is not null)
             return _storedStates;
 
-        return _storedStates = (await _functionStore.StatesStore.GetStates(_flowId))
+        return _storedStates = (await _functionStore.EffectsStore.GetEffectResults(_flowId))
+            .Where(se => se.IsState)
+            .Select(se => new StoredState(se.EffectId.Value, se.Result!))
             .ToDictionary(s => s.StateId, s => s);
     }
     
@@ -74,7 +76,7 @@ public class ExistingStates
     public async Task Remove(string stateId)
     {
         var storedStates = await GetStoredStates();
-        await _statesStore.RemoveState(_flowId, stateId);
+        await _effectsStore.DeleteEffectResult(_flowId, stateId, isState: true);
         storedStates.Remove(stateId);
     }
 
@@ -89,7 +91,7 @@ public class ExistingStates
         var storedStates = await GetStoredStates();
         var json = _serializer.SerializeState(state);
         var storedState = new StoredState(stateId, json);
-        await _statesStore.UpsertState(_flowId, storedState);
+        await _effectsStore.SetEffectResult(_flowId, StoredEffect.CreateState(storedState));
         storedStates[stateId] = storedState;
     }
 }

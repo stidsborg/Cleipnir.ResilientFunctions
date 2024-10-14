@@ -21,8 +21,6 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
     public IMessageStore MessageStore => this;
     private readonly InMemoryEffectsStore _effectsStore = new();
     public IEffectsStore EffectsStore => _effectsStore;
-    private readonly InMemoryStatesStore _statesStore = new();
-    public IStatesStore StatesStore => _statesStore;
     private readonly InMemoryTimeoutStore _timeoutStore = new();
     public ITimeoutStore TimeoutStore => _timeoutStore;
     private readonly InMemoryCorrelationStore _correlationStore = new();
@@ -440,7 +438,6 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         {
             _messages.Remove(flowId);
             _effectsStore.Remove(flowId);
-            _statesStore.Remove(flowId);
             _timeoutStore.Remove(flowId);
             _correlationStore.RemoveCorrelations(flowId);
             
