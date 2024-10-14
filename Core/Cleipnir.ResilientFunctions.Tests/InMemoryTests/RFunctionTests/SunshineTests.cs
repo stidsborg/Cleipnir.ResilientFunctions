@@ -51,4 +51,12 @@ public class SunshineTests : TestTemplates.RFunctionTests.SunshineTests
     [TestMethod]
     public override Task InstancesCanBeFetched()
         => InstancesCanBeFetched(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task EffectsAreNotFetchedOnFirstInvocation()
+        => EffectsAreNotFetchedOnFirstInvocation(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task EffectsAreFetchedOnSecondInvocation()
+        => EffectsAreFetchedOnSecondInvocation(FunctionStoreFactory.Create());
 }

@@ -17,15 +17,31 @@ public class CrashableFunctionStore : IFunctionStore
     private readonly object _sync = new();
     public SyncedFlag AfterPostponeFunctionFlag { get; } = new();
     public IMessageStore MessageStore => _crashed ? throw new TimeoutException() : _inner.MessageStore;
-    public IEffectsStore EffectsStore => _crashed ? throw new TimeoutException() : _inner.EffectsStore;
+
+    private readonly CrashableEffectStore _crashableEffectStore;
+    public IEffectsStore EffectsStore => _crashableEffectStore;
     public ITimeoutStore TimeoutStore => _crashed ? throw new TimeoutException() : _inner.TimeoutStore;
     public ICorrelationStore CorrelationStore => _crashed ? throw new TimeoutException() : _inner.CorrelationStore;
     public Utilities Utilities => _crashed ? throw new TimeoutException() : _inner.Utilities;
     public IMigrator Migrator => _crashed ? throw new TimeoutException() : _inner.Migrator;
 
-    public CrashableFunctionStore(IFunctionStore inner) => _inner = inner;
+    public CrashableFunctionStore(IFunctionStore inner)
+    {
+        _inner = inner;
+        _crashableEffectStore = new CrashableEffectStore(inner.EffectsStore);
+    }
 
-    public void Crash() => _crashed = true;
+    public void Crash()
+    {
+        _crashed = true;
+        _crashableEffectStore.Crashed = true;
+    }
+
+    public void FixCrash()
+    {
+        _crashed = false;
+        _crashableEffectStore.Crashed = false;
+    } 
 
     public Task Initialize() => Task.CompletedTask;
 

@@ -49,4 +49,12 @@ public class SunshineTests : ResilientFunctions.Tests.TestTemplates.RFunctionTes
     [TestMethod]
     public override Task InstancesCanBeFetched()
         => InstancesCanBeFetched(FunctionStoreFactory.Create());
+    
+    [TestMethod]
+    public override Task EffectsAreNotFetchedOnFirstInvocation()
+        => EffectsAreNotFetchedOnFirstInvocation(FunctionStoreFactory.Create());
+    
+    [TestMethod]
+    public override Task EffectsAreFetchedOnSecondInvocation()
+        => EffectsAreFetchedOnSecondInvocation(FunctionStoreFactory.Create());
 }

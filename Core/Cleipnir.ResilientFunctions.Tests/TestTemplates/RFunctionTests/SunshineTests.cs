@@ -5,6 +5,7 @@ using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Storage;
+using Cleipnir.ResilientFunctions.Tests.TestTemplates.WatchDogsTests;
 using Cleipnir.ResilientFunctions.Tests.Utils;
 using Shouldly;
 
@@ -381,5 +382,84 @@ public abstract class SunshineTests
             postponed.Single().ShouldBe("true");
         
         unhandledExceptionCatcher.ShouldNotHaveExceptions();
+    }
+    
+    public abstract Task EffectsAreNotFetchedOnFirstInvocation();
+    protected async Task EffectsAreNotFetchedOnFirstInvocation(Task<IFunctionStore> storeTask)
+    {
+        var store = new CrashableFunctionStore(await storeTask);
+
+        var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
+        var functionId = TestFlowId.Create();
+
+        using var functionsRegistry = new FunctionsRegistry(
+            store,
+            new Settings(
+                unhandledExceptionCatcher.Catch,
+                enableWatchdogs: false
+            )
+        );
+
+        var invoke = functionsRegistry.RegisterParamless(
+            functionId.Type,
+            inner: async workflow =>
+            {
+                store.Crash();
+                await workflow.Effect.Contains("test");
+                store.FixCrash();
+            }
+        ).Invoke;
+
+        await invoke("test");
+        
+        unhandledExceptionCatcher.ShouldNotHaveExceptions();
+    }
+    
+    public abstract Task EffectsAreFetchedOnSecondInvocation();
+    protected async Task EffectsAreFetchedOnSecondInvocation(Task<IFunctionStore> storeTask)
+    {
+        var store = new CrashableFunctionStore(await storeTask);
+        var functionId = TestFlowId.Create();
+
+        using var functionsRegistry = new FunctionsRegistry(
+            store,
+            new Settings(
+                enableWatchdogs: true,
+                watchdogCheckFrequency: TimeSpan.FromSeconds(1)
+            )
+        );
+
+        var flag = new SyncedFlag();
+        var registration = functionsRegistry.RegisterParamless(
+            functionId.Type,
+            inner: async workflow =>
+            {
+                store.Crash();
+                try
+                {
+                    await workflow.Effect.Contains("test");
+                }
+                catch
+                {
+                    store.FixCrash();
+                    flag.Raise();
+                    throw;
+                }
+            }
+        );
+        
+        await registration.ScheduleIn("test", TimeSpan.FromSeconds(1));
+        await flag.WaitForRaised();
+        
+        var controlPanel = await registration.ControlPanel("test").ShouldNotBeNullAsync();
+        await BusyWait.Until(
+            async () =>
+            {
+                await controlPanel.Refresh();
+                return controlPanel.Status == Status.Failed || controlPanel.Status == Status.Succeeded;
+            }
+        );
+        
+        controlPanel.Status.ShouldBe(Status.Failed);
     }
 }

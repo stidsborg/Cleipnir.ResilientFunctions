@@ -189,7 +189,7 @@ public class Invoker<TParam, TReturn>
                 interruptCount
             );
             
-            var (effect, states) = _invocationHelper.CreateEffectAndStates(flowId, defaultState: null);
+            var (effect, states) = _invocationHelper.CreateEffectAndStates(flowId, defaultState: null, firstRun: true);
             var correlations = _invocationHelper.CreateCorrelations(flowId);
             var workflow = new Workflow(flowId, messages, effect, states, _utilities, correlations, interruptCount);
 
@@ -243,7 +243,7 @@ public class Invoker<TParam, TReturn>
                 interruptCount
             );
 
-            var (effect, states) = _invocationHelper.CreateEffectAndStates(flowId, defaultState);
+            var (effect, states) = _invocationHelper.CreateEffectAndStates(flowId, defaultState, firstRun: false);
             var correlations = _invocationHelper.CreateCorrelations(flowId);
           
             var workflow = new Workflow(
