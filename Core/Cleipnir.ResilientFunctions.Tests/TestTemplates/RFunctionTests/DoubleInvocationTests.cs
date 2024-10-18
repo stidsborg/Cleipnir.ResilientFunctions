@@ -69,7 +69,7 @@ public abstract class DoubleInvocationTests
         );
         var rFunc = functionsRegistry.RegisterFunc(
             flowType,
-            (string input) => Suspend.While(0).ToResult<string>().ToTask()
+            (string input) => Suspend.Invocation.ToResult<string>().ToTask()
         );
         
         await Safe.Try(() => rFunc.Invoke(flowInstance.Value, param: "Hallo World"));

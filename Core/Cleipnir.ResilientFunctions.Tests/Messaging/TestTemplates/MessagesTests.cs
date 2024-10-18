@@ -35,7 +35,6 @@ public abstract class MessagesTests
             defaultDelay: TimeSpan.FromMilliseconds(250),
             defaultMaxWait: TimeSpan.MaxValue, 
             isWorkflowRunning: () => true,
-            TestInterruptCount.Create(),
             functionStore,
             DefaultSerializer.Instance,
             registeredTimeouts
@@ -97,7 +96,6 @@ public abstract class MessagesTests
             defaultDelay: TimeSpan.FromMilliseconds(250),
             defaultMaxWait: TimeSpan.MaxValue, 
             isWorkflowRunning: () => true,
-            TestInterruptCount.Create(),
             functionStore,
             DefaultSerializer.Instance,
             registeredTimeouts
@@ -134,7 +132,6 @@ public abstract class MessagesTests
             defaultDelay: TimeSpan.FromMilliseconds(250),
             defaultMaxWait: TimeSpan.MaxValue, 
             isWorkflowRunning: () => true,
-            TestInterruptCount.Create(),
             functionStore,
             DefaultSerializer.Instance,
             registeredTimeouts
@@ -171,7 +168,6 @@ public abstract class MessagesTests
             defaultDelay: TimeSpan.FromMilliseconds(250),
             defaultMaxWait: TimeSpan.MaxValue,
             isWorkflowRunning: () => true,
-            TestInterruptCount.Create(),
             functionStore,
             DefaultSerializer.Instance,
             registeredTimeouts
@@ -210,7 +206,6 @@ public abstract class MessagesTests
             defaultDelay: TimeSpan.FromMilliseconds(250),
             defaultMaxWait: TimeSpan.MaxValue,
             isWorkflowRunning: () => true,
-            TestInterruptCount.Create(),
             functionStore,
             DefaultSerializer.Instance,
             registeredTimeouts
@@ -254,7 +249,6 @@ public abstract class MessagesTests
             defaultDelay: TimeSpan.FromMilliseconds(250),
             defaultMaxWait: TimeSpan.MaxValue,
             isWorkflowRunning: () => true,
-            TestInterruptCount.Create(),
             functionStore,
             DefaultSerializer.Instance,
             registeredTimeouts
@@ -297,7 +291,6 @@ public abstract class MessagesTests
             defaultDelay: TimeSpan.FromMilliseconds(250),
             defaultMaxWait: TimeSpan.MaxValue,
             isWorkflowRunning: () => true,
-            TestInterruptCount.Create(),
             functionStore,
             DefaultSerializer.Instance,
             registeredTimeouts
@@ -336,7 +329,6 @@ public abstract class MessagesTests
             defaultDelay: TimeSpan.FromMilliseconds(250),
             defaultMaxWait: TimeSpan.MaxValue,
             isWorkflowRunning: () => true,
-            TestInterruptCount.Create(),
             functionStore,
             DefaultSerializer.Instance,
             registeredTimeouts
@@ -387,7 +379,6 @@ public abstract class MessagesTests
             defaultDelay: TimeSpan.FromMilliseconds(250),
             defaultMaxWait: TimeSpan.MaxValue,
             isWorkflowRunning: () => true,
-            TestInterruptCount.Create(),
             functionStore,
             new ExceptionThrowingEventSerializer(typeof(int)),
             registeredTimeouts

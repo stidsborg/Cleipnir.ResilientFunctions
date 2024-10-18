@@ -41,7 +41,7 @@ public static class LeafOperators
         
         maxWait ??= subscription.DefaultMessageMaxWait;
         if (maxWait == TimeSpan.Zero)
-            throw new SuspendInvocationException(subscription.InterruptCount);
+            throw new SuspendInvocationException();
 
         var stopWatch = new Stopwatch();
         stopWatch.Start();
@@ -58,19 +58,8 @@ public static class LeafOperators
             await subscription.CancelTimeout();
             return await tcs.Task;
         }
-
-        // fetch latest interrupt count and sync subsequently (thus avoid a race-condition)
-        var interruptCount = await subscription.InterruptCount.GetLatest();
-        await subscription.SyncStore(maxSinceLastSynced: subscription.DefaultMessageSyncDelay);
-        subscription.PushMessages();
-
-        if (tcs.Task.IsCompleted)
-        {
-            await subscription.CancelTimeout();
-            return await tcs.Task;
-        }
         
-        throw new SuspendInvocationException(interruptCount);
+        throw new SuspendInvocationException();
     }
     
     public static Task<List<T>> Completion<T>(this IReactiveChain<T> s, TimeSpan? maxWait = null)
@@ -213,7 +202,7 @@ public static class LeafOperators
             return;
 
         await subscription.RegisteredTimeouts.RegisterTimeout(timeoutEventId, resumeAt);
-        throw new SuspendInvocationException(subscription.InterruptCount);
+        throw new SuspendInvocationException();
     }
 
     public static Task SuspendFor(this Messages s, string timeoutEventId, TimeSpan resumeAfter)

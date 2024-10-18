@@ -43,7 +43,6 @@ public class MessagesPullerAndEmitter
         TimeSpan defaultDelay,
         TimeSpan defaultMaxWait,
         Func<bool> isWorkflowRunning,
-        InterruptCount interruptCount,
         IFunctionStore functionStore, ISerializer serializer, IRegisteredTimeouts registeredTimeouts)
     {
         _flowId = flowId;
@@ -57,8 +56,7 @@ public class MessagesPullerAndEmitter
             defaultDelay,
             defaultMaxWait,
             isWorkflowRunning,
-            initialSyncPerformed: () => InitialSyncPerformed,
-            interruptCount
+            initialSyncPerformed: () => InitialSyncPerformed
         );
     }
 

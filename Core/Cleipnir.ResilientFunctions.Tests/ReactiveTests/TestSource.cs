@@ -17,7 +17,6 @@ public class TestSource : Source
         defaultDelay: TimeSpan.FromMilliseconds(10), 
         defaultMaxWait: TimeSpan.MaxValue,
         isWorkflowRunning: () => true,
-        initialSyncPerformed: () => true,
-        TestInterruptCount.Create()
+        initialSyncPerformed: () => true
     ) {}
 }

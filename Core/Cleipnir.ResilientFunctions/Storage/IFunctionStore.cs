@@ -81,7 +81,6 @@ public interface IFunctionStore
     
     Task<bool> SuspendFunction(
         FlowId flowId, 
-        long expectedInterruptCount,
         string? defaultState,
         long timestamp,
         int expectedEpoch, 
@@ -90,9 +89,8 @@ public interface IFunctionStore
 
     Task SetDefaultState(FlowId flowId, string? stateJson);
 
-    Task<bool> Interrupt(FlowId flowId);
-    Task<bool> IncrementInterruptCount(FlowId flowId);
-    Task<long?> GetInterruptCount(FlowId flowId); 
+    Task<bool> Interrupt(FlowId flowId, bool onlyIfExecuting);
+    Task<bool?> Interrupted(FlowId flowId); 
 
     Task<StatusAndEpoch?> GetFunctionStatus(FlowId flowId);
     Task<StoredFlow?> GetFunction(FlowId flowId);

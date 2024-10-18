@@ -163,7 +163,6 @@ internal class InvocationHelper<TParam, TReturn>
             case Outcome.Suspend:
                 var success = await _functionStore.SuspendFunction(
                     flowId,
-                    result.Suspend!.InterruptCount,
                     defaultState,
                     timestamp: DateTime.UtcNow.Ticks,
                     expectedEpoch,
@@ -359,7 +358,7 @@ internal class InvocationHelper<TParam, TReturn>
         );
     }
 
-    public Messages CreateMessages(FlowId flowId, ScheduleReInvocation scheduleReInvocation, Func<bool> isWorkflowRunning, InterruptCount interruptCount)
+    public Messages CreateMessages(FlowId flowId, ScheduleReInvocation scheduleReInvocation, Func<bool> isWorkflowRunning)
     {
         var messageWriter = new MessageWriter(flowId, _functionStore, Serializer, scheduleReInvocation);
         var registeredTimeouts = new RegisteredTimeouts(flowId, _functionStore.TimeoutStore);
@@ -368,7 +367,6 @@ internal class InvocationHelper<TParam, TReturn>
             defaultDelay: _settings.MessagesPullFrequency,
             _settings.MessagesDefaultMaxWaitForCompletion,
             isWorkflowRunning,
-            interruptCount,
             _functionStore,
             _settings.Serializer,
             registeredTimeouts
@@ -442,14 +440,5 @@ internal class InvocationHelper<TParam, TReturn>
         return result is null
             ? null 
             : Serializer.SerializeResult(result);
-    }
-    
-    public async Task<long> GetLatestInterruptCount(FlowId flowId)
-    {
-        var interruptCount = await _functionStore.GetInterruptCount(flowId);
-        if (interruptCount == null)
-            throw UnexpectedStateException.NotFound(flowId);
-
-        return interruptCount.Value;
     }
 }

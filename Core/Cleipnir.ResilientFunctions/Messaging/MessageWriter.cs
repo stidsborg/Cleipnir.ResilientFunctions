@@ -41,7 +41,7 @@ public class MessageWriter
         
         if (status == Status.Executing)
         {
-            var success = await _functionStore.IncrementInterruptCount(_flowId);
+            var success = await _functionStore.Interrupt(_flowId, onlyIfExecuting: true);
             if (success)
                 return Finding.Found; //executing function will notice interrupt increment and reschedule itself on suspension
             

@@ -12,7 +12,7 @@ public record StoredFlow(
     int Epoch,
     long Expires,
     long Timestamp,
-    long InterruptCount
+    bool Interrupted
 );
 
 public record IdAndEpoch(FlowId FlowId, int Epoch);

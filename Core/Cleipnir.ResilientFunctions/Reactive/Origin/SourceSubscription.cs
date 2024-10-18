@@ -22,7 +22,6 @@ internal class SourceSubscription : ISubscription
     public IRegisteredTimeouts RegisteredTimeouts { get; }
     public TimeSpan DefaultMessageSyncDelay { get; }
     public TimeSpan DefaultMessageMaxWait { get; }
-    public InterruptCount InterruptCount { get; }
 
     public SourceSubscription(
         Action<object> onNext, Action onCompletion, Action<Exception> onError,
@@ -33,8 +32,7 @@ internal class SourceSubscription : ISubscription
         Func<bool> isWorkflowRunning,
         IRegisteredTimeouts registeredTimeouts,
         TimeSpan defaultDelay,
-        TimeSpan defaultMessageMaxWait,
-        InterruptCount interruptCount
+        TimeSpan defaultMessageMaxWait
     )
     {
         Source = source;
@@ -48,7 +46,6 @@ internal class SourceSubscription : ISubscription
         RegisteredTimeouts = registeredTimeouts;
         DefaultMessageSyncDelay = defaultDelay;
         DefaultMessageMaxWait = defaultMessageMaxWait;
-        InterruptCount = interruptCount;
     }
 
     public async Task Initialize()

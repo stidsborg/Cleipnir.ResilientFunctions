@@ -181,17 +181,15 @@ public class Invoker<TParam, TReturn>
             disposables.Add(isWorkflowRunningDisposable);
             success = persisted;
             
-            var interruptCount = new InterruptCount(0, () => _invocationHelper.GetLatestInterruptCount(flowId));
             var messages = _invocationHelper.CreateMessages(
                 flowId, 
                 ScheduleRestart, 
-                isWorkflowRunning: () => !isWorkflowRunningDisposable.Disposed,
-                interruptCount
+                isWorkflowRunning: () => !isWorkflowRunningDisposable.Disposed
             );
             
             var (effect, states) = _invocationHelper.CreateEffectAndStates(flowId, defaultState: null, anyEffects: false);
             var correlations = _invocationHelper.CreateCorrelations(flowId);
-            var workflow = new Workflow(flowId, messages, effect, states, _utilities, correlations, interruptCount);
+            var workflow = new Workflow(flowId, messages, effect, states, _utilities, correlations);
 
             return new PreparedInvocation(
                 persisted,
@@ -231,16 +229,11 @@ public class Invoker<TParam, TReturn>
             disposables.Add(_invocationHelper.StartLeaseUpdater(flowId, epoch));
             var isWorkflowRunningDisposable = new PropertyDisposable();
             disposables.Add(isWorkflowRunningDisposable);
-
-            var interruptCount = new InterruptCount(
-                restartedFunction.StoredFlow.InterruptCount,
-                getLatestInterrupt: () => _invocationHelper.GetLatestInterruptCount(flowId)
-            );
+            
             var messages = _invocationHelper.CreateMessages(
                 flowId,
                 ScheduleRestart,
-                isWorkflowRunning: () => !isWorkflowRunningDisposable.Disposed,
-                interruptCount
+                isWorkflowRunning: () => !isWorkflowRunningDisposable.Disposed
             );
 
             var (effect, states) = _invocationHelper.CreateEffectAndStates(flowId, defaultState, anyEffects: true);
@@ -252,8 +245,7 @@ public class Invoker<TParam, TReturn>
                 effect,
                 states,
                 _utilities,
-                correlations,
-                interruptCount
+                correlations
             );
 
             return new PreparedReInvocation(

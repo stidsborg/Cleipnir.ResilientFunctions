@@ -88,12 +88,8 @@ public class Postpone
 
 public class Suspend
 {
-    public long InterruptCount { get; }
+    public static Suspend Invocation { get; } = new();
     
-    private Suspend(long interruptCount) => InterruptCount = interruptCount;
-
-    public static Suspend While(long interruptCount) => new Suspend(interruptCount);
-
     public Result<T> ToResult<T>() => new Result<T>(this);
 }
 

@@ -86,7 +86,6 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
                         DefaultState = null,
                         Epoch = 0,
                         Exception = null,
-                        InterruptCount = 0,
                         Expires = 0,
                         Param = param,
                         Result = null,
@@ -112,6 +111,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
             state.Epoch += 1;
             state.Status = Status.Executing;
             state.Expires = leaseExpiration;
+            state.Interrupted = false;
             return GetFunction(flowId);
         }
     }
@@ -261,7 +261,6 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
 
     public Task<bool> SuspendFunction(
         FlowId flowId, 
-        long expectedInterruptCount, 
         string? defaultState, 
         long timestamp,
         int expectedEpoch, 
@@ -276,7 +275,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
             if (state.Epoch != expectedEpoch)
                 return false.ToTask();
 
-            if (state.InterruptCount != expectedInterruptCount)
+            if (state.Interrupted)
                 return false.ToTask();
                 
             state.Status = Status.Suspended;
@@ -317,47 +316,36 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         return Task.CompletedTask;
     }
 
-    public Task<bool> Interrupt(FlowId flowId)
+    public Task<bool> Interrupt(FlowId flowId, bool onlyIfExecuting)
     {
         lock (_sync)
         {
-            var success = _states.TryGetValue(flowId, out var state);
-            if (!success)
+            if (!_states.TryGetValue(flowId, out var state))
                 return false.ToTask();
-
-            if (state!.Status == Status.Postponed || state.Status == Status.Suspended)
+            
+            if (state.Status != Status.Executing && onlyIfExecuting)
+                return false.ToTask();
+            
+            if (state.Status == Status.Postponed || state.Status == Status.Suspended)
             {
                 state.Status = Status.Postponed;
                 state.Expires = 0;
             }
-            
-            state.InterruptCount++;
+
+            state.Interrupted = true;
             return true.ToTask();
         }
     }
 
-    public Task<bool> IncrementInterruptCount(FlowId flowId)
+    public Task<bool?> Interrupted(FlowId flowId)
     {
         lock (_sync)
         {
-            var success = _states.TryGetValue(flowId, out var state);
-            if (!success)
-                return false.ToTask();
-            
-            if (state!.Status != Status.Executing)
-                return false.ToTask();
-            
-            state.InterruptCount++;
-            return true.ToTask();
-        }
-    }
+            if (!_states.ContainsKey(flowId))
+                return Task.FromResult(default(bool?));
 
-    public Task<long?> GetInterruptCount(FlowId flowId)
-    {
-        lock (_sync) 
-            return _states.TryGetValue(flowId, out var state) 
-                ? state.InterruptCount.CastTo<long?>().ToTask() 
-                : default(long?).ToTask();
+            return ((bool?) _states[flowId].Interrupted).ToTask();
+        }
     }
 
     public Task<StatusAndEpoch?> GetFunctionStatus(FlowId flowId)
@@ -391,7 +379,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
                     state.Epoch,
                     state.Expires,
                     state.Timestamp,
-                    state.InterruptCount
+                    state.Interrupted
                 )
                 .ToNullable()
                 .ToTask();
@@ -454,7 +442,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         public string? Result { get; set; }
         public StoredException? Exception { get; set; }
         public int Epoch { get; set; }
-        public long InterruptCount { get; set; }
+        public bool Interrupted { get; set; }
         public long Expires { get; set; }
         public long Timestamp { get; set; }
     }

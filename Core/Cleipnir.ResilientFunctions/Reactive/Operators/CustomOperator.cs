@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime;
-using Cleipnir.ResilientFunctions.Domain;
 
 namespace Cleipnir.ResilientFunctions.Reactive.Operators;
 
@@ -51,7 +50,6 @@ public class CustomOperator<TIn, TOut> : IReactiveChain<TOut>
         public IReactiveChain<object> Source => _innerSubscription.Source;
         public TimeSpan DefaultMessageSyncDelay => _innerSubscription.DefaultMessageSyncDelay;
         public TimeSpan DefaultMessageMaxWait => _innerSubscription.DefaultMessageMaxWait;
-        public InterruptCount InterruptCount => _innerSubscription.InterruptCount;
 
         public Subscription(
             IReactiveChain<TIn> inner,

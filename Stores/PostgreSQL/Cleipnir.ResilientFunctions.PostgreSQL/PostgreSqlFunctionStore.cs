@@ -73,7 +73,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 instance VARCHAR(200) NOT NULL,
                 epoch INT NOT NULL DEFAULT 0,
                 expires BIGINT NOT NULL,
-                interrupt_count BIGINT NOT NULL DEFAULT 0,
+                interrupted BOOLEAN NOT NULL DEFAULT FALSE,
                 param_json TEXT NULL,            
                 status INT NOT NULL DEFAULT {(int) Status.Executing},
                 result_json TEXT NULL,
@@ -184,7 +184,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
 
         _restartExecutionSql ??= @$"
             UPDATE {_tableName}
-            SET epoch = epoch + 1, status = {(int)Status.Executing}, expires = $1
+            SET epoch = epoch + 1, status = {(int)Status.Executing}, expires = $1, interrupted = FALSE
             WHERE type = $2 AND instance = $3 AND epoch = $4
             RETURNING               
                 param_json, 
@@ -194,7 +194,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 exception_json,
                 expires,
                 epoch, 
-                interrupt_count,
+                interrupted,
                 timestamp";
 
         await using var command = new NpgsqlCommand(_restartExecutionSql, conn)
@@ -444,7 +444,6 @@ public class PostgreSqlFunctionStore : IFunctionStore
     private string? _suspendFunctionSql;
     public async Task<bool> SuspendFunction(
         FlowId flowId, 
-        long expectedInterruptCount, 
         string? defaultState, 
         long timestamp,
         int expectedEpoch, 
@@ -458,7 +457,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
             WHERE type = $3 AND 
                   instance = $4 AND 
                   epoch = $5 AND
-                  interrupt_count = $6";
+                  NOT interrupted;";
         await using var command = new NpgsqlCommand(_suspendFunctionSql, conn)
         {
             Parameters =
@@ -467,8 +466,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 new() { Value = timestamp },
                 new() { Value = flowId.Type.Value },
                 new() { Value = flowId.Instance.Value },
-                new() { Value = expectedEpoch },
-                new() { Value = expectedInterruptCount },
+                new() { Value = expectedEpoch }
             }
         };
         var affectedRows = await command.ExecuteNonQueryAsync();
@@ -528,35 +526,16 @@ public class PostgreSqlFunctionStore : IFunctionStore
         return affectedRows == 1;
     }
 
-    private string? _incrementInterruptCountSql;
-    public async Task<bool> IncrementInterruptCount(FlowId flowId)
+    private string? _interruptSql;
+    private string? _interruptSqlIfExecuting;
+    public async Task<bool> Interrupt(FlowId flowId, bool onlyIfExecuting)
     {
         await using var conn = await CreateConnection();
 
-        _incrementInterruptCountSql ??= $@"
-                UPDATE {_tableName}
-                SET interrupt_count = interrupt_count + 1
-                WHERE type = $1 AND instance = $2 AND status = {(int) Status.Executing};";
-        await using var command = new NpgsqlCommand(_incrementInterruptCountSql, conn)
-        {
-            Parameters =
-            {
-                new() { Value = flowId.Type.Value },
-                new() { Value = flowId.Instance.Value },
-            }
-        };
-        var affectedRows = await command.ExecuteNonQueryAsync();
-        return affectedRows == 1;
-    }
-    
-    public async Task<bool> Interrupt(FlowId flowId)
-    {
-        await using var conn = await CreateConnection();
-
-        var sql = $@"
+        _interruptSql ??= $@"
                 UPDATE {_tableName}
                 SET 
-                    interrupt_count = interrupt_count + 1,
+                    interrupted = TRUE,
                     status = 
                         CASE 
                             WHEN status = {(int) Status.Suspended} THEN {(int) Status.Postponed}
@@ -569,6 +548,12 @@ public class PostgreSqlFunctionStore : IFunctionStore
                             ELSE expires
                         END
                 WHERE type = $1 AND instance = $2";
+        _interruptSqlIfExecuting ??= _interruptSql + $" AND status = {(int) Status.Executing}";
+
+        var sql = onlyIfExecuting
+            ? _interruptSqlIfExecuting
+            : _interruptSql;
+        
         await using var command = new NpgsqlCommand(sql, conn)
         {
             Parameters =
@@ -581,16 +566,16 @@ public class PostgreSqlFunctionStore : IFunctionStore
         return affectedRows == 1;
     }
 
-    private string? _getInterruptCountSql;
-    public async Task<long?> GetInterruptCount(FlowId flowId)
+    private string? _interruptedSql;
+    public async Task<bool?> Interrupted(FlowId flowId)
     {
         await using var conn = await CreateConnection();
 
-        _getInterruptCountSql ??= $@"
-                SELECT interrupt_count 
+        _interruptedSql ??= $@"
+                SELECT interrupted 
                 FROM {_tableName}
                 WHERE type = $1 AND instance = $2";
-        await using var command = new NpgsqlCommand(_getInterruptCountSql, conn)
+        await using var command = new NpgsqlCommand(_interruptedSql, conn)
         {
             Parameters =
             {
@@ -598,7 +583,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 new() { Value = flowId.Instance.Value },
             }
         };
-        return (long?) await command.ExecuteScalarAsync();
+        return (bool?) await command.ExecuteScalarAsync();
     }
 
     private string? _getFunctionStatusSql;
@@ -642,7 +627,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 exception_json,
                 expires,
                 epoch, 
-                interrupt_count,
+                interrupted,
                 timestamp
             FROM {_tableName}
             WHERE type = $1 AND instance = $2;";
@@ -745,7 +730,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
            4  exception_json,
            5  expires,
            6  epoch,         
-           7 interrupt_count,
+           7 interrupted,
            8 timestamp
          */
         while (await reader.ReadAsync())
@@ -764,7 +749,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 Exception: !hasException ? null : JsonSerializer.Deserialize<StoredException>(reader.GetString(4)),
                 Expires: reader.GetInt64(5),
                 Epoch: reader.GetInt32(6),
-                InterruptCount: reader.GetInt64(7),
+                Interrupted: reader.GetBoolean(7),
                 Timestamp: reader.GetInt64(8)
             );
         }

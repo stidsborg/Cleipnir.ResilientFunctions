@@ -12,6 +12,7 @@ using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Tests.Messaging.Utils;
 using Cleipnir.ResilientFunctions.Tests.Utils;
 using Shouldly;
+using FlagPosition = Cleipnir.ResilientFunctions.Tests.Utils.FlagPosition;
 using SyncedFlag = Cleipnir.ResilientFunctions.Tests.Utils.SyncedFlag;
 
 namespace Cleipnir.ResilientFunctions.Tests.TestTemplates.RFunctionTests;
@@ -33,7 +34,7 @@ public abstract class SuspensionTests
 
         var rAction = functionsRegistry.RegisterAction(
             flowType,
-            Task<Result> (string _) => throw new SuspendInvocationException(expectedInterruptCount: TestInterruptCount.Create())
+            Task<Result> (string _) => throw new SuspendInvocationException()
         );
 
         await Should.ThrowAsync<InvocationSuspendedException>(
@@ -67,7 +68,7 @@ public abstract class SuspensionTests
         
         var rFunc = functionsRegistry.RegisterFunc(
             typeId,
-            Task<Result<string>>(string _) => Suspend.While(0).ToResult<string>().ToTask()
+            Task<Result<string>>(string _) => Suspend.Invocation.ToResult<string>().ToTask()
         );
 
         await Should.ThrowAsync<InvocationSuspendedException>(
@@ -108,7 +109,7 @@ public abstract class SuspensionTests
                 if (invocations == 0)
                 {
                     invocations++;
-                    return Suspend.While(0).ToResult<string>().ToTask();
+                    return Suspend.Invocation.ToResult<string>().ToTask();
                 }
 
                 invocations++;
@@ -194,7 +195,7 @@ public abstract class SuspensionTests
             {
                 if (flag.IsRaised) return Result.SucceedWithValue("success").ToTask();
                 flag.Raise();
-                return Suspend.While(0).ToResult<string>().ToTask();
+                return Suspend.Invocation.ToResult<string>().ToTask();
             });
 
         await Should.ThrowAsync<InvocationSuspendedException>(
@@ -507,7 +508,7 @@ public abstract class SuspensionTests
         );
 
         var syncFlag = new SyncedFlag();
-        var syncedValued = new Synced<SuspendInvocationException?>();
+        var suspendedFlag = new SyncedFlag();
         
         var registration = functionsRegistry.RegisterParamless(
             flowType,
@@ -519,9 +520,9 @@ public abstract class SuspensionTests
                     await workflow.Messages.FirstOfType<int>(maxWait: TimeSpan.FromSeconds(2));
                     await workflow.Messages.FirstOfType<string>(maxWait: TimeSpan.FromMilliseconds(100));
                 }
-                catch (SuspendInvocationException suspendInvocationException)
+                catch (SuspendInvocationException)
                 {
-                    syncedValued.Value = suspendInvocationException;
+                    suspendedFlag.Raise();
                 }
             }
         );
@@ -538,9 +539,8 @@ public abstract class SuspensionTests
             await controlPanel.Refresh();
             return controlPanel.Status != Status.Executing;
         });
-            
-        syncedValued.Value.ShouldNotBeNull();
-        syncedValued.Value.ExpectedInterruptCount.Value.ShouldBe(1);
+           
+        suspendedFlag.Position.ShouldBe(FlagPosition.Raised);
     }
     
     public abstract Task SuspendedFlowIsRestartedAfterInterrupt();
@@ -566,7 +566,7 @@ public abstract class SuspensionTests
                     return Task.CompletedTask;
                 
                 syncFlag.Raise();
-                throw new SuspendInvocationException(workflow.InterruptCount);
+                throw new SuspendInvocationException();
             }
         );
         
@@ -581,7 +581,7 @@ public abstract class SuspensionTests
             return controlPanel.Status == Status.Suspended;
         });
 
-        await store.Interrupt(id);
+        await store.Interrupt(id, onlyIfExecuting: false);
         
         await BusyWait.Until(async () =>
         {
@@ -622,14 +622,14 @@ public abstract class SuspensionTests
 
                 insideFlowFlag.Raise();
                 await canContinueFlag.WaitForRaised();
-                throw new SuspendInvocationException(workflow.InterruptCount);
+                throw new SuspendInvocationException();
             }
         );
         
         await registration.Schedule(flowInstance);
         await insideFlowFlag.WaitForRaised();
 
-        await store.Interrupt(id);
+        await store.Interrupt(id, onlyIfExecuting: true);
         canContinueFlag.Raise();
         
         await executingAgainFlag.WaitForRaised();

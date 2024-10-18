@@ -75,7 +75,7 @@ public class SqlServerFunctionStore : IFunctionStore
                 Status INT NOT NULL,
                 Epoch INT NOT NULL,               
                 Expires BIGINT NOT NULL,
-                InterruptCount BIGINT NOT NULL DEFAULT 0,
+                Interrupted BIT NOT NULL DEFAULT 0,
                 ParamJson NVARCHAR(MAX) NULL,                                        
                 ResultJson NVARCHAR(MAX) NULL,
                 DefaultStateJson NVARCHAR(MAX) NULL,
@@ -224,7 +224,8 @@ public class SqlServerFunctionStore : IFunctionStore
             UPDATE {_tableName}
             SET Epoch = Epoch + 1, 
                 Status = {(int)Status.Executing}, 
-                Expires = @LeaseExpiration
+                Expires = @LeaseExpiration,
+                Interrupted = 0
             WHERE FlowType = @FlowType AND flowInstance = @flowInstance AND Epoch = @ExpectedEpoch;
 
             SELECT ParamJson,                
@@ -234,11 +235,10 @@ public class SqlServerFunctionStore : IFunctionStore
                    ExceptionJson,                   
                    Expires,
                    Epoch,
-                   InterruptCount,
+                   Interrupted,
                    Timestamp
             FROM {_tableName}
-            WHERE FlowType = @FlowType
-            AND flowInstance = @flowInstance";
+            WHERE FlowType = @FlowType AND FlowInstance = @flowInstance";
 
         await using var command = new SqlCommand(_restartExecutionSql, conn);
         command.Parameters.AddWithValue("@LeaseExpiration", leaseExpiration);
@@ -469,7 +469,6 @@ public class SqlServerFunctionStore : IFunctionStore
     private string? _suspendFunctionSql;
     public async Task<bool> SuspendFunction(
         FlowId flowId, 
-        long expectedInterruptCount, 
         string? defaultState, 
         long timestamp,
         int expectedEpoch, 
@@ -483,7 +482,7 @@ public class SqlServerFunctionStore : IFunctionStore
                 WHERE FlowType = @FlowType AND 
                       flowInstance = @flowInstance AND                       
                       Epoch = @ExpectedEpoch AND
-                      InterruptCount = @ExpectedInterruptCount;";
+                      Interrupted = 0;";
 
         await using var command = new SqlCommand(_suspendFunctionSql, conn);
         command.Parameters.AddWithValue("@DefaultStateJson", defaultState ?? (object) DBNull.Value);
@@ -491,7 +490,6 @@ public class SqlServerFunctionStore : IFunctionStore
         command.Parameters.AddWithValue("@FlowType", flowId.Type.Value);
         command.Parameters.AddWithValue("@flowInstance", flowId.Instance.Value);
         command.Parameters.AddWithValue("@ExpectedEpoch", expectedEpoch);
-        command.Parameters.AddWithValue("@ExpectedInterruptCount", expectedInterruptCount);
 
         var affectedRows = await command.ExecuteNonQueryAsync();
         return affectedRows == 1;
@@ -515,13 +513,15 @@ public class SqlServerFunctionStore : IFunctionStore
         await command.ExecuteNonQueryAsync();
     }
 
-    public async Task<bool> Interrupt(FlowId flowId)
+    private string? _interruptSql;
+    private string? _interruptIfExecutingSql;
+    public async Task<bool> Interrupt(FlowId flowId, bool onlyIfExecuting)
     {
         await using var conn = await _connFunc();
-        var sql = @$"
+        _interruptSql ??= @$"
                 UPDATE {_tableName}
                 SET 
-                    InterruptCount = InterruptCount + 1,
+                    Interrupted = 1,
                     Status = 
                         CASE 
                             WHEN Status = {(int) Status.Suspended} THEN {(int) Status.Postponed}
@@ -533,8 +533,13 @@ public class SqlServerFunctionStore : IFunctionStore
                             WHEN Status = {(int) Status.Suspended} THEN 0
                             ELSE Expires
                         END
-                WHERE FlowType = @FlowType AND flowInstance = @FlowInstance;";
+                WHERE FlowType = @FlowType AND flowInstance = @FlowInstance";
+        _interruptIfExecutingSql ??= _interruptSql + $" AND Status = {(int) Status.Executing}";
 
+        var sql = onlyIfExecuting
+            ? _interruptIfExecutingSql
+            : _interruptSql;
+        
         await using var command = new SqlCommand(sql, conn);
         command.Parameters.AddWithValue("@FlowType", flowId.Type.Value);
         command.Parameters.AddWithValue("@FlowInstance", flowId.Instance.Value);
@@ -568,39 +573,22 @@ public class SqlServerFunctionStore : IFunctionStore
         var affectedRows = await command.ExecuteNonQueryAsync();
         return affectedRows > 0;
     }
-
-    private string? _incrementInterruptCountSql;
-    public async Task<bool> IncrementInterruptCount(FlowId flowId)
+    
+    private string? _interruptedSql;
+    public async Task<bool?> Interrupted(FlowId flowId)
     {
         await using var conn = await _connFunc();
-        _incrementInterruptCountSql ??= @$"
-                UPDATE {_tableName}
-                SET InterruptCount = InterruptCount + 1
-                WHERE FlowType = @FlowType AND flowInstance = @flowInstance AND Status = {(int) Status.Executing};";
-
-        await using var command = new SqlCommand(_incrementInterruptCountSql, conn);
-        command.Parameters.AddWithValue("@FlowType", flowId.Type.Value);
-        command.Parameters.AddWithValue("@flowInstance", flowId.Instance.Value);
-
-        var affectedRows = await command.ExecuteNonQueryAsync();
-        return affectedRows == 1;
-    }
-
-    private string? _getInterruptCountSql;
-    public async Task<long?> GetInterruptCount(FlowId flowId)
-    {
-        await using var conn = await _connFunc();
-        _getInterruptCountSql ??= @$"
-                SELECT InterruptCount 
+        _interruptedSql ??= @$"
+                SELECT Interrupted 
                 FROM {_tableName}            
                 WHERE FlowType = @FlowType AND flowInstance = @flowInstance;";
 
-        await using var command = new SqlCommand(_getInterruptCountSql, conn);
+        await using var command = new SqlCommand(_interruptedSql, conn);
         command.Parameters.AddWithValue("@FlowType", flowId.Type.Value);
         command.Parameters.AddWithValue("@flowInstance", flowId.Instance.Value);
 
-        var interruptCount = await command.ExecuteScalarAsync();
-        return (long?) interruptCount;
+        var interrupted = await command.ExecuteScalarAsync();
+        return (bool?) interrupted;
     }
 
     private string? _getFunctionStatusSql;
@@ -641,7 +629,7 @@ public class SqlServerFunctionStore : IFunctionStore
                     ExceptionJson,
                     Expires,
                     Epoch, 
-                    InterruptCount,
+                    Interrupted,
                     Timestamp
             FROM {_tableName}
             WHERE FlowType = @FlowType
@@ -737,7 +725,7 @@ public class SqlServerFunctionStore : IFunctionStore
                     : JsonSerializer.Deserialize<StoredException>(exceptionJson);
                 var expires = reader.GetInt64(5);
                 var epoch = reader.GetInt32(6);
-                var interruptCount = reader.GetInt64(7);
+                var interrupted = reader.GetBoolean(7);
                 var timestamp = reader.GetInt64(8);
 
                 return new StoredFlow(
@@ -750,7 +738,7 @@ public class SqlServerFunctionStore : IFunctionStore
                     epoch,
                     expires,
                     timestamp,
-                    interruptCount
+                    interrupted
                 );
             }
         }

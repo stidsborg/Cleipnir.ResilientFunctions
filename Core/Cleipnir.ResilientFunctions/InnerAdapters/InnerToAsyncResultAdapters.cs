@@ -2,7 +2,6 @@
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Domain;
-using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.Domain.Exceptions.Commands;
 using Cleipnir.ResilientFunctions.Helpers;
 
@@ -21,7 +20,7 @@ internal static class InnerToAsyncResultAdapters
                 return Unit.Instance;
             }
             catch (PostponeInvocationException exception) { return Postpone.Until(exception.PostponeUntil); }
-            catch (SuspendInvocationException exception) { return Suspend.While(exception.ExpectedInterruptCount.Value); }
+            catch (SuspendInvocationException) { return Suspend.Invocation; }
             catch (Exception exception) { return Fail.WithException(exception); }
         };
     }
@@ -36,7 +35,7 @@ internal static class InnerToAsyncResultAdapters
                 return Unit.Instance;
             }
             catch (PostponeInvocationException exception) { return Postpone.Until(exception.PostponeUntil); }
-            catch (SuspendInvocationException exception) { return Suspend.While(exception.ExpectedInterruptCount.Value); }
+            catch (SuspendInvocationException) { return Suspend.Invocation; }
             catch (Exception exception) { return Fail.WithException(exception); }
         };
     }
@@ -51,7 +50,7 @@ internal static class InnerToAsyncResultAdapters
                 return result.ToUnit();
             }
             catch (PostponeInvocationException exception) { return Postpone.Until(exception.PostponeUntil); }
-            catch (SuspendInvocationException exception) { return Suspend.While(exception.ExpectedInterruptCount.Value); }
+            catch (SuspendInvocationException) { return Suspend.Invocation; }
             catch (Exception exception) { return Fail.WithException(exception); }
         };
     }
@@ -66,7 +65,7 @@ internal static class InnerToAsyncResultAdapters
                 return result;
             }
             catch (PostponeInvocationException exception) { return Postpone.Until(exception.PostponeUntil); }
-            catch (SuspendInvocationException exception) { return Suspend.While(exception.ExpectedInterruptCount.Value); }
+            catch (SuspendInvocationException) { return Suspend.Invocation; }
             catch (Exception exception) { return Fail.WithException(exception); }
         };
     }
@@ -81,7 +80,7 @@ internal static class InnerToAsyncResultAdapters
                 return result;
             }
             catch (PostponeInvocationException exception) { return Postpone.Until(exception.PostponeUntil); }
-            catch (SuspendInvocationException exception) { return Suspend.While(exception.ExpectedInterruptCount.Value); }
+            catch (SuspendInvocationException) { return Suspend.Invocation; }
             catch (Exception exception) { return Fail.WithException(exception); }
         };
     }
@@ -96,7 +95,7 @@ internal static class InnerToAsyncResultAdapters
                 return result.ToUnit();
             }
             catch (PostponeInvocationException exception) { return Postpone.Until(exception.PostponeUntil); }
-            catch (SuspendInvocationException exception) { return Suspend.While(exception.ExpectedInterruptCount.Value); }
+            catch (SuspendInvocationException) { return Suspend.Invocation; }
             catch (Exception exception) { return Fail.WithException(exception); }
         };
     }
@@ -113,7 +112,7 @@ internal static class InnerToAsyncResultAdapters
                 return Result.Succeed.ToUnit();
             } 
             catch (PostponeInvocationException exception) { return Postpone.Until(exception.PostponeUntil); }
-            catch (SuspendInvocationException exception) { return Suspend.While(exception.ExpectedInterruptCount.Value); }
+            catch (SuspendInvocationException) { return Suspend.Invocation; }
             catch (Exception exception) { return Fail.WithException(exception); }
         };
     }
@@ -129,7 +128,7 @@ internal static class InnerToAsyncResultAdapters
                 return Result.Succeed.ToUnit();    
             }
             catch (PostponeInvocationException exception) { return Postpone.Until(exception.PostponeUntil); }
-            catch (SuspendInvocationException exception) { return Suspend.While(exception.ExpectedInterruptCount.Value); }
+            catch (SuspendInvocationException) { return Suspend.Invocation; }
             catch (Exception exception) { return Fail.WithException(exception); }
         };
     }
@@ -145,7 +144,7 @@ internal static class InnerToAsyncResultAdapters
                 return result.ToUnit();
             }
             catch (PostponeInvocationException exception) { return Postpone.Until(exception.PostponeUntil); }
-            catch (SuspendInvocationException exception) { return Suspend.While(exception.ExpectedInterruptCount.Value); }
+            catch (SuspendInvocationException) { return Suspend.Invocation; }
             catch (Exception exception) { return Fail.WithException(exception); }
         };
     }
@@ -161,7 +160,7 @@ internal static class InnerToAsyncResultAdapters
                 return result.ToUnit();
             }
             catch (PostponeInvocationException exception) { return Postpone.Until(exception.PostponeUntil); }
-            catch (SuspendInvocationException exception) { return Suspend.While(exception.ExpectedInterruptCount.Value); }
+            catch (SuspendInvocationException) { return Suspend.Invocation; }
             catch (Exception exception) { return Fail.WithException(exception); }
         };
     }
@@ -178,7 +177,7 @@ internal static class InnerToAsyncResultAdapters
                 return Succeed.WithValue(result);
             }
             catch (PostponeInvocationException exception) { return Postpone.Until(exception.PostponeUntil); }
-            catch (SuspendInvocationException exception) { return Suspend.While(exception.ExpectedInterruptCount.Value); }
+            catch (SuspendInvocationException) { return Suspend.Invocation; }
             catch (Exception exception) { return Fail.WithException(exception); }
         };
     }
@@ -194,7 +193,7 @@ internal static class InnerToAsyncResultAdapters
                 return Succeed.WithValue(result);
             }
             catch (PostponeInvocationException exception) { return Postpone.Until(exception.PostponeUntil); }
-            catch (SuspendInvocationException exception) { return Suspend.While(exception.ExpectedInterruptCount.Value); }
+            catch (SuspendInvocationException) { return Suspend.Invocation; }
             catch (Exception exception) { return Fail.WithException(exception); }
         };
     }
@@ -210,7 +209,7 @@ internal static class InnerToAsyncResultAdapters
                 return result;
             }
             catch (PostponeInvocationException exception) { return Postpone.Until(exception.PostponeUntil); }
-            catch (SuspendInvocationException exception) { return Suspend.While(exception.ExpectedInterruptCount.Value); }
+            catch (SuspendInvocationException) { return Suspend.Invocation; }
             catch (Exception exception) { return Fail.WithException(exception); }
         };
     }
@@ -226,7 +225,7 @@ internal static class InnerToAsyncResultAdapters
                 return result;
             }
             catch (PostponeInvocationException exception) { return Postpone.Until(exception.PostponeUntil); }
-            catch (SuspendInvocationException exception) { return Suspend.While(exception.ExpectedInterruptCount.Value); }
+            catch (SuspendInvocationException) { return Suspend.Invocation; }
             catch (Exception exception) { return Fail.WithException(exception); }
         };
     }

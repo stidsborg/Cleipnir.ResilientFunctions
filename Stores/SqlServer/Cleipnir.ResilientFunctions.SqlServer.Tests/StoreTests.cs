@@ -99,7 +99,11 @@ public class StoreTests : ResilientFunctions.Tests.TestTemplates.StoreTests
     [TestMethod]
     public override Task RestartingExecutionShouldFailWhenExpectedEpochDoesNotMatch()
         => RestartingExecutionShouldFailWhenExpectedEpochDoesNotMatch(FunctionStoreFactory.Create());
-    
+
+    [TestMethod]
+    public override Task RestartingFunctionShouldSetInterruptedToFalse()
+        => RestartingFunctionShouldSetInterruptedToFalse(FunctionStoreFactory.Create());
+
     [TestMethod]
     public override Task MessagesCanBeFetchedAfterFunctionWithInitialMessagesHasBeenCreated()
         => MessagesCanBeFetchedAfterFunctionWithInitialMessagesHasBeenCreated(FunctionStoreFactory.Create());

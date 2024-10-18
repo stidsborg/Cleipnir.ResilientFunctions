@@ -68,7 +68,7 @@ public class MySqlFunctionStore : IFunctionStore
                 epoch INT NOT NULL,
                 status INT NOT NULL,
                 expires BIGINT NOT NULL,
-                interrupt_count BIGINT NOT NULL DEFAULT 0,                
+                interrupted BOOLEAN NOT NULL,                
                 param_json TEXT NULL,                                    
                 result_json TEXT NULL,
                 default_state TEXT NULL DEFAULT NULL,
@@ -164,7 +164,7 @@ public class MySqlFunctionStore : IFunctionStore
         await using var conn = await CreateOpenConnection(_connectionString);
         _restartExecutionSql ??= @$"
             UPDATE {_tablePrefix}
-            SET epoch = epoch + 1, status = {(int)Status.Executing}, expires = ?
+            SET epoch = epoch + 1, status = {(int)Status.Executing}, expires = ?, interrupted = FALSE
             WHERE type = ? AND instance = ? AND epoch = ?;
             SELECT               
                 param_json,            
@@ -174,7 +174,7 @@ public class MySqlFunctionStore : IFunctionStore
                 exception_json,
                 epoch, 
                 expires,
-                interrupt_count,
+                interrupted,
                 timestamp
             FROM {_tablePrefix}
             WHERE type = ? AND instance = ?;";
@@ -434,7 +434,6 @@ public class MySqlFunctionStore : IFunctionStore
     private string? _suspendFunctionSql;
     public async Task<bool> SuspendFunction(
         FlowId flowId, 
-        long expectedInterruptCount, 
         string? defaultState, 
         long timestamp,
         int expectedEpoch, 
@@ -448,7 +447,7 @@ public class MySqlFunctionStore : IFunctionStore
             WHERE type = ? AND 
                   instance = ? AND 
                   epoch = ? AND
-                  interrupt_count = ?;";
+                  NOT interrupted";
 
         await using var command = new MySqlCommand(_suspendFunctionSql, conn)
         {
@@ -458,8 +457,7 @@ public class MySqlFunctionStore : IFunctionStore
                 new() { Value = timestamp },
                 new() { Value = flowId.Type.Value },
                 new() { Value = flowId.Instance.Value },
-                new() { Value = expectedEpoch },
-                new() { Value = expectedInterruptCount }
+                new() { Value = expectedEpoch }
             }
         };
         
@@ -488,14 +486,16 @@ public class MySqlFunctionStore : IFunctionStore
         await command.ExecuteNonQueryAsync();
     }
 
-    public async Task<bool> Interrupt(FlowId flowId)
+    private string? _interruptSql;
+    private string? _interruptIfExecutingSql;
+    public async Task<bool> Interrupt(FlowId flowId, bool onlyIfExecuting)
     {
         await using var conn = await CreateOpenConnection(_connectionString);
         
-        var sql = $@"
+        _interruptSql ??= $@"
             UPDATE {_tablePrefix}
             SET 
-                interrupt_count = interrupt_count + 1,
+                interrupted = TRUE,
                 status = 
                     CASE 
                         WHEN status = {(int) Status.Suspended} THEN {(int) Status.Postponed}
@@ -507,8 +507,12 @@ public class MySqlFunctionStore : IFunctionStore
                         WHEN status = {(int) Status.Suspended} THEN 0
                         ELSE expires
                     END
-            WHERE type = ? AND instance = ?;";
+            WHERE type = ? AND instance = ?";
+        _interruptIfExecutingSql ??= _interruptSql + $" AND status = {(int) Status.Executing}";
 
+        var sql = onlyIfExecuting
+            ? _interruptIfExecutingSql
+            : _interruptSql;
         await using var command = new MySqlCommand(sql, conn)
         {
             Parameters =
@@ -556,36 +560,13 @@ public class MySqlFunctionStore : IFunctionStore
         return affectedRows == 1;
     }
 
-    private string? _incrementInterruptCountSql;
-    public async Task<bool> IncrementInterruptCount(FlowId flowId)
-    {
-        await using var conn = await CreateOpenConnection(_connectionString);
-        
-        _incrementInterruptCountSql ??= $@"
-            UPDATE {_tablePrefix}
-            SET interrupt_count = interrupt_count + 1
-            WHERE type = ? AND instance = ? AND status = {(int) Status.Executing};";
-
-        await using var command = new MySqlCommand(_incrementInterruptCountSql, conn)
-        {
-            Parameters =
-            {
-                new() { Value = flowId.Type.Value },
-                new() { Value = flowId.Instance.Value },
-            }
-        };
-        
-        var affectedRows = await command.ExecuteNonQueryAsync();
-        return affectedRows == 1;
-    }
-
     private string? _getInterruptCountSql;
-    public async Task<long?> GetInterruptCount(FlowId flowId)
+    public async Task<bool?> Interrupted(FlowId flowId)
     {
         await using var conn = await CreateOpenConnection(_connectionString);
         
         _getInterruptCountSql ??= $@"
-            SELECT interrupt_count 
+            SELECT interrupted 
             FROM {_tablePrefix}
             WHERE type = ? AND instance = ?;";
 
@@ -598,7 +579,7 @@ public class MySqlFunctionStore : IFunctionStore
             }
         };
         
-        return (long?) await command.ExecuteScalarAsync();
+        return (bool?) await command.ExecuteScalarAsync();
     }
 
     private string? _getFunctionStatusSql;
@@ -643,7 +624,7 @@ public class MySqlFunctionStore : IFunctionStore
                 exception_json,               
                 epoch, 
                 expires,
-                interrupt_count,
+                interrupted,
                 timestamp
             FROM {_tablePrefix}
             WHERE type = ? AND instance = ?;";
@@ -741,7 +722,7 @@ public class MySqlFunctionStore : IFunctionStore
         const int exceptionIndex = 4;
         const int epochIndex = 5;
         const int expiresIndex = 6;
-        const int interruptCountIndex = 7;
+        const int interruptedIndex = 7;
         const int timestampIndex = 8;
         
         while (await reader.ReadAsync())
@@ -764,7 +745,7 @@ public class MySqlFunctionStore : IFunctionStore
                 Result: hasResult ? reader.GetString(resultIndex) : null, 
                 storedException, Epoch: reader.GetInt32(epochIndex),
                 Expires: reader.GetInt64(expiresIndex),
-                InterruptCount: reader.GetInt64(interruptCountIndex),
+                Interrupted: reader.GetBoolean(interruptedIndex),
                 Timestamp: reader.GetInt64(timestampIndex)
             );
         }

@@ -47,7 +47,6 @@ public class TimeoutOperator<T> : IReactiveChain<T>
 
         public TimeSpan DefaultMessageSyncDelay => _innerSubscription.DefaultMessageSyncDelay;
         public TimeSpan DefaultMessageMaxWait => _innerSubscription.DefaultMessageMaxWait;
-        public InterruptCount InterruptCount => _innerSubscription.InterruptCount;
 
         public Subscription(
             IReactiveChain<T> inner,

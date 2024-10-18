@@ -113,44 +113,33 @@ public class CrashableFunctionStore : IFunctionStore
         ComplimentaryState complimentaryState
     ) => _crashed
         ? Task.FromException<bool>(new TimeoutException())
-        : _inner.FailFunction(flowId, storedException, defaultState, timestamp, expectedEpoch, complimentaryState); 
+        : _inner.FailFunction(flowId, storedException, defaultState, timestamp, expectedEpoch, complimentaryState);
 
-    public Task<bool> SuspendFunction(
-        FlowId flowId, 
-        long expectedInterruptCount, 
-        string? defaultState, 
-        long timestamp,
-        int expectedEpoch, 
-        ComplimentaryState complimentaryState
-    ) => _crashed
-        ? Task.FromException<bool>(new TimeoutException())
-        : _inner.SuspendFunction(flowId, expectedInterruptCount, defaultState, timestamp, expectedEpoch, complimentaryState);
+    public Task<bool> SuspendFunction(FlowId flowId, string? defaultState, long timestamp, int expectedEpoch, ComplimentaryState complimentaryState)
+        => _crashed ? Task.FromException<bool>(new TimeoutException())
+            : _inner.SuspendFunction(flowId, defaultState, timestamp, expectedEpoch, complimentaryState);
+    
 
     public Task SetDefaultState(FlowId flowId, string? stateJson)
         => _crashed
             ? Task.FromException(new TimeoutException())
             : _inner.SetDefaultState(flowId, stateJson);
 
-    public Task<bool> Interrupt(FlowId flowId) 
+    public Task<bool> Interrupt(FlowId flowId, bool onlyIfExecuting)
         => _crashed
             ? Task.FromException<bool>(new TimeoutException())
-            : _inner.Interrupt(flowId);
+            : _inner.Interrupt(flowId, onlyIfExecuting);
 
+    public Task<bool?> Interrupted(FlowId flowId)
+        => _crashed
+            ? Task.FromException<bool?>(new TimeoutException())
+            : _inner.Interrupted(flowId);
+    
     public Task<bool> SetParameters(FlowId flowId, string? storedParameter, string? storedResult, int expectedEpoch)
         => _crashed
             ? Task.FromException<bool>(new TimeoutException())
             : _inner.SetParameters(flowId, storedParameter, storedResult, expectedEpoch);
     
-    public Task<bool> IncrementInterruptCount(FlowId flowId)
-        => _crashed
-            ? Task.FromException<bool>(new TimeoutException())
-            : _inner.IncrementInterruptCount(flowId);
-
-    public Task<long?> GetInterruptCount(FlowId flowId)
-        => _crashed
-            ? Task.FromException<long?>(new TimeoutException())
-            : _inner.GetInterruptCount(flowId);
-
     public Task<StatusAndEpoch?> GetFunctionStatus(FlowId flowId)
         => _crashed
             ? Task.FromException<StatusAndEpoch?>(new TimeoutException())

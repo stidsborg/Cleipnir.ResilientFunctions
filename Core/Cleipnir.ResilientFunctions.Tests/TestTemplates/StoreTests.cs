@@ -634,7 +634,6 @@ public abstract class StoreTests
 
         await store.SuspendFunction(
             functionId,
-            expectedInterruptCount: 0,
             defaultState: null,
             timestamp: DateTime.UtcNow.Ticks,
             expectedEpoch: 0,
@@ -698,6 +697,33 @@ public abstract class StoreTests
             expectedEpoch: 0, 
             leaseExpiration: DateTime.UtcNow.Ticks
         ).ShouldBeNullAsync();
+    }
+    
+    public abstract Task RestartingFunctionShouldSetInterruptedToFalse();
+    public async Task RestartingFunctionShouldSetInterruptedToFalse(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var functionId = TestFlowId.Create();
+
+        var storedParameter = "hello world".ToJson();
+        await store.CreateFunction(
+            functionId,
+            storedParameter,
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks
+        ).ShouldBeTrueAsync();
+
+        await store.Interrupt(functionId, onlyIfExecuting: false).ShouldBeTrueAsync();
+        await store.Interrupted(functionId).ShouldBeAsync(true);
+
+        await store.RestartExecution(
+            functionId, 
+            expectedEpoch: 0, 
+            leaseExpiration: DateTime.UtcNow.Ticks
+        ).ShouldNotBeNullAsync();
+       
+        await store.Interrupted(functionId).ShouldBeAsync(false);
     }
     
     public abstract Task MessagesCanBeFetchedAfterFunctionWithInitialMessagesHasBeenCreated();
@@ -856,7 +882,6 @@ public abstract class StoreTests
 
         await store.SuspendFunction(
             functionId,
-            expectedInterruptCount: 0,
             defaultState: null,
             timestamp: DateTime.UtcNow.Ticks,
             expectedEpoch: 0,
@@ -887,11 +912,10 @@ public abstract class StoreTests
             new StoredMessage("some message".ToJson(), typeof(string).SimpleQualifiedName())
         );
 
-        await store.IncrementInterruptCount(functionId).ShouldBeTrueAsync();
+        await store.Interrupt(functionId, onlyIfExecuting: false);
         
         await store.SuspendFunction(
             functionId,
-            expectedInterruptCount: 0,
             defaultState: null,
             timestamp: DateTime.UtcNow.Ticks,
             expectedEpoch: 0,
@@ -922,11 +946,10 @@ public abstract class StoreTests
             new StoredMessage("hello world".ToJson(), typeof(string).SimpleQualifiedName())
         );
 
-        await store.IncrementInterruptCount(functionId).ShouldBeTrueAsync();
+        await store.Interrupt(functionId, onlyIfExecuting: false);
         
         var success = await store.SuspendFunction(
             functionId,
-            expectedInterruptCount: 0,
             defaultState: null,
             timestamp: DateTime.UtcNow.Ticks,
             expectedEpoch: 0,
@@ -957,16 +980,14 @@ public abstract class StoreTests
 
         var storedFunction = await store.GetFunction(functionId);
         storedFunction.ShouldNotBeNull();
-        storedFunction.InterruptCount.ShouldBe(0);
+        storedFunction.Interrupted.ShouldBeFalse();
         
-        await store.IncrementInterruptCount(functionId);
+        await store.Interrupt(functionId, onlyIfExecuting: true);
         
         storedFunction = await store.GetFunction(functionId);
         storedFunction.ShouldNotBeNull();
-        storedFunction.InterruptCount.ShouldBe(1);
+        storedFunction.Interrupted.ShouldBeTrue();
         storedFunction.Status.ShouldBe(Status.Executing);
-
-        await store.GetInterruptCount(functionId).ShouldBeAsync(1);
     }
     
     public abstract Task InterruptCountCannotBeIncrementedForNonExecutingFunction();
@@ -985,7 +1006,6 @@ public abstract class StoreTests
 
         await store.SuspendFunction(
             functionId,
-            expectedInterruptCount: 0,
             defaultState: null,
             timestamp: DateTime.UtcNow.Ticks,
             expectedEpoch: 0,
@@ -994,17 +1014,19 @@ public abstract class StoreTests
 
         var storedFunction = await store.GetFunction(functionId);
         storedFunction.ShouldNotBeNull();
-        storedFunction.InterruptCount.ShouldBe(0);
+        storedFunction.Interrupted.ShouldBeFalse();
         storedFunction.Status.ShouldBe(Status.Suspended);
         
-        await store.IncrementInterruptCount(functionId).ShouldBeFalseAsync();
-        
+        await store.Interrupt(functionId, onlyIfExecuting: true).ShouldBeFalseAsync();
+
         storedFunction = await store.GetFunction(functionId);
         storedFunction.ShouldNotBeNull();
-        storedFunction.InterruptCount.ShouldBe(0);
+        storedFunction.Interrupted.ShouldBeFalse();
         storedFunction.Status.ShouldBe(Status.Suspended);
 
-        await store.GetInterruptCount(functionId).ShouldBeAsync(0);
+        var interrupted = await store.Interrupted(functionId);
+        interrupted.HasValue.ShouldBeTrue();
+        interrupted!.Value.ShouldBeFalse();
     }
     
     public abstract Task InterruptCountForNonExistingFunctionIsNull();
@@ -1012,7 +1034,7 @@ public abstract class StoreTests
     {
         var functionId = TestFlowId.Create();
         var store = await storeTask;
-        (await store.GetInterruptCount(functionId)).ShouldBeNull();
+        (await store.Interrupted(functionId)).ShouldBeNull();
     }
     
     public abstract Task DefaultStateCanSetAndFetchedAfterwards();
@@ -1080,7 +1102,6 @@ public abstract class StoreTests
 
         await store.SuspendFunction(
             functionId,
-            expectedInterruptCount: 0,
             defaultState: "some default state",
             timestamp: 0,
             expectedEpoch: 0,

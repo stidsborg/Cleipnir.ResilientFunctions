@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime;
-using Cleipnir.ResilientFunctions.Domain;
 
 namespace Cleipnir.ResilientFunctions.Reactive.Operators;
 
@@ -37,7 +36,6 @@ public class BufferOperator<T> : IReactiveChain<List<T>>
 
         public TimeSpan DefaultMessageSyncDelay => _subscription.DefaultMessageSyncDelay;
         public TimeSpan DefaultMessageMaxWait => _subscription.DefaultMessageMaxWait;
-        public InterruptCount InterruptCount => _subscription.InterruptCount;
 
         public Subscription(
             IReactiveChain<T> inner,

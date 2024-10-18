@@ -88,27 +88,22 @@ public class LeaseUpdaterTestFunctionStore : IFunctionStore
 
     public Task<bool> SuspendFunction(
         FlowId flowId,
-        long expectedInterruptCount,
         string? defaultState,
         long timestamp,
         int expectedEpoch,
         ComplimentaryState complimentaryState
-    ) => _inner.SuspendFunction(flowId, expectedInterruptCount, defaultState, timestamp, expectedEpoch, complimentaryState);
+    ) => _inner.SuspendFunction(flowId, defaultState, timestamp, expectedEpoch, complimentaryState);
 
     public Task SetDefaultState(FlowId flowId, string? stateJson)
         => _inner.SetDefaultState(flowId, stateJson);
 
-    public Task<bool> Interrupt(FlowId flowId)
-        => _inner.Interrupt(flowId); 
+    public Task<bool> Interrupt(FlowId flowId, bool onlyIfExecuting)
+        => _inner.Interrupt(flowId, onlyIfExecuting);
+
+    public Task<bool?> Interrupted(FlowId flowId) => _inner.Interrupted(flowId);
 
     public Task<bool> SetParameters(FlowId flowId, string? storedParameter, string? storedResult, int expectedEpoch)
         => _inner.SetParameters(flowId, storedParameter, storedResult, expectedEpoch);
-    
-    public Task<bool> IncrementInterruptCount(FlowId flowId)
-        => _inner.IncrementInterruptCount(flowId);
-
-    public Task<long?> GetInterruptCount(FlowId flowId)
-        => _inner.GetInterruptCount(flowId);
 
     public Task<StatusAndEpoch?> GetFunctionStatus(FlowId flowId)
         => _inner.GetFunctionStatus(flowId);

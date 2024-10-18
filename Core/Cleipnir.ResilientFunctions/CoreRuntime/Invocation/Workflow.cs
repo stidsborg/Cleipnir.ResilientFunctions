@@ -15,9 +15,8 @@ public class Workflow
     public States States { get; }
     public Utilities Utilities { get; }
     public Correlations Correlations { get; }
-    public InterruptCount InterruptCount { get; }
     
-    public Workflow(FlowId flowId, Messages messages, Effect effect, States states, Utilities utilities, Correlations correlations, InterruptCount interruptCount)
+    public Workflow(FlowId flowId, Messages messages, Effect effect, States states, Utilities utilities, Correlations correlations)
     {
         FlowId = flowId;
         Utilities = utilities;
@@ -25,7 +24,6 @@ public class Workflow
         Effect = effect;
         States = states;
         Correlations = correlations;
-        InterruptCount = interruptCount;
     }
 
     public void Deconstruct(out Effect effect, out Messages messages, out States states)
