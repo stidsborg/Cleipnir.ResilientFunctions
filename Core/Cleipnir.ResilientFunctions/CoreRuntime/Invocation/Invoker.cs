@@ -187,7 +187,7 @@ public class Invoker<TParam, TReturn>
                 isWorkflowRunning: () => !isWorkflowRunningDisposable.Disposed
             );
             
-            var (effect, states) = _invocationHelper.CreateEffectAndStates(flowId, defaultState: null, anyEffects: false);
+            var (effect, states) = _invocationHelper.CreateEffectAndStates(flowId, anyEffects: false);
             var correlations = _invocationHelper.CreateCorrelations(flowId);
             var workflow = new Workflow(flowId, messages, effect, states, _utilities, correlations);
 
@@ -223,7 +223,7 @@ public class Invoker<TParam, TReturn>
         var disposables = new List<IDisposable>(capacity: 3);
         try
         {
-            var (param, epoch, defaultState, runningFunction) = 
+            var (param, epoch, runningFunction) = 
                 await _invocationHelper.PrepareForReInvocation(flowId, restartedFunction);
             disposables.Add(runningFunction);
             disposables.Add(_invocationHelper.StartLeaseUpdater(flowId, epoch));
@@ -236,7 +236,7 @@ public class Invoker<TParam, TReturn>
                 isWorkflowRunning: () => !isWorkflowRunningDisposable.Disposed
             );
 
-            var (effect, states) = _invocationHelper.CreateEffectAndStates(flowId, defaultState, anyEffects: true);
+            var (effect, states) = _invocationHelper.CreateEffectAndStates(flowId, anyEffects: true);
             var correlations = _invocationHelper.CreateCorrelations(flowId);
           
             var workflow = new Workflow(
@@ -272,11 +272,11 @@ public class Invoker<TParam, TReturn>
     );
 
     private async Task PersistFailure(FlowId flowId, Exception exception, TParam param, Workflow workflow, int expectedEpoch = 0)
-        => await _invocationHelper.PersistFailure(flowId, exception, param, workflow.States.SerializeDefaultState(), expectedEpoch);
+        => await _invocationHelper.PersistFailure(flowId, exception, param, expectedEpoch);
 
     private async Task PersistResultAndEnsureSuccess(FlowId flowId, Result<TReturn> result, TParam param, Workflow workflow, int expectedEpoch = 0, bool allowPostponedOrSuspended = false)
     {
-        var outcome = await _invocationHelper.PersistResult(flowId, result, param, workflow.States.SerializeDefaultState(), expectedEpoch);
+        var outcome = await _invocationHelper.PersistResult(flowId, result, param, expectedEpoch);
         switch (outcome)
         {
             case PersistResultOutcome.Failed:

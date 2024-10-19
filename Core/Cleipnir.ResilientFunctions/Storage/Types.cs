@@ -5,7 +5,6 @@ namespace Cleipnir.ResilientFunctions.Storage;
 public record StoredFlow(
     FlowId FlowId,
     string? Parameter,
-    string? DefaultState,
     Status Status,
     string? Result,
     StoredException? Exception,

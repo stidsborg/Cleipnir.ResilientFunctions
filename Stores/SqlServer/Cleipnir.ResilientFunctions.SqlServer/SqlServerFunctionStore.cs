@@ -78,7 +78,6 @@ public class SqlServerFunctionStore : IFunctionStore
                 Interrupted BIT NOT NULL DEFAULT 0,
                 ParamJson NVARCHAR(MAX) NULL,                                        
                 ResultJson NVARCHAR(MAX) NULL,
-                DefaultStateJson NVARCHAR(MAX) NULL,
                 ExceptionJson NVARCHAR(MAX) NULL,                                                                        
                 Timestamp BIGINT NOT NULL,
                 PRIMARY KEY (FlowType, flowInstance)
@@ -231,7 +230,6 @@ public class SqlServerFunctionStore : IFunctionStore
             SELECT ParamJson,                
                    Status,
                    ResultJson, 
-                   DefaultStateJson,
                    ExceptionJson,                   
                    Expires,
                    Epoch,
@@ -379,7 +377,6 @@ public class SqlServerFunctionStore : IFunctionStore
     public async Task<bool> SucceedFunction(
         FlowId flowId, 
         string? result, 
-        string? defaultState, 
         long timestamp,
         int expectedEpoch, 
         ComplimentaryState complimentaryState)
@@ -388,14 +385,13 @@ public class SqlServerFunctionStore : IFunctionStore
         
         _succeedFunctionSql ??= @$"
             UPDATE {_tableName}
-            SET Status = {(int) Status.Succeeded}, ResultJson = @ResultJson, DefaultStateJson = @DefaultStateJson, Timestamp = @Timestamp, Epoch = @ExpectedEpoch
+            SET Status = {(int) Status.Succeeded}, ResultJson = @ResultJson, Timestamp = @Timestamp, Epoch = @ExpectedEpoch
             WHERE FlowType = @FlowType
             AND flowInstance = @flowInstance
             AND Epoch = @ExpectedEpoch";
 
         await using var command = new SqlCommand(_succeedFunctionSql, conn);
         command.Parameters.AddWithValue("@ResultJson", result == null ? DBNull.Value : result);
-        command.Parameters.AddWithValue("@DefaultStateJson", defaultState ?? (object) DBNull.Value);
         command.Parameters.AddWithValue("@Timestamp", timestamp);
         command.Parameters.AddWithValue("@flowInstance", flowId.Instance.Value);
         command.Parameters.AddWithValue("@FlowType", flowId.Type.Value);
@@ -409,7 +405,6 @@ public class SqlServerFunctionStore : IFunctionStore
     public async Task<bool> PostponeFunction(
         FlowId flowId, 
         long postponeUntil, 
-        string? defaultState, 
         long timestamp,
         int expectedEpoch, 
         ComplimentaryState complimentaryState)
@@ -418,14 +413,13 @@ public class SqlServerFunctionStore : IFunctionStore
         
         _postponedFunctionSql ??= @$"
             UPDATE {_tableName}
-            SET Status = {(int) Status.Postponed}, Expires = @PostponedUntil, DefaultStateJson = @DefaultState, Timestamp = @Timestamp, Epoch = @ExpectedEpoch
+            SET Status = {(int) Status.Postponed}, Expires = @PostponedUntil, Timestamp = @Timestamp, Epoch = @ExpectedEpoch
             WHERE FlowType = @FlowType
             AND flowInstance = @flowInstance
             AND Epoch = @ExpectedEpoch";
 
         await using var command = new SqlCommand(_postponedFunctionSql, conn);
         command.Parameters.AddWithValue("@PostponedUntil", postponeUntil);
-        command.Parameters.AddWithValue("@DefaultState", defaultState ?? (object) DBNull.Value);
         command.Parameters.AddWithValue("@Timestamp", timestamp);
         command.Parameters.AddWithValue("@flowInstance", flowId.Instance.Value);
         command.Parameters.AddWithValue("@FlowType", flowId.Type.Value);
@@ -439,7 +433,6 @@ public class SqlServerFunctionStore : IFunctionStore
     public async Task<bool> FailFunction(
         FlowId flowId, 
         StoredException storedException, 
-        string? defaultState, 
         long timestamp,
         int expectedEpoch, 
         ComplimentaryState complimentaryState)
@@ -449,7 +442,7 @@ public class SqlServerFunctionStore : IFunctionStore
         
         _failFunctionSql ??= @$"
             UPDATE {_tableName}
-            SET Status = {(int) Status.Failed}, ExceptionJson = @ExceptionJson, DefaultStateJson = @DefaultStateJson, Timestamp = @timestamp, Epoch = @ExpectedEpoch
+            SET Status = {(int) Status.Failed}, ExceptionJson = @ExceptionJson, Timestamp = @timestamp, Epoch = @ExpectedEpoch
             WHERE FlowType = @FlowType
             AND flowInstance = @flowInstance
             AND Epoch = @ExpectedEpoch";
@@ -457,7 +450,6 @@ public class SqlServerFunctionStore : IFunctionStore
         await using var command = new SqlCommand(_failFunctionSql, conn);
         command.Parameters.AddWithValue("@ExceptionJson", JsonSerializer.Serialize(storedException));
         command.Parameters.AddWithValue("@Timestamp", timestamp);
-        command.Parameters.AddWithValue("@DefaultStateJson", defaultState ?? (object) DBNull.Value);
         command.Parameters.AddWithValue("@flowInstance", flowId.Instance.Value);
         command.Parameters.AddWithValue("@FlowType", flowId.Type.Value);
         command.Parameters.AddWithValue("@ExpectedEpoch", expectedEpoch);
@@ -469,7 +461,6 @@ public class SqlServerFunctionStore : IFunctionStore
     private string? _suspendFunctionSql;
     public async Task<bool> SuspendFunction(
         FlowId flowId, 
-        string? defaultState, 
         long timestamp,
         int expectedEpoch, 
         ComplimentaryState complimentaryState)
@@ -478,14 +469,13 @@ public class SqlServerFunctionStore : IFunctionStore
 
         _suspendFunctionSql ??= @$"
                 UPDATE {_tableName}
-                SET Status = {(int)Status.Suspended}, DefaultStateJson = @DefaultStateJson, Timestamp = @Timestamp
+                SET Status = {(int)Status.Suspended}, Timestamp = @Timestamp
                 WHERE FlowType = @FlowType AND 
                       flowInstance = @flowInstance AND                       
                       Epoch = @ExpectedEpoch AND
                       Interrupted = 0;";
 
         await using var command = new SqlCommand(_suspendFunctionSql, conn);
-        command.Parameters.AddWithValue("@DefaultStateJson", defaultState ?? (object) DBNull.Value);
         command.Parameters.AddWithValue("@Timestamp", timestamp);
         command.Parameters.AddWithValue("@FlowType", flowId.Type.Value);
         command.Parameters.AddWithValue("@flowInstance", flowId.Instance.Value);
@@ -494,25 +484,7 @@ public class SqlServerFunctionStore : IFunctionStore
         var affectedRows = await command.ExecuteNonQueryAsync();
         return affectedRows == 1;
     }
-
-    private string? _setDefaultStateSql;
-    public async Task SetDefaultState(FlowId flowId, string? stateJson)
-    {
-        await using var conn = await _connFunc();
-
-        _setDefaultStateSql ??= @$"
-                UPDATE {_tableName}
-                SET DefaultStateJson = @DefaultStateJson
-                WHERE FlowType = @FlowType AND flowInstance = @flowInstance";
-
-        await using var command = new SqlCommand(_setDefaultStateSql, conn);
-        command.Parameters.AddWithValue("@DefaultStateJson", stateJson ?? (object) DBNull.Value);
-        command.Parameters.AddWithValue("@FlowType", flowId.Type.Value);
-        command.Parameters.AddWithValue("@flowInstance", flowId.Instance.Value);
-
-        await command.ExecuteNonQueryAsync();
-    }
-
+    
     private string? _interruptSql;
     private string? _interruptIfExecutingSql;
     public async Task<bool> Interrupt(FlowId flowId, bool onlyIfExecuting)
@@ -625,7 +597,6 @@ public class SqlServerFunctionStore : IFunctionStore
             SELECT  ParamJson, 
                     Status,
                     ResultJson, 
-                    DefaultStateJson,
                     ExceptionJson,
                     Expires,
                     Epoch, 
@@ -718,20 +689,18 @@ public class SqlServerFunctionStore : IFunctionStore
                 var parameter = reader.IsDBNull(0) ? null : reader.GetString(0);
                 var status = (Status) reader.GetInt32(1);
                 var result = reader.IsDBNull(2) ? null : reader.GetString(2);
-                var defaultStateJson = reader.IsDBNull(3) ? null : reader.GetString(3);
-                var exceptionJson = reader.IsDBNull(4) ? null : reader.GetString(4);
+                var exceptionJson = reader.IsDBNull(3) ? null : reader.GetString(3);
                 var storedException = exceptionJson == null
                     ? null
                     : JsonSerializer.Deserialize<StoredException>(exceptionJson);
-                var expires = reader.GetInt64(5);
-                var epoch = reader.GetInt32(6);
-                var interrupted = reader.GetBoolean(7);
-                var timestamp = reader.GetInt64(8);
+                var expires = reader.GetInt64(4);
+                var epoch = reader.GetInt32(5);
+                var interrupted = reader.GetBoolean(6);
+                var timestamp = reader.GetInt64(7);
 
                 return new StoredFlow(
                     flowId,
                     parameter,
-                    defaultStateJson,
                     status,
                     result,
                     storedException,

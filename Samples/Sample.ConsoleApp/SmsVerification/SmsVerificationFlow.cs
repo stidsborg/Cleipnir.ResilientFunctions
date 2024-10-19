@@ -12,7 +12,7 @@ public class SmsVerificationFlow
     {
         var messages = workflow.Messages;
         var effect = workflow.Effect;
-        var state = workflow.States.CreateOrGet<FlowState>();
+        var state = await workflow.States.CreateOrGetDefault<FlowState>();
         
         for (var i = 0; i < 5; i++)
         {

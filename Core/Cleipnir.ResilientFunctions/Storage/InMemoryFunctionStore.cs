@@ -83,7 +83,6 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
                     _states[functionId] = new InnerState
                     {
                         FlowId = functionId,
-                        DefaultState = null,
                         Epoch = 0,
                         Exception = null,
                         Expires = 0,
@@ -190,7 +189,6 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
     public Task<bool> SucceedFunction(
         FlowId flowId, 
         string? result, 
-        string? defaultState, 
         long timestamp,
         int expectedEpoch, 
         ComplimentaryState complimentaryState)
@@ -205,7 +203,6 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
             state.Status = Status.Succeeded;
             state.Result = result;
             state.Timestamp = timestamp;
-            state.DefaultState = defaultState;
 
             return true.ToTask();
         }
@@ -214,7 +211,6 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
     public Task<bool> PostponeFunction(
         FlowId flowId, 
         long postponeUntil, 
-        string? defaultState, 
         long timestamp,
         int expectedEpoch, 
         ComplimentaryState complimentaryState)
@@ -229,7 +225,6 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
             state.Status = Status.Postponed;
             state.Expires = postponeUntil;
             state.Timestamp = timestamp;
-            state.DefaultState = defaultState;
             
             return true.ToTask();
         }
@@ -238,7 +233,6 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
     public Task<bool> FailFunction(
         FlowId flowId, 
         StoredException storedException, 
-        string? defaultState, 
         long timestamp,
         int expectedEpoch, 
         ComplimentaryState complimentaryState)
@@ -253,7 +247,6 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
             state.Status = Status.Failed;
             state.Exception = storedException;
             state.Timestamp = timestamp;
-            state.DefaultState = defaultState;
             
             return true.ToTask();
         }
@@ -261,7 +254,6 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
 
     public Task<bool> SuspendFunction(
         FlowId flowId, 
-        string? defaultState, 
         long timestamp,
         int expectedEpoch, 
         ComplimentaryState complimentaryState)
@@ -280,7 +272,6 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
                 
             state.Status = Status.Suspended;
             state.Timestamp = timestamp;
-            state.DefaultState = defaultState;
             
             return true.ToTask();
         }
@@ -305,15 +296,6 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
 
             return true.ToTask();
         }
-    }
-
-    public Task SetDefaultState(FlowId flowId, string? stateJson)
-    {
-        lock (_sync)
-            if (_states.TryGetValue(flowId, out var state))
-                state.DefaultState = stateJson;
-
-        return Task.CompletedTask;
     }
 
     public Task<bool> Interrupt(FlowId flowId, bool onlyIfExecuting)
@@ -372,7 +354,6 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
             return new StoredFlow(
                     flowId,
                     state.Param,
-                    state.DefaultState,
                     state.Status,
                     state.Result,
                     state.Exception,
@@ -437,7 +418,6 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
     {
         public FlowId FlowId { get; init; } = null!;
         public string? Param { get; set; }
-        public string? DefaultState { get; set; }
         public Status Status { get; set; }
         public string? Result { get; set; }
         public StoredException? Exception { get; set; }

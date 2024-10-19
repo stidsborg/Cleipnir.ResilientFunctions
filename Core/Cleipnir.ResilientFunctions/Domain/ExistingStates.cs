@@ -13,18 +13,13 @@ public class ExistingStates
     private readonly IFunctionStore _functionStore;
     private readonly IEffectsStore _effectsStore;
     private readonly ISerializer _serializer;
-    
-    private string? _defaultStateJson;
-    private FlowState? _defaultState;
 
-    public ExistingStates(FlowId flowId, string? defaultState, IFunctionStore functionStore, ISerializer serializer)
+    public ExistingStates(FlowId flowId, IFunctionStore functionStore, ISerializer serializer)
     {
         _flowId = flowId;
         _functionStore = functionStore;
         _effectsStore = functionStore.EffectsStore;
         _serializer = serializer;
-
-        _defaultStateJson = defaultState;
     }
 
     private async Task<Dictionary<StateId, StoredState>> GetStoredStates()
@@ -40,20 +35,10 @@ public class ExistingStates
     
     public Task<IEnumerable<StateId>> StateIds => GetStoredStates().ContinueWith(t => t.Result.Keys.AsEnumerable());
     public Task<bool> HasState(string stateId) => GetStoredStates().ContinueWith(t => t.Result.ContainsKey(stateId));
-    public bool HasDefaultState() => _defaultStateJson != null;
+    public Task<bool> HasDefaultState() => HasState(stateId: "");
 
-    public TState Get<TState>() where TState : FlowState, new()
-    {
-        if (_defaultState != null)
-            return (TState) _defaultState;
-        if (_defaultStateJson != null)
-            return (TState) (_defaultState = _serializer.DeserializeState<TState>(_defaultStateJson));
-
-        var state = new TState();
-        state.Initialize(() => _functionStore.SetDefaultState(_flowId, _serializer.SerializeState(state)));
-        _defaultState = state;
-        return state;
-    }
+    public Task<TState> Get<TState>() where TState : FlowState, new()
+        => Get<TState>(stateId: "");
     
     public async Task<TState> Get<TState>(string stateId) where TState : FlowState, new()
     {
@@ -67,12 +52,7 @@ public class ExistingStates
         return state;
     }
 
-    public async Task RemoveDefault()
-    {
-        await _functionStore.SetDefaultState(_flowId, stateJson: null);
-        _defaultState = null;
-        _defaultStateJson = null;
-    }
+    public Task RemoveDefault() => Remove(stateId: ""); 
     public async Task Remove(string stateId)
     {
         var storedStates = await GetStoredStates();
@@ -80,11 +60,8 @@ public class ExistingStates
         storedStates.Remove(stateId);
     }
 
-    public async Task Set<TState>(TState state) where TState : FlowState, new()
-    {
-        await _functionStore.SetDefaultState(_flowId, _serializer.SerializeState(state));
-        _defaultState = state;
-    }
+    public Task Set<TState>(TState state) where TState : FlowState, new()
+        => Set(stateId: "", state);
     
     public async Task Set<TState>(string stateId, TState state) where TState : FlowState, new()
     {

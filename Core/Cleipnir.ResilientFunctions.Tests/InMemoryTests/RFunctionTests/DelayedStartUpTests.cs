@@ -82,7 +82,6 @@ public class DelayedStartUpTests
         await store.PostponeFunction(
             functionId,
             postponeUntil: 0,
-            defaultState: null,
             timestamp: DateTime.UtcNow.Ticks,
             expectedEpoch: 0,
             complimentaryState: new ComplimentaryState(storedParameter.ToFunc(), LeaseLength: 0)
@@ -120,7 +119,6 @@ public class DelayedStartUpTests
         await store.PostponeFunction(
             functionId,
             postponeUntil: 0,
-            defaultState: null,
             timestamp: DateTime.UtcNow.Ticks,
             expectedEpoch: 0,
             new ComplimentaryState(storedParameter.ToFunc(), LeaseLength: 0)

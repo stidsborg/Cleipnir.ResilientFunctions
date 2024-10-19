@@ -29,7 +29,7 @@ public abstract class StateTests
             flowType,
             async Task<string> (string param, Workflow workflow) =>
             {
-                var state = workflow.States.CreateOrGet<State>();
+                var state = await workflow.States.CreateOrGetDefault<State>();
                 state.Value = "SomeValue";
                 await state.Save();
                 
@@ -52,6 +52,36 @@ public abstract class StateTests
         state = await funcRegistration.GetState<State>(flowInstance);
         state.ShouldNotBeNull();
         state.Value.ShouldBe("SomeValue");
+    }
+    
+    public abstract Task ExistingDefaultStateCanBeDeleted();
+    protected async Task ExistingDefaultStateCanBeDeleted(Task<IFunctionStore> storeTask)
+    {
+        var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
+        
+        var store = await storeTask;
+        var flowId = TestFlowId.Create();
+        var (flowType, flowInstance) = flowId;
+        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
+
+        var funcRegistration = functionsRegistry.RegisterAction(
+            flowType,
+            async Task(string param, Workflow workflow) =>
+            {
+                var state = await workflow.States.CreateOrGetDefault<State>();
+                state.Value = "SomeValue";
+                await state.Save();
+
+                await workflow.States.RemoveDefault();
+            }
+        );
+
+        await funcRegistration.Invoke(flowInstance.Value, param: "");
+
+        var controlPanel = await funcRegistration.ControlPanel(flowId.Instance);
+        controlPanel.ShouldNotBeNull();
+
+        await controlPanel.States.HasState("id").ShouldBeFalseAsync();
     }
     
     public abstract Task ExistingStateCanBeDeleted();
@@ -98,7 +128,7 @@ public abstract class StateTests
             flowType,
             async Task (string param, Workflow workflow) =>
             {
-                var state = workflow.States.CreateOrGet<State>();
+                var state = await workflow.States.CreateOrGetDefault<State>();
                 state.Value = "SomeValue";
                 await state.Save();
             }

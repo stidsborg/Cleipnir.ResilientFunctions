@@ -77,7 +77,6 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 param_json TEXT NULL,            
                 status INT NOT NULL DEFAULT {(int) Status.Executing},
                 result_json TEXT NULL,
-                default_state TEXT NULL,
                 exception_json TEXT NULL,                                
                 timestamp BIGINT NOT NULL,
                 PRIMARY KEY (type, instance)
@@ -190,7 +189,6 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 param_json, 
                 status,
                 result_json, 
-                default_state,
                 exception_json,
                 expires,
                 epoch, 
@@ -343,7 +341,6 @@ public class PostgreSqlFunctionStore : IFunctionStore
     public async Task<bool> SucceedFunction(
         FlowId flowId, 
         string? result, 
-        string? defaultState, 
         long timestamp,
         int expectedEpoch, 
         ComplimentaryState complimentaryState)
@@ -351,17 +348,16 @@ public class PostgreSqlFunctionStore : IFunctionStore
         await using var conn = await CreateConnection();
         _succeedFunctionSql ??= $@"
             UPDATE {_tableName}
-            SET status = {(int) Status.Succeeded}, result_json = $1, default_state = $2, timestamp = $3
+            SET status = {(int) Status.Succeeded}, result_json = $1, timestamp = $2
             WHERE 
-                type = $4 AND 
-                instance = $5 AND 
-                epoch = $6";
+                type = $3 AND 
+                instance = $4 AND 
+                epoch = $5";
         await using var command = new NpgsqlCommand(_succeedFunctionSql, conn)
         {
             Parameters =
             {
                 new() { Value = result == null ? DBNull.Value : result },
-                new() { Value = defaultState ?? (object) DBNull.Value },
                 new() { Value = timestamp },
                 new() { Value = flowId.Type.Value },
                 new() { Value = flowId.Instance.Value },
@@ -377,7 +373,6 @@ public class PostgreSqlFunctionStore : IFunctionStore
     public async Task<bool> PostponeFunction(
         FlowId flowId, 
         long postponeUntil, 
-        string? defaultState, 
         long timestamp,
         int expectedEpoch, 
         ComplimentaryState complimentaryState)
@@ -385,17 +380,16 @@ public class PostgreSqlFunctionStore : IFunctionStore
         await using var conn = await CreateConnection();
         _postponeFunctionSql ??= $@"
             UPDATE {_tableName}
-            SET status = {(int) Status.Postponed}, expires = $1, default_state = $2, timestamp = $3
+            SET status = {(int) Status.Postponed}, expires = $1, timestamp = $2
             WHERE 
-                type = $4 AND 
-                instance = $5 AND 
-                epoch = $6";
+                type = $3 AND 
+                instance = $4 AND 
+                epoch = $5";
         await using var command = new NpgsqlCommand(_postponeFunctionSql, conn)
         {
             Parameters =
             {
                 new() { Value = postponeUntil },
-                new() { Value = defaultState ?? (object) DBNull.Value },
                 new() { Value = timestamp },
                 new() { Value = flowId.Type.Value },
                 new() { Value = flowId.Instance.Value },
@@ -411,7 +405,6 @@ public class PostgreSqlFunctionStore : IFunctionStore
     public async Task<bool> FailFunction(
         FlowId flowId, 
         StoredException storedException, 
-        string? defaultState, 
         long timestamp,
         int expectedEpoch, 
         ComplimentaryState complimentaryState)
@@ -419,17 +412,16 @@ public class PostgreSqlFunctionStore : IFunctionStore
         await using var conn = await CreateConnection();
         _failFunctionSql ??= $@"
             UPDATE {_tableName}
-            SET status = {(int) Status.Failed}, exception_json = $1, default_state = $2, timestamp = $3
+            SET status = {(int) Status.Failed}, exception_json = $1, timestamp = $2
             WHERE 
-                type = $4 AND 
-                instance = $5 AND 
-                epoch = $6";
+                type = $3 AND 
+                instance = $4 AND 
+                epoch = $5";
         await using var command = new NpgsqlCommand(_failFunctionSql, conn)
         {
             Parameters =
             {
                 new() { Value = JsonSerializer.Serialize(storedException) },
-                new() { Value = defaultState ?? (object) DBNull.Value },
                 new() { Value = timestamp },
                 new() { Value = flowId.Type.Value },
                 new() { Value = flowId.Instance.Value },
@@ -444,7 +436,6 @@ public class PostgreSqlFunctionStore : IFunctionStore
     private string? _suspendFunctionSql;
     public async Task<bool> SuspendFunction(
         FlowId flowId, 
-        string? defaultState, 
         long timestamp,
         int expectedEpoch, 
         ComplimentaryState complimentaryState)
@@ -453,16 +444,15 @@ public class PostgreSqlFunctionStore : IFunctionStore
 
         _suspendFunctionSql ??= $@"
             UPDATE {_tableName}
-            SET status = {(int)Status.Suspended}, default_state = $1, timestamp = $2
-            WHERE type = $3 AND 
-                  instance = $4 AND 
-                  epoch = $5 AND
+            SET status = {(int)Status.Suspended}, timestamp = $1
+            WHERE type = $2 AND 
+                  instance = $3 AND 
+                  epoch = $4 AND
                   NOT interrupted;";
         await using var command = new NpgsqlCommand(_suspendFunctionSql, conn)
         {
             Parameters =
             {
-                new() { Value = defaultState ?? (object) DBNull.Value },
                 new() { Value = timestamp },
                 new() { Value = flowId.Type.Value },
                 new() { Value = flowId.Instance.Value },
@@ -471,27 +461,6 @@ public class PostgreSqlFunctionStore : IFunctionStore
         };
         var affectedRows = await command.ExecuteNonQueryAsync();
         return affectedRows == 1;
-    }
-
-    private string? _setDefaultStateSql;
-    public async Task SetDefaultState(FlowId flowId, string? stateJson)
-    {
-        await using var conn = await CreateConnection();
-        _setDefaultStateSql ??= $@"
-            UPDATE {_tableName}
-            SET default_state = $1
-            WHERE type = $2 AND instance = $3";
-        await using var command = new NpgsqlCommand(_setDefaultStateSql, conn)
-        {
-            Parameters =
-            {
-                new() {Value = stateJson ?? (object) DBNull.Value},
-                new() {Value = flowId.Type.Value},
-                new() {Value = flowId.Instance.Value}
-            }
-        };
-
-        await command.ExecuteNonQueryAsync();
     }
 
     private string? _setParametersSql;
@@ -623,7 +592,6 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 param_json,             
                 status,
                 result_json,         
-                default_state,
                 exception_json,
                 expires,
                 epoch, 
@@ -726,31 +694,28 @@ public class PostgreSqlFunctionStore : IFunctionStore
            0  param_json,         
            1  status,
            2  result_json,         
-           3  default_state
-           4  exception_json,
-           5  expires,
-           6  epoch,         
-           7 interrupted,
-           8 timestamp
+           3  exception_json,
+           4  expires,
+           5  epoch,         
+           6 interrupted,
+           7 timestamp
          */
         while (await reader.ReadAsync())
         {
             var hasParameter = !await reader.IsDBNullAsync(0);
             var hasResult = !await reader.IsDBNullAsync(2);
-            var hasDefaultState = !await reader.IsDBNullAsync(3);
-            var hasException = !await reader.IsDBNullAsync(4);
+            var hasException = !await reader.IsDBNullAsync(3);
             
             return new StoredFlow(
                 flowId,
                 hasParameter ? reader.GetString(0) : null,
                 Status: (Status) reader.GetInt32(1),
                 Result: hasResult ? reader.GetString(2) : null, 
-                DefaultState: hasDefaultState ? reader.GetString(3) : null,
-                Exception: !hasException ? null : JsonSerializer.Deserialize<StoredException>(reader.GetString(4)),
-                Expires: reader.GetInt64(5),
-                Epoch: reader.GetInt32(6),
-                Interrupted: reader.GetBoolean(7),
-                Timestamp: reader.GetInt64(8)
+                Exception: !hasException ? null : JsonSerializer.Deserialize<StoredException>(reader.GetString(3)),
+                Expires: reader.GetInt64(4),
+                Epoch: reader.GetInt32(5),
+                Interrupted: reader.GetBoolean(6),
+                Timestamp: reader.GetInt64(7)
             );
         }
 

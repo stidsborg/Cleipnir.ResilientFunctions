@@ -71,7 +71,6 @@ public class MySqlFunctionStore : IFunctionStore
                 interrupted BOOLEAN NOT NULL,                
                 param_json TEXT NULL,                                    
                 result_json TEXT NULL,
-                default_state TEXT NULL DEFAULT NULL,
                 exception_json TEXT NULL,                
                 timestamp BIGINT NOT NULL,
                 PRIMARY KEY (type, instance),
@@ -170,7 +169,6 @@ public class MySqlFunctionStore : IFunctionStore
                 param_json,            
                 status,
                 result_json, 
-                default_state,
                 exception_json,
                 epoch, 
                 expires,
@@ -327,7 +325,6 @@ public class MySqlFunctionStore : IFunctionStore
     public async Task<bool> SucceedFunction(
         FlowId flowId, 
         string? result, 
-        string? defaultState, 
         long timestamp,
         int expectedEpoch, 
         ComplimentaryState complimentaryState)
@@ -335,7 +332,7 @@ public class MySqlFunctionStore : IFunctionStore
         await using var conn = await CreateOpenConnection(_connectionString);
         _succeedFunctionSql ??= $@"
             UPDATE {_tablePrefix}
-            SET status = {(int) Status.Succeeded}, result_json = ?, default_state = ?, timestamp = ?, epoch = ?
+            SET status = {(int) Status.Succeeded}, result_json = ?, timestamp = ?, epoch = ?
             WHERE 
                 type = ? AND 
                 instance = ? AND 
@@ -346,7 +343,6 @@ public class MySqlFunctionStore : IFunctionStore
             Parameters =
             {
                 new() { Value = result ?? (object)DBNull.Value },
-                new() { Value = defaultState ?? (object)DBNull.Value },
                 new() { Value = timestamp },
                 new() { Value = expectedEpoch },
                 new() { Value = flowId.Type.Value },
@@ -363,7 +359,6 @@ public class MySqlFunctionStore : IFunctionStore
     public async Task<bool> PostponeFunction(
         FlowId flowId, 
         long postponeUntil, 
-        string? defaultState, 
         long timestamp,
         int expectedEpoch, 
         ComplimentaryState complimentaryState)
@@ -371,7 +366,7 @@ public class MySqlFunctionStore : IFunctionStore
         await using var conn = await CreateOpenConnection(_connectionString);
         _postponedFunctionSql ??= $@"
             UPDATE {_tablePrefix}
-            SET status = {(int) Status.Postponed}, expires = ?, default_state = ?, timestamp = ?, epoch = ?
+            SET status = {(int) Status.Postponed}, expires = ?, timestamp = ?, epoch = ?
             WHERE 
                 type = ? AND 
                 instance = ? AND 
@@ -382,7 +377,6 @@ public class MySqlFunctionStore : IFunctionStore
             Parameters =
             {
                 new() { Value = postponeUntil },
-                new() { Value = defaultState ?? (object) DBNull.Value },
                 new() { Value = timestamp },
                 new() { Value = expectedEpoch },
                 new() { Value = flowId.Type.Value },
@@ -399,7 +393,6 @@ public class MySqlFunctionStore : IFunctionStore
     public async Task<bool> FailFunction(
         FlowId flowId, 
         StoredException storedException, 
-        string? defaultState, 
         long timestamp,
         int expectedEpoch, 
         ComplimentaryState complimentaryState)
@@ -407,7 +400,7 @@ public class MySqlFunctionStore : IFunctionStore
         await using var conn = await CreateOpenConnection(_connectionString);
         _failFunctionSql ??= $@"
             UPDATE {_tablePrefix}
-            SET status = {(int) Status.Failed}, exception_json = ?, default_state = ?, timestamp = ?, epoch = ?
+            SET status = {(int) Status.Failed}, exception_json = ?, timestamp = ?, epoch = ?
             WHERE 
                 type = ? AND 
                 instance = ? AND 
@@ -418,7 +411,6 @@ public class MySqlFunctionStore : IFunctionStore
             Parameters =
             {
                 new() { Value = JsonSerializer.Serialize(storedException) },
-                new() { Value = defaultState ?? (object) DBNull.Value },
                 new() { Value = timestamp },
                 new() { Value = expectedEpoch },
                 new() { Value = flowId.Type.Value },
@@ -434,7 +426,6 @@ public class MySqlFunctionStore : IFunctionStore
     private string? _suspendFunctionSql;
     public async Task<bool> SuspendFunction(
         FlowId flowId, 
-        string? defaultState, 
         long timestamp,
         int expectedEpoch, 
         ComplimentaryState complimentaryState)
@@ -443,7 +434,7 @@ public class MySqlFunctionStore : IFunctionStore
         
         _suspendFunctionSql ??= $@"
             UPDATE {_tablePrefix}
-            SET status = {(int) Status.Suspended}, default_state = ?, timestamp = ?
+            SET status = {(int) Status.Suspended}, timestamp = ?
             WHERE type = ? AND 
                   instance = ? AND 
                   epoch = ? AND
@@ -453,7 +444,6 @@ public class MySqlFunctionStore : IFunctionStore
         {
             Parameters =
             {
-                new() { Value = defaultState ?? (object) DBNull.Value },
                 new() { Value = timestamp },
                 new() { Value = flowId.Type.Value },
                 new() { Value = flowId.Instance.Value },
@@ -463,27 +453,6 @@ public class MySqlFunctionStore : IFunctionStore
         
         var affectedRows = await command.ExecuteNonQueryAsync();
         return affectedRows == 1;
-    }
-
-    private string? _setDefaultStateSql;
-    public async Task SetDefaultState(FlowId flowId, string? stateJson)
-    {
-        await using var conn = await CreateOpenConnection(_connectionString);
-        _setDefaultStateSql ??= $@"
-            UPDATE {_tablePrefix}
-            SET default_state = ?
-            WHERE type = ? AND instance = ?";
-        await using var command = new MySqlCommand(_setDefaultStateSql, conn)
-        {
-            Parameters =
-            {
-                new() {Value = stateJson ?? (object) DBNull.Value},
-                new() {Value = flowId.Type.Value},
-                new() {Value = flowId.Instance.Value}
-            }
-        };
-
-        await command.ExecuteNonQueryAsync();
     }
 
     private string? _interruptSql;
@@ -620,7 +589,6 @@ public class MySqlFunctionStore : IFunctionStore
                 param_json,             
                 status,
                 result_json,             
-                default_state,
                 exception_json,               
                 epoch, 
                 expires,
@@ -718,21 +686,16 @@ public class MySqlFunctionStore : IFunctionStore
         const int paramIndex = 0;
         const int statusIndex = 1;
         const int resultIndex = 2;
-        const int defaultStateIndex = 3;
-        const int exceptionIndex = 4;
-        const int epochIndex = 5;
-        const int expiresIndex = 6;
-        const int interruptedIndex = 7;
-        const int timestampIndex = 8;
+        const int exceptionIndex = 3;
+        const int epochIndex = 4;
+        const int expiresIndex = 5;
+        const int interruptedIndex = 6;
+        const int timestampIndex = 7;
         
         while (await reader.ReadAsync())
         {
             var hasParam = !await reader.IsDBNullAsync(paramIndex);
             var hasResult = !await reader.IsDBNullAsync(resultIndex);
-            var hasDefaultState = !await reader.IsDBNullAsync(defaultStateIndex);
-            var defaultState = hasDefaultState
-                ? reader.GetString(defaultStateIndex)
-                : null;
             var hasError = !await reader.IsDBNullAsync(exceptionIndex);
             var storedException = hasError
                 ? JsonSerializer.Deserialize<StoredException>(reader.GetString(exceptionIndex))
@@ -740,7 +703,6 @@ public class MySqlFunctionStore : IFunctionStore
             return new StoredFlow(
                 flowId,
                 hasParam ? reader.GetString(paramIndex) : null,
-                defaultState,
                 Status: (Status) reader.GetInt32(statusIndex),
                 Result: hasResult ? reader.GetString(resultIndex) : null, 
                 storedException, Epoch: reader.GetInt32(epochIndex),

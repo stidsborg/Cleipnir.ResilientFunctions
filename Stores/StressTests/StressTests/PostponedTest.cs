@@ -35,7 +35,6 @@ public static class PostponedTest
             await store.PostponeFunction(
                 functionId,
                 postponeUntil: start.Ticks,
-                defaultState: null,
                 timestamp: DateTime.UtcNow.Ticks,
                 expectedEpoch: 0,
                 complimentaryState: new ComplimentaryState(() => storedParameter, LeaseLength: 0)

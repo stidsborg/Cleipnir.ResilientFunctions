@@ -49,14 +49,12 @@ public abstract class StoreTests
         storedFunction.Epoch.ShouldBe(0);
         storedFunction.Expires.ShouldBe(leaseExpiration);
         storedFunction.Timestamp.ShouldBe(timestamp);
-        storedFunction.DefaultState.ShouldBeNull();
 
         const string result = "hello world";
         var resultJson = result.ToJson();
         await store.SucceedFunction(
             functionId,
             result: resultJson,
-            defaultState: null,
             expectedEpoch: 0,
             timestamp: DateTime.UtcNow.Ticks,
             complimentaryState: new ComplimentaryState(() => storedParameter, LeaseLength: 0)
@@ -277,7 +275,6 @@ public abstract class StoreTests
         await store.PostponeFunction(
             functionId,
             postponeUntil: nowTicks,
-            defaultState: null,
             timestamp: DateTime.UtcNow.Ticks,
             expectedEpoch: 0,
             complimentaryState: new ComplimentaryState(storedParameter.ToFunc(), LeaseLength: 0)
@@ -310,7 +307,6 @@ public abstract class StoreTests
         await store.PostponeFunction(
             functionId,
             postponeUntil: nowTicks,
-            defaultState: null,
             timestamp: DateTime.UtcNow.Ticks,
             expectedEpoch: 0,
             complimentaryState: new ComplimentaryState(storedParameter.ToFunc(), LeaseLength: 0)
@@ -343,7 +339,6 @@ public abstract class StoreTests
         await store.PostponeFunction(
             functionId,
             postponeUntil: nowTicks,
-            defaultState: null,
             timestamp: DateTime.UtcNow.Ticks,
             expectedEpoch: 1,
             complimentaryState: new ComplimentaryState(storedParameter.ToFunc(), LeaseLength: 0)
@@ -517,7 +512,6 @@ public abstract class StoreTests
         await store.FailFunction(
             functionId,
             storedException,
-            defaultState: null,
             timestamp: DateTime.UtcNow.Ticks,
             expectedEpoch: 0,
             complimentaryState: new ComplimentaryState(storedParameter.ToFunc(), LeaseLength: 0)
@@ -634,7 +628,6 @@ public abstract class StoreTests
 
         await store.SuspendFunction(
             functionId,
-            defaultState: null,
             timestamp: DateTime.UtcNow.Ticks,
             expectedEpoch: 0,
             complimentaryState: new ComplimentaryState(storedParameter.ToFunc(), LeaseLength: 0)
@@ -799,7 +792,6 @@ public abstract class StoreTests
         await store.SucceedFunction(
             functionId,
             result: null,
-            defaultState: null,
             DateTime.UtcNow.Ticks,
             expectedEpoch: 0,
             complimentaryState: new ComplimentaryState(Test.SimpleStoredParameter.ToFunc(), LeaseLength: 0)
@@ -827,7 +819,6 @@ public abstract class StoreTests
         await store.PostponeFunction(
             functionId,
             postponeUntil: DateTime.UtcNow.Ticks,
-            defaultState: null,
             timestamp: DateTime.UtcNow.Ticks,
             expectedEpoch: 0,
             complimentaryState: new ComplimentaryState(Test.SimpleStoredParameter.ToFunc(), LeaseLength: 0)
@@ -855,7 +846,6 @@ public abstract class StoreTests
         await store.FailFunction(
             functionId,
             new StoredException("ExceptionMessage", ExceptionStackTrace: null, typeof(Exception).SimpleQualifiedName()),
-            defaultState: null,
             timestamp: DateTime.UtcNow.Ticks,
             expectedEpoch: 0,
             complimentaryState: new ComplimentaryState(Test.SimpleStoredParameter.ToFunc(), LeaseLength: 0)
@@ -882,7 +872,6 @@ public abstract class StoreTests
 
         await store.SuspendFunction(
             functionId,
-            defaultState: null,
             timestamp: DateTime.UtcNow.Ticks,
             expectedEpoch: 0,
             complimentaryState: new ComplimentaryState(Test.SimpleStoredParameter.ToFunc(), LeaseLength: 0)
@@ -916,7 +905,6 @@ public abstract class StoreTests
         
         await store.SuspendFunction(
             functionId,
-            defaultState: null,
             timestamp: DateTime.UtcNow.Ticks,
             expectedEpoch: 0,
             complimentaryState: new ComplimentaryState(Test.SimpleStoredParameter.ToFunc(), LeaseLength: 0)
@@ -950,7 +938,6 @@ public abstract class StoreTests
         
         var success = await store.SuspendFunction(
             functionId,
-            defaultState: null,
             timestamp: DateTime.UtcNow.Ticks,
             expectedEpoch: 0,
             complimentaryState: new ComplimentaryState(Test.SimpleStoredParameter.ToFunc(), LeaseLength: 0)
@@ -1006,7 +993,6 @@ public abstract class StoreTests
 
         await store.SuspendFunction(
             functionId,
-            defaultState: null,
             timestamp: DateTime.UtcNow.Ticks,
             expectedEpoch: 0,
             new ComplimentaryState(() => Test.SimpleStoredParameter, LeaseLength: 0)
@@ -1043,6 +1029,7 @@ public abstract class StoreTests
         var functionId = TestFlowId.Create();
         
         var store = await storeTask;
+        var effectsStore = store.EffectsStore;
         await store.CreateFunction(
             functionId,
             param: Test.SimpleStoredParameter,
@@ -1051,94 +1038,12 @@ public abstract class StoreTests
             timestamp: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
-        await store.SetDefaultState(functionId, "some default state");
+        await effectsStore.SetEffectResult(functionId, new StoredEffect(EffectId: "", IsState: true, WorkStatus.Completed, "some default state", StoredException: null));
 
-        var sf = await store.GetFunction(functionId);
-        sf.ShouldNotBeNull();
-        sf.DefaultState.ShouldBe("some default state");
-    }
-    
-    public abstract Task DefaultStateCanSetOnPostponeAndFetchedAfterwards();
-    protected async Task DefaultStateCanSetOnPostponeAndFetchedAfterwards(Task<IFunctionStore> storeTask)
-    {
-        var functionId = TestFlowId.Create();
-        
-        var store = await storeTask;
-        await store.CreateFunction(
-            functionId,
-            param: Test.SimpleStoredParameter,
-            leaseExpiration: DateTime.UtcNow.Ticks,
-            postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks
-        ).ShouldBeTrueAsync();
-
-        await store.PostponeFunction(
-            functionId,
-            postponeUntil: 0,
-            defaultState: "some default state",
-            timestamp: 0,
-            expectedEpoch: 0,
-            new ComplimentaryState(() => Test.SimpleStoredParameter, LeaseLength: 0)
-        ).ShouldBeTrueAsync();
-
-        var sf = await store.GetFunction(functionId);
-        sf.ShouldNotBeNull();
-        sf.DefaultState.ShouldBe("some default state");
-    }
-    
-    public abstract Task DefaultStateCanSetOnSuspendAndFetchedAfterwards();
-    protected async Task DefaultStateCanSetOnSuspendAndFetchedAfterwards(Task<IFunctionStore> storeTask)
-    {
-        var functionId = TestFlowId.Create();
-        
-        var store = await storeTask;
-        await store.CreateFunction(
-            functionId,
-            param: Test.SimpleStoredParameter,
-            leaseExpiration: DateTime.UtcNow.Ticks,
-            postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks
-        ).ShouldBeTrueAsync();
-
-        await store.SuspendFunction(
-            functionId,
-            defaultState: "some default state",
-            timestamp: 0,
-            expectedEpoch: 0,
-            new ComplimentaryState(() => Test.SimpleStoredParameter, LeaseLength: 0)
-        ).ShouldBeTrueAsync();
-
-        var sf = await store.GetFunction(functionId);
-        sf.ShouldNotBeNull();
-        sf.DefaultState.ShouldBe("some default state");
-    }
-    
-    public abstract Task DefaultStateCanSetOnSucceedAndFetchedAfterwards();
-    protected async Task DefaultStateCanSetOnSucceedAndFetchedAfterwards(Task<IFunctionStore> storeTask)
-    {
-        var functionId = TestFlowId.Create();
-        
-        var store = await storeTask;
-        await store.CreateFunction(
-            functionId,
-            param: Test.SimpleStoredParameter,
-            leaseExpiration: DateTime.UtcNow.Ticks,
-            postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks
-        ).ShouldBeTrueAsync();
-
-        await store.SucceedFunction(
-            functionId,
-            result: null,
-            defaultState: "some default state",
-            timestamp: 0,
-            expectedEpoch: 0,
-            new ComplimentaryState(() => Test.SimpleStoredParameter, LeaseLength: 0)
-        ).ShouldBeTrueAsync();
-
-        var sf = await store.GetFunction(functionId);
-        sf.ShouldNotBeNull();
-        sf.DefaultState.ShouldBe("some default state");
+        var storedEffects = await effectsStore.GetEffectResults(functionId);
+        storedEffects.Count.ShouldBe(1);
+        storedEffects.Single().EffectId.ShouldBe("");
+        storedEffects.Single().Result.ShouldBe("some default state");
     }
     
     public abstract Task SucceededFunctionsCanBeFetchedSuccessfully();
@@ -1162,7 +1067,6 @@ public abstract class StoreTests
             await store.SucceedFunction(
                 functionId,
                 result: null,
-                defaultState: null,
                 timestamp: timestamp,
                 expectedEpoch: 0,
                 new ComplimentaryState(() => Test.SimpleStoredParameter, LeaseLength: 0)
@@ -1282,7 +1186,6 @@ public abstract class StoreTests
         await store.SucceedFunction(
             flowId1,
             result: null,
-            defaultState: null,
             timestamp,
             expectedEpoch: 0,
             new ComplimentaryState(StoredParameterFunc: () => default, LeaseLength: 0)

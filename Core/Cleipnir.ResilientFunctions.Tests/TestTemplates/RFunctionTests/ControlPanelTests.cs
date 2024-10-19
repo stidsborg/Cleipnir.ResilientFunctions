@@ -34,7 +34,7 @@ public abstract class ControlPanelTests
                 var (effect, messages, states) = workflow;
                 await effect.CreateOrGet("Effect", 123);
                 await messages.AppendMessage("Message");
-                var state = states.CreateOrGet<State>();
+                var state = await states.CreateOrGetDefault<State>();
                 state.Value = "State";
                 await workflow.Messages.RegisteredTimeouts.RegisterTimeout("Timeout", TimeSpan.FromDays(1));
                 await state.Save();
@@ -94,7 +94,7 @@ public abstract class ControlPanelTests
                 var (effect, messages, states) = workflow;
                 await effect.CreateOrGet("Effect", 123);
                 await messages.AppendMessage("Message");
-                var state = states.CreateOrGet<State>();
+                var state = await states.CreateOrGetDefault<State>();
                 state.Value = "State";
                 await state.Save();
                 await workflow.Messages.RegisteredTimeouts.RegisterTimeout("Timeout", TimeSpan.FromDays(1));
@@ -1420,7 +1420,7 @@ public abstract class ControlPanelTests
             flowType,
             async Task<string> (string param, Workflow workflow) =>
             {
-                var state = workflow.States.CreateOrGet<State>();
+                var state = await workflow.States.CreateOrGetDefault<State>();
                 state.Value = param;
                 await state.Save();
                 
@@ -1438,16 +1438,16 @@ public abstract class ControlPanelTests
         var otherControlPanel = await rFunc.ControlPanel(flowInstance).ShouldNotBeNullAsync();
         
         var states = controlPanel.States;
-        states.HasDefaultState().ShouldBeTrue();
+        await states.HasDefaultState().ShouldBeTrueAsync();
         await states.HasState("SomeId").ShouldBeTrueAsync();
-        states.Get<State>().Value.ShouldBe("Some Param");
+        (await states.Get<State>()).Value.ShouldBe("Some Param");
         (await states.Get<State>(stateId: "SomeId")).Value.ShouldBe("NamedValue");
 
         await states.Set(new State { Value = "New Value" });
         var s = await states.Get<State>(stateId: "SomeId");
         s.Value = "New Value";
         await s.Save();
-        states.Get<State>().Value.ShouldBe("New Value");
+        (await states.Get<State>()).Value.ShouldBe("New Value");
 
         await states.RemoveDefault();
 
@@ -1456,7 +1456,7 @@ public abstract class ControlPanelTests
         await otherControlPanel.Refresh();
 
         states = otherControlPanel.States;
-        states.HasDefaultState().ShouldBeFalse();
+        await states.HasDefaultState().ShouldBeFalseAsync();
         await states.HasState("SomeId").ShouldBeTrueAsync();
         await states.HasState("NewState").ShouldBeTrueAsync();
         await states.HasState("UnknownState").ShouldBeFalseAsync();

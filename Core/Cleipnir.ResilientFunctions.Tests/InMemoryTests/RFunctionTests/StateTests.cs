@@ -11,6 +11,10 @@ public class StateTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.RFunct
         => StateCanBeFetchedFromFuncRegistration(FunctionStoreFactory.Create());
 
     [TestMethod]
+    public override Task ExistingDefaultStateCanBeDeleted()
+        => ExistingDefaultStateCanBeDeleted(FunctionStoreFactory.Create());
+
+    [TestMethod]
     public override Task ExistingStateCanBeDeleted()
         => ExistingStateCanBeDeleted(FunctionStoreFactory.Create());
 

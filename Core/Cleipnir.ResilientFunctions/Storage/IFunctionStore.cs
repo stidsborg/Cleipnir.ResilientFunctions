@@ -55,7 +55,6 @@ public interface IFunctionStore
     Task<bool> SucceedFunction(
         FlowId flowId, 
         string? result, 
-        string? defaultState,
         long timestamp,
         int expectedEpoch, 
         ComplimentaryState complimentaryState
@@ -64,7 +63,6 @@ public interface IFunctionStore
     Task<bool> PostponeFunction(
         FlowId flowId,
         long postponeUntil, 
-        string? defaultState,
         long timestamp,
         int expectedEpoch, 
         ComplimentaryState complimentaryState
@@ -73,7 +71,6 @@ public interface IFunctionStore
     Task<bool> FailFunction(
         FlowId flowId, 
         StoredException storedException,
-        string? defaultState,
         long timestamp,
         int expectedEpoch, 
         ComplimentaryState complimentaryState
@@ -81,13 +78,10 @@ public interface IFunctionStore
     
     Task<bool> SuspendFunction(
         FlowId flowId, 
-        string? defaultState,
         long timestamp,
         int expectedEpoch, 
         ComplimentaryState complimentaryState
     );
-
-    Task SetDefaultState(FlowId flowId, string? stateJson);
 
     Task<bool> Interrupt(FlowId flowId, bool onlyIfExecuting);
     Task<bool?> Interrupted(FlowId flowId); 

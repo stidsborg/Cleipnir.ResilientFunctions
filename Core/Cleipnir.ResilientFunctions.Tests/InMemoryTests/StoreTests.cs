@@ -161,18 +161,6 @@ public class StoreTests : TestTemplates.StoreTests
         => DefaultStateCanSetAndFetchedAfterwards(FunctionStoreFactory.Create());
 
     [TestMethod]
-    public override Task DefaultStateCanSetOnPostponeAndFetchedAfterwards()
-        => DefaultStateCanSetOnPostponeAndFetchedAfterwards(FunctionStoreFactory.Create());
-
-    [TestMethod]
-    public override Task DefaultStateCanSetOnSuspendAndFetchedAfterwards()
-        => DefaultStateCanSetOnSuspendAndFetchedAfterwards(FunctionStoreFactory.Create());
-
-    [TestMethod]
-    public override Task DefaultStateCanSetOnSucceedAndFetchedAfterwards()
-        => DefaultStateCanSetOnSucceedAndFetchedAfterwards(FunctionStoreFactory.Create());
-
-    [TestMethod]
     public override Task SucceededFunctionsCanBeFetchedSuccessfully()
         => SucceededFunctionsCanBeFetchedSuccessfully(FunctionStoreFactory.Create());
 

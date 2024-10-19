@@ -255,7 +255,7 @@ public abstract class BaseControlPanel<TParam, TReturn>
         PreviouslyThrownException = sf.PreviouslyThrownException;
         Effects = _invocationHelper.CreateExistingEffects(FlowId);
         Messages = _invocationHelper.CreateExistingMessages(FlowId);
-        States = _invocationHelper.CreateExistingStates(FlowId, sf.DefaultState);
+        States = _invocationHelper.CreateExistingStates(FlowId);
         RegisteredTimeouts = _invocationHelper.CreateExistingTimeouts(FlowId);
         Correlations = _invocationHelper.CreateCorrelations(FlowId);
 

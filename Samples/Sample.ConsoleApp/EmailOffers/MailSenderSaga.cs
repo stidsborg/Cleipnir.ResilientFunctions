@@ -13,7 +13,7 @@ public static class EmailSenderSaga
 {
     public static async Task Start(MailAndRecipients mailAndRecipients, Workflow workflow)
     {
-        var state = workflow.States.CreateOrGet<State>();
+        var state = await workflow.States.CreateOrGetDefault<State>();
         var (recipients, subject, content) = mailAndRecipients;
 
         using var client = new SmtpClient();

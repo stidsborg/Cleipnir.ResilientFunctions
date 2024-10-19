@@ -268,7 +268,7 @@ public class FunctionsRegistry : IDisposable
                 GetInstances,
                 controlPanels,
                 messageWriters,
-                new StateFetcher(_functionStore, settingsWithDefaults.Serializer),
+                new StateFetcher(_functionStore.EffectsStore, settingsWithDefaults.Serializer),
                 postman
             );
             _functions[flowType] = registration;
@@ -352,7 +352,7 @@ public class FunctionsRegistry : IDisposable
                 GetInstances,
                 controlPanels,
                 messageWriters,
-                new StateFetcher(_functionStore, settingsWithDefaults.Serializer),
+                new StateFetcher(_functionStore.EffectsStore, settingsWithDefaults.Serializer),
                 postman
             );
             _functions[flowType] = registration;
@@ -435,7 +435,7 @@ public class FunctionsRegistry : IDisposable
                 GetInstances,
                 controlPanels,
                 messageWriters,
-                new StateFetcher(_functionStore, settingsWithDefaults.Serializer),
+                new StateFetcher(_functionStore.EffectsStore, settingsWithDefaults.Serializer),
                 postman
             );
             _functions[flowType] = registration;

@@ -103,18 +103,16 @@ public class CrashableFunctionStore : IFunctionStore
     public Task<bool> SucceedFunction(
         FlowId flowId,
         string? result,
-        string? defaultState,
         long timestamp,
         int expectedEpoch,
         ComplimentaryState complimentaryState
     ) => _crashed
         ? Task.FromException<bool>(new TimeoutException())
-        : _inner.SucceedFunction(flowId, result, defaultState, timestamp, expectedEpoch, complimentaryState);
+        : _inner.SucceedFunction(flowId, result, timestamp, expectedEpoch, complimentaryState);
 
     public async Task<bool> PostponeFunction(
         FlowId flowId,
         long postponeUntil,
-        string? defaultState,
         long timestamp,
         int expectedEpoch,
         ComplimentaryState complimentaryState
@@ -123,7 +121,7 @@ public class CrashableFunctionStore : IFunctionStore
         if (_crashed)
             throw new TimeoutException();
 
-        var result = await _inner.PostponeFunction(flowId, postponeUntil, defaultState, timestamp, expectedEpoch, complimentaryState);
+        var result = await _inner.PostponeFunction(flowId, postponeUntil, timestamp, expectedEpoch, complimentaryState);
         AfterPostponeFunctionFlag.Raise();
 
         return result;
@@ -132,24 +130,18 @@ public class CrashableFunctionStore : IFunctionStore
     public Task<bool> FailFunction(
         FlowId flowId,
         StoredException storedException,
-        string? defaultState,
         long timestamp,
         int expectedEpoch,
         ComplimentaryState complimentaryState
     ) => _crashed
         ? Task.FromException<bool>(new TimeoutException())
-        : _inner.FailFunction(flowId, storedException, defaultState, timestamp, expectedEpoch, complimentaryState);
+        : _inner.FailFunction(flowId, storedException, timestamp, expectedEpoch, complimentaryState);
 
-    public Task<bool> SuspendFunction(FlowId flowId, string? defaultState, long timestamp, int expectedEpoch,
+    public Task<bool> SuspendFunction(FlowId flowId, long timestamp, int expectedEpoch,
         ComplimentaryState complimentaryState)
         => _crashed
             ? Task.FromException<bool>(new TimeoutException())
-            : _inner.SuspendFunction(flowId, defaultState, timestamp, expectedEpoch, complimentaryState);
-
-    public Task SetDefaultState(FlowId flowId, string? stateJson)
-        => _crashed
-            ? Task.FromException(new TimeoutException())
-            : _inner.SetDefaultState(flowId, stateJson);
+            : _inner.SuspendFunction(flowId, timestamp, expectedEpoch, complimentaryState);
 
     public Task<bool> Interrupt(FlowId flowId, bool onlyIfExecuting)
         => _crashed
