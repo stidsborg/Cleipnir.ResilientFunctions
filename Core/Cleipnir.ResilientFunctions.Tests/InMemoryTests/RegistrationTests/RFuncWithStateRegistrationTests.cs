@@ -59,12 +59,12 @@ public class RFuncWithStateRegistrationTests
         public bool Invoked { get; set; }
         private ISerializer Default { get; } = DefaultSerializer.Instance;
 
-        public string SerializeParameter<TParam>(TParam parameter)
+        public byte[] SerializeParameter<TParam>(TParam parameter)
         {
             Invoked = true;
             return Default.SerializeParameter(parameter);
         }
-        public TParam DeserializeParameter<TParam>(string json)
+        public TParam DeserializeParameter<TParam>(byte[] json)
             => Default.DeserializeParameter<TParam>(json);
         
         public StoredException SerializeException(Exception exception)
@@ -72,24 +72,24 @@ public class RFuncWithStateRegistrationTests
         public PreviouslyThrownException DeserializeException(StoredException storedException)
             => Default.DeserializeException(storedException);
         
-        public string SerializeResult<TResult>(TResult result) 
+        public byte[] SerializeResult<TResult>(TResult result) 
             => Default.SerializeResult(result);
-        public TResult DeserializeResult<TResult>(string json) 
+        public TResult DeserializeResult<TResult>(byte[] json) 
             => Default.DeserializeResult<TResult>(json);
 
         public JsonAndType SerializeMessage<TEvent>(TEvent message) where TEvent : notnull
             => Default.SerializeMessage(message);
-        public object DeserializeMessage(string json, string type)
+        public object DeserializeMessage(byte[] json, byte[] type)
             => Default.DeserializeMessage(json, type);
 
-        public string SerializeEffectResult<TResult>(TResult result)
+        public byte[] SerializeEffectResult<TResult>(TResult result)
             => Default.SerializeEffectResult(result);
-        public TResult DeserializeEffectResult<TResult>(string json)
+        public TResult DeserializeEffectResult<TResult>(byte[] json)
             => Default.DeserializeEffectResult<TResult>(json);
 
-        public string SerializeState<TState>(TState state) where TState : Domain.FlowState, new()
+        public byte[] SerializeState<TState>(TState state) where TState : FlowState, new()
             => Default.SerializeState(state);
-        public TState DeserializeState<TState>(string json) where TState : FlowState, new()
+        public TState DeserializeState<TState>(byte[] json) where TState : FlowState, new()
             => Default.DeserializeState<TState>(json);
     }
 }

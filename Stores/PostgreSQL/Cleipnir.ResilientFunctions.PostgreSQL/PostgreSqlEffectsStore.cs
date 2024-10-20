@@ -19,7 +19,7 @@ public class PostgreSqlEffectsStore(string connectionString, string tablePrefix 
                 id VARCHAR(450),
                 is_state BOOLEAN,
                 status INT NOT NULL,
-                result TEXT NULL,
+                result BYTEA NULL,
                 exception TEXT NULL,
                 PRIMARY KEY (id, is_state)
             );";
@@ -91,7 +91,7 @@ public class PostgreSqlEffectsStore(string connectionString, string tablePrefix 
             var isState = reader.GetBoolean(1);
             var effectId = Escaper.Unescape(id)[2];
             var status = (WorkStatus) reader.GetInt32(2);
-            var result = reader.IsDBNull(3) ? null : reader.GetString(3);
+            var result = reader.IsDBNull(3) ? null : (byte[]) reader.GetValue(3);
             var exception = reader.IsDBNull(4) ? null : reader.GetString(4);
             functions.Add(new StoredEffect(effectId, isState, status, result, JsonHelper.FromJson<StoredException>(exception)));
         }

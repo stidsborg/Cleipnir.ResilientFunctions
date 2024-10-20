@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data;
+using System.Data.SqlTypes;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
@@ -29,7 +31,7 @@ public class SqlServerEffectsStore : IEffectsStore
                 Id NVARCHAR(450),
                 IsState BIT,
                 Status INT NOT NULL,
-                Result NVARCHAR(MAX),
+                Result LONGBLOB,
                 Exception NVARCHAR(MAX),
                 PRIMARY KEY (Id, IsState)
             );";
@@ -71,7 +73,7 @@ public class SqlServerEffectsStore : IEffectsStore
         command.Parameters.AddWithValue("@Id", escapedId);
         command.Parameters.AddWithValue("@IsState", storedEffect.IsState);
         command.Parameters.AddWithValue("@Status", storedEffect.WorkStatus);
-        command.Parameters.AddWithValue("@Result", storedEffect.Result ?? (object) DBNull.Value);
+        command.Parameters.AddWithValue("@Result", storedEffect.Result ?? (object) SqlBinary.Null);
         command.Parameters.AddWithValue("@Exception", JsonHelper.ToJson(storedEffect.StoredException) ?? (object) DBNull.Value);
 
         await command.ExecuteNonQueryAsync();
@@ -98,7 +100,7 @@ public class SqlServerEffectsStore : IEffectsStore
             var effectId = Escaper.Unescape(id)[2];
             var isState = reader.GetBoolean(1);
             var status = (WorkStatus) reader.GetInt32(2);
-            var result = reader.IsDBNull(3) ? default : reader.GetString(3);
+            var result = reader.IsDBNull(3) ? default : (byte[]) reader.GetValue(3);
             var exception = reader.IsDBNull(4) ? default : reader.GetString(4);
 
             var storedException = exception == null ? null : JsonSerializer.Deserialize<StoredException>(exception);

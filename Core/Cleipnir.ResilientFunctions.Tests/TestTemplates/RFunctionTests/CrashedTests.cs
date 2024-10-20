@@ -128,7 +128,7 @@ public abstract class CrashedTests
             var effects = await store.EffectsStore.GetEffectResults(functionId);
             var stateResult = effects.Single(e => e.EffectId == "State").Result!;
             stateResult.ShouldNotBeNull();
-            stateResult.DeserializeFromJsonTo<State>().Value.ShouldBe(1);
+            stateResult.ToStringFromUtf8Bytes().DeserializeFromJsonTo<State>().Value.ShouldBe(1);
             await rFunc(flowInstance.Value, param).ShouldBeAsync("TEST");
         }
 
@@ -250,7 +250,7 @@ public abstract class CrashedTests
             storedFunction.Status.ShouldBe(Status.Succeeded);
             var effects = await store.EffectsStore.GetEffectResults(functionId);
             var state = effects.Single(e => e.EffectId == "State").Result;
-            state!.DeserializeFromJsonTo<State>().Value.ShouldBe(1);
+            state!.ToStringFromUtf8Bytes().DeserializeFromJsonTo<State>().Value.ShouldBe(1);
             await rAction(flowInstance.Value, param);
         }
 

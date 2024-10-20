@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.CoreRuntime.ParameterSerialization;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Tests.Utils;
 using Shouldly;
@@ -40,12 +41,13 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates
             var storedFunction = await store.GetFunction(functionId);
             storedFunction.ShouldNotBeNull();
             storedFunction.Result.ShouldNotBeNull();
-            var storedResult = storedFunction.Result.DeserializeFromJsonTo<string>();
+            var storedResult = storedFunction.Result.ToStringFromUtf8Bytes().DeserializeFromJsonTo<string>();
             storedResult.ShouldBe("HELLO");
             var effects = await store.EffectsStore.GetEffectResults(functionId);
             effects
                 .Single(e => e.EffectId == "Scrap")
                 .Result!
+                .ToStringFromUtf8Bytes()
                 .DeserializeFromJsonTo<string>()
                 .ShouldBe("HELLO");
             

@@ -6,16 +6,16 @@ namespace Cleipnir.ResilientFunctions.CoreRuntime.ParameterSerialization;
 
 public interface ISerializer
 {
-    string SerializeParameter<TParam>(TParam parameter);
-    TParam DeserializeParameter<TParam>(string json); 
+    byte[] SerializeParameter<TParam>(TParam parameter);
+    TParam DeserializeParameter<TParam>(byte[] json); 
     StoredException SerializeException(Exception exception);
     PreviouslyThrownException DeserializeException(StoredException storedException);
-    string SerializeResult<TResult>(TResult result);
-    TResult DeserializeResult<TResult>(string json);
+    byte[] SerializeResult<TResult>(TResult result);
+    TResult DeserializeResult<TResult>(byte[] json);
     JsonAndType SerializeMessage<TMessage>(TMessage message) where TMessage : notnull;
-    object DeserializeMessage(string json, string type);
-    string SerializeEffectResult<TResult>(TResult result);
-    TResult DeserializeEffectResult<TResult>(string json);
-    string SerializeState<TState>(TState state) where TState : FlowState, new();
-    TState DeserializeState<TState>(string json) where TState : FlowState, new();
+    object DeserializeMessage(byte[] json, byte[] type);
+    byte[] SerializeEffectResult<TResult>(TResult result);
+    TResult DeserializeEffectResult<TResult>(byte[] json);
+    byte[] SerializeState<TState>(TState state) where TState : FlowState, new();
+    TState DeserializeState<TState>(byte[] json) where TState : FlowState, new();
 }

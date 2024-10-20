@@ -74,9 +74,9 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 epoch INT NOT NULL DEFAULT 0,
                 expires BIGINT NOT NULL,
                 interrupted BOOLEAN NOT NULL DEFAULT FALSE,
-                param_json TEXT NULL,            
+                param_json BYTEA NULL,            
                 status INT NOT NULL DEFAULT {(int) Status.Executing},
-                result_json TEXT NULL,
+                result_json BYTEA NULL,
                 exception_json TEXT NULL,                                
                 timestamp BIGINT NOT NULL,
                 PRIMARY KEY (type, instance)
@@ -113,7 +113,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
     private string? _createFunctionSql;
     public async Task<bool> CreateFunction(
         FlowId flowId, 
-        string? param, 
+        byte[]? param, 
         long leaseExpiration,
         long? postponeUntil,
         long timestamp)
@@ -126,6 +126,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
             VALUES
                 ($1, $2, $3, $4, $5, $6)
             ON CONFLICT DO NOTHING;";
+        
         await using var command = new NpgsqlCommand(_createFunctionSql, conn)
         {
             Parameters =
@@ -300,7 +301,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
     private string? _setFunctionStateSql;
     public async Task<bool> SetFunctionState(
         FlowId flowId, Status status, 
-        string? param, string? result, 
+        byte[]? param, byte[]? result, 
         StoredException? storedException, 
         long expires,
         int expectedEpoch)
@@ -340,7 +341,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
     private string? _succeedFunctionSql;
     public async Task<bool> SucceedFunction(
         FlowId flowId, 
-        string? result, 
+        byte[]? result, 
         long timestamp,
         int expectedEpoch, 
         ComplimentaryState complimentaryState)
@@ -466,7 +467,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
     private string? _setParametersSql;
     public async Task<bool> SetParameters(
         FlowId flowId,
-        string? param, string? result,
+        byte[]? param, byte[]? result,
         int expectedEpoch)
     {
         await using var conn = await CreateConnection();
@@ -708,9 +709,9 @@ public class PostgreSqlFunctionStore : IFunctionStore
             
             return new StoredFlow(
                 flowId,
-                hasParameter ? reader.GetString(0) : null,
+                hasParameter ? (byte[]) reader.GetValue(0) : null,
                 Status: (Status) reader.GetInt32(1),
-                Result: hasResult ? reader.GetString(2) : null, 
+                Result: hasResult ? (byte[]) reader.GetValue(2) : null, 
                 Exception: !hasException ? null : JsonSerializer.Deserialize<StoredException>(reader.GetString(3)),
                 Expires: reader.GetInt64(4),
                 Epoch: reader.GetInt32(5),

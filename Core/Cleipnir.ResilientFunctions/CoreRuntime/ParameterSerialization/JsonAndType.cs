@@ -1,3 +1,3 @@
 ﻿namespace Cleipnir.ResilientFunctions.CoreRuntime.ParameterSerialization;
 
-public record JsonAndType(string Json, string Type);
+public record JsonAndType(byte[] Json, byte[] Type);

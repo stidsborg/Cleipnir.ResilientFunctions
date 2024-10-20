@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime;
 using Cleipnir.ResilientFunctions.CoreRuntime.ParameterSerialization;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Tests.Utils;
@@ -19,7 +20,7 @@ public abstract class CustomMessageSerializerTests
         var functionStore = await functionStoreTask;
         await functionStore.CreateFunction(
             functionId, 
-            Test.SimpleStoredParameter, 
+            param: Test.SimpleStoredParameter, 
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -45,7 +46,7 @@ public abstract class CustomMessageSerializerTests
         
         eventSerializer.EventToDeserialize.Count.ShouldBe(1);
         var (eventJson, eventType) = eventSerializer.EventToDeserialize[0];
-        var deserializedEvent = DefaultSerializer.Instance.DeserializeMessage(eventJson, eventType);
+        var deserializedEvent = DefaultSerializer.Instance.DeserializeMessage(eventJson.ToUtf8Bytes(), eventType.ToUtf8Bytes());
         deserializedEvent.ShouldBe("hello world");
     }
 
@@ -54,10 +55,10 @@ public abstract class CustomMessageSerializerTests
         public Utils.SyncedList<object> EventToSerialize { get; } = new();
         public Utils.SyncedList<Tuple<string, string>> EventToDeserialize { get; }= new();
 
-        public string SerializeParameter<TParam>(TParam parameter)  
+        public byte[] SerializeParameter<TParam>(TParam parameter)  
             => DefaultSerializer.Instance.SerializeParameter(parameter);
 
-        public TParam DeserializeParameter<TParam>(string json) 
+        public TParam DeserializeParameter<TParam>(byte[] json) 
             => DefaultSerializer.Instance.DeserializeParameter<TParam>(json);
 
         public StoredException SerializeException(Exception exception)
@@ -65,9 +66,9 @@ public abstract class CustomMessageSerializerTests
         public PreviouslyThrownException DeserializeException(StoredException storedException)
             => DefaultSerializer.Instance.DeserializeException(storedException);
 
-        public string SerializeResult<TResult>(TResult result) 
+        public byte[] SerializeResult<TResult>(TResult result) 
             => DefaultSerializer.Instance.SerializeResult(result);
-        public TResult DeserializeResult<TResult>(string json) 
+        public TResult DeserializeResult<TResult>(byte[] json) 
             => DefaultSerializer.Instance.DeserializeResult<TResult>(json);
 
         public JsonAndType SerializeMessage<TEvent>(TEvent message) where TEvent : notnull
@@ -75,20 +76,20 @@ public abstract class CustomMessageSerializerTests
             EventToSerialize.Add(message);
             return DefaultSerializer.Instance.SerializeMessage(message);
         }
-        public object DeserializeMessage(string json, string type)
+        public object DeserializeMessage(byte[] json, byte[] type)
         {
-            EventToDeserialize.Add(Tuple.Create(json, type));
+            EventToDeserialize.Add(Tuple.Create(json.ToStringFromUtf8Bytes(), type.ToStringFromUtf8Bytes()));
             return DefaultSerializer.Instance.DeserializeMessage(json, type);
         }
 
-        public string SerializeEffectResult<TResult>(TResult result)
+        public byte[] SerializeEffectResult<TResult>(TResult result)
             => DefaultSerializer.Instance.SerializeEffectResult(result);
-        public TResult DeserializeEffectResult<TResult>(string json)
+        public TResult DeserializeEffectResult<TResult>(byte[] json)
             => DefaultSerializer.Instance.DeserializeEffectResult<TResult>(json);
 
-        public string SerializeState<TState>(TState state) where TState : FlowState, new()
+        public byte[] SerializeState<TState>(TState state) where TState : FlowState, new()
             => DefaultSerializer.Instance.SerializeState(state);
-        public TState DeserializeState<TState>(string json) where TState : FlowState, new()
+        public TState DeserializeState<TState>(byte[] json) where TState : FlowState, new()
             => DefaultSerializer.Instance.DeserializeState<TState>(json);
     }
 }

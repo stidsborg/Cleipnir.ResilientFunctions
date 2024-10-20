@@ -47,7 +47,7 @@ public class CrashableFunctionStore : IFunctionStore
 
     public Task<bool> CreateFunction(
         FlowId flowId,
-        string? param,
+        byte[]? param,
         long leaseExpiration,
         long? postponeUntil,
         long timestamp
@@ -87,8 +87,8 @@ public class CrashableFunctionStore : IFunctionStore
             : _inner.GetSucceededFunctions(flowType, completedBefore);
 
     public Task<bool> SetFunctionState(
-        FlowId flowId, Status status, string? storedParameter,
-        string? storedResult, StoredException? storedException, 
+        FlowId flowId, Status status, byte[]? storedParameter,
+        byte[]? storedResult, StoredException? storedException, 
         long expires, 
         int expectedEpoch
     ) => _crashed
@@ -102,7 +102,7 @@ public class CrashableFunctionStore : IFunctionStore
 
     public Task<bool> SucceedFunction(
         FlowId flowId,
-        string? result,
+        byte[]? result,
         long timestamp,
         int expectedEpoch,
         ComplimentaryState complimentaryState
@@ -153,7 +153,7 @@ public class CrashableFunctionStore : IFunctionStore
             ? Task.FromException<bool?>(new TimeoutException())
             : _inner.Interrupted(flowId);
     
-    public Task<bool> SetParameters(FlowId flowId, string? storedParameter, string? storedResult, int expectedEpoch)
+    public Task<bool> SetParameters(FlowId flowId, byte[]? storedParameter, byte[]? storedResult, int expectedEpoch)
         => _crashed
             ? Task.FromException<bool>(new TimeoutException())
             : _inner.SetParameters(flowId, storedParameter, storedResult, expectedEpoch);

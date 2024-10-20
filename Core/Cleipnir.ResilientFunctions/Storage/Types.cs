@@ -4,9 +4,9 @@ namespace Cleipnir.ResilientFunctions.Storage;
 
 public record StoredFlow(
     FlowId FlowId,
-    string? Parameter,
+    byte[]? Parameter,
     Status Status,
-    string? Result,
+    byte[]? Result,
     StoredException? Exception,
     int Epoch,
     long Expires,
@@ -23,11 +23,11 @@ public record StoredEffect(
     EffectId EffectId,
     bool IsState,
     WorkStatus WorkStatus,
-    string? Result,
+    byte[]? Result,
     StoredException? StoredException
 )
 {
-    public static StoredEffect CreateCompleted(EffectId effectId, string result)
+    public static StoredEffect CreateCompleted(EffectId effectId, byte[] result)
         => new(effectId, IsState: false, WorkStatus.Completed, result, StoredException: null);
     public static StoredEffect CreateCompleted(EffectId effectId)
         => new(effectId, IsState: false, WorkStatus.Completed, Result: null, StoredException: null);
@@ -38,6 +38,6 @@ public record StoredEffect(
     public static StoredEffect CreateState(StoredState storedState)
         => new(storedState.StateId.Value, IsState: true, WorkStatus.Completed, storedState.StateJson, StoredException: null);
 };
-public record StoredState(StateId StateId, string StateJson);
+public record StoredState(StateId StateId, byte[] StateJson);
 
-public record IdWithParam(FlowId FlowId, string? Param);
+public record IdWithParam(FlowId FlowId, byte[]? Param);

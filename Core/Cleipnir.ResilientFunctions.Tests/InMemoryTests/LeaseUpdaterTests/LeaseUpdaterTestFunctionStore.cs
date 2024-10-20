@@ -27,7 +27,7 @@ public class LeaseUpdaterTestFunctionStore : IFunctionStore
 
     public Task<bool> CreateFunction(
         FlowId flowId, 
-        string? param, 
+        byte[]? param, 
         long leaseExpiration,
         long? postponeUntil,
         long timestamp
@@ -53,7 +53,7 @@ public class LeaseUpdaterTestFunctionStore : IFunctionStore
 
     public Task<bool> SetFunctionState(
         FlowId flowId, Status status, 
-        string? storedParameter, string? storedResult, 
+        byte[]? storedParameter, byte[]? storedResult, 
         StoredException? storedException, 
         long expires, 
         int expectedEpoch
@@ -61,7 +61,7 @@ public class LeaseUpdaterTestFunctionStore : IFunctionStore
 
     public Task<bool> SucceedFunction(
         FlowId flowId, 
-        string? result, 
+        byte[]? result, 
         long timestamp, 
         int expectedEpoch, 
         ComplimentaryState complimentaryState
@@ -95,7 +95,7 @@ public class LeaseUpdaterTestFunctionStore : IFunctionStore
 
     public Task<bool?> Interrupted(FlowId flowId) => _inner.Interrupted(flowId);
 
-    public Task<bool> SetParameters(FlowId flowId, string? storedParameter, string? storedResult, int expectedEpoch)
+    public Task<bool> SetParameters(FlowId flowId, byte[]? storedParameter, byte[]? storedResult, int expectedEpoch)
         => _inner.SetParameters(flowId, storedParameter, storedResult, expectedEpoch);
 
     public Task<StatusAndEpoch?> GetFunctionStatus(FlowId flowId)

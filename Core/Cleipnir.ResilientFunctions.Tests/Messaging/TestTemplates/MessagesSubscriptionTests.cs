@@ -38,7 +38,7 @@ public abstract class MessagesSubscriptionTests
         
         await messageStore.AppendMessage(
             functionId,
-            new StoredMessage("hello world". ToJson(), typeof(string).SimpleQualifiedName())
+            new StoredMessage("hello world". ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes())
         );
         
         events = await messageStore.GetMessages(functionId, skip: 0);
@@ -53,7 +53,7 @@ public abstract class MessagesSubscriptionTests
         
         await messageStore.AppendMessage(
             functionId,
-            new StoredMessage("hello universe".ToJson(), typeof(string).SimpleQualifiedName())
+            new StoredMessage("hello universe".ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes())
         );
         
         events = await messageStore.GetMessages(functionId, skip: 1);

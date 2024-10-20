@@ -2,7 +2,6 @@
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Storage;
-using static Cleipnir.ResilientFunctions.Helpers.Helpers;
 
 namespace Cleipnir.ResilientFunctions.CoreRuntime.ParameterSerialization;
 
@@ -12,15 +11,15 @@ public class ErrorHandlingDecorator : ISerializer
 
     public ErrorHandlingDecorator(ISerializer inner) => _inner = inner;
     
-    public string SerializeParameter<TParam>(TParam parameter) 
+    public byte[] SerializeParameter<TParam>(TParam parameter) 
         => _inner.SerializeParameter(parameter);
-    public TParam DeserializeParameter<TParam>(string json) 
+    public TParam DeserializeParameter<TParam>(byte[] json) 
     {
         try
         {
             return _inner.DeserializeParameter<TParam>(json)
                    ?? throw new DeserializationException(
-                       $"Deserialized parameter was null for type '{typeof(TParam).SimpleQualifiedName()}' and json: '{MinifyJson(json)}'", 
+                       $"Deserialized parameter was null for type '{typeof(TParam).SimpleQualifiedName()}' and json: '{Convert.ToBase64String(json)}'", 
                        new NullReferenceException()
                    );
         }
@@ -31,7 +30,7 @@ public class ErrorHandlingDecorator : ISerializer
         catch (Exception e)
         {
             throw new DeserializationException(
-                $"Unable to deserialize parameter with type: '{typeof(TParam).SimpleQualifiedName()}' and json: '{MinifyJson(json)}'", 
+                $"Unable to deserialize parameter with type: '{typeof(TParam).SimpleQualifiedName()}' and json: '{Convert.ToBase64String(json)}'", 
                 e
             );
         }
@@ -58,15 +57,15 @@ public class ErrorHandlingDecorator : ISerializer
         }
     }
 
-    public string SerializeResult<TResult>(TResult result) 
+    public byte[] SerializeResult<TResult>(TResult result) 
         => _inner.SerializeResult(result);
-    public TResult DeserializeResult<TResult>(string json) 
+    public TResult DeserializeResult<TResult>(byte[] json) 
     {
         try
         {
             return _inner.DeserializeResult<TResult>(json)
                    ?? throw new DeserializationException(
-                       $"Deserialized result was null with type: '{typeof(TResult).SimpleQualifiedName()}' and json: '{MinifyJson(json)}'", 
+                       $"Deserialized result was null with type: '{typeof(TResult).SimpleQualifiedName()}' and json: '{Convert.ToBase64String(json)}'", 
                        new NullReferenceException()
                    );
         }
@@ -77,7 +76,7 @@ public class ErrorHandlingDecorator : ISerializer
         catch (Exception e)
         {
             throw new DeserializationException(
-                $"Unable to deserialize result with type: '{typeof(TResult).SimpleQualifiedName()}' and json: '{MinifyJson(json)}'", 
+                $"Unable to deserialize result with type: '{typeof(TResult).SimpleQualifiedName()}' and json: '{Convert.ToBase64String(json)}'", 
                 e
             );
         }
@@ -85,13 +84,13 @@ public class ErrorHandlingDecorator : ISerializer
 
     public JsonAndType SerializeMessage<TEvent>(TEvent message) where TEvent : notnull
         => _inner.SerializeMessage(message);
-    public object DeserializeMessage(string json, string type)
+    public object DeserializeMessage(byte[] json, byte[] type)
     {
         try
         {
             return _inner.DeserializeMessage(json, type)
                    ?? throw new DeserializationException(
-                       $"Deserialized event was null with type: '{type}' and json: '{MinifyJson(json)}'", 
+                       $"Deserialized event was null with type: '{type}' and json: '{Convert.ToBase64String(json)}'", 
                        new NullReferenceException()
                    );
         }
@@ -102,21 +101,21 @@ public class ErrorHandlingDecorator : ISerializer
         catch (Exception e)
         {
             throw new DeserializationException(
-                $"Unable to deserialize event with type: '{type}' and json: '{MinifyJson(json)}'", 
+                $"Unable to deserialize event with type: '{type}' and json: '{Convert.ToBase64String(json)}'", 
                 e
             );
         }
     }
 
-    public string SerializeEffectResult<TResult>(TResult result)
+    public byte[] SerializeEffectResult<TResult>(TResult result)
         => _inner.SerializeEffectResult(result);
-    public TResult DeserializeEffectResult<TResult>(string json)
+    public TResult DeserializeEffectResult<TResult>(byte[] json)
     {
         try
         {
             return _inner.DeserializeEffectResult<TResult>(json)
                    ?? throw new DeserializationException(
-                       $"Deserialized Effect's result was null with type: '{typeof(TResult)}' and json: '{MinifyJson(json)}'", 
+                       $"Deserialized Effect's result was null with type: '{typeof(TResult)}' and json: '{Convert.ToBase64String(json)}'", 
                        new NullReferenceException()
                    );
         }
@@ -127,21 +126,21 @@ public class ErrorHandlingDecorator : ISerializer
         catch (Exception e)
         {
             throw new DeserializationException(
-                $"Unable to deserialize effect to type: '{typeof(TResult)}' and json: '{MinifyJson(json)}'",  
+                $"Unable to deserialize effect to type: '{typeof(TResult)}' and bytes: '{Convert.ToBase64String(json)}'",  
                 e
             );
         }
     }
 
-    public string SerializeState<TState>(TState state) where TState : FlowState, new()
+    public byte[] SerializeState<TState>(TState state) where TState : FlowState, new()
         => _inner.SerializeState(state);
-    public TState DeserializeState<TState>(string json) where TState : FlowState, new()
+    public TState DeserializeState<TState>(byte[] json) where TState : FlowState, new()
     {
         try
         {
             return _inner.DeserializeState<TState>(json)
                    ?? throw new DeserializationException(
-                       $"Deserialized state was null with type: '{typeof(TState)}' and json: '{MinifyJson(json)}'", 
+                       $"Deserialized state was null with type: '{typeof(TState)}' and json: '{Convert.ToBase64String(json)}'", 
                        new NullReferenceException()
                    );
         }
@@ -152,7 +151,7 @@ public class ErrorHandlingDecorator : ISerializer
         catch (Exception e)
         {
             throw new DeserializationException(
-                $"Unable to deserialize state with type: '{typeof(TState)}' and json: '{MinifyJson(json)}'",  
+                $"Unable to deserialize state with type: '{typeof(TState)}' and json: '{Convert.ToBase64String(json)}'",  
                 e
             );
         }

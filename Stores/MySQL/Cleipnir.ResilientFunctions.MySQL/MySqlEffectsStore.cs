@@ -25,7 +25,7 @@ public class MySqlEffectsStore : IEffectsStore
                 id VARCHAR(450),
                 is_state BIT,
                 status INT NOT NULL,
-                result TEXT NULL,
+                result LONGBLOB NULL,
                 exception TEXT NULL,
                 PRIMARY KEY(id, is_state)
             );";
@@ -95,7 +95,7 @@ public class MySqlEffectsStore : IEffectsStore
             var effectId = Escaper.Unescape(id)[2];
             var isState = reader.GetBoolean(1);
             var status = (WorkStatus) reader.GetInt32(2);
-            var result = reader.IsDBNull(3) ? null : reader.GetString(3);
+            var result = reader.IsDBNull(3) ? null : (byte[]) reader.GetValue(3);
             var exception = reader.IsDBNull(4) ? null : reader.GetString(4);
             functions.Add(
                 new StoredEffect(

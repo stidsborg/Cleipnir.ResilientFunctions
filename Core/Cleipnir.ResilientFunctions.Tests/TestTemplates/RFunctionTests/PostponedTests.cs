@@ -138,7 +138,7 @@ public abstract class PostponedTests
 
             var states = await store.EffectsStore.GetEffectResults(functionId);
             var state = states.Single(e => e.EffectId == "State");
-            state.Result!.DeserializeFromJsonTo<State>().Value.ShouldBe(1);
+            state.Result!.ToStringFromUtf8Bytes().DeserializeFromJsonTo<State>().Value.ShouldBe(1);
             
             await rFunc(param, param).ShouldBeAsync("TEST");
             unhandledExceptionHandler.ShouldNotHaveExceptions();
@@ -245,7 +245,7 @@ public abstract class PostponedTests
 
             var states = await store.EffectsStore.GetEffectResults(functionId);
             var state = states.Single(e => e.EffectId == "State");
-            state.Result!.DeserializeFromJsonTo<State>().Value.ShouldBe(1);
+            state.Result!.ToStringFromUtf8Bytes().DeserializeFromJsonTo<State>().Value.ShouldBe(1);
 
             await rFunc(flowInstance.Value, param);
             unhandledExceptionHandler.ShouldNotHaveExceptions();
@@ -345,7 +345,7 @@ public abstract class PostponedTests
             var functionId = new FlowId(flowType, "re-invoke");
             await store.CreateFunction(
                 functionId,
-                param: "hello".ToJson(),
+                param: "hello".ToJson().ToUtf8Bytes(),
                 leaseExpiration: DateTime.UtcNow.Ticks,
                 postponeUntil: null,
                 timestamp: DateTime.UtcNow.Ticks
@@ -366,7 +366,7 @@ public abstract class PostponedTests
             var functionId = new FlowId(flowType, "schedule_re-invoke");
             await store.CreateFunction(
                 functionId,
-                param: "hello".ToJson(),
+                param: "hello".ToJson().ToUtf8Bytes(),
                 leaseExpiration: DateTime.UtcNow.Ticks,
                 postponeUntil: null,
                 timestamp: DateTime.UtcNow.Ticks
@@ -432,7 +432,7 @@ public abstract class PostponedTests
             var functionId = new FlowId(flowType, "re-invoke");
             await store.CreateFunction(
                 functionId,
-                param: "hello".ToJson(), 
+                param: "hello".ToJson().ToUtf8Bytes(), 
                 leaseExpiration: DateTime.UtcNow.Ticks,
                 postponeUntil: null,
                 timestamp: DateTime.UtcNow.Ticks
@@ -453,7 +453,7 @@ public abstract class PostponedTests
             var functionId = new FlowId(flowType, "schedule_re-invoke");
             await store.CreateFunction(
                 functionId,
-                param: "hello".ToJson(),
+                param: "hello".ToJson().ToUtf8Bytes(),
                 leaseExpiration: DateTime.UtcNow.Ticks,
                 postponeUntil: null,
                 timestamp: DateTime.UtcNow.Ticks
@@ -521,7 +521,7 @@ public abstract class PostponedTests
             var functionId = new FlowId(flowType, "re-invoke");
             await store.CreateFunction(
                 functionId,
-                param: "hello".ToJson(),
+                param: "hello".ToJson().ToUtf8Bytes(),
                 leaseExpiration: DateTime.UtcNow.Ticks,
                 postponeUntil: null,
                 timestamp: DateTime.UtcNow.Ticks
@@ -540,7 +540,7 @@ public abstract class PostponedTests
             var functionId = new FlowId(flowType, "schedule_re-invoke");
             await store.CreateFunction(
                 functionId,
-                param: "hello".ToJson(),
+                param: "hello".ToJson().ToUtf8Bytes(),
                 leaseExpiration: DateTime.UtcNow.Ticks,
                 postponeUntil: null,
                 timestamp: DateTime.UtcNow.Ticks
@@ -607,7 +607,7 @@ public abstract class PostponedTests
             var functionId = new FlowId(flowType, "re-invoke");
             await store.CreateFunction(
                 functionId,
-                "hello".ToJson(),
+                "hello".ToJson().ToUtf8Bytes(),
                 leaseExpiration: DateTime.UtcNow.Ticks,
                 postponeUntil: null,
                 timestamp: DateTime.UtcNow.Ticks
@@ -627,7 +627,7 @@ public abstract class PostponedTests
             var functionId = new FlowId(flowType, "schedule_re-invoke");
             await store.CreateFunction(
                 functionId,
-                param: "hello".ToJson(),
+                param: "hello".ToJson().ToUtf8Bytes(),
                 leaseExpiration: DateTime.UtcNow.Ticks,
                 postponeUntil: null,
                 timestamp: DateTime.UtcNow.Ticks
@@ -660,7 +660,7 @@ public abstract class PostponedTests
         
         await store.CreateFunction(
             functionId,
-            storedParameter,
+            storedParameter.ToUtf8Bytes(),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -671,7 +671,7 @@ public abstract class PostponedTests
             postponeUntil: DateTime.UtcNow.AddDays(-1).Ticks,
             timestamp: DateTime.UtcNow.Ticks,
             expectedEpoch: 0,
-            complimentaryState: new ComplimentaryState(storedParameter.ToFunc(), LeaseLength: 0)
+            complimentaryState: new ComplimentaryState(storedParameter.ToUtf8Bytes().ToFunc(), LeaseLength: 0)
         ).ShouldBeTrueAsync();
 
         using var functionsRegistry = new FunctionsRegistry(
@@ -698,7 +698,7 @@ public abstract class PostponedTests
         unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
     
-    private class State : Domain.FlowState
+    private class State : FlowState
     {
         public int Value { get; set; }
     }

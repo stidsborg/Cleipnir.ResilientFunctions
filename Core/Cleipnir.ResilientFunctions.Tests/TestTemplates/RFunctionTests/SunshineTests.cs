@@ -46,7 +46,7 @@ public abstract class SunshineTests
         storedFunction.ShouldNotBeNull();
         storedFunction.Status.ShouldBe(Status.Succeeded);
         storedFunction.Result.ShouldNotBeNull();
-        var storedResult = storedFunction.Result.DeserializeFromJsonTo<string>();
+        var storedResult = storedFunction.Result.ToStringFromUtf8Bytes().DeserializeFromJsonTo<string>();
         storedResult.ShouldBe("HELLO");
             
         unhandledExceptionHandler.ShouldNotHaveExceptions();
@@ -147,7 +147,7 @@ public abstract class SunshineTests
         storedFunction.ShouldNotBeNull();
         storedFunction.Status.ShouldBe(Status.Succeeded);
         storedFunction.Result.ShouldNotBeNull();
-        var storedResult = storedFunction.Result.DeserializeFromJsonTo<string>();
+        var storedResult = storedFunction.Result.ToStringFromUtf8Bytes().DeserializeFromJsonTo<string>();
         storedResult.ShouldBe("HELLO");
             
         unhandledExceptionHandler.ShouldNotHaveExceptions();
@@ -254,7 +254,7 @@ public abstract class SunshineTests
             .ShouldNotBeNullAsync();
 
         var states = await store.EffectsStore.GetEffectResults(functionId);
-        var state = states.Single(e => e.EffectId == "State").Result!.DeserializeFromJsonTo<ListState<string>>();
+        var state = states.Single(e => e.EffectId == "State").Result!.ToStringFromUtf8Bytes().DeserializeFromJsonTo<ListState<string>>();
         state.List.Single().ShouldBe("hello world");
     }
     

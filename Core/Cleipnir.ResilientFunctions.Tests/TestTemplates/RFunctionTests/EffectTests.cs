@@ -122,7 +122,7 @@ public abstract class EffectTests
         var effectResults = await store.EffectsStore.GetEffectResults(flowId);
         var storedEffect = effectResults.Single(r => r.EffectId == "Test");
         storedEffect.WorkStatus.ShouldBe(WorkStatus.Completed);
-        storedEffect.Result!.DeserializeFromJsonTo<string>().ShouldBe("hello");
+        storedEffect.Result!.ToStringFromUtf8Bytes().DeserializeFromJsonTo<string>().ShouldBe("hello");
 
         var controlPanel = await rAction.ControlPanel(flowId.Instance);
         controlPanel.ShouldNotBeNull();
@@ -131,7 +131,7 @@ public abstract class EffectTests
         effectResults = await store.EffectsStore.GetEffectResults(flowId);
         storedEffect = effectResults.Single(r => r.EffectId == "Test");
         storedEffect.WorkStatus.ShouldBe(WorkStatus.Completed);
-        storedEffect.Result!.DeserializeFromJsonTo<string>().ShouldBe("hello");
+        storedEffect.Result!.ToStringFromUtf8Bytes().DeserializeFromJsonTo<string>().ShouldBe("hello");
         syncedCounter.Current.ShouldBe(1);
     }
     
@@ -167,7 +167,7 @@ public abstract class EffectTests
         var effectResults = await store.EffectsStore.GetEffectResults(flowId);
         var storedEffect = effectResults.Single(r => r.EffectId == "Test");
         storedEffect.WorkStatus.ShouldBe(WorkStatus.Completed);
-        storedEffect.Result!.DeserializeFromJsonTo<string>().ShouldBe("hello");
+        storedEffect.Result!.ToStringFromUtf8Bytes().DeserializeFromJsonTo<string>().ShouldBe("hello");
 
         var controlPanel = await rAction.ControlPanel(flowId.Instance);
         controlPanel.ShouldNotBeNull();
@@ -176,7 +176,7 @@ public abstract class EffectTests
         effectResults = await store.EffectsStore.GetEffectResults(flowId);
         storedEffect = effectResults.Single(r => r.EffectId == "Test");
         storedEffect.WorkStatus.ShouldBe(WorkStatus.Completed);
-        storedEffect.Result!.DeserializeFromJsonTo<string>().ShouldBe("hello");
+        storedEffect.Result!.ToStringFromUtf8Bytes().DeserializeFromJsonTo<string>().ShouldBe("hello");
         syncedCounter.Current.ShouldBe(1);
     }
     
@@ -250,7 +250,7 @@ public abstract class EffectTests
         var effectResults = await store.EffectsStore.GetEffectResults(flowId);
         var storedEffect = effectResults.Single(r => r.EffectId == "WhenAny");
         storedEffect.WorkStatus.ShouldBe(WorkStatus.Completed);
-        storedEffect.Result!.DeserializeFromJsonTo<int>().ShouldBe(2);
+        storedEffect.Result!.ToStringFromUtf8Bytes().DeserializeFromJsonTo<int>().ShouldBe(2);
     }
     
     public abstract Task TaskWhenAllFuncTest();
@@ -276,7 +276,7 @@ public abstract class EffectTests
         var effectResults = await store.EffectsStore.GetEffectResults(flowId);
         var storedEffect = effectResults.Single(r => r.EffectId == "WhenAll");
         storedEffect.WorkStatus.ShouldBe(WorkStatus.Completed);
-        storedEffect.Result!.DeserializeFromJsonTo<int[]>().ShouldBe(new [] {1, 2});
+        storedEffect.Result!.ToStringFromUtf8Bytes().DeserializeFromJsonTo<int[]>().ShouldBe(new [] {1, 2});
     }
     
     public abstract Task ClearEffectsTest();

@@ -944,7 +944,7 @@ public abstract class ControlPanelTests
         await rAction.Invoke(flowInstance.Value, param: "param");
         await store.MessageStore.AppendMessage(
             functionId,
-            new StoredMessage("hello world".ToJson(), typeof(string).SimpleQualifiedName())
+            new StoredMessage("hello world".ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes())
         );
 
         var controlPanel = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
@@ -953,7 +953,7 @@ public abstract class ControlPanelTests
 
         await store.MessageStore.AppendMessage(
             functionId,
-            new StoredMessage("hello universe".ToJson(), typeof(string).SimpleQualifiedName())
+            new StoredMessage("hello universe".ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes())
         );
         
         await existingMessages.Clear();
@@ -981,14 +981,14 @@ public abstract class ControlPanelTests
         await rAction.Invoke(flowInstance.Value, param: "param");
         await store.MessageStore.AppendMessage(
             functionId,
-            new StoredMessage("hello world".ToJson(), typeof(string).SimpleQualifiedName())
+            new StoredMessage("hello world".ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes())
         );
 
         var controlPanel = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
 
         await store.MessageStore.AppendMessage(
             functionId,
-            new StoredMessage("hello universe".ToJson(), typeof(string).SimpleQualifiedName())
+            new StoredMessage("hello universe".ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes())
         );
 
         controlPanel.Param = "PARAM";
@@ -1025,7 +1025,7 @@ public abstract class ControlPanelTests
         await rAction.Invoke(flowInstance.Value, param: "param");
         await store.MessageStore.AppendMessage(
             functionId,
-            new StoredMessage("hello world".ToJson(), typeof(string).SimpleQualifiedName())
+            new StoredMessage("hello world".ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes())
         );
 
         var controlPanel = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
@@ -1034,7 +1034,7 @@ public abstract class ControlPanelTests
 
         await store.MessageStore.AppendMessage(
             functionId,
-            new StoredMessage("hello universe".ToJson(), typeof(string).SimpleQualifiedName())
+            new StoredMessage("hello universe".ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes())
         );
         
         await existingMessages.Clear();
@@ -1062,14 +1062,14 @@ public abstract class ControlPanelTests
         await rAction.Invoke(flowInstance.Value, param: "param");
         await store.MessageStore.AppendMessage(
             functionId,
-            new StoredMessage("hello world".ToJson(), typeof(string).SimpleQualifiedName())
+            new StoredMessage("hello world".ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes())
         );
 
         var controlPanel = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
 
         await store.MessageStore.AppendMessage(
             functionId,
-            new StoredMessage("hello universe".ToJson(), typeof(string).SimpleQualifiedName())
+            new StoredMessage("hello universe".ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes())
         );
 
         controlPanel.Param = "PARAM";
@@ -1285,7 +1285,7 @@ public abstract class ControlPanelTests
                 new EffectId("SomeId"),
                 IsState: false,
                 WorkStatus.Completed,
-                Result: "SomeResult".ToJson(),
+                Result: "SomeResult".ToJson().ToUtf8Bytes(),
                 StoredException: null
             )
         );
@@ -1322,7 +1322,7 @@ public abstract class ControlPanelTests
                 new EffectId("SomeId"),
                 IsState: false,
                 WorkStatus.Completed,
-                Result: "SomeResult".ToJson(),
+                Result: "SomeResult".ToJson().ToUtf8Bytes(),
                 StoredException: null
             )
         );

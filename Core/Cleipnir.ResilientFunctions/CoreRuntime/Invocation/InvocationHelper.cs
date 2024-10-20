@@ -411,7 +411,7 @@ internal class InvocationHelper<TParam, TReturn>
     public ExistingMessages CreateExistingMessages(FlowId flowId) => new(flowId, _functionStore.MessageStore, _settings.Serializer);
     public ExistingRegisteredTimeouts CreateExistingTimeouts(FlowId flowId) => new(flowId, _functionStore.TimeoutStore);
 
-    private string? SerializeParameter(TParam param)
+    private byte[]? SerializeParameter(TParam param)
     {
         if (typeof(TParam) == typeof(Unit))
             return null;
@@ -421,7 +421,7 @@ internal class InvocationHelper<TParam, TReturn>
             : Serializer.SerializeParameter(param);
     }
     
-    private string? SerializeResult(TReturn? result)
+    private byte[]? SerializeResult(TReturn? result)
     {
         if (typeof(TReturn) == typeof(Unit))
             return null;

@@ -254,7 +254,7 @@ public abstract class ReInvocationTests
         var function = await store.GetFunction(functionId);
         function.ShouldNotBeNull();
         function.Status.ShouldBe(Status.Succeeded);
-        function.Result!.DeserializeFromJsonTo<string>().ShouldBe("something");
+        function.Result!.ToStringFromUtf8Bytes().DeserializeFromJsonTo<string>().ShouldBe("something");
         
         unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
@@ -308,7 +308,7 @@ public abstract class ReInvocationTests
         var function = await store.GetFunction(functionId);
         function.ShouldNotBeNull();
         function.Status.ShouldBe(Status.Succeeded);
-        function.Result!.DeserializeFromJsonTo<string>().ShouldBe("something");
+        function.Result!.ToStringFromUtf8Bytes().DeserializeFromJsonTo<string>().ShouldBe("something");
         await controlPanel.Refresh();
         var state = await controlPanel.States.Get<ListState<string>>("State");
         state!.List.Single().ShouldBe("world");

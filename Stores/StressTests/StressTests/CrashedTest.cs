@@ -25,7 +25,7 @@ public static class CrashedTest
         {
             await store.CreateFunction(
                 new FlowId("CrashedTest", i.ToString()),
-                param: JsonSerializer.Serialize("hello world"),
+                param: JsonSerializer.Serialize("hello world").ToUtf8Bytes(),
                 leaseExpiration: DateTime.UtcNow.Ticks,
                 postponeUntil: null,
                 timestamp: DateTime.UtcNow.Ticks

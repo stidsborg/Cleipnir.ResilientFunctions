@@ -25,8 +25,8 @@ public class MySqlMessageStore : IMessageStore
                 type VARCHAR(255),
                 instance VARCHAR(255),
                 position INT NOT NULL,
-                message_json TEXT NOT NULL,
-                message_type VARCHAR(255) NOT NULL,   
+                message_json LONGBLOB NOT NULL,
+                message_type LONGBLOB NOT NULL,   
                 idempotency_key VARCHAR(255),          
                 PRIMARY KEY (type, instance, position)
             );";
@@ -169,8 +169,8 @@ public class MySqlMessageStore : IMessageStore
         await using var reader = await command.ExecuteReaderAsync();
         while (await reader.ReadAsync())
         {
-            var messageJson = reader.GetString(0);
-            var messageType = reader.GetString(1);
+            var messageJson = (byte[]) reader.GetValue(0);
+            var messageType = (byte[]) reader.GetValue(1);
             var idempotencyKey = reader.IsDBNull(2) ? null : reader.GetString(2);
             storedMessages.Add(new StoredMessage(messageJson, messageType, idempotencyKey));
         }

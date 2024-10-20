@@ -69,8 +69,8 @@ public class MySqlFunctionStore : IFunctionStore
                 status INT NOT NULL,
                 expires BIGINT NOT NULL,
                 interrupted BOOLEAN NOT NULL,                
-                param_json TEXT NULL,                                    
-                result_json TEXT NULL,
+                param_json LONGBLOB NULL,                                    
+                result_json LONGBLOB NULL,
                 exception_json TEXT NULL,                
                 timestamp BIGINT NOT NULL,
                 PRIMARY KEY (type, instance),
@@ -99,7 +99,7 @@ public class MySqlFunctionStore : IFunctionStore
     private string? _createFunctionSql;
     public async Task<bool> CreateFunction(
         FlowId flowId, 
-        string? param, 
+        byte[]? param, 
         long leaseExpiration,
         long? postponeUntil,
         long timestamp)
@@ -142,7 +142,7 @@ public class MySqlFunctionStore : IFunctionStore
         var rows = new List<string>();
         foreach (var ((type, instance), param) in functionsWithParam)
         {
-            var row = $"('{type.Value.EscapeString()}', '{instance.Value.EscapeString()}', {(param == null ? "NULL" : $"'{param.EscapeString()}'")}, {(int) Status.Postponed}, 0, 0, {now})";
+            var row = $"('{type.Value.EscapeString()}', '{instance.Value.EscapeString()}', {(param == null ? "NULL" : $"'0x{Convert.ToHexString(param)}'")}, {(int) Status.Postponed}, 0, 0, {now})"; 
             rows.Add(row);
         }
         var rowsSql = string.Join(", " + Environment.NewLine, rows);
@@ -284,7 +284,7 @@ public class MySqlFunctionStore : IFunctionStore
     private string? _setFunctionStateSql;
     public async Task<bool> SetFunctionState(
         FlowId flowId, Status status, 
-        string? storedParameter, string? storedResult, 
+        byte[]? storedParameter, byte[]? storedResult, 
         StoredException? storedException, 
         long expires,
         int expectedEpoch)
@@ -324,7 +324,7 @@ public class MySqlFunctionStore : IFunctionStore
     private string? _succeedFunctionSql;
     public async Task<bool> SucceedFunction(
         FlowId flowId, 
-        string? result, 
+        byte[]? result, 
         long timestamp,
         int expectedEpoch, 
         ComplimentaryState complimentaryState)
@@ -498,7 +498,7 @@ public class MySqlFunctionStore : IFunctionStore
     private string? _setParametersSql;
     public async Task<bool> SetParameters(
         FlowId flowId,
-        string? storedParameter, string? storedResult,
+        byte[]? storedParameter, byte[]? storedResult,
         int expectedEpoch)
     {
         await using var conn = await CreateOpenConnection(_connectionString);
@@ -702,9 +702,9 @@ public class MySqlFunctionStore : IFunctionStore
                 : null;
             return new StoredFlow(
                 flowId,
-                hasParam ? reader.GetString(paramIndex) : null,
+                hasParam ? (byte[]) reader.GetValue(paramIndex) : null,
                 Status: (Status) reader.GetInt32(statusIndex),
-                Result: hasResult ? reader.GetString(resultIndex) : null, 
+                Result: hasResult ? (byte[]) reader.GetValue(resultIndex) : null, 
                 storedException, Epoch: reader.GetInt32(epochIndex),
                 Expires: reader.GetInt64(expiresIndex),
                 Interrupted: reader.GetBoolean(interruptedIndex),

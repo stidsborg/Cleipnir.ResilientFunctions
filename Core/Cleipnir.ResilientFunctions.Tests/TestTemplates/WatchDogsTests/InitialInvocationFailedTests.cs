@@ -18,7 +18,7 @@ public abstract class InitialInvocationFailedTests
         var functionId = TestFlowId.Create();
         await store.CreateFunction(
             functionId,
-            param: "hello world".ToJson(),
+            param: "hello world".ToJson().ToUtf8Bytes(),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -48,7 +48,7 @@ public abstract class InitialInvocationFailedTests
         var functionId = TestFlowId.Create();
         await store.CreateFunction(
             functionId,
-            param: "hello world".ToJson(),
+            param: "hello world".ToJson().ToUtf8Bytes(),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -78,7 +78,7 @@ public abstract class InitialInvocationFailedTests
         var functionId = TestFlowId.Create();
         await store.CreateFunction(
             functionId,
-            param: "hello world".ToJson(),
+            param: "hello world".ToJson().ToUtf8Bytes(),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -101,7 +101,7 @@ public abstract class InitialInvocationFailedTests
         );
         var resultJson = await store.GetFunction(functionId).Map(sf => sf?.Result);
         resultJson.ShouldNotBeNull();
-        JsonConvert.DeserializeObject<string>(resultJson).ShouldBe("HELLO WORLD");
+        JsonConvert.DeserializeObject<string>(resultJson.ToStringFromUtf8Bytes()).ShouldBe("HELLO WORLD");
     }
 
     public abstract Task CreatedFuncWithStateIsCompletedByWatchdog();
@@ -111,7 +111,7 @@ public abstract class InitialInvocationFailedTests
         var functionId = TestFlowId.Create();
         await store.CreateFunction(
             functionId,
-            param: "hello world".ToJson(),
+            param: "hello world".ToJson().ToUtf8Bytes(),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -135,6 +135,6 @@ public abstract class InitialInvocationFailedTests
         
         var resultJson = await store.GetFunction(functionId).Map(sf => sf?.Result);
         resultJson.ShouldNotBeNull();
-        JsonConvert.DeserializeObject<string>(resultJson).ShouldBe("HELLO WORLD");
+        JsonConvert.DeserializeObject<string>(resultJson.ToStringFromUtf8Bytes()).ShouldBe("HELLO WORLD");
     }
 }

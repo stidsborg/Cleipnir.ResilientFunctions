@@ -1,5 +1,6 @@
 ﻿using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Tests.Utils;
 using Shouldly;
@@ -29,7 +30,7 @@ public abstract class ScheduledInvocationTests
         storedFunction.ShouldNotBeNull();
         
         storedFunction.Status.ShouldBe(Status.Executing);
-        storedFunction.Parameter!.DeserializeFromJsonTo<string>().ShouldBe(flowInstance);
+        storedFunction.Parameter!.ToStringFromUtf8Bytes().DeserializeFromJsonTo<string>().ShouldBe(flowInstance);
         unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
 
@@ -54,7 +55,7 @@ public abstract class ScheduledInvocationTests
         storedFunction.ShouldNotBeNull();
         
         storedFunction.Status.ShouldBe(Status.Executing);
-        storedFunction.Parameter!.DeserializeFromJsonTo<string>().ShouldBe(flowInstance);
+        storedFunction.Parameter!.ToStringFromUtf8Bytes().DeserializeFromJsonTo<string>().ShouldBe(flowInstance);
         unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
 
@@ -79,7 +80,7 @@ public abstract class ScheduledInvocationTests
         storedFunction.ShouldNotBeNull();
         
         storedFunction.Status.ShouldBe(Status.Executing);
-        storedFunction.Parameter!.DeserializeFromJsonTo<string>().ShouldBe(flowInstance);
+        storedFunction.Parameter!.ToStringFromUtf8Bytes().DeserializeFromJsonTo<string>().ShouldBe(flowInstance);
         unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
 
@@ -104,7 +105,7 @@ public abstract class ScheduledInvocationTests
         storedFunction.ShouldNotBeNull();
         
         storedFunction.Status.ShouldBe(Status.Executing);
-        storedFunction.Parameter!.DeserializeFromJsonTo<string>().ShouldBe(flowInstance);
+        storedFunction.Parameter!.ToStringFromUtf8Bytes().DeserializeFromJsonTo<string>().ShouldBe(flowInstance);
         unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
 }

@@ -79,10 +79,16 @@ public abstract class EffectStoreTests
         var storedEffect = await store.GetEffectResults(functionId).SelectAsync(r => r.Single());
         storedEffect.ShouldBe(effect);
 
-        effect = effect with { WorkStatus = WorkStatus.Completed, Result = "Hello World" };
+        effect = effect with { WorkStatus = WorkStatus.Completed, Result = "Hello World".ToUtf8Bytes() };
         await store.SetEffectResult(functionId, effect);
         storedEffect = await store.GetEffectResults(functionId).SelectAsync(r => r.Single());
-        storedEffect.ShouldBe(effect);
+        
+        storedEffect.EffectId.ShouldBe(effect.EffectId);
+        storedEffect.StoredException.ShouldBe(effect.StoredException);
+        storedEffect.Result!.ToStringFromUtf8Bytes().ShouldBe(effect.Result.ToStringFromUtf8Bytes());
+        storedEffect.WorkStatus.ShouldBe(effect.WorkStatus);
+        storedEffect.IsState.ShouldBe(effect.IsState);
+        
     }
     
     public abstract Task SingleFailingEffectLifeCycle();

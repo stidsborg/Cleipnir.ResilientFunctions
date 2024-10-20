@@ -20,11 +20,11 @@ public abstract class StatesStoreTests
 
         await statesStore.SetEffectResult(
             flowId,
-            StoredEffect.CreateState(new StoredState("Id#1", "SomeJson#1"))
+            StoredEffect.CreateState(new StoredState("Id#1", "SomeJson#1".ToUtf8Bytes()))
         );
         await statesStore.SetEffectResult(
             flowId,
-            StoredEffect.CreateState(new StoredState("Id#2", "SomeJson#2"))
+            StoredEffect.CreateState(new StoredState("Id#2", "SomeJson#2".ToUtf8Bytes()))
         );
 
         var states = await statesStore.GetEffectResults(flowId);
@@ -32,17 +32,17 @@ public abstract class StatesStoreTests
 
         var state1 = states.Single(s => s.EffectId == "Id#1");
         state1.IsState.ShouldBeTrue();
-        state1.Result.ShouldBe("SomeJson#1");
+        state1.Result.ShouldBe("SomeJson#1".ToUtf8Bytes());
 
         var state2 = states.Single(s => s.EffectId == "Id#2");
         state2.IsState.ShouldBeTrue();
-        state2.Result.ShouldBe("SomeJson#2");
+        state2.Result.ShouldBe("SomeJson#2".ToUtf8Bytes());
 
         await statesStore.DeleteEffectResult(flowId, state1.EffectId, isState: true);
         
         states = await statesStore.GetEffectResults(flowId);
         states.Count.ShouldBe(1);
         state2 = states.Single(s => s.EffectId == "Id#2");
-        state2.Result.ShouldBe("SomeJson#2");
+        state2.Result.ShouldBe("SomeJson#2".ToUtf8Bytes());
     }
 }

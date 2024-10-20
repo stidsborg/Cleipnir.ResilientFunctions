@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data.SqlTypes;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -76,8 +77,8 @@ public class SqlServerFunctionStore : IFunctionStore
                 Epoch INT NOT NULL,               
                 Expires BIGINT NOT NULL,
                 Interrupted BIT NOT NULL DEFAULT 0,
-                ParamJson NVARCHAR(MAX) NULL,                                        
-                ResultJson NVARCHAR(MAX) NULL,
+                ParamJson LONGBLOB NULL,                                        
+                ResultJson LONGBLOB NULL,
                 ExceptionJson NVARCHAR(MAX) NULL,                                                                        
                 Timestamp BIGINT NOT NULL,
                 PRIMARY KEY (FlowType, flowInstance)
@@ -119,7 +120,7 @@ public class SqlServerFunctionStore : IFunctionStore
     private string? _createFunctionSql;
     public async Task<bool> CreateFunction(
         FlowId flowId, 
-        string? param, 
+        byte[]? param, 
         long leaseExpiration,
         long? postponeUntil,
         long timestamp)
@@ -150,7 +151,7 @@ public class SqlServerFunctionStore : IFunctionStore
             command.Parameters.AddWithValue("@FlowType", flowId.Type.Value);
             command.Parameters.AddWithValue("@flowInstance", flowId.Instance.Value);
             command.Parameters.AddWithValue("@Status", (int) (postponeUntil == null ? Status.Executing : Status.Postponed));
-            command.Parameters.AddWithValue("@ParamJson", param == null ? DBNull.Value : param);
+            command.Parameters.AddWithValue("@ParamJson", param == null ? SqlBinary.Null : param);
             command.Parameters.AddWithValue("@Expires", postponeUntil ?? leaseExpiration);
             command.Parameters.AddWithValue("@Timestamp", timestamp);
 
@@ -208,7 +209,7 @@ public class SqlServerFunctionStore : IFunctionStore
             {
                 command.Parameters.AddWithValue($"@FlowType{idAndSql.Id}", idAndSql.FunctionId.Type.Value);
                 command.Parameters.AddWithValue($"@flowInstance{idAndSql.Id}", idAndSql.FunctionId.Instance.Value);
-                command.Parameters.AddWithValue($"@ParamJson{idAndSql.Id}", idAndSql.Param == null ? DBNull.Value : idAndSql.Param);
+                command.Parameters.AddWithValue($"@ParamJson{idAndSql.Id}", idAndSql.Param == null ? SqlBinary.Null : idAndSql.Param);
             }
             
             await command.ExecuteNonQueryAsync();
@@ -338,7 +339,7 @@ public class SqlServerFunctionStore : IFunctionStore
     private string? _setFunctionStateSql;
     public async Task<bool> SetFunctionState(
         FlowId flowId, Status status, 
-        string? param, string? result, 
+        byte[]? param, byte[]? result, 
         StoredException? storedException, 
         long expires,
         int expectedEpoch)
@@ -360,8 +361,8 @@ public class SqlServerFunctionStore : IFunctionStore
         
         await using var command = new SqlCommand(_setFunctionStateSql, conn);
         command.Parameters.AddWithValue("@Status", (int) status);
-        command.Parameters.AddWithValue("@ParamJson", param == null ? DBNull.Value : param);
-        command.Parameters.AddWithValue("@ResultJson", result == null ? DBNull.Value : result);
+        command.Parameters.AddWithValue("@ParamJson", param == null ? SqlBinary.Null : param);
+        command.Parameters.AddWithValue("@ResultJson", result == null ? SqlBinary.Null : result);
         var exceptionJson = storedException == null ? null : JsonSerializer.Serialize(storedException);
         command.Parameters.AddWithValue("@ExceptionJson", exceptionJson ?? (object) DBNull.Value);
         command.Parameters.AddWithValue("@Expires", expires);
@@ -376,7 +377,7 @@ public class SqlServerFunctionStore : IFunctionStore
     private string? _succeedFunctionSql;
     public async Task<bool> SucceedFunction(
         FlowId flowId, 
-        string? result, 
+        byte[]? result, 
         long timestamp,
         int expectedEpoch, 
         ComplimentaryState complimentaryState)
@@ -391,7 +392,7 @@ public class SqlServerFunctionStore : IFunctionStore
             AND Epoch = @ExpectedEpoch";
 
         await using var command = new SqlCommand(_succeedFunctionSql, conn);
-        command.Parameters.AddWithValue("@ResultJson", result == null ? DBNull.Value : result);
+        command.Parameters.AddWithValue("@ResultJson", result == null ? SqlBinary.Null : result);
         command.Parameters.AddWithValue("@Timestamp", timestamp);
         command.Parameters.AddWithValue("@flowInstance", flowId.Instance.Value);
         command.Parameters.AddWithValue("@FlowType", flowId.Type.Value);
@@ -523,7 +524,7 @@ public class SqlServerFunctionStore : IFunctionStore
     private string? _setParametersSql;
     public async Task<bool> SetParameters(
         FlowId flowId,
-        string? param, string? result,
+        byte[]? param, byte[]? result,
         int expectedEpoch)
     {
         await using var conn = await _connFunc();
@@ -536,8 +537,8 @@ public class SqlServerFunctionStore : IFunctionStore
             WHERE FlowType = @FlowType AND flowInstance = @flowInstance AND Epoch = @ExpectedEpoch";
 
         await using var command = new SqlCommand(_setParametersSql, conn);
-        command.Parameters.AddWithValue("@ParamJson", param == null ? DBNull.Value : param);
-        command.Parameters.AddWithValue("@ResultJson", result == null ? DBNull.Value : result);
+        command.Parameters.AddWithValue("@ParamJson", param == null ? SqlBinary.Null : param);
+        command.Parameters.AddWithValue("@ResultJson", result == null ? SqlBinary.Null : result);
         command.Parameters.AddWithValue("@flowInstance", flowId.Instance.Value);
         command.Parameters.AddWithValue("@FlowType", flowId.Type.Value);
         command.Parameters.AddWithValue("@ExpectedEpoch", expectedEpoch);
@@ -686,9 +687,9 @@ public class SqlServerFunctionStore : IFunctionStore
         {
             while (reader.Read())
             {
-                var parameter = reader.IsDBNull(0) ? null : reader.GetString(0);
+                var parameter = reader.IsDBNull(0) ? null : (byte[]) reader.GetValue(0);
                 var status = (Status) reader.GetInt32(1);
-                var result = reader.IsDBNull(2) ? null : reader.GetString(2);
+                var result = reader.IsDBNull(2) ? null : (byte[]) reader.GetValue(2);
                 var exceptionJson = reader.IsDBNull(3) ? null : reader.GetString(3);
                 var storedException = exceptionJson == null
                     ? null

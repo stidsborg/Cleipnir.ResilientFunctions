@@ -29,8 +29,8 @@ public class SqlServerMessageStore : IMessageStore
             FlowType NVARCHAR(255),
             FlowInstance NVARCHAR(255),
             Position INT NOT NULL,
-            MessageJson NVARCHAR(MAX) NOT NULL,
-            MessageType NVARCHAR(255) NOT NULL,   
+            MessageJson LONGBLOB NOT NULL,
+            MessageType LONGBLOB NOT NULL,   
             IdempotencyKey NVARCHAR(255),          
             PRIMARY KEY (FlowType, FlowInstance, Position)
         );";
@@ -148,8 +148,8 @@ public class SqlServerMessageStore : IMessageStore
             await using var reader = await command.ExecuteReaderAsync();
             while (await reader.ReadAsync())
             {
-                var messageJson = reader.GetString(0);
-                var messageType = reader.GetString(1);
+                var messageJson = (byte[]) reader.GetValue(0);
+                var messageType = (byte[]) reader.GetValue(1);
                 var idempotencyKey = reader.IsDBNull(2) ? null : reader.GetString(2);
                 storedMessages.Add(new StoredMessage(messageJson, messageType, idempotencyKey));
             }

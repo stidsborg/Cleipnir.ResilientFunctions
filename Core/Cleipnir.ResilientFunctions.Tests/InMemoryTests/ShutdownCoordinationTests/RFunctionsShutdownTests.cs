@@ -95,7 +95,7 @@ public class RFunctionsShutdownTests
 
         await store.CreateFunction(
             functionId,
-            param: "".ToJson(),
+            param: "".ToJson().ToUtf8Bytes(),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -144,7 +144,7 @@ public class RFunctionsShutdownTests
         
         await store.CreateFunction(
             functionId,
-            storedParameter,
+            storedParameter.ToUtf8Bytes(),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -155,7 +155,7 @@ public class RFunctionsShutdownTests
             postponeUntil: DateTime.UtcNow.AddDays(-1).Ticks,
             timestamp: DateTime.UtcNow.Ticks,
             expectedEpoch: 0,
-            new ComplimentaryState(() => storedParameter, LeaseLength: 0)
+            new ComplimentaryState(() => storedParameter.ToUtf8Bytes(), LeaseLength: 0)
         ).ShouldBeTrueAsync();
 
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();

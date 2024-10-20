@@ -45,7 +45,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
 
     public virtual Task<bool> CreateFunction(
         FlowId flowId,
-        string? param,
+        byte[]? param,
         long leaseExpiration,
         long? postponeUntil,
         long timestamp)
@@ -159,8 +159,8 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
     public virtual Task<bool> SetFunctionState(
         FlowId flowId,
         Status status,
-        string? param,
-        string? result,
+        byte[]? param,
+        byte[]? result,
         StoredException? storedException,
         long expires,
         int expectedEpoch)
@@ -188,7 +188,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
 
     public Task<bool> SucceedFunction(
         FlowId flowId, 
-        string? result, 
+        byte[]? result, 
         long timestamp,
         int expectedEpoch, 
         ComplimentaryState complimentaryState)
@@ -279,8 +279,8 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
 
     public virtual Task<bool> SetParameters(
         FlowId flowId, 
-        string? param, 
-        string? result, 
+        byte[]? param, 
+        byte[]? result, 
         int expectedEpoch)
     {
         lock (_sync)
@@ -417,9 +417,9 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
     private class InnerState
     {
         public FlowId FlowId { get; init; } = null!;
-        public string? Param { get; set; }
+        public byte[]? Param { get; set; }
         public Status Status { get; set; }
-        public string? Result { get; set; }
+        public byte[]? Result { get; set; }
         public StoredException? Exception { get; set; }
         public int Epoch { get; set; }
         public bool Interrupted { get; set; }

@@ -1,6 +1,7 @@
 ﻿using System.Collections.Concurrent;
 using System.Diagnostics;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.StressTests.Engines;
 using Cleipnir.ResilientFunctions.StressTests.StressTests.Utils;
@@ -75,7 +76,7 @@ public static class BulkInsertionTest
         Console.WriteLine("BULK_INSERTION_TEST: Initializing");
         var functions = Enumerable
             .Range(0, testSize)
-            .Select(i => new IdWithParam(new FlowId("BulkInsertionTest", i.ToString()), i.ToString().ToJson()));
+            .Select(i => new IdWithParam(new FlowId("BulkInsertionTest", i.ToString()), i.ToString().ToJson().ToUtf8Bytes()));
         await store.BulkScheduleFunctions(functions);
         
         stopWatch.Stop();

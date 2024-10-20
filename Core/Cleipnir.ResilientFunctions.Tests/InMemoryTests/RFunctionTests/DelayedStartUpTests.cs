@@ -21,7 +21,7 @@ public class DelayedStartUpTests
         var functionId = new FlowId("flowType", "flowInstance");
         await store.CreateFunction(
             functionId,
-            "hello world".ToJson(),
+            "hello world".ToJson().ToUtf8Bytes(),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -49,7 +49,7 @@ public class DelayedStartUpTests
         var functionId = new FlowId("flowType", "flowInstance");
         await store.CreateFunction(
             functionId,
-            "hello world".ToJson(),
+            "hello world".ToJson().ToUtf8Bytes(),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -74,7 +74,7 @@ public class DelayedStartUpTests
         var functionId = new FlowId("flowType", "flowInstance"); 
         await store.CreateFunction(
             functionId,
-            storedParameter,
+            storedParameter.ToUtf8Bytes(),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -84,7 +84,7 @@ public class DelayedStartUpTests
             postponeUntil: 0,
             timestamp: DateTime.UtcNow.Ticks,
             expectedEpoch: 0,
-            complimentaryState: new ComplimentaryState(storedParameter.ToFunc(), LeaseLength: 0)
+            complimentaryState: new ComplimentaryState(storedParameter.ToUtf8Bytes().ToFunc(), LeaseLength: 0)
         ).ShouldBeTrueAsync();
 
         var stopWatch = new Stopwatch();
@@ -107,7 +107,7 @@ public class DelayedStartUpTests
     {
         var store = new InMemoryFunctionStore();
 
-        var storedParameter = "hello world".ToJson();
+        var storedParameter = "hello world".ToJson().ToUtf8Bytes();
         var functionId = new FlowId("flowType", "flowInstance");
         await store.CreateFunction(
             functionId,

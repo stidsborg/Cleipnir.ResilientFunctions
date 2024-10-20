@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Tests.Utils;
@@ -29,7 +30,7 @@ public abstract class StoreCrudTests
         var leaseExpiration = DateTime.UtcNow.Ticks;
         await store.CreateFunction(
             FlowId,
-            Param,
+            Param.ToUtf8Bytes(),
             leaseExpiration,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -37,7 +38,7 @@ public abstract class StoreCrudTests
 
         var stored = await store.GetFunction(FlowId);
         stored!.FlowId.ShouldBe(FlowId);
-        stored.Parameter.ShouldBe(Param);
+        stored.Parameter.ShouldBe(Param.ToUtf8Bytes());
         stored.Result.ShouldBeNull();
         stored.Status.ShouldBe(Status.Executing);
         stored.Epoch.ShouldBe(0);
@@ -51,7 +52,7 @@ public abstract class StoreCrudTests
         var leaseExpiration = DateTime.UtcNow.Ticks;
         await store.CreateFunction(
             FlowId,
-            Param,
+            Param.ToUtf8Bytes(),
             leaseExpiration,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -59,7 +60,7 @@ public abstract class StoreCrudTests
 
         var stored = await store.GetFunction(FlowId);
         stored!.FlowId.ShouldBe(FlowId);
-        stored.Parameter.ShouldBe(Param);
+        stored.Parameter.ShouldBe(Param.ToUtf8Bytes());
         stored.Result.ShouldBeNull();
         stored.Status.ShouldBe(Status.Executing);
         stored.Epoch.ShouldBe(0);
@@ -73,7 +74,7 @@ public abstract class StoreCrudTests
         var leaseExpiration = DateTime.UtcNow.Ticks;
         await store.CreateFunction(
             FlowId,
-            Param,
+            Param.ToUtf8Bytes(),
             leaseExpiration,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -81,7 +82,7 @@ public abstract class StoreCrudTests
 
         var stored = await store.GetFunction(FlowId);
         stored!.FlowId.ShouldBe(FlowId);
-        stored.Parameter.ShouldBe(Param);
+        stored.Parameter.ShouldBe(Param.ToUtf8Bytes());
         stored.Result.ShouldBeNull();
         stored.Status.ShouldBe(Status.Executing);
         stored.Epoch.ShouldBe(0);
@@ -101,7 +102,7 @@ public abstract class StoreCrudTests
         var store = await storeTask;
         await store.CreateFunction(
             FlowId,
-            Param,
+            Param.ToUtf8Bytes(),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -121,7 +122,7 @@ public abstract class StoreCrudTests
         var leaseExpiration = DateTime.UtcNow.Ticks;
         await store.CreateFunction(
             FlowId,
-            Param,
+            Param.ToUtf8Bytes(),
             leaseExpiration,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -141,7 +142,7 @@ public abstract class StoreCrudTests
         var functionId = TestFlowId.Create();
         await store.CreateFunction(
             FlowId,
-            Param,
+            Param.ToUtf8Bytes(),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -149,14 +150,14 @@ public abstract class StoreCrudTests
 
         await store.EffectsStore.SetEffectResult(
             functionId,
-            StoredEffect.CreateState(new StoredState("SomeStateId", "SomeStateJson"))
+            StoredEffect.CreateState(new StoredState("SomeStateId", "SomeStateJson".ToUtf8Bytes()))
         );
         await store.CorrelationStore.SetCorrelation(functionId, "SomeCorrelationId");
         await store.EffectsStore.SetEffectResult(
             functionId,
             new StoredEffect("SomeEffectId", IsState: false, WorkStatus.Completed, Result: null, StoredException: null)
         );
-        await store.MessageStore.AppendMessage(functionId, new StoredMessage("SomeJson", "SomeType"));
+        await store.MessageStore.AppendMessage(functionId, new StoredMessage("SomeJson".ToUtf8Bytes(), "SomeType".ToUtf8Bytes()));
         await store.TimeoutStore.UpsertTimeout(
             new StoredTimeout(functionId, "SomeTimeoutId", Expiry: DateTime.UtcNow.AddDays(1).Ticks),
             overwrite: false
@@ -184,7 +185,7 @@ public abstract class StoreCrudTests
         var store = await storeTask;
         await store.CreateFunction(
             FlowId,
-            Param,
+            Param.ToUtf8Bytes(),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -194,7 +195,7 @@ public abstract class StoreCrudTests
 
         await store.SetParameters(
             FlowId,
-            updatedStoredParameter,
+            updatedStoredParameter.ToUtf8Bytes(),
             result: null,
             expectedEpoch: 0
         ).ShouldBeTrueAsync();
@@ -202,7 +203,7 @@ public abstract class StoreCrudTests
         var sf = await store.GetFunction(FlowId);
         sf.ShouldNotBeNull();
         sf.Parameter.ShouldNotBeNull();
-        var param = sf.Parameter.DeserializeFromJsonTo<string>();
+        var param = sf.Parameter.ToStringFromUtf8Bytes().DeserializeFromJsonTo<string>();
         param.ShouldBe("hello world");
     }
     
@@ -212,7 +213,7 @@ public abstract class StoreCrudTests
         var store = await storeTask;
         await store.CreateFunction(
             FlowId,
-            Param,
+            Param.ToUtf8Bytes(),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -222,14 +223,14 @@ public abstract class StoreCrudTests
 
         await store.SetParameters(
             FlowId,
-            updatedStoredParameter,
+            updatedStoredParameter.ToUtf8Bytes(),
             result: null,
             expectedEpoch: 0
         ).ShouldBeTrueAsync();
         
         var sf = await store.GetFunction(FlowId);
         sf.ShouldNotBeNull();
-        var param = sf.Parameter!.DeserializeFromJsonTo<string>();
+        var param = sf.Parameter!.ToStringFromUtf8Bytes().DeserializeFromJsonTo<string>();
         param.ShouldBe("hello world");
     }
     
@@ -239,7 +240,7 @@ public abstract class StoreCrudTests
         var store = await storeTask;
         await store.CreateFunction(
             FlowId,
-            Param,
+            Param.ToUtf8Bytes(),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -247,7 +248,7 @@ public abstract class StoreCrudTests
         
         await store.SetParameters(
             FlowId,
-            param: Param,
+            param: Param.ToUtf8Bytes(),
             result: null,
             expectedEpoch: 0
         ).ShouldBeTrueAsync();
@@ -263,7 +264,7 @@ public abstract class StoreCrudTests
         var store = await storeTask;
         await store.CreateFunction(
             FlowId,
-            Param,
+            Param.ToUtf8Bytes(),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
@@ -278,7 +279,7 @@ public abstract class StoreCrudTests
 
         await store.SetParameters(
             FlowId,
-            updatedStoredParameter,
+            updatedStoredParameter.ToUtf8Bytes(),
             result: null,
             expectedEpoch: 0
         ).ShouldBeFalseAsync();

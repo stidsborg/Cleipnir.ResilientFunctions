@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
@@ -70,4 +71,7 @@ internal static class Helpers
     }
     
     internal static string MinifyJson(string json) => Regex.Replace(json, "(\"(?:[^\"\\\\]|\\\\.)*\")|\\s+", "$1");
+    
+    public static byte[] ToUtf8Bytes(this string str) => Encoding.UTF8.GetBytes(str);
+    public static string ToStringFromUtf8Bytes(this byte[] bytes) => Encoding.UTF8.GetString(bytes);
 }

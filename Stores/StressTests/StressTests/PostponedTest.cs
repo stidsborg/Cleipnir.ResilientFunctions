@@ -27,7 +27,7 @@ public static class PostponedTest
             var functionId = new FlowId(nameof(PostponedTest), i.ToString());
             await store.CreateFunction(
                 functionId,
-                storedParameter,
+                storedParameter.ToUtf8Bytes(),
                 leaseExpiration: DateTime.UtcNow.Ticks,
                 postponeUntil: null,
                 timestamp: DateTime.UtcNow.Ticks
@@ -37,7 +37,7 @@ public static class PostponedTest
                 postponeUntil: start.Ticks,
                 timestamp: DateTime.UtcNow.Ticks,
                 expectedEpoch: 0,
-                complimentaryState: new ComplimentaryState(() => storedParameter, LeaseLength: 0)
+                complimentaryState: new ComplimentaryState(() => storedParameter.ToUtf8Bytes(), LeaseLength: 0)
             );
         }
         stopWatch.Stop();

@@ -18,7 +18,7 @@ public interface IFunctionStore
     
     Task<bool> CreateFunction(
         FlowId flowId, 
-        string? param,
+        byte[]? param,
         long leaseExpiration,
         long? postponeUntil,
         long timestamp
@@ -37,16 +37,16 @@ public interface IFunctionStore
     
     Task<bool> SetParameters(
         FlowId flowId,
-        string? param,
-        string? result,
+        byte[]? param,
+        byte[]? result,
         int expectedEpoch
     );
     
     Task<bool> SetFunctionState(
         FlowId flowId,
         Status status,
-        string? param,
-        string? result,
+        byte[]? param,
+        byte[]? result,
         StoredException? storedException,
         long expires,
         int expectedEpoch
@@ -54,7 +54,7 @@ public interface IFunctionStore
 
     Task<bool> SucceedFunction(
         FlowId flowId, 
-        string? result, 
+        byte[]? result, 
         long timestamp,
         int expectedEpoch, 
         ComplimentaryState complimentaryState
