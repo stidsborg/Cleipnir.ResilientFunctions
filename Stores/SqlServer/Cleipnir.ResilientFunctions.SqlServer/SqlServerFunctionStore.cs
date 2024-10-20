@@ -77,8 +77,8 @@ public class SqlServerFunctionStore : IFunctionStore
                 Epoch INT NOT NULL,               
                 Expires BIGINT NOT NULL,
                 Interrupted BIT NOT NULL DEFAULT 0,
-                ParamJson LONGBLOB NULL,                                        
-                ResultJson LONGBLOB NULL,
+                ParamJson VARBINARY(MAX) NULL,                                        
+                ResultJson VARBINARY(MAX) NULL,
                 ExceptionJson NVARCHAR(MAX) NULL,                                                                        
                 Timestamp BIGINT NOT NULL,
                 PRIMARY KEY (FlowType, flowInstance)

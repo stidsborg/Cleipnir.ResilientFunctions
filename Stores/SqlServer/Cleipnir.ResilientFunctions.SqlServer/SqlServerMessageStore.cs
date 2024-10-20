@@ -29,8 +29,8 @@ public class SqlServerMessageStore : IMessageStore
             FlowType NVARCHAR(255),
             FlowInstance NVARCHAR(255),
             Position INT NOT NULL,
-            MessageJson LONGBLOB NOT NULL,
-            MessageType LONGBLOB NOT NULL,   
+            MessageJson VARBINARY(MAX) NOT NULL,
+            MessageType VARBINARY(MAX) NOT NULL,   
             IdempotencyKey NVARCHAR(255),          
             PRIMARY KEY (FlowType, FlowInstance, Position)
         );";

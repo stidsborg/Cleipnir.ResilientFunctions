@@ -31,7 +31,7 @@ public class SqlServerEffectsStore : IEffectsStore
                 Id NVARCHAR(450),
                 IsState BIT,
                 Status INT NOT NULL,
-                Result LONGBLOB,
+                Result VARBINARY(MAX),
                 Exception NVARCHAR(MAX),
                 PRIMARY KEY (Id, IsState)
             );";
