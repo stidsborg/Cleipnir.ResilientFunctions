@@ -142,7 +142,7 @@ public class MySqlFunctionStore : IFunctionStore
         var rows = new List<string>();
         foreach (var ((type, instance), param) in functionsWithParam)
         {
-            var row = $"('{type.Value.EscapeString()}', '{instance.Value.EscapeString()}', {(param == null ? "NULL" : $"'0x{Convert.ToHexString(param)}'")}, {(int) Status.Postponed}, 0, 0, {now})"; 
+            var row = $"('{type.Value.EscapeString()}', '{instance.Value.EscapeString()}', {(param == null ? "NULL" : $"x'{Convert.ToHexString(param)}'")}, {(int) Status.Postponed}, 0, 0, {now})"; 
             rows.Add(row);
         }
         var rowsSql = string.Join(", " + Environment.NewLine, rows);

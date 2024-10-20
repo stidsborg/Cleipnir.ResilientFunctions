@@ -1094,7 +1094,7 @@ public abstract class StoreTests
             .ToList();
         
         await store.BulkScheduleFunctions(
-            functionIds.Select(functionId => new IdWithParam(functionId, Param: "".ToUtf8Bytes()))
+            functionIds.Select(functionId => new IdWithParam(functionId, Param: functionId.ToString().ToUtf8Bytes()))
         );
 
         var eligibleFunctions = 
@@ -1104,6 +1104,13 @@ public abstract class StoreTests
         foreach (var flowId in functionIds)
         {
             eligibleFunctions.Any(f => f.FlowId == flowId).ShouldBeTrue();
+        }
+
+        foreach (var id in functionIds)
+        {
+            var sf = await store.GetFunction(id);
+            sf.ShouldNotBeNull();
+            sf.Parameter!.ToStringFromUtf8Bytes().ShouldBe(id.ToString());
         }
     }
     
