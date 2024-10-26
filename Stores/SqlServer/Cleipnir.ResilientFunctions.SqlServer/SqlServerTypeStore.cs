@@ -56,7 +56,7 @@ public class SqlServerTypeStore(string connectionString, string tablePrefix = ""
         await using var conn = await CreateConnection();
         var sql = @$"    
             SELECT Ref
-            FROM {tablePrefix}_types
+            FROM {tablePrefix}_Types
             WHERE type = @FlowType";
 
         await using var command = new SqlCommand(sql, conn);
