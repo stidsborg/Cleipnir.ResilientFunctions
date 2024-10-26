@@ -22,6 +22,10 @@ public class MySqlFunctionStore : IFunctionStore
     
     private readonly MySqlTimeoutStore _timeoutStore;
     public ITimeoutStore TimeoutStore => _timeoutStore;
+    
+    private readonly MySqlTypeStore _typeStore;
+    public ITypeStore TypeStore => _typeStore;
+    
     private readonly MySqlCorrelationStore _correlationStore;
     public ICorrelationStore CorrelationStore => _correlationStore;
 
@@ -43,6 +47,7 @@ public class MySqlFunctionStore : IFunctionStore
         _correlationStore = new MySqlCorrelationStore(connectionString, tablePrefix);
         _timeoutStore = new MySqlTimeoutStore(connectionString, tablePrefix);
         _mySqlUnderlyingRegister = new MySqlUnderlyingRegister(connectionString, tablePrefix);
+        _typeStore = new MySqlTypeStore(connectionString, tablePrefix);
         _migrator  = new MySqlMigrator(connectionString, tablePrefix);
         
         Utilities = new Utilities(_mySqlUnderlyingRegister);
@@ -60,6 +65,7 @@ public class MySqlFunctionStore : IFunctionStore
         await EffectsStore.Initialize();
         await CorrelationStore.Initialize();
         await TimeoutStore.Initialize();
+        await _typeStore.Initialize();
         await using var conn = await CreateOpenConnection(_connectionString);
         _initializeSql ??= $@"
             CREATE TABLE IF NOT EXISTS {_tablePrefix} (
@@ -89,6 +95,7 @@ public class MySqlFunctionStore : IFunctionStore
         await _mySqlUnderlyingRegister.TruncateTable();
         await _effectsStore.Truncate();
         await _correlationStore.Truncate();
+        await _typeStore.Truncate();
         
         await using var conn = await CreateOpenConnection(_connectionString);
         _truncateTablesSql ??= $"TRUNCATE TABLE {_tablePrefix}";

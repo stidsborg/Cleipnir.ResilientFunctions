@@ -17,6 +17,7 @@ public class LeaseUpdaterTestFunctionStore : IFunctionStore
 
     public LeaseUpdaterTestFunctionStore(LeaseUpdaterCallback leaseUpdaterCallback) => _leaseUpdaterCallback = leaseUpdaterCallback;
 
+    public ITypeStore TypeStore => _inner.TypeStore;
     public IMessageStore MessageStore => _inner.MessageStore;
     public IEffectsStore EffectsStore => _inner.EffectsStore;
     public ITimeoutStore TimeoutStore => _inner.TimeoutStore;

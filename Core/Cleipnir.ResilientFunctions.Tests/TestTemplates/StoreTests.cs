@@ -1207,4 +1207,32 @@ public abstract class StoreTests
         flowTypes.Any(t => t == flowId1.Type).ShouldBeTrue();
         flowTypes.Any(t => t == flowId3.Type).ShouldBeTrue();
     }
+    
+    public abstract Task TypeStoreSunshineScenarioTest();
+    protected async Task TypeStoreSunshineScenarioTest(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask.SelectAsync(store => store.TypeStore);
+
+        var types = await store.GetAllFlowTypes();
+        types.Count.ShouldBe(0);
+
+        var flow1Value = await store.InsertOrGetFlowType("TestFlow1");
+        var value2 = await store.InsertOrGetFlowType("TestFlow1");
+        flow1Value.ShouldBe(value2);
+
+        types = await store.GetAllFlowTypes();
+        types.Count.ShouldBe(1);
+        types.TryGetValue("TestFlow1", out var dictValue).ShouldBeTrue();
+        dictValue.ShouldBe(flow1Value);
+
+        var flow2Value = await store.InsertOrGetFlowType("TestFlow2");
+        flow2Value.ShouldNotBe(flow1Value);
+        
+        types = await store.GetAllFlowTypes();
+        types.Count.ShouldBe(2);
+        types.TryGetValue("TestFlow1", out dictValue).ShouldBeTrue();
+        dictValue.ShouldBe(flow1Value);
+        types.TryGetValue("TestFlow2", out dictValue).ShouldBeTrue();
+        dictValue.ShouldBe(flow2Value);
+    }
 }

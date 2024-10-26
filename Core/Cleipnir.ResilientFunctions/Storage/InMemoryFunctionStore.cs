@@ -18,6 +18,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
     private readonly Dictionary<FlowId, List<StoredMessage>> _messages = new();
     private readonly object _sync = new();
 
+    public ITypeStore TypeStore { get; } = new InMemoryTypeStore();
     public IMessageStore MessageStore => this;
     private readonly InMemoryEffectsStore _effectsStore = new();
     public IEffectsStore EffectsStore => _effectsStore;

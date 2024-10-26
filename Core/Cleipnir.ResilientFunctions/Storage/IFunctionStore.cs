@@ -8,6 +8,7 @@ namespace Cleipnir.ResilientFunctions.Storage;
 
 public interface IFunctionStore
 {
+    public ITypeStore TypeStore { get; }
     public IMessageStore MessageStore { get; }
     public IEffectsStore EffectsStore { get; }
     public ITimeoutStore TimeoutStore { get; }
@@ -23,7 +24,7 @@ public interface IFunctionStore
         long? postponeUntil,
         long timestamp
     );
-
+    
     Task BulkScheduleFunctions(
         IEnumerable<IdWithParam> functionsWithParam
     );

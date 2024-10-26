@@ -21,11 +21,13 @@ public class SqlServerFunctionStore : IFunctionStore
     private readonly SqlServerEffectsStore _effectsStore;
     private readonly SqlServerMessageStore _messageStore;
     private readonly SqlServerCorrelationsStore _correlationStore;
+    private readonly SqlServerTypeStore _typeStore;
     private readonly SqlServerMigrator _migrator;
     
     public IEffectsStore EffectsStore => _effectsStore;
     public ITimeoutStore TimeoutStore => _timeoutStore;
     public ICorrelationStore CorrelationStore => _correlationStore;
+    public ITypeStore TypeStore => _typeStore;
     public IMessageStore MessageStore => _messageStore;
     public Utilities Utilities { get; }
     public IMigrator Migrator => _migrator;
@@ -42,6 +44,7 @@ public class SqlServerFunctionStore : IFunctionStore
         _underlyingRegister = new SqlServerUnderlyingRegister(connectionString, _tableName);
         _effectsStore = new SqlServerEffectsStore(connectionString, _tableName);
         _correlationStore = new SqlServerCorrelationsStore(connectionString, _tableName);
+        _typeStore = new SqlServerTypeStore(connectionString, _tableName);
         _migrator = new SqlServerMigrator(connectionString, _tableName);
         Utilities = new Utilities(_underlyingRegister);
     }
@@ -68,6 +71,7 @@ public class SqlServerFunctionStore : IFunctionStore
         await _effectsStore.Initialize();
         await _timeoutStore.Initialize();
         await _correlationStore.Initialize();
+        await _typeStore.Initialize();
         await using var conn = await _connFunc();
         _initializeSql ??= @$"    
             CREATE TABLE {_tableName} (
@@ -110,6 +114,7 @@ public class SqlServerFunctionStore : IFunctionStore
         await _timeoutStore.Truncate();
         await _effectsStore.Truncate();
         await _correlationStore.Truncate();
+        await _typeStore.Truncate();
         
         await using var conn = await _connFunc();
         _truncateSql ??= $"TRUNCATE TABLE {_tableName}";

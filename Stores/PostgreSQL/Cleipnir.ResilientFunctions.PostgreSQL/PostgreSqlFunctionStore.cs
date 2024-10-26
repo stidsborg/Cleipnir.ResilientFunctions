@@ -16,6 +16,9 @@ public class PostgreSqlFunctionStore : IFunctionStore
     private readonly string _connectionString;
     private readonly string _tableName;
 
+    public ITypeStore TypeStore => _typeStore;
+    private readonly PostgreSqlTypeStore _typeStore;
+    
     private readonly PostgreSqlMessageStore _messageStore;
     public IMessageStore MessageStore => _messageStore;
     
@@ -42,6 +45,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         _effectsStore = new PostgreSqlEffectsStore(connectionString, _tableName);
         _timeoutStore = new PostgreSqlTimeoutStore(connectionString, _tableName);
         _correlationStore = new PostgreSqlCorrelationStore(connectionString, _tableName);
+        _typeStore = new PostgreSqlTypeStore(connectionString, _tableName);
         _postgresSqlUnderlyingRegister = new PostgresSqlUnderlyingRegister(connectionString, _tableName);
         _migrator = new PostgreSqlMigrator(connectionString, _tableName);
         Utilities = new Utilities(_postgresSqlUnderlyingRegister);
@@ -66,6 +70,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         await _effectsStore.Initialize();
         await _timeoutStore.Initialize();
         await _correlationStore.Initialize();
+        await _typeStore.Initialize();
         await using var conn = await CreateConnection();
         _initializeSql ??= $@"
             CREATE TABLE IF NOT EXISTS {_tableName} (
@@ -103,6 +108,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         await _postgresSqlUnderlyingRegister.TruncateTable();
         await _effectsStore.Truncate();
         await _correlationStore.Truncate();
+        await _typeStore.Truncate();
         
         await using var conn = await CreateConnection();
         _truncateTableSql ??= $"TRUNCATE TABLE {_tableName}";

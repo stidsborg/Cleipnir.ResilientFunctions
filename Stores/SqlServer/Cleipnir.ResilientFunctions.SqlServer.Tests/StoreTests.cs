@@ -167,4 +167,8 @@ public class StoreTests : ResilientFunctions.Tests.TestTemplates.StoreTests
     [TestMethod]
     public override Task MultipleInstancesCanBeFetchedForFlowType()
         => MultipleInstancesCanBeFetchedForFlowType(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task TypeStoreSunshineScenarioTest()
+        => TypeStoreSunshineScenarioTest(FunctionStoreFactory.Create());
 }

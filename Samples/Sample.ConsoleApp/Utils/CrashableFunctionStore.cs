@@ -12,8 +12,8 @@ public class CrashableFunctionStore : IFunctionStore
 {
     private readonly IFunctionStore _inner;
     private volatile bool _crashed;
-
-    private readonly object _sync = new();
+    
+    public ITypeStore TypeStore => _inner.TypeStore;
     public IMessageStore MessageStore => _inner.MessageStore;
     public IEffectsStore EffectsStore => _inner.EffectsStore;
     public ITimeoutStore TimeoutStore => _inner.TimeoutStore;
