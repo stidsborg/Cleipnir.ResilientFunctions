@@ -9,6 +9,7 @@ namespace Cleipnir.ResilientFunctions.CoreRuntime;
 internal class LeaseUpdater : IDisposable
 {
     private readonly FlowId _flowId;
+    private readonly StoredId _storedId;
     private readonly int _epoch;
 
     private readonly TimeSpan _leaseLength;
@@ -18,13 +19,15 @@ internal class LeaseUpdater : IDisposable
     private volatile bool _disposed;
 
     private LeaseUpdater(
-        FlowId flowId, 
+        FlowId flowId,
+        StoredId storedId, 
         int epoch, 
         IFunctionStore functionStore,
         UnhandledExceptionHandler unhandledExceptionHandler,
         TimeSpan leaseLength)
     {
         _flowId = flowId;
+        _storedId = storedId;
         _epoch = epoch;
             
         _functionStore = functionStore;
@@ -32,10 +35,11 @@ internal class LeaseUpdater : IDisposable
         _leaseLength = leaseLength;
     }
 
-    public static IDisposable CreateAndStart(FlowId flowId, int epoch, IFunctionStore functionStore, SettingsWithDefaults settings)
+    public static IDisposable CreateAndStart(StoredId storedId, FlowId flowId, int epoch, IFunctionStore functionStore, SettingsWithDefaults settings)
     {
         var leaseUpdater = new LeaseUpdater(
             flowId,
+            storedId,
             epoch,
             functionStore,
             settings.UnhandledExceptionHandler,
@@ -60,7 +64,7 @@ internal class LeaseUpdater : IDisposable
                 if (_disposed) return;
 
                 var success = await _functionStore.RenewLease(
-                    _flowId,
+                    _storedId,
                     expectedEpoch: _epoch,
                     leaseExpiration: DateTime.UtcNow.Ticks + _leaseLength.Ticks
                 );
@@ -76,7 +80,7 @@ internal class LeaseUpdater : IDisposable
                 _disposed = true;
                 _unhandledExceptionHandler.Invoke(
                     new FrameworkException(
-                        $"{nameof(LeaseUpdater)} failed for '{_flowId}'",
+                        $"{nameof(LeaseUpdater)} failed for '{_storedId}'",
                         e,
                         _flowId
                     )

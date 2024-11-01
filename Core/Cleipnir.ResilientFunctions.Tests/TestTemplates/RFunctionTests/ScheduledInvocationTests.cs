@@ -19,14 +19,15 @@ public abstract class ScheduledInvocationTests
         
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
-        var schedule = functionsRegistry.RegisterFunc(
+        var reg = functionsRegistry.RegisterFunc(
             flowType,
             (string _) => NeverCompletingTask.OfType<Result<string>>()
-        ).Schedule;
+        );
+        var schedule = reg.Schedule;
         
         await schedule(flowInstance, flowInstance);
 
-        var storedFunction = await store.GetFunction(functionId);
+        var storedFunction = await store.GetFunction(reg.MapToStoredId(functionId));
         storedFunction.ShouldNotBeNull();
         
         storedFunction.Status.ShouldBe(Status.Executing);
@@ -44,14 +45,15 @@ public abstract class ScheduledInvocationTests
         
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
-        var schedule = functionsRegistry.RegisterFunc(
-            flowType,
-            (string _) => NeverCompletingTask.OfType<Result<string>>()
-        ).Schedule;
+        var reg = functionsRegistry.RegisterFunc(
+                flowType,
+                (string _) => NeverCompletingTask.OfType<Result<string>>()
+            );
+        var schedule = reg.Schedule;
 
         await schedule(flowInstance, flowInstance);
 
-        var storedFunction = await store.GetFunction(functionId);
+        var storedFunction = await store.GetFunction(reg.MapToStoredId(functionId));
         storedFunction.ShouldNotBeNull();
         
         storedFunction.Status.ShouldBe(Status.Executing);
@@ -69,14 +71,15 @@ public abstract class ScheduledInvocationTests
         
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
-        var schedule = functionsRegistry.RegisterAction(
+        var reg = functionsRegistry.RegisterAction(
             flowType,
             (string _) => NeverCompletingTask.OfType<Result>()
-        ).Schedule;
+        );
+        var schedule = reg.Schedule;
 
         await schedule(flowInstance, flowInstance);
         
-        var storedFunction = await store.GetFunction(functionId);
+        var storedFunction = await store.GetFunction(reg.MapToStoredId(functionId));
         storedFunction.ShouldNotBeNull();
         
         storedFunction.Status.ShouldBe(Status.Executing);
@@ -94,14 +97,15 @@ public abstract class ScheduledInvocationTests
         
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
-        var schedule = functionsRegistry.RegisterFunc(
+        var reg = functionsRegistry.RegisterFunc(
             flowType,
             (string _) => NeverCompletingTask.OfType<Result>()
-        ).Schedule;
+        );
+        var schedule = reg.Schedule;
 
         await schedule(flowInstance, flowInstance);
 
-        var storedFunction = await store.GetFunction(functionId);
+        var storedFunction = await store.GetFunction(reg.MapToStoredId(functionId));
         storedFunction.ShouldNotBeNull();
         
         storedFunction.Status.ShouldBe(Status.Executing);

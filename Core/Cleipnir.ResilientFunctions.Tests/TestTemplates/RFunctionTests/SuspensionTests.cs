@@ -42,10 +42,10 @@ public abstract class SuspensionTests
         );
 
         await BusyWait.Until(() =>
-            store.GetFunction(functionId).SelectAsync(sf => sf?.Status == Status.Suspended)
+            store.GetFunction(rAction.MapToStoredId(functionId)).SelectAsync(sf => sf?.Status == Status.Suspended)
         );
         
-        var sf = await store.GetFunction(functionId);
+        var sf = await store.GetFunction(rAction.MapToStoredId(functionId));
         sf.ShouldNotBeNull();
         sf.Status.ShouldBe(Status.Suspended);
         (sf.Epoch is 0).ShouldBeTrue();
@@ -76,10 +76,10 @@ public abstract class SuspensionTests
         );
         
         await BusyWait.Until(() =>
-            store.GetFunction(functionId).SelectAsync(sf => sf?.Status == Status.Suspended)
+            store.GetFunction(rFunc.MapToStoredId(functionId)).SelectAsync(sf => sf?.Status == Status.Suspended)
         );
 
-        var sf = await store.GetFunction(functionId);
+        var sf = await store.GetFunction(rFunc.MapToStoredId(functionId));
         sf.ShouldNotBeNull();
         sf.Status.ShouldBe(Status.Suspended);
         (sf.Epoch is 0).ShouldBeTrue();
@@ -205,7 +205,7 @@ public abstract class SuspensionTests
         await rFunc.MessageWriters.For(flowInstance).AppendMessage("hello universe");
         
         await BusyWait.Until(
-            () => store.GetFunction(functionId).SelectAsync(sf => sf?.Status == Status.Succeeded)
+            () => store.GetFunction(rFunc.MapToStoredId(functionId)).SelectAsync(sf => sf?.Status == Status.Succeeded)
         );
         
         unhandledExceptionHandler.ShouldNotHaveExceptions();
@@ -581,7 +581,7 @@ public abstract class SuspensionTests
             return controlPanel.Status == Status.Suspended;
         });
 
-        await store.Interrupt(id, onlyIfExecuting: false);
+        await store.Interrupt(registration.MapToStoredId(id), onlyIfExecuting: false);
         
         await BusyWait.Until(async () =>
         {
@@ -629,7 +629,7 @@ public abstract class SuspensionTests
         await registration.Schedule(flowInstance);
         await insideFlowFlag.WaitForRaised();
 
-        await store.Interrupt(id, onlyIfExecuting: true);
+        await store.Interrupt(registration.MapToStoredId(id), onlyIfExecuting: true);
         canContinueFlag.Raise();
         
         await executingAgainFlag.WaitForRaised();

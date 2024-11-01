@@ -9,15 +9,15 @@ namespace Cleipnir.ResilientFunctions.Messaging;
 
 public class MessageWriter
 {
-    private readonly FlowId _flowId;
+    private readonly StoredId _storedId;
     private readonly IFunctionStore _functionStore;
     private readonly IMessageStore _messageStore;
     private readonly ISerializer _serializer;
     private readonly ScheduleReInvocation _scheduleReInvocation;
 
-    public MessageWriter(FlowId flowId, IFunctionStore functionStore, ISerializer eventSerializer, ScheduleReInvocation scheduleReInvocation)
+    public MessageWriter(StoredId storedIdId, IFunctionStore functionStore, ISerializer eventSerializer, ScheduleReInvocation scheduleReInvocation)
     {
-        _flowId = flowId;
+        _storedId = storedIdId;
         _functionStore = functionStore;
         _messageStore = functionStore.MessageStore;
         _serializer = eventSerializer;
@@ -29,7 +29,7 @@ public class MessageWriter
         var (eventJson, eventType) = _serializer.SerializeMessage(message);
         
         var functionStatus = await _messageStore.AppendMessage(
-            _flowId,
+            _storedId,
             new StoredMessage(eventJson, eventType, idempotencyKey)
         );
         if (functionStatus == null)
@@ -41,12 +41,12 @@ public class MessageWriter
         
         if (status == Status.Executing)
         {
-            var success = await _functionStore.Interrupt(_flowId, onlyIfExecuting: true);
+            var success = await _functionStore.Interrupt(_storedId, onlyIfExecuting: true);
             if (success)
                 return Finding.Found; //executing function will notice interrupt increment and reschedule itself on suspension
             
             //otherwise update status and epoch, so we can reschedule if new status is postponed or suspended
-            var statusAndEpoch = await _functionStore.GetFunctionStatus(_flowId);
+            var statusAndEpoch = await _functionStore.GetFunctionStatus(_storedId);
             if (statusAndEpoch == null)
                 return Finding.Found;
 
@@ -57,7 +57,7 @@ public class MessageWriter
         if (status == Status.Postponed || status == Status.Suspended)
             try 
             {
-                await _scheduleReInvocation(_flowId.Instance.Value, expectedEpoch: epoch);
+                await _scheduleReInvocation(_storedId.Instance, expectedEpoch: epoch);
             }
             catch (UnexpectedStateException) { }
 

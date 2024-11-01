@@ -8,15 +8,15 @@ namespace Cleipnir.ResilientFunctions.Domain;
 
 public class ExistingStates
 {
-    private readonly FlowId _flowId;
+    private readonly StoredId _storedId;
     private Dictionary<StateId, StoredState>? _storedStates;
     private readonly IFunctionStore _functionStore;
     private readonly IEffectsStore _effectsStore;
     private readonly ISerializer _serializer;
 
-    public ExistingStates(FlowId flowId, IFunctionStore functionStore, ISerializer serializer)
+    public ExistingStates(StoredId storedId, IFunctionStore functionStore, ISerializer serializer)
     {
-        _flowId = flowId;
+        _storedId = storedId;
         _functionStore = functionStore;
         _effectsStore = functionStore.EffectsStore;
         _serializer = serializer;
@@ -27,7 +27,7 @@ public class ExistingStates
         if (_storedStates is not null)
             return _storedStates;
 
-        return _storedStates = (await _functionStore.EffectsStore.GetEffectResults(_flowId))
+        return _storedStates = (await _functionStore.EffectsStore.GetEffectResults(_storedId))
             .Where(se => se.IsState)
             .Select(se => new StoredState(se.EffectId.Value, se.Result!))
             .ToDictionary(s => s.StateId, s => s);
@@ -56,7 +56,7 @@ public class ExistingStates
     public async Task Remove(string stateId)
     {
         var storedStates = await GetStoredStates();
-        await _effectsStore.DeleteEffectResult(_flowId, stateId, isState: true);
+        await _effectsStore.DeleteEffectResult(_storedId, stateId, isState: true);
         storedStates.Remove(stateId);
     }
 
@@ -68,7 +68,7 @@ public class ExistingStates
         var storedStates = await GetStoredStates();
         var json = _serializer.SerializeState(state);
         var storedState = new StoredState(stateId, json);
-        await _effectsStore.SetEffectResult(_flowId, StoredEffect.CreateState(storedState));
+        await _effectsStore.SetEffectResult(_storedId, StoredEffect.CreateState(storedState));
         storedStates[stateId] = storedState;
     }
 }

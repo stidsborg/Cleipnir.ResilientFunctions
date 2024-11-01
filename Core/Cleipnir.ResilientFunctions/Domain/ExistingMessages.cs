@@ -5,12 +5,13 @@ using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.ParameterSerialization;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
+using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.Domain;
 
 public class ExistingMessages 
 {
-    private readonly FlowId _flowId;
+    private readonly StoredId _storedId;
     private List<MessageAndIdempotencyKey>? _receivedMessages;
     private readonly IMessageStore _messageStore;
     private readonly ISerializer _serializer;
@@ -21,9 +22,9 @@ public class ExistingMessages
         .ContinueWith(t => (IReadOnlyList<object>) t.Result.Select(m => m.Message).ToList());
     public Task<int> Count => GetReceivedMessages().SelectAsync(messages => messages.Count);
 
-    public ExistingMessages(FlowId flowId, IMessageStore messageStore, ISerializer serializer)
+    public ExistingMessages(StoredId storedId, IMessageStore messageStore, ISerializer serializer)
     {
-        _flowId = flowId;
+        _storedId = storedId;
         _messageStore = messageStore;
         _serializer = serializer;
     }
@@ -33,7 +34,7 @@ public class ExistingMessages
         if (_receivedMessages is not null)
             return _receivedMessages;
         
-        var storedMessages = await _messageStore.GetMessages(_flowId, skip: 0);
+        var storedMessages = await _messageStore.GetMessages(_storedId, skip: 0);
         return _receivedMessages = storedMessages
             .Select(m => 
                 new MessageAndIdempotencyKey(
@@ -46,7 +47,7 @@ public class ExistingMessages
     public async Task Clear()
     {
         var receivedMessages = await GetReceivedMessages();
-        await _messageStore.Truncate(_flowId);
+        await _messageStore.Truncate(_storedId);
         receivedMessages.Clear();  
     }
 
@@ -55,7 +56,7 @@ public class ExistingMessages
         var receivedMessages = await GetReceivedMessages(); 
         var (json, type) = _serializer.SerializeMessage(message);
         await _messageStore.AppendMessage(
-            _flowId, new StoredMessage(json, type, idempotencyKey)
+            _storedId, new StoredMessage(json, type, idempotencyKey)
         );
         
         receivedMessages.Add(new MessageAndIdempotencyKey(message, idempotencyKey));  
@@ -68,7 +69,7 @@ public class ExistingMessages
             throw new ArgumentException($"Cannot replace non-existing message. Position '{position}' is larger than or equal to length '{receivedMessages.Count}'", nameof(position));
         
         var (json, type) = _serializer.SerializeMessage(message);
-        await _messageStore.ReplaceMessage(_flowId, position, new StoredMessage(json, type, idempotencyKey));
+        await _messageStore.ReplaceMessage(_storedId, position, new StoredMessage(json, type, idempotencyKey));
         
         receivedMessages[position] = new MessageAndIdempotencyKey(message, idempotencyKey);  
     }

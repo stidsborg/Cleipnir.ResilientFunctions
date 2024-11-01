@@ -9,7 +9,7 @@ namespace Cleipnir.ResilientFunctions.Domain;
 
 public class States
 {
-    private readonly FlowId _flowId;
+    private readonly StoredId _storedId;
     private readonly IEffectsStore _effectStore;
     private readonly Lazy<Task<IReadOnlyList<StoredEffect>>> _lazyEffects;
     private readonly IFunctionStore _functionStore;
@@ -20,13 +20,13 @@ public class States
     private readonly object _sync = new();
 
     public States(
-        FlowId flowId, 
+        StoredId storedId, 
         IFunctionStore functionStore, 
         IEffectsStore effectStore, 
         Lazy<Task<IReadOnlyList<StoredEffect>>> lazyEffects,
         ISerializer serializer)
     {
-        _flowId = flowId;
+        _storedId = storedId;
         _effectStore = effectStore;
         _lazyEffects = lazyEffects;
         _functionStore = functionStore;
@@ -100,7 +100,7 @@ public class States
             if (!existingStoredStates.ContainsKey(id))
                 return;
         
-        await _effectStore.DeleteEffectResult(_flowId, id, isState: true);
+        await _effectStore.DeleteEffectResult(_storedId, id, isState: true);
 
         lock (_sync)
         {
@@ -114,6 +114,6 @@ public class States
         var json = _serializer.SerializeState(state);
         var storedState = new StoredState(new StateId(id), json);
         var storedEffect = StoredEffect.CreateState(storedState);
-        await _effectStore.SetEffectResult(_flowId, storedEffect);
+        await _effectStore.SetEffectResult(_storedId, storedEffect);
     }
 }

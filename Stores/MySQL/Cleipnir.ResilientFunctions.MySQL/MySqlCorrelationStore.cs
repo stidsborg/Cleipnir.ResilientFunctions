@@ -1,5 +1,4 @@
-﻿using Cleipnir.ResilientFunctions.Domain;
-using Cleipnir.ResilientFunctions.Storage;
+﻿using Cleipnir.ResilientFunctions.Storage;
 using MySqlConnector;
 
 namespace Cleipnir.ResilientFunctions.MySQL;
@@ -21,7 +20,7 @@ public class MySqlCorrelationStore : ICorrelationStore
         await using var conn = await CreateConnection();
         _initialize ??= @$"
             CREATE TABLE IF NOT EXISTS {_tablePrefix}_correlations (
-                type VARCHAR(200) NOT NULL,
+                type INT NOT NULL,
                 instance VARCHAR(200) NOT NULL,
                 correlation VARCHAR(200) NOT NULL,
                 PRIMARY KEY (type, instance, correlation),
@@ -41,9 +40,9 @@ public class MySqlCorrelationStore : ICorrelationStore
     }
 
     private string? _setCorrelationSql;
-    public async Task SetCorrelation(FlowId flowId, string correlationId)
+    public async Task SetCorrelation(StoredId storedId, string correlationId)
     {
-        var (flowType, flowInstance) = flowId;
+        var (flowType, flowInstance) = storedId;
         await using var conn = await CreateConnection();
         _setCorrelationSql ??= $@"
           INSERT IGNORE INTO {_tablePrefix}_correlations 
@@ -56,7 +55,7 @@ public class MySqlCorrelationStore : ICorrelationStore
             Parameters =
             {
                 new() {Value = flowType.Value},
-                new() {Value = flowInstance.Value},
+                new() {Value = flowInstance},
                 new() {Value = correlationId},
             }
         };
@@ -65,7 +64,7 @@ public class MySqlCorrelationStore : ICorrelationStore
     }
 
     private string? _getCorrelationsSql;
-    public async Task<IReadOnlyList<FlowId>> GetCorrelations(string correlationId)
+    public async Task<IReadOnlyList<StoredId>> GetCorrelations(string correlationId)
     {
         await using var conn = await CreateConnection();
         _getCorrelationsSql ??= @$"
@@ -82,19 +81,19 @@ public class MySqlCorrelationStore : ICorrelationStore
 
         await using var reader = await command.ExecuteReaderAsync();
 
-        var states = new List<FlowId>();
+        var states = new List<StoredId>();
         while (await reader.ReadAsync())
         {
-            var functionType = reader.GetString(0);
+            var functionType = reader.GetInt32(0);
             var functionInstance = reader.GetString(1);
-            states.Add(new FlowId(functionType, functionInstance));
+            states.Add(new StoredId(new StoredType(functionType), functionInstance));
         }
 
         return states;
     }
 
     private string? _getInstancesForFlowTypeAndCorrelation;
-    public async Task<IReadOnlyList<FlowInstance>> GetCorrelations(FlowType flowType, string correlationId)
+    public async Task<IReadOnlyList<string>> GetCorrelations(StoredType storedType, string correlationId)
     {
         await using var conn = await CreateConnection();
         _getInstancesForFlowTypeAndCorrelation ??= @$"
@@ -105,14 +104,14 @@ public class MySqlCorrelationStore : ICorrelationStore
         {
             Parameters =
             {
-                new() { Value = flowType.Value },
+                new() { Value = storedType.Value },
                 new() { Value = correlationId },
             }
         };
 
         await using var reader = await command.ExecuteReaderAsync();
 
-        var correlations = new List<FlowInstance>();
+        var correlations = new List<string>();
         while (await reader.ReadAsync())
         {
             var correlation = reader.GetString(0);
@@ -123,9 +122,9 @@ public class MySqlCorrelationStore : ICorrelationStore
     }
 
     private string? _getCorrelationsForFunctionSql;
-    public async Task<IReadOnlyList<string>> GetCorrelations(FlowId flowId)
+    public async Task<IReadOnlyList<string>> GetCorrelations(StoredId storedId)
     {
-        var (typeId, instanceId) = flowId;
+        var (typeId, instanceId) = storedId;
         await using var conn = await CreateConnection();
         _getCorrelationsForFunctionSql ??= @$"
             SELECT correlation
@@ -136,7 +135,7 @@ public class MySqlCorrelationStore : ICorrelationStore
             Parameters =
             {
                 new() { Value = typeId.Value },
-                new() { Value = instanceId.Value },
+                new() { Value = instanceId },
             }
         };
 
@@ -153,9 +152,9 @@ public class MySqlCorrelationStore : ICorrelationStore
     }
 
     private string? _removeCorrelationsSql;
-    public async Task RemoveCorrelations(FlowId flowId)
+    public async Task RemoveCorrelations(StoredId storedId)
     {
-        var (typeId, instanceId) = flowId;
+        var (typeId, instanceId) = storedId;
         await using var conn = await CreateConnection();
         _removeCorrelationsSql ??= $"DELETE FROM {_tablePrefix}_correlations WHERE type = ? AND instance = ?";
         await using var command = new MySqlCommand(_removeCorrelationsSql, conn)
@@ -163,7 +162,7 @@ public class MySqlCorrelationStore : ICorrelationStore
             Parameters =
             {
                 new() { Value =  typeId.Value },
-                new() { Value =  instanceId.Value },
+                new() { Value =  instanceId },
             }
         };
 
@@ -171,9 +170,9 @@ public class MySqlCorrelationStore : ICorrelationStore
     }
 
     private string? _removeCorrelationSql;
-    public async Task RemoveCorrelation(FlowId flowId, string correlationId)
+    public async Task RemoveCorrelation(StoredId storedId, string correlationId)
     {
-        var (typeId, instanceId) = flowId;
+        var (typeId, instanceId) = storedId;
         await using var conn = await CreateConnection();
         _removeCorrelationSql ??= $"DELETE FROM {_tablePrefix}_correlations WHERE type = ? AND instance = ? AND correlation = ?";
         await using var command = new MySqlCommand(_removeCorrelationSql, conn)
@@ -181,7 +180,7 @@ public class MySqlCorrelationStore : ICorrelationStore
             Parameters =
             {
                 new() { Value =  typeId.Value },
-                new() { Value =  instanceId.Value },
+                new() { Value =  instanceId },
                 new() { Value =  correlationId },
             }
         };

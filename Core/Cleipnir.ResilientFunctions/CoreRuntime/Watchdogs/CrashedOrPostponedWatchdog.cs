@@ -22,8 +22,8 @@ internal class CrashedOrPostponedWatchdog
     private readonly TimeSpan _delayStartUp;
     
 
-    private volatile ImmutableDictionary<FlowType, Tuple<RestartFunction, ScheduleRestartFromWatchdog, AsyncSemaphore>> _flowsDictionary
-        = ImmutableDictionary<FlowType, Tuple<RestartFunction, ScheduleRestartFromWatchdog, AsyncSemaphore>>.Empty;
+    private volatile ImmutableDictionary<StoredType, Tuple<RestartFunction, ScheduleRestartFromWatchdog, AsyncSemaphore>> _flowsDictionary
+        = ImmutableDictionary<StoredType, Tuple<RestartFunction, ScheduleRestartFromWatchdog, AsyncSemaphore>>.Empty;
     private readonly object _sync = new();
     private bool _started;
 
@@ -41,12 +41,12 @@ internal class CrashedOrPostponedWatchdog
     }
 
     public void Register(
-        FlowType flowType, 
+        StoredType storedType, 
         RestartFunction restartFunction, 
         ScheduleRestartFromWatchdog scheduleRestart,
         AsyncSemaphore asyncSemaphore)
     {
-        _flowsDictionary = _flowsDictionary.SetItem(flowType, Tuple.Create(restartFunction, scheduleRestart, asyncSemaphore));
+        _flowsDictionary = _flowsDictionary.SetItem(storedType, Tuple.Create(restartFunction, scheduleRestart, asyncSemaphore));
         
         lock (_sync)
         {
@@ -76,7 +76,7 @@ internal class CrashedOrPostponedWatchdog
                 var flowsDictionary = _flowsDictionary;     
                 foreach (var sef in eligibleFunctions.WithRandomOffset())
                 {
-                    if (!flowsDictionary.TryGetValue(sef.FlowId.Type, out var tuple))
+                    if (!flowsDictionary.TryGetValue(sef.FlowId.StoredType, out var tuple))
                         continue;
                     
                     var (restartFunction, scheduleRestart, asyncSemaphore) = tuple;

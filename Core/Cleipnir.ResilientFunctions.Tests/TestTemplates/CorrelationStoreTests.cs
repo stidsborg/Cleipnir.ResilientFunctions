@@ -13,7 +13,7 @@ public abstract class CorrelationStoreTests
     public async Task SunshineScenario(Task<IFunctionStore> storeTask)
     {
         var correlationStore = await storeTask.SelectAsync(s => s.CorrelationStore);
-        var functionId = TestFlowId.Create();
+        var functionId = TestStoredId.Create();
 
         await correlationStore.SetCorrelation(functionId, "SomeCorrelationId");
         await correlationStore
@@ -31,8 +31,8 @@ public abstract class CorrelationStoreTests
     public async Task TwoDifferentFunctionsCanUseTheSameCorrelationId(Task<IFunctionStore> storeTask)
     {
         var correlationStore = await storeTask.SelectAsync(s => s.CorrelationStore);
-        var functionId1 = TestFlowId.Create();
-        var functionId2 = TestFlowId.Create();
+        var functionId1 = TestStoredId.Create();
+        var functionId2 = TestStoredId.Create();
 
         await correlationStore.SetCorrelation(functionId1, correlationId: "TwoDifferentFunctionsCanUseTheSameCorrelationId");
         await correlationStore.SetCorrelation(functionId2, correlationId: "TwoDifferentFunctionsCanUseTheSameCorrelationId");
@@ -47,7 +47,7 @@ public abstract class CorrelationStoreTests
     public async Task FunctionCorrelationsCanBeDeleted(Task<IFunctionStore> storeTask)
     {
         var correlationStore = await storeTask.SelectAsync(s => s.CorrelationStore);
-        var functionId = TestFlowId.Create();
+        var functionId = TestStoredId.Create();
 
         await correlationStore.SetCorrelation(functionId, "SomeCorrelationId1");
         await correlationStore.SetCorrelation(functionId, "SomeCorrelationId2");
@@ -61,7 +61,7 @@ public abstract class CorrelationStoreTests
     public async Task SingleFunctionCorrelationCanBeDeleted(Task<IFunctionStore> storeTask)
     {
         var correlationStore = await storeTask.SelectAsync(s => s.CorrelationStore);
-        var functionId = TestFlowId.Create();
+        var functionId = TestStoredId.Create();
 
         await correlationStore.SetCorrelation(functionId, "SomeCorrelationId1");
         await correlationStore.SetCorrelation(functionId, "SomeCorrelationId2");
@@ -78,7 +78,7 @@ public abstract class CorrelationStoreTests
     public async Task SingleFunctionCanHaveMultipleCorrelations(Task<IFunctionStore> storeTask)
     {
         var correlationStore = await storeTask.SelectAsync(s => s.CorrelationStore);
-        var functionId = TestFlowId.Create();
+        var functionId = TestStoredId.Create();
 
         await correlationStore.SetCorrelation(functionId, "SomeCorrelationId1");
         await correlationStore.SetCorrelation(functionId, "SomeCorrelationId2");
@@ -93,15 +93,15 @@ public abstract class CorrelationStoreTests
     public async Task FunctionInstancesCanBeFetchedForFunctionTypeAndCorrelation(Task<IFunctionStore> storeTask)
     {
         var correlationStore = await storeTask.SelectAsync(s => s.CorrelationStore);
-        var functionId1 = TestFlowId.Create();
-        var functionId2 = TestFlowId.Create().WithTypeId(functionId1.Type);
-        var functionId3 = TestFlowId.Create();
+        var functionId1 = TestStoredId.Create();
+        var functionId2 = TestStoredId.Create() with { StoredType = functionId1.StoredType };
+        var functionId3 = TestStoredId.Create();
 
         await correlationStore.SetCorrelation(functionId1, "SomeCorrelationId1");
         await correlationStore.SetCorrelation(functionId2, "SomeCorrelationId1");
         await correlationStore.SetCorrelation(functionId3, "SomeCorrelationId1");
 
-        var instances = await correlationStore.GetCorrelations(functionId1.Type, "SomeCorrelationId1");
+        var instances = await correlationStore.GetCorrelations(functionId1.StoredType, "SomeCorrelationId1");
         instances.Count.ShouldBe(2);
         instances.Any(i => i == functionId1.Instance).ShouldBeTrue();
         instances.Any(i => i == functionId2.Instance).ShouldBeTrue();

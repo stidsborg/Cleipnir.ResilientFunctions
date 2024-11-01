@@ -5,15 +5,16 @@ using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.Domain;
 
-public class StateFetcher(IEffectsStore effectsStore, ISerializer serializer)
+public class StateFetcher(StoredType storedType, IEffectsStore effectsStore, ISerializer serializer)
 {
-    public Task<TState?> FetchState<TState>(FlowId flowId) where TState : FlowState, new()
-        => FetchState<TState>(flowId, stateId: "");
+    public Task<TState?> FetchState<TState>(FlowInstance instanceId) where TState : FlowState, new()
+        => FetchState<TState>(instanceId, stateId: "");
     
-    public async Task<TState?> FetchState<TState>(FlowId flowId, StateId stateId) where TState : FlowState, new() 
+    public async Task<TState?> FetchState<TState>(FlowInstance instanceId, StateId stateId) where TState : FlowState, new()
     {
+        var storedId = new StoredId(storedType, instanceId.Value);
         stateId ??= new StateId("");
-        var storedStates = await effectsStore.GetEffectResults(flowId);
+        var storedStates = await effectsStore.GetEffectResults(storedId);
         
         foreach (var storedEffect in storedStates)
             if (storedEffect.EffectId == stateId.Value)

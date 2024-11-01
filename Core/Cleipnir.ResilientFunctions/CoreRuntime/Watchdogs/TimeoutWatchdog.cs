@@ -21,7 +21,7 @@ internal class TimeoutWatchdog
     private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
     private readonly ShutdownCoordinator _shutdownCoordinator;
     
-    private volatile ImmutableDictionary<FlowType, MessageWriters> _messageWriters = ImmutableDictionary<FlowType, MessageWriters>.Empty;
+    private volatile ImmutableDictionary<StoredType, MessageWriters> _messageWriters = ImmutableDictionary<StoredType, MessageWriters>.Empty;
 
     private bool _started = false;
     private readonly object _sync = new();
@@ -41,9 +41,9 @@ internal class TimeoutWatchdog
         _shutdownCoordinator = shutdownCoordinator;
     }
 
-    public void Register(FlowType flowType, MessageWriters messageWriters)
+    public void Register(StoredType storedType, MessageWriters messageWriters)
     {
-        _messageWriters = _messageWriters.Add(flowType, messageWriters);
+        _messageWriters = _messageWriters.Add(storedType, messageWriters);
         
         lock (_sync)
         {
@@ -91,12 +91,12 @@ internal class TimeoutWatchdog
     private async Task HandleUpcomingTimeouts(IEnumerable<StoredTimeout> upcomingTimeouts)
     {
         var messageWriters = _messageWriters;
-        foreach (var (functionId, timeoutId, expiry) in upcomingTimeouts.Where(t => messageWriters.ContainsKey(t.FlowId.Type)).OrderBy(t => t.Expiry))
+        foreach (var (functionId, timeoutId, expiry) in upcomingTimeouts.Where(t => messageWriters.ContainsKey(t.StoredId.StoredType)).OrderBy(t => t.Expiry))
         {
             var expiresAt = new DateTime(expiry, DateTimeKind.Utc);
             var delay = (expiresAt - DateTime.UtcNow).RoundUpToZero();
             await Task.Delay(delay);
-            await messageWriters[functionId.Type].For(functionId.Instance).AppendMessage(new TimeoutEvent(timeoutId, expiresAt), idempotencyKey: $"Timeout¤{timeoutId}");
+            await messageWriters[functionId.StoredType].For(functionId.Instance).AppendMessage(new TimeoutEvent(timeoutId, expiresAt), idempotencyKey: $"Timeout¤{timeoutId}");
             await _timeoutStore.RemoveTimeout(functionId, timeoutId);
         }
     }

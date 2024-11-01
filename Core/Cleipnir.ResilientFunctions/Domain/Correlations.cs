@@ -5,7 +5,7 @@ using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.Domain;
 
-public class Correlations(FlowId flowId, ICorrelationStore correlationStore)
+public class Correlations(StoredId storedId, ICorrelationStore correlationStore)
 {
     private HashSet<string>? _correlations;
     private readonly object _sync = new();
@@ -16,7 +16,7 @@ public class Correlations(FlowId flowId, ICorrelationStore correlationStore)
             if (_correlations is not null)
                 return _correlations;
 
-        var correlations = (await correlationStore.GetCorrelations(flowId))
+        var correlations = (await correlationStore.GetCorrelations(storedId))
             .ToHashSet();
         
         lock (_sync)
@@ -34,7 +34,7 @@ public class Correlations(FlowId flowId, ICorrelationStore correlationStore)
             if (registered.Contains(correlation))
                 return;
 
-        await correlationStore.SetCorrelation(flowId, correlation);
+        await correlationStore.SetCorrelation(storedId, correlation);
         
         lock (_sync)
             registered.Add(correlation);
@@ -55,7 +55,7 @@ public class Correlations(FlowId flowId, ICorrelationStore correlationStore)
             if (!registered.Contains(correlation))
                 return;
 
-        await correlationStore.RemoveCorrelation(flowId, correlation);
+        await correlationStore.RemoveCorrelation(storedId, correlation);
 
         lock (_sync)
             registered.Remove(correlation);

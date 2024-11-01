@@ -112,16 +112,16 @@ public abstract class WatchdogCompoundTests
                     watchdogCheckFrequency: TimeSpan.FromMilliseconds(100)
                 )
             );
-            _ = functionsRegistry.RegisterFunc(
+            var registration = functionsRegistry.RegisterFunc(
                 flowType,
                 (Param p) => $"{p.Id}-{p.Value}".ToTask()
             );
 
             await BusyWait.Until(async () =>
-                await store.GetFunction(functionId).Map(sf => sf!.Status) == Status.Succeeded
+                await store.GetFunction(registration.MapToStoredId(functionId)).Map(sf => sf!.Status) == Status.Succeeded
             );
             
-            var storedFunction = await store.GetFunction(functionId);
+            var storedFunction = await store.GetFunction(registration.MapToStoredId(functionId));
             storedFunction!.Result!.ToStringFromUtf8Bytes().DeserializeFromJsonTo<string>().CastTo<string>().ShouldBe($"{param.Id}-{param.Value}");
         }
     }
@@ -235,7 +235,7 @@ public abstract class WatchdogCompoundTests
                     watchdogCheckFrequency: TimeSpan.FromMilliseconds(100)
                 )
             );
-            _ = functionsRegistry.RegisterFunc(
+            var registration = functionsRegistry.RegisterFunc(
                 flowType,
                 async (Param p, Workflow workflow) =>
                 {
@@ -247,13 +247,13 @@ public abstract class WatchdogCompoundTests
             );
 
             await BusyWait.Until(async () =>
-                await store.GetFunction(functionId).Map(sf => sf!.Status) == Status.Succeeded,
+                await store.GetFunction(registration.MapToStoredId(functionId)).Map(sf => sf!.Status) == Status.Succeeded,
                 maxWait: TimeSpan.FromSeconds(5)
             );
 
-            var storedFunction = await store.GetFunction(functionId);
+            var storedFunction = await store.GetFunction(registration.MapToStoredId(functionId));
             storedFunction!.Result!.ToStringFromUtf8Bytes().DeserializeFromJsonTo<string>().ShouldBe($"{param.Id}-{param.Value}");
-            var states = await store.EffectsStore.GetEffectResults(functionId);
+            var states = await store.EffectsStore.GetEffectResults(registration.MapToStoredId(functionId));
             states.Single(e => e.EffectId == "Scraps")
                 .Result!
                 .ToStringFromUtf8Bytes()
@@ -365,19 +365,19 @@ public abstract class WatchdogCompoundTests
                     watchdogCheckFrequency: TimeSpan.FromMilliseconds(100)
                 )
             );
-            _ = functionsRegistry
+            var registration = functionsRegistry
                 .RegisterAction(
                     flowType,
                 (Param p) => Task.Run(() => paramTcs.TrySetResult(p))
                 );
 
             await BusyWait.Until(async () =>
-                await store.GetFunction(functionId).Map(sf => sf!.Status) == Status.Succeeded
+                await store.GetFunction(registration.MapToStoredId(functionId)).Map(sf => sf!.Status) == Status.Succeeded
             );
             
             paramTcs.Task.Result.ShouldBe(param);
             
-            var storedFunction = await store.GetFunction(functionId);
+            await store.GetFunction(registration.MapToStoredId(functionId));
         }
     }
     
@@ -491,7 +491,7 @@ public abstract class WatchdogCompoundTests
                     watchdogCheckFrequency: TimeSpan.FromMilliseconds(1_000)
                 )
             );
-            _ = functionsRegistry.RegisterAction(
+            var registration = functionsRegistry.RegisterAction(
                 flowType,
                 async (Param p, Workflow workflow) =>
                 {
@@ -503,13 +503,13 @@ public abstract class WatchdogCompoundTests
             );
 
             await BusyWait.Until(async () =>
-                await store.GetFunction(functionId).Map(sf => sf!.Status) == Status.Succeeded
+                await store.GetFunction(registration.MapToStoredId(functionId)).Map(sf => sf!.Status) == Status.Succeeded
             );
 
             paramTcs.Task.Result.ShouldBe(param);
             
-            var storedFunction = await store.GetFunction(functionId);
-            var states = await store.EffectsStore.GetEffectResults(functionId);
+            var storedFunction = await store.GetFunction(registration.MapToStoredId(functionId));
+            var states = await store.EffectsStore.GetEffectResults(registration.MapToStoredId(functionId));
             states.Single(e => e.EffectId == "Scraps")
                 .Result!
                 .ToStringFromUtf8Bytes()
@@ -545,7 +545,7 @@ public abstract class WatchdogCompoundTests
         await registration.Invoke(functionId.Instance.Value, "SomeParam");
 
         await BusyWait.Until(
-            () => store.GetFunction(functionId).SelectAsync(sf => sf is not null)
+            () => store.GetFunction(registration.MapToStoredId(functionId)).SelectAsync(sf => sf is not null)
         );
     }
     

@@ -21,7 +21,7 @@ public class MySqlTimeoutStore : ITimeoutStore
         await using var conn = await CreateConnection();
         _initializeSql ??= @$"
             CREATE TABLE IF NOT EXISTS {_tablePrefix}_timeouts (
-                type VARCHAR(255),
+                type INT,
                 instance VARCHAR(255),
                 timeout_id VARCHAR(255),
                 expires BIGINT,
@@ -65,8 +65,8 @@ public class MySqlTimeoutStore : ITimeoutStore
         {
             Parameters =
             {
-                new() {Value = functionId.Type.Value},
-                new() {Value = functionId.Instance.Value},
+                new() {Value = functionId.StoredType.Value},
+                new() {Value = functionId.Instance},
                 new() {Value = timeoutId},
                 new() {Value = expiry},
                 new() {Value = expiry}
@@ -77,7 +77,7 @@ public class MySqlTimeoutStore : ITimeoutStore
     }
 
     private string? _removeTimeoutSql;
-    public async Task RemoveTimeout(FlowId flowId, string timeoutId)
+    public async Task RemoveTimeout(StoredId storedId, string timeoutId)
     {
         await using var conn = await CreateConnection();
         _removeTimeoutSql ??= @$"
@@ -91,8 +91,8 @@ public class MySqlTimeoutStore : ITimeoutStore
         {
             Parameters =
             {
-                new() {Value = flowId.Type.Value},
-                new() {Value = flowId.Instance.Value},
+                new() {Value = storedId.StoredType.Value},
+                new() {Value = storedId.Instance},
                 new() {Value = timeoutId},
             }
         };
@@ -101,7 +101,7 @@ public class MySqlTimeoutStore : ITimeoutStore
     }
 
     private string? _removeSql;
-    public async Task Remove(FlowId flowId)
+    public async Task Remove(StoredId storedId)
     {
         await using var conn = await CreateConnection();
         _removeSql ??= @$"
@@ -112,8 +112,8 @@ public class MySqlTimeoutStore : ITimeoutStore
         {
             Parameters =
             {
-                new() {Value = flowId.Type.Value},
-                new() {Value = flowId.Instance.Value},
+                new() {Value = storedId.StoredType.Value},
+                new() {Value = storedId.Instance},
             }
         };
 
@@ -141,11 +141,11 @@ public class MySqlTimeoutStore : ITimeoutStore
         await using var reader = await command.ExecuteReaderAsync();
         while (await reader.ReadAsync())
         {
-            var flowType = reader.GetString(0);
+            var flowType = reader.GetInt32(0);
             var flowInstance = reader.GetString(1);
             var timeoutId = reader.GetString(2);
             var expires = reader.GetInt64(3);
-            var functionId = new FlowId(flowType, flowInstance);
+            var functionId = new StoredId(new StoredType(flowType), flowInstance);
             storedTimeouts.Add(new StoredTimeout(functionId, timeoutId, expires));
         }
 
@@ -153,9 +153,9 @@ public class MySqlTimeoutStore : ITimeoutStore
     }
     
     private string? _getFunctionTimeoutsSql;
-    public async Task<IEnumerable<StoredTimeout>> GetTimeouts(FlowId flowId)
+    public async Task<IEnumerable<StoredTimeout>> GetTimeouts(StoredId storedId)
     {
-        var (typeId, instanceId) = flowId;
+        var (typeId, instanceId) = storedId;
         await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);;
         _getFunctionTimeoutsSql ??= @$"    
             SELECT timeout_id, expires
@@ -167,7 +167,7 @@ public class MySqlTimeoutStore : ITimeoutStore
             Parameters =
             {
                 new() {Value = typeId.Value},
-                new() {Value = instanceId.Value},
+                new() {Value = instanceId},
             }
         };
         
@@ -177,7 +177,7 @@ public class MySqlTimeoutStore : ITimeoutStore
         {
             var timeoutId = reader.GetString(0);
             var expires = reader.GetInt64(1);
-            storedTimeouts.Add(new StoredTimeout(flowId, timeoutId, expires));
+            storedTimeouts.Add(new StoredTimeout(storedId, timeoutId, expires));
         }
 
         return storedTimeouts;

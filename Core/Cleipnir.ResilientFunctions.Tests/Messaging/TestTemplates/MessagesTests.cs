@@ -19,7 +19,7 @@ public abstract class MessagesTests
     public abstract Task MessagesSunshineScenario();
     protected async Task MessagesSunshineScenario(Task<IFunctionStore> functionStoreTask)
     {
-        var functionId = TestFlowId.Create();
+        var functionId = TestStoredId.Create();
         var functionStore = await functionStoreTask;
         await functionStore.CreateFunction(
             functionId, 
@@ -80,7 +80,7 @@ public abstract class MessagesTests
     public abstract Task MessagesFirstOfTypesReturnsFirstForFirstOfTypesOnFirst();
     protected async Task MessagesFirstOfTypesReturnsFirstForFirstOfTypesOnFirst(Task<IFunctionStore> functionStoreTask)
     {
-        var functionId = TestFlowId.Create();
+        var functionId = TestStoredId.Create();
         var functionStore = await functionStoreTask;
         await functionStore.CreateFunction(
             functionId, 
@@ -116,7 +116,7 @@ public abstract class MessagesTests
     public abstract Task MessagesFirstOfTypesReturnsSecondForFirstOfTypesOnSecond();
     protected async Task MessagesFirstOfTypesReturnsSecondForFirstOfTypesOnSecond(Task<IFunctionStore> functionStoreTask)
     {
-        var functionId = TestFlowId.Create();
+        var functionId = TestStoredId.Create();
         var functionStore = await functionStoreTask;
         await functionStore.CreateFunction(
             functionId, 
@@ -152,7 +152,7 @@ public abstract class MessagesTests
     public abstract Task ExistingEventsShouldBeSameAsAllAfterEmit();
     protected async Task ExistingEventsShouldBeSameAsAllAfterEmit(Task<IFunctionStore> functionStoreTask)
     {
-        var functionId = TestFlowId.Create();
+        var functionId = TestStoredId.Create();
         var functionStore = await functionStoreTask;
         await functionStore.CreateFunction(
             functionId, 
@@ -190,7 +190,7 @@ public abstract class MessagesTests
     public abstract Task SecondEventWithExistingIdempotencyKeyIsIgnored();
     protected async Task SecondEventWithExistingIdempotencyKeyIsIgnored(Task<IFunctionStore> functionStoreTask)
     {
-        var functionId = TestFlowId.Create();
+        var functionId = TestStoredId.Create();
         var functionStore = await functionStoreTask;
         await functionStore.CreateFunction(
             functionId, 
@@ -233,7 +233,7 @@ public abstract class MessagesTests
     public abstract Task MessagesBulkMethodOverloadAppendsAllEventsSuccessfully();
     protected async Task MessagesBulkMethodOverloadAppendsAllEventsSuccessfully(Task<IFunctionStore> functionStoreTask)
     {
-        var functionId = TestFlowId.Create();
+        var functionId = TestStoredId.Create();
         var functionStore = await functionStoreTask;
         await functionStore.CreateFunction(
             functionId, 
@@ -275,7 +275,7 @@ public abstract class MessagesTests
     public abstract Task MessagessSunshineScenarioUsingMessageStore();
     protected async Task MessagessSunshineScenarioUsingMessageStore(Task<IFunctionStore> functionStoreTask)
     {
-        var functionId = TestFlowId.Create();
+        var functionId = TestStoredId.Create();
         var functionStore = await functionStoreTask;
         await functionStore.CreateFunction(
             functionId, 
@@ -313,7 +313,7 @@ public abstract class MessagesTests
     public abstract Task SecondEventWithExistingIdempotencyKeyIsIgnoredUsingMessageStore();
     protected async Task SecondEventWithExistingIdempotencyKeyIsIgnoredUsingMessageStore(Task<IFunctionStore> functionStoreTask)
     {
-        var functionId = TestFlowId.Create();
+        var functionId = TestStoredId.Create();
         var functionStore = await functionStoreTask;
         await functionStore.CreateFunction(
             functionId, 
@@ -363,7 +363,7 @@ public abstract class MessagesTests
     public abstract Task MessagesRemembersPreviousThrownEventProcessingExceptionOnAllSubsequentInvocations();
     protected async Task MessagesRemembersPreviousThrownEventProcessingExceptionOnAllSubsequentInvocations(Task<IFunctionStore> functionStoreTask)
     {
-        var functionId = TestFlowId.Create();
+        var functionId = TestStoredId.Create();
         var functionStore = await functionStoreTask;
         await functionStore.CreateFunction(
             functionId, 

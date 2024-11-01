@@ -4,12 +4,14 @@ using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.Helpers.Disposables;
+using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 
 public class Invoker<TParam, TReturn> 
 {
     private readonly FlowType _flowType;
+    private readonly StoredType _storedType;
     private readonly Func<TParam, Workflow, Task<Result<TReturn>>> _inner;
     
     private readonly InvocationHelper<TParam, TReturn> _invocationHelper;
@@ -17,7 +19,7 @@ public class Invoker<TParam, TReturn>
     private readonly Utilities _utilities;
 
     internal Invoker(
-        FlowType flowType,
+        FlowType flowType, StoredType storedType,
         Func<TParam, Workflow, Task<Result<TReturn>>> inner,
         InvocationHelper<TParam, TReturn> invocationHelper,
         UnhandledExceptionHandler unhandledExceptionHandler,
@@ -25,6 +27,7 @@ public class Invoker<TParam, TReturn>
     )
     {
         _flowType = flowType;
+        _storedType = storedType;
         _inner = inner;
         _invocationHelper = invocationHelper;
         _unhandledExceptionHandler = unhandledExceptionHandler;
@@ -83,9 +86,9 @@ public class Invoker<TParam, TReturn>
             return;
         }
 
-        var functionId = new FlowId(_flowType, instanceId);
+        var id = new FlowId(_flowType, instanceId);
         var (_, disposable) = await _invocationHelper.PersistFunctionInStore(
-            functionId,
+            id.ToStoredId(_storedType),
             param,
             scheduleAt
         );
@@ -166,12 +169,13 @@ public class Invoker<TParam, TReturn>
     private async Task<PreparedInvocation> PrepareForInvocation(FlowId flowId, TParam param)
     {
         var disposables = new List<IDisposable>(capacity: 3);
+        var storedId = _invocationHelper.MapToStoredId(flowId);
         var success = false;
         try
         {
             var (persisted, runningFunction) =
                 await _invocationHelper.PersistFunctionInStore(
-                    flowId,
+                    flowId.ToStoredId(_storedType),
                     param,
                     scheduleAt: null
                 );
@@ -182,7 +186,7 @@ public class Invoker<TParam, TReturn>
             success = persisted;
             
             var messages = _invocationHelper.CreateMessages(
-                flowId, 
+                flowId,
                 ScheduleRestart, 
                 isWorkflowRunning: () => !isWorkflowRunningDisposable.Disposed
             );
@@ -211,7 +215,8 @@ public class Invoker<TParam, TReturn>
 
     private async Task<PreparedReInvocation> PrepareForReInvocation(FlowId flowId, int expectedEpoch)
     {
-        var restartedFunction = await _invocationHelper.RestartFunction(flowId, expectedEpoch);
+        var storedId = _invocationHelper.MapToStoredId(flowId);
+        var restartedFunction = await _invocationHelper.RestartFunction(storedId, expectedEpoch);
         if (restartedFunction == null)
             throw UnexpectedStateException.EpochMismatch(flowId);
 

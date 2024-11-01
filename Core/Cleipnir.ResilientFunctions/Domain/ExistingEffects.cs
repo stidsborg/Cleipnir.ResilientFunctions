@@ -7,7 +7,7 @@ using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.Domain;
 
-public class ExistingEffects(FlowId flowId, IEffectsStore effectsStore, ISerializer serializer)
+public class ExistingEffects(StoredId storedId, IEffectsStore effectsStore, ISerializer serializer)
 {
     private Dictionary<EffectId, StoredEffect>? _storedEffects;
 
@@ -16,7 +16,7 @@ public class ExistingEffects(FlowId flowId, IEffectsStore effectsStore, ISeriali
         if (_storedEffects is not null)
             return _storedEffects;
 
-        var storedEffects = await effectsStore.GetEffectResults(flowId);
+        var storedEffects = await effectsStore.GetEffectResults(storedId);
         return _storedEffects = storedEffects.ToDictionary(e => e.EffectId, e => e);
     }
     
@@ -47,14 +47,14 @@ public class ExistingEffects(FlowId flowId, IEffectsStore effectsStore, ISeriali
     public async Task Remove(string effectId)
     {
         var storedEffects = await GetStoredEffects();
-        await effectsStore.DeleteEffectResult(flowId, effectId, isState: false);
+        await effectsStore.DeleteEffectResult(storedId, effectId, isState: false);
         storedEffects.Remove(effectId);
     }
 
     private async Task Set(StoredEffect storedEffect)
     {
         var storedEffects = await GetStoredEffects();
-        await effectsStore.SetEffectResult(flowId, storedEffect);
+        await effectsStore.SetEffectResult(storedId, storedEffect);
         storedEffects[storedEffect.EffectId] = storedEffect;
     }
 

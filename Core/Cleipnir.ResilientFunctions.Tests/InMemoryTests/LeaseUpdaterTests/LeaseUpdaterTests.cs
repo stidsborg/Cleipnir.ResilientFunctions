@@ -5,6 +5,7 @@ using Cleipnir.ResilientFunctions.CoreRuntime;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.Helpers;
+using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Tests.Utils;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Shouldly;
@@ -15,6 +16,8 @@ namespace Cleipnir.ResilientFunctions.Tests.InMemoryTests.LeaseUpdaterTests;
 public class LeaseUpdaterTests
 {
     private readonly FlowId _flowId = new FlowId("functionId", "instanceId");
+    private readonly StoredId _storedId = new StoredId(0.ToStoredType(), "instanceId");
+    
     private UnhandledExceptionCatcher _unhandledExceptionCatcher = new();
         
     [TestInitialize]
@@ -37,6 +40,7 @@ public class LeaseUpdaterTests
             leaseLength: TimeSpan.FromMilliseconds(10)
         );
         var updater = LeaseUpdater.CreateAndStart(
+            _storedId,
             _flowId,
             expectedEpoch,
             store,
@@ -47,7 +51,7 @@ public class LeaseUpdaterTests
         updater.Dispose();
 
         invocations.Count.ShouldBeGreaterThan(2);
-        invocations.All(p => p.FlowId == _flowId).ShouldBeTrue();
+        invocations.All(p => p.StoredId == _storedId).ShouldBeTrue();
 
         const long expectedInitialLeaseExpiry = 0;
         _ = invocations.Aggregate(expectedInitialLeaseExpiry, (prevLeaseExpiry, parameters) =>
@@ -73,6 +77,7 @@ public class LeaseUpdaterTests
             leaseLength: TimeSpan.FromMilliseconds(10)
         );
         var updater = LeaseUpdater.CreateAndStart(
+            _storedId,
             _flowId,
             epoch: 0,
             store,
@@ -102,6 +107,7 @@ public class LeaseUpdaterTests
             leaseLength: TimeSpan.FromMilliseconds(10)
         );
         using var updater = LeaseUpdater.CreateAndStart(
+            _storedId,
             _flowId,
             epoch: 0,
             store,
@@ -116,5 +122,5 @@ public class LeaseUpdaterTests
         syncedCounter.Current.ShouldBe(1);
     }
 
-    private record Parameters(FlowId FlowId, int ExpectedEpoch, long LeaseExpiry);
+    private record Parameters(StoredId StoredId, int ExpectedEpoch, long LeaseExpiry);
 }

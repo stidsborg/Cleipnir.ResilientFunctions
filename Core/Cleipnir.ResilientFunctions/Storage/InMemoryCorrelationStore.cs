@@ -8,8 +8,8 @@ namespace Cleipnir.ResilientFunctions.Storage;
 
 public class InMemoryCorrelationStore : ICorrelationStore
 {
-    private readonly Dictionary<FlowId, HashSet<string>> _correlations = new();
-    private readonly Dictionary<string, HashSet<FlowId>> _reverseLookup = new();
+    private readonly Dictionary<StoredId, HashSet<string>> _correlations = new();
+    private readonly Dictionary<string, HashSet<StoredId>> _reverseLookup = new();
     private readonly object _sync = new();
     
     public Task Initialize() => Task.CompletedTask;
@@ -25,85 +25,85 @@ public class InMemoryCorrelationStore : ICorrelationStore
         return Task.CompletedTask;
     }
 
-    public Task SetCorrelation(FlowId flowId, string correlationId)
+    public Task SetCorrelation(StoredId storedId, string correlationId)
     {
         lock (_sync)
         {
-            if (!_correlations.ContainsKey(flowId))
-                _correlations[flowId] = new HashSet<string>();
+            if (!_correlations.ContainsKey(storedId))
+                _correlations[storedId] = new HashSet<string>();
 
-            _correlations[flowId].Add(correlationId);
+            _correlations[storedId].Add(correlationId);
 
             if (!_reverseLookup.ContainsKey(correlationId))
-                _reverseLookup[correlationId] = new HashSet<FlowId>();
+                _reverseLookup[correlationId] = new HashSet<StoredId>();
 
-            _reverseLookup[correlationId].Add(flowId);
+            _reverseLookup[correlationId].Add(storedId);
         }
 
         return Task.CompletedTask;
     }
 
-    public Task<IReadOnlyList<FlowId>> GetCorrelations(string correlationId)
+    public Task<IReadOnlyList<StoredId>> GetCorrelations(string correlationId)
     {
         lock (_sync)
         {
             if (!_reverseLookup.ContainsKey(correlationId))
-                return new List<FlowId>().CastTo<IReadOnlyList<FlowId>>().ToTask();
+                return new List<StoredId>().CastTo<IReadOnlyList<StoredId>>().ToTask();
 
-            return _reverseLookup[correlationId].ToList().CastTo<IReadOnlyList<FlowId>>().ToTask();
+            return _reverseLookup[correlationId].ToList().CastTo<IReadOnlyList<StoredId>>().ToTask();
         }
     }
 
-    public Task<IReadOnlyList<FlowInstance>> GetCorrelations(FlowType flowType, string correlationId)
+    public Task<IReadOnlyList<string>> GetCorrelations(StoredType flowType, string correlationId)
     {
         lock (_sync)
         {
             return _correlations
-                .Where(kv => kv.Key.Type == flowType && kv.Value.Contains(correlationId))
+                .Where(kv => kv.Key.StoredType == flowType && kv.Value.Contains(correlationId))
                 .Select(kv => kv.Key.Instance)
-                .ToList()
-                .CastTo<IReadOnlyList<FlowInstance>>()
-                .ToTask();
-        }
-    }
-
-    public Task<IReadOnlyList<string>> GetCorrelations(FlowId flowId)
-    {
-        lock (_sync)
-        {
-            if (!_correlations.ContainsKey(flowId))
-                return new List<string>().CastTo<IReadOnlyList<string>>().ToTask();
-
-            return _correlations[flowId]
                 .ToList()
                 .CastTo<IReadOnlyList<string>>()
                 .ToTask();
         }
     }
 
-    public Task RemoveCorrelations(FlowId flowId)
+    public Task<IReadOnlyList<string>> GetCorrelations(StoredId storedId)
     {
         lock (_sync)
         {
-            if (!_correlations.ContainsKey(flowId))
+            if (!_correlations.ContainsKey(storedId))
+                return new List<string>().CastTo<IReadOnlyList<string>>().ToTask();
+
+            return _correlations[storedId]
+                .ToList()
+                .CastTo<IReadOnlyList<string>>()
+                .ToTask();
+        }
+    }
+
+    public Task RemoveCorrelations(StoredId storedId)
+    {
+        lock (_sync)
+        {
+            if (!_correlations.ContainsKey(storedId))
                 return Task.CompletedTask;
 
-            var correlations = _correlations[flowId];
+            var correlations = _correlations[storedId];
             foreach (var correlation in correlations)
-                _reverseLookup[correlation].Remove(flowId);
+                _reverseLookup[correlation].Remove(storedId);
 
-            _correlations.Remove(flowId);
+            _correlations.Remove(storedId);
         }
 
         return Task.CompletedTask;
     }
 
-    public Task RemoveCorrelation(FlowId flowId, string correlationId)
+    public Task RemoveCorrelation(StoredId storedId, string correlationId)
     {
         lock (_sync)
         {
-            _correlations[flowId].Remove(correlationId);
-            _reverseLookup[correlationId].Remove(flowId);
+            _correlations[storedId].Remove(correlationId);
+            _reverseLookup[correlationId].Remove(storedId);
         }
 
         return Task.CompletedTask;

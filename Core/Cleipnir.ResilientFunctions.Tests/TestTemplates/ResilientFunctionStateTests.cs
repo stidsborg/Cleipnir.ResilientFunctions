@@ -28,22 +28,23 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates
 
             using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler.Catch));
 
-            var rFunc = functionsRegistry
+            var registration = functionsRegistry
                 .RegisterFunc<string, string>(
                     flowType,
                     ToUpper
-                ).Invoke;
+                );
+            var rFunc = registration.Invoke;
 
             var result = await rFunc("hello", "hello");
             result.ShouldBe("HELLO");
 
             var functionId = new FlowId(flowType, "hello".ToFlowInstance());
-            var storedFunction = await store.GetFunction(functionId);
+            var storedFunction = await store.GetFunction(registration.MapToStoredId(functionId));
             storedFunction.ShouldNotBeNull();
             storedFunction.Result.ShouldNotBeNull();
             var storedResult = storedFunction.Result.ToStringFromUtf8Bytes().DeserializeFromJsonTo<string>();
             storedResult.ShouldBe("HELLO");
-            var effects = await store.EffectsStore.GetEffectResults(functionId);
+            var effects = await store.EffectsStore.GetEffectResults(registration.MapToStoredId(functionId));
             effects
                 .Single(e => e.EffectId == "Scrap")
                 .Result!

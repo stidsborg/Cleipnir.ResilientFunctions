@@ -16,6 +16,9 @@ public class ChildWorkflowsTest
         await helper.InitializeDatabaseAndInitializeAndTruncateTable();
         var store = await helper.CreateFunctionStore();
         
+        var parentFlowType = new FlowType("Parent");
+        var childFlowType = new FlowType("Child");
+        
         var stopWatch = new Stopwatch();
         stopWatch.Start();
         
@@ -23,11 +26,11 @@ public class ChildWorkflowsTest
             store,
             new Settings(unhandledExceptionHandler: Console.WriteLine)
         );
-        var parentFunctionId = new FlowId("Parent", "Parent");
+        var parentFunctionId = new FlowId(parentFlowType, "Parent");
 
         ActionRegistration<string>? parentRegistration = null;
         var childRegistration = functionsRegistry.RegisterAction(
-            "Child",
+            childFlowType,
             async Task (string param, Workflow workflow) =>
                 await parentRegistration!.MessageWriters
                     .For(parentFunctionId.Instance)

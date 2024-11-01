@@ -19,25 +19,26 @@ public class DelayedStartUpTests
         var store = new InMemoryFunctionStore();
 
         var functionId = new FlowId("flowType", "flowInstance");
-        await store.CreateFunction(
-            functionId,
-            "hello world".ToJson().ToUtf8Bytes(),
-            leaseExpiration: DateTime.UtcNow.Ticks,
-            postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks
-        );
+     
         var stopWatch = new Stopwatch();
         stopWatch.Start();
         using var rFunctions = new FunctionsRegistry(store, new Settings(
             leaseLength: TimeSpan.FromMilliseconds(10),
             delayStartup: TimeSpan.FromSeconds(1))
         );
-        rFunctions.RegisterAction(
+        var registration = rFunctions.RegisterAction(
             functionId.Type,
             Task (string param) => Task.CompletedTask
         );
+        await store.CreateFunction(
+            registration.MapToStoredId(functionId),
+            "hello world".ToJson().ToUtf8Bytes(),
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks
+        );
 
-        await BusyWait.Until(() => store.GetFunction(functionId).Map(sf => sf?.Status == Status.Succeeded));
+        await BusyWait.Until(() => store.GetFunction(registration.MapToStoredId(functionId)).Map(sf => sf?.Status == Status.Succeeded));
         stopWatch.Elapsed.ShouldBeGreaterThan(TimeSpan.FromMilliseconds(750));
     }
     
@@ -47,22 +48,23 @@ public class DelayedStartUpTests
         var store = new InMemoryFunctionStore();
 
         var functionId = new FlowId("flowType", "flowInstance");
+       
+        var stopWatch = new Stopwatch();
+        stopWatch.Start();
+        using var rFunctions = new FunctionsRegistry(store, new Settings(leaseLength: TimeSpan.FromMilliseconds(10)));
+        var registration = rFunctions.RegisterAction(
+            functionId.Type,
+            Task (string param) => Task.CompletedTask
+        );
         await store.CreateFunction(
-            functionId,
+            registration.MapToStoredId(functionId),
             "hello world".ToJson().ToUtf8Bytes(),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
         );
-        var stopWatch = new Stopwatch();
-        stopWatch.Start();
-        using var rFunctions = new FunctionsRegistry(store, new Settings(leaseLength: TimeSpan.FromMilliseconds(10)));
-        rFunctions.RegisterAction(
-            functionId.Type,
-            Task (string param) => Task.CompletedTask
-        );
 
-        await BusyWait.Until(() => store.GetFunction(functionId).Map(sf => sf?.Status == Status.Succeeded));
+        await BusyWait.Until(() => store.GetFunction(registration.MapToStoredId(functionId)).Map(sf => sf?.Status == Status.Succeeded));
         stopWatch.Elapsed.ShouldBeLessThan(TimeSpan.FromMilliseconds(500));
     }
     
@@ -72,20 +74,7 @@ public class DelayedStartUpTests
         var store = new InMemoryFunctionStore();
         var storedParameter = "hello world".ToJson();
         var functionId = new FlowId("flowType", "flowInstance"); 
-        await store.CreateFunction(
-            functionId,
-            storedParameter.ToUtf8Bytes(),
-            leaseExpiration: DateTime.UtcNow.Ticks,
-            postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks
-        );
-        await store.PostponeFunction(
-            functionId,
-            postponeUntil: 0,
-            timestamp: DateTime.UtcNow.Ticks,
-            expectedEpoch: 0,
-            complimentaryState: new ComplimentaryState(storedParameter.ToUtf8Bytes().ToFunc(), LeaseLength: 0)
-        ).ShouldBeTrueAsync();
+      
 
         var stopWatch = new Stopwatch();
         stopWatch.Start();
@@ -93,12 +82,27 @@ public class DelayedStartUpTests
             watchdogCheckFrequency: TimeSpan.FromMilliseconds(10),
             delayStartup: TimeSpan.FromSeconds(1))
         );
-        rFunctions.RegisterAction(
+        var registration = rFunctions.RegisterAction(
             functionId.Type,
             Task (string param) => Task.CompletedTask
         );
 
-        await BusyWait.Until(() => store.GetFunction(functionId).Map(sf => sf?.Status == Status.Succeeded));
+        await store.CreateFunction(
+            registration.MapToStoredId(functionId),
+            storedParameter.ToUtf8Bytes(),
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks
+        );
+        await store.PostponeFunction(
+            registration.MapToStoredId(functionId),
+            postponeUntil: 0,
+            timestamp: DateTime.UtcNow.Ticks,
+            expectedEpoch: 0,
+            complimentaryState: new ComplimentaryState(storedParameter.ToUtf8Bytes().ToFunc(), LeaseLength: 0)
+        ).ShouldBeTrueAsync();
+        
+        await BusyWait.Until(() => store.GetFunction(registration.MapToStoredId(functionId)).Map(sf => sf?.Status == Status.Succeeded));
         stopWatch.Elapsed.ShouldBeGreaterThan(TimeSpan.FromMilliseconds(750));
     }
     
@@ -109,30 +113,31 @@ public class DelayedStartUpTests
 
         var storedParameter = "hello world".ToJson().ToUtf8Bytes();
         var functionId = new FlowId("flowType", "flowInstance");
+
+        var stopWatch = new Stopwatch();
+        stopWatch.Start();
+        using var rFunctions = new FunctionsRegistry(store, new Settings(watchdogCheckFrequency: TimeSpan.FromMilliseconds(10)));
+        var registration = rFunctions.RegisterAction(
+            functionId.Type,
+            Task (string param) => Task.CompletedTask
+        );
+        
         await store.CreateFunction(
-            functionId,
+            registration.MapToStoredId(functionId),
             storedParameter,
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
         );
         await store.PostponeFunction(
-            functionId,
+            registration.MapToStoredId(functionId),
             postponeUntil: 0,
             timestamp: DateTime.UtcNow.Ticks,
             expectedEpoch: 0,
             new ComplimentaryState(storedParameter.ToFunc(), LeaseLength: 0)
         );
 
-        var stopWatch = new Stopwatch();
-        stopWatch.Start();
-        using var rFunctions = new FunctionsRegistry(store, new Settings(watchdogCheckFrequency: TimeSpan.FromMilliseconds(10)));
-        rFunctions.RegisterAction(
-            functionId.Type,
-            Task (string param) => Task.CompletedTask
-        );
-
-        await BusyWait.Until(() => store.GetFunction(functionId).Map(sf => sf?.Status == Status.Succeeded));
+        await BusyWait.Until(() => store.GetFunction(registration.MapToStoredId(functionId)).Map(sf => sf?.Status == Status.Succeeded));
         stopWatch.Elapsed.ShouldBeLessThan(TimeSpan.FromMilliseconds(500));
     }
 }

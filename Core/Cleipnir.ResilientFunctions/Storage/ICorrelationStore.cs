@@ -9,10 +9,10 @@ public interface ICorrelationStore
     public Task Initialize();
     public Task Truncate();
 
-    public Task SetCorrelation(FlowId flowId, string correlationId);
-    public Task<IReadOnlyList<FlowId>> GetCorrelations(string correlationId);
-    public Task<IReadOnlyList<FlowInstance>> GetCorrelations(FlowType flowType, string correlationId);
-    public Task<IReadOnlyList<string>> GetCorrelations(FlowId flowId);
-    public Task RemoveCorrelations(FlowId flowId);
-    public Task RemoveCorrelation(FlowId flowId, string correlationId);
+    public Task SetCorrelation(StoredId storedId, string correlationId);
+    public Task<IReadOnlyList<StoredId>> GetCorrelations(string correlationId);
+    public Task<IReadOnlyList<string>> GetCorrelations(StoredType flowType, string correlationId);
+    public Task<IReadOnlyList<string>> GetCorrelations(StoredId storedId);
+    public Task RemoveCorrelations(StoredId storedId);
+    public Task RemoveCorrelation(StoredId storedId, string correlationId);
 }

@@ -15,7 +15,7 @@ public interface IRegisteredTimeouts
     Task<IReadOnlyList<RegisteredTimeout>> PendingTimeouts();
 }
 
-public class RegisteredTimeouts(FlowId flowId, ITimeoutStore timeoutStore) : IRegisteredTimeouts
+public class RegisteredTimeouts(StoredId id, ITimeoutStore timeoutStore) : IRegisteredTimeouts
 {
     private readonly ImplicitIds _implicitIds = new();
     private Dictionary<TimeoutId, RegisteredTimeout>? _localTimeouts;
@@ -27,7 +27,7 @@ public class RegisteredTimeouts(FlowId flowId, ITimeoutStore timeoutStore) : IRe
             if (_localTimeouts is not null)
                 return _localTimeouts;
         
-        var timeouts = await timeoutStore.GetTimeouts(flowId);
+        var timeouts = await timeoutStore.GetTimeouts(id);
         var localTimeouts = timeouts
             .ToDictionary(
                 t => new TimeoutId(t.TimeoutId),
@@ -54,7 +54,7 @@ public class RegisteredTimeouts(FlowId flowId, ITimeoutStore timeoutStore) : IRe
         
         expiresAt = expiresAt.ToUniversalTime();
         await timeoutStore.UpsertTimeout(
-            new StoredTimeout(flowId, timeoutId.Value, expiresAt.Ticks),
+            new StoredTimeout(id, timeoutId.Value, expiresAt.Ticks),
             overwrite: true
         );
         
@@ -72,7 +72,7 @@ public class RegisteredTimeouts(FlowId flowId, ITimeoutStore timeoutStore) : IRe
             if (!registeredTimeouts.Remove(timeoutId))
                 return;
         
-        await timeoutStore.RemoveTimeout(flowId, timeoutId.Value);   
+        await timeoutStore.RemoveTimeout(id, timeoutId.Value);   
     }
 
     public async Task<IReadOnlyList<RegisteredTimeout>> PendingTimeouts()

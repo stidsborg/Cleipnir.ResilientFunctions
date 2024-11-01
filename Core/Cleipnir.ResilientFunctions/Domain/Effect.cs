@@ -19,7 +19,8 @@ public enum ResiliencyLevel
 }
 
 public class Effect(
-    FlowId flowId,
+    FlowType flowType,
+    StoredId storedId,
     Lazy<Task<IReadOnlyList<StoredEffect>>> lazyExistingEffects,
     IEffectsStore effectsStore,
     ISerializer serializer
@@ -76,11 +77,11 @@ public class Effect(
                 return serializer.DeserializeEffectResult<T>(existing.Result!);
             
             if (existing?.StoredException != null)
-                throw new EffectException(flowId, id, serializer.DeserializeException(existing.StoredException!));
+                throw new EffectException(flowType, id, serializer.DeserializeException(existing.StoredException!));
         }
 
-        var storedEffect =  StoredEffect.CreateCompleted(id, serializer.SerializeEffectResult(value));
-        await effectsStore.SetEffectResult(flowId, storedEffect);
+        var storedEffect = StoredEffect.CreateCompleted(id, serializer.SerializeEffectResult(value));
+        await effectsStore.SetEffectResult(storedId, storedEffect);
 
         lock (_sync)
             effectResults[id] = storedEffect;
@@ -93,7 +94,7 @@ public class Effect(
         var effectResults = await GetEffectResults();
 
         var storedEffect = StoredEffect.CreateCompleted(id, serializer.SerializeEffectResult(value));
-        await effectsStore.SetEffectResult(flowId, storedEffect);
+        await effectsStore.SetEffectResult(storedId, storedEffect);
         
         lock (_sync)
             effectResults[id] = storedEffect;
@@ -114,7 +115,7 @@ public class Effect(
                 }
                 
                 if (storedEffect.StoredException != null)
-                    throw new EffectException(flowId, id, serializer.DeserializeException(storedEffect.StoredException!));
+                    throw new EffectException(flowType, id, serializer.DeserializeException(storedEffect.StoredException!));
             }
         }
         
@@ -157,7 +158,7 @@ public class Effect(
             if (success && storedEffect!.WorkStatus == WorkStatus.Completed)
                 return;
             if (success && storedEffect!.WorkStatus == WorkStatus.Failed)
-                throw new EffectException(flowId, id, serializer.DeserializeException(storedEffect.StoredException!));
+                throw new EffectException(flowType, id, serializer.DeserializeException(storedEffect.StoredException!));
             if (success && resiliency == ResiliencyLevel.AtMostOnce)
                 throw new InvalidOperationException($"Effect '{id}' started but did not complete previously");
         }
@@ -165,7 +166,7 @@ public class Effect(
         if (resiliency == ResiliencyLevel.AtMostOnce)
         {
             var storedEffect = StoredEffect.CreateStarted(id); 
-            await effectsStore.SetEffectResult(flowId, storedEffect);
+            await effectsStore.SetEffectResult(storedId, storedEffect);
             lock (_sync)
                 effectResults[id] = storedEffect;
         }
@@ -186,7 +187,7 @@ public class Effect(
         {
             var storedException = serializer.SerializeException(exception);
             var storedEffect = StoredEffect.CreateFailed(id, storedException);
-            await effectsStore.SetEffectResult(flowId, storedEffect);
+            await effectsStore.SetEffectResult(storedId, storedEffect);
             
             lock (_sync)
                 effectResults[id] = storedEffect;
@@ -195,7 +196,7 @@ public class Effect(
         }
 
         var effectResult = StoredEffect.CreateCompleted(id);
-        await effectsStore.SetEffectResult(flowId,effectResult);
+        await effectsStore.SetEffectResult(storedId,effectResult);
 
         lock (_sync)
             effectResults[id] = effectResult;
@@ -210,7 +211,7 @@ public class Effect(
             if (success && storedEffect!.WorkStatus == WorkStatus.Completed)
                 return (storedEffect.Result == null ? default : JsonSerializer.Deserialize<T>(storedEffect.Result))!;
             if (success && storedEffect!.WorkStatus == WorkStatus.Failed)
-                throw new PreviousInvocationException(flowId, serializer.DeserializeException(storedEffect.StoredException!));
+                throw new PreviousInvocationException(flowType, serializer.DeserializeException(storedEffect.StoredException!));
             if (success && resiliency == ResiliencyLevel.AtMostOnce)
                 throw new InvalidOperationException($"Effect '{id}' started but did not complete previously");
         }
@@ -218,7 +219,7 @@ public class Effect(
         if (resiliency == ResiliencyLevel.AtMostOnce)
         {
             var storedEffect = StoredEffect.CreateStarted(id);
-            await effectsStore.SetEffectResult(flowId, storedEffect);
+            await effectsStore.SetEffectResult(storedId, storedEffect);
             lock (_sync)
                 effectResults[id] = storedEffect;
         }
@@ -240,7 +241,7 @@ public class Effect(
         {
             var storedException = serializer.SerializeException(exception);
             var storedEffect = StoredEffect.CreateFailed(id, storedException);
-            await effectsStore.SetEffectResult(flowId, storedEffect);
+            await effectsStore.SetEffectResult(storedId, storedEffect);
 
             lock (_sync)
                 effectResults[id] = storedEffect;
@@ -249,7 +250,7 @@ public class Effect(
         }
 
         var effectResult = StoredEffect.CreateCompleted(id, serializer.SerializeEffectResult(result)); 
-        await effectsStore.SetEffectResult(flowId, effectResult);
+        await effectsStore.SetEffectResult(storedId, effectResult);
 
         lock (_sync)
             effectResults[id] = effectResult;
@@ -264,7 +265,7 @@ public class Effect(
             if (!effectResults.ContainsKey(id))
                 return;
         
-        await effectsStore.DeleteEffectResult(flowId, id, isState: false);
+        await effectsStore.DeleteEffectResult(storedId, id, isState: false);
         lock (_sync)
             effectResults.Remove(id);
     }

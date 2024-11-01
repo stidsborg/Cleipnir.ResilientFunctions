@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Messaging;
+using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions;
 
@@ -34,6 +35,7 @@ public class ActionRegistration<TParam> : BaseRegistration where TParam : notnul
     
     public ActionRegistration(
         FlowType flowType,
+        StoredType storedType,
         ActionRegistration.Invoke<TParam> invoke,
         ActionRegistration.Schedule<TParam> schedule,
         ActionRegistration.ScheduleAt<TParam> scheduleAt,
@@ -43,7 +45,7 @@ public class ActionRegistration<TParam> : BaseRegistration where TParam : notnul
         MessageWriters messageWriters, 
         StateFetcher stateFetcher,
         Postman postman
-    ) : base(postman, getInstances)
+    ) : base(storedType, postman, getInstances)
     {
         Type = flowType;
         
@@ -60,13 +62,9 @@ public class ActionRegistration<TParam> : BaseRegistration where TParam : notnul
         => _controlPanelFactory.Create(flowInstance);
 
     public Task<TState?> GetState<TState>(FlowInstance instance, StateId? stateId = null)
-        where TState : FlowState, new()
-    {
-        var functionId = new FlowId(Type, instance);
-        return stateId is null 
-            ? _stateFetcher.FetchState<TState>(functionId) 
-            : _stateFetcher.FetchState<TState>(functionId, stateId);
-    }
+        where TState : FlowState, new() => stateId is null
+        ? _stateFetcher.FetchState<TState>(instance)
+        : _stateFetcher.FetchState<TState>(instance, stateId);
     
     public Task ScheduleIn(string flowInstance, TParam param, TimeSpan delay) 
         => ScheduleAt(flowInstance, param, delayUntil: DateTime.UtcNow.Add(delay));

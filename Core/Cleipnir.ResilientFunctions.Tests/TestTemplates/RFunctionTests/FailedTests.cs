@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
@@ -47,11 +48,10 @@ public abstract class FailedTests
                         throwUnhandledException
                             ? throw new Exception()
                             : Task.FromException(new Exception())
-                )
-                .Invoke;
+                );
 
-            await Should.ThrowAsync<Exception>(async () => await actionRegistration(flowInstance.ToString(), Param));
-            var sf = await store.GetFunction(functionId);
+            await Should.ThrowAsync<Exception>(async () => await actionRegistration.Invoke(flowInstance.ToString(), Param));
+            var sf = await store.GetFunction(actionRegistration.MapToStoredId(functionId));
             sf.ShouldNotBeNull();
         }
         {
@@ -70,15 +70,15 @@ public abstract class FailedTests
                     flag.Raise();
                     return s.ToUpper().ToTask();
                 }
-            ).Invoke;
+            );
             await Task.Delay(250);
             
             flag.Position.ShouldBe(Lowered);
             
-            var sf = await store.GetFunction(functionId);
+            var sf = await store.GetFunction(rFunc.MapToStoredId(functionId));
             sf.ShouldNotBeNull();
             sf.Status.ShouldBe(Status.Failed);
-            await Should.ThrowAsync<Exception>(async () => await rFunc(flowInstance.ToString(), Param));
+            await Should.ThrowAsync<Exception>(async () => await rFunc.Invoke(flowInstance.ToString(), Param));
         }
             
         unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
@@ -138,17 +138,17 @@ public abstract class FailedTests
                     flag.Raise();
                     return Task.CompletedTask;
                 }
-            ).Invoke;
+            );
                 
             await Task.Delay(250);
             flag.Position.ShouldBe(Lowered);
             
             var functionId = new FlowId(flowType, Param.ToFlowInstance());
-            var storedFunction = await store.GetFunction(functionId);
+            var storedFunction = await store.GetFunction(rAction.MapToStoredId(functionId));
             storedFunction.ShouldNotBeNull();
             storedFunction.Status.ShouldBe(Status.Failed);
 
-            await Should.ThrowAsync<Exception>(() => rAction(Param, Param));
+            await Should.ThrowAsync<Exception>(() => rAction.Invoke(Param, Param));
         }
             
         unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
@@ -197,15 +197,14 @@ public abstract class FailedTests
                     {
                         flag.Raise();
                         return Task.CompletedTask;
-                    })
-                .Invoke;
+                    });
             await Task.Delay(250);
             flag.Position.ShouldBe(Lowered);
             
-            var status = await store.GetFunction(functionId).Map(t => t?.Status);
+            var status = await store.GetFunction(rFunc.MapToStoredId(functionId)).Map(t => t?.Status);
             status.ShouldNotBeNull();
             status.ShouldBe(Status.Failed);
-            await Should.ThrowAsync<Exception>(rFunc(flowInstance.ToString(), Param));
+            await Should.ThrowAsync<Exception>(rFunc.Invoke(flowInstance.ToString(), Param));
         }
             
         unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
@@ -291,23 +290,24 @@ public abstract class FailedTests
                     flag.Raise();
                     return Succeed.WithoutValue.ToTask();
                 }
-            ).Invoke;
+            );
                 
             await Task.Delay(250);
             flag.Position.ShouldBe(Lowered);
             
-            var storedFunction = await store.GetFunction(functionId);
+            var storedFunction = await store.GetFunction(rFunc.MapToStoredId(functionId));
             storedFunction.ShouldNotBeNull();
             storedFunction.Status.ShouldBe(Status.Failed);
             
-            await Should.ThrowAsync<Exception>(() => rFunc(flowInstance.ToString(), param));
+            await Should.ThrowAsync<Exception>(() => rFunc.Invoke(flowInstance.ToString(), param));
         }
         
         unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
         if (throwUnhandledException)
         {
+            var key = (await store.TypeStore.GetAllFlowTypes()).Values.First();
             await store
-                .GetFunction(functionId)
+                .GetFunction(new StoredId(key, functionId.Instance.Value))
                 .Map(f => f?.Exception)
                 .ShouldNotBeNullAsync();
         }

@@ -23,6 +23,7 @@ public class FunctionsRegistry : IDisposable
 
     private readonly TimeoutWatchdog _timeoutWatchdog;
     private readonly CrashedOrPostponedWatchdog _crashedOrPostponedWatchdog;
+    private readonly StoredTypes _storedTypes;
     
     private volatile bool _disposed;
     private readonly object _sync = new();
@@ -30,6 +31,7 @@ public class FunctionsRegistry : IDisposable
     public FunctionsRegistry(IFunctionStore functionStore, Settings? settings = null)
     {
         _functionStore = functionStore;
+        _storedTypes = new StoredTypes(functionStore.TypeStore);
         _shutdownCoordinator = new ShutdownCoordinator();
         _settings = SettingsWithDefaults.Default.Merge(settings);
 
@@ -208,8 +210,10 @@ public class FunctionsRegistry : IDisposable
                 return (FuncRegistration<TParam, TReturn>)_functions[flowType];
             
             var settingsWithDefaults = _settings.Merge(settings);
+            var storedType = _storedTypes.InsertOrGet(flowType).GetAwaiter().GetResult();
             var invocationHelper = new InvocationHelper<TParam, TReturn>(
                 flowType,
+                storedType,
                 isParamlessFunction: false,
                 settingsWithDefaults,
                 _functionStore,
@@ -217,6 +221,7 @@ public class FunctionsRegistry : IDisposable
             );
             var invoker = new Invoker<TParam, TReturn>(
                 flowType, 
+                storedType,
                 inner,
                 invocationHelper,
                 settingsWithDefaults.UnhandledExceptionHandler,
@@ -225,6 +230,7 @@ public class FunctionsRegistry : IDisposable
 
             WatchDogsFactory.CreateAndStart(
                 flowType,
+                storedType,
                 _functionStore,
                 _timeoutWatchdog,
                 _crashedOrPostponedWatchdog,
@@ -237,30 +243,33 @@ public class FunctionsRegistry : IDisposable
 
             var controlPanels = new ControlPanelFactory<TParam, TReturn>(
                 flowType,
+                storedType,
                 invoker,
                 invocationHelper
             );
 
             var messageWriters = new MessageWriters(
                 flowType,
+                storedType,
                 _functionStore,
                 settingsWithDefaults.Serializer,
                 invoker.ScheduleRestart
             );
 
             var postman = new Postman(
-                flowType,
+                storedType,
                 _functionStore.CorrelationStore,
                 messageWriters
             );
 
             Task<IReadOnlyList<FlowInstance>> GetInstances(Status? status) =>
                 status == null
-                    ? _functionStore.GetInstances(flowType)
-                    : _functionStore.GetInstances(flowType, status.Value);
+                    ? _functionStore.GetInstances(storedType)
+                    : _functionStore.GetInstances(storedType, status.Value);
 
             var registration = new FuncRegistration<TParam, TReturn>(
                 flowType,
+                storedType,
                 invoker.Invoke,
                 invoker.ScheduleInvoke,
                 invoker.ScheduleAt,
@@ -268,7 +277,7 @@ public class FunctionsRegistry : IDisposable
                 GetInstances,
                 controlPanels,
                 messageWriters,
-                new StateFetcher(_functionStore.EffectsStore, settingsWithDefaults.Serializer),
+                new StateFetcher(storedType, _functionStore.EffectsStore, settingsWithDefaults.Serializer),
                 postman
             );
             _functions[flowType] = registration;
@@ -292,8 +301,10 @@ public class FunctionsRegistry : IDisposable
                 return (ParamlessRegistration)_functions[flowType];
             
             var settingsWithDefaults = _settings.Merge(settings);
+            var storedType = _storedTypes.InsertOrGet(flowType).GetAwaiter().GetResult();
             var invocationHelper = new InvocationHelper<Unit, Unit>(
                 flowType,
+                storedType,
                 isParamlessFunction: true,
                 settingsWithDefaults,
                 _functionStore,
@@ -301,6 +312,7 @@ public class FunctionsRegistry : IDisposable
             );
             var invoker = new Invoker<Unit, Unit>(
                 flowType, 
+                storedType,
                 inner, 
                 invocationHelper,
                 settingsWithDefaults.UnhandledExceptionHandler,
@@ -309,6 +321,7 @@ public class FunctionsRegistry : IDisposable
             
             WatchDogsFactory.CreateAndStart(
                 flowType,
+                storedType,
                 _functionStore,
                 _timeoutWatchdog,
                 _crashedOrPostponedWatchdog,
@@ -321,30 +334,33 @@ public class FunctionsRegistry : IDisposable
 
             var controlPanels = new ControlPanelFactory(
                 flowType,
+                storedType,
                 invoker,
                 invocationHelper
             );
 
             var messageWriters = new MessageWriters(
                 flowType,
+                storedType,
                 _functionStore,
                 settingsWithDefaults.Serializer,
                 invoker.ScheduleRestart
             );
 
             var postman = new Postman(
-                flowType,
+                storedType,
                 _functionStore.CorrelationStore,
                 messageWriters
             );
             
             Task<IReadOnlyList<FlowInstance>> GetInstances(Status? status) =>
                 status == null
-                    ? _functionStore.GetInstances(flowType)
-                    : _functionStore.GetInstances(flowType, status.Value);
+                    ? _functionStore.GetInstances(storedType)
+                    : _functionStore.GetInstances(storedType, status.Value);
 
             var registration = new ParamlessRegistration(
                 flowType,
+                storedType,
                 invoke: id => invoker.Invoke(id.Value, param: Unit.Instance),
                 schedule: id => invoker.ScheduleInvoke(id.Value, param: Unit.Instance),
                 scheduleAt: (id, at) => invoker.ScheduleAt(id.Value, param: Unit.Instance, at),
@@ -352,7 +368,7 @@ public class FunctionsRegistry : IDisposable
                 GetInstances,
                 controlPanels,
                 messageWriters,
-                new StateFetcher(_functionStore.EffectsStore, settingsWithDefaults.Serializer),
+                new StateFetcher(storedType, _functionStore.EffectsStore, settingsWithDefaults.Serializer),
                 postman
             );
             _functions[flowType] = registration;
@@ -374,10 +390,12 @@ public class FunctionsRegistry : IDisposable
         {
             if (_functions.ContainsKey(flowType))
                 return (ActionRegistration<TParam>)_functions[flowType];
-            
+
+            var storedType = _storedTypes.InsertOrGet(flowType).GetAwaiter().GetResult();
             var settingsWithDefaults = _settings.Merge(settings);
             var invocationHelper = new InvocationHelper<TParam, Unit>(
                 flowType,
+                storedType,
                 isParamlessFunction: false,
                 settingsWithDefaults,
                 _functionStore,
@@ -385,6 +403,7 @@ public class FunctionsRegistry : IDisposable
             );
             var rActionInvoker = new Invoker<TParam, Unit>(
                 flowType, 
+                storedType,
                 inner, 
                 invocationHelper,
                 settingsWithDefaults.UnhandledExceptionHandler,
@@ -393,6 +412,7 @@ public class FunctionsRegistry : IDisposable
             
             WatchDogsFactory.CreateAndStart(
                 flowType,
+                storedType,
                 _functionStore,
                 _timeoutWatchdog,
                 _crashedOrPostponedWatchdog,
@@ -405,29 +425,32 @@ public class FunctionsRegistry : IDisposable
 
             var controlPanels = new ControlPanelFactory<TParam>(
                 flowType,
+                storedType,
                 rActionInvoker,
                 invocationHelper
             );
 
             var messageWriters = new MessageWriters(
                 flowType,
+                storedType,
                 _functionStore,
                 settingsWithDefaults.Serializer,
                 rActionInvoker.ScheduleRestart
             );
             var postman = new Postman(
-                flowType,
+                storedType,
                 _functionStore.CorrelationStore,
                 messageWriters
             );
             
             Task<IReadOnlyList<FlowInstance>> GetInstances(Status? status) =>
                 status == null
-                    ? _functionStore.GetInstances(flowType)
-                    : _functionStore.GetInstances(flowType, status.Value);
+                    ? _functionStore.GetInstances(storedType)
+                    : _functionStore.GetInstances(storedType, status.Value);
             
             var registration = new ActionRegistration<TParam>(
                 flowType,
+                storedType,
                 rActionInvoker.Invoke,
                 rActionInvoker.ScheduleInvoke,
                 rActionInvoker.ScheduleAt,
@@ -435,7 +458,7 @@ public class FunctionsRegistry : IDisposable
                 GetInstances,
                 controlPanels,
                 messageWriters,
-                new StateFetcher(_functionStore.EffectsStore, settingsWithDefaults.Serializer),
+                new StateFetcher(storedType, _functionStore.EffectsStore, settingsWithDefaults.Serializer),
                 postman
             );
             _functions[flowType] = registration;

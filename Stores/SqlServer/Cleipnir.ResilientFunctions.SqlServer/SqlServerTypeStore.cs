@@ -33,7 +33,7 @@ public class SqlServerTypeStore(string connectionString, string tablePrefix = ""
         await command.ExecuteNonQueryAsync();
     }
     
-    public async Task<int> InsertOrGetFlowType(FlowType flowType)
+    public async Task<StoredType> InsertOrGetStoredType(FlowType flowType)
     {
         await using var conn = await CreateConnection();
         var sql = @$"
@@ -51,7 +51,7 @@ public class SqlServerTypeStore(string connectionString, string tablePrefix = ""
         return await GetRef(flowType);
     }
     
-    private async Task<int> GetRef(FlowType flowType)
+    private async Task<StoredType> GetRef(FlowType flowType)
     {
         await using var conn = await CreateConnection();
         var sql = @$"    
@@ -66,10 +66,10 @@ public class SqlServerTypeStore(string connectionString, string tablePrefix = ""
         if (!value.HasValue)
             throw new InvalidOperationException($"Unexpected missing reference for type: '{flowType.Value}'");
 
-        return value.Value;
+        return new StoredType(value.Value);
     } 
 
-    public async Task<IReadOnlyDictionary<FlowType, int>> GetAllFlowTypes()
+    public async Task<IReadOnlyDictionary<FlowType, StoredType>> GetAllFlowTypes()
     {
         await using var conn = await CreateConnection();
         var sql = @$"    
@@ -77,14 +77,14 @@ public class SqlServerTypeStore(string connectionString, string tablePrefix = ""
             FROM {tablePrefix}_Types";
         
         await using var command = new SqlCommand(sql, conn);
-        var dict = new Dictionary<FlowType, int>();
+        var dict = new Dictionary<FlowType, StoredType>();
         
         await using var reader = await command.ExecuteReaderAsync();
         while (await reader.ReadAsync())
         {
             var value = reader.GetInt32(0); 
             var flowType = new FlowType(reader.GetString(1));
-            dict.TryAdd(flowType, value);
+            dict.TryAdd(flowType, new StoredType(value));
         }
 
         return dict;

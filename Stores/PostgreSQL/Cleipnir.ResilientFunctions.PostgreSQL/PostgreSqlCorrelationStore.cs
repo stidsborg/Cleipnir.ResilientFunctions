@@ -14,7 +14,7 @@ public class PostgreSqlCorrelationStore(string connectionString, string tablePre
         await using var conn = await CreateConnection();
         _initializeSql ??= @$"
             CREATE TABLE IF NOT EXISTS {tablePrefix}_correlations (
-                type VARCHAR(255),
+                type INT,
                 instance VARCHAR(255),
                 correlation VARCHAR(255) NOT NULL,
                 PRIMARY KEY(type, instance, correlation)
@@ -36,9 +36,9 @@ public class PostgreSqlCorrelationStore(string connectionString, string tablePre
     }
 
     private string? _setCorrelationSql;
-    public async Task SetCorrelation(FlowId flowId, string correlationId)
+    public async Task SetCorrelation(StoredId storedId, string correlationId)
     {
-        var (flowType, flowInstance) = flowId;
+        var (flowType, flowInstance) = storedId;
         
         await using var conn = await CreateConnection();
         _setCorrelationSql ??= $@"
@@ -53,7 +53,7 @@ public class PostgreSqlCorrelationStore(string connectionString, string tablePre
             Parameters =
             {
                 new() {Value = flowType.Value},
-                new() {Value = flowInstance.Value},
+                new() {Value = flowInstance},
                 new() {Value = correlationId}
             }
         };
@@ -62,7 +62,7 @@ public class PostgreSqlCorrelationStore(string connectionString, string tablePre
     }
 
     private string? _getCorrelationsSql;
-    public async Task<IReadOnlyList<FlowId>> GetCorrelations(string correlationId)
+    public async Task<IReadOnlyList<StoredId>> GetCorrelations(string correlationId)
     {
         await using var conn = await CreateConnection();
         _getCorrelationsSql ??= @$"
@@ -79,20 +79,20 @@ public class PostgreSqlCorrelationStore(string connectionString, string tablePre
 
         await using var reader = await command.ExecuteReaderAsync();
 
-        var functions = new List<FlowId>();
+        var functions = new List<StoredId>();
         while (await reader.ReadAsync())
         {
-            var functionType = reader.GetString(0);
+            var functionType = reader.GetInt32(0);
             var functionInstance = reader.GetString(1);
             
-            functions.Add(new FlowId(functionType, functionInstance));
+            functions.Add(new StoredId(new StoredType(functionType), functionInstance));
         }
 
         return functions;
     }
 
     private string? _getInstancesForFlowTypeAndCorrelation;
-    public async Task<IReadOnlyList<FlowInstance>> GetCorrelations(FlowType flowType, string correlationId)
+    public async Task<IReadOnlyList<string>> GetCorrelations(StoredType flowType, string correlationId)
     {
         await using var conn = await CreateConnection();
         _getInstancesForFlowTypeAndCorrelation ??= @$"
@@ -110,7 +110,7 @@ public class PostgreSqlCorrelationStore(string connectionString, string tablePre
 
         await using var reader = await command.ExecuteReaderAsync();
 
-        var correlations = new List<FlowInstance>();
+        var correlations = new List<string>();
         while (await reader.ReadAsync())
         {
             var correlation = reader.GetString(0);
@@ -121,9 +121,9 @@ public class PostgreSqlCorrelationStore(string connectionString, string tablePre
     }
 
     private string? _getCorrelationsForFunction;
-    public async Task<IReadOnlyList<string>> GetCorrelations(FlowId flowId)
+    public async Task<IReadOnlyList<string>> GetCorrelations(StoredId storedId)
     {
-        var (typeId, instanceId) = flowId;
+        var (typeId, instanceId) = storedId;
         await using var conn = await CreateConnection();
         _getCorrelationsForFunction ??= @$"
             SELECT correlation
@@ -134,7 +134,7 @@ public class PostgreSqlCorrelationStore(string connectionString, string tablePre
             Parameters =
             {
                 new() { Value = typeId.Value },
-                new() { Value = instanceId.Value }
+                new() { Value = instanceId }
             }
         };
 
@@ -151,9 +151,9 @@ public class PostgreSqlCorrelationStore(string connectionString, string tablePre
     }
 
     private string? _removeCorrelationsSql;
-    public async Task RemoveCorrelations(FlowId flowId)
+    public async Task RemoveCorrelations(StoredId storedId)
     {
-        var (flowType, flowInstance) = flowId;
+        var (flowType, flowInstance) = storedId;
         
         await using var conn = await CreateConnection();
         _removeCorrelationsSql ??= $@"
@@ -165,7 +165,7 @@ public class PostgreSqlCorrelationStore(string connectionString, string tablePre
             Parameters =
             {
                 new() {Value = flowType.Value},
-                new() {Value = flowInstance.Value},
+                new() {Value = flowInstance},
             }
         };
 
@@ -173,9 +173,9 @@ public class PostgreSqlCorrelationStore(string connectionString, string tablePre
     }
 
     private string? _removeCorrelationSql;
-    public async Task RemoveCorrelation(FlowId flowId, string correlationId)
+    public async Task RemoveCorrelation(StoredId storedId, string correlationId)
     {
-        var (flowType, flowInstance) = flowId;
+        var (flowType, flowInstance) = storedId;
         
         await using var conn = await CreateConnection();
         _removeCorrelationSql ??= $@"
@@ -187,7 +187,7 @@ public class PostgreSqlCorrelationStore(string connectionString, string tablePre
             Parameters =
             {
                 new() {Value = flowType.Value},
-                new() {Value = flowInstance.Value},
+                new() {Value = flowInstance},
                 new() {Value = correlationId},
             }
         };

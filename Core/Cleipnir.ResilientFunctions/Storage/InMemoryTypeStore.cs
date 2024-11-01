@@ -12,19 +12,19 @@ public class InMemoryTypeStore : ITypeStore
     private ImmutableDictionary<FlowType, int> _flowTypes = ImmutableDictionary<FlowType, int>.Empty;
     private readonly object _sync = new();
     
-    public Task<int> InsertOrGetFlowType(FlowType flowType)
+    public Task<StoredType> InsertOrGetStoredType(FlowType flowType)
     {
         lock (_sync)
         {
             if (_flowTypes.TryGetValue(flowType, out var index))
-                return index.ToTask();
+                return index.ToStoredType().ToTask();
 
             index = _flowTypes.Count;
             _flowTypes = _flowTypes.SetItem(flowType, index);
-            return index.ToTask();
+            return index.ToStoredType().ToTask();
         }
     }
 
-    public Task<IReadOnlyDictionary<FlowType, int>> GetAllFlowTypes() 
-        => ((IReadOnlyDictionary<FlowType, int>) _flowTypes.ToDictionary(kv => kv.Key, kv => kv.Value)).ToTask();
+    public Task<IReadOnlyDictionary<FlowType, StoredType>> GetAllFlowTypes() 
+        => ((IReadOnlyDictionary<FlowType, StoredType>) _flowTypes.ToDictionary(kv => kv.Key, kv => kv.Value.ToStoredType())).ToTask();
 }

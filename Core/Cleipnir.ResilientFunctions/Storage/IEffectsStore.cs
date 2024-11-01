@@ -8,8 +8,8 @@ public interface IEffectsStore
 {
     Task Initialize();
     Task Truncate();
-    Task SetEffectResult(FlowId flowId, StoredEffect storedEffect);
-    Task<IReadOnlyList<StoredEffect>> GetEffectResults(FlowId flowId);
-    Task DeleteEffectResult(FlowId flowId, EffectId effectId, bool isState);
-    Task Remove(FlowId flowId);
+    Task SetEffectResult(StoredId storedId, StoredEffect storedEffect);
+    Task<IReadOnlyList<StoredEffect>> GetEffectResults(StoredId storedId);
+    Task DeleteEffectResult(StoredId storedId, EffectId effectId, bool isState);
+    Task Remove(StoredId storedId);
 }

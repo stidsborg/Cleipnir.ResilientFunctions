@@ -11,6 +11,7 @@ internal static class WatchDogsFactory
 {
     public static void CreateAndStart(
         FlowType flowType, 
+        StoredType storedType,
         IFunctionStore functionStore,
         TimeoutWatchdog timeoutWatchdog,
         CrashedOrPostponedWatchdog crashedOrPostponedWatchdog,
@@ -29,7 +30,7 @@ internal static class WatchDogsFactory
         var asyncSemaphore = new AsyncSemaphore(settings.MaxParallelRetryInvocations);
 
         crashedOrPostponedWatchdog.Register(
-            flowType,
+            storedType,
             restartFunction,
             scheduleRestart,
             asyncSemaphore
@@ -37,14 +38,16 @@ internal static class WatchDogsFactory
 
         var messagesWriters = new MessageWriters(
             flowType,
+            storedType,
             functionStore,
             settings.Serializer,
             scheduleReInvocation: (id, epoch) => restart(id, epoch)
         );
-        timeoutWatchdog.Register(flowType, messagesWriters);
+        timeoutWatchdog.Register(storedType, messagesWriters);
 
         var retentionWatchdog = new RetentionWatchdog(
             flowType,
+            storedType,
             functionStore,
             settings.RetentionCleanUpFrequency,
             settings.DelayStartup,

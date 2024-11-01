@@ -28,7 +28,7 @@ public class CrashableFunctionStore : IFunctionStore
     public Task Initialize() => Task.CompletedTask;
 
     public Task<bool> CreateFunction(
-        FlowId flowId,
+        StoredId storedId,
         byte[]? param,
         long leaseExpiration,
         long? postponeUntil,
@@ -36,7 +36,7 @@ public class CrashableFunctionStore : IFunctionStore
     ) => _crashed
         ? Task.FromException<bool>(new TimeoutException())
         : _inner.CreateFunction(
-            flowId,
+            storedId,
             param,
             leaseExpiration,
             postponeUntil,
@@ -48,116 +48,116 @@ public class CrashableFunctionStore : IFunctionStore
             ? Task.FromException(new TimeoutException())
             : _inner.BulkScheduleFunctions(functionsWithParam);
 
-    public Task<StoredFlow?> RestartExecution(FlowId flowId, int expectedEpoch, long leaseExpiration)
+    public Task<StoredFlow?> RestartExecution(StoredId storedId, int expectedEpoch, long leaseExpiration)
         => _crashed
             ? Task.FromException<StoredFlow?>(new TimeoutException())
-            : _inner.RestartExecution(flowId, expectedEpoch, leaseExpiration);
+            : _inner.RestartExecution(storedId, expectedEpoch, leaseExpiration);
     
-    public Task<bool> RenewLease(FlowId flowId, int expectedEpoch, long leaseExpiration)
+    public Task<bool> RenewLease(StoredId storedId, int expectedEpoch, long leaseExpiration)
         => _crashed
             ? Task.FromException<bool>(new TimeoutException())
-            : _inner.RenewLease(flowId, expectedEpoch, leaseExpiration);
+            : _inner.RenewLease(storedId, expectedEpoch, leaseExpiration);
 
     public Task<IReadOnlyList<IdAndEpoch>> GetExpiredFunctions(long expiresBefore)
         => _crashed
             ? Task.FromException<IReadOnlyList<IdAndEpoch>>(new TimeoutException())
             : _inner.GetExpiredFunctions(expiresBefore);
 
-    public Task<IReadOnlyList<FlowInstance>> GetSucceededFunctions(FlowType flowType, long completedBefore)
+    public Task<IReadOnlyList<FlowInstance>> GetSucceededFunctions(StoredType storedType, long completedBefore)
         => _crashed
             ? Task.FromException<IReadOnlyList<FlowInstance>>(new TimeoutException())
-            : _inner.GetSucceededFunctions(flowType, completedBefore);
+            : _inner.GetSucceededFunctions(storedType, completedBefore);
 
     public Task<bool> SetFunctionState(
-        FlowId flowId, Status status, byte[]? storedParameter,
+        StoredId storedId, Status status, byte[]? storedParameter,
         byte[]? storedResult, StoredException? storedException, 
         long expires, 
         int expectedEpoch
     ) => _crashed
             ? Task.FromException<bool>(new TimeoutException())
             : _inner.SetFunctionState(
-                flowId, status, 
+                storedId, status, 
                 storedParameter, storedResult, 
                 storedException, expires, 
                 expectedEpoch
             );
 
     public Task<bool> SucceedFunction(
-        FlowId flowId,
+        StoredId storedId,
         byte[]? result,
         long timestamp,
         int expectedEpoch,
         ComplimentaryState complimentaryState
     ) => _crashed
         ? Task.FromException<bool>(new TimeoutException())
-        : _inner.SucceedFunction(flowId, result, timestamp, expectedEpoch, complimentaryState);
+        : _inner.SucceedFunction(storedId, result, timestamp, expectedEpoch, complimentaryState);
 
     public Task<bool> PostponeFunction(
-        FlowId flowId, 
+        StoredId storedId, 
         long postponeUntil, 
         long timestamp,
         int expectedEpoch, 
         ComplimentaryState complimentaryState
     ) => _crashed
         ? Task.FromException<bool>(new TimeoutException())
-        : _inner.PostponeFunction(flowId, postponeUntil, timestamp, expectedEpoch, complimentaryState); 
+        : _inner.PostponeFunction(storedId, postponeUntil, timestamp, expectedEpoch, complimentaryState); 
 
     public Task<bool> FailFunction(
-        FlowId flowId, 
+        StoredId storedId, 
         StoredException storedException, 
         long timestamp,
         int expectedEpoch, 
         ComplimentaryState complimentaryState
     ) => _crashed
         ? Task.FromException<bool>(new TimeoutException())
-        : _inner.FailFunction(flowId, storedException, timestamp, expectedEpoch, complimentaryState);
+        : _inner.FailFunction(storedId, storedException, timestamp, expectedEpoch, complimentaryState);
 
-    public Task<bool> SuspendFunction(FlowId flowId, long timestamp, int expectedEpoch, ComplimentaryState complimentaryState)
+    public Task<bool> SuspendFunction(StoredId storedId, long timestamp, int expectedEpoch, ComplimentaryState complimentaryState)
         => _crashed ? Task.FromException<bool>(new TimeoutException())
-            : _inner.SuspendFunction(flowId, timestamp, expectedEpoch, complimentaryState);
+            : _inner.SuspendFunction(storedId, timestamp, expectedEpoch, complimentaryState);
 
-    public Task<bool> Interrupt(FlowId flowId, bool onlyIfExecuting)
+    public Task<bool> Interrupt(StoredId storedId, bool onlyIfExecuting)
         => _crashed
             ? Task.FromException<bool>(new TimeoutException())
-            : _inner.Interrupt(flowId, onlyIfExecuting);
+            : _inner.Interrupt(storedId, onlyIfExecuting);
 
-    public Task<bool?> Interrupted(FlowId flowId)
+    public Task<bool?> Interrupted(StoredId storedId)
         => _crashed
             ? Task.FromException<bool?>(new TimeoutException())
-            : _inner.Interrupted(flowId);
+            : _inner.Interrupted(storedId);
     
-    public Task<bool> SetParameters(FlowId flowId, byte[]? storedParameter, byte[]? storedResult, int expectedEpoch)
+    public Task<bool> SetParameters(StoredId storedId, byte[]? storedParameter, byte[]? storedResult, int expectedEpoch)
         => _crashed
             ? Task.FromException<bool>(new TimeoutException())
-            : _inner.SetParameters(flowId, storedParameter, storedResult, expectedEpoch);
+            : _inner.SetParameters(storedId, storedParameter, storedResult, expectedEpoch);
     
-    public Task<StatusAndEpoch?> GetFunctionStatus(FlowId flowId)
+    public Task<StatusAndEpoch?> GetFunctionStatus(StoredId storedId)
         => _crashed
             ? Task.FromException<StatusAndEpoch?>(new TimeoutException())
-            : _inner.GetFunctionStatus(flowId);
+            : _inner.GetFunctionStatus(storedId);
 
-    public Task<StoredFlow?> GetFunction(FlowId flowId)
+    public Task<StoredFlow?> GetFunction(StoredId storedId)
         => _crashed
             ? Task.FromException<StoredFlow?>(new TimeoutException())
-            : _inner.GetFunction(flowId);
+            : _inner.GetFunction(storedId);
 
-    public Task<IReadOnlyList<FlowInstance>> GetInstances(FlowType flowType, Status status)
+    public Task<IReadOnlyList<FlowInstance>> GetInstances(StoredType storedType, Status status)
         => _crashed
             ? Task.FromException<IReadOnlyList<FlowInstance>>(new TimeoutException())
-            : _inner.GetInstances(flowType, status);
+            : _inner.GetInstances(storedType, status);
 
-    public Task<IReadOnlyList<FlowInstance>> GetInstances(FlowType flowType)
+    public Task<IReadOnlyList<FlowInstance>> GetInstances(StoredType storedType)
         => _crashed
             ? Task.FromException<IReadOnlyList<FlowInstance>>(new TimeoutException())
-            : _inner.GetInstances(flowType);
+            : _inner.GetInstances(storedType);
 
-    public Task<IReadOnlyList<FlowType>> GetTypes()
+    public Task<IReadOnlyList<StoredType>> GetTypes()
         => _crashed
-            ? Task.FromException<IReadOnlyList<FlowType>>(new TimeoutException())
+            ? Task.FromException<IReadOnlyList<StoredType>>(new TimeoutException())
             : _inner.GetTypes();
 
-    public Task<bool> DeleteFunction(FlowId flowId)
+    public Task<bool> DeleteFunction(StoredId storedId)
         => _crashed
             ? Task.FromException<bool>(new TimeoutException())
-            : _inner.DeleteFunction(flowId);
+            : _inner.DeleteFunction(storedId);
 }

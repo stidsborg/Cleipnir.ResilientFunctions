@@ -70,12 +70,13 @@ public static class Example
             .ToList();
         await processOrders.Schedule("2024-01-27", orderIds);
 
+        var controlPanel = await processOrders.ControlPanel("2024-01-27");
+        
         await BusyWait.Until(async () =>
-                (await store.GetFunctionStatus(new FlowId(processOrders.Type, "2024-01-27")))!.Status
-                ==
-                Status.Succeeded,
-            maxWait: TimeSpan.FromSeconds(60)
-        );
+        {
+            await controlPanel!.Refresh();
+            return controlPanel.Status == Status.Succeeded;
+        }, maxWait: TimeSpan.FromSeconds(60));
         
         Console.WriteLine("Completed: " + store.GetType().Name);
     }

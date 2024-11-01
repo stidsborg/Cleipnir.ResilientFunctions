@@ -51,12 +51,12 @@ public abstract class ScheduleReInvocationTests
 
         var functionId = new FlowId(functionType, "something");
         await BusyWait.Until(
-            () => store.GetFunction(functionId).Map(sf => sf?.Status == Status.Succeeded)
+            () => store.GetFunction(rFunc.MapToStoredId(functionId)).Map(sf => sf?.Status == Status.Succeeded)
         );
         
         syncedParameter.Value.ShouldBe("something");
 
-        var function = await store.GetFunction(new FlowId(functionType, "something"));
+        var function = await store.GetFunction(rFunc.MapToStoredId(new FlowId(functionType, "something")));
         function.ShouldNotBeNull();
         function.Status.ShouldBe(Status.Succeeded);
         
@@ -107,13 +107,13 @@ public abstract class ScheduleReInvocationTests
         await rAction.ControlPanel(flowInstance).Result!.ScheduleRestart();
         
         await BusyWait.Until(
-            () => store.GetFunction(functionId).Map(sf => sf?.Status == Status.Succeeded)
+            () => store.GetFunction(rAction.MapToStoredId(functionId)).Map(sf => sf?.Status == Status.Succeeded)
         );
         
-        var function = await store.GetFunction(functionId);
+        var function = await store.GetFunction(rAction.MapToStoredId(functionId));
         function.ShouldNotBeNull();
         function.Status.ShouldBe(Status.Succeeded);
-        var states = await store.EffectsStore.GetEffectResults(functionId);
+        var states = await store.EffectsStore.GetEffectResults(rAction.MapToStoredId(functionId));
         var state = states.Single(e => e.EffectId == "State").Result!.ToStringFromUtf8Bytes().DeserializeFromJsonTo<ListState<string>>();
         state.List.Single().ShouldBe("world");
         
@@ -157,10 +157,10 @@ public abstract class ScheduleReInvocationTests
         await controlPanel.ScheduleRestart();
 
         await BusyWait.Until(
-            () => store.GetFunction(functionId).Map(sf => sf?.Status == Status.Succeeded)
+            () => store.GetFunction(rFunc.MapToStoredId(functionId)).Map(sf => sf?.Status == Status.Succeeded)
         );
 
-        var function = await store.GetFunction(functionId);
+        var function = await store.GetFunction(rFunc.MapToStoredId(functionId));
         function.ShouldNotBeNull();
         function.Status.ShouldBe(Status.Succeeded);
         function.Result!.ToStringFromUtf8Bytes().DeserializeFromJsonTo<string>().ShouldBe("something");
@@ -213,13 +213,13 @@ public abstract class ScheduleReInvocationTests
         await controlPanel.ScheduleRestart();
         
         await BusyWait.Until(
-            () => store.GetFunction(functionId).Map(sf => sf?.Status == Status.Succeeded)
+            () => store.GetFunction(rFunc.MapToStoredId(functionId)).Map(sf => sf?.Status == Status.Succeeded)
         );
-        var function = await store.GetFunction(functionId);
+        var function = await store.GetFunction(rFunc.MapToStoredId(functionId));
         function.ShouldNotBeNull();
         function.Status.ShouldBe(Status.Succeeded);
         function.Result!.ToStringFromUtf8Bytes().DeserializeFromJsonTo<string>().ShouldBe("something");
-        var states = await store.EffectsStore.GetEffectResults(functionId);
+        var states = await store.EffectsStore.GetEffectResults(rFunc.MapToStoredId(functionId));
         var state = states.Single(e => e.EffectId == "State").Result!.ToStringFromUtf8Bytes().DeserializeFromJsonTo<ListState<string>>();
         state.List.Single().ShouldBe("world");
         

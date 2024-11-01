@@ -15,7 +15,10 @@ public static class PostponedTest
         const int testSize = 1000;
         await helper.InitializeDatabaseAndInitializeAndTruncateTable();
         var store = await helper.CreateFunctionStore();
-
+        
+        var flowType = new FlowType(nameof(PostponedTest));
+        var storedType = await store.TypeStore.InsertOrGetStoredType(flowType);
+        
         var start = DateTime.UtcNow.AddSeconds(30);
         Console.WriteLine("POSTPONED_TEST: Expected start: " + start);
         var stopWatch = new Stopwatch();
@@ -24,16 +27,15 @@ public static class PostponedTest
         for (var i = 0; i < testSize; i++)
         {
             var storedParameter = JsonSerializer.Serialize("hello world");
-            var functionId = new FlowId(nameof(PostponedTest), i.ToString());
             await store.CreateFunction(
-                functionId,
+                new StoredId(storedType, i.ToString()),
                 storedParameter.ToUtf8Bytes(),
                 leaseExpiration: DateTime.UtcNow.Ticks,
                 postponeUntil: null,
                 timestamp: DateTime.UtcNow.Ticks
             );
             await store.PostponeFunction(
-                functionId,
+                new StoredId(storedType, i.ToString()),
                 postponeUntil: start.Ticks,
                 timestamp: DateTime.UtcNow.Ticks,
                 expectedEpoch: 0,

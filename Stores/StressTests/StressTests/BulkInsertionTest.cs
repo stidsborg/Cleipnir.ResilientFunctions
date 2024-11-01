@@ -16,7 +16,10 @@ public static class BulkInsertionTest
 
         await helper.InitializeDatabaseAndInitializeAndTruncateTable();
         var store = await helper.CreateFunctionStore();
-
+        
+        var flowType = new FlowType("BulkInsertionTest");
+        var storedType = await store.TypeStore.InsertOrGetStoredType(flowType);
+        
         var bag = new ConcurrentBag<int>();
         
         using var functionsRegistry1 = new FunctionsRegistry(
@@ -27,8 +30,8 @@ public static class BulkInsertionTest
                 watchdogCheckFrequency: TimeSpan.FromMilliseconds(1000)
             )
         );
-        var _ = functionsRegistry1.RegisterAction(
-            "BulkInsertionTest",
+        functionsRegistry1.RegisterAction(
+            flowType,
             Task (string param) =>
             {
                 bag.Add(1);
@@ -45,7 +48,7 @@ public static class BulkInsertionTest
             )
         );
         functionsRegistry2.RegisterAction(
-            "BulkInsertionTest",
+            flowType,
             Task (string param) =>
             {
                 bag.Add(2);
@@ -62,7 +65,7 @@ public static class BulkInsertionTest
             )
         );
         functionsRegistry3.RegisterAction(
-            "BulkInsertionTest",
+            flowType,
             Task (string param) =>
             {
                 bag.Add(3);
@@ -76,7 +79,7 @@ public static class BulkInsertionTest
         Console.WriteLine("BULK_INSERTION_TEST: Initializing");
         var functions = Enumerable
             .Range(0, testSize)
-            .Select(i => new IdWithParam(new FlowId("BulkInsertionTest", i.ToString()), i.ToString().ToJson().ToUtf8Bytes()));
+            .Select(i => new IdWithParam(new StoredId(storedType, i.ToString()), i.ToString().ToJson().ToUtf8Bytes()));
         await store.BulkScheduleFunctions(functions);
         
         stopWatch.Stop();

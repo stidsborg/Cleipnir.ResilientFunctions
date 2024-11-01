@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Text.Json.Serialization;
+using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.Domain;
 
@@ -56,6 +57,8 @@ public class FlowId
 
     public FlowId WithInstanceId(FlowInstance instance) => new(Type, instance);
     public FlowId WithTypeId(FlowType type) => new(type, Instance);
+
+    internal StoredId ToStoredId(StoredType storedType) => new(storedType, Instance.Value);
 }
 
 public static class FlowIdExtensions 

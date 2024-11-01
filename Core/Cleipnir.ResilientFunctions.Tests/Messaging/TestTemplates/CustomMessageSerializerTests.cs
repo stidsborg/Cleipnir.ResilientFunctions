@@ -16,20 +16,20 @@ public abstract class CustomMessageSerializerTests
     public abstract Task CustomEventSerializerIsUsedWhenSpecified();
     protected async Task CustomEventSerializerIsUsedWhenSpecified(Task<IFunctionStore> functionStoreTask)
     {
-        var functionId = TestFlowId.Create();
+        var storedId = TestStoredId.Create();
         var functionStore = await functionStoreTask;
         await functionStore.CreateFunction(
-            functionId, 
+            storedId, 
             param: Test.SimpleStoredParameter, 
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
         );
         var eventSerializer = new EventSerializer();
-        var messagesWriter = new MessageWriter(functionId, functionStore, eventSerializer, scheduleReInvocation: (_, _) => Task.CompletedTask);
-        var registeredTimeouts = new RegisteredTimeouts(functionId, functionStore.TimeoutStore);
+        var messagesWriter = new MessageWriter(storedId, functionStore, eventSerializer, scheduleReInvocation: (_, _) => Task.CompletedTask);
+        var registeredTimeouts = new RegisteredTimeouts(storedId, functionStore.TimeoutStore);
         var messagesPullerAndEmitter = new MessagesPullerAndEmitter(
-            functionId,
+            storedId,
             defaultDelay: TimeSpan.FromSeconds(1),
             defaultMaxWait: TimeSpan.Zero,
             isWorkflowRunning: () => true,

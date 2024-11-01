@@ -26,25 +26,25 @@ public class CrashableEffectStore : IEffectsStore
             ? Task.FromException(new TimeoutException())
             : _inner.Truncate();
 
-    public Task SetEffectResult(FlowId flowId, StoredEffect storedEffect)
+    public Task SetEffectResult(StoredId storedId, StoredEffect storedEffect)
         => _crashed
             ? Task.FromException(new TimeoutException())
-            : _inner.SetEffectResult(flowId, storedEffect); 
+            : _inner.SetEffectResult(storedId, storedEffect); 
 
-    public Task<IReadOnlyList<StoredEffect>> GetEffectResults(FlowId flowId)
+    public Task<IReadOnlyList<StoredEffect>> GetEffectResults(StoredId storedId)
         => _crashed
             ? Task.FromException<IReadOnlyList<StoredEffect>>(new TimeoutException())
-            : _inner.GetEffectResults(flowId);
+            : _inner.GetEffectResults(storedId);
 
-    public Task DeleteEffectResult(FlowId flowId, EffectId effectId, bool isState)
+    public Task DeleteEffectResult(StoredId storedId, EffectId effectId, bool isState)
         => _crashed
             ? Task.FromException(new TimeoutException())
-            : _inner.DeleteEffectResult(flowId, effectId, isState);
+            : _inner.DeleteEffectResult(storedId, effectId, isState);
 
-    public Task Remove(FlowId flowId)
+    public Task Remove(StoredId storedId)
         => _crashed
             ? Task.FromException(new TimeoutException())
-            : _inner.Remove(flowId);
+            : _inner.Remove(storedId);
 
     public bool Crashed
     {

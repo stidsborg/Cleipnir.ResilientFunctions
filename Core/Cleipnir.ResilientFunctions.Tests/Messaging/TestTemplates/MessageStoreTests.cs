@@ -17,7 +17,7 @@ public abstract class MessageStoreTests
     public abstract Task AppendedMessagesCanBeFetchedAgain();
     protected async Task AppendedMessagesCanBeFetchedAgain(Task<IFunctionStore> functionStoreTask)
     {
-        var functionId = TestFlowId.Create();
+        var functionId = TestStoredId.Create();
         var functionStore = await functionStoreTask;
         await functionStore.CreateFunction(
             functionId, 
@@ -52,7 +52,7 @@ public abstract class MessageStoreTests
     public abstract Task AppendedMessagesUsingBulkMethodCanBeFetchedAgain();
     protected async Task AppendedMessagesUsingBulkMethodCanBeFetchedAgain(Task<IFunctionStore> functionStoreTask)
     {
-        var functionId = TestFlowId.Create();
+        var functionId = TestStoredId.Create();
         var functionStore = await functionStoreTask;
         await functionStore.CreateFunction(
             functionId, 
@@ -93,7 +93,7 @@ public abstract class MessageStoreTests
     public abstract Task EventsCanBeReplaced();
     protected async Task EventsCanBeReplaced(Task<IFunctionStore> functionStoreTask)
     {
-        var functionId = TestFlowId.Create();
+        var functionId = TestStoredId.Create();
         var functionStore = await functionStoreTask;
         await functionStore.CreateFunction(
             functionId, 
@@ -135,7 +135,7 @@ public abstract class MessageStoreTests
     public abstract Task EventsAreReplacedWhenCountIsAsExpected();
     protected async Task EventsAreReplacedWhenCountIsAsExpected(Task<IFunctionStore> functionStoreTask)
     {
-        var functionId = TestFlowId.Create();
+        var functionId = TestStoredId.Create();
         var functionStore = await functionStoreTask;
         await functionStore.CreateFunction(
             functionId, 
@@ -177,7 +177,7 @@ public abstract class MessageStoreTests
     public abstract Task EventsAreNotReplacedWhenPositionIsNotAsExpected();
     protected async Task EventsAreNotReplacedWhenPositionIsNotAsExpected(Task<IFunctionStore> functionStoreTask)
     {
-        var functionId = TestFlowId.Create();
+        var functionId = TestStoredId.Create();
         var functionStore = await functionStoreTask;
         await functionStore.CreateFunction(
             functionId, 
@@ -216,7 +216,7 @@ public abstract class MessageStoreTests
     public abstract Task SkippedMessagesAreNotFetched();
     protected async Task SkippedMessagesAreNotFetched(Task<IFunctionStore> functionStoreTask)
     {
-        var functionId = TestFlowId.Create();
+        var functionId = TestStoredId.Create();
         var functionStore = await functionStoreTask;
         await functionStore.CreateFunction(
             functionId, 
@@ -242,7 +242,7 @@ public abstract class MessageStoreTests
     public abstract Task TruncatedMessagesContainsNoEvents();
     protected async Task TruncatedMessagesContainsNoEvents(Task<IFunctionStore> functionStoreTask)
     {
-        var functionId = TestFlowId.Create();
+        var functionId = TestStoredId.Create();
         var functionStore = await functionStoreTask;
         await functionStore.CreateFunction(
             functionId, 
@@ -269,7 +269,7 @@ public abstract class MessageStoreTests
     public abstract Task NoExistingMessagesCanBeTruncated();
     protected async Task NoExistingMessagesCanBeTruncated(Task<IFunctionStore> functionStoreTask)
     {
-        var functionId = TestFlowId.Create();
+        var functionId = TestStoredId.Create();
         var functionStore = await functionStoreTask;
         await functionStore.CreateFunction(
             functionId, 
@@ -288,7 +288,7 @@ public abstract class MessageStoreTests
     public abstract Task ExistingMessagesCanBeReplacedWithProvidedEvents();
     protected async Task ExistingMessagesCanBeReplacedWithProvidedEvents(Task<IFunctionStore> functionStoreTask)
     {
-        var functionId = TestFlowId.Create();
+        var functionId = TestStoredId.Create();
         var functionStore = await functionStoreTask;
         await functionStore.CreateFunction(
             functionId, 
@@ -325,7 +325,7 @@ public abstract class MessageStoreTests
     public abstract Task NonExistingMessagesCanBeReplacedWithProvidedEvents();
     protected async Task NonExistingMessagesCanBeReplacedWithProvidedEvents(Task<IFunctionStore> functionStoreTask)
     {
-        var functionId = TestFlowId.Create();
+        var functionId = TestStoredId.Create();
         var functionStore = await functionStoreTask;
         await functionStore.CreateFunction(
             functionId, 
@@ -363,7 +363,7 @@ public abstract class MessageStoreTests
             IdempotencyKey: "idempotency_key"
         );
         
-        var functionId = TestFlowId.Create();
+        var functionId = TestStoredId.Create();
         var functionStore = await functionStoreTask;
         await functionStore.CreateFunction(
             functionId, 
@@ -399,7 +399,7 @@ public abstract class MessageStoreTests
             IdempotencyKey: "idempotency_key"
         );
         
-        var functionId = TestFlowId.Create();
+        var functionId = TestStoredId.Create();
         var functionStore = await functionStoreTask;
         await functionStore.CreateFunction(
             functionId, 
@@ -424,7 +424,7 @@ public abstract class MessageStoreTests
     public abstract Task FetchNonExistingEventsSucceeds();
     protected async Task FetchNonExistingEventsSucceeds(Task<IFunctionStore> functionStoreTask)
     {
-        var functionId = TestFlowId.Create();
+        var functionId = TestStoredId.Create();
         var functionStore = await functionStoreTask;
         await functionStore.CreateFunction(
             functionId, 
@@ -441,7 +441,7 @@ public abstract class MessageStoreTests
     public abstract Task EventSubscriptionPublishesAppendedEvents();
     protected async Task EventSubscriptionPublishesAppendedEvents(Task<IFunctionStore> functionStoreTask)
     {
-        var functionId = TestFlowId.Create();
+        var functionId = TestStoredId.Create();
         var functionStore = await functionStoreTask;
         await functionStore.CreateFunction(
             functionId, 
@@ -489,7 +489,7 @@ public abstract class MessageStoreTests
     public abstract Task EventSubscriptionPublishesFiltersOutEventsWithSameIdempotencyKeys();
     protected async Task EventSubscriptionPublishesFiltersOutEventsWithSameIdempotencyKeys(Task<IFunctionStore> functionStoreTask)
     {
-        var functionId = TestFlowId.Create();
+        var functionId = TestStoredId.Create();
         var functionStore = await functionStoreTask;
         await functionStore.CreateFunction(
             functionId, 

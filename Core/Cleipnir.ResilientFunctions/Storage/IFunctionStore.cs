@@ -18,7 +18,7 @@ public interface IFunctionStore
     public Task Initialize();
     
     Task<bool> CreateFunction(
-        FlowId flowId, 
+        StoredId storedId, 
         byte[]? param,
         long leaseExpiration,
         long? postponeUntil,
@@ -29,22 +29,22 @@ public interface IFunctionStore
         IEnumerable<IdWithParam> functionsWithParam
     );
     
-    Task<StoredFlow?> RestartExecution(FlowId flowId, int expectedEpoch, long leaseExpiration);
+    Task<StoredFlow?> RestartExecution(StoredId storedId, int expectedEpoch, long leaseExpiration);
     
-    Task<bool> RenewLease(FlowId flowId, int expectedEpoch, long leaseExpiration);
+    Task<bool> RenewLease(StoredId storedId, int expectedEpoch, long leaseExpiration);
     
     Task<IReadOnlyList<IdAndEpoch>> GetExpiredFunctions(long expiresBefore);
-    Task<IReadOnlyList<FlowInstance>> GetSucceededFunctions(FlowType flowType, long completedBefore);
+    Task<IReadOnlyList<FlowInstance>> GetSucceededFunctions(StoredType storedType, long completedBefore);
     
     Task<bool> SetParameters(
-        FlowId flowId,
+        StoredId storedId,
         byte[]? param,
         byte[]? result,
         int expectedEpoch
     );
     
     Task<bool> SetFunctionState(
-        FlowId flowId,
+        StoredId storedId,
         Status status,
         byte[]? param,
         byte[]? result,
@@ -54,7 +54,7 @@ public interface IFunctionStore
     );
 
     Task<bool> SucceedFunction(
-        FlowId flowId, 
+        StoredId storedId, 
         byte[]? result, 
         long timestamp,
         int expectedEpoch, 
@@ -62,7 +62,7 @@ public interface IFunctionStore
     );
     
     Task<bool> PostponeFunction(
-        FlowId flowId,
+        StoredId storedId,
         long postponeUntil, 
         long timestamp,
         int expectedEpoch, 
@@ -70,7 +70,7 @@ public interface IFunctionStore
     );
     
     Task<bool> FailFunction(
-        FlowId flowId, 
+        StoredId storedId, 
         StoredException storedException,
         long timestamp,
         int expectedEpoch, 
@@ -78,20 +78,20 @@ public interface IFunctionStore
     );
     
     Task<bool> SuspendFunction(
-        FlowId flowId, 
+        StoredId storedId, 
         long timestamp,
         int expectedEpoch, 
         ComplimentaryState complimentaryState
     );
 
-    Task<bool> Interrupt(FlowId flowId, bool onlyIfExecuting);
-    Task<bool?> Interrupted(FlowId flowId); 
+    Task<bool> Interrupt(StoredId storedId, bool onlyIfExecuting);
+    Task<bool?> Interrupted(StoredId storedId); 
 
-    Task<StatusAndEpoch?> GetFunctionStatus(FlowId flowId);
-    Task<StoredFlow?> GetFunction(FlowId flowId);
-    Task<IReadOnlyList<FlowInstance>> GetInstances(FlowType flowType, Status status);
-    Task<IReadOnlyList<FlowInstance>> GetInstances(FlowType flowType);
-    Task<IReadOnlyList<FlowType>> GetTypes();
+    Task<StatusAndEpoch?> GetFunctionStatus(StoredId storedId);
+    Task<StoredFlow?> GetFunction(StoredId storedId);
+    Task<IReadOnlyList<FlowInstance>> GetInstances(StoredType storedType, Status status);
+    Task<IReadOnlyList<FlowInstance>> GetInstances(StoredType storedType);
+    Task<IReadOnlyList<StoredType>> GetTypes();
 
-    Task<bool> DeleteFunction(FlowId flowId);
+    Task<bool> DeleteFunction(StoredId storedId);
 }

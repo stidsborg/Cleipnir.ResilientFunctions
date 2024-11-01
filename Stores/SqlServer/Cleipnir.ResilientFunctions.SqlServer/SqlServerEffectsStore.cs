@@ -53,9 +53,9 @@ public class SqlServerEffectsStore : IEffectsStore
     }
 
     private string? _setEffectResultSql;
-    public async Task SetEffectResult(FlowId flowId, StoredEffect storedEffect)
+    public async Task SetEffectResult(StoredId storedId, StoredEffect storedEffect)
     {
-        var (flowType, flowInstance) = flowId;
+        var (flowType, flowInstance) = storedId;
         await using var conn = await _connFunc();
         _setEffectResultSql ??= $@"
             MERGE INTO {_tablePrefix}_Effects
@@ -69,7 +69,7 @@ public class SqlServerEffectsStore : IEffectsStore
                     VALUES (source.Id, source.IsState, source.Status, source.Result, source.Exception);";
         
         await using var command = new SqlCommand(_setEffectResultSql, conn);
-        var escapedId = Escaper.Escape(flowType.ToString(), flowInstance.ToString(), storedEffect.EffectId.ToString());    
+        var escapedId = Escaper.Escape(flowType.Value.ToString(), flowInstance.ToString(), storedEffect.EffectId.ToString());    
         command.Parameters.AddWithValue("@Id", escapedId);
         command.Parameters.AddWithValue("@IsState", storedEffect.IsState);
         command.Parameters.AddWithValue("@Status", storedEffect.WorkStatus);
@@ -80,7 +80,7 @@ public class SqlServerEffectsStore : IEffectsStore
     }
 
     private string? _getEffectResultsSql;
-    public async Task<IReadOnlyList<StoredEffect>> GetEffectResults(FlowId flowId)
+    public async Task<IReadOnlyList<StoredEffect>> GetEffectResults(StoredId storedId)
     {
         await using var conn = await _connFunc();
         _getEffectResultsSql ??= @$"
@@ -88,7 +88,7 @@ public class SqlServerEffectsStore : IEffectsStore
             FROM {_tablePrefix}_Effects
             WHERE Id LIKE @IdPrefix";
 
-        var idPrefix = Escaper.Escape(flowId.Type.Value, flowId.Instance.Value) + $"{Escaper.Separator}%";
+        var idPrefix = Escaper.Escape(storedId.StoredType.Value.ToString(), storedId.Instance) + $"{Escaper.Separator}%";
         await using var command = new SqlCommand(_getEffectResultsSql, conn);
         command.Parameters.AddWithValue("@IdPrefix", idPrefix);
 
@@ -112,14 +112,14 @@ public class SqlServerEffectsStore : IEffectsStore
     }
 
     private string? _deleteEffectResultSql;
-    public async Task DeleteEffectResult(FlowId flowId, EffectId effectId, bool isState)
+    public async Task DeleteEffectResult(StoredId storedId, EffectId effectId, bool isState)
     {
         await using var conn = await _connFunc();
         _deleteEffectResultSql ??= @$"
             DELETE FROM {_tablePrefix}_Effects
             WHERE Id = @Id AND IsState = @IsState";
 
-        var id = Escaper.Escape(flowId.Type.Value, flowId.Instance.Value, effectId.Value);
+        var id = Escaper.Escape(storedId.StoredType.Value.ToString(), storedId.Instance, effectId.Value);
         await using var command = new SqlCommand(_deleteEffectResultSql, conn);
         command.Parameters.AddWithValue("@Id", id);
         command.Parameters.AddWithValue("@IsState", isState);
@@ -128,14 +128,14 @@ public class SqlServerEffectsStore : IEffectsStore
     }
 
     private string? _removeSql;
-    public async Task Remove(FlowId flowId)
+    public async Task Remove(StoredId storedId)
     {
         await using var conn = await _connFunc();
         _removeSql ??= @$"
             DELETE FROM {_tablePrefix}_Effects
             WHERE Id LIKE @Id";
 
-        var id = Escaper.Escape(flowId.Type.Value, flowId.Instance.Value) + $"{Escaper.Separator}%" ;
+        var id = Escaper.Escape(storedId.StoredType.Value.ToString(), storedId.Instance) + $"{Escaper.Separator}%" ;
         await using var command = new SqlCommand(_removeSql, conn);
         command.Parameters.AddWithValue("@Id", id);
         

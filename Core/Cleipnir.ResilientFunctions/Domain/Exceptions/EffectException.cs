@@ -1,14 +1,7 @@
 namespace Cleipnir.ResilientFunctions.Domain.Exceptions;
 
-public class EffectException : FlowTypeException
+public class EffectException(FlowType flowType, string effectId, PreviouslyThrownException exception)
+    : FlowTypeException(flowType, $"Effect '{effectId}' execution for '{flowType}' failed")
 {
-    public FlowId FlowId { get; }
-    public PreviouslyThrownException Exception { get; }
-
-    public EffectException(FlowId flowId, string effectId, PreviouslyThrownException exception) 
-        : base(flowId.Type, $"Effect '{effectId}' execution for '{flowId}' failed")
-    {
-        FlowId = flowId;
-        Exception = exception;
-    }
+    public PreviouslyThrownException Exception { get; } = exception;
 }

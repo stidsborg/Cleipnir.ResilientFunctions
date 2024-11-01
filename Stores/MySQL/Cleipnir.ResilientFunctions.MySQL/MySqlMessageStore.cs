@@ -1,6 +1,7 @@
 ﻿using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
+using Cleipnir.ResilientFunctions.Storage;
 using MySqlConnector;
 
 namespace Cleipnir.ResilientFunctions.MySQL;
@@ -22,7 +23,7 @@ public class MySqlMessageStore : IMessageStore
         await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
         _initializeSql ??= @$"
             CREATE TABLE IF NOT EXISTS {_tablePrefix}_messages (
-                type VARCHAR(255),
+                type INT,
                 instance VARCHAR(255),
                 position INT NOT NULL,
                 message_json LONGBLOB NOT NULL,
@@ -44,7 +45,7 @@ public class MySqlMessageStore : IMessageStore
     }
 
     private string? _appendMessageSql;
-    public async Task<FunctionStatus?> AppendMessage(FlowId flowId, StoredMessage storedMessage)
+    public async Task<FunctionStatus?> AppendMessage(StoredId storedId, StoredMessage storedMessage)
     {
         for (var i = 0; i < 10; i++) //retry if deadlock occurs
             try
@@ -52,7 +53,7 @@ public class MySqlMessageStore : IMessageStore
                 await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
                 var (messageJson, messageType, idempotencyKey) = storedMessage;
                 //https://dev.mysql.com/doc/refman/8.0/en/locking-functions.html#function_get-lock
-                var lockName = flowId.ToString().GenerateSHA256Hash();
+                var lockName = storedId.ToString().GenerateSHA256Hash();
                 _appendMessageSql ??= @$"    
                     SELECT GET_LOCK(?, 10);
                     INSERT INTO {_tablePrefix}_messages
@@ -71,16 +72,16 @@ public class MySqlMessageStore : IMessageStore
                     Parameters =
                     {
                         new() { Value = lockName },
-                        new() { Value = flowId.Type.Value },
-                        new() { Value = flowId.Instance.Value },
+                        new() { Value = storedId.StoredType.Value },
+                        new() { Value = storedId.Instance },
                         new() { Value = messageJson },
                         new() { Value = messageType },
                         new() { Value = idempotencyKey ?? (object)DBNull.Value },
-                        new() { Value = flowId.Type.Value },
-                        new() { Value = flowId.Instance.Value },
+                        new() { Value = storedId.StoredType.Value },
+                        new() { Value = storedId.Instance },
                         new() { Value = lockName },
-                        new() { Value = flowId.Type.Value },
-                        new() { Value = flowId.Instance.Value },
+                        new() { Value = storedId.StoredType.Value },
+                        new() { Value = storedId.Instance },
                     }
                 };
                 
@@ -106,7 +107,7 @@ public class MySqlMessageStore : IMessageStore
     }
 
     private string? _replaceMessageSql;
-    public async Task<bool> ReplaceMessage(FlowId flowId, int position, StoredMessage storedMessage)
+    public async Task<bool> ReplaceMessage(StoredId storedId, int position, StoredMessage storedMessage)
     {
         await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
         var (messageJson, messageType, idempotencyKey) = storedMessage;
@@ -122,8 +123,8 @@ public class MySqlMessageStore : IMessageStore
                 new() {Value = messageJson},
                 new() {Value = messageType},
                 new() {Value = idempotencyKey ?? (object) DBNull.Value},
-                new() {Value = flowId.Type.Value},
-                new() {Value = flowId.Instance.Value},
+                new() {Value = storedId.StoredType.Value},
+                new() {Value = storedId.Instance},
                 new() {Value = position}
             }
         };
@@ -132,7 +133,7 @@ public class MySqlMessageStore : IMessageStore
     }
 
     private string? _truncateSql;
-    public async Task Truncate(FlowId flowId)
+    public async Task Truncate(StoredId storedId)
     {
         await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
         _truncateSql ??= @$"    
@@ -140,14 +141,14 @@ public class MySqlMessageStore : IMessageStore
                 WHERE type = ? AND instance = ?";
         
         await using var command = new MySqlCommand(_truncateSql, conn);
-        command.Parameters.Add(new() { Value = flowId.Type.Value });
-        command.Parameters.Add(new() { Value = flowId.Instance.Value });
+        command.Parameters.Add(new() { Value = storedId.StoredType.Value });
+        command.Parameters.Add(new() { Value = storedId.Instance });
         
         await command.ExecuteNonQueryAsync();
     }
 
     private string? _getMessagesSql;
-    public async Task<IReadOnlyList<StoredMessage>> GetMessages(FlowId flowId, int skip)
+    public async Task<IReadOnlyList<StoredMessage>> GetMessages(StoredId storedId, int skip)
     {
         await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
         _getMessagesSql ??= @$"    
@@ -159,8 +160,8 @@ public class MySqlMessageStore : IMessageStore
         {
             Parameters =
             {
-                new() {Value = flowId.Type.Value},
-                new() {Value = flowId.Instance.Value},
+                new() {Value = storedId.StoredType.Value},
+                new() {Value = storedId.Instance},
                 new () {Value = skip}
             }
         };

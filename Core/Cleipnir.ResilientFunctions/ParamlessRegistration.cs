@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Messaging;
+using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions;
 
@@ -21,6 +22,7 @@ public class ParamlessRegistration : BaseRegistration
     
     public ParamlessRegistration(
         FlowType flowType,
+        StoredType storedType,
         Func<FlowInstance, Task> invoke,
         Func<FlowInstance, Task> schedule,
         Func<FlowInstance, DateTime, Task> scheduleAt,
@@ -30,7 +32,7 @@ public class ParamlessRegistration : BaseRegistration
         MessageWriters messageWriters, 
         StateFetcher stateFetcher,
         Postman postman
-    ) : base(postman, getInstances)
+    ) : base(storedType, postman, getInstances)
     {
         Type = flowType;
         
@@ -49,10 +51,9 @@ public class ParamlessRegistration : BaseRegistration
     public Task<TState?> GetState<TState>(FlowInstance instance, StateId? stateId = null)
         where TState : FlowState, new()
     {
-        var functionId = new FlowId(Type, instance);
         return stateId is null 
-            ? _stateFetcher.FetchState<TState>(functionId) 
-            : _stateFetcher.FetchState<TState>(functionId, stateId);
+            ? _stateFetcher.FetchState<TState>(instance) 
+            : _stateFetcher.FetchState<TState>(instance, stateId);
     }
     
     public Task ScheduleIn(string flowInstance, TimeSpan delay) 

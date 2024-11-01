@@ -31,7 +31,7 @@ public class MySqlTypeStore(string connectionString, string tablePrefix = "") : 
         await command.ExecuteNonQueryAsync();
     }
 
-    public async Task<int> InsertOrGetFlowType(FlowType flowType)
+    public async Task<StoredType> InsertOrGetStoredType(FlowType flowType)
     {
         await using var conn = await CreateConnection();
         var sql = @$"
@@ -53,7 +53,7 @@ public class MySqlTypeStore(string connectionString, string tablePrefix = "") : 
         return await GetRef(flowType);
     }
 
-    private async Task<int> GetRef(FlowType flowType)
+    private async Task<StoredType> GetRef(FlowType flowType)
     {
         await using var conn = await DatabaseHelper.CreateOpenConnection(connectionString);;
         var sql = @$"    
@@ -73,21 +73,21 @@ public class MySqlTypeStore(string connectionString, string tablePrefix = "") : 
         if (!value.HasValue)
             throw new InvalidOperationException($"Unexpected missing reference for type: '{flowType.Value}'");
 
-        return value.Value;
+        return new StoredType(value.Value);
     }
-
-    public async Task<IReadOnlyDictionary<FlowType, int>> GetAllFlowTypes()
+    
+    public async Task<IReadOnlyDictionary<FlowType, StoredType>> GetAllFlowTypes()
     {
         await using var conn = await DatabaseHelper.CreateOpenConnection(connectionString);;
         var sql = $"SELECT type, ref FROM {_tablePrefix}_types";
 
         await using var command = new MySqlCommand(sql, conn);
-        var dict = new Dictionary<FlowType, int>();
+        var dict = new Dictionary<FlowType, StoredType>();
         await using var reader = await command.ExecuteReaderAsync();
         while (await reader.ReadAsync())
         {
             var flowType = reader.GetString(0);
-            var value = reader.GetInt32(1);
+            var value = new StoredType(reader.GetInt32(1));
             dict[flowType] = value;
         }
 

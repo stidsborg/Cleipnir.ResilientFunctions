@@ -7,7 +7,7 @@ using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.Domain;
 
-public class ExistingRegisteredTimeouts(FlowId flowId, ITimeoutStore timeoutStore)
+public class ExistingRegisteredTimeouts(StoredId storedId, ITimeoutStore timeoutStore)
 {
     private Dictionary<TimeoutId, DateTime>? _timeouts;
 
@@ -16,7 +16,7 @@ public class ExistingRegisteredTimeouts(FlowId flowId, ITimeoutStore timeoutStor
         if (_timeouts is not null)
             return _timeouts;
 
-        var storedTimeouts = await timeoutStore.GetTimeouts(flowId);
+        var storedTimeouts = await timeoutStore.GetTimeouts(storedId);
         return _timeouts = storedTimeouts.ToDictionary(
             s => new TimeoutId(s.TimeoutId),
             s => new DateTime(s.Expiry, DateTimeKind.Utc)
@@ -37,7 +37,7 @@ public class ExistingRegisteredTimeouts(FlowId flowId, ITimeoutStore timeoutStor
     {
         var timeouts = await GetTimeouts();
         
-        await timeoutStore.RemoveTimeout(flowId, timeoutId.Value);
+        await timeoutStore.RemoveTimeout(storedId, timeoutId.Value);
         timeouts.Remove(timeoutId);
     }
 
@@ -45,7 +45,7 @@ public class ExistingRegisteredTimeouts(FlowId flowId, ITimeoutStore timeoutStor
     {
         var timeouts = await GetTimeouts();
         await timeoutStore.UpsertTimeout(
-            new StoredTimeout(flowId, timeoutId.Value, expiresAt.ToUniversalTime().Ticks),
+            new StoredTimeout(storedId, timeoutId.Value, expiresAt.ToUniversalTime().Ticks),
             overwrite: true
         );
         

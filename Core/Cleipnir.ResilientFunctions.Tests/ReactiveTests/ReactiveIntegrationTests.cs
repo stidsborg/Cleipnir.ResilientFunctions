@@ -30,9 +30,9 @@ public class ReactiveIntegrationTests
             });
         
         await Should.ThrowAsync<InvocationSuspendedException>(rAction.Invoke(flowInstance.Value, "param"));
-
+        
         await BusyWait.Until(() =>
-            store.GetFunction(functionId).SelectAsync(sf => sf?.Status == Status.Succeeded)
+            store.GetFunction(rAction.MapToStoredId(functionId)).SelectAsync(sf => sf?.Status == Status.Succeeded)
         );
     }
     

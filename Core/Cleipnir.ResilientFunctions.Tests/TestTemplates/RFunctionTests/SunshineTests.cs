@@ -28,19 +28,22 @@ public abstract class SunshineTests
 
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler.Catch));
 
-        var rFunc = functionsRegistry
+        var reg = functionsRegistry
             .RegisterFunc(
                 flowType,
                 (string s) => ToUpper(s)
-            ).Invoke;
+            );
+        var rFunc = reg.Invoke;
 
         var result = await rFunc("hello", "hello");
         result.ShouldBe("HELLO");
             
         var storedFunction = await store.GetFunction(
-            new FlowId(
-                flowType, 
-                "hello".ToFlowInstance()
+            reg.MapToStoredId(
+                new FlowId(
+                    flowType, 
+                    "hello".ToFlowInstance()
+                )
             )
         );
         storedFunction.ShouldNotBeNull();
@@ -61,20 +64,19 @@ public abstract class SunshineTests
 
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler.Catch));
         var flag = new SyncedFlag();
-        var registration = functionsRegistry
-            .RegisterParamless(
-                flowType,
-                inner: () =>
-                {
-                    flag.Raise();
-                    return Task.CompletedTask;
-                })
-            .Invoke;
+        var reg = functionsRegistry.RegisterParamless(
+            flowType,
+            inner: () =>
+            {
+                flag.Raise();
+                return Task.CompletedTask;
+            });
+        var invoke = reg.Invoke;
 
-        await registration("SomeInstanceId");
+        await invoke("SomeInstanceId");
         flag.Position.ShouldBe(FlagPosition.Raised);
             
-        var storedFunction = await store.GetFunction(new FlowId(flowType, flowInstance: "SomeInstanceId"));
+        var storedFunction = await store.GetFunction(reg.MapToStoredId(new FlowId(flowType, flowInstance: "SomeInstanceId")));
         storedFunction.ShouldNotBeNull();
         storedFunction.Status.ShouldBe(Status.Succeeded);
         storedFunction.Result.ShouldBeNull();
@@ -92,20 +94,20 @@ public abstract class SunshineTests
 
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler.Catch));
         var flag = new SyncedFlag();
-        var registration = functionsRegistry
+        var reg = functionsRegistry
             .RegisterParamless(
                 flowType,
                 inner: () =>
                 {
                     flag.Raise();
                     return Result.Succeed.ToTask();
-                })
-            .Invoke;
+                });
+        var invoke = reg.Invoke;
 
-        await registration("SomeInstanceId");
+        await invoke("SomeInstanceId");
         flag.Position.ShouldBe(FlagPosition.Raised);
             
-        var storedFunction = await store.GetFunction(new FlowId(flowType, flowInstance: "SomeInstanceId"));
+        var storedFunction = await store.GetFunction(reg.MapToStoredId(new FlowId(flowType, flowInstance: "SomeInstanceId")));
         storedFunction.ShouldNotBeNull();
         storedFunction.Status.ShouldBe(Status.Succeeded);
         storedFunction.Result.ShouldBeNull();
@@ -128,20 +130,22 @@ public abstract class SunshineTests
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
 
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler.Catch));
-        var rFunc = functionsRegistry
+        var reg = functionsRegistry
             .RegisterFunc(
                 flowType,
-                async Task<string> (string s, Workflow workflow) => await ToUpper(s, await workflow.States.CreateOrGet<State>("State"))
-            )
-            .Invoke;
+                async Task<string> (string s, Workflow workflow) =>
+                    await ToUpper(s, await workflow.States.CreateOrGet<State>("State"))
+            );
+        var rFunc = reg.Invoke;
 
         var result = await rFunc("hello", "hello");
         result.ShouldBe("HELLO");
-            
+
         var storedFunction = await store.GetFunction(
-            new FlowId(
-                flowType, 
-                "hello".ToFlowInstance()
+            reg.MapToStoredId(new FlowId(
+                    flowType,
+                    "hello".ToFlowInstance()
+                )
             )
         );
         storedFunction.ShouldNotBeNull();
@@ -161,19 +165,20 @@ public abstract class SunshineTests
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
 
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler.Catch));
-        var rAction = functionsRegistry
+        var reg = functionsRegistry
             .RegisterAction(
                 flowType,
                 (string _) => Task.Delay(10)
-            )
-            .Invoke;
+            );
+        var rAction = reg.Invoke;
 
         await rAction("hello", "hello");
-        
+
         var storedFunction = await store.GetFunction(
-            new FlowId(
-                flowType, 
-                "hello".ToFlowInstance()
+            reg.MapToStoredId(new FlowId(
+                    flowType,
+                    "hello".ToFlowInstance()
+                )
             )
         );
         storedFunction.ShouldNotBeNull();
@@ -190,18 +195,21 @@ public abstract class SunshineTests
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
 
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler.Catch));
-        var rFunc = functionsRegistry
+        var reg = functionsRegistry
             .RegisterAction(
                 flowType,
                 async (string s, Workflow workflow) => await (await workflow.States.CreateOrGet<State>("State")).Save()
-            ).Invoke;
+            );
+        var rFunc = reg.Invoke;
 
         await rFunc("hello", "hello");
 
         var storedFunction = await store.GetFunction(
-            new FlowId(
-                flowType, 
-                "hello".ToFlowInstance()
+            reg.MapToStoredId(
+                new FlowId(
+                    flowType,
+                    "hello".ToFlowInstance()
+                )
             )
         );
         storedFunction.ShouldNotBeNull();
@@ -234,8 +242,8 @@ public abstract class SunshineTests
         var functionId = TestFlowId.Create();
         var (flowType, flowInstance) = functionId;
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
-
-        var rFunc = functionsRegistry.RegisterFunc(
+        
+        var reg = functionsRegistry.RegisterFunc(
             flowType,
             async (string _, Workflow workflow) =>
             {
@@ -244,16 +252,17 @@ public abstract class SunshineTests
                 state.Save().Wait();
                 return default(string);
             }
-        ).Invoke;
+        );
+        var rFunc = reg.Invoke;
 
         var result = await rFunc(flowInstance.Value, "hello world");
         result.ShouldBeNull();
 
-        var storedFunction = await store
-            .GetFunction(functionId)
+        await store
+            .GetFunction(reg.MapToStoredId(functionId))
             .ShouldNotBeNullAsync();
 
-        var states = await store.EffectsStore.GetEffectResults(functionId);
+        var states = await store.EffectsStore.GetEffectResults(reg.MapToStoredId(functionId));
         var state = states.Single(e => e.EffectId == "State").Result!.ToStringFromUtf8Bytes().DeserializeFromJsonTo<ListState<string>>();
         state.List.Single().ShouldBe("hello world");
     }
@@ -317,12 +326,12 @@ public abstract class SunshineTests
                 )
             );
 
-            functionsRegistry.RegisterAction(
+            var reg = functionsRegistry.RegisterAction(
                 functionId.Type,
                 inner: (string _) => Task.CompletedTask
             );
             
-            await BusyWait.Until(async () => await store.GetFunction(functionId) is null);
+            await BusyWait.Until(async () => await store.GetFunction(reg.MapToStoredId(functionId)) is null);
         }
         
         unhandledExceptionCatcher.ShouldNotHaveExceptions();

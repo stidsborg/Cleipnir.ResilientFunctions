@@ -19,14 +19,18 @@ public static class CrashedTest
 
         var stopWatch = new Stopwatch();
         stopWatch.Start();
+
+        var flowType = new FlowType("CrashedTest");
+        var storedType = await store.TypeStore.InsertOrGetStoredType(flowType);
         
         Console.WriteLine("CRASHED_TEST: Initializing");
+        var leaseExpiration = DateTime.UtcNow.Ticks;
         for (var i = 0; i < testSize; i++)
         {
             await store.CreateFunction(
-                new FlowId("CrashedTest", i.ToString()),
+                new StoredId(storedType, i.ToString()),
                 param: JsonSerializer.Serialize("hello world").ToUtf8Bytes(),
-                leaseExpiration: DateTime.UtcNow.Ticks,
+                leaseExpiration,
                 postponeUntil: null,
                 timestamp: DateTime.UtcNow.Ticks
             );
@@ -41,11 +45,11 @@ public static class CrashedTest
             store,
             new Settings(
                 unhandledExceptionHandler: Console.WriteLine,
-                leaseLength: TimeSpan.FromSeconds(1)
+                leaseLength: TimeSpan.FromSeconds(10)
             )
         );
         var _ = functionsRegistry.RegisterAction(
-            "CrashedTest",
+            flowType,
             Task (string param) => Task.CompletedTask
         );
         
@@ -53,11 +57,11 @@ public static class CrashedTest
             store,
             new Settings(
                 unhandledExceptionHandler: Console.WriteLine,
-                leaseLength: TimeSpan.FromSeconds(1)
+                leaseLength: TimeSpan.FromSeconds(10)
             )
         );
         functionsRegistry2.RegisterAction(
-            "CrashedTest",
+            flowType,
             Task (string param) => Task.CompletedTask
         );
 

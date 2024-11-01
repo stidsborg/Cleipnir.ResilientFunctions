@@ -18,7 +18,7 @@ public abstract class StoreTests
     public abstract Task SunshineScenarioTest();
     protected async Task SunshineScenarioTest(Task<IFunctionStore> storeTask)
     {
-        var functionId = TestFlowId.Create();
+        var functionId = TestStoredId.Create();
         
         var store = await storeTask;
         var paramJson = PARAM.ToJson();
@@ -38,7 +38,7 @@ public abstract class StoreTests
             
         nonCompletes.Count.ShouldBe(1);
         var nonCompleted = nonCompletes[0];
-        nonCompleted.FlowId.Type.ShouldBe(functionId.Type);
+        nonCompleted.FlowId.StoredType.ShouldBe(functionId.StoredType);
         nonCompleted.FlowId.Instance.ShouldBe(functionId.Instance);
         nonCompleted.Epoch.ShouldBe(0);
 
@@ -69,7 +69,7 @@ public abstract class StoreTests
     public abstract Task NullParamScenarioTest();
     protected async Task NullParamScenarioTest(Task<IFunctionStore> storeTask)
     {
-        var functionId = TestFlowId.Create();
+        var functionId = TestStoredId.Create();
         
         var store = await storeTask;
         var leaseExpiration = DateTime.UtcNow.Ticks;
@@ -90,7 +90,7 @@ public abstract class StoreTests
     public abstract Task LeaseIsUpdatedWhenAsExpected();
     protected async Task LeaseIsUpdatedWhenAsExpected(Task<IFunctionStore> storeTask)
     {
-        var functionId = TestFlowId.Create();
+        var functionId = TestStoredId.Create();
         
         var store = await storeTask;
         var paramJson = PARAM.ToJson();
@@ -116,7 +116,7 @@ public abstract class StoreTests
     public abstract Task LeaseIsNotUpdatedWhenNotAsExpected();
     protected async Task LeaseIsNotUpdatedWhenNotAsExpected(Task<IFunctionStore> storeTask)
     {
-        var functionId = TestFlowId.Create();
+        var functionId = TestStoredId.Create();
         
         var store = await storeTask;
         var paramJson = PARAM.ToJson();
@@ -150,7 +150,7 @@ public abstract class StoreTests
     public abstract Task BecomeLeaderSucceedsWhenEpochIsAsExpected();
     protected async Task BecomeLeaderSucceedsWhenEpochIsAsExpected(Task<IFunctionStore> storeTask)
     {
-        var functionId = TestFlowId.Create();
+        var functionId = TestStoredId.Create();
         
         var store = await storeTask;
         var paramJson = PARAM.ToJson();
@@ -180,7 +180,7 @@ public abstract class StoreTests
     public abstract Task BecomeLeaderFailsWhenEpochIsNotAsExpected();
     protected async Task BecomeLeaderFailsWhenEpochIsNotAsExpected(Task<IFunctionStore> storeTask)
     {
-        var functionId = TestFlowId.Create();
+        var functionId = TestStoredId.Create();
         
         var store = await storeTask;
         var paramJson = PARAM.ToJson();
@@ -210,7 +210,7 @@ public abstract class StoreTests
     public abstract Task CreatingTheSameFunctionTwiceReturnsFalse();
     protected async Task CreatingTheSameFunctionTwiceReturnsFalse(Task<IFunctionStore> storeTask)
     {
-        var functionId = TestFlowId.Create();
+        var functionId = TestStoredId.Create();
         
         var store = await storeTask;
         var paramJson = PARAM.ToJson();
@@ -235,7 +235,7 @@ public abstract class StoreTests
     public abstract Task FunctionCreatedWithSendResultToReturnsSendResultToInStoredFunction();
     protected async Task FunctionCreatedWithSendResultToReturnsSendResultToInStoredFunction(Task<IFunctionStore> storeTask)
     {
-        var functionId = TestFlowId.Create();
+        var functionId = TestStoredId.Create();
         var sendResultToFunctionId = TestFlowId.Create();
         
         var store = await storeTask;
@@ -256,7 +256,7 @@ public abstract class StoreTests
     public abstract Task FunctionPostponedUntilAfterExpiresBeforeIsFilteredOut();
     protected async Task FunctionPostponedUntilAfterExpiresBeforeIsFilteredOut(Task<IFunctionStore> storeTask)
     {
-        var functionId = TestFlowId.Create();
+        var functionId = TestStoredId.Create();
 
         var store = await storeTask;
         var paramJson = PARAM.ToJson();
@@ -287,7 +287,7 @@ public abstract class StoreTests
     public abstract Task FunctionPostponedUntilBeforeExpiresIsNotFilteredOut();
     protected async Task FunctionPostponedUntilBeforeExpiresIsNotFilteredOut(Task<IFunctionStore> storeTask)
     {
-        var functionId = TestFlowId.Create();
+        var functionId = TestStoredId.Create();
 
         var store = await storeTask;
         var paramJson = PARAM.ToJson();
@@ -319,7 +319,7 @@ public abstract class StoreTests
     public abstract Task PostponeFunctionFailsWhenEpochIsNotAsExpected();
     protected async Task PostponeFunctionFailsWhenEpochIsNotAsExpected(Task<IFunctionStore> storeTask)
     {
-        var functionId = TestFlowId.Create();
+        var functionId = TestStoredId.Create();
 
         var store = await storeTask;
         var paramJson = PARAM.ToJson();
@@ -365,7 +365,7 @@ public abstract class StoreTests
     protected async Task CreatedCrashedCheckFrequencyOfCreatedFunctionIsSameAsExecutingFunctionCrashCheckFrequency(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionId = TestFlowId.Create();
+        var functionId = TestStoredId.Create();
         var leaseExpiration = DateTime.UtcNow.Ticks;
         
         await store.CreateFunction(
@@ -388,8 +388,8 @@ public abstract class StoreTests
     protected async Task OnlyEligibleCrashedFunctionsAreReturnedFromStore(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var function1Id = TestFlowId.Create();
-        var function2Id = new FlowId(function1Id.Type, flowInstance: Guid.NewGuid().ToString("N"));
+        var function1Id = TestStoredId.Create();
+        var function2Id = function1Id with { Instance = Guid.NewGuid().ToString("N") };
 
         await store.CreateFunction(
             function1Id,
@@ -418,7 +418,7 @@ public abstract class StoreTests
     protected async Task IncrementEpochSucceedsWhenEpochIsAsExpected(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionId = TestFlowId.Create();
+        var functionId = TestStoredId.Create();
 
         await store.CreateFunction(
             functionId,
@@ -439,7 +439,7 @@ public abstract class StoreTests
     protected async Task IncrementEpochFailsWhenEpochIsNotAsExpected(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionId = TestFlowId.Create();
+        var functionId = TestStoredId.Create();
 
         await store.CreateFunction(
             functionId,
@@ -465,7 +465,7 @@ public abstract class StoreTests
     public async Task DeletingExistingFunctionSucceeds(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionId = TestFlowId.Create();
+        var functionId = TestStoredId.Create();
 
         var storedParameter = "hello world".ToJson();
         await store.CreateFunction(
@@ -492,7 +492,7 @@ public abstract class StoreTests
     public async Task FailFunctionSucceedsWhenEpochIsAsExpected(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionId = TestFlowId.Create();
+        var functionId = TestStoredId.Create();
 
         var storedParameter = "hello world".ToJson();
         await store.CreateFunction(
@@ -534,7 +534,7 @@ public abstract class StoreTests
     public async Task SetFunctionStateSucceedsWhenEpochIsAsExpected(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionId = TestFlowId.Create();
+        var functionId = TestStoredId.Create();
 
         var storedParameter = "hello world".ToJson().ToUtf8Bytes();
         await store.CreateFunction(
@@ -569,7 +569,7 @@ public abstract class StoreTests
     {
         var store = await storeTask;
         var messages = store.MessageStore;
-        var functionId = TestFlowId.Create();
+        var functionId = TestStoredId.Create();
 
         var storedParameter = "hello world".ToJson();
         await store.CreateFunction(
@@ -615,7 +615,7 @@ public abstract class StoreTests
     public async Task ExecutingFunctionCanBeSuspendedSuccessfully(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionId = TestFlowId.Create();
+        var functionId = TestStoredId.Create();
 
         var storedParameter = "hello world".ToJson();
         await store.CreateFunction(
@@ -656,7 +656,7 @@ public abstract class StoreTests
     public async Task FunctionStatusForNonExistingFunctionIsNull(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionId = TestFlowId.Create();
+        var functionId = TestStoredId.Create();
         
         var functionStatus = await store.MessageStore.AppendMessage(
             functionId,
@@ -669,7 +669,7 @@ public abstract class StoreTests
     public async Task RestartingExecutionShouldFailWhenExpectedEpochDoesNotMatch(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionId = TestFlowId.Create();
+        var functionId = TestStoredId.Create();
 
         var storedParameter = "hello world".ToJson();
         await store.CreateFunction(
@@ -696,7 +696,7 @@ public abstract class StoreTests
     public async Task RestartingFunctionShouldSetInterruptedToFalse(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionId = TestFlowId.Create();
+        var functionId = TestStoredId.Create();
 
         var storedParameter = "hello world".ToJson();
         await store.CreateFunction(
@@ -723,7 +723,7 @@ public abstract class StoreTests
     public async Task MessagesCanBeFetchedAfterFunctionWithInitialMessagesHasBeenCreated(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionId = TestFlowId.Create();
+        var functionId = TestStoredId.Create();
 
         var storedParameter = "hello world".ToJson();
         await store.CreateFunction(
@@ -747,7 +747,7 @@ public abstract class StoreTests
     public async Task FunctionStatusAndEpochCanBeSuccessfullyFetched(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionId = TestFlowId.Create();
+        var functionId = TestStoredId.Create();
 
         var storedParameter = "hello world".ToJson();
         await store.CreateFunction(
@@ -778,7 +778,7 @@ public abstract class StoreTests
     public abstract Task EpochIsNotIncrementedOnCompletion();
     protected async Task EpochIsNotIncrementedOnCompletion(Task<IFunctionStore> storeTask)
     {
-        var functionId = TestFlowId.Create();
+        var functionId = TestStoredId.Create();
         
         var store = await storeTask;
         await store.CreateFunction(
@@ -805,7 +805,7 @@ public abstract class StoreTests
     public abstract Task EpochIsNotIncrementedOnPostponed();
     protected async Task EpochIsNotIncrementedOnPostponed(Task<IFunctionStore> storeTask)
     {
-        var functionId = TestFlowId.Create();
+        var functionId = TestStoredId.Create();
         
         var store = await storeTask;
         await store.CreateFunction(
@@ -832,7 +832,7 @@ public abstract class StoreTests
     public abstract Task EpochIsNotIncrementedOnFailure();
     protected async Task EpochIsNotIncrementedOnFailure(Task<IFunctionStore> storeTask)
     {
-        var functionId = TestFlowId.Create();
+        var functionId = TestStoredId.Create();
         
         var store = await storeTask;
         await store.CreateFunction(
@@ -859,7 +859,7 @@ public abstract class StoreTests
     public abstract Task EpochIsNotIncrementedOnSuspension();
     protected async Task EpochIsNotIncrementedOnSuspension(Task<IFunctionStore> storeTask)
     {
-        var functionId = TestFlowId.Create();
+        var functionId = TestStoredId.Create();
         
         var store = await storeTask;
         await store.CreateFunction(
@@ -885,7 +885,7 @@ public abstract class StoreTests
     public abstract Task SuspensionDoesNotSucceedOnExpectedMessagesCountMismatchButPostponesFunction();
     protected async Task SuspensionDoesNotSucceedOnExpectedMessagesCountMismatchButPostponesFunction(Task<IFunctionStore> storeTask)
     {
-        var functionId = TestFlowId.Create();
+        var functionId = TestStoredId.Create();
         
         var store = await storeTask;
         await store.CreateFunction(
@@ -918,7 +918,7 @@ public abstract class StoreTests
     public abstract Task FunctionIsStillExecutingOnSuspensionAndInterruptCountMismatch();
     protected async Task FunctionIsStillExecutingOnSuspensionAndInterruptCountMismatch(Task<IFunctionStore> storeTask)
     {
-        var functionId = TestFlowId.Create();
+        var functionId = TestStoredId.Create();
         
         var store = await storeTask;
         await store.CreateFunction(
@@ -954,7 +954,7 @@ public abstract class StoreTests
     public abstract Task InterruptCountCanBeIncrementedForExecutingFunction();
     protected async Task InterruptCountCanBeIncrementedForExecutingFunction(Task<IFunctionStore> storeTask)
     {
-        var functionId = TestFlowId.Create();
+        var functionId = TestStoredId.Create();
         
         var store = await storeTask;
         await store.CreateFunction(
@@ -980,7 +980,7 @@ public abstract class StoreTests
     public abstract Task InterruptCountCannotBeIncrementedForNonExecutingFunction();
     protected async Task InterruptCountCannotBeIncrementedForNonExecutingFunction(Task<IFunctionStore> storeTask)
     {
-        var functionId = TestFlowId.Create();
+        var functionId = TestStoredId.Create();
         
         var store = await storeTask;
         await store.CreateFunction(
@@ -1018,7 +1018,7 @@ public abstract class StoreTests
     public abstract Task InterruptCountForNonExistingFunctionIsNull();
     protected async Task InterruptCountForNonExistingFunctionIsNull(Task<IFunctionStore> storeTask)
     {
-        var functionId = TestFlowId.Create();
+        var functionId = TestStoredId.Create();
         var store = await storeTask;
         (await store.Interrupted(functionId)).ShouldBeNull();
     }
@@ -1026,7 +1026,7 @@ public abstract class StoreTests
     public abstract Task DefaultStateCanSetAndFetchedAfterwards();
     protected async Task DefaultStateCanSetAndFetchedAfterwards(Task<IFunctionStore> storeTask)
     {
-        var functionId = TestFlowId.Create();
+        var functionId = TestStoredId.Create();
         
         var store = await storeTask;
         var effectsStore = store.EffectsStore;
@@ -1049,12 +1049,12 @@ public abstract class StoreTests
     public abstract Task SucceededFunctionsCanBeFetchedSuccessfully();
     protected async Task SucceededFunctionsCanBeFetchedSuccessfully(Task<IFunctionStore> storeTask)
     {
-        var functionId1 = TestFlowId.Create();
-        var functionId2 = TestFlowId.Create().WithTypeId(functionId1.Type);
-        var functionId3 = TestFlowId.Create();
+        var functionId1 = TestStoredId.Create();
+        var functionId2 = functionId1 with { Instance = Guid.NewGuid().ToString() };
+        var functionId3 = TestStoredId.Create();
         var store = await storeTask;
 
-        async Task CreateAndSucceedFunction(FlowId functionId, long timestamp)
+        async Task CreateAndSucceedFunction(StoredId functionId, long timestamp)
         {
             await store.CreateFunction(
                 functionId,
@@ -1077,7 +1077,7 @@ public abstract class StoreTests
         await CreateAndSucceedFunction(functionId2, timestamp: 3);
         await CreateAndSucceedFunction(functionId3, timestamp: 0);
 
-        var succeededFunctions = await store.GetSucceededFunctions(functionId1.Type, completedBefore: 2);
+        var succeededFunctions = await store.GetSucceededFunctions(functionId1.StoredType, completedBefore: 2);
         succeededFunctions.Count.ShouldBe(1);
         succeededFunctions.Single().ShouldBe(functionId1.Instance);
     }
@@ -1087,10 +1087,10 @@ public abstract class StoreTests
     {
         var store = await storeTask;
         
-        var typeId = TestFlowId.Create().Type;
+        var typeId = TestStoredId.Create().StoredType;
         var functionIds = Enumerable
             .Range(0, 500)
-            .Select(_ => TestFlowId.Create().WithTypeId(typeId))
+            .Select(i => new StoredId(typeId, Instance: i.ToString()))
             .ToList();
         
         await store.BulkScheduleFunctions(
@@ -1117,8 +1117,8 @@ public abstract class StoreTests
     public abstract Task DifferentTypesAreFetchedByGetExpiredFunctionsCall();
     protected async Task DifferentTypesAreFetchedByGetExpiredFunctionsCall(Task<IFunctionStore> storeTask)
     {
-        var flowId1 = TestFlowId.Create();
-        var flowId2 = TestFlowId.Create();
+        var flowId1 = TestStoredId.Create();
+        var flowId2 = TestStoredId.Create();
         
         var store = await storeTask;
         var paramJson = PARAM.ToJson();
@@ -1152,11 +1152,11 @@ public abstract class StoreTests
     public abstract Task MultipleInstancesCanBeFetchedForFlowType();
     protected async Task MultipleInstancesCanBeFetchedForFlowType(Task<IFunctionStore> storeTask)
     {
-        var flowType = TestFlowId.Create().Type; 
-        var flowId1 = TestFlowId.Create().WithTypeId(flowType);
-        var flowId2 = TestFlowId.Create().WithTypeId(flowType);
+        var flowType = TestStoredId.Create().StoredType;
+        var flowId1 = TestStoredId.Create() with { StoredType = flowType };
+        var flowId2 = TestStoredId.Create() with { StoredType = flowType };
         
-        var flowId3 = TestFlowId.Create();
+        var flowId3 = TestStoredId.Create();
 
         var leaseExpiration = DateTime.UtcNow.Ticks;
         var timestamp = leaseExpiration;
@@ -1204,8 +1204,8 @@ public abstract class StoreTests
 
         var flowTypes = await store.GetTypes();
         flowTypes.Count.ShouldBe(2);
-        flowTypes.Any(t => t == flowId1.Type).ShouldBeTrue();
-        flowTypes.Any(t => t == flowId3.Type).ShouldBeTrue();
+        flowTypes.Any(t => t == flowId1.StoredType).ShouldBeTrue();
+        flowTypes.Any(t => t == flowId3.StoredType).ShouldBeTrue();
     }
     
     public abstract Task TypeStoreSunshineScenarioTest();
@@ -1216,8 +1216,8 @@ public abstract class StoreTests
         var types = await store.GetAllFlowTypes();
         types.Count.ShouldBe(0);
 
-        var flow1Value = await store.InsertOrGetFlowType("TestFlow1");
-        var value2 = await store.InsertOrGetFlowType("TestFlow1");
+        var flow1Value = await store.InsertOrGetStoredType("TestFlow1");
+        var value2 = await store.InsertOrGetStoredType("TestFlow1");
         flow1Value.ShouldBe(value2);
 
         types = await store.GetAllFlowTypes();
@@ -1225,7 +1225,7 @@ public abstract class StoreTests
         types.TryGetValue("TestFlow1", out var dictValue).ShouldBeTrue();
         dictValue.ShouldBe(flow1Value);
 
-        var flow2Value = await store.InsertOrGetFlowType("TestFlow2");
+        var flow2Value = await store.InsertOrGetStoredType("TestFlow2");
         flow2Value.ShouldNotBe(flow1Value);
         
         types = await store.GetAllFlowTypes();

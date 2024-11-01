@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.Helpers;
+using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.Domain;
 
@@ -11,13 +12,14 @@ public class ControlPanel : BaseControlPanel<Unit, Unit>
     internal ControlPanel(
         Invoker<Unit, Unit> invoker, 
         InvocationHelper<Unit, Unit> invocationHelper, 
-        FlowId flowId, 
+        FlowId flowId, StoredId storedId,
         Status status, int epoch, long expires,  
         ExistingEffects effects,
         ExistingStates states, ExistingMessages messages, ExistingRegisteredTimeouts registeredTimeouts, Correlations correlations,
         PreviouslyThrownException? previouslyThrownException
     ) : base(
-        invoker, invocationHelper, flowId, status, epoch, 
+        invoker, invocationHelper, 
+        flowId, storedId, status, epoch, 
         expires, innerParam: Unit.Instance, innerResult: Unit.Instance, effects,
         states, messages, registeredTimeouts, correlations, previouslyThrownException
     ) { }
@@ -30,13 +32,14 @@ public class ControlPanel<TParam> : BaseControlPanel<TParam, Unit> where TParam 
     internal ControlPanel(
         Invoker<TParam, Unit> invoker, 
         InvocationHelper<TParam, Unit> invocationHelper, 
-        FlowId flowId, 
+        FlowId flowId, StoredId storedId,
         Status status, int epoch, long expires, TParam innerParam, 
         ExistingEffects effects,
         ExistingStates states, ExistingMessages messages, ExistingRegisteredTimeouts registeredTimeouts, Correlations correlations, 
         PreviouslyThrownException? previouslyThrownException
     ) : base(
-        invoker, invocationHelper, flowId, status, epoch, 
+        invoker, invocationHelper, 
+        flowId, storedId, status, epoch, 
         expires, innerParam, innerResult: Unit.Instance, effects,
         states, messages, registeredTimeouts, correlations, previouslyThrownException
     ) { }
@@ -55,13 +58,14 @@ public class ControlPanel<TParam, TReturn> : BaseControlPanel<TParam, TReturn> w
     internal ControlPanel(
         Invoker<TParam, TReturn> invoker, 
         InvocationHelper<TParam, TReturn> invocationHelper, 
-        FlowId flowId, Status status, int epoch, 
+        FlowId flowId, StoredId storedId, Status status, int epoch, 
         long expires, TParam innerParam, 
         TReturn? innerResult, 
         ExistingEffects effects, ExistingStates states, ExistingMessages messages, 
         ExistingRegisteredTimeouts registeredTimeouts, Correlations correlations, PreviouslyThrownException? previouslyThrownException
     ) : base(
-        invoker, invocationHelper, flowId, status, epoch, expires, 
+        invoker, invocationHelper, 
+        flowId, storedId, status, epoch, expires, 
         innerParam, innerResult, effects, states, messages, 
         registeredTimeouts, correlations, previouslyThrownException
     ) { }
@@ -86,6 +90,7 @@ public abstract class BaseControlPanel<TParam, TReturn>
         Invoker<TParam, TReturn> invoker, 
         InvocationHelper<TParam, TReturn> invocationHelper,
         FlowId flowId, 
+        StoredId storedId,
         Status status, 
         int epoch,
         long expires,
@@ -101,6 +106,7 @@ public abstract class BaseControlPanel<TParam, TReturn>
         _invoker = invoker;
         _invocationHelper = invocationHelper;
         FlowId = flowId;
+        StoredId = storedId;
         Status = status;
         Epoch = epoch;
         LeaseExpiration = expires == long.MaxValue
@@ -119,6 +125,7 @@ public abstract class BaseControlPanel<TParam, TReturn>
     }
 
     public FlowId FlowId { get; }
+    public StoredId StoredId { get; }
     public Status Status { get; private set; }
     
     public int Epoch { get; private set; }
@@ -155,7 +162,7 @@ public abstract class BaseControlPanel<TParam, TReturn>
     protected async Task InnerSucceed(TReturn? result)
     {
         var success = await _invocationHelper.SetFunctionState(
-            FlowId, Status.Succeeded, 
+            StoredId, Status.Succeeded, 
             InnerParam, 
             result, 
             expires: long.MaxValue, 
@@ -174,7 +181,7 @@ public abstract class BaseControlPanel<TParam, TReturn>
     public async Task Postpone(DateTime until)
     {
         var success = await _invocationHelper.SetFunctionState(
-            FlowId, Status.Postponed, 
+            StoredId, Status.Postponed, 
             InnerParam,  
             result: default, 
             expires: until.Ticks, 
@@ -196,7 +203,7 @@ public abstract class BaseControlPanel<TParam, TReturn>
     public async Task Fail(Exception exception)
     {
         var success = await _invocationHelper.SetFunctionState(
-            FlowId, Status.Failed, 
+            StoredId, Status.Failed, 
             InnerParam,  
             result: default, expires: long.MaxValue, exception, 
             Epoch
@@ -213,7 +220,7 @@ public abstract class BaseControlPanel<TParam, TReturn>
 
     public async Task SaveChanges()
     {
-        var success = await _invocationHelper.SaveControlPanelChanges(FlowId, InnerParam, InnerResult, Epoch);
+        var success = await _invocationHelper.SaveControlPanelChanges(StoredId, InnerParam, InnerResult, Epoch);
         if (!success)
             throw UnexpectedStateException.ConcurrentModification(FlowId);
         
@@ -221,7 +228,7 @@ public abstract class BaseControlPanel<TParam, TReturn>
         _innerParamChanged = false;
     }
     
-    public Task Delete() => _invocationHelper.Delete(FlowId);
+    public Task Delete() => _invocationHelper.Delete(StoredId);
 
     public async Task<TReturn> Restart()
     {
@@ -240,7 +247,7 @@ public abstract class BaseControlPanel<TParam, TReturn>
     
     public async Task Refresh()
     {
-        var sf = await _invocationHelper.GetFunction(FlowId);
+        var sf = await _invocationHelper.GetFunction(StoredId);
         if (sf == null)
             throw UnexpectedStateException.NotFound(FlowId);
 

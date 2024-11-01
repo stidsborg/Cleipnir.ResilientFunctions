@@ -43,9 +43,9 @@ public class MySqlEffectsStore : IEffectsStore
     }
 
     private string? _setEffectResultSql;
-    public async Task SetEffectResult(FlowId flowId, StoredEffect storedEffect)
+    public async Task SetEffectResult(StoredId storedId, StoredEffect storedEffect)
     {
-        var (flowType, flowInstance) = flowId;
+        var (flowType, flowInstance) = storedId;
         await using var conn = await CreateConnection();
         _setEffectResultSql ??= $@"
           INSERT INTO {_tablePrefix}_effects 
@@ -59,7 +59,7 @@ public class MySqlEffectsStore : IEffectsStore
         {
             Parameters =
             {
-                new() {Value = Escaper.Escape(flowType.Value, flowInstance.Value, storedEffect.EffectId.Value)},
+                new() {Value = Escaper.Escape(flowType.Value.ToString(), flowInstance, storedEffect.EffectId.Value)},
                 new() {Value = storedEffect.IsState},
                 new() {Value = (int) storedEffect.WorkStatus},
                 new() {Value = storedEffect.Result ?? (object) DBNull.Value},
@@ -71,7 +71,7 @@ public class MySqlEffectsStore : IEffectsStore
     }
 
     private string? _getEffectResultsSql;
-    public async Task<IReadOnlyList<StoredEffect>> GetEffectResults(FlowId flowId)
+    public async Task<IReadOnlyList<StoredEffect>> GetEffectResults(StoredId storedId)
     {
         await using var conn = await CreateConnection();
         _getEffectResultsSql ??= @$"
@@ -82,7 +82,7 @@ public class MySqlEffectsStore : IEffectsStore
         {
             Parameters =
             {
-                new() {Value = Escaper.Escape(flowId.Type.Value, flowId.Instance.Value) + $"{Escaper.Separator}%" },
+                new() {Value = Escaper.Escape(storedId.StoredType.Value.ToString(), storedId.Instance) + $"{Escaper.Separator}%" },
             }
         };
 
@@ -112,11 +112,11 @@ public class MySqlEffectsStore : IEffectsStore
     }
 
     private string? _deleteEffectResultSql;
-    public async Task DeleteEffectResult(FlowId flowId, EffectId effectId, bool isState)
+    public async Task DeleteEffectResult(StoredId storedId, EffectId effectId, bool isState)
     {
         await using var conn = await CreateConnection();
         _deleteEffectResultSql ??= $"DELETE FROM {_tablePrefix}_effects WHERE id = ? AND is_state = ?";
-        var id = Escaper.Escape(flowId.Type.Value, flowId.Instance.Value, effectId.Value);
+        var id = Escaper.Escape(storedId.StoredType.Value.ToString(), storedId.Instance, effectId.Value);
         await using var command = new MySqlCommand(_deleteEffectResultSql, conn)
         {
             Parameters =
@@ -130,11 +130,11 @@ public class MySqlEffectsStore : IEffectsStore
     }
 
     private string? _removeSql;
-    public async Task Remove(FlowId flowId)
+    public async Task Remove(StoredId storedId)
     {
         await using var conn = await CreateConnection();
         _removeSql ??= $"DELETE FROM {_tablePrefix}_effects WHERE id LIKE ?";
-        var id = Escaper.Escape(flowId.Type.Value, flowId.Instance.Value) + $"{Escaper.Separator}%" ;
+        var id = Escaper.Escape(storedId.StoredType.Value.ToString(), storedId.Instance) + $"{Escaper.Separator}%" ;
         await using var command = new MySqlCommand(_removeSql, conn)
         {
             Parameters = { new() { Value = id } }

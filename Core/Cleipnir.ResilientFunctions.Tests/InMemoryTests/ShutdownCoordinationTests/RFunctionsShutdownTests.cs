@@ -92,14 +92,6 @@ public class RFunctionsShutdownTests
     {
         var store = new InMemoryFunctionStore();
         var functionId = new FlowId("someFunctionType", "someflowInstance");
-
-        await store.CreateFunction(
-            functionId,
-            param: "".ToJson().ToUtf8Bytes(),
-            leaseExpiration: DateTime.UtcNow.Ticks,
-            postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks
-        ).ShouldBeTrueAsync();
         
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         using var functionsRegistry = new FunctionsRegistry(
@@ -114,7 +106,7 @@ public class RFunctionsShutdownTests
         var insideRFuncFlag = new SyncedFlag();
         var completeRFuncFlag = new SyncedFlag();
 
-        functionsRegistry.RegisterAction(
+        var registration = functionsRegistry.RegisterAction(
             functionId.Type,
             async (string _) =>
             {
@@ -122,6 +114,14 @@ public class RFunctionsShutdownTests
                 await completeRFuncFlag.WaitForRaised();
             }
         );
+        
+        await store.CreateFunction(
+            registration.MapToStoredId(functionId),
+            param: "".ToJson().ToUtf8Bytes(),
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks
+        ).ShouldBeTrueAsync();
 
         await insideRFuncFlag.WaitForRaised();
 
@@ -142,22 +142,6 @@ public class RFunctionsShutdownTests
 
         var storedParameter = "".ToJson();
         
-        await store.CreateFunction(
-            functionId,
-            storedParameter.ToUtf8Bytes(),
-            leaseExpiration: DateTime.UtcNow.Ticks,
-            postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks
-        ).ShouldBeTrueAsync();
-
-        await store.PostponeFunction(
-            functionId,
-            postponeUntil: DateTime.UtcNow.AddDays(-1).Ticks,
-            timestamp: DateTime.UtcNow.Ticks,
-            expectedEpoch: 0,
-            new ComplimentaryState(() => storedParameter.ToUtf8Bytes(), LeaseLength: 0)
-        ).ShouldBeTrueAsync();
-
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         using var functionsRegistry = new FunctionsRegistry(
             store,
@@ -171,7 +155,7 @@ public class RFunctionsShutdownTests
         var insideRFuncFlag = new SyncedFlag();
         var completeRFuncFlag = new SyncedFlag();
 
-        functionsRegistry.RegisterAction(
+        var registration = functionsRegistry.RegisterAction(
             functionId.Type,
             async (string _) =>
             {
@@ -180,6 +164,23 @@ public class RFunctionsShutdownTests
                 return Succeed.WithoutValue;
             }
         );
+        
+        await store.CreateFunction(
+            registration.MapToStoredId(functionId),
+            storedParameter.ToUtf8Bytes(),
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks
+        ).ShouldBeTrueAsync();
+
+        await store.PostponeFunction(
+            registration.MapToStoredId(functionId),
+            postponeUntil: DateTime.UtcNow.AddDays(-1).Ticks,
+            timestamp: DateTime.UtcNow.Ticks,
+            expectedEpoch: 0,
+            new ComplimentaryState(() => storedParameter.ToUtf8Bytes(), LeaseLength: 0)
+        ).ShouldBeTrueAsync();
+
 
         await insideRFuncFlag.WaitForRaised();
 
@@ -209,15 +210,15 @@ public class RFunctionsShutdownTests
 
         var counter = new SyncedCounter();
 
-        var rAction = functionsRegistry.RegisterAction(
+        var registration = functionsRegistry.RegisterAction(
             flowType,
             Task<Result> (string _) =>
             {
                 counter.Increment();
                 return Postpone.For(500).ToResult().ToTask();
             }
-        ).Invoke;
-
+        );
+        var rAction = registration.Invoke;
         _ = rAction("instanceId", "1");
 
         await BusyWait.Until(() => counter.Current == 1);
@@ -230,7 +231,7 @@ public class RFunctionsShutdownTests
         
         counter.Current.ShouldBe(1);
 
-        var sf = await store.GetFunction(new FlowId(flowType, "instanceId"));
+        var sf = await store.GetFunction(registration.MapToStoredId(new FlowId(flowType, "instanceId")));
         sf!.Status.ShouldBe(Status.Postponed);
             
         unhandledExceptionCatcher.ShouldNotHaveExceptions();

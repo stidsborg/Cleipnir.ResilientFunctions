@@ -16,9 +16,11 @@ internal class RetentionWatchdog
     private readonly TimeSpan _delayStartUp;
     private readonly TimeSpan _retentionPeriod;
     private readonly FlowType _flowType;
+    private readonly StoredType _storedType;
     
     public RetentionWatchdog(
         FlowType flowType,
+        StoredType storedType,
         IFunctionStore functionStore,
         TimeSpan cleanUpFrequency,
         TimeSpan delayStartUp,
@@ -27,6 +29,7 @@ internal class RetentionWatchdog
         ShutdownCoordinator shutdownCoordinator)
     {
         _flowType = flowType;
+        _storedType = storedType;
         _functionStore = functionStore;
         _unhandledExceptionHandler = unhandledExceptionHandler;
         _shutdownCoordinator = shutdownCoordinator;
@@ -48,11 +51,11 @@ internal class RetentionWatchdog
                 var now = DateTime.UtcNow;
                 var completedBefore = now - _retentionPeriod;
                 var eligibleFunctions = 
-                    await _functionStore.GetSucceededFunctions(_flowType, completedBefore.Ticks);
+                    await _functionStore.GetSucceededFunctions(_storedType, completedBefore.Ticks);
 
                 foreach (var eligibleFunction in eligibleFunctions.WithRandomOffset())
                 {
-                    var alreadyDeleted = !await _functionStore.DeleteFunction(new FlowId(_flowType, eligibleFunction));
+                    var alreadyDeleted = !await _functionStore.DeleteFunction(new StoredId(_storedType, eligibleFunction.Value));
                     if (alreadyDeleted)
                         break;
                 }

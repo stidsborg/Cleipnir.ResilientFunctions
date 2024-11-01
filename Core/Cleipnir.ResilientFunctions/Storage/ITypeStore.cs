@@ -6,6 +6,6 @@ namespace Cleipnir.ResilientFunctions.Storage;
 
 public interface ITypeStore
 {
-    public Task<int> InsertOrGetFlowType(FlowType flowType);
-    public Task<IReadOnlyDictionary<FlowType, int>> GetAllFlowTypes();
+    public Task<StoredType> InsertOrGetStoredType(FlowType flowType);
+    public Task<IReadOnlyDictionary<FlowType, StoredType>> GetAllFlowTypes();
 }

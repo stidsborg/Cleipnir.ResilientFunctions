@@ -47,19 +47,20 @@ public abstract class CrashedTests
                 )
             );
 
-            var rFunc = functionsRegistry
+            var registration = functionsRegistry
                 .RegisterFunc(
                     flowType,
                     (string s) => s.ToUpper().ToTask()
-                ).Invoke;
+                );
+            var rFunc = registration.Invoke;
             
             await BusyWait.Until(
                 async () => await store
-                    .GetFunction(functionId)
+                    .GetFunction(registration.MapToStoredId(functionId))
                     .Map(f => f?.Status == Status.Succeeded)
             );
 
-            var status = await store.GetFunction(functionId).Map(f => f?.Status);
+            var status = await store.GetFunction(registration.MapToStoredId(functionId)).Map(f => f?.Status);
             status.ShouldBe(Status.Succeeded);
             await rFunc(flowInstance.Value, param).ShouldBeAsync("TEST");
         }
@@ -103,7 +104,7 @@ public abstract class CrashedTests
                 )
             );
 
-            var rFunc = functionsRegistry
+            var registration = functionsRegistry
                 .RegisterFunc(
                     flowType,
                     async (string s, Workflow workflow) =>
@@ -113,19 +114,20 @@ public abstract class CrashedTests
                         await state.Save();
                         return s.ToUpper();
                     }
-                ).Invoke;
+                );
+            var rFunc = registration.Invoke;
             
             await BusyWait.Until(async () => 
                 await store
-                    .GetFunction(functionId)
+                    .GetFunction(registration.MapToStoredId(functionId))
                     .Map(f => f?.Status == Status.Succeeded),
                 maxWait: TimeSpan.FromSeconds(5)
             );
 
-            var storedFunction = await store.GetFunction(functionId);
+            var storedFunction = await store.GetFunction(registration.MapToStoredId(functionId));
             storedFunction.ShouldNotBeNull();
             storedFunction.Status.ShouldBe(Status.Succeeded);
-            var effects = await store.EffectsStore.GetEffectResults(functionId);
+            var effects = await store.EffectsStore.GetEffectResults(registration.MapToStoredId(functionId));
             var stateResult = effects.Single(e => e.EffectId == "State").Result!;
             stateResult.ShouldNotBeNull();
             stateResult.ToStringFromUtf8Bytes().DeserializeFromJsonTo<State>().Value.ShouldBe(1);
@@ -171,20 +173,20 @@ public abstract class CrashedTests
                 )
             );
 
-            var rAction = functionsRegistry
+            var registration = functionsRegistry
                 .RegisterAction(
                     flowType,
                     (string _) => Task.CompletedTask
-                )
-                .Invoke;
+                );
+            var rAction = registration.Invoke;
             
             await BusyWait.Until(
                 async () => await store
-                    .GetFunction(functionId)
+                    .GetFunction(registration.MapToStoredId(functionId))
                     .Map(f => f?.Status ?? Status.Failed) == Status.Succeeded
             );
 
-            var status = await store.GetFunction(functionId).Map(f => f?.Status);
+            var status = await store.GetFunction(registration.MapToStoredId(functionId)).Map(f => f?.Status);
             status.ShouldBe(Status.Succeeded);
             await rAction(flowInstance.Value, param);
         }
@@ -227,7 +229,7 @@ public abstract class CrashedTests
                 )
             );
 
-            var rAction = functionsRegistry
+            var registration = functionsRegistry
                 .RegisterAction(
                     flowType,
                     async (string _, Workflow workflow) =>
@@ -236,19 +238,20 @@ public abstract class CrashedTests
                         state.Value = 1;
                         await state.Save();
                     }
-                ).Invoke;
+                );
+            var rAction = registration.Invoke;
 
             await BusyWait.Until(async () =>
                 await store
-                    .GetFunction(functionId)
+                    .GetFunction(registration.MapToStoredId(functionId))
                     .Map(f => f?.Status == Status.Succeeded),
                 maxWait: TimeSpan.FromSeconds(5)
             );
 
-            var storedFunction = await store.GetFunction(functionId);
+            var storedFunction = await store.GetFunction(registration.MapToStoredId(functionId));
             storedFunction.ShouldNotBeNull();
             storedFunction.Status.ShouldBe(Status.Succeeded);
-            var effects = await store.EffectsStore.GetEffectResults(functionId);
+            var effects = await store.EffectsStore.GetEffectResults(registration.MapToStoredId(functionId));
             var state = effects.Single(e => e.EffectId == "State").Result;
             state!.ToStringFromUtf8Bytes().DeserializeFromJsonTo<State>().Value.ShouldBe(1);
             await rAction(flowInstance.Value, param);

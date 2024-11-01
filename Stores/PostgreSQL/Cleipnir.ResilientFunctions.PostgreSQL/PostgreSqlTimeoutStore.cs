@@ -16,7 +16,7 @@ public class PostgreSqlTimeoutStore(string connectionString, string tablePrefix 
         await using var conn = await CreateConnection();
         _initializeSql ??= @$"
             CREATE TABLE IF NOT EXISTS {_tablePrefix}_timeouts (
-                type VARCHAR(255),
+                type INT,
                 instance VARCHAR(255),
                 timeout_id VARCHAR(255),
                 expires BIGINT,
@@ -72,8 +72,8 @@ public class PostgreSqlTimeoutStore(string connectionString, string tablePrefix 
         {
             Parameters =
             {
-                new() {Value = functionId.Type.Value},
-                new() {Value = functionId.Instance.Value},
+                new() {Value = functionId.StoredType.Value},
+                new() {Value = functionId.Instance},
                 new() {Value = timeoutId},
                 new() {Value = expiry}
             }
@@ -83,7 +83,7 @@ public class PostgreSqlTimeoutStore(string connectionString, string tablePrefix 
     }
 
     private string? _removeTimeoutSql;
-    public async Task RemoveTimeout(FlowId flowId, string timeoutId)
+    public async Task RemoveTimeout(StoredId storedId, string timeoutId)
     {
         await using var conn = await CreateConnection();
         _removeTimeoutSql ??= @$"
@@ -97,8 +97,8 @@ public class PostgreSqlTimeoutStore(string connectionString, string tablePrefix 
         {
             Parameters =
             {
-                new() {Value = flowId.Type.Value},
-                new() {Value = flowId.Instance.Value},
+                new() {Value = storedId.StoredType.Value},
+                new() {Value = storedId.Instance},
                 new() {Value = timeoutId}
             }
         };
@@ -107,7 +107,7 @@ public class PostgreSqlTimeoutStore(string connectionString, string tablePrefix 
     }
 
     private string? _removeSql;
-    public async Task Remove(FlowId flowId)
+    public async Task Remove(StoredId storedId)
     {
         await using var conn = await CreateConnection();
         _removeSql ??= @$"
@@ -118,8 +118,8 @@ public class PostgreSqlTimeoutStore(string connectionString, string tablePrefix 
         {
             Parameters =
             {
-                new() {Value = flowId.Type.Value},
-                new() {Value = flowId.Instance.Value},
+                new() {Value = storedId.StoredType.Value},
+                new() {Value = storedId.Instance},
             }
         };
 
@@ -147,11 +147,11 @@ public class PostgreSqlTimeoutStore(string connectionString, string tablePrefix 
         await using var reader = await command.ExecuteReaderAsync();
         while (await reader.ReadAsync())
         {
-            var flowType = reader.GetString(0);
+            var flowType = reader.GetInt32(0);
             var flowInstance = reader.GetString(1);
             var timeoutId = reader.GetString(2);
             var expires = reader.GetInt64(3);
-            var functionId = new FlowId(flowType, flowInstance);
+            var functionId = new StoredId(new StoredType(flowType), flowInstance);
             storedMessages.Add(new StoredTimeout(functionId, timeoutId, expires));
         }
 
@@ -159,7 +159,7 @@ public class PostgreSqlTimeoutStore(string connectionString, string tablePrefix 
     }
 
     private string? _getTimeoutsSql;    
-    public async Task<IEnumerable<StoredTimeout>> GetTimeouts(FlowId flowId)
+    public async Task<IEnumerable<StoredTimeout>> GetTimeouts(StoredId flowId)
     {
         var (typeId, instanceId) = flowId;
         await using var conn = await CreateConnection();
@@ -173,7 +173,7 @@ public class PostgreSqlTimeoutStore(string connectionString, string tablePrefix 
             Parameters =
             {
                 new() {Value = typeId.Value},
-                new() {Value = instanceId.Value}
+                new() {Value = instanceId}
             }
         };
 

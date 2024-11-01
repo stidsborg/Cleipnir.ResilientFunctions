@@ -16,17 +16,10 @@ public abstract class InitialInvocationFailedTests
     {
         var store = await storeTask;
         var functionId = TestFlowId.Create();
-        await store.CreateFunction(
-            functionId,
-            param: "hello world".ToJson().ToUtf8Bytes(),
-            leaseExpiration: DateTime.UtcNow.Ticks,
-            postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks
-        );
 
         var flag = new SyncedFlag();
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(leaseLength: TimeSpan.FromMilliseconds(100)));
-        _ = functionsRegistry.RegisterAction(
+        var registration = functionsRegistry.RegisterAction(
             functionId.Type,
             Task (string param) =>
             {
@@ -34,10 +27,18 @@ public abstract class InitialInvocationFailedTests
                 return Task.CompletedTask;
             });
 
+        await store.CreateFunction(
+            registration.MapToStoredId(functionId),
+            param: "hello world".ToJson().ToUtf8Bytes(),
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks
+        );
+        
         await flag.WaitForRaised();
 
         await BusyWait.Until(
-            () => store.GetFunction(functionId).Map(sf => sf?.Status == Status.Succeeded)
+            () => store.GetFunction(registration.MapToStoredId(functionId)).Map(sf => sf?.Status == Status.Succeeded)
         );
     }
 
@@ -46,17 +47,10 @@ public abstract class InitialInvocationFailedTests
     {
         var store = await storeTask;
         var functionId = TestFlowId.Create();
-        await store.CreateFunction(
-            functionId,
-            param: "hello world".ToJson().ToUtf8Bytes(),
-            leaseExpiration: DateTime.UtcNow.Ticks,
-            postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks
-        );
 
         var flag = new SyncedFlag();
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(leaseLength: TimeSpan.FromMilliseconds(100)));
-        _ = functionsRegistry.RegisterAction<string>(
+        var registration = functionsRegistry.RegisterAction<string>(
             functionId.Type,
             Task (string param) =>
             {
@@ -64,10 +58,18 @@ public abstract class InitialInvocationFailedTests
                 return Task.CompletedTask;
             });
 
+        await store.CreateFunction(
+            registration.MapToStoredId(functionId),
+            param: "hello world".ToJson().ToUtf8Bytes(),
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks
+        );
+        
         await flag.WaitForRaised();
 
         await BusyWait.Until(
-            () => store.GetFunction(functionId).Map(sf => sf?.Status == Status.Succeeded)
+            () => store.GetFunction(registration.MapToStoredId(functionId)).Map(sf => sf?.Status == Status.Succeeded)
         );
     }
 
@@ -76,17 +78,10 @@ public abstract class InitialInvocationFailedTests
     {
         var store = await storeTask;
         var functionId = TestFlowId.Create();
-        await store.CreateFunction(
-            functionId,
-            param: "hello world".ToJson().ToUtf8Bytes(),
-            leaseExpiration: DateTime.UtcNow.Ticks,
-            postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks
-        );
 
         var flag = new SyncedFlag();
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(leaseLength: TimeSpan.FromMilliseconds(100)));
-        _ = functionsRegistry.RegisterFunc(
+        var registration = functionsRegistry.RegisterFunc(
             functionId.Type,
             Task<string> (string param) =>
             {
@@ -94,12 +89,20 @@ public abstract class InitialInvocationFailedTests
                 return param.ToUpper().ToTask();
             });
 
+        await store.CreateFunction(
+            registration.MapToStoredId(functionId),
+            param: "hello world".ToJson().ToUtf8Bytes(),
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks
+        );
+        
         await flag.WaitForRaised();
 
         await BusyWait.Until(
-            () => store.GetFunction(functionId).Map(sf => sf?.Status == Status.Succeeded)
+            () => store.GetFunction(registration.MapToStoredId(functionId)).Map(sf => sf?.Status == Status.Succeeded)
         );
-        var resultJson = await store.GetFunction(functionId).Map(sf => sf?.Result);
+        var resultJson = await store.GetFunction(registration.MapToStoredId(functionId)).Map(sf => sf?.Result);
         resultJson.ShouldNotBeNull();
         JsonConvert.DeserializeObject<string>(resultJson.ToStringFromUtf8Bytes()).ShouldBe("HELLO WORLD");
     }
@@ -109,17 +112,10 @@ public abstract class InitialInvocationFailedTests
     {
         var store = await storeTask;
         var functionId = TestFlowId.Create();
-        await store.CreateFunction(
-            functionId,
-            param: "hello world".ToJson().ToUtf8Bytes(),
-            leaseExpiration: DateTime.UtcNow.Ticks,
-            postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks
-        );
 
         var flag = new SyncedFlag();
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(leaseLength: TimeSpan.FromMilliseconds(100)));
-        _ = functionsRegistry.RegisterFunc(
+        var registration = functionsRegistry.RegisterFunc(
             functionId.Type,
             Task<string> (string param) =>
             {
@@ -127,13 +123,21 @@ public abstract class InitialInvocationFailedTests
                 return param.ToUpper().ToTask();
             });
 
+        await store.CreateFunction(
+            registration.MapToStoredId(functionId),
+            param: "hello world".ToJson().ToUtf8Bytes(),
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks
+        );
+        
         await flag.WaitForRaised();
 
         await BusyWait.Until(
-            () => store.GetFunction(functionId).Map(sf => sf?.Status == Status.Succeeded)
+            () => store.GetFunction(registration.MapToStoredId(functionId)).Map(sf => sf?.Status == Status.Succeeded)
         );
         
-        var resultJson = await store.GetFunction(functionId).Map(sf => sf?.Result);
+        var resultJson = await store.GetFunction(registration.MapToStoredId(functionId)).Map(sf => sf?.Result);
         resultJson.ShouldNotBeNull();
         JsonConvert.DeserializeObject<string>(resultJson.ToStringFromUtf8Bytes()).ShouldBe("HELLO WORLD");
     }

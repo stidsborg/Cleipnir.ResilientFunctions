@@ -14,8 +14,8 @@ namespace Cleipnir.ResilientFunctions.Storage;
 
 public class InMemoryFunctionStore : IFunctionStore, IMessageStore
 {
-    private readonly Dictionary<FlowId, InnerState> _states = new();
-    private readonly Dictionary<FlowId, List<StoredMessage>> _messages = new();
+    private readonly Dictionary<StoredId, InnerState> _states = new();
+    private readonly Dictionary<StoredId, List<StoredMessage>> _messages = new();
     private readonly object _sync = new();
 
     public ITypeStore TypeStore { get; } = new InMemoryTypeStore();
@@ -45,7 +45,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
     #region FunctionStore
 
     public virtual Task<bool> CreateFunction(
-        FlowId flowId,
+        StoredId storedId,
         byte[]? param,
         long leaseExpiration,
         long? postponeUntil,
@@ -53,12 +53,12 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
     {
         lock (_sync)
         {
-            if (_states.ContainsKey(flowId))
+            if (_states.ContainsKey(storedId))
                 return false.ToTask();
 
-            _states[flowId] = new InnerState
+            _states[storedId] = new InnerState
             {
-                FlowId = flowId,
+                FlowId = storedId,
                 Param = param,
                 Status = postponeUntil == null ? Status.Executing : Status.Postponed,
                 Epoch = 0,
@@ -67,8 +67,8 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
                 Expires = postponeUntil ?? leaseExpiration,
                 Timestamp = timestamp
             };
-            if (!_messages.ContainsKey(flowId)) //messages can already have been added - i.e. paramless started by received message
-                _messages[flowId] = new List<StoredMessage>();
+            if (!_messages.ContainsKey(storedId)) //messages can already have been added - i.e. paramless started by received message
+                _messages[storedId] = new List<StoredMessage>();
 
             return true.ToTask();
         }
@@ -97,14 +97,14 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         return Task.CompletedTask;
     }
 
-    public virtual Task<StoredFlow?> RestartExecution(FlowId flowId, int expectedEpoch, long leaseExpiration)
+    public virtual Task<StoredFlow?> RestartExecution(StoredId storedId, int expectedEpoch, long leaseExpiration)
     {
         lock (_sync)
         {
-            if (!_states.ContainsKey(flowId))
+            if (!_states.ContainsKey(storedId))
                 return default(StoredFlow).ToTask();
 
-            var state = _states[flowId];
+            var state = _states[storedId];
             if (state.Epoch != expectedEpoch)
                 return default(StoredFlow).ToTask();
 
@@ -112,18 +112,18 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
             state.Status = Status.Executing;
             state.Expires = leaseExpiration;
             state.Interrupted = false;
-            return GetFunction(flowId);
+            return GetFunction(storedId);
         }
     }
 
-    public virtual Task<bool> RenewLease(FlowId flowId, int expectedEpoch, long leaseExpiration)
+    public virtual Task<bool> RenewLease(StoredId storedId, int expectedEpoch, long leaseExpiration)
     {
         lock (_sync)
         {
-            if (!_states.ContainsKey(flowId))
+            if (!_states.ContainsKey(storedId))
                 return false.ToTask();
 
-            var state = _states[flowId];
+            var state = _states[storedId];
             if (state.Epoch != expectedEpoch)
                 return false.ToTask();
 
@@ -145,20 +145,20 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
                 .ToTask();
     }
 
-    public Task<IReadOnlyList<FlowInstance>> GetSucceededFunctions(FlowType flowType, long completedBefore)
+    public Task<IReadOnlyList<FlowInstance>> GetSucceededFunctions(StoredType storedType, long completedBefore)
     {
         lock (_sync)
             return _states
                 .Values
-                .Where(s => s.FlowId.Type == flowType && s.Timestamp < completedBefore)
-                .Select(s => s.FlowId.Instance)
+                .Where(s => s.FlowId.StoredType == storedType && s.Timestamp < completedBefore)
+                .Select(s => new FlowInstance(s.FlowId.Instance))
                 .ToList()
                 .CastTo<IReadOnlyList<FlowInstance>>()
                 .ToTask();
     }
 
     public virtual Task<bool> SetFunctionState(
-        FlowId flowId,
+        StoredId storedId,
         Status status,
         byte[]? param,
         byte[]? result,
@@ -168,10 +168,10 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
     {
         lock (_sync)
         {
-            if (!_states.ContainsKey(flowId))
+            if (!_states.ContainsKey(storedId))
                 return false.ToTask();
 
-            var state = _states[flowId];
+            var state = _states[storedId];
             if (state.Epoch != expectedEpoch)
                 return false.ToTask();
 
@@ -188,7 +188,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
     }
 
     public Task<bool> SucceedFunction(
-        FlowId flowId, 
+        StoredId storedId, 
         byte[]? result, 
         long timestamp,
         int expectedEpoch, 
@@ -196,9 +196,9 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
     {
         lock (_sync)
         {
-            if (!_states.ContainsKey(flowId)) return false.ToTask();
+            if (!_states.ContainsKey(storedId)) return false.ToTask();
 
-            var state = _states[flowId];
+            var state = _states[storedId];
             if (state.Epoch != expectedEpoch) return false.ToTask();
 
             state.Status = Status.Succeeded;
@@ -210,7 +210,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
     }
 
     public Task<bool> PostponeFunction(
-        FlowId flowId, 
+        StoredId storedId, 
         long postponeUntil, 
         long timestamp,
         int expectedEpoch, 
@@ -218,9 +218,9 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
     {
         lock (_sync)
         {
-            if (!_states.ContainsKey(flowId)) return false.ToTask();
+            if (!_states.ContainsKey(storedId)) return false.ToTask();
 
-            var state = _states[flowId];
+            var state = _states[storedId];
             if (state.Epoch != expectedEpoch) return false.ToTask();
 
             state.Status = Status.Postponed;
@@ -232,7 +232,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
     }
 
     public Task<bool> FailFunction(
-        FlowId flowId, 
+        StoredId storedId, 
         StoredException storedException, 
         long timestamp,
         int expectedEpoch, 
@@ -240,9 +240,9 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
     {
         lock (_sync)
         {
-            if (!_states.ContainsKey(flowId)) return false.ToTask();
+            if (!_states.ContainsKey(storedId)) return false.ToTask();
 
-            var state = _states[flowId];
+            var state = _states[storedId];
             if (state.Epoch != expectedEpoch) return false.ToTask();
 
             state.Status = Status.Failed;
@@ -254,17 +254,17 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
     }
 
     public Task<bool> SuspendFunction(
-        FlowId flowId, 
+        StoredId storedId, 
         long timestamp,
         int expectedEpoch, 
         ComplimentaryState complimentaryState)
     {
         lock (_sync)
         {
-            if (!_states.ContainsKey(flowId))
+            if (!_states.ContainsKey(storedId))
                 return false.ToTask();
 
-            var state = _states[flowId];
+            var state = _states[storedId];
             if (state.Epoch != expectedEpoch)
                 return false.ToTask();
 
@@ -279,15 +279,15 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
     }
 
     public virtual Task<bool> SetParameters(
-        FlowId flowId, 
+        StoredId storedId, 
         byte[]? param, 
         byte[]? result, 
         int expectedEpoch)
     {
         lock (_sync)
         {
-            if (!_states.ContainsKey(flowId)) return false.ToTask();
-            var state = _states[flowId];
+            if (!_states.ContainsKey(storedId)) return false.ToTask();
+            var state = _states[storedId];
             if (state.Epoch != expectedEpoch) return false.ToTask();
             
             state.Param = param;
@@ -299,11 +299,11 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         }
     }
 
-    public Task<bool> Interrupt(FlowId flowId, bool onlyIfExecuting)
+    public Task<bool> Interrupt(StoredId storedId, bool onlyIfExecuting)
     {
         lock (_sync)
         {
-            if (!_states.TryGetValue(flowId, out var state))
+            if (!_states.TryGetValue(storedId, out var state))
                 return false.ToTask();
             
             if (state.Status != Status.Executing && onlyIfExecuting)
@@ -320,40 +320,40 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         }
     }
 
-    public Task<bool?> Interrupted(FlowId flowId)
+    public Task<bool?> Interrupted(StoredId storedId)
     {
         lock (_sync)
         {
-            if (!_states.ContainsKey(flowId))
+            if (!_states.ContainsKey(storedId))
                 return Task.FromResult(default(bool?));
 
-            return ((bool?) _states[flowId].Interrupted).ToTask();
+            return ((bool?) _states[storedId].Interrupted).ToTask();
         }
     }
 
-    public Task<StatusAndEpoch?> GetFunctionStatus(FlowId flowId)
+    public Task<StatusAndEpoch?> GetFunctionStatus(StoredId storedId)
     {
         lock (_sync)
         {
-            if (!_states.ContainsKey(flowId))
+            if (!_states.ContainsKey(storedId))
                 return Task.FromResult(default(StatusAndEpoch));
 
-            var state = _states[flowId];
+            var state = _states[storedId];
             return ((StatusAndEpoch?) new StatusAndEpoch(state.Status, state.Epoch)).ToTask();
         }
     }
     
-    public virtual Task<StoredFlow?> GetFunction(FlowId flowId)
+    public virtual Task<StoredFlow?> GetFunction(StoredId storedId)
     {
         lock (_sync)
         {
-            if (!_states.ContainsKey(flowId))
+            if (!_states.ContainsKey(storedId))
                 return default(StoredFlow).ToTask();
 
-            var state = _states[flowId];
+            var state = _states[storedId];
 
             return new StoredFlow(
-                    flowId,
+                    storedId,
                     state.Param,
                     state.Status,
                     state.Result,
@@ -368,56 +368,56 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         }
     }
 
-    public Task<IReadOnlyList<FlowInstance>> GetInstances(FlowType flowType, Status status)
+    public Task<IReadOnlyList<FlowInstance>> GetInstances(StoredType storedType, Status status)
     {
         lock (_sync)
             return _states
-                .Where(kv => kv.Key.Type == flowType)
+                .Where(kv => kv.Key.StoredType == storedType)
                 .Where(kv => kv.Value.Status == status)
-                .Select(kv => kv.Key.Instance)
+                .Select(kv => new FlowInstance(kv.Key.Instance))
                 .ToList()
                 .CastTo<IReadOnlyList<FlowInstance>>()
                 .ToTask();
     }
 
-    public Task<IReadOnlyList<FlowInstance>> GetInstances(FlowType flowType)
+    public Task<IReadOnlyList<FlowInstance>> GetInstances(StoredType storedType)
     {
         lock (_sync)
             return _states
-                .Where(kv => kv.Key.Type == flowType)
-                .Select(kv => kv.Key.Instance)
+                .Where(kv => kv.Key.StoredType == storedType)
+                .Select(kv => new FlowInstance(kv.Key.Instance))
                 .ToList()
                 .CastTo<IReadOnlyList<FlowInstance>>()
                 .ToTask();
     }
 
-    public Task<IReadOnlyList<FlowType>> GetTypes()
+    public Task<IReadOnlyList<StoredType>> GetTypes()
     {
         lock (_sync)
             return _states
-                .Select(kv => kv.Key.Type)
+                .Select(kv => kv.Key.StoredType)
                 .Distinct()
                 .ToList()
-                .CastTo<IReadOnlyList<FlowType>>()
+                .CastTo<IReadOnlyList<StoredType>>()
                 .ToTask();
     }
 
-    public virtual Task<bool> DeleteFunction(FlowId flowId)
+    public virtual Task<bool> DeleteFunction(StoredId storedId)
     {
         lock (_sync)
         {
-            _messages.Remove(flowId);
-            _effectsStore.Remove(flowId);
-            _timeoutStore.Remove(flowId);
-            _correlationStore.RemoveCorrelations(flowId);
+            _messages.Remove(storedId);
+            _effectsStore.Remove(storedId);
+            _timeoutStore.Remove(storedId);
+            _correlationStore.RemoveCorrelations(storedId);
             
-            return _states.Remove(flowId).ToTask();
+            return _states.Remove(storedId).ToTask();
         }
     }
 
     private class InnerState
     {
-        public FlowId FlowId { get; init; } = null!;
+        public StoredId FlowId { get; init; } = null!;
         public byte[]? Param { get; set; }
         public Status Status { get; set; }
         public byte[]? Result { get; set; }
@@ -431,55 +431,55 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
     
     #region MessageStore
 
-    public virtual Task<FunctionStatus?> AppendMessage(FlowId flowId, StoredMessage storedMessage)
+    public virtual Task<FunctionStatus?> AppendMessage(StoredId storedId, StoredMessage storedMessage)
     {
         lock (_sync)
         {
-            if (!_messages.ContainsKey(flowId))
-                _messages[flowId] = new List<StoredMessage>();
+            if (!_messages.ContainsKey(storedId))
+                _messages[storedId] = new List<StoredMessage>();
 
-            var messages = _messages[flowId];
+            var messages = _messages[storedId];
             messages.Add(storedMessage);
 
-            if (!_states.ContainsKey(flowId))
+            if (!_states.ContainsKey(storedId))
                 return Task.FromResult(default(FunctionStatus));
             
             return Task.FromResult((FunctionStatus?)
-                new FunctionStatus(_states[flowId].Status, Epoch: _states[flowId].Epoch)
+                new FunctionStatus(_states[storedId].Status, Epoch: _states[storedId].Epoch)
             );
         }
     }
     
-    public Task<bool> ReplaceMessage(FlowId flowId, int position, StoredMessage storedMessage)
+    public Task<bool> ReplaceMessage(StoredId storedId, int position, StoredMessage storedMessage)
     {
         lock (_sync)
         {
-            if (!_messages.ContainsKey(flowId) || _messages[flowId].Count <= position)
+            if (!_messages.ContainsKey(storedId) || _messages[storedId].Count <= position)
                 return false.ToTask();
             
-            _messages[flowId][position] = storedMessage;
+            _messages[storedId][position] = storedMessage;
             return true.ToTask();
         }
     }
 
-    public virtual Task Truncate(FlowId flowId)
+    public virtual Task Truncate(StoredId storedId)
     {
         lock (_sync)
-            _messages[flowId] = new List<StoredMessage>();
+            _messages[storedId] = new List<StoredMessage>();
 
         return Task.CompletedTask;
     }
 
-    private IEnumerable<StoredMessage> GetMessages(FlowId flowId)
+    private IEnumerable<StoredMessage> GetMessages(StoredId storedId)
     {
         lock (_sync)
-            return !_messages.ContainsKey(flowId) 
+            return !_messages.ContainsKey(storedId) 
                 ? Enumerable.Empty<StoredMessage>() 
-                : _messages[flowId].ToList();
+                : _messages[storedId].ToList();
     }
 
-    public virtual Task<IReadOnlyList<StoredMessage>> GetMessages(FlowId flowId, int skip)
-        => ((IReadOnlyList<StoredMessage>)GetMessages(flowId).Skip(skip).ToList()).ToTask();
+    public virtual Task<IReadOnlyList<StoredMessage>> GetMessages(StoredId storedId, int skip)
+        => ((IReadOnlyList<StoredMessage>)GetMessages(storedId).Skip(skip).ToList()).ToTask();
     
     #endregion
 }

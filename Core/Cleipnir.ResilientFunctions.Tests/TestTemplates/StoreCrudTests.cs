@@ -11,7 +11,7 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates;
 
 public abstract class StoreCrudTests
 {
-    private FlowId FlowId { get; } = new FlowId("funcType1", "funcInstance1");
+    private StoredId FlowId { get; } = TestStoredId.Create();
     private TestParameters TestParam { get; } = new TestParameters("Peter", 32);
     private string Param => TestParam.ToJson();
     private record TestParameters(string Name, int Age);
@@ -139,7 +139,7 @@ public abstract class StoreCrudTests
     public async Task ExistingFunctionCanBeDeleted(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionId = TestFlowId.Create();
+        var functionId = TestStoredId.Create();
         await store.CreateFunction(
             FlowId,
             Param.ToUtf8Bytes(),

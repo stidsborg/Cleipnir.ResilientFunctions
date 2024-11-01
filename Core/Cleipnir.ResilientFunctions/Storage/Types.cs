@@ -2,8 +2,16 @@ using Cleipnir.ResilientFunctions.Domain;
 
 namespace Cleipnir.ResilientFunctions.Storage;
 
+public record StoredId(StoredType StoredType, string Instance);
+public record StoredType(int Value);
+
+internal static class StoredTypeExtension
+{
+    public static StoredType ToStoredType(this int storedType) => new(storedType);
+};
+
 public record StoredFlow(
-    FlowId FlowId,
+    StoredId FlowId,
     byte[]? Parameter,
     Status Status,
     byte[]? Result,
@@ -14,7 +22,7 @@ public record StoredFlow(
     bool Interrupted
 );
 
-public record IdAndEpoch(FlowId FlowId, int Epoch);
+public record IdAndEpoch(StoredId FlowId, int Epoch);
 
 public record StoredException(string ExceptionMessage, string? ExceptionStackTrace, string ExceptionType);
 public record StatusAndEpoch(Status Status, int Epoch);
@@ -40,4 +48,4 @@ public record StoredEffect(
 };
 public record StoredState(StateId StateId, byte[] StateJson);
 
-public record IdWithParam(FlowId FlowId, byte[]? Param);
+public record IdWithParam(StoredId StoredId, byte[]? Param);

@@ -16,7 +16,7 @@ public class MessagesPullerAndEmitter
     private readonly ISerializer _serializer;
 
     private DateTime _lastSynced = default;
-    private readonly FlowId _flowId;
+    private readonly StoredId _storedId;
 
     private readonly IMessageStore _messageStore;
     public Source Source { get; }
@@ -39,13 +39,13 @@ public class MessagesPullerAndEmitter
     }
 
     public MessagesPullerAndEmitter(
-        FlowId flowId,
+        StoredId storedId,
         TimeSpan defaultDelay,
         TimeSpan defaultMaxWait,
         Func<bool> isWorkflowRunning,
         IFunctionStore functionStore, ISerializer serializer, IRegisteredTimeouts registeredTimeouts)
     {
-        _flowId = flowId;
+        _storedId = storedId;
         _messageStore = functionStore.MessageStore;
         
         _serializer = serializer;
@@ -77,7 +77,7 @@ public class MessagesPullerAndEmitter
 
         try
         {
-            var storedMessages = await _messageStore.GetMessages(_flowId, _skip);
+            var storedMessages = await _messageStore.GetMessages(_storedId, _skip);
             
             _lastSynced = DateTime.UtcNow;
             _skip += storedMessages.Count;
