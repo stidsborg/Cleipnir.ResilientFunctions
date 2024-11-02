@@ -76,7 +76,7 @@ internal class CrashedOrPostponedWatchdog
                 var flowsDictionary = _flowsDictionary;     
                 foreach (var sef in eligibleFunctions.WithRandomOffset())
                 {
-                    if (!flowsDictionary.TryGetValue(sef.FlowId.StoredType, out var tuple))
+                    if (!flowsDictionary.TryGetValue(sef.FlowId.Type, out var tuple))
                         continue;
                     
                     var (restartFunction, scheduleRestart, asyncSemaphore) = tuple;

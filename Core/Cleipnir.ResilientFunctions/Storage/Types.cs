@@ -2,7 +2,7 @@ using Cleipnir.ResilientFunctions.Domain;
 
 namespace Cleipnir.ResilientFunctions.Storage;
 
-public record StoredId(StoredType StoredType, string Instance);
+public record StoredId(StoredType Type, string Instance);
 public record StoredType(int Value);
 
 internal static class StoredTypeExtension

@@ -137,7 +137,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         {
             Parameters =
             {
-                new() {Value = storedId.StoredType.Value},
+                new() {Value = storedId.Type.Value},
                 new() {Value = storedId.Instance},
                 new() {Value = (int) (postponeUntil == null ? Status.Executing : Status.Postponed)},
                 new() {Value = param == null ? DBNull.Value : param},
@@ -171,7 +171,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 {
                     Parameters =
                     {
-                        new() { Value = idWithParam.StoredId.StoredType.Value },
+                        new() { Value = idWithParam.StoredId.Type.Value },
                         new() { Value = idWithParam.StoredId.Instance },
                         new() { Value = idWithParam.Param == null ? DBNull.Value : idWithParam.Param }
                     }
@@ -207,7 +207,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
             Parameters =
             {
                 new() { Value = leaseExpiration },
-                new() { Value = storedId.StoredType.Value },
+                new() { Value = storedId.Type.Value },
                 new() { Value = storedId.Instance },
                 new() { Value = expectedEpoch },
             }
@@ -236,7 +236,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
             Parameters =
             {
                 new() {Value = leaseExpiration},
-                new() {Value = storedId.StoredType.Value},
+                new() {Value = storedId.Type.Value},
                 new() {Value = storedId.Instance},
                 new() {Value = expectedEpoch},
             }
@@ -334,7 +334,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 new() {Value = result == null ? DBNull.Value : result},
                 new() {Value = storedException == null ? DBNull.Value : JsonSerializer.Serialize(storedException)},
                 new() {Value = expires },
-                new() {Value = storedId.StoredType.Value},
+                new() {Value = storedId.Type.Value},
                 new() {Value = storedId.Instance},
                 new() {Value = expectedEpoch},
             }
@@ -366,7 +366,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
             {
                 new() { Value = result == null ? DBNull.Value : result },
                 new() { Value = timestamp },
-                new() { Value = storedId.StoredType.Value },
+                new() { Value = storedId.Type.Value },
                 new() { Value = storedId.Instance },
                 new() { Value = expectedEpoch },
             }
@@ -398,7 +398,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
             {
                 new() { Value = postponeUntil },
                 new() { Value = timestamp },
-                new() { Value = storedId.StoredType.Value },
+                new() { Value = storedId.Type.Value },
                 new() { Value = storedId.Instance },
                 new() { Value = expectedEpoch },
             }
@@ -430,7 +430,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
             {
                 new() { Value = JsonSerializer.Serialize(storedException) },
                 new() { Value = timestamp },
-                new() { Value = storedId.StoredType.Value },
+                new() { Value = storedId.Type.Value },
                 new() { Value = storedId.Instance },
                 new() { Value = expectedEpoch },
             }
@@ -461,7 +461,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
             Parameters =
             {
                 new() { Value = timestamp },
-                new() { Value = storedId.StoredType.Value },
+                new() { Value = storedId.Type.Value },
                 new() { Value = storedId.Instance },
                 new() { Value = expectedEpoch }
             }
@@ -491,7 +491,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
             {
                 new() { Value = param ?? (object) DBNull.Value },
                 new() { Value = result ?? (object) DBNull.Value },
-                new() { Value = storedId.StoredType.Value },
+                new() { Value = storedId.Type.Value },
                 new() { Value = storedId.Instance },
                 new() { Value = expectedEpoch },
             }
@@ -534,7 +534,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         {
             Parameters =
             {
-                new() { Value = storedId.StoredType.Value },
+                new() { Value = storedId.Type.Value },
                 new() { Value = storedId.Instance },
             }
         };
@@ -555,7 +555,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         {
             Parameters =
             {
-                new() { Value = storedId.StoredType.Value },
+                new() { Value = storedId.Type.Value },
                 new() { Value = storedId.Instance },
             }
         };
@@ -573,7 +573,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         await using var command = new NpgsqlCommand(_getFunctionStatusSql, conn)
         {
             Parameters = { 
-                new() {Value = storedId.StoredType.Value},
+                new() {Value = storedId.Type.Value},
                 new() {Value = storedId.Instance}
             }
         };
@@ -609,7 +609,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         await using var command = new NpgsqlCommand(_getFunctionSql, conn)
         {
             Parameters = { 
-                new() {Value = storedId.StoredType.Value},
+                new() {Value = storedId.Type.Value},
                 new() {Value = storedId.Instance}
             }
         };
@@ -752,7 +752,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         {
             Parameters =
             {
-                new() {Value = storedId.StoredType.Value},
+                new() {Value = storedId.Type.Value},
                 new() {Value = storedId.Instance},
             }
         };

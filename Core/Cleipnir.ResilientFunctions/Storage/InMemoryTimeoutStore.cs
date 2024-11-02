@@ -33,7 +33,7 @@ public class InMemoryTimeoutStore : ITimeoutStore
 
     public Task RemoveTimeout(StoredId storedId, string timeoutId)
     {
-        var key = new Key(storedId.StoredType.Value, storedId.Instance, timeoutId);
+        var key = new Key(storedId.Type.Value, storedId.Instance, timeoutId);
         lock (_sync)
             _timeouts.Remove(key);
 
@@ -44,7 +44,7 @@ public class InMemoryTimeoutStore : ITimeoutStore
     {
         lock (_sync)
             foreach (var key in _timeouts.Keys.ToList())
-                if (storedId.StoredType.Value == key.FlowType && storedId.Instance == key.FlowInstance)
+                if (storedId.Type.Value == key.FlowType && storedId.Instance == key.FlowInstance)
                     _timeouts.Remove(key);
 
         return Task.CompletedTask;
@@ -69,7 +69,7 @@ public class InMemoryTimeoutStore : ITimeoutStore
     {
         lock (_sync)
             return _timeouts.Where(kv =>
-                    kv.Key.FlowType == storedId.StoredType.Value &&
+                    kv.Key.FlowType == storedId.Type.Value &&
                     kv.Key.FlowInstance == storedId.Instance
                 )
                 .Select(kv => new StoredTimeout(storedId, kv.Key.TimeoutId, Expiry: kv.Value))

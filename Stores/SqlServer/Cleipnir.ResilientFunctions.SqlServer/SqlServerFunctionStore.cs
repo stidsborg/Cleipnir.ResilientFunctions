@@ -153,7 +153,7 @@ public class SqlServerFunctionStore : IFunctionStore
 
             await using var command = new SqlCommand(_createFunctionSql, conn);
             
-            command.Parameters.AddWithValue("@FlowType", storedId.StoredType.Value);
+            command.Parameters.AddWithValue("@FlowType", storedId.Type.Value);
             command.Parameters.AddWithValue("@flowInstance", storedId.Instance);
             command.Parameters.AddWithValue("@Status", (int) (postponeUntil == null ? Status.Executing : Status.Postponed));
             command.Parameters.AddWithValue("@ParamJson", param == null ? SqlBinary.Null : param);
@@ -212,7 +212,7 @@ public class SqlServerFunctionStore : IFunctionStore
             await using var command = new SqlCommand(sql, conn);
             foreach (var idAndSql in idAndSqls)
             {
-                command.Parameters.AddWithValue($"@FlowType{idAndSql.Id}", idAndSql.FunctionId.StoredType.Value);
+                command.Parameters.AddWithValue($"@FlowType{idAndSql.Id}", idAndSql.FunctionId.Type.Value);
                 command.Parameters.AddWithValue($"@flowInstance{idAndSql.Id}", idAndSql.FunctionId.Instance);
                 command.Parameters.AddWithValue($"@ParamJson{idAndSql.Id}", idAndSql.Param == null ? SqlBinary.Null : idAndSql.Param);
             }
@@ -246,7 +246,7 @@ public class SqlServerFunctionStore : IFunctionStore
 
         await using var command = new SqlCommand(_restartExecutionSql, conn);
         command.Parameters.AddWithValue("@LeaseExpiration", leaseExpiration);
-        command.Parameters.AddWithValue("@FlowType", storedId.StoredType.Value);
+        command.Parameters.AddWithValue("@FlowType", storedId.Type.Value);
         command.Parameters.AddWithValue("@flowInstance", storedId.Instance);
         command.Parameters.AddWithValue("@ExpectedEpoch", expectedEpoch);
 
@@ -271,7 +271,7 @@ public class SqlServerFunctionStore : IFunctionStore
         
         await using var command = new SqlCommand(_renewLeaseSql, conn);
         command.Parameters.AddWithValue("@Expires", leaseExpiration);
-        command.Parameters.AddWithValue("@FlowType", storedId.StoredType.Value);
+        command.Parameters.AddWithValue("@FlowType", storedId.Type.Value);
         command.Parameters.AddWithValue("@flowInstance", storedId.Instance);
         command.Parameters.AddWithValue("@Epoch", expectedEpoch);
 
@@ -372,7 +372,7 @@ public class SqlServerFunctionStore : IFunctionStore
         command.Parameters.AddWithValue("@ExceptionJson", exceptionJson ?? (object) DBNull.Value);
         command.Parameters.AddWithValue("@Expires", expires);
         command.Parameters.AddWithValue("@flowInstance", storedId.Instance);
-        command.Parameters.AddWithValue("@FlowType", storedId.StoredType.Value);
+        command.Parameters.AddWithValue("@FlowType", storedId.Type.Value);
         command.Parameters.AddWithValue("@ExpectedEpoch", expectedEpoch);
 
         var affectedRows = await command.ExecuteNonQueryAsync();
@@ -400,7 +400,7 @@ public class SqlServerFunctionStore : IFunctionStore
         command.Parameters.AddWithValue("@ResultJson", result == null ? SqlBinary.Null : result);
         command.Parameters.AddWithValue("@Timestamp", timestamp);
         command.Parameters.AddWithValue("@flowInstance", storedId.Instance);
-        command.Parameters.AddWithValue("@FlowType", storedId.StoredType.Value);
+        command.Parameters.AddWithValue("@FlowType", storedId.Type.Value);
         command.Parameters.AddWithValue("@ExpectedEpoch", expectedEpoch);
 
         var affectedRows = await command.ExecuteNonQueryAsync();
@@ -428,7 +428,7 @@ public class SqlServerFunctionStore : IFunctionStore
         command.Parameters.AddWithValue("@PostponedUntil", postponeUntil);
         command.Parameters.AddWithValue("@Timestamp", timestamp);
         command.Parameters.AddWithValue("@flowInstance", storedId.Instance);
-        command.Parameters.AddWithValue("@FlowType", storedId.StoredType.Value);
+        command.Parameters.AddWithValue("@FlowType", storedId.Type.Value);
         command.Parameters.AddWithValue("@ExpectedEpoch", expectedEpoch);
 
         var affectedRows = await command.ExecuteNonQueryAsync();
@@ -457,7 +457,7 @@ public class SqlServerFunctionStore : IFunctionStore
         command.Parameters.AddWithValue("@ExceptionJson", JsonSerializer.Serialize(storedException));
         command.Parameters.AddWithValue("@Timestamp", timestamp);
         command.Parameters.AddWithValue("@flowInstance", storedId.Instance);
-        command.Parameters.AddWithValue("@FlowType", storedId.StoredType.Value);
+        command.Parameters.AddWithValue("@FlowType", storedId.Type.Value);
         command.Parameters.AddWithValue("@ExpectedEpoch", expectedEpoch);
 
         var affectedRows = await command.ExecuteNonQueryAsync();
@@ -483,7 +483,7 @@ public class SqlServerFunctionStore : IFunctionStore
 
         await using var command = new SqlCommand(_suspendFunctionSql, conn);
         command.Parameters.AddWithValue("@Timestamp", timestamp);
-        command.Parameters.AddWithValue("@FlowType", storedId.StoredType.Value);
+        command.Parameters.AddWithValue("@FlowType", storedId.Type.Value);
         command.Parameters.AddWithValue("@flowInstance", storedId.Instance);
         command.Parameters.AddWithValue("@ExpectedEpoch", expectedEpoch);
 
@@ -519,7 +519,7 @@ public class SqlServerFunctionStore : IFunctionStore
             : _interruptSql;
         
         await using var command = new SqlCommand(sql, conn);
-        command.Parameters.AddWithValue("@FlowType", storedId.StoredType.Value);
+        command.Parameters.AddWithValue("@FlowType", storedId.Type.Value);
         command.Parameters.AddWithValue("@FlowInstance", storedId.Instance);
 
         var affectedRows = await command.ExecuteNonQueryAsync();
@@ -545,7 +545,7 @@ public class SqlServerFunctionStore : IFunctionStore
         command.Parameters.AddWithValue("@ParamJson", param == null ? SqlBinary.Null : param);
         command.Parameters.AddWithValue("@ResultJson", result == null ? SqlBinary.Null : result);
         command.Parameters.AddWithValue("@flowInstance", storedId.Instance);
-        command.Parameters.AddWithValue("@FlowType", storedId.StoredType.Value);
+        command.Parameters.AddWithValue("@FlowType", storedId.Type.Value);
         command.Parameters.AddWithValue("@ExpectedEpoch", expectedEpoch);
 
         var affectedRows = await command.ExecuteNonQueryAsync();
@@ -562,7 +562,7 @@ public class SqlServerFunctionStore : IFunctionStore
                 WHERE FlowType = @FlowType AND flowInstance = @flowInstance;";
 
         await using var command = new SqlCommand(_interruptedSql, conn);
-        command.Parameters.AddWithValue("@FlowType", storedId.StoredType.Value);
+        command.Parameters.AddWithValue("@FlowType", storedId.Type.Value);
         command.Parameters.AddWithValue("@flowInstance", storedId.Instance);
 
         var interrupted = await command.ExecuteScalarAsync();
@@ -579,7 +579,7 @@ public class SqlServerFunctionStore : IFunctionStore
             WHERE FlowType = @FlowType AND flowInstance = @flowInstance";
         
         await using var command = new SqlCommand(_getFunctionStatusSql, conn);
-        command.Parameters.AddWithValue("@FlowType", storedId.StoredType.Value);
+        command.Parameters.AddWithValue("@FlowType", storedId.Type.Value);
         command.Parameters.AddWithValue("@flowInstance", storedId.Instance);
         
         await using var reader = await command.ExecuteReaderAsync();
@@ -613,7 +613,7 @@ public class SqlServerFunctionStore : IFunctionStore
             AND flowInstance = @flowInstance";
         
         await using var command = new SqlCommand(_getFunctionSql, conn);
-        command.Parameters.AddWithValue("@FlowType", storedId.StoredType.Value);
+        command.Parameters.AddWithValue("@FlowType", storedId.Type.Value);
         command.Parameters.AddWithValue("@flowInstance", storedId.Instance);
         
         await using var reader = await command.ExecuteReaderAsync();
@@ -742,7 +742,7 @@ public class SqlServerFunctionStore : IFunctionStore
         
         await using var command = new SqlCommand(_deleteFunctionSql, conn);
         command.Parameters.AddWithValue("@flowInstance", storedId.Instance);
-        command.Parameters.AddWithValue("@FlowType", storedId.StoredType.Value);
+        command.Parameters.AddWithValue("@FlowType", storedId.Type.Value);
         
         return await command.ExecuteNonQueryAsync() == 1;
     }

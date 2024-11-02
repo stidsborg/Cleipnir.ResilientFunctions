@@ -88,7 +88,7 @@ public class SqlServerEffectsStore : IEffectsStore
             FROM {_tablePrefix}_Effects
             WHERE Id LIKE @IdPrefix";
 
-        var idPrefix = Escaper.Escape(storedId.StoredType.Value.ToString(), storedId.Instance) + $"{Escaper.Separator}%";
+        var idPrefix = Escaper.Escape(storedId.Type.Value.ToString(), storedId.Instance) + $"{Escaper.Separator}%";
         await using var command = new SqlCommand(_getEffectResultsSql, conn);
         command.Parameters.AddWithValue("@IdPrefix", idPrefix);
 
@@ -119,7 +119,7 @@ public class SqlServerEffectsStore : IEffectsStore
             DELETE FROM {_tablePrefix}_Effects
             WHERE Id = @Id AND IsState = @IsState";
 
-        var id = Escaper.Escape(storedId.StoredType.Value.ToString(), storedId.Instance, effectId.Value);
+        var id = Escaper.Escape(storedId.Type.Value.ToString(), storedId.Instance, effectId.Value);
         await using var command = new SqlCommand(_deleteEffectResultSql, conn);
         command.Parameters.AddWithValue("@Id", id);
         command.Parameters.AddWithValue("@IsState", isState);
@@ -135,7 +135,7 @@ public class SqlServerEffectsStore : IEffectsStore
             DELETE FROM {_tablePrefix}_Effects
             WHERE Id LIKE @Id";
 
-        var id = Escaper.Escape(storedId.StoredType.Value.ToString(), storedId.Instance) + $"{Escaper.Separator}%" ;
+        var id = Escaper.Escape(storedId.Type.Value.ToString(), storedId.Instance) + $"{Escaper.Separator}%" ;
         await using var command = new SqlCommand(_removeSql, conn);
         command.Parameters.AddWithValue("@Id", id);
         

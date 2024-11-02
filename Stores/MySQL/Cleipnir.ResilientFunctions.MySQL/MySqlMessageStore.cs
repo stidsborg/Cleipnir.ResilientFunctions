@@ -72,15 +72,15 @@ public class MySqlMessageStore : IMessageStore
                     Parameters =
                     {
                         new() { Value = lockName },
-                        new() { Value = storedId.StoredType.Value },
+                        new() { Value = storedId.Type.Value },
                         new() { Value = storedId.Instance },
                         new() { Value = messageJson },
                         new() { Value = messageType },
                         new() { Value = idempotencyKey ?? (object)DBNull.Value },
-                        new() { Value = storedId.StoredType.Value },
+                        new() { Value = storedId.Type.Value },
                         new() { Value = storedId.Instance },
                         new() { Value = lockName },
-                        new() { Value = storedId.StoredType.Value },
+                        new() { Value = storedId.Type.Value },
                         new() { Value = storedId.Instance },
                     }
                 };
@@ -123,7 +123,7 @@ public class MySqlMessageStore : IMessageStore
                 new() {Value = messageJson},
                 new() {Value = messageType},
                 new() {Value = idempotencyKey ?? (object) DBNull.Value},
-                new() {Value = storedId.StoredType.Value},
+                new() {Value = storedId.Type.Value},
                 new() {Value = storedId.Instance},
                 new() {Value = position}
             }
@@ -141,7 +141,7 @@ public class MySqlMessageStore : IMessageStore
                 WHERE type = ? AND instance = ?";
         
         await using var command = new MySqlCommand(_truncateSql, conn);
-        command.Parameters.Add(new() { Value = storedId.StoredType.Value });
+        command.Parameters.Add(new() { Value = storedId.Type.Value });
         command.Parameters.Add(new() { Value = storedId.Instance });
         
         await command.ExecuteNonQueryAsync();
@@ -160,7 +160,7 @@ public class MySqlMessageStore : IMessageStore
         {
             Parameters =
             {
-                new() {Value = storedId.StoredType.Value},
+                new() {Value = storedId.Type.Value},
                 new() {Value = storedId.Instance},
                 new () {Value = skip}
             }

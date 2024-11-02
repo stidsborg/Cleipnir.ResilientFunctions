@@ -72,7 +72,7 @@ public class PostgreSqlTimeoutStore(string connectionString, string tablePrefix 
         {
             Parameters =
             {
-                new() {Value = functionId.StoredType.Value},
+                new() {Value = functionId.Type.Value},
                 new() {Value = functionId.Instance},
                 new() {Value = timeoutId},
                 new() {Value = expiry}
@@ -97,7 +97,7 @@ public class PostgreSqlTimeoutStore(string connectionString, string tablePrefix 
         {
             Parameters =
             {
-                new() {Value = storedId.StoredType.Value},
+                new() {Value = storedId.Type.Value},
                 new() {Value = storedId.Instance},
                 new() {Value = timeoutId}
             }
@@ -118,7 +118,7 @@ public class PostgreSqlTimeoutStore(string connectionString, string tablePrefix 
         {
             Parameters =
             {
-                new() {Value = storedId.StoredType.Value},
+                new() {Value = storedId.Type.Value},
                 new() {Value = storedId.Instance},
             }
         };

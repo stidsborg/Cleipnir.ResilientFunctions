@@ -91,12 +91,12 @@ internal class TimeoutWatchdog
     private async Task HandleUpcomingTimeouts(IEnumerable<StoredTimeout> upcomingTimeouts)
     {
         var messageWriters = _messageWriters;
-        foreach (var (functionId, timeoutId, expiry) in upcomingTimeouts.Where(t => messageWriters.ContainsKey(t.StoredId.StoredType)).OrderBy(t => t.Expiry))
+        foreach (var (functionId, timeoutId, expiry) in upcomingTimeouts.Where(t => messageWriters.ContainsKey(t.StoredId.Type)).OrderBy(t => t.Expiry))
         {
             var expiresAt = new DateTime(expiry, DateTimeKind.Utc);
             var delay = (expiresAt - DateTime.UtcNow).RoundUpToZero();
             await Task.Delay(delay);
-            await messageWriters[functionId.StoredType].For(functionId.Instance).AppendMessage(new TimeoutEvent(timeoutId, expiresAt), idempotencyKey: $"Timeout¤{timeoutId}");
+            await messageWriters[functionId.Type].For(functionId.Instance).AppendMessage(new TimeoutEvent(timeoutId, expiresAt), idempotencyKey: $"Timeout¤{timeoutId}");
             await _timeoutStore.RemoveTimeout(functionId, timeoutId);
         }
     }

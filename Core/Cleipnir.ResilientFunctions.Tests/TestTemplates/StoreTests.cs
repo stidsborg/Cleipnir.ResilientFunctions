@@ -38,7 +38,7 @@ public abstract class StoreTests
             
         nonCompletes.Count.ShouldBe(1);
         var nonCompleted = nonCompletes[0];
-        nonCompleted.FlowId.StoredType.ShouldBe(functionId.StoredType);
+        nonCompleted.FlowId.Type.ShouldBe(functionId.Type);
         nonCompleted.FlowId.Instance.ShouldBe(functionId.Instance);
         nonCompleted.Epoch.ShouldBe(0);
 
@@ -1077,7 +1077,7 @@ public abstract class StoreTests
         await CreateAndSucceedFunction(functionId2, timestamp: 3);
         await CreateAndSucceedFunction(functionId3, timestamp: 0);
 
-        var succeededFunctions = await store.GetSucceededFunctions(functionId1.StoredType, completedBefore: 2);
+        var succeededFunctions = await store.GetSucceededFunctions(functionId1.Type, completedBefore: 2);
         succeededFunctions.Count.ShouldBe(1);
         succeededFunctions.Single().ShouldBe(functionId1.Instance);
     }
@@ -1087,7 +1087,7 @@ public abstract class StoreTests
     {
         var store = await storeTask;
         
-        var typeId = TestStoredId.Create().StoredType;
+        var typeId = TestStoredId.Create().Type;
         var functionIds = Enumerable
             .Range(0, 500)
             .Select(i => new StoredId(typeId, Instance: i.ToString()))
@@ -1152,9 +1152,9 @@ public abstract class StoreTests
     public abstract Task MultipleInstancesCanBeFetchedForFlowType();
     protected async Task MultipleInstancesCanBeFetchedForFlowType(Task<IFunctionStore> storeTask)
     {
-        var flowType = TestStoredId.Create().StoredType;
-        var flowId1 = TestStoredId.Create() with { StoredType = flowType };
-        var flowId2 = TestStoredId.Create() with { StoredType = flowType };
+        var flowType = TestStoredId.Create().Type;
+        var flowId1 = TestStoredId.Create() with { Type = flowType };
+        var flowId2 = TestStoredId.Create() with { Type = flowType };
         
         var flowId3 = TestStoredId.Create();
 
@@ -1204,8 +1204,8 @@ public abstract class StoreTests
 
         var flowTypes = await store.GetTypes();
         flowTypes.Count.ShouldBe(2);
-        flowTypes.Any(t => t == flowId1.StoredType).ShouldBeTrue();
-        flowTypes.Any(t => t == flowId3.StoredType).ShouldBeTrue();
+        flowTypes.Any(t => t == flowId1.Type).ShouldBeTrue();
+        flowTypes.Any(t => t == flowId3.Type).ShouldBeTrue();
     }
     
     public abstract Task TypeStoreSunshineScenarioTest();

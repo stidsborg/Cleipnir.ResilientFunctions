@@ -150,7 +150,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         lock (_sync)
             return _states
                 .Values
-                .Where(s => s.FlowId.StoredType == storedType && s.Timestamp < completedBefore)
+                .Where(s => s.FlowId.Type == storedType && s.Timestamp < completedBefore)
                 .Select(s => new FlowInstance(s.FlowId.Instance))
                 .ToList()
                 .CastTo<IReadOnlyList<FlowInstance>>()
@@ -372,7 +372,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
     {
         lock (_sync)
             return _states
-                .Where(kv => kv.Key.StoredType == storedType)
+                .Where(kv => kv.Key.Type == storedType)
                 .Where(kv => kv.Value.Status == status)
                 .Select(kv => new FlowInstance(kv.Key.Instance))
                 .ToList()
@@ -384,7 +384,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
     {
         lock (_sync)
             return _states
-                .Where(kv => kv.Key.StoredType == storedType)
+                .Where(kv => kv.Key.Type == storedType)
                 .Select(kv => new FlowInstance(kv.Key.Instance))
                 .ToList()
                 .CastTo<IReadOnlyList<FlowInstance>>()
@@ -395,7 +395,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
     {
         lock (_sync)
             return _states
-                .Select(kv => kv.Key.StoredType)
+                .Select(kv => kv.Key.Type)
                 .Distinct()
                 .ToList()
                 .CastTo<IReadOnlyList<StoredType>>()

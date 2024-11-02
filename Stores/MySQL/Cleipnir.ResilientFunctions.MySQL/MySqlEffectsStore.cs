@@ -82,7 +82,7 @@ public class MySqlEffectsStore : IEffectsStore
         {
             Parameters =
             {
-                new() {Value = Escaper.Escape(storedId.StoredType.Value.ToString(), storedId.Instance) + $"{Escaper.Separator}%" },
+                new() {Value = Escaper.Escape(storedId.Type.Value.ToString(), storedId.Instance) + $"{Escaper.Separator}%" },
             }
         };
 
@@ -116,7 +116,7 @@ public class MySqlEffectsStore : IEffectsStore
     {
         await using var conn = await CreateConnection();
         _deleteEffectResultSql ??= $"DELETE FROM {_tablePrefix}_effects WHERE id = ? AND is_state = ?";
-        var id = Escaper.Escape(storedId.StoredType.Value.ToString(), storedId.Instance, effectId.Value);
+        var id = Escaper.Escape(storedId.Type.Value.ToString(), storedId.Instance, effectId.Value);
         await using var command = new MySqlCommand(_deleteEffectResultSql, conn)
         {
             Parameters =
@@ -134,7 +134,7 @@ public class MySqlEffectsStore : IEffectsStore
     {
         await using var conn = await CreateConnection();
         _removeSql ??= $"DELETE FROM {_tablePrefix}_effects WHERE id LIKE ?";
-        var id = Escaper.Escape(storedId.StoredType.Value.ToString(), storedId.Instance) + $"{Escaper.Separator}%" ;
+        var id = Escaper.Escape(storedId.Type.Value.ToString(), storedId.Instance) + $"{Escaper.Separator}%" ;
         await using var command = new MySqlCommand(_removeSql, conn)
         {
             Parameters = { new() { Value = id } }

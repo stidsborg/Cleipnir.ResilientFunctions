@@ -69,7 +69,7 @@ public class PostgreSqlMessageStore(string connectionString, string tablePrefix 
             {
                 Parameters =
                 {
-                    new() {Value = storedId.StoredType.Value},
+                    new() {Value = storedId.Type.Value},
                     new() {Value = storedId.Instance},
                     new() {Value = messageJson},
                     new() {Value = messageType},
@@ -88,7 +88,7 @@ public class PostgreSqlMessageStore(string connectionString, string tablePrefix 
             var command = new NpgsqlBatchCommand(_getFunctionStatusInAppendMessageSql)
             {
                 Parameters = { 
-                    new() {Value = storedId.StoredType.Value},
+                    new() {Value = storedId.Type.Value},
                     new() {Value = storedId.Instance}
                 }
             };
@@ -140,7 +140,7 @@ public class PostgreSqlMessageStore(string connectionString, string tablePrefix 
                 new() {Value = messageJson},
                 new() {Value = messageType},
                 new() {Value = idempotencyKey ?? (object) DBNull.Value},
-                new() {Value = storedId.StoredType.Value},
+                new() {Value = storedId.Type.Value},
                 new() {Value = storedId.Instance},
                 new() {Value = position},
             }
@@ -161,7 +161,7 @@ public class PostgreSqlMessageStore(string connectionString, string tablePrefix 
         {
             Parameters =
             {
-                new() {Value = storedId.StoredType.Value},
+                new() {Value = storedId.Type.Value},
                 new() {Value = storedId.Instance}
             }
         };
@@ -181,7 +181,7 @@ public class PostgreSqlMessageStore(string connectionString, string tablePrefix 
         {
             Parameters =
             {
-                new() {Value = storedId.StoredType.Value},
+                new() {Value = storedId.Type.Value},
                 new() {Value = storedId.Instance},
                 new () {Value = skip}
             }
@@ -211,7 +211,7 @@ public class PostgreSqlMessageStore(string connectionString, string tablePrefix 
         await using var command = new NpgsqlCommand(_getSuspensionStatusSql, conn)
         {
             Parameters = { 
-                new() {Value = storedId.StoredType.Value},
+                new() {Value = storedId.Type.Value},
                 new() {Value = storedId.Instance}
             }
         };
@@ -224,6 +224,6 @@ public class PostgreSqlMessageStore(string connectionString, string tablePrefix 
             return new FunctionStatus(status, epoch);
         }
         
-        throw UnexpectedStateException.ConcurrentModification(new FlowId(storedId.StoredType.Value.ToString(), storedId.Instance)); //row must have been deleted concurrently
+        throw UnexpectedStateException.ConcurrentModification(new FlowId(storedId.Type.Value.ToString(), storedId.Instance)); //row must have been deleted concurrently
     }
 }

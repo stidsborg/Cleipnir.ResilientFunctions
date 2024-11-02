@@ -67,7 +67,7 @@ public class SqlServerMessageStore : IMessageStore
             );";
         
         await using var command = new SqlCommand(_appendMessageSql, conn);
-        command.Parameters.AddWithValue("@FlowType", storedId.StoredType.Value);
+        command.Parameters.AddWithValue("@FlowType", storedId.Type.Value);
         command.Parameters.AddWithValue("@FlowInstance", storedId.Instance);
         command.Parameters.AddWithValue("@MessageJson", storedMessage.MessageJson);
         command.Parameters.AddWithValue("@MessageType", storedMessage.MessageType);
@@ -102,7 +102,7 @@ public class SqlServerMessageStore : IMessageStore
             WHERE FlowType = @FlowType AND FlowInstance = @FlowInstance AND Position = @Position";
         
         await using var command = new SqlCommand(_replaceMessageSql, conn);
-        command.Parameters.AddWithValue("@FlowType", storedId.StoredType.Value);
+        command.Parameters.AddWithValue("@FlowType", storedId.Type.Value);
         command.Parameters.AddWithValue("@FlowInstance", storedId.Instance);
         command.Parameters.AddWithValue("@Position", position);
         command.Parameters.AddWithValue("@MessageJson", storedMessage.MessageJson);
@@ -123,7 +123,7 @@ public class SqlServerMessageStore : IMessageStore
 
         await using var command = new SqlCommand(_truncateSql, conn);
         
-        command.Parameters.AddWithValue("@FlowType", storedId.StoredType.Value);
+        command.Parameters.AddWithValue("@FlowType", storedId.Type.Value);
         command.Parameters.AddWithValue("@FlowInstance", storedId.Instance);
         await command.ExecuteNonQueryAsync();
     }
@@ -139,7 +139,7 @@ public class SqlServerMessageStore : IMessageStore
             ORDER BY Position ASC;";
         
         await using var command = new SqlCommand(_getMessagesSql, conn);
-        command.Parameters.AddWithValue("@FlowType", storedId.StoredType.Value);
+        command.Parameters.AddWithValue("@FlowType", storedId.Type.Value);
         command.Parameters.AddWithValue("@FlowInstance", storedId.Instance);
         command.Parameters.AddWithValue("@Position", skip);
         
@@ -181,7 +181,7 @@ public class SqlServerMessageStore : IMessageStore
             FROM {_tablePrefix}
             WHERE FlowType = @FlowType AND FlowInstance = @FlowInstance";
         await using var command = new SqlCommand(_getSuspensionStatusSql, connection);
-        command.Parameters.AddWithValue("@FlowType", storedId.StoredType.Value);
+        command.Parameters.AddWithValue("@FlowType", storedId.Type.Value);
         command.Parameters.AddWithValue("@FlowInstance", storedId.Instance);
 
         await using var reader = await command.ExecuteReaderAsync();

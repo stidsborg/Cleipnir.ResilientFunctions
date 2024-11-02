@@ -59,7 +59,7 @@ public class InMemoryCorrelationStore : ICorrelationStore
         lock (_sync)
         {
             return _correlations
-                .Where(kv => kv.Key.StoredType == flowType && kv.Value.Contains(correlationId))
+                .Where(kv => kv.Key.Type == flowType && kv.Value.Contains(correlationId))
                 .Select(kv => kv.Key.Instance)
                 .ToList()
                 .CastTo<IReadOnlyList<string>>()

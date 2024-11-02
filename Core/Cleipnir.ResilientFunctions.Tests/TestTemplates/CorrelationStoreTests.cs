@@ -94,14 +94,14 @@ public abstract class CorrelationStoreTests
     {
         var correlationStore = await storeTask.SelectAsync(s => s.CorrelationStore);
         var functionId1 = TestStoredId.Create();
-        var functionId2 = TestStoredId.Create() with { StoredType = functionId1.StoredType };
+        var functionId2 = TestStoredId.Create() with { Type = functionId1.Type };
         var functionId3 = TestStoredId.Create();
 
         await correlationStore.SetCorrelation(functionId1, "SomeCorrelationId1");
         await correlationStore.SetCorrelation(functionId2, "SomeCorrelationId1");
         await correlationStore.SetCorrelation(functionId3, "SomeCorrelationId1");
 
-        var instances = await correlationStore.GetCorrelations(functionId1.StoredType, "SomeCorrelationId1");
+        var instances = await correlationStore.GetCorrelations(functionId1.Type, "SomeCorrelationId1");
         instances.Count.ShouldBe(2);
         instances.Any(i => i == functionId1.Instance).ShouldBeTrue();
         instances.Any(i => i == functionId2.Instance).ShouldBeTrue();

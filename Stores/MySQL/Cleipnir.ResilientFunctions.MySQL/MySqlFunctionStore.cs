@@ -123,7 +123,7 @@ public class MySqlFunctionStore : IFunctionStore
         {
             Parameters =
             {
-                new() {Value = storedId.StoredType.Value},
+                new() {Value = storedId.Type.Value},
                 new() {Value = storedId.Instance},
                 new() {Value = param ?? (object) DBNull.Value},
                 new() {Value = (int) status}, 
@@ -189,10 +189,10 @@ public class MySqlFunctionStore : IFunctionStore
             Parameters =
             {
                 new() { Value = leaseExpiration },
-                new() { Value = storedId.StoredType.Value },
+                new() { Value = storedId.Type.Value },
                 new() { Value = storedId.Instance },
                 new() { Value = expectedEpoch },
-                new() { Value = storedId.StoredType.Value },
+                new() { Value = storedId.Type.Value },
                 new() { Value = storedId.Instance },
             }
         };
@@ -220,7 +220,7 @@ public class MySqlFunctionStore : IFunctionStore
             Parameters =
             {
                 new() {Value = leaseExpiration},
-                new() {Value = storedId.StoredType.Value},
+                new() {Value = storedId.Type.Value},
                 new() {Value = storedId.Instance},
                 new() {Value = expectedEpoch},
             }
@@ -318,7 +318,7 @@ public class MySqlFunctionStore : IFunctionStore
                 new() {Value = storedResult ?? (object) DBNull.Value},
                 new() {Value = storedException != null ? JsonSerializer.Serialize(storedException) : DBNull.Value},
                 new() {Value = expires},
-                new() {Value = storedId.StoredType.Value},
+                new() {Value = storedId.Type.Value},
                 new() {Value = storedId.Instance},
                 new() {Value = expectedEpoch},
             }
@@ -352,7 +352,7 @@ public class MySqlFunctionStore : IFunctionStore
                 new() { Value = result ?? (object)DBNull.Value },
                 new() { Value = timestamp },
                 new() { Value = expectedEpoch },
-                new() { Value = storedId.StoredType.Value },
+                new() { Value = storedId.Type.Value },
                 new() { Value = storedId.Instance },
                 new() { Value = expectedEpoch },
             }
@@ -386,7 +386,7 @@ public class MySqlFunctionStore : IFunctionStore
                 new() { Value = postponeUntil },
                 new() { Value = timestamp },
                 new() { Value = expectedEpoch },
-                new() { Value = storedId.StoredType.Value },
+                new() { Value = storedId.Type.Value },
                 new() { Value = storedId.Instance },
                 new() { Value = expectedEpoch },
             }
@@ -420,7 +420,7 @@ public class MySqlFunctionStore : IFunctionStore
                 new() { Value = JsonSerializer.Serialize(storedException) },
                 new() { Value = timestamp },
                 new() { Value = expectedEpoch },
-                new() { Value = storedId.StoredType.Value },
+                new() { Value = storedId.Type.Value },
                 new() { Value = storedId.Instance },
                 new() { Value = expectedEpoch },
             }
@@ -452,7 +452,7 @@ public class MySqlFunctionStore : IFunctionStore
             Parameters =
             {
                 new() { Value = timestamp },
-                new() { Value = storedId.StoredType.Value },
+                new() { Value = storedId.Type.Value },
                 new() { Value = storedId.Instance },
                 new() { Value = expectedEpoch }
             }
@@ -493,7 +493,7 @@ public class MySqlFunctionStore : IFunctionStore
         {
             Parameters =
             {
-                new() { Value = storedId.StoredType.Value },
+                new() { Value = storedId.Type.Value },
                 new() { Value = storedId.Instance },
             }
         };
@@ -526,7 +526,7 @@ public class MySqlFunctionStore : IFunctionStore
             {
                 new() { Value = storedParameter ?? (object) DBNull.Value },
                 new() { Value = storedResult ?? (object) DBNull.Value },
-                new() { Value = storedId.StoredType.Value },
+                new() { Value = storedId.Type.Value },
                 new() { Value = storedId.Instance },
                 new() { Value = expectedEpoch },
             }
@@ -550,7 +550,7 @@ public class MySqlFunctionStore : IFunctionStore
         {
             Parameters =
             {
-                new() { Value = storedId.StoredType.Value },
+                new() { Value = storedId.Type.Value },
                 new() { Value = storedId.Instance },
             }
         };
@@ -569,7 +569,7 @@ public class MySqlFunctionStore : IFunctionStore
         await using var command = new MySqlCommand(_getFunctionStatusSql, conn)
         {
             Parameters = { 
-                new() {Value = storedId.StoredType.Value},
+                new() {Value = storedId.Type.Value},
                 new() {Value = storedId.Instance}
             }
         };
@@ -606,7 +606,7 @@ public class MySqlFunctionStore : IFunctionStore
         await using var command = new MySqlCommand(_getFunctionSql, conn)
         {
             Parameters = { 
-                new() {Value = storedId.StoredType.Value},
+                new() {Value = storedId.Type.Value},
                 new() {Value = storedId.Instance}
             }
         };
@@ -745,7 +745,7 @@ public class MySqlFunctionStore : IFunctionStore
         {
             Parameters =
             {
-                new() {Value = storedId.StoredType.Value},
+                new() {Value = storedId.Type.Value},
                 new() {Value = storedId.Instance}
             }
         };
