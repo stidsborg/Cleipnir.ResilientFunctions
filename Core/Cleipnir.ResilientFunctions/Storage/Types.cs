@@ -1,9 +1,22 @@
+using System;
 using Cleipnir.ResilientFunctions.Domain;
 
 namespace Cleipnir.ResilientFunctions.Storage;
 
 public record StoredId(StoredType Type, string Instance);
 public record StoredType(int Value);
+
+public record StoredInstance(Guid Value)
+{
+    public static StoredInstance Create(string instanceId) 
+        => new(InstanceIdFactory.FromString(instanceId));
+    
+    public static StoredInstance Create(int instanceId) 
+        => new(InstanceIdFactory.FromInt(instanceId));
+    
+    public static StoredInstance Create(long instanceId) 
+        => new(InstanceIdFactory.FromLong(instanceId));
+}
 
 internal static class StoredTypeExtension
 {
