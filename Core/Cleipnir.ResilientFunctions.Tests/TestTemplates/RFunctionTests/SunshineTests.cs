@@ -471,4 +471,31 @@ public abstract class SunshineTests
         
         controlPanel.Status.ShouldBe(Status.Failed);
     }
+    
+    public abstract Task FlowIdCanBeExtractedFromWorkflowInstance();
+    public async Task FlowIdCanBeExtractedFromWorkflowInstance(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var flowType = nameof(SunshineScenarioFunc).ToFlowType();
+        var flowInstance = Guid.NewGuid().ToString();
+        
+        var unhandledExceptionHandler = new UnhandledExceptionCatcher();
+
+        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler.Catch));
+
+        FlowId? flowId = null;
+        var reg = functionsRegistry
+            .RegisterParamless(
+                flowType,
+                workflow =>
+                {
+                    flowId = workflow.FlowId;
+                    return Task.CompletedTask;
+                }
+            );
+        await reg.Invoke(flowInstance);
+            
+        flowId.ShouldBe(new FlowId(flowType, flowInstance));
+        unhandledExceptionHandler.ShouldNotHaveExceptions();
+    }
 }

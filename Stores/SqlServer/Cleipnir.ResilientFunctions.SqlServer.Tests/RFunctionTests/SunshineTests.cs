@@ -57,4 +57,8 @@ public class SunshineTests : ResilientFunctions.Tests.TestTemplates.RFunctionTes
     [TestMethod]
     public override Task EffectsAreFetchedOnSecondInvocation()
         => EffectsAreFetchedOnSecondInvocation(FunctionStoreFactory.Create());
+    
+    [TestMethod]
+    public override Task FlowIdCanBeExtractedFromWorkflowInstance()
+        => FlowIdCanBeExtractedFromWorkflowInstance(FunctionStoreFactory.Create());
 }
