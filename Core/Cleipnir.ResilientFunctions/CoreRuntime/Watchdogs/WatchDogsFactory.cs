@@ -37,7 +37,6 @@ internal static class WatchDogsFactory
         );
 
         var messagesWriters = new MessageWriters(
-            flowType,
             storedType,
             functionStore,
             settings.Serializer,

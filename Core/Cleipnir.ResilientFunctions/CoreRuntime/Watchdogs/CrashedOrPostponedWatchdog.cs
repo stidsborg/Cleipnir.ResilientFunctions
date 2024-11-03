@@ -146,7 +146,7 @@ internal class CrashedOrPostponedWatchdog
         if (eligibleFunctions.Count == 0 || !Debugger.IsAttached)
             return eligibleFunctions;
         
-        await Task.Delay(500);
+        //await Task.Delay(500);
         var eligibleFunctionsRepeated = 
             (await _functionStore.GetExpiredFunctions(expiresBefore.Ticks)).ToHashSet();
         

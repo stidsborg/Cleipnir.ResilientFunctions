@@ -85,5 +85,5 @@ public class FuncRegistration<TParam, TReturn> : BaseRegistration where TParam :
         FlowInstance flowInstance,
         T message,
         string? idempotencyKey = null
-    ) where T : notnull => await Postman.SendMessage(flowInstance, message, idempotencyKey);
+    ) where T : notnull => await Postman.SendMessage(flowInstance.Value.ToStoredInstance(), message, idempotencyKey);
 }

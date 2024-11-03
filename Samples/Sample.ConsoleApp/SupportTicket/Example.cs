@@ -27,7 +27,7 @@ public static class Example
         MessageBroker.Subscribe(async @event =>
         {
             if (@event is TakeSupportTicket takeSupportTicket && int.Parse(takeSupportTicket.RequestId) == 2)
-                await messageWriters.For(takeSupportTicket.Id.ToString()).AppendMessage(
+                await messageWriters.For(takeSupportTicket.Id.ToString().ToFlowInstance()).AppendMessage(
                     new SupportTicketTaken(takeSupportTicket.Id, takeSupportTicket.CustomerSupportAgentEmail, takeSupportTicket.RequestId)
                 );
         });

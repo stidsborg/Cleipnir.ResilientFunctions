@@ -29,6 +29,7 @@ public static class CrashedTest
         {
             await store.CreateFunction(
                 new StoredId(storedType, i.ToString()),
+                humanInstanceId: "humanInstanceId",
                 param: JsonSerializer.Serialize("hello world").ToUtf8Bytes(),
                 leaseExpiration,
                 postponeUntil: null,

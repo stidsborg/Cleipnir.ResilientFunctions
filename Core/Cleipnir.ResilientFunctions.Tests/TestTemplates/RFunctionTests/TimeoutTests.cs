@@ -105,7 +105,7 @@ public abstract class TimeoutTests
 
         await registration.Schedule("someInstanceId", "someParam");
 
-        var messageWriter = registration.MessageWriters.For("someInstanceId");
+        var messageWriter = registration.MessageWriters.For(new FlowInstance("someInstanceId"));
         await messageWriter.AppendMessage("someMessage");
 
         var controlPanel = await registration.ControlPanel("someInstanceId");

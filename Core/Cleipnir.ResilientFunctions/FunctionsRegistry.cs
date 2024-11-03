@@ -249,7 +249,6 @@ public class FunctionsRegistry : IDisposable
             );
 
             var messageWriters = new MessageWriters(
-                flowType,
                 storedType,
                 _functionStore,
                 settingsWithDefaults.Serializer,
@@ -262,7 +261,7 @@ public class FunctionsRegistry : IDisposable
                 messageWriters
             );
 
-            Task<IReadOnlyList<FlowInstance>> GetInstances(Status? status) =>
+            Task<IReadOnlyList<StoredInstance>> GetInstances(Status? status) =>
                 status == null
                     ? _functionStore.GetInstances(storedType)
                     : _functionStore.GetInstances(storedType, status.Value);
@@ -340,7 +339,6 @@ public class FunctionsRegistry : IDisposable
             );
 
             var messageWriters = new MessageWriters(
-                flowType,
                 storedType,
                 _functionStore,
                 settingsWithDefaults.Serializer,
@@ -353,7 +351,7 @@ public class FunctionsRegistry : IDisposable
                 messageWriters
             );
             
-            Task<IReadOnlyList<FlowInstance>> GetInstances(Status? status) =>
+            Task<IReadOnlyList<StoredInstance>> GetInstances(Status? status) =>
                 status == null
                     ? _functionStore.GetInstances(storedType)
                     : _functionStore.GetInstances(storedType, status.Value);
@@ -364,7 +362,7 @@ public class FunctionsRegistry : IDisposable
                 invoke: id => invoker.Invoke(id.Value, param: Unit.Instance),
                 schedule: id => invoker.ScheduleInvoke(id.Value, param: Unit.Instance),
                 scheduleAt: (id, at) => invoker.ScheduleAt(id.Value, param: Unit.Instance, at),
-                bulkSchedule: ids => invocationHelper.BulkSchedule(ids.Select(id => new BulkWork<Unit>(id, Unit.Instance))),
+                bulkSchedule: ids => invocationHelper.BulkSchedule(ids.Select(id => new BulkWork<Unit>(id.Value, Unit.Instance))),
                 GetInstances,
                 controlPanels,
                 messageWriters,
@@ -431,7 +429,6 @@ public class FunctionsRegistry : IDisposable
             );
 
             var messageWriters = new MessageWriters(
-                flowType,
                 storedType,
                 _functionStore,
                 settingsWithDefaults.Serializer,
@@ -443,7 +440,7 @@ public class FunctionsRegistry : IDisposable
                 messageWriters
             );
             
-            Task<IReadOnlyList<FlowInstance>> GetInstances(Status? status) =>
+            Task<IReadOnlyList<StoredInstance>> GetInstances(Status? status) =>
                 status == null
                     ? _functionStore.GetInstances(storedType)
                     : _functionStore.GetInstances(storedType, status.Value);

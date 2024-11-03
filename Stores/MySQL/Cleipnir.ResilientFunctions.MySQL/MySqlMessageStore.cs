@@ -24,7 +24,7 @@ public class MySqlMessageStore : IMessageStore
         _initializeSql ??= @$"
             CREATE TABLE IF NOT EXISTS {_tablePrefix}_messages (
                 type INT,
-                instance VARCHAR(255),
+                instance CHAR(32),
                 position INT NOT NULL,
                 message_json LONGBLOB NOT NULL,
                 message_type LONGBLOB NOT NULL,   
@@ -73,15 +73,15 @@ public class MySqlMessageStore : IMessageStore
                     {
                         new() { Value = lockName },
                         new() { Value = storedId.Type.Value },
-                        new() { Value = storedId.Instance },
+                        new() { Value = storedId.Instance.Value.ToString("N") },
                         new() { Value = messageJson },
                         new() { Value = messageType },
                         new() { Value = idempotencyKey ?? (object)DBNull.Value },
                         new() { Value = storedId.Type.Value },
-                        new() { Value = storedId.Instance },
+                        new() { Value = storedId.Instance.Value.ToString("N") },
                         new() { Value = lockName },
                         new() { Value = storedId.Type.Value },
-                        new() { Value = storedId.Instance },
+                        new() { Value = storedId.Instance.Value.ToString("N") },
                     }
                 };
                 
@@ -124,7 +124,7 @@ public class MySqlMessageStore : IMessageStore
                 new() {Value = messageType},
                 new() {Value = idempotencyKey ?? (object) DBNull.Value},
                 new() {Value = storedId.Type.Value},
-                new() {Value = storedId.Instance},
+                new() {Value = storedId.Instance.Value.ToString("N")},
                 new() {Value = position}
             }
         };
@@ -142,7 +142,7 @@ public class MySqlMessageStore : IMessageStore
         
         await using var command = new MySqlCommand(_truncateSql, conn);
         command.Parameters.Add(new() { Value = storedId.Type.Value });
-        command.Parameters.Add(new() { Value = storedId.Instance });
+        command.Parameters.Add(new() { Value = storedId.Instance.Value.ToString("N") });
         
         await command.ExecuteNonQueryAsync();
     }
@@ -161,7 +161,7 @@ public class MySqlMessageStore : IMessageStore
             Parameters =
             {
                 new() {Value = storedId.Type.Value},
-                new() {Value = storedId.Instance},
+                new() {Value = storedId.Instance.Value.ToString("N")},
                 new () {Value = skip}
             }
         };

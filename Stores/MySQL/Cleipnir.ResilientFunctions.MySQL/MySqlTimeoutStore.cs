@@ -1,4 +1,5 @@
 ﻿using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Storage;
 using MySqlConnector;
 
@@ -22,7 +23,7 @@ public class MySqlTimeoutStore : ITimeoutStore
         _initializeSql ??= @$"
             CREATE TABLE IF NOT EXISTS {_tablePrefix}_timeouts (
                 type INT,
-                instance VARCHAR(255),
+                instance CHAR(32),
                 timeout_id VARCHAR(255),
                 expires BIGINT,
                 PRIMARY KEY (type, instance, timeout_id),
@@ -66,7 +67,7 @@ public class MySqlTimeoutStore : ITimeoutStore
             Parameters =
             {
                 new() {Value = functionId.Type.Value},
-                new() {Value = functionId.Instance},
+                new() {Value = functionId.Instance.Value.ToString("N")},
                 new() {Value = timeoutId},
                 new() {Value = expiry},
                 new() {Value = expiry}
@@ -92,7 +93,7 @@ public class MySqlTimeoutStore : ITimeoutStore
             Parameters =
             {
                 new() {Value = storedId.Type.Value},
-                new() {Value = storedId.Instance},
+                new() {Value = storedId.Instance.Value.ToString("N")},
                 new() {Value = timeoutId},
             }
         };
@@ -113,7 +114,7 @@ public class MySqlTimeoutStore : ITimeoutStore
             Parameters =
             {
                 new() {Value = storedId.Type.Value},
-                new() {Value = storedId.Instance},
+                new() {Value = storedId.Instance.Value.ToString("N")},
             }
         };
 
@@ -141,11 +142,11 @@ public class MySqlTimeoutStore : ITimeoutStore
         await using var reader = await command.ExecuteReaderAsync();
         while (await reader.ReadAsync())
         {
-            var flowType = reader.GetInt32(0);
-            var flowInstance = reader.GetString(1);
+            var type = reader.GetInt32(0);
+            var instance = reader.GetString(1).ToGuid().ToStoredInstance();
             var timeoutId = reader.GetString(2);
             var expires = reader.GetInt64(3);
-            var functionId = new StoredId(new StoredType(flowType), flowInstance);
+            var functionId = new StoredId(new StoredType(type), instance);
             storedTimeouts.Add(new StoredTimeout(functionId, timeoutId, expires));
         }
 
@@ -167,7 +168,7 @@ public class MySqlTimeoutStore : ITimeoutStore
             Parameters =
             {
                 new() {Value = typeId.Value},
-                new() {Value = instanceId},
+                new() {Value = instanceId.Value.ToString("N")},
             }
         };
         

@@ -2,6 +2,7 @@
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Reactive.Extensions;
+using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.StressTests.Engines;
 using Cleipnir.ResilientFunctions.StressTests.StressTests.Utils;
 
@@ -40,7 +41,7 @@ public class SuspensionTest
         _ = Task.Run(async () =>
         {
             for (var i = 0; i < testSize; i++)
-                await actionRegistration.MessageWriters.For(i.ToString()).AppendMessage("some message");
+                await actionRegistration.MessageWriters.For(i.ToString().ToStoredInstance()).AppendMessage("some message");
         });
         
         var executionAverageSpeed = await 

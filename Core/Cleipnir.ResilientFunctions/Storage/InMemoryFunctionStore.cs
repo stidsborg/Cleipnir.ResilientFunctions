@@ -46,6 +46,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
 
     public virtual Task<bool> CreateFunction(
         StoredId storedId,
+        string humanInstanceId,
         byte[]? param,
         long leaseExpiration,
         long? postponeUntil,
@@ -58,7 +59,8 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
 
             _states[storedId] = new InnerState
             {
-                FlowId = storedId,
+                StoredId = storedId,
+                HumanInstanceId = humanInstanceId,
                 Param = param,
                 Status = postponeUntil == null ? Status.Executing : Status.Postponed,
                 Epoch = 0,
@@ -78,12 +80,13 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
     {
         lock (_sync)
         {
-            foreach (var (functionId, param) in functionsWithParam)
+            foreach (var (functionId, humanInstanceId, param) in functionsWithParam)
             {
                 if (!_states.ContainsKey(functionId))
                     _states[functionId] = new InnerState
                     {
-                        FlowId = functionId,
+                        StoredId = functionId,
+                        HumanInstanceId = humanInstanceId,
                         Epoch = 0,
                         Exception = null,
                         Expires = 0,
@@ -139,21 +142,21 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
                 .Values
                 .Where(s => s.Status == Status.Executing || s.Status == Status.Postponed)
                 .Where(s => s.Expires <= expiresBefore)
-                .Select(s => new IdAndEpoch(s.FlowId, s.Epoch))
+                .Select(s => new IdAndEpoch(s.StoredId, s.Epoch))
                 .ToList()
                 .CastTo<IReadOnlyList<IdAndEpoch>>()
                 .ToTask();
     }
 
-    public Task<IReadOnlyList<FlowInstance>> GetSucceededFunctions(StoredType storedType, long completedBefore)
+    public Task<IReadOnlyList<StoredInstance>> GetSucceededFunctions(StoredType storedType, long completedBefore)
     {
         lock (_sync)
             return _states
                 .Values
-                .Where(s => s.FlowId.Type == storedType && s.Timestamp < completedBefore)
-                .Select(s => new FlowInstance(s.FlowId.Instance))
+                .Where(s => s.StoredId.Type == storedType && s.Timestamp < completedBefore)
+                .Select(s => s.StoredId.Instance)
                 .ToList()
-                .CastTo<IReadOnlyList<FlowInstance>>()
+                .CastTo<IReadOnlyList<StoredInstance>>()
                 .ToTask();
     }
 
@@ -354,6 +357,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
 
             return new StoredFlow(
                     storedId,
+                    state.HumanInstanceId,
                     state.Param,
                     state.Status,
                     state.Result,
@@ -368,26 +372,26 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         }
     }
 
-    public Task<IReadOnlyList<FlowInstance>> GetInstances(StoredType storedType, Status status)
+    public Task<IReadOnlyList<StoredInstance>> GetInstances(StoredType storedType, Status status)
     {
         lock (_sync)
             return _states
                 .Where(kv => kv.Key.Type == storedType)
                 .Where(kv => kv.Value.Status == status)
-                .Select(kv => new FlowInstance(kv.Key.Instance))
+                .Select(kv => kv.Key.Instance)
                 .ToList()
-                .CastTo<IReadOnlyList<FlowInstance>>()
+                .CastTo<IReadOnlyList<StoredInstance>>()
                 .ToTask();
     }
 
-    public Task<IReadOnlyList<FlowInstance>> GetInstances(StoredType storedType)
+    public Task<IReadOnlyList<StoredInstance>> GetInstances(StoredType storedType)
     {
         lock (_sync)
             return _states
                 .Where(kv => kv.Key.Type == storedType)
-                .Select(kv => new FlowInstance(kv.Key.Instance))
+                .Select(kv => kv.Key.Instance)
                 .ToList()
-                .CastTo<IReadOnlyList<FlowInstance>>()
+                .CastTo<IReadOnlyList<StoredInstance>>()
                 .ToTask();
     }
 
@@ -417,7 +421,8 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
 
     private class InnerState
     {
-        public StoredId FlowId { get; init; } = null!;
+        public StoredId StoredId { get; init; } = null!;
+        public string HumanInstanceId { get; init; } = null!;
         public byte[]? Param { get; set; }
         public Status Status { get; set; }
         public byte[]? Result { get; set; }

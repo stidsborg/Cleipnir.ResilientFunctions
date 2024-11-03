@@ -65,7 +65,7 @@ public class ParamlessRegistration : BaseRegistration
         bool create = true,
         string? idempotencyKey = null) where T : notnull
     {
-        var finding = await Postman.SendMessage(flowInstance, message, idempotencyKey);
+        var finding = await Postman.SendMessage(flowInstance.Value.ToStoredInstance(), message, idempotencyKey);
         if (create && finding == Finding.NotFound)
             await Schedule(flowInstance);
 

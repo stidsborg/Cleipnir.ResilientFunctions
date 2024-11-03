@@ -73,5 +73,5 @@ public class ActionRegistration<TParam> : BaseRegistration where TParam : notnul
         FlowInstance flowInstance,
         T message,
         string? idempotencyKey = null
-    ) where T : notnull => await Postman.SendMessage(flowInstance, message, idempotencyKey);
+    ) where T : notnull => await Postman.SendMessage(flowInstance.Value.ToStoredInstance(), message, idempotencyKey);
 }

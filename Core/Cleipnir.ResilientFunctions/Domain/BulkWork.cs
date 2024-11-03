@@ -1,3 +1,3 @@
 namespace Cleipnir.ResilientFunctions.Domain;
 
-public record BulkWork<TParam>(FlowInstance Instance, TParam Param);
+public record BulkWork<TParam>(string Instance, TParam Param);

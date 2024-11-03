@@ -17,7 +17,7 @@ public class PostgreSqlTimeoutStore(string connectionString, string tablePrefix 
         _initializeSql ??= @$"
             CREATE TABLE IF NOT EXISTS {_tablePrefix}_timeouts (
                 type INT,
-                instance VARCHAR(255),
+                instance UUID,
                 timeout_id VARCHAR(255),
                 expires BIGINT,
                 PRIMARY KEY (type, instance, timeout_id)
@@ -73,7 +73,7 @@ public class PostgreSqlTimeoutStore(string connectionString, string tablePrefix 
             Parameters =
             {
                 new() {Value = functionId.Type.Value},
-                new() {Value = functionId.Instance},
+                new() {Value = functionId.Instance.Value},
                 new() {Value = timeoutId},
                 new() {Value = expiry}
             }
@@ -98,7 +98,7 @@ public class PostgreSqlTimeoutStore(string connectionString, string tablePrefix 
             Parameters =
             {
                 new() {Value = storedId.Type.Value},
-                new() {Value = storedId.Instance},
+                new() {Value = storedId.Instance.Value},
                 new() {Value = timeoutId}
             }
         };
@@ -119,7 +119,7 @@ public class PostgreSqlTimeoutStore(string connectionString, string tablePrefix 
             Parameters =
             {
                 new() {Value = storedId.Type.Value},
-                new() {Value = storedId.Instance},
+                new() {Value = storedId.Instance.Value},
             }
         };
 
@@ -147,21 +147,21 @@ public class PostgreSqlTimeoutStore(string connectionString, string tablePrefix 
         await using var reader = await command.ExecuteReaderAsync();
         while (await reader.ReadAsync())
         {
-            var flowType = reader.GetInt32(0);
-            var flowInstance = reader.GetString(1);
+            var type = reader.GetInt32(0);
+            var instance = reader.GetGuid(1).ToStoredInstance();
             var timeoutId = reader.GetString(2);
             var expires = reader.GetInt64(3);
-            var functionId = new StoredId(new StoredType(flowType), flowInstance);
-            storedMessages.Add(new StoredTimeout(functionId, timeoutId, expires));
+            var storedId = new StoredId(new StoredType(type), instance);
+            storedMessages.Add(new StoredTimeout(storedId, timeoutId, expires));
         }
 
         return storedMessages;
     }
 
     private string? _getTimeoutsSql;    
-    public async Task<IEnumerable<StoredTimeout>> GetTimeouts(StoredId flowId)
+    public async Task<IEnumerable<StoredTimeout>> GetTimeouts(StoredId storedId)
     {
-        var (typeId, instanceId) = flowId;
+        var (typeId, instanceId) = storedId;
         await using var conn = await CreateConnection();
         _getTimeoutsSql ??= @$"
             SELECT timeout_id, expires
@@ -173,7 +173,7 @@ public class PostgreSqlTimeoutStore(string connectionString, string tablePrefix 
             Parameters =
             {
                 new() {Value = typeId.Value},
-                new() {Value = instanceId}
+                new() {Value = instanceId.Value}
             }
         };
 
@@ -183,7 +183,7 @@ public class PostgreSqlTimeoutStore(string connectionString, string tablePrefix 
         {
             var timeoutId = reader.GetString(0);
             var expires = reader.GetInt64(1);
-            storedMessages.Add(new StoredTimeout(flowId, timeoutId, expires));
+            storedMessages.Add(new StoredTimeout(storedId, timeoutId, expires));
         }
 
         return storedMessages;

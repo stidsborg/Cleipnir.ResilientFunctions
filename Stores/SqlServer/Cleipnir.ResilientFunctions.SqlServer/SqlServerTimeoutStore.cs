@@ -25,7 +25,7 @@ public class SqlServerTimeoutStore : ITimeoutStore
         _initializeSql ??= @$"            
             CREATE TABLE {_tablePrefix}_Timeouts (
                 FlowType INT,
-                FlowInstance NVARCHAR(255),
+                FlowInstance UNIQUEIDENTIFIER,
                 TimeoutId NVARCHAR(255),
                 Expires BIGINT,          
                 PRIMARY KEY (FlowType, FlowInstance, TimeoutId),
@@ -72,7 +72,7 @@ public class SqlServerTimeoutStore : ITimeoutStore
             END";
         await using var command = new SqlCommand(_upsertTimeoutSql, conn);
         command.Parameters.AddWithValue("@FlowType", functionId.Type.Value);
-        command.Parameters.AddWithValue("@FlowInstance", functionId.Instance);
+        command.Parameters.AddWithValue("@FlowInstance", functionId.Instance.Value);
         command.Parameters.AddWithValue("@TimeoutId", timeoutId);
         command.Parameters.AddWithValue("@Expiry", expiry);
         command.Parameters.AddWithValue("@Overwrite", overwrite ? 1 : 2);
@@ -92,7 +92,7 @@ public class SqlServerTimeoutStore : ITimeoutStore
                 TimeoutId = @TimeoutId";
         await using var command = new SqlCommand(_removeTimeoutSql, conn);
         command.Parameters.AddWithValue("@FlowType", storedId.Type.Value);
-        command.Parameters.AddWithValue("@FlowInstance", storedId.Instance);
+        command.Parameters.AddWithValue("@FlowInstance", storedId.Instance.Value);
         command.Parameters.AddWithValue("@TimeoutId", timeoutId);
         await command.ExecuteNonQueryAsync();
     }
@@ -108,7 +108,7 @@ public class SqlServerTimeoutStore : ITimeoutStore
         
         await using var command = new SqlCommand(_removeSql, conn);
         command.Parameters.AddWithValue("@FlowType", storedId.Type.Value);
-        command.Parameters.AddWithValue("@FlowInstance", storedId.Instance);
+        command.Parameters.AddWithValue("@FlowInstance", storedId.Instance.Value);
         await command.ExecuteNonQueryAsync();
     }
 
@@ -129,10 +129,10 @@ public class SqlServerTimeoutStore : ITimeoutStore
         while (await reader.ReadAsync())
         {
             var flowType = reader.GetInt32(0); 
-            var flowInstance = reader.GetString(1);
+            var flowInstance = reader.GetGuid(1);
             var timeoutId = reader.GetString(2);
             var expires = reader.GetInt64(3);
-            var functionId = new StoredId(new StoredType(flowType), flowInstance);
+            var functionId = new StoredId(new StoredType(flowType), flowInstance.ToStoredInstance());
             storedTimeouts.Add(new StoredTimeout(functionId, timeoutId, expires));
         }
 
@@ -151,7 +151,7 @@ public class SqlServerTimeoutStore : ITimeoutStore
         
         await using var command = new SqlCommand(_getTimeoutsSql, conn);
         command.Parameters.AddWithValue("@FlowType", typeId.Value);
-        command.Parameters.AddWithValue("@FlowInstance", instanceId);
+        command.Parameters.AddWithValue("@FlowInstance", instanceId.Value);
         
         var storedTimeouts = new List<StoredTimeout>();
         await using var reader = await command.ExecuteReaderAsync();

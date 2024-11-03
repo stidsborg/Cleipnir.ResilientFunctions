@@ -21,6 +21,7 @@ public abstract class MessagesSubscriptionTests
         var functionStore = await functionStoreTask;
         await functionStore.CreateFunction(
             functionId, 
+            "humanInstanceId",
             Test.SimpleStoredParameter, 
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,

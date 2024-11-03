@@ -11,7 +11,7 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates;
 
 public abstract class StoreCrudTests
 {
-    private StoredId FlowId { get; } = TestStoredId.Create();
+    private StoredId StoredId { get; } = TestStoredId.Create();
     private TestParameters TestParam { get; } = new TestParameters("Peter", 32);
     private string Param => TestParam.ToJson();
     private record TestParameters(string Name, int Age);
@@ -29,15 +29,16 @@ public abstract class StoreCrudTests
         
         var leaseExpiration = DateTime.UtcNow.Ticks;
         await store.CreateFunction(
-            FlowId,
+            StoredId,
+            "humanInstanceId",
             Param.ToUtf8Bytes(),
             leaseExpiration,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
-        var stored = await store.GetFunction(FlowId);
-        stored!.FlowId.ShouldBe(FlowId);
+        var stored = await store.GetFunction(StoredId);
+        stored!.StoredId.ShouldBe(StoredId);
         stored.Parameter.ShouldBe(Param.ToUtf8Bytes());
         stored.Result.ShouldBeNull();
         stored.Status.ShouldBe(Status.Executing);
@@ -51,15 +52,16 @@ public abstract class StoreCrudTests
         var store = await storeTask;
         var leaseExpiration = DateTime.UtcNow.Ticks;
         await store.CreateFunction(
-            FlowId,
+            StoredId, 
+            "humanInstanceId",
             Param.ToUtf8Bytes(),
             leaseExpiration,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
-        var stored = await store.GetFunction(FlowId);
-        stored!.FlowId.ShouldBe(FlowId);
+        var stored = await store.GetFunction(StoredId);
+        stored!.StoredId.ShouldBe(StoredId);
         stored.Parameter.ShouldBe(Param.ToUtf8Bytes());
         stored.Result.ShouldBeNull();
         stored.Status.ShouldBe(Status.Executing);
@@ -73,15 +75,16 @@ public abstract class StoreCrudTests
         var store = await storeTask;
         var leaseExpiration = DateTime.UtcNow.Ticks;
         await store.CreateFunction(
-            FlowId,
+            StoredId, 
+            "humanInstanceId",
             Param.ToUtf8Bytes(),
             leaseExpiration,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
-        var stored = await store.GetFunction(FlowId);
-        stored!.FlowId.ShouldBe(FlowId);
+        var stored = await store.GetFunction(StoredId);
+        stored!.StoredId.ShouldBe(StoredId);
         stored.Parameter.ShouldBe(Param.ToUtf8Bytes());
         stored.Result.ShouldBeNull();
         stored.Status.ShouldBe(Status.Executing);
@@ -93,7 +96,7 @@ public abstract class StoreCrudTests
     protected async Task FetchingNonExistingFunctionReturnsNull(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        await store.GetFunction(FlowId).ShouldBeNullAsync();
+        await store.GetFunction(StoredId).ShouldBeNullAsync();
     }  
    
     public abstract Task LeaseIsUpdatedWhenCurrentEpochMatches();
@@ -101,16 +104,17 @@ public abstract class StoreCrudTests
     {
         var store = await storeTask;
         await store.CreateFunction(
-            FlowId,
+            StoredId, 
+            "humanInstanceId",
             Param.ToUtf8Bytes(),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
-        await store.RenewLease(FlowId, expectedEpoch: 0, leaseExpiration: 1).ShouldBeTrueAsync();
+        await store.RenewLease(StoredId, expectedEpoch: 0, leaseExpiration: 1).ShouldBeTrueAsync();
 
-        var storedFunction = await store.GetFunction(FlowId);
+        var storedFunction = await store.GetFunction(StoredId);
         storedFunction!.Epoch.ShouldBe(0);
         storedFunction.Expires.ShouldBe(1);
     }
@@ -121,16 +125,17 @@ public abstract class StoreCrudTests
         var store = await storeTask;
         var leaseExpiration = DateTime.UtcNow.Ticks;
         await store.CreateFunction(
-            FlowId,
+            StoredId, 
+            "humanInstanceId",
             Param.ToUtf8Bytes(),
             leaseExpiration,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
 
-        await store.RenewLease(FlowId, expectedEpoch: 1, leaseExpiration: 1).ShouldBeFalseAsync();
+        await store.RenewLease(StoredId, expectedEpoch: 1, leaseExpiration: 1).ShouldBeFalseAsync();
 
-        var storedFunction = await store.GetFunction(FlowId);
+        var storedFunction = await store.GetFunction(StoredId);
         storedFunction!.Epoch.ShouldBe(0);
         storedFunction.Expires.ShouldBe(leaseExpiration);
     }
@@ -141,7 +146,8 @@ public abstract class StoreCrudTests
         var store = await storeTask;
         var functionId = TestStoredId.Create();
         await store.CreateFunction(
-            FlowId,
+            StoredId, 
+            "humanInstanceId",
             Param.ToUtf8Bytes(),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
@@ -176,7 +182,7 @@ public abstract class StoreCrudTests
     public async Task NonExistingFunctionCanBeDeleted(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        await store.DeleteFunction(FlowId);
+        await store.DeleteFunction(StoredId);
     }
 
     public abstract Task ParameterAndStateCanBeUpdatedOnExistingFunction();
@@ -184,7 +190,8 @@ public abstract class StoreCrudTests
     {
         var store = await storeTask;
         await store.CreateFunction(
-            FlowId,
+            StoredId, 
+            "humanInstanceId",
             Param.ToUtf8Bytes(),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
@@ -194,13 +201,13 @@ public abstract class StoreCrudTests
         var updatedStoredParameter = "hello world".ToJson();
 
         await store.SetParameters(
-            FlowId,
+            StoredId,
             updatedStoredParameter.ToUtf8Bytes(),
             result: null,
             expectedEpoch: 0
         ).ShouldBeTrueAsync();
         
-        var sf = await store.GetFunction(FlowId);
+        var sf = await store.GetFunction(StoredId);
         sf.ShouldNotBeNull();
         sf.Parameter.ShouldNotBeNull();
         var param = sf.Parameter.ToStringFromUtf8Bytes().DeserializeFromJsonTo<string>();
@@ -212,7 +219,8 @@ public abstract class StoreCrudTests
     {
         var store = await storeTask;
         await store.CreateFunction(
-            FlowId,
+            StoredId, 
+            "humanInstanceId",
             Param.ToUtf8Bytes(),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
@@ -222,13 +230,13 @@ public abstract class StoreCrudTests
         var updatedStoredParameter = "hello world".ToJson();
 
         await store.SetParameters(
-            FlowId,
+            StoredId,
             updatedStoredParameter.ToUtf8Bytes(),
             result: null,
             expectedEpoch: 0
         ).ShouldBeTrueAsync();
         
-        var sf = await store.GetFunction(FlowId);
+        var sf = await store.GetFunction(StoredId);
         sf.ShouldNotBeNull();
         var param = sf.Parameter!.ToStringFromUtf8Bytes().DeserializeFromJsonTo<string>();
         param.ShouldBe("hello world");
@@ -239,7 +247,8 @@ public abstract class StoreCrudTests
     {
         var store = await storeTask;
         await store.CreateFunction(
-            FlowId,
+            StoredId, 
+            "humanInstanceId",
             Param.ToUtf8Bytes(),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
@@ -247,13 +256,13 @@ public abstract class StoreCrudTests
         ).ShouldBeTrueAsync();
         
         await store.SetParameters(
-            FlowId,
+            StoredId,
             param: Param.ToUtf8Bytes(),
             result: null,
             expectedEpoch: 0
         ).ShouldBeTrueAsync();
         
-        var sf = await store.GetFunction(FlowId);
+        var sf = await store.GetFunction(StoredId);
         sf.ShouldNotBeNull();
         sf.Parameter.ShouldNotBeNull();
     }
@@ -263,14 +272,15 @@ public abstract class StoreCrudTests
     {
         var store = await storeTask;
         await store.CreateFunction(
-            FlowId,
+            StoredId, 
+            "humanInstanceId",
             Param.ToUtf8Bytes(),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks
         ).ShouldBeTrueAsync();
         await store.RestartExecution(
-            FlowId,
+            StoredId,
             expectedEpoch: 0,
             leaseExpiration: DateTime.UtcNow.Ticks
         ).ShouldNotBeNullAsync();
@@ -278,13 +288,13 @@ public abstract class StoreCrudTests
         var updatedStoredParameter = "hello world".ToJson();
 
         await store.SetParameters(
-            FlowId,
+            StoredId,
             updatedStoredParameter.ToUtf8Bytes(),
             result: null,
             expectedEpoch: 0
         ).ShouldBeFalseAsync();
         
-        var sf = await store.GetFunction(FlowId);
+        var sf = await store.GetFunction(StoredId);
         sf.ShouldNotBeNull();
         sf.Parameter.ShouldNotBeNull();
     }

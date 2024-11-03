@@ -55,7 +55,7 @@ public class PostgreSqlEffectsStore(string connectionString, string tablePrefix 
         {
             Parameters =
             {
-                new() {Value = Escaper.Escape(flowType.Value.ToString(), flowInstance, storedEffect.EffectId.Value)},
+                new() {Value = Escaper.Escape(flowType.Value.ToString(), flowInstance.Value.ToString("N"), storedEffect.EffectId.Value)},
                 new() {Value = storedEffect.IsState},
                 new() {Value = (int) storedEffect.WorkStatus},
                 new() {Value = storedEffect.Result ?? (object) DBNull.Value},
@@ -78,7 +78,7 @@ public class PostgreSqlEffectsStore(string connectionString, string tablePrefix 
         {
             Parameters =
             {
-                new() { Value = Escaper.Escape(storedId.Type.Value.ToString(), storedId.Instance) + $"{Escaper.Separator}%" }
+                new() { Value = Escaper.Escape(storedId.Type.Value.ToString(), storedId.Instance.Value.ToString("N")) + $"{Escaper.Separator}%" }
             }
         };
 
@@ -105,7 +105,7 @@ public class PostgreSqlEffectsStore(string connectionString, string tablePrefix 
         await using var conn = await CreateConnection();
         _deleteEffectResultSql ??= $"DELETE FROM {tablePrefix}_effects WHERE id = $1 AND is_state = $2";
         
-        var id = Escaper.Escape(storedId.Type.Value.ToString(), storedId.Instance, effectId.Value);
+        var id = Escaper.Escape(storedId.Type.Value.ToString(), storedId.Instance.Value.ToString("N"), effectId.Value);
         await using var command = new NpgsqlCommand(_deleteEffectResultSql, conn)
         {
             Parameters =
@@ -125,7 +125,7 @@ public class PostgreSqlEffectsStore(string connectionString, string tablePrefix 
         await using var conn = await CreateConnection();
         _removeSql ??= $"DELETE FROM {tablePrefix}_effects WHERE id LIKE $1";
         
-        var id = Escaper.Escape(storedId.Type.Value.ToString(), storedId.Instance) + $"{Escaper.Separator}%";
+        var id = Escaper.Escape(storedId.Type.Value.ToString(), storedId.Instance.Value.ToString("N")) + $"{Escaper.Separator}%";
         await using var command = new NpgsqlCommand(_removeSql, conn)
         {
             Parameters = { new() {Value = id } }

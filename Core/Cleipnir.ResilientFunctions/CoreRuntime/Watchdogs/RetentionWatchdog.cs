@@ -55,7 +55,7 @@ internal class RetentionWatchdog
 
                 foreach (var eligibleFunction in eligibleFunctions.WithRandomOffset())
                 {
-                    var alreadyDeleted = !await _functionStore.DeleteFunction(new StoredId(_storedType, eligibleFunction.Value));
+                    var alreadyDeleted = !await _functionStore.DeleteFunction(new StoredId(_storedType, eligibleFunction));
                     if (alreadyDeleted)
                         break;
                 }

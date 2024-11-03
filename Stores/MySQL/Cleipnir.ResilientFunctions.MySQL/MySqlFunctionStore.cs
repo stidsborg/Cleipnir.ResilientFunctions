@@ -2,6 +2,7 @@
 using System.Text.Json;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Storage;
 using MySqlConnector;
@@ -70,7 +71,7 @@ public class MySqlFunctionStore : IFunctionStore
         _initializeSql ??= $@"
             CREATE TABLE IF NOT EXISTS {_tablePrefix} (
                 type INT NOT NULL,
-                instance VARCHAR(200) NOT NULL,
+                instance CHAR(32) NOT NULL,
                 epoch INT NOT NULL,
                 status INT NOT NULL,
                 expires BIGINT NOT NULL,
@@ -79,6 +80,7 @@ public class MySqlFunctionStore : IFunctionStore
                 result_json LONGBLOB NULL,
                 exception_json TEXT NULL,                
                 timestamp BIGINT NOT NULL,
+                human_instance_id TEXT NOT NULL,
                 PRIMARY KEY (type, instance),
                 INDEX (expires, type, instance, status)   
             );";
@@ -106,6 +108,7 @@ public class MySqlFunctionStore : IFunctionStore
     private string? _createFunctionSql;
     public async Task<bool> CreateFunction(
         StoredId storedId, 
+        string humanInstanceId,
         byte[]? param, 
         long leaseExpiration,
         long? postponeUntil,
@@ -116,19 +119,20 @@ public class MySqlFunctionStore : IFunctionStore
         var status = postponeUntil == null ? Status.Executing : Status.Postponed;
         _createFunctionSql ??= @$"
             INSERT IGNORE INTO {_tablePrefix}
-                (type, instance, param_json, status, epoch, expires, timestamp)
+                (type, instance, param_json, status, epoch, expires, timestamp, human_instance_id)
             VALUES
-                (?, ?, ?, ?, 0, ?, ?)";
+                (?, ?, ?, ?, 0, ?, ?, ?)";
         await using var command = new MySqlCommand(_createFunctionSql, conn)
         {
             Parameters =
             {
                 new() {Value = storedId.Type.Value},
-                new() {Value = storedId.Instance},
+                new() {Value = storedId.Instance.Value.ToString("N")},
                 new() {Value = param ?? (object) DBNull.Value},
                 new() {Value = (int) status}, 
                 new() {Value = postponeUntil ?? leaseExpiration},
-                new() {Value = timestamp}
+                new() {Value = timestamp},
+                new() {Value = humanInstanceId}
             }
         };
 
@@ -140,16 +144,16 @@ public class MySqlFunctionStore : IFunctionStore
     {
         var insertSql = @$"
             INSERT IGNORE INTO {_tablePrefix}
-              (type, instance, param_json, status, epoch, expires, timestamp)
+              (type, instance, param_json, status, epoch, expires, timestamp, human_instance_id)
             VALUES                      
                     ";
         
         var now = DateTime.UtcNow.Ticks;
      
         var rows = new List<string>();
-        foreach (var ((type, instance), param) in functionsWithParam)
+        foreach (var ((type, instance), humanInstanceId, param) in functionsWithParam)
         {
-            var row = $"({type.Value}, '{instance.EscapeString()}', {(param == null ? "NULL" : $"x'{Convert.ToHexString(param)}'")}, {(int) Status.Postponed}, 0, 0, {now})"; 
+            var row = $"({type.Value}, '{instance.Value:N}', {(param == null ? "NULL" : $"x'{Convert.ToHexString(param)}'")}, {(int) Status.Postponed}, 0, 0, {now}, '{humanInstanceId.EscapeString()}')"; 
             rows.Add(row);
         }
         var rowsSql = string.Join(", " + Environment.NewLine, rows);
@@ -180,7 +184,8 @@ public class MySqlFunctionStore : IFunctionStore
                 epoch, 
                 expires,
                 interrupted,
-                timestamp
+                timestamp,
+                human_instance_id
             FROM {_tablePrefix}
             WHERE type = ? AND instance = ?;";
 
@@ -190,10 +195,10 @@ public class MySqlFunctionStore : IFunctionStore
             {
                 new() { Value = leaseExpiration },
                 new() { Value = storedId.Type.Value },
-                new() { Value = storedId.Instance },
+                new() { Value = storedId.Instance.Value.ToString("N") },
                 new() { Value = expectedEpoch },
                 new() { Value = storedId.Type.Value },
-                new() { Value = storedId.Instance },
+                new() { Value = storedId.Instance.Value.ToString("N") },
             }
         };
 
@@ -221,7 +226,7 @@ public class MySqlFunctionStore : IFunctionStore
             {
                 new() {Value = leaseExpiration},
                 new() {Value = storedId.Type.Value},
-                new() {Value = storedId.Instance},
+                new() {Value = storedId.Instance.Value.ToString("N")},
                 new() {Value = expectedEpoch},
             }
         };
@@ -251,7 +256,7 @@ public class MySqlFunctionStore : IFunctionStore
         while (await reader.ReadAsync())
         {
             var flowType = reader.GetInt32(0);
-            var flowInstance = reader.GetString(1);
+            var flowInstance = reader.GetString(1).ToGuid().ToStoredInstance();
             var flowId = new StoredId(new StoredType(flowType), flowInstance);
             var epoch = reader.GetInt32(2);
             functions.Add(new IdAndEpoch(flowId, epoch));
@@ -261,7 +266,7 @@ public class MySqlFunctionStore : IFunctionStore
     }
 
     private string? _getSucceededFunctionsSql;
-    public async Task<IReadOnlyList<FlowInstance>> GetSucceededFunctions(StoredType storedType, long completedBefore)
+    public async Task<IReadOnlyList<StoredInstance>> GetSucceededFunctions(StoredType storedType, long completedBefore)
     {
         await using var conn = await CreateOpenConnection(_connectionString);
         _getSucceededFunctionsSql ??= @$"
@@ -278,14 +283,14 @@ public class MySqlFunctionStore : IFunctionStore
         };
         
         await using var reader = await command.ExecuteReaderAsync();
-        var functions = new List<FlowInstance>();
+        var instances = new List<StoredInstance>();
         while (await reader.ReadAsync())
         {
-            var flowInstance = reader.GetString(0);
-            functions.Add(flowInstance);
+            var instance = reader.GetString(0).ToGuid().ToStoredInstance();
+            instances.Add(instance);
         }
         
-        return functions;
+        return instances;
     }
 
     private string? _setFunctionStateSql;
@@ -319,7 +324,7 @@ public class MySqlFunctionStore : IFunctionStore
                 new() {Value = storedException != null ? JsonSerializer.Serialize(storedException) : DBNull.Value},
                 new() {Value = expires},
                 new() {Value = storedId.Type.Value},
-                new() {Value = storedId.Instance},
+                new() {Value = storedId.Instance.Value.ToString("N")},
                 new() {Value = expectedEpoch},
             }
         };
@@ -353,7 +358,7 @@ public class MySqlFunctionStore : IFunctionStore
                 new() { Value = timestamp },
                 new() { Value = expectedEpoch },
                 new() { Value = storedId.Type.Value },
-                new() { Value = storedId.Instance },
+                new() { Value = storedId.Instance.Value.ToString("N") },
                 new() { Value = expectedEpoch },
             }
         };
@@ -387,7 +392,7 @@ public class MySqlFunctionStore : IFunctionStore
                 new() { Value = timestamp },
                 new() { Value = expectedEpoch },
                 new() { Value = storedId.Type.Value },
-                new() { Value = storedId.Instance },
+                new() { Value = storedId.Instance.Value.ToString("N") },
                 new() { Value = expectedEpoch },
             }
         };
@@ -421,7 +426,7 @@ public class MySqlFunctionStore : IFunctionStore
                 new() { Value = timestamp },
                 new() { Value = expectedEpoch },
                 new() { Value = storedId.Type.Value },
-                new() { Value = storedId.Instance },
+                new() { Value = storedId.Instance.Value.ToString("N") },
                 new() { Value = expectedEpoch },
             }
         };
@@ -453,7 +458,7 @@ public class MySqlFunctionStore : IFunctionStore
             {
                 new() { Value = timestamp },
                 new() { Value = storedId.Type.Value },
-                new() { Value = storedId.Instance },
+                new() { Value = storedId.Instance.Value.ToString("N") },
                 new() { Value = expectedEpoch }
             }
         };
@@ -494,7 +499,7 @@ public class MySqlFunctionStore : IFunctionStore
             Parameters =
             {
                 new() { Value = storedId.Type.Value },
-                new() { Value = storedId.Instance },
+                new() { Value = storedId.Instance.Value.ToString("N") },
             }
         };
         
@@ -527,7 +532,7 @@ public class MySqlFunctionStore : IFunctionStore
                 new() { Value = storedParameter ?? (object) DBNull.Value },
                 new() { Value = storedResult ?? (object) DBNull.Value },
                 new() { Value = storedId.Type.Value },
-                new() { Value = storedId.Instance },
+                new() { Value = storedId.Instance.Value.ToString("N") },
                 new() { Value = expectedEpoch },
             }
         };
@@ -551,7 +556,7 @@ public class MySqlFunctionStore : IFunctionStore
             Parameters =
             {
                 new() { Value = storedId.Type.Value },
-                new() { Value = storedId.Instance },
+                new() { Value = storedId.Instance.Value.ToString("N") },
             }
         };
         
@@ -570,7 +575,7 @@ public class MySqlFunctionStore : IFunctionStore
         {
             Parameters = { 
                 new() {Value = storedId.Type.Value},
-                new() {Value = storedId.Instance}
+                new() {Value = storedId.Instance.Value.ToString("N")}
             }
         };
         
@@ -600,14 +605,15 @@ public class MySqlFunctionStore : IFunctionStore
                 epoch, 
                 expires,
                 interrupted,
-                timestamp
+                timestamp,
+                human_instance_id
             FROM {_tablePrefix}
             WHERE type = ? AND instance = ?;";
         await using var command = new MySqlCommand(_getFunctionSql, conn)
         {
             Parameters = { 
                 new() {Value = storedId.Type.Value},
-                new() {Value = storedId.Instance}
+                new() {Value = storedId.Instance.Value.ToString("N")}
             }
         };
         
@@ -616,7 +622,7 @@ public class MySqlFunctionStore : IFunctionStore
     }
 
     private string? _getInstancesWithStatusSql;
-    public async Task<IReadOnlyList<FlowInstance>> GetInstances(StoredType storedType, Status status)
+    public async Task<IReadOnlyList<StoredInstance>> GetInstances(StoredType storedType, Status status)
     {
         await using var conn = await CreateOpenConnection(_connectionString);
         _getInstancesWithStatusSql ??= @$"
@@ -633,10 +639,10 @@ public class MySqlFunctionStore : IFunctionStore
         };
         
         await using var reader = await command.ExecuteReaderAsync();
-        var instances = new List<FlowInstance>();
+        var instances = new List<StoredInstance>();
         while (await reader.ReadAsync())
         {
-            var flowInstance = reader.GetString(0);
+            var flowInstance = reader.GetString(0).ToGuid().ToStoredInstance();
             instances.Add(flowInstance);
         }
         
@@ -644,7 +650,7 @@ public class MySqlFunctionStore : IFunctionStore
     }
 
     private string? _getInstancesSql;
-    public async Task<IReadOnlyList<FlowInstance>> GetInstances(StoredType storedType)
+    public async Task<IReadOnlyList<StoredInstance>> GetInstances(StoredType storedType)
     {
         await using var conn = await CreateOpenConnection(_connectionString);
         _getInstancesSql ??= @$"
@@ -660,34 +666,16 @@ public class MySqlFunctionStore : IFunctionStore
         };
         
         await using var reader = await command.ExecuteReaderAsync();
-        var functions = new List<FlowInstance>();
+        var functions = new List<StoredInstance>();
         while (await reader.ReadAsync())
         {
-            var flowInstance = reader.GetString(0);
+            var flowInstance = reader.GetString(0).ToGuid().ToStoredInstance();
             functions.Add(flowInstance);
         }
         
         return functions;
     }
-
-    private string? _getTypesSql;
-    public async Task<IReadOnlyList<StoredType>> GetTypes()
-    {
-        await using var conn = await CreateOpenConnection(_connectionString);
-        _getTypesSql ??= $"SELECT DISTINCT(type) FROM {_tablePrefix}";
-        await using var command = new MySqlCommand(_getTypesSql, conn);
-        
-        await using var reader = await command.ExecuteReaderAsync();
-        var flowTypes = new List<StoredType>();
-        while (await reader.ReadAsync())
-        {
-            var flowType = reader.GetInt32(0);
-            flowTypes.Add(new StoredType(flowType));
-        }
-        
-        return flowTypes;
-    }
-
+    
     private async Task<StoredFlow?> ReadToStoredFunction(StoredId storedId, MySqlDataReader reader)
     {
         const int paramIndex = 0;
@@ -698,6 +686,7 @@ public class MySqlFunctionStore : IFunctionStore
         const int expiresIndex = 5;
         const int interruptedIndex = 6;
         const int timestampIndex = 7;
+        const int humanInstanceIdIndex = 8;
         
         while (await reader.ReadAsync())
         {
@@ -709,6 +698,7 @@ public class MySqlFunctionStore : IFunctionStore
                 : null;
             return new StoredFlow(
                 storedId,
+                HumanInstanceId: reader.GetString(humanInstanceIdIndex),
                 hasParam ? (byte[]) reader.GetValue(paramIndex) : null,
                 Status: (Status) reader.GetInt32(statusIndex),
                 Result: hasResult ? (byte[]) reader.GetValue(resultIndex) : null, 
@@ -746,7 +736,7 @@ public class MySqlFunctionStore : IFunctionStore
             Parameters =
             {
                 new() {Value = storedId.Type.Value},
-                new() {Value = storedId.Instance}
+                new() {Value = storedId.Instance.Value.ToString("N")}
             }
         };
 

@@ -28,7 +28,7 @@ public class SqlServerMessageStore : IMessageStore
         _initializeSql ??= @$"
         CREATE TABLE {_tablePrefix}_Messages (
             FlowType INT,
-            FlowInstance NVARCHAR(255),
+            FlowInstance UNIQUEIDENTIFIER,
             Position INT NOT NULL,
             MessageJson VARBINARY(MAX) NOT NULL,
             MessageType VARBINARY(MAX) NOT NULL,   
@@ -68,7 +68,7 @@ public class SqlServerMessageStore : IMessageStore
         
         await using var command = new SqlCommand(_appendMessageSql, conn);
         command.Parameters.AddWithValue("@FlowType", storedId.Type.Value);
-        command.Parameters.AddWithValue("@FlowInstance", storedId.Instance);
+        command.Parameters.AddWithValue("@FlowInstance", storedId.Instance.Value);
         command.Parameters.AddWithValue("@MessageJson", storedMessage.MessageJson);
         command.Parameters.AddWithValue("@MessageType", storedMessage.MessageType);
         command.Parameters.AddWithValue("@IdempotencyKey", storedMessage.IdempotencyKey ?? (object)DBNull.Value);
@@ -103,7 +103,7 @@ public class SqlServerMessageStore : IMessageStore
         
         await using var command = new SqlCommand(_replaceMessageSql, conn);
         command.Parameters.AddWithValue("@FlowType", storedId.Type.Value);
-        command.Parameters.AddWithValue("@FlowInstance", storedId.Instance);
+        command.Parameters.AddWithValue("@FlowInstance", storedId.Instance.Value);
         command.Parameters.AddWithValue("@Position", position);
         command.Parameters.AddWithValue("@MessageJson", storedMessage.MessageJson);
         command.Parameters.AddWithValue("@MessageType", storedMessage.MessageType);
@@ -124,7 +124,7 @@ public class SqlServerMessageStore : IMessageStore
         await using var command = new SqlCommand(_truncateSql, conn);
         
         command.Parameters.AddWithValue("@FlowType", storedId.Type.Value);
-        command.Parameters.AddWithValue("@FlowInstance", storedId.Instance);
+        command.Parameters.AddWithValue("@FlowInstance", storedId.Instance.Value);
         await command.ExecuteNonQueryAsync();
     }
 
@@ -140,7 +140,7 @@ public class SqlServerMessageStore : IMessageStore
         
         await using var command = new SqlCommand(_getMessagesSql, conn);
         command.Parameters.AddWithValue("@FlowType", storedId.Type.Value);
-        command.Parameters.AddWithValue("@FlowInstance", storedId.Instance);
+        command.Parameters.AddWithValue("@FlowInstance", storedId.Instance.Value);
         command.Parameters.AddWithValue("@Position", skip);
         
         var storedMessages = new List<StoredMessage>();
@@ -182,7 +182,7 @@ public class SqlServerMessageStore : IMessageStore
             WHERE FlowType = @FlowType AND FlowInstance = @FlowInstance";
         await using var command = new SqlCommand(_getSuspensionStatusSql, connection);
         command.Parameters.AddWithValue("@FlowType", storedId.Type.Value);
-        command.Parameters.AddWithValue("@FlowInstance", storedId.Instance);
+        command.Parameters.AddWithValue("@FlowInstance", storedId.Instance.Value);
 
         await using var reader = await command.ExecuteReaderAsync();
         while (await reader.ReadAsync())

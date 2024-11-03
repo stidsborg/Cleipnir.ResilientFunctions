@@ -116,7 +116,8 @@ public class RFunctionsShutdownTests
         );
         
         await store.CreateFunction(
-            registration.MapToStoredId(functionId),
+            registration.MapToStoredId(functionId), 
+            "humanInstanceId",
             param: "".ToJson().ToUtf8Bytes(),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
@@ -166,7 +167,8 @@ public class RFunctionsShutdownTests
         );
         
         await store.CreateFunction(
-            registration.MapToStoredId(functionId),
+            registration.MapToStoredId(functionId), 
+            "humanInstanceId",
             storedParameter.ToUtf8Bytes(),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,

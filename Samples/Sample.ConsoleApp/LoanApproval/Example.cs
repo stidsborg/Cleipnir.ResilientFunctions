@@ -64,7 +64,7 @@ public static class Example
         {
             if (@event is CreditCheckOutcome creditCheckOutcome)
             {
-                var writer = messageWriters.For(creditCheckOutcome.LoanApplicationId);
+                var writer = messageWriters.For(creditCheckOutcome.LoanApplicationId.ToStoredInstance());
                 await writer.AppendMessage(creditCheckOutcome);
             }
         });

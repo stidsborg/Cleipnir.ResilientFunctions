@@ -1,4 +1,5 @@
-﻿using Cleipnir.ResilientFunctions.Storage;
+﻿using Cleipnir.ResilientFunctions.Helpers;
+using Cleipnir.ResilientFunctions.Storage;
 using MySqlConnector;
 
 namespace Cleipnir.ResilientFunctions.MySQL;
@@ -21,7 +22,7 @@ public class MySqlCorrelationStore : ICorrelationStore
         _initialize ??= @$"
             CREATE TABLE IF NOT EXISTS {_tablePrefix}_correlations (
                 type INT NOT NULL,
-                instance VARCHAR(200) NOT NULL,
+                instance CHAR(32) NOT NULL,
                 correlation VARCHAR(200) NOT NULL,
                 PRIMARY KEY (type, instance, correlation),
                 INDEX (correlation, type, instance)
@@ -55,7 +56,7 @@ public class MySqlCorrelationStore : ICorrelationStore
             Parameters =
             {
                 new() {Value = flowType.Value},
-                new() {Value = flowInstance},
+                new() {Value = flowInstance.Value.ToString("N")},
                 new() {Value = correlationId},
             }
         };
@@ -84,16 +85,16 @@ public class MySqlCorrelationStore : ICorrelationStore
         var states = new List<StoredId>();
         while (await reader.ReadAsync())
         {
-            var functionType = reader.GetInt32(0);
-            var functionInstance = reader.GetString(1);
-            states.Add(new StoredId(new StoredType(functionType), functionInstance));
+            var type = reader.GetInt32(0);
+            var instance = reader.GetString(1).ToGuid().ToStoredInstance();
+            states.Add(new StoredId(new StoredType(type), instance));
         }
 
         return states;
     }
 
     private string? _getInstancesForFlowTypeAndCorrelation;
-    public async Task<IReadOnlyList<string>> GetCorrelations(StoredType storedType, string correlationId)
+    public async Task<IReadOnlyList<StoredInstance>> GetCorrelations(StoredType storedType, string correlationId)
     {
         await using var conn = await CreateConnection();
         _getInstancesForFlowTypeAndCorrelation ??= @$"
@@ -111,14 +112,14 @@ public class MySqlCorrelationStore : ICorrelationStore
 
         await using var reader = await command.ExecuteReaderAsync();
 
-        var correlations = new List<string>();
+        var instances = new List<StoredInstance>();
         while (await reader.ReadAsync())
         {
-            var correlation = reader.GetString(0);
-            correlations.Add(correlation);
+            var instance = reader.GetString(0).ToGuid().ToStoredInstance();
+            instances.Add(instance);
         }
 
-        return correlations;
+        return instances;
     }
 
     private string? _getCorrelationsForFunctionSql;
@@ -135,7 +136,7 @@ public class MySqlCorrelationStore : ICorrelationStore
             Parameters =
             {
                 new() { Value = typeId.Value },
-                new() { Value = instanceId },
+                new() { Value = instanceId.Value.ToString("N") },
             }
         };
 
@@ -162,7 +163,7 @@ public class MySqlCorrelationStore : ICorrelationStore
             Parameters =
             {
                 new() { Value =  typeId.Value },
-                new() { Value =  instanceId },
+                new() { Value =  instanceId.Value.ToString("N") },
             }
         };
 
@@ -180,7 +181,7 @@ public class MySqlCorrelationStore : ICorrelationStore
             Parameters =
             {
                 new() { Value =  typeId.Value },
-                new() { Value =  instanceId },
+                new() { Value =  instanceId.Value.ToString("N") },
                 new() { Value =  correlationId },
             }
         };

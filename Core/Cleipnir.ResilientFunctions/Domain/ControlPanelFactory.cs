@@ -23,8 +23,8 @@ public class ControlPanelFactory
     public async Task<ControlPanel?> Create(FlowInstance flowInstance)
     {
         var flowId = new FlowId(_flowType, flowInstance);
-        var storedId = new StoredId(_storedType, flowInstance.Value);
-        var functionState = await _invocationHelper.GetFunction(new StoredId(_storedType, flowInstance.Value));
+        var storedId = new StoredId(_storedType, flowInstance.Value.ToStoredInstance());
+        var functionState = await _invocationHelper.GetFunction(storedId);
         if (functionState == null)
             return null;
         
@@ -65,8 +65,8 @@ public class ControlPanelFactory<TParam> where TParam : notnull
     public async Task<ControlPanel<TParam>?> Create(FlowInstance flowInstance)
     {
         var flowId = new FlowId(_flowType, flowInstance);
-        var storedId = new StoredId(_storedType, flowInstance.Value);
-        var functionState = await _invocationHelper.GetFunction(new StoredId(_storedType, flowInstance.Value));
+        var storedId = new StoredId(_storedType, flowInstance.Value.ToStoredInstance());
+        var functionState = await _invocationHelper.GetFunction(storedId);
         if (functionState == null)
             return null;
         
@@ -107,8 +107,8 @@ public class ControlPanelFactory<TParam, TReturn> where TParam : notnull
     public async Task<ControlPanel<TParam, TReturn>?> Create(FlowInstance flowInstance)
     {
         var flowId = new FlowId(_flowType, flowInstance);
-        var storedId = new StoredId(_storedType, flowInstance.Value);
-        var f = await _invocationHelper.GetFunction(new StoredId(_storedType, flowInstance.Value));
+        var storedId = new StoredId(_storedType, flowInstance.Value.ToStoredInstance());
+        var f = await _invocationHelper.GetFunction(storedId);
         if (f == null)
             return null;
         

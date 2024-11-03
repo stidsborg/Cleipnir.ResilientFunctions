@@ -36,6 +36,7 @@ internal class InvocationHelper<TParam, TReturn>
 
     public async Task<Tuple<bool, IDisposable>> PersistFunctionInStore(
         StoredId storedId, 
+        string humanInstanceId, 
         TParam param, 
         DateTime? scheduleAt)
     {
@@ -50,6 +51,7 @@ internal class InvocationHelper<TParam, TReturn>
             var utcNowTicks = DateTime.UtcNow.Ticks;
             var created = await _functionStore.CreateFunction(
                 storedId,
+                humanInstanceId,
                 storedParameter,
                 postponeUntil: scheduleAt?.ToUniversalTime().Ticks,
                 leaseExpiration: utcNowTicks + _settings.LeaseLength.Ticks,
@@ -66,13 +68,13 @@ internal class InvocationHelper<TParam, TReturn>
         }
     }
     
-    public async Task<TReturn> WaitForFunctionResult(FlowId flowId, bool allowPostponedAndSuspended) 
+    public async Task<TReturn> WaitForFunctionResult(FlowId flowId, StoredId storedId, bool allowPostponedAndSuspended) 
     {
         while (true)
         {
-            var storedFunction = await _functionStore.GetFunction(flowId.ToStoredId(_storedType));
+            var storedFunction = await _functionStore.GetFunction(storedId);
             if (storedFunction == null)
-                throw UnexpectedStateException.NotFound(flowId);
+                throw UnexpectedStateException.NotFound(storedId);
 
             switch (storedFunction.Status)
             {
@@ -86,7 +88,7 @@ internal class InvocationHelper<TParam, TReturn>
                             : _settings.Serializer.DeserializeResult<TReturn>(storedFunction.Result);
                 case Status.Failed:
                     var error = Serializer.DeserializeException(storedFunction.Exception!);
-                    throw new PreviousInvocationException(flowId.Type, error);
+                    throw new PreviousInvocationException(_flowType, error);
                 case Status.Postponed:
                     if (allowPostponedAndSuspended) { await Task.Delay(250); continue;}
                     throw new InvocationPostponedException(
@@ -102,11 +104,10 @@ internal class InvocationHelper<TParam, TReturn>
         }
     }
     
-    public async Task PersistFailure(FlowId flowId, Exception exception, TParam param, int expectedEpoch)
+    public async Task PersistFailure(StoredId storedId, Exception exception, TParam param, int expectedEpoch)
     {
         var serializer = _settings.Serializer;
         var storedException = serializer.SerializeException(exception);
-        var storedId = MapToStoredId(flowId);
 
         var success = await _functionStore.FailFunction(
             storedId,
@@ -119,16 +120,15 @@ internal class InvocationHelper<TParam, TReturn>
             )
         );
         if (!success) 
-            throw UnexpectedStateException.ConcurrentModification(flowId);
+            throw UnexpectedStateException.ConcurrentModification(storedId);
     }
 
     public async Task<PersistResultOutcome> PersistResult(
-        FlowId flowId,
+        StoredId storedId,
         Result<TReturn> result,
         TParam param,
         int expectedEpoch)
     {
-        var storedId = MapToStoredId(flowId);
         var complementaryState = new ComplimentaryState(
             () => SerializeParameter(param),
             _settings.LeaseLength.Ticks
@@ -229,11 +229,11 @@ internal class InvocationHelper<TParam, TReturn>
     }
     
     
-    public async Task<PreparedReInvocation> PrepareForReInvocation(FlowId flowId, RestartedFunction restartedFunction)
+    public async Task<PreparedReInvocation> PrepareForReInvocation(StoredId storedId, RestartedFunction restartedFunction)
     {
         var (sf, runningFunction) = restartedFunction;
         var expectedEpoch = sf.Epoch;
-        var storedId = MapToStoredId(flowId);
+        var flowId = new FlowId(_flowType, sf.HumanInstanceId);
         
         try
         {
@@ -241,7 +241,7 @@ internal class InvocationHelper<TParam, TReturn>
                 ? default 
                 : Serializer.DeserializeParameter<TParam>(sf.Parameter);                
             
-            return new PreparedReInvocation(param, sf.Epoch, runningFunction);
+            return new PreparedReInvocation(flowId, param, sf.Epoch, runningFunction);
         }
         catch (DeserializationException e)
         {
@@ -269,10 +269,10 @@ internal class InvocationHelper<TParam, TReturn>
         }
     }
 
-    internal record PreparedReInvocation(TParam? Param, int Epoch, IDisposable RunningFunction);
+    internal record PreparedReInvocation(FlowId FlowId, TParam? Param, int Epoch, IDisposable RunningFunction);
 
-    public IDisposable StartLeaseUpdater(FlowId flowId, int epoch = 0) 
-        => LeaseUpdater.CreateAndStart(flowId.ToStoredId(_storedType), flowId, epoch, _functionStore, _settings);
+    public IDisposable StartLeaseUpdater(StoredId storedId, FlowId flowId, int epoch = 0) 
+        => LeaseUpdater.CreateAndStart(storedId, flowId, epoch, _functionStore, _settings);
     
     public async Task<bool> SetFunctionState(
         StoredId storedId,
@@ -346,16 +346,16 @@ internal class InvocationHelper<TParam, TReturn>
         await _functionStore.BulkScheduleFunctions(
             work.Select(bw =>
                 new IdWithParam(
-                    new StoredId(_storedType, bw.Instance.Value),
+                    new StoredId(_storedType, bw.Instance),
+                    bw.Instance,
                     _isParamlessFunction ? null : serializer.SerializeParameter(bw.Param)
                 )
             )
         );
     }
 
-    public Messages CreateMessages(FlowId flowId, ScheduleReInvocation scheduleReInvocation, Func<bool> isWorkflowRunning)
+    public Messages CreateMessages(StoredId storedId, ScheduleReInvocation scheduleReInvocation, Func<bool> isWorkflowRunning)
     {
-        var storedId = MapToStoredId(flowId);
         var messageWriter = new MessageWriter(storedId, _functionStore, Serializer, scheduleReInvocation);
         var registeredTimeouts = new RegisteredTimeouts(storedId, _functionStore.TimeoutStore);
         var messagesPullerAndEmitter = new MessagesPullerAndEmitter(
@@ -373,17 +373,16 @@ internal class InvocationHelper<TParam, TReturn>
     
     private static Task<IReadOnlyList<StoredEffect>> EmptyList { get; }
         = Task.FromResult((IReadOnlyList<StoredEffect>) new List<StoredEffect>());
-    public Tuple<Effect, States> CreateEffectAndStates(FlowId flowId, bool anyEffects)
+    public Tuple<Effect, States> CreateEffectAndStates(StoredId storedId, bool anyEffects)
     {
         var effectsStore = _functionStore.EffectsStore;
-        var storedId = MapToStoredId(flowId);
         
         var lazyEffects = !anyEffects 
             ? new Lazy<Task<IReadOnlyList<StoredEffect>>>(EmptyList)
-            : new Lazy<Task<IReadOnlyList<StoredEffect>>>(() => effectsStore.GetEffectResults(flowId.ToStoredId(_storedType)));
+            : new Lazy<Task<IReadOnlyList<StoredEffect>>>(() => effectsStore.GetEffectResults(storedId));
         
         var states = new States(
-            flowId.ToStoredId(_storedType),
+            storedId,
             _functionStore,
             effectsStore,
             lazyEffects,

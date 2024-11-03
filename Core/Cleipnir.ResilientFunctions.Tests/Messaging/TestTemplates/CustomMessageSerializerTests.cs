@@ -20,6 +20,7 @@ public abstract class CustomMessageSerializerTests
         var functionStore = await functionStoreTask;
         await functionStore.CreateFunction(
             storedId, 
+            "humanInstanceId",
             param: Test.SimpleStoredParameter, 
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,

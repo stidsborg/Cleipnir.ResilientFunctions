@@ -30,7 +30,7 @@ public static class Example
             param: new StartCustomerEngagement(customerEmail, DateTime.Today)
         );
 
-        var messageWriter = rAction.MessageWriters.For(customerEmail);
+        var messageWriter = rAction.MessageWriters.For(customerEmail.ToFlowInstance());
         await messageWriter.AppendMessage(new EngagementRejected(0));
         await Task.Delay(3_000);
         await messageWriter.AppendMessage(new EngagementAccepted(1));

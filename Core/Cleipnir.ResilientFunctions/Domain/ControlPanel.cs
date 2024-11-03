@@ -270,5 +270,5 @@ public abstract class BaseControlPanel<TParam, TReturn>
     }
     
     public async Task<TReturn> WaitForCompletion(bool allowPostponeAndSuspended = false) 
-        => await _invocationHelper.WaitForFunctionResult(FlowId, allowPostponeAndSuspended);
+        => await _invocationHelper.WaitForFunctionResult(FlowId, StoredId, allowPostponeAndSuspended);
 }

@@ -202,7 +202,7 @@ public abstract class SuspensionTests
             () => rFunc.Invoke(flowInstance, "hello world")
         );
 
-        await rFunc.MessageWriters.For(flowInstance).AppendMessage("hello universe");
+        await rFunc.MessageWriters.For(flowInstance.ToFlowInstance()).AppendMessage("hello universe");
         
         await BusyWait.Until(
             () => store.GetFunction(rFunc.MapToStoredId(functionId)).SelectAsync(sf => sf?.Status == Status.Succeeded)
@@ -238,7 +238,7 @@ public abstract class SuspensionTests
             registration.Invoke(flowInstance, "hello world")
         );
 
-        var messagesWriter = registration.MessageWriters.For(flowInstance);
+        var messagesWriter = registration.MessageWriters.For(flowInstance.ToFlowInstance());
         await messagesWriter.AppendMessage("hello universe");
 
         var controlPanel = await registration.ControlPanel(flowInstance);
@@ -327,7 +327,7 @@ public abstract class SuspensionTests
             }
         );
 
-        await registration.MessageWriters.For(flowInstance.Value).AppendMessage("Hello!");
+        await registration.MessageWriters.For(flowInstance.Value.ToFlowInstance()).AppendMessage("Hello!");
         await registration.Schedule(flowInstance);
 
         var controlPanel = await registration.ControlPanel(flowInstance);

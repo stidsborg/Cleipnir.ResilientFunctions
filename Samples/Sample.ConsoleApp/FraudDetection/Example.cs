@@ -68,13 +68,13 @@ public static class Example
             {
                 case TransactionApproved transactionApproved:
                 {
-                    var writer = messageWriters.For(transactionApproved.Transaction.Id);
+                    var writer = messageWriters.For(transactionApproved.Transaction.Id.ToFlowInstance());
                     await writer.AppendMessage(transactionApproved);
                     break;
                 }
                 case TransactionDeclined transactionDeclined:
                 {
-                    var writer = messageWriters.For(transactionDeclined.Transaction.Id);
+                    var writer = messageWriters.For(transactionDeclined.Transaction.Id.ToFlowInstance());
                     await writer.AppendMessage(transactionDeclined);
                     break;
                 }

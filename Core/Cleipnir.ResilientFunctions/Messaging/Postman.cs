@@ -7,7 +7,7 @@ namespace Cleipnir.ResilientFunctions.Messaging;
 public class Postman(StoredType storedType, ICorrelationStore correlationStore, MessageWriters messageWriters)
 {
     public Task<Finding> SendMessage<TMessage>(
-        FlowInstance instance, 
+        StoredInstance instance, 
         TMessage message, 
         string? idempotencyKey = null
     ) where TMessage : notnull => messageWriters.For(instance).AppendMessage(message, idempotencyKey);

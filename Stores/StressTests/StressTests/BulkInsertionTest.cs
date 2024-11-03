@@ -79,7 +79,11 @@ public static class BulkInsertionTest
         Console.WriteLine("BULK_INSERTION_TEST: Initializing");
         var functions = Enumerable
             .Range(0, testSize)
-            .Select(i => new IdWithParam(new StoredId(storedType, i.ToString()), i.ToString().ToJson().ToUtf8Bytes()));
+            .Select(i => new IdWithParam(
+                new StoredId(storedType, i.ToString()),
+                "humanInstanceId",
+                i.ToString().ToJson().ToUtf8Bytes())
+            );
         await store.BulkScheduleFunctions(functions);
         
         stopWatch.Stop();

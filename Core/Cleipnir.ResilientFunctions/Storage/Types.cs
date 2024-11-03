@@ -3,11 +3,18 @@ using Cleipnir.ResilientFunctions.Domain;
 
 namespace Cleipnir.ResilientFunctions.Storage;
 
-public record StoredId(StoredType Type, string Instance);
+public record StoredId(StoredType Type, StoredInstance Instance)
+{
+    public override string ToString() => $"{Instance}@{Type}";
+}
 public record StoredType(int Value);
 
 public record StoredInstance(Guid Value)
 {
+    public static implicit operator StoredInstance(string id) => id.ToStoredInstance();
+    public static implicit operator StoredInstance(int id) => id.ToStoredInstance();
+    public static implicit operator StoredInstance(long id) => id.ToStoredInstance();
+    
     public static StoredInstance Create(string instanceId) 
         => new(InstanceIdFactory.FromString(instanceId));
     
@@ -18,13 +25,26 @@ public record StoredInstance(Guid Value)
         => new(InstanceIdFactory.FromLong(instanceId));
 }
 
+public static class StoredInstanceExtensions
+{
+    public static StoredInstance ToStoredInstance(this string instanceId)
+        => StoredInstance.Create(instanceId);
+    public static StoredInstance ToStoredInstance(this int instanceId)
+        => StoredInstance.Create(instanceId);
+    public static StoredInstance ToStoredInstance(this long instanceId)
+        => StoredInstance.Create(instanceId);
+
+    public static StoredInstance ToStoredInstance(this Guid instanceId) => new(instanceId);
+}
+
 internal static class StoredTypeExtension
 {
     public static StoredType ToStoredType(this int storedType) => new(storedType);
 };
 
 public record StoredFlow(
-    StoredId FlowId,
+    StoredId StoredId,
+    string HumanInstanceId,
     byte[]? Parameter,
     Status Status,
     byte[]? Result,
@@ -61,4 +81,4 @@ public record StoredEffect(
 };
 public record StoredState(StateId StateId, byte[] StateJson);
 
-public record IdWithParam(StoredId StoredId, byte[]? Param);
+public record IdWithParam(StoredId StoredId, string HumanInstanceId, byte[]? Param);

@@ -344,7 +344,8 @@ public abstract class PostponedTests
         {
             var functionId = new FlowId(flowType, "re-invoke");
             await store.CreateFunction(
-                rAction.MapToStoredId(functionId),
+                rAction.MapToStoredId(functionId), 
+                "humanInstanceId",
                 param: "hello".ToJson().ToUtf8Bytes(),
                 leaseExpiration: DateTime.UtcNow.Ticks,
                 postponeUntil: null,
@@ -365,7 +366,8 @@ public abstract class PostponedTests
         {
             var functionId = new FlowId(flowType, "schedule_re-invoke");
             await store.CreateFunction(
-                rAction.MapToStoredId(functionId),
+                rAction.MapToStoredId(functionId), 
+                "humanInstanceId",
                 param: "hello".ToJson().ToUtf8Bytes(),
                 leaseExpiration: DateTime.UtcNow.Ticks,
                 postponeUntil: null,
@@ -431,7 +433,8 @@ public abstract class PostponedTests
         {
             var functionId = new FlowId(flowType, "re-invoke");
             await store.CreateFunction(
-                rAction.MapToStoredId(functionId),
+                rAction.MapToStoredId(functionId), 
+                "humanInstanceId",
                 param: "hello".ToJson().ToUtf8Bytes(), 
                 leaseExpiration: DateTime.UtcNow.Ticks,
                 postponeUntil: null,
@@ -452,7 +455,8 @@ public abstract class PostponedTests
         {
             var functionId = new FlowId(flowType, "schedule_re-invoke");
             await store.CreateFunction(
-                rAction.MapToStoredId(functionId),
+                rAction.MapToStoredId(functionId), 
+                "humanInstanceId",
                 param: "hello".ToJson().ToUtf8Bytes(),
                 leaseExpiration: DateTime.UtcNow.Ticks,
                 postponeUntil: null,
@@ -520,7 +524,8 @@ public abstract class PostponedTests
         {
             var functionId = new FlowId(flowType, "re-invoke");
             await store.CreateFunction(
-                rFunc.MapToStoredId(functionId),
+                rFunc.MapToStoredId(functionId), 
+                "humanInstanceId",
                 param: "hello".ToJson().ToUtf8Bytes(),
                 leaseExpiration: DateTime.UtcNow.Ticks,
                 postponeUntil: null,
@@ -539,7 +544,8 @@ public abstract class PostponedTests
         {
             var functionId = new FlowId(flowType, "schedule_re-invoke");
             await store.CreateFunction(
-                rFunc.MapToStoredId(functionId),
+                rFunc.MapToStoredId(functionId), 
+                "humanInstanceId",
                 param: "hello".ToJson().ToUtf8Bytes(),
                 leaseExpiration: DateTime.UtcNow.Ticks,
                 postponeUntil: null,
@@ -606,7 +612,8 @@ public abstract class PostponedTests
         {
             var functionId = new FlowId(flowType, "re-invoke");
             await store.CreateFunction(
-                rFunc.MapToStoredId(functionId),
+                rFunc.MapToStoredId(functionId), 
+                "humanInstanceId",
                 "hello".ToJson().ToUtf8Bytes(),
                 leaseExpiration: DateTime.UtcNow.Ticks,
                 postponeUntil: null,
@@ -626,7 +633,8 @@ public abstract class PostponedTests
         {
             var functionId = new FlowId(flowType, "schedule_re-invoke");
             await store.CreateFunction(
-                rFunc.MapToStoredId(functionId),
+                rFunc.MapToStoredId(functionId), 
+                "humanInstanceId",
                 param: "hello".ToJson().ToUtf8Bytes(),
                 leaseExpiration: DateTime.UtcNow.Ticks,
                 postponeUntil: null,
@@ -657,7 +665,25 @@ public abstract class PostponedTests
         var store = await storeTask;
 
         var storedParameter = "hello".ToJson();
+        var storedType = await store.TypeStore.InsertOrGetStoredType(functionId.Type);
+        var storedId = new StoredId(storedType, functionId.Instance.Value);
+        await store.CreateFunction(
+            storedId, 
+            "humanInstanceId",
+            storedParameter.ToUtf8Bytes(),
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks
+        ).ShouldBeTrueAsync();
 
+        await store.PostponeFunction(
+            storedId,
+            postponeUntil: DateTime.UtcNow.AddDays(-1).Ticks,
+            timestamp: DateTime.UtcNow.Ticks,
+            expectedEpoch: 0,
+            complimentaryState: new ComplimentaryState(storedParameter.ToUtf8Bytes().ToFunc(), LeaseLength: 0)
+        ).ShouldBeTrueAsync();
+        
         using var functionsRegistry = new FunctionsRegistry(
             store,
             new Settings(
@@ -676,22 +702,6 @@ public abstract class PostponedTests
                 invokedFlag.Raise();
                 return Task.CompletedTask;
             });
-
-        await store.CreateFunction(
-            registration.MapToStoredId(functionId),
-            storedParameter.ToUtf8Bytes(),
-            leaseExpiration: DateTime.UtcNow.Ticks,
-            postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks
-        ).ShouldBeTrueAsync();
-
-        await store.PostponeFunction(
-            registration.MapToStoredId(functionId),
-            postponeUntil: DateTime.UtcNow.AddDays(-1).Ticks,
-            timestamp: DateTime.UtcNow.Ticks,
-            expectedEpoch: 0,
-            complimentaryState: new ComplimentaryState(storedParameter.ToUtf8Bytes().ToFunc(), LeaseLength: 0)
-        ).ShouldBeTrueAsync();
         
         await BusyWait.Until(() => invokedFlag.IsRaised, maxWait: TimeSpan.FromSeconds(10));
         syncedParam.Value.ShouldBe("hello");

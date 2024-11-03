@@ -303,7 +303,8 @@ public abstract class EffectTests
             });
 
         await store.CreateFunction(
-            registration.MapToStoredId(flowId),
+            registration.MapToStoredId(flowId), 
+            "humanInstanceId",
             Test.SimpleStoredParameter,
             leaseExpiration: (DateTime.UtcNow + TimeSpan.FromMinutes(10)).Ticks,
             postponeUntil: null,

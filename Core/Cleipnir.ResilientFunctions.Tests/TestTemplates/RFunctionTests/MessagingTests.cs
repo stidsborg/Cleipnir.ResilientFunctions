@@ -40,7 +40,7 @@ public abstract class MessagingTests
         await Task.Delay(100);
         invocationTask.IsCompleted.ShouldBeFalse();
         
-        var messagesWriter = rAction.MessageWriters.For("instanceId");
+        var messagesWriter = rAction.MessageWriters.For("instanceId".ToFlowInstance());
         await messagesWriter.AppendMessage("hello world");
         var result = await invocationTask;
         result.ShouldBe("hello world");

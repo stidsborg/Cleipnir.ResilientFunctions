@@ -21,6 +21,7 @@ public abstract class MessageStoreTests
         var functionStore = await functionStoreTask;
         await functionStore.CreateFunction(
             functionId, 
+            "humanInstanceId",
             Test.SimpleStoredParameter, 
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
@@ -55,7 +56,8 @@ public abstract class MessageStoreTests
         var functionId = TestStoredId.Create();
         var functionStore = await functionStoreTask;
         await functionStore.CreateFunction(
-            functionId, 
+            functionId,  
+            "humanInstanceId",
             Test.SimpleStoredParameter, 
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
@@ -96,7 +98,8 @@ public abstract class MessageStoreTests
         var functionId = TestStoredId.Create();
         var functionStore = await functionStoreTask;
         await functionStore.CreateFunction(
-            functionId, 
+            functionId,  
+            "humanInstanceId",
             Test.SimpleStoredParameter, 
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
@@ -138,7 +141,8 @@ public abstract class MessageStoreTests
         var functionId = TestStoredId.Create();
         var functionStore = await functionStoreTask;
         await functionStore.CreateFunction(
-            functionId, 
+            functionId,  
+            "humanInstanceId",
             Test.SimpleStoredParameter, 
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
@@ -180,7 +184,8 @@ public abstract class MessageStoreTests
         var functionId = TestStoredId.Create();
         var functionStore = await functionStoreTask;
         await functionStore.CreateFunction(
-            functionId, 
+            functionId,  
+            "humanInstanceId",
             Test.SimpleStoredParameter, 
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
@@ -219,7 +224,8 @@ public abstract class MessageStoreTests
         var functionId = TestStoredId.Create();
         var functionStore = await functionStoreTask;
         await functionStore.CreateFunction(
-            functionId, 
+            functionId,  
+            "humanInstanceId",
             Test.SimpleStoredParameter, 
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
@@ -245,7 +251,8 @@ public abstract class MessageStoreTests
         var functionId = TestStoredId.Create();
         var functionStore = await functionStoreTask;
         await functionStore.CreateFunction(
-            functionId, 
+            functionId,  
+            "humanInstanceId",
             Test.SimpleStoredParameter, 
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
@@ -272,7 +279,8 @@ public abstract class MessageStoreTests
         var functionId = TestStoredId.Create();
         var functionStore = await functionStoreTask;
         await functionStore.CreateFunction(
-            functionId, 
+            functionId,  
+            "humanInstanceId",
             Test.SimpleStoredParameter, 
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
@@ -291,7 +299,8 @@ public abstract class MessageStoreTests
         var functionId = TestStoredId.Create();
         var functionStore = await functionStoreTask;
         await functionStore.CreateFunction(
-            functionId, 
+            functionId,  
+            "humanInstanceId",
             Test.SimpleStoredParameter, 
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
@@ -328,7 +337,8 @@ public abstract class MessageStoreTests
         var functionId = TestStoredId.Create();
         var functionStore = await functionStoreTask;
         await functionStore.CreateFunction(
-            functionId, 
+            functionId,  
+            "humanInstanceId",
             Test.SimpleStoredParameter, 
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
@@ -366,7 +376,8 @@ public abstract class MessageStoreTests
         var functionId = TestStoredId.Create();
         var functionStore = await functionStoreTask;
         await functionStore.CreateFunction(
-            functionId, 
+            functionId,  
+            "humanInstanceId",
             Test.SimpleStoredParameter, 
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
@@ -402,7 +413,8 @@ public abstract class MessageStoreTests
         var functionId = TestStoredId.Create();
         var functionStore = await functionStoreTask;
         await functionStore.CreateFunction(
-            functionId, 
+            functionId,  
+            "humanInstanceId",
             Test.SimpleStoredParameter, 
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
@@ -427,7 +439,8 @@ public abstract class MessageStoreTests
         var functionId = TestStoredId.Create();
         var functionStore = await functionStoreTask;
         await functionStore.CreateFunction(
-            functionId, 
+            functionId,  
+            "humanInstanceId",
             Test.SimpleStoredParameter, 
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
@@ -444,7 +457,8 @@ public abstract class MessageStoreTests
         var functionId = TestStoredId.Create();
         var functionStore = await functionStoreTask;
         await functionStore.CreateFunction(
-            functionId, 
+            functionId,  
+            "humanInstanceId",
             Test.SimpleStoredParameter, 
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
@@ -492,7 +506,8 @@ public abstract class MessageStoreTests
         var functionId = TestStoredId.Create();
         var functionStore = await functionStoreTask;
         await functionStore.CreateFunction(
-            functionId, 
+            functionId,  
+            "humanInstanceId",
             Test.SimpleStoredParameter, 
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,

@@ -48,6 +48,7 @@ public class CrashableFunctionStore : IFunctionStore
 
     public Task<bool> CreateFunction(
         StoredId storedId,
+        string humanInstanceId,
         byte[]? param,
         long leaseExpiration,
         long? postponeUntil,
@@ -56,6 +57,7 @@ public class CrashableFunctionStore : IFunctionStore
         ? Task.FromException<bool>(new TimeoutException())
         : _inner.CreateFunction(
             storedId,
+            humanInstanceId,
             param,
             leaseExpiration,
             postponeUntil,
@@ -82,9 +84,9 @@ public class CrashableFunctionStore : IFunctionStore
             ? Task.FromException<IReadOnlyList<IdAndEpoch>>(new TimeoutException())
             : _inner.GetExpiredFunctions(isEligibleBefore);
 
-    public Task<IReadOnlyList<FlowInstance>> GetSucceededFunctions(StoredType storedType, long completedBefore)
+    public Task<IReadOnlyList<StoredInstance>> GetSucceededFunctions(StoredType storedType, long completedBefore)
         => _crashed
-            ? Task.FromException<IReadOnlyList<FlowInstance>>(new TimeoutException())
+            ? Task.FromException<IReadOnlyList<StoredInstance>>(new TimeoutException())
             : _inner.GetSucceededFunctions(storedType, completedBefore);
 
     public Task<bool> SetFunctionState(
@@ -169,20 +171,15 @@ public class CrashableFunctionStore : IFunctionStore
             ? Task.FromException<StoredFlow?>(new TimeoutException())
             : _inner.GetFunction(storedId);
 
-    public Task<IReadOnlyList<FlowInstance>> GetInstances(StoredType flowType, Status status)
+    public Task<IReadOnlyList<StoredInstance>> GetInstances(StoredType flowType, Status status)
         => _crashed
-            ? Task.FromException<IReadOnlyList<FlowInstance>>(new TimeoutException())
+            ? Task.FromException<IReadOnlyList<StoredInstance>>(new TimeoutException())
             : _inner.GetInstances(flowType, status);
 
-    public Task<IReadOnlyList<FlowInstance>> GetInstances(StoredType flowType)
+    public Task<IReadOnlyList<StoredInstance>> GetInstances(StoredType flowType)
         => _crashed
-            ? Task.FromException<IReadOnlyList<FlowInstance>>(new TimeoutException())
+            ? Task.FromException<IReadOnlyList<StoredInstance>>(new TimeoutException())
             : _inner.GetInstances(flowType);
-
-    public Task<IReadOnlyList<StoredType>> GetTypes() 
-        => _crashed
-            ? Task.FromException<IReadOnlyList<StoredType>>(new TimeoutException())
-            : _inner.GetTypes();
 
     public Task<bool> DeleteFunction(StoredId storedId)
         => _crashed

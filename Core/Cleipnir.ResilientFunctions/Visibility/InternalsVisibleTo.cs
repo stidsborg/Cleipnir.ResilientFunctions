@@ -24,3 +24,5 @@
 [assembly: InternalsVisibleTo("Cleipnir.Flows.MassTransit.RabbitMq.Console")]
 [assembly: InternalsVisibleTo("Cleipnir.Flows.Sample.Presentation.AspNet")]
 [assembly: InternalsVisibleTo("Cleipnir.Flows.Sample.Presentation")]
+
+[assembly: InternalsVisibleTo("Cleipnir.ResilientFunctions.MySQL")]

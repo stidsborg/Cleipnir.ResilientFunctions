@@ -78,5 +78,5 @@ public class InMemoryTimeoutStore : ITimeoutStore
                 .ToTask();
     }
 
-    private record Key(int FlowType, string FlowInstance, string TimeoutId);
+    private record Key(int FlowType, StoredInstance FlowInstance, string TimeoutId);
 }

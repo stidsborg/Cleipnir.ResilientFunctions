@@ -19,6 +19,7 @@ public interface IFunctionStore
     
     Task<bool> CreateFunction(
         StoredId storedId, 
+        string humanInstanceId,
         byte[]? param,
         long leaseExpiration,
         long? postponeUntil,
@@ -34,7 +35,7 @@ public interface IFunctionStore
     Task<bool> RenewLease(StoredId storedId, int expectedEpoch, long leaseExpiration);
     
     Task<IReadOnlyList<IdAndEpoch>> GetExpiredFunctions(long expiresBefore);
-    Task<IReadOnlyList<FlowInstance>> GetSucceededFunctions(StoredType storedType, long completedBefore);
+    Task<IReadOnlyList<StoredInstance>> GetSucceededFunctions(StoredType storedType, long completedBefore);
     
     Task<bool> SetParameters(
         StoredId storedId,
@@ -89,9 +90,8 @@ public interface IFunctionStore
 
     Task<StatusAndEpoch?> GetFunctionStatus(StoredId storedId);
     Task<StoredFlow?> GetFunction(StoredId storedId);
-    Task<IReadOnlyList<FlowInstance>> GetInstances(StoredType storedType, Status status);
-    Task<IReadOnlyList<FlowInstance>> GetInstances(StoredType storedType);
-    Task<IReadOnlyList<StoredType>> GetTypes();
+    Task<IReadOnlyList<StoredInstance>> GetInstances(StoredType storedType, Status status);
+    Task<IReadOnlyList<StoredInstance>> GetInstances(StoredType storedType);
 
     Task<bool> DeleteFunction(StoredId storedId);
 }

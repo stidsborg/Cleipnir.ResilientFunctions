@@ -28,7 +28,8 @@ public abstract class InitialInvocationFailedTests
             });
 
         await store.CreateFunction(
-            registration.MapToStoredId(functionId),
+            registration.MapToStoredId(functionId), 
+            "humanInstanceId",
             param: "hello world".ToJson().ToUtf8Bytes(),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
@@ -59,7 +60,8 @@ public abstract class InitialInvocationFailedTests
             });
 
         await store.CreateFunction(
-            registration.MapToStoredId(functionId),
+            registration.MapToStoredId(functionId), 
+            "humanInstanceId",
             param: "hello world".ToJson().ToUtf8Bytes(),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
@@ -90,7 +92,8 @@ public abstract class InitialInvocationFailedTests
             });
 
         await store.CreateFunction(
-            registration.MapToStoredId(functionId),
+            registration.MapToStoredId(functionId), 
+            "humanInstanceId",
             param: "hello world".ToJson().ToUtf8Bytes(),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
@@ -124,7 +127,8 @@ public abstract class InitialInvocationFailedTests
             });
 
         await store.CreateFunction(
-            registration.MapToStoredId(functionId),
+            registration.MapToStoredId(functionId), 
+            "humanInstanceId",
             param: "hello world".ToJson().ToUtf8Bytes(),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,

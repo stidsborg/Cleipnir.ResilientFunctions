@@ -54,7 +54,7 @@ public class Example
 
             await registration
                 .MessageWriters
-                .For(bookingId.ToString()!)
+                .For(bookingId.ToString()!.ToFlowInstance()!)
                 .AppendMessage(@event);
         });
 

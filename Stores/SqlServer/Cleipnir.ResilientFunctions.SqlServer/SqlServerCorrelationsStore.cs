@@ -18,7 +18,7 @@ public class SqlServerCorrelationsStore(string connectionString, string tablePre
         _initializeSql ??= @$"    
             CREATE TABLE {tablePrefix}_Correlations (
                 Type INT,
-                Instance NVARCHAR(200),
+                Instance UNIQUEIDENTIFIER,
                 Correlation NVARCHAR(200),                
                 PRIMARY KEY (Type, Instance, Correlation)        
             );
@@ -60,7 +60,7 @@ public class SqlServerCorrelationsStore(string connectionString, string tablePre
         
         await using var command = new SqlCommand(_setCorrelationSql, conn);
         command.Parameters.AddWithValue("@Type", flowType.Value);
-        command.Parameters.AddWithValue("@Instance", flowInstance);
+        command.Parameters.AddWithValue("@Instance", flowInstance.Value);
         command.Parameters.AddWithValue("@Correlation", correlationId);
         
         await command.ExecuteNonQueryAsync();
@@ -82,16 +82,16 @@ public class SqlServerCorrelationsStore(string connectionString, string tablePre
         await using var reader = await command.ExecuteReaderAsync();
         while (reader.HasRows && reader.Read())
         {
-            var functionType = reader.GetInt32(0);
-            var functionInstance = reader.GetString(1);
-            functions.Add(new StoredId(new StoredType(functionType), functionInstance));
+            var storedType = reader.GetInt32(0);
+            var storedInstance = reader.GetGuid(1);
+            functions.Add(new StoredId(new StoredType(storedType), storedInstance.ToStoredInstance()));
         }
 
         return functions;
     }
 
     private string? _getInstancesForFunctionTypeAndCorrelationId;
-    public async Task<IReadOnlyList<string>> GetCorrelations(StoredType storedType, string correlationId)
+    public async Task<IReadOnlyList<StoredInstance>> GetCorrelations(StoredType storedType, string correlationId)
     {
         await using var conn = await _connFunc();
         _getInstancesForFunctionTypeAndCorrelationId ??= @$"
@@ -103,11 +103,11 @@ public class SqlServerCorrelationsStore(string connectionString, string tablePre
         command.Parameters.AddWithValue("@Type", storedType.Value);
         command.Parameters.AddWithValue("@Correlation", correlationId);
 
-        var correlations = new List<string>();
+        var correlations = new List<StoredInstance>();
         await using var reader = await command.ExecuteReaderAsync();
         while (reader.HasRows && reader.Read())
         {
-            var correlation = reader.GetString(0);
+            var correlation = reader.GetGuid(0).ToStoredInstance();
             correlations.Add(correlation);
         }
 
@@ -126,7 +126,7 @@ public class SqlServerCorrelationsStore(string connectionString, string tablePre
         
         await using var command = new SqlCommand(_getCorrelationsForFunction, conn);
         command.Parameters.AddWithValue("@Type", typeId.Value);
-        command.Parameters.AddWithValue("@Instance", instanceId);
+        command.Parameters.AddWithValue("@Instance", instanceId.Value);
 
         var correlations = new List<string>();
         await using var reader = await command.ExecuteReaderAsync();
@@ -150,7 +150,7 @@ public class SqlServerCorrelationsStore(string connectionString, string tablePre
         
         await using var command = new SqlCommand(_removeCorrelationsSql, conn);
         command.Parameters.AddWithValue("@Type", typeId.Value);
-        command.Parameters.AddWithValue("@Instance", instanceId);
+        command.Parameters.AddWithValue("@Instance", instanceId.Value);
         
         await command.ExecuteNonQueryAsync();
     }
@@ -166,7 +166,7 @@ public class SqlServerCorrelationsStore(string connectionString, string tablePre
         
         await using var command = new SqlCommand(_removeCorrelationSql, conn);
         command.Parameters.AddWithValue("@Type", typeId.Value);
-        command.Parameters.AddWithValue("@Instance", instanceId);
+        command.Parameters.AddWithValue("@Instance", instanceId.Value);
         command.Parameters.AddWithValue("@Correlation", correlationId);
         
         await command.ExecuteNonQueryAsync();

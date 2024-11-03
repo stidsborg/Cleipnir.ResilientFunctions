@@ -27,7 +27,7 @@ public class PostgreSqlMessageStore(string connectionString, string tablePrefix 
         _initializeSql ??= @$"
             CREATE TABLE IF NOT EXISTS {_tablePrefix}_messages (
                 type INT,
-                instance VARCHAR(255),
+                instance UUID,
                 position INT NOT NULL,
                 message_json BYTEA NOT NULL,
                 message_type BYTEA NOT NULL,   
@@ -70,7 +70,7 @@ public class PostgreSqlMessageStore(string connectionString, string tablePrefix 
                 Parameters =
                 {
                     new() {Value = storedId.Type.Value},
-                    new() {Value = storedId.Instance},
+                    new() {Value = storedId.Instance.Value},
                     new() {Value = messageJson},
                     new() {Value = messageType},
                     new() {Value = idempotencyKey ?? (object) DBNull.Value}
@@ -89,7 +89,7 @@ public class PostgreSqlMessageStore(string connectionString, string tablePrefix 
             {
                 Parameters = { 
                     new() {Value = storedId.Type.Value},
-                    new() {Value = storedId.Instance}
+                    new() {Value = storedId.Instance.Value}
                 }
             };
             batch.BatchCommands.Add(command);  
@@ -141,7 +141,7 @@ public class PostgreSqlMessageStore(string connectionString, string tablePrefix 
                 new() {Value = messageType},
                 new() {Value = idempotencyKey ?? (object) DBNull.Value},
                 new() {Value = storedId.Type.Value},
-                new() {Value = storedId.Instance},
+                new() {Value = storedId.Instance.Value},
                 new() {Value = position},
             }
         };
@@ -162,7 +162,7 @@ public class PostgreSqlMessageStore(string connectionString, string tablePrefix 
             Parameters =
             {
                 new() {Value = storedId.Type.Value},
-                new() {Value = storedId.Instance}
+                new() {Value = storedId.Instance.Value}
             }
         };
         await command.ExecuteNonQueryAsync();
@@ -182,7 +182,7 @@ public class PostgreSqlMessageStore(string connectionString, string tablePrefix 
             Parameters =
             {
                 new() {Value = storedId.Type.Value},
-                new() {Value = storedId.Instance},
+                new() {Value = storedId.Instance.Value},
                 new () {Value = skip}
             }
         };
@@ -212,7 +212,7 @@ public class PostgreSqlMessageStore(string connectionString, string tablePrefix 
         {
             Parameters = { 
                 new() {Value = storedId.Type.Value},
-                new() {Value = storedId.Instance}
+                new() {Value = storedId.Instance.Value}
             }
         };
 
@@ -223,7 +223,7 @@ public class PostgreSqlMessageStore(string connectionString, string tablePrefix 
             var status = (Status) reader.GetInt32(1);
             return new FunctionStatus(status, epoch);
         }
-        
-        throw UnexpectedStateException.ConcurrentModification(new FlowId(storedId.Type.Value.ToString(), storedId.Instance)); //row must have been deleted concurrently
+
+        throw UnexpectedStateException.ConcurrentModification(storedId); //row must have been deleted concurrently
     }
 }
