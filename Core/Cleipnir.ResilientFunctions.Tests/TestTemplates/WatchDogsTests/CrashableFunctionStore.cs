@@ -25,6 +25,7 @@ public class CrashableFunctionStore : IFunctionStore
     public ICorrelationStore CorrelationStore => _crashed ? throw new TimeoutException() : _inner.CorrelationStore;
     public Utilities Utilities => _crashed ? throw new TimeoutException() : _inner.Utilities;
     public IMigrator Migrator => _crashed ? throw new TimeoutException() : _inner.Migrator;
+    public ILogStore LogStore => _crashed ? throw new TimeoutException() : _inner.LogStore;
 
     public CrashableFunctionStore(IFunctionStore inner)
     {

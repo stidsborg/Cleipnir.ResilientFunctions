@@ -29,6 +29,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
     public Utilities Utilities { get; }
     
     public IMigrator Migrator { get; } = new InMemoryMigrator();
+    public ILogStore LogStore { get; } = new InMemoryLogStore();
 
     public Task Initialize() => Task.CompletedTask;
 

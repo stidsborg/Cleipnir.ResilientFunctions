@@ -26,3 +26,4 @@
 [assembly: InternalsVisibleTo("Cleipnir.Flows.Sample.Presentation")]
 
 [assembly: InternalsVisibleTo("Cleipnir.ResilientFunctions.MySQL")]
+[assembly: InternalsVisibleTo("Cleipnir.ResilientFunctions.PostgreSQL")]

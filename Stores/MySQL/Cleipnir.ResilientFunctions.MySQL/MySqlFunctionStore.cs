@@ -31,6 +31,7 @@ public class MySqlFunctionStore : IFunctionStore
     public ICorrelationStore CorrelationStore => _correlationStore;
 
     public IMigrator Migrator => _migrator;
+    public ILogStore LogStore => throw new NotImplementedException();
     private readonly MySqlMigrator _migrator;
 
     public Utilities Utilities { get; }
