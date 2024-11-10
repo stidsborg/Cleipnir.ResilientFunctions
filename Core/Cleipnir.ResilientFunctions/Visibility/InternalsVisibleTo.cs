@@ -4,7 +4,7 @@
 [assembly: InternalsVisibleTo("Cleipnir.ResilientFunctions.AspNetCore.Core")]
 [assembly: InternalsVisibleTo("Cleipnir.ResilientFunctions.SqlServer.Tests")]
 [assembly: InternalsVisibleTo("Cleipnir.ResilientFunctions.PostgreSQL.Tests")]
-[assembly: InternalsVisibleTo("Cleipnir.ResilientFunctions.MySQL.Tests")]
+[assembly: InternalsVisibleTo("Cleipnir.ResilientFunctions.MariaDB.Tests")]
 [assembly: InternalsVisibleTo("Cleipnir.ResilientFunctions.StressTests")]
 [assembly: InternalsVisibleTo("Sample.ConsoleApp")]
 
@@ -25,5 +25,5 @@
 [assembly: InternalsVisibleTo("Cleipnir.Flows.Sample.Presentation.AspNet")]
 [assembly: InternalsVisibleTo("Cleipnir.Flows.Sample.Presentation")]
 
-[assembly: InternalsVisibleTo("Cleipnir.ResilientFunctions.MySQL")]
+[assembly: InternalsVisibleTo("Cleipnir.ResilientFunctions.MariaDB")]
 [assembly: InternalsVisibleTo("Cleipnir.ResilientFunctions.PostgreSQL")]

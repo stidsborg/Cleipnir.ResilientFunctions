@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
-using Cleipnir.ResilientFunctions.MySQL;
+using Cleipnir.ResilientFunctions.MariaDb;
 using Cleipnir.ResilientFunctions.PostgreSQL;
 using Cleipnir.ResilientFunctions.SqlServer;
 using Cleipnir.ResilientFunctions.Storage;
@@ -22,9 +22,9 @@ public static class Example
         var sqlServerStore = new SqlServerFunctionStore("Server=localhost;Database=rfunctions;User Id=sa;Password=Pa55word!;Encrypt=True;TrustServerCertificate=True;Max Pool Size=200;");
         await sqlServerStore.Initialize();
         await sqlServerStore.TruncateTables();
-        var mySqlStore = new MySqlFunctionStore("server=localhost;userid=root;password=Pa55word!;database=rfunctions;AllowPublicKeyRetrieval=True;");
-        await mySqlStore.Initialize();
-        await mySqlStore.TruncateTables();
+        var mariaDbStore = new MariaDbFunctionStore("server=localhost;userid=root;password=Pa55word!;database=rfunctions;AllowPublicKeyRetrieval=True;");
+        await mariaDbStore.Initialize();
+        await mariaDbStore.TruncateTables();
         
         Console.WriteLine();
         Console.WriteLine("Postgres: ");
@@ -34,11 +34,11 @@ public static class Example
         var sqlServerTask = Task.Run(() => Perform(sqlServerStore));
         Console.WriteLine();
         Console.WriteLine("MySql:");
-        var mySqlTask = Task.Run(() => Perform(mySqlStore));
+        var mariaDbTask = Task.Run(() => Perform(mariaDbStore));
 
         await postgresTask;
         await sqlServerTask;
-        await mySqlTask;
+        await mariaDbTask;
 
         Console.WriteLine("All completed!");
     }

@@ -23,11 +23,11 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cleipnir.ResilientFunctions
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cleipnir.ResilientFunctions.Tests", "Core\Cleipnir.ResilientFunctions.Tests\Cleipnir.ResilientFunctions.Tests.csproj", "{36E75AAA-C2EB-4209-8455-A51676D16B76}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "MySQL", "MySQL", "{24D9300F-D93E-47FF-8644-BF5D6B289C0D}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "MariaDB", "MariaDB", "{24D9300F-D93E-47FF-8644-BF5D6B289C0D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cleipnir.ResilientFunctions.MySQL", "Stores\MySQL\Cleipnir.ResilientFunctions.MySQL\Cleipnir.ResilientFunctions.MySQL.csproj", "{1679CE08-4075-48F1-B837-22017CF5B2E4}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cleipnir.ResilientFunctions.MariaDB", "Stores\MariaDB\Cleipnir.ResilientFunctions.MariaDB\Cleipnir.ResilientFunctions.MariaDB.csproj", "{1679CE08-4075-48F1-B837-22017CF5B2E4}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cleipnir.ResilientFunctions.MySQL.Tests", "Stores\MySQL\Cleipnir.ResilientFunctions.MySQL.Tests\Cleipnir.ResilientFunctions.MySQL.Tests.csproj", "{1E2CE2C1-FEC8-4554-9818-9D8EF0A785BA}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cleipnir.ResilientFunctions.MariaDB.Tests", "Stores\MariaDB\Cleipnir.ResilientFunctions.MariaDB.Tests\Cleipnir.ResilientFunctions.MariaDB.Tests.csproj", "{1E2CE2C1-FEC8-4554-9818-9D8EF0A785BA}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Stores", "Stores", "{F74BC95E-DDE2-44D1-A2B4-CE8FC2FB31EA}"
 EndProject

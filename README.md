@@ -44,7 +44,7 @@ Out-of-the-box you also get:
 ## Getting Started
 Only three steps needs to be performed to get started.
 
-Firstly, install the relevant nuget package (using either Postgres, SqlServer, MySQL or Azure Blob-storage as persistence layer). I.e.
+Firstly, install the relevant nuget package (using either Postgres, SqlServer, MariaDB or Azure Blob-storage as persistence layer). I.e.
 ```console
 dotnet add package Cleipnir.ResilientFunctions.PostgreSQL
 ```

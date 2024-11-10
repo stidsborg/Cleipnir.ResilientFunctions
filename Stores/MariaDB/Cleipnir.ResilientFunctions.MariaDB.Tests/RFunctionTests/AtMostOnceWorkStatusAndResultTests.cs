@@ -1,0 +1,31 @@
+﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+
+namespace Cleipnir.ResilientFunctions.MariaDb.Tests.RFunctionTests;
+
+[TestClass]
+public class AtMostOnceWorkStatusAndResultTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.RFunctionTests.AtMostOnceWorkStatusAndResultTests
+{
+    [TestMethod]
+    public override Task AtMostOnceWorkIsNotExecutedMultipleTimes()
+        => AtMostOnceWorkIsNotExecutedMultipleTimes(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task AtMostOnceWorkWithCallIdIsNotExecutedMultipleTimes()
+        => AtMostOnceWorkWithCallIdIsNotExecutedMultipleTimes(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task AtMostOnceWorkWithCallIdAndGenericResultIsNotExecutedMultipleTimes()
+        => AtMostOnceWorkWithCallIdAndGenericResultIsNotExecutedMultipleTimes(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task CompletedAtMostOnceWorkWithCallIdAndGenericResultIsNotExecutedMultipleTimes()
+        => CompletedAtMostOnceWorkWithCallIdAndGenericResultIsNotExecutedMultipleTimes(FunctionStoreFactory.Create());
+    
+    [TestMethod]
+    public override Task CompletedAtMostOnceWorkIsNotExecutedMultipleTimes()
+        => CompletedAtMostOnceWorkIsNotExecutedMultipleTimes(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task CompletedAtMostOnceWorkWithCallIdIsNotExecutedMultipleTimes()
+        => CompletedAtMostOnceWorkWithCallIdIsNotExecutedMultipleTimes(FunctionStoreFactory.Create());
+}

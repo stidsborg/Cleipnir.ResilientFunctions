@@ -16,13 +16,13 @@ internal static class Program
             
             try
             {
-                await CreateAndOpenMySqlConnection();
+                await CreateAndOpenMariaDbConnection();
             }
             catch (Exception e)
             {
                 if (retry == 20)
                 {
-                    Console.WriteLine($"Unable to connect to MySQL. Exception: {e}");
+                    Console.WriteLine($"Unable to connect to MariaDB. Exception: {e}");
                     return -1;
                 }
                 retry++;
@@ -66,7 +66,7 @@ internal static class Program
         return 0;
     }
     
-    private static async Task CreateAndOpenMySqlConnection()
+    private static async Task CreateAndOpenMariaDbConnection()
     {
         const string connectionString = "server=localhost;userid=root;password=Pa55word!;AllowPublicKeyRetrieval=True;";
         var conn = new MySqlConnection(connectionString);
