@@ -37,7 +37,7 @@ jobs:
 
       - run: dotnet test ./Core/Cleipnir.ResilientFunctions.Tests --no-build --logger "console;verbosity=detailed"
 
-      - run: dotnet test ./Stores/MySQL/Cleipnir.ResilientFunctions.MySQL.Tests --no-build --logger "console;verbosity=detailed"
+      - run: dotnet test ./Stores/MariaDB/Cleipnir.ResilientFunctions.MariaDB.Tests --no-build --logger "console;verbosity=detailed"
       
       - run: dotnet test ./Stores/PostgreSQL/Cleipnir.ResilientFunctions.PostgreSQL.Tests --no-build --logger "console;verbosity=detailed"
       
