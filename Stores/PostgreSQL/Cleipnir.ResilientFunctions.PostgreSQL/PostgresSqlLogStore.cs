@@ -147,7 +147,7 @@ public class PostgresSqlLogStore(string connectionString, string tablePrefix = "
             WHERE type = $1 AND instance = $2 AND position > $3
             ORDER BY position ASC;";
         
-        await using var command = new NpgsqlCommand(_getEntries, conn)
+        await using var command = new NpgsqlCommand(_getEntriesWithOffset, conn)
         {
             Parameters =
             {
@@ -161,19 +161,20 @@ public class PostgresSqlLogStore(string connectionString, string tablePrefix = "
     }
 
     private string? _getEntriesWithOffsetAndOwner;
-    public async Task<MaxPositionAndEntries?> GetEntries(StoredId id, Position offset, Owner owner)
+    public async Task<MaxPositionAndEntries> GetEntries(StoredId id, Position offset, Owner owner)
     {
         await using var conn = await CreateConnection();
         _getEntriesWithOffsetAndOwner ??= @$"    
-            SELECT position, owner, CASE WHEN owner = $4 THEN content END AS content
+            SELECT position, owner, CASE WHEN owner = $1 THEN content END AS content
             FROM {tablePrefix}_logs
-            WHERE type = $1 AND instance = $2 AND position > $3
+            WHERE type = $2 AND instance = $3 AND position > $4
             ORDER BY position ASC;";
         
-        await using var command = new NpgsqlCommand(_getEntries, conn)
+        await using var command = new NpgsqlCommand(_getEntriesWithOffsetAndOwner, conn)
         {
             Parameters =
             {
+                new() {Value = owner.Value},
                 new() {Value = id.Type.Value},
                 new() {Value = id.Instance.Value},
                 new() {Value = offset.Value.ToInt()},
@@ -182,7 +183,7 @@ public class PostgresSqlLogStore(string connectionString, string tablePrefix = "
 
         var entries = await ReadEntries(command);
         if (entries.Count == 0)
-            return default;
+            return new MaxPositionAndEntries(offset, Entries: []);
         
         var maxPosition = entries[^1].Position;
         return new MaxPositionAndEntries(
@@ -199,8 +200,8 @@ public class PostgresSqlLogStore(string connectionString, string tablePrefix = "
         {
             var position = new Position(reader.GetInt32(0).ToString());
             var owner = new Owner(reader.GetInt32(1));
-            var content = (byte[]) reader.GetValue(2);
-            storedMessages.Add(new StoredLogEntry(owner, position, content));
+            var content = reader.IsDBNull(2) ? null : (byte[]) reader.GetValue(2);
+            storedMessages.Add(new StoredLogEntry(owner, position, content!));
         }
 
         return storedMessages;

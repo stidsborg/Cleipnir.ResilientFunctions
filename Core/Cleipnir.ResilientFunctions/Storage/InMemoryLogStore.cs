@@ -73,13 +73,13 @@ public class InMemoryLogStore : ILogStore
             .ToTask();
     }
 
-    public Task<MaxPositionAndEntries?> GetEntries(StoredId id, Position offset, Owner owner)
+    public Task<MaxPositionAndEntries> GetEntries(StoredId id, Position offset, Owner owner)
     {
         lock (_sync)
         {
             var allEntries = GetEntries(id).Result;
             if (allEntries.Count == 0)
-                return default(MaxPositionAndEntries).ToTask();
+                return new MaxPositionAndEntries(offset, Entries: []).ToTask();
             
             var entries = allEntries
                 .Where(e => e.Owner == owner)
@@ -87,8 +87,8 @@ public class InMemoryLogStore : ILogStore
                 .ToList()
                 .CastTo<IReadOnlyList<StoredLogEntry>>();
 
-            var maxPosition = entries.Max(e => e.Position);
-            return new MaxPositionAndEntries(maxPosition!, entries).CastTo<MaxPositionAndEntries?>().ToTask();
+            var maxPosition = allEntries.Max(e => int.Parse(e.Position.Value));
+            return new MaxPositionAndEntries(new Position(maxPosition.ToString()), entries).ToTask();
         }
     }
 

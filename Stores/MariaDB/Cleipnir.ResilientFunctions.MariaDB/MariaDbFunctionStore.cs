@@ -30,9 +30,12 @@ public class MariaDbFunctionStore : IFunctionStore
     private readonly MariaDbCorrelationStore _correlationStore;
     public ICorrelationStore CorrelationStore => _correlationStore;
 
-    public IMigrator Migrator => _migrator;
-    public ILogStore LogStore => throw new NotImplementedException();
     private readonly MariaDbMigrator _migrator;
+    public IMigrator Migrator => _migrator;
+
+    private readonly MariaDbLogStore _logStore;
+    public ILogStore LogStore => _logStore;
+    
 
     public Utilities Utilities { get; }
     private readonly MariaDbUnderlyingRegister _mariaDbUnderlyingRegister;
@@ -47,6 +50,7 @@ public class MariaDbFunctionStore : IFunctionStore
         _messageStore = new MariaDbMessageStore(connectionString, tablePrefix);
         _effectsStore = new MariaDbEffectsStore(connectionString, tablePrefix);
         _correlationStore = new MariaDbCorrelationStore(connectionString, tablePrefix);
+        _logStore = new MariaDbLogStore(connectionString, tablePrefix);
         _timeoutStore = new MariaDbTimeoutStore(connectionString, tablePrefix);
         _mariaDbUnderlyingRegister = new MariaDbUnderlyingRegister(connectionString, tablePrefix);
         _typeStore = new MariaDbTypeStore(connectionString, tablePrefix);
@@ -66,6 +70,7 @@ public class MariaDbFunctionStore : IFunctionStore
         await MessageStore.Initialize();
         await EffectsStore.Initialize();
         await CorrelationStore.Initialize();
+        await _logStore.Initialize();
         await TimeoutStore.Initialize();
         await _typeStore.Initialize();
         await using var conn = await CreateOpenConnection(_connectionString);
@@ -98,6 +103,7 @@ public class MariaDbFunctionStore : IFunctionStore
         await _mariaDbUnderlyingRegister.TruncateTable();
         await _effectsStore.Truncate();
         await _correlationStore.Truncate();
+        await _logStore.Truncate();
         await _typeStore.Truncate();
         
         await using var conn = await CreateOpenConnection(_connectionString);

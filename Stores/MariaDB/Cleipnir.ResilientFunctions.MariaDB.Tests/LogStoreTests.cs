@@ -1,7 +1,7 @@
-﻿using System.Threading.Tasks;
+﻿using Cleipnir.ResilientFunctions.MariaDb.Tests;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-namespace Cleipnir.ResilientFunctions.SqlServer.Tests;
+namespace Cleipnir.ResilientFunctions.MariaDB.Tests;
 
 [TestClass]
 public class LogStoreTests : ResilientFunctions.Tests.TestTemplates.LogStoreTests

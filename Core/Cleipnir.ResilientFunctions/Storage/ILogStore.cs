@@ -12,7 +12,7 @@ public interface ILogStore
     public Task<IReadOnlyList<Position>> Append(StoredId id, IReadOnlyList<Tuple<Owner, Content>> contents);
     public Task<IReadOnlyList<StoredLogEntry>> GetEntries(StoredId id);
     public Task<IReadOnlyList<StoredLogEntry>> GetEntries(StoredId id, Position offset);
-    public Task<MaxPositionAndEntries?> GetEntries(StoredId id, Position offset, Owner owner);
+    public Task<MaxPositionAndEntries> GetEntries(StoredId id, Position offset, Owner owner);
 }
 
 public record MaxPositionAndEntries(Position MaxPosition, IReadOnlyList<StoredLogEntry> Entries);

@@ -154,7 +154,7 @@ public class SqlServerLogStore(string connectionString, string tablePrefix = "")
     }
 
     private string? _getEntriesWithOffsetAndOwner;
-    public async Task<MaxPositionAndEntries?> GetEntries(StoredId id, Position offset, Owner owner)
+    public async Task<MaxPositionAndEntries> GetEntries(StoredId id, Position offset, Owner owner)
     {
         await using var conn = await CreateConnection();
         _getEntriesWithOffsetAndOwner ??= @$"    
@@ -171,7 +171,7 @@ public class SqlServerLogStore(string connectionString, string tablePrefix = "")
 
         var entries =  await ReadEntries(command);
         if (entries.Count == 0)
-            return default;
+            return new MaxPositionAndEntries(offset, Entries: []);
         
         var maxPosition = entries[^1].Position;
         return new MaxPositionAndEntries(
@@ -188,8 +188,8 @@ public class SqlServerLogStore(string connectionString, string tablePrefix = "")
         {
             var position = new Position(reader.GetInt32(0).ToString());
             var owner = new Owner(reader.GetInt32(1));
-            var content = (byte[]) reader.GetValue(2);
-            logEntries.Add(new StoredLogEntry(owner, position, content));
+            var content = reader.IsDBNull(2) ? null : (byte[]) reader.GetValue(2);
+            logEntries.Add(new StoredLogEntry(owner, position, content!));
         }
 
         return logEntries;
