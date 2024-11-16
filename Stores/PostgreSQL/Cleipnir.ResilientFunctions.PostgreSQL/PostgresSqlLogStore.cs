@@ -110,9 +110,66 @@ public class PostgresSqlLogStore(string connectionString, string tablePrefix = "
         return new Position(position!.ToString()!);
     }
 
-    public Task<IReadOnlyList<Position>> Append(StoredId id, IReadOnlyList<Tuple<Owner, Content>> contents)
+    private string? _appendsSql;
+    public async Task<IReadOnlyList<Position>> Append(IEnumerable<AppendEntry> entries)
     {
-        throw new NotImplementedException();
+        await using var conn = await CreateConnection();
+        
+        _appendsSql ??= @$"    
+                INSERT INTO {tablePrefix}_logs
+                    (type, instance, position, owner, content)
+                VALUES @VALUES
+                RETURNING position;";
+        
+        var valuesTemplate = $@"( 
+                $TYPE, 
+                $INSTANCE, 
+                (SELECT COALESCE(MAX(position), -1) + @POSITION_OFFSET FROM {tablePrefix}_logs WHERE type = $TYPE AND instance = $INSTANCE),
+                $OWNER,
+                $CONTENT
+            )";
+
+        var command = new NpgsqlCommand();
+        var i = 1;
+        var valueSqls = new List<string>();
+        var positionOffsets = new Dictionary<StoredId, int>();
+        foreach (var (storedId, owner, content) in entries)
+        {
+            if (!positionOffsets.ContainsKey(storedId))
+                positionOffsets[storedId] = 1;
+
+            var positionOffset = positionOffsets[storedId]++;
+            
+            var typeIndex = i++;
+            var instanceIndex = i++;
+            var ownerIndex = i++;
+            var contentIndex = i++;
+            
+            var replacedTemplate = valuesTemplate
+                .Replace("$TYPE", "$" + typeIndex)
+                .Replace("$INSTANCE", "$" + instanceIndex)
+                .Replace("$OWNER", "$" + ownerIndex)
+                .Replace("$CONTENT", "$" + contentIndex);
+            valueSqls.Add(replacedTemplate.Replace("@POSITION_OFFSET", positionOffset.ToString()));
+
+            command.Parameters.AddWithValue(storedId.Type.Value);
+            command.Parameters.AddWithValue(storedId.Instance.Value);
+            command.Parameters.AddWithValue(owner.Value);
+            command.Parameters.AddWithValue(content);
+        }
+        command.Connection = conn;
+        var sql = _appendsSql.Replace("@VALUES", string.Join(", ", valueSqls));
+        command.CommandText = sql;
+
+        var positions = new List<Position>();
+        await using var reader = await command.ExecuteReaderAsync();
+        while (await reader.ReadAsync())
+        {
+            var position = reader.GetInt32(0);
+            positions.Add(new Position(position.ToString()));
+        }
+        
+        return positions;
     }
 
     private string? _getEntries;

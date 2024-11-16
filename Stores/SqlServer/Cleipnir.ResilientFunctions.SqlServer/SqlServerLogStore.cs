@@ -113,9 +113,60 @@ public class SqlServerLogStore(string connectionString, string tablePrefix = "")
         return new Position(position!.ToString()!);
     }
 
-    public Task<IReadOnlyList<Position>> Append(StoredId id, IReadOnlyList<Tuple<Owner, Content>> contents)
+    private string? _appendsSql;
+    public async Task<IReadOnlyList<Position>> Append(IEnumerable<AppendEntry> entries)
     {
-        throw new NotImplementedException();
+        await using var conn = await CreateConnection();
+        
+        _appendsSql ??= @$"    
+            INSERT INTO {tablePrefix}_Logs
+                (Type, Instance, Position, Owner, Content)
+            OUTPUT INSERTED.Position
+            VALUES @VALUES;";
+
+        var valuesTemplate = $@"( 
+                @Type#, 
+                @Instance#, 
+                (SELECT COALESCE(MAX(Position), -1) + @POSITION_OFFSET FROM {tablePrefix}_Logs WHERE Type = @Type# AND Instance = @Instance#),
+                @Owner#,
+                @Content#
+            )";
+
+        await using var command = new SqlCommand();
+        var i = 0;
+        var values = new List<string>();
+        var positionOffsets = new Dictionary<StoredId, int>();
+        foreach (var (storedId, owner, content) in entries)
+        {
+            if (!positionOffsets.ContainsKey(storedId))
+                positionOffsets[storedId] = 1;
+
+            var positionOffset = positionOffsets[storedId]++;
+
+            values.Add(valuesTemplate
+                .Replace("#", i.ToString())
+                .Replace("@POSITION_OFFSET", positionOffset.ToString())
+            );
+            
+            command.Parameters.AddWithValue($"@Type{i}", storedId.Type.Value);
+            command.Parameters.AddWithValue($"@Instance{i}", storedId.Instance.Value);
+            command.Parameters.AddWithValue($"@Owner{i}", owner.Value);
+            command.Parameters.AddWithValue($"@Content{i}", content);
+            
+            i++;
+        }
+        command.Connection = conn;
+        command.CommandText = _appendsSql.Replace("@VALUES", string.Join(", ", values));
+        
+        var positions = new List<Position>(capacity: i);
+        await using var reader = await command.ExecuteReaderAsync();
+        while (await reader.ReadAsync())
+        {
+            var position = new Position(reader.GetInt32(0).ToString());
+            positions.Add(position);
+        }
+
+        return positions;
     }
 
     private string? _getEntries;

@@ -14,7 +14,7 @@ public abstract class LogStoreTests
     {
         var logStore = (await storeTask).LogStore;
         var storedId = TestStoredId.Create();
-
+        
         var entries = await logStore.GetEntries(storedId);
         entries.ShouldBeEmpty();
 
@@ -111,5 +111,45 @@ public abstract class LogStoreTests
         var secondGetEntries = await logStore.GetEntries(storedId, maxPosition, owner1);
         secondGetEntries.Entries.ShouldBeEmpty();
         secondGetEntries.MaxPosition.ShouldBe(maxPosition);
+    }
+    
+    public abstract Task AppendMultipleEntriesAtOnce();
+    protected async Task AppendMultipleEntriesAtOnce(Task<IFunctionStore> storeTask)
+    {
+        var logStore = (await storeTask).LogStore;
+        var storedId1 = TestStoredId.Create();
+        var storedId2 = TestStoredId.Create();
+        
+        var owner1 = new Owner(1);
+        var msg1 = "hallo world".ToUtf8Bytes();
+        var position1 = await logStore.Append(storedId1, msg1, owner1);
+
+        var positions = await logStore.Append([
+            new AppendEntry(storedId1, owner1, "hallo again".ToUtf8Bytes()),
+            new AppendEntry(storedId2, owner1, "hallo from other id".ToUtf8Bytes()),
+            new AppendEntry(storedId1, owner1, "hallo again again".ToUtf8Bytes())
+        ]);
+
+        var entriesId1 = await logStore.GetEntries(storedId1);
+        entriesId1.Count.ShouldBe(3);
+        entriesId1[0].Position.ShouldBe(position1);
+        entriesId1[0].Owner.ShouldBe(owner1);
+        entriesId1[0].Content.ShouldBe(msg1);
+        
+        entriesId1[1].Position.ShouldBe(positions[0]);
+        entriesId1[1].Owner.ShouldBe(owner1);
+        entriesId1[1].Content.ShouldBe("hallo again".ToUtf8Bytes());
+        
+        entriesId1[2].Position.ShouldBe(positions[2]);
+        entriesId1[2].Owner.ShouldBe(owner1);
+        entriesId1[2].Content.ShouldBe("hallo again again".ToUtf8Bytes());
+        
+        var entriesId2 = await logStore.GetEntries(storedId2);
+        entriesId2.Count.ShouldBe(1);
+        entriesId2[0].Position.ShouldBe(positions[1]);
+        entriesId2[0].Owner.ShouldBe(owner1);
+        entriesId2[0].Content.ShouldBe("hallo from other id".ToUtf8Bytes());
+
+        await logStore.GetEntries(TestStoredId.Create()).ShouldBeEmptyAsync();
     }
 }

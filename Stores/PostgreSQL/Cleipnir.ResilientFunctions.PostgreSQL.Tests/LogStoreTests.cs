@@ -17,4 +17,8 @@ public class LogStoreTests : ResilientFunctions.Tests.TestTemplates.LogStoreTest
     [TestMethod]
     public override Task GetEntriesWithOffsetAndOwnerTest()
         => GetEntriesWithOffsetAndOwnerTest(FunctionStoreFactory.Create());
+    
+    [TestMethod]
+    public override Task AppendMultipleEntriesAtOnce()
+        => AppendMultipleEntriesAtOnce(FunctionStoreFactory.Create());
 }

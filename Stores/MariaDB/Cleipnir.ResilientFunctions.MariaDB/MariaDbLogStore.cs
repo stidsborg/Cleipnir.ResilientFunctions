@@ -171,9 +171,59 @@ public class MariaDbLogStore : ILogStore
         return null!;
     }
 
-    public Task<IReadOnlyList<Position>> Append(StoredId id, IReadOnlyList<Tuple<Owner, Content>> contents)
+    private string? _appendsSql;
+    public async Task<IReadOnlyList<Position>> Append(IEnumerable<AppendEntry> entries)
     {
-        throw new NotImplementedException();
+        await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
+        _appendsSql ??= @$"                       
+            INSERT INTO {_tablePrefix}_logs
+            (type, instance, position, owner, content)
+            @VALUES
+            RETURNING position;";
+        
+        var valuesTemplate = @$"
+           ( 
+             SELECT 
+                ?, 
+                ?, 
+                COALESCE(MAX(position), -1) + @POSITION_OFFSET,
+                ?,
+                ?
+              FROM {_tablePrefix}_logs
+              WHERE type = ? AND instance = ?
+           )";
+        
+        var command = new MySqlCommand();
+        var positionOffsets = new Dictionary<StoredId, int>();
+        var valueSqls = new List<string>();
+        foreach (var (storedId, owner, content) in entries)
+        {
+            if (!positionOffsets.ContainsKey(storedId))
+                positionOffsets[storedId] = 1;
+
+            var positionOffset = positionOffsets[storedId]++;
+            valueSqls.Add(valuesTemplate.Replace("@POSITION_OFFSET", positionOffset.ToString()));
+
+            command.Parameters.Add(new MySqlParameter(name: null, storedId.Type.Value));
+            command.Parameters.Add(new MySqlParameter(name: null, storedId.Instance.Value.ToString("N")));
+            command.Parameters.Add(new MySqlParameter(name: null, owner.Value));
+            command.Parameters.Add(new MySqlParameter(name: null, content));
+            command.Parameters.Add(new MySqlParameter(name: null, storedId.Type.Value));
+            command.Parameters.Add(new MySqlParameter(name: null, storedId.Instance.Value.ToString("N")));
+        }
+        command.Connection = conn;
+        var sql = _appendsSql.Replace("@VALUES", string.Join(" UNION " + Environment.NewLine, valueSqls));
+        command.CommandText = sql;
+
+        var positions = new List<Position>();
+        await using var reader = await command.ExecuteReaderAsync();
+        while (await reader.ReadAsync())
+        {
+            var position = reader.GetInt32(0);
+            positions.Add(new Position(position.ToString()));
+        }
+
+        return positions;
     }
 
     private string? _getEntriesSql;

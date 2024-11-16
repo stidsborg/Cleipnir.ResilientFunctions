@@ -43,13 +43,16 @@ public class InMemoryLogStore : ILogStore
         }
     }
 
-    public Task<IReadOnlyList<Position>> Append(StoredId id, IReadOnlyList<Tuple<Owner, Content>> contents)
+    public async Task<IReadOnlyList<Position>> Append(IEnumerable<AppendEntry> entries)
     {
-        return contents
-            .Select(tuple => Append(id, tuple.Item2.Value, tuple.Item1).Result)
-            .ToList()
-            .CastTo<IReadOnlyList<Position>>()
-            .ToTask();
+        var positions = new List<Position>();
+        foreach (var (storedId, owner, content) in entries)
+        {
+            var position = await Append(storedId, content, owner);
+            positions.Add(position);
+        }
+
+        return positions;
     }
 
     public Task<IReadOnlyList<StoredLogEntry>> GetEntries(StoredId id)
