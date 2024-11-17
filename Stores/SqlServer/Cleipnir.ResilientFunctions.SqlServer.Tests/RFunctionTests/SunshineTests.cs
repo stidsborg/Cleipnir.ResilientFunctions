@@ -61,4 +61,12 @@ public class SunshineTests : ResilientFunctions.Tests.TestTemplates.RFunctionTes
     [TestMethod]
     public override Task FlowIdCanBeExtractedFromWorkflowInstance()
         => FlowIdCanBeExtractedFromWorkflowInstance(FunctionStoreFactory.Create());
+    
+    [TestMethod]
+    public override Task FlowIdCanBeExtractedFromAmbientState()
+        => FlowIdCanBeExtractedFromAmbientState(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task FlowIdCanBeExtractedFromAmbientStateAfterSuspension()
+        => FlowIdCanBeExtractedFromAmbientStateAfterSuspension(FunctionStoreFactory.Create());
 }

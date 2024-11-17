@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
@@ -43,6 +44,7 @@ public class Invoker<TParam, TReturn>
         Result<TReturn> result;
         try
         {
+            CurrentFlow._id.Value = new FlowId(_flowType, instance);
             // *** USER FUNCTION INVOCATION *** 
             result = await _inner(param, workflow);
         }
@@ -66,6 +68,7 @@ public class Invoker<TParam, TReturn>
                 Result<TReturn> result;
                 try
                 {
+                    CurrentFlow._id.Value = new FlowId(_flowType, flowInstance);
                     // *** USER FUNCTION INVOCATION *** 
                     result = await _inner(param, workflow);
                 }
@@ -106,6 +109,7 @@ public class Invoker<TParam, TReturn>
         Result<TReturn> result;
         try
         {
+            CurrentFlow._id.Value = flowId;
             // *** USER FUNCTION INVOCATION *** 
             result = await inner(param, workflow);
         }
@@ -129,6 +133,7 @@ public class Invoker<TParam, TReturn>
                 Result<TReturn> result;
                 try
                 {
+                    CurrentFlow._id.Value = flowId;
                     // *** USER FUNCTION INVOCATION *** 
                     result = await inner(param, workflow);
                 }
@@ -157,6 +162,7 @@ public class Invoker<TParam, TReturn>
                 Result<TReturn> result;
                 try
                 {
+                    CurrentFlow._id.Value = flowId;
                     // *** USER FUNCTION INVOCATION *** 
                     result = await inner(param, workflow);
                 }

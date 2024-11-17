@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using Cleipnir.ResilientFunctions.CoreRuntime;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
@@ -496,6 +497,66 @@ public abstract class SunshineTests
         await reg.Invoke(flowInstance);
             
         flowId.ShouldBe(new FlowId(flowType, flowInstance));
+        unhandledExceptionHandler.ShouldNotHaveExceptions();
+    }
+    
+    public abstract Task FlowIdCanBeExtractedFromAmbientState();
+    public async Task FlowIdCanBeExtractedFromAmbientState(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var (type, instance) = TestFlowId.Create();
+        
+        var unhandledExceptionHandler = new UnhandledExceptionCatcher();
+        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler.Catch));
+
+        FlowId? flowId = null;
+        var reg = functionsRegistry
+            .RegisterParamless(
+                type,
+                inner: () =>
+                {
+                    flowId = CurrentFlow.Id;
+                    return Task.CompletedTask;
+                }
+            );
+        await reg.Invoke(instance);
+            
+        flowId.ShouldBe(new FlowId(type, instance));
+        unhandledExceptionHandler.ShouldNotHaveExceptions();
+    }
+    
+    public abstract Task FlowIdCanBeExtractedFromAmbientStateAfterSuspension();
+    public async Task FlowIdCanBeExtractedFromAmbientStateAfterSuspension(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var (type, instance) = TestFlowId.Create();
+        
+        var unhandledExceptionHandler = new UnhandledExceptionCatcher();
+        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler.Catch));
+
+        var postponed = false;
+        
+        FlowId? flowId = null;
+        var reg = functionsRegistry
+            .RegisterParamless(
+                type,
+                inner: () =>
+                {
+                    if (!postponed)
+                    {
+                        postponed = true;
+                        return Postpone.For(100).ToResult().ToTask();
+                    }
+                        
+                    flowId = CurrentFlow.Id;
+                    return Result.Succeed.ToTask();
+                }
+            );
+        await reg.Schedule(instance);
+
+        await BusyWait.Until(() => flowId != null);
+        
+        flowId.ShouldBe(new FlowId(type, instance));
         unhandledExceptionHandler.ShouldNotHaveExceptions();
     }
 }
