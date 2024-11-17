@@ -90,6 +90,7 @@ public class SqlServerFunctionStore : IFunctionStore
                 ExceptionJson NVARCHAR(MAX) NULL,
                 HumanInstanceId NVARCHAR(MAX) NOT NULL,                                                                        
                 Timestamp BIGINT NOT NULL,
+                Parent NVARCHAR(MAX) NULL,
                 PRIMARY KEY (FlowType, FlowInstance)
             );
             CREATE INDEX {_tableName}_idx_Executing
@@ -135,7 +136,8 @@ public class SqlServerFunctionStore : IFunctionStore
         byte[]? param, 
         long leaseExpiration,
         long? postponeUntil,
-        long timestamp)
+        long timestamp,
+        StoredId? parent)
     {
         await using var conn = await _connFunc();
         
@@ -149,15 +151,19 @@ public class SqlServerFunctionStore : IFunctionStore
                     Epoch, 
                     Expires,
                     Timestamp,
-                    HumanInstanceId)
-                VALUES(
+                    HumanInstanceId,
+                    Parent
+                )
+                VALUES
+                (
                     @FlowType, @flowInstance, 
                     @ParamJson,   
                     @Status,
                     0,
                     @Expires,
                     @Timestamp,
-                    @HumanInstanceId
+                    @HumanInstanceId,
+                    @Parent
                 )";
 
             await using var command = new SqlCommand(_createFunctionSql, conn);
@@ -169,6 +175,7 @@ public class SqlServerFunctionStore : IFunctionStore
             command.Parameters.AddWithValue("@Expires", postponeUntil ?? leaseExpiration);
             command.Parameters.AddWithValue("@HumanInstanceId", humanInstanceId.Value);
             command.Parameters.AddWithValue("@Timestamp", timestamp);
+            command.Parameters.AddWithValue("@Parent", parent?.ToString() ?? (object) DBNull.Value);
 
             await command.ExecuteNonQueryAsync();
         }
@@ -181,7 +188,7 @@ public class SqlServerFunctionStore : IFunctionStore
     }
 
     private string? _bulkScheduleFunctionsSql;
-    public async Task BulkScheduleFunctions(IEnumerable<IdWithParam> functionsWithParam)
+    public async Task BulkScheduleFunctions(IEnumerable<IdWithParam> functionsWithParam, StoredId? parent)
     {
         _bulkScheduleFunctionsSql ??= @$"
             MERGE INTO {_tableName}
@@ -194,14 +201,16 @@ public class SqlServerFunctionStore : IFunctionStore
                 Epoch, 
                 Expires,
                 Timestamp,
-                HumanInstanceId
+                HumanInstanceId,
+                Parent
             )
             ON {_tableName}.FlowType = source.FlowType AND {_tableName}.flowInstance = source.flowInstance         
             WHEN NOT MATCHED THEN
               INSERT (FlowType, FlowInstance, ParamJson, Status, Epoch, Expires, Timestamp, HumanInstanceId)
               VALUES (source.FlowType, source.flowInstance, source.ParamJson, source.Status, source.Epoch, source.Expires, source.Timestamp, source.HumanInstanceId);";
 
-        var valueSql = $"(@FlowType, @FlowInstance, @ParamJson, {(int)Status.Postponed}, 0, 0, 0, @HumanInstanceId)";
+        var parentStr = parent == null ? "NULL" : $"'{parent}'";
+        var valueSql = $"(@FlowType, @FlowInstance, @ParamJson, {(int)Status.Postponed}, 0, 0, 0, @HumanInstanceId, {parentStr})";
         var chunk = functionsWithParam
             .Select(
                 (fp, i) =>

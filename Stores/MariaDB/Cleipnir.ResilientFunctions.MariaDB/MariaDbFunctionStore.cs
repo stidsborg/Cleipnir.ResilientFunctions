@@ -87,6 +87,7 @@ public class MariaDbFunctionStore : IFunctionStore
                 exception_json TEXT NULL,                
                 timestamp BIGINT NOT NULL,
                 human_instance_id TEXT NOT NULL,
+                parent TEXT NULL,
                 PRIMARY KEY (type, instance),
                 INDEX (expires, type, instance, status)   
             );";
@@ -119,16 +120,17 @@ public class MariaDbFunctionStore : IFunctionStore
         byte[]? param, 
         long leaseExpiration,
         long? postponeUntil,
-        long timestamp)
+        long timestamp,
+        StoredId? parent)
     {
         await using var conn = await CreateOpenConnection(_connectionString);
 
         var status = postponeUntil == null ? Status.Executing : Status.Postponed;
         _createFunctionSql ??= @$"
             INSERT IGNORE INTO {_tablePrefix}
-                (type, instance, param_json, status, epoch, expires, timestamp, human_instance_id)
+                (type, instance, param_json, status, epoch, expires, timestamp, human_instance_id, parent)
             VALUES
-                (?, ?, ?, ?, 0, ?, ?, ?)";
+                (?, ?, ?, ?, 0, ?, ?, ?, ?)";
         await using var command = new MySqlCommand(_createFunctionSql, conn)
         {
             Parameters =
@@ -139,7 +141,8 @@ public class MariaDbFunctionStore : IFunctionStore
                 new() {Value = (int) status}, 
                 new() {Value = postponeUntil ?? leaseExpiration},
                 new() {Value = timestamp},
-                new() {Value = humanInstanceId.Value}
+                new() {Value = humanInstanceId.Value},
+                new() {Value = parent?.ToString() ?? (object) DBNull.Value},
             }
         };
 
@@ -147,20 +150,21 @@ public class MariaDbFunctionStore : IFunctionStore
         return affectedRows == 1;
     }
 
-    public async Task BulkScheduleFunctions(IEnumerable<IdWithParam> functionsWithParam)
+    public async Task BulkScheduleFunctions(IEnumerable<IdWithParam> functionsWithParam, StoredId? parent)
     {
         var insertSql = @$"
             INSERT IGNORE INTO {_tablePrefix}
-              (type, instance, param_json, status, epoch, expires, timestamp, human_instance_id)
+              (type, instance, param_json, status, epoch, expires, timestamp, human_instance_id, parent)
             VALUES                      
                     ";
         
         var now = DateTime.UtcNow.Ticks;
+        var parentStr = parent == null ? "NULL" : $"'{parent}'"; 
      
         var rows = new List<string>();
         foreach (var ((type, instance), humanInstanceId, param) in functionsWithParam)
         {
-            var row = $"({type.Value}, '{instance.Value:N}', {(param == null ? "NULL" : $"x'{Convert.ToHexString(param)}'")}, {(int) Status.Postponed}, 0, 0, {now}, '{humanInstanceId.EscapeString()}')"; 
+            var row = $"({type.Value}, '{instance.Value:N}', {(param == null ? "NULL" : $"x'{Convert.ToHexString(param)}'")}, {(int) Status.Postponed}, 0, 0, {now}, '{humanInstanceId.EscapeString()}', {parentStr})"; 
             rows.Add(row);
         }
         var rowsSql = string.Join(", " + Environment.NewLine, rows);

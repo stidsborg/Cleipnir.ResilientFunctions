@@ -11,6 +11,6 @@ public class AmbientStateTests
     [TestMethod]
     public void ExceptionIsThrownWhenFetchingFlowIdOutsideOfFrameworkExecution()
     {
-        Should.Throw<InvalidOperationException>(() => CurrentFlow.Id);
+        Should.Throw<InvalidOperationException>(() => CurrentFlow.StoredId);
     }
 }

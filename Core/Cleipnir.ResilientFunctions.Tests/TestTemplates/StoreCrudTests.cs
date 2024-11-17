@@ -34,7 +34,8 @@ public abstract class StoreCrudTests
             Param.ToUtf8Bytes(),
             leaseExpiration,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks
+            timestamp: DateTime.UtcNow.Ticks,
+            parent: null
         ).ShouldBeTrueAsync();
 
         var stored = await store.GetFunction(StoredId);
@@ -57,7 +58,8 @@ public abstract class StoreCrudTests
             Param.ToUtf8Bytes(),
             leaseExpiration,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks
+            timestamp: DateTime.UtcNow.Ticks,
+            parent: null
         ).ShouldBeTrueAsync();
 
         var stored = await store.GetFunction(StoredId);
@@ -80,7 +82,8 @@ public abstract class StoreCrudTests
             Param.ToUtf8Bytes(),
             leaseExpiration,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks
+            timestamp: DateTime.UtcNow.Ticks,
+            parent: null
         ).ShouldBeTrueAsync();
 
         var stored = await store.GetFunction(StoredId);
@@ -109,7 +112,8 @@ public abstract class StoreCrudTests
             Param.ToUtf8Bytes(),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks
+            timestamp: DateTime.UtcNow.Ticks,
+            parent: null
         ).ShouldBeTrueAsync();
 
         await store.RenewLease(StoredId, expectedEpoch: 0, leaseExpiration: 1).ShouldBeTrueAsync();
@@ -130,7 +134,8 @@ public abstract class StoreCrudTests
             Param.ToUtf8Bytes(),
             leaseExpiration,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks
+            timestamp: DateTime.UtcNow.Ticks,
+            parent: null
         ).ShouldBeTrueAsync();
 
         await store.RenewLease(StoredId, expectedEpoch: 1, leaseExpiration: 1).ShouldBeFalseAsync();
@@ -151,7 +156,8 @@ public abstract class StoreCrudTests
             Param.ToUtf8Bytes(),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks
+            timestamp: DateTime.UtcNow.Ticks,
+            parent: null
         ).ShouldBeTrueAsync();
 
         await store.EffectsStore.SetEffectResult(
@@ -195,7 +201,8 @@ public abstract class StoreCrudTests
             Param.ToUtf8Bytes(),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks
+            timestamp: DateTime.UtcNow.Ticks,
+            parent: null
         ).ShouldBeTrueAsync();
 
         var updatedStoredParameter = "hello world".ToJson();
@@ -224,7 +231,8 @@ public abstract class StoreCrudTests
             Param.ToUtf8Bytes(),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks
+            timestamp: DateTime.UtcNow.Ticks,
+            parent: null
         ).ShouldBeTrueAsync();
 
         var updatedStoredParameter = "hello world".ToJson();
@@ -252,7 +260,8 @@ public abstract class StoreCrudTests
             Param.ToUtf8Bytes(),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks
+            timestamp: DateTime.UtcNow.Ticks,
+            parent: null
         ).ShouldBeTrueAsync();
         
         await store.SetParameters(
@@ -277,7 +286,8 @@ public abstract class StoreCrudTests
             Param.ToUtf8Bytes(),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks
+            timestamp: DateTime.UtcNow.Ticks,
+            parent: null
         ).ShouldBeTrueAsync();
         await store.RestartExecution(
             StoredId,

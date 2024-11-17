@@ -24,11 +24,13 @@ public interface IFunctionStore
         byte[]? param,
         long leaseExpiration,
         long? postponeUntil,
-        long timestamp
+        long timestamp,
+        StoredId? parent
     );
     
     Task BulkScheduleFunctions(
-        IEnumerable<IdWithParam> functionsWithParam
+        IEnumerable<IdWithParam> functionsWithParam,
+        StoredId? parent
     );
     
     Task<StoredFlow?> RestartExecution(StoredId storedId, int expectedEpoch, long leaseExpiration);

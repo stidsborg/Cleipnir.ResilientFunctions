@@ -25,7 +25,8 @@ public abstract class MessagesSubscriptionTests
             Test.SimpleStoredParameter, 
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks
+            timestamp: DateTime.UtcNow.Ticks,
+            parent: null
         );
         var messageStore = functionStore.MessageStore;
 

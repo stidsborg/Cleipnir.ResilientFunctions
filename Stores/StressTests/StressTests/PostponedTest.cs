@@ -33,7 +33,8 @@ public static class PostponedTest
                 storedParameter.ToUtf8Bytes(),
                 leaseExpiration: DateTime.UtcNow.Ticks,
                 postponeUntil: null,
-                timestamp: DateTime.UtcNow.Ticks
+                timestamp: DateTime.UtcNow.Ticks,
+                parent: null
             );
             await store.PostponeFunction(
                 new StoredId(storedType, i.ToString()),

@@ -34,7 +34,8 @@ public class CrashableFunctionStore : IFunctionStore
         byte[]? param,
         long leaseExpiration,
         long? postponeUntil,
-        long timestamp
+        long timestamp,
+        StoredId? parent
     ) => _crashed
         ? Task.FromException<bool>(new TimeoutException())
         : _inner.CreateFunction(
@@ -43,13 +44,14 @@ public class CrashableFunctionStore : IFunctionStore
             param,
             leaseExpiration,
             postponeUntil,
-            timestamp
+            timestamp,
+            parent
         );
 
-    public Task BulkScheduleFunctions(IEnumerable<IdWithParam> functionsWithParam)
+    public Task BulkScheduleFunctions(IEnumerable<IdWithParam> functionsWithParam, StoredId? parent)
         => _crashed
             ? Task.FromException(new TimeoutException())
-            : _inner.BulkScheduleFunctions(functionsWithParam);
+            : _inner.BulkScheduleFunctions(functionsWithParam, parent);
 
     public Task<StoredFlow?> RestartExecution(StoredId storedId, int expectedEpoch, long leaseExpiration)
         => _crashed

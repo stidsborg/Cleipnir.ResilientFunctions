@@ -509,19 +509,20 @@ public abstract class SunshineTests
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler.Catch));
 
-        FlowId? flowId = null;
+        StoredId? storedId = null;
         var reg = functionsRegistry
             .RegisterParamless(
                 type,
                 inner: () =>
                 {
-                    flowId = CurrentFlow.Id;
+                    storedId = CurrentFlow.StoredId;
                     return Task.CompletedTask;
                 }
             );
         await reg.Invoke(instance);
+        
             
-        flowId.ShouldBe(new FlowId(type, instance));
+        storedId.ShouldBe(reg.MapToStoredId(new FlowId(type, instance)));
         unhandledExceptionHandler.ShouldNotHaveExceptions();
     }
     
@@ -536,7 +537,7 @@ public abstract class SunshineTests
 
         var postponed = false;
         
-        FlowId? flowId = null;
+        StoredId? storedId = null;
         var reg = functionsRegistry
             .RegisterParamless(
                 type,
@@ -548,15 +549,15 @@ public abstract class SunshineTests
                         return Postpone.For(100).ToResult().ToTask();
                     }
                         
-                    flowId = CurrentFlow.Id;
+                    storedId = CurrentFlow.StoredId;
                     return Result.Succeed.ToTask();
                 }
             );
         await reg.Schedule(instance);
 
-        await BusyWait.Until(() => flowId != null);
+        await BusyWait.Until(() => storedId != null);
         
-        flowId.ShouldBe(new FlowId(type, instance));
+        storedId.ShouldBe(reg.MapToStoredId(new FlowId(type, instance)));
         unhandledExceptionHandler.ShouldNotHaveExceptions();
     }
 }

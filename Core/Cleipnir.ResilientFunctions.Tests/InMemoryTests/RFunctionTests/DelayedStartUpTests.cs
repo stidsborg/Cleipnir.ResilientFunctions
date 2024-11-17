@@ -36,7 +36,8 @@ public class DelayedStartUpTests
             "hello world".ToJson().ToUtf8Bytes(),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks
+            timestamp: DateTime.UtcNow.Ticks,
+            parent: null
         );
 
         await BusyWait.Until(() => store.GetFunction(registration.MapToStoredId(functionId)).Map(sf => sf?.Status == Status.Succeeded));
@@ -58,7 +59,8 @@ public class DelayedStartUpTests
             "hello world".ToJson().ToUtf8Bytes(),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks
+            timestamp: DateTime.UtcNow.Ticks,
+            parent: null
         );
         
         var stopWatch = new Stopwatch();
@@ -99,7 +101,8 @@ public class DelayedStartUpTests
             storedParameter.ToUtf8Bytes(),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks
+            timestamp: DateTime.UtcNow.Ticks,
+            parent: null
         );
         await store.PostponeFunction(
             registration.MapToStoredId(functionId),
@@ -135,7 +138,8 @@ public class DelayedStartUpTests
             storedParameter,
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks
+            timestamp: DateTime.UtcNow.Ticks,
+            parent: null
         );
         await store.PostponeFunction(
             registration.MapToStoredId(functionId),

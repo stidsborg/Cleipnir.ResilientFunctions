@@ -349,7 +349,8 @@ public abstract class PostponedTests
                 param: "hello".ToJson().ToUtf8Bytes(),
                 leaseExpiration: DateTime.UtcNow.Ticks,
                 postponeUntil: null,
-                timestamp: DateTime.UtcNow.Ticks
+                timestamp: DateTime.UtcNow.Ticks,
+                parent: null
             ).ShouldBeTrueAsync();
             
             Should.Throw<InvocationPostponedException>(
@@ -371,7 +372,8 @@ public abstract class PostponedTests
                 param: "hello".ToJson().ToUtf8Bytes(),
                 leaseExpiration: DateTime.UtcNow.Ticks,
                 postponeUntil: null,
-                timestamp: DateTime.UtcNow.Ticks
+                timestamp: DateTime.UtcNow.Ticks,
+                parent: null
             ).ShouldBeTrueAsync();
 
             await rAction.ControlPanel(functionId.Instance).Result!.ScheduleRestart();
@@ -438,7 +440,8 @@ public abstract class PostponedTests
                 param: "hello".ToJson().ToUtf8Bytes(), 
                 leaseExpiration: DateTime.UtcNow.Ticks,
                 postponeUntil: null,
-                timestamp: DateTime.UtcNow.Ticks
+                timestamp: DateTime.UtcNow.Ticks,
+                parent: null
             ).ShouldBeTrueAsync();
             
             Should.Throw<InvocationPostponedException>(
@@ -460,7 +463,8 @@ public abstract class PostponedTests
                 param: "hello".ToJson().ToUtf8Bytes(),
                 leaseExpiration: DateTime.UtcNow.Ticks,
                 postponeUntil: null,
-                timestamp: DateTime.UtcNow.Ticks
+                timestamp: DateTime.UtcNow.Ticks,
+                parent: null
             ).ShouldBeTrueAsync();
 
             await rAction.ControlPanel(functionId.Instance).Result!.ScheduleRestart();
@@ -529,7 +533,8 @@ public abstract class PostponedTests
                 param: "hello".ToJson().ToUtf8Bytes(),
                 leaseExpiration: DateTime.UtcNow.Ticks,
                 postponeUntil: null,
-                timestamp: DateTime.UtcNow.Ticks
+                timestamp: DateTime.UtcNow.Ticks,
+                parent: null
             ).ShouldBeTrueAsync();
             var controlPanel = await rFunc.ControlPanel(functionId.Instance).ShouldNotBeNullAsync();
             Should.Throw<InvocationPostponedException>(() => controlPanel.Restart());
@@ -549,7 +554,8 @@ public abstract class PostponedTests
                 param: "hello".ToJson().ToUtf8Bytes(),
                 leaseExpiration: DateTime.UtcNow.Ticks,
                 postponeUntil: null,
-                timestamp: DateTime.UtcNow.Ticks
+                timestamp: DateTime.UtcNow.Ticks,
+                parent: null
             ).ShouldBeTrueAsync();
 
             var controlPanel = await rFunc.ControlPanel(functionId.Instance).ShouldNotBeNullAsync();
@@ -617,7 +623,8 @@ public abstract class PostponedTests
                 "hello".ToJson().ToUtf8Bytes(),
                 leaseExpiration: DateTime.UtcNow.Ticks,
                 postponeUntil: null,
-                timestamp: DateTime.UtcNow.Ticks
+                timestamp: DateTime.UtcNow.Ticks,
+                parent: null
             ).ShouldBeTrueAsync();
 
             var controlPanel = await rFunc.ControlPanel(functionId.Instance).ShouldNotBeNullAsync();
@@ -638,7 +645,8 @@ public abstract class PostponedTests
                 param: "hello".ToJson().ToUtf8Bytes(),
                 leaseExpiration: DateTime.UtcNow.Ticks,
                 postponeUntil: null,
-                timestamp: DateTime.UtcNow.Ticks
+                timestamp: DateTime.UtcNow.Ticks,
+                parent: null
             ).ShouldBeTrueAsync();
 
             var controlPanel = await rFunc.ControlPanel(functionId.Instance).ShouldNotBeNullAsync();
@@ -673,7 +681,8 @@ public abstract class PostponedTests
             storedParameter.ToUtf8Bytes(),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks
+            timestamp: DateTime.UtcNow.Ticks,
+            parent: null
         ).ShouldBeTrueAsync();
 
         await store.PostponeFunction(

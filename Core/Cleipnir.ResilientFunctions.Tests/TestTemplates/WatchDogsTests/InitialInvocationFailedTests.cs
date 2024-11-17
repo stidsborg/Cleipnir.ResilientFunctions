@@ -33,7 +33,8 @@ public abstract class InitialInvocationFailedTests
             param: "hello world".ToJson().ToUtf8Bytes(),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks
+            timestamp: DateTime.UtcNow.Ticks,
+            parent: null
         );
         
         await flag.WaitForRaised();
@@ -65,7 +66,8 @@ public abstract class InitialInvocationFailedTests
             param: "hello world".ToJson().ToUtf8Bytes(),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks
+            timestamp: DateTime.UtcNow.Ticks,
+            parent: null
         );
         
         await flag.WaitForRaised();
@@ -97,7 +99,8 @@ public abstract class InitialInvocationFailedTests
             param: "hello world".ToJson().ToUtf8Bytes(),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks
+            timestamp: DateTime.UtcNow.Ticks,
+            parent: null
         );
         
         await flag.WaitForRaised();
@@ -132,7 +135,8 @@ public abstract class InitialInvocationFailedTests
             param: "hello world".ToJson().ToUtf8Bytes(),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks
+            timestamp: DateTime.UtcNow.Ticks,
+            parent: null
         );
         
         await flag.WaitForRaised();

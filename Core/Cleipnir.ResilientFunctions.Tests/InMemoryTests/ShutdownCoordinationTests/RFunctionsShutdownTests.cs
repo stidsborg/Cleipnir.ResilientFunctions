@@ -121,7 +121,8 @@ public class RFunctionsShutdownTests
             param: "".ToJson().ToUtf8Bytes(),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks
+            timestamp: DateTime.UtcNow.Ticks,
+            parent: null
         ).ShouldBeTrueAsync();
 
         await insideRFuncFlag.WaitForRaised();
@@ -172,7 +173,8 @@ public class RFunctionsShutdownTests
             storedParameter.ToUtf8Bytes(),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks
+            timestamp: DateTime.UtcNow.Ticks,
+            parent: null
         ).ShouldBeTrueAsync();
 
         await store.PostponeFunction(

@@ -84,7 +84,7 @@ public static class BulkInsertionTest
                 "humanInstanceId",
                 i.ToString().ToJson().ToUtf8Bytes())
             );
-        await store.BulkScheduleFunctions(functions);
+        await store.BulkScheduleFunctions(functions, parent: null);
         
         stopWatch.Stop();
         var insertionAverageSpeed = testSize * 1000 / stopWatch.ElapsedMilliseconds;

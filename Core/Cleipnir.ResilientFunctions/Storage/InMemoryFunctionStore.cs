@@ -51,7 +51,8 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         byte[]? param,
         long leaseExpiration,
         long? postponeUntil,
-        long timestamp)
+        long timestamp,
+        StoredId? parent)
     {
         lock (_sync)
         {
@@ -77,7 +78,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         }
     }
 
-    public Task BulkScheduleFunctions(IEnumerable<IdWithParam> functionsWithParam)
+    public Task BulkScheduleFunctions(IEnumerable<IdWithParam> functionsWithParam, StoredId? parent)
     {
         lock (_sync)
         {
@@ -93,7 +94,8 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
                         Expires = 0,
                         Param = param,
                         Result = null,
-                        Status = Status.Postponed
+                        Status = Status.Postponed,
+                        Parent = parent
                     };
             }
         }
@@ -432,6 +434,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         public bool Interrupted { get; set; }
         public long Expires { get; set; }
         public long Timestamp { get; set; }
+        public StoredId? Parent { get; set; }
     }
     #endregion
     

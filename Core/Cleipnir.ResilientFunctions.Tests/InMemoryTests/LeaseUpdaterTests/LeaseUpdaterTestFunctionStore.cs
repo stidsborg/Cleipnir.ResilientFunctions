@@ -33,11 +33,12 @@ public class LeaseUpdaterTestFunctionStore : IFunctionStore
         byte[]? param, 
         long leaseExpiration,
         long? postponeUntil,
-        long timestamp
-    ) => _inner.CreateFunction(storedId, humanInstanceId, param, leaseExpiration, postponeUntil, timestamp);
+        long timestamp,
+        StoredId? parent
+    ) => _inner.CreateFunction(storedId, humanInstanceId, param, leaseExpiration, postponeUntil, timestamp, parent);
 
-    public Task BulkScheduleFunctions(IEnumerable<IdWithParam> functionsWithParam)
-        => _inner.BulkScheduleFunctions(functionsWithParam);
+    public Task BulkScheduleFunctions(IEnumerable<IdWithParam> functionsWithParam, StoredId? parent)
+        => _inner.BulkScheduleFunctions(functionsWithParam, parent);
 
     public Task<StoredFlow?> RestartExecution(StoredId storedId, int expectedEpoch, long leaseExpiration)
         => _inner.RestartExecution(storedId, expectedEpoch, leaseExpiration);

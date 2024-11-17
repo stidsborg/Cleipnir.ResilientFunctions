@@ -38,13 +38,13 @@ public class Invoker<TParam, TReturn>
     public async Task<TReturn> Invoke(FlowInstance instance, TParam param)
     {
         var (flowId, storedId) = CreateIds(instance);
-        (var created, var workflow, var disposables) = await PrepareForInvocation(flowId, storedId, param);
+        CurrentFlow._id.Value = storedId;
+        var (created, workflow, disposables) = await PrepareForInvocation(flowId, storedId, param, parent: null);
         if (!created) return await WaitForFunctionResult(flowId, storedId);
 
         Result<TReturn> result;
         try
         {
-            CurrentFlow._id.Value = new FlowId(_flowType, instance);
             // *** USER FUNCTION INVOCATION *** 
             result = await _inner(param, workflow);
         }
@@ -55,10 +55,12 @@ public class Invoker<TParam, TReturn>
         return result.SucceedWithValue!;
     }
 
-    public async Task ScheduleInvoke(FlowInstance flowInstance, TParam param)
+    public async Task ScheduleInvoke(FlowInstance flowInstance, TParam param, bool suspendUntilCompletion = false)
     {
+        var parent = suspendUntilCompletion ? CurrentFlow.StoredId : null;
         var (flowId, storedId) = CreateIds(flowInstance);
-        (var created, var workflow, var disposables) = await PrepareForInvocation(flowId, storedId, param);
+        CurrentFlow._id.Value = storedId;
+        (var created, var workflow, var disposables) = await PrepareForInvocation(flowId, storedId, param, parent);
         if (!created) return;
 
         _ = Task.Run(async () =>
@@ -68,7 +70,6 @@ public class Invoker<TParam, TReturn>
                 Result<TReturn> result;
                 try
                 {
-                    CurrentFlow._id.Value = new FlowId(_flowType, flowInstance);
                     // *** USER FUNCTION INVOCATION *** 
                     result = await _inner(param, workflow);
                 }
@@ -81,7 +82,7 @@ public class Invoker<TParam, TReturn>
         });
     }
     
-    public async Task ScheduleAt(FlowInstance instanceId, TParam param, DateTime scheduleAt)
+    public async Task ScheduleAt(FlowInstance instanceId, TParam param, DateTime scheduleAt, bool suspendUntilCompletion = false)
     {
         if (scheduleAt.ToUniversalTime() <= DateTime.UtcNow)
         {
@@ -89,12 +90,17 @@ public class Invoker<TParam, TReturn>
             return;
         }
 
+        var parent = suspendUntilCompletion
+            ? CurrentFlow.StoredId
+            : null;
+        
         var id = new FlowId(_flowType, instanceId);
         var (_, disposable) = await _invocationHelper.PersistFunctionInStore(
             id.ToStoredId(_storedType),
             instanceId,
             param,
-            scheduleAt
+            scheduleAt,
+            parent
         );
 
         disposable.Dispose();
@@ -103,13 +109,13 @@ public class Invoker<TParam, TReturn>
     public async Task<TReturn> Restart(StoredInstance instanceId, int expectedEpoch)
     {
         var storedId = new StoredId(_storedType, instanceId);
+        CurrentFlow._id.Value = storedId;
         var (inner, param, humanInstanceId, workflow, epoch, disposables) = await PrepareForReInvocation(storedId, expectedEpoch);
         var flowId = new FlowId(_flowType, humanInstanceId);
         
         Result<TReturn> result;
         try
         {
-            CurrentFlow._id.Value = flowId;
             // *** USER FUNCTION INVOCATION *** 
             result = await inner(param, workflow);
         }
@@ -123,6 +129,7 @@ public class Invoker<TParam, TReturn>
     public async Task ScheduleRestart(StoredInstance instance, int expectedEpoch)
     {
         var storedId = new StoredId(_storedType, instance);
+        CurrentFlow._id.Value = storedId;
         var (inner, param, humanInstanceId, workflow, epoch, disposables) = await PrepareForReInvocation(storedId, expectedEpoch);
         var flowId = new FlowId(_flowType, humanInstanceId);
         
@@ -133,7 +140,6 @@ public class Invoker<TParam, TReturn>
                 Result<TReturn> result;
                 try
                 {
-                    CurrentFlow._id.Value = flowId;
                     // *** USER FUNCTION INVOCATION *** 
                     result = await inner(param, workflow);
                 }
@@ -152,6 +158,7 @@ public class Invoker<TParam, TReturn>
     internal async Task ScheduleRestart(StoredInstance instance, RestartedFunction rf, Action onCompletion)
     {
         var storedId = new StoredId(_storedType, instance);
+        CurrentFlow._id.Value = storedId;
         var (inner, param, humanInstanceId, workflow, epoch, disposables) = await PrepareForReInvocation(storedId, rf);
         var flowId = new FlowId(_flowType, humanInstanceId);
         
@@ -162,7 +169,6 @@ public class Invoker<TParam, TReturn>
                 Result<TReturn> result;
                 try
                 {
-                    CurrentFlow._id.Value = flowId;
                     // *** USER FUNCTION INVOCATION *** 
                     result = await inner(param, workflow);
                 }
@@ -176,7 +182,7 @@ public class Invoker<TParam, TReturn>
         });
     }
     
-    private async Task<PreparedInvocation> PrepareForInvocation(FlowId flowId, StoredId storedId, TParam param)
+    private async Task<PreparedInvocation> PrepareForInvocation(FlowId flowId, StoredId storedId, TParam param, StoredId? parent)
     {
         var disposables = new List<IDisposable>(capacity: 3);
         var success = false;
@@ -187,7 +193,8 @@ public class Invoker<TParam, TReturn>
                     storedId,
                     flowId.Instance.Value,
                     param,
-                    scheduleAt: null
+                    scheduleAt: null,
+                    parent
                 );
             disposables.Add(runningFunction);
             disposables.Add(_invocationHelper.StartLeaseUpdater(storedId, flowId, epoch: 0));

@@ -38,7 +38,8 @@ internal class InvocationHelper<TParam, TReturn>
         StoredId storedId, 
         FlowInstance humanInstanceId, 
         TParam param, 
-        DateTime? scheduleAt)
+        DateTime? scheduleAt,
+        StoredId? parent)
     {
         if (!_isParamlessFunction)
             ArgumentNullException.ThrowIfNull(param);
@@ -55,7 +56,8 @@ internal class InvocationHelper<TParam, TReturn>
                 storedParameter,
                 postponeUntil: scheduleAt?.ToUniversalTime().Ticks,
                 leaseExpiration: utcNowTicks + _settings.LeaseLength.Ticks,
-                timestamp: utcNowTicks
+                timestamp: utcNowTicks,
+                parent: parent
             );
 
             if (!created) runningFunction.Dispose();
@@ -340,9 +342,10 @@ internal class InvocationHelper<TParam, TReturn>
         );
     }
 
-    public async Task BulkSchedule(IEnumerable<BulkWork<TParam>> work)
+    public async Task BulkSchedule(IEnumerable<BulkWork<TParam>> work, bool suspendUntilCompletion = false)
     {
         var serializer = _settings.Serializer;
+        var parent = suspendUntilCompletion ? CurrentFlow.StoredId : null;
         await _functionStore.BulkScheduleFunctions(
             work.Select(bw =>
                 new IdWithParam(
@@ -350,7 +353,8 @@ internal class InvocationHelper<TParam, TReturn>
                     bw.Instance,
                     _isParamlessFunction ? null : serializer.SerializeParameter(bw.Param)
                 )
-            )
+            ),
+            parent
         );
     }
 

@@ -6,6 +6,12 @@ namespace Cleipnir.ResilientFunctions.Storage;
 public record StoredId(StoredType Type, StoredInstance Instance)
 {
     public override string ToString() => $"{Instance}@{Type}";
+
+    public static StoredId Deserialize(string s)
+    {
+        var split = s.Split("@");
+        return new StoredId(int.Parse(split[0]).ToStoredType(), new StoredInstance(Guid.Parse(split[1])));
+    }
 }
 public record StoredType(int Value);
 

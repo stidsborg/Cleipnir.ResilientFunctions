@@ -1,12 +1,13 @@
 using System;
 using System.Threading;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.CoreRuntime;
 
 public static class CurrentFlow
 {
-    public static FlowId Id
+    public static StoredId StoredId
     {
         get
         {
@@ -18,5 +19,5 @@ public static class CurrentFlow
         }
     }
 
-    internal static readonly AsyncLocal<FlowId?> _id = new();
+    internal static readonly AsyncLocal<StoredId?> _id = new();
 }

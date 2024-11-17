@@ -91,6 +91,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 exception_json TEXT NULL,                                
                 timestamp BIGINT NOT NULL,
                 human_instance_id TEXT NOT NULL,
+                parent TEXT NULL,
                 PRIMARY KEY (type, instance)
             );
             CREATE INDEX IF NOT EXISTS idx_{_tableName}_expires
@@ -131,15 +132,16 @@ public class PostgreSqlFunctionStore : IFunctionStore
         byte[]? param, 
         long leaseExpiration,
         long? postponeUntil,
-        long timestamp)
+        long timestamp,
+        StoredId? parent)
     {
         await using var conn = await CreateConnection();
         
         _createFunctionSql ??= @$"
             INSERT INTO {_tableName}
-                (type, instance, status, param_json, expires, timestamp, human_instance_id)
+                (type, instance, status, param_json, expires, timestamp, human_instance_id, parent)
             VALUES
-                ($1, $2, $3, $4, $5, $6, $7)
+                ($1, $2, $3, $4, $5, $6, $7, $8)
             ON CONFLICT DO NOTHING;";
         
         await using var command = new NpgsqlCommand(_createFunctionSql, conn)
@@ -152,7 +154,8 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 new() {Value = param == null ? DBNull.Value : param},
                 new() {Value = postponeUntil ?? leaseExpiration},
                 new() {Value = timestamp},
-                new() {Value = humanInstanceId.Value}
+                new() {Value = humanInstanceId.Value},
+                new() {Value = parent?.ToString() ?? (object) DBNull.Value},
             }
         };
 
@@ -161,13 +164,13 @@ public class PostgreSqlFunctionStore : IFunctionStore
     }
 
     private string? _bulkScheduleFunctionsSql;
-    public async Task BulkScheduleFunctions(IEnumerable<IdWithParam> functionsWithParam)
+    public async Task BulkScheduleFunctions(IEnumerable<IdWithParam> functionsWithParam, StoredId? parent)
     {
         _bulkScheduleFunctionsSql ??= @$"
             INSERT INTO {_tableName}
-                (type, instance, status, param_json, expires, timestamp, human_instance_id)
+                (type, instance, status, param_json, expires, timestamp, human_instance_id, parent)
             VALUES
-                ($1, $2, {(int) Status.Postponed}, $3, 0, 0, $4)
+                ($1, $2, {(int) Status.Postponed}, $3, 0, 0, $4, $5)
             ON CONFLICT DO NOTHING;";
 
         await using var conn = await CreateConnection();
@@ -184,7 +187,8 @@ public class PostgreSqlFunctionStore : IFunctionStore
                         new() { Value = idWithParam.StoredId.Type.Value },
                         new() { Value = idWithParam.StoredId.Instance.Value },
                         new() { Value = idWithParam.Param == null ? DBNull.Value : idWithParam.Param },
-                        new() { Value = idWithParam.HumanInstanceId }
+                        new() { Value = idWithParam.HumanInstanceId },
+                        new() { Value = parent?.ToString() ?? (object) DBNull.Value },
                     }
                 };
                 batch.BatchCommands.Add(batchCommand);

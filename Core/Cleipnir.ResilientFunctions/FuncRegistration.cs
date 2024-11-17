@@ -16,16 +16,18 @@ public static class FuncRegistration
 
     public delegate Task Schedule<in TParam>(
         FlowInstance flowInstance,
-        TParam param
+        TParam param,
+        bool suspendUntilCompletion = false
     ) where TParam : notnull;
 
     public delegate Task ScheduleAt<in TParam>(
         FlowInstance flowInstance,
         TParam param,
-        DateTime delayUntil
+        DateTime delayUntil,
+        bool suspendUntilCompletion = false
     ) where TParam : notnull;
     
-    public delegate Task BulkSchedule<TParam>(IEnumerable<BulkWork<TParam>> instances) where TParam : notnull;
+    public delegate Task BulkSchedule<TParam>(IEnumerable<BulkWork<TParam>> instances, bool suspendUntilCompletion = false) where TParam : notnull;
 }
 
 public class FuncRegistration<TParam, TReturn> : BaseRegistration where TParam : notnull
@@ -78,8 +80,8 @@ public class FuncRegistration<TParam, TReturn> : BaseRegistration where TParam :
             : _stateFetcher.FetchState<TState>(instance, stateId);
     }
 
-    public Task ScheduleIn(string flowInstance, TParam param, TimeSpan delay) 
-        => ScheduleAt(flowInstance, param, delayUntil: DateTime.UtcNow.Add(delay));
+    public Task ScheduleIn(string flowInstance, TParam param, TimeSpan delay, bool suspendUntilCompletion = false) 
+        => ScheduleAt(flowInstance, param, delayUntil: DateTime.UtcNow.Add(delay), suspendUntilCompletion);
     
     public async Task<Finding> SendMessage<T>(
         FlowInstance flowInstance,
