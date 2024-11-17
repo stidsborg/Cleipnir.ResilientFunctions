@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
+using Cleipnir.ResilientFunctions.Reactive.Extensions;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Tests.Utils;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -547,6 +548,61 @@ public abstract class WatchdogCompoundTests
         await BusyWait.Until(
             () => store.GetFunction(registration.MapToStoredId(functionId)).SelectAsync(sf => sf is not null)
         );
+    }
+    
+    [TestMethod]
+    public abstract Task FlowIdIsCorrectWhenFlowIsStartedByWatchdog();
+    public async Task FlowIdIsCorrectWhenFlowIsStartedByWatchdog(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var testId = TestFlowId.Create();
+        var (flowType, _) = testId;
+        var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
+        
+        using var functionsRegistry = new FunctionsRegistry(
+            store,
+            new Settings(
+                unhandledExceptionCatcher.Catch,
+                leaseLength: TimeSpan.FromMilliseconds(100),
+                watchdogCheckFrequency: TimeSpan.FromMilliseconds(100),
+                retentionPeriod: TimeSpan.FromMilliseconds(100)
+            )
+        );
+        
+        var registration = functionsRegistry.RegisterFunc(
+            flowType,
+            inner: async Task<FlowId> (string _, Workflow workflow) =>
+            {
+                await workflow.Messages.FirstOfType<string>(maxWait: TimeSpan.Zero);
+                return workflow.FlowId;
+            }
+        );
+
+        await registration.Schedule(testId.Instance.Value, param: "");
+        var controlPanel = await registration.ControlPanel(testId.Instance).ShouldNotBeNullAsync();
+        
+        await BusyWait.Until(
+            async () =>
+            {
+                await controlPanel.Refresh();
+                return controlPanel.Status == Status.Suspended;
+            }
+        );
+
+        await registration.SendMessage(testId.Instance, "some message");
+        
+        await BusyWait.Until(
+            async () =>
+            {
+                await controlPanel.Refresh();
+                return controlPanel.Status == Status.Succeeded;
+            }
+        );
+
+        var flowId = controlPanel.Result;
+        flowId.ShouldBe(testId);
+        
+        unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
     
     private record Param(string Id, int Value);
