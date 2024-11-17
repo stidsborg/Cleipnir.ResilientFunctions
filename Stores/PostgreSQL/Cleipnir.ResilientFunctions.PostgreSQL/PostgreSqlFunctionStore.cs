@@ -127,7 +127,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
     private string? _createFunctionSql;
     public async Task<bool> CreateFunction(
         StoredId storedId,
-        string humanInstanceId,
+        FlowInstance humanInstanceId,
         byte[]? param, 
         long leaseExpiration,
         long? postponeUntil,
@@ -152,7 +152,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 new() {Value = param == null ? DBNull.Value : param},
                 new() {Value = postponeUntil ?? leaseExpiration},
                 new() {Value = timestamp},
-                new() {Value = humanInstanceId}
+                new() {Value = humanInstanceId.Value}
             }
         };
 

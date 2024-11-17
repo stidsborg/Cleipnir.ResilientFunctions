@@ -131,7 +131,7 @@ public class SqlServerFunctionStore : IFunctionStore
     private string? _createFunctionSql;
     public async Task<bool> CreateFunction(
         StoredId storedId, 
-        string humanInstanceId,
+        FlowInstance humanInstanceId,
         byte[]? param, 
         long leaseExpiration,
         long? postponeUntil,
@@ -167,7 +167,7 @@ public class SqlServerFunctionStore : IFunctionStore
             command.Parameters.AddWithValue("@Status", (int) (postponeUntil == null ? Status.Executing : Status.Postponed));
             command.Parameters.AddWithValue("@ParamJson", param == null ? SqlBinary.Null : param);
             command.Parameters.AddWithValue("@Expires", postponeUntil ?? leaseExpiration);
-            command.Parameters.AddWithValue("@HumanInstanceId", humanInstanceId);
+            command.Parameters.AddWithValue("@HumanInstanceId", humanInstanceId.Value);
             command.Parameters.AddWithValue("@Timestamp", timestamp);
 
             await command.ExecuteNonQueryAsync();

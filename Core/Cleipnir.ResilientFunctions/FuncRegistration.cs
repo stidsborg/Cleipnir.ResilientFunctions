@@ -10,17 +10,17 @@ namespace Cleipnir.ResilientFunctions;
 public static class FuncRegistration
 {
     public delegate Task<TReturn> Invoke<in TParam, TReturn>(
-        string flowInstance,
+        FlowInstance flowInstance,
         TParam param
     ) where TParam : notnull;
 
     public delegate Task Schedule<in TParam>(
-        string flowInstance,
+        FlowInstance flowInstance,
         TParam param
     ) where TParam : notnull;
 
     public delegate Task ScheduleAt<in TParam>(
-        string flowInstance,
+        FlowInstance flowInstance,
         TParam param,
         DateTime delayUntil
     ) where TParam : notnull;

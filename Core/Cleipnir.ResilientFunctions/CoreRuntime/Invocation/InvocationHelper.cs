@@ -36,7 +36,7 @@ internal class InvocationHelper<TParam, TReturn>
 
     public async Task<Tuple<bool, IDisposable>> PersistFunctionInStore(
         StoredId storedId, 
-        string humanInstanceId, 
+        FlowInstance humanInstanceId, 
         TParam param, 
         DateTime? scheduleAt)
     {

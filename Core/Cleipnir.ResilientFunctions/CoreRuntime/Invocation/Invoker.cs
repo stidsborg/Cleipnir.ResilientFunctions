@@ -34,7 +34,7 @@ public class Invoker<TParam, TReturn>
         _utilities = utilities;
     }
 
-    public async Task<TReturn> Invoke(string instance, TParam param)
+    public async Task<TReturn> Invoke(FlowInstance instance, TParam param)
     {
         var (flowId, storedId) = CreateIds(instance);
         (var created, var workflow, var disposables) = await PrepareForInvocation(flowId, storedId, param);
@@ -53,7 +53,7 @@ public class Invoker<TParam, TReturn>
         return result.SucceedWithValue!;
     }
 
-    public async Task ScheduleInvoke(string flowInstance, TParam param)
+    public async Task ScheduleInvoke(FlowInstance flowInstance, TParam param)
     {
         var (flowId, storedId) = CreateIds(flowInstance);
         (var created, var workflow, var disposables) = await PrepareForInvocation(flowId, storedId, param);
@@ -78,7 +78,7 @@ public class Invoker<TParam, TReturn>
         });
     }
     
-    public async Task ScheduleAt(string instanceId, TParam param, DateTime scheduleAt)
+    public async Task ScheduleAt(FlowInstance instanceId, TParam param, DateTime scheduleAt)
     {
         if (scheduleAt.ToUniversalTime() <= DateTime.UtcNow)
         {

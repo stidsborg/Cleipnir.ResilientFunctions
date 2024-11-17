@@ -47,7 +47,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
 
     public virtual Task<bool> CreateFunction(
         StoredId storedId,
-        string humanInstanceId,
+        FlowInstance humanInstanceId,
         byte[]? param,
         long leaseExpiration,
         long? postponeUntil,
@@ -61,7 +61,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
             _states[storedId] = new InnerState
             {
                 StoredId = storedId,
-                HumanInstanceId = humanInstanceId,
+                HumanInstanceId = humanInstanceId.Value,
                 Param = param,
                 Status = postponeUntil == null ? Status.Executing : Status.Postponed,
                 Epoch = 0,

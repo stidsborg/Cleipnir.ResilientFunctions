@@ -115,7 +115,7 @@ public class MariaDbFunctionStore : IFunctionStore
     private string? _createFunctionSql;
     public async Task<bool> CreateFunction(
         StoredId storedId, 
-        string humanInstanceId,
+        FlowInstance humanInstanceId,
         byte[]? param, 
         long leaseExpiration,
         long? postponeUntil,
@@ -139,7 +139,7 @@ public class MariaDbFunctionStore : IFunctionStore
                 new() {Value = (int) status}, 
                 new() {Value = postponeUntil ?? leaseExpiration},
                 new() {Value = timestamp},
-                new() {Value = humanInstanceId}
+                new() {Value = humanInstanceId.Value}
             }
         };
 

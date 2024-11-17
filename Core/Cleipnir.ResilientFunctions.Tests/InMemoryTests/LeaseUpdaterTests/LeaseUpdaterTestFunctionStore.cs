@@ -29,7 +29,7 @@ public class LeaseUpdaterTestFunctionStore : IFunctionStore
 
     public Task<bool> CreateFunction(
         StoredId storedId, 
-        string humanInstanceId,
+        FlowInstance humanInstanceId,
         byte[]? param, 
         long leaseExpiration,
         long? postponeUntil,

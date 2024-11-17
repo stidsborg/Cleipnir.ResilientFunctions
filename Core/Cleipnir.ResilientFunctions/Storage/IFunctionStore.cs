@@ -20,7 +20,7 @@ public interface IFunctionStore
     
     Task<bool> CreateFunction(
         StoredId storedId, 
-        string humanInstanceId,
+        FlowInstance humanInstanceId,
         byte[]? param,
         long leaseExpiration,
         long? postponeUntil,
