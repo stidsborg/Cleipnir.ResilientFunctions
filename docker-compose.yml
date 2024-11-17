@@ -20,7 +20,6 @@ services:
 
   maria-db:
     container_name: maria-db
-    restart: always
     image: mariadb
     ports:
       - "3306:3306"
