@@ -1319,4 +1319,43 @@ public abstract class StoreTests
         types.TryGetValue("TestFlow2", out dictValue).ShouldBeTrue();
         dictValue.ShouldBe(flow2Value);
     }
+    
+    public abstract Task FlowWithParentIsReturnedInSubsequentGetTest();
+    protected async Task FlowWithParentIsReturnedInSubsequentGetTest(Task<IFunctionStore> storeTask)
+    {
+        var id = TestStoredId.Create();
+        var parentId = TestStoredId.Create();
+        var store = await storeTask;
+        await store.CreateFunction(
+            id,
+            humanInstanceId: "SomeInstanceId",
+            param: null,
+            leaseExpiration: 0,
+            postponeUntil: null,
+            timestamp: 0,
+            parentId
+        ).ShouldBeTrueAsync();
+
+        var sf = await store.GetFunction(id).ShouldNotBeNullAsync();
+        sf.ParentId.ShouldBe(parentId);
+    }
+    
+    public abstract Task FlowWithWithoutParentIsReturnsNullParentInSubsequentGetTest();
+    protected async Task FlowWithWithoutParentIsReturnsNullParentInSubsequentGetTest(Task<IFunctionStore> storeTask)
+    {
+        var id = TestStoredId.Create();
+        var store = await storeTask;
+        await store.CreateFunction(
+            id,
+            humanInstanceId: "SomeInstanceId",
+            param: null,
+            leaseExpiration: 0,
+            postponeUntil: null,
+            timestamp: 0,
+            parent: null
+        ).ShouldBeTrueAsync();
+
+        var sf = await store.GetFunction(id).ShouldNotBeNullAsync();
+        sf.ParentId.ShouldBeNull();
+    }
 }

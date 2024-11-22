@@ -142,7 +142,7 @@ public class MariaDbFunctionStore : IFunctionStore
                 new() {Value = postponeUntil ?? leaseExpiration},
                 new() {Value = timestamp},
                 new() {Value = humanInstanceId.Value},
-                new() {Value = parent?.ToString() ?? (object) DBNull.Value},
+                new() {Value = parent?.Serialize() ?? (object) DBNull.Value},
             }
         };
 
@@ -196,7 +196,8 @@ public class MariaDbFunctionStore : IFunctionStore
                 expires,
                 interrupted,
                 timestamp,
-                human_instance_id
+                human_instance_id,
+                parent
             FROM {_tablePrefix}
             WHERE type = ? AND instance = ?;";
 
@@ -617,7 +618,8 @@ public class MariaDbFunctionStore : IFunctionStore
                 expires,
                 interrupted,
                 timestamp,
-                human_instance_id
+                human_instance_id,
+                parent
             FROM {_tablePrefix}
             WHERE type = ? AND instance = ?;";
         await using var command = new MySqlCommand(_getFunctionSql, conn)
@@ -698,12 +700,14 @@ public class MariaDbFunctionStore : IFunctionStore
         const int interruptedIndex = 6;
         const int timestampIndex = 7;
         const int humanInstanceIdIndex = 8;
+        const int parentIndex = 9;
         
         while (await reader.ReadAsync())
         {
             var hasParam = !await reader.IsDBNullAsync(paramIndex);
             var hasResult = !await reader.IsDBNullAsync(resultIndex);
             var hasError = !await reader.IsDBNullAsync(exceptionIndex);
+            var hasParent = !await reader.IsDBNullAsync(parentIndex);
             var storedException = hasError
                 ? JsonSerializer.Deserialize<StoredException>(reader.GetString(exceptionIndex))
                 : null;
@@ -716,7 +720,8 @@ public class MariaDbFunctionStore : IFunctionStore
                 storedException, Epoch: reader.GetInt32(epochIndex),
                 Expires: reader.GetInt64(expiresIndex),
                 Interrupted: reader.GetBoolean(interruptedIndex),
-                Timestamp: reader.GetInt64(timestampIndex)
+                Timestamp: reader.GetInt64(timestampIndex),
+                ParentId: hasParent ? StoredId.Deserialize(reader.GetString(parentIndex)) : null
             );
         }
 

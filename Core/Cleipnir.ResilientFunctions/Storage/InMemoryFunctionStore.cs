@@ -69,7 +69,8 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
                 Exception = null,
                 Result = null,
                 Expires = postponeUntil ?? leaseExpiration,
-                Timestamp = timestamp
+                Timestamp = timestamp,
+                Parent = parent
             };
             if (!_messages.ContainsKey(storedId)) //messages can already have been added - i.e. paramless started by received message
                 _messages[storedId] = new List<StoredMessage>();
@@ -368,7 +369,8 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
                     state.Epoch,
                     state.Expires,
                     state.Timestamp,
-                    state.Interrupted
+                    state.Interrupted,
+                    state.Parent
                 )
                 .ToNullable()
                 .ToTask();

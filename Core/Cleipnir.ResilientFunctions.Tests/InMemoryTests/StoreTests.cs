@@ -179,4 +179,12 @@ public class StoreTests : TestTemplates.StoreTests
     [TestMethod]
     public override Task TypeStoreSunshineScenarioTest()
         => TypeStoreSunshineScenarioTest(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task FlowWithParentIsReturnedInSubsequentGetTest()
+        => FlowWithParentIsReturnedInSubsequentGetTest(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task FlowWithWithoutParentIsReturnsNullParentInSubsequentGetTest()
+        => FlowWithWithoutParentIsReturnsNullParentInSubsequentGetTest(FunctionStoreFactory.Create());
 }

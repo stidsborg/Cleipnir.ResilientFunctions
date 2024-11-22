@@ -175,7 +175,7 @@ public class SqlServerFunctionStore : IFunctionStore
             command.Parameters.AddWithValue("@Expires", postponeUntil ?? leaseExpiration);
             command.Parameters.AddWithValue("@HumanInstanceId", humanInstanceId.Value);
             command.Parameters.AddWithValue("@Timestamp", timestamp);
-            command.Parameters.AddWithValue("@Parent", parent?.ToString() ?? (object) DBNull.Value);
+            command.Parameters.AddWithValue("@Parent", parent?.Serialize() ?? (object) DBNull.Value);
 
             await command.ExecuteNonQueryAsync();
         }
@@ -263,7 +263,8 @@ public class SqlServerFunctionStore : IFunctionStore
                    Epoch,
                    Interrupted,
                    Timestamp,
-                   HumanInstanceId
+                   HumanInstanceId,
+                   Parent
             FROM {_tableName}
             WHERE FlowType = @FlowType AND FlowInstance = @FlowInstance";
 
@@ -631,7 +632,8 @@ public class SqlServerFunctionStore : IFunctionStore
                     Epoch, 
                     Interrupted,
                     Timestamp,
-                    HumanInstanceId
+                    HumanInstanceId,
+                    Parent
             FROM {_tableName}
             WHERE FlowType = @FlowType
             AND flowInstance = @FlowInstance";
@@ -709,6 +711,7 @@ public class SqlServerFunctionStore : IFunctionStore
                 var interrupted = reader.GetBoolean(6);
                 var timestamp = reader.GetInt64(7);
                 var humanInstanceId = reader.GetString(8);
+                var parentId = reader.IsDBNull(9) ? null : StoredId.Deserialize(reader.GetString(9));
 
                 return new StoredFlow(
                     storedId,
@@ -720,7 +723,8 @@ public class SqlServerFunctionStore : IFunctionStore
                     epoch,
                     expires,
                     timestamp,
-                    interrupted
+                    interrupted,
+                    parentId
                 );
             }
         }

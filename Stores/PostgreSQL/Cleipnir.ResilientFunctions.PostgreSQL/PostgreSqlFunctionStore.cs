@@ -155,7 +155,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 new() {Value = postponeUntil ?? leaseExpiration},
                 new() {Value = timestamp},
                 new() {Value = humanInstanceId.Value},
-                new() {Value = parent?.ToString() ?? (object) DBNull.Value},
+                new() {Value = parent?.Serialize() ?? (object) DBNull.Value},
             }
         };
 
@@ -188,7 +188,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
                         new() { Value = idWithParam.StoredId.Instance.Value },
                         new() { Value = idWithParam.Param == null ? DBNull.Value : idWithParam.Param },
                         new() { Value = idWithParam.HumanInstanceId },
-                        new() { Value = parent?.ToString() ?? (object) DBNull.Value },
+                        new() { Value = parent?.Serialize() ?? (object) DBNull.Value },
                     }
                 };
                 batch.BatchCommands.Add(batchCommand);
@@ -216,7 +216,8 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 epoch, 
                 interrupted,
                 timestamp,
-                human_instance_id";
+                human_instance_id,
+                parent";
 
         await using var command = new NpgsqlCommand(_restartExecutionSql, conn)
         {
@@ -620,7 +621,8 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 epoch, 
                 interrupted,
                 timestamp,
-                human_instance_id
+                human_instance_id,
+                parent
             FROM {_tableName}
             WHERE type = $1 AND instance = $2;";
         await using var command = new NpgsqlCommand(_getFunctionSql, conn)
@@ -705,12 +707,14 @@ public class PostgreSqlFunctionStore : IFunctionStore
            6 interrupted,
            7 timestamp,
            8 human_instance_id
+           9 parent
          */
         while (await reader.ReadAsync())
         {
             var hasParameter = !await reader.IsDBNullAsync(0);
             var hasResult = !await reader.IsDBNullAsync(2);
             var hasException = !await reader.IsDBNullAsync(3);
+            var hasParent = !await reader.IsDBNullAsync(9);
             
             return new StoredFlow(
                 storedId,
@@ -722,7 +726,8 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 Expires: reader.GetInt64(4),
                 Epoch: reader.GetInt32(5),
                 Interrupted: reader.GetBoolean(6),
-                Timestamp: reader.GetInt64(7)
+                Timestamp: reader.GetInt64(7),
+                ParentId: hasParent ? StoredId.Deserialize(reader.GetString(9)) : null
             );
         }
 

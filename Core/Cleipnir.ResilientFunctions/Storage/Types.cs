@@ -5,13 +5,15 @@ namespace Cleipnir.ResilientFunctions.Storage;
 
 public record StoredId(StoredType Type, StoredInstance Instance)
 {
-    public override string ToString() => $"{Instance}@{Type}";
+    public override string ToString() => $"{Instance.Value}@{Type.Value}";
 
     public static StoredId Deserialize(string s)
     {
         var split = s.Split("@");
-        return new StoredId(int.Parse(split[0]).ToStoredType(), new StoredInstance(Guid.Parse(split[1])));
+        return new StoredId(int.Parse(split[1]).ToStoredType(), new StoredInstance(Guid.Parse(split[0])));
     }
+
+    public string Serialize() => ToString();
 }
 public record StoredType(int Value);
 
@@ -58,7 +60,8 @@ public record StoredFlow(
     int Epoch,
     long Expires,
     long Timestamp,
-    bool Interrupted
+    bool Interrupted,
+    StoredId? ParentId
 );
 
 public record IdAndEpoch(StoredId FlowId, int Epoch);
