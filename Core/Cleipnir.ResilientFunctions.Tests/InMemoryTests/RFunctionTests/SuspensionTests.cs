@@ -61,6 +61,10 @@ public class SuspensionTests : TestTemplates.RFunctionTests.SuspensionTests
         => PublishFromChildActionStressTest(FunctionStoreFactory.Create());
 
     [TestMethod]
+    public override Task ChildIsCreatedWithParentsId()
+        => ChildIsCreatedWithParentsId(FunctionStoreFactory.Create());
+
+    [TestMethod]
     public override Task InterruptCountIsUpdatedWhenMaxWaitDetectsIt()
         => InterruptCountIsUpdatedWhenMaxWaitDetectsIt(FunctionStoreFactory.Create());
 

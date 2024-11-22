@@ -493,6 +493,43 @@ public abstract class SuspensionTests
             result.Contains(i.ToString()).ShouldBeTrue();
     }
     
+    public abstract Task ChildIsCreatedWithParentsId();
+    protected async Task ChildIsCreatedWithParentsId(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var parentFunctionId = new FlowId($"ParentFunction{Guid.NewGuid()}", Guid.NewGuid().ToString());
+        using var functionsRegistry = new FunctionsRegistry(store);
+
+        FuncRegistration<string, List<string>>? parent = null;
+        var child = functionsRegistry.RegisterAction(
+            $"ChildFunction{Guid.NewGuid()}",
+            inner: (string param) => Task.CompletedTask
+        );
+
+        parent = functionsRegistry.RegisterFunc(
+            parentFunctionId.Type,
+            inner: async Task<List<string>> (string param, Workflow workflow) =>
+            {
+                await child.Schedule("SomeChildInstance", "SomeParam", suspendUntilCompletion: true);
+                return [param];
+            }
+        );
+
+        await parent.Schedule(parentFunctionId.Instance.Value, "hello world");
+
+        var controlPanel = await parent.ControlPanel(parentFunctionId.Instance);
+        controlPanel.ShouldNotBeNull();
+        
+        await BusyWait.Until(async () =>
+        {
+            await controlPanel.Refresh();
+            return controlPanel.Status == Status.Succeeded;
+        }, maxWait: TimeSpan.FromSeconds(60));
+        
+        var sf = await store.GetFunction(new StoredId(child.StoredType, StoredInstance.Create("SomeChildInstance"))).ShouldNotBeNullAsync();
+        sf.ParentId.ShouldBe(controlPanel.StoredId);
+    }
+    
     public abstract Task InterruptCountIsUpdatedWhenMaxWaitDetectsIt();
     protected async Task InterruptCountIsUpdatedWhenMaxWaitDetectsIt(Task<IFunctionStore> storeTask)
     {
