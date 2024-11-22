@@ -34,11 +34,11 @@ public class BinaryPackerTests
         var packedArray = BinaryPacker.Pack(str1.ToUtf8Bytes(), str2.ToUtf8Bytes(), str3.ToUtf8Bytes(), str4.ToUtf8Bytes(), str5.ToUtf8Bytes());
         var reconstructed = BinaryPacker.Split(packedArray, pieces: 5);
         reconstructed.Count.ShouldBe(5);
-        reconstructed[0].ToStringFromUtf8Bytes().ShouldBe(str1);
-        reconstructed[1].ToStringFromUtf8Bytes().ShouldBe(str2);
-        reconstructed[2].ToStringFromUtf8Bytes().ShouldBe(str3);
-        reconstructed[3].ToStringFromUtf8Bytes().ShouldBe(str4);
-        reconstructed[4].ToStringFromUtf8Bytes().ShouldBe(str5);
+        reconstructed[0]!.ToStringFromUtf8Bytes().ShouldBe(str1);
+        reconstructed[1]!.ToStringFromUtf8Bytes().ShouldBe(str2);
+        reconstructed[2]!.ToStringFromUtf8Bytes().ShouldBe(str3);
+        reconstructed[3]!.ToStringFromUtf8Bytes().ShouldBe(str4);
+        reconstructed[4]!.ToStringFromUtf8Bytes().ShouldBe(str5);
     }
     
     [TestMethod]
@@ -49,5 +49,18 @@ public class BinaryPackerTests
         combined.Length.ShouldNotBe(0);
         var split = BinaryPacker.Split(combined, pieces: 1)[0];
         split.ShouldBe(empty);
+    }
+    
+    [TestMethod]
+    public void NullCanBeMarshalledAndReconstructed()
+    {
+        var first = new byte[] { 100, 101 };
+        var last = new byte[] { 200, 201 };
+        var combined = BinaryPacker.Pack(first, null, last);
+        
+        var split = BinaryPacker.Split(combined, pieces: 3);
+        split[0].ShouldBe(first);
+        split[1].ShouldBeNull();
+        split[2].ShouldBe(last);
     }
 }
