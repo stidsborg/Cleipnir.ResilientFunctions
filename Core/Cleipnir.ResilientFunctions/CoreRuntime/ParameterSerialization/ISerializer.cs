@@ -12,7 +12,7 @@ public interface ISerializer
     PreviouslyThrownException DeserializeException(StoredException storedException);
     byte[] SerializeResult<TResult>(TResult result);
     TResult DeserializeResult<TResult>(byte[] json);
-    JsonAndType SerializeMessage<TMessage>(TMessage message) where TMessage : notnull;
+    SerializedMessage SerializeMessage<TMessage>(TMessage message) where TMessage : notnull;
     object DeserializeMessage(byte[] json, byte[] type);
     byte[] SerializeEffectResult<TResult>(TResult result);
     TResult DeserializeEffectResult<TResult>(byte[] json);

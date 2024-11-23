@@ -82,7 +82,7 @@ public class ErrorHandlingDecorator : ISerializer
         }
     }
 
-    public JsonAndType SerializeMessage<TEvent>(TEvent message) where TEvent : notnull
+    public SerializedMessage SerializeMessage<TEvent>(TEvent message) where TEvent : notnull
         => _inner.SerializeMessage(message);
     public object DeserializeMessage(byte[] json, byte[] type)
     {

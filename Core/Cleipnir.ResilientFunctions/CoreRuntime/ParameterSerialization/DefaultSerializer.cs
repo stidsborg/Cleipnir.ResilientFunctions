@@ -36,7 +36,7 @@ public class DefaultSerializer : ISerializer
     public TResult DeserializeResult<TResult>(byte[] json)  
         => JsonSerializer.Deserialize<TResult>(json)!;
 
-    public JsonAndType SerializeMessage<TEvent>(TEvent message) where TEvent : notnull 
+    public SerializedMessage SerializeMessage<TEvent>(TEvent message) where TEvent : notnull 
         => new(JsonSerializer.SerializeToUtf8Bytes(message, message.GetType()), message.GetType().SimpleQualifiedName().ToUtf8Bytes());
 
     public object DeserializeMessage(byte[] json, byte[] type)

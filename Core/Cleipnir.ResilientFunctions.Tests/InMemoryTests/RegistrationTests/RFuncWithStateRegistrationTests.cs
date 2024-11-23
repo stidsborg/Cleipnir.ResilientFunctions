@@ -77,7 +77,7 @@ public class RFuncWithStateRegistrationTests
         public TResult DeserializeResult<TResult>(byte[] json) 
             => Default.DeserializeResult<TResult>(json);
 
-        public JsonAndType SerializeMessage<TEvent>(TEvent message) where TEvent : notnull
+        public SerializedMessage SerializeMessage<TEvent>(TEvent message) where TEvent : notnull
             => Default.SerializeMessage(message);
         public object DeserializeMessage(byte[] json, byte[] type)
             => Default.DeserializeMessage(json, type);

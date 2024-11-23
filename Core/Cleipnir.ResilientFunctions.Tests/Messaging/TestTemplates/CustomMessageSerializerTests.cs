@@ -73,7 +73,7 @@ public abstract class CustomMessageSerializerTests
         public TResult DeserializeResult<TResult>(byte[] json) 
             => DefaultSerializer.Instance.DeserializeResult<TResult>(json);
 
-        public JsonAndType SerializeMessage<TEvent>(TEvent message) where TEvent : notnull
+        public SerializedMessage SerializeMessage<TEvent>(TEvent message) where TEvent : notnull
         {
             EventToSerialize.Add(message);
             return DefaultSerializer.Instance.SerializeMessage(message);
