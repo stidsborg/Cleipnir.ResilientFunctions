@@ -14,7 +14,7 @@ public class SerializationTests
         var serializer = DefaultSerializer.Instance;
         Parent @event = new Child("Hello World");
         var serialized = serializer.SerializeMessage(@event);
-        var deserialized = serializer.DeserializeMessage(serialized.Json, serialized.Type);
+        var deserialized = serializer.DeserializeMessage(serialized.Content, serialized.Type);
         if (deserialized is not Child child)
             throw new Exception("Expected event to be of child-type");
                 
