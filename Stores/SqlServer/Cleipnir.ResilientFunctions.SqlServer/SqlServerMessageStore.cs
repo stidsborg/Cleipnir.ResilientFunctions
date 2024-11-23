@@ -69,7 +69,7 @@ public class SqlServerMessageStore : IMessageStore
         await using var command = new SqlCommand(_appendMessageSql, conn);
         command.Parameters.AddWithValue("@FlowType", storedId.Type.Value);
         command.Parameters.AddWithValue("@FlowInstance", storedId.Instance.Value);
-        command.Parameters.AddWithValue("@MessageJson", storedMessage.MessageJson);
+        command.Parameters.AddWithValue("@MessageJson", storedMessage.MessageContent);
         command.Parameters.AddWithValue("@MessageType", storedMessage.MessageType);
         command.Parameters.AddWithValue("@IdempotencyKey", storedMessage.IdempotencyKey ?? (object)DBNull.Value);
         try
@@ -105,7 +105,7 @@ public class SqlServerMessageStore : IMessageStore
         command.Parameters.AddWithValue("@FlowType", storedId.Type.Value);
         command.Parameters.AddWithValue("@FlowInstance", storedId.Instance.Value);
         command.Parameters.AddWithValue("@Position", position);
-        command.Parameters.AddWithValue("@MessageJson", storedMessage.MessageJson);
+        command.Parameters.AddWithValue("@MessageJson", storedMessage.MessageContent);
         command.Parameters.AddWithValue("@MessageType", storedMessage.MessageType);
         command.Parameters.AddWithValue("@IdempotencyKey", storedMessage.IdempotencyKey ?? (object)DBNull.Value);
         

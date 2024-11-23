@@ -38,7 +38,7 @@ public class ExistingMessages
         return _receivedMessages = storedMessages
             .Select(m => 
                 new MessageAndIdempotencyKey(
-                    _serializer.DeserializeMessage(m.MessageJson, m.MessageType),
+                    _serializer.DeserializeMessage(m.MessageContent, m.MessageType),
                     m.IdempotencyKey
                 )
             ).ToList();

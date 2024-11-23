@@ -97,7 +97,7 @@ public class MessagesPullerAndEmitter
             storedMessages = filterStoredMessages;
 
             var events = storedMessages.Select(
-                storedEvent => _serializer.DeserializeMessage(storedEvent.MessageJson, storedEvent.MessageType)
+                storedEvent => _serializer.DeserializeMessage(storedEvent.MessageContent, storedEvent.MessageType)
             );
 
             Source.SignalNext(events);

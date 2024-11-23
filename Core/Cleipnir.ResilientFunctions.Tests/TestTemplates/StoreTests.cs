@@ -649,7 +649,7 @@ public abstract class StoreTests
 
         var storedMessages = await store.MessageStore.GetMessages(functionId, skip: 0);
         storedMessages.Count.ShouldBe(1);
-        var deserializedMessage = (string) DefaultSerializer.Instance.DeserializeMessage(storedMessages[0].MessageJson, storedMessages[0].MessageType);
+        var deserializedMessage = (string) DefaultSerializer.Instance.DeserializeMessage(storedMessages[0].MessageContent, storedMessages[0].MessageType);
         deserializedMessage.ShouldBe("hello everyone");
     }
     

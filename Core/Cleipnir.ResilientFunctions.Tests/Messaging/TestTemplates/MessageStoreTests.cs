@@ -333,8 +333,8 @@ public abstract class MessageStoreTests
 
         var events = (await messageStore.GetMessages(functionId, skip: 0)).ToList();
         events.Count.ShouldBe(2);
-        var event1 = (string) JsonSerializer.Deserialize(events[0].MessageJson, Type.GetType(events[0].MessageType.ToStringFromUtf8Bytes(), throwOnError: true)!)!;
-        var event2 = (string) JsonSerializer.Deserialize(events[1].MessageJson, Type.GetType(events[1].MessageType.ToStringFromUtf8Bytes(), throwOnError: true)!)!;
+        var event1 = (string) JsonSerializer.Deserialize(events[0].MessageContent, Type.GetType(events[0].MessageType.ToStringFromUtf8Bytes(), throwOnError: true)!)!;
+        var event2 = (string) JsonSerializer.Deserialize(events[1].MessageContent, Type.GetType(events[1].MessageType.ToStringFromUtf8Bytes(), throwOnError: true)!)!;
         
         event1.ShouldBe("hello to you");
         event2.ShouldBe("hello from me");
@@ -362,8 +362,8 @@ public abstract class MessageStoreTests
 
         var events = (await messageStore.GetMessages(functionId, skip: 0)).ToList();
         events.Count.ShouldBe(2);
-        var event1 = (string) JsonSerializer.Deserialize(events[0].MessageJson, Type.GetType(events[0].MessageType.ToStringFromUtf8Bytes(), throwOnError: true)!)!;
-        var event2 = (string) JsonSerializer.Deserialize(events[1].MessageJson, Type.GetType(events[1].MessageType.ToStringFromUtf8Bytes(), throwOnError: true)!)!;
+        var event1 = (string) JsonSerializer.Deserialize(events[0].MessageContent, Type.GetType(events[0].MessageType.ToStringFromUtf8Bytes(), throwOnError: true)!)!;
+        var event2 = (string) JsonSerializer.Deserialize(events[1].MessageContent, Type.GetType(events[1].MessageType.ToStringFromUtf8Bytes(), throwOnError: true)!)!;
         
         event1.ShouldBe("hello to you");
         event2.ShouldBe("hello from me");
@@ -491,7 +491,7 @@ public abstract class MessageStoreTests
         var newEvents = await messageStore.GetMessages(functionId, skip);
         newEvents.Count.ShouldBe(1);
         var storedEvent = newEvents[0];
-        var @event = DefaultSerializer.Instance.DeserializeMessage(storedEvent.MessageJson, storedEvent.MessageType);
+        var @event = DefaultSerializer.Instance.DeserializeMessage(storedEvent.MessageContent, storedEvent.MessageType);
         @event.ShouldBe("hello world");
         storedEvent.IdempotencyKey.ShouldBe("idempotency_key_1");
         skip += newEvents.Count;
@@ -506,7 +506,7 @@ public abstract class MessageStoreTests
         newEvents = await messageStore.GetMessages(functionId, skip);
         newEvents.Count.ShouldBe(1);
         storedEvent = newEvents[0];
-        @event = DefaultSerializer.Instance.DeserializeMessage(storedEvent.MessageJson, storedEvent.MessageType);
+        @event = DefaultSerializer.Instance.DeserializeMessage(storedEvent.MessageContent, storedEvent.MessageType);
         @event.ShouldBe("hello universe");
         storedEvent.IdempotencyKey.ShouldBe("idempotency_key_2");
         skip += newEvents.Count;
@@ -541,7 +541,7 @@ public abstract class MessageStoreTests
         var newEvents = await messageStore.GetMessages(functionId, skip);
         newEvents.Count.ShouldBe(1);
         var storedEvent = newEvents[0];
-        var @event = DefaultSerializer.Instance.DeserializeMessage(storedEvent.MessageJson, storedEvent.MessageType);
+        var @event = DefaultSerializer.Instance.DeserializeMessage(storedEvent.MessageContent, storedEvent.MessageType);
         @event.ShouldBe("hello world");
         storedEvent.IdempotencyKey.ShouldBe("idempotency_key_1");
         skip += newEvents.Count;
