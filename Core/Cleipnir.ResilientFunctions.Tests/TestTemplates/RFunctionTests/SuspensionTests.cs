@@ -229,7 +229,7 @@ public abstract class SuspensionTests
             async Task<string> (string param, Workflow workflow) =>
             {
                 var messages = workflow.Messages;
-                var next = await messages.FirstOfType<string>(TimeSpan.Zero);
+                var next = await messages.FirstOfType<string>(maxWait: TimeSpan.Zero);
                 return next;
             }
         );
@@ -275,7 +275,7 @@ public abstract class SuspensionTests
             async Task<string> (string param, Workflow workflow) =>
             {
                 var messages = workflow.Messages;
-                var next = await messages.FirstOfType<string>(TimeSpan.Zero);
+                var next = await messages.FirstOfType<string>(maxWait: TimeSpan.Zero);
                 return next;
             }
         );
@@ -508,7 +508,7 @@ public abstract class SuspensionTests
 
         parent = functionsRegistry.RegisterFunc(
             parentFunctionId.Type,
-            inner: async Task<List<string>> (string param, Workflow workflow) =>
+            inner: async Task<List<string>> (string param) =>
             {
                 await child.Schedule("SomeChildInstance", "SomeParam", suspendUntilCompletion: true);
                 return [param];
@@ -517,17 +517,17 @@ public abstract class SuspensionTests
 
         await parent.Schedule(parentFunctionId.Instance.Value, "hello world");
 
-        var controlPanel = await parent.ControlPanel(parentFunctionId.Instance);
-        controlPanel.ShouldNotBeNull();
+        var parentControlPanel = await parent.ControlPanel(parentFunctionId.Instance);
+        parentControlPanel.ShouldNotBeNull();
         
         await BusyWait.Until(async () =>
         {
-            await controlPanel.Refresh();
-            return controlPanel.Status == Status.Succeeded;
+            await parentControlPanel.Refresh();
+            return parentControlPanel.Status == Status.Succeeded;
         }, maxWait: TimeSpan.FromSeconds(60));
         
-        var sf = await store.GetFunction(new StoredId(child.StoredType, StoredInstance.Create("SomeChildInstance"))).ShouldNotBeNullAsync();
-        sf.ParentId.ShouldBe(controlPanel.StoredId);
+        var childStoredFunction = await store.GetFunction(new StoredId(child.StoredType, StoredInstance.Create("SomeChildInstance"))).ShouldNotBeNullAsync();
+        childStoredFunction.ParentId.ShouldBe(parentControlPanel.StoredId);
     }
     
     public abstract Task InterruptCountIsUpdatedWhenMaxWaitDetectsIt();
