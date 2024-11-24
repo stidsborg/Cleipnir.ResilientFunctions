@@ -10,14 +10,14 @@ namespace Cleipnir.ResilientFunctions;
 public static class ActionRegistration
 {
     public delegate Task Invoke<in TParam>(FlowInstance flowInstance, TParam param) where TParam : notnull;
-    public delegate Task Schedule<in TParam>(FlowInstance flowInstance, TParam param, bool suspendUntilCompletion = false) where TParam : notnull;
-    public delegate Task BulkSchedule<TParam>(IEnumerable<BulkWork<TParam>> instances, bool suspendUntilCompletion = false) where TParam : notnull;
+    public delegate Task<Scheduled> Schedule<in TParam>(FlowInstance flowInstance, TParam param, bool? detach = null) where TParam : notnull;
+    public delegate Task<BulkScheduled> BulkSchedule<TParam>(IEnumerable<BulkWork<TParam>> instances, bool? detach = null) where TParam : notnull;
 
-    public delegate Task ScheduleAt<in TParam>(
+    public delegate Task<Scheduled> ScheduleAt<in TParam>(
         FlowInstance flowInstance,
         TParam param,
         DateTime delayUntil,
-        bool suspendUntilCompletion = false
+        bool? detach = null
     ) where TParam : notnull;
 }
 
@@ -67,8 +67,8 @@ public class ActionRegistration<TParam> : BaseRegistration where TParam : notnul
         ? _stateFetcher.FetchState<TState>(instance)
         : _stateFetcher.FetchState<TState>(instance, stateId);
     
-    public Task ScheduleIn(string flowInstance, TParam param, TimeSpan delay, bool suspendUntilCompletion = false) 
-        => ScheduleAt(flowInstance, param, delayUntil: DateTime.UtcNow.Add(delay), suspendUntilCompletion);
+    public Task ScheduleIn(string flowInstance, TParam param, TimeSpan delay, bool? detach = null) 
+        => ScheduleAt(flowInstance, param, delayUntil: DateTime.UtcNow.Add(delay), detach);
     
     public async Task<Finding> SendMessage<T>(
         FlowInstance flowInstance,

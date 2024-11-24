@@ -465,7 +465,7 @@ public abstract class SuspensionTests
                 await workflow.Effect.Capture("ScheduleChildren", async () =>
                 {
                     for (var i = 0; i < numberOfChildren; i++)
-                        await child.Schedule($"SomeChildInstance#{i}", i.ToString());
+                        await child.Schedule($"SomeChildInstance#{i}", i.ToString(), detach: true);
                 });
                 
                 var messages = await workflow.Messages
@@ -497,37 +497,30 @@ public abstract class SuspensionTests
     protected async Task ChildIsCreatedWithParentsId(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var parentFunctionId = new FlowId($"ParentFunction{Guid.NewGuid()}", Guid.NewGuid().ToString());
+        var parentId = new FlowId($"ParentFlow{Guid.NewGuid()}", Guid.NewGuid().ToString());
         using var functionsRegistry = new FunctionsRegistry(store);
 
-        FuncRegistration<string, List<string>>? parent = null;
-        var child = functionsRegistry.RegisterAction(
-            $"ChildFunction{Guid.NewGuid()}",
-            inner: (string param) => Task.CompletedTask
+        FuncRegistration<string, string>? parent = null;
+        var child = functionsRegistry.RegisterFunc(
+            flowType: $"ChildFlow{Guid.NewGuid()}",
+            inner: (string param) => param.ToUpper().ToTask()
         );
 
         parent = functionsRegistry.RegisterFunc(
-            parentFunctionId.Type,
-            inner: async Task<List<string>> (string param) =>
-            {
-                await child.Schedule("SomeChildInstance", "SomeParam", suspendUntilCompletion: true);
-                return [param];
-            }
+            parentId.Type,
+            inner: async Task<string> (string param) =>
+                await child.Schedule("Child", param).Completion()
         );
 
-        await parent.Schedule(parentFunctionId.Instance.Value, "hello world");
+        var result = await parent.Schedule(parentId.Instance, "hello world").Completion();
+        result.ShouldBe("HELLO WORLD");
+        
+        var childStoredFunction = await store
+            .GetFunction(new StoredId(child.StoredType, StoredInstance.Create("Child")))
+            .ShouldNotBeNullAsync();
 
-        var parentControlPanel = await parent.ControlPanel(parentFunctionId.Instance);
-        parentControlPanel.ShouldNotBeNull();
-        
-        await BusyWait.Until(async () =>
-        {
-            await parentControlPanel.Refresh();
-            return parentControlPanel.Status == Status.Succeeded;
-        }, maxWait: TimeSpan.FromSeconds(60));
-        
-        var childStoredFunction = await store.GetFunction(new StoredId(child.StoredType, StoredInstance.Create("SomeChildInstance"))).ShouldNotBeNullAsync();
-        childStoredFunction.ParentId.ShouldBe(parentControlPanel.StoredId);
+        var parentStoredId = parentId.ToStoredId(parent.StoredType);
+        childStoredFunction.ParentId.ShouldBe(parentStoredId);
     }
     
     public abstract Task InterruptCountIsUpdatedWhenMaxWaitDetectsIt();

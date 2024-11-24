@@ -7,15 +7,27 @@ using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions;
 
+public static class Paramless
+{
+    public delegate Task Invoke(FlowInstance flowInstance);
+    public delegate Task<Scheduled> Schedule(FlowInstance flowInstance, bool? detach = null);
+    public delegate Task<BulkScheduled> BulkSchedule(IEnumerable<FlowInstance> instances, bool? detach = null);
+    public delegate Task<Scheduled> ScheduleAt(
+        FlowInstance flowInstance,
+        DateTime delayUntil,
+        bool? detach = null
+    );
+}
+
 public class ParamlessRegistration : BaseRegistration
 {
     private readonly ControlPanelFactory _controlPanelFactory;
     public FlowType Type { get; }
     
-    public Func<FlowInstance, Task> Invoke { get; }
-    public Func<FlowInstance, Task> Schedule { get; }
-    public Func<FlowInstance, DateTime, Task> ScheduleAt { get; }
-    public Func<IEnumerable<FlowInstance>, Task> BulkSchedule { get; }
+    public Paramless.Invoke Invoke { get; }
+    public Paramless.Schedule Schedule { get; }
+    public Paramless.ScheduleAt ScheduleAt { get; }
+    public Paramless.BulkSchedule BulkSchedule { get; }
     
     private readonly StateFetcher _stateFetcher;
     public MessageWriters MessageWriters { get; }
@@ -23,10 +35,10 @@ public class ParamlessRegistration : BaseRegistration
     public ParamlessRegistration(
         FlowType flowType,
         StoredType storedType,
-        Func<FlowInstance, Task> invoke,
-        Func<FlowInstance, Task> schedule,
-        Func<FlowInstance, DateTime, Task> scheduleAt,
-        Func<IEnumerable<FlowInstance>, Task> bulkSchedule,
+        Paramless.Invoke invoke,
+        Paramless.Schedule schedule,
+        Paramless.ScheduleAt scheduleAt,
+        Paramless.BulkSchedule bulkSchedule,
         GetInstances getInstances,
         ControlPanelFactory controlPanelFactory, 
         MessageWriters messageWriters, 
@@ -44,7 +56,7 @@ public class ParamlessRegistration : BaseRegistration
         MessageWriters = messageWriters;
         _stateFetcher = stateFetcher;
     }
-
+    
     public Task<ControlPanel?> ControlPanel(FlowInstance flowInstance)
         => _controlPanelFactory.Create(flowInstance);
 
@@ -56,8 +68,8 @@ public class ParamlessRegistration : BaseRegistration
             : _stateFetcher.FetchState<TState>(instance, stateId);
     }
     
-    public Task ScheduleIn(string flowInstance, TimeSpan delay) 
-        => ScheduleAt(flowInstance, DateTime.UtcNow.Add(delay));
+    public Task ScheduleIn(string flowInstance, TimeSpan delay, bool? detach = null) 
+        => ScheduleAt(flowInstance, DateTime.UtcNow.Add(delay), detach);
 
     public async Task<Finding> SendMessage<T>(
         FlowInstance flowInstance,

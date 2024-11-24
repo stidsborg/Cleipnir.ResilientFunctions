@@ -14,20 +14,20 @@ public static class FuncRegistration
         TParam param
     ) where TParam : notnull;
 
-    public delegate Task Schedule<in TParam>(
+    public delegate Task<Scheduled<TReturn>> Schedule<in TParam, TReturn>(
         FlowInstance flowInstance,
         TParam param,
-        bool suspendUntilCompletion = false
+        bool? detach = null
     ) where TParam : notnull;
 
-    public delegate Task ScheduleAt<in TParam>(
+    public delegate Task<Scheduled<TReturn>> ScheduleAt<in TParam, TReturn>(
         FlowInstance flowInstance,
         TParam param,
         DateTime delayUntil,
-        bool suspendUntilCompletion = false
+        bool? detach = null
     ) where TParam : notnull;
     
-    public delegate Task BulkSchedule<TParam>(IEnumerable<BulkWork<TParam>> instances, bool suspendUntilCompletion = false) where TParam : notnull;
+    public delegate Task<BulkScheduled<TReturn>> BulkSchedule<TParam, TReturn>(IEnumerable<BulkWork<TParam>> instances, bool? detach = null) where TParam : notnull;
 }
 
 public class FuncRegistration<TParam, TReturn> : BaseRegistration where TParam : notnull
@@ -35,9 +35,9 @@ public class FuncRegistration<TParam, TReturn> : BaseRegistration where TParam :
     public FlowType Type { get; }
     
     public FuncRegistration.Invoke<TParam, TReturn> Invoke { get; }
-    public FuncRegistration.Schedule<TParam> Schedule { get; }
-    public FuncRegistration.ScheduleAt<TParam> ScheduleAt { get; }
-    public FuncRegistration.BulkSchedule<TParam> BulkSchedule { get; } 
+    public FuncRegistration.Schedule<TParam, TReturn> Schedule { get; }
+    public FuncRegistration.ScheduleAt<TParam, TReturn> ScheduleAt { get; }
+    public FuncRegistration.BulkSchedule<TParam, TReturn> BulkSchedule { get; } 
     
     private readonly ControlPanelFactory<TParam,TReturn> _controlPanelFactory;
     private readonly StateFetcher _stateFetcher;
@@ -47,9 +47,9 @@ public class FuncRegistration<TParam, TReturn> : BaseRegistration where TParam :
         FlowType flowType,
         StoredType storedType,
         FuncRegistration.Invoke<TParam, TReturn> invoke,
-        FuncRegistration.Schedule<TParam> schedule,
-        FuncRegistration.ScheduleAt<TParam> scheduleAt,
-        FuncRegistration.BulkSchedule<TParam> bulkSchedule,
+        FuncRegistration.Schedule<TParam, TReturn> schedule,
+        FuncRegistration.ScheduleAt<TParam, TReturn> scheduleAt,
+        FuncRegistration.BulkSchedule<TParam, TReturn> bulkSchedule,
         GetInstances getInstances,
         ControlPanelFactory<TParam, TReturn> controlPanelFactory, 
         MessageWriters messageWriters, 
@@ -80,8 +80,8 @@ public class FuncRegistration<TParam, TReturn> : BaseRegistration where TParam :
             : _stateFetcher.FetchState<TState>(instance, stateId);
     }
 
-    public Task ScheduleIn(string flowInstance, TParam param, TimeSpan delay, bool suspendUntilCompletion = false) 
-        => ScheduleAt(flowInstance, param, delayUntil: DateTime.UtcNow.Add(delay), suspendUntilCompletion);
+    public Task ScheduleIn(string flowInstance, TParam param, TimeSpan delay, bool? detach = null) 
+        => ScheduleAt(flowInstance, param, delayUntil: DateTime.UtcNow.Add(delay), detach);
     
     public async Task<Finding> SendMessage<T>(
         FlowInstance flowInstance,

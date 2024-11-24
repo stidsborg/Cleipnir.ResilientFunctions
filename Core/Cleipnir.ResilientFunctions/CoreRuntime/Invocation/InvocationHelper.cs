@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.ParameterSerialization;
@@ -7,6 +8,7 @@ using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
+using Cleipnir.ResilientFunctions.Reactive.Extensions;
 using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
@@ -70,10 +72,14 @@ internal class InvocationHelper<TParam, TReturn>
         }
     }
     
-    public async Task<TReturn> WaitForFunctionResult(FlowId flowId, StoredId storedId, bool allowPostponedAndSuspended) 
+    public async Task<TReturn> WaitForFunctionResult(FlowId flowId, StoredId storedId, bool allowPostponedAndSuspended, TimeSpan? maxWait) 
     {
+        var stopWatch = Stopwatch.StartNew();
         while (true)
         {
+            if (maxWait.HasValue && stopWatch.Elapsed > maxWait.Value)
+                throw new TimeoutException();
+            
             var storedFunction = await _functionStore.GetFunction(storedId);
             if (storedFunction == null)
                 throw UnexpectedStateException.NotFound(storedId);
@@ -106,11 +112,11 @@ internal class InvocationHelper<TParam, TReturn>
         }
     }
     
-    public async Task PersistFailure(StoredId storedId, Exception exception, TParam param, int expectedEpoch)
+    public async Task PersistFailure(StoredId storedId, FlowId flowId, Exception exception, TParam param, StoredId? parent, int expectedEpoch)
     {
         var serializer = _settings.Serializer;
         var storedException = serializer.SerializeException(exception);
-
+        
         var success = await _functionStore.FailFunction(
             storedId,
             storedException,
@@ -127,8 +133,10 @@ internal class InvocationHelper<TParam, TReturn>
 
     public async Task<PersistResultOutcome> PersistResult(
         StoredId storedId,
+        FlowId flowId,
         Result<TReturn> result,
         TParam param,
+        StoredId? parent,
         int expectedEpoch)
     {
         var complementaryState = new ComplimentaryState(
@@ -207,6 +215,28 @@ internal class InvocationHelper<TParam, TReturn>
         }
     }
 
+    public async Task PublishCompletionMessageToParent(StoredId? parent, FlowId childId, Result<TReturn> result)
+    {
+        if (parent == null)
+            return;
+
+        var serializer = _settings.Serializer;
+        var msg = result.Outcome switch
+        {
+            Outcome.Succeed => new FlowCompleted(childId, Result: SerializeResult(result.SucceedWithValue), Failed: false),
+            Outcome.Fail => new FlowCompleted(childId, Result: null, Failed: true),
+            _ => default
+        };
+
+        if (msg == null)
+            return;
+        
+        var (content, type) = serializer.SerializeMessage(msg);
+        var storedMessage = new StoredMessage(content, type, IdempotencyKey: $"FlowCompleted:{parent}");
+        await _functionStore.MessageStore.AppendMessage(parent, storedMessage);
+        await _functionStore.Interrupt(parent, onlyIfExecuting: false);
+    }
+
     public async Task<RestartedFunction?> RestartFunction(StoredId flowId, int expectedEpoch)
     {
         var runningFunction = _shutdownCoordinator.RegisterRunningFunction();
@@ -243,7 +273,7 @@ internal class InvocationHelper<TParam, TReturn>
                 ? default 
                 : Serializer.DeserializeParameter<TParam>(sf.Parameter);                
             
-            return new PreparedReInvocation(flowId, param, sf.Epoch, runningFunction);
+            return new PreparedReInvocation(flowId, param, sf.Epoch, runningFunction, sf.ParentId);
         }
         catch (DeserializationException e)
         {
@@ -271,7 +301,7 @@ internal class InvocationHelper<TParam, TReturn>
         }
     }
 
-    internal record PreparedReInvocation(FlowId FlowId, TParam? Param, int Epoch, IDisposable RunningFunction);
+    internal record PreparedReInvocation(FlowId FlowId, TParam? Param, int Epoch, IDisposable RunningFunction, StoredId? Parent);
 
     public IDisposable StartLeaseUpdater(StoredId storedId, FlowId flowId, int epoch = 0) 
         => LeaseUpdater.CreateAndStart(storedId, flowId, epoch, _functionStore, _settings);
@@ -342,10 +372,11 @@ internal class InvocationHelper<TParam, TReturn>
         );
     }
 
-    public async Task BulkSchedule(IEnumerable<BulkWork<TParam>> work, bool suspendUntilCompletion = false)
+    public async Task<InnerScheduled<TReturn>> BulkSchedule(IEnumerable<BulkWork<TParam>> work, bool? detach = null)
     {
         var serializer = _settings.Serializer;
-        var parent = suspendUntilCompletion ? CurrentFlow.StoredId : null;
+        var parent = GetAndEnsureParent(detach);
+        
         await _functionStore.BulkScheduleFunctions(
             work.Select(bw =>
                 new IdWithParam(
@@ -354,7 +385,16 @@ internal class InvocationHelper<TParam, TReturn>
                     _isParamlessFunction ? null : serializer.SerializeParameter(bw.Param)
                 )
             ),
-            parent
+            parent?.StoredId
+        );
+
+        if (detach == false || parent == null)
+            return InnerScheduled<TReturn>.Failing;
+
+        return CreateInnerScheduled(
+            work.Select(w => new FlowId(_flowType, w.Instance)).ToList(),
+            parent,
+            detach
         );
     }
 
@@ -441,5 +481,57 @@ internal class InvocationHelper<TParam, TReturn>
         return result is null
             ? null 
             : Serializer.SerializeResult(result);
+    }
+
+    public InnerScheduled<TReturn> CreateInnerScheduled(List<FlowId> scheduledIds, Workflow? parentWorkflow, bool? detach)
+    {
+        if (detach == false || parentWorkflow == null)
+            return new InnerScheduled<TReturn>(async maxWait =>
+            {
+                //todo make max wait smaller after each await
+                var results = new List<TReturn>(scheduledIds.Count);
+                foreach (var scheduledId in scheduledIds)
+                {
+                    var result = await WaitForFunctionResult(scheduledId, scheduledId.ToStoredId(_storedType), allowPostponedAndSuspended: true, maxWait);
+                    results.Add(result);
+                }
+
+                return results;
+            });
+        
+        return new InnerScheduled<TReturn>(async maxWait =>
+        {
+            var completedFlows = await parentWorkflow!
+                .Messages
+                .OfType<FlowCompleted>()
+                .Where(fc => scheduledIds.Contains(fc.Id))
+                .Take(scheduledIds.Count)
+                .Completion(maxWait);
+
+            var failed = completedFlows.FirstOrDefault(fc => fc.Failed);
+            if (failed != null)
+                throw new InvalidOperationException($"Child-flow '{failed.Id}' failed");
+
+            var serializer = _settings.Serializer;
+            var results = completedFlows.Select(fc =>
+                fc.Result == null
+                    ? default!
+                    : serializer.DeserializeResult<TReturn>(fc.Result)
+            );
+
+            return results.ToList();
+        });
+    }
+    
+    public Workflow? GetAndEnsureParent(bool? detach)
+    {
+        if (detach == true)
+            return null;
+        
+        var parentWorkflow = CurrentFlow.Workflow;
+        if (parentWorkflow == null && detach == false) 
+            throw new InvalidOperationException("Cannot start an attached flow without a parent");
+        
+        return parentWorkflow;
     }
 }
