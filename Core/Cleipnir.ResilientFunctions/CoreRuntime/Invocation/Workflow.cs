@@ -1,24 +1,26 @@
 ﻿using System;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
-using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.Domain.Exceptions.Commands;
 using Cleipnir.ResilientFunctions.Messaging;
+using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 
 public class Workflow
 {
     public FlowId FlowId { get; }
+    internal StoredId StoredId { get; }
     public Messages Messages { get; }
     public Effect Effect { get; }
     public States States { get; }
     public Utilities Utilities { get; }
     public Correlations Correlations { get; }
     
-    public Workflow(FlowId flowId, Messages messages, Effect effect, States states, Utilities utilities, Correlations correlations)
+    public Workflow(FlowId flowId, StoredId storedId, Messages messages, Effect effect, States states, Utilities utilities, Correlations correlations)
     {
         FlowId = flowId;
+        StoredId = storedId;
         Utilities = utilities;
         Messages = messages;
         Effect = effect;

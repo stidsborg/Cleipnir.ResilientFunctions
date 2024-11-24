@@ -210,7 +210,7 @@ public class Invoker<TParam, TReturn>
             
             var (effect, states) = _invocationHelper.CreateEffectAndStates(storedId, anyEffects: false);
             var correlations = _invocationHelper.CreateCorrelations(flowId);
-            var workflow = new Workflow(flowId, messages, effect, states, _utilities, correlations);
+            var workflow = new Workflow(flowId, storedId, messages, effect, states, _utilities, correlations);
 
             return new PreparedInvocation(
                 persisted,
@@ -262,6 +262,7 @@ public class Invoker<TParam, TReturn>
           
             var workflow = new Workflow(
                 flowId,
+                storedId,
                 messages,
                 effect,
                 states,
