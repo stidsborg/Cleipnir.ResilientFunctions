@@ -28,7 +28,7 @@ public static class CrashedTest
         for (var i = 0; i < testSize; i++)
         {
             await store.CreateFunction(
-                new StoredId(storedType, i.ToString()),
+                new StoredId(storedType, i.ToString().ToStoredInstance()),
                 humanInstanceId: "humanInstanceId",
                 param: JsonSerializer.Serialize("hello world").ToUtf8Bytes(),
                 leaseExpiration,

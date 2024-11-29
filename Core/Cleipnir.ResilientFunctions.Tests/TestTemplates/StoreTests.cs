@@ -415,7 +415,7 @@ public abstract class StoreTests
     {
         var store = await storeTask;
         var function1Id = TestStoredId.Create();
-        var function2Id = function1Id with { Instance = Guid.NewGuid().ToString("N") };
+        var function2Id = function1Id with { Instance = Guid.NewGuid().ToString("N").ToStoredInstance() };
 
         await store.CreateFunction(
             function1Id, 
@@ -1120,7 +1120,7 @@ public abstract class StoreTests
     protected async Task SucceededFunctionsCanBeFetchedSuccessfully(Task<IFunctionStore> storeTask)
     {
         var functionId1 = TestStoredId.Create();
-        var functionId2 = functionId1 with { Instance = Guid.NewGuid().ToString() };
+        var functionId2 = functionId1 with { Instance = Guid.NewGuid().ToString().ToStoredInstance() };
         var functionId3 = TestStoredId.Create();
         var store = await storeTask;
 
@@ -1162,7 +1162,7 @@ public abstract class StoreTests
         var typeId = TestStoredId.Create().Type;
         var functionIds = Enumerable
             .Range(0, 500)
-            .Select(i => new StoredId(typeId, Instance: i.ToString()))
+            .Select(i => new StoredId(typeId, Instance: i.ToString().ToStoredInstance()))
             .ToList();
         
         await store.BulkScheduleFunctions(

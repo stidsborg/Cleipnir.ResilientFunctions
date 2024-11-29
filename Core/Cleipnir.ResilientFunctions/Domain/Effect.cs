@@ -67,6 +67,21 @@ public class Effect(
             else
                 return null;
     }
+    
+    public async Task<bool> Mark(string id)
+    {
+        var effectResults = await GetEffectResults();
+        
+        lock (_sync)
+            if (effectResults.ContainsKey(id))
+                return false;
+        
+        var storedEffect = StoredEffect.CreateCompleted(id);
+        await effectsStore.SetEffectResult(storedId, storedEffect);
+        effectResults[id] = storedEffect;
+
+        return true;
+    }
 
     public async Task<T> CreateOrGet<T>(string id, T value)
     {
@@ -279,4 +294,6 @@ public class Effect(
         => WhenAny(_implicitIds.Next(), tasks);
     public Task<T[]> WhenAll<T>(params Task<T>[] tasks)
         => WhenAll(_implicitIds.Next(), tasks);
+
+    internal string TakeNextImplicitId() => _implicitIds.Next();
 }

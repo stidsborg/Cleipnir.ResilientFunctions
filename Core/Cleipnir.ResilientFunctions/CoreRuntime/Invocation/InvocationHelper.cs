@@ -232,7 +232,7 @@ internal class InvocationHelper<TParam, TReturn>
             return;
         
         var (content, type) = serializer.SerializeMessage(msg);
-        var storedMessage = new StoredMessage(content, type, IdempotencyKey: $"FlowCompleted:{parent}");
+        var storedMessage = new StoredMessage(content, type, IdempotencyKey: $"FlowCompleted:{childId}");
         await _functionStore.MessageStore.AppendMessage(parent, storedMessage);
         await _functionStore.Interrupt(parent, onlyIfExecuting: false);
     }
@@ -376,21 +376,27 @@ internal class InvocationHelper<TParam, TReturn>
     {
         var serializer = _settings.Serializer;
         var parent = GetAndEnsureParent(detach);
-        
+        if (parent != null)
+        {
+            var marked = await parent.Effect.Mark($"BulkScheduled#{parent.Effect.TakeNextImplicitId()}");
+            if (!marked)
+                return CreateInnerScheduled(
+                    work.Select(w => new FlowId(_flowType, w.Instance)).ToList(),
+                    parent,
+                    detach
+                );    
+        }
+
         await _functionStore.BulkScheduleFunctions(
             work.Select(bw =>
                 new IdWithParam(
-                    new StoredId(_storedType, bw.Instance),
+                    new StoredId(_storedType, bw.Instance.ToStoredInstance()),
                     bw.Instance,
                     _isParamlessFunction ? null : serializer.SerializeParameter(bw.Param)
                 )
             ),
             parent?.StoredId
         );
-
-        if (detach == false || parent == null)
-            return InnerScheduled<TReturn>.Failing;
-
         return CreateInnerScheduled(
             work.Select(w => new FlowId(_flowType, w.Instance)).ToList(),
             parent,
@@ -461,7 +467,7 @@ internal class InvocationHelper<TParam, TReturn>
     public ExistingMessages CreateExistingMessages(FlowId flowId) => new(MapToStoredId(flowId), _functionStore.MessageStore, _settings.Serializer);
     public ExistingRegisteredTimeouts CreateExistingTimeouts(FlowId flowId) => new(MapToStoredId(flowId), _functionStore.TimeoutStore);
 
-    public StoredId MapToStoredId(FlowId flowId) => new(_storedType, flowId.Instance.Value);
+    public StoredId MapToStoredId(FlowId flowId) => new(_storedType, flowId.Instance.ToStoredInstance());
     
     private byte[]? SerializeParameter(TParam param)
     {
@@ -488,11 +494,16 @@ internal class InvocationHelper<TParam, TReturn>
         if (detach == false || parentWorkflow == null)
             return new InnerScheduled<TReturn>(async maxWait =>
             {
+                var stopWatch = Stopwatch.StartNew();
                 //todo make max wait smaller after each await
                 var results = new List<TReturn>(scheduledIds.Count);
                 foreach (var scheduledId in scheduledIds)
                 {
-                    var result = await WaitForFunctionResult(scheduledId, scheduledId.ToStoredId(_storedType), allowPostponedAndSuspended: true, maxWait);
+                    var timeLeft = maxWait - stopWatch.Elapsed;
+                    if (timeLeft < TimeSpan.Zero)
+                        throw new TimeoutException();
+                    
+                    var result = await WaitForFunctionResult(scheduledId, scheduledId.ToStoredId(_storedType), allowPostponedAndSuspended: true, timeLeft);
                     results.Add(result);
                 }
 
@@ -501,7 +512,7 @@ internal class InvocationHelper<TParam, TReturn>
         
         return new InnerScheduled<TReturn>(async maxWait =>
         {
-            var completedFlows = await parentWorkflow!
+            var completedFlows = await parentWorkflow
                 .Messages
                 .OfType<FlowCompleted>()
                 .Where(fc => scheduledIds.Contains(fc.Id))
@@ -514,12 +525,17 @@ internal class InvocationHelper<TParam, TReturn>
 
             var serializer = _settings.Serializer;
             var results = completedFlows.Select(fc =>
-                fc.Result == null
-                    ? default!
-                    : serializer.DeserializeResult<TReturn>(fc.Result)
-            );
+                new
+                {
+                    FlowId = fc.Id,
+                    Result = fc.Result == null
+                        ? default!
+                        : serializer.DeserializeResult<TReturn>(fc.Result)    
+                }
+                
+            ).ToDictionary(a => a.FlowId, a => a.Result);
 
-            return results.ToList();
+            return scheduledIds.Select(id => results[id]).ToList();
         });
     }
     

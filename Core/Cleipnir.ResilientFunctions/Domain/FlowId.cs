@@ -58,7 +58,7 @@ public class FlowId
     public FlowId WithInstanceId(FlowInstance instance) => new(Type, instance);
     public FlowId WithTypeId(FlowType type) => new(type, Instance);
 
-    internal StoredId ToStoredId(StoredType storedType) => new(storedType, Instance.Value);
+    internal StoredId ToStoredId(StoredType storedType) => new(storedType, Instance.ToStoredInstance());
 }
 
 public static class FlowIdExtensions 

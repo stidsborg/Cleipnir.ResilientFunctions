@@ -76,4 +76,6 @@ internal static class Helpers
     public static string ToStringFromUtf8Bytes(this byte[] bytes) => Encoding.UTF8.GetString(bytes);
 
     public static Guid ToGuid(this string s) => Guid.Parse(s);
+    
+    public static string StringJoin(this IEnumerable<string> strings, string separator) => string.Join(separator, strings);
 }

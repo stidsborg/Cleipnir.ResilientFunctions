@@ -9,7 +9,6 @@ using Cleipnir.ResilientFunctions.Domain.Exceptions.Commands;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Reactive.Extensions;
 using Cleipnir.ResilientFunctions.Storage;
-using Cleipnir.ResilientFunctions.Tests.Messaging.Utils;
 using Cleipnir.ResilientFunctions.Tests.Utils;
 using Shouldly;
 using FlagPosition = Cleipnir.ResilientFunctions.Tests.Utils.FlagPosition;
@@ -337,8 +336,8 @@ public abstract class SuspensionTests
         unhandledExceptionHandler.ShouldNotHaveExceptions();
     }
     
-    public abstract Task StartedChildFuncInvocationPublishesResultSuccessfully();
-    protected async Task StartedChildFuncInvocationPublishesResultSuccessfully(Task<IFunctionStore> storeTask)
+    public abstract Task StartedParentCanWaitForChildActionCompletion();
+    protected async Task StartedParentCanWaitForChildActionCompletion(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
         var parentFunctionId = new FlowId($"ParentFunction{Guid.NewGuid()}", Guid.NewGuid().ToString());
@@ -346,97 +345,78 @@ public abstract class SuspensionTests
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler.Catch));
 
-        FuncRegistration<string, string>? parent = null;
-        var child = functionsRegistry.RegisterAction(
-            $"ChildFunction{Guid.NewGuid()}",
-            inner: async Task (string param, Workflow workflow) =>
-            {
-                await parent!.MessageWriters
-                    .For(parentFunctionId.Instance)
-                    .AppendMessage(param.ToUpper(), workflow.FlowId.ToString()
-                );
-            }
+        var child = functionsRegistry.RegisterFunc(
+            flowType: $"ChildFunction{Guid.NewGuid()}",
+            inner: Task<string> (string param) => param.ToUpper().ToTask()
         );
 
-        parent = functionsRegistry.RegisterFunc(
+        var parent = functionsRegistry.RegisterFunc(
             parentFunctionId.Type,
             async Task<string> (string param, Workflow workflow) =>
             {
                 var words = param.Split(" ");
-                await Task.WhenAll(
-                    words.Select((word, i) => child.Schedule($"Child#{i}", $"{i}_{word}"))
+                var results = await Task.WhenAll(
+                    words.Select((word, i) => child.Schedule($"Child#{i}", word).Completion()).ToList()
                 );
 
-                var replies = await workflow
-                    .Messages
-                    .OfType<string>()
-                    .Take(words.Length)
-                    .ToList(maxWait: TimeSpan.Zero);
-
-                var wordsList = replies
-                    .Select(word =>
-                    {
-                        var split = word.Split("_");
-                        return new { Position = int.Parse(split[0]), Word = split[1] };
-                    })
-                    .OrderBy(a => a.Position)
-                    .Select(a => a.Word);
-                return string.Join(" ", wordsList);
+                var msgs = await workflow.Messages.Take(4).Completion();
+                Console.WriteLine(msgs);
+                
+                return results.StringJoin(" ");
             });
 
-        await parent.Schedule(parentFunctionId.Instance.Value, "hello world and universe");
-
-        var controlPanel = await parent.ControlPanel(parentFunctionId.Instance);
-        controlPanel.ShouldNotBeNull();
+        var param = "hello world and universe";
+        var result = await parent.Schedule(parentFunctionId.Instance.Value, param).Completion();
+        result.ShouldBe(param.ToUpper());
         
-        await BusyWait.Until(async () =>
-        {
-            await controlPanel.Refresh();
-            return controlPanel.Status == Status.Succeeded;
-        });
-
-        controlPanel.Result.ShouldBe("hello world and universe".ToUpper());
         unhandledExceptionHandler.ShouldNotHaveExceptions();
     }
     
-    public abstract Task StartedChildActionInvocationPublishesResultSuccessfully();
-    protected async Task StartedChildActionInvocationPublishesResultSuccessfully(Task<IFunctionStore> storeTask)
+    public abstract Task ChildCanReturnResultToParent();
+    protected async Task ChildCanReturnResultToParent(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
         var parentFunctionId = new FlowId($"ParentFunction{Guid.NewGuid()}", Guid.NewGuid().ToString());
 
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler.Catch));
-
-        ActionRegistration<string>? parent = null;
-        var child = functionsRegistry.RegisterAction(
-            $"ChildFunction{Guid.NewGuid()}",
-            inner: (string param, Workflow workflow) =>
-                parent!.MessageWriters.For(parentFunctionId.Instance).AppendMessage("")
+        
+        var child = functionsRegistry.RegisterFunc(
+            flowType: $"ChildFunction{Guid.NewGuid()}",
+            inner: (string param) => param.ToUpper().ToTask()
         );
 
-        parent = functionsRegistry.RegisterAction(
+        var parent = functionsRegistry.RegisterFunc(
             parentFunctionId.Type,
-            inner: async Task (string param, Workflow workflow) =>
-            {
-                await child.Schedule("SomeChildInstance#1", "hallo world");
-                await child.Schedule("SomeChildInstance#2", "hallo world");
-                
-                await workflow.Messages.Take(2).Completion(maxWait: TimeSpan.Zero);
-            }
+            inner: Task<string> (string param) => child.Schedule("SomeChildInstance#1", param).Completion()
         );
 
-        await parent.Schedule(parentFunctionId.Instance.Value, "hello world");
+        var parentResult = await parent.Schedule(parentFunctionId.Instance.Value, param: "hello").Completion();
+        parentResult.ShouldBe("HELLO");
+        
+        unhandledExceptionHandler.ShouldNotHaveExceptions();
+    }
+    
+    public abstract Task ParentCanWaitForChildAction();
+    protected async Task ParentCanWaitForChildAction(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var parentFunctionId = new FlowId($"ParentFunction{Guid.NewGuid()}", Guid.NewGuid().ToString());
 
-        var controlPanel = await parent.ControlPanel(parentFunctionId.Instance);
-        controlPanel.ShouldNotBeNull();
+        var unhandledExceptionHandler = new UnhandledExceptionCatcher();
+        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler.Catch));
         
-        await BusyWait.Until(async () =>
-        {
-            await controlPanel.Refresh();
-            return controlPanel.Status == Status.Succeeded;
-        });
-        
+        var child = functionsRegistry.RegisterAction(
+            flowType: $"ChildFunction{Guid.NewGuid()}",
+            inner: (string _) => Task.Delay(100)
+        );
+
+        var parent = functionsRegistry.RegisterAction(
+            parentFunctionId.Type,
+            inner: Task (string param) => child.Schedule("SomeChildInstance#1", param).Completion()
+        );
+
+        await parent.Schedule(parentFunctionId.Instance.Value, param: "hello").Completion(maxWait: TimeSpan.FromSeconds(5));
         unhandledExceptionHandler.ShouldNotHaveExceptions();
     }
     
@@ -491,6 +471,34 @@ public abstract class SuspensionTests
         var result = controlPanel.Result!.ToHashSet();
         for (var i = 0; i < numberOfChildren; i++)
             result.Contains(i.ToString()).ShouldBeTrue();
+    }
+    
+    public abstract Task ParentCanWaitForBulkScheduledChildren();
+    protected async Task ParentCanWaitForBulkScheduledChildren(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var parentId = new FlowId($"ParentFlow{Guid.NewGuid()}", Guid.NewGuid().ToString());
+        using var functionsRegistry = new FunctionsRegistry(store);
+        
+        var child = functionsRegistry.RegisterFunc(
+            flowType: $"ChildFlow{Guid.NewGuid()}",
+            inner: (string param) => param.ToUpper().ToTask()
+        );
+
+        var parent = functionsRegistry.RegisterFunc(
+            parentId.Type,
+            inner: async Task<string> (string param) =>
+            {
+                var results = await child.BulkSchedule(
+                    param.Split(" ").Select((s, i) => new BulkWork<string>(i.ToString(), s))
+                ).Completion();
+
+                return results.StringJoin(" ");
+            }
+        );
+
+        var result = await parent.Schedule(parentId.Instance, "hello world and universe").Completion();
+        result.ShouldBe("HELLO WORLD AND UNIVERSE");
     }
     
     public abstract Task ChildIsCreatedWithParentsId();

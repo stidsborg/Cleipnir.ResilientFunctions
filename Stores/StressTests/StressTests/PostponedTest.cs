@@ -28,7 +28,7 @@ public static class PostponedTest
         {
             var storedParameter = JsonSerializer.Serialize("hello world");
             await store.CreateFunction(
-                new StoredId(storedType, i.ToString()),
+                new StoredId(storedType, i.ToString().ToStoredInstance()),
                 "humanInstanceId",
                 storedParameter.ToUtf8Bytes(),
                 leaseExpiration: DateTime.UtcNow.Ticks,
@@ -37,7 +37,7 @@ public static class PostponedTest
                 parent: null
             );
             await store.PostponeFunction(
-                new StoredId(storedType, i.ToString()),
+                new StoredId(storedType, i.ToString().ToStoredInstance()),
                 postponeUntil: start.Ticks,
                 timestamp: DateTime.UtcNow.Ticks,
                 expectedEpoch: 0,

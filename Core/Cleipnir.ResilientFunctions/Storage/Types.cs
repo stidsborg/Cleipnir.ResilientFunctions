@@ -19,29 +19,20 @@ public record StoredType(int Value);
 
 public record StoredInstance(Guid Value)
 {
-    public static implicit operator StoredInstance(string id) => id.ToStoredInstance();
-    public static implicit operator StoredInstance(int id) => id.ToStoredInstance();
-    public static implicit operator StoredInstance(long id) => id.ToStoredInstance();
+    public static implicit operator StoredInstance(Guid id) => new(id.ToStoredInstance());
     
     public static StoredInstance Create(string instanceId) 
         => new(InstanceIdFactory.FromString(instanceId));
-    
-    public static StoredInstance Create(int instanceId) 
-        => new(InstanceIdFactory.FromInt(instanceId));
-    
-    public static StoredInstance Create(long instanceId) 
-        => new(InstanceIdFactory.FromLong(instanceId));
 }
 
 public static class StoredInstanceExtensions
 {
     public static StoredInstance ToStoredInstance(this string instanceId)
         => StoredInstance.Create(instanceId);
-    public static StoredInstance ToStoredInstance(this int instanceId)
-        => StoredInstance.Create(instanceId);
-    public static StoredInstance ToStoredInstance(this long instanceId)
-        => StoredInstance.Create(instanceId);
 
+    public static StoredInstance ToStoredInstance(this FlowInstance instance)
+        => instance.Value.ToStoredInstance();
+    
     public static StoredInstance ToStoredInstance(this Guid instanceId) => new(instanceId);
 }
 

@@ -126,7 +126,7 @@ public abstract class TimeoutStoreTests
         var registeredTimeouts = new RegisteredTimeouts(functionId, store);
 
         var otherInstanceRegisteredTimeouts = new RegisteredTimeouts(
-            functionId with { Instance = functionId.Instance + "2" }, 
+            functionId with { Instance = (functionId.Instance + "2").ToStoredInstance() }, 
             store
         );
 

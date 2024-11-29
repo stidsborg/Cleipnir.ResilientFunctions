@@ -16,7 +16,7 @@ namespace Cleipnir.ResilientFunctions.Tests.InMemoryTests.LeaseUpdaterTests;
 public class LeaseUpdaterTests
 {
     private readonly FlowId _flowId = new FlowId("functionId", "instanceId");
-    private readonly StoredId _storedId = new StoredId(0.ToStoredType(), "instanceId");
+    private readonly StoredId _storedId = new StoredId(0.ToStoredType(), "instanceId".ToStoredInstance());
     
     private UnhandledExceptionCatcher _unhandledExceptionCatcher = new();
         

@@ -172,7 +172,7 @@ public abstract class EffectStoreTests
     {
         var store = await storeTask;
         var functionId = TestStoredId.Create();
-        var otherFunctionId = new StoredId((functionId.Type.Value + 1).ToStoredType(), functionId.Instance + "123");
+        var otherFunctionId = new StoredId((functionId.Type.Value + 1).ToStoredType(), Instance: (functionId.Instance + "123").ToStoredInstance());
         
         var storedEffect1 = new StoredEffect(
             "EffectId1",
@@ -216,7 +216,7 @@ public abstract class EffectStoreTests
     {
         var store = await storeTask;
         var functionId = TestStoredId.Create();
-        var otherFunctionId = new StoredId(functionId.Type, Instance: functionId.Instance + "123");
+        var otherFunctionId = new StoredId(functionId.Type, Instance: (functionId.Instance + "123").ToStoredInstance());
         
         var storedEffect1 = new StoredEffect(
             "EffectId1",

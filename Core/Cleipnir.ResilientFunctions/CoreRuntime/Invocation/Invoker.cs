@@ -58,6 +58,14 @@ public class Invoker<TParam, TReturn>
     {
         var parent = GetAndEnsureParent(detach);
         var (flowId, storedId) = CreateIds(flowInstance);
+
+        if (parent != null)
+        {
+            var marked = await parent.Effect.Mark($"{flowId}_Scheduled");
+            if (!marked)
+                return _invocationHelper.CreateInnerScheduled([flowId], parent, detach);    
+        }
+        
         var (created, workflow, disposables) = await PrepareForInvocation(flowId, storedId, param, parent?.StoredId);
         CurrentFlow._workflow.Value = workflow;
         if (!created) 
@@ -83,7 +91,7 @@ public class Invoker<TParam, TReturn>
 
         return _invocationHelper.CreateInnerScheduled([flowId], parent, detach);
     }
-    
+
     public async Task<InnerScheduled<TReturn>> ScheduleAt(FlowInstance instanceId, TParam param, DateTime scheduleAt, bool? detach)
     {
         if (scheduleAt.ToUniversalTime() <= DateTime.UtcNow)
@@ -91,6 +99,13 @@ public class Invoker<TParam, TReturn>
 
         var parent = GetAndEnsureParent(detach);
         var id = new FlowId(_flowType, instanceId);
+        if (parent != null)
+        {
+            var marked = await parent.Effect.Mark($"{id}_Scheduled");
+            if (!marked)
+                return _invocationHelper.CreateInnerScheduled([id], parent, detach);
+        }
+
         var (_, disposable) = await _invocationHelper.PersistFunctionInStore(
             id.ToStoredId(_storedType),
             instanceId,
@@ -100,8 +115,8 @@ public class Invoker<TParam, TReturn>
         );
 
         disposable.Dispose();
-        
-       return _invocationHelper.CreateInnerScheduled([id], parent, detach);
+
+        return _invocationHelper.CreateInnerScheduled([id], parent, detach);
     }
 
     public async Task<TReturn> Restart(StoredInstance instanceId, int expectedEpoch)
@@ -319,7 +334,7 @@ public class Invoker<TParam, TReturn>
             {
                 try
                 {
-                    await ScheduleRestart(flowId.Instance.Value, expectedEpoch);
+                    await ScheduleRestart(flowId.Instance.ToStoredInstance(), expectedEpoch);
                 } catch (UnexpectedStateException) {} //allow this exception - the invocation has been surpassed by other execution
                 InvocationHelper<TParam, TReturn>.EnsureSuccess(flowId, result, allowPostponedOrSuspended);
                 break;

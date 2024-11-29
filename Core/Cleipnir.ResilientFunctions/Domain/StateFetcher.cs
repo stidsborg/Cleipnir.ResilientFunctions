@@ -12,7 +12,7 @@ public class StateFetcher(StoredType storedType, IEffectsStore effectsStore, ISe
     
     public async Task<TState?> FetchState<TState>(FlowInstance instanceId, StateId stateId) where TState : FlowState, new()
     {
-        var storedId = new StoredId(storedType, instanceId.Value);
+        var storedId = new StoredId(storedType, instanceId.ToStoredInstance());
         stateId ??= new StateId("");
         var storedStates = await effectsStore.GetEffectResults(storedId);
         

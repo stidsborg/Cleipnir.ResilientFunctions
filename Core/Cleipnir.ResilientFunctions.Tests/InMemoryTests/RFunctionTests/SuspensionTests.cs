@@ -49,16 +49,24 @@ public class SuspensionTests : TestTemplates.RFunctionTests.SuspensionTests
         => ParamlessFunctionWithPrefilledMessageCompletes(FunctionStoreFactory.Create());
 
     [TestMethod]
-    public override Task StartedChildFuncInvocationPublishesResultSuccessfully()
-        => StartedChildFuncInvocationPublishesResultSuccessfully(FunctionStoreFactory.Create());
+    public override Task StartedParentCanWaitForChildActionCompletion()
+        => StartedParentCanWaitForChildActionCompletion(FunctionStoreFactory.Create());
 
     [TestMethod]
-    public override Task StartedChildActionInvocationPublishesResultSuccessfully()
-        => StartedChildActionInvocationPublishesResultSuccessfully(FunctionStoreFactory.Create());
+    public override Task ChildCanReturnResultToParent()
+        => ChildCanReturnResultToParent(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task ParentCanWaitForChildAction() 
+        => ParentCanWaitForChildAction(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task PublishFromChildActionStressTest()
         => PublishFromChildActionStressTest(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task ParentCanWaitForBulkScheduledChildren()
+        => ParentCanWaitForBulkScheduledChildren(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task ChildIsCreatedWithParentsId()

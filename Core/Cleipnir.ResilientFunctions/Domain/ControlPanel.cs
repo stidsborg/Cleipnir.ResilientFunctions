@@ -235,14 +235,14 @@ public abstract class BaseControlPanel<TParam, TReturn>
         if (_innerParamChanged)
             await SaveChanges();
 
-        return await _invoker.Restart(FlowId.Instance.Value, Epoch);   
+        return await _invoker.Restart(FlowId.Instance.ToStoredInstance(), Epoch);   
     }
     public async Task ScheduleRestart()
     {
         if (_innerParamChanged)
             await SaveChanges();
 
-        await _invoker.ScheduleRestart(FlowId.Instance.Value, Epoch);
+        await _invoker.ScheduleRestart(FlowId.Instance.ToStoredInstance(), Epoch);
     }
     
     public async Task Refresh()
