@@ -4,7 +4,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions;
 using Cleipnir.ResilientFunctions.Domain;
-using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.MariaDb;
 using Cleipnir.ResilientFunctions.PostgreSQL;
 using Cleipnir.ResilientFunctions.SqlServer;
@@ -16,30 +15,35 @@ public static class Example
 {
     public static async Task Perform()
     {
-        var postgresStore = new PostgreSqlFunctionStore("Server=localhost;Database=rfunctions;User Id=postgres;Password=Pa55word!; Include Error Detail=true;");
+        const string postgresConnStr = "Server=localhost;Database=cleipnir_samples;User Id=postgres;Password=Pa55word!;Include Error Detail=true;";
+        await Cleipnir.ResilientFunctions.PostgreSQL.DatabaseHelper.CreateDatabaseIfNotExists(postgresConnStr);
+        var postgresStore = new PostgreSqlFunctionStore(postgresConnStr);
         await postgresStore.Initialize();
         await postgresStore.TruncateTables();
-        var sqlServerStore = new SqlServerFunctionStore("Server=localhost;Database=rfunctions;User Id=sa;Password=Pa55word!;Encrypt=True;TrustServerCertificate=True;Max Pool Size=200;");
+
+        const string sqlServerConnStr = "Server=localhost;Database=CleipnirSamples;User Id=sa;Password=Pa55word!;Encrypt=True;TrustServerCertificate=True;Max Pool Size=200;";
+        await Cleipnir.ResilientFunctions.SqlServer.DatabaseHelper.CreateDatabaseIfNotExists(sqlServerConnStr);
+        var sqlServerStore = new SqlServerFunctionStore(sqlServerConnStr);
         await sqlServerStore.Initialize();
         await sqlServerStore.TruncateTables();
-        var mariaDbStore = new MariaDbFunctionStore("server=localhost;userid=root;password=Pa55word!;database=rfunctions;AllowPublicKeyRetrieval=True;");
+
+        const string mariaDbConnStr = "server=localhost;userid=root;password=Pa55word!;database=cleipnir_samples;AllowPublicKeyRetrieval=True;";
+        await Cleipnir.ResilientFunctions.MariaDb.DatabaseHelper.CreateDatabaseIfNotExists(mariaDbConnStr);
+        var mariaDbStore = new MariaDbFunctionStore(mariaDbConnStr);
         await mariaDbStore.Initialize();
         await mariaDbStore.TruncateTables();
         
         Console.WriteLine();
         Console.WriteLine("Postgres: ");
-        var postgresTask = Task.Run(() => Perform(postgresStore));
+        await Perform(postgresStore);
         Console.WriteLine();
         Console.WriteLine("SqlServer:");
-        var sqlServerTask = Task.Run(() => Perform(sqlServerStore));
+        await Perform(sqlServerStore);
         Console.WriteLine();
-        Console.WriteLine("MySql:");
-        var mariaDbTask = Task.Run(() => Perform(mariaDbStore));
+        Console.WriteLine("MariaDB:");
+        await Perform(mariaDbStore);
 
-        await postgresTask;
-        await sqlServerTask;
-        await mariaDbTask;
-
+        Console.WriteLine();
         Console.WriteLine("All completed!");
     }
 
@@ -48,36 +52,23 @@ public static class Example
         Console.WriteLine("Started: " + store.GetType().Name);
         
         await store.Initialize();
-        var functions = new FunctionsRegistry(
-            store,
-            new Settings(unhandledExceptionHandler: Console.WriteLine, watchdogCheckFrequency: TimeSpan.FromSeconds(60), leaseLength: TimeSpan.FromSeconds(5))
-        );
+        var registry = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler: Console.WriteLine));
         
-        var processOrder = functions.RegisterAction<ProcessOrderRequest>(
+        var processOrder = registry.RegisterAction<string>(
             "ProcessOrder",
             ProcessOrder.Execute
         );
-        ProcessOrders.ProcessOrder!.Value = processOrder;
-        var processOrders = functions.RegisterAction<List<string>>(
+        ProcessOrders.ProcessOrder = processOrder;
+        var processOrders = registry.RegisterAction<List<string>>(
             "ProcessOrders",
             ProcessOrders.Execute
         );
-        ProcessOrder.MessageWriters = processOrders.MessageWriters;
-
+        
         var orderIds = Enumerable
-            .Range(0, 150)
-            .Select(_ => Guid.NewGuid().ToString()) //Random.Shared.Next(1000, 9999)
+            .Range(100, 150)
+            .Select(id => $"MK-{id}") 
             .ToList();
-        await processOrders.Schedule("2024-01-27", orderIds);
-
-        var controlPanel = await processOrders.ControlPanel("2024-01-27");
         
-        await BusyWait.Until(async () =>
-        {
-            await controlPanel!.Refresh();
-            return controlPanel.Status == Status.Succeeded;
-        }, maxWait: TimeSpan.FromSeconds(60));
-        
-        Console.WriteLine("Completed: " + store.GetType().Name);
+        await processOrders.Schedule("2024-01-27", orderIds).Completion();
     }
 }

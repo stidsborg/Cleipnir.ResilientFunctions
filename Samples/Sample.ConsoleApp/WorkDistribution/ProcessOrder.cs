@@ -1,28 +1,21 @@
 ﻿using System;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
-using Cleipnir.ResilientFunctions.Domain;
-using Cleipnir.ResilientFunctions.Messaging;
 
 namespace ConsoleApp.WorkDistribution;
 
-public record ProcessOrderRequest(string OrderId, FlowId SendResultTo);
-
 public static class ProcessOrder
 {
-    public static MessageWriters? MessageWriters { get; set; }
-
-    public static async Task Execute(ProcessOrderRequest request, Workflow workflow)
+    public static async Task Execute(string orderId, Workflow workflow)
     {
-        var (orderId, sendResultTo) = request;
+        Console.WriteLine($"{orderId}: Started processing order");
+        
         await ReserveFunds(orderId);
-        var trackingNumber = await ShipOrder(orderId);
+        var trackAndTraceNumber = await ShipOrder(orderId);
         await CaptureFunds(orderId);
-
-        await MessageWriters!.For(sendResultTo.Instance).AppendMessage(
-            new FunctionCompletion<string>(trackingNumber, workflow.FlowId),
-            idempotencyKey: workflow.FlowId.ToString()
-        );
+        await EmailOrderConfirmation(orderId, trackAndTraceNumber);
+        
+        Console.WriteLine($"{orderId}: Finished processing order");
     }
 
     private static async Task ReserveFunds(string orderId)
@@ -44,5 +37,11 @@ public static class ProcessOrder
     {
         await Task.Delay(Random.Shared.Next(250, 1000));
         Console.WriteLine($"{orderId}: Funds captured");
+    }
+
+    private static async Task EmailOrderConfirmation(string orderId, string trackAndTraceNumber)
+    {
+        await Task.Delay(Random.Shared.Next(250, 1000));
+        Console.WriteLine($"{orderId}: Order confirmation sent with track and trace number '{trackAndTraceNumber}'");
     }
 }

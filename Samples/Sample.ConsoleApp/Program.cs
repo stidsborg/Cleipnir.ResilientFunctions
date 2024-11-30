@@ -7,7 +7,7 @@ internal static class Program
 {
     private static async Task Main()
     {
-        await TravelAgency.Example.Perform();
+        await WorkDistribution.Example.Perform();
 
         Console.ReadLine();
     }
