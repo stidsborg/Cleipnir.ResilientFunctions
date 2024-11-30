@@ -1,13 +1,12 @@
 using System.Diagnostics;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Domain;
-using Cleipnir.ResilientFunctions.Reactive.Extensions;
 using Cleipnir.ResilientFunctions.StressTests.Engines;
 using Cleipnir.ResilientFunctions.StressTests.StressTests.Utils;
 
 namespace Cleipnir.ResilientFunctions.StressTests.StressTests;
 
-public class ChildWorkflowsTest
+public static class ChildWorkflowsTest
 {
     public static async Task<TestResult> Perform(IEngine helper)
     {
@@ -27,27 +26,21 @@ public class ChildWorkflowsTest
             new Settings(unhandledExceptionHandler: Console.WriteLine)
         );
         var parentFunctionId = new FlowId(parentFlowType, "Parent");
-
-        ActionRegistration<string>? parentRegistration = null;
+        
         var childRegistration = functionsRegistry.RegisterAction(
             childFlowType,
-            async Task (string param, Workflow workflow) =>
-                await parentRegistration!.MessageWriters
-                    .For(parentFunctionId.Instance)
-                    .AppendMessage(param, idempotencyKey: workflow.FlowId.ToString())
+            Task (string param) => Task.CompletedTask
         );
-        parentRegistration = functionsRegistry.RegisterAction(
+        var parentRegistration = functionsRegistry.RegisterAction(
             parentFunctionId.Type,
             async Task (string param, Workflow workflow) =>
-            {
-                await childRegistration.BulkSchedule(
-                    Enumerable
-                        .Range(0, testSize)
-                        .Select(i => new BulkWork<string>(i.ToString(), i.ToString()))
-                );
-                
-                await workflow.Messages.Take(testSize).Completion();
-            }
+                await childRegistration
+                    .BulkSchedule(
+                        Enumerable
+                            .Range(0, testSize)
+                            .Select(i => new BulkWork<string>(i.ToString(), i.ToString()))
+                    )
+                    .Completion(maxWait: TimeSpan.MaxValue)
         );
         
         Console.WriteLine("CHILD_WORKFLOWS_TEST: Starting parent-invocation");
