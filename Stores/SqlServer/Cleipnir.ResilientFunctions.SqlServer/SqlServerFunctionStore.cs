@@ -206,8 +206,8 @@ public class SqlServerFunctionStore : IFunctionStore
             )
             ON {_tableName}.FlowType = source.FlowType AND {_tableName}.flowInstance = source.flowInstance         
             WHEN NOT MATCHED THEN
-              INSERT (FlowType, FlowInstance, ParamJson, Status, Epoch, Expires, Timestamp, HumanInstanceId)
-              VALUES (source.FlowType, source.flowInstance, source.ParamJson, source.Status, source.Epoch, source.Expires, source.Timestamp, source.HumanInstanceId);";
+              INSERT (FlowType, FlowInstance, ParamJson, Status, Epoch, Expires, Timestamp, HumanInstanceId, Parent)
+              VALUES (source.FlowType, source.flowInstance, source.ParamJson, source.Status, source.Epoch, source.Expires, source.Timestamp, source.HumanInstanceId, source.Parent);";
 
         var parentStr = parent == null ? "NULL" : $"'{parent}'";
         var valueSql = $"(@FlowType, @FlowInstance, @ParamJson, {(int)Status.Postponed}, 0, 0, 0, @HumanInstanceId, {parentStr})";

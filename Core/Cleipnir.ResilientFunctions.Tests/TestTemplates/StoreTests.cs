@@ -1158,7 +1158,7 @@ public abstract class StoreTests
     protected async Task BulkScheduleInsertsAllFunctionsSuccessfully(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        
+        var parent = TestStoredId.Create();
         var typeId = TestStoredId.Create().Type;
         var functionIds = Enumerable
             .Range(0, 500)
@@ -1167,7 +1167,7 @@ public abstract class StoreTests
         
         await store.BulkScheduleFunctions(
             functionIds.Select(functionId => new IdWithParam(functionId, "humanInstanceId", Param: functionId.ToString().ToUtf8Bytes())),
-            parent: null
+            parent
         );
 
         var eligibleFunctions = 
@@ -1184,6 +1184,7 @@ public abstract class StoreTests
             var sf = await store.GetFunction(id);
             sf.ShouldNotBeNull();
             sf.Parameter!.ToStringFromUtf8Bytes().ShouldBe(id.ToString());
+            sf.ParentId.ShouldBe(parent);
         }
     }
     
