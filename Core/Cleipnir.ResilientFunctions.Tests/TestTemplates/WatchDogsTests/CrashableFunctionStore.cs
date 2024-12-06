@@ -26,6 +26,7 @@ public class CrashableFunctionStore : IFunctionStore
     public Utilities Utilities => _crashed ? throw new TimeoutException() : _inner.Utilities;
     public IMigrator Migrator => _crashed ? throw new TimeoutException() : _inner.Migrator;
     public ILogStore LogStore => _crashed ? throw new TimeoutException() : _inner.LogStore;
+    public ICemaphoreStore CemaphoreStore => _crashed ? throw new TimeoutException() : _inner.CemaphoreStore;
 
     public CrashableFunctionStore(IFunctionStore inner)
     {
@@ -153,6 +154,8 @@ public class CrashableFunctionStore : IFunctionStore
         => _crashed
             ? Task.FromException<bool>(new TimeoutException())
             : _inner.Interrupt(storedId, onlyIfExecuting);
+
+    public Task Interrupt(IEnumerable<StoredId> storedIds) => _inner.Interrupt(storedIds);
 
     public Task<bool?> Interrupted(StoredId storedId) 
         => _crashed

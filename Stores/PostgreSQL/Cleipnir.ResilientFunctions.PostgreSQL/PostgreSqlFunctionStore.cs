@@ -5,6 +5,7 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Storage;
 using Npgsql;
@@ -33,7 +34,9 @@ public class PostgreSqlFunctionStore : IFunctionStore
     
     private readonly PostgresSqlLogStore _logStore;
     public ILogStore LogStore => _logStore;
-    
+    private readonly PostgreSqlCemaphoreStore _cemaphoreStore;
+    public ICemaphoreStore CemaphoreStore => _cemaphoreStore;
+
     public Utilities Utilities { get; }
     public IMigrator Migrator => _migrator;
     private readonly PostgreSqlMigrator _migrator;
@@ -50,6 +53,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         _timeoutStore = new PostgreSqlTimeoutStore(connectionString, _tableName);
         _correlationStore = new PostgreSqlCorrelationStore(connectionString, _tableName);
         _logStore = new PostgresSqlLogStore(connectionString, _tableName);
+        _cemaphoreStore = new PostgreSqlCemaphoreStore(connectionString, _tableName);
         _typeStore = new PostgreSqlTypeStore(connectionString, _tableName);
         _postgresSqlUnderlyingRegister = new PostgresSqlUnderlyingRegister(connectionString, _tableName);
         _migrator = new PostgreSqlMigrator(connectionString, _tableName);
@@ -76,6 +80,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         await _timeoutStore.Initialize();
         await _correlationStore.Initialize();
         await _logStore.Initialize();
+        await _cemaphoreStore.Initialize();
         await _typeStore.Initialize();
         await using var conn = await CreateConnection();
         _initializeSql ??= $@"
@@ -118,6 +123,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         await _correlationStore.Truncate();
         await _typeStore.Truncate();
         await _logStore.Truncate();
+        await _cemaphoreStore.Truncate();
         
         await using var conn = await CreateConnection();
         _truncateTableSql ??= $"TRUNCATE TABLE {_tableName}";
@@ -557,6 +563,37 @@ public class PostgreSqlFunctionStore : IFunctionStore
         };
         var affectedRows = await command.ExecuteNonQueryAsync();
         return affectedRows == 1;
+    }
+
+    private string? _interruptsSql;
+    public async Task Interrupt(IEnumerable<StoredId> storedIds)
+    {
+        await using var conn = await CreateConnection();
+        _interruptsSql ??= @$"
+                UPDATE {_tableName}
+                SET 
+                    interrupted = TRUE,
+                    status = 
+                        CASE 
+                            WHEN status = {(int) Status.Suspended} THEN {(int) Status.Postponed}
+                            ELSE status
+                        END,
+                    expires = 
+                        CASE
+                            WHEN status = {(int) Status.Postponed} THEN 0
+                            WHEN status = {(int) Status.Suspended} THEN 0
+                            ELSE expires
+                        END
+                WHERE @CONDITIONALS";
+
+        var conditionals = storedIds
+            .Select(storedId => $"(type = {storedId.Type.Value} AND instance = '{storedId.Instance.Value}')")
+            .StringJoin(" OR ");
+
+        var sql = _interruptsSql.Replace("@CONDITIONALS", conditionals);
+
+        await using var cmd = new NpgsqlCommand(sql, conn);
+        await cmd.ExecuteNonQueryAsync();
     }
 
     private string? _interruptedSql;

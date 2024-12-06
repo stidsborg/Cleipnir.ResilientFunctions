@@ -3,6 +3,7 @@ using System.Text.Json;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
+using Cleipnir.ResilientFunctions.MariaDb;
 using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Storage;
 using MySqlConnector;
@@ -35,7 +36,8 @@ public class MariaDbFunctionStore : IFunctionStore
 
     private readonly MariaDbLogStore _logStore;
     public ILogStore LogStore => _logStore;
-    
+    private MariaDbCemaphoreStore _cemaphoreStore;
+    public ICemaphoreStore CemaphoreStore => _cemaphoreStore;
 
     public Utilities Utilities { get; }
     private readonly MariaDbUnderlyingRegister _mariaDbUnderlyingRegister;
@@ -51,6 +53,7 @@ public class MariaDbFunctionStore : IFunctionStore
         _effectsStore = new MariaDbEffectsStore(connectionString, tablePrefix);
         _correlationStore = new MariaDbCorrelationStore(connectionString, tablePrefix);
         _logStore = new MariaDbLogStore(connectionString, tablePrefix);
+        _cemaphoreStore = new MariaDbCemaphoreStore(connectionString, tablePrefix);
         _timeoutStore = new MariaDbTimeoutStore(connectionString, tablePrefix);
         _mariaDbUnderlyingRegister = new MariaDbUnderlyingRegister(connectionString, tablePrefix);
         _typeStore = new MariaDbTypeStore(connectionString, tablePrefix);
@@ -71,6 +74,7 @@ public class MariaDbFunctionStore : IFunctionStore
         await EffectsStore.Initialize();
         await CorrelationStore.Initialize();
         await _logStore.Initialize();
+        await _cemaphoreStore.Initialize();
         await TimeoutStore.Initialize();
         await _typeStore.Initialize();
         await using var conn = await CreateOpenConnection(_connectionString);
@@ -105,6 +109,7 @@ public class MariaDbFunctionStore : IFunctionStore
         await _effectsStore.Truncate();
         await _correlationStore.Truncate();
         await _logStore.Truncate();
+        await _cemaphoreStore.Truncate();
         await _typeStore.Truncate();
         
         await using var conn = await CreateOpenConnection(_connectionString);
@@ -517,6 +522,37 @@ public class MariaDbFunctionStore : IFunctionStore
         
         var affectedRows = await command.ExecuteNonQueryAsync();
         return affectedRows == 1;
+    }
+
+    private string? _interruptsSql;
+    public async Task Interrupt(IEnumerable<StoredId> storedIds)
+    {
+        await using var conn = await CreateOpenConnection(_connectionString);
+        _interruptsSql ??= @$"
+                UPDATE {_tablePrefix}
+                SET 
+                    interrupted = TRUE,
+                    status = 
+                        CASE 
+                            WHEN status = {(int) Status.Suspended} THEN {(int) Status.Postponed}
+                            ELSE status
+                        END,
+                    expires = 
+                        CASE
+                            WHEN status = {(int) Status.Postponed} THEN 0
+                            WHEN status = {(int) Status.Suspended} THEN 0
+                            ELSE expires
+                        END
+                WHERE @CONDITIONALS";
+
+        var conditionals = storedIds
+            .Select(storedId => $"(type = {storedId.Type.Value} AND instance = '{storedId.Instance.Value}')")
+            .StringJoin(" OR ");
+
+        var sql = _interruptsSql.Replace("@CONDITIONALS", conditionals);
+
+        await using var cmd = new MySqlCommand(sql, conn);
+        await cmd.ExecuteNonQueryAsync();
     }
 
     private string? _setParametersSql;

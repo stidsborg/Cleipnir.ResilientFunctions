@@ -6,6 +6,7 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Storage;
 using Microsoft.Data.SqlClient;
@@ -33,6 +34,8 @@ public class SqlServerFunctionStore : IFunctionStore
     public Utilities Utilities { get; }
     public IMigrator Migrator => _migrator;
     public ILogStore LogStore => _logStore;
+    private readonly SqlServerCemaphoreStore _cemaphoreStore;
+    public ICemaphoreStore CemaphoreStore => _cemaphoreStore;
 
     private readonly SqlServerUnderlyingRegister _underlyingRegister;
 
@@ -47,6 +50,7 @@ public class SqlServerFunctionStore : IFunctionStore
         _effectsStore = new SqlServerEffectsStore(connectionString, _tableName);
         _correlationStore = new SqlServerCorrelationsStore(connectionString, _tableName);
         _logStore = new SqlServerLogStore(connectionString, _tableName);
+        _cemaphoreStore = new SqlServerCemaphoreStore(connectionString, _tableName);
         _typeStore = new SqlServerTypeStore(connectionString, _tableName);
         _migrator = new SqlServerMigrator(connectionString, _tableName);
         Utilities = new Utilities(_underlyingRegister);
@@ -76,6 +80,7 @@ public class SqlServerFunctionStore : IFunctionStore
         await _correlationStore.Initialize();
         await _typeStore.Initialize();
         await _logStore.Initialize();
+        await _cemaphoreStore.Initialize();
         await using var conn = await _connFunc();
         _initializeSql ??= @$"    
             CREATE TABLE {_tableName} (
@@ -122,6 +127,7 @@ public class SqlServerFunctionStore : IFunctionStore
         await _correlationStore.Truncate();
         await _typeStore.Truncate();
         await _logStore.Truncate();
+        await _cemaphoreStore.Truncate();
         
         await using var conn = await _connFunc();
         _truncateSql ??= $"TRUNCATE TABLE {_tableName}";
@@ -548,6 +554,37 @@ public class SqlServerFunctionStore : IFunctionStore
 
         var affectedRows = await command.ExecuteNonQueryAsync();
         return affectedRows == 1;
+    }
+
+    private string? _interruptsSql;
+    public async Task Interrupt(IEnumerable<StoredId> storedIds)
+    {
+        await using var conn = await _connFunc();
+        _interruptsSql ??= @$"
+                UPDATE {_tableName}
+                SET 
+                    Interrupted = 1,
+                    Status = 
+                        CASE 
+                            WHEN Status = {(int) Status.Suspended} THEN {(int) Status.Postponed}
+                            ELSE Status
+                        END,
+                    Expires = 
+                        CASE
+                            WHEN Status = {(int) Status.Postponed} THEN 0
+                            WHEN Status = {(int) Status.Suspended} THEN 0
+                            ELSE Expires
+                        END
+                WHERE @CONDITIONALS";
+
+        var conditionals = storedIds
+            .Select(storedId => $"(FlowType = {storedId.Type.Value} AND FlowInstance = '{storedId.Instance.Value}')")
+            .StringJoin(" OR ");
+
+        var sql = _interruptsSql.Replace("@CONDITIONALS", conditionals);
+
+        await using var cmd = new SqlCommand(sql, conn);
+        await cmd.ExecuteNonQueryAsync();
     }
 
     private string? _setParametersSql;

@@ -27,3 +27,4 @@
 
 [assembly: InternalsVisibleTo("Cleipnir.ResilientFunctions.MariaDB")]
 [assembly: InternalsVisibleTo("Cleipnir.ResilientFunctions.PostgreSQL")]
+[assembly: InternalsVisibleTo("Cleipnir.ResilientFunctions.SqlServer")]

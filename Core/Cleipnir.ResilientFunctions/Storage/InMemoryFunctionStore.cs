@@ -30,6 +30,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
     
     public IMigrator Migrator { get; } = new InMemoryMigrator();
     public ILogStore LogStore { get; } = new InMemoryLogStore();
+    public ICemaphoreStore CemaphoreStore { get; } = new InMemoryCemaphoreStore();
 
     public Task Initialize() => Task.CompletedTask;
 
@@ -325,6 +326,12 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
             state.Interrupted = true;
             return true.ToTask();
         }
+    }
+
+    public async Task Interrupt(IEnumerable<StoredId> storedIds)
+    {
+        foreach (var storedId in storedIds)
+            await Interrupt(storedId, onlyIfExecuting: false);
     }
 
     public Task<bool?> Interrupted(StoredId storedId)

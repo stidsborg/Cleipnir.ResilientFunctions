@@ -25,6 +25,7 @@ public class LeaseUpdaterTestFunctionStore : IFunctionStore
     public Utilities Utilities => _inner.Utilities;
     public IMigrator Migrator => _inner.Migrator;
     public ILogStore LogStore => _inner.LogStore;
+    public ICemaphoreStore CemaphoreStore => _inner.CemaphoreStore;
     public Task Initialize() => _inner.Initialize();
 
     public Task<bool> CreateFunction(
@@ -96,6 +97,8 @@ public class LeaseUpdaterTestFunctionStore : IFunctionStore
 
     public Task<bool> Interrupt(StoredId storedId, bool onlyIfExecuting)
         => _inner.Interrupt(storedId, onlyIfExecuting);
+
+    public Task Interrupt(IEnumerable<StoredId> storedIds) => _inner.Interrupt(storedIds);
 
     public Task<bool?> Interrupted(StoredId storedId) => _inner.Interrupted(storedId);
 

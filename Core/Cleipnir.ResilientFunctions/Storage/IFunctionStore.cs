@@ -16,6 +16,7 @@ public interface IFunctionStore
     public Utilities Utilities { get; }
     public IMigrator Migrator { get; }
     public ILogStore LogStore { get; }
+    public ICemaphoreStore CemaphoreStore { get; }
     public Task Initialize();
     
     Task<bool> CreateFunction(
@@ -89,6 +90,7 @@ public interface IFunctionStore
     );
 
     Task<bool> Interrupt(StoredId storedId, bool onlyIfExecuting);
+    Task Interrupt(IEnumerable<StoredId> storedIds);
     Task<bool?> Interrupted(StoredId storedId); 
 
     Task<StatusAndEpoch?> GetFunctionStatus(StoredId storedId);
