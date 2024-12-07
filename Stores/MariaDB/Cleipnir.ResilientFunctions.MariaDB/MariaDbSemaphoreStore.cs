@@ -3,14 +3,14 @@ using MySqlConnector;
 
 namespace Cleipnir.ResilientFunctions.MariaDb;
 
-public class MariaDbCemaphoreStore(string connectionString, string tablePrefix = "") : ICemaphoreStore
+public class MariaDbSemaphoreStore(string connectionString, string tablePrefix = "") : ISemaphoreStore
 {
     private string? _initializeSql;
     public async Task Initialize()
     {
         await using var conn = await CreateConnection();
         _initializeSql ??= @$"
-            CREATE TABLE IF NOT EXISTS {tablePrefix}_cemaphores (
+            CREATE TABLE IF NOT EXISTS {tablePrefix}_semaphores (
                 type VARCHAR(150) NOT NULL,
                 instance VARCHAR(150) NOT NULL,
                 position INT NOT NULL,
@@ -26,7 +26,7 @@ public class MariaDbCemaphoreStore(string connectionString, string tablePrefix =
     public async Task Truncate()
     {
         await using var conn = await CreateConnection();
-        _truncateSql ??= $"TRUNCATE TABLE {tablePrefix}_cemaphores;";
+        _truncateSql ??= $"TRUNCATE TABLE {tablePrefix}_semaphores;";
         var command = new MySqlCommand(_truncateSql, conn);
         await command.ExecuteNonQueryAsync();
     }
@@ -37,12 +37,12 @@ public class MariaDbCemaphoreStore(string connectionString, string tablePrefix =
         await using var conn = await CreateConnection();
         
         _takeSql ??= @$"
-            IF (NOT EXISTS (SELECT 1 FROM {tablePrefix}_cemaphores WHERE type = ? AND instance = ? AND owner = ?))
+            IF (NOT EXISTS (SELECT 1 FROM {tablePrefix}_semaphores WHERE type = ? AND instance = ? AND owner = ?))
             THEN
-                INSERT INTO {tablePrefix}_cemaphores
+                INSERT INTO {tablePrefix}_semaphores
                 (type, instance, position, owner)
                 SELECT ?, ?, (COALESCE(MAX(position), -1) + 1), ?
-                FROM {tablePrefix}_cemaphores
+                FROM {tablePrefix}_semaphores
                 RETURNING position;
             ELSE
                 SELECT -1;
@@ -78,11 +78,11 @@ public class MariaDbCemaphoreStore(string connectionString, string tablePrefix =
         await using var conn = await CreateConnection();
         
         _releaseSql ??= @$"    
-            DELETE FROM {tablePrefix}_cemaphores
+            DELETE FROM {tablePrefix}_semaphores
             WHERE type = ? AND instance = ? AND owner = ?;               
 
            SELECT owner 
-           FROM {tablePrefix}_cemaphores
+           FROM {tablePrefix}_semaphores
            WHERE type = ? AND instance = ?
            ORDER BY position
            LIMIT ?;";
@@ -116,7 +116,7 @@ public class MariaDbCemaphoreStore(string connectionString, string tablePrefix =
         
         _getQueuedSql ??= @$"               
             SELECT owner 
-            FROM {tablePrefix}_cemaphores
+            FROM {tablePrefix}_semaphores
             WHERE type = ? AND instance = ?
             ORDER BY position
             LIMIT ?;

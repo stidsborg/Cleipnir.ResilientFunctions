@@ -30,7 +30,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
     
     public IMigrator Migrator { get; } = new InMemoryMigrator();
     public ILogStore LogStore { get; } = new InMemoryLogStore();
-    public ICemaphoreStore CemaphoreStore { get; } = new InMemoryCemaphoreStore();
+    public ISemaphoreStore SemaphoreStore { get; } = new InMemorySemaphoreStore();
 
     public Task Initialize() => Task.CompletedTask;
 

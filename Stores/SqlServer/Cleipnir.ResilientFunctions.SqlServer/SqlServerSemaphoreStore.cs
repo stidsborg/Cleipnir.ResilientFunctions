@@ -6,7 +6,7 @@ using Microsoft.Data.SqlClient;
 
 namespace Cleipnir.ResilientFunctions.SqlServer;
 
-public class SqlServerCemaphoreStore(string connectionString, string tablePrefix = "") : ICemaphoreStore
+public class SqlServerSemaphoreStore(string connectionString, string tablePrefix = "") : ISemaphoreStore
 {
     private string? _initializeSql;
     public async Task Initialize()
@@ -14,7 +14,7 @@ public class SqlServerCemaphoreStore(string connectionString, string tablePrefix
         await using var conn = await CreateConnection();
 
         _initializeSql ??= @$"
-        CREATE TABLE {tablePrefix}_Cemaphores (
+        CREATE TABLE {tablePrefix}_Semaphores (
             Type NVARCHAR(150),
             Instance NVARCHAR(150),
             Position INT NOT NULL,
@@ -32,7 +32,7 @@ public class SqlServerCemaphoreStore(string connectionString, string tablePrefix
     public async Task Truncate()
     {
         await using var conn = await CreateConnection();
-        _truncateSql ??= $"TRUNCATE TABLE {tablePrefix}_Cemaphores;";
+        _truncateSql ??= $"TRUNCATE TABLE {tablePrefix}_Semaphores;";
         var command = new SqlCommand(_truncateSql, conn);
         await command.ExecuteNonQueryAsync();
     }
@@ -43,17 +43,17 @@ public class SqlServerCemaphoreStore(string connectionString, string tablePrefix
         await using var conn = await CreateConnection();
         
         _takeSql ??= @$"
-            INSERT INTO {tablePrefix}_Cemaphores
+            INSERT INTO {tablePrefix}_Semaphores
             OUTPUT INSERTED.Position
             SELECT @Type, 
                    @Instance, 
                    (SELECT COALESCE(MAX(Position), -1) + 1 
-                    FROM {tablePrefix}_Cemaphores 
+                    FROM {tablePrefix}_Semaphores 
                     WHERE Type = @Type AND Instance = @Instance), 
                    @Owner
             WHERE NOT EXISTS (
                 SELECT 1
-                FROM {tablePrefix}_Cemaphores
+                FROM {tablePrefix}_Semaphores
                 WHERE Type = @Type AND Instance = @Instance AND Owner = @Owner
             );";
         var command = new SqlCommand(_takeSql, conn);
@@ -75,11 +75,11 @@ public class SqlServerCemaphoreStore(string connectionString, string tablePrefix
         await using var conn = await CreateConnection();
         
         _releaseSql ??= @$"    
-            DELETE FROM {tablePrefix}_Cemaphores
+            DELETE FROM {tablePrefix}_Semaphores
             WHERE Type = @Type AND Instance = @Instance AND Owner = @Owner;
 
             SELECT TOP(@Limit) Owner 
-            FROM {tablePrefix}_Cemaphores
+            FROM {tablePrefix}_Semaphores
             WHERE Type = @Type AND Instance = @Instance
             ORDER BY Position;";
         
@@ -103,7 +103,7 @@ public class SqlServerCemaphoreStore(string connectionString, string tablePrefix
         await using var conn = await CreateConnection();
         _queuedSql ??= @$"    
             SELECT TOP(@Limit) Owner 
-            FROM {tablePrefix}_Cemaphores
+            FROM {tablePrefix}_Semaphores
             WHERE Type = @Type AND Instance = @Instance
             ORDER BY Position;
             ";

@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Threading.Tasks;
 
-namespace Cleipnir.ResilientFunctions.Utils.Cemaphore;
+namespace Cleipnir.ResilientFunctions.Utils.Semaphore;
 
-public interface ICemaphore
+public interface ISemaphore
 {
     public Task<ILock> Acquire(string group, string name, TimeSpan? maxWait = null);
     public Task<ILock?> TryAcquire(TimeSpan? maxWait = null);

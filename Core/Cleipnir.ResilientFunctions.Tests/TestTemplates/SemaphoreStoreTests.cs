@@ -5,10 +5,10 @@ using Shouldly;
 
 namespace Cleipnir.ResilientFunctions.Tests.TestTemplates;
 
-public abstract class CemaphoreStoreTests
+public abstract class SemaphoreStoreTests
 {
     public abstract Task SunshineScenarioTest();
-    protected async Task SunshineScenarioTest(Task<ICemaphoreStore> storeTask)
+    protected async Task SunshineScenarioTest(Task<ISemaphoreStore> storeTask)
     {
         var store = await storeTask;
         var id1 = TestStoredId.Create();
@@ -66,8 +66,8 @@ public abstract class CemaphoreStoreTests
         takenIds.Count.ShouldBe(0);
     }
     
-    public abstract Task ReleasingCemaphoreTwiceSucceeds();
-    protected async Task ReleasingCemaphoreTwiceSucceeds(Task<ICemaphoreStore> storeTask)
+    public abstract Task ReleasingSemaphoreTwiceSucceeds();
+    protected async Task ReleasingSemaphoreTwiceSucceeds(Task<ISemaphoreStore> storeTask)
     {
         var store = await storeTask;
         var id1 = TestStoredId.Create();
@@ -81,8 +81,8 @@ public abstract class CemaphoreStoreTests
         takenIds.Count.ShouldBe(0);
     }
     
-    public abstract Task AcquiringTheSameCemaphoreTwiceIsIdempotent();
-    protected async Task AcquiringTheSameCemaphoreTwiceIsIdempotent(Task<ICemaphoreStore> storeTask)
+    public abstract Task AcquiringTheSameSemaphoreTwiceIsIdempotent();
+    protected async Task AcquiringTheSameSemaphoreTwiceIsIdempotent(Task<ISemaphoreStore> storeTask)
     {
         var store = await storeTask;
         var id1 = TestStoredId.Create();

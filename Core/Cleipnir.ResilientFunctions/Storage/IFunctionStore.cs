@@ -16,7 +16,7 @@ public interface IFunctionStore
     public Utilities Utilities { get; }
     public IMigrator Migrator { get; }
     public ILogStore LogStore { get; }
-    public ICemaphoreStore CemaphoreStore { get; }
+    public ISemaphoreStore SemaphoreStore { get; }
     public Task Initialize();
     
     Task<bool> CreateFunction(

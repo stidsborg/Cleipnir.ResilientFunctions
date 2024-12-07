@@ -6,14 +6,14 @@ using Npgsql;
 
 namespace Cleipnir.ResilientFunctions.PostgreSQL;
 
-public class PostgreSqlCemaphoreStore(string connectionString, string tablePrefix = "") : ICemaphoreStore
+public class PostgreSqlSemaphoreStore(string connectionString, string tablePrefix = "") : ISemaphoreStore
 {
     private string? _initializeSql;
     public async Task Initialize()
     {
         await using var conn = await CreateConnection();
         _initializeSql ??= @$"
-            CREATE TABLE IF NOT EXISTS {tablePrefix}_cemaphores (
+            CREATE TABLE IF NOT EXISTS {tablePrefix}_semaphores (
                 type VARCHAR(150) NOT NULL,
                 instance VARCHAR(150) NOT NULL,
                 position INT NOT NULL,
@@ -29,7 +29,7 @@ public class PostgreSqlCemaphoreStore(string connectionString, string tablePrefi
     public async Task Truncate()
     {
         await using var conn = await CreateConnection();
-        _truncateSql ??= $"TRUNCATE TABLE {tablePrefix}_cemaphores;";
+        _truncateSql ??= $"TRUNCATE TABLE {tablePrefix}_semaphores;";
         var command = new NpgsqlCommand(_truncateSql, conn);
         await command.ExecuteNonQueryAsync();
     }
@@ -40,13 +40,13 @@ public class PostgreSqlCemaphoreStore(string connectionString, string tablePrefi
     {
         await using var conn = await CreateConnection();
         _takeSql ??= @$"    
-            INSERT INTO {tablePrefix}_cemaphores
+            INSERT INTO {tablePrefix}_semaphores
                 SELECT 
                     $1, 
                     $2, 
-                    (SELECT COALESCE(MAX(position), -1) + 1 FROM {tablePrefix}_cemaphores WHERE type = $1 AND instance = $2),
+                    (SELECT COALESCE(MAX(position), -1) + 1 FROM {tablePrefix}_semaphores WHERE type = $1 AND instance = $2),
                     $3
-                 WHERE NOT EXISTS (SELECT 1 FROM {tablePrefix}_cemaphores WHERE type = $1 AND instance = $2 AND owner = $3)
+                 WHERE NOT EXISTS (SELECT 1 FROM {tablePrefix}_semaphores WHERE type = $1 AND instance = $2 AND owner = $3)
             RETURNING position;";
         var command = new NpgsqlCommand(_takeSql, conn)
         {
@@ -77,7 +77,7 @@ public class PostgreSqlCemaphoreStore(string connectionString, string tablePrefi
 
         {
             _releaseSql ??= @$"    
-            DELETE FROM {tablePrefix}_cemaphores
+            DELETE FROM {tablePrefix}_semaphores
             WHERE type = $1 AND instance = $2 AND owner = $3;";
             var command = new NpgsqlBatchCommand(_releaseSql)
             {
@@ -94,7 +94,7 @@ public class PostgreSqlCemaphoreStore(string connectionString, string tablePrefi
         {
             _releaseGetQueuedSql ??= @$"    
             SELECT owner 
-            FROM {tablePrefix}_cemaphores
+            FROM {tablePrefix}_semaphores
             WHERE type = $1 AND instance = $2
             ORDER BY position
             LIMIT $3;
@@ -126,7 +126,7 @@ public class PostgreSqlCemaphoreStore(string connectionString, string tablePrefi
         await using var conn = await CreateConnection();
         _getQueued ??= @$"    
             SELECT owner 
-            FROM {tablePrefix}_cemaphores
+            FROM {tablePrefix}_semaphores
             WHERE type = $1 AND instance = $2
             ORDER BY position
             LIMIT $3;

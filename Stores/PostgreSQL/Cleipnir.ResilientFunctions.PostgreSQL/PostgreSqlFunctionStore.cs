@@ -34,8 +34,8 @@ public class PostgreSqlFunctionStore : IFunctionStore
     
     private readonly PostgresSqlLogStore _logStore;
     public ILogStore LogStore => _logStore;
-    private readonly PostgreSqlCemaphoreStore _cemaphoreStore;
-    public ICemaphoreStore CemaphoreStore => _cemaphoreStore;
+    private readonly PostgreSqlSemaphoreStore _semaphoreStore;
+    public ISemaphoreStore SemaphoreStore => _semaphoreStore;
 
     public Utilities Utilities { get; }
     public IMigrator Migrator => _migrator;
@@ -53,7 +53,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         _timeoutStore = new PostgreSqlTimeoutStore(connectionString, _tableName);
         _correlationStore = new PostgreSqlCorrelationStore(connectionString, _tableName);
         _logStore = new PostgresSqlLogStore(connectionString, _tableName);
-        _cemaphoreStore = new PostgreSqlCemaphoreStore(connectionString, _tableName);
+        _semaphoreStore = new PostgreSqlSemaphoreStore(connectionString, _tableName);
         _typeStore = new PostgreSqlTypeStore(connectionString, _tableName);
         _postgresSqlUnderlyingRegister = new PostgresSqlUnderlyingRegister(connectionString, _tableName);
         _migrator = new PostgreSqlMigrator(connectionString, _tableName);
@@ -80,7 +80,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         await _timeoutStore.Initialize();
         await _correlationStore.Initialize();
         await _logStore.Initialize();
-        await _cemaphoreStore.Initialize();
+        await _semaphoreStore.Initialize();
         await _typeStore.Initialize();
         await using var conn = await CreateConnection();
         _initializeSql ??= $@"
@@ -123,7 +123,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         await _correlationStore.Truncate();
         await _typeStore.Truncate();
         await _logStore.Truncate();
-        await _cemaphoreStore.Truncate();
+        await _semaphoreStore.Truncate();
         
         await using var conn = await CreateConnection();
         _truncateTableSql ??= $"TRUNCATE TABLE {_tableName}";

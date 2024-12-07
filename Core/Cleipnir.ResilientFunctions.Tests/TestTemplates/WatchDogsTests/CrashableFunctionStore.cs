@@ -26,7 +26,7 @@ public class CrashableFunctionStore : IFunctionStore
     public Utilities Utilities => _crashed ? throw new TimeoutException() : _inner.Utilities;
     public IMigrator Migrator => _crashed ? throw new TimeoutException() : _inner.Migrator;
     public ILogStore LogStore => _crashed ? throw new TimeoutException() : _inner.LogStore;
-    public ICemaphoreStore CemaphoreStore => _crashed ? throw new TimeoutException() : _inner.CemaphoreStore;
+    public ISemaphoreStore SemaphoreStore => _crashed ? throw new TimeoutException() : _inner.SemaphoreStore;
 
     public CrashableFunctionStore(IFunctionStore inner)
     {

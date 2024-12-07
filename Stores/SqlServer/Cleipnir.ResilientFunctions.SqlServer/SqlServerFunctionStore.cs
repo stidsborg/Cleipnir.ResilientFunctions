@@ -34,8 +34,8 @@ public class SqlServerFunctionStore : IFunctionStore
     public Utilities Utilities { get; }
     public IMigrator Migrator => _migrator;
     public ILogStore LogStore => _logStore;
-    private readonly SqlServerCemaphoreStore _cemaphoreStore;
-    public ICemaphoreStore CemaphoreStore => _cemaphoreStore;
+    private readonly SqlServerSemaphoreStore _semaphoreStore;
+    public ISemaphoreStore SemaphoreStore => _semaphoreStore;
 
     private readonly SqlServerUnderlyingRegister _underlyingRegister;
 
@@ -50,7 +50,7 @@ public class SqlServerFunctionStore : IFunctionStore
         _effectsStore = new SqlServerEffectsStore(connectionString, _tableName);
         _correlationStore = new SqlServerCorrelationsStore(connectionString, _tableName);
         _logStore = new SqlServerLogStore(connectionString, _tableName);
-        _cemaphoreStore = new SqlServerCemaphoreStore(connectionString, _tableName);
+        _semaphoreStore = new SqlServerSemaphoreStore(connectionString, _tableName);
         _typeStore = new SqlServerTypeStore(connectionString, _tableName);
         _migrator = new SqlServerMigrator(connectionString, _tableName);
         Utilities = new Utilities(_underlyingRegister);
@@ -80,7 +80,7 @@ public class SqlServerFunctionStore : IFunctionStore
         await _correlationStore.Initialize();
         await _typeStore.Initialize();
         await _logStore.Initialize();
-        await _cemaphoreStore.Initialize();
+        await _semaphoreStore.Initialize();
         await using var conn = await _connFunc();
         _initializeSql ??= @$"    
             CREATE TABLE {_tableName} (
@@ -127,7 +127,7 @@ public class SqlServerFunctionStore : IFunctionStore
         await _correlationStore.Truncate();
         await _typeStore.Truncate();
         await _logStore.Truncate();
-        await _cemaphoreStore.Truncate();
+        await _semaphoreStore.Truncate();
         
         await using var conn = await _connFunc();
         _truncateSql ??= $"TRUNCATE TABLE {_tableName}";

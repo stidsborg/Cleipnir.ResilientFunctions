@@ -7,7 +7,7 @@ using Cleipnir.ResilientFunctions.Helpers;
 
 namespace Cleipnir.ResilientFunctions.Storage;
 
-public class InMemoryCemaphoreStore : ICemaphoreStore
+public class InMemorySemaphoreStore : ISemaphoreStore
 {
     private readonly Dictionary<Tuple<string, string>, List<StoredId>> _semaphores = new();
     private readonly Lock _lock = new();

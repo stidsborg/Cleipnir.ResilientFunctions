@@ -5,17 +5,17 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace Cleipnir.ResilientFunctions.PostgreSQL.Tests;
 
 [TestClass]
-public class CemaphoreStoreTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.CemaphoreStoreTests
+public class SemaphoreStoreTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.SemaphoreStoreTests
 {
     [TestMethod]
     public override Task SunshineScenarioTest()
-        => SunshineScenarioTest(FunctionStoreFactory.Create().SelectAsync(s => s.CemaphoreStore));
+        => SunshineScenarioTest(FunctionStoreFactory.Create().SelectAsync(s => s.SemaphoreStore));
 
     [TestMethod]
-    public override Task ReleasingCemaphoreTwiceSucceeds()
-        => ReleasingCemaphoreTwiceSucceeds(FunctionStoreFactory.Create().SelectAsync(s => s.CemaphoreStore));
+    public override Task ReleasingSemaphoreTwiceSucceeds()
+        => ReleasingSemaphoreTwiceSucceeds(FunctionStoreFactory.Create().SelectAsync(s => s.SemaphoreStore));
     
     [TestMethod]
-    public override Task AcquiringTheSameCemaphoreTwiceIsIdempotent()
-        => AcquiringTheSameCemaphoreTwiceIsIdempotent(FunctionStoreFactory.Create().SelectAsync(s => s.CemaphoreStore));
+    public override Task AcquiringTheSameSemaphoreTwiceIsIdempotent()
+        => AcquiringTheSameSemaphoreTwiceIsIdempotent(FunctionStoreFactory.Create().SelectAsync(s => s.SemaphoreStore));
 }
