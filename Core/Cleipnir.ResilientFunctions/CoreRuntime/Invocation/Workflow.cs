@@ -16,8 +16,9 @@ public class Workflow
     public States States { get; }
     public Utilities Utilities { get; }
     public Correlations Correlations { get; }
+    public DistributedSemaphores Semaphores { get; }
     
-    public Workflow(FlowId flowId, StoredId storedId, Messages messages, Effect effect, States states, Utilities utilities, Correlations correlations)
+    public Workflow(FlowId flowId, StoredId storedId, Messages messages, Effect effect, States states, Utilities utilities, Correlations correlations, DistributedSemaphores semaphores)
     {
         FlowId = flowId;
         StoredId = storedId;
@@ -26,6 +27,7 @@ public class Workflow
         Effect = effect;
         States = states;
         Correlations = correlations;
+        Semaphores = semaphores;
     }
 
     public void Deconstruct(out Effect effect, out Messages messages, out States states)

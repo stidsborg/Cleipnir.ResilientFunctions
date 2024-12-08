@@ -39,6 +39,7 @@ public class ControlPanelFactory
             _invocationHelper.CreateExistingEffects(flowId),
             _invocationHelper.CreateExistingStates(flowId),
             _invocationHelper.CreateExistingMessages(flowId),
+            _invocationHelper.CreateExistingSemaphores(flowId),
             _invocationHelper.CreateExistingTimeouts(flowId),
             _invocationHelper.CreateCorrelations(flowId),
             functionState.PreviouslyThrownException
@@ -82,6 +83,7 @@ public class ControlPanelFactory<TParam> where TParam : notnull
             _invocationHelper.CreateExistingEffects(flowId),
             _invocationHelper.CreateExistingStates(flowId),
             _invocationHelper.CreateExistingMessages(flowId),
+            _invocationHelper.CreateExistingSemaphores(flowId),
             _invocationHelper.CreateExistingTimeouts(flowId),
             _invocationHelper.CreateCorrelations(flowId),
             functionState.PreviouslyThrownException
@@ -125,6 +127,7 @@ public class ControlPanelFactory<TParam, TReturn> where TParam : notnull
             _invocationHelper.CreateExistingEffects(flowId),
             _invocationHelper.CreateExistingStates(flowId),
             _invocationHelper.CreateExistingMessages(flowId),
+            _invocationHelper.CreateExistingSemaphores(flowId),
             _invocationHelper.CreateExistingTimeouts(flowId),
             _invocationHelper.CreateCorrelations(flowId),
             f.PreviouslyThrownException

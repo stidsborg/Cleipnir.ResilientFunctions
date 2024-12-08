@@ -12,7 +12,7 @@ public class InMemorySemaphoreStore : ISemaphoreStore
     private readonly Dictionary<Tuple<string, string>, List<StoredId>> _semaphores = new();
     private readonly Lock _lock = new();
     
-    public Task<bool> Acquire(string group, string instance, StoredId storedId, int semaphoreCount)
+    public Task<bool> Acquire(string group, string instance, StoredId storedId, int maximumCount)
     {
         lock (_lock)
         {
@@ -23,14 +23,14 @@ public class InMemorySemaphoreStore : ISemaphoreStore
             var queue = _semaphores[key];
             for (var i = 0; i < queue.Count; i++)
                 if (queue[i] == storedId)
-                    return (i < semaphoreCount).ToTask();
+                    return (i < maximumCount).ToTask();
             
             queue.Add(storedId);
-            return (queue.Count <= semaphoreCount).ToTask();
+            return (queue.Count <= maximumCount).ToTask();
         }
     }
 
-    public Task<IReadOnlyList<StoredId>> Release(string group, string instance, StoredId storedId, int semaphoreCount)
+    public Task<IReadOnlyList<StoredId>> Release(string group, string instance, StoredId storedId, int maximumCount)
     {
         lock (_lock)
         {
@@ -40,7 +40,7 @@ public class InMemorySemaphoreStore : ISemaphoreStore
             
             _semaphores[key] = _semaphores[key].Where(id => id != storedId).ToList();
 
-            return _semaphores[key].Take(semaphoreCount).ToList().CastTo<IReadOnlyList<StoredId>>().ToTask();
+            return _semaphores[key].Take(maximumCount).ToList().CastTo<IReadOnlyList<StoredId>>().ToTask();
         }
     }
 

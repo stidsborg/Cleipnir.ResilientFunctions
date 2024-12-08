@@ -420,6 +420,32 @@ public abstract class SuspensionTests
         unhandledExceptionHandler.ShouldNotHaveExceptions();
     }
     
+    public abstract Task ParentCanWaitForFailedChildAction();
+    protected async Task ParentCanWaitForFailedChildAction(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var parentFunctionId = new FlowId($"ParentFunction{Guid.NewGuid()}", Guid.NewGuid().ToString());
+
+        var unhandledExceptionHandler = new UnhandledExceptionCatcher();
+        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler.Catch));
+        
+        var child = functionsRegistry.RegisterAction(
+            flowType: $"ChildFunction{Guid.NewGuid()}",
+            inner: (string _) => throw new InvalidOperationException("oh no")
+        );
+
+        var parent = functionsRegistry.RegisterAction(
+            parentFunctionId.Type,
+            inner: Task (string param) => child.Schedule("SomeChildInstance#1", param).Completion()
+        );
+        
+        await Should.ThrowAsync<PreviousInvocationException>(
+            () => parent.Schedule(parentFunctionId.Instance.Value, param: "hello").Completion(maxWait: TimeSpan.FromSeconds(5))
+        );
+        
+        unhandledExceptionHandler.ThrownExceptions.ShouldNotBeEmpty();
+    }
+    
     public abstract Task PublishFromChildActionStressTest();
     protected async Task PublishFromChildActionStressTest(Task<IFunctionStore> storeTask)
     {

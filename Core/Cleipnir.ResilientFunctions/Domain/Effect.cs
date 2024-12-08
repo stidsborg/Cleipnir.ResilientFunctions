@@ -48,6 +48,9 @@ public class Effect(
         
         return effectResults;
     }
+
+    internal Task<IEnumerable<EffectId>> EffectIds => GetEffectResults()
+        .SelectAsync(kv => kv.Keys.AsEnumerable());
     
     public async Task<bool> Contains(string id)
     {

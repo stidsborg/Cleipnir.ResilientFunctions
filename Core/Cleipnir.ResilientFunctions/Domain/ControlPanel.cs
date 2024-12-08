@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
@@ -15,16 +16,37 @@ public class ControlPanel : BaseControlPanel<Unit, Unit>
         FlowId flowId, StoredId storedId,
         Status status, int epoch, long expires,  
         ExistingEffects effects,
-        ExistingStates states, ExistingMessages messages, ExistingRegisteredTimeouts registeredTimeouts, Correlations correlations,
+        ExistingStates states, ExistingMessages messages, ExistingSemaphores semaphores, 
+        ExistingRegisteredTimeouts registeredTimeouts, Correlations correlations,
         PreviouslyThrownException? previouslyThrownException
     ) : base(
         invoker, invocationHelper, 
         flowId, storedId, status, epoch, 
         expires, innerParam: Unit.Instance, innerResult: Unit.Instance, effects,
-        states, messages, registeredTimeouts, correlations, previouslyThrownException
+        states, messages, registeredTimeouts, semaphores, correlations, previouslyThrownException
     ) { }
     
     public Task Succeed() => InnerSucceed(result: Unit.Instance);
+    
+    public async Task BusyWaitUntil(Func<ControlPanel, bool> predicate, TimeSpan? maxWait = null, TimeSpan? checkFrequency = null)
+    {
+        if (predicate(this))
+            return;
+        
+        maxWait ??= TimeSpan.FromSeconds(10);
+        checkFrequency ??= TimeSpan.FromMilliseconds(250);
+        
+        var stopWatch = Stopwatch.StartNew();
+        do
+        {
+            await Task.Delay(checkFrequency.Value);
+            await Refresh();
+            if (predicate(this))
+                return;
+        } while (stopWatch.Elapsed < maxWait);
+        
+        throw new TimeoutException("Predicate was not meet before max wait for reached");
+    }
 }
 
 public class ControlPanel<TParam> : BaseControlPanel<TParam, Unit> where TParam : notnull  
@@ -35,13 +57,14 @@ public class ControlPanel<TParam> : BaseControlPanel<TParam, Unit> where TParam 
         FlowId flowId, StoredId storedId,
         Status status, int epoch, long expires, TParam innerParam, 
         ExistingEffects effects,
-        ExistingStates states, ExistingMessages messages, ExistingRegisteredTimeouts registeredTimeouts, Correlations correlations, 
+        ExistingStates states, ExistingMessages messages, ExistingSemaphores semaphores, 
+        ExistingRegisteredTimeouts registeredTimeouts, Correlations correlations, 
         PreviouslyThrownException? previouslyThrownException
     ) : base(
         invoker, invocationHelper, 
         flowId, storedId, status, epoch, 
         expires, innerParam, innerResult: Unit.Instance, effects,
-        states, messages, registeredTimeouts, correlations, previouslyThrownException
+        states, messages, registeredTimeouts, semaphores, correlations, previouslyThrownException
     ) { }
     
     public TParam Param
@@ -51,6 +74,26 @@ public class ControlPanel<TParam> : BaseControlPanel<TParam, Unit> where TParam 
     }
     
     public Task Succeed() => InnerSucceed(result: Unit.Instance);
+    
+    public async Task BusyWaitUntil(Func<ControlPanel<TParam>, bool> predicate, TimeSpan? maxWait = null, TimeSpan? checkFrequency = null)
+    {
+        if (predicate(this))
+            return;
+        
+        maxWait ??= TimeSpan.FromSeconds(10);
+        checkFrequency ??= TimeSpan.FromMilliseconds(250);
+        
+        var stopWatch = Stopwatch.StartNew();
+        do
+        {
+            await Task.Delay(checkFrequency.Value);
+            await Refresh();
+            if (predicate(this))
+                return;
+        } while (stopWatch.Elapsed < maxWait);
+        
+        throw new TimeoutException("Predicate was not meet before max wait for reached");
+    }
 }
 
 public class ControlPanel<TParam, TReturn> : BaseControlPanel<TParam, TReturn> where TParam : notnull
@@ -61,13 +104,13 @@ public class ControlPanel<TParam, TReturn> : BaseControlPanel<TParam, TReturn> w
         FlowId flowId, StoredId storedId, Status status, int epoch, 
         long expires, TParam innerParam, 
         TReturn? innerResult, 
-        ExistingEffects effects, ExistingStates states, ExistingMessages messages, 
+        ExistingEffects effects, ExistingStates states, ExistingMessages messages, ExistingSemaphores semaphores,
         ExistingRegisteredTimeouts registeredTimeouts, Correlations correlations, PreviouslyThrownException? previouslyThrownException
     ) : base(
         invoker, invocationHelper, 
         flowId, storedId, status, epoch, expires, 
         innerParam, innerResult, effects, states, messages, 
-        registeredTimeouts, correlations, previouslyThrownException
+        registeredTimeouts, semaphores, correlations, previouslyThrownException
     ) { }
 
     public Task Succeed(TReturn result) => InnerSucceed(result);
@@ -77,6 +120,26 @@ public class ControlPanel<TParam, TReturn> : BaseControlPanel<TParam, TReturn> w
     {
         get => InnerParam;
         set => InnerParam = value;
+    }
+    
+    public async Task BusyWaitUntil(Func<ControlPanel<TParam, TReturn>, bool> predicate, TimeSpan? maxWait = null, TimeSpan? checkFrequency = null)
+    {
+        if (predicate(this))
+            return;
+        
+        maxWait ??= TimeSpan.FromSeconds(10);
+        checkFrequency ??= TimeSpan.FromMilliseconds(250);
+        
+        var stopWatch = Stopwatch.StartNew();
+        do
+        {
+            await Task.Delay(checkFrequency.Value);
+            await Refresh();
+            if (predicate(this))
+                return;
+        } while (stopWatch.Elapsed < maxWait);
+        
+        throw new TimeoutException("Predicate was not meet before max wait for reached");
     }
 }
 
@@ -100,6 +163,7 @@ public abstract class BaseControlPanel<TParam, TReturn>
         ExistingStates states,
         ExistingMessages messages,
         ExistingRegisteredTimeouts registeredTimeouts,
+        ExistingSemaphores semaphores,
         Correlations correlations,
         PreviouslyThrownException? previouslyThrownException)
     {
@@ -120,6 +184,7 @@ public abstract class BaseControlPanel<TParam, TReturn>
         States = states;
         Messages = messages;
         RegisteredTimeouts = registeredTimeouts;
+        Semaphores = semaphores;
         Correlations = correlations;
         PreviouslyThrownException = previouslyThrownException;
     }
@@ -136,6 +201,7 @@ public abstract class BaseControlPanel<TParam, TReturn>
     public ExistingEffects Effects { get; private set; }
 
     public ExistingStates States { get; private set; }
+    public ExistingSemaphores Semaphores { get; private set; }
     public Correlations Correlations { get; private set; }
 
     public ExistingRegisteredTimeouts RegisteredTimeouts { get; private set; }

@@ -225,7 +225,8 @@ public class Invoker<TParam, TReturn>
             
             var (effect, states) = _invocationHelper.CreateEffectAndStates(storedId, anyEffects: false);
             var correlations = _invocationHelper.CreateCorrelations(flowId);
-            var workflow = new Workflow(flowId, storedId, messages, effect, states, _utilities, correlations);
+            var semaphores = _invocationHelper.CreateSemaphores(storedId, effect);
+            var workflow = new Workflow(flowId, storedId, messages, effect, states, _utilities, correlations, semaphores);
 
             return new PreparedInvocation(
                 persisted,
@@ -274,7 +275,8 @@ public class Invoker<TParam, TReturn>
 
             var (effect, states) = _invocationHelper.CreateEffectAndStates(storedId, anyEffects: true);
             var correlations = _invocationHelper.CreateCorrelations(flowId);
-          
+            var semaphores = _invocationHelper.CreateSemaphores(storedId, effect);
+            
             var workflow = new Workflow(
                 flowId,
                 storedId,
@@ -282,7 +284,8 @@ public class Invoker<TParam, TReturn>
                 effect,
                 states,
                 _utilities,
-                correlations
+                correlations,
+                semaphores
             );
 
             return new PreparedReInvocation(

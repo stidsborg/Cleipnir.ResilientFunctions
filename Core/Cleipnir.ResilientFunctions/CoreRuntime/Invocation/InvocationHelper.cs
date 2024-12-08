@@ -342,9 +342,14 @@ internal class InvocationHelper<TParam, TReturn>
         );
     }
 
-    public async Task Delete(StoredId storedId)
+    public async Task Delete(StoredId storedId) => await _functionStore.DeleteFunction(storedId);
+
+    public async Task Interrupt(IReadOnlyList<StoredId> storedIds)
     {
-        await _functionStore.DeleteFunction(storedId);
+        if (storedIds.Count == 0)
+            return;
+
+        await _functionStore.Interrupt(storedIds);
     }
     
     public async Task<FunctionState<TParam, TReturn>?> GetFunction(StoredId storedId)
@@ -466,7 +471,11 @@ internal class InvocationHelper<TParam, TReturn>
     public ExistingEffects CreateExistingEffects(FlowId flowId) => new(MapToStoredId(flowId), _functionStore.EffectsStore, _settings.Serializer);
     public ExistingMessages CreateExistingMessages(FlowId flowId) => new(MapToStoredId(flowId), _functionStore.MessageStore, _settings.Serializer);
     public ExistingRegisteredTimeouts CreateExistingTimeouts(FlowId flowId) => new(MapToStoredId(flowId), _functionStore.TimeoutStore);
+    public ExistingSemaphores CreateExistingSemaphores(FlowId flowId) => new(MapToStoredId(flowId), _functionStore, CreateExistingEffects(flowId));
 
+    public DistributedSemaphores CreateSemaphores(StoredId storedId, Effect effect)
+        => new(effect, _functionStore.SemaphoreStore, storedId, Interrupt);
+    
     public StoredId MapToStoredId(FlowId flowId) => new(_storedType, flowId.Instance.ToStoredInstance());
     
     private byte[]? SerializeParameter(TParam param)
@@ -494,6 +503,8 @@ internal class InvocationHelper<TParam, TReturn>
         if (detach == false || parentWorkflow == null)
             return new InnerScheduled<TReturn>(async maxWait =>
             {
+                maxWait ??= TimeSpan.FromSeconds(10);
+                
                 var stopWatch = Stopwatch.StartNew();
                 //todo make max wait smaller after each await
                 var results = new List<TReturn>(scheduledIds.Count);

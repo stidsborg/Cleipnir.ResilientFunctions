@@ -38,7 +38,7 @@ public class SqlServerSemaphoreStore(string connectionString, string tablePrefix
     }
     
     private string? _takeSql;
-    public async Task<bool> Acquire(string group, string instance, StoredId storedId, int semaphoreCount)
+    public async Task<bool> Acquire(string group, string instance, StoredId storedId, int maximumCount)
     {
         await using var conn = await CreateConnection();
         
@@ -64,13 +64,13 @@ public class SqlServerSemaphoreStore(string connectionString, string tablePrefix
         var position = await command.ExecuteScalarAsync();
         
         if (position is null) 
-            return (await GetQueued(group, instance, semaphoreCount)).Any(id => id == storedId);
+            return (await GetQueued(group, instance, maximumCount)).Any(id => id == storedId);
 
-        return (int) position < semaphoreCount;
+        return (int) position < maximumCount;
     }
 
     private string? _releaseSql;
-    public async Task<IReadOnlyList<StoredId>> Release(string group, string instance, StoredId storedId, int semaphoreCount)
+    public async Task<IReadOnlyList<StoredId>> Release(string group, string instance, StoredId storedId, int maximumCount)
     {
         await using var conn = await CreateConnection();
         
@@ -87,7 +87,7 @@ public class SqlServerSemaphoreStore(string connectionString, string tablePrefix
         command.Parameters.AddWithValue("@Type", group);
         command.Parameters.AddWithValue("@Instance", instance);
         command.Parameters.AddWithValue("@Owner", storedId.Serialize());
-        command.Parameters.AddWithValue("@Limit", semaphoreCount);
+        command.Parameters.AddWithValue("@Limit", maximumCount);
 
         await using var reader = await command.ExecuteReaderAsync();
         var ids = new List<StoredId>();

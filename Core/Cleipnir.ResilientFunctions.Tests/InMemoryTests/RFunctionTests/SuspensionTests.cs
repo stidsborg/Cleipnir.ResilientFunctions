@@ -61,6 +61,10 @@ public class SuspensionTests : TestTemplates.RFunctionTests.SuspensionTests
         => ParentCanWaitForChildAction(FunctionStoreFactory.Create());
 
     [TestMethod]
+    public override Task ParentCanWaitForFailedChildAction()
+        => ParentCanWaitForFailedChildAction(FunctionStoreFactory.Create());
+
+    [TestMethod]
     public override Task PublishFromChildActionStressTest()
         => PublishFromChildActionStressTest(FunctionStoreFactory.Create());
 

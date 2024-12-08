@@ -36,7 +36,7 @@ public class PostgreSqlSemaphoreStore(string connectionString, string tablePrefi
     
     private string? _takeSql;
 
-    public async Task<bool> Acquire(string group, string instance, StoredId storedId, int semaphoreCount)
+    public async Task<bool> Acquire(string group, string instance, StoredId storedId, int maximumCount)
     {
         await using var conn = await CreateConnection();
         _takeSql ??= @$"    
@@ -61,16 +61,16 @@ public class PostgreSqlSemaphoreStore(string connectionString, string tablePrefi
         var position = (int?) await command.ExecuteScalarAsync();
         if (position == null)
         {
-            var queued = await GetQueued(group, instance, semaphoreCount);
+            var queued = await GetQueued(group, instance, maximumCount);
             return queued.Any(id => id == storedId);
         }
         
-        return position < semaphoreCount;
+        return position < maximumCount;
     }
 
     private string? _releaseSql;
     private string? _releaseGetQueuedSql;
-    public async Task<IReadOnlyList<StoredId>> Release(string group, string instance, StoredId storedId, int semaphoreCount)
+    public async Task<IReadOnlyList<StoredId>> Release(string group, string instance, StoredId storedId, int maximumCount)
     {
         await using var conn = await CreateConnection();
         await using var batch = new NpgsqlBatch(conn);
@@ -106,7 +106,7 @@ public class PostgreSqlSemaphoreStore(string connectionString, string tablePrefi
                 {
                     new() { Value = group },
                     new() { Value = instance },
-                    new() { Value = semaphoreCount }
+                    new() { Value = maximumCount }
                 }
             };
             batch.BatchCommands.Add(command);            

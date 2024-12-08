@@ -546,7 +546,7 @@ public class MariaDbFunctionStore : IFunctionStore
                 WHERE @CONDITIONALS";
 
         var conditionals = storedIds
-            .Select(storedId => $"(type = {storedId.Type.Value} AND instance = '{storedId.Instance.Value}')")
+            .Select(storedId => $"(type = {storedId.Type.Value} AND instance = '{storedId.Instance.Value:N}')")
             .StringJoin(" OR ");
 
         var sql = _interruptsSql.Replace("@CONDITIONALS", conditionals);

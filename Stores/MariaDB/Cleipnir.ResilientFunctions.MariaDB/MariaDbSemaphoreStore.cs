@@ -32,7 +32,7 @@ public class MariaDbSemaphoreStore(string connectionString, string tablePrefix =
     }
     
     private string? _takeSql;
-    public async Task<bool> Acquire(string group, string instance, StoredId storedId, int semaphoreCount)
+    public async Task<bool> Acquire(string group, string instance, StoredId storedId, int maximumCount)
     {
         await using var conn = await CreateConnection();
         
@@ -65,15 +65,15 @@ public class MariaDbSemaphoreStore(string connectionString, string tablePrefix =
         var position = (int?) await command.ExecuteScalarAsync();
         if (position == null || position == -1)
         {
-            var queued = await GetQueued(group, instance, semaphoreCount);
+            var queued = await GetQueued(group, instance, maximumCount);
             return queued.Any(id => id == storedId);
         }
             
-        return position < semaphoreCount;
+        return position < maximumCount;
     }
 
     private string? _releaseSql;
-    public async Task<IReadOnlyList<StoredId>> Release(string group, string instance, StoredId storedId, int semaphoreCount)
+    public async Task<IReadOnlyList<StoredId>> Release(string group, string instance, StoredId storedId, int maximumCount)
     {
         await using var conn = await CreateConnection();
         
@@ -97,7 +97,7 @@ public class MariaDbSemaphoreStore(string connectionString, string tablePrefix =
                 
                 new() { Value = group },
                 new() { Value = instance },
-                new() { Value = semaphoreCount },
+                new() { Value = maximumCount },
             }
         };
 

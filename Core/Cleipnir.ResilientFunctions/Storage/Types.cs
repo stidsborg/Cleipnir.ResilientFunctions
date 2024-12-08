@@ -81,4 +81,6 @@ public record StoredEffect(
 };
 public record StoredState(StateId StateId, byte[] StateJson);
 
+public record StoredSemaphore(string Group, string Instance);
+
 public record IdWithParam(StoredId StoredId, string HumanInstanceId, byte[]? Param);

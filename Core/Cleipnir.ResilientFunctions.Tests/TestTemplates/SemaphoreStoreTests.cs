@@ -17,7 +17,7 @@ public abstract class SemaphoreStoreTests
         var id4 = TestStoredId.Create();
 
         await store
-            .Acquire("group", "instance", id1, semaphoreCount: 2)
+            .Acquire("group", "instance", id1, maximumCount: 2)
             .ShouldBeTrueAsync();
 
         var takenIds = await store.GetQueued("group", "instance", count: 2);
@@ -25,7 +25,7 @@ public abstract class SemaphoreStoreTests
         takenIds[0].ShouldBe(id1);
         
         await store
-            .Acquire("group", "instance", id2, semaphoreCount: 2)
+            .Acquire("group", "instance", id2, maximumCount: 2)
             .ShouldBeTrueAsync();
         takenIds = await store.GetQueued("group", "instance", count: 2);
         takenIds.Count.ShouldBe(2);
@@ -33,7 +33,7 @@ public abstract class SemaphoreStoreTests
         takenIds[1].ShouldBe(id2);
         
         await store
-            .Acquire("group", "instance", id3, semaphoreCount: 2)
+            .Acquire("group", "instance", id3, maximumCount: 2)
             .ShouldBeFalseAsync();
         takenIds = await store.GetQueued("group", "instance", count: 2);
         takenIds.Count.ShouldBe(2);
@@ -41,28 +41,28 @@ public abstract class SemaphoreStoreTests
         takenIds[1].ShouldBe(id2);
         
         await store
-            .Acquire("group", "instance", id4, semaphoreCount: 2)
+            .Acquire("group", "instance", id4, maximumCount: 2)
             .ShouldBeFalseAsync();
         takenIds = await store.GetQueued("group", "instance", count: 2);
         takenIds.Count.ShouldBe(2);
         takenIds[0].ShouldBe(id1);
         takenIds[1].ShouldBe(id2);
         
-        takenIds = await store.Release("group", "instance", id2, semaphoreCount: 2);
+        takenIds = await store.Release("group", "instance", id2, maximumCount: 2);
         takenIds.Count.ShouldBe(2);
         takenIds[0].ShouldBe(id1);
         takenIds[1].ShouldBe(id3);
         
-        takenIds = await store.Release("group", "instance", id1, semaphoreCount: 2);
+        takenIds = await store.Release("group", "instance", id1, maximumCount: 2);
         takenIds.Count.ShouldBe(2);
         takenIds[0].ShouldBe(id3);
         takenIds[1].ShouldBe(id4);
         
-        takenIds = await store.Release("group", "instance", id3, semaphoreCount: 2);
+        takenIds = await store.Release("group", "instance", id3, maximumCount: 2);
         takenIds.Count.ShouldBe(1);
         takenIds[0].ShouldBe(id4);
         
-        takenIds = await store.Release("group", "instance", id4, semaphoreCount: 2);
+        takenIds = await store.Release("group", "instance", id4, maximumCount: 2);
         takenIds.Count.ShouldBe(0);
     }
     
@@ -72,12 +72,12 @@ public abstract class SemaphoreStoreTests
         var store = await storeTask;
         var id1 = TestStoredId.Create();
         
-        await store.Acquire("group", "instance", id1, semaphoreCount: 2);
+        await store.Acquire("group", "instance", id1, maximumCount: 2);
         
-        var takenIds = await store.Release("group", "instanc", id1, semaphoreCount: 2);
+        var takenIds = await store.Release("group", "instanc", id1, maximumCount: 2);
         takenIds.Count.ShouldBe(0);
         
-        takenIds = await store.Release("group", "instanc", id1, semaphoreCount: 2);
+        takenIds = await store.Release("group", "instanc", id1, maximumCount: 2);
         takenIds.Count.ShouldBe(0);
     }
     
@@ -87,14 +87,14 @@ public abstract class SemaphoreStoreTests
         var store = await storeTask;
         var id1 = TestStoredId.Create();
         
-        await store.Acquire("group", "instance", id1, semaphoreCount: 2).ShouldBeTrueAsync();
-        await store.Acquire("group", "instance", id1, semaphoreCount: 2).ShouldBeTrueAsync();
+        await store.Acquire("group", "instance", id1, maximumCount: 2).ShouldBeTrueAsync();
+        await store.Acquire("group", "instance", id1, maximumCount: 2).ShouldBeTrueAsync();
 
         var takenIds = await store.GetQueued("group", "instance", count: 2);
         takenIds.Count.ShouldBe(1);
         takenIds[0].ShouldBe(id1);
 
-        takenIds = await store.Release("group", "instanc", id1, semaphoreCount: 2);
+        takenIds = await store.Release("group", "instanc", id1, maximumCount: 2);
         takenIds.Count.ShouldBe(0);
     }
 }
