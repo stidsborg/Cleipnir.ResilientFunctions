@@ -22,12 +22,15 @@ public class MariaDbEffectsStore : IEffectsStore
         await using var conn = await CreateConnection();
         _initializeSql ??= @$"
             CREATE TABLE IF NOT EXISTS {_tablePrefix}_effects (
-                id VARCHAR(450),
+                type INT,
+                instance CHAR(32),
+                id_hash CHAR(32),
                 is_state BIT,
                 status INT NOT NULL,
                 result LONGBLOB NULL,
                 exception TEXT NULL,
-                PRIMARY KEY(id, is_state)
+                effect_id TEXT NOT NULL,
+                PRIMARY KEY(type, instance, id_hash, is_state)
             );";
         var command = new MySqlCommand(_initializeSql, conn);
         await command.ExecuteNonQueryAsync();
@@ -45,13 +48,12 @@ public class MariaDbEffectsStore : IEffectsStore
     private string? _setEffectResultSql;
     public async Task SetEffectResult(StoredId storedId, StoredEffect storedEffect)
     {
-        var (flowType, flowInstance) = storedId;
         await using var conn = await CreateConnection();
         _setEffectResultSql ??= $@"
           INSERT INTO {_tablePrefix}_effects 
-              (id, is_state, status, result, exception)
+              (type, instance, id_hash, is_state, status, result, exception, effect_id)
           VALUES
-              (?, ?, ?, ?, ?)  
+              (?, ?, ?, ?, ?, ?, ?, ?)  
            ON DUPLICATE KEY UPDATE
                 status = VALUES(status), result = VALUES(result), exception = VALUES(exception)";
         
@@ -59,15 +61,23 @@ public class MariaDbEffectsStore : IEffectsStore
         {
             Parameters =
             {
-                new() {Value = Escaper.Escape(flowType.Value.ToString(), flowInstance.Value.ToString("N"), storedEffect.EffectId.Value)},
+                new() {Value = storedId.Type.Value},
+                new() {Value = storedId.Instance.Value.ToString("N")},
+                new() {Value = storedEffect.StoredEffectId.Value.ToString("N")},
                 new() {Value = storedEffect.IsState},
                 new() {Value = (int) storedEffect.WorkStatus},
                 new() {Value = storedEffect.Result ?? (object) DBNull.Value},
-                new() {Value = JsonHelper.ToJson(storedEffect.StoredException) ?? (object) DBNull.Value}
+                new() {Value = JsonHelper.ToJson(storedEffect.StoredException) ?? (object) DBNull.Value},
+                new() {Value = storedEffect.EffectId.Value}
             }
         };
 
         await command.ExecuteNonQueryAsync();
+    }
+
+    public Task SetEffectResults(StoredId storedId, IEnumerable<StoredEffect> storedEffects)
+    {
+        throw new NotImplementedException();
     }
 
     private string? _getEffectResultsSql;
@@ -75,14 +85,15 @@ public class MariaDbEffectsStore : IEffectsStore
     {
         await using var conn = await CreateConnection();
         _getEffectResultsSql ??= @$"
-            SELECT id, is_state, status, result, exception
+            SELECT id_hash, is_state, status, result, exception, effect_id
             FROM {_tablePrefix}_effects
-            WHERE id LIKE ?";
+            WHERE type = ? AND instance = ?";
         await using var command = new MySqlCommand(_getEffectResultsSql, conn)
         {
             Parameters =
             {
-                new() {Value = Escaper.Escape(storedId.Type.Value.ToString(), storedId.Instance.Value.ToString("N")) + $"{Escaper.Separator}%" },
+                new() {Value = storedId.Type.Value},
+                new() {Value = storedId.Instance.Value.ToString("N")},
             }
         };
 
@@ -91,19 +102,20 @@ public class MariaDbEffectsStore : IEffectsStore
         var functions = new List<StoredEffect>();
         while (await reader.ReadAsync())
         {
-            var id = reader.GetString(0);
-            var effectId = Escaper.Unescape(id)[2];
+            var idHash = reader.GetString(0);
             var isState = reader.GetBoolean(1);
             var status = (WorkStatus) reader.GetInt32(2);
             var result = reader.IsDBNull(3) ? null : (byte[]) reader.GetValue(3);
             var exception = reader.IsDBNull(4) ? null : reader.GetString(4);
+            var effectId = reader.GetString(5);
             functions.Add(
                 new StoredEffect(
                     effectId,
+                    new StoredEffectId(Guid.Parse(idHash)),
                     isState,
                     status,
                     result,
-                    JsonHelper.FromJson<StoredException>(exception)
+                    StoredException: JsonHelper.FromJson<StoredException>(exception)
                 )
             );
         }
@@ -112,16 +124,20 @@ public class MariaDbEffectsStore : IEffectsStore
     }
 
     private string? _deleteEffectResultSql;
-    public async Task DeleteEffectResult(StoredId storedId, EffectId effectId, bool isState)
+    public async Task DeleteEffectResult(StoredId storedId, StoredEffectId effectId, bool isState)
     {
         await using var conn = await CreateConnection();
-        _deleteEffectResultSql ??= $"DELETE FROM {_tablePrefix}_effects WHERE id = ? AND is_state = ?";
-        var id = Escaper.Escape(storedId.Type.Value.ToString(), storedId.Instance.Value.ToString("N"), effectId.Value);
+        _deleteEffectResultSql ??= @$"
+            DELETE FROM {_tablePrefix}_effects 
+            WHERE type = ? AND instance = ? AND id_hash = ? AND is_state = ?";
+        
         await using var command = new MySqlCommand(_deleteEffectResultSql, conn)
         {
             Parameters =
             {
-                new() { Value = id },
+                new() { Value = storedId.Type.Value },
+                new() { Value = storedId.Instance.Value.ToString("N") },
+                new() { Value = effectId.Value.ToString("N") },
                 new() { Value = isState },
             }
         };
@@ -133,11 +149,14 @@ public class MariaDbEffectsStore : IEffectsStore
     public async Task Remove(StoredId storedId)
     {
         await using var conn = await CreateConnection();
-        _removeSql ??= $"DELETE FROM {_tablePrefix}_effects WHERE id LIKE ?";
-        var id = Escaper.Escape(storedId.Type.Value.ToString(), storedId.Instance.Value.ToString("N")) + $"{Escaper.Separator}%" ;
+        _removeSql ??= $"DELETE FROM {_tablePrefix}_effects WHERE type = ? AND instance = ?";
         await using var command = new MySqlCommand(_removeSql, conn)
         {
-            Parameters = { new() { Value = id } }
+            Parameters =
+            {
+                new() { Value = storedId.Type.Value },
+                new() { Value = storedId.Instance.Value.ToString("N") },
+            }
         };
 
         await command.ExecuteNonQueryAsync();

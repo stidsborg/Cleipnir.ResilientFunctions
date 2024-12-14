@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.Tests.TestTemplates.WatchDogsTests;
@@ -29,14 +28,19 @@ public class CrashableEffectStore : IEffectsStore
     public Task SetEffectResult(StoredId storedId, StoredEffect storedEffect)
         => _crashed
             ? Task.FromException(new TimeoutException())
-            : _inner.SetEffectResult(storedId, storedEffect); 
+            : _inner.SetEffectResult(storedId, storedEffect);
+
+    public Task SetEffectResults(StoredId storedId, IEnumerable<StoredEffect> storedEffects)
+        => _crashed
+            ? Task.FromException(new TimeoutException())
+            : _inner.SetEffectResults(storedId, storedEffects);
 
     public Task<IReadOnlyList<StoredEffect>> GetEffectResults(StoredId storedId)
         => _crashed
             ? Task.FromException<IReadOnlyList<StoredEffect>>(new TimeoutException())
             : _inner.GetEffectResults(storedId);
 
-    public Task DeleteEffectResult(StoredId storedId, EffectId effectId, bool isState)
+    public Task DeleteEffectResult(StoredId storedId, StoredEffectId effectId, bool isState)
         => _crashed
             ? Task.FromException(new TimeoutException())
             : _inner.DeleteEffectResult(storedId, effectId, isState);

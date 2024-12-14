@@ -10,7 +10,6 @@ using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Reactive.Extensions;
 using Cleipnir.ResilientFunctions.Storage;
-using Cleipnir.ResilientFunctions.Tests.TestTemplates.WatchDogsTests;
 using Cleipnir.ResilientFunctions.Tests.Utils;
 using Shouldly;
 
@@ -1285,6 +1284,7 @@ public abstract class ControlPanelTests
             rAction.MapToStoredId(functionId),
             new StoredEffect(
                 new EffectId("SomeId"),
+                "SomeId".ToStoredEffectId(),
                 IsState: false,
                 WorkStatus.Completed,
                 Result: "SomeResult".ToJson().ToUtf8Bytes(),
@@ -1322,6 +1322,7 @@ public abstract class ControlPanelTests
             rAction.MapToStoredId(functionId),
             new StoredEffect(
                 new EffectId("SomeId"),
+                "SomeId".ToStoredEffectId(),
                 IsState: false,
                 WorkStatus.Completed,
                 Result: "SomeResult".ToJson().ToUtf8Bytes(),

@@ -1,14 +1,13 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
 
 namespace Cleipnir.ResilientFunctions.Storage;
 
 public class InMemoryEffectsStore : IEffectsStore
 {
-    private record EffectKey(EffectId EffectId, bool IsState);
+    private record EffectKey(StoredEffectId EffectId, bool IsState);
     private readonly Dictionary<StoredId, Dictionary<EffectKey, StoredEffect>> _effects = new();
     private readonly object _sync = new();
 
@@ -26,7 +25,7 @@ public class InMemoryEffectsStore : IEffectsStore
     {
         lock (_sync)
         {
-            var key = new EffectKey(storedEffect.EffectId, storedEffect.IsState);
+            var key = new EffectKey(storedEffect.StoredEffectId, storedEffect.IsState);
             if (!_effects.ContainsKey(storedId))
                 _effects[storedId] = new Dictionary<EffectKey, StoredEffect>();
                 
@@ -34,6 +33,12 @@ public class InMemoryEffectsStore : IEffectsStore
         }
         
         return Task.CompletedTask;
+    }
+
+    public async Task SetEffectResults(StoredId storedId, IEnumerable<StoredEffect> storedEffects)
+    {
+        foreach (var storedEffect in storedEffects)
+            await SetEffectResult(storedId, storedEffect);
     }
 
     public Task<IReadOnlyList<StoredEffect>> GetEffectResults(StoredId storedId)
@@ -44,7 +49,7 @@ public class InMemoryEffectsStore : IEffectsStore
                 : ((IReadOnlyList<StoredEffect>) _effects[storedId].Values.ToList()).ToTask();
     }
 
-    public Task DeleteEffectResult(StoredId storedId, EffectId effectId, bool isState)
+    public Task DeleteEffectResult(StoredId storedId, StoredEffectId effectId, bool isState)
     {
         var key = new EffectKey(effectId, isState);
         lock (_sync)
@@ -53,7 +58,7 @@ public class InMemoryEffectsStore : IEffectsStore
 
         return Task.CompletedTask;
     }
-
+    
     public Task Remove(StoredId storedId)
     {
         lock (_sync)

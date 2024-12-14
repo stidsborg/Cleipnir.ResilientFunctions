@@ -283,7 +283,7 @@ public class Effect(
             if (!effectResults.ContainsKey(id))
                 return;
         
-        await effectsStore.DeleteEffectResult(storedId, id, isState: false);
+        await effectsStore.DeleteEffectResult(storedId, id.ToStoredEffectId(), isState: false);
         lock (_sync)
             effectResults.Remove(id);
     }

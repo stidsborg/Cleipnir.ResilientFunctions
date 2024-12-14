@@ -47,7 +47,7 @@ public class ExistingEffects(StoredId storedId, IEffectsStore effectsStore, ISer
     public async Task Remove(string effectId)
     {
         var storedEffects = await GetStoredEffects();
-        await effectsStore.DeleteEffectResult(storedId, effectId, isState: false);
+        await effectsStore.DeleteEffectResult(storedId, effectId.ToStoredEffectId(), isState: false);
         storedEffects.Remove(effectId);
     }
 
@@ -61,14 +61,14 @@ public class ExistingEffects(StoredId storedId, IEffectsStore effectsStore, ISer
     public Task SetValue<TValue>(string effectId, TValue value) => SetSucceeded(effectId, value);
 
     public Task SetStarted(string effectId) 
-        => Set(new StoredEffect(effectId, IsState: false, WorkStatus.Started, Result: null, StoredException: null));
+        => Set(new StoredEffect(effectId, StoredEffectId.Create(effectId), IsState: false, WorkStatus.Started, Result: null, StoredException: null));
     
     public Task SetSucceeded(string effectId)
-        => Set(new StoredEffect(effectId, IsState: false, WorkStatus.Completed, Result: null, StoredException: null));
+        => Set(new StoredEffect(effectId, StoredEffectId.Create(effectId), IsState: false, WorkStatus.Completed, Result: null, StoredException: null));
     
     public Task SetSucceeded<TResult>(string effectId, TResult result)
-        => Set(new StoredEffect(effectId, IsState: false, WorkStatus.Completed, Result: serializer.SerializeEffectResult(result), StoredException: null));
+        => Set(new StoredEffect(effectId,StoredEffectId.Create(effectId), IsState: false, WorkStatus.Completed, Result: serializer.SerializeEffectResult(result), StoredException: null));
 
     public Task SetFailed(string effectId, Exception exception)
-        => Set(new StoredEffect(effectId, IsState: false, WorkStatus.Failed, Result: null, StoredException: serializer.SerializeException(exception)));
+        => Set(new StoredEffect(effectId, StoredEffectId.Create(effectId), IsState: false, WorkStatus.Failed, Result: null, StoredException: serializer.SerializeException(exception)));
 }
