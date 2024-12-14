@@ -15,7 +15,6 @@ public interface IFunctionStore
     public ICorrelationStore CorrelationStore { get; }
     public Utilities Utilities { get; }
     public IMigrator Migrator { get; }
-    public ILogStore LogStore { get; }
     public ISemaphoreStore SemaphoreStore { get; }
     public Task Initialize();
     

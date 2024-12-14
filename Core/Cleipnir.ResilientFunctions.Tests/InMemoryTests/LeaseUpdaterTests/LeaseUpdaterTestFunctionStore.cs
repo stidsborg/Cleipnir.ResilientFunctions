@@ -24,7 +24,6 @@ public class LeaseUpdaterTestFunctionStore : IFunctionStore
     public ICorrelationStore CorrelationStore => _inner.CorrelationStore;
     public Utilities Utilities => _inner.Utilities;
     public IMigrator Migrator => _inner.Migrator;
-    public ILogStore LogStore => _inner.LogStore;
     public ISemaphoreStore SemaphoreStore => _inner.SemaphoreStore;
     public Task Initialize() => _inner.Initialize();
 

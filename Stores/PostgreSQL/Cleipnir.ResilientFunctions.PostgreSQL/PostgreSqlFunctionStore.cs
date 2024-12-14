@@ -32,8 +32,6 @@ public class PostgreSqlFunctionStore : IFunctionStore
     private readonly ICorrelationStore _correlationStore;
     public ICorrelationStore CorrelationStore => _correlationStore;
     
-    private readonly PostgresSqlLogStore _logStore;
-    public ILogStore LogStore => _logStore;
     private readonly PostgreSqlSemaphoreStore _semaphoreStore;
     public ISemaphoreStore SemaphoreStore => _semaphoreStore;
 
@@ -52,7 +50,6 @@ public class PostgreSqlFunctionStore : IFunctionStore
         _effectsStore = new PostgreSqlEffectsStore(connectionString, _tableName);
         _timeoutStore = new PostgreSqlTimeoutStore(connectionString, _tableName);
         _correlationStore = new PostgreSqlCorrelationStore(connectionString, _tableName);
-        _logStore = new PostgresSqlLogStore(connectionString, _tableName);
         _semaphoreStore = new PostgreSqlSemaphoreStore(connectionString, _tableName);
         _typeStore = new PostgreSqlTypeStore(connectionString, _tableName);
         _postgresSqlUnderlyingRegister = new PostgresSqlUnderlyingRegister(connectionString, _tableName);
@@ -79,7 +76,6 @@ public class PostgreSqlFunctionStore : IFunctionStore
         await _effectsStore.Initialize();
         await _timeoutStore.Initialize();
         await _correlationStore.Initialize();
-        await _logStore.Initialize();
         await _semaphoreStore.Initialize();
         await _typeStore.Initialize();
         await using var conn = await CreateConnection();
@@ -122,7 +118,6 @@ public class PostgreSqlFunctionStore : IFunctionStore
         await _effectsStore.Truncate();
         await _correlationStore.Truncate();
         await _typeStore.Truncate();
-        await _logStore.Truncate();
         await _semaphoreStore.Truncate();
         
         await using var conn = await CreateConnection();

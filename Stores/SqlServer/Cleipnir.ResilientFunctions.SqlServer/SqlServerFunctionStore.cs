@@ -22,7 +22,6 @@ public class SqlServerFunctionStore : IFunctionStore
     private readonly SqlServerEffectsStore _effectsStore;
     private readonly SqlServerMessageStore _messageStore;
     private readonly SqlServerCorrelationsStore _correlationStore;
-    private readonly SqlServerLogStore _logStore;
     private readonly SqlServerTypeStore _typeStore;
     private readonly SqlServerMigrator _migrator;
     
@@ -33,7 +32,6 @@ public class SqlServerFunctionStore : IFunctionStore
     public IMessageStore MessageStore => _messageStore;
     public Utilities Utilities { get; }
     public IMigrator Migrator => _migrator;
-    public ILogStore LogStore => _logStore;
     private readonly SqlServerSemaphoreStore _semaphoreStore;
     public ISemaphoreStore SemaphoreStore => _semaphoreStore;
 
@@ -49,7 +47,6 @@ public class SqlServerFunctionStore : IFunctionStore
         _underlyingRegister = new SqlServerUnderlyingRegister(connectionString, _tableName);
         _effectsStore = new SqlServerEffectsStore(connectionString, _tableName);
         _correlationStore = new SqlServerCorrelationsStore(connectionString, _tableName);
-        _logStore = new SqlServerLogStore(connectionString, _tableName);
         _semaphoreStore = new SqlServerSemaphoreStore(connectionString, _tableName);
         _typeStore = new SqlServerTypeStore(connectionString, _tableName);
         _migrator = new SqlServerMigrator(connectionString, _tableName);
@@ -79,7 +76,6 @@ public class SqlServerFunctionStore : IFunctionStore
         await _timeoutStore.Initialize();
         await _correlationStore.Initialize();
         await _typeStore.Initialize();
-        await _logStore.Initialize();
         await _semaphoreStore.Initialize();
         await using var conn = await _connFunc();
         _initializeSql ??= @$"    
@@ -126,7 +122,6 @@ public class SqlServerFunctionStore : IFunctionStore
         await _effectsStore.Truncate();
         await _correlationStore.Truncate();
         await _typeStore.Truncate();
-        await _logStore.Truncate();
         await _semaphoreStore.Truncate();
         
         await using var conn = await _connFunc();

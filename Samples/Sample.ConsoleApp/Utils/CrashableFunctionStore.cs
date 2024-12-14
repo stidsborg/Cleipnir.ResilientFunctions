@@ -20,7 +20,6 @@ public class CrashableFunctionStore : IFunctionStore
     public ICorrelationStore CorrelationStore => _inner.CorrelationStore;
     public Utilities Utilities => _inner.Utilities;
     public IMigrator Migrator => _inner.Migrator;
-    public ILogStore LogStore => _inner.LogStore;
     public ISemaphoreStore SemaphoreStore => _inner.SemaphoreStore;
 
     public CrashableFunctionStore(IFunctionStore inner) => _inner = inner;

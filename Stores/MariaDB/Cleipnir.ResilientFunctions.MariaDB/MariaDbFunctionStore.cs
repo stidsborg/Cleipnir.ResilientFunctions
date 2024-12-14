@@ -33,10 +33,8 @@ public class MariaDbFunctionStore : IFunctionStore
 
     private readonly MariaDbMigrator _migrator;
     public IMigrator Migrator => _migrator;
-
-    private readonly MariaDbLogStore _logStore;
-    public ILogStore LogStore => _logStore;
-    private MariaDbSemaphoreStore _semaphoreStore;
+    
+    private readonly MariaDbSemaphoreStore _semaphoreStore;
     public ISemaphoreStore SemaphoreStore => _semaphoreStore;
 
     public Utilities Utilities { get; }
@@ -52,7 +50,6 @@ public class MariaDbFunctionStore : IFunctionStore
         _messageStore = new MariaDbMessageStore(connectionString, tablePrefix);
         _effectsStore = new MariaDbEffectsStore(connectionString, tablePrefix);
         _correlationStore = new MariaDbCorrelationStore(connectionString, tablePrefix);
-        _logStore = new MariaDbLogStore(connectionString, tablePrefix);
         _semaphoreStore = new MariaDbSemaphoreStore(connectionString, tablePrefix);
         _timeoutStore = new MariaDbTimeoutStore(connectionString, tablePrefix);
         _mariaDbUnderlyingRegister = new MariaDbUnderlyingRegister(connectionString, tablePrefix);
@@ -73,7 +70,6 @@ public class MariaDbFunctionStore : IFunctionStore
         await MessageStore.Initialize();
         await EffectsStore.Initialize();
         await CorrelationStore.Initialize();
-        await _logStore.Initialize();
         await _semaphoreStore.Initialize();
         await TimeoutStore.Initialize();
         await _typeStore.Initialize();
@@ -108,7 +104,6 @@ public class MariaDbFunctionStore : IFunctionStore
         await _mariaDbUnderlyingRegister.TruncateTable();
         await _effectsStore.Truncate();
         await _correlationStore.Truncate();
-        await _logStore.Truncate();
         await _semaphoreStore.Truncate();
         await _typeStore.Truncate();
         
