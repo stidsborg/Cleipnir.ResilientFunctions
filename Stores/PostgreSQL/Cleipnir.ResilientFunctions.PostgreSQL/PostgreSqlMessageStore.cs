@@ -98,9 +98,6 @@ public class PostgreSqlMessageStore(string connectionString, string tablePrefix 
         try
         {
             await using var reader = await batch.ExecuteReaderAsync();
-            //_ = await reader.ReadAsync();
-            //_ = await reader.NextResultAsync();
-            
             while (await reader.ReadAsync())
             {
                 var epoch = reader.GetInt32(0);
