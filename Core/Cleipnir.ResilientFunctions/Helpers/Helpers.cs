@@ -78,4 +78,10 @@ internal static class Helpers
     public static Guid ToGuid(this string s) => Guid.Parse(s);
     
     public static string StringJoin(this IEnumerable<string> strings, string separator) => string.Join(separator, strings);
+
+    public static IEnumerable<string> Replicate(this string str, int count)
+    {
+        for (var i = 0; i < count; i++)
+            yield return str;
+    }
 }

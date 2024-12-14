@@ -1,4 +1,5 @@
 ﻿using System.Threading.Tasks;
+using Cleipnir.ResilientFunctions.Helpers;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Cleipnir.ResilientFunctions.SqlServer.Tests;
@@ -29,4 +30,8 @@ public class EffectStoreTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.
     [TestMethod]
     public override Task TruncateDeletesAllEffects()
         => TruncateDeletesAllEffects(FunctionStoreFactory.CreateEffectStore());
+    
+    [TestMethod]
+    public override Task BulkInsertTest()
+        => BulkInsertTest(FunctionStoreFactory.Create().SelectAsync(fs => fs.EffectsStore));
 }

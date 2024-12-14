@@ -70,9 +70,40 @@ public class PostgreSqlEffectsStore(string connectionString, string tablePrefix 
         await command.ExecuteNonQueryAsync();
     }
 
-    public Task SetEffectResults(StoredId storedId, IEnumerable<StoredEffect> storedEffects)
+    public async Task SetEffectResults(StoredId storedId, IReadOnlyList<StoredEffect> storedEffects)
     {
-        throw new NotImplementedException();
+        await using var conn = await CreateConnection();
+        _setEffectResultSql ??= $@"
+          INSERT INTO {tablePrefix}_effects 
+              (type, instance, id_hash, is_state, status, result, exception, effect_id)
+          VALUES
+              ($1, $2, $3, $4, $5, $6, $7, $8) 
+          ON CONFLICT (type, instance, id_hash, is_state) 
+          DO 
+            UPDATE SET status = EXCLUDED.status, result = EXCLUDED.result, exception = EXCLUDED.exception";
+        
+        await using var batch = new NpgsqlBatch(conn);
+        foreach (var storedEffect in storedEffects)
+        {
+            var command = new NpgsqlBatchCommand(_setEffectResultSql)
+            {
+                Parameters =
+                {
+                    new() {Value = storedId.Type.Value},
+                    new() {Value = storedId.Instance.Value},
+                    new() {Value = storedEffect.StoredEffectId.Value},
+                    new() {Value = storedEffect.IsState},
+                    new() {Value = (int) storedEffect.WorkStatus},
+                    new() {Value = storedEffect.Result ?? (object) DBNull.Value},
+                    new() {Value = JsonHelper.ToJson(storedEffect.StoredException) ?? (object) DBNull.Value},
+                    new() {Value = storedEffect.EffectId.Value},
+                }
+            };
+            batch.BatchCommands.Add(command);
+        }
+       
+
+        await batch.ExecuteNonQueryAsync();
     }
 
     private string? _getEffectResultsSql;

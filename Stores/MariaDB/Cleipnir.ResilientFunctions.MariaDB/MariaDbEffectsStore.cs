@@ -1,4 +1,5 @@
 ﻿using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Storage.Utils;
 using MySqlConnector;
@@ -75,9 +76,37 @@ public class MariaDbEffectsStore : IEffectsStore
         await command.ExecuteNonQueryAsync();
     }
 
-    public Task SetEffectResults(StoredId storedId, IEnumerable<StoredEffect> storedEffects)
+    private string? _setEffectResultsSql;
+    public async Task SetEffectResults(StoredId storedId, IReadOnlyList<StoredEffect> storedEffects)
     {
-        throw new NotImplementedException();
+        await using var conn = await CreateConnection();
+        _setEffectResultsSql ??= $@"
+          INSERT INTO {_tablePrefix}_effects 
+              (type, instance, id_hash, is_state, status, result, exception, effect_id)
+          VALUES
+              @VALUES  
+           ON DUPLICATE KEY UPDATE
+                status = VALUES(status), result = VALUES(result), exception = VALUES(exception)";
+        
+        var sql = _setEffectResultsSql.Replace(
+            "@VALUES",
+            "(?, ?, ?, ?, ?, ?, ?, ?)".Replicate(storedEffects.Count).StringJoin(", ")
+        );
+        
+        await using var command = new MySqlCommand(sql, conn);
+        foreach (var storedEffect in storedEffects)
+        {
+            command.Parameters.Add(new MySqlParameter(name: null, storedId.Type.Value));
+            command.Parameters.Add(new MySqlParameter(name: null, storedId.Instance.Value.ToString("N")));
+            command.Parameters.Add(new MySqlParameter(name: null, storedEffect.StoredEffectId.Value.ToString("N")));
+            command.Parameters.Add(new MySqlParameter(name: null, storedEffect.IsState));
+            command.Parameters.Add(new MySqlParameter(name: null, (int) storedEffect.WorkStatus));
+            command.Parameters.Add(new MySqlParameter(name: null, storedEffect.Result ?? (object) DBNull.Value));
+            command.Parameters.Add(new MySqlParameter(name: null, JsonHelper.ToJson(storedEffect.StoredException) ?? (object) DBNull.Value));
+            command.Parameters.Add(new MySqlParameter(name: null, storedEffect.EffectId.Value));
+        }
+
+        await command.ExecuteNonQueryAsync();
     }
 
     private string? _getEffectResultsSql;

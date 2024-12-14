@@ -8,7 +8,7 @@ public interface IEffectsStore
     Task Initialize();
     Task Truncate();
     Task SetEffectResult(StoredId storedId, StoredEffect storedEffect);
-    Task SetEffectResults(StoredId storedId, IEnumerable<StoredEffect> storedEffects);
+    Task SetEffectResults(StoredId storedId, IReadOnlyList<StoredEffect> storedEffects);
     Task<IReadOnlyList<StoredEffect>> GetEffectResults(StoredId storedId);
     Task DeleteEffectResult(StoredId storedId, StoredEffectId effectId, bool isState);
     Task Remove(StoredId storedId);

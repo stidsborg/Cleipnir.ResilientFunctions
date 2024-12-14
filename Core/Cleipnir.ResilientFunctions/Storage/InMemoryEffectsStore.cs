@@ -35,7 +35,7 @@ public class InMemoryEffectsStore : IEffectsStore
         return Task.CompletedTask;
     }
 
-    public async Task SetEffectResults(StoredId storedId, IEnumerable<StoredEffect> storedEffects)
+    public async Task SetEffectResults(StoredId storedId, IReadOnlyList<StoredEffect> storedEffects)
     {
         foreach (var storedEffect in storedEffects)
             await SetEffectResult(storedId, storedEffect);

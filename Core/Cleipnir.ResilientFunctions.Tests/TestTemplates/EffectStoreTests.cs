@@ -259,4 +259,37 @@ public abstract class EffectStoreTests
             .SelectAsync(e => e.Any())
             .ShouldBeFalseAsync();
     }
+    
+    public abstract Task BulkInsertTest();
+    protected async Task BulkInsertTest(Task<IEffectsStore> storeTask)
+    {
+        var store = await storeTask;
+        var storedId = TestStoredId.Create();
+        var storedEffect1 = new StoredEffect(
+            "EffectId1",
+            "EffectId1".ToStoredEffectId(),
+            IsState: false,
+            WorkStatus.Started,
+            Result: "some result 1".ToUtf8Bytes(),
+            StoredException: null
+        );
+        var storedEffect2 = new StoredEffect(
+            "EffectId2",
+            "EffectId2".ToStoredEffectId(),
+            IsState: false,
+            WorkStatus.Completed,
+            Result: "some result 2".ToUtf8Bytes(),
+            StoredException: null
+        );
+
+
+        await store.SetEffectResults(storedId, [storedEffect1, storedEffect2]);
+
+        var effects = await store.GetEffectResults(storedId);
+        effects.Count.ShouldBe(2);
+        effects[0].EffectId.ShouldBe(storedEffect1.EffectId);
+        effects[0].Result.ShouldBe("some result 1".ToUtf8Bytes());
+        effects[1].EffectId.ShouldBe(storedEffect2.EffectId);
+        effects[1].Result.ShouldBe("some result 2".ToUtf8Bytes());
+    }
 }
