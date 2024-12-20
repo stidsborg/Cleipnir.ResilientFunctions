@@ -1,37 +1,23 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.ParameterSerialization;
 using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.Domain;
 
-public class States
+public class States(
+    StoredId storedId,
+    IEffectsStore effectStore,
+    Lazy<Task<IReadOnlyList<StoredEffect>>> lazyEffects,
+    ISerializer serializer)
 {
-    private readonly StoredId _storedId;
-    private readonly IEffectsStore _effectStore;
-    private readonly Lazy<Task<IReadOnlyList<StoredEffect>>> _lazyEffects;
-    private readonly IFunctionStore _functionStore;
-    private readonly ISerializer _serializer;
     private Dictionary<StateId, StoredState>? _existingStoredStates;
     private readonly Dictionary<StateId, FlowState> _existingStates = new();
     
-    private readonly object _sync = new();
-
-    public States(
-        StoredId storedId, 
-        IFunctionStore functionStore, 
-        IEffectsStore effectStore, 
-        Lazy<Task<IReadOnlyList<StoredEffect>>> lazyEffects,
-        ISerializer serializer)
-    {
-        _storedId = storedId;
-        _effectStore = effectStore;
-        _lazyEffects = lazyEffects;
-        _functionStore = functionStore;
-        _serializer = serializer;
-    }
+    private readonly Lock _sync = new();
 
     private async Task<Dictionary<StateId, StoredState>> GetExistingStoredStates()
     {
@@ -39,7 +25,7 @@ public class States
             if (_existingStoredStates is not null) 
                 return _existingStoredStates;
 
-        var existingStatesDict = (await _lazyEffects.Value)
+        var existingStatesDict = (await lazyEffects.Value)
             .Where(se => se.IsState)
             .ToDictionary(se => new StateId(se.EffectId.Value), se => new StoredState(se.EffectId.Value, se.Result!));
         
@@ -67,7 +53,7 @@ public class States
                 return (T)state;
             else if (existingStoredStates.TryGetValue(key: id, out var storedState))
             {
-                var s = _serializer.DeserializeState<T>(storedState.StateJson);
+                var s = serializer.DeserializeState<T>(storedState.StateJson);
                 _existingStates[id] = s;
                 s.Initialize(onSave: () => SaveState(id, s));
                 return s;
@@ -77,7 +63,7 @@ public class States
                 var newState = new T();
                 newState.Initialize(onSave: () => SaveState(id, newState));
                 _existingStates[id] = newState;
-                existingStoredStates[id] = new StoredState(id, _serializer.SerializeState(newState));
+                existingStoredStates[id] = new StoredState(id, serializer.SerializeState(newState));
                 return newState;
             }
     }
@@ -100,7 +86,7 @@ public class States
             if (!existingStoredStates.ContainsKey(id))
                 return;
         
-        await _effectStore.DeleteEffectResult(_storedId, id.ToStoredEffectId(), isState: true);
+        await effectStore.DeleteEffectResult(storedId, id.ToStoredEffectId(), isState: true);
 
         lock (_sync)
         {
@@ -111,9 +97,9 @@ public class States
 
     private async Task SaveState<T>(string id, T state) where T : FlowState, new()
     {
-        var json = _serializer.SerializeState(state);
+        var json = serializer.SerializeState(state);
         var storedState = new StoredState(new StateId(id), json);
         var storedEffect = StoredEffect.CreateState(storedState);
-        await _effectStore.SetEffectResult(_storedId, storedEffect);
+        await effectStore.SetEffectResult(storedId, storedEffect);
     }
 }

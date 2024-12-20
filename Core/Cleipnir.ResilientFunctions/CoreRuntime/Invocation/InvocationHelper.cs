@@ -438,7 +438,6 @@ internal class InvocationHelper<TParam, TReturn>
         
         var states = new States(
             storedId,
-            _functionStore,
             effectsStore,
             lazyEffects,
             _settings.Serializer
