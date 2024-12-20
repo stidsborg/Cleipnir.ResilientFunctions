@@ -86,7 +86,7 @@ public class States(
             if (!existingStoredStates.ContainsKey(id))
                 return;
         
-        await effectStore.DeleteEffectResult(storedId, id.ToStoredEffectId(isState: true), isState: true);
+        await effectStore.DeleteEffectResult(storedId, id.ToStoredEffectId(isState: true));
 
         lock (_sync)
         {

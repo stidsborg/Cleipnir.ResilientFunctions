@@ -62,14 +62,14 @@ public record StatusAndEpoch(Status Status, int Epoch);
 
 public record StoredEffectId(Guid Value)
 {
-    public static StoredEffectId Create(string instanceId) 
-        => new(InstanceIdFactory.FromString(instanceId));
+    public static StoredEffectId Create(EffectId effectId) 
+        => new(InstanceIdFactory.FromString(effectId.Serialize()));
 }
 
 public static class StoredEffectIdExtensions
 {
-    public static StoredEffectId ToStoredEffectId(this string effectId, bool isState) => StoredEffectId.Create(effectId);
-    public static StoredEffectId ToStoredEffectId(this EffectId effectId) => StoredEffectId.Create(effectId.Value);
+    public static StoredEffectId ToStoredEffectId(this string effectId, bool isState) => ToStoredEffectId(effectId.ToEffectId(isState));
+    public static StoredEffectId ToStoredEffectId(this EffectId effectId) => StoredEffectId.Create(effectId);
 }
 
 public record StoredEffect(
@@ -81,15 +81,26 @@ public record StoredEffect(
 )
 {
     public static StoredEffect CreateCompleted(EffectId effectId, byte[] result)
-        => new(effectId with {IsState = false}, StoredEffectId.Create(effectId.Value), WorkStatus.Completed, result, StoredException: null);
+        => new(effectId, effectId.ToStoredEffectId(), WorkStatus.Completed, result, StoredException: null);
     public static StoredEffect CreateCompleted(EffectId effectId)
-        => new(effectId with {IsState = false}, StoredEffectId.Create(effectId.Value), WorkStatus.Completed, Result: null, StoredException: null);
+        => new(effectId, effectId.ToStoredEffectId(), WorkStatus.Completed, Result: null, StoredException: null);
     public static StoredEffect CreateStarted(EffectId effectId)
-        => new(effectId with {IsState = false}, StoredEffectId.Create(effectId.Value), WorkStatus.Started, Result: null, StoredException: null);
+        => new(effectId, effectId.ToStoredEffectId(), WorkStatus.Started, Result: null, StoredException: null);
     public static StoredEffect CreateFailed(EffectId effectId, StoredException storedException)
-        => new(effectId with {IsState = false}, StoredEffectId.Create(effectId.Value), WorkStatus.Failed, Result: null, storedException);
+        => new(effectId, effectId.ToStoredEffectId(), WorkStatus.Failed, Result: null, storedException);
+
     public static StoredEffect CreateState(StoredState storedState)
-        => new(new EffectId(storedState.StateId.Value, IsState: true), StoredEffectId.Create(storedState.StateId.Value), WorkStatus.Completed, storedState.StateJson, StoredException: null);
+    {
+        var effectId = storedState.StateId.Value.ToEffectId(isState: true);
+        return new StoredEffect(
+            effectId,
+            effectId.ToStoredEffectId(),
+            WorkStatus.Completed,
+            storedState.StateJson,
+            StoredException: null
+        );
+    }
+        
 };
 public record StoredState(StateId StateId, byte[] StateJson);
 

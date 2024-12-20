@@ -40,10 +40,10 @@ public class CrashableEffectStore : IEffectsStore
             ? Task.FromException<IReadOnlyList<StoredEffect>>(new TimeoutException())
             : _inner.GetEffectResults(storedId);
 
-    public Task DeleteEffectResult(StoredId storedId, StoredEffectId effectId, bool isState)
+    public Task DeleteEffectResult(StoredId storedId, StoredEffectId effectId)
         => _crashed
             ? Task.FromException(new TimeoutException())
-            : _inner.DeleteEffectResult(storedId, effectId, isState);
+            : _inner.DeleteEffectResult(storedId, effectId);
 
     public Task Remove(StoredId storedId)
         => _crashed

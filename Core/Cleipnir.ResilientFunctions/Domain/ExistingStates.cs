@@ -56,7 +56,7 @@ public class ExistingStates
     public async Task Remove(string stateId)
     {
         var storedStates = await GetStoredStates();
-        await _effectsStore.DeleteEffectResult(_storedId, stateId.ToStoredEffectId(isState: true), isState: true);
+        await _effectsStore.DeleteEffectResult(_storedId, stateId.ToStoredEffectId(isState: true));
         storedStates.Remove(stateId);
     }
 

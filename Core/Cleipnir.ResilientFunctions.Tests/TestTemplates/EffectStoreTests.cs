@@ -45,8 +45,8 @@ public abstract class EffectStoreTests
         await store.SetEffectResult(functionId, storedEffect2);
         storedEffects = await store.GetEffectResults(functionId);
         storedEffects.Count.ShouldBe(2);
-        storedEffects[0].ShouldBe(storedEffect1);
-        storedEffects[1].ShouldBe(storedEffect2);
+        storedEffects.Any(s => s == storedEffect1).ShouldBeTrue();
+        storedEffects.Any(s => s == storedEffect2).ShouldBeTrue();
         
         await store.SetEffectResult(functionId, storedEffect2);
         await store.GetEffectResults(functionId);
@@ -54,8 +54,8 @@ public abstract class EffectStoreTests
         await store.SetEffectResult(functionId, storedEffect2);
         storedEffects = await store.GetEffectResults(functionId);
         storedEffects.Count.ShouldBe(2);
-        storedEffects[0].ShouldBe(storedEffect1);
-        storedEffects[1].ShouldBe(storedEffect2);
+        storedEffects.Any(s => s == storedEffect1).ShouldBeTrue();
+        storedEffects.Any(s => s == storedEffect2).ShouldBeTrue();
     }
     
     public abstract Task SingleEffectWithResultLifeCycle();
@@ -149,17 +149,17 @@ public abstract class EffectStoreTests
             .SelectAsync(sas => sas.Count() == 2)
             .ShouldBeTrueAsync();
 
-        await store.DeleteEffectResult(functionId, storedEffect2.EffectId.ToStoredEffectId(), isState: false);
+        await store.DeleteEffectResult(functionId, storedEffect2.EffectId.ToStoredEffectId());
         var storedEffects = await store.GetEffectResults(functionId);
         storedEffects.Count.ShouldBe(1);
         storedEffects[0].EffectId.ShouldBe(storedEffect1.EffectId);
 
-        await store.DeleteEffectResult(functionId, storedEffect2.EffectId.ToStoredEffectId(), isState: false);
+        await store.DeleteEffectResult(functionId, storedEffect2.EffectId.ToStoredEffectId());
         storedEffects = await store.GetEffectResults(functionId);
         storedEffects.Count.ShouldBe(1);
         storedEffects[0].EffectId.ShouldBe(storedEffect1.EffectId);
         
-        await store.DeleteEffectResult(functionId, storedEffect1.EffectId.ToStoredEffectId(), isState: false);
+        await store.DeleteEffectResult(functionId, storedEffect1.EffectId.ToStoredEffectId());
         await store
             .GetEffectResults(functionId)
             .SelectAsync(sas => sas.Any())
@@ -268,15 +268,14 @@ public abstract class EffectStoreTests
             Result: "some result 2".ToUtf8Bytes(),
             StoredException: null
         );
-
-
+        
         await store.SetEffectResults(storedId, [storedEffect1, storedEffect2]);
 
         var effects = await store.GetEffectResults(storedId);
         effects.Count.ShouldBe(2);
-        effects[0].EffectId.ShouldBe(storedEffect1.EffectId);
-        effects[0].Result.ShouldBe("some result 1".ToUtf8Bytes());
-        effects[1].EffectId.ShouldBe(storedEffect2.EffectId);
-        effects[1].Result.ShouldBe("some result 2".ToUtf8Bytes());
+        var effect1 = effects.Single(e => e.EffectId == storedEffect1.EffectId);
+        effect1.Result.ShouldBe("some result 1".ToUtf8Bytes());
+        var effect2 = effects.Single(e => e.EffectId == storedEffect2.EffectId);
+        effect2.Result.ShouldBe("some result 2".ToUtf8Bytes());
     }
 }

@@ -10,6 +10,6 @@ public interface IEffectsStore
     Task SetEffectResult(StoredId storedId, StoredEffect storedEffect);
     Task SetEffectResults(StoredId storedId, IReadOnlyList<StoredEffect> storedEffects);
     Task<IReadOnlyList<StoredEffect>> GetEffectResults(StoredId storedId);
-    Task DeleteEffectResult(StoredId storedId, StoredEffectId effectId, bool isState);
+    Task DeleteEffectResult(StoredId storedId, StoredEffectId effectId);
     Task Remove(StoredId storedId);
 }

@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Helpers;
 
@@ -7,9 +8,8 @@ namespace Cleipnir.ResilientFunctions.Storage;
 
 public class InMemoryEffectsStore : IEffectsStore
 {
-    private record EffectKey(StoredEffectId EffectId, bool IsState);
-    private readonly Dictionary<StoredId, Dictionary<EffectKey, StoredEffect>> _effects = new();
-    private readonly object _sync = new();
+    private readonly Dictionary<StoredId, Dictionary<StoredEffectId, StoredEffect>> _effects = new();
+    private readonly Lock _sync = new();
 
     public Task Initialize() => Task.CompletedTask;
 
@@ -25,11 +25,10 @@ public class InMemoryEffectsStore : IEffectsStore
     {
         lock (_sync)
         {
-            var key = new EffectKey(storedEffect.StoredEffectId, storedEffect.EffectId.IsState);
             if (!_effects.ContainsKey(storedId))
-                _effects[storedId] = new Dictionary<EffectKey, StoredEffect>();
+                _effects[storedId] = new Dictionary<StoredEffectId, StoredEffect>();
                 
-            _effects[storedId][key] = storedEffect;
+            _effects[storedId][storedEffect.StoredEffectId] = storedEffect;
         }
         
         return Task.CompletedTask;
@@ -49,12 +48,11 @@ public class InMemoryEffectsStore : IEffectsStore
                 : ((IReadOnlyList<StoredEffect>) _effects[storedId].Values.ToList()).ToTask();
     }
 
-    public Task DeleteEffectResult(StoredId storedId, StoredEffectId effectId, bool isState)
+    public Task DeleteEffectResult(StoredId storedId, StoredEffectId effectId)
     {
-        var key = new EffectKey(effectId, isState);
         lock (_sync)
             if (_effects.ContainsKey(storedId))
-                _effects[storedId].Remove(key);
+                _effects[storedId].Remove(effectId);
 
         return Task.CompletedTask;
     }

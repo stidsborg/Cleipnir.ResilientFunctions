@@ -19,12 +19,11 @@ public class PostgreSqlEffectsStore(string connectionString, string tablePrefix 
                 type INT,
                 instance UUID,
                 id_hash UUID,
-                is_state BOOLEAN,
                 status INT NOT NULL,
                 result BYTEA NULL,
                 exception TEXT NULL,
                 effect_id TEXT NOT NULL,
-                PRIMARY KEY (type, instance, id_hash, is_state)
+                PRIMARY KEY (type, instance, id_hash)
             );";
         var command = new NpgsqlCommand(_initializeSql, conn);
         await command.ExecuteNonQueryAsync();
@@ -45,10 +44,10 @@ public class PostgreSqlEffectsStore(string connectionString, string tablePrefix 
         await using var conn = await CreateConnection();
         _setEffectResultSql ??= $@"
           INSERT INTO {tablePrefix}_effects 
-              (type, instance, id_hash, is_state, status, result, exception, effect_id)
+              (type, instance, id_hash, status, result, exception, effect_id)
           VALUES
-              ($1, $2, $3, $4, $5, $6, $7, $8) 
-          ON CONFLICT (type, instance, id_hash, is_state) 
+              ($1, $2, $3, $4, $5, $6, $7) 
+          ON CONFLICT (type, instance, id_hash) 
           DO 
             UPDATE SET status = EXCLUDED.status, result = EXCLUDED.result, exception = EXCLUDED.exception";
         
@@ -59,11 +58,10 @@ public class PostgreSqlEffectsStore(string connectionString, string tablePrefix 
                 new() {Value = storedId.Type.Value},
                 new() {Value = storedId.Instance.Value},
                 new() {Value = storedEffect.StoredEffectId.Value},
-                new() {Value = storedEffect.EffectId.IsState},
                 new() {Value = (int) storedEffect.WorkStatus},
                 new() {Value = storedEffect.Result ?? (object) DBNull.Value},
                 new() {Value = JsonHelper.ToJson(storedEffect.StoredException) ?? (object) DBNull.Value},
-                new() {Value = storedEffect.EffectId.Value},
+                new() {Value = storedEffect.EffectId.Serialize()},
             }
         };
 
@@ -75,10 +73,10 @@ public class PostgreSqlEffectsStore(string connectionString, string tablePrefix 
         await using var conn = await CreateConnection();
         _setEffectResultSql ??= $@"
           INSERT INTO {tablePrefix}_effects 
-              (type, instance, id_hash, is_state, status, result, exception, effect_id)
+              (type, instance, id_hash, status, result, exception, effect_id)
           VALUES
-              ($1, $2, $3, $4, $5, $6, $7, $8) 
-          ON CONFLICT (type, instance, id_hash, is_state) 
+              ($1, $2, $3, $4, $5, $6, $7) 
+          ON CONFLICT (type, instance, id_hash) 
           DO 
             UPDATE SET status = EXCLUDED.status, result = EXCLUDED.result, exception = EXCLUDED.exception";
         
@@ -92,17 +90,15 @@ public class PostgreSqlEffectsStore(string connectionString, string tablePrefix 
                     new() {Value = storedId.Type.Value},
                     new() {Value = storedId.Instance.Value},
                     new() {Value = storedEffect.StoredEffectId.Value},
-                    new() {Value = storedEffect.EffectId.IsState},
                     new() {Value = (int) storedEffect.WorkStatus},
                     new() {Value = storedEffect.Result ?? (object) DBNull.Value},
                     new() {Value = JsonHelper.ToJson(storedEffect.StoredException) ?? (object) DBNull.Value},
-                    new() {Value = storedEffect.EffectId.Value},
+                    new() {Value = storedEffect.EffectId.Serialize()},
                 }
             };
             batch.BatchCommands.Add(command);
         }
-       
-
+        
         await batch.ExecuteNonQueryAsync();
     }
 
@@ -111,7 +107,7 @@ public class PostgreSqlEffectsStore(string connectionString, string tablePrefix 
     {
         await using var conn = await CreateConnection();
         _getEffectResultsSql ??= @$"
-            SELECT id_hash, is_state, status, result, exception, effect_id
+            SELECT id_hash, status, result, exception, effect_id
             FROM {tablePrefix}_effects
             WHERE type = $1 AND instance = $2;";
         await using var command = new NpgsqlCommand(_getEffectResultsSql, conn)
@@ -129,13 +125,12 @@ public class PostgreSqlEffectsStore(string connectionString, string tablePrefix 
         while (await reader.ReadAsync())
         {
             var idHash = reader.GetGuid(0);
-            var isState = reader.GetBoolean(1);
-            var status = (WorkStatus) reader.GetInt32(2);
-            var result = reader.IsDBNull(3) ? null : (byte[]) reader.GetValue(3);
-            var exception = reader.IsDBNull(4) ? null : reader.GetString(4);
-            var effectId = reader.GetString(5);
+            var status = (WorkStatus) reader.GetInt32(1);
+            var result = reader.IsDBNull(2) ? null : (byte[]) reader.GetValue(2);
+            var exception = reader.IsDBNull(3) ? null : reader.GetString(3);
+            var effectId = reader.GetString(4);
             functions.Add(
-                new StoredEffect(new EffectId(effectId, isState), new StoredEffectId(idHash), status, result, JsonHelper.FromJson<StoredException>(exception))
+                new StoredEffect(EffectId.Deserialize(effectId), new StoredEffectId(idHash), status, result, JsonHelper.FromJson<StoredException>(exception))
             );
         }
 
@@ -143,10 +138,10 @@ public class PostgreSqlEffectsStore(string connectionString, string tablePrefix 
     }
 
     private string? _deleteEffectResultSql;
-    public async Task DeleteEffectResult(StoredId storedId, StoredEffectId effectId, bool isState)
+    public async Task DeleteEffectResult(StoredId storedId, StoredEffectId effectId)
     {
         await using var conn = await CreateConnection();
-        _deleteEffectResultSql ??= $"DELETE FROM {tablePrefix}_effects WHERE type = $1 AND instance = $2 AND id_hash = $3 AND is_state = $4";
+        _deleteEffectResultSql ??= $"DELETE FROM {tablePrefix}_effects WHERE type = $1 AND instance = $2 AND id_hash = $3";
         
         await using var command = new NpgsqlCommand(_deleteEffectResultSql, conn)
         {
@@ -155,7 +150,6 @@ public class PostgreSqlEffectsStore(string connectionString, string tablePrefix 
                 new() {Value = storedId.Type.Value },
                 new() {Value = storedId.Instance.Value },
                 new() {Value = effectId.Value },
-                new() {Value = isState },
             }
         };
 

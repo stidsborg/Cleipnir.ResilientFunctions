@@ -6,32 +6,22 @@ using MySqlConnector;
 
 namespace Cleipnir.ResilientFunctions.MariaDb;
 
-public class MariaDbEffectsStore : IEffectsStore
+public class MariaDbEffectsStore(string connectionString, string tablePrefix = "") : IEffectsStore
 {
-    private readonly string _connectionString;
-    private readonly string _tablePrefix;
-
-    public MariaDbEffectsStore(string connectionString, string tablePrefix = "")
-    {
-        _connectionString = connectionString;
-        _tablePrefix = tablePrefix;
-    }
-
     private string? _initializeSql;
     public async Task Initialize()
     {
         await using var conn = await CreateConnection();
         _initializeSql ??= @$"
-            CREATE TABLE IF NOT EXISTS {_tablePrefix}_effects (
+            CREATE TABLE IF NOT EXISTS {tablePrefix}_effects (
                 type INT,
                 instance CHAR(32),
-                id_hash CHAR(32),
-                is_state BIT,
+                id_hash CHAR(32),               
                 status INT NOT NULL,
                 result LONGBLOB NULL,
                 exception TEXT NULL,
                 effect_id TEXT NOT NULL,
-                PRIMARY KEY(type, instance, id_hash, is_state)
+                PRIMARY KEY(type, instance, id_hash)
             );";
         var command = new MySqlCommand(_initializeSql, conn);
         await command.ExecuteNonQueryAsync();
@@ -41,7 +31,7 @@ public class MariaDbEffectsStore : IEffectsStore
     public async Task Truncate()
     {
         await using var conn = await CreateConnection();
-        _truncateSql ??= $"TRUNCATE TABLE {_tablePrefix}_effects";
+        _truncateSql ??= $"TRUNCATE TABLE {tablePrefix}_effects";
         var command = new MySqlCommand(_truncateSql, conn);
         await command.ExecuteNonQueryAsync();
     }
@@ -51,10 +41,10 @@ public class MariaDbEffectsStore : IEffectsStore
     {
         await using var conn = await CreateConnection();
         _setEffectResultSql ??= $@"
-          INSERT INTO {_tablePrefix}_effects 
-              (type, instance, id_hash, is_state, status, result, exception, effect_id)
+          INSERT INTO {tablePrefix}_effects 
+              (type, instance, id_hash, status, result, exception, effect_id)
           VALUES
-              (?, ?, ?, ?, ?, ?, ?, ?)  
+              (?, ?, ?, ?, ?, ?, ?)  
            ON DUPLICATE KEY UPDATE
                 status = VALUES(status), result = VALUES(result), exception = VALUES(exception)";
         
@@ -65,11 +55,10 @@ public class MariaDbEffectsStore : IEffectsStore
                 new() {Value = storedId.Type.Value},
                 new() {Value = storedId.Instance.Value.ToString("N")},
                 new() {Value = storedEffect.StoredEffectId.Value.ToString("N")},
-                new() {Value = storedEffect.EffectId.IsState},
                 new() {Value = (int) storedEffect.WorkStatus},
                 new() {Value = storedEffect.Result ?? (object) DBNull.Value},
                 new() {Value = JsonHelper.ToJson(storedEffect.StoredException) ?? (object) DBNull.Value},
-                new() {Value = storedEffect.EffectId.Value}
+                new() {Value = storedEffect.EffectId.Serialize()}
             }
         };
 
@@ -81,8 +70,8 @@ public class MariaDbEffectsStore : IEffectsStore
     {
         await using var conn = await CreateConnection();
         _setEffectResultsSql ??= $@"
-          INSERT INTO {_tablePrefix}_effects 
-              (type, instance, id_hash, is_state, status, result, exception, effect_id)
+          INSERT INTO {tablePrefix}_effects 
+              (type, instance, id_hash, status, result, exception, effect_id)
           VALUES
               @VALUES  
            ON DUPLICATE KEY UPDATE
@@ -90,7 +79,7 @@ public class MariaDbEffectsStore : IEffectsStore
         
         var sql = _setEffectResultsSql.Replace(
             "@VALUES",
-            "(?, ?, ?, ?, ?, ?, ?, ?)".Replicate(storedEffects.Count).StringJoin(", ")
+            "(?, ?, ?, ?, ?, ?, ?)".Replicate(storedEffects.Count).StringJoin(", ")
         );
         
         await using var command = new MySqlCommand(sql, conn);
@@ -99,11 +88,10 @@ public class MariaDbEffectsStore : IEffectsStore
             command.Parameters.Add(new MySqlParameter(name: null, storedId.Type.Value));
             command.Parameters.Add(new MySqlParameter(name: null, storedId.Instance.Value.ToString("N")));
             command.Parameters.Add(new MySqlParameter(name: null, storedEffect.StoredEffectId.Value.ToString("N")));
-            command.Parameters.Add(new MySqlParameter(name: null, storedEffect.EffectId.IsState));
             command.Parameters.Add(new MySqlParameter(name: null, (int) storedEffect.WorkStatus));
             command.Parameters.Add(new MySqlParameter(name: null, storedEffect.Result ?? (object) DBNull.Value));
             command.Parameters.Add(new MySqlParameter(name: null, JsonHelper.ToJson(storedEffect.StoredException) ?? (object) DBNull.Value));
-            command.Parameters.Add(new MySqlParameter(name: null, storedEffect.EffectId.Value));
+            command.Parameters.Add(new MySqlParameter(name: null, storedEffect.EffectId.Serialize()));
         }
 
         await command.ExecuteNonQueryAsync();
@@ -114,8 +102,8 @@ public class MariaDbEffectsStore : IEffectsStore
     {
         await using var conn = await CreateConnection();
         _getEffectResultsSql ??= @$"
-            SELECT id_hash, is_state, status, result, exception, effect_id
-            FROM {_tablePrefix}_effects
+            SELECT id_hash, status, result, exception, effect_id
+            FROM {tablePrefix}_effects
             WHERE type = ? AND instance = ?";
         await using var command = new MySqlCommand(_getEffectResultsSql, conn)
         {
@@ -132,14 +120,13 @@ public class MariaDbEffectsStore : IEffectsStore
         while (await reader.ReadAsync())
         {
             var idHash = reader.GetString(0);
-            var isState = reader.GetBoolean(1);
-            var status = (WorkStatus) reader.GetInt32(2);
-            var result = reader.IsDBNull(3) ? null : (byte[]) reader.GetValue(3);
-            var exception = reader.IsDBNull(4) ? null : reader.GetString(4);
-            var effectId = reader.GetString(5);
+            var status = (WorkStatus) reader.GetInt32(1);
+            var result = reader.IsDBNull(2) ? null : (byte[]) reader.GetValue(2);
+            var exception = reader.IsDBNull(3) ? null : reader.GetString(3);
+            var effectId = reader.GetString(4);
             functions.Add(
                 new StoredEffect(
-                    new EffectId(effectId, isState),
+                    EffectId.Deserialize(effectId),
                     new StoredEffectId(Guid.Parse(idHash)),
                     status,
                     result,
@@ -152,12 +139,12 @@ public class MariaDbEffectsStore : IEffectsStore
     }
 
     private string? _deleteEffectResultSql;
-    public async Task DeleteEffectResult(StoredId storedId, StoredEffectId effectId, bool isState)
+    public async Task DeleteEffectResult(StoredId storedId, StoredEffectId effectId)
     {
         await using var conn = await CreateConnection();
         _deleteEffectResultSql ??= @$"
-            DELETE FROM {_tablePrefix}_effects 
-            WHERE type = ? AND instance = ? AND id_hash = ? AND is_state = ?";
+            DELETE FROM {tablePrefix}_effects 
+            WHERE type = ? AND instance = ? AND id_hash = ?";
         
         await using var command = new MySqlCommand(_deleteEffectResultSql, conn)
         {
@@ -166,7 +153,6 @@ public class MariaDbEffectsStore : IEffectsStore
                 new() { Value = storedId.Type.Value },
                 new() { Value = storedId.Instance.Value.ToString("N") },
                 new() { Value = effectId.Value.ToString("N") },
-                new() { Value = isState },
             }
         };
 
@@ -177,7 +163,7 @@ public class MariaDbEffectsStore : IEffectsStore
     public async Task Remove(StoredId storedId)
     {
         await using var conn = await CreateConnection();
-        _removeSql ??= $"DELETE FROM {_tablePrefix}_effects WHERE type = ? AND instance = ?";
+        _removeSql ??= $"DELETE FROM {tablePrefix}_effects WHERE type = ? AND instance = ?";
         await using var command = new MySqlCommand(_removeSql, conn)
         {
             Parameters =
@@ -192,7 +178,7 @@ public class MariaDbEffectsStore : IEffectsStore
 
     private async Task<MySqlConnection> CreateConnection()
     {
-        var conn = new MySqlConnection(_connectionString);
+        var conn = new MySqlConnection(connectionString);
         await conn.OpenAsync();
         return conn;
     }
