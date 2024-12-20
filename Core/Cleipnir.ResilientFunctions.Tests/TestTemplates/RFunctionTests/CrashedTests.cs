@@ -128,7 +128,7 @@ public abstract class CrashedTests
             storedFunction.ShouldNotBeNull();
             storedFunction.Status.ShouldBe(Status.Succeeded);
             var effects = await store.EffectsStore.GetEffectResults(registration.MapToStoredId(functionId));
-            var stateResult = effects.Single(e => e.EffectId == "State").Result!;
+            var stateResult = effects.Single(e => e.EffectId == "State".ToEffectId(isState: true)).Result!;
             stateResult.ShouldNotBeNull();
             stateResult.ToStringFromUtf8Bytes().DeserializeFromJsonTo<State>().Value.ShouldBe(1);
             await rFunc(flowInstance.Value, param).ShouldBeAsync("TEST");
@@ -252,7 +252,7 @@ public abstract class CrashedTests
             storedFunction.ShouldNotBeNull();
             storedFunction.Status.ShouldBe(Status.Succeeded);
             var effects = await store.EffectsStore.GetEffectResults(registration.MapToStoredId(functionId));
-            var state = effects.Single(e => e.EffectId == "State").Result;
+            var state = effects.Single(e => e.EffectId == "State".ToEffectId(isState: true)).Result;
             state!.ToStringFromUtf8Bytes().DeserializeFromJsonTo<State>().Value.ShouldBe(1);
             await rAction(flowInstance.Value, param);
         }

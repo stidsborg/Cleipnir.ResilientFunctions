@@ -65,7 +65,7 @@ public class MariaDbEffectsStore : IEffectsStore
                 new() {Value = storedId.Type.Value},
                 new() {Value = storedId.Instance.Value.ToString("N")},
                 new() {Value = storedEffect.StoredEffectId.Value.ToString("N")},
-                new() {Value = storedEffect.IsState},
+                new() {Value = storedEffect.EffectId.IsState},
                 new() {Value = (int) storedEffect.WorkStatus},
                 new() {Value = storedEffect.Result ?? (object) DBNull.Value},
                 new() {Value = JsonHelper.ToJson(storedEffect.StoredException) ?? (object) DBNull.Value},
@@ -99,7 +99,7 @@ public class MariaDbEffectsStore : IEffectsStore
             command.Parameters.Add(new MySqlParameter(name: null, storedId.Type.Value));
             command.Parameters.Add(new MySqlParameter(name: null, storedId.Instance.Value.ToString("N")));
             command.Parameters.Add(new MySqlParameter(name: null, storedEffect.StoredEffectId.Value.ToString("N")));
-            command.Parameters.Add(new MySqlParameter(name: null, storedEffect.IsState));
+            command.Parameters.Add(new MySqlParameter(name: null, storedEffect.EffectId.IsState));
             command.Parameters.Add(new MySqlParameter(name: null, (int) storedEffect.WorkStatus));
             command.Parameters.Add(new MySqlParameter(name: null, storedEffect.Result ?? (object) DBNull.Value));
             command.Parameters.Add(new MySqlParameter(name: null, JsonHelper.ToJson(storedEffect.StoredException) ?? (object) DBNull.Value));
@@ -139,9 +139,8 @@ public class MariaDbEffectsStore : IEffectsStore
             var effectId = reader.GetString(5);
             functions.Add(
                 new StoredEffect(
-                    effectId,
+                    new EffectId(effectId, isState),
                     new StoredEffectId(Guid.Parse(idHash)),
-                    isState,
                     status,
                     result,
                     StoredException: JsonHelper.FromJson<StoredException>(exception)

@@ -1,5 +1,6 @@
 ﻿using System.Linq;
 using System.Threading.Tasks;
+using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Tests.Utils;
@@ -30,19 +31,17 @@ public abstract class StatesStoreTests
         var states = await statesStore.GetEffectResults(flowId);
         states.Count.ShouldBe(2);
 
-        var state1 = states.Single(s => s.EffectId == "Id#1");
-        state1.IsState.ShouldBeTrue();
+        var state1 = states.Single(s => s.EffectId == "Id#1".ToEffectId(isState: true));
         state1.Result.ShouldBe("SomeJson#1".ToUtf8Bytes());
 
-        var state2 = states.Single(s => s.EffectId == "Id#2");
-        state2.IsState.ShouldBeTrue();
+        var state2 = states.Single(s => s.EffectId == "Id#2".ToEffectId(isState: true));
         state2.Result.ShouldBe("SomeJson#2".ToUtf8Bytes());
 
         await statesStore.DeleteEffectResult(flowId, state1.EffectId.ToStoredEffectId(), isState: true);
         
         states = await statesStore.GetEffectResults(flowId);
         states.Count.ShouldBe(1);
-        state2 = states.Single(s => s.EffectId == "Id#2");
+        state2 = states.Single(s => s.EffectId == "Id#2".ToEffectId(isState: true));
         state2.Result.ShouldBe("SomeJson#2".ToUtf8Bytes());
     }
 }

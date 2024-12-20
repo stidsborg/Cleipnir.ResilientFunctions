@@ -1283,9 +1283,8 @@ public abstract class ControlPanelTests
         await store.EffectsStore.SetEffectResult(
             rAction.MapToStoredId(functionId),
             new StoredEffect(
-                new EffectId("SomeId"),
-                "SomeId".ToStoredEffectId(),
-                IsState: false,
+                "SomeId".ToEffectId(),
+                "SomeId".ToStoredEffectId(isState: false),
                 WorkStatus.Completed,
                 Result: "SomeResult".ToJson().ToUtf8Bytes(),
                 StoredException: null
@@ -1321,9 +1320,8 @@ public abstract class ControlPanelTests
         await store.EffectsStore.SetEffectResult(
             rAction.MapToStoredId(functionId),
             new StoredEffect(
-                new EffectId("SomeId"),
-                "SomeId".ToStoredEffectId(),
-                IsState: false,
+                new EffectId("SomeId", IsState: false),
+                "SomeId".ToStoredEffectId(isState: false),
                 WorkStatus.Completed,
                 Result: "SomeResult".ToJson().ToUtf8Bytes(),
                 StoredException: null
@@ -1362,7 +1360,7 @@ public abstract class ControlPanelTests
         
         await secondControlPanel.Refresh();
         await secondControlPanel.Effects.GetValue<string>("Id").ShouldBeAsync("SomeResult");
-        await secondControlPanel.Effects.GetStatus("Id").ShouldBeAsync(WorkStatus.Completed);
+        await secondControlPanel.Effects.GetStatus("Id".ToEffectId(isState: false)).ShouldBeAsync(WorkStatus.Completed);
         
         unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }

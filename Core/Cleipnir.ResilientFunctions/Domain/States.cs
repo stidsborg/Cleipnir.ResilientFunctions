@@ -26,7 +26,7 @@ public class States(
                 return _existingStoredStates;
 
         var existingStatesDict = (await lazyEffects.Value)
-            .Where(se => se.IsState)
+            .Where(se => se.EffectId.IsState)
             .ToDictionary(se => new StateId(se.EffectId.Value), se => new StoredState(se.EffectId.Value, se.Result!));
         
         lock (_sync) 
@@ -86,7 +86,7 @@ public class States(
             if (!existingStoredStates.ContainsKey(id))
                 return;
         
-        await effectStore.DeleteEffectResult(storedId, id.ToStoredEffectId(), isState: true);
+        await effectStore.DeleteEffectResult(storedId, id.ToStoredEffectId(isState: true), isState: true);
 
         lock (_sync)
         {

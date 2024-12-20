@@ -37,14 +37,14 @@ public abstract class EffectImplicitIdTests
         
         syncedCounter.Current.ShouldBe(1);
         var effectResults = await store.EffectsStore.GetEffectResults(rAction.MapToStoredId(flowId));
-        effectResults.Single(r => r.EffectId == "0").WorkStatus.ShouldBe(WorkStatus.Completed);
+        effectResults.Single(r => r.EffectId == "0".ToEffectId()).WorkStatus.ShouldBe(WorkStatus.Completed);
 
         var controlPanel = await rAction.ControlPanel(flowId.Instance);
         controlPanel.ShouldNotBeNull();
         await controlPanel.Restart();
         
         effectResults = await store.EffectsStore.GetEffectResults(rAction.MapToStoredId(flowId));
-        effectResults.Single(r => r.EffectId == "0").WorkStatus.ShouldBe(WorkStatus.Completed);
+        effectResults.Single(r => r.EffectId == "0".ToEffectId()).WorkStatus.ShouldBe(WorkStatus.Completed);
         syncedCounter.Current.ShouldBe(1);
     }
     
@@ -72,14 +72,14 @@ public abstract class EffectImplicitIdTests
         
         syncedCounter.Current.ShouldBe(1);
         var effectResults = await store.EffectsStore.GetEffectResults(rAction.MapToStoredId(flowId));
-        effectResults.Single(r => r.EffectId == "0").WorkStatus.ShouldBe(WorkStatus.Completed);
+        effectResults.Single(r => r.EffectId == "0".ToEffectId()).WorkStatus.ShouldBe(WorkStatus.Completed);
 
         var controlPanel = await rAction.ControlPanel(flowId.Instance);
         controlPanel.ShouldNotBeNull();
         await controlPanel.Restart();
         
         effectResults = await store.EffectsStore.GetEffectResults(rAction.MapToStoredId(flowId));
-        effectResults.Single(r => r.EffectId == "0").WorkStatus.ShouldBe(WorkStatus.Completed);
+        effectResults.Single(r => r.EffectId == "0".ToEffectId()).WorkStatus.ShouldBe(WorkStatus.Completed);
         syncedCounter.Current.ShouldBe(1);
     }
     
@@ -112,7 +112,7 @@ public abstract class EffectImplicitIdTests
         
         syncedCounter.Current.ShouldBe(1);
         var effectResults = await store.EffectsStore.GetEffectResults(rAction.MapToStoredId(flowId));
-        var storedEffect = effectResults.Single(r => r.EffectId == "0");
+        var storedEffect = effectResults.Single(r => r.EffectId == "0".ToEffectId());
         storedEffect.WorkStatus.ShouldBe(WorkStatus.Completed);
         storedEffect.Result!.ToStringFromUtf8Bytes().DeserializeFromJsonTo<string>().ShouldBe("hello");
 
@@ -121,7 +121,7 @@ public abstract class EffectImplicitIdTests
         await controlPanel.Restart();
         
         effectResults = await store.EffectsStore.GetEffectResults(rAction.MapToStoredId(flowId));
-        storedEffect = effectResults.Single(r => r.EffectId == "0");
+        storedEffect = effectResults.Single(r => r.EffectId == "0".ToEffectId());
         storedEffect.WorkStatus.ShouldBe(WorkStatus.Completed);
         storedEffect.Result!.ToStringFromUtf8Bytes().DeserializeFromJsonTo<string>().ShouldBe("hello");
         syncedCounter.Current.ShouldBe(1);
@@ -156,7 +156,7 @@ public abstract class EffectImplicitIdTests
         
         syncedCounter.Current.ShouldBe(1);
         var effectResults = await store.EffectsStore.GetEffectResults(rAction.MapToStoredId(flowId));
-        var storedEffect = effectResults.Single(r => r.EffectId == "0");
+        var storedEffect = effectResults.Single(r => r.EffectId == "0".ToEffectId());
         storedEffect.WorkStatus.ShouldBe(WorkStatus.Completed);
         storedEffect.Result!.ToStringFromUtf8Bytes().DeserializeFromJsonTo<string>().ShouldBe("hello");
 
@@ -165,7 +165,7 @@ public abstract class EffectImplicitIdTests
         await controlPanel.Restart();
         
         effectResults = await store.EffectsStore.GetEffectResults(rAction.MapToStoredId(flowId));
-        storedEffect = effectResults.Single(r => r.EffectId == "0");
+        storedEffect = effectResults.Single(r => r.EffectId == "0".ToEffectId());
         storedEffect.WorkStatus.ShouldBe(WorkStatus.Completed);
         storedEffect.Result!.ToStringFromUtf8Bytes().DeserializeFromJsonTo<string>().ShouldBe("hello");
         syncedCounter.Current.ShouldBe(1);
@@ -200,7 +200,7 @@ public abstract class EffectImplicitIdTests
         
         syncedCounter.Current.ShouldBe(1);
         var effectResults = await store.EffectsStore.GetEffectResults(rAction.MapToStoredId(flowId));
-        var storedEffect = effectResults.Single(r => r.EffectId == "0");
+        var storedEffect = effectResults.Single(r => r.EffectId == "0".ToEffectId());
         storedEffect.WorkStatus.ShouldBe(WorkStatus.Failed);
         storedEffect.StoredException.ShouldNotBeNull();
         storedEffect.StoredException.ExceptionType.ShouldContain("InvalidOperationException");
@@ -210,7 +210,7 @@ public abstract class EffectImplicitIdTests
         await Should.ThrowAsync<EffectException>(() => controlPanel.Restart());
         
         effectResults = await store.EffectsStore.GetEffectResults(rAction.MapToStoredId(flowId));
-        storedEffect = effectResults.Single(r => r.EffectId == "0");
+        storedEffect = effectResults.Single(r => r.EffectId == "0".ToEffectId());
         storedEffect.WorkStatus.ShouldBe(WorkStatus.Failed);
         storedEffect.StoredException.ShouldNotBeNull();
         storedEffect.StoredException.ExceptionType.ShouldContain("InvalidOperationException");
@@ -238,7 +238,7 @@ public abstract class EffectImplicitIdTests
         result.ShouldBe(2);
         
         var effectResults = await store.EffectsStore.GetEffectResults(rAction.MapToStoredId(flowId));
-        var storedEffect = effectResults.Single(r => r.EffectId == "0");
+        var storedEffect = effectResults.Single(r => r.EffectId == "0".ToEffectId());
         storedEffect.WorkStatus.ShouldBe(WorkStatus.Completed);
         storedEffect.Result!.ToStringFromUtf8Bytes().DeserializeFromJsonTo<int>().ShouldBe(2);
     }
@@ -264,7 +264,7 @@ public abstract class EffectImplicitIdTests
         result.ShouldBe(new [] { 1, 2 });
         
         var effectResults = await store.EffectsStore.GetEffectResults(rAction.MapToStoredId(flowId));
-        var storedEffect = effectResults.Single(r => r.EffectId == "0");
+        var storedEffect = effectResults.Single(r => r.EffectId == "0".ToEffectId());
         storedEffect.WorkStatus.ShouldBe(WorkStatus.Completed);
         storedEffect.Result!.ToStringFromUtf8Bytes().DeserializeFromJsonTo<int[]>().ShouldBe(new [] {1, 2});
     }
@@ -296,8 +296,8 @@ public abstract class EffectImplicitIdTests
         var effects = controlPanel.Effects;
         var effectIds = (await effects.AllIds).ToList();
         effectIds.Count.ShouldBe(2);
-        effectIds.Any(id => id == "0").ShouldBeTrue();
-        effectIds.Any(id => id == "1").ShouldBeTrue();
+        effectIds.Any(id => id == "0".ToEffectId()).ShouldBeTrue();
+        effectIds.Any(id => id == "1".ToEffectId()).ShouldBeTrue();
 
         await effects.GetValue<string>("0").ShouldBeAsync("0");
         await effects.GetValue<string>("1").ShouldBeAsync("1");

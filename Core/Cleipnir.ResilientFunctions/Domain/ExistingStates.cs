@@ -28,7 +28,7 @@ public class ExistingStates
             return _storedStates;
 
         return _storedStates = (await _functionStore.EffectsStore.GetEffectResults(_storedId))
-            .Where(se => se.IsState)
+            .Where(se => se.EffectId.IsState)
             .Select(se => new StoredState(se.EffectId.Value, se.Result!))
             .ToDictionary(s => s.StateId, s => s);
     }
@@ -56,7 +56,7 @@ public class ExistingStates
     public async Task Remove(string stateId)
     {
         var storedStates = await GetStoredStates();
-        await _effectsStore.DeleteEffectResult(_storedId, stateId.ToStoredEffectId(), isState: true);
+        await _effectsStore.DeleteEffectResult(_storedId, stateId.ToStoredEffectId(isState: true), isState: true);
         storedStates.Remove(stateId);
     }
 

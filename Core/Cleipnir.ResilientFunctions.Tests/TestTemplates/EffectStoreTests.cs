@@ -16,17 +16,15 @@ public abstract class EffectStoreTests
         var store = await storeTask;
         var functionId = TestStoredId.Create();
         var storedEffect1 = new StoredEffect(
-            "EffectId1",
-            "EffectId1".ToStoredEffectId(),
-            IsState: false,
+            "EffectId1".ToEffectId(),
+            "EffectId1".ToStoredEffectId(isState: false),
             WorkStatus.Started,
             Result: null,
             StoredException: null
         );
         var storedEffect2 = new StoredEffect(
-            "EffectId2",
-            "EffectId2".ToStoredEffectId(),
-            IsState: false,
+            "EffectId2".ToEffectId(),
+            "EffectId2".ToStoredEffectId(isState: false),
             WorkStatus.Completed,
             Result: null,
             StoredException: null
@@ -66,9 +64,8 @@ public abstract class EffectStoreTests
         var store = await storeTask;
         var functionId = TestStoredId.Create();
         var effect = new StoredEffect(
-            "EffectId1",
-            "EffectId1".ToStoredEffectId(),
-            IsState: false,
+            "EffectId1".ToEffectId(),
+            "EffectId1".ToStoredEffectId(isState: false),
             WorkStatus.Started,
             Result: null,
             StoredException: null
@@ -90,7 +87,6 @@ public abstract class EffectStoreTests
         storedEffect.StoredException.ShouldBe(effect.StoredException);
         storedEffect.Result!.ToStringFromUtf8Bytes().ShouldBe(effect.Result.ToStringFromUtf8Bytes());
         storedEffect.WorkStatus.ShouldBe(effect.WorkStatus);
-        storedEffect.IsState.ShouldBe(effect.IsState);
         
     }
     
@@ -105,9 +101,8 @@ public abstract class EffectStoreTests
             "Some Exception Type"
         );
         var storedEffect = new StoredEffect(
-            "EffectId1",
-            "EffectId1".ToStoredEffectId(),
-            IsState: false,
+            "EffectId1".ToEffectId(),
+            "EffectId1".ToStoredEffectId(isState: false),
             WorkStatus.Started,
             Result: null,
             StoredException: null
@@ -133,17 +128,15 @@ public abstract class EffectStoreTests
         var store = await storeTask;
         var functionId = TestStoredId.Create();
         var storedEffect1 = new StoredEffect(
-            "EffectId1",
-            "EffectId1".ToStoredEffectId(),
-            IsState: false,
+            "EffectId1".ToEffectId(),
+            "EffectId1".ToStoredEffectId(isState: false),
             WorkStatus.Started,
             Result: null,
             StoredException: null
         );
         var storedEffect2 = new StoredEffect(
-            "EffectId2",
-            "EffectId2".ToStoredEffectId(),
-            IsState: false,
+            "EffectId2".ToEffectId(),
+            "EffectId2".ToStoredEffectId(isState: false),
             WorkStatus.Completed,
             Result: null,
             StoredException: null
@@ -181,17 +174,15 @@ public abstract class EffectStoreTests
         var otherFunctionId = new StoredId((functionId.Type.Value + 1).ToStoredType(), Instance: (functionId.Instance + "123").ToStoredInstance());
         
         var storedEffect1 = new StoredEffect(
-            "EffectId1",
-            "EffectId1".ToStoredEffectId(),
-            IsState: false,
+            "EffectId1".ToEffectId(),
+            "EffectId1".ToStoredEffectId(isState: false),
             WorkStatus.Started,
             Result: null,
             StoredException: null
         );
         var storedEffect2 = new StoredEffect(
-            "EffectId2",
-            "EffectId2".ToStoredEffectId(),
-            IsState: false,
+            "EffectId2".ToEffectId(),
+            "EffectId2".ToStoredEffectId(isState: false),
             WorkStatus.Completed,
             Result: null,
             StoredException: null
@@ -227,17 +218,15 @@ public abstract class EffectStoreTests
         var otherFunctionId = new StoredId(functionId.Type, Instance: (functionId.Instance + "123").ToStoredInstance());
         
         var storedEffect1 = new StoredEffect(
-            "EffectId1",
-            "EffectId1".ToStoredEffectId(),
-            IsState: false,
+            "EffectId1".ToEffectId(),
+            "EffectId1".ToStoredEffectId(isState: false),
             WorkStatus.Started,
             Result: null,
             StoredException: null
         );
         var storedEffect2 = new StoredEffect(
-            "EffectId2",
-            "EffectId2".ToStoredEffectId(),
-            IsState: false,
+            "EffectId2".ToEffectId(),
+            "EffectId2".ToStoredEffectId(isState: false),
             WorkStatus.Completed,
             Result: null,
             StoredException: null
@@ -266,17 +255,15 @@ public abstract class EffectStoreTests
         var store = await storeTask;
         var storedId = TestStoredId.Create();
         var storedEffect1 = new StoredEffect(
-            "EffectId1",
-            "EffectId1".ToStoredEffectId(),
-            IsState: false,
+            "EffectId1".ToEffectId(),
+            "EffectId1".ToStoredEffectId(isState: false),
             WorkStatus.Started,
             Result: "some result 1".ToUtf8Bytes(),
             StoredException: null
         );
         var storedEffect2 = new StoredEffect(
-            "EffectId2",
-            "EffectId2".ToStoredEffectId(),
-            IsState: false,
+            "EffectId2".ToEffectId(),
+            "EffectId2".ToStoredEffectId(isState: false),
             WorkStatus.Completed,
             Result: "some result 2".ToUtf8Bytes(),
             StoredException: null

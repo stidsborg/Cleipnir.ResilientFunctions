@@ -12,7 +12,6 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates
 {
     public abstract class ResilientFunctionStateTests
     {
-        private readonly DefaultSerializer _serializer = DefaultSerializer.Instance;
         public abstract Task SunshineScenario();
         public async Task SunshineScenario(IFunctionStore store)
         {
@@ -46,7 +45,7 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates
             storedResult.ShouldBe("HELLO");
             var effects = await store.EffectsStore.GetEffectResults(registration.MapToStoredId(functionId));
             effects
-                .Single(e => e.EffectId == "Scrap")
+                .Single(e => e.EffectId == "Scrap".ToEffectId())
                 .Result!
                 .ToStringFromUtf8Bytes()
                 .DeserializeFromJsonTo<string>()

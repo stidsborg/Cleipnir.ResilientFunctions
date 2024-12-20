@@ -59,7 +59,7 @@ public class PostgreSqlEffectsStore(string connectionString, string tablePrefix 
                 new() {Value = storedId.Type.Value},
                 new() {Value = storedId.Instance.Value},
                 new() {Value = storedEffect.StoredEffectId.Value},
-                new() {Value = storedEffect.IsState},
+                new() {Value = storedEffect.EffectId.IsState},
                 new() {Value = (int) storedEffect.WorkStatus},
                 new() {Value = storedEffect.Result ?? (object) DBNull.Value},
                 new() {Value = JsonHelper.ToJson(storedEffect.StoredException) ?? (object) DBNull.Value},
@@ -92,7 +92,7 @@ public class PostgreSqlEffectsStore(string connectionString, string tablePrefix 
                     new() {Value = storedId.Type.Value},
                     new() {Value = storedId.Instance.Value},
                     new() {Value = storedEffect.StoredEffectId.Value},
-                    new() {Value = storedEffect.IsState},
+                    new() {Value = storedEffect.EffectId.IsState},
                     new() {Value = (int) storedEffect.WorkStatus},
                     new() {Value = storedEffect.Result ?? (object) DBNull.Value},
                     new() {Value = JsonHelper.ToJson(storedEffect.StoredException) ?? (object) DBNull.Value},
@@ -135,7 +135,7 @@ public class PostgreSqlEffectsStore(string connectionString, string tablePrefix 
             var exception = reader.IsDBNull(4) ? null : reader.GetString(4);
             var effectId = reader.GetString(5);
             functions.Add(
-                new StoredEffect(effectId, new StoredEffectId(idHash), isState, status, result, JsonHelper.FromJson<StoredException>(exception))
+                new StoredEffect(new EffectId(effectId, isState), new StoredEffectId(idHash), status, result, JsonHelper.FromJson<StoredException>(exception))
             );
         }
 

@@ -67,7 +67,7 @@ public class SqlServerEffectsStore(string connectionString, string tablePrefix =
         command.Parameters.AddWithValue("@FlowType", storedId.Type.Value);
         command.Parameters.AddWithValue("@FlowInstance", storedId.Instance.Value);
         command.Parameters.AddWithValue("@StoredId", storedEffect.StoredEffectId.Value);
-        command.Parameters.AddWithValue("@IsState", storedEffect.IsState);
+        command.Parameters.AddWithValue("@IsState", storedEffect.EffectId.IsState);
         command.Parameters.AddWithValue("@EffectId", storedEffect.EffectId.Value);
         command.Parameters.AddWithValue("@Status", storedEffect.WorkStatus);
         command.Parameters.AddWithValue("@Result", storedEffect.Result ?? (object) SqlBinary.Null);
@@ -105,7 +105,7 @@ public class SqlServerEffectsStore(string connectionString, string tablePrefix =
             command.Parameters.AddWithValue($"@FlowType{i}", storedId.Type.Value);
             command.Parameters.AddWithValue($"@FlowInstance{i}", storedId.Instance.Value);
             command.Parameters.AddWithValue($"@StoredId{i}", storedEffect.StoredEffectId.Value);
-            command.Parameters.AddWithValue($"@IsState{i}", storedEffect.IsState);
+            command.Parameters.AddWithValue($"@IsState{i}", storedEffect.EffectId.IsState);
             command.Parameters.AddWithValue($"@EffectId{i}", storedEffect.EffectId.Value);
             command.Parameters.AddWithValue($"@Status{i}", storedEffect.WorkStatus);
             command.Parameters.AddWithValue($"@Result{i}", storedEffect.Result ?? (object) SqlBinary.Null);
@@ -141,7 +141,7 @@ public class SqlServerEffectsStore(string connectionString, string tablePrefix =
             var exception = reader.IsDBNull(5) ? default : reader.GetString(5);
 
             var storedException = exception == null ? null : JsonSerializer.Deserialize<StoredException>(exception);
-            var storedEffect = new StoredEffect(effectId, new StoredEffectId(storedEffectId), isState, status, result, storedException);
+            var storedEffect = new StoredEffect(effectId.ToEffectId(isState), new StoredEffectId(storedEffectId), status, result, storedException);
             storedEffects.Add(storedEffect);
         }
 

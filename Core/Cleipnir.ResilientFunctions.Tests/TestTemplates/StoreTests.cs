@@ -1108,11 +1108,11 @@ public abstract class StoreTests
             parent: null
         ).ShouldBeTrueAsync();
 
-        await effectsStore.SetEffectResult(functionId, new StoredEffect(EffectId: "", "".ToStoredEffectId(), IsState: true, WorkStatus.Completed, "some default state".ToUtf8Bytes(), StoredException: null));
+        await effectsStore.SetEffectResult(functionId, new StoredEffect(EffectId: "".ToEffectId(isState: true), "".ToStoredEffectId(isState: true), WorkStatus.Completed, "some default state".ToUtf8Bytes(), StoredException: null));
 
         var storedEffects = await effectsStore.GetEffectResults(functionId);
         storedEffects.Count.ShouldBe(1);
-        storedEffects.Single().EffectId.ShouldBe("");
+        storedEffects.Single().EffectId.ShouldBe("".ToEffectId(isState: true));
         storedEffects.Single().Result.ShouldBe("some default state".ToUtf8Bytes());
     }
     

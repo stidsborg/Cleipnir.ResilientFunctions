@@ -25,7 +25,7 @@ public class InMemoryEffectsStore : IEffectsStore
     {
         lock (_sync)
         {
-            var key = new EffectKey(storedEffect.StoredEffectId, storedEffect.IsState);
+            var key = new EffectKey(storedEffect.StoredEffectId, storedEffect.EffectId.IsState);
             if (!_effects.ContainsKey(storedId))
                 _effects[storedId] = new Dictionary<EffectKey, StoredEffect>();
                 
