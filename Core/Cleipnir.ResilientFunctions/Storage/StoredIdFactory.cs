@@ -5,7 +5,7 @@ using System.Text;
 
 namespace Cleipnir.ResilientFunctions.Storage;
 
-public class InstanceIdFactory
+public static class StoredIdFactory
 {
     public static Guid FromString(string instanceId)
     {

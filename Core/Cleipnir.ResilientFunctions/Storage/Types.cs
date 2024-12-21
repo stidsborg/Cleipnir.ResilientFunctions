@@ -22,7 +22,7 @@ public record StoredInstance(Guid Value)
     public static implicit operator StoredInstance(Guid id) => new(id.ToStoredInstance());
     
     public static StoredInstance Create(string instanceId) 
-        => new(InstanceIdFactory.FromString(instanceId));
+        => new(StoredIdFactory.FromString(instanceId));
 }
 
 public static class StoredInstanceExtensions
@@ -63,7 +63,7 @@ public record StatusAndEpoch(Status Status, int Epoch);
 public record StoredEffectId(Guid Value)
 {
     public static StoredEffectId Create(EffectId effectId) 
-        => new(InstanceIdFactory.FromString(effectId.Serialize()));
+        => new(StoredIdFactory.FromString(effectId.Serialize()));
 }
 
 public static class StoredEffectIdExtensions
