@@ -217,13 +217,14 @@ public class Invoker<TParam, TReturn>
             disposables.Add(isWorkflowRunningDisposable);
             success = persisted;
             
+            var (effect, states) = _invocationHelper.CreateEffectAndStates(storedId, anyEffects: false);
             var messages = _invocationHelper.CreateMessages(
                 storedId,
                 ScheduleRestart, 
-                isWorkflowRunning: () => !isWorkflowRunningDisposable.Disposed
+                isWorkflowRunning: () => !isWorkflowRunningDisposable.Disposed,
+                effect
             );
             
-            var (effect, states) = _invocationHelper.CreateEffectAndStates(storedId, anyEffects: false);
             var correlations = _invocationHelper.CreateCorrelations(flowId);
             var semaphores = _invocationHelper.CreateSemaphores(storedId, effect);
             var workflow = new Workflow(flowId, storedId, messages, effect, states, _utilities, correlations, semaphores);
@@ -267,13 +268,14 @@ public class Invoker<TParam, TReturn>
             var isWorkflowRunningDisposable = new PropertyDisposable();
             disposables.Add(isWorkflowRunningDisposable);
             
+            var (effect, states) = _invocationHelper.CreateEffectAndStates(storedId, anyEffects: true);
             var messages = _invocationHelper.CreateMessages(
                 storedId,
                 ScheduleRestart,
-                isWorkflowRunning: () => !isWorkflowRunningDisposable.Disposed
+                isWorkflowRunning: () => !isWorkflowRunningDisposable.Disposed,
+                effect
             );
-
-            var (effect, states) = _invocationHelper.CreateEffectAndStates(storedId, anyEffects: true);
+            
             var correlations = _invocationHelper.CreateCorrelations(flowId);
             var semaphores = _invocationHelper.CreateSemaphores(storedId, effect);
             

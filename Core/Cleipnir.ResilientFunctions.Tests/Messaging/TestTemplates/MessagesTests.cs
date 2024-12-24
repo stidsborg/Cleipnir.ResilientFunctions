@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime;
@@ -19,10 +20,10 @@ public abstract class MessagesTests
     public abstract Task MessagesSunshineScenario();
     protected async Task MessagesSunshineScenario(Task<IFunctionStore> functionStoreTask)
     {
-        var functionId = TestStoredId.Create();
+        var storedId = TestStoredId.Create();
         var functionStore = await functionStoreTask;
         await functionStore.CreateFunction(
-            functionId,  
+            storedId,  
             "humanInstanceId",
             Test.SimpleStoredParameter, 
             leaseExpiration: DateTime.UtcNow.Ticks,
@@ -30,10 +31,10 @@ public abstract class MessagesTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null
         );
-        var messagesWriter = new MessageWriter(functionId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
-        var registeredTimeouts = new RegisteredTimeouts(functionId, functionStore.TimeoutStore);
+        var messagesWriter = new MessageWriter(storedId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
+        var registeredTimeouts = new RegisteredTimeouts(storedId, functionStore.TimeoutStore, CreateEffect(storedId, functionStore));
         var messagesPullerAndEmitter = new MessagesPullerAndEmitter(
-            functionId,
+            storedId,
             defaultDelay: TimeSpan.FromMilliseconds(250),
             defaultMaxWait: TimeSpan.MaxValue, 
             isWorkflowRunning: () => true,
@@ -94,7 +95,7 @@ public abstract class MessagesTests
             parent: null
         );
         var messagesWriter = new MessageWriter(functionId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
-        var registeredTimeouts = new RegisteredTimeouts(functionId, functionStore.TimeoutStore);
+        var registeredTimeouts = new RegisteredTimeouts(functionId, functionStore.TimeoutStore, CreateEffect(functionId, functionStore));
         var messagesPullerAndEmitter = new MessagesPullerAndEmitter(
             functionId,
             defaultDelay: TimeSpan.FromMilliseconds(250),
@@ -132,7 +133,7 @@ public abstract class MessagesTests
             parent: null
         );
         var messagesWriter = new MessageWriter(functionId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
-        var registeredTimeouts = new RegisteredTimeouts(functionId, functionStore.TimeoutStore);
+        var registeredTimeouts = new RegisteredTimeouts(functionId, functionStore.TimeoutStore, CreateEffect(functionId, functionStore));
         var messagesPullerAndEmitter = new MessagesPullerAndEmitter(
             functionId,
             defaultDelay: TimeSpan.FromMilliseconds(250),
@@ -170,7 +171,7 @@ public abstract class MessagesTests
             parent: null
         );
         var messagesWriter = new MessageWriter(functionId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
-        var registeredTimeouts = new RegisteredTimeouts(functionId, functionStore.TimeoutStore);
+        var registeredTimeouts = new RegisteredTimeouts(functionId, functionStore.TimeoutStore, CreateEffect(functionId, functionStore));
         var messagesPullerAndEmitter = new MessagesPullerAndEmitter(
             functionId,
             defaultDelay: TimeSpan.FromMilliseconds(250),
@@ -210,7 +211,7 @@ public abstract class MessagesTests
             parent: null
         );
         var messagesWriter = new MessageWriter(functionId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
-        var registeredTimeouts = new RegisteredTimeouts(functionId, functionStore.TimeoutStore);
+        var registeredTimeouts = new RegisteredTimeouts(functionId, functionStore.TimeoutStore, CreateEffect(functionId, functionStore));
         var messagesPullerAndEmitter = new MessagesPullerAndEmitter(
             functionId,
             defaultDelay: TimeSpan.FromMilliseconds(250),
@@ -255,7 +256,7 @@ public abstract class MessagesTests
             parent: null
         );
         var messagesWriter = new MessageWriter(functionId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
-        var registeredTimeouts = new RegisteredTimeouts(functionId, functionStore.TimeoutStore);
+        var registeredTimeouts = new RegisteredTimeouts(functionId, functionStore.TimeoutStore, CreateEffect(functionId, functionStore));
         var messagesPullerAndEmitter = new MessagesPullerAndEmitter(
             functionId,
             defaultDelay: TimeSpan.FromMilliseconds(250),
@@ -299,7 +300,7 @@ public abstract class MessagesTests
             parent: null
         );
         var messagesWriter = new MessageWriter(functionId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
-        var registeredTimeouts = new RegisteredTimeouts(functionId, functionStore.TimeoutStore);
+        var registeredTimeouts = new RegisteredTimeouts(functionId, functionStore.TimeoutStore, CreateEffect(functionId, functionStore));
         var messagesPullerAndEmitter = new MessagesPullerAndEmitter(
             functionId,
             defaultDelay: TimeSpan.FromMilliseconds(250),
@@ -339,7 +340,7 @@ public abstract class MessagesTests
             parent: null
         );
         var messagesWriter = new MessageWriter(functionId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
-        var registeredTimeouts = new RegisteredTimeouts(functionId, functionStore.TimeoutStore);
+        var registeredTimeouts = new RegisteredTimeouts(functionId, functionStore.TimeoutStore, CreateEffect(functionId, functionStore));
         var messagesPullerAndEmitter = new MessagesPullerAndEmitter(
             functionId,
             defaultDelay: TimeSpan.FromMilliseconds(250),
@@ -391,7 +392,7 @@ public abstract class MessagesTests
             parent: null
         );
         var messagesWriter = new MessageWriter(functionId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
-        var registeredTimeouts = new RegisteredTimeouts(functionId, functionStore.TimeoutStore);
+        var registeredTimeouts = new RegisteredTimeouts(functionId, functionStore.TimeoutStore, CreateEffect(functionId, functionStore));
         var messagesPullerAndEmitter = new MessagesPullerAndEmitter(
             functionId,
             defaultDelay: TimeSpan.FromMilliseconds(250),
@@ -407,6 +408,13 @@ public abstract class MessagesTests
         await Should.ThrowAsync<MessageProcessingException>(messages.AppendMessage(1));
         await Should.ThrowAsync<MessageProcessingException>(() => messages.Skip(1).First());
         Should.Throw<MessageProcessingException>(() => messages.ToList());
+    }
+
+    private Effect CreateEffect(StoredId storedId, IFunctionStore functionStore)
+    {
+        var lazyExistingEffects = new Lazy<Task<IReadOnlyList<StoredEffect>>>(() => Task.FromResult((IReadOnlyList<StoredEffect>) new List<StoredEffect>()));
+        var effect = new Effect("SomeFlowType", storedId, lazyExistingEffects, functionStore.EffectsStore, DefaultSerializer.Instance);
+        return effect;
     }
     
     private class ExceptionThrowingEventSerializer : ISerializer

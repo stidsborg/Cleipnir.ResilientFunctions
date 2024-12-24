@@ -409,10 +409,10 @@ internal class InvocationHelper<TParam, TReturn>
         );
     }
 
-    public Messages CreateMessages(StoredId storedId, ScheduleReInvocation scheduleReInvocation, Func<bool> isWorkflowRunning)
+    public Messages CreateMessages(StoredId storedId, ScheduleReInvocation scheduleReInvocation, Func<bool> isWorkflowRunning, Effect effect)
     {
         var messageWriter = new MessageWriter(storedId, _functionStore, Serializer, scheduleReInvocation);
-        var registeredTimeouts = new RegisteredTimeouts(storedId, _functionStore.TimeoutStore);
+        var registeredTimeouts = new RegisteredTimeouts(storedId, _functionStore.TimeoutStore, effect);
         var messagesPullerAndEmitter = new MessagesPullerAndEmitter(
             storedId,
             defaultDelay: _settings.MessagesPullFrequency,

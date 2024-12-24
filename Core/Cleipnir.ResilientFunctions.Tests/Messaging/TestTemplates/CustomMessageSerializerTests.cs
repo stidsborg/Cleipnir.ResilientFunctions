@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime;
 using Cleipnir.ResilientFunctions.CoreRuntime.ParameterSerialization;
@@ -29,7 +30,9 @@ public abstract class CustomMessageSerializerTests
         );
         var eventSerializer = new EventSerializer();
         var messagesWriter = new MessageWriter(storedId, functionStore, eventSerializer, scheduleReInvocation: (_, _) => Task.CompletedTask);
-        var registeredTimeouts = new RegisteredTimeouts(storedId, functionStore.TimeoutStore);
+        var lazyExistingEffects = new Lazy<Task<IReadOnlyList<StoredEffect>>>(() => Task.FromResult((IReadOnlyList<StoredEffect>) new List<StoredEffect>()));
+        var effect = new Effect("SomeFlowType", storedId, lazyExistingEffects, functionStore.EffectsStore, DefaultSerializer.Instance);
+        var registeredTimeouts = new RegisteredTimeouts(storedId, functionStore.TimeoutStore, effect);
         var messagesPullerAndEmitter = new MessagesPullerAndEmitter(
             storedId,
             defaultDelay: TimeSpan.FromSeconds(1),

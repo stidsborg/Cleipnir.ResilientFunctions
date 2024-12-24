@@ -51,13 +51,15 @@ public class Effect(
 
     internal Task<IEnumerable<EffectId>> EffectIds => GetEffectResults()
         .SelectAsync(kv => kv.Keys.AsEnumerable());
+
+    public async Task<bool> Contains(string id) => await Contains(id, EffectType.Effect);
     
-    public async Task<bool> Contains(string id)
+    internal async Task<bool> Contains(string id, EffectType effectType)
     {
         var effectResults = await GetEffectResults();
         
         lock (_sync)
-            return effectResults.ContainsKey(CreateEffectId(id));
+            return effectResults.ContainsKey(CreateEffectId(id, effectType));
     }
 
     public async Task<WorkStatus?> GetStatus(string id)
@@ -109,10 +111,11 @@ public class Effect(
         return value;
     }
 
-    public async Task Upsert<T>(string id, T value)
+    public async Task Upsert<T>(string id, T value) => await Upsert(id, value, EffectType.Effect);
+    internal async Task Upsert<T>(string id, T value, EffectType effectType)
     {
         var effectResults = await GetEffectResults();
-        var effectId = CreateEffectId(id);
+        var effectId = CreateEffectId(id, effectType);
         
         var storedEffect = StoredEffect.CreateCompleted(effectId, serializer.SerializeEffectResult(value));
         await effectsStore.SetEffectResult(storedId, storedEffect);
@@ -121,10 +124,11 @@ public class Effect(
             effectResults[effectId] = storedEffect;
     }
 
-    public async Task<Option<T>> TryGet<T>(string id)
+    public async Task<Option<T>> TryGet<T>(string id) => await TryGet<T>(id, EffectType.Effect);
+    internal async Task<Option<T>> TryGet<T>(string id, EffectType effectType)
     {
         var effectResults = await GetEffectResults();
-        var effectId = CreateEffectId(id);
+        var effectId = CreateEffectId(id, effectType);
         
         lock (_sync)
         {
@@ -143,10 +147,11 @@ public class Effect(
         
         return Option<T>.NoValue;
     }
-    
-    public async Task<T> Get<T>(string id)
+
+    public async Task<T> Get<T>(string id) => await Get<T>(id, EffectType.Effect);
+    internal async Task<T> Get<T>(string id, EffectType effectType)
     {
-        var option = await TryGet<T>(id);
+        var option = await TryGet<T>(id, effectType);
         
         if (!option.HasValue)
             throw new InvalidOperationException($"No value exists for id: '{id}'");
@@ -175,6 +180,9 @@ public class Effect(
         => await InnerCapture(id, EffectType.Effect, work, resiliency, EffectContext.CurrentContext);
     public async Task<T> Capture<T>(string id, Func<Task<T>> work, ResiliencyLevel resiliency = ResiliencyLevel.AtLeastOnce) 
         => await InnerCapture(id, EffectType.Effect, work, resiliency, EffectContext.CurrentContext);
+    
+    internal async Task SystemCapture(string id, Func<Task> work, ResiliencyLevel resiliency = ResiliencyLevel.AtLeastOnce) 
+        => await InnerCapture(id, EffectType.System, work, resiliency, EffectContext.CurrentContext);
     
     private async Task InnerCapture(string id, EffectType effectType, Func<Task> work, ResiliencyLevel resiliency, EffectContext effectContext)
     {

@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Storage;
@@ -16,50 +15,29 @@ public interface IRegisteredTimeouts
     Task<IReadOnlyList<RegisteredTimeout>> PendingTimeouts();
 }
 
-public class RegisteredTimeouts(StoredId id, ITimeoutStore timeoutStore) : IRegisteredTimeouts
+public class RegisteredTimeouts(StoredId id, ITimeoutStore timeoutStore, Effect effect) : IRegisteredTimeouts
 {
-    private Dictionary<TimeoutId, RegisteredTimeout>? _localTimeouts;
-    private readonly Lock _sync = new();
-
-    private async Task<Dictionary<TimeoutId, RegisteredTimeout>> GetRegisteredTimeouts()
+    private enum TimeoutStatus
     {
-        lock (_sync)
-            if (_localTimeouts is not null)
-                return _localTimeouts;
-        
-        var timeouts = await timeoutStore.GetTimeouts(id);
-        var localTimeouts = timeouts
-            .ToDictionary(
-                t => new TimeoutId(t.TimeoutId),
-                t => new RegisteredTimeout(t.TimeoutId, new DateTime(t.Expiry).ToUniversalTime())
-            );
-        
-        lock (_sync)
-            if (_localTimeouts is null)
-                _localTimeouts = localTimeouts;
-            else
-                localTimeouts = _localTimeouts;
-
-        return localTimeouts;
+        Created,
+        Registered,
+        Cancelled
     }
-
+    
     public string GetNextImplicitId() => EffectContext.CurrentContext.NextImplicitId();
     
     public async Task RegisterTimeout(TimeoutId timeoutId, DateTime expiresAt)
     {
-        var registeredTimeouts = await GetRegisteredTimeouts();
-        lock (_sync)
-            if (registeredTimeouts.ContainsKey(timeoutId.Value))
-                return;
+        if (await effect.Contains(timeoutId.Value, EffectType.System))
+            return;
         
         expiresAt = expiresAt.ToUniversalTime();
         await timeoutStore.UpsertTimeout(
             new StoredTimeout(id, timeoutId.Value, expiresAt.Ticks),
             overwrite: true
         );
-        
-        lock (_sync)
-            registeredTimeouts[timeoutId] = new RegisteredTimeout(timeoutId, expiresAt.ToUniversalTime());
+
+        await effect.Upsert(timeoutId.Value, TimeoutStatus.Registered, EffectType.System);
     }
     
     public Task RegisterTimeout(TimeoutId timeoutId, TimeSpan expiresIn)
@@ -67,19 +45,25 @@ public class RegisteredTimeouts(StoredId id, ITimeoutStore timeoutStore) : IRegi
 
     public async Task CancelTimeout(TimeoutId timeoutId)
     {
-        var registeredTimeouts = await GetRegisteredTimeouts();
-        lock (_sync)
-            if (!registeredTimeouts.Remove(timeoutId))
-                return;
+        if (!await effect.Contains(timeoutId.Value, EffectType.System))
+        {
+            await timeoutStore.RemoveTimeout(id, timeoutId.Value);
+            return;
+        }
         
-        await timeoutStore.RemoveTimeout(id, timeoutId.Value);   
+        var timeoutStatus = await effect.Get<TimeoutStatus>(timeoutId.Value, EffectType.System);
+        if (timeoutStatus == TimeoutStatus.Cancelled)
+            return;
+        
+        await timeoutStore.RemoveTimeout(id, timeoutId.Value);
+        await effect.Upsert(timeoutId.Value, TimeoutStatus.Cancelled, EffectType.System);
     }
 
     public async Task<IReadOnlyList<RegisteredTimeout>> PendingTimeouts()
     {
-        var registeredTimeouts = await GetRegisteredTimeouts();
-
-        lock (_sync)
-            return registeredTimeouts.Values.ToList();
+        var timeouts = await timeoutStore.GetTimeouts(id);
+        return timeouts
+            .Select(t => new RegisteredTimeout(t.TimeoutId, new DateTime(t.Expiry).ToUniversalTime()))
+            .ToList();
     }
 }
