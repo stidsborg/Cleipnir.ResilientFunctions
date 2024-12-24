@@ -7,7 +7,7 @@ internal static class Program
 {
     private static async Task Main()
     {
-        await WorkDistribution.Example.Perform();
+        await ParallelEffect.Example.Do();
 
         Console.ReadLine();
     }

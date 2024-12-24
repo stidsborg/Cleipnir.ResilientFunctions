@@ -137,7 +137,7 @@ public abstract class PostponedTests
             storedFunction.ShouldNotBeNull();
 
             var states = await store.EffectsStore.GetEffectResults(rFunc.MapToStoredId(functionId));
-            var state = states.Single(e => e.EffectId == "State".ToEffectId(isState: true));
+            var state = states.Single(e => e.EffectId == "State".ToEffectId(EffectType.State));
             state.Result!.ToStringFromUtf8Bytes().DeserializeFromJsonTo<State>().Value.ShouldBe(1);
             
             await rFunc.Invoke(param, param).ShouldBeAsync("TEST");
@@ -244,7 +244,7 @@ public abstract class PostponedTests
             storedFunction.ShouldNotBeNull();
 
             var states = await store.EffectsStore.GetEffectResults(rFunc.MapToStoredId(functionId));
-            var state = states.Single(e => e.EffectId == "State".ToEffectId(isState: true));
+            var state = states.Single(e => e.EffectId == "State".ToEffectId(EffectType.State));
             state.Result!.ToStringFromUtf8Bytes().DeserializeFromJsonTo<State>().Value.ShouldBe(1);
 
             await rFunc.Invoke(flowInstance.Value, param);

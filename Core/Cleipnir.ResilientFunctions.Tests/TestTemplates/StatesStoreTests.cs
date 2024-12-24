@@ -31,17 +31,17 @@ public abstract class StatesStoreTests
         var states = await statesStore.GetEffectResults(flowId);
         states.Count.ShouldBe(2);
 
-        var state1 = states.Single(s => s.EffectId == "Id#1".ToEffectId(isState: true));
+        var state1 = states.Single(s => s.EffectId == "Id#1".ToEffectId(EffectType.State));
         state1.Result.ShouldBe("SomeJson#1".ToUtf8Bytes());
 
-        var state2 = states.Single(s => s.EffectId == "Id#2".ToEffectId(isState: true));
+        var state2 = states.Single(s => s.EffectId == "Id#2".ToEffectId(EffectType.State));
         state2.Result.ShouldBe("SomeJson#2".ToUtf8Bytes());
 
         await statesStore.DeleteEffectResult(flowId, state1.EffectId.ToStoredEffectId());
         
         states = await statesStore.GetEffectResults(flowId);
         states.Count.ShouldBe(1);
-        state2 = states.Single(s => s.EffectId == "Id#2".ToEffectId(isState: true));
+        state2 = states.Single(s => s.EffectId == "Id#2".ToEffectId(EffectType.State));
         state2.Result.ShouldBe("SomeJson#2".ToUtf8Bytes());
     }
 }

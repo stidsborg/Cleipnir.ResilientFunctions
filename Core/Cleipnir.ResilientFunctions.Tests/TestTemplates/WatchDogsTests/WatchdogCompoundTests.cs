@@ -255,7 +255,7 @@ public abstract class WatchdogCompoundTests
             var storedFunction = await store.GetFunction(registration.MapToStoredId(functionId));
             storedFunction!.Result!.ToStringFromUtf8Bytes().DeserializeFromJsonTo<string>().ShouldBe($"{param.Id}-{param.Value}");
             var states = await store.EffectsStore.GetEffectResults(registration.MapToStoredId(functionId));
-            states.Single(e => e.EffectId == "Scraps".ToEffectId(isState: true))
+            states.Single(e => e.EffectId == "Scraps".ToEffectId(EffectType.State))
                 .Result!
                 .ToStringFromUtf8Bytes()
                 .DeserializeFromJsonTo<ListState>()
@@ -511,7 +511,7 @@ public abstract class WatchdogCompoundTests
             
             var storedFunction = await store.GetFunction(registration.MapToStoredId(functionId));
             var states = await store.EffectsStore.GetEffectResults(registration.MapToStoredId(functionId));
-            states.Single(e => e.EffectId == "Scraps".ToEffectId(isState: true))
+            states.Single(e => e.EffectId == "Scraps".ToEffectId(EffectType.State))
                 .Result!
                 .ToStringFromUtf8Bytes()
                 .DeserializeFromJsonTo<ListState>()

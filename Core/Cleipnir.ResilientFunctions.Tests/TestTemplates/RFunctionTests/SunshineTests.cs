@@ -264,7 +264,7 @@ public abstract class SunshineTests
             .ShouldNotBeNullAsync();
 
         var states = await store.EffectsStore.GetEffectResults(reg.MapToStoredId(functionId));
-        var state = states.Single(e => e.EffectId == "State".ToEffectId(isState: true)).Result!.ToStringFromUtf8Bytes().DeserializeFromJsonTo<ListState<string>>();
+        var state = states.Single(e => e.EffectId == "State".ToEffectId(EffectType.State)).Result!.ToStringFromUtf8Bytes().DeserializeFromJsonTo<ListState<string>>();
         state.List.Single().ShouldBe("hello world");
     }
     

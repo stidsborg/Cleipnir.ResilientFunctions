@@ -42,6 +42,14 @@ public class EffectTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.RFunc
         => ExistingEffectsFuncIsOnlyInvokedAfterGettingValue(FunctionStoreFactory.Create());
 
     [TestMethod]
+    public override Task SubEffectHasImplicitContext()
+        => SubEffectHasImplicitContext(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task SubEffectHasExplicitContext()
+        => SubEffectHasExplicitContext(FunctionStoreFactory.Create());
+
+    [TestMethod]
     public override Task TaskWhenAllFuncTest()
         => TaskWhenAllFuncTest(FunctionStoreFactory.Create());
 }

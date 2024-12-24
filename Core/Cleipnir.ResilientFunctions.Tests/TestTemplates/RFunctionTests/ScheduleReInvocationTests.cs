@@ -114,7 +114,7 @@ public abstract class ScheduleReInvocationTests
         function.ShouldNotBeNull();
         function.Status.ShouldBe(Status.Succeeded);
         var states = await store.EffectsStore.GetEffectResults(rAction.MapToStoredId(functionId));
-        var state = states.Single(e => e.EffectId == "State".ToEffectId(isState: true)).Result!.ToStringFromUtf8Bytes().DeserializeFromJsonTo<ListState<string>>();
+        var state = states.Single(e => e.EffectId == "State".ToEffectId(EffectType.State)).Result!.ToStringFromUtf8Bytes().DeserializeFromJsonTo<ListState<string>>();
         state.List.Single().ShouldBe("world");
         
         unhandledExceptionCatcher.ShouldNotHaveExceptions();
@@ -220,7 +220,7 @@ public abstract class ScheduleReInvocationTests
         function.Status.ShouldBe(Status.Succeeded);
         function.Result!.ToStringFromUtf8Bytes().DeserializeFromJsonTo<string>().ShouldBe("something");
         var states = await store.EffectsStore.GetEffectResults(rFunc.MapToStoredId(functionId));
-        var state = states.Single(e => e.EffectId == "State".ToEffectId(isState: true)).Result!.ToStringFromUtf8Bytes().DeserializeFromJsonTo<ListState<string>>();
+        var state = states.Single(e => e.EffectId == "State".ToEffectId(EffectType.State)).Result!.ToStringFromUtf8Bytes().DeserializeFromJsonTo<ListState<string>>();
         state.List.Single().ShouldBe("world");
         
         unhandledExceptionCatcher.ShouldNotHaveExceptions();

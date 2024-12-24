@@ -30,7 +30,7 @@ public class ExistingSemaphores(StoredId storedId, IFunctionStore store, Existin
     private async Task<IReadOnlyList<ExistingSemaphoreAndEffectId>> GetExistingSemaphoreAndEffectIds()
     {
         var effectIds = await effect.AllIds;
-        var semaphoreEffectIds = effectIds.Select(id => id.Value).Where(id => id.StartsWith("Semaphore#"));
+        var semaphoreEffectIds = effectIds.Select(id => id.Id).Where(id => id.StartsWith("Semaphore#"));
         
         var existingSemaphoreAndEffectIds = new List<ExistingSemaphoreAndEffectId>(); 
         foreach (var semaphoreEffectId in semaphoreEffectIds)

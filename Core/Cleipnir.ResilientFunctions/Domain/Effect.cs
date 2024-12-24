@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.ParameterSerialization;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
@@ -26,9 +27,8 @@ public class Effect(
     ISerializer serializer
     )
 {
-    private readonly ImplicitIds _implicitIds = new();
     private Dictionary<EffectId, StoredEffect>? _effectResults;
-    private readonly object _sync = new();
+    private readonly Lock _sync = new();
 
     private async Task<Dictionary<EffectId, StoredEffect>> GetEffectResults()
     {
@@ -57,12 +57,12 @@ public class Effect(
         var effectResults = await GetEffectResults();
         
         lock (_sync)
-            return effectResults.ContainsKey(id.ToEffectId());
+            return effectResults.ContainsKey(CreateEffectId(id));
     }
 
     public async Task<WorkStatus?> GetStatus(string id)
     {
-        var effectId = id.ToEffectId();
+        var effectId = CreateEffectId(id);
         var effectResults = await GetEffectResults();
 
         lock (_sync)
@@ -75,9 +75,9 @@ public class Effect(
     public async Task<bool> Mark(string id)
     {
         var effectResults = await GetEffectResults();
-        var effectId = id.ToEffectId();
+        var effectId = CreateEffectId(id);
         lock (_sync)
-            if (effectResults.ContainsKey(id.ToEffectId()))
+            if (effectResults.ContainsKey(effectId))
                 return false;
         
         var storedEffect = StoredEffect.CreateCompleted(effectId);
@@ -90,7 +90,7 @@ public class Effect(
     public async Task<T> CreateOrGet<T>(string id, T value)
     {
         var effectResults = await GetEffectResults();
-        var effectId = id.ToEffectId();
+        var effectId = CreateEffectId(id);
         lock (_sync)
         {
             if (effectResults.TryGetValue(effectId, out var existing) && existing.WorkStatus == WorkStatus.Completed)
@@ -112,7 +112,7 @@ public class Effect(
     public async Task Upsert<T>(string id, T value)
     {
         var effectResults = await GetEffectResults();
-        var effectId = id.ToEffectId();
+        var effectId = CreateEffectId(id);
         
         var storedEffect = StoredEffect.CreateCompleted(effectId, serializer.SerializeEffectResult(value));
         await effectsStore.SetEffectResult(storedId, storedEffect);
@@ -124,7 +124,7 @@ public class Effect(
     public async Task<Option<T>> TryGet<T>(string id)
     {
         var effectResults = await GetEffectResults();
-        var effectId = id.ToEffectId();
+        var effectId = CreateEffectId(id);
         
         lock (_sync)
         {
@@ -157,13 +157,13 @@ public class Effect(
     #region Implicit ids
 
     public Task Capture(Action work, ResiliencyLevel resiliency = ResiliencyLevel.AtLeastOnce)
-        => Capture(id: _implicitIds.Next(), work, resiliency);
+        => Capture(id: EffectContext.CurrentContext.NextImplicitId(), work, resiliency);
     public Task<T> Capture<T>(Func<T> work, ResiliencyLevel resiliency = ResiliencyLevel.AtLeastOnce)
-        => Capture(id: _implicitIds.Next(), work: () => work().ToTask(), resiliency);
+        => Capture(id: EffectContext.CurrentContext.NextImplicitId(), work: () => work().ToTask(), resiliency);
     public Task Capture(Func<Task> work, ResiliencyLevel resiliency = ResiliencyLevel.AtLeastOnce)
-        => Capture(id: _implicitIds.Next(), work, resiliency);
+        => Capture(id: EffectContext.CurrentContext.NextImplicitId(), work, resiliency);
     public Task<T> Capture<T>(Func<Task<T>> work, ResiliencyLevel resiliency = ResiliencyLevel.AtLeastOnce)
-        => Capture(id: _implicitIds.Next(), work, resiliency);
+        => Capture(id: EffectContext.CurrentContext.NextImplicitId(), work, resiliency);
     
     #endregion
     
@@ -171,10 +171,19 @@ public class Effect(
         => Capture(id, work: () => { work(); return Task.CompletedTask; }, resiliency);
     public Task<T> Capture<T>(string id, Func<T> work, ResiliencyLevel resiliency = ResiliencyLevel.AtLeastOnce)
         => Capture(id, work: () => work().ToTask(), resiliency);
-    public async Task Capture(string id, Func<Task> work, ResiliencyLevel resiliency = ResiliencyLevel.AtLeastOnce)
+    public async Task Capture(string id, Func<Task> work, ResiliencyLevel resiliency = ResiliencyLevel.AtLeastOnce) 
+        => await InnerCapture(id, EffectType.Effect, work, resiliency, EffectContext.CurrentContext);
+    public async Task<T> Capture<T>(string id, Func<Task<T>> work, ResiliencyLevel resiliency = ResiliencyLevel.AtLeastOnce) 
+        => await InnerCapture(id, EffectType.Effect, work, resiliency, EffectContext.CurrentContext);
+    
+    private async Task InnerCapture(string id, EffectType effectType, Func<Task> work, ResiliencyLevel resiliency, EffectContext effectContext)
     {
+        Delimiters.EnsureNoUnitSeparator(id);
         var effectResults = await GetEffectResults();
-        var effectId = id.ToEffectId();
+        
+        var effectId = id.ToEffectId(effectType, context: effectContext.Parent?.Serialize());
+        EffectContext.SetParent(effectId);
+        
         lock (_sync)
         {
             var success = effectResults.TryGetValue(effectId, out var storedEffect);
@@ -225,10 +234,14 @@ public class Effect(
             effectResults[effectId] = effectResult;
     }
     
-    public async Task<T> Capture<T>(string id, Func<Task<T>> work, ResiliencyLevel resiliency = ResiliencyLevel.AtLeastOnce)
+    private async Task<T> InnerCapture<T>(string id, EffectType effectType, Func<Task<T>> work, ResiliencyLevel resiliency, EffectContext effectContext)
     {
+        Delimiters.EnsureNoUnitSeparator(id);
         var effectResults = await GetEffectResults();
-        var effectId = id.ToEffectId();
+        
+        var effectId = id.ToEffectId(effectType, context: effectContext.Parent?.Serialize());
+        EffectContext.SetParent(effectId);
+        
         lock (_sync)
         {
             var success = effectResults.TryGetValue(effectId, out var storedEffect);
@@ -281,16 +294,16 @@ public class Effect(
         
         return result;
     }
-
+    
     public async Task Clear(string id)
     {
         var effectResults = await GetEffectResults();
-        var effectId = id.ToEffectId();
+        var effectId = CreateEffectId(id);
         lock (_sync)
             if (!effectResults.ContainsKey(effectId))
                 return;
         
-        await effectsStore.DeleteEffectResult(storedId, id.ToStoredEffectId(isState: false));
+        await effectsStore.DeleteEffectResult(storedId, effectId.ToStoredEffectId());
         lock (_sync)
             effectResults.Remove(effectId);
     }
@@ -301,9 +314,12 @@ public class Effect(
         => Capture(id, work: () => Task.WhenAll(tasks));
 
     public Task<T> WhenAny<T>(params Task<T>[] tasks)
-        => WhenAny(_implicitIds.Next(), tasks);
+        => WhenAny(EffectContext.CurrentContext.NextImplicitId(), tasks);
     public Task<T[]> WhenAll<T>(params Task<T>[] tasks)
-        => WhenAll(_implicitIds.Next(), tasks);
+        => WhenAll(EffectContext.CurrentContext.NextImplicitId(), tasks);
 
-    internal string TakeNextImplicitId() => _implicitIds.Next();
+    internal string TakeNextImplicitId() => EffectContext.CurrentContext.NextImplicitId();
+
+    private EffectId CreateEffectId(string id, EffectType? type = null) 
+        => id.ToEffectId(type, context: EffectContext.CurrentContext.Parent?.Serialize());
 }

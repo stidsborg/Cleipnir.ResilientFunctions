@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Storage;
@@ -17,9 +18,8 @@ public interface IRegisteredTimeouts
 
 public class RegisteredTimeouts(StoredId id, ITimeoutStore timeoutStore) : IRegisteredTimeouts
 {
-    private readonly ImplicitIds _implicitIds = new();
     private Dictionary<TimeoutId, RegisteredTimeout>? _localTimeouts;
-    private readonly object _sync = new();
+    private readonly Lock _sync = new();
 
     private async Task<Dictionary<TimeoutId, RegisteredTimeout>> GetRegisteredTimeouts()
     {
@@ -43,7 +43,7 @@ public class RegisteredTimeouts(StoredId id, ITimeoutStore timeoutStore) : IRegi
         return localTimeouts;
     }
 
-    public string GetNextImplicitId() => _implicitIds.Next();
+    public string GetNextImplicitId() => EffectContext.CurrentContext.NextImplicitId();
     
     public async Task RegisterTimeout(TimeoutId timeoutId, DateTime expiresAt)
     {

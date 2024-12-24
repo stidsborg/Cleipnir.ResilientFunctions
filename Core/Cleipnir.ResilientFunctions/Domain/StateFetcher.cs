@@ -17,7 +17,7 @@ public class StateFetcher(StoredType storedType, IEffectsStore effectsStore, ISe
         var storedStates = await effectsStore.GetEffectResults(storedId);
         
         foreach (var storedEffect in storedStates)
-            if (storedEffect.EffectId.Value == stateId.Value)
+            if (storedEffect.EffectId.Id == stateId.Value)
             {
                 var state = serializer.DeserializeState<TState>(storedEffect.Result!);
                 state.Initialize(

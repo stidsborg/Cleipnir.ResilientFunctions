@@ -167,7 +167,7 @@ public abstract class StoreCrudTests
         await store.CorrelationStore.SetCorrelation(functionId, "SomeCorrelationId");
         await store.EffectsStore.SetEffectResult(
             functionId,
-            new StoredEffect("SomeEffectId".ToEffectId(), "SomeEffectId".ToStoredEffectId(isState: false), WorkStatus.Completed, Result: null, StoredException: null)
+            new StoredEffect("SomeEffectId".ToEffectId(), "SomeEffectId".ToStoredEffectId(EffectType.Effect), WorkStatus.Completed, Result: null, StoredException: null)
         );
         await store.MessageStore.AppendMessage(functionId, new StoredMessage("SomeJson".ToUtf8Bytes(), "SomeType".ToUtf8Bytes()));
         await store.TimeoutStore.UpsertTimeout(

@@ -388,4 +388,90 @@ public abstract class EffectTests
         await effect.TryGet<int>("Id1");
         syncedCounter.Current.ShouldBe(1);
     }
+    
+    public abstract Task SubEffectHasImplicitContext();
+    public async Task SubEffectHasImplicitContext(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        using var functionsRegistry = new FunctionsRegistry(store);
+        var flowId = TestFlowId.Create();
+        var (flowType, flowInstance) = flowId;
+        var rAction = functionsRegistry.RegisterParamless(
+            flowType,
+            async Task (workflow) =>
+            {
+                var effect = workflow.Effect;
+                await effect.Capture(async () =>
+                {
+                    var e1 =  effect.Capture(async () =>
+                    {
+                        await Task.Delay(10);
+                        await effect.Upsert("SubEffectValue1", "some value");
+                    });
+                    await e1;
+                    var e2 = effect.Capture(async () =>
+                    {
+                        await Task.Delay(1);
+                        await effect.Upsert("SubEffectValue2", "some other value");
+                    });
+
+                    await Task.WhenAll(e1, e2);
+                });
+            }
+        );
+
+        await rAction.Invoke(flowInstance.ToString());
+        
+        var storedId = rAction.MapToStoredId(flowId);
+        var effectResults = await store.EffectsStore.GetEffectResults(storedId);
+
+        var subEffectValue1Id = effectResults.Single(se => se.EffectId.Id == "SubEffectValue1").EffectId;
+        subEffectValue1Id.Context.ShouldBe("E0.E0");
+        
+        var subEffectValue2Id = effectResults.Single(se => se.EffectId.Id == "SubEffectValue2").EffectId;
+        subEffectValue2Id.Context.ShouldBe("E0.E1");
+    }
+    
+    public abstract Task SubEffectHasExplicitContext();
+    public async Task SubEffectHasExplicitContext(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        using var functionsRegistry = new FunctionsRegistry(store);
+        var flowId = TestFlowId.Create();
+        var (flowType, flowInstance) = flowId;
+        var rAction = functionsRegistry.RegisterParamless(
+            flowType,
+            async Task (workflow) =>
+            {
+                var effect = workflow.Effect;
+                await effect.Capture("GrandParent", async () =>
+                {
+                    var e1 =  effect.Capture("Mother", async () =>
+                    {
+                        await Task.Delay(10);
+                        await effect.Upsert("SubEffectValue1", "some value");
+                    });
+                    await e1;
+                    var e2 = effect.Capture("Father",async () =>
+                    {
+                        await Task.Delay(1);
+                        await effect.Upsert("SubEffectValue2", "some other value");
+                    });
+
+                    await Task.WhenAll(e1, e2);
+                });
+            }
+        );
+
+        await rAction.Invoke(flowInstance.ToString());
+        
+        var storedId = rAction.MapToStoredId(flowId);
+        var effectResults = await store.EffectsStore.GetEffectResults(storedId);
+
+        var subEffectValue1Id = effectResults.Single(se => se.EffectId.Id == "SubEffectValue1").EffectId;
+        subEffectValue1Id.Context.ShouldBe("EGrandParent.EMother");
+        
+        var subEffectValue2Id = effectResults.Single(se => se.EffectId.Id == "SubEffectValue2").EffectId;
+        subEffectValue2Id.Context.ShouldBe("EGrandParent.EFather");
+    }
 }

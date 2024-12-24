@@ -23,11 +23,11 @@ public class ExistingEffects(StoredId storedId, IEffectsStore effectsStore, ISer
     public Task<IEnumerable<EffectId>> AllIds 
         => GetStoredEffects().ContinueWith(t => (IEnumerable<EffectId>) t.Result.Keys);
 
-    public async Task<bool> HasValue(string effectId) => (await GetStoredEffects()).ContainsKey(new EffectId(effectId, IsState: false));
+    public async Task<bool> HasValue(string effectId) => (await GetStoredEffects()).ContainsKey(effectId.ToEffectId());
     public async Task<TResult?> GetValue<TResult>(string effectId)
     {
         var storedEffects = await GetStoredEffects();
-        var success = storedEffects.TryGetValue(new EffectId(effectId, IsState: false), out var storedEffect);
+        var success = storedEffects.TryGetValue(effectId.ToEffectId(), out var storedEffect);
         if (!success)
             throw new KeyNotFoundException($"Effect '{effectId}' was not found");
         if (storedEffect!.WorkStatus != WorkStatus.Completed)
@@ -35,7 +35,7 @@ public class ExistingEffects(StoredId storedId, IEffectsStore effectsStore, ISer
 
         return storedEffect.Result == null 
             ? default 
-            : serializer.DeserializeEffectResult<TResult>(storedEffects[new EffectId(effectId, IsState: false)].Result!);
+            : serializer.DeserializeEffectResult<TResult>(storedEffects[effectId.ToEffectId()].Result!);
     }
 
     public async Task<WorkStatus> GetStatus(EffectId effectId)
@@ -47,8 +47,8 @@ public class ExistingEffects(StoredId storedId, IEffectsStore effectsStore, ISer
     public async Task Remove(string effectId)
     {
         var storedEffects = await GetStoredEffects();
-        await effectsStore.DeleteEffectResult(storedId, effectId.ToStoredEffectId(isState: false));
-        storedEffects.Remove(new EffectId(effectId, IsState: false));
+        await effectsStore.DeleteEffectResult(storedId, effectId.ToStoredEffectId(EffectType.Effect));
+        storedEffects.Remove(effectId.ToEffectId());
     }
 
     private async Task Set(StoredEffect storedEffect)

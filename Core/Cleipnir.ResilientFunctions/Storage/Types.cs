@@ -68,7 +68,7 @@ public record StoredEffectId(Guid Value)
 
 public static class StoredEffectIdExtensions
 {
-    public static StoredEffectId ToStoredEffectId(this string effectId, bool isState) => ToStoredEffectId(effectId.ToEffectId(isState));
+    public static StoredEffectId ToStoredEffectId(this string effectId, EffectType effectType) => ToStoredEffectId(effectId.ToEffectId(effectType));
     public static StoredEffectId ToStoredEffectId(this EffectId effectId) => StoredEffectId.Create(effectId);
 }
 
@@ -91,7 +91,7 @@ public record StoredEffect(
 
     public static StoredEffect CreateState(StoredState storedState)
     {
-        var effectId = storedState.StateId.Value.ToEffectId(isState: true);
+        var effectId = storedState.StateId.Value.ToEffectId(effectType: EffectType.State);
         return new StoredEffect(
             effectId,
             effectId.ToStoredEffectId(),
