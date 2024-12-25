@@ -79,4 +79,14 @@ public class EffectIdTests
         var storedEffectId = effectId.ToStoredEffectId();
         storedEffectId.Value.ShouldBe(StoredIdFactory.FromString(serializedEffectId));
     }
+    
+    [TestMethod]
+    public void EffectIdWithEmptyIdAndContextCanBeDeserialized()
+    {
+        var effectId = new EffectId("", EffectType.State, Context: "");
+        var serializedId = effectId.Serialize();
+        var deserializedId = EffectId.Deserialize(serializedId);
+        
+        deserializedId.ShouldBe(effectId);
+    }
 }
