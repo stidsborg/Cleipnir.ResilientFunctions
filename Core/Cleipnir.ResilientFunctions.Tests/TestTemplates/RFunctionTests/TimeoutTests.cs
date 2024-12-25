@@ -39,7 +39,7 @@ public abstract class TimeoutTests
                 await messages.RegisteredTimeouts.RegisterTimeout("test", expiresIn: TimeSpan.FromMilliseconds(500));
                 timeoutTask.IsCompleted.ShouldBeFalse();
                 var timeout = await timeoutTask;
-                timeout.TimeoutId.ShouldBe("test");
+                timeout.TimeoutId.Id.ShouldBe("test");
             }
         ).Invoke;
 
@@ -68,7 +68,7 @@ public abstract class TimeoutTests
             {
                 var messages = workflow.Messages;
                 await messages
-                    .TakeUntilTimeout("TimeoutId", expiresIn: TimeSpan.FromMilliseconds(500))
+                    .TakeUntilTimeout("TimeoutId#21", expiresIn: TimeSpan.FromMilliseconds(500))
                     .FirstOfType<string>();
             }
         ).Invoke;
@@ -99,7 +99,7 @@ public abstract class TimeoutTests
             inner: Task (string _, Workflow workflow) =>
                 workflow
                     .Messages
-                    .TakeUntilTimeout("TimeoutId", expiresIn: TimeSpan.FromMilliseconds(5_000))
+                    .TakeUntilTimeout("TimeoutId4321", expiresIn: TimeSpan.FromMilliseconds(5_000))
                     .First()
         );
 
@@ -111,9 +111,11 @@ public abstract class TimeoutTests
         var controlPanel = await registration.ControlPanel("someInstanceId");
         controlPanel.ShouldNotBeNull();
 
-        await controlPanel.WaitForCompletion();
-
+        await controlPanel.WaitForCompletion(allowPostponeAndSuspended: true);
+        
         await controlPanel.Refresh();
+        var registeredTimeouts = await controlPanel.RegisteredTimeouts.All;
+        Console.WriteLine(registeredTimeouts);
         await controlPanel
             .RegisteredTimeouts
             .All
@@ -167,8 +169,8 @@ public abstract class TimeoutTests
         var messages = await controlPanel.Messages.AsObjects;
         messages.Count.ShouldBe(2);
         messages.OfType<TimeoutEvent>().Count().ShouldBe(2);
-        messages.OfType<TimeoutEvent>().Single(t => t.TimeoutId == "0").Expiration.ShouldBe(expiresAt1);
-        messages.OfType<TimeoutEvent>().Single(t => t.TimeoutId == "1").Expiration.ShouldBe(expiresAt2);
+        messages.OfType<TimeoutEvent>().Single(t => t.TimeoutId.Id == "0").Expiration.ShouldBe(expiresAt1);
+        messages.OfType<TimeoutEvent>().Single(t => t.TimeoutId.Id == "1").Expiration.ShouldBe(expiresAt2);
         
         unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
     }

@@ -2,12 +2,12 @@
 
 public class LogisticsServiceStub 
 {
-    private readonly MessageBroker _messageBroker;
+    private readonly Bus _bus;
 
-    public LogisticsServiceStub(MessageBroker messageBroker)
+    public LogisticsServiceStub(Bus bus)
     {
-        _messageBroker = messageBroker;
-        messageBroker.Subscribe(MessageHandler);
+        _bus = bus;
+        bus.Subscribe(MessageHandler);
     }
 
     private async Task MessageHandler(EventsAndCommands message)
@@ -16,7 +16,7 @@ public class LogisticsServiceStub
             return;
 
         await Task.Delay(1_000);
-        await _messageBroker.Send(
+        await _bus.Send(
             new ProductsShipped(command.OrderId, TrackAndTraceNumber: Guid.NewGuid().ToString("N"))
         );
     }

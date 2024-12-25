@@ -52,14 +52,13 @@ public class Effect(
     internal Task<IEnumerable<EffectId>> EffectIds => GetEffectResults()
         .SelectAsync(kv => kv.Keys.AsEnumerable());
 
-    public async Task<bool> Contains(string id) => await Contains(id, EffectType.Effect);
-    
-    internal async Task<bool> Contains(string id, EffectType effectType)
+    public async Task<bool> Contains(string id) => await Contains(CreateEffectId(id, EffectType.Effect));
+    internal async Task<bool> Contains(EffectId effectId)
     {
         var effectResults = await GetEffectResults();
         
         lock (_sync)
-            return effectResults.ContainsKey(CreateEffectId(id, effectType));
+            return effectResults.ContainsKey(effectId);
     }
 
     public async Task<WorkStatus?> GetStatus(string id)
@@ -111,11 +110,10 @@ public class Effect(
         return value;
     }
 
-    public async Task Upsert<T>(string id, T value) => await Upsert(id, value, EffectType.Effect);
-    internal async Task Upsert<T>(string id, T value, EffectType effectType)
+    public async Task Upsert<T>(string id, T value) => await Upsert(CreateEffectId(id, EffectType.Effect), value);
+    internal async Task Upsert<T>(EffectId effectId, T value)
     {
         var effectResults = await GetEffectResults();
-        var effectId = CreateEffectId(id, effectType);
         
         var storedEffect = StoredEffect.CreateCompleted(effectId, serializer.SerializeEffectResult(value));
         await effectsStore.SetEffectResult(storedId, storedEffect);
@@ -124,11 +122,10 @@ public class Effect(
             effectResults[effectId] = storedEffect;
     }
 
-    public async Task<Option<T>> TryGet<T>(string id) => await TryGet<T>(id, EffectType.Effect);
-    internal async Task<Option<T>> TryGet<T>(string id, EffectType effectType)
+    public async Task<Option<T>> TryGet<T>(string id) => await TryGet<T>(CreateEffectId(id, EffectType.Effect));
+    internal async Task<Option<T>> TryGet<T>(EffectId effectId)
     {
         var effectResults = await GetEffectResults();
-        var effectId = CreateEffectId(id, effectType);
         
         lock (_sync)
         {
@@ -141,20 +138,20 @@ public class Effect(
                 }
                 
                 if (storedEffect.StoredException != null)
-                    throw new EffectException(flowType, id, serializer.DeserializeException(storedEffect.StoredException!));
+                    throw new EffectException(flowType, effectId.Id, serializer.DeserializeException(storedEffect.StoredException!));
             }
         }
         
         return Option<T>.NoValue;
     }
 
-    public async Task<T> Get<T>(string id) => await Get<T>(id, EffectType.Effect);
-    internal async Task<T> Get<T>(string id, EffectType effectType)
+    public async Task<T> Get<T>(string id) => await Get<T>(CreateEffectId(id, EffectType.Effect));
+    internal async Task<T> Get<T>(EffectId effectId)
     {
-        var option = await TryGet<T>(id, effectType);
+        var option = await TryGet<T>(effectId);
         
         if (!option.HasValue)
-            throw new InvalidOperationException($"No value exists for id: '{id}'");
+            throw new InvalidOperationException($"No value exists for id: '{effectId}'");
 
         return option.Value;
     }
@@ -328,6 +325,6 @@ public class Effect(
 
     internal string TakeNextImplicitId() => EffectContext.CurrentContext.NextImplicitId();
 
-    private EffectId CreateEffectId(string id, EffectType? type = null) 
+    internal EffectId CreateEffectId(string id, EffectType? type = null) 
         => id.ToEffectId(type, context: EffectContext.CurrentContext.Parent?.Serialize());
 }

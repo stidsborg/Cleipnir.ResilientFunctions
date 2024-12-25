@@ -68,7 +68,7 @@ public class MariaDbTimeoutStore : ITimeoutStore
             {
                 new() {Value = functionId.Type.Value},
                 new() {Value = functionId.Instance.Value.ToString("N")},
-                new() {Value = timeoutId},
+                new() {Value = timeoutId.Serialize()},
                 new() {Value = expiry},
                 new() {Value = expiry}
             }
@@ -78,7 +78,7 @@ public class MariaDbTimeoutStore : ITimeoutStore
     }
 
     private string? _removeTimeoutSql;
-    public async Task RemoveTimeout(StoredId storedId, string timeoutId)
+    public async Task RemoveTimeout(StoredId storedId, EffectId timeoutId)
     {
         await using var conn = await CreateConnection();
         _removeTimeoutSql ??= @$"
@@ -94,7 +94,7 @@ public class MariaDbTimeoutStore : ITimeoutStore
             {
                 new() {Value = storedId.Type.Value},
                 new() {Value = storedId.Instance.Value.ToString("N")},
-                new() {Value = timeoutId},
+                new() {Value = timeoutId.Serialize()},
             }
         };
 
@@ -147,7 +147,7 @@ public class MariaDbTimeoutStore : ITimeoutStore
             var timeoutId = reader.GetString(2);
             var expires = reader.GetInt64(3);
             var functionId = new StoredId(new StoredType(type), instance);
-            storedTimeouts.Add(new StoredTimeout(functionId, timeoutId, expires));
+            storedTimeouts.Add(new StoredTimeout(functionId, EffectId.Deserialize(timeoutId), expires));
         }
 
         return storedTimeouts;
@@ -178,7 +178,7 @@ public class MariaDbTimeoutStore : ITimeoutStore
         {
             var timeoutId = reader.GetString(0);
             var expires = reader.GetInt64(1);
-            storedTimeouts.Add(new StoredTimeout(storedId, timeoutId, expires));
+            storedTimeouts.Add(new StoredTimeout(storedId, EffectId.Deserialize(timeoutId), expires));
         }
 
         return storedTimeouts;

@@ -74,7 +74,7 @@ public class PostgreSqlTimeoutStore(string connectionString, string tablePrefix 
             {
                 new() {Value = functionId.Type.Value},
                 new() {Value = functionId.Instance.Value},
-                new() {Value = timeoutId},
+                new() {Value = timeoutId.Serialize()},
                 new() {Value = expiry}
             }
         };
@@ -83,7 +83,7 @@ public class PostgreSqlTimeoutStore(string connectionString, string tablePrefix 
     }
 
     private string? _removeTimeoutSql;
-    public async Task RemoveTimeout(StoredId storedId, string timeoutId)
+    public async Task RemoveTimeout(StoredId storedId, EffectId timeoutId)
     {
         await using var conn = await CreateConnection();
         _removeTimeoutSql ??= @$"
@@ -99,7 +99,7 @@ public class PostgreSqlTimeoutStore(string connectionString, string tablePrefix 
             {
                 new() {Value = storedId.Type.Value},
                 new() {Value = storedId.Instance.Value},
-                new() {Value = timeoutId}
+                new() {Value = timeoutId.Serialize()}
             }
         };
 
@@ -152,7 +152,7 @@ public class PostgreSqlTimeoutStore(string connectionString, string tablePrefix 
             var timeoutId = reader.GetString(2);
             var expires = reader.GetInt64(3);
             var storedId = new StoredId(new StoredType(type), instance);
-            storedMessages.Add(new StoredTimeout(storedId, timeoutId, expires));
+            storedMessages.Add(new StoredTimeout(storedId, EffectId.Deserialize(timeoutId), expires));
         }
 
         return storedMessages;
@@ -183,7 +183,7 @@ public class PostgreSqlTimeoutStore(string connectionString, string tablePrefix 
         {
             var timeoutId = reader.GetString(0);
             var expires = reader.GetInt64(1);
-            storedMessages.Add(new StoredTimeout(storedId, timeoutId, expires));
+            storedMessages.Add(new StoredTimeout(storedId, EffectId.Deserialize(timeoutId), expires));
         }
 
         return storedMessages;

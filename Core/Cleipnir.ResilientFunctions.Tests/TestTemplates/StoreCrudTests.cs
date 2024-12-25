@@ -171,7 +171,7 @@ public abstract class StoreCrudTests
         );
         await store.MessageStore.AppendMessage(functionId, new StoredMessage("SomeJson".ToUtf8Bytes(), "SomeType".ToUtf8Bytes()));
         await store.TimeoutStore.UpsertTimeout(
-            new StoredTimeout(functionId, "SomeTimeoutId", Expiry: DateTime.UtcNow.AddDays(1).Ticks),
+            new StoredTimeout(functionId, "SomeTimeoutId".ToEffectId(), Expiry: DateTime.UtcNow.AddDays(1).Ticks),
             overwrite: false
         );
         

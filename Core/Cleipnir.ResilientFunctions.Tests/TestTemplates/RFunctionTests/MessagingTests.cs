@@ -101,7 +101,7 @@ public abstract class MessagingTests
                     .Existing(out var __)
                     .SingleOrDefault();
                 
-                return Tuple.Create(timeoutEvent != null && !timeoutOption.HasValue, timeoutEvent?.TimeoutId ?? "");
+                return Tuple.Create(timeoutEvent != null && !timeoutOption.HasValue, timeoutEvent?.TimeoutId.Id ?? "");
             }
         );
 

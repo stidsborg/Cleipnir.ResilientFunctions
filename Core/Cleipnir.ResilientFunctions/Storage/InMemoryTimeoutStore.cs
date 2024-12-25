@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
@@ -9,7 +10,7 @@ namespace Cleipnir.ResilientFunctions.Storage;
 public class InMemoryTimeoutStore : ITimeoutStore
 {
     private readonly Dictionary<Key, long> _timeouts = new();
-    private readonly object _sync = new();
+    private readonly Lock _sync = new();
     
     public Task Initialize() => Task.CompletedTask;
     public Task Truncate()
@@ -31,7 +32,7 @@ public class InMemoryTimeoutStore : ITimeoutStore
         return Task.CompletedTask;
     }
 
-    public Task RemoveTimeout(StoredId storedId, string timeoutId)
+    public Task RemoveTimeout(StoredId storedId, EffectId timeoutId)
     {
         var key = new Key(storedId.Type.Value, storedId.Instance, timeoutId);
         lock (_sync)
@@ -78,5 +79,5 @@ public class InMemoryTimeoutStore : ITimeoutStore
                 .ToTask();
     }
 
-    private record Key(int FlowType, StoredInstance FlowInstance, string TimeoutId);
+    private record Key(int FlowType, StoredInstance FlowInstance, EffectId TimeoutId);
 }

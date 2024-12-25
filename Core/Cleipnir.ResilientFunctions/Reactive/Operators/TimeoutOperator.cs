@@ -11,10 +11,10 @@ namespace Cleipnir.ResilientFunctions.Reactive.Operators;
 public class TimeoutOperator<T> : IReactiveChain<T>
 {
     private readonly IReactiveChain<T> _inner;
-    private readonly string _timeoutId;
+    private readonly EffectId _timeoutId;
     private readonly DateTime _expiresAt;
 
-    public TimeoutOperator(IReactiveChain<T> inner, string timeoutId, DateTime expiresAt)
+    public TimeoutOperator(IReactiveChain<T> inner, EffectId timeoutId, DateTime expiresAt)
     {
         _inner = inner;
         _timeoutId = timeoutId;
@@ -35,7 +35,7 @@ public class TimeoutOperator<T> : IReactiveChain<T>
 
     private class Subscription : ISubscription
     {
-        private readonly string _timeoutId;
+        private readonly EffectId _timeoutId;
         private readonly DateTime _expiresAt;
 
         private readonly Action<T> _signalNext;
@@ -50,7 +50,7 @@ public class TimeoutOperator<T> : IReactiveChain<T>
 
         public Subscription(
             IReactiveChain<T> inner,
-            string timeoutId, DateTime expiresAt,
+            EffectId timeoutId, DateTime expiresAt,
             Action<T> signalNext, Action signalCompletion, Action<Exception> signalError)
         {
             _timeoutId = timeoutId;

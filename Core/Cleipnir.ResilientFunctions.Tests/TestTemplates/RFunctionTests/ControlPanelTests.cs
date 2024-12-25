@@ -1512,7 +1512,7 @@ public abstract class ControlPanelTests
             flowType,
             Task (string param, Workflow workflow) =>
                 workflow.Messages.RegisteredTimeouts.RegisterTimeout(
-                    "someTimeoutId", expiresAt: new DateTime(2100, 1,1, 1,1,1, DateTimeKind.Utc)
+                    "someTimeoutId".ToEffectId(EffectType.System), expiresAt: new DateTime(2100, 1,1, 1,1,1, DateTimeKind.Utc)
                 )
         );
 
@@ -1554,7 +1554,7 @@ public abstract class ControlPanelTests
             async Task<string> (string param, Workflow workflow) =>
             {
                 await workflow.Messages.RegisteredTimeouts.RegisterTimeout(
-                    "someTimeoutId", expiresAt: new DateTime(2100, 1, 1, 1, 1, 1, DateTimeKind.Utc)
+                    "someTimeoutId".ToEffectId(EffectType.System), expiresAt: new DateTime(2100, 1, 1, 1, 1, 1, DateTimeKind.Utc)
                 );
 
                 return param;

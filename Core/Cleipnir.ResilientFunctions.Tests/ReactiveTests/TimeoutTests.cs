@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime;
 using Cleipnir.ResilientFunctions.Domain;
@@ -19,7 +20,7 @@ public class TimeoutTests
     [TestMethod]
     public async Task StreamCompletesAndThrowsNoResultExceptionAfterFiredTimeoutEvent()
     {
-        var timeoutId = "TimeoutId";
+        var timeoutId = "TimeoutId".ToEffectId();
         var expiresAt = DateTime.UtcNow.Add(TimeSpan.FromMinutes(15));
         
         var registeredTimeoutsStub = new RegisteredTimeoutsStub();
@@ -44,7 +45,7 @@ public class TimeoutTests
     [TestMethod]
     public async Task StreamCompletesAndReturnsNothingAfterFiredTimeoutEvent()
     {
-        var timeoutId = "TimeoutId";
+        var timeoutId = "TimeoutId".ToEffectId();
         var expiresAt = DateTime.UtcNow.Add(TimeSpan.FromMinutes(15));
         
         var registeredTimeoutsStub = new RegisteredTimeoutsStub();
@@ -70,7 +71,7 @@ public class TimeoutTests
     [TestMethod]
     public async Task StreamCompletesSuccessfullyWhenEventSupersedesTimeout()
     {
-        var timeoutId = "TimeoutId";
+        var timeoutId = "TimeoutId".ToEffectId();
         var expiresAt = DateTime.UtcNow.Add(TimeSpan.FromMinutes(15));
         
         var registeredTimeoutsStub = new RegisteredTimeoutsStub();
@@ -88,7 +89,7 @@ public class TimeoutTests
     [TestMethod]
     public async Task StreamCompletesSuccessfullyWithValuedOptionWhenEventSupersedesTimeout()
     {
-        var timeoutId = "TimeoutId";
+        var timeoutId = "TimeoutId".ToEffectId();
         var expiresAt = DateTime.UtcNow.Add(TimeSpan.FromMinutes(15));
         
         var registeredTimeoutsStub = new RegisteredTimeoutsStub();
@@ -110,7 +111,7 @@ public class TimeoutTests
     [TestMethod]
     public async Task ExistingTimeoutEventInMessagesAvoidRegisteredTimeoutsCancellation()
     {
-        var timeoutId = "TimeoutId";
+        var timeoutId = "TimeoutId".ToEffectId();
         var expiresAt = DateTime.UtcNow.Add(TimeSpan.FromMinutes(15));
         
         var registeredTimeoutsStub = new RegisteredTimeoutsStub();
@@ -125,7 +126,7 @@ public class TimeoutTests
     
     private class RegisteredTimeoutsStub : IRegisteredTimeouts
     {
-        public List<Tuple<TimeoutId, DateTime>> Registrations
+        public List<Tuple<EffectId, DateTime>> Registrations
         {
             get
             {
@@ -136,12 +137,12 @@ public class TimeoutTests
             }
         }
 
-        public volatile TimeoutId? Cancelled = null; 
+        public volatile EffectId? Cancelled = null; 
 
-        private readonly object _sync = new();
-        private readonly Dictionary<TimeoutId, DateTime> _registrations = new();
+        private readonly Lock _sync = new();
+        private readonly Dictionary<EffectId, DateTime> _registrations = new();
             
-        public Task RegisterTimeout(TimeoutId timeoutId, DateTime expiresAt)
+        public Task RegisterTimeout(EffectId timeoutId, DateTime expiresAt)
         {
             lock (_sync)
                 _registrations[timeoutId] = expiresAt;
@@ -149,10 +150,10 @@ public class TimeoutTests
             return Task.CompletedTask;
         }
 
-        public Task RegisterTimeout(TimeoutId timeoutId, TimeSpan expiresIn)
+        public Task RegisterTimeout(EffectId timeoutId, TimeSpan expiresIn)
             => RegisterTimeout(timeoutId, DateTime.UtcNow.Add(expiresIn));
 
-        public Task CancelTimeout(TimeoutId timeoutId)
+        public Task CancelTimeout(EffectId timeoutId)
         {
             Cancelled = timeoutId;
             return Task.CompletedTask;

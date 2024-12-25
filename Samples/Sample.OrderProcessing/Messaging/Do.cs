@@ -1,4 +1,5 @@
 ﻿using Cleipnir.ResilientFunctions;
+using Cleipnir.ResilientFunctions.Domain;
 
 namespace Sample.OrderProcessing.Messaging;
 
@@ -6,7 +7,7 @@ public static class Do
 {
     public static async Task Execute(FunctionsRegistry functionsRegistry)
     {
-        var messageBroker = new MessageBroker();
+        var messageBroker = new Bus();
         var emailService = new EmailServiceStub(messageBroker);
         var logisticsService = new LogisticsServiceStub(messageBroker);
         var paymentProviderService = new PaymentProviderStub(messageBroker);
@@ -14,7 +15,8 @@ public static class Do
         var orderProcessor = new OrderProcessor(messageBroker);
         var rAction = functionsRegistry.RegisterAction<Order>(
             "OrderProcessorMessaging",
-            orderProcessor.Execute
+            orderProcessor.Execute,
+            new Settings(messagesDefaultMaxWaitForCompletion: TimeSpan.FromMinutes(1))
         );        
         
         messageBroker.Subscribe(async msg =>

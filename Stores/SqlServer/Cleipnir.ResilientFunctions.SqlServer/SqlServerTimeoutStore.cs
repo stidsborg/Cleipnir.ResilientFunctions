@@ -73,14 +73,14 @@ public class SqlServerTimeoutStore : ITimeoutStore
         await using var command = new SqlCommand(_upsertTimeoutSql, conn);
         command.Parameters.AddWithValue("@FlowType", functionId.Type.Value);
         command.Parameters.AddWithValue("@FlowInstance", functionId.Instance.Value);
-        command.Parameters.AddWithValue("@TimeoutId", timeoutId);
+        command.Parameters.AddWithValue("@TimeoutId", timeoutId.Serialize());
         command.Parameters.AddWithValue("@Expiry", expiry);
         command.Parameters.AddWithValue("@Overwrite", overwrite ? 1 : 2);
         await command.ExecuteNonQueryAsync();
     }
 
     private string? _removeTimeoutSql;
-    public async Task RemoveTimeout(StoredId storedId, string timeoutId)
+    public async Task RemoveTimeout(StoredId storedId, EffectId timeoutId)
     {
         await using var conn = await CreateConnection();
 
@@ -93,7 +93,7 @@ public class SqlServerTimeoutStore : ITimeoutStore
         await using var command = new SqlCommand(_removeTimeoutSql, conn);
         command.Parameters.AddWithValue("@FlowType", storedId.Type.Value);
         command.Parameters.AddWithValue("@FlowInstance", storedId.Instance.Value);
-        command.Parameters.AddWithValue("@TimeoutId", timeoutId);
+        command.Parameters.AddWithValue("@TimeoutId", timeoutId.Serialize());
         await command.ExecuteNonQueryAsync();
     }
 
@@ -133,7 +133,7 @@ public class SqlServerTimeoutStore : ITimeoutStore
             var timeoutId = reader.GetString(2);
             var expires = reader.GetInt64(3);
             var functionId = new StoredId(new StoredType(flowType), flowInstance.ToStoredInstance());
-            storedTimeouts.Add(new StoredTimeout(functionId, timeoutId, expires));
+            storedTimeouts.Add(new StoredTimeout(functionId, EffectId.Deserialize(timeoutId), expires));
         }
 
         return storedTimeouts;
@@ -159,7 +159,7 @@ public class SqlServerTimeoutStore : ITimeoutStore
         {
             var timeoutId = reader.GetString(0);
             var expires = reader.GetInt64(1);
-            storedTimeouts.Add(new StoredTimeout(storedId, timeoutId, expires));
+            storedTimeouts.Add(new StoredTimeout(storedId, EffectId.Deserialize(timeoutId), expires));
         }
 
         return storedTimeouts;

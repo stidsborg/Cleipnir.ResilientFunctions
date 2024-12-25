@@ -56,6 +56,9 @@ public record EffectId(string Id, EffectType Type, string Context)
 
         return new EffectId(id, type, context);
     }
+    
+    public static EffectId CreateWithCurrentContext(string id, EffectType effectType)
+        => new(id, effectType, EffectContext.CurrentContext.Parent?.Serialize() ?? "");
 }
 
 public static class EffectIdExtensions

@@ -1,6 +1,6 @@
 ﻿namespace Sample.OrderProcessing.Messaging;
 
-public class MessageBroker
+public class Bus
 {
     private readonly List<Func<EventsAndCommands, Task>> _subscribers = new();
     private readonly object _lock = new();

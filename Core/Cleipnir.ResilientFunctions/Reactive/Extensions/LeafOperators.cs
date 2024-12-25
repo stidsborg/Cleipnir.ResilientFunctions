@@ -185,9 +185,10 @@ public static class LeafOperators
     public static async Task SuspendUntil(this Messages s, string timeoutEventId, DateTime resumeAt)
     {
         var timeoutEmitted = false;
+        var effectId = EffectId.CreateWithCurrentContext(timeoutEventId, EffectType.System);
         var subscription = s
             .OfType<TimeoutEvent>()
-            .Where(t => t.TimeoutId == timeoutEventId)
+            .Where(t => t.TimeoutId == effectId)
             .Take(1)
             .Subscribe(
                 onNext: _ => timeoutEmitted = true,
@@ -201,7 +202,7 @@ public static class LeafOperators
         if (timeoutEmitted)
             return;
 
-        await subscription.RegisteredTimeouts.RegisterTimeout(timeoutEventId, resumeAt);
+        await subscription.RegisteredTimeouts.RegisterTimeout(effectId, resumeAt);
         throw new SuspendInvocationException();
     }
 

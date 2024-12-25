@@ -2,4 +2,4 @@ using System;
 
 namespace Cleipnir.ResilientFunctions.Domain;
 
-public record RegisteredTimeout(TimeoutId TimeoutId, DateTime Expiry);
+public record RegisteredTimeout(EffectId TimeoutId, DateTime Expiry);

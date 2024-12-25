@@ -120,10 +120,10 @@ public class LeafOperatorsTests
     public async Task FirstOperatorWithSuspensionAndTimeoutEventThrowsSuspensionExceptionWhenNothingIsSignalled()
     {
         var source = new TestSource();
-        var timeoutEventId = "TimeoutEventId";
+        var timeoutEventId = "TimeoutEventId".ToEffectId();
         var expiresAt = DateTime.UtcNow.AddDays(1);
         
-        source.SignalNext(new TimeoutEvent("OtherEventId", expiresAt));
+        source.SignalNext(new TimeoutEvent("OtherEventId".ToEffectId(), expiresAt));
         
         var nextOrSuspend = source
             .TakeUntilTimeout(timeoutEventId, expiresAt)
@@ -137,10 +137,10 @@ public class LeafOperatorsTests
     public async Task FirstOperatorWithSuspensionAndTimeoutEventReturnTimeoutOptionWithoutValueWhenTimeoutEventIsSignalled()
     {
         var source = new TestSource();
-        var timeoutEventId = "TimeoutEventId";
+        var timeoutEventId = "TimeoutEventId".ToEffectId();
         var expiresAt = DateTime.UtcNow.AddDays(1);
         
-        source.SignalNext(new TimeoutEvent("TimeoutEventId", expiresAt));
+        source.SignalNext(new TimeoutEvent("TimeoutEventId".ToEffectId(), expiresAt));
         
         var nextOrSuspend = await source
             .TakeUntilTimeout(timeoutEventId, expiresAt)
@@ -154,10 +154,10 @@ public class LeafOperatorsTests
     public async Task FirstOperatorWithSuspensionAndTimeoutEventReturnsValueOnSignal()
     {
         var source = new TestSource();
-        var timeoutEventId = "TimeoutEventId";
+        var timeoutEventId = "TimeoutEventId".ToEffectId();
         var expiresAt = DateTime.UtcNow.AddDays(1);
         
-        source.SignalNext(new TimeoutEvent("OtherEventId", expiresAt));
+        source.SignalNext(new TimeoutEvent("OtherEventId".ToEffectId(), expiresAt));
         source.SignalNext("hallo");
         source.SignalNext("world");
         
@@ -401,7 +401,7 @@ public class LeafOperatorsTests
         source.SignalNext("hello");
         
         var nextOrSuspend = source
-            .TakeUntilTimeout("timeoutEventId", expiresAt: DateTime.UtcNow)
+            .TakeUntilTimeout("timeoutEventId".ToEffectId(), expiresAt: DateTime.UtcNow)
             .Take(1)
             .OfType<int>()
             .Last(maxWait: TimeSpan.Zero);
@@ -413,10 +413,10 @@ public class LeafOperatorsTests
     public async Task LastOperatorWithSuspensionAndTimeoutEventThrowsSuspensionExceptionWhenNothingIsSignalled()
     {
         var source = new TestSource();
-        var timeoutEventId = "TimeoutEventId";
+        var timeoutEventId = "TimeoutEventId".ToEffectId();
         var expiresAt = DateTime.UtcNow.AddDays(1);
         
-        source.SignalNext(new TimeoutEvent("OtherEventId", expiresAt));
+        source.SignalNext(new TimeoutEvent("OtherEventId".ToEffectId(), expiresAt));
         
         var nextOrSuspend = source
             .TakeUntilTimeout(timeoutEventId, expiresAt)
@@ -477,10 +477,10 @@ public class LeafOperatorsTests
     public async Task LastOperatorWithSuspensionAndTimeoutEventReturnTimeoutOptionWithoutValueWhenTimeoutEventIsSignalled()
     {
         var source = new TestSource();
-        var timeoutEventId = "TimeoutEventId";
+        var timeoutEventId = "TimeoutEventId".ToEffectId();
         var expiresAt = DateTime.UtcNow.AddDays(1);
         
-        source.SignalNext(new TimeoutEvent("TimeoutEventId", expiresAt));
+        source.SignalNext(new TimeoutEvent("TimeoutEventId".ToEffectId(), expiresAt));
         
         var nextOrSuspend = await source
             .TakeUntilTimeout(timeoutEventId, expiresAt)
@@ -493,10 +493,10 @@ public class LeafOperatorsTests
     public async Task LastOperatorWithSuspensionAndTimeoutEventReturnsValueOnSignal()
     {
         var source = new TestSource();
-        var timeoutEventId = "TimeoutEventId";
+        var timeoutEventId = "TimeoutEventId".ToEffectId();
         var expiresAt = DateTime.UtcNow.AddDays(1);
         
-        source.SignalNext(new TimeoutEvent("OtherEventId", expiresAt));
+        source.SignalNext(new TimeoutEvent("OtherEventId".ToEffectId(), expiresAt));
         source.SignalNext("hallo");
         source.SignalNext("world");
         
