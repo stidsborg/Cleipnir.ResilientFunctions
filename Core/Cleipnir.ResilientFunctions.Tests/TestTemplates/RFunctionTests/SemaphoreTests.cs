@@ -164,10 +164,8 @@ public abstract class SemaphoreTests
                 await @lock.DisposeAsync();
             });
         
-       
         var scheduled1 = await firstFlow.Schedule(flowId1.Instance, "hello");
         var scheduled2 = await secondFlow.Schedule(flowId2.Instance, "hello");
-
         
         await firstFlowAcquiredSemaphore.WaitForRaised();
         await secondFlowAcquiredSemaphore.WaitForRaised();
