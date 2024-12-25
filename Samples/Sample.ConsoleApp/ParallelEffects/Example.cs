@@ -1,10 +1,11 @@
 ﻿using System;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions;
+using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Storage;
 
-namespace ConsoleApp.ParallelEffect;
+namespace ConsoleApp.ParallelEffects;
 
 public static class Example
 {
@@ -13,9 +14,9 @@ public static class Example
         var store = new InMemoryFunctionStore();
         var functions = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler: Console.WriteLine));
 
-        var rFunc = functions.RegisterParamless(
-            flowType: "HelloWorld",
-            inner: async workflow =>
+        var rFunc = functions.RegisterFunc(
+            flowType: "ParallelEffects",
+            inner: async (string param, Workflow workflow) =>
             {
                 var effect = workflow.Effect;
                 
@@ -26,19 +27,17 @@ public static class Example
                     var e11 = effect.Capture(async () =>
                     {
                         await Task.Delay(10);
-                        Console.WriteLine(effect);
-                        return "Hello world!";
+                        return "1.1";
                     });
                     var e12 = effect.Capture(async () =>
                     {
                         await Task.Delay(1);
-                        Console.WriteLine(effect);
-                        return "Hello again!";
+                        return "1.2";
                     });
                 
-                    await effect.WhenAny(e11, e12);
-                    return "Hello world!";
+                    return await effect.WhenAny(e11, e12);
                 });
+                
                 var e2 = effect.Capture(async () =>
                 {
                     await Task.Delay(1);
@@ -46,24 +45,23 @@ public static class Example
                     var e21 = effect.Capture(async () =>
                     {
                         await Task.Delay(10);
-                        Console.WriteLine(effect);
-                        return "Hello world!";
+                        return "2.1";
                     });
                     var e22 = effect.Capture(async () =>
                     {
                         await Task.Delay(1);
-                        Console.WriteLine(effect);
-                        return "Hello again!";
+                        return "2.2";
                     });
                     
-                    await effect.WhenAny(e21, e22);
-                    return "Hello again!";
+                    return await effect.WhenAny(e21, e22);
                 });
 
-                await effect.WhenAny(e1, e2);
+                var results = await effect.WhenAll(e1, e2);
+                return string.Join(", ", results);
             }
         );
         
-        await rFunc.Invoke("some instance");
+        var result = await rFunc.Invoke("some instance".ToFlowInstance(), "some param");
+        Console.WriteLine($"Result: {result}");
     }
 }
