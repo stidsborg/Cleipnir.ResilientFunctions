@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Runtime.ExceptionServices;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.ParameterSerialization;
 using Cleipnir.ResilientFunctions.Domain;
@@ -204,7 +205,8 @@ internal class InvocationHelper<TParam, TReturn>
                 else
                     throw new InvocationPostponedException(flowId, result.Postpone!.DateTime);
             case Outcome.Fail:
-                throw result.Fail!;
+                ExceptionDispatchInfo.Throw(result.Fail!);
+                break;
             case Outcome.Suspend:
                 if (allowPostponedOrSuspended)
                     return;
