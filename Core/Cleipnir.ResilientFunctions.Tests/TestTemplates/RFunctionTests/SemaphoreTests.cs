@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
@@ -164,11 +165,21 @@ public abstract class SemaphoreTests
                 await @lock.DisposeAsync();
             });
         
-        var scheduled1 = await firstFlow.Schedule(flowId1.Instance, "hello");
-        var scheduled2 = await secondFlow.Schedule(flowId2.Instance, "hello");
-        
-        await firstFlowAcquiredSemaphore.WaitForRaised();
-        await secondFlowAcquiredSemaphore.WaitForRaised();
+        var firstFlowTask = Task.Run(() => firstFlow.Invoke(flowId1.Instance, "hello"));
+        var secondFlowTask = Task.Run(() => secondFlow.Invoke(flowId2.Instance, "hello"));
+
+        try
+        {
+            await firstFlowAcquiredSemaphore.WaitForRaised();
+            await secondFlowAcquiredSemaphore.WaitForRaised();
+        }
+        catch (Exception)
+        {
+            await firstFlowTask;
+            await secondFlowTask;
+
+            throw;
+        }
 
         var scheduled3 = await thirdFlow.Schedule(flowId3.Instance, "hello");
         
@@ -185,9 +196,7 @@ public abstract class SemaphoreTests
         queued.Any(s => s == storedId3).ShouldBeTrue();
         
         continueFlowFlag.Raise();
-
-        await scheduled1.Completion();
-        await scheduled2.Completion();
+        
         await scheduled3.Completion();
         
         queued = await store.SemaphoreStore.GetQueued("SomeGroup", "SomeInstance", count: 10);

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -36,13 +37,16 @@ public class SqlServerSemaphoreStore(string connectionString, string tablePrefix
         var command = new SqlCommand(_truncateSql, conn);
         await command.ExecuteNonQueryAsync();
     }
-    
-    private string? _takeSql;
+
     public async Task<bool> Acquire(string group, string instance, StoredId storedId, int maximumCount)
+        => await Acquire(group, instance, storedId, maximumCount, depth: 0);
+    
+    private string? _acquireSql;
+    private async Task<bool> Acquire(string group, string instance, StoredId storedId, int maximumCount, int depth)
     {
         await using var conn = await CreateConnection();
         
-        _takeSql ??= @$"
+        _acquireSql ??= @$"
             INSERT INTO {tablePrefix}_Semaphores
             OUTPUT INSERTED.Position
             SELECT @Type, 
@@ -56,17 +60,31 @@ public class SqlServerSemaphoreStore(string connectionString, string tablePrefix
                 FROM {tablePrefix}_Semaphores
                 WHERE Type = @Type AND Instance = @Instance AND Owner = @Owner
             );";
-        var command = new SqlCommand(_takeSql, conn);
-        command.Parameters.AddWithValue("@Type", group);
-        command.Parameters.AddWithValue("@Instance", instance);
-        command.Parameters.AddWithValue("@Owner", storedId.Serialize());
-
-        var position = await command.ExecuteScalarAsync();
         
-        if (position is null) 
-            return (await GetQueued(group, instance, maximumCount)).Any(id => id == storedId);
+        try
+        {
+            var command = new SqlCommand(_acquireSql, conn);
+            command.Parameters.AddWithValue("@Type", group);
+            command.Parameters.AddWithValue("@Instance", instance);
+            command.Parameters.AddWithValue("@Owner", storedId.Serialize());
 
-        return (int) position < maximumCount;
+            var position = await command.ExecuteScalarAsync();
+
+            if (position is null)
+                return (await GetQueued(group, instance, maximumCount)).Any(id => id == storedId);
+
+            return (int) position < maximumCount;
+        }
+        catch (SqlException e)
+        {
+            if (depth == 10 || (e.Number != SqlError.DEADLOCK_VICTIM && e.Number != SqlError.UNIQUENESS_VIOLATION)) 
+                throw;
+            
+            // ReSharper disable once DisposeOnUsingVariable
+            await conn.DisposeAsync();
+            await Task.Delay(Random.Shared.Next(50, 250));
+            return await Acquire(group, instance, storedId, maximumCount, depth + 1); 
+        }
     }
 
     private string? _releaseSql;

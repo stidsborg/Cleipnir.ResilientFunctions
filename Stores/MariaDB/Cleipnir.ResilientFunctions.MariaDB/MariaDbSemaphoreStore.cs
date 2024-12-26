@@ -31,11 +31,12 @@ public class MariaDbSemaphoreStore(string connectionString, string tablePrefix =
         await command.ExecuteNonQueryAsync();
     }
     
-    private string? _takeSql;
     public async Task<bool> Acquire(string group, string instance, StoredId storedId, int maximumCount)
+        => await Acquire(group, instance, storedId, maximumCount, depth: 0);
+    
+    private string? _takeSql;
+    private async Task<bool> Acquire(string group, string instance, StoredId storedId, int maximumCount, int depth)
     {
-        await using var conn = await CreateConnection();
-        
         _takeSql ??= @$"
             IF (NOT EXISTS (SELECT 1 FROM {tablePrefix}_semaphores WHERE type = ? AND instance = ? AND owner = ?))
             THEN
@@ -48,28 +49,41 @@ public class MariaDbSemaphoreStore(string connectionString, string tablePrefix =
                 SELECT -1;
             END IF;";
 
-        var command = new MySqlCommand(_takeSql, conn)
+        await using var conn = await CreateConnection();
+        try
         {
-            Parameters =
+            var command = new MySqlCommand(_takeSql, conn)
             {
-                new() { Value = group },
-                new() { Value = instance },
-                new() { Value = storedId.Serialize() },
-                
-                new() { Value = group },
-                new() { Value = instance },
-                new() { Value = storedId.Serialize() }
-            }
-        };
+                Parameters =
+                {
+                    new() { Value = group },
+                    new() { Value = instance },
+                    new() { Value = storedId.Serialize() },
 
-        var position = (int?) await command.ExecuteScalarAsync();
-        if (position == null || position == -1)
-        {
-            var queued = await GetQueued(group, instance, maximumCount);
-            return queued.Any(id => id == storedId);
+                    new() { Value = group },
+                    new() { Value = instance },
+                    new() { Value = storedId.Serialize() }
+                }
+            };
+
+            var position = (int?)await command.ExecuteScalarAsync();
+            if (position == null || position == -1)
+            {
+                var queued = await GetQueued(group, instance, maximumCount);
+                return queued.Any(id => id == storedId);
+            }
+
+            return position < maximumCount;
         }
-            
-        return position < maximumCount;
+        catch (MySqlException e) when (e.Number == 1213) //deadlock found when trying to get lock; try restarting transaction
+        {
+            // ReSharper disable once DisposeOnUsingVariable
+            await conn.DisposeAsync(); //eagerly free taken connection
+            if (depth == 10) throw;
+
+            await Task.Delay(Random.Shared.Next(10, 250));
+            return await Acquire(group, instance, storedId, maximumCount, depth + 1);
+        }
     }
 
     private string? _releaseSql;
@@ -78,8 +92,8 @@ public class MariaDbSemaphoreStore(string connectionString, string tablePrefix =
         await using var conn = await CreateConnection();
         
         _releaseSql ??= @$"    
-            DELETE FROM {tablePrefix}_semaphores
-            WHERE type = ? AND instance = ? AND owner = ?;               
+           DELETE FROM {tablePrefix}_semaphores
+           WHERE type = ? AND instance = ? AND owner = ?;               
 
            SELECT owner 
            FROM {tablePrefix}_semaphores

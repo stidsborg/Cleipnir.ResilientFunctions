@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -33,12 +34,13 @@ public class PostgreSqlSemaphoreStore(string connectionString, string tablePrefi
         var command = new NpgsqlCommand(_truncateSql, conn);
         await command.ExecuteNonQueryAsync();
     }
-    
-    private string? _takeSql;
 
     public async Task<bool> Acquire(string group, string instance, StoredId storedId, int maximumCount)
+        => await Acquire(group, instance, storedId, maximumCount, depth: 0);
+    
+    private string? _takeSql;
+    private async Task<bool> Acquire(string group, string instance, StoredId storedId, int maximumCount, int depth)
     {
-        await using var conn = await CreateConnection();
         _takeSql ??= @$"    
             INSERT INTO {tablePrefix}_semaphores
                 SELECT 
@@ -48,24 +50,38 @@ public class PostgreSqlSemaphoreStore(string connectionString, string tablePrefi
                     $3
                  WHERE NOT EXISTS (SELECT 1 FROM {tablePrefix}_semaphores WHERE type = $1 AND instance = $2 AND owner = $3)
             RETURNING position;";
-        var command = new NpgsqlCommand(_takeSql, conn)
+        
+        await using var conn = await CreateConnection();
+        try
         {
-            Parameters =
+            var command = new NpgsqlCommand(_takeSql, conn)
             {
-                new() { Value = group },
-                new() { Value = instance },
-                new() { Value = storedId.Serialize() }
+                Parameters =
+                {
+                    new() { Value = group },
+                    new() { Value = instance },
+                    new() { Value = storedId.Serialize() }
+                }
+            };
+
+            var position = (int?)await command.ExecuteScalarAsync();
+            if (position == null)
+            {
+                var queued = await GetQueued(group, instance, maximumCount);
+                return queued.Any(id => id == storedId);
             }
-        };
-        
-        var position = (int?) await command.ExecuteScalarAsync();
-        if (position == null)
-        {
-            var queued = await GetQueued(group, instance, maximumCount);
-            return queued.Any(id => id == storedId);
+
+            return position < maximumCount;
         }
-        
-        return position < maximumCount;
+        catch (PostgresException e) when (e.SqlState == "23505")
+        {
+            // ReSharper disable once DisposeOnUsingVariable
+            await conn.DisposeAsync(); //eagerly free taken connection
+            if (depth == 10) throw;
+            
+            await Task.Delay(Random.Shared.Next(10, 250));
+            return await Acquire(group, instance, storedId, maximumCount, depth + 1);
+        }
     }
 
     private string? _releaseSql;
