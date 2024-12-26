@@ -115,8 +115,7 @@ public abstract class TimeoutTests
         await controlPanel.WaitForCompletion(allowPostponeAndSuspended: true);
         
         await controlPanel.Refresh();
-        var registeredTimeouts = await controlPanel.RegisteredTimeouts.All;
-        Console.WriteLine(registeredTimeouts);
+
         await controlPanel
             .RegisteredTimeouts
             .All
