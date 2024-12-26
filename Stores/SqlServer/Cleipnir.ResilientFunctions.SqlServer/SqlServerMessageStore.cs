@@ -71,7 +71,7 @@ public class SqlServerMessageStore(string connectionString, string tablePrefix =
         }
         catch (SqlException e)
         {
-            if (depth == 10 || e.Number != SqlError.DEADLOCK_VICTIM) 
+            if (depth == 10 || (e.Number != SqlError.DEADLOCK_VICTIM && e.Number != SqlError.UNIQUENESS_VIOLATION)) 
                 throw;
             
             // ReSharper disable once DisposeOnUsingVariable
