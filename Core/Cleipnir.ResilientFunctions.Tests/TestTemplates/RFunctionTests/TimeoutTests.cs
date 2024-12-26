@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Domain;
@@ -171,6 +172,54 @@ public abstract class TimeoutTests
         messages.OfType<TimeoutEvent>().Count().ShouldBe(2);
         messages.OfType<TimeoutEvent>().Single(t => t.TimeoutId.Id == "0").Expiration.ShouldBe(expiresAt1);
         messages.OfType<TimeoutEvent>().Single(t => t.TimeoutId.Id == "1").Expiration.ShouldBe(expiresAt2);
+        
+        unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
+    }
+    
+    public abstract Task TimeoutsWithSameIdsButDifferentContextsDoNotCollide();
+    protected async Task TimeoutsWithSameIdsButDifferentContextsDoNotCollide(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var flowId = TestFlowId.Create();
+        var (flowType, flowInstance) = flowId;
+        
+        var unhandledExceptionHandler = new UnhandledExceptionCatcher();
+        using var functionsRegistry = new FunctionsRegistry
+        (
+            store,
+            new Settings(
+                unhandledExceptionHandler.Catch,
+                watchdogCheckFrequency: TimeSpan.FromMilliseconds(250),
+                messagesDefaultMaxWaitForCompletion: TimeSpan.MaxValue
+            )
+        );
+        
+        var registration = functionsRegistry.RegisterFunc(
+            flowType,
+            inner: async Task<Tuple<bool, bool>> (string _, Workflow workflow) =>
+            {
+                var (effect, messages, _) = workflow;
+                var didFirstTimeout = await effect.Capture("First", () => 
+                    messages.TakeUntilTimeout("TimeoutId", TimeSpan.FromMilliseconds(10))
+                        .FirstOrNone()
+                        .SelectAsync(o => !o.HasValue)
+                    );
+
+                await messages.AppendMessage("SomeMessage");
+                
+                var didSecondTimeout = await effect.Capture("Second", () => 
+                    messages.TakeUntilTimeout("TimeoutId", TimeSpan.FromSeconds(30))
+                        .FirstOrNone()
+                        .SelectAsync(o => !o.HasValue)
+                    );
+
+                return Tuple.Create(didFirstTimeout, didSecondTimeout);
+            }
+        );
+        
+        var (firstTimeout, secondTimeout) = await registration.Invoke(flowInstance.Value, "param");
+        firstTimeout.ShouldBeTrue();
+        secondTimeout.ShouldBeFalse();
         
         unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
     }

@@ -21,4 +21,8 @@ public class TimeoutTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.RFun
     [TestMethod]
     public override Task ExpiredImplicitTimeoutsAreAddedToMessages()
         => ExpiredImplicitTimeoutsAreAddedToMessages(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task TimeoutsWithSameIdsButDifferentContextsDoNotCollide()
+        => TimeoutsWithSameIdsButDifferentContextsDoNotCollide(FunctionStoreFactory.Create());
 }
