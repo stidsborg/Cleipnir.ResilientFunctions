@@ -358,9 +358,6 @@ public abstract class SuspensionTests
                 var results = await Task.WhenAll(
                     words.Select((word, i) => child.Schedule($"Child#{i}", word).Completion()).ToList()
                 );
-
-                var msgs = await workflow.Messages.Take(4).Completion();
-                Console.WriteLine(msgs);
                 
                 return results.StringJoin(" ");
             });
