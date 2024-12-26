@@ -520,7 +520,6 @@ public abstract class WatchdogCompoundTests
         }
     }
     
-    [TestMethod]
     public abstract Task RetentionWatchdogDeletesEligibleSucceededFunction();
     public async Task RetentionWatchdogDeletesEligibleSucceededFunction(Task<IFunctionStore> storeTask)
     {
@@ -550,7 +549,6 @@ public abstract class WatchdogCompoundTests
         );
     }
     
-    [TestMethod]
     public abstract Task FlowIdIsCorrectWhenFlowIsStartedByWatchdog();
     public async Task FlowIdIsCorrectWhenFlowIsStartedByWatchdog(Task<IFunctionStore> storeTask)
     {
