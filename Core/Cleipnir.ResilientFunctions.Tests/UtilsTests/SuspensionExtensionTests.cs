@@ -25,14 +25,14 @@ public class SuspensionExtensionTests
     }  
     
     [TestMethod]
-    public static async Task OnExceptionSuspendForWithResultSunshine()
+    public async Task OnExceptionSuspendForWithResultSunshine()
     {
         var result = await Task.FromResult("hello").OnExceptionSuspendFor(TimeSpan.FromMinutes(10));
         result.ShouldBe("hello");
     }
     
     [TestMethod]
-    public static async Task OnExceptionWithResultSuspendUntilSunshine()
+    public async Task OnExceptionWithResultSuspendUntilSunshine()
     {
         var result = await Task.FromResult("hello").OnExceptionSuspendUntil(DateTime.Now);
         result.ShouldBe("hello");
@@ -121,14 +121,14 @@ public class SuspensionExtensionTests
     }  
     
     [TestMethod]
-    public static async Task OnExceptionSuspendForWithResultSunshineValueTask()
+    public async Task OnExceptionSuspendForWithResultSunshineValueTask()
     {
         var result = await ValueTask.FromResult("hello").OnExceptionSuspendFor(TimeSpan.FromMinutes(10));
         result.ShouldBe("hello");
     }
     
     [TestMethod]
-    public static async Task OnExceptionWithResultSuspendUntilSunshineValueTask()
+    public async Task OnExceptionWithResultSuspendUntilSunshineValueTask()
     {
         var result = await ValueTask.FromResult("hello").OnExceptionSuspendUntil(DateTime.Now);
         result.ShouldBe("hello");
