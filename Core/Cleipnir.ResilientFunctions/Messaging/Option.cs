@@ -1,14 +1,19 @@
 ﻿using System;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
 namespace Cleipnir.ResilientFunctions.Messaging;
 
-public class Option<T>(T value, bool hasValue)
+public class Option<T>(T v, bool hasValue)
 {
     public static Option<T> NoValue { get; } = new(default!, hasValue: false);
-    private readonly T? _t = value;
     public bool HasValue { get; } = hasValue;
-    public T Value => HasValue ? _t! : throw new InvalidOperationException("Object must have a value");
+
+    [JsonInclude]
+    private T V => v;
+    
+    [JsonIgnore]
+    public T Value => HasValue ? v! : throw new InvalidOperationException("Option does not have a value");
 
     public override bool Equals(object? obj)
     {

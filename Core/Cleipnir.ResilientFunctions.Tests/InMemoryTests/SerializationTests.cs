@@ -32,6 +32,16 @@ public class SerializationTests
         deserialized.ShouldBe(option);
     }
     
+    [TestMethod]
+    public void OptionWithNoValueCanBeDeserializedByDefaultSerializer()
+    {
+        var option = Option<string>.NoValue;
+        var serializer = DefaultSerializer.Instance;
+        var serialized = serializer.SerializeMessage(option);
+        var deserialized = serializer.DeserializeMessage(serialized.Content, serialized.Type);
+        deserialized.ShouldBe(option);
+    }
+    
     public record Parent;
     public record Child(string Value) : Parent;
 }
