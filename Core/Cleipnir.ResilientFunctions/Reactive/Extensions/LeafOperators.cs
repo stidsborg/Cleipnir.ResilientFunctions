@@ -96,7 +96,7 @@ public static class LeafOperators
     public static Task<Option<T>> FirstOrNone<T>(this IReactiveChain<T> s, TimeSpan? maxWait = null)
         => Firsts(s, count: 1, maxWait)
             .SelectAsync(
-                l => l.Any() ? new Option<T>(l.First()) : Option<T>.NoValue
+                l => l.Any() ? Option.Create(l.First()) : Option<T>.NoValue
             );
     
     public static Task<EitherOrNone<T1, T2>> FirstOrNone<T1, T2>(this IReactiveChain<Either<T1, T2>> s, TimeSpan? maxWait = null)
@@ -165,7 +165,7 @@ public static class LeafOperators
         => Lasts(s, count: 1, maxWait)
             .SelectAsync(l =>
                 l.Any()
-                    ? new Option<T>(l.First())
+                    ? Option.Create(l.First())
                     : Option<T>.NoValue
             );
 

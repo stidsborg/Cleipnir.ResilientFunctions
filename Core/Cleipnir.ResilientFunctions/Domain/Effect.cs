@@ -134,7 +134,7 @@ public class Effect(
                 if (storedEffect.WorkStatus == WorkStatus.Completed)
                 {
                     var value = serializer.DeserializeEffectResult<T>(storedEffect.Result!)!;
-                    return new Option<T>(value);    
+                    return Option.Create(value);    
                 }
                 
                 if (storedEffect.StoredException != null)

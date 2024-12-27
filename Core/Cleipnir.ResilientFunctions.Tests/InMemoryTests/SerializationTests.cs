@@ -1,5 +1,6 @@
 ﻿using System;
 using Cleipnir.ResilientFunctions.CoreRuntime.ParameterSerialization;
+using Cleipnir.ResilientFunctions.Messaging;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Shouldly;
 
@@ -20,22 +21,17 @@ public class SerializationTests
                 
         child.Value.ShouldBe("Hello World");
     }
+
+    [TestMethod]
+    public void OptionCanBeDeserializedByDefaultSerializer()
+    {
+        var option = Option.Create("some value");
+        var serializer = DefaultSerializer.Instance;
+        var serialized = serializer.SerializeMessage(option);
+        var deserialized = serializer.DeserializeMessage(serialized.Content, serialized.Type);
+        deserialized.ShouldBe(option);
+    }
     
     public record Parent;
     public record Child(string Value) : Parent;
-
-    public class FlowState : Domain.FlowState
-    {
-        public string Value { get; set; } = "";
-    }
-
-    private class PersonPrev
-    {
-        public string? Name { get; set; }
-    }
-
-    private class PersonCurr
-    {
-        public string? Name { get; set; }
-    }
 }
