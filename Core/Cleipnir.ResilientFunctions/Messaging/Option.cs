@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 
 namespace Cleipnir.ResilientFunctions.Messaging;
 
-public class Option<T>(T v, bool hasValue)
+public sealed class Option<T>(T v, bool hasValue)
 {
     public static Option<T> NoValue { get; } = new(default!, hasValue: false);
     public bool HasValue { get; } = hasValue;
