@@ -2,7 +2,7 @@
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
-namespace Cleipnir.ResilientFunctions.Messaging;
+namespace Cleipnir.ResilientFunctions.Reactive.Utilities;
 
 public sealed class Option<T>(T v, bool hasValue)
 {

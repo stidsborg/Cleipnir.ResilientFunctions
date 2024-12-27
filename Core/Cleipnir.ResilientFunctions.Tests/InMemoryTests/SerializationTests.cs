@@ -1,6 +1,7 @@
 ﻿using System;
 using Cleipnir.ResilientFunctions.CoreRuntime.ParameterSerialization;
 using Cleipnir.ResilientFunctions.Messaging;
+using Cleipnir.ResilientFunctions.Reactive.Utilities;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Shouldly;
 
