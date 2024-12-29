@@ -13,7 +13,7 @@ public class TimeoutId
         Value = value;
     }
     
-    public static implicit operator TimeoutId(string flowInstance) => new(flowInstance);
+    public static implicit operator TimeoutId(string timeoutId) => new(timeoutId);
     public override string ToString() => Value;
     public static bool operator ==(TimeoutId id1, TimeoutId id2) => id1.Equals(id2);
     public static bool operator !=(TimeoutId id1, TimeoutId id2) => !(id1 == id2);
