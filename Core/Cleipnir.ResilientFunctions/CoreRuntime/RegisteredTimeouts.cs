@@ -15,14 +15,16 @@ public interface IRegisteredTimeouts
     Task<IReadOnlyList<RegisteredTimeout>> PendingTimeouts();
 }
 
+public enum TimeoutStatus
+{
+    Created,
+    Registered,
+    Cancelled
+}
+
 public class RegisteredTimeouts(StoredId storedId, ITimeoutStore timeoutStore, Effect effect) : IRegisteredTimeouts
 {
-    private enum TimeoutStatus
-    {
-        Created,
-        Registered,
-        Cancelled
-    }
+
     
     public string GetNextImplicitId() => EffectContext.CurrentContext.NextImplicitId();
     
@@ -41,7 +43,9 @@ public class RegisteredTimeouts(StoredId storedId, ITimeoutStore timeoutStore, E
     }
     
     public Task RegisterTimeout(string timeoutId, TimeSpan expiresIn)
-        => RegisterTimeout(EffectId.CreateWithCurrentContext(timeoutId, EffectType.System), expiresAt: DateTime.UtcNow.Add(expiresIn));
+        => RegisterTimeout(EffectId.CreateWithCurrentContext(timeoutId, EffectType.Timeout), expiresAt: DateTime.UtcNow.Add(expiresIn));
+    public Task RegisterTimeout(string timeoutId, DateTime expiresAt)
+        => RegisterTimeout(EffectId.CreateWithCurrentContext(timeoutId, EffectType.Timeout), expiresAt);
     public Task RegisterTimeout(EffectId timeoutId, TimeSpan expiresIn)
         => RegisterTimeout(timeoutId, expiresAt: DateTime.UtcNow.Add(expiresIn));
 

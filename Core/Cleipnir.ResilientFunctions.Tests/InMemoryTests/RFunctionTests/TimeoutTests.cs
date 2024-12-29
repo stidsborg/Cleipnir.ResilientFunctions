@@ -19,6 +19,14 @@ public class TimeoutTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.RFun
         => RegisteredTimeoutIsCancelledAfterReactiveChainCompletes(FunctionStoreFactory.Create());
 
     [TestMethod]
+    public override Task PendingTimeoutCanBeRemovedFromControlPanel()
+        => PendingTimeoutCanBeRemovedFromControlPanel(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task PendingTimeoutCanBeUpdatedFromControlPanel()
+        => PendingTimeoutCanBeUpdatedFromControlPanel(FunctionStoreFactory.Create());
+
+    [TestMethod]
     public override Task ExpiredImplicitTimeoutsAreAddedToMessages()
         => ExpiredImplicitTimeoutsAreAddedToMessages(FunctionStoreFactory.Create());
 

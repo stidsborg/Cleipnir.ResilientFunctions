@@ -185,7 +185,7 @@ public static class LeafOperators
     public static async Task SuspendUntil(this Messages s, string timeoutEventId, DateTime resumeAt)
     {
         var timeoutEmitted = false;
-        var effectId = EffectId.CreateWithCurrentContext(timeoutEventId, EffectType.System);
+        var effectId = EffectId.CreateWithCurrentContext(timeoutEventId, EffectType.Timeout);
         var subscription = s
             .OfType<TimeoutEvent>()
             .Where(t => t.TimeoutId == effectId)

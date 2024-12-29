@@ -2,12 +2,13 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Cleipnir.ResilientFunctions.CoreRuntime;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.Domain;
 
-public class ExistingRegisteredTimeouts(StoredId storedId, ITimeoutStore timeoutStore)
+public class ExistingRegisteredTimeouts(StoredId storedId, ITimeoutStore timeoutStore, ExistingEffects effects)
 {
     private Dictionary<EffectId, DateTime>? _timeouts;
 
@@ -23,7 +24,7 @@ public class ExistingRegisteredTimeouts(StoredId storedId, ITimeoutStore timeout
         );
     }
 
-    public Task<DateTime> this[TimeoutId timeoutId] => this[new EffectId(timeoutId.Value, EffectType.System, Context: "")];
+    public Task<DateTime> this[TimeoutId timeoutId] => this[new EffectId(timeoutId.Value, EffectType.Timeout, Context: "")];
     public Task<DateTime> this[EffectId timeoutId] => GetTimeouts().ContinueWith(t => t.Result[timeoutId]);
 
     public Task<IReadOnlyList<RegisteredTimeout>> All
@@ -34,16 +35,17 @@ public class ExistingRegisteredTimeouts(StoredId storedId, ITimeoutStore timeout
                 .CastTo<IReadOnlyList<RegisteredTimeout>>()
         );
 
-    public Task Remove(TimeoutId timeoutId) => Remove(new EffectId(timeoutId.Value, EffectType.System, Context: ""));
+    public Task Remove(TimeoutId timeoutId) => Remove(new EffectId(timeoutId.Value, EffectType.Timeout, Context: ""));
     public async Task Remove(EffectId timeoutId)
     {
         var timeouts = await GetTimeouts();
+        await effects.Remove(timeoutId);
         await timeoutStore.RemoveTimeout(storedId, timeoutId);
         timeouts.Remove(timeoutId);
     }
     
     public Task Upsert(TimeoutId timeoutId, DateTime expiresAt)
-        => Upsert(new EffectId(timeoutId.Value, EffectType.System, Context: ""), expiresAt);
+        => Upsert(new EffectId(timeoutId.Value, EffectType.Timeout, Context: ""), expiresAt);
     public async Task Upsert(EffectId timeoutId, DateTime expiresAt)
     {
         var timeouts = await GetTimeouts();
@@ -51,7 +53,8 @@ public class ExistingRegisteredTimeouts(StoredId storedId, ITimeoutStore timeout
             new StoredTimeout(storedId, timeoutId, expiresAt.ToUniversalTime().Ticks),
             overwrite: true
         );
-        
+
+        await effects.SetValue(timeoutId, TimeoutStatus.Registered);
         timeouts[timeoutId] = expiresAt;
     }
     public Task Upsert(TimeoutId timeoutId, TimeSpan expiresIn) 

@@ -27,7 +27,8 @@ public class ControlPanelFactory
         var functionState = await _invocationHelper.GetFunction(storedId);
         if (functionState == null)
             return null;
-        
+
+        var existingEffects = _invocationHelper.CreateExistingEffects(flowId);
         return new ControlPanel(
             _invoker,
             _invocationHelper,
@@ -36,11 +37,11 @@ public class ControlPanelFactory
             functionState.Status,
             functionState.Epoch,
             functionState.Expires,
-            _invocationHelper.CreateExistingEffects(flowId),
+            existingEffects,
             _invocationHelper.CreateExistingStates(flowId),
             _invocationHelper.CreateExistingMessages(flowId),
             _invocationHelper.CreateExistingSemaphores(flowId),
-            _invocationHelper.CreateExistingTimeouts(flowId),
+            _invocationHelper.CreateExistingTimeouts(flowId, existingEffects),
             _invocationHelper.CreateCorrelations(flowId),
             functionState.PreviouslyThrownException
         );
@@ -71,6 +72,7 @@ public class ControlPanelFactory<TParam> where TParam : notnull
         if (functionState == null)
             return null;
         
+        var existingEffects = _invocationHelper.CreateExistingEffects(flowId);
         return new ControlPanel<TParam>(
             _invoker,
             _invocationHelper,
@@ -80,11 +82,11 @@ public class ControlPanelFactory<TParam> where TParam : notnull
             functionState.Epoch,
             functionState.Expires,
             functionState.Param!,
-            _invocationHelper.CreateExistingEffects(flowId),
+            existingEffects,
             _invocationHelper.CreateExistingStates(flowId),
             _invocationHelper.CreateExistingMessages(flowId),
             _invocationHelper.CreateExistingSemaphores(flowId),
-            _invocationHelper.CreateExistingTimeouts(flowId),
+            _invocationHelper.CreateExistingTimeouts(flowId, existingEffects),
             _invocationHelper.CreateCorrelations(flowId),
             functionState.PreviouslyThrownException
         );
@@ -114,6 +116,7 @@ public class ControlPanelFactory<TParam, TReturn> where TParam : notnull
         if (f == null)
             return null;
         
+        var existingEffects = _invocationHelper.CreateExistingEffects(flowId);
         return new ControlPanel<TParam, TReturn>(
             _invoker,
             _invocationHelper,
@@ -124,11 +127,11 @@ public class ControlPanelFactory<TParam, TReturn> where TParam : notnull
             f.Expires,
             f.Param!,
             f.Result,
-            _invocationHelper.CreateExistingEffects(flowId),
+            existingEffects,
             _invocationHelper.CreateExistingStates(flowId),
             _invocationHelper.CreateExistingMessages(flowId),
             _invocationHelper.CreateExistingSemaphores(flowId),
-            _invocationHelper.CreateExistingTimeouts(flowId),
+            _invocationHelper.CreateExistingTimeouts(flowId, existingEffects),
             _invocationHelper.CreateCorrelations(flowId),
             f.PreviouslyThrownException
         );

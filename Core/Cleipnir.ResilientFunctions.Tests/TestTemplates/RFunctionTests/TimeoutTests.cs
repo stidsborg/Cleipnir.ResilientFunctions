@@ -125,6 +125,116 @@ public abstract class TimeoutTests
         unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
     }
     
+    public abstract Task PendingTimeoutCanBeRemovedFromControlPanel();
+    protected async Task  PendingTimeoutCanBeRemovedFromControlPanel(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var flowId = TestFlowId.Create();
+        var unhandledExceptionHandler = new UnhandledExceptionCatcher();
+        using var functionsRegistry = new FunctionsRegistry
+        (
+            store,
+            new Settings(
+                unhandledExceptionHandler.Catch,
+                messagesDefaultMaxWaitForCompletion: TimeSpan.Zero
+            )
+        );
+        var registration = functionsRegistry.RegisterParamless(
+            flowId.Type,
+            inner: Task (workflow) =>
+                workflow
+                    .Messages
+                    .TakeUntilTimeout("TimeoutId4321", expiresIn: TimeSpan.FromMinutes(10))
+                    .First()
+        );
+
+        await registration.Schedule("someInstanceId");
+        
+        var controlPanel = await registration.ControlPanel("someInstanceId");
+        controlPanel.ShouldNotBeNull();
+        await controlPanel.BusyWaitUntil(cp => cp.Status == Status.Suspended);
+
+        var registeredTimeouts = await controlPanel.RegisteredTimeouts.All;
+        registeredTimeouts.Count.ShouldBe(1);
+        var registeredTimeout = registeredTimeouts.First();
+
+        var id = registeredTimeout.TimeoutId;
+        id.Id.ShouldBe("TimeoutId4321");
+        id.Type.ShouldBe(EffectType.Timeout);
+
+        var timeouts = (await store.TimeoutStore.GetTimeouts(controlPanel.StoredId)).ToList();
+        timeouts.Count.ShouldBe(1);
+        var timeout = timeouts.First();
+        timeout.TimeoutId.ShouldBe(id);
+
+        await controlPanel.RegisteredTimeouts.Remove(id);
+        
+        await controlPanel.Refresh();
+
+        await controlPanel.RegisteredTimeouts.All.ShouldBeEmptyAsync();
+        await store.TimeoutStore.GetTimeouts(controlPanel.StoredId).ShouldBeEmptyAsync();
+        
+        unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
+    }
+    
+     public abstract Task PendingTimeoutCanBeUpdatedFromControlPanel();
+    protected async Task  PendingTimeoutCanBeUpdatedFromControlPanel(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var flowId = TestFlowId.Create();
+        var unhandledExceptionHandler = new UnhandledExceptionCatcher();
+        using var functionsRegistry = new FunctionsRegistry
+        (
+            store,
+            new Settings(
+                unhandledExceptionHandler.Catch,
+                messagesDefaultMaxWaitForCompletion: TimeSpan.Zero
+            )
+        );
+        var registration = functionsRegistry.RegisterParamless(
+            flowId.Type,
+            inner: Task (workflow) =>
+                workflow
+                    .Messages
+                    .TakeUntilTimeout("TimeoutId4321", expiresIn: TimeSpan.FromMinutes(10))
+                    .First()
+        );
+
+        await registration.Schedule("someInstanceId");
+        
+        var controlPanel = await registration.ControlPanel("someInstanceId");
+        controlPanel.ShouldNotBeNull();
+        await controlPanel.BusyWaitUntil(cp => cp.Status == Status.Suspended);
+
+        var registeredTimeouts = await controlPanel.RegisteredTimeouts.All;
+        registeredTimeouts.Count.ShouldBe(1);
+        var registeredTimeout = registeredTimeouts.First();
+
+        var id = registeredTimeout.TimeoutId;
+        id.Id.ShouldBe("TimeoutId4321");
+        id.Type.ShouldBe(EffectType.Timeout);
+
+        var timeouts = (await store.TimeoutStore.GetTimeouts(controlPanel.StoredId)).ToList();
+        timeouts.Count.ShouldBe(1);
+        var timeout = timeouts.First();
+        timeout.TimeoutId.ShouldBe(id);
+
+        await controlPanel.RegisteredTimeouts.Upsert(id, new DateTime(2100, 1, 1, 0, 0, 0, DateTimeKind.Utc));
+        
+        await controlPanel.Refresh();
+
+        registeredTimeout = (await controlPanel.RegisteredTimeouts.All).Single();
+        timeout = (await store.TimeoutStore.GetTimeouts(controlPanel.StoredId)).Single();
+        
+        registeredTimeout.TimeoutId.ShouldBe(id);
+        timeout.TimeoutId.ShouldBe(id);
+        
+        registeredTimeout.Expiry.ShouldBe(new DateTime(2100, 1, 1, 0, 0, 0, DateTimeKind.Utc));
+        new DateTime(timeout.Expiry).ShouldBe(new DateTime(2100, 1, 1, 0, 0, 0, DateTimeKind.Utc));
+        
+        unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
+    }
+    
     public abstract Task ExpiredImplicitTimeoutsAreAddedToMessages();
     protected async Task ExpiredImplicitTimeoutsAreAddedToMessages(Task<IFunctionStore> storeTask)
     {
