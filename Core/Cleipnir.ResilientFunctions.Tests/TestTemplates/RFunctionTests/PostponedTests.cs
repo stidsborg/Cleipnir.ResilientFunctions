@@ -834,7 +834,7 @@ public abstract class PostponedTests
         var rFunc = functionsRegistry
             .RegisterAction(
                 functionId.Type,
-                (string _, Workflow workflow) => workflow.Delay("Delay", TimeSpan.FromDays(1))
+                (string _, Workflow workflow) => workflow.Delay(TimeSpan.FromDays(1))
             );
 
         await Should.ThrowAsync<InvocationPostponedException>(
@@ -863,7 +863,7 @@ public abstract class PostponedTests
         var registration = functionsRegistry
             .RegisterAction(
                 functionId.Type,
-                (string _, Workflow workflow) => workflow.Delay("Delay", tomorrow)
+                (string _, Workflow workflow) => workflow.Delay(tomorrow)
             );
 
         await Should.ThrowAsync<InvocationPostponedException>(
@@ -872,9 +872,6 @@ public abstract class PostponedTests
 
         var controlPanel = await registration.ControlPanel(functionId.Instance);
         controlPanel.ShouldNotBeNull();
-
-        var delay = controlPanel.Effects.GetValue<DateTime>("Delay");
-        await delay.ShouldBeAsync(tomorrow);
         
         unhandledExceptionHandler.ShouldNotHaveExceptions();
     }

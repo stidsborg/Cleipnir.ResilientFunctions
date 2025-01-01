@@ -37,21 +37,14 @@ public class Workflow
         states = States;
     }
 
-    public async Task RegisterCorrelation(string correlation)
+    public async Task RegisterCorrelation(string correlation) => await Correlations.Register(correlation);
+
+    public Task Delay(TimeSpan @for) => Delay(until: DateTime.UtcNow + @for);
+    public Task Delay(DateTime until)
     {
-        await Correlations.Register(correlation);
+        if (until <= DateTime.UtcNow)
+            return Task.CompletedTask;
+
+        throw new PostponeInvocationException(until);
     }
-
-    public Task Delay(string effectId, TimeSpan @for) => Delay(effectId, until: DateTime.UtcNow + @for);
-    public async Task Delay(string effectId, DateTime until)
-    {
-        var expiry = await Effect.Capture(effectId, until.ToUniversalTime);
-        if (expiry <= DateTime.UtcNow)
-            return;
-
-        throw new PostponeInvocationException(expiry);
-    }
-
-    public void Postpone(TimeSpan @for) => throw new PostponeInvocationException(@for);
-    public void Postpone(DateTime until) => throw new PostponeInvocationException(until);
 }
