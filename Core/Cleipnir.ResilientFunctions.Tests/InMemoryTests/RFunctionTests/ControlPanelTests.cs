@@ -131,6 +131,10 @@ public class ControlPanelTests : Cleipnir.ResilientFunctions.Tests.TestTemplates
         => EffectCanBeStarted(Utils.CreateInMemoryFunctionStoreTask());
 
     [TestMethod]
+    public override Task EffectRawBytesResultCanFetched()
+        => EffectRawBytesResultCanFetched(FunctionStoreFactory.Create());
+
+    [TestMethod]
     public override Task ExistingEffectCanBeReplaced()
         => ExistingEffectCanBeReplaced(Utils.CreateInMemoryFunctionStoreTask());
 

@@ -40,6 +40,13 @@ public class ExistingEffects(StoredId storedId, IEffectsStore effectsStore, ISer
             : serializer.DeserializeEffectResult<TResult>(storedEffects[effectId].Result!);
     }
 
+    public async Task<byte[]?> GetResultBytes(string effectId) => await GetResultBytes(effectId.ToEffectId());
+    public async Task<byte[]?> GetResultBytes(EffectId effectId)
+    {
+        var storedEffects = await GetStoredEffects();
+        return storedEffects[effectId].Result;
+    }
+
     public async Task<WorkStatus> GetStatus(EffectId effectId)
     {
         var storedEffects = await GetStoredEffects();

@@ -161,7 +161,11 @@ public class ControlPanelTests : Cleipnir.ResilientFunctions.Tests.TestTemplates
     [TestMethod]
     public override Task ExistingEffectCanBeSetToFailed()
         => ExistingEffectCanBeSetToFailed(FunctionStoreFactory.Create());
-    
+
+    [TestMethod]
+    public override Task EffectRawBytesResultCanFetched()
+        => EffectRawBytesResultCanFetched(FunctionStoreFactory.Create());
+
     [TestMethod]
     public override Task ExistingEffectCanBeReplaced()
         => ExistingEffectCanBeReplaced(FunctionStoreFactory.Create());

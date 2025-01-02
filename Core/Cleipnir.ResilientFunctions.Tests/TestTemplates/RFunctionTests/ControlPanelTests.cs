@@ -1188,6 +1188,33 @@ public abstract class ControlPanelTests
         unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
     
+    public abstract Task EffectRawBytesResultCanFetched();
+    protected async Task EffectRawBytesResultCanFetched(Task<IFunctionStore> storeTask)
+    {
+        var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
+        
+        var store = await storeTask;
+        var functionId = TestFlowId.Create();
+        var (flowType, flowInstance) = functionId;
+        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
+
+        var rAction = functionsRegistry.RegisterParamless(
+            flowType,
+            Task (workflow) => workflow.Effect.Capture("Test", () => 123)
+        );
+
+        await rAction.Invoke(flowInstance.Value);
+        
+        var controlPanel = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
+        var effects = controlPanel.Effects;
+        var bytes = await effects.GetResultBytes("Test");
+        bytes.ShouldNotBeNull();
+        var result = bytes.ToStringFromUtf8Bytes();
+        result.ShouldBe("123");
+        
+        unhandledExceptionCatcher.ShouldNotHaveExceptions();
+    }
+    
     public abstract Task ExistingEffectCanBeReplaced();
     protected async Task ExistingEffectCanBeReplaced(Task<IFunctionStore> storeTask)
     {
