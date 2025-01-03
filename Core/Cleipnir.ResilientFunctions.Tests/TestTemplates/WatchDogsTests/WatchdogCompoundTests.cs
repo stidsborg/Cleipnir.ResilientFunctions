@@ -435,7 +435,7 @@ public abstract class WatchdogCompoundTests
             _ = functionsRegistry
                 .RegisterAction(
                     flowType,
-                    async (Param p, Workflow workflow) =>
+                    async Task<Result> (Param p, Workflow workflow) =>
                     {
                         _ = Task.Run(() => paramTcs.TrySetResult(p));
                         var state = await workflow.States.CreateOrGet<ListState>("Scraps");
