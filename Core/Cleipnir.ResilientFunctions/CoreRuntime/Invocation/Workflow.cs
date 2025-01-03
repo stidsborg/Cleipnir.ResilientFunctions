@@ -2,6 +2,7 @@
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Exceptions.Commands;
+using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Storage;
 
@@ -39,11 +40,14 @@ public class Workflow
 
     public async Task RegisterCorrelation(string correlation) => await Correlations.Register(correlation);
 
-    public Task Delay(TimeSpan @for) => Delay(until: DateTime.UtcNow + @for);
-    public Task Delay(DateTime until)
+    public Task Delay(TimeSpan @for, bool suspend = true) => Delay(until: DateTime.UtcNow + @for, suspend);
+    public Task Delay(DateTime until, bool suspend = true)
     {
         if (until <= DateTime.UtcNow)
             return Task.CompletedTask;
+
+        if (!suspend)
+           return Task.Delay((until - DateTime.UtcNow).RoundUpToZero());
 
         throw new PostponeInvocationException(until);
     }
