@@ -375,7 +375,7 @@ public class FunctionsRegistry : IDisposable
         }
     }
     
-    private ActionRegistration<TParam> RegisterAction<TParam>(
+    public ActionRegistration<TParam> RegisterAction<TParam>(
         FlowType flowType,
         Func<TParam, Workflow, Task<Result<Unit>>> inner,
         Settings? settings = null
