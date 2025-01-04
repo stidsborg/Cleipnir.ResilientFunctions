@@ -87,4 +87,8 @@ public class SuspensionTests : TestTemplates.RFunctionTests.SuspensionTests
     [TestMethod]
     public override Task ExecutingFlowIsReExecutedWhenSuspendedAfterInterrupt()
         => ExecutingFlowIsReExecutedWhenSuspendedAfterInterrupt(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task InterruptSuspendedFlows()
+        => InterruptSuspendedFlows(FunctionStoreFactory.Create());
 }

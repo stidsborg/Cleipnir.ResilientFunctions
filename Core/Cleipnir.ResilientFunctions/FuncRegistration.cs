@@ -46,16 +46,16 @@ public class FuncRegistration<TParam, TReturn> : BaseRegistration where TParam :
     public FuncRegistration(
         FlowType flowType,
         StoredType storedType,
+        IFunctionStore functionStore,
         FuncRegistration.Invoke<TParam, TReturn> invoke,
         FuncRegistration.Schedule<TParam, TReturn> schedule,
         FuncRegistration.ScheduleAt<TParam, TReturn> scheduleAt,
         FuncRegistration.BulkSchedule<TParam, TReturn> bulkSchedule,
-        GetInstances getInstances,
         ControlPanelFactory<TParam, TReturn> controlPanelFactory, 
         MessageWriters messageWriters, 
         StateFetcher stateFetcher,
         Postman postman
-    ) : base(storedType, postman, getInstances)
+    ) : base(storedType, postman, functionStore)
     {
         Type = flowType;
         

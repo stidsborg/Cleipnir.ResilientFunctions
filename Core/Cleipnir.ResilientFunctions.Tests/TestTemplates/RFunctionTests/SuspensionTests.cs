@@ -697,4 +697,47 @@ public abstract class SuspensionTests
         
         unhandledExceptionHandler.ShouldNotHaveExceptions();
     }
+    
+    public abstract Task InterruptSuspendedFlows();
+    protected async Task InterruptSuspendedFlows(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var id = TestFlowId.Create();
+        var (flowType, flowInstance) = id;
+
+        var unhandledExceptionHandler = new UnhandledExceptionCatcher();
+        using var functionsRegistry = new FunctionsRegistry
+        (
+            store,
+            new Settings(unhandledExceptionHandler.Catch)
+        );
+
+        var succeedFlag = new SyncedFlag();
+        
+        var registration = functionsRegistry.RegisterParamless(
+            flowType,
+            inner: Task () =>
+            {
+                if (succeedFlag.IsRaised)
+                    return Task.CompletedTask;
+                
+                throw new SuspendInvocationException();
+            }
+        );
+
+        var flows = new [] { "Flow#1", "Flow#2", "Flow#3" }.Select(instance => new FlowInstance(instance)).ToList();
+        await registration.BulkSchedule(flows);
+
+        foreach (var flow in flows)
+            await (await registration.ControlPanel(flow))!.BusyWaitUntil(cp => cp.Status == Status.Suspended);
+        
+        succeedFlag.Raise();
+
+        await registration.Interrupt(flows.Select(f => f.ToStoredInstance()));
+        
+        foreach (var flow in flows)
+            await (await registration.ControlPanel(flow))!.BusyWaitUntil(cp => cp.Status == Status.Succeeded);
+        
+        unhandledExceptionHandler.ShouldNotHaveExceptions();
+    }
 }

@@ -35,16 +35,16 @@ public class ParamlessRegistration : BaseRegistration
     public ParamlessRegistration(
         FlowType flowType,
         StoredType storedType,
+        IFunctionStore functionStore,
         Paramless.Invoke invoke,
         Paramless.Schedule schedule,
         Paramless.ScheduleAt scheduleAt,
         Paramless.BulkSchedule bulkSchedule,
-        GetInstances getInstances,
         ControlPanelFactory controlPanelFactory, 
         MessageWriters messageWriters, 
         StateFetcher stateFetcher,
         Postman postman
-    ) : base(storedType, postman, getInstances)
+    ) : base(storedType, postman, functionStore)
     {
         Type = flowType;
         

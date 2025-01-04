@@ -37,16 +37,16 @@ public class ActionRegistration<TParam> : BaseRegistration where TParam : notnul
     public ActionRegistration(
         FlowType flowType,
         StoredType storedType,
+        IFunctionStore functionStore,
         ActionRegistration.Invoke<TParam> invoke,
         ActionRegistration.Schedule<TParam> schedule,
         ActionRegistration.ScheduleAt<TParam> scheduleAt,
         ActionRegistration.BulkSchedule<TParam> bulkSchedule,
-        GetInstances getInstances,
         ControlPanelFactory<TParam> controlPanelFactory, 
         MessageWriters messageWriters, 
         StateFetcher stateFetcher,
         Postman postman
-    ) : base(storedType, postman, getInstances)
+    ) : base(storedType, postman, functionStore)
     {
         Type = flowType;
         

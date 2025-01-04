@@ -260,20 +260,15 @@ public class FunctionsRegistry : IDisposable
                 _functionStore.CorrelationStore,
                 messageWriters
             );
-
-            Task<IReadOnlyList<StoredInstance>> GetInstances(Status? status) =>
-                status == null
-                    ? _functionStore.GetInstances(storedType)
-                    : _functionStore.GetInstances(storedType, status.Value);
-
+            
             var registration = new FuncRegistration<TParam, TReturn>(
                 flowType,
                 storedType,
+                _functionStore,
                 invoker.Invoke,
                 schedule: async (instance, param, detach) => (await invoker.ScheduleInvoke(instance, param, detach)).ToScheduledWithResult(),
                 scheduleAt: async (instance, param, until, detach) => (await invoker.ScheduleAt(instance, param, until, detach) ).ToScheduledWithResult(),
                 bulkSchedule: async (instances, detach) => (await invocationHelper.BulkSchedule(instances, detach)).ToScheduledWithResults(),
-                GetInstances,
                 controlPanels,
                 messageWriters,
                 new StateFetcher(storedType, _functionStore.EffectsStore, settingsWithDefaults.Serializer),
@@ -350,20 +345,15 @@ public class FunctionsRegistry : IDisposable
                 _functionStore.CorrelationStore,
                 messageWriters
             );
-            
-            Task<IReadOnlyList<StoredInstance>> GetInstances(Status? status) =>
-                status == null
-                    ? _functionStore.GetInstances(storedType)
-                    : _functionStore.GetInstances(storedType, status.Value);
 
             var registration = new ParamlessRegistration(
                 flowType,
                 storedType,
+                _functionStore,
                 invoke: id => invoker.Invoke(id.Value, param: Unit.Instance),
                 schedule: async (id, detach) => (await invoker.ScheduleInvoke(id.Value, param: Unit.Instance, detach)).ToScheduledWithoutResult(),
                 scheduleAt: async (id, at, detach) => (await invoker.ScheduleAt(id.Value, param: Unit.Instance, at, detach)).ToScheduledWithoutResult(),
                 bulkSchedule: async (ids, detach) => (await invocationHelper.BulkSchedule(ids.Select(id => new BulkWork<Unit>(id.Value, Unit.Instance)), detach)).ToScheduledWithoutResults(),
-                GetInstances,
                 controlPanels,
                 messageWriters,
                 new StateFetcher(storedType, _functionStore.EffectsStore, settingsWithDefaults.Serializer),
@@ -440,19 +430,14 @@ public class FunctionsRegistry : IDisposable
                 messageWriters
             );
             
-            Task<IReadOnlyList<StoredInstance>> GetInstances(Status? status) =>
-                status == null
-                    ? _functionStore.GetInstances(storedType)
-                    : _functionStore.GetInstances(storedType, status.Value);
-            
             var registration = new ActionRegistration<TParam>(
                 flowType,
                 storedType,
+                _functionStore,
                 rActionInvoker.Invoke,
                 schedule: async (instance, param, detach) => (await rActionInvoker.ScheduleInvoke(instance, param, detach)).ToScheduledWithoutResult(), 
                 scheduleAt: async (instance, param, until, completion) => (await rActionInvoker.ScheduleAt(instance, param, until, completion)).ToScheduledWithoutResult(), 
                 bulkSchedule: async (instances, detach) => (await invocationHelper.BulkSchedule(instances, detach)).ToScheduledWithoutResults(),
-                GetInstances,
                 controlPanels,
                 messageWriters,
                 new StateFetcher(storedType, _functionStore.EffectsStore, settingsWithDefaults.Serializer),
