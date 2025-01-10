@@ -1,13 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using Shouldly;
 
 namespace Cleipnir.ResilientFunctions.Tests.Utils;
 
 public class UnhandledExceptionCatcher
 {
-    private readonly object _sync = new();
+    private readonly Lock _sync = new();
 
     public List<Exception> ThrownExceptions
     {

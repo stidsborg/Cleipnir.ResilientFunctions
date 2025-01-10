@@ -30,7 +30,7 @@ public class AsyncSemaphore
     private class Lock : IDisposable
     {
         private readonly SemaphoreSlim _semaphore;
-        private readonly object _sync = new();
+        private readonly System.Threading.Lock _sync = new();
         private bool _disposed;
 
         public Lock(SemaphoreSlim semaphore) => _semaphore = semaphore;

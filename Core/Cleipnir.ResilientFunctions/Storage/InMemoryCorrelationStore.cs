@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
@@ -10,7 +11,7 @@ public class InMemoryCorrelationStore : ICorrelationStore
 {
     private readonly Dictionary<StoredId, HashSet<string>> _correlations = new();
     private readonly Dictionary<string, HashSet<StoredId>> _reverseLookup = new();
-    private readonly object _sync = new();
+    private readonly Lock _sync = new();
     
     public Task Initialize() => Task.CompletedTask;
 

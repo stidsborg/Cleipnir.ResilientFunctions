@@ -1,12 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Cleipnir.ResilientFunctions.Tests.Utils;
 
 public class SyncedFlag
 {
-    private readonly object _sync = new();
+    private readonly Lock _sync = new();
     private FlagPosition _position;
     private List<TaskCompletionSource> _waiters = new();
     

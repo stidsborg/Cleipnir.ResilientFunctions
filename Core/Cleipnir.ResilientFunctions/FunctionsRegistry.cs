@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
@@ -26,7 +27,7 @@ public class FunctionsRegistry : IDisposable
     private readonly StoredTypes _storedTypes;
     
     private volatile bool _disposed;
-    private readonly object _sync = new();
+    private readonly Lock _sync = new();
     
     public FunctionsRegistry(IFunctionStore functionStore, Settings? settings = null)
     {

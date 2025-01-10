@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Helpers;
 
@@ -7,7 +8,7 @@ namespace Cleipnir.ResilientFunctions.Utils;
 public class UnderlyingInMemoryRegister : IUnderlyingRegister
 {
     private readonly Dictionary<Id, string> _dictionary = new();
-    private readonly object _sync = new();
+    private readonly Lock _sync = new();
 
     public Task<bool> SetIfEmpty(RegisterType registerType, string group, string name, string value)
     {

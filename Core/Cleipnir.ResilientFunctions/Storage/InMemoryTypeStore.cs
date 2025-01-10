@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
@@ -10,7 +11,7 @@ namespace Cleipnir.ResilientFunctions.Storage;
 public class InMemoryTypeStore : ITypeStore
 {
     private ImmutableDictionary<FlowType, int> _flowTypes = ImmutableDictionary<FlowType, int>.Empty;
-    private readonly object _sync = new();
+    private readonly Lock _sync = new();
     
     public Task<StoredType> InsertOrGetStoredType(FlowType flowType)
     {

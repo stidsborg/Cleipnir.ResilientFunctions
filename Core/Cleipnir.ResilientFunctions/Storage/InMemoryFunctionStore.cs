@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Domain;
@@ -7,8 +8,8 @@ using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Utils;
 using Cleipnir.ResilientFunctions.Utils.Arbitrator;
-using Cleipnir.ResilientFunctions.Utils.Monitor;
 using Cleipnir.ResilientFunctions.Utils.Register;
+using Monitor = Cleipnir.ResilientFunctions.Utils.Monitor.Monitor;
 
 namespace Cleipnir.ResilientFunctions.Storage;
 
@@ -16,7 +17,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
 {
     private readonly Dictionary<StoredId, InnerState> _states = new();
     private readonly Dictionary<StoredId, List<StoredMessage>> _messages = new();
-    private readonly object _sync = new();
+    private readonly Lock _sync = new();
 
     public ITypeStore TypeStore { get; } = new InMemoryTypeStore();
     public IMessageStore MessageStore => this;

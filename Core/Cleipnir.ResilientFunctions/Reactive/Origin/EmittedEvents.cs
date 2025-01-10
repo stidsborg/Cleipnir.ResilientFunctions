@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading;
 using Cleipnir.ResilientFunctions.Domain;
 
 namespace Cleipnir.ResilientFunctions.Reactive.Origin;
@@ -9,7 +10,7 @@ internal class EmittedEvents
     private EmittedEvent[] _backingArray = new EmittedEvent[8];
     private int _count;
     
-    private readonly object _sync = new();
+    private readonly Lock _sync = new();
     
     public int Count
     {

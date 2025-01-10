@@ -12,7 +12,7 @@ internal class StreamAsyncEnumerator<T> : IAsyncEnumerator<T>
         private readonly Dictionary<int, TaskCompletionSource<Event>> _events = new();
         private int _writeIndex = 0;
         private int _readIndex = 0;
-        private readonly object _sync = new();
+        private readonly Lock _sync = new();
 
         private readonly CancellationToken _cancellationToken;
         

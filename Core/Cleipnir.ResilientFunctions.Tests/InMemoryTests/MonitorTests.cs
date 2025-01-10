@@ -1,11 +1,13 @@
 ﻿using System.Collections.Generic;
 using System.Runtime.CompilerServices;
+using System.Threading;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Utils;
 using Cleipnir.ResilientFunctions.Utils.Monitor;
 using Cleipnir.ResilientFunctions.Utils.Register;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Monitor = Cleipnir.ResilientFunctions.Utils.Monitor.Monitor;
 
 namespace Cleipnir.ResilientFunctions.Tests.InMemoryTests;
 
@@ -13,7 +15,7 @@ namespace Cleipnir.ResilientFunctions.Tests.InMemoryTests;
 public class MonitorTests : TestTemplates.UtilsTests.MonitorTests
 {
     private readonly Dictionary<string, Monitor> _monitors = new();
-    private readonly object _sync = new();
+    private readonly Lock _sync = new();
 
     [TestMethod]
     public override Task LockCanBeAcquiredAndReleasedSuccessfully()

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Events;
@@ -24,7 +25,7 @@ internal class TimeoutWatchdog
     private volatile ImmutableDictionary<StoredType, MessageWriters> _messageWriters = ImmutableDictionary<StoredType, MessageWriters>.Empty;
 
     private bool _started = false;
-    private readonly object _sync = new();
+    private readonly Lock _sync = new();
 
     public TimeoutWatchdog(
         ITimeoutStore timeoutStore,

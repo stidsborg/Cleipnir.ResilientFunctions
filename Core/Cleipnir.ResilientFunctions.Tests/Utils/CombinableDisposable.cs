@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading;
 
 namespace Cleipnir.ResilientFunctions.Tests.Utils;
 
@@ -7,7 +8,7 @@ public class CombinableDisposable : IDisposable
 {
     private readonly List<IDisposable> _disposables = new();
     private bool _disposed;
-    private readonly object _sync = new();
+    private readonly Lock _sync = new();
 
     public void Add(IDisposable disposable)
     {

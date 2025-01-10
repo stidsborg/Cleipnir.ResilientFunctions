@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
@@ -27,7 +28,7 @@ public class MessagesPullerAndEmitter
     private int _skip;
 
     private readonly AsyncSemaphore _semaphore = new(maxParallelism: 1);
-    private readonly object _sync = new();
+    private readonly Lock _sync = new();
 
     private bool InitialSyncPerformed
     {

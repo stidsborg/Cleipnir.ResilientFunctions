@@ -1,4 +1,6 @@
-﻿namespace Cleipnir.ResilientFunctions.Tests.Utils;
+﻿using System.Threading;
+
+namespace Cleipnir.ResilientFunctions.Tests.Utils;
 
 public class SyncedCounter
 {
@@ -12,7 +14,7 @@ public class SyncedCounter
     }
 
     private int _current;
-    private readonly object _sync = new();
+    private readonly Lock _sync = new();
 
     public int Increment()
     {

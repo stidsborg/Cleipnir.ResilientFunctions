@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Storage;
 
@@ -8,7 +9,7 @@ namespace Cleipnir.ResilientFunctions.Domain;
 public class Correlations(StoredId storedId, ICorrelationStore correlationStore)
 {
     private HashSet<string>? _correlations;
-    private readonly object _sync = new();
+    private readonly Lock _sync = new();
 
     private async Task<HashSet<string>> GetCorrelations()
     {

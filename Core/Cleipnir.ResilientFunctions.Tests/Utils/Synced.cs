@@ -1,9 +1,11 @@
+using System.Threading;
+
 namespace Cleipnir.ResilientFunctions.Tests.Utils
 {
     public class Synced<T>
     {
         private T? _t;
-        private readonly object _sync = new();
+        private readonly Lock _sync = new();
 
         public T? Value
         {
