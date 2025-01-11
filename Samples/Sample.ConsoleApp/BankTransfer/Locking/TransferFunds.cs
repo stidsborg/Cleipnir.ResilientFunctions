@@ -1,7 +1,5 @@
-﻿using System;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
-using Cleipnir.ResilientFunctions.Utils.Monitor;
 using ConsoleApp.BankTransfer.Versioning;
 
 namespace ConsoleApp.BankTransfer.Locking;
@@ -12,13 +10,11 @@ public static class TransferFunds
     
     public static async Task Perform(Transfer transfer, Workflow workflow)
     {
-        var monitor = workflow.Utilities.Monitor;
-        
-        var lockId = await workflow.Effect.Capture("lockId", () => Guid.NewGuid().ToString());
-        await using var _ = await monitor.Acquire(
-            new LockInfo("Account", transfer.FromAccount, lockId),
-            new LockInfo("Account", transfer.ToAccount, lockId)
-        );
+        var fromAccount = workflow.Semaphores.CreateLock("Account", transfer.FromAccount);
+        var toAccount = workflow.Semaphores.CreateLock("Account", transfer.ToAccount);
+
+        await using var fromAccountLock = await fromAccount.Acquire();
+        await using var toAccountLock = await toAccount.Acquire();
 
         var deductTask = workflow.Effect.Capture(
             "DeductAmount",

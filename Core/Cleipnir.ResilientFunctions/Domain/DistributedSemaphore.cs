@@ -12,6 +12,9 @@ public class DistributedSemaphores(Effect effect, ISemaphoreStore semaphoreStore
 {
     public DistributedSemaphore Create(string group, string instance, int maximumCount) 
         => new(maximumCount, group, instance, effect, semaphoreStore, storedId, interrupt);
+    
+    public DistributedSemaphore CreateLock(string group, string instance) 
+        => new(maximumCount: 1, group, instance, effect, semaphoreStore, storedId, interrupt);
 }
 
 public class DistributedSemaphore(int maximumCount, string group, string instance, Effect effect, ISemaphoreStore store, StoredId storedId, Func<IReadOnlyList<StoredId>, Task> interrupt)

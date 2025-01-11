@@ -9,7 +9,6 @@ using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Utils;
 using Cleipnir.ResilientFunctions.Utils.Arbitrator;
 using Cleipnir.ResilientFunctions.Utils.Register;
-using Monitor = Cleipnir.ResilientFunctions.Utils.Monitor.Monitor;
 
 namespace Cleipnir.ResilientFunctions.Storage;
 
@@ -38,7 +37,6 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
     {
         var underlyingRegister = new UnderlyingInMemoryRegister();
         Utilities = new Utilities(
-            new Monitor(underlyingRegister),
             new Register(underlyingRegister),
             new Arbitrator(underlyingRegister)
         );

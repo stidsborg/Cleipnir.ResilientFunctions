@@ -9,15 +9,9 @@ public class SubscriptionSaga
 {
     public async Task<Result> UpdateSubscription(SubscriptionChange subscriptionChange, State state, Workflow workflow)
     {
-        var monitor = workflow.Utilities.Monitor;
+        var monitor = workflow.Semaphores.CreateLock(nameof(UpdateSubscription), subscriptionChange.SubscriptionId);
         var (subscriptionId, startSubscription) = subscriptionChange;
-        await using var @lock = await monitor.Acquire(
-            group: nameof(UpdateSubscription),
-            name: subscriptionChange.SubscriptionId,
-            lockId: state.LockId
-        );
-        if (@lock == null)
-            return Postpone.For(10_000);
+        await monitor.Acquire();
 
         if (startSubscription)
             await StartSubscription(subscriptionId);
