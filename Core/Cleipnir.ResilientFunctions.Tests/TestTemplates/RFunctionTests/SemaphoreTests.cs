@@ -29,8 +29,8 @@ public abstract class SemaphoreTests
             flowType,
             async Task(string param, Workflow workflow) =>
             {
-                var semaphore = workflow.Semaphores.Create("SomeGroup", "SomeInstance", maximumCount: 1);
-                var @lock = await semaphore.Acquire();
+                var @lock = await workflow.Synchronization.AcquireLock("SomeGroup", "SomeInstance");
+                
                 checkSemaphoreFlag.Raise();
                 await continueFlowFlag.WaitForRaised();
 
@@ -77,8 +77,8 @@ public abstract class SemaphoreTests
             flowId1.Type,
             async Task(string param, Workflow workflow) =>
             {
-                var semaphore = workflow.Semaphores.Create("SomeGroup", "SomeInstance", maximumCount: 1);
-                var @lock = await semaphore.Acquire();
+                var @lock = await workflow.Synchronization.AcquireLock("SomeGroup", "SomeInstance");
+                
                 checkSemaphoreFlag.Raise();
                 await continueFlowFlag.WaitForRaised();
 
@@ -89,8 +89,8 @@ public abstract class SemaphoreTests
             flowId2.Type,
             async Task(string param, Workflow workflow) =>
             {
-                var semaphore = workflow.Semaphores.Create("SomeGroup", "SomeInstance", maximumCount: 1);
-                var @lock = await semaphore.Acquire();
+                var @lock = await workflow.Synchronization.AcquireLock("SomeGroup", "SomeInstance");
+                
                 checkSemaphoreFlag.Raise();
                 await continueFlowFlag.WaitForRaised();
 
@@ -136,8 +136,8 @@ public abstract class SemaphoreTests
             flowId1.Type,
             async Task(string param, Workflow workflow) =>
             {
-                var semaphore = workflow.Semaphores.Create("SomeGroup", "SomeInstance", maximumCount: 2);
-                var @lock = await semaphore.Acquire();
+                var @lock = await workflow.Synchronization.AcquireSemaphore("SomeGroup", "SomeInstance", maximumCount: 2);
+                
                 firstFlowAcquiredSemaphore.Raise();
                 await continueFlowFlag.WaitForRaised();
 
@@ -148,8 +148,8 @@ public abstract class SemaphoreTests
             flowId2.Type,
             async Task(string param, Workflow workflow) =>
             {
-                var semaphore = workflow.Semaphores.Create("SomeGroup", "SomeInstance", maximumCount: 2);
-                var @lock = await semaphore.Acquire();
+                var @lock = await workflow.Synchronization.AcquireSemaphore("SomeGroup", "SomeInstance", maximumCount: 2);
+                
                 secondFlowAcquiredSemaphore.Raise();
                 await continueFlowFlag.WaitForRaised();
 
@@ -160,8 +160,7 @@ public abstract class SemaphoreTests
             flowId3.Type,
             async Task(string param, Workflow workflow) =>
             {
-                var semaphore = workflow.Semaphores.Create("SomeGroup", "SomeInstance", maximumCount: 2);
-                var @lock = await semaphore.Acquire();
+                var @lock = await workflow.Synchronization.AcquireSemaphore("SomeGroup", "SomeInstance", maximumCount: 2);
                 await @lock.DisposeAsync();
             });
         
@@ -216,8 +215,7 @@ public abstract class SemaphoreTests
             flowType,
             async Task(string param, Workflow workflow) =>
             {
-                var semaphore = workflow.Semaphores.Create("SomeGroup", "SomeInstance", maximumCount: 1);
-                await semaphore.Acquire();
+                await workflow.Synchronization.AcquireLock("SomeGroup", "SomeInstance");
                 throw new SuspendInvocationException();
             });
 

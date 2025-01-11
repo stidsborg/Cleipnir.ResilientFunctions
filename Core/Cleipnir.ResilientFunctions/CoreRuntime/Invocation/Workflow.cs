@@ -17,7 +17,10 @@ public class Workflow
     public States States { get; }
     public Utilities Utilities { get; }
     public Correlations Correlations { get; }
+    [Obsolete("Use Synchronization property instead")]
     public DistributedSemaphores Semaphores { get; }
+    public Synchronization Synchronization { get; }
+    
     
     public Workflow(FlowId flowId, StoredId storedId, Messages messages, Effect effect, States states, Utilities utilities, Correlations correlations, DistributedSemaphores semaphores)
     {
@@ -28,7 +31,10 @@ public class Workflow
         Effect = effect;
         States = states;
         Correlations = correlations;
+        #pragma warning disable //todo remove in the future
         Semaphores = semaphores;
+        #pragma warning restore
+        Synchronization = new Synchronization(semaphores);
     }
 
     public void Deconstruct(out Effect effect, out Messages messages, out States states)

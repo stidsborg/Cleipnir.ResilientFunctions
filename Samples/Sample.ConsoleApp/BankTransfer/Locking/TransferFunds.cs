@@ -10,12 +10,9 @@ public static class TransferFunds
     
     public static async Task Perform(Transfer transfer, Workflow workflow)
     {
-        var fromAccount = workflow.Semaphores.CreateLock("Account", transfer.FromAccount);
-        var toAccount = workflow.Semaphores.CreateLock("Account", transfer.ToAccount);
-
-        await using var fromAccountLock = await fromAccount.Acquire();
-        await using var toAccountLock = await toAccount.Acquire();
-
+        await using var fromAccountLock = await workflow.Synchronization.AcquireLock("Account", transfer.FromAccount);
+        await using var toAccountLock = await workflow.Synchronization.AcquireLock("Account", transfer.ToAccount);
+        
         var deductTask = workflow.Effect.Capture(
             "DeductAmount",
             () => BankCentralClient

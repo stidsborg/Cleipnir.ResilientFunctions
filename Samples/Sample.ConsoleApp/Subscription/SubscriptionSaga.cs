@@ -9,9 +9,8 @@ public class SubscriptionSaga
 {
     public async Task<Result> UpdateSubscription(SubscriptionChange subscriptionChange, State state, Workflow workflow)
     {
-        var monitor = workflow.Semaphores.CreateLock(nameof(UpdateSubscription), subscriptionChange.SubscriptionId);
+        await using var monitor = await workflow.Synchronization.AcquireLock(nameof(UpdateSubscription), subscriptionChange.SubscriptionId);
         var (subscriptionId, startSubscription) = subscriptionChange;
-        await monitor.Acquire();
 
         if (startSubscription)
             await StartSubscription(subscriptionId);
