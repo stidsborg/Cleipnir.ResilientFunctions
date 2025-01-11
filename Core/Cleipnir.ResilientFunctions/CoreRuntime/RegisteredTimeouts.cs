@@ -24,8 +24,6 @@ public enum TimeoutStatus
 
 public class RegisteredTimeouts(StoredId storedId, ITimeoutStore timeoutStore, Effect effect) : IRegisteredTimeouts
 {
-
-    
     public string GetNextImplicitId() => EffectContext.CurrentContext.NextImplicitId();
     
     public async Task RegisterTimeout(EffectId timeoutId, DateTime expiresAt)
