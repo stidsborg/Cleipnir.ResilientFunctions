@@ -7,8 +7,6 @@ namespace Cleipnir.ResilientFunctions;
 
 public class InnerScheduled<TResult>(Func<TimeSpan?, Task<IReadOnlyList<TResult>>> completion)
 {
-    public static InnerScheduled<TResult> Failing { get; } = new(_ => throw new InvalidOperationException("Cannot wait for completion of detached flow"));
-    
     public async Task<IReadOnlyList<TResult>> Completion(TimeSpan? maxWait = null) => await completion(maxWait);
     public Scheduled ToScheduledWithoutResult() => Scheduled.CreateFromInnerScheduled(this);
     public Scheduled<TResult> ToScheduledWithResult() => Scheduled<TResult>.CreateFromInnerScheduled(this);
