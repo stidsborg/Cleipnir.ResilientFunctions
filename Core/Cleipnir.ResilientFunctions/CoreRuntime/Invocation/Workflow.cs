@@ -46,15 +46,20 @@ public class Workflow
 
     public async Task RegisterCorrelation(string correlation) => await Correlations.Register(correlation);
 
-    public Task Delay(TimeSpan @for, bool suspend = true) => Delay(until: DateTime.UtcNow + @for, suspend);
-    public Task Delay(DateTime until, bool suspend = true)
+    public Task Delay(TimeSpan @for, bool suspend = true, string? effectId = null) => Delay(until: DateTime.UtcNow + @for, suspend, effectId);
+    public async Task Delay(DateTime until, bool suspend = true, string? effectId = null)
     {
-        if (until <= DateTime.UtcNow)
-            return Task.CompletedTask;
+        effectId ??= $"Delay#{Effect.TakeNextImplicitId()}";
+        var systemEffectId = EffectId.CreateWithCurrentContext(effectId, EffectType.System);
+        until = await Effect.CreateOrGet(systemEffectId, until);
+        var delay = (until - DateTime.UtcNow).RoundUpToZero();
 
+        if (delay == TimeSpan.Zero)
+            return;
+        
         if (!suspend)
-           return Task.Delay((until - DateTime.UtcNow).RoundUpToZero());
-
-        throw new PostponeInvocationException(until);
+            await Task.Delay(delay);
+        else 
+            throw new PostponeInvocationException(until);            
     }
 }

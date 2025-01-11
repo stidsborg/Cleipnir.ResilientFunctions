@@ -8,7 +8,6 @@ using Cleipnir.ResilientFunctions.CoreRuntime.ParameterSerialization;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.Domain.Exceptions.Commands;
 using Cleipnir.ResilientFunctions.Helpers;
-using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Reactive.Utilities;
 using Cleipnir.ResilientFunctions.Storage;
 
@@ -89,17 +88,17 @@ public class Effect(
         return true;
     }
 
-    public async Task<T> CreateOrGet<T>(string id, T value)
+    public Task<T> CreateOrGet<T>(string id, T value) => CreateOrGet(CreateEffectId(id), value);
+    internal async Task<T> CreateOrGet<T>(EffectId effectId, T value)
     {
         var effectResults = await GetEffectResults();
-        var effectId = CreateEffectId(id);
         lock (_sync)
         {
             if (effectResults.TryGetValue(effectId, out var existing) && existing.WorkStatus == WorkStatus.Completed)
                 return serializer.DeserializeEffectResult<T>(existing.Result!);
             
             if (existing?.StoredException != null)
-                throw new EffectException(flowType, id, serializer.DeserializeException(existing.StoredException!));
+                throw new EffectException(flowType, effectId.Id, serializer.DeserializeException(existing.StoredException!));
         }
 
         var storedEffect = StoredEffect.CreateCompleted(effectId, serializer.SerializeEffectResult(value));
@@ -178,9 +177,6 @@ public class Effect(
         => await InnerCapture(id, EffectType.Effect, work, resiliency, EffectContext.CurrentContext);
     public async Task<T> Capture<T>(string id, Func<Task<T>> work, ResiliencyLevel resiliency = ResiliencyLevel.AtLeastOnce) 
         => await InnerCapture(id, EffectType.Effect, work, resiliency, EffectContext.CurrentContext);
-    
-    internal async Task SystemCapture(string id, Func<Task> work, ResiliencyLevel resiliency = ResiliencyLevel.AtLeastOnce) 
-        => await InnerCapture(id, EffectType.System, work, resiliency, EffectContext.CurrentContext);
     
     private async Task InnerCapture(string id, EffectType effectType, Func<Task> work, ResiliencyLevel resiliency, EffectContext effectContext)
     {
