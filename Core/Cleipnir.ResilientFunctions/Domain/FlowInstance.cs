@@ -8,8 +8,6 @@ public class FlowInstance
     public FlowInstance(string value)
     {
         ArgumentNullException.ThrowIfNull(value);
-        Delimiters.EnsureNoUnitSeparator(value);
-        
         Value = value;
     }
     

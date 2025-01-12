@@ -180,7 +180,6 @@ public class Effect(
     
     private async Task InnerCapture(string id, EffectType effectType, Func<Task> work, ResiliencyLevel resiliency, EffectContext effectContext)
     {
-        Delimiters.EnsureNoUnitSeparator(id);
         var effectResults = await GetEffectResults();
         
         var effectId = id.ToEffectId(effectType, context: effectContext.Parent?.Serialize());
@@ -238,7 +237,6 @@ public class Effect(
     
     private async Task<T> InnerCapture<T>(string id, EffectType effectType, Func<Task<T>> work, ResiliencyLevel resiliency, EffectContext effectContext)
     {
-        Delimiters.EnsureNoUnitSeparator(id);
         var effectResults = await GetEffectResults();
         
         var effectId = id.ToEffectId(effectType, context: effectContext.Parent?.Serialize());

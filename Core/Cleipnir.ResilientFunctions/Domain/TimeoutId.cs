@@ -8,8 +8,6 @@ public class TimeoutId
     public TimeoutId(string value)
     {
         ArgumentNullException.ThrowIfNull(value);
-        Delimiters.EnsureNoUnitSeparator(value);
-        
         Value = value;
     }
     

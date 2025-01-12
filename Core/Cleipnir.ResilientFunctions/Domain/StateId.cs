@@ -8,8 +8,6 @@ public class StateId
     public StateId(string value)
     {
         ArgumentNullException.ThrowIfNull(value);
-        Delimiters.EnsureNoUnitSeparator(value);
-        
         Value = value;
     }
     
