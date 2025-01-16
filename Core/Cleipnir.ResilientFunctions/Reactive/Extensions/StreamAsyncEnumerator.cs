@@ -52,7 +52,10 @@ internal class StreamAsyncEnumerator<T> : IAsyncEnumerator<T>
         _subscription.PushMessages();
 
         if (_subscription.DefaultMessageMaxWait == TimeSpan.Zero || _completed)
+        {
+            AddEventToDictionary(new Event(completed: false, exception: new SuspendInvocationException(), next: default!));
             return;
+        }
         
         var stopWatch = Stopwatch.StartNew();
         var maxWait = _subscription.DefaultMessageMaxWait;

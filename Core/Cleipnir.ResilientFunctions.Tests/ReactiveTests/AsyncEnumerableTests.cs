@@ -98,4 +98,17 @@ public class AsyncEnumerableTests
         emits.Count.ShouldBe(1);
         emits[0].ShouldBe("hello");
     }
+    
+    [TestMethod]
+    public async Task AsyncEnumerableSuspendsWhenMaxWaitIsZeroAndNoMessagesArePending()
+    {
+        var source = new TestSource(maxWait: TimeSpan.Zero);
+        await Should.ThrowAsync<SuspendInvocationException>(async () =>
+        {
+            await foreach (var item in source.OfType<string>())
+            {
+                //nothing
+            }
+        });
+    }
 }

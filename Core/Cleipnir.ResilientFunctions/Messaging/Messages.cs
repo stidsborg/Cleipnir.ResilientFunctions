@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime;
 using Cleipnir.ResilientFunctions.Reactive;
@@ -34,4 +36,6 @@ public class Messages : IReactiveChain<object>
 
     public ISubscription Subscribe(Action<object> onNext, Action onCompletion, Action<Exception> onError) 
         => _messagePullerAndEmitter.Source.Subscribe(onNext, onCompletion, onError);
+    
+    public IAsyncEnumerator<object> GetAsyncEnumerator(CancellationToken cancellationToken = default) => Source.GetAsyncEnumerator(cancellationToken); 
 }
