@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Threading.Tasks;
-using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Domain.Exceptions.Commands;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Reactive.Extensions;
 using Cleipnir.ResilientFunctions.Tests.Messaging.Utils;
@@ -66,5 +66,36 @@ public class AsyncEnumerableTests
         source.SignalError(new TimeoutException());
         await BusyWait.Until(() => task.IsFaulted);
         await Should.ThrowAsync<TimeoutException>(task);
+    }
+    
+    [TestMethod]
+    public async Task AsyncEnumerableSuspendsAfterMaxWait()
+    {
+        var source = new TestSource(maxWait: TimeSpan.FromSeconds(1));
+        var emits = new SyncedList<string>();
+        var asyncEnumerableTask = Should.ThrowAsync<SuspendInvocationException>(async () =>
+        {
+            await foreach (var item in source.OfType<string>())
+                emits.Add(item);
+        });
+        await Task.Delay(500);
+        source.SignalNext("hello");
+
+        await asyncEnumerableTask;
+        emits.Count.ShouldBe(1);
+        emits[0].ShouldBe("hello");
+    }
+    
+    [TestMethod]
+    public async Task AsyncEnumerableDoesSuspendWhenCompletionIsBeforeMaxWait()
+    {
+        var source = new TestSource(maxWait: TimeSpan.FromSeconds(1));
+        var emits = new SyncedList<string>();
+        source.SignalNext("hello");
+        await foreach (var item in source.OfType<string>().Take(1))
+            emits.Add(item);
+        
+        emits.Count.ShouldBe(1);
+        emits[0].ShouldBe("hello");
     }
 }

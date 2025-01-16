@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
+using Cleipnir.ResilientFunctions.Domain.Exceptions.Commands;
 
 namespace Cleipnir.ResilientFunctions.Reactive.Extensions;
 
@@ -47,14 +49,26 @@ internal class StreamAsyncEnumerator<T> : IAsyncEnumerator<T>
     private async Task StartSubscriptionLoop()
     {
         await _subscription.Initialize();
+        _subscription.PushMessages();
 
+        if (_subscription.DefaultMessageMaxWait == TimeSpan.Zero || _completed)
+            return;
+        
+        var stopWatch = Stopwatch.StartNew();
+        var maxWait = _subscription.DefaultMessageMaxWait;
         while (!_completed && _subscription.IsWorkflowRunning)
         {
             await _subscription.SyncStore(_subscription.DefaultMessageSyncDelay);
             _subscription.PushMessages();
-
-            if (!_completed)
+            
+            if (_completed) return;
+            if (stopWatch.Elapsed < maxWait)
                 await Task.Delay(_subscription.DefaultMessageSyncDelay, _cancellationToken);
+            else
+            {
+                AddEventToDictionary(new Event(completed: false, exception: new SuspendInvocationException(), next: default!));
+                return;
+            } 
         }
     }
 
