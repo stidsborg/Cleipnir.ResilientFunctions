@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
@@ -13,7 +14,8 @@ internal class LeaseUpdater : IDisposable
     private readonly int _epoch;
 
     private readonly TimeSpan _leaseLength;
-    
+    private readonly LeaseUpdaters? _leaseUpdaters;
+
     private readonly IFunctionStore _functionStore;
     private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
     private volatile bool _disposed;
@@ -24,7 +26,8 @@ internal class LeaseUpdater : IDisposable
         int epoch, 
         IFunctionStore functionStore,
         UnhandledExceptionHandler unhandledExceptionHandler,
-        TimeSpan leaseLength)
+        TimeSpan leaseLength,
+        LeaseUpdaters? leaseUpdaters)
     {
         _flowId = flowId;
         _storedId = storedId;
@@ -33,19 +36,26 @@ internal class LeaseUpdater : IDisposable
         _functionStore = functionStore;
         _unhandledExceptionHandler = unhandledExceptionHandler;
         _leaseLength = leaseLength;
+        _leaseUpdaters = leaseUpdaters;
     }
 
-    public static IDisposable CreateAndStart(StoredId storedId, FlowId flowId, int epoch, IFunctionStore functionStore, SettingsWithDefaults settings)
+    public static IDisposable CreateAndStart(StoredId storedId, FlowId flowId, int epoch, IFunctionStore functionStore, SettingsWithDefaults settings, LeaseUpdaters leaseUpdaters)
     {
+        #if DEBUG
+        if (Debugger.IsAttached)
+            leaseUpdaters.Add(storedId);
+        #endif
+        
         var leaseUpdater = new LeaseUpdater(
             flowId,
             storedId,
             epoch,
             functionStore,
             settings.UnhandledExceptionHandler,
-            leaseLength: settings.LeaseLength
+            leaseLength: settings.LeaseLength,
+            leaseUpdaters
         );
-
+        
         Task.Run(leaseUpdater.Start);
         return leaseUpdater;
     }
@@ -61,7 +71,7 @@ internal class LeaseUpdater : IDisposable
             {
                 await Task.Delay(_leaseLength / 2);
 
-                if (_disposed) return;
+                if (_disposed) break;
 
                 var success = await _functionStore.RenewLease(
                     _storedId,
@@ -87,6 +97,8 @@ internal class LeaseUpdater : IDisposable
                 );
             }
         }
+        
+        _leaseUpdaters?.Remove(_storedId);
     }
 
     public void Dispose() => _disposed = true;

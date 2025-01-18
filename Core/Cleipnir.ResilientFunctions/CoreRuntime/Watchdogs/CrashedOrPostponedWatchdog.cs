@@ -22,7 +22,8 @@ internal class CrashedOrPostponedWatchdog
     private readonly TimeSpan _checkFrequency;
     private readonly TimeSpan _delayStartUp;
     
-
+    private readonly LeaseUpdaters _leaseUpdaters;
+    
     private volatile ImmutableDictionary<StoredType, Tuple<RestartFunction, ScheduleRestartFromWatchdog, AsyncSemaphore>> _flowsDictionary
         = ImmutableDictionary<StoredType, Tuple<RestartFunction, ScheduleRestartFromWatchdog, AsyncSemaphore>>.Empty;
     private readonly Lock _sync = new();
@@ -31,7 +32,8 @@ internal class CrashedOrPostponedWatchdog
     public CrashedOrPostponedWatchdog(
         IFunctionStore functionStore,
         ShutdownCoordinator shutdownCoordinator, UnhandledExceptionHandler unhandledExceptionHandler, 
-        TimeSpan checkFrequency, TimeSpan delayStartUp
+        TimeSpan checkFrequency, TimeSpan delayStartUp,
+        LeaseUpdaters leaseUpdaters
     )
     {
         _functionStore = functionStore;
@@ -39,6 +41,7 @@ internal class CrashedOrPostponedWatchdog
         _unhandledExceptionHandler = unhandledExceptionHandler;
         _checkFrequency = checkFrequency;
         _delayStartUp = delayStartUp;
+        _leaseUpdaters = leaseUpdaters;
     }
 
     public void Register(
@@ -71,7 +74,8 @@ internal class CrashedOrPostponedWatchdog
 
                 var eligibleFunctions = await _functionStore.GetExpiredFunctions(expiresBefore: now.Ticks);
                 #if DEBUG
-                    eligibleFunctions = await ReAssertEligibleFunctions(eligibleFunctions, now);
+                if (Debugger.IsAttached)
+                    eligibleFunctions = eligibleFunctions.Where(t => !_leaseUpdaters.Contains(t.FlowId)).ToList();
                 #endif
 
                 var flowsDictionary = _flowsDictionary;     
@@ -137,20 +141,5 @@ internal class CrashedOrPostponedWatchdog
             await Task.Delay(5_000);
             goto Start;
         }
-    }
-
-    private async Task<IReadOnlyList<IdAndEpoch>> ReAssertEligibleFunctions(IReadOnlyList<IdAndEpoch> eligibleFunctions, DateTime expiresBefore)
-    {
-        //race-condition fix between re-invoker and lease-updater. Task.Delays are not respected when debugging.
-        //fix is to allow lease updater to update lease before crashed watchdog asserts that the functions in question has crashed
-        
-        if (eligibleFunctions.Count == 0 || !Debugger.IsAttached)
-            return eligibleFunctions;
-        
-        await Task.Delay(500);
-        var eligibleFunctionsRepeated = 
-            (await _functionStore.GetExpiredFunctions(expiresBefore.Ticks)).ToHashSet();
-        
-        return eligibleFunctions.Where(ie => eligibleFunctionsRepeated.Contains(ie)).ToList();
     }
 }

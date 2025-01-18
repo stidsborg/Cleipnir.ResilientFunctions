@@ -24,6 +24,7 @@ public class FunctionsRegistry : IDisposable
 
     private readonly TimeoutWatchdog _timeoutWatchdog;
     private readonly CrashedOrPostponedWatchdog _crashedOrPostponedWatchdog;
+    private readonly LeaseUpdaters _leaseUpdaters;
     private readonly StoredTypes _storedTypes;
     
     private volatile bool _disposed;
@@ -35,7 +36,8 @@ public class FunctionsRegistry : IDisposable
         _storedTypes = new StoredTypes(functionStore.TypeStore);
         _shutdownCoordinator = new ShutdownCoordinator();
         _settings = SettingsWithDefaults.Default.Merge(settings);
-
+        _leaseUpdaters = new LeaseUpdaters();
+        
         _timeoutWatchdog = new TimeoutWatchdog(
             functionStore.TimeoutStore,
             _settings.WatchdogCheckFrequency,
@@ -48,7 +50,8 @@ public class FunctionsRegistry : IDisposable
             _shutdownCoordinator,
             _settings.UnhandledExceptionHandler,
             _settings.WatchdogCheckFrequency,
-            _settings.DelayStartup
+            _settings.DelayStartup,
+            _leaseUpdaters
         );
     }
 
@@ -218,7 +221,8 @@ public class FunctionsRegistry : IDisposable
                 isParamlessFunction: false,
                 settingsWithDefaults,
                 _functionStore,
-                _shutdownCoordinator
+                _shutdownCoordinator,
+                _leaseUpdaters
             );
             var invoker = new Invoker<TParam, TReturn>(
                 flowType, 
@@ -303,7 +307,8 @@ public class FunctionsRegistry : IDisposable
                 isParamlessFunction: true,
                 settingsWithDefaults,
                 _functionStore,
-                _shutdownCoordinator
+                _shutdownCoordinator,
+                _leaseUpdaters
             );
             var invoker = new Invoker<Unit, Unit>(
                 flowType, 
@@ -388,7 +393,8 @@ public class FunctionsRegistry : IDisposable
                 isParamlessFunction: false,
                 settingsWithDefaults,
                 _functionStore,
-                _shutdownCoordinator
+                _shutdownCoordinator,
+                _leaseUpdaters
             );
             var rActionInvoker = new Invoker<TParam, Unit>(
                 flowType, 

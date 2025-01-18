@@ -22,10 +22,11 @@ internal class InvocationHelper<TParam, TReturn>
     private readonly bool _isParamlessFunction;
     private readonly FlowType _flowType;
     private readonly StoredType _storedType;
+    private readonly LeaseUpdaters _leaseUpdaters;
 
     private ISerializer Serializer { get; }
 
-    public InvocationHelper(FlowType flowType, StoredType storedType, bool isParamlessFunction, SettingsWithDefaults settings, IFunctionStore functionStore, ShutdownCoordinator shutdownCoordinator)
+    public InvocationHelper(FlowType flowType, StoredType storedType, bool isParamlessFunction, SettingsWithDefaults settings, IFunctionStore functionStore, ShutdownCoordinator shutdownCoordinator, LeaseUpdaters leaseUpdaters)
     {
         _flowType = flowType;
         _isParamlessFunction = isParamlessFunction;
@@ -33,6 +34,7 @@ internal class InvocationHelper<TParam, TReturn>
 
         Serializer = new ErrorHandlingDecorator(settings.Serializer);
         _shutdownCoordinator = shutdownCoordinator;
+        _leaseUpdaters = leaseUpdaters;
         _storedType = storedType;
         _functionStore = functionStore;
     }
@@ -306,7 +308,7 @@ internal class InvocationHelper<TParam, TReturn>
     internal record PreparedReInvocation(FlowId FlowId, TParam? Param, int Epoch, IDisposable RunningFunction, StoredId? Parent);
 
     public IDisposable StartLeaseUpdater(StoredId storedId, FlowId flowId, int epoch = 0) 
-        => LeaseUpdater.CreateAndStart(storedId, flowId, epoch, _functionStore, _settings);
+        => LeaseUpdater.CreateAndStart(storedId, flowId, epoch, _functionStore, _settings, _leaseUpdaters);
     
     public async Task<bool> SetFunctionState(
         StoredId storedId,
