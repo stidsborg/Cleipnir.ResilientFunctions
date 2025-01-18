@@ -146,9 +146,9 @@ public abstract class DoubleInvocationTests
             await secondInvocationTask;
             Assert.Fail("Expected task to fail");
         }
-        catch (PreviousInvocationException e)
+        catch (FatalWorkflowException e)
         {
-            Assert.IsTrue(e.Exception.ErrorType == typeof(InvalidOperationException));
+            Assert.IsTrue(e.ErrorType == typeof(InvalidOperationException));
         }
         
         if (unhandledExceptionHandler.ThrownExceptions.Any())

@@ -1,5 +1,4 @@
-﻿using System;
-using Cleipnir.ResilientFunctions.Domain;
+﻿using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.CoreRuntime.ParameterSerialization;
@@ -8,8 +7,8 @@ public interface ISerializer
 {
     byte[] SerializeParameter<TParam>(TParam parameter);
     TParam DeserializeParameter<TParam>(byte[] json); 
-    StoredException SerializeException(Exception exception);
-    PreviouslyThrownException DeserializeException(StoredException storedException);
+    StoredException SerializeException(FatalWorkflowException fatalWorkflowException);
+    FatalWorkflowException DeserializeException(FlowId flowId, StoredException storedException);
     byte[] SerializeResult<TResult>(TResult result);
     TResult DeserializeResult<TResult>(byte[] json);
     SerializedMessage SerializeMessage<TMessage>(TMessage message) where TMessage : notnull;

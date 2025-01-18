@@ -35,14 +35,14 @@ public class ErrorHandlingDecorator : ISerializer
             );
         }
     }
-    public StoredException SerializeException(Exception exception)
+    public StoredException SerializeException(FatalWorkflowException exception)
         => _inner.SerializeException(exception);
 
-    public PreviouslyThrownException DeserializeException(StoredException storedException)
+    public FatalWorkflowException DeserializeException(FlowId flowId, StoredException storedException)
     {
         try
         {
-            return _inner.DeserializeException(storedException);
+            return _inner.DeserializeException(flowId, storedException);
         }
         catch (DeserializationException)
         {

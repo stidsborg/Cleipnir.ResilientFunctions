@@ -18,12 +18,12 @@ public class ControlPanel : BaseControlPanel<Unit, Unit>
         ExistingEffects effects,
         ExistingStates states, ExistingMessages messages, ExistingSemaphores semaphores, 
         ExistingRegisteredTimeouts registeredTimeouts, Correlations correlations,
-        PreviouslyThrownException? previouslyThrownException
+        FatalWorkflowException? fatalWorkflowException
     ) : base(
         invoker, invocationHelper, 
         flowId, storedId, status, epoch, 
         expires, innerParam: Unit.Instance, innerResult: Unit.Instance, effects,
-        states, messages, registeredTimeouts, semaphores, correlations, previouslyThrownException
+        states, messages, registeredTimeouts, semaphores, correlations, fatalWorkflowException
     ) { }
     
     public Task Succeed() => InnerSucceed(result: Unit.Instance);
@@ -59,12 +59,12 @@ public class ControlPanel<TParam> : BaseControlPanel<TParam, Unit> where TParam 
         ExistingEffects effects,
         ExistingStates states, ExistingMessages messages, ExistingSemaphores semaphores, 
         ExistingRegisteredTimeouts registeredTimeouts, Correlations correlations, 
-        PreviouslyThrownException? previouslyThrownException
+        FatalWorkflowException? fatalWorkflowException
     ) : base(
         invoker, invocationHelper, 
         flowId, storedId, status, epoch, 
         expires, innerParam, innerResult: Unit.Instance, effects,
-        states, messages, registeredTimeouts, semaphores, correlations, previouslyThrownException
+        states, messages, registeredTimeouts, semaphores, correlations, fatalWorkflowException
     ) { }
     
     public TParam Param
@@ -105,12 +105,12 @@ public class ControlPanel<TParam, TReturn> : BaseControlPanel<TParam, TReturn> w
         long expires, TParam innerParam, 
         TReturn? innerResult, 
         ExistingEffects effects, ExistingStates states, ExistingMessages messages, ExistingSemaphores semaphores,
-        ExistingRegisteredTimeouts registeredTimeouts, Correlations correlations, PreviouslyThrownException? previouslyThrownException
+        ExistingRegisteredTimeouts registeredTimeouts, Correlations correlations, FatalWorkflowException? fatalWorkflowException
     ) : base(
         invoker, invocationHelper, 
         flowId, storedId, status, epoch, expires, 
         innerParam, innerResult, effects, states, messages, 
-        registeredTimeouts, semaphores, correlations, previouslyThrownException
+        registeredTimeouts, semaphores, correlations, fatalWorkflowException
     ) { }
 
     public Task Succeed(TReturn result) => InnerSucceed(result);
@@ -165,7 +165,7 @@ public abstract class BaseControlPanel<TParam, TReturn>
         ExistingRegisteredTimeouts registeredTimeouts,
         ExistingSemaphores semaphores,
         Correlations correlations,
-        PreviouslyThrownException? previouslyThrownException)
+        FatalWorkflowException? fatalWorkflowException)
     {
         _invoker = invoker;
         _invocationHelper = invocationHelper;
@@ -186,7 +186,7 @@ public abstract class BaseControlPanel<TParam, TReturn>
         RegisteredTimeouts = registeredTimeouts;
         Semaphores = semaphores;
         Correlations = correlations;
-        PreviouslyThrownException = previouslyThrownException;
+        FatalWorkflowException = fatalWorkflowException;
     }
 
     public FlowId FlowId { get; }
@@ -223,7 +223,7 @@ public abstract class BaseControlPanel<TParam, TReturn>
 
     protected TReturn? InnerResult { get; set; }
     public DateTime? PostponedUntil { get; private set; }
-    public PreviouslyThrownException? PreviouslyThrownException { get; private set; }
+    public FatalWorkflowException? FatalWorkflowException { get; private set; }
 
     protected async Task InnerSucceed(TReturn? result)
     {
@@ -268,10 +268,11 @@ public abstract class BaseControlPanel<TParam, TReturn>
 
     public async Task Fail(Exception exception)
     {
+        var fatalWorkflowException = FatalWorkflowException.CreateNonGeneric(FlowId, exception);
         var success = await _invocationHelper.SetFunctionState(
             StoredId, Status.Failed, 
             InnerParam,  
-            result: default, expires: long.MaxValue, exception, 
+            result: default, expires: long.MaxValue, FatalWorkflowException.CreateNonGeneric(FlowId, exception), 
             Epoch
         );
 
@@ -280,7 +281,7 @@ public abstract class BaseControlPanel<TParam, TReturn>
         
         Epoch++;
         Status = Status.Failed;
-        PreviouslyThrownException = new PreviouslyThrownException(exception.Message, exception.StackTrace, exception.GetType());
+        FatalWorkflowException = fatalWorkflowException;
         _innerParamChanged = false;
     }
 
@@ -313,7 +314,7 @@ public abstract class BaseControlPanel<TParam, TReturn>
     
     public async Task Refresh()
     {
-        var sf = await _invocationHelper.GetFunction(StoredId);
+        var sf = await _invocationHelper.GetFunction(StoredId, FlowId);
         if (sf == null)
             throw UnexpectedStateException.NotFound(FlowId);
 
@@ -325,7 +326,7 @@ public abstract class BaseControlPanel<TParam, TReturn>
         InnerParam = sf.Param!;
         InnerResult = sf.Result;
         PostponedUntil = Status == Status.Postponed ? LeaseExpiration : null;
-        PreviouslyThrownException = sf.PreviouslyThrownException;
+        FatalWorkflowException = sf.PreviouslyThrownException;
         Effects = _invocationHelper.CreateExistingEffects(FlowId);
         Messages = _invocationHelper.CreateExistingMessages(FlowId);
         States = _invocationHelper.CreateExistingStates(FlowId);

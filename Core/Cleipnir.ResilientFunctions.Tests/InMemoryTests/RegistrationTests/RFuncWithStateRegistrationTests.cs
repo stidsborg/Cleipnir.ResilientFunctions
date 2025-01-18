@@ -67,10 +67,10 @@ public class RFuncWithStateRegistrationTests
         public TParam DeserializeParameter<TParam>(byte[] json)
             => Default.DeserializeParameter<TParam>(json);
         
-        public StoredException SerializeException(Exception exception)
+        public StoredException SerializeException(FatalWorkflowException exception)
             => Default.SerializeException(exception);
-        public PreviouslyThrownException DeserializeException(StoredException storedException)
-            => Default.DeserializeException(storedException);
+        public FatalWorkflowException DeserializeException(FlowId flowId, StoredException storedException)
+            => Default.DeserializeException(flowId, storedException);
         
         public byte[] SerializeResult<TResult>(TResult result) 
             => Default.SerializeResult(result);

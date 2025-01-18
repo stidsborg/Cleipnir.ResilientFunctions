@@ -12,7 +12,7 @@ internal static class InnerToAsyncResultAdapters
     // ** !! PARAMLESS !! ** //
     public static Func<Unit, Workflow, Task<Result<Unit>>> ToInnerParamlessWithTaskResultReturn(Func<Task> inner)
     {
-        return async (_, _) =>
+        return async (_, workflow) =>
         {
             try
             {
@@ -21,7 +21,8 @@ internal static class InnerToAsyncResultAdapters
             }
             catch (PostponeInvocationException exception) { return Postpone.Until(exception.PostponeUntil); }
             catch (SuspendInvocationException) { return Suspend.Invocation; }
-            catch (Exception exception) { return Fail.WithException(exception); }
+            catch (FatalWorkflowException exception) { return Fail.WithException(exception, workflow.FlowId); }
+            catch (Exception exception) { return Fail.WithException(FatalWorkflowException.CreateNonGeneric(workflow.FlowId, exception)); }
         };
     }
     
@@ -36,13 +37,14 @@ internal static class InnerToAsyncResultAdapters
             }
             catch (PostponeInvocationException exception) { return Postpone.Until(exception.PostponeUntil); }
             catch (SuspendInvocationException) { return Suspend.Invocation; }
-            catch (Exception exception) { return Fail.WithException(exception); }
+            catch (FatalWorkflowException exception) { return Fail.WithException(exception, workflow.FlowId); }
+            catch (Exception exception) { return Fail.WithException(FatalWorkflowException.CreateNonGeneric(workflow.FlowId, exception)); }
         };
     }
     
     public static Func<Unit, Workflow, Task<Result<Unit>>> ToInnerParamlessWithTaskResultReturn(Func<Task<Result>> inner)
     {
-        return async (_, _) =>
+        return async (_, workflow) =>
         {
             try
             {
@@ -51,13 +53,14 @@ internal static class InnerToAsyncResultAdapters
             }
             catch (PostponeInvocationException exception) { return Postpone.Until(exception.PostponeUntil); }
             catch (SuspendInvocationException) { return Suspend.Invocation; }
-            catch (Exception exception) { return Fail.WithException(exception); }
+            catch (FatalWorkflowException exception) { return Fail.WithException(exception, workflow.FlowId); }
+            catch (Exception exception) { return Fail.WithException(FatalWorkflowException.CreateNonGeneric(workflow.FlowId, exception)); }
         };
     }
     
     public static Func<Unit, Workflow, Task<Result<Unit>>> ToInnerParamlessWithTaskResultReturn(Func<Task<Result<Unit>>> inner)
     {
-        return async (_, _) =>
+        return async (_, workflow) =>
         {
             try
             {
@@ -66,7 +69,8 @@ internal static class InnerToAsyncResultAdapters
             }
             catch (PostponeInvocationException exception) { return Postpone.Until(exception.PostponeUntil); }
             catch (SuspendInvocationException) { return Suspend.Invocation; }
-            catch (Exception exception) { return Fail.WithException(exception); }
+            catch (FatalWorkflowException exception) { return Fail.WithException(exception, workflow.FlowId); }
+            catch (Exception exception) { return Fail.WithException(FatalWorkflowException.CreateNonGeneric(workflow.FlowId, exception)); }
         };
     }
     
@@ -81,7 +85,8 @@ internal static class InnerToAsyncResultAdapters
             }
             catch (PostponeInvocationException exception) { return Postpone.Until(exception.PostponeUntil); }
             catch (SuspendInvocationException) { return Suspend.Invocation; }
-            catch (Exception exception) { return Fail.WithException(exception); }
+            catch (FatalWorkflowException exception) { return Fail.WithException(exception, workflow.FlowId); }
+            catch (Exception exception) { return Fail.WithException(FatalWorkflowException.CreateNonGeneric(workflow.FlowId, exception)); }
         };
     }
     
@@ -96,7 +101,8 @@ internal static class InnerToAsyncResultAdapters
             }
             catch (PostponeInvocationException exception) { return Postpone.Until(exception.PostponeUntil); }
             catch (SuspendInvocationException) { return Suspend.Invocation; }
-            catch (Exception exception) { return Fail.WithException(exception); }
+            catch (FatalWorkflowException exception) { return Fail.WithException(exception, workflow.FlowId); }
+            catch (Exception exception) { return Fail.WithException(FatalWorkflowException.CreateNonGeneric(workflow.FlowId, exception)); }
         };
     }
     
@@ -113,7 +119,8 @@ internal static class InnerToAsyncResultAdapters
             } 
             catch (PostponeInvocationException exception) { return Postpone.Until(exception.PostponeUntil); }
             catch (SuspendInvocationException) { return Suspend.Invocation; }
-            catch (Exception exception) { return Fail.WithException(exception); }
+            catch (FatalWorkflowException exception) { return Fail.WithException(exception, workflow.FlowId); }
+            catch (Exception exception) { return Fail.WithException(FatalWorkflowException.CreateNonGeneric(workflow.FlowId, exception)); }
         };
     }
     
@@ -129,7 +136,8 @@ internal static class InnerToAsyncResultAdapters
             }
             catch (PostponeInvocationException exception) { return Postpone.Until(exception.PostponeUntil); }
             catch (SuspendInvocationException) { return Suspend.Invocation; }
-            catch (Exception exception) { return Fail.WithException(exception); }
+            catch (FatalWorkflowException exception) { return Fail.WithException(exception, workflow.FlowId); }
+            catch (Exception exception) { return Fail.WithException(FatalWorkflowException.CreateNonGeneric(workflow.FlowId, exception)); }
         };
     }
     
@@ -145,7 +153,8 @@ internal static class InnerToAsyncResultAdapters
             }
             catch (PostponeInvocationException exception) { return Postpone.Until(exception.PostponeUntil); }
             catch (SuspendInvocationException) { return Suspend.Invocation; }
-            catch (Exception exception) { return Fail.WithException(exception); }
+            catch (FatalWorkflowException exception) { return Fail.WithException(exception, workflow.FlowId); }
+            catch (Exception exception) { return Fail.WithException(FatalWorkflowException.CreateNonGeneric(workflow.FlowId, exception)); }
         };
     }
     
@@ -161,7 +170,8 @@ internal static class InnerToAsyncResultAdapters
             }
             catch (PostponeInvocationException exception) { return Postpone.Until(exception.PostponeUntil); }
             catch (SuspendInvocationException) { return Suspend.Invocation; }
-            catch (Exception exception) { return Fail.WithException(exception); }
+            catch (FatalWorkflowException exception) { return Fail.WithException(exception, workflow.FlowId); }
+            catch (Exception exception) { return Fail.WithException(FatalWorkflowException.CreateNonGeneric(workflow.FlowId, exception)); }
         };
     }
     
@@ -178,7 +188,8 @@ internal static class InnerToAsyncResultAdapters
             }
             catch (PostponeInvocationException exception) { return Postpone.Until(exception.PostponeUntil); }
             catch (SuspendInvocationException) { return Suspend.Invocation; }
-            catch (Exception exception) { return Fail.WithException(exception); }
+            catch (FatalWorkflowException exception) { return Fail.WithException(exception, workflow.FlowId); }
+            catch (Exception exception) { return Fail.WithException(FatalWorkflowException.CreateNonGeneric(workflow.FlowId, exception)); }
         };
     }
     
@@ -194,7 +205,8 @@ internal static class InnerToAsyncResultAdapters
             }
             catch (PostponeInvocationException exception) { return Postpone.Until(exception.PostponeUntil); }
             catch (SuspendInvocationException) { return Suspend.Invocation; }
-            catch (Exception exception) { return Fail.WithException(exception); }
+            catch (FatalWorkflowException exception) { return Fail.WithException(exception, workflow.FlowId); }
+            catch (Exception exception) { return Fail.WithException(FatalWorkflowException.CreateNonGeneric(workflow.FlowId, exception)); }
         };
     }
     
@@ -210,7 +222,8 @@ internal static class InnerToAsyncResultAdapters
             }
             catch (PostponeInvocationException exception) { return Postpone.Until(exception.PostponeUntil); }
             catch (SuspendInvocationException) { return Suspend.Invocation; }
-            catch (Exception exception) { return Fail.WithException(exception); }
+            catch (FatalWorkflowException exception) { return Fail.WithException(exception, workflow.FlowId); }
+            catch (Exception exception) { return Fail.WithException(FatalWorkflowException.CreateNonGeneric(workflow.FlowId, exception)); }
         };
     }
    
@@ -226,7 +239,8 @@ internal static class InnerToAsyncResultAdapters
             }
             catch (PostponeInvocationException exception) { return Postpone.Until(exception.PostponeUntil); }
             catch (SuspendInvocationException) { return Suspend.Invocation; }
-            catch (Exception exception) { return Fail.WithException(exception); }
+            catch (FatalWorkflowException exception) { return Fail.WithException(exception, workflow.FlowId); }
+            catch (Exception exception) { return Fail.WithException(FatalWorkflowException.CreateNonGeneric(workflow.FlowId, exception)); }
         };
     }
 }

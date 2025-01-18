@@ -207,7 +207,7 @@ public abstract class EffectImplicitIdTests
 
         var controlPanel = await rAction.ControlPanel(flowId.Instance);
         controlPanel.ShouldNotBeNull();
-        await Should.ThrowAsync<EffectException>(() => controlPanel.Restart());
+        await Should.ThrowAsync<FatalWorkflowException>(() => controlPanel.Restart());
         
         effectResults = await store.EffectsStore.GetEffectResults(rAction.MapToStoredId(flowId));
         storedEffect = effectResults.Single(r => r.EffectId == "0".ToEffectId());

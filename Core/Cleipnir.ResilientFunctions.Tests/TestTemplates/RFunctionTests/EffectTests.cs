@@ -222,7 +222,7 @@ public abstract class EffectTests
 
         var controlPanel = await rAction.ControlPanel(flowId.Instance);
         controlPanel.ShouldNotBeNull();
-        await Should.ThrowAsync<EffectException>(() => controlPanel.Restart());
+        await Should.ThrowAsync<FatalWorkflowException>(() => controlPanel.Restart());
         
         effectResults = await store.EffectsStore.GetEffectResults(storedId);
         storedEffect = effectResults.Single(r => r.EffectId == "Test".ToEffectId());
@@ -328,7 +328,7 @@ public abstract class EffectTests
         var store = await storeTask;
         var storedId = TestStoredId.Create();
         var effect = new Effect(
-            TestFlowId.Create().Type,
+            TestFlowId.Create(),
             storedId,
             lazyExistingEffects: new Lazy<Task<IReadOnlyList<StoredEffect>>>(() => store.EffectsStore.GetEffectResults(storedId)),
             store.EffectsStore,
@@ -365,7 +365,7 @@ public abstract class EffectTests
         var syncedCounter = new SyncedCounter();
         
         var effect = new Effect(
-            TestFlowId.Create().Type,
+            TestFlowId.Create(),
             storedId,
             lazyExistingEffects: new Lazy<Task<IReadOnlyList<StoredEffect>>>(
                 () =>

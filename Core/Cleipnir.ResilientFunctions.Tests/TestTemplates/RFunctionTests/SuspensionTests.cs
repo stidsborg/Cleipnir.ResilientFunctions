@@ -436,7 +436,7 @@ public abstract class SuspensionTests
             inner: Task (string param) => child.Schedule("SomeChildInstance#1", param).Completion()
         );
         
-        await Should.ThrowAsync<PreviousInvocationException>(
+        await Should.ThrowAsync<FatalWorkflowException>(
             () => parent.Schedule(parentFunctionId.Instance.Value, param: "hello").Completion(maxWait: TimeSpan.FromSeconds(5))
         );
         

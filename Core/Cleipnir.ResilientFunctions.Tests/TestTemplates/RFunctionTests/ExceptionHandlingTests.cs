@@ -22,8 +22,8 @@ public abstract class ExceptionHandlingTests
             Task<string> (string param) => throw new ArithmeticException("Division by zero")
         ).Invoke;
         
-        await Should.ThrowAsync<ArithmeticException>(async () => await rFunc("instanceId", "hello"));
-        await Should.ThrowAsync<PreviousInvocationException>(async () => await rFunc("instanceId", "hello"));
+        await Should.ThrowAsync<FatalWorkflowException<ArithmeticException>>(async () => await rFunc("instanceId", "hello"));
+        await Should.ThrowAsync<FatalWorkflowException<ArithmeticException>>(async () => await rFunc("instanceId", "hello"));
     }
 
     public abstract Task UnhandledExceptionIsRethrownWhenEnsuringSuccessOnFuncWithState();
@@ -38,8 +38,8 @@ public abstract class ExceptionHandlingTests
             Task<string> (string param) => throw new ArithmeticException("Division by zero")
         ).Invoke;
         
-        await Should.ThrowAsync<ArithmeticException>(async () => await rFunc("instanceId", "hello"));
-        await Should.ThrowAsync<PreviousInvocationException>(async () => await rFunc("instanceId", "hello"));
+        await Should.ThrowAsync<FatalWorkflowException<ArithmeticException>>(async () => await rFunc("instanceId", "hello"));
+        await Should.ThrowAsync<FatalWorkflowException<ArithmeticException>>(async () => await rFunc("instanceId", "hello"));
     }
 
     public abstract Task UnhandledExceptionIsRethrownWhenEnsuringSuccessOnAction();
@@ -55,9 +55,9 @@ public abstract class ExceptionHandlingTests
                 Task (string _) => throw new ArithmeticException("Division by zero")
             )
             .Invoke;
-        
-        await Should.ThrowAsync<ArithmeticException>(async () => await rFunc("instanceId", "hello"));
-        await Should.ThrowAsync<PreviousInvocationException>(async () => await rFunc("instanceId", "hello"));
+
+        await Should.ThrowAsync<FatalWorkflowException<ArithmeticException>>(async () => await rFunc("instanceId", "hello"));
+        await Should.ThrowAsync<FatalWorkflowException<ArithmeticException>>(async () => await rFunc("instanceId", "hello"));
     }
 
     public abstract Task UnhandledExceptionIsRethrownWhenEnsuringSuccessOnActionWithState();
@@ -74,7 +74,7 @@ public abstract class ExceptionHandlingTests
             )
             .Invoke;
 
-        await Should.ThrowAsync<ArithmeticException>(async () => await rFunc("instanceId", "hello"));
-        await Should.ThrowAsync<PreviousInvocationException>(async () => await rFunc("instanceId", "hello"));
+        await Should.ThrowAsync<FatalWorkflowException<ArithmeticException>>(async () => await rFunc("instanceId", "hello"));
+        await Should.ThrowAsync<FatalWorkflowException<ArithmeticException>>(async () => await rFunc("instanceId", "hello"));
     }
 }

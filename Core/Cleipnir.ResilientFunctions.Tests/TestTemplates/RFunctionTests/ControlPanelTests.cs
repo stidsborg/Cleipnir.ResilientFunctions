@@ -157,7 +157,7 @@ public abstract class ControlPanelTests
 
         var controlPanel = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
         controlPanel.Status.ShouldBe(Status.Failed);
-        controlPanel.PreviouslyThrownException.ShouldNotBeNull();
+        controlPanel.FatalWorkflowException.ShouldNotBeNull();
         
         await controlPanel.Postpone(new DateTime(1_000_000));
 
@@ -193,7 +193,7 @@ public abstract class ControlPanelTests
 
         var controlPanel = await rFunc.ControlPanel(flowInstance).ShouldNotBeNullAsync();
         controlPanel.Status.ShouldBe(Status.Failed);
-        controlPanel.PreviouslyThrownException.ShouldNotBeNull();
+        controlPanel.FatalWorkflowException.ShouldNotBeNull();
         
         await controlPanel.Postpone(new DateTime(1_000_000));
 
@@ -235,7 +235,7 @@ public abstract class ControlPanelTests
 
         await controlPanel.Refresh();
         controlPanel.Status.ShouldBe(Status.Failed);
-        controlPanel.PreviouslyThrownException.ShouldNotBeNull();
+        controlPanel.FatalWorkflowException.ShouldNotBeNull();
 
         var sf = await store.GetFunction(rAction.MapToStoredId(functionId));
         sf.ShouldNotBeNull();
@@ -270,7 +270,7 @@ public abstract class ControlPanelTests
 
         await controlPanel.Refresh();
         controlPanel.Status.ShouldBe(Status.Failed);
-        controlPanel.PreviouslyThrownException.ShouldNotBeNull();
+        controlPanel.FatalWorkflowException.ShouldNotBeNull();
         
         var sf = await store.GetFunction(rFunc.MapToStoredId(functionId));
         sf.ShouldNotBeNull();
@@ -299,7 +299,7 @@ public abstract class ControlPanelTests
 
         var controlPanel = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
         controlPanel.Status.ShouldBe(Status.Failed);
-        controlPanel.PreviouslyThrownException.ShouldNotBeNull();
+        controlPanel.FatalWorkflowException.ShouldNotBeNull();
 
         await controlPanel.Succeed();
 
@@ -332,7 +332,7 @@ public abstract class ControlPanelTests
 
         var controlPanel = await paramlessRegistration.ControlPanel(flowInstance).ShouldNotBeNullAsync();
         controlPanel.Status.ShouldBe(Status.Failed);
-        controlPanel.PreviouslyThrownException.ShouldNotBeNull();
+        controlPanel.FatalWorkflowException.ShouldNotBeNull();
 
         await controlPanel.Succeed();
 
@@ -365,7 +365,7 @@ public abstract class ControlPanelTests
 
         var controlPanel = await rFunc.ControlPanel(flowInstance).ShouldNotBeNullAsync();
         controlPanel.Status.ShouldBe(Status.Failed);
-        controlPanel.PreviouslyThrownException.ShouldNotBeNull();
+        controlPanel.FatalWorkflowException.ShouldNotBeNull();
 
         await controlPanel.Succeed("hello world");
 
@@ -405,7 +405,7 @@ public abstract class ControlPanelTests
         var controlPanel = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
         controlPanel.Status.ShouldBe(Status.Succeeded);
         (await controlPanel.States.Get<TestState>("State")).Value.ShouldBe("first");
-        controlPanel.PreviouslyThrownException.ShouldBeNull();
+        controlPanel.FatalWorkflowException.ShouldBeNull();
 
         controlPanel.Param = "second";
         await controlPanel.SaveChanges();
@@ -446,7 +446,7 @@ public abstract class ControlPanelTests
         var controlPanel = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
         controlPanel.Status.ShouldBe(Status.Succeeded);
         controlPanel.Result.ShouldBe("first");
-        controlPanel.PreviouslyThrownException.ShouldBeNull();
+        controlPanel.FatalWorkflowException.ShouldBeNull();
 
         controlPanel.Param = "second";
         var result = await controlPanel.Restart();
@@ -482,7 +482,7 @@ public abstract class ControlPanelTests
         var controlPanel = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
         controlPanel.Status.ShouldBe(Status.Succeeded);
         (await controlPanel.States.Get<TestState>("State")).Value.ShouldBe("first");
-        controlPanel.PreviouslyThrownException.ShouldBeNull();
+        controlPanel.FatalWorkflowException.ShouldBeNull();
 
         controlPanel.Param = "second";
         await controlPanel.SaveChanges();
@@ -520,7 +520,7 @@ public abstract class ControlPanelTests
         var controlPanel = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
         controlPanel.Status.ShouldBe(Status.Succeeded);
         controlPanel.Result.ShouldBe("first");
-        controlPanel.PreviouslyThrownException.ShouldBeNull();
+        controlPanel.FatalWorkflowException.ShouldBeNull();
 
         controlPanel.Param = "second";
         await controlPanel.ScheduleRestart();
@@ -1422,7 +1422,7 @@ public abstract class ControlPanelTests
         var effects = controlPanel.Effects;
         await effects.SetFailed(effectId: "Test", new InvalidOperationException("oh no"));
 
-        await Should.ThrowAsync<PreviousInvocationException>(() => 
+        await Should.ThrowAsync<FatalWorkflowException>(() => 
             controlPanel.Restart()
         );
 

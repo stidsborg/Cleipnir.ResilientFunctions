@@ -74,7 +74,7 @@ public abstract class TimeoutTests
             }
         ).Invoke;
 
-        await Should.ThrowAsync<NoResultException>(
+        await Should.ThrowAsync<FatalWorkflowException<NoResultException>>(
             () => rAction.Invoke("instanceId", "hello world")
         );
         

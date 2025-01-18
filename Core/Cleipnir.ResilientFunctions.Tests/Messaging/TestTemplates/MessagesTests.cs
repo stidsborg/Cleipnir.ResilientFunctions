@@ -20,7 +20,8 @@ public abstract class MessagesTests
     public abstract Task MessagesSunshineScenario();
     protected async Task MessagesSunshineScenario(Task<IFunctionStore> functionStoreTask)
     {
-        var storedId = TestStoredId.Create();
+        var flowId = TestFlowId.Create();
+        var storedId = flowId.ToStoredId(new StoredType(1));
         var functionStore = await functionStoreTask;
         await functionStore.CreateFunction(
             storedId,  
@@ -32,7 +33,7 @@ public abstract class MessagesTests
             parent: null
         );
         var messagesWriter = new MessageWriter(storedId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
-        var registeredTimeouts = new RegisteredTimeouts(storedId, functionStore.TimeoutStore, CreateEffect(storedId, functionStore));
+        var registeredTimeouts = new RegisteredTimeouts(storedId, functionStore.TimeoutStore, CreateEffect(storedId, flowId, functionStore));
         var messagesPullerAndEmitter = new MessagesPullerAndEmitter(
             storedId,
             defaultDelay: TimeSpan.FromMilliseconds(250),
@@ -58,6 +59,7 @@ public abstract class MessagesTests
     protected async Task MessagesFirstOfTypesReturnsNoneForFirstOfTypesOnTimeout(Task<IFunctionStore> functionStoreTask)
     {
         var flowId = TestFlowId.Create();
+        var storedId = flowId.ToStoredId(new StoredType(1));
         var functionStore = await functionStoreTask;
 
         var functionRegistry = new FunctionsRegistry(
@@ -83,10 +85,11 @@ public abstract class MessagesTests
     public abstract Task MessagesFirstOfTypesReturnsFirstForFirstOfTypesOnFirst();
     protected async Task MessagesFirstOfTypesReturnsFirstForFirstOfTypesOnFirst(Task<IFunctionStore> functionStoreTask)
     {
-        var functionId = TestStoredId.Create();
+        var flowId = TestFlowId.Create();
+        var storedId = flowId.ToStoredId(new StoredType(1));
         var functionStore = await functionStoreTask;
         await functionStore.CreateFunction(
-            functionId,  
+            storedId,  
             "humanInstanceId",
             Test.SimpleStoredParameter, 
             leaseExpiration: DateTime.UtcNow.Ticks,
@@ -94,10 +97,10 @@ public abstract class MessagesTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null
         );
-        var messagesWriter = new MessageWriter(functionId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
-        var registeredTimeouts = new RegisteredTimeouts(functionId, functionStore.TimeoutStore, CreateEffect(functionId, functionStore));
+        var messagesWriter = new MessageWriter(storedId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
+        var registeredTimeouts = new RegisteredTimeouts(storedId, functionStore.TimeoutStore, CreateEffect(storedId, flowId, functionStore));
         var messagesPullerAndEmitter = new MessagesPullerAndEmitter(
-            functionId,
+            storedId,
             defaultDelay: TimeSpan.FromMilliseconds(250),
             defaultMaxWait: TimeSpan.MaxValue, 
             isWorkflowRunning: () => true,
@@ -121,10 +124,11 @@ public abstract class MessagesTests
     public abstract Task MessagesFirstOfTypesReturnsSecondForFirstOfTypesOnSecond();
     protected async Task MessagesFirstOfTypesReturnsSecondForFirstOfTypesOnSecond(Task<IFunctionStore> functionStoreTask)
     {
-        var functionId = TestStoredId.Create();
+        var flowId = TestFlowId.Create();
+        var storedId = flowId.ToStoredId(new StoredType(1));
         var functionStore = await functionStoreTask;
         await functionStore.CreateFunction(
-            functionId,  
+            storedId,  
             "humanInstanceId",
             Test.SimpleStoredParameter, 
             leaseExpiration: DateTime.UtcNow.Ticks,
@@ -132,10 +136,10 @@ public abstract class MessagesTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null
         );
-        var messagesWriter = new MessageWriter(functionId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
-        var registeredTimeouts = new RegisteredTimeouts(functionId, functionStore.TimeoutStore, CreateEffect(functionId, functionStore));
+        var messagesWriter = new MessageWriter(storedId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
+        var registeredTimeouts = new RegisteredTimeouts(storedId, functionStore.TimeoutStore, CreateEffect(storedId, flowId, functionStore));
         var messagesPullerAndEmitter = new MessagesPullerAndEmitter(
-            functionId,
+            storedId,
             defaultDelay: TimeSpan.FromMilliseconds(250),
             defaultMaxWait: TimeSpan.MaxValue, 
             isWorkflowRunning: () => true,
@@ -159,10 +163,11 @@ public abstract class MessagesTests
     public abstract Task ExistingEventsShouldBeSameAsAllAfterEmit();
     protected async Task ExistingEventsShouldBeSameAsAllAfterEmit(Task<IFunctionStore> functionStoreTask)
     {
-        var functionId = TestStoredId.Create();
+        var flowId = TestFlowId.Create();
+        var storedId = flowId.ToStoredId(new StoredType(1));
         var functionStore = await functionStoreTask;
         await functionStore.CreateFunction(
-            functionId,  
+            storedId,  
             "humanInstanceId",
             Test.SimpleStoredParameter, 
             leaseExpiration: DateTime.UtcNow.Ticks,
@@ -170,10 +175,10 @@ public abstract class MessagesTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null
         );
-        var messagesWriter = new MessageWriter(functionId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
-        var registeredTimeouts = new RegisteredTimeouts(functionId, functionStore.TimeoutStore, CreateEffect(functionId, functionStore));
+        var messagesWriter = new MessageWriter(storedId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
+        var registeredTimeouts = new RegisteredTimeouts(storedId, functionStore.TimeoutStore, CreateEffect(storedId, flowId, functionStore));
         var messagesPullerAndEmitter = new MessagesPullerAndEmitter(
-            functionId,
+            storedId,
             defaultDelay: TimeSpan.FromMilliseconds(250),
             defaultMaxWait: TimeSpan.MaxValue,
             isWorkflowRunning: () => true,
@@ -199,10 +204,11 @@ public abstract class MessagesTests
     public abstract Task SecondEventWithExistingIdempotencyKeyIsIgnored();
     protected async Task SecondEventWithExistingIdempotencyKeyIsIgnored(Task<IFunctionStore> functionStoreTask)
     {
-        var functionId = TestStoredId.Create();
+        var flowId = TestFlowId.Create();
+        var storedId = flowId.ToStoredId(new StoredType(1));
         var functionStore = await functionStoreTask;
         await functionStore.CreateFunction(
-            functionId,  
+            storedId,  
             "humanInstanceId",
             Test.SimpleStoredParameter, 
             leaseExpiration: DateTime.UtcNow.Ticks,
@@ -210,10 +216,10 @@ public abstract class MessagesTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null
         );
-        var messagesWriter = new MessageWriter(functionId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
-        var registeredTimeouts = new RegisteredTimeouts(functionId, functionStore.TimeoutStore, CreateEffect(functionId, functionStore));
+        var messagesWriter = new MessageWriter(storedId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
+        var registeredTimeouts = new RegisteredTimeouts(storedId, functionStore.TimeoutStore, CreateEffect(storedId, flowId, functionStore));
         var messagesPullerAndEmitter = new MessagesPullerAndEmitter(
-            functionId,
+            storedId,
             defaultDelay: TimeSpan.FromMilliseconds(250),
             defaultMaxWait: TimeSpan.MaxValue,
             isWorkflowRunning: () => true,
@@ -238,16 +244,17 @@ public abstract class MessagesTests
         task.Result[0].ShouldBe("hello world");
         task.Result[1].ShouldBe("hello universe");
         
-        (await functionStore.MessageStore.GetMessages(functionId, skip: 0)).Count().ShouldBe(3);
+        (await functionStore.MessageStore.GetMessages(storedId, skip: 0)).Count().ShouldBe(3);
     }
     
     public abstract Task MessagesBulkMethodOverloadAppendsAllEventsSuccessfully();
     protected async Task MessagesBulkMethodOverloadAppendsAllEventsSuccessfully(Task<IFunctionStore> functionStoreTask)
     {
-        var functionId = TestStoredId.Create();
+        var flowId = TestFlowId.Create();
+        var storedId = flowId.ToStoredId(new StoredType(1));
         var functionStore = await functionStoreTask;
         await functionStore.CreateFunction(
-            functionId,  
+            storedId,  
             "humanInstanceId",
             Test.SimpleStoredParameter, 
             leaseExpiration: DateTime.UtcNow.Ticks,
@@ -255,10 +262,10 @@ public abstract class MessagesTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null
         );
-        var messagesWriter = new MessageWriter(functionId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
-        var registeredTimeouts = new RegisteredTimeouts(functionId, functionStore.TimeoutStore, CreateEffect(functionId, functionStore));
+        var messagesWriter = new MessageWriter(storedId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
+        var registeredTimeouts = new RegisteredTimeouts(storedId, functionStore.TimeoutStore, CreateEffect(storedId, flowId, functionStore));
         var messagesPullerAndEmitter = new MessagesPullerAndEmitter(
-            functionId,
+            storedId,
             defaultDelay: TimeSpan.FromMilliseconds(250),
             defaultMaxWait: TimeSpan.MaxValue,
             isWorkflowRunning: () => true,
@@ -282,16 +289,17 @@ public abstract class MessagesTests
         task.Result[0].ShouldBe("hello world");
         task.Result[1].ShouldBe("hello universe");
         
-        (await functionStore.MessageStore.GetMessages(functionId, skip: 0)).Count().ShouldBe(3);
+        (await functionStore.MessageStore.GetMessages(storedId, skip: 0)).Count().ShouldBe(3);
     }
 
     public abstract Task MessagessSunshineScenarioUsingMessageStore();
     protected async Task MessagessSunshineScenarioUsingMessageStore(Task<IFunctionStore> functionStoreTask)
     {
-        var functionId = TestStoredId.Create();
+        var flowId = TestFlowId.Create();
+        var storedId = flowId.ToStoredId(new StoredType(1));
         var functionStore = await functionStoreTask;
         await functionStore.CreateFunction(
-            functionId,  
+            storedId,  
             "humanInstanceId",
             Test.SimpleStoredParameter, 
             leaseExpiration: DateTime.UtcNow.Ticks,
@@ -299,10 +307,10 @@ public abstract class MessagesTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null
         );
-        var messagesWriter = new MessageWriter(functionId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
-        var registeredTimeouts = new RegisteredTimeouts(functionId, functionStore.TimeoutStore, CreateEffect(functionId, functionStore));
+        var messagesWriter = new MessageWriter(storedId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
+        var registeredTimeouts = new RegisteredTimeouts(storedId, functionStore.TimeoutStore, CreateEffect(storedId, flowId, functionStore));
         var messagesPullerAndEmitter = new MessagesPullerAndEmitter(
-            functionId,
+            storedId,
             defaultDelay: TimeSpan.FromMilliseconds(250),
             defaultMaxWait: TimeSpan.MaxValue,
             isWorkflowRunning: () => true,
@@ -318,7 +326,7 @@ public abstract class MessagesTests
         task.IsCompleted.ShouldBeFalse();
 
         await functionStore.MessageStore.AppendMessage(
-            functionId,
+            storedId,
             new StoredMessage(JsonExtensions.ToJson("hello world").ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes())
         );
 
@@ -328,10 +336,11 @@ public abstract class MessagesTests
     public abstract Task SecondEventWithExistingIdempotencyKeyIsIgnoredUsingMessageStore();
     protected async Task SecondEventWithExistingIdempotencyKeyIsIgnoredUsingMessageStore(Task<IFunctionStore> functionStoreTask)
     {
-        var functionId = TestStoredId.Create();
+        var flowId = TestFlowId.Create();
+        var storedId = flowId.ToStoredId(new StoredType(1));
         var functionStore = await functionStoreTask;
         await functionStore.CreateFunction(
-            functionId,  
+            storedId,  
             "humanInstanceId",
             Test.SimpleStoredParameter, 
             leaseExpiration: DateTime.UtcNow.Ticks,
@@ -339,10 +348,10 @@ public abstract class MessagesTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null
         );
-        var messagesWriter = new MessageWriter(functionId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
-        var registeredTimeouts = new RegisteredTimeouts(functionId, functionStore.TimeoutStore, CreateEffect(functionId, functionStore));
+        var messagesWriter = new MessageWriter(storedId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
+        var registeredTimeouts = new RegisteredTimeouts(storedId, functionStore.TimeoutStore, CreateEffect(storedId, flowId, functionStore));
         var messagesPullerAndEmitter = new MessagesPullerAndEmitter(
-            functionId,
+            storedId,
             defaultDelay: TimeSpan.FromMilliseconds(250),
             defaultMaxWait: TimeSpan.MaxValue,
             isWorkflowRunning: () => true,
@@ -358,15 +367,15 @@ public abstract class MessagesTests
         task.IsCompleted.ShouldBeFalse();
         var messageStore = functionStore.MessageStore;
         await messageStore.AppendMessage(
-            functionId,
+            storedId,
             new StoredMessage(JsonExtensions.ToJson("hello world").ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes(), "1")
         );
         await messageStore.AppendMessage(
-            functionId,
+            storedId,
             new StoredMessage(JsonExtensions.ToJson("hello world").ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes(), "1")
         );
         await messageStore.AppendMessage(
-            functionId,
+            storedId,
             new StoredMessage(JsonExtensions.ToJson("hello universe").ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes())
         );
 
@@ -374,16 +383,17 @@ public abstract class MessagesTests
         task.Result[0].ShouldBe("hello world");
         task.Result[1].ShouldBe("hello universe");
         
-        (await messageStore.GetMessages(functionId, skip: 0)).Count().ShouldBe(3);
+        (await messageStore.GetMessages(storedId, skip: 0)).Count().ShouldBe(3);
     }
     
     public abstract Task MessagesRemembersPreviousThrownEventProcessingExceptionOnAllSubsequentInvocations();
     protected async Task MessagesRemembersPreviousThrownEventProcessingExceptionOnAllSubsequentInvocations(Task<IFunctionStore> functionStoreTask)
     {
-        var functionId = TestStoredId.Create();
+        var flowId = TestFlowId.Create();
+        var storedId = flowId.ToStoredId(new StoredType(1));
         var functionStore = await functionStoreTask;
         await functionStore.CreateFunction(
-            functionId,  
+            storedId,  
             "humanInstanceId",
             Test.SimpleStoredParameter, 
             leaseExpiration: DateTime.UtcNow.Ticks,
@@ -391,10 +401,10 @@ public abstract class MessagesTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null
         );
-        var messagesWriter = new MessageWriter(functionId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
-        var registeredTimeouts = new RegisteredTimeouts(functionId, functionStore.TimeoutStore, CreateEffect(functionId, functionStore));
+        var messagesWriter = new MessageWriter(storedId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
+        var registeredTimeouts = new RegisteredTimeouts(storedId, functionStore.TimeoutStore, CreateEffect(storedId, flowId, functionStore));
         var messagesPullerAndEmitter = new MessagesPullerAndEmitter(
-            functionId,
+            storedId,
             defaultDelay: TimeSpan.FromMilliseconds(250),
             defaultMaxWait: TimeSpan.MaxValue,
             isWorkflowRunning: () => true,
@@ -410,10 +420,10 @@ public abstract class MessagesTests
         Should.Throw<MessageProcessingException>(() => messages.ToList());
     }
 
-    private Effect CreateEffect(StoredId storedId, IFunctionStore functionStore)
+    private Effect CreateEffect(StoredId storedId, FlowId flowId, IFunctionStore functionStore)
     {
         var lazyExistingEffects = new Lazy<Task<IReadOnlyList<StoredEffect>>>(() => Task.FromResult((IReadOnlyList<StoredEffect>) new List<StoredEffect>()));
-        var effect = new Effect("SomeFlowType", storedId, lazyExistingEffects, functionStore.EffectsStore, DefaultSerializer.Instance);
+        var effect = new Effect(flowId, storedId, lazyExistingEffects, functionStore.EffectsStore, DefaultSerializer.Instance);
         return effect;
     }
     
@@ -430,10 +440,10 @@ public abstract class MessagesTests
         public TParam DeserializeParameter<TParam>(byte[] json)
             => DefaultSerializer.Instance.DeserializeParameter<TParam>(json);
 
-        public StoredException SerializeException(Exception exception)
+        public StoredException SerializeException(FatalWorkflowException exception)
             => DefaultSerializer.Instance.SerializeException(exception);
-        public PreviouslyThrownException DeserializeException(StoredException storedException)
-            => DefaultSerializer.Instance.DeserializeException(storedException);
+        public FatalWorkflowException DeserializeException(FlowId flowId, StoredException storedException)
+            => DefaultSerializer.Instance.DeserializeException(flowId, storedException);
 
         public byte[] SerializeResult<TResult>(TResult result)
             => DefaultSerializer.Instance.SerializeResult(result);

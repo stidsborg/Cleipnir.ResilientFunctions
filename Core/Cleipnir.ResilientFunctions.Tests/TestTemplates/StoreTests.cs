@@ -528,11 +528,12 @@ public abstract class StoreTests
     public async Task FailFunctionSucceedsWhenEpochIsAsExpected(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionId = TestStoredId.Create();
+        var flowId = TestFlowId.Create();
+        var storedId = flowId.ToStoredId(new StoredType(1));
 
         var storedParameter = "hello world".ToJson();
         await store.CreateFunction(
-            functionId, 
+            storedId, 
             "humanInstanceId",
             storedParameter.ToUtf8Bytes(),
             leaseExpiration: DateTime.UtcNow.Ticks,
@@ -548,24 +549,24 @@ public abstract class StoreTests
         );
         
         await store.FailFunction(
-            functionId,
+            storedId,
             storedException,
             timestamp: DateTime.UtcNow.Ticks,
             expectedEpoch: 0,
             complimentaryState: new ComplimentaryState(storedParameter.ToUtf8Bytes().ToFunc(), LeaseLength: 0)
         );
         
-        await BusyWait.Until(() => store.GetFunction(functionId).SelectAsync(sf => sf != null));
+        await BusyWait.Until(() => store.GetFunction(storedId).SelectAsync(sf => sf != null));
 
-        var sf = await store.GetFunction(functionId);
+        var sf = await store.GetFunction(storedId);
         sf.ShouldNotBeNull();
         sf.Epoch.ShouldBe(0);
         sf.Status.ShouldBe(Status.Failed);
         sf.Exception.ShouldNotBeNull();
-        var previouslyThrownException = DefaultSerializer.Instance.DeserializeException(sf.Exception);
-        previouslyThrownException.ErrorMessage.ShouldBe(storedException.ExceptionMessage);
-        previouslyThrownException.StackTrace.ShouldBe(storedException.ExceptionStackTrace);
-        previouslyThrownException.ErrorType.ShouldBe(typeof(Exception));
+        var fatalWorkflowException = DefaultSerializer.Instance.DeserializeException(flowId, sf.Exception);
+        fatalWorkflowException.FlowErrorMessage.ShouldBe(storedException.ExceptionMessage);
+        fatalWorkflowException.FlowStackTrace.ShouldBe(storedException.ExceptionStackTrace);
+        fatalWorkflowException.ErrorType.ShouldBe(typeof(Exception));
     }
     
     public abstract Task SetFunctionStateSucceedsWhenEpochIsAsExpected();

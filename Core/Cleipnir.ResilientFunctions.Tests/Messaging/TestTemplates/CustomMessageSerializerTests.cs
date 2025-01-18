@@ -17,7 +17,8 @@ public abstract class CustomMessageSerializerTests
     public abstract Task CustomEventSerializerIsUsedWhenSpecified();
     protected async Task CustomEventSerializerIsUsedWhenSpecified(Task<IFunctionStore> functionStoreTask)
     {
-        var storedId = TestStoredId.Create();
+        var flowId = TestFlowId.Create();
+        var storedId = flowId.ToStoredId(new StoredType(1));
         var functionStore = await functionStoreTask;
         await functionStore.CreateFunction(
             storedId, 
@@ -31,7 +32,7 @@ public abstract class CustomMessageSerializerTests
         var eventSerializer = new EventSerializer();
         var messagesWriter = new MessageWriter(storedId, functionStore, eventSerializer, scheduleReInvocation: (_, _) => Task.CompletedTask);
         var lazyExistingEffects = new Lazy<Task<IReadOnlyList<StoredEffect>>>(() => Task.FromResult((IReadOnlyList<StoredEffect>) new List<StoredEffect>()));
-        var effect = new Effect("SomeFlowType", storedId, lazyExistingEffects, functionStore.EffectsStore, DefaultSerializer.Instance);
+        var effect = new Effect(flowId, storedId, lazyExistingEffects, functionStore.EffectsStore, DefaultSerializer.Instance);
         var registeredTimeouts = new RegisteredTimeouts(storedId, functionStore.TimeoutStore, effect);
         var messagesPullerAndEmitter = new MessagesPullerAndEmitter(
             storedId,
@@ -66,10 +67,10 @@ public abstract class CustomMessageSerializerTests
         public TParam DeserializeParameter<TParam>(byte[] json) 
             => DefaultSerializer.Instance.DeserializeParameter<TParam>(json);
 
-        public StoredException SerializeException(Exception exception)
+        public StoredException SerializeException(FatalWorkflowException exception)
             => DefaultSerializer.Instance.SerializeException(exception);
-        public PreviouslyThrownException DeserializeException(StoredException storedException)
-            => DefaultSerializer.Instance.DeserializeException(storedException);
+        public FatalWorkflowException DeserializeException(FlowId flowId, StoredException storedException)
+            => DefaultSerializer.Instance.DeserializeException(flowId, storedException);
 
         public byte[] SerializeResult<TResult>(TResult result) 
             => DefaultSerializer.Instance.SerializeResult(result);

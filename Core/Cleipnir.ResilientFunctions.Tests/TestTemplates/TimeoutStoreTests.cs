@@ -95,9 +95,10 @@ public abstract class TimeoutStoreTests
     protected async Task RegisteredTimeoutIsReturnedFromRegisteredTimeouts(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionId = TestStoredId.Create();
+        var flowId = TestFlowId.Create();
+        var storedId = flowId.ToStoredId(new StoredType(1));
         
-        var registeredTimeouts = new RegisteredTimeouts(functionId, store.TimeoutStore, CreateEffect(functionId, store));
+        var registeredTimeouts = new RegisteredTimeouts(storedId, store.TimeoutStore, CreateEffect(flowId, storedId, store));
 
         await registeredTimeouts.RegisterTimeout("timeoutId1".ToEffectId(), expiresIn: TimeSpan.FromHours(1));
         await registeredTimeouts.RegisterTimeout("timeoutId2".ToEffectId(), expiresIn: TimeSpan.FromHours(2));
@@ -122,13 +123,14 @@ public abstract class TimeoutStoreTests
     protected async Task RegisteredTimeoutIsReturnedFromRegisteredTimeoutsForFunctionId(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionId = TestStoredId.Create();
+        var flowId = TestFlowId.Create();
+        var storedId = flowId.ToStoredId(new StoredType(1));
 
-        var effect = CreateEffect(functionId, store);
-        var registeredTimeouts = new RegisteredTimeouts(functionId, store.TimeoutStore, effect);
+        var effect = CreateEffect(flowId, storedId, store);
+        var registeredTimeouts = new RegisteredTimeouts(storedId, store.TimeoutStore, effect);
 
         var otherInstanceRegisteredTimeouts = new RegisteredTimeouts(
-            functionId with { Instance = (functionId.Instance + "2").ToStoredInstance() }, 
+            storedId with { Instance = (storedId.Instance + "2").ToStoredInstance() }, 
             store.TimeoutStore,
             effect
         );
@@ -150,9 +152,10 @@ public abstract class TimeoutStoreTests
     {
         var upsertCount = 0;
         var store = new TimeoutStoreDecorator((await storeTask).TimeoutStore, () => upsertCount++);
-        var functionId = TestStoredId.Create();
+        var flowId = TestFlowId.Create();
+        var storedId = flowId.ToStoredId(new StoredType(1));
 
-        var registeredTimeouts = new RegisteredTimeouts(functionId, store, CreateEffect(functionId, await storeTask));
+        var registeredTimeouts = new RegisteredTimeouts(storedId, store, CreateEffect(flowId, storedId, await storeTask));
 
         await registeredTimeouts.RegisterTimeout("timeoutId1".ToEffectId(), expiresIn: TimeSpan.FromHours(1));
         upsertCount.ShouldBe(1);
@@ -200,9 +203,10 @@ public abstract class TimeoutStoreTests
     {
         var removeCount = 0;
         var store = new TimeoutStoreDecorator((await storeTask).TimeoutStore, removeTimeoutCallback: () => removeCount++);
-        var functionId = TestStoredId.Create();
+        var flowId = TestFlowId.Create();
+        var storedId = flowId.ToStoredId(new StoredType(1));
         
-        var registeredTimeouts = new RegisteredTimeouts(functionId, store, CreateEffect(functionId, await storeTask));
+        var registeredTimeouts = new RegisteredTimeouts(storedId, store, CreateEffect(flowId, storedId, await storeTask));
         
         var pendingTimeouts = await registeredTimeouts.PendingTimeouts();
         pendingTimeouts.ShouldBeEmpty();
@@ -214,10 +218,10 @@ public abstract class TimeoutStoreTests
         removeCount.ShouldBe(1);
     }
     
-    private Effect CreateEffect(StoredId storedId, IFunctionStore functionStore)
+    private Effect CreateEffect(FlowId flowId, StoredId storedId, IFunctionStore functionStore)
     {
         var lazyExistingEffects = new Lazy<Task<IReadOnlyList<StoredEffect>>>(() => Task.FromResult((IReadOnlyList<StoredEffect>) new List<StoredEffect>()));
-        var effect = new Effect("SomeFlowType", storedId, lazyExistingEffects, functionStore.EffectsStore, DefaultSerializer.Instance);
+        var effect = new Effect(flowId, storedId, lazyExistingEffects, functionStore.EffectsStore, DefaultSerializer.Instance);
         return effect;
     }
     

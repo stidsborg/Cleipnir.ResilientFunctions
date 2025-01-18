@@ -47,7 +47,12 @@ public class Invoker<TParam, TReturn>
             // *** USER FUNCTION INVOCATION *** 
             result = await _inner(param, workflow);
         }
-        catch (Exception exception) { await PersistFailure(storedId, flowId, exception, param, parent: null); throw; }
+        catch (Exception exception)
+        {
+            var fatalWorkflowException = FatalWorkflowException.CreateNonGeneric(flowId, exception); 
+            await PersistFailure(storedId, flowId, fatalWorkflowException, param, parent: null); 
+            throw FatalWorkflowException.CreateNonGeneric(flowId, exception);
+        }
         finally{ disposables.Dispose(); }
 
         await PersistResultAndEnsureSuccess(storedId, flowId, result, param, parent: null);
@@ -81,7 +86,8 @@ public class Invoker<TParam, TReturn>
                     // *** USER FUNCTION INVOCATION *** 
                     result = await _inner(param, workflow);
                 }
-                catch (Exception exception) { await PersistFailure(storedId, flowId, exception, param, parent?.StoredId); throw; }
+                catch (FatalWorkflowException exception) { await PersistFailure(storedId, flowId, exception, param, parent?.StoredId); throw; }
+                catch (Exception exception) { var fwe = FatalWorkflowException.CreateNonGeneric(flowId, exception); await PersistFailure(storedId, flowId, fwe, param, parent?.StoredId); throw fwe; }
                 finally{ disposables.Dispose(); }
 
                 await PersistResultAndEnsureSuccess(storedId, flowId, result, param, parent?.StoredId, allowPostponedOrSuspended: true);
@@ -132,7 +138,8 @@ public class Invoker<TParam, TReturn>
             // *** USER FUNCTION INVOCATION *** 
             result = await inner(param, workflow);
         }
-        catch (Exception exception) { await PersistFailure(storedId, flowId, exception, param, parent, epoch); throw; }
+        catch (FatalWorkflowException exception) { await PersistFailure(storedId, flowId, exception, param, parent, epoch); throw; }
+        catch (Exception exception) { var fwe = FatalWorkflowException.CreateNonGeneric(flowId, exception); await PersistFailure(storedId, flowId, fwe, param, parent, epoch); throw fwe; }
         finally{ disposables.Dispose(); }
         
         await PersistResultAndEnsureSuccess(storedId, flowId, result, param, parent, epoch);
@@ -157,7 +164,8 @@ public class Invoker<TParam, TReturn>
                     // *** USER FUNCTION INVOCATION *** 
                     result = await inner(param, workflow);
                 }
-                catch (Exception exception) { await PersistFailure(storedId, flowId, exception, param, parent, epoch); throw; }
+                catch (FatalWorkflowException exception) { await PersistFailure(storedId, flowId, exception, param, parent, epoch); throw; }
+                catch (Exception exception) { var fwe = FatalWorkflowException.CreateNonGeneric(flowId, exception); await PersistFailure(storedId, flowId, fwe, param, parent, epoch); throw fwe; }
                 finally{ disposables.Dispose(); }
                 
                 await PersistResultAndEnsureSuccess(storedId, flowId, result, param, parent, epoch, allowPostponedOrSuspended: true);
@@ -187,7 +195,8 @@ public class Invoker<TParam, TReturn>
                     // *** USER FUNCTION INVOCATION *** 
                     result = await inner(param, workflow);
                 }
-                catch (Exception exception) { await PersistFailure(storedId, flowId, exception, param, parent, epoch); throw; }
+                catch (FatalWorkflowException exception) { await PersistFailure(storedId, flowId, exception, param, parent, epoch); throw; }
+                catch (Exception exception) { var fwe = FatalWorkflowException.CreateNonGeneric(flowId, exception); await PersistFailure(storedId, flowId, fwe, param, parent, epoch); throw fwe; }
                 finally { disposables.Dispose(); }
                 
                 await PersistResultAndEnsureSuccess(storedId, flowId, result, param, parent, epoch, allowPostponedOrSuspended: true);
@@ -217,7 +226,7 @@ public class Invoker<TParam, TReturn>
             disposables.Add(isWorkflowRunningDisposable);
             success = persisted;
             
-            var (effect, states) = _invocationHelper.CreateEffectAndStates(storedId, anyEffects: false);
+            var (effect, states) = _invocationHelper.CreateEffectAndStates(storedId, flowId, anyEffects: false);
             var messages = _invocationHelper.CreateMessages(
                 storedId,
                 ScheduleRestart, 
@@ -268,7 +277,7 @@ public class Invoker<TParam, TReturn>
             var isWorkflowRunningDisposable = new PropertyDisposable();
             disposables.Add(isWorkflowRunningDisposable);
             
-            var (effect, states) = _invocationHelper.CreateEffectAndStates(storedId, anyEffects: true);
+            var (effect, states) = _invocationHelper.CreateEffectAndStates(storedId, flowId, anyEffects: true);
             var messages = _invocationHelper.CreateMessages(
                 storedId,
                 ScheduleRestart,
@@ -317,7 +326,7 @@ public class Invoker<TParam, TReturn>
         StoredId? Parent
     );
 
-    private async Task PersistFailure(StoredId storedId, FlowId flowId, Exception exception, TParam param, StoredId? parent, int expectedEpoch = 0)
+    private async Task PersistFailure(StoredId storedId, FlowId flowId, FatalWorkflowException exception, TParam param, StoredId? parent, int expectedEpoch = 0)
     {
         await _invocationHelper.PublishCompletionMessageToParent(parent, childId: flowId, result: Fail.WithException(exception));
         await _invocationHelper.PersistFailure(storedId, flowId, exception, param, parent, expectedEpoch);

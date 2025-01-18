@@ -7,7 +7,7 @@ using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.Domain;
 
-public class ExistingEffects(StoredId storedId, IEffectsStore effectsStore, ISerializer serializer)
+public class ExistingEffects(StoredId storedId, FlowId flowId, IEffectsStore effectsStore, ISerializer serializer)
 {
     private Dictionary<EffectId, StoredEffect>? _storedEffects;
 
@@ -85,5 +85,5 @@ public class ExistingEffects(StoredId storedId, IEffectsStore effectsStore, ISer
 
     public Task SetFailed(string effectId, Exception exception) => SetFailed(effectId.ToEffectId(), exception);
     public Task SetFailed(EffectId effectId, Exception exception)
-        => Set(new StoredEffect(effectId, effectId.ToStoredEffectId(), WorkStatus.Failed, Result: null, StoredException: serializer.SerializeException(exception)));
+        => Set(new StoredEffect(effectId, effectId.ToStoredEffectId(), WorkStatus.Failed, Result: null, StoredException: serializer.SerializeException(FatalWorkflowException.CreateNonGeneric(flowId, exception))));
 }

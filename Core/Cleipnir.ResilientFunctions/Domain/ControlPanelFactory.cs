@@ -24,7 +24,7 @@ public class ControlPanelFactory
     {
         var flowId = new FlowId(_flowType, flowInstance);
         var storedId = new StoredId(_storedType, flowInstance.Value.ToStoredInstance());
-        var functionState = await _invocationHelper.GetFunction(storedId);
+        var functionState = await _invocationHelper.GetFunction(storedId, flowId);
         if (functionState == null)
             return null;
 
@@ -68,7 +68,7 @@ public class ControlPanelFactory<TParam> where TParam : notnull
     {
         var flowId = new FlowId(_flowType, flowInstance);
         var storedId = new StoredId(_storedType, flowInstance.Value.ToStoredInstance());
-        var functionState = await _invocationHelper.GetFunction(storedId);
+        var functionState = await _invocationHelper.GetFunction(storedId, flowId);
         if (functionState == null)
             return null;
         
@@ -112,7 +112,7 @@ public class ControlPanelFactory<TParam, TReturn> where TParam : notnull
     {
         var flowId = new FlowId(_flowType, flowInstance);
         var storedId = new StoredId(_storedType, flowInstance.Value.ToStoredInstance());
-        var f = await _invocationHelper.GetFunction(storedId);
+        var f = await _invocationHelper.GetFunction(storedId, flowId);
         if (f == null)
             return null;
         

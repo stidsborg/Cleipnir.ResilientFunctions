@@ -8,5 +8,5 @@ public record FunctionState<TParam, TReturn>(
     long Expires,
     TParam? Param, 
     TReturn? Result,
-    PreviouslyThrownException? PreviouslyThrownException
+    FatalWorkflowException? PreviouslyThrownException
 );

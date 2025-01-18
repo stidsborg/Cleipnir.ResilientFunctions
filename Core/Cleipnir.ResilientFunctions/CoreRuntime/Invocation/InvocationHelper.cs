@@ -98,8 +98,7 @@ internal class InvocationHelper<TParam, TReturn>
                             ? default!
                             : _settings.Serializer.DeserializeResult<TReturn>(storedFunction.Result);
                 case Status.Failed:
-                    var error = Serializer.DeserializeException(storedFunction.Exception!);
-                    throw new PreviousInvocationException(_flowType, error);
+                    throw Serializer.DeserializeException(flowId, storedFunction.Exception!);
                 case Status.Postponed:
                     if (allowPostponedAndSuspended) { await Task.Delay(250); continue;}
                     throw new InvocationPostponedException(
@@ -115,7 +114,7 @@ internal class InvocationHelper<TParam, TReturn>
         }
     }
     
-    public async Task PersistFailure(StoredId storedId, FlowId flowId, Exception exception, TParam param, StoredId? parent, int expectedEpoch)
+    public async Task PersistFailure(StoredId storedId, FlowId flowId, FatalWorkflowException exception, TParam param, StoredId? parent, int expectedEpoch)
     {
         var serializer = _settings.Serializer;
         var storedException = serializer.SerializeException(exception);
@@ -288,7 +287,7 @@ internal class InvocationHelper<TParam, TReturn>
             
             await _functionStore.FailFunction(
                 storedId,
-                storedException: Serializer.SerializeException(e),
+                storedException: Serializer.SerializeException(FatalWorkflowException.CreateNonGeneric(flowId, e)),
                 timestamp: DateTime.UtcNow.Ticks,
                 expectedEpoch,
                 complimentaryState: new ComplimentaryState(
@@ -316,7 +315,7 @@ internal class InvocationHelper<TParam, TReturn>
         TParam param,
         TReturn? result,
         long expires,
-        Exception? exception,
+        FatalWorkflowException? exception,
         int expectedEpoch
     )
     {
@@ -356,7 +355,7 @@ internal class InvocationHelper<TParam, TReturn>
         await _functionStore.Interrupt(storedIds);
     }
     
-    public async Task<FunctionState<TParam, TReturn>?> GetFunction(StoredId storedId)
+    public async Task<FunctionState<TParam, TReturn>?> GetFunction(StoredId storedId, FlowId flowId)
     {
         var serializer = _settings.Serializer;
         
@@ -377,7 +376,7 @@ internal class InvocationHelper<TParam, TReturn>
                 : serializer.DeserializeResult<TReturn>(sf.Result),
             PreviouslyThrownException: sf.Exception == null 
                 ? null 
-                : serializer.DeserializeException(sf.Exception)
+                : serializer.DeserializeException(flowId, sf.Exception)
         );
     }
 
@@ -432,7 +431,7 @@ internal class InvocationHelper<TParam, TReturn>
     
     private static Task<IReadOnlyList<StoredEffect>> EmptyList { get; }
         = Task.FromResult((IReadOnlyList<StoredEffect>) new List<StoredEffect>());
-    public Tuple<Effect, States> CreateEffectAndStates(StoredId storedId, bool anyEffects)
+    public Tuple<Effect, States> CreateEffectAndStates(StoredId storedId, FlowId flowId, bool anyEffects)
     {
         var effectsStore = _functionStore.EffectsStore;
         
@@ -448,7 +447,7 @@ internal class InvocationHelper<TParam, TReturn>
         );
         
         var effect = new Effect(
-            _flowType,
+            flowId,
             storedId,
             lazyEffects,
             effectsStore,
@@ -471,7 +470,7 @@ internal class InvocationHelper<TParam, TReturn>
             _settings.Serializer
         );
 
-    public ExistingEffects CreateExistingEffects(FlowId flowId) => new(MapToStoredId(flowId), _functionStore.EffectsStore, _settings.Serializer);
+    public ExistingEffects CreateExistingEffects(FlowId flowId) => new(MapToStoredId(flowId), flowId, _functionStore.EffectsStore, _settings.Serializer);
     public ExistingMessages CreateExistingMessages(FlowId flowId) => new(MapToStoredId(flowId), _functionStore.MessageStore, _settings.Serializer);
     public ExistingRegisteredTimeouts CreateExistingTimeouts(FlowId flowId, ExistingEffects existingEffects) => new(MapToStoredId(flowId), _functionStore.TimeoutStore, existingEffects);
     public ExistingSemaphores CreateExistingSemaphores(FlowId flowId) => new(MapToStoredId(flowId), _functionStore, CreateExistingEffects(flowId));

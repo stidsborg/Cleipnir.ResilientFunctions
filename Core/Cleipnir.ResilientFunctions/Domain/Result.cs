@@ -1,4 +1,5 @@
 ﻿using System;
+using Cleipnir.ResilientFunctions.CoreRuntime;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.Domain.Exceptions.Commands;
 using Cleipnir.ResilientFunctions.Helpers;
@@ -9,15 +10,15 @@ public class Result
 {
     public Outcome Outcome { get; }
     public Postpone? Postpone { get; }
-    public Exception? Fail { get; }
+    public FatalWorkflowException? Fail { get; }
     public Suspend? Suspend { get; }
 
     public Result() : this(succeed: true, postpone: null, fail: null, suspend: null) {}
     public Result(Postpone postpone) : this(succeed: false, postpone, fail: null, suspend: null) {}
-    public Result(Exception exception) : this(succeed: false, postpone: null, fail: exception, suspend: null) {}
+    public Result(FatalWorkflowException exception) : this(succeed: false, postpone: null, fail: exception, suspend: null) {}
     public Result(Suspend suspend) : this(succeed: false, postpone: null, fail: null, suspend) {}
 
-    private Result(bool succeed, Postpone? postpone, Exception? fail, Suspend? suspend)
+    private Result(bool succeed, Postpone? postpone, FatalWorkflowException? fail, Suspend? suspend)
     {
         if (succeed)
             Outcome = Outcome.Succeed;
@@ -58,11 +59,21 @@ public static class Succeed
 
 public class Fail
 {
-    public Exception Exception { get; } 
+    public FatalWorkflowException Exception { get; } 
     
-    public Fail(Exception exception) => Exception = exception;
+    public Fail(FatalWorkflowException exception) => Exception = exception;
+
+    public Fail(FlowId flowId, FatalWorkflowException exception)
+    {
+        exception.FlowId = flowId;
+        Exception = exception;
+    }
+    
+    public Fail(Exception exception) => 
+        Exception = exception as FatalWorkflowException ?? FatalWorkflowException.CreateNonGeneric(null!, exception);
 
     public static Fail WithException(Exception exception) => new Fail(exception);
+    public static Fail WithException(FatalWorkflowException exception, FlowId flowId) => new Fail(flowId, exception);
 
     public Result ToResult() => new(Exception);
     public Result<T> ToResult<T>() => new(Exception);
@@ -99,15 +110,15 @@ public class Result<T>
     public bool Succeed { get; }
     public T? SucceedWithValue { get; }
     public Postpone? Postpone { get; }
-    public Exception? Fail { get; }
+    public FatalWorkflowException? Fail { get; }
     public Suspend? Suspend { get; }
 
     public Result(T succeedWithValue) : this(succeed: true, succeedWithValue, postpone: null, fail: null, suspend: null) {}
     public Result(Postpone postpone) : this(succeed: false, succeedWithValue: default, postpone, fail: null, suspend: null) {}
-    public Result(Exception failWith) : this(succeed: false, succeedWithValue: default, postpone: null, fail: failWith, suspend: null) {}
+    public Result(FatalWorkflowException failWith) : this(succeed: false, succeedWithValue: default, postpone: null, fail: failWith, suspend: null) {}
     public Result(Suspend suspend) : this(succeed: false, succeedWithValue: default, postpone: null, fail: null, suspend) {}
 
-    private Result(bool succeed, T? succeedWithValue, Postpone? postpone, Exception? fail, Suspend? suspend)
+    private Result(bool succeed, T? succeedWithValue, Postpone? postpone, FatalWorkflowException? fail, Suspend? suspend)
     {
         if (succeed)
             Outcome = Outcome.Succeed;

@@ -1,7 +1,9 @@
 ﻿using System;
 using Cleipnir.ResilientFunctions.CoreRuntime.ParameterSerialization;
+using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Reactive.Utilities;
+using Cleipnir.ResilientFunctions.Tests.Utils;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Shouldly;
 
@@ -41,6 +43,34 @@ public class SerializationTests
         var serialized = serializer.SerializeMessage(option);
         var deserialized = serializer.DeserializeMessage(serialized.Content, serialized.Type);
         deserialized.ShouldBe(option);
+    }
+    
+    [TestMethod]
+    public void ExceptionCanBeConvertedToAndFromFatalWorkflowException()
+    {
+        var serializer = DefaultSerializer.Instance;
+        FatalWorkflowException fatalWorkflowException = null!;
+        var flowId = TestFlowId.Create();
+        try
+        {
+            throw new InvalidOperationException("Something went wrong");
+        }
+        catch (InvalidOperationException e)
+        {
+            fatalWorkflowException = FatalWorkflowException.Create(flowId, e);
+        }
+        
+        fatalWorkflowException.ErrorType.ShouldBe(typeof(InvalidOperationException));
+        fatalWorkflowException.FlowErrorMessage.ShouldBe("Something went wrong");
+        fatalWorkflowException.FlowStackTrace.ShouldNotBeNull();
+
+        var storedException = serializer.SerializeException(fatalWorkflowException);
+        var deserializedException = serializer.DeserializeException(flowId, storedException);
+
+        (deserializedException is FatalWorkflowException<InvalidOperationException>).ShouldBeTrue();
+        deserializedException.ErrorType.ShouldBe(typeof(InvalidOperationException));
+        deserializedException.FlowErrorMessage.ShouldBe("Something went wrong");
+        deserializedException.FlowStackTrace.ShouldNotBeNull();
     }
     
     public record Parent;

@@ -17,19 +17,15 @@ public class DefaultSerializer : ISerializer
     public TParam DeserializeParameter<TParam>(byte[] json) 
         => JsonSerializer.Deserialize<TParam>(json)!;
     
-    public StoredException SerializeException(Exception exception)
-        => new StoredException(
-            exception.Message,
-            exception.StackTrace,
-            ExceptionType: exception.GetType().SimpleQualifiedName()
+    public StoredException SerializeException(FatalWorkflowException exception)
+        => new(
+            exception.FlowErrorMessage,
+            exception.FlowStackTrace,
+            ExceptionType: exception.ErrorType.SimpleQualifiedName()
         );
 
-    public PreviouslyThrownException DeserializeException(StoredException storedException)
-        => new PreviouslyThrownException(
-            storedException.ExceptionMessage,
-            storedException.ExceptionStackTrace,
-            Type.GetType(storedException.ExceptionType, throwOnError: true)!
-        );
+    public FatalWorkflowException DeserializeException(FlowId flowId, StoredException storedException)
+        => FatalWorkflowException.Create(flowId, storedException);
 
     public byte[] SerializeResult<TResult>(TResult result)
         => JsonSerializer.SerializeToUtf8Bytes(result);
