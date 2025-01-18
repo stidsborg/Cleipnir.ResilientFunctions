@@ -53,4 +53,12 @@ public class EffectTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.RFunc
     [TestMethod]
     public override Task EffectsCrudTest()
         => EffectsCrudTest(FunctionStoreFactory.Create());
+    
+    [TestMethod]
+    public override Task ExceptionThrownInsideEffectBecomesFatalWorkflowException()
+        => ExceptionThrownInsideEffectBecomesFatalWorkflowException(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task ExceptionThrownInsideEffectStaysFatalWorkflowException()
+        => ExceptionThrownInsideEffectStaysFatalWorkflowException(FunctionStoreFactory.Create());
 }

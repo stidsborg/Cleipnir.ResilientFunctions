@@ -9,6 +9,7 @@ using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Tests.Utils;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Shouldly;
 
 namespace Cleipnir.ResilientFunctions.Tests.TestTemplates.RFunctionTests;
@@ -473,5 +474,71 @@ public abstract class EffectTests
         
         var subEffectValue2Id = effectResults.Single(se => se.EffectId.Id == "SubEffectValue2").EffectId;
         subEffectValue2Id.Context.ShouldBe("EGrandParent.EFather");
+    }
+    
+    public abstract Task ExceptionThrownInsideEffectBecomesFatalWorkflowException();
+    public async Task ExceptionThrownInsideEffectBecomesFatalWorkflowException(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        using var functionsRegistry = new FunctionsRegistry(store);
+        var flowId = TestFlowId.Create();
+        var (flowType, flowInstance) = flowId;
+        var rAction = functionsRegistry.RegisterFunc<string, bool>(
+            flowType,
+            async Task<bool> (_, workflow) =>
+            {
+                var effect = workflow.Effect;
+                try
+                {
+                    await effect.Capture(() => throw new InvalidOperationException());
+                }
+                catch (FatalWorkflowException<InvalidOperationException>)
+                {
+                    return true;
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e);
+                }
+
+                return false;
+            }
+        );
+
+        var result = await rAction.Invoke(flowInstance.ToString(), "");
+        result.ShouldBeTrue();
+    }
+    
+    public abstract Task ExceptionThrownInsideEffectStaysFatalWorkflowException();
+    public async Task ExceptionThrownInsideEffectStaysFatalWorkflowException(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        using var functionsRegistry = new FunctionsRegistry(store);
+        var flowId = TestFlowId.Create();
+        var (flowType, flowInstance) = flowId;
+        var rAction = functionsRegistry.RegisterParamless(
+            flowType,
+            async Task (workflow) => await workflow.Effect.Capture(() => throw new InvalidOperationException())
+        );
+
+        try
+        {
+            await rAction.Invoke(flowInstance.ToString());
+        }
+        catch (FatalWorkflowException<InvalidOperationException>)
+        {
+            return;
+        }
+        Assert.Fail("Expected FatalWorkflowException<InvalidOperationException>");
+        
+        try
+        {
+            await rAction.Invoke(flowInstance.ToString());
+        }
+        catch (FatalWorkflowException<InvalidOperationException>)
+        {
+            return;
+        }
+        Assert.Fail("Expected FatalWorkflowException<InvalidOperationException>");
     }
 }

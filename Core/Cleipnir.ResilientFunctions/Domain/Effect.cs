@@ -203,7 +203,7 @@ public class Effect(
             lock (_sync)
                 effectResults[effectId] = storedEffect;
         }
-        
+
         try
         {
             await work();
@@ -216,16 +216,29 @@ public class Effect(
         {
             throw;
         }
-        catch (Exception exception)
+        catch (FatalWorkflowException exception)
         {
-            var storedException = serializer.SerializeException(FatalWorkflowException.CreateNonGeneric(flowId, exception));
+            var storedException = serializer.SerializeException(exception);
             var storedEffect = StoredEffect.CreateFailed(effectId, storedException);
             await effectsStore.SetEffectResult(storedId, storedEffect);
             
             lock (_sync)
                 effectResults[effectId] = storedEffect;
 
+            exception.FlowId = flowId;
             throw;
+        }
+        catch (Exception exception)
+        {
+            var fatalWorkflowException = FatalWorkflowException.CreateNonGeneric(flowId, exception);
+            var storedException = serializer.SerializeException(fatalWorkflowException);
+            var storedEffect = StoredEffect.CreateFailed(effectId, storedException);
+            await effectsStore.SetEffectResult(storedId, storedEffect);
+            
+            lock (_sync)
+                effectResults[effectId] = storedEffect;
+
+            throw fatalWorkflowException;
         }
 
         var effectResult = StoredEffect.CreateCompleted(effectId);
@@ -274,16 +287,29 @@ public class Effect(
         {
             throw;
         }
-        catch (Exception exception)
+        catch (FatalWorkflowException exception)
         {
-            var storedException = serializer.SerializeException(FatalWorkflowException.CreateNonGeneric(flowId, exception));
+            var storedException = serializer.SerializeException(exception);
             var storedEffect = StoredEffect.CreateFailed(effectId, storedException);
             await effectsStore.SetEffectResult(storedId, storedEffect);
 
             lock (_sync)
                 effectResults[effectId] = storedEffect;
 
+            exception.FlowId = flowId;
             throw;
+        }
+        catch (Exception exception)
+        {
+            var fatalWorkflowException = FatalWorkflowException.CreateNonGeneric(flowId, exception);
+            var storedException = serializer.SerializeException(fatalWorkflowException);
+            var storedEffect = StoredEffect.CreateFailed(effectId, storedException);
+            await effectsStore.SetEffectResult(storedId, storedEffect);
+
+            lock (_sync)
+                effectResults[effectId] = storedEffect;
+
+            throw fatalWorkflowException;
         }
 
         var effectResult = StoredEffect.CreateCompleted(effectId, serializer.SerializeEffectResult(result)); 
