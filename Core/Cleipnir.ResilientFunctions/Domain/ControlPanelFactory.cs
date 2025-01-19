@@ -43,7 +43,7 @@ public class ControlPanelFactory
             _invocationHelper.CreateExistingSemaphores(flowId),
             _invocationHelper.CreateExistingTimeouts(flowId, existingEffects),
             _invocationHelper.CreateCorrelations(flowId),
-            functionState.PreviouslyThrownException
+            functionState.FatalWorkflowException
         );
     }
 }
@@ -88,7 +88,7 @@ public class ControlPanelFactory<TParam> where TParam : notnull
             _invocationHelper.CreateExistingSemaphores(flowId),
             _invocationHelper.CreateExistingTimeouts(flowId, existingEffects),
             _invocationHelper.CreateCorrelations(flowId),
-            functionState.PreviouslyThrownException
+            functionState.FatalWorkflowException
         );
     }
 }
@@ -133,7 +133,7 @@ public class ControlPanelFactory<TParam, TReturn> where TParam : notnull
             _invocationHelper.CreateExistingSemaphores(flowId),
             _invocationHelper.CreateExistingTimeouts(flowId, existingEffects),
             _invocationHelper.CreateCorrelations(flowId),
-            f.PreviouslyThrownException
+            f.FatalWorkflowException
         );
     }
 }

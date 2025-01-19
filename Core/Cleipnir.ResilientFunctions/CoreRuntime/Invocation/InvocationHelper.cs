@@ -374,7 +374,7 @@ internal class InvocationHelper<TParam, TReturn>
             Result: sf.Result == null 
                 ? default 
                 : serializer.DeserializeResult<TReturn>(sf.Result),
-            PreviouslyThrownException: sf.Exception == null 
+            FatalWorkflowException: sf.Exception == null 
                 ? null 
                 : serializer.DeserializeException(flowId, sf.Exception)
         );

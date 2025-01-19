@@ -326,7 +326,7 @@ public abstract class BaseControlPanel<TParam, TReturn>
         InnerParam = sf.Param!;
         InnerResult = sf.Result;
         PostponedUntil = Status == Status.Postponed ? LeaseExpiration : null;
-        FatalWorkflowException = sf.PreviouslyThrownException;
+        FatalWorkflowException = sf.FatalWorkflowException;
         Effects = _invocationHelper.CreateExistingEffects(FlowId);
         Messages = _invocationHelper.CreateExistingMessages(FlowId);
         States = _invocationHelper.CreateExistingStates(FlowId);
