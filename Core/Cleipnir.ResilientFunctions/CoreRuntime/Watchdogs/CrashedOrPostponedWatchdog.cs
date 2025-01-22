@@ -74,8 +74,7 @@ internal class CrashedOrPostponedWatchdog
 
                 var eligibleFunctions = await _functionStore.GetExpiredFunctions(expiresBefore: now.Ticks);
                 #if DEBUG
-                if (Debugger.IsAttached)
-                    eligibleFunctions = eligibleFunctions.Where(t => !_leaseUpdaters.Contains(t.FlowId)).ToList();
+                eligibleFunctions = eligibleFunctions.Where(t => !_leaseUpdaters.Contains(t.FlowId)).ToList();
                 #endif
 
                 var flowsDictionary = _flowsDictionary;     

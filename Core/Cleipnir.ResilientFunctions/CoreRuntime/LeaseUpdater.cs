@@ -42,8 +42,7 @@ internal class LeaseUpdater : IDisposable
     public static IDisposable CreateAndStart(StoredId storedId, FlowId flowId, int epoch, IFunctionStore functionStore, SettingsWithDefaults settings, LeaseUpdaters leaseUpdaters)
     {
         #if DEBUG
-        if (Debugger.IsAttached)
-            leaseUpdaters.Add(storedId);
+        leaseUpdaters.Add(storedId);
         #endif
         
         var leaseUpdater = new LeaseUpdater(
