@@ -1,12 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
-using Cleipnir.ResilientFunctions.CoreRuntime.ParameterSerialization;
 using Cleipnir.ResilientFunctions.CoreRuntime.Serialization;
-using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.Domain.Exceptions.Commands;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Reactive.Utilities;
@@ -260,7 +257,7 @@ public class Effect(
         {
             var success = effectResults.TryGetValue(effectId, out var storedEffect);
             if (success && storedEffect!.WorkStatus == WorkStatus.Completed)
-                return (storedEffect.Result == null ? default : JsonSerializer.Deserialize<T>(storedEffect.Result))!;
+                return (storedEffect.Result == null ? default : serializer.DeserializeEffectResult<T>(storedEffect.Result))!;
             if (success && storedEffect!.WorkStatus == WorkStatus.Failed)
                 throw FatalWorkflowException.Create(flowId, storedEffect.StoredException!);
             if (success && resiliency == ResiliencyLevel.AtMostOnce)
