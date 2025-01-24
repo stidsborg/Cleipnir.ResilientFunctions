@@ -96,7 +96,7 @@ internal class InvocationHelper<TParam, TReturn>
                     return 
                         storedFunction.Result == null 
                             ? default!
-                            : _settings.Serializer.DeserializeResult<TReturn>(storedFunction.Result);
+                            : _settings.Serializer.Deserialize<TReturn>(storedFunction.Result);
                 case Status.Failed:
                     throw Serializer.DeserializeException(flowId, storedFunction.Exception!);
                 case Status.Postponed:
@@ -274,7 +274,7 @@ internal class InvocationHelper<TParam, TReturn>
         {
             var param = sf.Parameter == null 
                 ? default 
-                : Serializer.DeserializeParameter<TParam>(sf.Parameter);                
+                : Serializer.Deserialize<TParam>(sf.Parameter);                
             
             return new PreparedReInvocation(flowId, param, sf.Epoch, runningFunction, sf.ParentId);
         }
@@ -370,10 +370,10 @@ internal class InvocationHelper<TParam, TReturn>
             Param:
                 sf.Parameter == null 
                 ? default
-                : serializer.DeserializeParameter<TParam>(sf.Parameter),
+                : serializer.Deserialize<TParam>(sf.Parameter),
             Result: sf.Result == null 
                 ? default 
-                : serializer.DeserializeResult<TReturn>(sf.Result),
+                : serializer.Deserialize<TReturn>(sf.Result),
             FatalWorkflowException: sf.Exception == null 
                 ? null 
                 : serializer.DeserializeException(flowId, sf.Exception)
@@ -400,7 +400,7 @@ internal class InvocationHelper<TParam, TReturn>
                 new IdWithParam(
                     new StoredId(_storedType, bw.Instance.ToStoredInstance()),
                     bw.Instance,
-                    _isParamlessFunction ? null : serializer.SerializeParameter(bw.Param)
+                    _isParamlessFunction ? null : serializer.Serialize(bw.Param)
                 )
             ),
             parent?.StoredId
@@ -487,7 +487,7 @@ internal class InvocationHelper<TParam, TReturn>
         
         return param is null
             ? null 
-            : Serializer.SerializeParameter(param);
+            : Serializer.Serialize(param);
     }
     
     private byte[]? SerializeResult(TReturn? result)
@@ -497,7 +497,7 @@ internal class InvocationHelper<TParam, TReturn>
         
         return result is null
             ? null 
-            : Serializer.SerializeResult(result);
+            : Serializer.Serialize(result);
     }
 
     public InnerScheduled<TReturn> CreateInnerScheduled(List<FlowId> scheduledIds, Workflow? parentWorkflow, bool? detach)
@@ -543,7 +543,7 @@ internal class InvocationHelper<TParam, TReturn>
                     FlowId = fc.Id,
                     Result = fc.Result == null
                         ? default!
-                        : serializer.DeserializeResult<TReturn>(fc.Result)    
+                        : serializer.Deserialize<TReturn>(fc.Result)    
                 }
                 
             ).ToDictionary(a => a.FlowId, a => a.Result);

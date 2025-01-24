@@ -19,7 +19,7 @@ public class StateFetcher(StoredType storedType, IEffectsStore effectsStore, ISe
         foreach (var storedEffect in storedStates)
             if (storedEffect.EffectId.Id == stateId.Value)
             {
-                var state = serializer.DeserializeState<TState>(storedEffect.Result!);
+                var state = serializer.Deserialize<TState>(storedEffect.Result!);
                 state.Initialize(
                     onSave: () => throw new InvalidOperationException("State cannot be modified outside of an executing flow - except when using control-panel")
                 );

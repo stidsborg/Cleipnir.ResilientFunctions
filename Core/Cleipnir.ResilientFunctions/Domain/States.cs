@@ -53,7 +53,7 @@ public class States(
                 return (T)state;
             else if (existingStoredStates.TryGetValue(key: id, out var storedState))
             {
-                var s = serializer.DeserializeState<T>(storedState.StateJson);
+                var s = serializer.Deserialize<T>(storedState.StateJson);
                 _existingStates[id] = s;
                 s.Initialize(onSave: () => SaveState(id, s));
                 return s;
@@ -63,7 +63,7 @@ public class States(
                 var newState = new T();
                 newState.Initialize(onSave: () => SaveState(id, newState));
                 _existingStates[id] = newState;
-                existingStoredStates[id] = new StoredState(id, serializer.SerializeState(newState));
+                existingStoredStates[id] = new StoredState(id, serializer.Serialize(newState));
                 return newState;
             }
     }
@@ -97,7 +97,7 @@ public class States(
 
     private async Task SaveState<T>(string id, T state) where T : FlowState, new()
     {
-        var json = serializer.SerializeState(state);
+        var json = serializer.Serialize(state);
         var storedState = new StoredState(new StateId(id), json);
         var storedEffect = StoredEffect.CreateState(storedState);
         await effectStore.SetEffectResult(storedId, storedEffect);

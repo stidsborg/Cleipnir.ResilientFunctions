@@ -434,22 +434,17 @@ public abstract class MessagesTests
         public ExceptionThrowingEventSerializer(Type failDeserializationOnType) 
             => _failDeserializationOnType = failDeserializationOnType;
 
-        public byte[] SerializeParameter<TParam>(TParam parameter) 
-            => DefaultSerializer.Instance.SerializeParameter(parameter);
+        public byte[] Serialize<T>(T value) 
+            => DefaultSerializer.Instance.Serialize(value);
 
-        public TParam DeserializeParameter<TParam>(byte[] json)
-            => DefaultSerializer.Instance.DeserializeParameter<TParam>(json);
+        public T Deserialize<T>(byte[] json)
+            => DefaultSerializer.Instance.Deserialize<T>(json);
 
         public StoredException SerializeException(FatalWorkflowException exception)
             => DefaultSerializer.Instance.SerializeException(exception);
         public FatalWorkflowException DeserializeException(FlowId flowId, StoredException storedException)
             => DefaultSerializer.Instance.DeserializeException(flowId, storedException);
-
-        public byte[] SerializeResult<TResult>(TResult result)
-            => DefaultSerializer.Instance.SerializeResult(result);
-        public TResult DeserializeResult<TResult>(byte[] json)
-            => DefaultSerializer.Instance.DeserializeResult<TResult>(json);
-
+        
         public SerializedMessage SerializeMessage<TEvent>(TEvent message) where TEvent : notnull
             => DefaultSerializer.Instance.SerializeMessage(message);
 
@@ -461,15 +456,5 @@ public abstract class MessagesTests
 
             return DefaultSerializer.Instance.DeserializeMessage(json, type);
         }
-
-        public byte[] SerializeEffectResult<TResult>(TResult result)
-            => DefaultSerializer.Instance.SerializeEffectResult(result);
-        public TResult DeserializeEffectResult<TResult>(byte[] json)
-            => DefaultSerializer.Instance.DeserializeEffectResult<TResult>(json);
-
-        public byte[] SerializeState<TState>(TState state) where TState : FlowState, new()
-            => DefaultSerializer.Instance.SerializeState(state);
-        public TState DeserializeState<TState>(byte[] json) where TState : FlowState, new()
-            => DefaultSerializer.Instance.DeserializeState<TState>(json);
     }
 }

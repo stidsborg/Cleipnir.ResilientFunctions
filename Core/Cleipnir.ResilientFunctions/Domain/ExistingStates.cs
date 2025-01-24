@@ -47,7 +47,7 @@ public class ExistingStates
         if (!storedStates.TryGetValue(stateId, out var storedState))
             throw new KeyNotFoundException($"State '{stateId}' was not found");
 
-        var state = _serializer.DeserializeState<TState>(storedState.StateJson);
+        var state = _serializer.Deserialize<TState>(storedState.StateJson);
         state.Initialize(onSave: () => Set(stateId, state));
         return state;
     }
@@ -66,7 +66,7 @@ public class ExistingStates
     public async Task Set<TState>(string stateId, TState state) where TState : FlowState, new()
     {
         var storedStates = await GetStoredStates();
-        var json = _serializer.SerializeState(state);
+        var json = _serializer.Serialize(state);
         var storedState = new StoredState(stateId, json);
         await _effectsStore.SetEffectResult(_storedId, StoredEffect.CreateState(storedState));
         storedStates[stateId] = storedState;

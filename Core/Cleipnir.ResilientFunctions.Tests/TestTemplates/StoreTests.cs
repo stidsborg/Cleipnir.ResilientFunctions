@@ -373,7 +373,7 @@ public abstract class StoreTests
         sf.Epoch.ShouldBe(0);
         sf.Status.ShouldBe(Status.Executing);
         DefaultSerializer.Instance
-            .DeserializeParameter<string>(sf.Parameter!)
+            .Deserialize<string>(sf.Parameter!)
             .ShouldBe(PARAM);
     }
     

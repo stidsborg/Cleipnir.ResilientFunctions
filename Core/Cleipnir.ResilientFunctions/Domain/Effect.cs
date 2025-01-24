@@ -93,13 +93,13 @@ public class Effect(
         lock (_sync)
         {
             if (effectResults.TryGetValue(effectId, out var existing) && existing.WorkStatus == WorkStatus.Completed)
-                return serializer.DeserializeEffectResult<T>(existing.Result!);
+                return serializer.Deserialize<T>(existing.Result!);
             
             if (existing?.StoredException != null)
                 throw serializer.DeserializeException(flowId, existing.StoredException!);
         }
 
-        var storedEffect = StoredEffect.CreateCompleted(effectId, serializer.SerializeEffectResult(value));
+        var storedEffect = StoredEffect.CreateCompleted(effectId, serializer.Serialize(value));
         await effectsStore.SetEffectResult(storedId, storedEffect);
 
         lock (_sync)
@@ -113,7 +113,7 @@ public class Effect(
     {
         var effectResults = await GetEffectResults();
         
-        var storedEffect = StoredEffect.CreateCompleted(effectId, serializer.SerializeEffectResult(value));
+        var storedEffect = StoredEffect.CreateCompleted(effectId, serializer.Serialize(value));
         await effectsStore.SetEffectResult(storedId, storedEffect);
         
         lock (_sync)
@@ -131,7 +131,7 @@ public class Effect(
             {
                 if (storedEffect.WorkStatus == WorkStatus.Completed)
                 {
-                    var value = serializer.DeserializeEffectResult<T>(storedEffect.Result!)!;
+                    var value = serializer.Deserialize<T>(storedEffect.Result!)!;
                     return Option.Create(value);    
                 }
                 
@@ -257,7 +257,7 @@ public class Effect(
         {
             var success = effectResults.TryGetValue(effectId, out var storedEffect);
             if (success && storedEffect!.WorkStatus == WorkStatus.Completed)
-                return (storedEffect.Result == null ? default : serializer.DeserializeEffectResult<T>(storedEffect.Result))!;
+                return (storedEffect.Result == null ? default : serializer.Deserialize<T>(storedEffect.Result))!;
             if (success && storedEffect!.WorkStatus == WorkStatus.Failed)
                 throw FatalWorkflowException.Create(flowId, storedEffect.StoredException!);
             if (success && resiliency == ResiliencyLevel.AtMostOnce)
@@ -310,7 +310,7 @@ public class Effect(
             throw fatalWorkflowException;
         }
 
-        var effectResult = StoredEffect.CreateCompleted(effectId, serializer.SerializeEffectResult(result)); 
+        var effectResult = StoredEffect.CreateCompleted(effectId, serializer.Serialize(result)); 
         await effectsStore.SetEffectResult(storedId, effectResult);
 
         lock (_sync)

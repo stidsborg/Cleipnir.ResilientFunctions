@@ -37,7 +37,7 @@ public class ExistingEffects(StoredId storedId, FlowId flowId, IEffectsStore eff
 
         return storedEffect.Result == null 
             ? default 
-            : serializer.DeserializeEffectResult<TResult>(storedEffects[effectId].Result!);
+            : serializer.Deserialize<TResult>(storedEffects[effectId].Result!);
     }
 
     public async Task<byte[]?> GetResultBytes(string effectId) => await GetResultBytes(effectId.ToEffectId());
@@ -81,7 +81,7 @@ public class ExistingEffects(StoredId storedId, FlowId flowId, IEffectsStore eff
 
     public Task SetSucceeded<TResult>(string effectId, TResult result) => SetSucceeded(effectId.ToEffectId(), result);
     public Task SetSucceeded<TResult>(EffectId effectId, TResult result)
-        => Set(new StoredEffect(effectId, effectId.ToStoredEffectId(), WorkStatus.Completed, Result: serializer.SerializeEffectResult(result), StoredException: null));
+        => Set(new StoredEffect(effectId, effectId.ToStoredEffectId(), WorkStatus.Completed, Result: serializer.Serialize(result), StoredException: null));
 
     public Task SetFailed(string effectId, Exception exception) => SetFailed(effectId.ToEffectId(), exception);
     public Task SetFailed(EffectId effectId, Exception exception)

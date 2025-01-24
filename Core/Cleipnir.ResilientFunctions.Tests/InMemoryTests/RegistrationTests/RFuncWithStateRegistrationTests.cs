@@ -59,37 +59,22 @@ public class RFuncWithStateRegistrationTests
         public bool Invoked { get; set; }
         private ISerializer Default { get; } = DefaultSerializer.Instance;
 
-        public byte[] SerializeParameter<TParam>(TParam parameter)
+        public byte[] Serialize<T>(T parameter)
         {
             Invoked = true;
-            return Default.SerializeParameter(parameter);
+            return Default.Serialize(parameter);
         }
-        public TParam DeserializeParameter<TParam>(byte[] json)
-            => Default.DeserializeParameter<TParam>(json);
+        public T Deserialize<T>(byte[] bytes)
+            => Default.Deserialize<T>(bytes);
         
         public StoredException SerializeException(FatalWorkflowException exception)
             => Default.SerializeException(exception);
         public FatalWorkflowException DeserializeException(FlowId flowId, StoredException storedException)
             => Default.DeserializeException(flowId, storedException);
         
-        public byte[] SerializeResult<TResult>(TResult result) 
-            => Default.SerializeResult(result);
-        public TResult DeserializeResult<TResult>(byte[] json) 
-            => Default.DeserializeResult<TResult>(json);
-
         public SerializedMessage SerializeMessage<TEvent>(TEvent message) where TEvent : notnull
             => Default.SerializeMessage(message);
         public object DeserializeMessage(byte[] json, byte[] type)
             => Default.DeserializeMessage(json, type);
-
-        public byte[] SerializeEffectResult<TResult>(TResult result)
-            => Default.SerializeEffectResult(result);
-        public TResult DeserializeEffectResult<TResult>(byte[] json)
-            => Default.DeserializeEffectResult<TResult>(json);
-
-        public byte[] SerializeState<TState>(TState state) where TState : FlowState, new()
-            => Default.SerializeState(state);
-        public TState DeserializeState<TState>(byte[] json) where TState : FlowState, new()
-            => Default.DeserializeState<TState>(json);
     }
 }

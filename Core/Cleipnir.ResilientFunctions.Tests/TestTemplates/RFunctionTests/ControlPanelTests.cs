@@ -376,7 +376,7 @@ public abstract class ControlPanelTests
         var sf = await store.GetFunction(rFunc.MapToStoredId(functionId));
         sf.ShouldNotBeNull();
         sf.Status.ShouldBe(Status.Succeeded);
-        var result = DefaultSerializer.Instance.DeserializeResult<string>(sf.Result!);
+        var result = DefaultSerializer.Instance.Deserialize<string>(sf.Result!);
         result.ShouldBe("hello world");
         
         unhandledExceptionCatcher.ShouldNotHaveExceptions();
