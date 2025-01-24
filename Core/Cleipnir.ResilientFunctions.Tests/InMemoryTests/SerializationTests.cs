@@ -1,5 +1,5 @@
 ﻿using System;
-using Cleipnir.ResilientFunctions.CoreRuntime.ParameterSerialization;
+using Cleipnir.ResilientFunctions.CoreRuntime.Serialization;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Reactive.Utilities;

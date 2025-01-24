@@ -1,6 +1,5 @@
 ﻿using System;
 using Cleipnir.ResilientFunctions.CoreRuntime;
-using Cleipnir.ResilientFunctions.CoreRuntime.ParameterSerialization;
 using Cleipnir.ResilientFunctions.CoreRuntime.Serialization;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
 

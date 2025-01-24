@@ -1,12 +1,11 @@
 ﻿using System;
 using System.Text;
 using System.Text.Json;
-using Cleipnir.ResilientFunctions.CoreRuntime.Serialization;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Storage;
 
-namespace Cleipnir.ResilientFunctions.CoreRuntime.ParameterSerialization;
+namespace Cleipnir.ResilientFunctions.CoreRuntime.Serialization;
 
 public class DefaultSerializer : ISerializer
 {

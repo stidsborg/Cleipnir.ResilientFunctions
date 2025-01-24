@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Cleipnir.ResilientFunctions.CoreRuntime.ParameterSerialization;
+namespace Cleipnir.ResilientFunctions.CoreRuntime.Serialization;
 
 public class DeserializationException : Exception
 {
