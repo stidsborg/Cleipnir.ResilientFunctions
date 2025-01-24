@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
+using Cleipnir.ResilientFunctions.CoreRuntime.Serialization;
 
 namespace Cleipnir.ResilientFunctions.Reactive.Utilities;
 
@@ -28,6 +29,27 @@ public sealed class Option<T>(T v, bool hasValue)
         return Value!.Equals(option.Value);
     }
     public override int GetHashCode() => !HasValue ? 0 : Value!.GetHashCode();
+
+    public byte[] Serialize(ISerializer serializer)
+    {
+        if (!HasValue)
+            return [];
+        
+        var valueBytes = serializer.Serialize(Value);
+        var bytes = new byte[valueBytes.Length + 1];
+        bytes[0] = 1;
+        valueBytes.CopyTo(bytes, index: 1);
+        return bytes;
+    }
+
+    public static object Deserialize(byte[] bytes, ISerializer serializer)
+    {
+        if (bytes[0] == 0)
+            return NoValue;
+
+        var value = (T) serializer.Deserialize<T>(bytes[1..])!;
+        return new Option<T>(value, hasValue: true);
+    }
 }
 
 public static class Option

@@ -32,7 +32,7 @@ internal class InvocationHelper<TParam, TReturn>
         _isParamlessFunction = isParamlessFunction;
         _settings = settings;
 
-        Serializer = new ErrorHandlingDecorator(settings.Serializer);
+        Serializer = new ErrorHandlingDecorator(new CustomSerializableDecorator(settings.Serializer));
         _shutdownCoordinator = shutdownCoordinator;
         _leaseUpdaters = leaseUpdaters;
         _storedType = storedType;

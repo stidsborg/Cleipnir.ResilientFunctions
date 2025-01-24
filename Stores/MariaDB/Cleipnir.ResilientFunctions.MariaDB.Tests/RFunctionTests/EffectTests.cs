@@ -60,4 +60,8 @@ public class EffectTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.RFunc
     [TestMethod]
     public override Task ExceptionThrownInsideEffectStaysFatalWorkflowException()
         => ExceptionThrownInsideEffectStaysFatalWorkflowException(FunctionStoreFactory.Create());
+    
+    [TestMethod]
+    public override Task EffectCanReturnOption()
+        => EffectCanReturnOption(FunctionStoreFactory.Create());
 }
