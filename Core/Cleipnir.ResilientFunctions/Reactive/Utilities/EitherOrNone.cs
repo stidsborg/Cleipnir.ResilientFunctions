@@ -1,9 +1,11 @@
 ﻿using System;
+using System.Runtime.Serialization;
 using System.Threading.Tasks;
+using Cleipnir.ResilientFunctions.CoreRuntime.Serialization;
 
 namespace Cleipnir.ResilientFunctions.Reactive.Utilities;
 
-public class EitherOrNone<T1, T2>
+public class EitherOrNone<T1, T2> : ICustomSerializable
 {
     public Value ValueSpecified { get; }
 
@@ -105,11 +107,11 @@ public class EitherOrNone<T1, T2>
         };
     } 
 
-    public enum Value
+    public enum Value : byte
     {
-        None,
-        First,
-        Second
+        None = 0,
+        First = 1,
+        Second = 2
     }
 
     public static EitherOrNone<T1, T2> CreateNone() => new(Value.None, first: default!, second: default!);
@@ -118,9 +120,40 @@ public class EitherOrNone<T1, T2>
 
     public static EitherOrNone<T1, T2> CreateFromEither(Either<T1, T2> either) =>
         either.HasFirst ? CreateFirst(either.First) : CreateSecond(either.Second);
+
+    public byte[] Serialize(ISerializer serializer)
+    {
+        var valueSpecified = (byte) ValueSpecified;
+        byte[] valueBytes;
+        if (ValueSpecified == Value.None)
+            return [0];
+        if (ValueSpecified == Value.First)
+            valueBytes = serializer.Serialize(_first);
+        else if (ValueSpecified == Value.Second)
+            valueBytes = serializer.Serialize(_second);
+        else
+            throw new SerializationException("Unexpected ValueSpecified-value");
+        
+        var bytes = new byte[valueBytes.Length + 1];
+        bytes[0] = valueSpecified;
+        valueBytes.CopyTo(bytes, index: 1);
+        return bytes;
+    }
+
+    public static object Deserialize(byte[] bytes, ISerializer serializer)
+    {
+        if (bytes[0] == 0)
+            return CreateNone();
+        if (bytes[0] == 1)
+            return CreateFirst(serializer.Deserialize<T1>(bytes[1..]));
+        if(bytes[0] == 2)
+            return CreateSecond(serializer.Deserialize<T2>(bytes[1..]));
+
+        throw new SerializationException("Unexpected byte value");
+    }
 }
 
-public class EitherOrNone<T1, T2, T3>
+public class EitherOrNone<T1, T2, T3> : ICustomSerializable
 {
     public Value ValueSpecified { get; }
 
@@ -249,10 +282,10 @@ public class EitherOrNone<T1, T2, T3>
 
     public enum Value
     {
-        None,
-        First,
-        Second,
-        Third
+        None = 0,
+        First = 1,
+        Second = 2,
+        Third = 3
     }
 
     public static EitherOrNone<T1, T2, T3> CreateNone() => new(Value.None, first: default!, second: default!, third: default!);
@@ -260,4 +293,39 @@ public class EitherOrNone<T1, T2, T3>
     public static EitherOrNone<T1, T2, T3> CreateSecond(T2 second) => new(Value.Second, first: default!, second, third: default!);
     public static EitherOrNone<T1, T2, T3> CreateThird(T3 third) => new(Value.Third, first: default!, second: default!, third);
     public static EitherOrNone<T1, T2, T3> CreateFromEither(Either<T1, T2, T3> either) => either.Match(CreateFirst, CreateSecond, CreateThird);
+    
+    public byte[] Serialize(ISerializer serializer)
+    {
+        var valueSpecified = (byte) ValueSpecified;
+        byte[] valueBytes;
+        if (ValueSpecified == Value.None)
+            return [0];
+        if (ValueSpecified == Value.First)
+            valueBytes = serializer.Serialize(_first);
+        else if (ValueSpecified == Value.Second)
+            valueBytes = serializer.Serialize(_second);
+        else if (ValueSpecified == Value.Third)
+            valueBytes = serializer.Serialize(_third);
+        else
+            throw new SerializationException("Unexpected ValueSpecified-value");
+        
+        var bytes = new byte[valueBytes.Length + 1];
+        bytes[0] = valueSpecified;
+        valueBytes.CopyTo(bytes, index: 1);
+        return bytes;
+    }
+
+    public static object Deserialize(byte[] bytes, ISerializer serializer)
+    {
+        if (bytes[0] == 0)
+            return CreateNone();
+        if (bytes[0] == 1)
+            return CreateFirst(serializer.Deserialize<T1>(bytes[1..]));
+        if(bytes[0] == 2)
+            return CreateSecond(serializer.Deserialize<T2>(bytes[1..]));
+        if(bytes[0] == 3)
+            return CreateThird(serializer.Deserialize<T3>(bytes[1..]));
+
+        throw new SerializationException("Unexpected byte value");
+    }
 }
