@@ -1,7 +1,8 @@
-﻿using Cleipnir.ResilientFunctions.Domain;
+﻿using Cleipnir.ResilientFunctions.CoreRuntime.ParameterSerialization;
+using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Storage;
 
-namespace Cleipnir.ResilientFunctions.CoreRuntime.ParameterSerialization;
+namespace Cleipnir.ResilientFunctions.CoreRuntime.Serialization;
 
 public interface ISerializer
 {
