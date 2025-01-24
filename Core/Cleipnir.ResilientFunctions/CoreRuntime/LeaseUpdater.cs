@@ -1,5 +1,5 @@
 using System;
-using System.Diagnostics;
+using System.Threading;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
@@ -19,6 +19,7 @@ internal class LeaseUpdater : IDisposable
     private readonly IFunctionStore _functionStore;
     private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
     private volatile bool _disposed;
+    private readonly CancellationTokenSource _cts = new();
 
     private LeaseUpdater(
         FlowId flowId,
@@ -68,7 +69,7 @@ internal class LeaseUpdater : IDisposable
         {
             try
             {
-                await Task.Delay(_leaseLength / 2);
+                await Task.Delay(_leaseLength / 2, _cts.Token);
 
                 if (_disposed) break;
 
@@ -84,6 +85,10 @@ internal class LeaseUpdater : IDisposable
                     _unhandledExceptionHandler.Invoke(UnexpectedStateException.LeaseUpdateFailed(_flowId));
                 }
             }
+            catch (TaskCanceledException)
+            {
+                _disposed = true;
+            } 
             catch (Exception e)
             {
                 _disposed = true;
@@ -97,8 +102,20 @@ internal class LeaseUpdater : IDisposable
             }
         }
         
-        _leaseUpdaters?.Remove(_storedId);
+        RemoveFromLeaseUpdaters();
     }
 
-    public void Dispose() => _disposed = true;
+    private void RemoveFromLeaseUpdaters()
+    {
+        #if DEBUG
+        _leaseUpdaters?.Remove(_storedId);
+        #endif
+    }
+
+    public void Dispose()
+    {
+        RemoveFromLeaseUpdaters();
+        _disposed = true;
+        _cts.Cancel();
+    } 
 }
