@@ -107,29 +107,14 @@ public class Either<T1, T2> : ICustomSerializable
     
     public byte[] Serialize(ISerializer serializer)
     {
-        var valueSpecified = (byte) ValueSpecified;
-        byte[] valueBytes;
-        if (ValueSpecified == Value.First)
-            valueBytes = serializer.Serialize(_first);
-        else if (ValueSpecified == Value.Second)
-            valueBytes = serializer.Serialize(_second);
-        else
-            throw new SerializationException("Unexpected ValueSpecified-value");
-        
-        var bytes = new byte[valueBytes.Length + 1];
-        bytes[0] = valueSpecified;
-        valueBytes.CopyTo(bytes, index: 1);
-        return bytes;
+        var tuple = Tuple.Create((byte)ValueSpecified, _first, _second);
+        return serializer.Serialize(tuple);
     }
 
     public static object Deserialize(byte[] bytes, ISerializer serializer)
     {
-        if (bytes[0] == 1)
-            return CreateFirst(serializer.Deserialize<T1>(bytes[1..]));
-        if(bytes[0] == 2)
-            return CreateSecond(serializer.Deserialize<T2>(bytes[1..]));
-        
-        throw new SerializationException("Unexpected byte value");
+        var (valueSpecified, t1, t2) = serializer.Deserialize<Tuple<byte, T1, T2>>(bytes);
+        return new Either<T1, T2>((Value) valueSpecified, t1, t2); 
     }
 }
 
@@ -240,34 +225,16 @@ public class Either<T1, T2, T3> : ICustomSerializable
     public static Either<T1, T2, T3> CreateFirst(T1 first) => new(Value.First, first, second: default!, third: default!);
     public static Either<T1, T2, T3> CreateSecond(T2 second) => new(Value.Second, first: default!, second, third: default!);
     public static Either<T1, T2, T3> CreateThird(T3 third) => new(Value.Third, first: default!, second: default!, third);
+    
     public byte[] Serialize(ISerializer serializer)
     {
-        var valueSpecified = (byte) ValueSpecified;
-        byte[] valueBytes;
-        if (ValueSpecified == Value.First)
-            valueBytes = serializer.Serialize(_first);
-        else if (ValueSpecified == Value.Second)
-            valueBytes = serializer.Serialize(_second);
-        else if (ValueSpecified == Value.Third)
-            valueBytes = serializer.Serialize(_third);
-        else
-            throw new SerializationException("Unexpected ValueSpecified-value");
-        
-        var bytes = new byte[valueBytes.Length + 1];
-        bytes[0] = valueSpecified;
-        valueBytes.CopyTo(bytes, index: 1);
-        return bytes;
+        var tuple = Tuple.Create((byte)ValueSpecified, _first, _second, _third);
+        return serializer.Serialize(tuple);
     }
 
     public static object Deserialize(byte[] bytes, ISerializer serializer)
     {
-        if (bytes[0] == 1)
-            return CreateFirst(serializer.Deserialize<T1>(bytes[1..]));
-        if(bytes[0] == 2)
-            return CreateSecond(serializer.Deserialize<T2>(bytes[1..]));
-        if(bytes[0] == 3)
-            return CreateThird(serializer.Deserialize<T3>(bytes[1..]));
-
-        throw new SerializationException("Unexpected byte value");
+        var (valueSpecified, t1, t2, t3) = serializer.Deserialize<Tuple<byte, T1, T2, T3>>(bytes);
+        return new Either<T1, T2, T3>((Value) valueSpecified, t1, t2, t3); 
     }
 }
