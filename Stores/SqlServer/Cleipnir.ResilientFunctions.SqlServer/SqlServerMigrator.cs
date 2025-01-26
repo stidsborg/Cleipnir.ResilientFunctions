@@ -1,5 +1,3 @@
-using System;
-using System.Collections.Generic;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Storage;
 using Microsoft.Data.SqlClient;
@@ -8,54 +6,31 @@ namespace Cleipnir.ResilientFunctions.SqlServer;
 
 public class SqlServerMigrator(string connectionString, string tablePrefix = "") : IMigrator
 {
-    private const int CurrentVersion = 0;
-    
-    public async Task<bool> InitializeAndMigrate()
+    public async Task<int?> Initialize(int version)
     {
-        var atVersion = await GetCurrentVersion();
-        if (atVersion == CurrentVersion)
-            return false;
+        var atVersion = await InnerGetCurrentVersion();
+        if (atVersion is not null)
+            return atVersion.Value;
+        
+        await using var conn = await CreateConnection();
+        var sql = @$"
+            CREATE TABLE {tablePrefix}_schema (version INT NOT NULL);           
+            INSERT INTO {tablePrefix}_schema (version) VALUES ({version});";
+        await using var command = new SqlCommand(sql, conn);
+        await command.ExecuteNonQueryAsync();
 
-        if (atVersion is null)
-        {
-            await using var conn = await CreateConnection();
-            var sql = @$"
-            CREATE TABLE {tablePrefix}_schema (             
-                version INT NOT NULL              
-            );
-           
-            INSERT INTO {tablePrefix}_schema (version) VALUES (1);
-            ";
-            await using var command = new SqlCommand(sql, conn);
-            await command.ExecuteNonQueryAsync();
-
-            return true;
-        }
-
-        await Migrate(atVersion.Value);
-        return false;
+        return null;
     }
 
-    private async Task Migrate(int atVersion)
+    public async Task SetVersion(int version)
     {
-        atVersion++;
-        while (atVersion <= CurrentVersion)
-        {
-            await using var connection = await CreateConnection();
-            await using var transaction = connection.BeginTransaction();
-            var sql = Migrations[atVersion].Replace("TABLE_PREFIX", tablePrefix);
-
-            await using var command = new SqlCommand(sql, connection);
-            await command.ExecuteNonQueryAsync();
-
-            await SetCurrentVersion(atVersion, connection, transaction);
-            await transaction.CommitAsync();
-            
-            atVersion++;
-        }
+        await using var conn = await CreateConnection();
+        var sql = @$"UPDATE {tablePrefix}_schema SET version = {version}";
+        await using var command = new SqlCommand(sql, conn);
+        await command.ExecuteNonQueryAsync();
     }
 
-    private async Task<int?> GetCurrentVersion()
+    private async Task<int?> InnerGetCurrentVersion()
     {
         await using var conn = await CreateConnection();
         var sql = @$"
@@ -76,30 +51,10 @@ public class SqlServerMigrator(string connectionString, string tablePrefix = "")
         }
     }
     
-    private async Task SetCurrentVersion(int version, SqlConnection connection, SqlTransaction transaction)
-    {
-        var sql = @$"
-            UPDATE {tablePrefix}_schema
-            SET version = {version}";
-        await using var command = new SqlCommand(sql, connection, transaction);
-        await command.ExecuteNonQueryAsync();
-    }
-    
     private async Task<SqlConnection> CreateConnection()
     {
         var conn = new SqlConnection(connectionString);
         await conn.OpenAsync();
         return conn;
-    }
-
-    private readonly Dictionary<int, string> Migrations = new();
-    
-    public async Task MigrateToLatestSchema()
-    {
-        var atVersion = await GetCurrentVersion();
-        if (atVersion is null)
-            return;
-
-        await Migrate(atVersion.Value);
     }
 }

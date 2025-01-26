@@ -67,9 +67,12 @@ public class PostgreSqlFunctionStore : IFunctionStore
     private string? _initializeSql;
     public async Task Initialize()
     {
-        var createTables = await _migrator.InitializeAndMigrate();
-        if (!createTables)
+        var atVersion = await _migrator.Initialize(Version.CurrentMajor);
+        if (atVersion is not null)
+        {
+            Version.EnsureSchemaVersion(atVersion.Value);
             return;
+        }
         
         await _postgresSqlUnderlyingRegister.Initialize();
         await _messageStore.Initialize();

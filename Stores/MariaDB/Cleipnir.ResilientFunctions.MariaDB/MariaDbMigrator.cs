@@ -5,55 +5,35 @@ namespace Cleipnir.ResilientFunctions.MariaDb;
 
 public class MariaDbMigrator(string connectionString, string tablePrefix = "") : IMigrator
 {
-    private const int CurrentVersion = 0;
-    
-    public async Task<bool> InitializeAndMigrate()
+    public async Task<int?> Initialize(int version)
     {
-        var atVersion = await GetCurrentVersion();
-        if (atVersion == CurrentVersion)
-            return false;
+        var atVersion = await InnerGetCurrentVersion();
+        if (atVersion is not null)
+            return atVersion.Value;
 
-        if (atVersion is null)
-        {
-            await using var conn = await CreateConnection();
-            var sql = @$"
-            CREATE TABLE {tablePrefix}_schema (              
-                version INT NOT NULL              
-            );
-           
-            INSERT INTO {tablePrefix}_schema (version) 
-            VALUES (0);
-            ";
-            await using var command = new MySqlCommand(sql, conn);
-            await command.ExecuteNonQueryAsync();
+        await using var conn = await CreateConnection();
+        var sql = @$"
+            CREATE TABLE {tablePrefix}_schema (version INT NOT NULL);           
+            INSERT INTO {tablePrefix}_schema (version) VALUES ({version});";
 
-            return true;
-        }
+        await using var command = new MySqlCommand(sql, conn);
+        await command.ExecuteNonQueryAsync();
 
-        await Migrate(atVersion.Value);
-        return false;
+        return null;
     }
 
-    private async Task Migrate(int atVersion)
+    public async Task SetVersion(int version)
     {
-        atVersion++;
-        while (atVersion <= CurrentVersion)
-        {
-            await using var connection = await CreateConnection();
-            await using var transaction = connection.BeginTransaction();
-            var sql = Migrations[atVersion].Replace("TABLE_PREFIX", tablePrefix);
-
-            await using var command = new MySqlCommand(sql, connection);
-            await command.ExecuteNonQueryAsync();
-
-            await SetCurrentVersion(atVersion, connection, transaction);
-            await transaction.CommitAsync();
-            
-            atVersion++;
-        }
+        await using var conn = await CreateConnection();
+        var sql = @$"
+            UPDATE {tablePrefix}_schema 
+            SET version = {version}            
+            LIMIT 1";
+        await using var command = new MySqlCommand(sql, conn);
+        await command.ExecuteNonQueryAsync();
     }
 
-    private async Task<int?> GetCurrentVersion()
+    private async Task<int?> InnerGetCurrentVersion()
     {
         await using var conn = await CreateConnection();
         var sql = @$"
@@ -75,30 +55,10 @@ public class MariaDbMigrator(string connectionString, string tablePrefix = "") :
         }
     }
     
-    private async Task SetCurrentVersion(int version, MySqlConnection connection, MySqlTransaction transaction)
-    {
-        var sql = @$"
-            UPDATE {tablePrefix}_schema
-            SET version = {version}";
-        await using var command = new MySqlCommand(sql, connection, transaction);
-        await command.ExecuteNonQueryAsync();
-    }
-    
     private async Task<MySqlConnection> CreateConnection()
     {
         var conn = new MySqlConnection(connectionString);
         await conn.OpenAsync();
         return conn;
-    }
-
-    private readonly Dictionary<int, string> Migrations = new();
-    
-    public async Task MigrateToLatestSchema()
-    {
-        var atVersion = await GetCurrentVersion();
-        if (atVersion is null)
-            return;
-
-        await Migrate(atVersion.Value);
     }
 }
