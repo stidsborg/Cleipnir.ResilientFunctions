@@ -14,15 +14,11 @@
           <PrivateAssets>all</PrivateAssets>
           <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
-        <PackageReference Include="Shouldly" Version="4.2.1" />
+        <PackageReference Include="Shouldly" Version="4.3.0" />
     </ItemGroup>
 
     <ItemGroup>
       <ProjectReference Include="..\Cleipnir.ResilientFunctions\Cleipnir.ResilientFunctions.csproj" />
-    </ItemGroup>
-
-    <ItemGroup>
-      <Folder Include="Messaging" />
     </ItemGroup>
 
 </Project>
