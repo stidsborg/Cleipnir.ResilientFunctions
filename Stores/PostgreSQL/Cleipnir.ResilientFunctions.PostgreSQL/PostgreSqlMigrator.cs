@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Storage;
 using Npgsql;
@@ -6,35 +7,56 @@ namespace Cleipnir.ResilientFunctions.PostgreSQL;
 
 public class PostgreSqlMigrator(string connectionString, string tablePrefix = "") : IMigrator
 {
-    public async Task<int?> Initialize(int version)
+    private const int CurrentVersion = 0;
+    
+    public async Task<bool> InitializeAndMigrate()
     {
-        var atVersion = await InnerGetCurrentVersion();
-        if (atVersion is not null)
-            return atVersion.Value;
+        var atVersion = await GetCurrentVersion();
+        if (atVersion == CurrentVersion)
+            return false;
 
-        await using var conn = await CreateConnection();
-        var sql = @$"
-            CREATE TABLE IF NOT EXISTS {tablePrefix}_schema (version INT NOT NULL);
+        if (atVersion is null)
+        {
+            await using var conn = await CreateConnection();
+            var sql = @$"
+            CREATE TABLE IF NOT EXISTS {tablePrefix}_schema (              
+                version INT NOT NULL              
+            );
            
             INSERT INTO {tablePrefix}_schema (version)
                 SELECT *
-                FROM (SELECT {version} WHERE NOT EXISTS(SELECT 1 FROM {tablePrefix}_schema));";
-        
-        await using var command = new NpgsqlCommand(sql, conn);
-        await command.ExecuteNonQueryAsync();
-        
-        return null;
+                FROM (SELECT {CurrentVersion} WHERE NOT EXISTS(SELECT 1 FROM {tablePrefix}_schema));
+            ";
+            await using var command = new NpgsqlCommand(sql, conn);
+            await command.ExecuteNonQueryAsync();
+
+            return true;
+        }
+
+        await Migrate(atVersion.Value);
+        return false;
     }
 
-    public async Task SetVersion(int version)
+    private async Task Migrate(int atVersion)
     {
-        await using var conn = await CreateConnection();
-        var sql = $"UPDATE {tablePrefix}_schema SET version = {version}";
-        await using var command = new NpgsqlCommand(sql, conn);
-        await command.ExecuteNonQueryAsync();
+        atVersion++;
+        while (atVersion <= CurrentVersion)
+        {
+            await using var connection = await CreateConnection();
+            await using var transaction = connection.BeginTransaction();
+            var sql = Migrations[atVersion].Replace("TABLE_PREFIX", tablePrefix);
+
+            await using var command = new NpgsqlCommand(sql, connection);
+            await command.ExecuteNonQueryAsync();
+
+            await SetCurrentVersion(atVersion, connection, transaction);
+            await transaction.CommitAsync();
+            
+            atVersion++;
+        }
     }
 
-    private async Task<int?> InnerGetCurrentVersion()
+    private async Task<int?> GetCurrentVersion()
     {
         await using var conn = await CreateConnection();
         var sql = @$"
@@ -56,10 +78,30 @@ public class PostgreSqlMigrator(string connectionString, string tablePrefix = ""
         }
     }
     
+    private async Task SetCurrentVersion(int version, NpgsqlConnection connection, NpgsqlTransaction transaction)
+    {
+        var sql = @$"
+            UPDATE {tablePrefix}_schema
+            SET version = {version}";
+        await using var command = new NpgsqlCommand(sql, connection, transaction);
+        await command.ExecuteNonQueryAsync();
+    }
+    
     private async Task<NpgsqlConnection> CreateConnection()
     {
         var conn = new NpgsqlConnection(connectionString);
         await conn.OpenAsync();
         return conn;
+    }
+
+    private readonly Dictionary<int, string> Migrations = new();
+    
+    public async Task MigrateToLatestSchema()
+    {
+        var atVersion = await GetCurrentVersion();
+        if (atVersion is null)
+            return;
+
+        await Migrate(atVersion.Value);
     }
 }

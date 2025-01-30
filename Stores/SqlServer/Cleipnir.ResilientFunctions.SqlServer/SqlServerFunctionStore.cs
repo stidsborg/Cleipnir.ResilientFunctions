@@ -66,12 +66,9 @@ public class SqlServerFunctionStore : IFunctionStore
     private string? _initializeSql;
     public async Task Initialize()
     {
-        var atVersion = await _migrator.Initialize(Version.CurrentMajor);
-        if (atVersion is not null)
-        {
-            Version.EnsureSchemaVersion(atVersion.Value);
+        var createTables = await _migrator.InitializeAndMigrate();
+        if (!createTables)
             return;
-        }
         
         await _underlyingRegister.Initialize();
         await _messageStore.Initialize();
