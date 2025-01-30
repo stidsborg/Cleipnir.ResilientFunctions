@@ -14,7 +14,7 @@ internal class LeaseUpdater : IDisposable
     private readonly int _epoch;
 
     private readonly TimeSpan _leaseLength;
-    private readonly LeaseUpdaters? _leaseUpdaters;
+    private readonly LeaseUpdaters _leaseUpdaters;
 
     private readonly IFunctionStore _functionStore;
     private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
@@ -28,7 +28,7 @@ internal class LeaseUpdater : IDisposable
         IFunctionStore functionStore,
         UnhandledExceptionHandler unhandledExceptionHandler,
         TimeSpan leaseLength,
-        LeaseUpdaters? leaseUpdaters)
+        LeaseUpdaters leaseUpdaters)
     {
         _flowId = flowId;
         _storedId = storedId;
@@ -40,11 +40,12 @@ internal class LeaseUpdater : IDisposable
         _leaseUpdaters = leaseUpdaters;
     }
 
-    public static IDisposable CreateAndStart(StoredId storedId, FlowId flowId, int epoch, IFunctionStore functionStore, SettingsWithDefaults settings, LeaseUpdaters leaseUpdaters)
+    public static IDisposable CreateAndStart(
+        StoredId storedId, FlowId flowId, int epoch, 
+        IFunctionStore functionStore, SettingsWithDefaults settings, 
+        LeaseUpdaters leaseUpdaters)
     {
-        #if DEBUG
         leaseUpdaters.Add(storedId);
-        #endif
         
         var leaseUpdater = new LeaseUpdater(
             flowId,
@@ -107,9 +108,7 @@ internal class LeaseUpdater : IDisposable
 
     private void RemoveFromLeaseUpdaters()
     {
-        #if DEBUG
         _leaseUpdaters?.Remove(_storedId);
-        #endif
     }
 
     public void Dispose()

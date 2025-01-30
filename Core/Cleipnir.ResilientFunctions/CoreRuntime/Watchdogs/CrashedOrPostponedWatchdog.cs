@@ -1,12 +1,9 @@
 using System;
-using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
-using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Storage;
@@ -73,9 +70,7 @@ internal class CrashedOrPostponedWatchdog
                 var now = DateTime.UtcNow;
 
                 var eligibleFunctions = await _functionStore.GetExpiredFunctions(expiresBefore: now.Ticks);
-                #if DEBUG
                 eligibleFunctions = eligibleFunctions.Where(t => !_leaseUpdaters.Contains(t.FlowId)).ToList();
-                #endif
 
                 var flowsDictionary = _flowsDictionary;     
                 foreach (var sef in eligibleFunctions.WithRandomOffset())
