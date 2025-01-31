@@ -73,7 +73,7 @@ public abstract class ScheduledInvocationTests
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
         var reg = functionsRegistry.RegisterAction(
             flowType,
-            (string _) => NeverCompletingTask.OfType<Result>()
+            (string _) => NeverCompletingTask.OfType<Result<Unit>>()
         );
         var schedule = reg.Schedule;
 
@@ -99,7 +99,7 @@ public abstract class ScheduledInvocationTests
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
         var reg = functionsRegistry.RegisterFunc(
             flowType,
-            (string _) => NeverCompletingTask.OfType<Result>()
+            (string _) => NeverCompletingTask.OfType<Result<Unit>>()
         );
         var schedule = reg.Schedule;
 

@@ -42,22 +42,6 @@ internal static class InnerToAsyncResultAdapters
         };
     }
     
-    public static Func<Unit, Workflow, Task<Result<Unit>>> ToInnerParamlessWithTaskResultReturn(Func<Task<Result>> inner)
-    {
-        return async (_, workflow) =>
-        {
-            try
-            {
-                var result = await inner();
-                return result.ToUnit();
-            }
-            catch (PostponeInvocationException exception) { return Postpone.Until(exception.PostponeUntil); }
-            catch (SuspendInvocationException) { return Suspend.Invocation; }
-            catch (FatalWorkflowException exception) { return Fail.WithException(exception, workflow.FlowId); }
-            catch (Exception exception) { return Fail.WithException(FatalWorkflowException.CreateNonGeneric(workflow.FlowId, exception)); }
-        };
-    }
-    
     public static Func<Unit, Workflow, Task<Result<Unit>>> ToInnerParamlessWithTaskResultReturn(Func<Task<Result<Unit>>> inner)
     {
         return async (_, workflow) =>
@@ -90,22 +74,6 @@ internal static class InnerToAsyncResultAdapters
         };
     }
     
-    public static Func<Unit, Workflow, Task<Result<Unit>>> ToInnerParamlessWithTaskResultReturn(Func<Workflow, Task<Result>> inner)
-    {
-        return async (_, workflow) =>
-        {
-            try
-            {
-                var result = await inner(workflow);
-                return result.ToUnit();
-            }
-            catch (PostponeInvocationException exception) { return Postpone.Until(exception.PostponeUntil); }
-            catch (SuspendInvocationException) { return Suspend.Invocation; }
-            catch (FatalWorkflowException exception) { return Fail.WithException(exception, workflow.FlowId); }
-            catch (Exception exception) { return Fail.WithException(FatalWorkflowException.CreateNonGeneric(workflow.FlowId, exception)); }
-        };
-    }
-    
     // ** !! ACTION !! ** //
     // ** ASYNC ** //
     public static Func<TParam, Workflow, Task<Result<Unit>>> ToInnerActionWithTaskResultReturn<TParam>(Func<TParam, Task> inner) where TParam : notnull
@@ -115,7 +83,7 @@ internal static class InnerToAsyncResultAdapters
             try
             {
                 await inner(param);    
-                return Result.Succeed.ToUnit();
+                return Succeed.WithUnit;
             } 
             catch (PostponeInvocationException exception) { return Postpone.Until(exception.PostponeUntil); }
             catch (SuspendInvocationException) { return Suspend.Invocation; }
@@ -132,7 +100,7 @@ internal static class InnerToAsyncResultAdapters
             try
             {
                 await inner(param, workflow);
-                return Result.Succeed.ToUnit();    
+                return Succeed.WithUnit;
             }
             catch (PostponeInvocationException exception) { return Postpone.Until(exception.PostponeUntil); }
             catch (SuspendInvocationException) { return Suspend.Invocation; }
@@ -142,14 +110,14 @@ internal static class InnerToAsyncResultAdapters
     }
     
     // ** ASYNC W. RESULT ** //
-    public static Func<TParam, Workflow, Task<Result<Unit>>> ToInnerActionWithTaskResultReturn<TParam>(Func<TParam, Task<Result>> inner) where TParam : notnull
+    public static Func<TParam, Workflow, Task<Result<Unit>>> ToInnerActionWithTaskResultReturn<TParam>(Func<TParam, Task<Result<Unit>>> inner) where TParam : notnull
     {
         return async (param, workflow) =>
         {
             try
             {
                 var result = await inner(param);
-                return result.ToUnit();
+                return result;
             }
             catch (PostponeInvocationException exception) { return Postpone.Until(exception.PostponeUntil); }
             catch (SuspendInvocationException) { return Suspend.Invocation; }
@@ -159,14 +127,14 @@ internal static class InnerToAsyncResultAdapters
     }
     
     // ** ASYNC W. RESULT AND workflow ** //
-    public static Func<TParam, Workflow, Task<Result<Unit>>> ToInnerActionWithTaskResultReturn<TParam>(Func<TParam, Workflow, Task<Result>> inner) where TParam : notnull
+    public static Func<TParam, Workflow, Task<Result<Unit>>> ToInnerActionWithTaskResultReturn<TParam>(Func<TParam, Workflow, Task<Result<Unit>>> inner) where TParam : notnull
     {
         return async (param, workflow) =>
         {
             try
             {
                 var result = await inner(param, workflow);
-                return result.ToUnit();
+                return result;
             }
             catch (PostponeInvocationException exception) { return Postpone.Until(exception.PostponeUntil); }
             catch (SuspendInvocationException) { return Suspend.Invocation; }

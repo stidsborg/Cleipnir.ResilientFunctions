@@ -101,7 +101,7 @@ public abstract class SunshineTests
                 inner: () =>
                 {
                     flag.Raise();
-                    return Result.Succeed.ToTask();
+                    return Succeed.WithUnit.ToTask();
                 });
         var invoke = reg.Invoke;
 
@@ -357,11 +357,11 @@ public abstract class SunshineTests
         
             var registration = functionsRegistry.RegisterAction(
                 flowType,
-                inner: Task<Result> (bool postpone) => 
+                inner: Task<Result<Unit>> (bool postpone) => 
                     Task.FromResult(
                         postpone 
                         ? Postpone.For(TimeSpan.FromHours(1)) 
-                        : Succeed.WithoutValue
+                        : Succeed.WithUnit
                     )
             );
             
@@ -546,11 +546,11 @@ public abstract class SunshineTests
                     if (!postponed)
                     {
                         postponed = true;
-                        return Postpone.For(100).ToResult().ToTask();
+                        return Postpone.For(100).ToUnitResult.ToTask();
                     }
                         
                     storedId = CurrentFlow.StoredId;
-                    return Result.Succeed.ToTask();
+                    return Succeed.WithUnit.ToTask();
                 }
             );
         await reg.Schedule(instance);

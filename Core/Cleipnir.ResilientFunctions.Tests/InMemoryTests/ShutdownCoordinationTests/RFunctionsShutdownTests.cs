@@ -75,7 +75,7 @@ public class RFunctionsShutdownTests
              (string _) =>
             {
                 insideRFuncFlag.Raise();
-                return NeverCompletingTask.OfType<Result>();
+                return NeverCompletingTask.OfType<Result<Unit>>();
             }
         ).Invoke;
 
@@ -163,7 +163,7 @@ public class RFunctionsShutdownTests
             {
                 insideRFuncFlag.Raise();
                 await completeRFuncFlag.WaitForRaised();
-                return Succeed.WithoutValue;
+                return Succeed.WithUnit;
             }
         );
         
@@ -216,10 +216,10 @@ public class RFunctionsShutdownTests
 
         var registration = functionsRegistry.RegisterAction(
             flowType,
-            Task<Result> (string _) =>
+            Task<Result<Unit>> (string _) =>
             {
                 counter.Increment();
-                return Postpone.For(500).ToResult().ToTask();
+                return Postpone.For(500).ToUnitResult.ToTask();
             }
         );
         var rAction = registration.Invoke;

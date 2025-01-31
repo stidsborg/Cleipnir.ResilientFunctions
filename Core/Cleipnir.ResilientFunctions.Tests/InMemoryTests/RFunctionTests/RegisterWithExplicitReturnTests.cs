@@ -61,7 +61,7 @@ public class RegisterWithExplicitReturnTests
                 {
                     await Task.CompletedTask;
                     syncedParam.Value = param;
-                    return Succeed.WithoutValue;
+                    return Succeed.WithUnit;
                 })
             .Invoke;
 
@@ -81,7 +81,7 @@ public class RegisterWithExplicitReturnTests
                 {
                     await Task.CompletedTask;
                     syncedParam.Value = param;
-                    return Succeed.WithoutValue;
+                    return Succeed.WithUnit;
                 })
             .Invoke;
 

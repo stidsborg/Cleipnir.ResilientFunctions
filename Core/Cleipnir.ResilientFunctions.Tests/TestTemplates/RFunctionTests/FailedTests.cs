@@ -288,7 +288,7 @@ public abstract class FailedTests
                 (string _) =>
                 {
                     flag.Raise();
-                    return Succeed.WithoutValue.ToTask();
+                    return Succeed.WithUnit.ToTask();
                 }
             );
                 

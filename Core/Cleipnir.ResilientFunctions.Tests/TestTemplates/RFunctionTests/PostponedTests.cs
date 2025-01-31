@@ -164,8 +164,8 @@ public abstract class PostponedTests
                 )
             );
             var rAction = functionsRegistry.RegisterAction(
-                flowType,
-                (string _) => Postpone.Until(DateTime.UtcNow.AddMilliseconds(1_000)).ToResult().ToTask()
+                flowType, 
+                Task<Result<Unit>> (string _) => Postpone.Until(DateTime.UtcNow.AddMilliseconds(1_000)).ToUnitResult.ToTask()
             ).Invoke;
 
             await Should.ThrowAsync<InvocationPostponedException>(() => rAction(flowInstance.Value, param));
@@ -211,7 +211,7 @@ public abstract class PostponedTests
             );
             var rAction = functionsRegistry.RegisterAction(
                 flowType,
-                (string _, Workflow _) => Postpone.For(1_000).ToResult().ToTask()
+                Task<Result<Unit>> (string _, Workflow _) => Postpone.For(1_000).ToUnitResult.ToTask()
             ).Invoke;
 
             await Should.ThrowAsync<InvocationPostponedException>(() => 
@@ -270,7 +270,7 @@ public abstract class PostponedTests
                 )
             );
             var rFunc = functionsRegistry
-                .RegisterAction(functionId.Type, (string _) => Postpone.For(1_000).ToResult().ToTask())
+                .RegisterAction(functionId.Type, Task<Result<Unit>> (string _) => Postpone.For(1_000).ToUnitResult.ToTask())
                 .Invoke;
 
             var instanceId = functionId.Instance.ToString();

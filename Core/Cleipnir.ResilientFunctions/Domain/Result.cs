@@ -1,60 +1,19 @@
 ﻿using System;
-using Cleipnir.ResilientFunctions.CoreRuntime;
-using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.Domain.Exceptions.Commands;
 using Cleipnir.ResilientFunctions.Helpers;
 
 namespace Cleipnir.ResilientFunctions.Domain;
 
-public class Result
+public static class Result
 {
-    public Outcome Outcome { get; }
-    public Postpone? Postpone { get; }
-    public FatalWorkflowException? Fail { get; }
-    public Suspend? Suspend { get; }
-
-    public Result() : this(succeed: true, postpone: null, fail: null, suspend: null) {}
-    public Result(Postpone postpone) : this(succeed: false, postpone, fail: null, suspend: null) {}
-    public Result(FatalWorkflowException exception) : this(succeed: false, postpone: null, fail: exception, suspend: null) {}
-    public Result(Suspend suspend) : this(succeed: false, postpone: null, fail: null, suspend) {}
-
-    private Result(bool succeed, Postpone? postpone, FatalWorkflowException? fail, Suspend? suspend)
-    {
-        if (succeed)
-            Outcome = Outcome.Succeed;
-        else if (postpone != null)
-            Outcome = Outcome.Postpone;
-        else if (fail != null)
-            Outcome = Outcome.Fail;
-        else
-            Outcome = Outcome.Suspend;
-        
-        Postpone = postpone;
-        Fail = fail;
-        Postpone = postpone;
-        Suspend = suspend;
-    }
-
-    public static Result Succeed { get; } = new Result();
-    public static implicit operator Result(Fail fail) => new Result(fail.Exception);
-    public static implicit operator Result(Postpone postpone) => new Result(postpone);
-    public static implicit operator Result(Suspend suspend) => new Result(suspend);
     public static Result<T> SucceedWithValue<T>(T value) => new(value);
-
-    public Result<Unit> ToUnit() => Outcome switch
-    {
-        Outcome.Succeed => new Result<Unit>(Unit.Instance),
-        Outcome.Postpone => new Result<Unit>(Postpone!),
-        Outcome.Fail => new Result<Unit>(Fail!),
-        Outcome.Suspend => new Result<Unit>(Suspend!),
-        _ => throw new ArgumentOutOfRangeException()
-    };
+    public static Result<Unit> SucceedWithUnit { get; } = new Result<Unit>(Unit.Instance);
 }
 
 public static class Succeed
 {
-    public static Result WithoutValue { get; } = new Result();
     public static Result<T> WithValue<T>(T value) => new Result<T>(value);
+    public static Result<Unit> WithUnit { get; } = new Result<Unit>(Unit.Instance);
 }
 
 public class Fail
@@ -75,7 +34,6 @@ public class Fail
     public static Fail WithException(Exception exception) => new Fail(exception);
     public static Fail WithException(FatalWorkflowException exception, FlowId flowId) => new Fail(flowId, exception);
 
-    public Result ToResult() => new(Exception);
     public Result<T> ToResult<T>() => new(Exception);
 }
 
@@ -85,8 +43,8 @@ public class Postpone
 
     private Postpone(DateTime dateTime) => DateTime = dateTime;
 
-    public Result ToResult() => new(this);
     public Result<T> ToResult<T>() => new(this);
+    public Result<Unit> ToUnitResult => ToResult<Unit>();
     
     public static Postpone Until(DateTime dateTime) => new(dateTime.ToUniversalTime());
 

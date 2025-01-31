@@ -48,7 +48,7 @@ public class InMemorySunshineTests
             => functionsRegistry.RegisterFunc(
                 flowType: "",
                 Task<Result<string>>(string param) 
-                    => Result.SucceedWithValue(callback(param).Result).ToTask()
+                    => Succeed.WithValue(callback(param).Result).ToTask()
                )
             );
     }    
@@ -61,7 +61,7 @@ public class InMemorySunshineTests
             => rFunctions.RegisterFunc(
                 flowType: "",
                 Task<Result<string>> (string param, Workflow _)
-                    => Result.SucceedWithValue(callback(param).Result).ToTask()
+                    => Succeed.WithValue(callback(param).Result).ToTask()
             )
         );
     }    
@@ -150,7 +150,7 @@ public class InMemorySunshineTests
         await ExecuteAction((rFunctions, callback)
             => rFunctions.RegisterAction(
                 flowType: "",
-                Task<Result> (string param) => { callback(param); return Task.FromResult(Result.Succeed); }
+                Task<Result<Unit>> (string param) => { callback(param); return Succeed.WithUnit.ToTask(); }
             )
         );
     }    
@@ -162,7 +162,7 @@ public class InMemorySunshineTests
         await ExecuteAction((rFunctions, callback)
             => rFunctions.RegisterAction(
                 flowType: "",
-                Task<Result> (string param, Workflow workflow) => { callback(param); return Task.FromResult(Result.Succeed); }
+                Task<Result<Unit>> (string param, Workflow workflow) => { callback(param); return Succeed.WithUnit.ToTask(); }
             )
         );
     }    

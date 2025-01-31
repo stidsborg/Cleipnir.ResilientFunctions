@@ -2,12 +2,13 @@
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Helpers;
 
 namespace ConsoleApp.Subscription;
 
 public class SubscriptionSaga
 {
-    public async Task<Result> UpdateSubscription(SubscriptionChange subscriptionChange, State state, Workflow workflow)
+    public async Task<Result<Unit>> UpdateSubscription(SubscriptionChange subscriptionChange, State state, Workflow workflow)
     {
         await using var monitor = await workflow.Synchronization.AcquireLock(nameof(UpdateSubscription), subscriptionChange.SubscriptionId);
         var (subscriptionId, startSubscription) = subscriptionChange;
@@ -19,7 +20,7 @@ public class SubscriptionSaga
 
         await StoreSubscriptionStatusLocally(startSubscription);
 
-        return Succeed.WithoutValue;
+        return Succeed.WithUnit;
     }
 
     private async Task StartSubscription(string subscriptionId)

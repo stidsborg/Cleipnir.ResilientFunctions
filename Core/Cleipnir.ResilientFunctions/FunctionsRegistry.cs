@@ -55,7 +55,8 @@ public class FunctionsRegistry : IDisposable
         );
     }
 
-    // ** !! FUNC !! ** //
+    #region Func overloads
+
     public FuncRegistration<TParam, TReturn> RegisterFunc<TParam, TReturn>(
         FlowType flowType,
         Func<TParam, Task<TReturn>> inner,
@@ -89,7 +90,10 @@ public class FunctionsRegistry : IDisposable
             settings
         );
 
-    // ** !! ACTION !! ** //
+    #endregion
+
+    #region Action overloads
+
     public ActionRegistration<TParam> RegisterAction<TParam>(
         FlowType flowType,
         Func<TParam, Task> inner,
@@ -116,7 +120,7 @@ public class FunctionsRegistry : IDisposable
     // ** W. RESULT ** //
     public ActionRegistration<TParam> RegisterAction<TParam>(
         FlowType flowType,
-        Func<TParam, Task<Result>> inner,
+        Func<TParam, Task<Result<Unit>>> inner,
         Settings? settings = null
     ) where TParam : notnull
         => RegisterAction(
@@ -124,40 +128,12 @@ public class FunctionsRegistry : IDisposable
             InnerToAsyncResultAdapters.ToInnerActionWithTaskResultReturn(inner),
             settings
         );
-        
-    // ** W. RESULT AND WORKFLOW ** //   
-    public ActionRegistration<TParam> RegisterAction<TParam>(
-        FlowType flowType,
-        Func<TParam, Workflow, Task<Result>> inner,
-        Settings? settings = null
-    ) where TParam : notnull
-        => RegisterAction(
-            flowType,
-            InnerToAsyncResultAdapters.ToInnerActionWithTaskResultReturn(inner),
-            settings
-        );
-        
+
+    #endregion
+
+    #region Paramless overloads
+
     // ** PARAMLESS ** //   
-    public ParamlessRegistration RegisterParamless(
-        FlowType flowType,
-        Func<Task<Result>> inner,
-        Settings? settings = null
-    ) => RegisterParamless(
-        flowType,
-        InnerToAsyncResultAdapters.ToInnerParamlessWithTaskResultReturn(inner),
-        settings
-    );
-        
-    public ParamlessRegistration RegisterParamless(
-        FlowType flowType,
-        Func<Workflow, Task<Result>> inner,
-        Settings? settings = null
-    ) => RegisterParamless(
-        flowType,
-        InnerToAsyncResultAdapters.ToInnerParamlessWithTaskResultReturn(inner),
-        settings
-    );
-        
     public ParamlessRegistration RegisterParamless(
         FlowType flowType,
         Func<Task<Result<Unit>>> inner,
@@ -197,6 +173,8 @@ public class FunctionsRegistry : IDisposable
         InnerToAsyncResultAdapters.ToInnerParamlessWithTaskResultReturn(inner),
         settings
     );
+
+    #endregion
     
     // ** ASYNC W. RESULT AND WORKFLOW ** //   
     public FuncRegistration<TParam, TReturn> RegisterFunc<TParam, TReturn>(

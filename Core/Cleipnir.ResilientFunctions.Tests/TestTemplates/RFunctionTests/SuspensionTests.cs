@@ -33,7 +33,7 @@ public abstract class SuspensionTests
 
         var rAction = functionsRegistry.RegisterAction(
             flowType,
-            Task<Result> (string _) => throw new SuspendInvocationException()
+            Task<Result<Unit>> (string _) => throw new SuspendInvocationException()
         );
 
         await Should.ThrowAsync<InvocationSuspendedException>(
@@ -112,7 +112,7 @@ public abstract class SuspensionTests
                 }
 
                 invocations++;
-                return Result.SucceedWithValue("completed").ToTask();
+                return Succeed.WithValue("completed").ToTask();
             });
 
         await Should.ThrowAsync<InvocationSuspendedException>(
@@ -155,7 +155,7 @@ public abstract class SuspensionTests
                 }
 
                 invocations++;
-                return Result.SucceedWithValue("completed").ToTask();
+                return Succeed.WithValue("completed").ToTask();
             });
 
         await Should.ThrowAsync<InvocationPostponedException>(
@@ -192,7 +192,7 @@ public abstract class SuspensionTests
             flowType,
             Task<Result<string>> (_) =>
             {
-                if (flag.IsRaised) return Result.SucceedWithValue("success").ToTask();
+                if (flag.IsRaised) return Succeed.WithValue("success").ToTask();
                 flag.Raise();
                 return Suspend.Invocation.ToResult<string>().ToTask();
             });

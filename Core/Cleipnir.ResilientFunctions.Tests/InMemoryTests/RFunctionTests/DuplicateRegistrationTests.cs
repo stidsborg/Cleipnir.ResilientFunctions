@@ -49,12 +49,12 @@ public class DuplicateRegistrationTests
         using var rFunctions = new FunctionsRegistry(new InMemoryFunctionStore());
         _ = rFunctions.RegisterFunc(
             "SomeFunctionType",
-            Task<Result>(string _) => Succeed.WithoutValue.ToTask()
+            Task<Result<Unit>>(string _) => Succeed.WithUnit.ToTask()
         );
 
         _ = rFunctions.RegisterFunc(
             "SomeFunctionType",
-            Task<Result> (string _) => Succeed.WithoutValue.ToTask()
+            Task<Result<Unit>> (string _) => Succeed.WithUnit.ToTask()
         );
     }
 
@@ -64,13 +64,13 @@ public class DuplicateRegistrationTests
         using var rFunctions = new FunctionsRegistry(new InMemoryFunctionStore());
         _ = rFunctions.RegisterFunc(
             "SomeFunctionType",
-            Task<Result>(string _) => Succeed.WithoutValue.ToTask()
+            Task<Result<Unit>>(string _) => Succeed.WithUnit.ToTask()
         );
 
         Should.Throw<InvalidCastException>(() =>
             _ = rFunctions.RegisterFunc(
                 "SomeFunctionType",
-                Task<Result>(int _) => Succeed.WithoutValue.ToTask()
+                Task<Result<Unit>>(int _) => Succeed.WithUnit.ToTask()
             )
         );
     }
@@ -81,13 +81,13 @@ public class DuplicateRegistrationTests
         using var rFunctions = new FunctionsRegistry(new InMemoryFunctionStore());
         _ = rFunctions.RegisterFunc(
             "SomeFunctionType",
-            Task<Result>(string _) => Succeed.WithoutValue.ToTask()
+            Task<Result<Unit>>(string _) => Succeed.WithUnit.ToTask()
         );
 
         Should.Throw<InvalidCastException>(() =>
             _ = rFunctions.RegisterAction(
                 "SomeFunctionType",
-                Task (int _) => Succeed.WithoutValue.ToTask()
+                Task (int _) => Succeed.WithUnit.ToTask()
             )
         );
     }

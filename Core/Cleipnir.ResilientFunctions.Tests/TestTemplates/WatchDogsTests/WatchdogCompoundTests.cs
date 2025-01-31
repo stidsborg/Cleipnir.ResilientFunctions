@@ -319,7 +319,7 @@ public abstract class WatchdogCompoundTests
                     inner: (Param p) =>
                     {
                         Task.Run(() => paramTcs.TrySetResult(p));
-                        return Postpone.For(100).ToResult().ToTask();
+                        return Postpone.For(100).ToUnitResult.ToTask();
                     }
                 );
 
@@ -435,7 +435,7 @@ public abstract class WatchdogCompoundTests
             _ = functionsRegistry
                 .RegisterAction(
                     flowType,
-                    async Task<Result> (Param p, Workflow workflow) =>
+                    async Task<Result<Unit>> (Param p, Workflow workflow) =>
                     {
                         _ = Task.Run(() => paramTcs.TrySetResult(p));
                         var state = await workflow.States.CreateOrGet<ListState>("Scraps");
