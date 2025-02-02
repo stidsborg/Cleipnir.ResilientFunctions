@@ -1,5 +1,4 @@
 ﻿using Cleipnir.ResilientFunctions.Helpers;
-using Cleipnir.ResilientFunctions.MariaDb.Tests;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Cleipnir.ResilientFunctions.MariaDb.Tests;
@@ -18,4 +17,8 @@ public class SemaphoreStoreTests : Cleipnir.ResilientFunctions.Tests.TestTemplat
     [TestMethod]
     public override Task AcquiringTheSameSemaphoreTwiceIsIdempotent()
         => AcquiringTheSameSemaphoreTwiceIsIdempotent(FunctionStoreFactory.Create().SelectAsync(s => s.SemaphoreStore));
+    
+    [TestMethod]
+    public override Task SemaphoreIsAcquiredDespitePositionBeingMoreThanSemaphoreCount()
+        => SemaphoreIsAcquiredDespitePositionBeingMoreThanSemaphoreCount(FunctionStoreFactory.Create().SelectAsync(s => s.SemaphoreStore));
 }

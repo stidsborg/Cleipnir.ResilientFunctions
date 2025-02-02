@@ -43,11 +43,10 @@ public class MariaDbSemaphoreStore(string connectionString, string tablePrefix =
                 INSERT INTO {tablePrefix}_semaphores
                 (type, instance, position, owner)
                 SELECT ?, ?, (COALESCE(MAX(position), -1) + 1), ?
-                FROM {tablePrefix}_semaphores
-                RETURNING position;
-            ELSE
-                SELECT -1;
-            END IF;";
+                FROM {tablePrefix}_semaphores;            
+            END IF;
+
+            SELECT owner FROM {tablePrefix}_semaphores WHERE type = ? AND instance = ? ORDER BY position;";
 
         await using var conn = await CreateConnection();
         try
@@ -62,18 +61,26 @@ public class MariaDbSemaphoreStore(string connectionString, string tablePrefix =
 
                     new() { Value = group },
                     new() { Value = instance },
+                    new() { Value = storedId.Serialize() },
+                    
+                    new() { Value = group },
+                    new() { Value = instance },
                     new() { Value = storedId.Serialize() }
                 }
             };
 
-            var position = (int?)await command.ExecuteScalarAsync();
-            if (position == null || position == -1)
+            await using var reader = await command.ExecuteReaderAsync();
+            var i = 0;
+            while (await reader.ReadAsync())
             {
-                var queued = await GetQueued(group, instance, maximumCount);
-                return queued.Any(id => id == storedId);
+                var owner = StoredId.Deserialize(reader.GetString(0));
+                if (owner == storedId)
+                    return i < maximumCount;
+
+                i++;
             }
 
-            return position < maximumCount;
+            return false;
         }
         catch (MySqlException e) when (e.Number == 1213) //deadlock found when trying to get lock; try restarting transaction
         {

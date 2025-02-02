@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Storage;
 using Microsoft.Data.SqlClient;
@@ -47,8 +46,7 @@ public class SqlServerSemaphoreStore(string connectionString, string tablePrefix
         await using var conn = await CreateConnection();
         
         _acquireSql ??= @$"
-            INSERT INTO {tablePrefix}_Semaphores
-            OUTPUT INSERTED.Position
+            INSERT INTO {tablePrefix}_Semaphores           
             SELECT @Type, 
                    @Instance, 
                    (SELECT COALESCE(MAX(Position), -1) + 1 
@@ -59,7 +57,9 @@ public class SqlServerSemaphoreStore(string connectionString, string tablePrefix
                 SELECT 1
                 FROM {tablePrefix}_Semaphores
                 WHERE Type = @Type AND Instance = @Instance AND Owner = @Owner
-            );";
+            );
+
+            SELECT Owner FROM {tablePrefix}_Semaphores WHERE Type = @Type AND Instance = @Instance ORDER BY Position";
         
         try
         {
@@ -68,12 +68,20 @@ public class SqlServerSemaphoreStore(string connectionString, string tablePrefix
             command.Parameters.AddWithValue("@Instance", instance);
             command.Parameters.AddWithValue("@Owner", storedId.Serialize());
 
-            var position = await command.ExecuteScalarAsync();
+            await using var reader = await command.ExecuteReaderAsync();
+            //var hasNextResult = await reader.NextResultAsync();
 
-            if (position is null)
-                return (await GetQueued(group, instance, maximumCount)).Any(id => id == storedId);
+            var i = 0;
+            while (await reader.ReadAsync())
+            {
+                var owner = StoredId.Deserialize(reader.GetString(0));
+                if (owner == storedId)
+                    return i < maximumCount;
+                
+                i++;   
+            }
 
-            return (int) position < maximumCount;
+            return false;
         }
         catch (SqlException e)
         {

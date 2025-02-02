@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Storage;
 using Npgsql;
@@ -39,6 +38,7 @@ public class PostgreSqlSemaphoreStore(string connectionString, string tablePrefi
         => await Acquire(group, instance, storedId, maximumCount, depth: 0);
     
     private string? _takeSql;
+    private string? _readAfterTakeSql;
     private async Task<bool> Acquire(string group, string instance, StoredId storedId, int maximumCount, int depth)
     {
         _takeSql ??= @$"    
@@ -48,30 +48,49 @@ public class PostgreSqlSemaphoreStore(string connectionString, string tablePrefi
                     $2, 
                     (SELECT COALESCE(MAX(position), -1) + 1 FROM {tablePrefix}_semaphores WHERE type = $1 AND instance = $2),
                     $3
-                 WHERE NOT EXISTS (SELECT 1 FROM {tablePrefix}_semaphores WHERE type = $1 AND instance = $2 AND owner = $3)
-            RETURNING position;";
+                 WHERE NOT EXISTS (SELECT 1 FROM {tablePrefix}_semaphores WHERE type = $1 AND instance = $2 AND owner = $3);";
+        
+        _readAfterTakeSql ??= $"SELECT owner FROM {tablePrefix}_semaphores WHERE type = $1 AND instance = $2 ORDER BY position;";
         
         await using var conn = await CreateConnection();
         try
         {
-            var command = new NpgsqlCommand(_takeSql, conn)
+            await using var batch = new NpgsqlBatch(conn)
             {
-                Parameters =
+                BatchCommands =
                 {
-                    new() { Value = group },
-                    new() { Value = instance },
-                    new() { Value = storedId.Serialize() }
+                    new NpgsqlBatchCommand(_takeSql)
+                    {
+                        Parameters =
+                        {
+                            new() { Value = group },
+                            new() { Value = instance },
+                            new() { Value = storedId.Serialize() }
+                        },
+                    },
+                    new NpgsqlBatchCommand(_readAfterTakeSql) {
+                        Parameters =
+                        {
+                            new() { Value = group },
+                            new() { Value = instance },
+                            new() { Value = storedId.Serialize() }
+                        },
+                    },
                 }
             };
 
-            var position = (int?)await command.ExecuteScalarAsync();
-            if (position == null)
+            await using var reader = await batch.ExecuteReaderAsync();
+            var i = 0;
+            while (await reader.ReadAsync())
             {
-                var queued = await GetQueued(group, instance, maximumCount);
-                return queued.Any(id => id == storedId);
+                var owner = StoredId.Deserialize(reader.GetString(0));
+                if (owner == storedId)
+                    return i < maximumCount;
+                
+                i++;
             }
 
-            return position < maximumCount;
+            return false;
         }
         catch (PostgresException e) when (e.SqlState == "23505")
         {

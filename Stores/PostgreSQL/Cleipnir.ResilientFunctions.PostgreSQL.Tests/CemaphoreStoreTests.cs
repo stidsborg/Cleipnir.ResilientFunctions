@@ -18,4 +18,8 @@ public class SemaphoreStoreTests : Cleipnir.ResilientFunctions.Tests.TestTemplat
     [TestMethod]
     public override Task AcquiringTheSameSemaphoreTwiceIsIdempotent()
         => AcquiringTheSameSemaphoreTwiceIsIdempotent(FunctionStoreFactory.Create().SelectAsync(s => s.SemaphoreStore));
+    
+    [TestMethod]
+    public override Task SemaphoreIsAcquiredDespitePositionBeingMoreThanSemaphoreCount()
+        => SemaphoreIsAcquiredDespitePositionBeingMoreThanSemaphoreCount(FunctionStoreFactory.Create().SelectAsync(s => s.SemaphoreStore));
 }

@@ -97,4 +97,22 @@ public abstract class SemaphoreStoreTests
         takenIds = await store.Release("group", "instanc", id1, maximumCount: 2);
         takenIds.Count.ShouldBe(0);
     }
+    
+    public abstract Task SemaphoreIsAcquiredDespitePositionBeingMoreThanSemaphoreCount();
+    protected async Task SemaphoreIsAcquiredDespitePositionBeingMoreThanSemaphoreCount(Task<ISemaphoreStore> storeTask)
+    {
+        var store = await storeTask;
+        var id1 = TestStoredId.Create();
+        var id2 = TestStoredId.Create();
+        var id3 = TestStoredId.Create();
+        
+        
+        await store.Acquire("group", "instance", id1, maximumCount: 2).ShouldBeTrueAsync();
+        await store.Acquire("group", "instance", id2, maximumCount: 2).ShouldBeTrueAsync();
+
+        await store.Release("group", "instance", id1, maximumCount: 2);
+        await store.Acquire("group", "instance", id3, maximumCount: 2).ShouldBeTrueAsync();
+        
+        
+    }
 }
