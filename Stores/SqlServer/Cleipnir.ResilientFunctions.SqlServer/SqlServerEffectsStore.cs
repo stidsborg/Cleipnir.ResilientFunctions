@@ -74,8 +74,8 @@ public class SqlServerEffectsStore(string connectionString, string tablePrefix =
         await command.ExecuteNonQueryAsync();
     }
 
-    private static string? _setEffectResultsSql;
-    public async Task SetEffectResults(StoredId storedId, IReadOnlyList<StoredEffect> storedEffects)
+    private string? _setEffectResultsSql;
+    public async Task SetEffectResults(StoredId storedId, IReadOnlyList<StoredEffect> storedEffects, IReadOnlyList<StoredEffectId> removeEffects)
     {
         await using var conn = await CreateConnection();
         _setEffectResultsSql ??= $@"
@@ -96,6 +96,14 @@ public class SqlServerEffectsStore(string connectionString, string tablePrefix =
                 .Select((s, i) => s.Replace("#", i.ToString()))
                 .StringJoin(", ")
         );
+        
+        if (removeEffects.Count > 0)
+            sql += Environment.NewLine + 
+                   @$"DELETE FROM {tablePrefix}_Effects 
+                      WHERE FlowType = {storedId.Type.Value} AND 
+                            FlowInstance = '{storedId.Instance.Value}' AND 
+                            StoredId IN ({removeEffects.Select(id => $"'{id.Value}'").StringJoin(", ")}) ";
+        
         await using var command = new SqlCommand(sql, conn);
         for (var i = 0; i < storedEffects.Count; i++)
         {

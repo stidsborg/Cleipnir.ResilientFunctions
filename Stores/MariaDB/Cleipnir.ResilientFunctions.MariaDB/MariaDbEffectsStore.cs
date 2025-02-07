@@ -66,7 +66,7 @@ public class MariaDbEffectsStore(string connectionString, string tablePrefix = "
     }
 
     private string? _setEffectResultsSql;
-    public async Task SetEffectResults(StoredId storedId, IReadOnlyList<StoredEffect> storedEffects)
+    public async Task SetEffectResults(StoredId storedId, IReadOnlyList<StoredEffect> storedEffects, IReadOnlyList<StoredEffectId> removeEffects)
     {
         await using var conn = await CreateConnection();
         _setEffectResultsSql ??= $@"
@@ -75,12 +75,19 @@ public class MariaDbEffectsStore(string connectionString, string tablePrefix = "
           VALUES
               @VALUES  
            ON DUPLICATE KEY UPDATE
-                status = VALUES(status), result = VALUES(result), exception = VALUES(exception)";
+                status = VALUES(status), result = VALUES(result), exception = VALUES(exception);";
         
         var sql = _setEffectResultsSql.Replace(
             "@VALUES",
             "(?, ?, ?, ?, ?, ?, ?)".Replicate(storedEffects.Count).StringJoin(", ")
         );
+
+        if (removeEffects.Count > 0)
+            sql += Environment.NewLine +
+                   @$"DELETE FROM {tablePrefix}_effects 
+                      WHERE type = {storedId.Type.Value} AND 
+                            instance = '{storedId.Instance.Value:N}' AND 
+                            id_hash IN ({removeEffects.Select(id => $"'{id.Value:N}'").StringJoin(", ")});";
         
         await using var command = new MySqlCommand(sql, conn);
         foreach (var storedEffect in storedEffects)

@@ -278,4 +278,44 @@ public abstract class EffectStoreTests
         var effect2 = effects.Single(e => e.EffectId == storedEffect2.EffectId);
         effect2.Result.ShouldBe("some result 2".ToUtf8Bytes());
     }
+    
+    public abstract Task BulkInsertAndDeleteTest();
+    protected async Task BulkInsertAndDeleteTest(Task<IEffectsStore> storeTask)
+    {
+        var store = await storeTask;
+        var storedId = TestStoredId.Create();
+        var storedEffect1 = new StoredEffect(
+            "EffectId1".ToEffectId(),
+            "EffectId1".ToStoredEffectId(EffectType.Effect),
+            WorkStatus.Started,
+            Result: "some result 1".ToUtf8Bytes(),
+            StoredException: null
+        );
+        var storedEffect2 = new StoredEffect(
+            "EffectId2".ToEffectId(),
+            "EffectId2".ToStoredEffectId(EffectType.Effect),
+            WorkStatus.Completed,
+            Result: "some result 2".ToUtf8Bytes(),
+            StoredException: null
+        );
+        var storedEffect3 = new StoredEffect(
+            "EffectId3".ToEffectId(),
+            "EffectId3".ToStoredEffectId(EffectType.Effect),
+            WorkStatus.Completed,
+            Result: "some result 3".ToUtf8Bytes(),
+            StoredException: null
+        );
+        
+        await store.SetEffectResults(storedId, [storedEffect1, storedEffect2]);
+        await store.SetEffectResults(
+            storedId,
+            upsertEffects: [storedEffect3],
+            removeEffects: [storedEffect1.StoredEffectId, storedEffect2.StoredEffectId]
+        );
+        
+        var effects = await store.GetEffectResults(storedId);
+        effects.Count.ShouldBe(1);
+        var effect3 = effects.Single(e => e.EffectId == storedEffect3.EffectId);
+        effect3.Result.ShouldBe("some result 3".ToUtf8Bytes());
+    }
 }

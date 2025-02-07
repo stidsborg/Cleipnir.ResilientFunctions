@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Storage.Utils;
 using Npgsql;
@@ -68,7 +70,7 @@ public class PostgreSqlEffectsStore(string connectionString, string tablePrefix 
         await command.ExecuteNonQueryAsync();
     }
 
-    public async Task SetEffectResults(StoredId storedId, IReadOnlyList<StoredEffect> storedEffects)
+    public async Task SetEffectResults(StoredId storedId, IReadOnlyList<StoredEffect> upsertEffects, IReadOnlyList<StoredEffectId> removeEffects)
     {
         await using var conn = await CreateConnection();
         _setEffectResultSql ??= $@"
@@ -81,7 +83,7 @@ public class PostgreSqlEffectsStore(string connectionString, string tablePrefix 
             UPDATE SET status = EXCLUDED.status, result = EXCLUDED.result, exception = EXCLUDED.exception";
         
         await using var batch = new NpgsqlBatch(conn);
-        foreach (var storedEffect in storedEffects)
+        foreach (var storedEffect in upsertEffects)
         {
             var command = new NpgsqlBatchCommand(_setEffectResultSql)
             {
@@ -98,6 +100,16 @@ public class PostgreSqlEffectsStore(string connectionString, string tablePrefix 
             };
             batch.BatchCommands.Add(command);
         }
+
+        if (removeEffects.Count > 0)
+            batch.BatchCommands.Add(
+                new NpgsqlBatchCommand(
+                    @$"DELETE FROM {tablePrefix}_effects 
+                       WHERE type = {storedId.Type.Value} AND 
+                             instance = '{storedId.Instance.Value}' AND 
+                             id_hash IN ({removeEffects.Select(id => $"'{id.Value}'").StringJoin(", ")});"
+                )
+            );
         
         await batch.ExecuteNonQueryAsync();
     }
