@@ -328,13 +328,14 @@ public abstract class EffectTests
     {  
         var store = await storeTask;
         var storedId = TestStoredId.Create();
-        var effect = new Effect(
+        var effectResults = new EffectResults(
             TestFlowId.Create(),
             storedId,
             lazyExistingEffects: new Lazy<Task<IReadOnlyList<StoredEffect>>>(() => store.EffectsStore.GetEffectResults(storedId)),
             store.EffectsStore,
             DefaultSerializer.Instance
         );
+        var effect = new Effect(effectResults);
         
         var option = await effect.TryGet<int>("Id1");
         option.HasValue.ShouldBeFalse();
@@ -364,8 +365,8 @@ public abstract class EffectTests
         var store = await storeTask;
         var storedId = TestStoredId.Create();
         var syncedCounter = new SyncedCounter();
-        
-        var effect = new Effect(
+
+        var effectResults = new EffectResults(
             TestFlowId.Create(),
             storedId,
             lazyExistingEffects: new Lazy<Task<IReadOnlyList<StoredEffect>>>(
@@ -380,6 +381,7 @@ public abstract class EffectTests
             store.EffectsStore,
             DefaultSerializer.Instance
         );
+        var effect = new Effect(effectResults);
         
         syncedCounter.Current.ShouldBe(0);
         

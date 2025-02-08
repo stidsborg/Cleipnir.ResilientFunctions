@@ -445,15 +445,16 @@ internal class InvocationHelper<TParam, TReturn>
             lazyEffects,
             _settings.Serializer
         );
-        
-        var effect = new Effect(
+
+        var effectResults = new EffectResults(
             flowId,
             storedId,
             lazyEffects,
             effectsStore,
             _settings.Serializer
         );
-
+        
+        var effect = new Effect(effectResults);
        return Tuple.Create(effect, states);
     }
     

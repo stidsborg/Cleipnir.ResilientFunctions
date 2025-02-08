@@ -221,7 +221,8 @@ public abstract class TimeoutStoreTests
     private Effect CreateEffect(FlowId flowId, StoredId storedId, IFunctionStore functionStore)
     {
         var lazyExistingEffects = new Lazy<Task<IReadOnlyList<StoredEffect>>>(() => Task.FromResult((IReadOnlyList<StoredEffect>) new List<StoredEffect>()));
-        var effect = new Effect(flowId, storedId, lazyExistingEffects, functionStore.EffectsStore, DefaultSerializer.Instance);
+        var effectResults = new EffectResults(flowId, storedId, lazyExistingEffects, functionStore.EffectsStore, DefaultSerializer.Instance);
+        var effect = new Effect(effectResults);
         return effect;
     }
     

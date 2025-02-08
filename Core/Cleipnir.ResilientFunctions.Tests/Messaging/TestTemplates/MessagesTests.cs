@@ -423,7 +423,8 @@ public abstract class MessagesTests
     private Effect CreateEffect(StoredId storedId, FlowId flowId, IFunctionStore functionStore)
     {
         var lazyExistingEffects = new Lazy<Task<IReadOnlyList<StoredEffect>>>(() => Task.FromResult((IReadOnlyList<StoredEffect>) new List<StoredEffect>()));
-        var effect = new Effect(flowId, storedId, lazyExistingEffects, functionStore.EffectsStore, DefaultSerializer.Instance);
+        var effectResults = new EffectResults(flowId, storedId, lazyExistingEffects, functionStore.EffectsStore, DefaultSerializer.Instance);
+        var effect = new Effect(effectResults);
         return effect;
     }
     

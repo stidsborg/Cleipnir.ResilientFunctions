@@ -32,7 +32,8 @@ public abstract class CustomMessageSerializerTests
         var eventSerializer = new EventSerializer();
         var messagesWriter = new MessageWriter(storedId, functionStore, eventSerializer, scheduleReInvocation: (_, _) => Task.CompletedTask);
         var lazyExistingEffects = new Lazy<Task<IReadOnlyList<StoredEffect>>>(() => Task.FromResult((IReadOnlyList<StoredEffect>) new List<StoredEffect>()));
-        var effect = new Effect(flowId, storedId, lazyExistingEffects, functionStore.EffectsStore, DefaultSerializer.Instance);
+        var effectResults = new EffectResults(flowId, storedId, lazyExistingEffects, functionStore.EffectsStore, DefaultSerializer.Instance);
+        var effect = new Effect(effectResults);
         var registeredTimeouts = new RegisteredTimeouts(storedId, functionStore.TimeoutStore, effect);
         var messagesPullerAndEmitter = new MessagesPullerAndEmitter(
             storedId,
