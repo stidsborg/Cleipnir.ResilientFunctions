@@ -22,7 +22,7 @@ internal static class Program
         var updateVersion = args[0] == "all" || args[0] == "update_version";
         var pack = args[0] == "all" || args[0] == "pack";
 
-        var root = $"C:/Repos/Cleipnir.ResilientFunctions"; //mac_os $"{Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)}/Repos/Cleipnir.ResilientFunctions";
+        var root = $"{Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)}/Repos/Cleipnir.ResilientFunctions";
         var output = Path.GetFullPath(@"./nugets");
 
         if (Directory.Exists(output))
@@ -96,7 +96,7 @@ internal static class Program
         p.StartInfo.RedirectStandardOutput = true;
         p.StartInfo.RedirectStandardError = true;
         p.StartInfo.UseShellExecute = false;
-        p.StartInfo.FileName = @"C:\Program Files\dotnet\dotnet.exe"; //mac_os "/usr/bin/dotnet";
+        p.StartInfo.FileName = "/usr/local/share/dotnet/dotnet"; //linux path: "/usr/bin/dotnet"
         p.StartInfo.WorkingDirectory = projectPath;
         p.StartInfo.Arguments = $"dotnet pack -c Release /p:ContinuousIntegrationBuild=true -o {outputPath}";
         p.Start();
