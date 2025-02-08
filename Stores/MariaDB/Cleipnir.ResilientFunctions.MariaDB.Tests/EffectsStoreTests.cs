@@ -37,4 +37,8 @@ public class EffectsStoreTests : Cleipnir.ResilientFunctions.Tests.TestTemplates
     [TestMethod]
     public override Task BulkInsertAndDeleteTest()
         => BulkInsertAndDeleteTest(FunctionStoreFactory.Create().SelectAsync(fs => fs.EffectsStore));
+    
+    [TestMethod]
+    public override Task BulkDeleteTest()
+        => BulkDeleteTest(FunctionStoreFactory.Create().SelectAsync(fs => fs.EffectsStore));
 }

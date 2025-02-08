@@ -66,8 +66,16 @@ public class MariaDbEffectsStore(string connectionString, string tablePrefix = "
     }
 
     private string? _setEffectResultsSql;
-    public async Task SetEffectResults(StoredId storedId, IReadOnlyList<StoredEffect> storedEffects, IReadOnlyList<StoredEffectId> removeEffects)
+    public async Task SetEffectResults(StoredId storedId, IReadOnlyList<StoredEffect> upsertEffects, IReadOnlyList<StoredEffectId> removeEffects)
     {
+        if (upsertEffects.Count == 0 && removeEffects.Count == 0)
+            return;
+        if (upsertEffects.Count == 0)
+        {
+            await DeleteEffectResults(storedId, removeEffects);
+            return;
+        }
+        
         await using var conn = await CreateConnection();
         _setEffectResultsSql ??= $@"
           INSERT INTO {tablePrefix}_effects 
@@ -79,7 +87,7 @@ public class MariaDbEffectsStore(string connectionString, string tablePrefix = "
         
         var sql = _setEffectResultsSql.Replace(
             "@VALUES",
-            "(?, ?, ?, ?, ?, ?, ?)".Replicate(storedEffects.Count).StringJoin(", ")
+            "(?, ?, ?, ?, ?, ?, ?)".Replicate(upsertEffects.Count).StringJoin(", ")
         );
 
         if (removeEffects.Count > 0)
@@ -90,7 +98,7 @@ public class MariaDbEffectsStore(string connectionString, string tablePrefix = "
                             id_hash IN ({removeEffects.Select(id => $"'{id.Value:N}'").StringJoin(", ")});";
         
         await using var command = new MySqlCommand(sql, conn);
-        foreach (var storedEffect in storedEffects)
+        foreach (var storedEffect in upsertEffects)
         {
             command.Parameters.Add(new MySqlParameter(name: null, storedId.Type.Value));
             command.Parameters.Add(new MySqlParameter(name: null, storedId.Instance.Value.ToString("N")));
@@ -163,6 +171,19 @@ public class MariaDbEffectsStore(string connectionString, string tablePrefix = "
             }
         };
 
+        await command.ExecuteNonQueryAsync();
+    }
+
+    public async Task DeleteEffectResults(StoredId storedId, IReadOnlyList<StoredEffectId> effectIds)
+    {
+        await using var conn = await CreateConnection();
+        var sql = @$"
+            DELETE FROM {tablePrefix}_effects 
+            WHERE type = {storedId.Type.Value} AND 
+                  instance = '{storedId.Instance.Value:N}' AND 
+                  id_hash IN ({effectIds.Select(id => $"'{id.Value:N}'").StringJoin(", ")});";
+        
+        await using var command = new MySqlCommand(sql, conn);
         await command.ExecuteNonQueryAsync();
     }
 

@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Serialization;
@@ -21,6 +20,8 @@ public class EffectResults
     private readonly ISerializer _serializer;
     private volatile bool _initialized;
 
+    private readonly Dictionary<EffectId, PendingChange> _pendingChanges = new();
+        
     public EffectResults(
         FlowId flowId,
         StoredId storedId,
@@ -56,16 +57,8 @@ public class EffectResults
     public async Task<bool> Contains(EffectId effectId)
     {
         await InitializeIfRequired();
-
         lock (_sync)
             return _effectResults.ContainsKey(effectId);
-    }
-
-    public async Task<IEnumerable<EffectId>> EffectIds()
-    {
-        await InitializeIfRequired();
-        lock (_sync)
-            return _effectResults.Keys.ToList();
     }
 
     public async Task<StoredEffect?> GetOrValueDefault(EffectId effectId)
@@ -75,7 +68,7 @@ public class EffectResults
             return _effectResults.GetValueOrDefault(effectId);
     }
 
-    public async Task Set(StoredEffect storedEffect)
+    public async Task Set(StoredEffect storedEffect, bool flush)
     {
         await InitializeIfRequired();
 
@@ -84,7 +77,7 @@ public class EffectResults
             _effectResults[storedEffect.EffectId] = storedEffect;
     }
     
-    public async Task<T> CreateOrGet<T>(EffectId effectId, T value)
+    public async Task<T> CreateOrGet<T>(EffectId effectId, T value, bool flush)
     {
         await InitializeIfRequired();
         
@@ -106,7 +99,7 @@ public class EffectResults
         return value;
     }
     
-    internal async Task Upsert<T>(EffectId effectId, T value)
+    internal async Task Upsert<T>(EffectId effectId, T value, bool flush)
     {
         await InitializeIfRequired();
         
@@ -139,7 +132,7 @@ public class EffectResults
         return Option<T>.NoValue;
     }
     
-    public async Task InnerCapture(string id, EffectType effectType, Func<Task> work, ResiliencyLevel resiliency, EffectContext effectContext)
+    public async Task InnerCapture(string id, EffectType effectType, Func<Task> work, ResiliencyLevel resiliency, EffectContext effectContext, bool flush)
     {
         await InitializeIfRequired();
         
@@ -209,7 +202,7 @@ public class EffectResults
             _effectResults[effectId] = effectResult;
     }
     
-    public async Task<T> InnerCapture<T>(string id, EffectType effectType, Func<Task<T>> work, ResiliencyLevel resiliency, EffectContext effectContext)
+    public async Task<T> InnerCapture<T>(string id, EffectType effectType, Func<Task<T>> work, ResiliencyLevel resiliency, EffectContext effectContext, bool flush)
     {
         await InitializeIfRequired();
         
@@ -282,7 +275,7 @@ public class EffectResults
         return result;
     }
     
-    public async Task Clear(EffectId effectId)
+    public async Task Clear(EffectId effectId, bool flush)
     {
         await InitializeIfRequired();
         

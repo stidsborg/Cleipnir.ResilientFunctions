@@ -59,7 +59,13 @@ public class InMemoryEffectsStore : IEffectsStore
 
         return Task.CompletedTask;
     }
-    
+
+    public async Task DeleteEffectResults(StoredId storedId, IReadOnlyList<StoredEffectId> effectIds)
+    {
+        foreach (var effectId in effectIds)
+            await DeleteEffectResult(storedId, effectId);
+    }
+
     public Task Remove(StoredId storedId)
     {
         lock (_sync)

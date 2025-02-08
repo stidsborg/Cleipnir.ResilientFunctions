@@ -13,5 +13,6 @@ public interface IEffectsStore
     Task SetEffectResults(StoredId storedId, IReadOnlyList<StoredEffect> upsertEffects, IReadOnlyList<StoredEffectId> removeEffects);
     Task<IReadOnlyList<StoredEffect>> GetEffectResults(StoredId storedId);
     Task DeleteEffectResult(StoredId storedId, StoredEffectId effectId);
+    Task DeleteEffectResults(StoredId storedId, IReadOnlyList<StoredEffectId> effectIds);
     Task Remove(StoredId storedId);
 }

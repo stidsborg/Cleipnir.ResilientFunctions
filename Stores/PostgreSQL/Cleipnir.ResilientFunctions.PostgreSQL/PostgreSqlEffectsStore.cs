@@ -72,6 +72,14 @@ public class PostgreSqlEffectsStore(string connectionString, string tablePrefix 
 
     public async Task SetEffectResults(StoredId storedId, IReadOnlyList<StoredEffect> upsertEffects, IReadOnlyList<StoredEffectId> removeEffects)
     {
+        if (upsertEffects.Count == 0 && removeEffects.Count == 0)
+            return;
+        if (upsertEffects.Count == 0)
+        {
+            await DeleteEffectResults(storedId, removeEffects);
+            return;
+        }
+        
         await using var conn = await CreateConnection();
         _setEffectResultSql ??= $@"
           INSERT INTO {tablePrefix}_effects 
@@ -167,7 +175,20 @@ public class PostgreSqlEffectsStore(string connectionString, string tablePrefix 
 
         await command.ExecuteNonQueryAsync();
     }
-    
+
+    public async Task DeleteEffectResults(StoredId storedId, IReadOnlyList<StoredEffectId> effectIds)
+    {
+        await using var conn = await CreateConnection();
+        var sql = @$"
+            DELETE FROM {tablePrefix}_effects 
+            WHERE type = {storedId.Type.Value} AND 
+                  instance = '{storedId.Instance.Value}' AND 
+                  id_hash IN ({effectIds.Select(id => $"'{id.Value}'").StringJoin(", ")})";
+
+        await using var command = new NpgsqlCommand(sql, conn);
+        await command.ExecuteNonQueryAsync();
+    }
+
     private string? _removeSql;
     public async Task Remove(StoredId storedId)
     {

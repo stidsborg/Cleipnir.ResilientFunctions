@@ -31,15 +31,15 @@ public class Effect(EffectResults effectResults)
             return false;
         
         var storedEffect = StoredEffect.CreateCompleted(effectId);
-        await effectResults.Set(storedEffect);
+        await effectResults.Set(storedEffect, flush: true);
         return true;
     }
 
     public Task<T> CreateOrGet<T>(string id, T value) => CreateOrGet(CreateEffectId(id), value);
-    internal Task<T> CreateOrGet<T>(EffectId effectId, T value) => effectResults.CreateOrGet(effectId, value);
+    internal Task<T> CreateOrGet<T>(EffectId effectId, T value) => effectResults.CreateOrGet(effectId, value, flush: true);
 
     public async Task Upsert<T>(string id, T value) => await Upsert(CreateEffectId(id, EffectType.Effect), value);
-    internal Task Upsert<T>(EffectId effectId, T value) => effectResults.Upsert(effectId, value);
+    internal Task Upsert<T>(EffectId effectId, T value) => effectResults.Upsert(effectId, value, flush: true);
 
     public async Task<Option<T>> TryGet<T>(string id) => await TryGet<T>(CreateEffectId(id, EffectType.Effect));
     private Task<Option<T>> TryGet<T>(EffectId effectId) => effectResults.TryGet<T>(effectId);
@@ -77,11 +77,11 @@ public class Effect(EffectResults effectResults)
         => await InnerCapture(id, EffectType.Effect, work, resiliency, EffectContext.CurrentContext);
 
     private Task InnerCapture(string id, EffectType effectType, Func<Task> work, ResiliencyLevel resiliency, EffectContext effectContext)
-        => effectResults.InnerCapture(id, effectType, work, resiliency, effectContext);
+        => effectResults.InnerCapture(id, effectType, work, resiliency, effectContext, flush: true);
     private Task<T> InnerCapture<T>(string id, EffectType effectType, Func<Task<T>> work, ResiliencyLevel resiliency, EffectContext effectContext)
-        => effectResults.InnerCapture(id, effectType, work, resiliency, effectContext);
+        => effectResults.InnerCapture(id, effectType, work, resiliency, effectContext, flush: true);
 
-    public Task Clear(string id) => effectResults.Clear(CreateEffectId(id));
+    public Task Clear(string id) => effectResults.Clear(CreateEffectId(id), flush: true);
     
     public Task<T> WhenAny<T>(string id, params Task<T>[] tasks)
         => Capture(id, work: async () => await await Task.WhenAny(tasks));

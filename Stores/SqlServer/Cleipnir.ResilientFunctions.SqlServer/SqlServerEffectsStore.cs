@@ -75,8 +75,16 @@ public class SqlServerEffectsStore(string connectionString, string tablePrefix =
     }
 
     private string? _setEffectResultsSql;
-    public async Task SetEffectResults(StoredId storedId, IReadOnlyList<StoredEffect> storedEffects, IReadOnlyList<StoredEffectId> removeEffects)
+    public async Task SetEffectResults(StoredId storedId, IReadOnlyList<StoredEffect> upsertEffects, IReadOnlyList<StoredEffectId> removeEffects)
     {
+        if (upsertEffects.Count == 0 && removeEffects.Count == 0)
+            return;
+        if (upsertEffects.Count == 0)
+        {
+            await DeleteEffectResults(storedId, removeEffects);
+            return;
+        }
+            
         await using var conn = await CreateConnection();
         _setEffectResultsSql ??= $@"
              MERGE INTO {tablePrefix}_Effects
@@ -92,7 +100,7 @@ public class SqlServerEffectsStore(string connectionString, string tablePrefix =
         var sql = _setEffectResultsSql.Replace(
             "@VALUES",
             "(@FlowType#, @FlowInstance#, @StoredId#, @EffectId#, @Status#, @Result#, @Exception#)"
-                .Replicate(storedEffects.Count)
+                .Replicate(upsertEffects.Count)
                 .Select((s, i) => s.Replace("#", i.ToString()))
                 .StringJoin(", ")
         );
@@ -105,9 +113,9 @@ public class SqlServerEffectsStore(string connectionString, string tablePrefix =
                             StoredId IN ({removeEffects.Select(id => $"'{id.Value}'").StringJoin(", ")}) ";
         
         await using var command = new SqlCommand(sql, conn);
-        for (var i = 0; i < storedEffects.Count; i++)
+        for (var i = 0; i < upsertEffects.Count; i++)
         {
-            var storedEffect = storedEffects[i];
+            var storedEffect = upsertEffects[i];
             command.Parameters.AddWithValue($"@FlowType{i}", storedId.Type.Value);
             command.Parameters.AddWithValue($"@FlowInstance{i}", storedId.Instance.Value);
             command.Parameters.AddWithValue($"@StoredId{i}", storedEffect.StoredEffectId.Value);
@@ -165,6 +173,19 @@ public class SqlServerEffectsStore(string connectionString, string tablePrefix =
         command.Parameters.AddWithValue("@FlowInstance", storedId.Instance.Value);
         command.Parameters.AddWithValue("@StoredId", effectId.Value);
         
+        await command.ExecuteNonQueryAsync();
+    }
+
+    public async Task DeleteEffectResults(StoredId storedId, IReadOnlyList<StoredEffectId> effectIds)
+    {
+        await using var conn = await CreateConnection();
+        var sql = @$"
+            DELETE FROM {tablePrefix}_Effects 
+            WHERE FlowType = {storedId.Type.Value} AND 
+                  FlowInstance = '{storedId.Instance.Value}' AND 
+                  StoredId IN ({effectIds.Select(id => $"'{id.Value}'").StringJoin(", ")}) ";
+        
+        await using var command = new SqlCommand(sql, conn);
         await command.ExecuteNonQueryAsync();
     }
 
