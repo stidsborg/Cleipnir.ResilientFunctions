@@ -64,4 +64,12 @@ public class EffectTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.RFunc
     [TestMethod]
     public override Task EffectCanReturnOption()
         => EffectCanReturnOption(FunctionStoreFactory.Create());
+    
+    [TestMethod]
+    public override Task DelayedFlushIsReflectedInUnderlyingStoreForSet()
+        => DelayedFlushIsReflectedInUnderlyingStoreForSet(FunctionStoreFactory.Create());
+    
+    [TestMethod]
+    public override Task CaptureUsingAtLeastOnceWithoutFlushResiliencyDelaysFlush()
+        => CaptureUsingAtLeastOnceWithoutFlushResiliencyDelaysFlush(FunctionStoreFactory.Create());
 }

@@ -578,4 +578,91 @@ public abstract class EffectTests
         result.HasValue.ShouldBeTrue();
         result.Value.ShouldBe("Hello!");
     }
+    
+    public abstract Task DelayedFlushIsReflectedInUnderlyingStoreForSet();
+    public async Task DelayedFlushIsReflectedInUnderlyingStoreForSet(Task<IFunctionStore> storeTask)
+    {  
+        var store = await storeTask;
+        var storedId = TestStoredId.Create();
+
+        var effectStore = store.EffectsStore;
+        var effectResults = new EffectResults(
+            TestFlowId.Create(),
+            storedId,
+            lazyExistingEffects: new Lazy<Task<IReadOnlyList<StoredEffect>>>(
+                () => new List<StoredEffect>().CastTo<IReadOnlyList<StoredEffect>>().ToTask()
+            ),
+            effectStore,
+            DefaultSerializer.Instance
+        );
+        
+        var effectId1 = new EffectId("Id1", EffectType.Effect, Context: "");
+        var storedEffect1 = new StoredEffect(
+            effectId1,
+            effectId1.ToStoredEffectId(),
+            WorkStatus.Completed,
+            Result: "hello world".ToUtf8Bytes(),
+            StoredException: null
+        );
+        await effectResults.Set(storedEffect1, flush: false);
+        await effectStore
+            .GetEffectResults(storedId)
+            .SelectAsync(r => r.Count == 0)
+            .ShouldBeTrueAsync();
+        
+        var effectId2 = new EffectId("Id2", EffectType.Effect, Context: "");
+        var storedEffect2 = new StoredEffect(
+            effectId2,
+            effectId2.ToStoredEffectId(),
+            WorkStatus.Completed,
+            Result: "hello universe".ToUtf8Bytes(),
+            StoredException: null
+        );
+        await effectResults.Set(storedEffect2, flush: true);
+        
+        var fetchedResults = await effectStore.GetEffectResults(storedId);
+        fetchedResults.Count.ShouldBe(2);
+        fetchedResults
+            .Single(r => r.EffectId == effectId1)
+            .Result!
+            .ToStringFromUtf8Bytes()
+            .ShouldBe("hello world");
+        fetchedResults
+            .Single(r => r.EffectId == effectId2)
+            .Result!
+            .ToStringFromUtf8Bytes()
+            .ShouldBe("hello universe");
+    }
+    
+    public abstract Task CaptureUsingAtLeastOnceWithoutFlushResiliencyDelaysFlush();
+    public async Task CaptureUsingAtLeastOnceWithoutFlushResiliencyDelaysFlush(Task<IFunctionStore> storeTask)
+    {  
+        var store = await storeTask;
+        var storedId = TestStoredId.Create();
+
+        var effectStore = store.EffectsStore;
+        var effectResults = new EffectResults(
+            TestFlowId.Create(),
+            storedId,
+            lazyExistingEffects: new Lazy<Task<IReadOnlyList<StoredEffect>>>(
+                () => new List<StoredEffect>().CastTo<IReadOnlyList<StoredEffect>>().ToTask()
+            ),
+            effectStore,
+            DefaultSerializer.Instance
+        );
+        var effect = new Effect(effectResults);
+
+        var result = await effect.Capture("1", () => "hello world", ResiliencyLevel.AtLeastOnceDelayFlush);
+        result.ShouldBe("hello world");
+
+        await effectStore.GetEffectResults(storedId).ShouldBeEmptyAsync();
+        
+        await effect.Capture("2", () => "hello universe");
+
+        var storedEffects = await effectStore.GetEffectResults(storedId);
+        storedEffects.Count.ShouldBe(2);
+        storedEffects.Single(se => se.EffectId.Id == "1").Result!.ToStringFromUtf8Bytes().DeserializeFromJsonTo<string>().ShouldBe("hello world");
+        storedEffects.Single(se => se.EffectId.Id == "2").Result!.ToStringFromUtf8Bytes().DeserializeFromJsonTo<string>().ShouldBe("hello universe");
+    }
+
 }

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Serialization;
@@ -20,7 +21,7 @@ public class EffectResults
     private readonly ISerializer _serializer;
     private volatile bool _initialized;
 
-    private readonly Dictionary<EffectId, PendingChange> _pendingChanges = new();
+    private readonly Dictionary<StoredEffectId, PendingChange> _pendingChanges = new();
         
     public EffectResults(
         FlowId flowId,
@@ -71,16 +72,17 @@ public class EffectResults
     public async Task Set(StoredEffect storedEffect, bool flush)
     {
         await InitializeIfRequired();
-
-        await _effectsStore.SetEffectResult(_storedId, storedEffect);
-        lock (_sync)
-            _effectResults[storedEffect.EffectId] = storedEffect;
+        await FlushOrAddToPending(
+            storedEffect.EffectId,
+            storedEffect.StoredEffectId,
+            storedEffect,
+            flush
+        );
     }
-    
+
     public async Task<T> CreateOrGet<T>(EffectId effectId, T value, bool flush)
     {
         await InitializeIfRequired();
-        
         lock (_sync)
         {
             if (_effectResults.TryGetValue(effectId, out var existing) && existing.WorkStatus == WorkStatus.Completed)
@@ -91,10 +93,12 @@ public class EffectResults
         }
 
         var storedEffect = StoredEffect.CreateCompleted(effectId, _serializer.Serialize(value));
-        await _effectsStore.SetEffectResult(_storedId, storedEffect);
-
-        lock (_sync)
-            _effectResults[effectId] = storedEffect;
+        await FlushOrAddToPending(
+            storedEffect.EffectId,
+            storedEffect.StoredEffectId,
+            storedEffect,
+            flush
+        );
         
         return value;
     }
@@ -104,10 +108,12 @@ public class EffectResults
         await InitializeIfRequired();
         
         var storedEffect = StoredEffect.CreateCompleted(effectId, _serializer.Serialize(value));
-        await _effectsStore.SetEffectResult(_storedId, storedEffect);
-        
-        lock (_sync)
-            _effectResults[effectId] = storedEffect;
+        await FlushOrAddToPending(
+            storedEffect.EffectId,
+            storedEffect.StoredEffectId,
+            storedEffect,
+            flush
+        );
     }
     
     public async Task<Option<T>> TryGet<T>(EffectId effectId)
@@ -132,7 +138,7 @@ public class EffectResults
         return Option<T>.NoValue;
     }
     
-    public async Task InnerCapture(string id, EffectType effectType, Func<Task> work, ResiliencyLevel resiliency, EffectContext effectContext, bool flush)
+    public async Task InnerCapture(string id, EffectType effectType, Func<Task> work, ResiliencyLevel resiliency, EffectContext effectContext)
     {
         await InitializeIfRequired();
         
@@ -174,10 +180,12 @@ public class EffectResults
         {
             var storedException = _serializer.SerializeException(exception);
             var storedEffect = StoredEffect.CreateFailed(effectId, storedException);
-            await _effectsStore.SetEffectResult(_storedId, storedEffect);
-            
-            lock (_sync)
-                _effectResults[effectId] = storedEffect;
+            await FlushOrAddToPending(
+                storedEffect.EffectId,
+                storedEffect.StoredEffectId,
+                storedEffect,
+                flush: true
+            );
 
             exception.FlowId = _flowId;
             throw;
@@ -187,22 +195,28 @@ public class EffectResults
             var fatalWorkflowException = FatalWorkflowException.CreateNonGeneric(_flowId, exception);
             var storedException = _serializer.SerializeException(fatalWorkflowException);
             var storedEffect = StoredEffect.CreateFailed(effectId, storedException);
-            await _effectsStore.SetEffectResult(_storedId, storedEffect);
-            
-            lock (_sync)
-                _effectResults[effectId] = storedEffect;
+            await FlushOrAddToPending(
+                storedEffect.EffectId,
+                storedEffect.StoredEffectId,
+                storedEffect,
+                flush: true
+            );
 
             throw fatalWorkflowException;
         }
 
-        var effectResult = StoredEffect.CreateCompleted(effectId);
-        await _effectsStore.SetEffectResult(_storedId, effectResult);
-
-        lock (_sync)
-            _effectResults[effectId] = effectResult;
+        {
+            var storedEffect = StoredEffect.CreateCompleted(effectId);
+            await FlushOrAddToPending(
+                storedEffect.EffectId,
+                storedEffect.StoredEffectId,
+                storedEffect,
+                flush: resiliency != ResiliencyLevel.AtLeastOnceDelayFlush
+            );    
+        }
     }
     
-    public async Task<T> InnerCapture<T>(string id, EffectType effectType, Func<Task<T>> work, ResiliencyLevel resiliency, EffectContext effectContext, bool flush)
+    public async Task<T> InnerCapture<T>(string id, EffectType effectType, Func<Task<T>> work, ResiliencyLevel resiliency, EffectContext effectContext)
     {
         await InitializeIfRequired();
         
@@ -245,10 +259,12 @@ public class EffectResults
         {
             var storedException = _serializer.SerializeException(exception);
             var storedEffect = StoredEffect.CreateFailed(effectId, storedException);
-            await _effectsStore.SetEffectResult(_storedId, storedEffect);
-
-            lock (_sync)
-                _effectResults[effectId] = storedEffect;
+            await FlushOrAddToPending(
+                storedEffect.EffectId,
+                storedEffect.StoredEffectId,
+                storedEffect,
+                flush: true
+            );
 
             exception.FlowId = _flowId;
             throw;
@@ -258,21 +274,27 @@ public class EffectResults
             var fatalWorkflowException = FatalWorkflowException.CreateNonGeneric(_flowId, exception);
             var storedException = _serializer.SerializeException(fatalWorkflowException);
             var storedEffect = StoredEffect.CreateFailed(effectId, storedException);
-            await _effectsStore.SetEffectResult(_storedId, storedEffect);
 
-            lock (_sync)
-                _effectResults[effectId] = storedEffect;
-
+            await FlushOrAddToPending(
+                storedEffect.EffectId,
+                storedEffect.StoredEffectId,
+                storedEffect,
+                flush: true
+            );
             throw fatalWorkflowException;
         }
 
-        var effectResult = StoredEffect.CreateCompleted(effectId, _serializer.Serialize(result)); 
-        await _effectsStore.SetEffectResult(_storedId, effectResult);
-
-        lock (_sync)
-            _effectResults[effectId] = effectResult;
+        {
+            var storedEffect = StoredEffect.CreateCompleted(effectId, _serializer.Serialize(result)); 
+            await FlushOrAddToPending(
+                storedEffect.EffectId,
+                storedEffect.StoredEffectId,
+                storedEffect,
+                flush: resiliency != ResiliencyLevel.AtLeastOnceDelayFlush
+            );
         
-        return result;
+            return result;   
+        }
     }
     
     public async Task Clear(EffectId effectId, bool flush)
@@ -283,8 +305,68 @@ public class EffectResults
             if (!_effectResults.ContainsKey(effectId))
                 return;
         
-        await _effectsStore.DeleteEffectResult(_storedId, effectId.ToStoredEffectId());
+        await FlushOrAddToPending(
+            effectId,
+            effectId.ToStoredEffectId(),
+            storedEffect: null,
+            flush
+        );
+    }
+
+    private async Task FlushOrAddToPending(EffectId effectId, StoredEffectId storedEffectId, StoredEffect? storedEffect, bool flush)
+    {
+        if (flush)
+            await Flush(storedEffectId, storedEffect);
+        else
+            lock (_sync)
+                _pendingChanges[storedEffectId] = new PendingChange(storedEffectId, storedEffect);
+
         lock (_sync)
-            _effectResults.Remove(effectId);
+            if (storedEffect == null)
+                _effectResults.Remove(effectId);
+            else
+                _effectResults[effectId] = storedEffect;
+    }
+    
+    private readonly SemaphoreSlim _flushSync = new(initialCount: 1, maxCount: 1);
+    private async Task Flush(StoredEffectId changedStoredId, StoredEffect? change)
+    {
+        await _flushSync.WaitAsync();
+
+        try
+        {
+            IReadOnlyList<PendingChange> pendingChanges;
+            lock (_sync)
+            {
+                if (_pendingChanges.Count == 0) 
+                    pendingChanges = [];
+                else
+                {
+                    _pendingChanges[changedStoredId] = new PendingChange(changedStoredId, change);
+                    pendingChanges = _pendingChanges.Values.ToList();
+                    _pendingChanges.Clear();
+                }
+            }
+            
+            if (pendingChanges.Count == 0)
+            {
+                if (change == null)
+                    await _effectsStore.DeleteEffectResult(_storedId, changedStoredId);
+                else
+                    await _effectsStore.SetEffectResult(_storedId, change);
+
+                return;
+            }
+
+            await _effectsStore.SetEffectResults(
+                _storedId,
+                upsertEffects: pendingChanges.Where(pc => pc.StoredEffect != null).Select(pc => pc.StoredEffect!).ToList(),
+                removeEffects: pendingChanges.Where(pc => pc.StoredEffect == null).Select(pc => pc.Id).ToList()
+            );
+        }
+        finally
+        {
+            _flushSync.Release();
+        }
     }
 }

@@ -9,7 +9,8 @@ namespace Cleipnir.ResilientFunctions.Domain;
 public enum ResiliencyLevel
 {
     AtLeastOnce,
-    AtMostOnce
+    AtMostOnce,
+    AtLeastOnceDelayFlush
 }
 
 public class Effect(EffectResults effectResults)
@@ -77,9 +78,9 @@ public class Effect(EffectResults effectResults)
         => await InnerCapture(id, EffectType.Effect, work, resiliency, EffectContext.CurrentContext);
 
     private Task InnerCapture(string id, EffectType effectType, Func<Task> work, ResiliencyLevel resiliency, EffectContext effectContext)
-        => effectResults.InnerCapture(id, effectType, work, resiliency, effectContext, flush: true);
+        => effectResults.InnerCapture(id, effectType, work, resiliency, effectContext);
     private Task<T> InnerCapture<T>(string id, EffectType effectType, Func<Task<T>> work, ResiliencyLevel resiliency, EffectContext effectContext)
-        => effectResults.InnerCapture(id, effectType, work, resiliency, effectContext, flush: true);
+        => effectResults.InnerCapture(id, effectType, work, resiliency, effectContext);
 
     public Task Clear(string id) => effectResults.Clear(CreateEffectId(id), flush: true);
     
