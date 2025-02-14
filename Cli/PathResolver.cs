@@ -1,8 +1,6 @@
-﻿using System;
+﻿namespace Cleipnir.ResilientFunctions.Cli;
 
-namespace Cleipnir.ResilientFunctions.Cli;
-
-public class PathResolver
+public static class PathResolver
 {
     public static RepoAndDotnetPaths ResolvePaths(OperatingSystem operatingSystem)
     {
@@ -10,7 +8,7 @@ public class PathResolver
         {
             OperatingSystem.Windows => 
                 new RepoAndDotnetPaths(
-                    RepoPath: @"../",
+                    RepoPath: "../",
                     DotnetPath: @"C:\Program Files\dotnet\dotnet.exe"
                 ),
             OperatingSystem.Linux => 
