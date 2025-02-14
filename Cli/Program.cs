@@ -10,20 +10,10 @@ internal static class Program
 {
     private static int Main(string[] args)
     {
-        args = args.Select(arg => arg.ToLowerInvariant()).ToArray();
-        if (args.Length == 0 || (args[0] != "all" && args[0] != "update_version" && args[0] != "pack"))
-        {
-            Console.WriteLine("Usage: dotnet run all");
-            Console.WriteLine("       dotnet run update_version");
-            Console.WriteLine("       dotnet run pack");
-            return 1;
-        }
+        var (repoPath, dotnetPath) = PathResolver.ResolvePaths(OperatingSystem.Windows);
 
-        var updateVersion = args[0] == "all" || args[0] == "update_version";
-        var pack = args[0] == "all" || args[0] == "pack";
-
-        var root = $"{Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)}/Repos/Cleipnir.ResilientFunctions";
-        var output = Path.GetFullPath(@"./nugets");
+        var root = repoPath;
+        var output = Path.GetFullPath("./nugets");
 
         if (Directory.Exists(output))
             Directory.Delete(output, recursive: true);
@@ -32,27 +22,26 @@ internal static class Program
 
         Console.WriteLine($"Root path: {root}");
         Console.WriteLine($"Output path: {output}");
-        
-        Console.WriteLine("Processing projects: ");
-        if (updateVersion)
-            foreach (var projectPath in FindAllProjects(root).Where(IsPackageProject))
-            {
-                Console.WriteLine("---------------------------------------------------------");
-                Console.WriteLine("Updating package version: " + LeafFolderName(projectPath));
-                Console.WriteLine("Project path: " + Path.GetDirectoryName(projectPath)!);
-                UpdatePackageVersion(projectPath);
-                Console.WriteLine();
-            }
 
-        if (pack)
-            foreach (var projectPath in FindAllProjects(root).Where(IsPackageProject))
-            {
-                Console.WriteLine("---------------------------------------------------------");
-                Console.WriteLine("Packing nuget package: " + LeafFolderName(projectPath));
-                Console.WriteLine("Project path: " + Path.GetDirectoryName(projectPath)!);
-                PackProject(Path.GetDirectoryName(projectPath)!, output);
-                Console.WriteLine();
-            }
+        Console.WriteLine("Processing projects: ");
+
+        foreach (var projectPath in FindAllProjects(root).Where(IsPackageProject))
+        {
+            Console.WriteLine("---------------------------------------------------------");
+            Console.WriteLine("Updating package version: " + LeafFolderName(projectPath));
+            Console.WriteLine("Project path: " + Path.GetDirectoryName(projectPath)!);
+            UpdatePackageVersion(projectPath);
+            Console.WriteLine();
+        }
+
+        foreach (var projectPath in FindAllProjects(root).Where(IsPackageProject))
+        {
+            Console.WriteLine("---------------------------------------------------------");
+            Console.WriteLine("Packing nuget package: " + LeafFolderName(projectPath));
+            Console.WriteLine("Project path: " + Path.GetDirectoryName(projectPath)!);
+            PackProject(Path.GetDirectoryName(projectPath)!, output, dotnetPath);
+            Console.WriteLine();
+        }
 
         return 0;
     }
@@ -89,14 +78,14 @@ internal static class Program
         return newProjectFileContent;
     }
 
-    private static void PackProject(string projectPath, string outputPath)
+    private static void PackProject(string projectPath, string outputPath, string dotnetPath)
     {
         var p = new Process();
         p.StartInfo.RedirectStandardInput = true;
         p.StartInfo.RedirectStandardOutput = true;
         p.StartInfo.RedirectStandardError = true;
         p.StartInfo.UseShellExecute = false;
-        p.StartInfo.FileName = "/usr/local/share/dotnet/dotnet"; //linux path: "/usr/bin/dotnet"
+        p.StartInfo.FileName = dotnetPath;
         p.StartInfo.WorkingDirectory = projectPath;
         p.StartInfo.Arguments = $"dotnet pack -c Release /p:ContinuousIntegrationBuild=true -o {outputPath}";
         p.Start();
