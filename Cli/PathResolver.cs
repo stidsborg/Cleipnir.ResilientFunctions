@@ -10,7 +10,7 @@ public class PathResolver
         {
             OperatingSystem.Windows => 
                 new RepoAndDotnetPaths(
-                    RepoPath: @"C:\Repos\Cleipnir.Flows",
+                    RepoPath: @"../",
                     DotnetPath: @"C:\Program Files\dotnet\dotnet.exe"
                 ),
             OperatingSystem.Linux => 
