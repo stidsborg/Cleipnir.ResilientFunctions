@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Cleipnir.ResilientFunctions.Domain;
 
 namespace Cleipnir.ResilientFunctions.Storage;
@@ -72,6 +73,11 @@ public static class StoredEffectIdExtensions
     public static StoredEffectId ToStoredEffectId(this EffectId effectId) => StoredEffectId.Create(effectId);
 }
 
+public record StoredEffectChanges(
+    IReadOnlyList<StoredEffect> Upserts,
+    IReadOnlyList<StoredEffectId> Deletes
+);
+
 public record StoredEffect(
     EffectId EffectId,
     StoredEffectId StoredEffectId,
@@ -105,3 +111,4 @@ public record StoredEffect(
 public record StoredState(StateId StateId, byte[] StateJson);
 
 public record IdWithParam(StoredId StoredId, string HumanInstanceId, byte[]? Param);
+public record LeaseUpdate(StoredId StoredId, int ExpectedEpoch);

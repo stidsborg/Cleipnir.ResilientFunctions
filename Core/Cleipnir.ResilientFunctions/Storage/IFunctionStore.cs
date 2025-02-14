@@ -36,6 +36,7 @@ public interface IFunctionStore
     Task<StoredFlow?> RestartExecution(StoredId storedId, int expectedEpoch, long leaseExpiration);
     
     Task<bool> RenewLease(StoredId storedId, int expectedEpoch, long leaseExpiration);
+    Task<int> RenewLeases(IReadOnlyList<LeaseUpdate> leaseUpdates, long leaseExpiration);
     
     Task<IReadOnlyList<IdAndEpoch>> GetExpiredFunctions(long expiresBefore);
     Task<IReadOnlyList<StoredInstance>> GetSucceededFunctions(StoredType storedType, long completedBefore);

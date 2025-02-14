@@ -80,7 +80,12 @@ public class CrashableFunctionStore : IFunctionStore
         => _crashed
             ? Task.FromException<bool>(new TimeoutException())
             : _inner.RenewLease(storedId, expectedEpoch, leaseExpiration);
-    
+
+    public Task<int> RenewLeases(IReadOnlyList<LeaseUpdate> leaseUpdates, long leaseExpiration)
+        => _crashed
+            ? Task.FromException<int>(new TimeoutException())
+            : _inner.RenewLeases(leaseUpdates, leaseExpiration);    
+
     public Task<IReadOnlyList<IdAndEpoch>> GetExpiredFunctions(long isEligibleBefore)
         => _crashed
             ? Task.FromException<IReadOnlyList<IdAndEpoch>>(new TimeoutException())

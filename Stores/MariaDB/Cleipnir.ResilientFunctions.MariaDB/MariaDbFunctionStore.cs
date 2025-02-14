@@ -247,6 +247,23 @@ public class MariaDbFunctionStore : IFunctionStore
         return affectedRows == 1;
     }
 
+    public async Task<int> RenewLeases(IReadOnlyList<LeaseUpdate> leaseUpdates, long leaseExpiration)
+    {
+        await using var conn = await CreateOpenConnection(_connectionString);
+        
+        var predicates = leaseUpdates
+            .Select(u =>
+                $"(type = {u.StoredId.Type.Value} AND instance = '{u.StoredId.Instance.Value}' AND epoch = {u.ExpectedEpoch})"
+            ).StringJoin(" OR " + Environment.NewLine);
+        var sql = $@"
+            UPDATE {_tablePrefix}
+            SET expires = {leaseExpiration}
+            WHERE {predicates}";
+
+        await using var command = new MySqlCommand(sql, conn);
+        return await command.ExecuteNonQueryAsync();
+    }
+
     private string? _getExpiredFunctionsSql;
     public async Task<IReadOnlyList<IdAndEpoch>> GetExpiredFunctions(long expiredBefore)
     {

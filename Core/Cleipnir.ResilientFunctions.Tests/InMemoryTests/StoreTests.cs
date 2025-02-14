@@ -187,4 +187,8 @@ public class StoreTests : TestTemplates.StoreTests
     [TestMethod]
     public override Task FlowWithWithoutParentIsReturnsNullParentInSubsequentGetTest()
         => FlowWithWithoutParentIsReturnsNullParentInSubsequentGetTest(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task BatchOfLeasesCanBeUpdatedSimultaneously()
+        => BatchOfLeasesCanBeUpdatedSimultaneously(FunctionStoreFactory.Create());
 }

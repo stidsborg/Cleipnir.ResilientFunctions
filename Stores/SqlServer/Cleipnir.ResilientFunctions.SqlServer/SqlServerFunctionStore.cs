@@ -304,6 +304,24 @@ public class SqlServerFunctionStore : IFunctionStore
         return affectedRows > 0;
     }
     
+    public async Task<int> RenewLeases(IReadOnlyList<LeaseUpdate> leaseUpdates, long leaseExpiration)
+    {
+        await using var conn = await _connFunc();
+
+        var predicates = leaseUpdates
+            .Select(u =>
+                $"(FlowType = {u.StoredId.Type.Value} AND FlowInstance = '{u.StoredId.Instance.Value}' AND Epoch = {u.ExpectedEpoch})"
+            ).StringJoin(" OR " + Environment.NewLine);
+
+        var sql = @$"
+            UPDATE {_tableName}
+            SET Expires = {leaseExpiration}
+            WHERE {predicates}";
+        
+        await using var command = new SqlCommand(sql, conn);
+        return await command.ExecuteNonQueryAsync();
+    }
+
     private string? _getExpiredFunctionsSql;
     public async Task<IReadOnlyList<IdAndEpoch>> GetExpiredFunctions(long expiresBefore)
     {

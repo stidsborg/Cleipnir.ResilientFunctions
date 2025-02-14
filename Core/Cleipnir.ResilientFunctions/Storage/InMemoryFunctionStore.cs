@@ -138,6 +138,19 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         }
     }
     
+    public async Task<int> RenewLeases(IReadOnlyList<LeaseUpdate> leaseUpdates, long leaseExpiration)
+    {
+        var affected = 0;
+        foreach (var (id, expectedEpoch) in leaseUpdates)
+        {
+            var success = await RenewLease(id, expectedEpoch, leaseExpiration);
+            if (success)
+                affected++;
+        }
+
+        return affected;
+    }
+
     public virtual Task<IReadOnlyList<IdAndEpoch>> GetExpiredFunctions(long expiresBefore)
     {
         lock (_sync)

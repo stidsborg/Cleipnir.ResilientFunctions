@@ -1360,4 +1360,55 @@ public abstract class StoreTests
         var sf = await store.GetFunction(id).ShouldNotBeNullAsync();
         sf.ParentId.ShouldBeNull();
     }
+    
+    public abstract Task BatchOfLeasesCanBeUpdatedSimultaneously();
+    protected async Task BatchOfLeasesCanBeUpdatedSimultaneously(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        
+        var id1 = TestStoredId.Create();
+        var id2 = TestStoredId.Create();
+        var id3 = TestStoredId.Create();
+        
+        await store.CreateFunction(
+            id1,
+            humanInstanceId: "SomeInstanceId",
+            param: null,
+            leaseExpiration: 0,
+            postponeUntil: null,
+            timestamp: 0,
+            parent: null
+        ).ShouldBeTrueAsync();
+        await store.CreateFunction(
+            id2,
+            humanInstanceId: "SomeInstanceId2",
+            param: null,
+            leaseExpiration: 0,
+            postponeUntil: null,
+            timestamp: 0,
+            parent: null
+        ).ShouldBeTrueAsync();
+        await store.RestartExecution(id2, expectedEpoch: 0, leaseExpiration: 0);
+        await store.CreateFunction(
+            id3,
+            humanInstanceId: "SomeInstanceId3",
+            param: null,
+            leaseExpiration: 0,
+            postponeUntil: null,
+            timestamp: 0,
+            parent: null
+        ).ShouldBeTrueAsync();
+
+        await store.RenewLeases(
+            leaseUpdates: [
+                new LeaseUpdate(id1, ExpectedEpoch: 0),
+                new LeaseUpdate(id2, ExpectedEpoch: 1)
+            ],
+            leaseExpiration: 10_000
+        );
+        
+        var sf1 = await store.GetFunction(id1).ShouldNotBeNullAsync();
+        var sf2 = await store.GetFunction(id2).ShouldNotBeNullAsync();
+        
+    }
 }

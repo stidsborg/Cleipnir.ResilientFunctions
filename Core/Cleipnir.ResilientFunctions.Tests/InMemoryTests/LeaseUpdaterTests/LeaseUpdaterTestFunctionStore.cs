@@ -49,6 +49,9 @@ public class LeaseUpdaterTestFunctionStore : IFunctionStore
         return success.ToTask();
     }
 
+    public Task<int> RenewLeases(IReadOnlyList<LeaseUpdate> leaseUpdates, long leaseExpiration)
+        => _inner.RenewLeases(leaseUpdates, leaseExpiration);
+
     public Task<IReadOnlyList<IdAndEpoch>> GetExpiredFunctions(long expiresBefore)
         => _inner.GetExpiredFunctions(expiresBefore);
 
