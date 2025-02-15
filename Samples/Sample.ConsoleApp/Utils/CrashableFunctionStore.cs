@@ -151,6 +151,11 @@ public class CrashableFunctionStore : IFunctionStore
             ? Task.FromException<StatusAndEpoch?>(new TimeoutException())
             : _inner.GetFunctionStatus(storedId);
 
+    public Task<IReadOnlyList<StatusAndEpochWithId>> GetFunctionsStatus(IEnumerable<StoredId> storedIds)
+        => _crashed
+            ? Task.FromException<IReadOnlyList<StatusAndEpochWithId>>(new TimeoutException())
+            : _inner.GetFunctionsStatus(storedIds);
+
     public Task<StoredFlow?> GetFunction(StoredId storedId)
         => _crashed
             ? Task.FromException<StoredFlow?>(new TimeoutException())

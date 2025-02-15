@@ -669,6 +669,39 @@ public class SqlServerFunctionStore : IFunctionStore
         return null;
     }
 
+    public async Task<IReadOnlyList<StatusAndEpochWithId>> GetFunctionsStatus(IEnumerable<StoredId> storedIds)
+    {
+        var predicates = storedIds
+            .Select(s => new { Type = s.Type.Value, Instance = s.Instance.Value })
+            .GroupBy(id => id.Type, id => id.Instance)
+            .Select(g => $"(FlowType = {g.Key} AND FlowInstance IN ({string.Join(",", g.Select(instance => $"'{instance}'"))}))")
+            .StringJoin(" OR " + Environment.NewLine);
+
+        var sql = @$"
+            SELECT FlowType, FlowInstance, Status, Epoch
+            FROM {_tableName}
+            WHERE {predicates}";
+        
+        await using var conn = await _connFunc();
+        
+        await using var command = new SqlCommand(sql, conn);
+        await using var reader = await command.ExecuteReaderAsync();
+        var toReturn = new List<StatusAndEpochWithId>();
+        
+        while (reader.Read())
+        {
+            var type = reader.GetInt32(0).ToStoredType();
+            var instance = reader.GetGuid(1).ToStoredInstance();
+            var status = (Status) reader.GetInt32(2);
+            var epoch = reader.GetInt32(3);
+
+            var storedId = new StoredId(type, instance);
+            toReturn.Add(new StatusAndEpochWithId(storedId, status, epoch));
+        }
+
+        return toReturn;
+    }
+
     private string? _getFunctionSql;
     public async Task<StoredFlow?> GetFunction(StoredId storedId)
     {

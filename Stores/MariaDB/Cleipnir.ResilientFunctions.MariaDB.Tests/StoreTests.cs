@@ -182,4 +182,8 @@ public class StoreTests : ResilientFunctions.Tests.TestTemplates.StoreTests
     [TestMethod]
     public override Task BatchOfLeasesCanBeUpdatedSimultaneously()
         => BatchOfLeasesCanBeUpdatedSimultaneously(FunctionStoreFactory.Create());
+    
+    [TestMethod]
+    public override Task MultipleFunctionsStatusCanBeFetched()
+        => MultipleFunctionsStatusCanBeFetched(FunctionStoreFactory.Create());
 }

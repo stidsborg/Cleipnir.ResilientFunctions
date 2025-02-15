@@ -658,6 +658,38 @@ public class PostgreSqlFunctionStore : IFunctionStore
         return null;
     }
 
+    public async Task<IReadOnlyList<StatusAndEpochWithId>> GetFunctionsStatus(IEnumerable<StoredId> storedIds)
+    {
+        var predicates = storedIds
+            .Select(s => new { Type = s.Type.Value, Instance = s.Instance.Value })
+            .GroupBy(id => id.Type, id => id.Instance)
+            .Select(g => $"(type = {g.Key} AND instance IN ({string.Join(",", g.Select(instance => $"'{instance}'"))}))")
+            .StringJoin(" OR " + Environment.NewLine);
+
+        var sql = @$"
+            SELECT type, instance, status, epoch
+            FROM {_tableName}
+            WHERE {predicates}";
+
+        await using var conn = await CreateConnection();
+        await using var command = new NpgsqlCommand(sql, conn);
+        
+        var toReturn = new List<StatusAndEpochWithId>();
+        await using var reader = await command.ExecuteReaderAsync();
+        while (await reader.ReadAsync())
+        {
+            var type = reader.GetInt32(0).ToStoredType();
+            var instance = reader.GetGuid(1).ToStoredInstance();
+            var status = (Status) reader.GetInt32(2);
+            var epoch = reader.GetInt32(3);
+
+            var storedId = new StoredId(type, instance);
+            toReturn.Add(new StatusAndEpochWithId(storedId, status, epoch));
+        }
+        
+        return toReturn;
+    }
+
     private string? _getFunctionSql;
     public async Task<StoredFlow?> GetFunction(StoredId storedId)
     {

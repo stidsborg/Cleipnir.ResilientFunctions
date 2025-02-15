@@ -110,6 +110,9 @@ public class LeaseUpdaterTestFunctionStore : IFunctionStore
     public Task<StatusAndEpoch?> GetFunctionStatus(StoredId storedId)
         => _inner.GetFunctionStatus(storedId);
 
+    public Task<IReadOnlyList<StatusAndEpochWithId>> GetFunctionsStatus(IEnumerable<StoredId> storedIds)
+        => _inner.GetFunctionsStatus(storedIds);
+
     public Task<StoredFlow?> GetFunction(StoredId storedId)
         => _inner.GetFunction(storedId);
 

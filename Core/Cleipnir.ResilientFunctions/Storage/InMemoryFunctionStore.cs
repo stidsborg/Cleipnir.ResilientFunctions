@@ -367,7 +367,20 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
             return ((StatusAndEpoch?) new StatusAndEpoch(state.Status, state.Epoch)).ToTask();
         }
     }
-    
+
+    public async Task<IReadOnlyList<StatusAndEpochWithId>> GetFunctionsStatus(IEnumerable<StoredId> storedIds)
+    {
+        var toReturn = new List<StatusAndEpochWithId>();
+        foreach (var a in storedIds.Select(id => new { Id = id, Task = GetFunctionStatus(id)}))
+        {
+            var statusAndEpoch = await a.Task;
+            if (statusAndEpoch != null)
+                toReturn.Add(new StatusAndEpochWithId(a.Id, statusAndEpoch.Status, statusAndEpoch.Epoch));
+        }
+
+        return toReturn;
+    }
+
     public virtual Task<StoredFlow?> GetFunction(StoredId storedId)
     {
         lock (_sync)

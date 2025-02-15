@@ -94,6 +94,7 @@ public interface IFunctionStore
     Task<bool?> Interrupted(StoredId storedId); 
 
     Task<StatusAndEpoch?> GetFunctionStatus(StoredId storedId);
+    Task<IReadOnlyList<StatusAndEpochWithId>> GetFunctionsStatus(IEnumerable<StoredId> storedIds);
     Task<StoredFlow?> GetFunction(StoredId storedId);
     Task<IReadOnlyList<StoredInstance>> GetInstances(StoredType storedType, Status status);
     Task<IReadOnlyList<StoredInstance>> GetInstances(StoredType storedType);

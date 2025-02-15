@@ -1411,4 +1411,47 @@ public abstract class StoreTests
         var sf2 = await store.GetFunction(id2).ShouldNotBeNullAsync();
         
     }
+    
+    public abstract Task MultipleFunctionsStatusCanBeFetched();
+    protected async Task MultipleFunctionsStatusCanBeFetched(Task<IFunctionStore> storeTask)
+    {
+        var functionId1 = TestStoredId.Create();
+        var functionId2 = functionId1 with { Instance = Guid.NewGuid().ToString().ToStoredInstance() };
+        var functionId3 = TestStoredId.Create();
+        var store = await storeTask;
+
+        async Task CreateAndSucceedFunction(StoredId functionId, long timestamp)
+        {
+            await store.CreateFunction(
+                functionId, 
+                "humanInstanceId",
+                param: Test.SimpleStoredParameter,
+                leaseExpiration: DateTime.UtcNow.Ticks,
+                postponeUntil: null,
+                timestamp: timestamp,
+                parent: null
+            ).ShouldBeTrueAsync();
+
+            await store.SucceedFunction(
+                functionId,
+                result: null,
+                timestamp: timestamp,
+                expectedEpoch: 0,
+                new ComplimentaryState(() => Test.SimpleStoredParameter, LeaseLength: 0)
+            ).ShouldBeTrueAsync();
+        }
+
+        await CreateAndSucceedFunction(functionId1, timestamp: 1);
+        await CreateAndSucceedFunction(functionId2, timestamp: 3);
+        await CreateAndSucceedFunction(functionId3, timestamp: 0);
+
+        var statuses = await store.GetFunctionsStatus([functionId1, functionId3]);
+        var statusAndEpoch1 = statuses.Single(s => s.StoredId == functionId1);
+        statusAndEpoch1.Epoch.ShouldBe(0);
+        statusAndEpoch1.Status.ShouldBe(Status.Succeeded);
+        
+        var statusAndEpoch2 = statuses.Single(s => s.StoredId == functionId1);
+        statusAndEpoch2.Epoch.ShouldBe(0);
+        statusAndEpoch2.Status.ShouldBe(Status.Succeeded);
+    }
 }
