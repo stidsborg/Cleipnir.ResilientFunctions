@@ -7,6 +7,7 @@ namespace Cleipnir.ResilientFunctions.Domain.Exceptions;
 public sealed class UnexpectedStateException : FrameworkException
 {
     public UnexpectedStateException(string message) : base(message) {}
+    public UnexpectedStateException(string message, Exception innerException) : base(message, innerException) {}
     public UnexpectedStateException(FlowId flowId, string message)
         : base(message, flowId) {}
     public UnexpectedStateException(FlowId flowId, string message, Exception innerException)

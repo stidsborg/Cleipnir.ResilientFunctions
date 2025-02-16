@@ -60,7 +60,7 @@ public record IdAndEpoch(StoredId FlowId, int Epoch);
 
 public record StoredException(string ExceptionMessage, string? ExceptionStackTrace, string ExceptionType);
 public record StatusAndEpoch(Status Status, int Epoch);
-public record StatusAndEpochWithId(StoredId StoredId, Status Status, int Epoch);
+public record StatusAndEpochWithId(StoredId StoredId, Status Status, int Epoch, long Expiry);
 
 public record StoredEffectId(Guid Value)
 {

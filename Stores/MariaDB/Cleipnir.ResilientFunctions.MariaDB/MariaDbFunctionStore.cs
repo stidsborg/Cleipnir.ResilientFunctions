@@ -253,7 +253,7 @@ public class MariaDbFunctionStore : IFunctionStore
         
         var predicates = leaseUpdates
             .Select(u =>
-                $"(type = {u.StoredId.Type.Value} AND instance = '{u.StoredId.Instance.Value}' AND epoch = {u.ExpectedEpoch})"
+                $"(type = {u.StoredId.Type.Value} AND instance = '{u.StoredId.Instance.Value:N}' AND epoch = {u.ExpectedEpoch})"
             ).StringJoin(" OR " + Environment.NewLine);
         var sql = $@"
             UPDATE {_tablePrefix}
@@ -661,7 +661,7 @@ public class MariaDbFunctionStore : IFunctionStore
             .StringJoin(" OR " + Environment.NewLine);
 
         var sql = @$"
-            SELECT type, instance, status, epoch
+            SELECT type, instance, status, epoch, expires
             FROM {_tablePrefix}
             WHERE {predicates}";
 
@@ -676,9 +676,10 @@ public class MariaDbFunctionStore : IFunctionStore
             var instance = reader.GetGuid(1).ToStoredInstance();
             var status = (Status) reader.GetInt32(2);
             var epoch = reader.GetInt32(3);
+            var expires = reader.GetInt64(4);
 
             var storedId = new StoredId(type, instance);
-            toReturn.Add(new StatusAndEpochWithId(storedId, status, epoch));
+            toReturn.Add(new StatusAndEpochWithId(storedId, status, epoch, expires));
         }
 
         return toReturn;

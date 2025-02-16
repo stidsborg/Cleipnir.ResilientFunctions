@@ -371,11 +371,11 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
     public async Task<IReadOnlyList<StatusAndEpochWithId>> GetFunctionsStatus(IEnumerable<StoredId> storedIds)
     {
         var toReturn = new List<StatusAndEpochWithId>();
-        foreach (var a in storedIds.Select(id => new { Id = id, Task = GetFunctionStatus(id)}))
+        foreach (var a in storedIds.Select(id => new { Id = id, Task = GetFunction(id)}))
         {
-            var statusAndEpoch = await a.Task;
-            if (statusAndEpoch != null)
-                toReturn.Add(new StatusAndEpochWithId(a.Id, statusAndEpoch.Status, statusAndEpoch.Epoch));
+            var sf = await a.Task;
+            if (sf != null)
+                toReturn.Add(new StatusAndEpochWithId(a.Id, sf.Status, sf.Epoch, sf.Expires));
         }
 
         return toReturn;

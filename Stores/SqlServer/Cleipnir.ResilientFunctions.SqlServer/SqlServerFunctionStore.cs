@@ -678,7 +678,7 @@ public class SqlServerFunctionStore : IFunctionStore
             .StringJoin(" OR " + Environment.NewLine);
 
         var sql = @$"
-            SELECT FlowType, FlowInstance, Status, Epoch
+            SELECT FlowType, FlowInstance, Status, Epoch, Expires
             FROM {_tableName}
             WHERE {predicates}";
         
@@ -694,9 +694,10 @@ public class SqlServerFunctionStore : IFunctionStore
             var instance = reader.GetGuid(1).ToStoredInstance();
             var status = (Status) reader.GetInt32(2);
             var epoch = reader.GetInt32(3);
+            var expires = reader.GetInt64(4);
 
             var storedId = new StoredId(type, instance);
-            toReturn.Add(new StatusAndEpochWithId(storedId, status, epoch));
+            toReturn.Add(new StatusAndEpochWithId(storedId, status, epoch, expires));
         }
 
         return toReturn;

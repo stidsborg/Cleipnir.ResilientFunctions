@@ -14,7 +14,7 @@ internal class LeaseUpdater : IDisposable
     private readonly int _epoch;
 
     private readonly TimeSpan _leaseLength;
-    private readonly LeaseUpdaters _leaseUpdaters;
+    private readonly LeaseUpdatersForLeaseLength _leaseUpdaters;
 
     private readonly IFunctionStore _functionStore;
     private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
@@ -28,7 +28,7 @@ internal class LeaseUpdater : IDisposable
         IFunctionStore functionStore,
         UnhandledExceptionHandler unhandledExceptionHandler,
         TimeSpan leaseLength,
-        LeaseUpdaters leaseUpdaters)
+        LeaseUpdatersForLeaseLength leaseUpdaters)
     {
         _flowId = flowId;
         _storedId = storedId;
@@ -45,7 +45,8 @@ internal class LeaseUpdater : IDisposable
         IFunctionStore functionStore, SettingsWithDefaults settings, 
         LeaseUpdaters leaseUpdaters)
     {
-        leaseUpdaters.Add(storedId);
+        var leaseUpdatersForLeaseLength = leaseUpdaters.GetOrCreateLeaseUpdatersForLeaseLength(settings.LeaseLength);
+        leaseUpdatersForLeaseLength.Set(storedId, epoch);
         
         var leaseUpdater = new LeaseUpdater(
             flowId,
@@ -54,7 +55,7 @@ internal class LeaseUpdater : IDisposable
             functionStore,
             settings.UnhandledExceptionHandler,
             leaseLength: settings.LeaseLength,
-            leaseUpdaters
+            leaseUpdatersForLeaseLength
         );
         
         Task.Run(leaseUpdater.Start);
@@ -106,10 +107,7 @@ internal class LeaseUpdater : IDisposable
         RemoveFromLeaseUpdaters();
     }
 
-    private void RemoveFromLeaseUpdaters()
-    {
-        _leaseUpdaters?.Remove(_storedId);
-    }
+    private void RemoveFromLeaseUpdaters() => _leaseUpdaters.ConditionalRemove(_storedId, _epoch);
 
     public void Dispose()
     {

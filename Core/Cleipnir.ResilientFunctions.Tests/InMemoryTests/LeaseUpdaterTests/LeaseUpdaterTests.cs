@@ -45,7 +45,7 @@ public class LeaseUpdaterTests
             expectedEpoch,
             store,
             SettingsWithDefaults.Default.Merge(settings),
-            new LeaseUpdaters()
+            new LeaseUpdaters(store, new UnhandledExceptionHandler(_ => {}))
         );
 
         await Task.Delay(200);
@@ -83,7 +83,7 @@ public class LeaseUpdaterTests
             epoch: 0,
             store,
             SettingsWithDefaults.Default.Merge(settings),
-            new LeaseUpdaters()
+            new LeaseUpdaters(store, new UnhandledExceptionHandler(_ => {}))
         );
 
         await Task.Delay(100);
@@ -114,7 +114,7 @@ public class LeaseUpdaterTests
             epoch: 0,
             store,
             SettingsWithDefaults.Default.Merge(settings),
-            new LeaseUpdaters()
+            new LeaseUpdaters(store, new UnhandledExceptionHandler(_ => {}))
         );
 
         await BusyWait.Until(() => _unhandledExceptionCatcher.ThrownExceptions.Any());

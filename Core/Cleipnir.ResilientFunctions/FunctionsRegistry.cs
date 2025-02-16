@@ -36,7 +36,7 @@ public class FunctionsRegistry : IDisposable
         _storedTypes = new StoredTypes(functionStore.TypeStore);
         _shutdownCoordinator = new ShutdownCoordinator();
         _settings = SettingsWithDefaults.Default.Merge(settings);
-        _leaseUpdaters = new LeaseUpdaters();
+        _leaseUpdaters = new LeaseUpdaters(_functionStore, _settings.UnhandledExceptionHandler);
         
         _timeoutWatchdog = new TimeoutWatchdog(
             functionStore.TimeoutStore,
