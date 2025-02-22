@@ -26,7 +26,7 @@ public class MessageWriter
 
     public async Task<Finding> AppendMessage<TMessage>(TMessage message, string? idempotencyKey = null) where TMessage : notnull
     {
-        var (eventJson, eventType) = _serializer.SerializeMessage(message);
+        var (eventJson, eventType) = _serializer.SerializeMessage(message, typeof(TMessage));
         
         var functionStatus = await _messageStore.AppendMessage(
             _storedId,

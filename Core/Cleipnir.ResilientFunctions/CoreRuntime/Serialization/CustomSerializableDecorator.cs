@@ -31,8 +31,9 @@ public class CustomSerializableDecorator : ISerializer
     public FatalWorkflowException DeserializeException(FlowId flowId, StoredException storedException) 
         => _inner.DeserializeException(flowId, storedException);
 
-    public SerializedMessage SerializeMessage<TEvent>(TEvent message) where TEvent : notnull
-        => _inner.SerializeMessage(message); //todo allow custom serializer
+    public SerializedMessage SerializeMessage(object message, Type messageType)
+        => _inner.SerializeMessage(message, messageType);
+    
     public object DeserializeMessage(byte[] json, byte[] type) => _inner.DeserializeMessage(json, type);
     
     private T CustomDeserialize<T>(byte[] bytes)

@@ -54,8 +54,8 @@ public class ErrorHandlingDecorator : ISerializer
         }
     }
 
-    public SerializedMessage SerializeMessage<TEvent>(TEvent message) where TEvent : notnull
-        => _inner.SerializeMessage(message);
+    public SerializedMessage SerializeMessage(object message, Type messageType)
+        => _inner.SerializeMessage(message, messageType);
     public object DeserializeMessage(byte[] json, byte[] type)
     {
         try

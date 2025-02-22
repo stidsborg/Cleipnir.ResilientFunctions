@@ -445,9 +445,9 @@ public abstract class MessagesTests
             => DefaultSerializer.Instance.SerializeException(exception);
         public FatalWorkflowException DeserializeException(FlowId flowId, StoredException storedException)
             => DefaultSerializer.Instance.DeserializeException(flowId, storedException);
-        
-        public SerializedMessage SerializeMessage<TEvent>(TEvent message) where TEvent : notnull
-            => DefaultSerializer.Instance.SerializeMessage(message);
+
+        public SerializedMessage SerializeMessage(object message, Type messageType)
+            => DefaultSerializer.Instance.SerializeMessage(message, messageType);
 
         public object DeserializeMessage(byte[] json, byte[] type)
         {

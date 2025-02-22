@@ -1,4 +1,5 @@
-﻿using Cleipnir.ResilientFunctions.Domain;
+﻿using System;
+using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.CoreRuntime.Serialization;
@@ -10,8 +11,8 @@ public interface ISerializer
     
     StoredException SerializeException(FatalWorkflowException fatalWorkflowException);
     FatalWorkflowException DeserializeException(FlowId flowId, StoredException storedException);
-    
-    SerializedMessage SerializeMessage<TMessage>(TMessage message) where TMessage : notnull;
+
+    SerializedMessage SerializeMessage(object message, Type messageType);
     object DeserializeMessage(byte[] json, byte[] type);
     
 }

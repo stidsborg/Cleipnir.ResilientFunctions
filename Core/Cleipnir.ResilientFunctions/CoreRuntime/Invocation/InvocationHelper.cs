@@ -234,7 +234,7 @@ internal class InvocationHelper<TParam, TReturn>
         if (msg == null)
             return;
         
-        var (content, type) = serializer.SerializeMessage(msg);
+        var (content, type) = serializer.SerializeMessage(msg, msg.GetType());
         var storedMessage = new StoredMessage(content, type, IdempotencyKey: $"FlowCompleted:{childId}");
         await _functionStore.MessageStore.AppendMessage(parent, storedMessage);
         await _functionStore.Interrupt(parent, onlyIfExecuting: false);

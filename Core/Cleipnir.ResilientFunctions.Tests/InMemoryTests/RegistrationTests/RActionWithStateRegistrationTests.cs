@@ -67,9 +67,9 @@ public class RActionWithStateRegistrationTests
             => Default.SerializeException(exception);
         public FatalWorkflowException DeserializeException(FlowId flowId, StoredException storedException)
             => Default.DeserializeException(flowId, storedException);
-        
-        public SerializedMessage SerializeMessage<TEvent>(TEvent message) where TEvent : notnull
-            => Default.SerializeMessage(message);
+
+        public SerializedMessage SerializeMessage(object message, Type messageType)
+            => Default.SerializeMessage(message, messageType);
         public object DeserializeMessage(byte[] json, byte[] type)
             => Default.DeserializeMessage(json, type);
     }

@@ -73,10 +73,10 @@ public abstract class CustomMessageSerializerTests
         public FatalWorkflowException DeserializeException(FlowId flowId, StoredException storedException)
             => DefaultSerializer.Instance.DeserializeException(flowId, storedException);
 
-        public SerializedMessage SerializeMessage<TEvent>(TEvent message) where TEvent : notnull
+        public SerializedMessage SerializeMessage(object message, Type messageType)
         {
             EventToSerialize.Add(message);
-            return DefaultSerializer.Instance.SerializeMessage(message);
+            return DefaultSerializer.Instance.SerializeMessage(message, messageType);
         }
         public object DeserializeMessage(byte[] json, byte[] type)
         {
