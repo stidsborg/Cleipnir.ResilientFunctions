@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
+using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Storage;
 using Npgsql;
@@ -119,7 +121,51 @@ public class PostgreSqlMessageStore(string connectionString, string tablePrefix 
 
         return null;
     }
-    
+
+    public async Task AppendMessages(IReadOnlyList<StoredIdAndMessage> messages, bool interrupt = true)
+    {
+        if (messages.Count == 0)
+            return;
+        
+        var maxPositions = await GetMaxPositions(
+            storedIds: messages.Select(msg => msg.StoredId).Distinct().ToList()
+        );
+        var storedIds = messages.Select(m => m.StoredId).Distinct();
+        var interuptsSql = SqlGenerator.Interrupt(storedIds, _tablePrefix)!;
+
+        await using var conn = await CreateConnection();
+        await using var batch = new NpgsqlBatch(conn);
+        var sql = @$"    
+            INSERT INTO {_tablePrefix}_messages
+                (type, instance, position, message_json, message_type, idempotency_key)
+            VALUES 
+                 {messages.Select((_, i) => $"(${i*6 + 1}, ${i*6 + 2}, ${i*6 + 3}, ${i*6 + 4}, ${i*6 + 5}, ${i*6 + 6})").StringJoin($",{Environment.NewLine}")};";
+
+        {
+            var command = new NpgsqlBatchCommand(sql);
+            for (var i = 0; i < messages.Count; i++)
+            {
+                var (storedId, (messageContent, messageType, idempotencyKey)) = messages[i];
+                var (storedType, storedInstance) = storedId;
+                var position = ++maxPositions[storedId];
+                command.Parameters.Add(new NpgsqlParameter {Value = storedType.Value });
+                command.Parameters.Add(new NpgsqlParameter {Value = storedInstance.Value });
+                command.Parameters.Add(new NpgsqlParameter {Value = position });
+                command.Parameters.Add(new NpgsqlParameter {Value = messageContent });
+                command.Parameters.Add(new NpgsqlParameter {Value = messageType });
+                command.Parameters.Add(new NpgsqlParameter {Value = idempotencyKey ?? (object)DBNull.Value });
+            }  
+            batch.BatchCommands.Add(command);
+        }
+
+        {
+            var command = new NpgsqlBatchCommand(interuptsSql);
+            batch.BatchCommands.Add(command);
+        }
+
+        await batch.ExecuteNonQueryAsync();
+    }
+
     private string? _replaceMessageSql;
     public async Task<bool> ReplaceMessage(StoredId storedId, int position, StoredMessage storedMessage)
     {
@@ -195,6 +241,38 @@ public class PostgreSqlMessageStore(string connectionString, string tablePrefix 
         }
 
         return storedMessages;
+    }
+
+    public async Task<IDictionary<StoredId, int>> GetMaxPositions(IReadOnlyList<StoredId> storedIds)
+    {
+        var predicates = storedIds
+            .GroupBy(id => id.Type.Value, id => id.Instance.Value)
+            .Select(g => $"type = {g.Key} AND instance IN ({g.Select(instance => $"'{instance}'").StringJoin(", ")})")
+            .StringJoin(" OR " + Environment.NewLine);
+
+        var sql = @$"    
+            SELECT type, instance, position
+            FROM {tablePrefix}_messages
+            WHERE {predicates};";
+
+        await using var conn = await CreateConnection();
+        await using var command = new NpgsqlCommand(sql, conn);
+
+        var positions = new Dictionary<StoredId, int>(capacity: storedIds.Count);
+        foreach (var storedId in storedIds)
+            positions[storedId] = -1;
+        
+        await using var reader = await command.ExecuteReaderAsync();
+        while (await reader.ReadAsync())
+        {
+            var type = reader.GetInt32(0).ToStoredType();
+            var instance = reader.GetGuid(1).ToStoredInstance();
+            var storedId = new StoredId(type, instance);
+            var position = reader.GetInt32(2);
+            positions[storedId] = position;
+        }
+        
+        return positions;
     }
 
     private string? _getSuspensionStatusSql;

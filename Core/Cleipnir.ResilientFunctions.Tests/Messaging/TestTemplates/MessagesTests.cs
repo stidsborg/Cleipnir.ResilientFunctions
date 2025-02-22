@@ -419,6 +419,37 @@ public abstract class MessagesTests
         await Should.ThrowAsync<MessageProcessingException>(() => messages.Skip(1).First());
         Should.Throw<MessageProcessingException>(() => messages.ToList());
     }
+    
+    public abstract Task BatchedMessagesIsDeliveredToAwaitingFlows();
+    protected async Task BatchedMessagesIsDeliveredToAwaitingFlows(Task<IFunctionStore> functionStoreTask)
+    {
+        var flowType = TestFlowId.Create().Type;
+        var functionStore = await functionStoreTask;
+        using var registry = new FunctionsRegistry(functionStore);
+        var registration = registry.RegisterParamless(
+            flowType,
+            async Task (workflow) => await workflow.Messages.FirstOfType<string>()
+        );
+
+        await registration.Schedule("Instance#1");
+        await registration.Schedule("Instance#2");
+
+        var controlPanel1 = await registration.ControlPanel("Instance#1").ShouldNotBeNullAsync();
+        var controlPanel2 = await registration.ControlPanel("Instance#2").ShouldNotBeNullAsync();
+
+        await controlPanel1.BusyWaitUntil(c => c.Status == Status.Suspended);
+        await controlPanel2.BusyWaitUntil(c => c.Status == Status.Suspended);
+        
+        await registration.SendMessages(
+            [
+                new BatchedMessage("Instance#1", "hallo world", IdempotencyKey: "1"),
+                new BatchedMessage("Instance#2", "hallo world", IdempotencyKey: "1")
+            ]
+        );
+        
+        await controlPanel1.BusyWaitUntil(c => c.Status == Status.Succeeded);
+        await controlPanel2.BusyWaitUntil(c => c.Status == Status.Succeeded);
+    }
 
     private Effect CreateEffect(StoredId storedId, FlowId flowId, IFunctionStore functionStore)
     {

@@ -535,34 +535,11 @@ public class MariaDbFunctionStore : IFunctionStore
         var affectedRows = await command.ExecuteNonQueryAsync();
         return affectedRows == 1;
     }
-
-    private string? _interruptsSql;
+    
     public async Task Interrupt(IEnumerable<StoredId> storedIds)
     {
         await using var conn = await CreateOpenConnection(_connectionString);
-        _interruptsSql ??= @$"
-                UPDATE {_tablePrefix}
-                SET 
-                    interrupted = TRUE,
-                    status = 
-                        CASE 
-                            WHEN status = {(int) Status.Suspended} THEN {(int) Status.Postponed}
-                            ELSE status
-                        END,
-                    expires = 
-                        CASE
-                            WHEN status = {(int) Status.Postponed} THEN 0
-                            WHEN status = {(int) Status.Suspended} THEN 0
-                            ELSE expires
-                        END
-                WHERE @CONDITIONALS";
-
-        var conditionals = storedIds
-            .Select(storedId => $"(type = {storedId.Type.Value} AND instance = '{storedId.Instance.Value:N}')")
-            .StringJoin(" OR ");
-
-        var sql = _interruptsSql.Replace("@CONDITIONALS", conditionals);
-
+        var sql= SqlGenerator.Interrupt(storedIds, _tablePrefix);
         await using var cmd = new MySqlCommand(sql, conn);
         await cmd.ExecuteNonQueryAsync();
     }

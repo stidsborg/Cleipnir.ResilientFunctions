@@ -561,4 +561,150 @@ public abstract class MessageStoreTests
         newEvents = await messageStore.GetMessages(functionId, skip);
         newEvents.Count.ShouldBe(0);
     }
+    
+    public abstract Task MaxPositionIsCorrectForAppendedMessages();
+    protected async Task MaxPositionIsCorrectForAppendedMessages(Task<IFunctionStore> functionStoreTask)
+    {
+        var id1 = TestStoredId.Create();
+        var id2 = TestStoredId.Create() with { Type = id1.Type };
+        var id3 = TestStoredId.Create();
+        
+        var functionStore = await functionStoreTask;
+        await functionStore.CreateFunction(
+            id1, 
+            "humanInstanceId",
+            Test.SimpleStoredParameter, 
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks,
+            parent: null
+        ).ShouldBeTrueAsync();
+        await functionStore.CreateFunction(
+            id2, 
+            "humanInstanceId2",
+            Test.SimpleStoredParameter, 
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks,
+            parent: null
+        ).ShouldBeTrueAsync();
+        var messageStore = functionStore.MessageStore;
+
+        const string msg1 = "";
+        const string msg2 = "";
+
+        await messageStore.AppendMessage(
+            id1,
+            new StoredMessage(msg1.ToJsonByteArray(), msg1.GetType().SimpleQualifiedName().ToUtf8Bytes())
+        );
+        await messageStore.AppendMessage(
+            id1,
+            new StoredMessage(msg1.ToJsonByteArray(), msg2.GetType().SimpleQualifiedName().ToUtf8Bytes())
+        );
+        
+        await messageStore.AppendMessage(
+            id2,
+            new StoredMessage(msg2.ToJsonByteArray(), msg2.GetType().SimpleQualifiedName().ToUtf8Bytes())
+        );
+
+        var maxPositions = await messageStore.GetMaxPositions([id1, id2, id3]);
+        maxPositions.Count.ShouldBe(3);
+        maxPositions[id1].ShouldBe(1);
+        maxPositions[id2].ShouldBe(0);
+        maxPositions[id3].ShouldBe(-1);
+    }   
+    
+    public abstract Task AppendedMultipleMessagesAtOnceCanBeFetchedAgain();
+    protected async Task AppendedMultipleMessagesAtOnceCanBeFetchedAgain(Task<IFunctionStore> functionStoreTask)
+    {
+        var id1 = TestStoredId.Create();
+        var id2 = TestStoredId.Create() with { Type = id1.Type };
+        
+        var functionStore = await functionStoreTask;
+        await functionStore.CreateFunction(
+            id1, 
+            "humanInstanceId",
+            Test.SimpleStoredParameter, 
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: long.MaxValue,
+            timestamp: DateTime.UtcNow.Ticks,
+            parent: null
+        ).ShouldBeTrueAsync();
+        await functionStore.CreateFunction(
+            id2, 
+            "humanInstanceId2",
+            Test.SimpleStoredParameter, 
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: long.MaxValue,
+            timestamp: DateTime.UtcNow.Ticks,
+            parent: null
+        ).ShouldBeTrueAsync();
+        var messageStore = functionStore.MessageStore;
+
+        var msg1 = "Hello";
+        var msg2 = "World";
+        var stringType = typeof(string).SimpleQualifiedName().ToUtf8Bytes();
+        await messageStore.AppendMessage(id1, new StoredMessage("ignore".ToJsonByteArray(), stringType));
+        var storedMsg1 = new StoredMessage(msg1.ToJsonByteArray(), stringType, IdempotencyKey: "1").ToStoredIdAndMessage(id1);
+        var storedMsg2 = new StoredMessage(msg2.ToJsonByteArray(), stringType, IdempotencyKey: "2").ToStoredIdAndMessage(id1);
+        var storedMsg3 = new StoredMessage(msg1.ToJsonByteArray(), stringType, IdempotencyKey: "3").ToStoredIdAndMessage(id2);
+        await messageStore.AppendMessages([storedMsg1, storedMsg2, storedMsg3]);
+
+        var id1Msgs = await messageStore.GetMessages(id1, skip: 0);
+        id1Msgs.Count.ShouldBe(3);
+        id1Msgs[1].IdempotencyKey.ShouldBe("1");
+        id1Msgs[1].MessageType.ShouldBe(stringType);
+        id1Msgs[1].MessageContent.ShouldBe(msg1.ToJsonByteArray());
+        id1Msgs[2].IdempotencyKey.ShouldBe("2");
+        id1Msgs[2].MessageType.ShouldBe(stringType);
+        id1Msgs[2].MessageContent.ShouldBe(msg2.ToJsonByteArray());
+
+        var id2Msgs = await messageStore.GetMessages(id2, skip: 0);
+        id2Msgs.Count.ShouldBe(1);
+        id2Msgs[0].IdempotencyKey.ShouldBe("3");
+        id2Msgs[0].MessageType.ShouldBe(stringType);
+        id2Msgs[0].MessageContent.ShouldBe(msg1.ToJsonByteArray());
+
+        var sf1 = await functionStore.GetFunction(id1).ShouldNotBeNullAsync();
+        sf1.Interrupted.ShouldBeTrue();
+        sf1.Expires.ShouldBe(0);
+        
+        var sf2 = await functionStore.GetFunction(id2).ShouldNotBeNullAsync();
+        sf2.Interrupted.ShouldBeTrue();
+        sf2.Expires.ShouldBe(0);
+    }   
+    
+    public abstract Task AppendedBatchedMessageCanBeFetchedAgain();
+    protected async Task AppendedBatchedMessageCanBeFetchedAgain(Task<IFunctionStore> functionStoreTask)
+    {
+        var id = TestStoredId.Create();
+        
+        var functionStore = await functionStoreTask;
+        await functionStore.CreateFunction(
+            id, 
+            "humanInstanceId",
+            Test.SimpleStoredParameter, 
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: long.MaxValue,
+            timestamp: DateTime.UtcNow.Ticks,
+            parent: null
+        ).ShouldBeTrueAsync();
+        var messageStore = functionStore.MessageStore;
+
+        var msg = "Hello World!";
+        var stringType = typeof(string).SimpleQualifiedName().ToUtf8Bytes();
+        await messageStore.AppendMessages(
+            [new StoredMessage(msg.ToJsonByteArray(), stringType, IdempotencyKey: "1").ToStoredIdAndMessage(id)]
+        );
+        
+        var messages = await messageStore.GetMessages(id, skip: 0);
+        messages.Count.ShouldBe(1);
+        messages[0].IdempotencyKey.ShouldBe("1");
+        messages[0].MessageType.ShouldBe(stringType);
+        messages[0].MessageContent.ShouldBe(msg.ToJsonByteArray());
+
+        var sf = await functionStore.GetFunction(id).ShouldNotBeNullAsync();
+        sf.Interrupted.ShouldBeTrue();
+        sf.Expires.ShouldBe(0);
+    }   
 }

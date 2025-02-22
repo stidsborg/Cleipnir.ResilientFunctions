@@ -45,4 +45,8 @@ public class MessagesTests : Cleipnir.ResilientFunctions.Tests.Messaging.TestTem
     [TestMethod]
     public override Task MessagesRemembersPreviousThrownEventProcessingExceptionOnAllSubsequentInvocations()
         => MessagesRemembersPreviousThrownEventProcessingExceptionOnAllSubsequentInvocations(FunctionStoreFactory.Create());
+    
+    [TestMethod]
+    public override Task BatchedMessagesIsDeliveredToAwaitingFlows()
+        => BatchedMessagesIsDeliveredToAwaitingFlows(FunctionStoreFactory.Create());
 }
