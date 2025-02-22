@@ -1,4 +1,6 @@
-﻿using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
+﻿using System.Collections.Generic;
+using System.Threading.Tasks;
+using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.CoreRuntime.Serialization;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Storage;
@@ -35,4 +37,18 @@ public class MessageWriters
         var storedId = new StoredId(_storedType, instance);
         return new MessageWriter(storedId, _functionStore, _serializer, _scheduleReInvocation);
     }
+
+    public async Task AppendMessages(IReadOnlyList<BatchedMessage> messages, bool interrupt = true)
+    {
+        var storedIdAndMessages = new List<StoredIdAndMessage>(messages.Count);
+        foreach (var (instance, message, idempotencyKey) in messages)
+        {
+            var storedId = new StoredId(_storedType, instance.Value.ToStoredInstance());
+            var (content, type) = _serializer.SerializeMessage(message, message.GetType());
+            var storedMessage = new StoredMessage(content, type, idempotencyKey);
+            storedIdAndMessages.Add(new StoredIdAndMessage(storedId,storedMessage));
+        }
+
+        await _functionStore.MessageStore.AppendMessages(storedIdAndMessages, interrupt);
+    } 
 }

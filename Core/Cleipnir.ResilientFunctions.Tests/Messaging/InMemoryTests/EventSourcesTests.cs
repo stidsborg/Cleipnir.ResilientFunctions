@@ -52,4 +52,8 @@ public class MessagesTests : TestTemplates.MessagesTests
         => MessagesRemembersPreviousThrownEventProcessingExceptionOnAllSubsequentInvocations(
             FunctionStoreFactory.Create()
         );
+
+    [TestMethod]
+    public override Task BatchedMessagesIsDeliveredToAwaitingFlows()
+        => BatchedMessagesIsDeliveredToAwaitingFlows(FunctionStoreFactory.Create());
 }

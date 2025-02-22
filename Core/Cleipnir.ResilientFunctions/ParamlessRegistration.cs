@@ -83,4 +83,7 @@ public class ParamlessRegistration : BaseRegistration
 
         return finding;
     }
+    
+    public async Task SendMessages(IReadOnlyList<BatchedMessage> messages, bool interrupt = true)
+        => await Postman.SendMessages(messages, interrupt);
 }
