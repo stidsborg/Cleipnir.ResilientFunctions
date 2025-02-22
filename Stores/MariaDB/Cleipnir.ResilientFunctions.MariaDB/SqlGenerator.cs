@@ -9,7 +9,8 @@ public static class SqlGenerator
     public static string? Interrupt(IEnumerable<StoredId> storedIds, string tablePrefix)
     {
         var conditionals = storedIds
-            .Select(storedId => $"(type = {storedId.Type.Value} AND instance = '{storedId.Instance.Value:N}')")
+            .GroupBy(id => id.Type.Value, id => id.Instance.Value)
+            .Select(group => $"(type = {group.Key} AND instance IN ({group.Select(i => $"'{i:N}'").StringJoin(", ")}))")
             .StringJoin(" OR ");
         if (string.IsNullOrEmpty(conditionals))
             return null;

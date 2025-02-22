@@ -11,7 +11,8 @@ internal static class SqlGenerator
     public static string Interrupt(IEnumerable<StoredId> storedIds, string tableName)
     {
         var conditionals = storedIds
-            .Select(storedId => $"(FlowType = {storedId.Type.Value} AND FlowInstance = '{storedId.Instance.Value}')")
+            .GroupBy(id => id.Type.Value, id => id.Instance.Value)
+            .Select(group => $"(FlowType = {group.Key} AND FlowInstance IN ({group.Select(i => $"'{i}'").StringJoin(", ")}))")
             .StringJoin(" OR ");
 
         var sql = @$"
