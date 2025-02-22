@@ -106,6 +106,43 @@ public class MariaDbMessageStore : IMessageStore
         return null;
     }
 
+    public async Task AppendMessages(IReadOnlyList<StoredIdAndMessage> messages, bool interrupt = true)
+    {
+        if (messages.Count == 0)
+            return;
+        
+        var maxPositions = await GetMaxPositions(
+            storedIds: messages.Select(msg => msg.StoredId).Distinct().ToList()
+        );
+        var storedIds = messages.Select(m => m.StoredId).Distinct();
+        var interuptsSql = SqlGenerator.Interrupt(storedIds, _tablePrefix);
+
+        await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
+        var sql = @$"    
+            INSERT INTO {_tablePrefix}_messages
+                (type, instance, position, message_json, message_type, idempotency_key)
+            VALUES 
+                 {messages.Select((_, i) => "(?, ?, ?, ?, ?, ?)").StringJoin($",{Environment.NewLine}")};
+
+            {(interrupt ? interuptsSql : string.Empty)}";
+
+        await using var command = new MySqlCommand(sql, conn);
+        for (var i = 0; i < messages.Count; i++)
+        {
+            var (storedId, (messageContent, messageType, idempotencyKey)) = messages[i];
+            var (storedType, storedInstance) = storedId;
+            var position = ++maxPositions[storedId];
+            command.Parameters.Add(new MySqlParameter {Value = storedType.Value });
+            command.Parameters.Add(new MySqlParameter {Value = storedInstance.Value.ToString("N") });
+            command.Parameters.Add(new MySqlParameter {Value = position });
+            command.Parameters.Add(new MySqlParameter {Value = messageContent });
+            command.Parameters.Add(new MySqlParameter {Value = messageType });
+            command.Parameters.Add(new MySqlParameter {Value = idempotencyKey ?? (object)DBNull.Value });
+        }
+
+        await command.ExecuteNonQueryAsync();
+    }
+
     private string? _replaceMessageSql;
     public async Task<bool> ReplaceMessage(StoredId storedId, int position, StoredMessage storedMessage)
     {
@@ -177,5 +214,37 @@ public class MariaDbMessageStore : IMessageStore
         }
 
         return storedMessages;
+    }
+
+    public async Task<IDictionary<StoredId, int>> GetMaxPositions(IReadOnlyList<StoredId> storedIds)
+    {
+        var predicates = storedIds
+            .GroupBy(id => id.Type.Value, id => id.Instance.Value)
+            .Select(g => $"type = {g.Key} AND instance IN ({g.Select(instance => $"'{instance:N}'").StringJoin(", ")})")
+            .StringJoin(" OR " + Environment.NewLine);
+
+        var sql = @$"    
+            SELECT type, instance, position
+            FROM {_tablePrefix}_messages
+            WHERE {predicates};";
+
+        await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
+        await using var command = new MySqlCommand(sql, conn);
+
+        var positions = new Dictionary<StoredId, int>(capacity: storedIds.Count);
+        foreach (var storedId in storedIds)
+            positions[storedId] = -1;
+        
+        await using var reader = await command.ExecuteReaderAsync();
+        while (await reader.ReadAsync())
+        {
+            var type = reader.GetInt32(0).ToStoredType();
+            var instance = reader.GetGuid(1).ToStoredInstance();
+            var storedId = new StoredId(type, instance);
+            var position = reader.GetInt32(2);
+            positions[storedId] = position;
+        }
+        
+        return positions;
     }
 }

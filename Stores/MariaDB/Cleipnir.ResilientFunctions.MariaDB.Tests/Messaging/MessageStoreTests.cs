@@ -64,4 +64,16 @@ public class MessageStoreTests :  ResilientFunctions.Tests.Messaging.TestTemplat
     [TestMethod]
     public override Task EventSubscriptionPublishesFiltersOutEventsWithSameIdempotencyKeys()
         => EventSubscriptionPublishesFiltersOutEventsWithSameIdempotencyKeys(FunctionStoreFactory.Create());
+    
+    [TestMethod]
+    public override Task MaxPositionIsCorrectForAppendedMessages()
+        => MaxPositionIsCorrectForAppendedMessages(FunctionStoreFactory.Create());
+    
+    [TestMethod]
+    public override Task AppendedMultipleMessagesAtOnceCanBeFetchedAgain()
+        => AppendedMultipleMessagesAtOnceCanBeFetchedAgain(FunctionStoreFactory.Create());
+    
+    [TestMethod]
+    public override Task AppendedBatchedMessageCanBeFetchedAgain()
+        => AppendedBatchedMessageCanBeFetchedAgain(FunctionStoreFactory.Create());
 }

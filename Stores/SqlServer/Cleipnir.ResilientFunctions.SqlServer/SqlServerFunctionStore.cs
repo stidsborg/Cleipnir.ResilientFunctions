@@ -568,35 +568,14 @@ public class SqlServerFunctionStore : IFunctionStore
         var affectedRows = await command.ExecuteNonQueryAsync();
         return affectedRows == 1;
     }
-
-    private string? _interruptsSql;
+    
     public async Task Interrupt(IEnumerable<StoredId> storedIds)
     {
         await using var conn = await _connFunc();
-        _interruptsSql ??= @$"
-                UPDATE {_tableName}
-                SET 
-                    Interrupted = 1,
-                    Status = 
-                        CASE 
-                            WHEN Status = {(int) Status.Suspended} THEN {(int) Status.Postponed}
-                            ELSE Status
-                        END,
-                    Expires = 
-                        CASE
-                            WHEN Status = {(int) Status.Postponed} THEN 0
-                            WHEN Status = {(int) Status.Suspended} THEN 0
-                            ELSE Expires
-                        END
-                WHERE @CONDITIONALS";
-
-        var conditionals = storedIds
-            .Select(storedId => $"(FlowType = {storedId.Type.Value} AND FlowInstance = '{storedId.Instance.Value}')")
-            .StringJoin(" OR ");
-
-        var sql = _interruptsSql.Replace("@CONDITIONALS", conditionals);
-
-        await using var cmd = new SqlCommand(sql, conn);
+        await using var cmd = new SqlCommand(
+            SqlGenerator.Interrupt(storedIds, _tableName),
+            conn
+        );
         await cmd.ExecuteNonQueryAsync();
     }
 

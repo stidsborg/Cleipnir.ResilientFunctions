@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Storage;
 using Microsoft.Data.SqlClient;
@@ -43,7 +45,44 @@ public class SqlServerMessageStore(string connectionString, string tablePrefix =
 
     public async Task<FunctionStatus?> AppendMessage(StoredId storedId, StoredMessage storedMessage)
         => await AppendMessage(storedId, storedMessage, depth: 0);
-    
+
+    public async Task AppendMessages(IReadOnlyList<StoredIdAndMessage> messages, bool interrupt = true)
+    {
+        if (messages.Count == 0)
+            return;
+        
+        var maxPositions = await GetMaxPositions(
+            storedIds: messages.Select(msg => msg.StoredId).Distinct().ToList()
+        );
+        var storedIds = messages.Select(m => m.StoredId).Distinct();
+        var interuptsSql = SqlGenerator.Interrupt(storedIds, tablePrefix);
+
+        await using var conn = await CreateConnection();
+        var sql = @$"    
+            INSERT INTO {tablePrefix}_Messages
+                (FlowType, FlowInstance, Position, MessageJson, MessageType, IdempotencyKey)
+            VALUES 
+                 {messages.Select((_, i) => $"(@FlowType{i}, @FlowInstance{i}, @Position{i}, @MessageJson{i}, @MessageType{i}, @IdempotencyKey{i})").StringJoin($",{Environment.NewLine}")};
+
+            {(interrupt ? interuptsSql : string.Empty)}";
+
+        await using var command = new SqlCommand(sql, conn);
+        for (var i = 0; i < messages.Count; i++)
+        {
+            var (storedId, (messageContent, messageType, idempotencyKey)) = messages[i];
+            var (storedType, storedInstance) = storedId;
+            var position = ++maxPositions[storedId];
+            command.Parameters.AddWithValue($"@FlowType{i}", storedType.Value);
+            command.Parameters.AddWithValue($"@FlowInstance{i}", storedInstance.Value);
+            command.Parameters.AddWithValue($"@Position{i}", position);
+            command.Parameters.AddWithValue($"@MessageJson{i}", messageContent);
+            command.Parameters.AddWithValue($"@MessageType{i}", messageType);
+            command.Parameters.AddWithValue($"@IdempotencyKey{i}", idempotencyKey ?? (object)DBNull.Value);
+        }
+
+        await command.ExecuteNonQueryAsync();
+    }
+
     private string? _appendMessageSql;
     private async Task<FunctionStatus?> AppendMessage(StoredId storedId, StoredMessage storedMessage, int depth)
     {
@@ -156,6 +195,38 @@ public class SqlServerMessageStore(string connectionString, string tablePrefix =
         }
 
         return storedMessages;
+    }
+
+    public async Task<IDictionary<StoredId, int>> GetMaxPositions(IReadOnlyList<StoredId> storedIds)
+    {
+        var predicates = storedIds
+            .GroupBy(id => id.Type.Value, id => id.Instance.Value)
+            .Select(g => $"FlowType = {g.Key} AND FlowInstance IN ({g.Select(instance => $"'{instance}'").StringJoin(", ")})")
+            .StringJoin(" OR " + Environment.NewLine);
+
+        var sql = @$"    
+            SELECT FlowType, FlowInstance, Position
+            FROM {tablePrefix}_Messages
+            WHERE {predicates};";
+
+        await using var conn = await CreateConnection();
+        await using var command = new SqlCommand(sql, conn);
+
+        var positions = new Dictionary<StoredId, int>(capacity: storedIds.Count);
+        foreach (var storedId in storedIds)
+            positions[storedId] = -1;
+        
+        await using var reader = await command.ExecuteReaderAsync();
+        while (await reader.ReadAsync())
+        {
+            var type = reader.GetInt32(0).ToStoredType();
+            var instance = reader.GetGuid(1).ToStoredInstance();
+            var storedId = new StoredId(type, instance);
+            var position = reader.GetInt32(2);
+            positions[storedId] = position;
+        }
+        
+        return positions;
     }
 
     private async Task<SqlConnection> CreateConnection()
