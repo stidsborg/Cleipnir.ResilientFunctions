@@ -12,6 +12,7 @@ namespace Cleipnir.ResilientFunctions.StressTests
             {
                 Console.WriteLine("Usage: StressTests <all, mariadb, postgres, sqlserver>");
                 Console.WriteLine("       StressTests recreate_dbs");
+                Console.WriteLine("       StressTests long_running <mariadb, postgres, sqlserver>");
                 return 1;
             }
 
@@ -26,11 +27,31 @@ namespace Cleipnir.ResilientFunctions.StressTests
                 await new SqlServerEngine().RecreateDatabase();
                 return 0;
             }
+
+            if (args[0].ToLower() == "long_running")
+            {
+                IEngine? engine = args[1].ToLower() switch
+                {
+                    "mariadb" => new MariaDBEngine(),
+                    "postgres" => new PostgreSqlEngine(),
+                    "sqlserver" => new SqlServerEngine(),
+                    _ => null
+                };
+                if (engine == null)
+                {
+                    Console.WriteLine("Usage: StressTests long_running <mariadb, postgres, sqlserver>");
+                    return 1;
+                }
+
+                Console.WriteLine("Press enter to stop test");
+                await LongRunningStressfulTest.Perform(engine);
+                return 0;
+            }
             
             var engines = new List<IEngine>();
 
             if (args.Any(arg => arg.ToLower() == "all"))
-                args = new[] { "mariadb", "postgres", "sqlserver" };
+                args = ["mariadb", "postgres", "sqlserver"];
             
             foreach (var arg in args)
             {
