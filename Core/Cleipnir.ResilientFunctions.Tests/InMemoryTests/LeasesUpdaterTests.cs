@@ -33,4 +33,8 @@ public class LeasesUpdaterTests : TestTemplates.RFunctionTests.LeasesUpdaterTest
     [TestMethod]
     public override Task LeaseUpdatersReturnsSameReferenceWhenFiltersWhenThereAreNoAlreadyContains()
         => LeaseUpdatersReturnsSameReferenceWhenFiltersWhenThereAreNoAlreadyContains(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task LeaseUpdatersUpdatesPeekedFunctions()
+        => LeaseUpdatersUpdatesPeekedFunctions(FunctionStoreFactory.Create());
 }

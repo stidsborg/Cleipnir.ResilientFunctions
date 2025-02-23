@@ -236,4 +236,43 @@ public abstract class LeasesUpdaterTests
         
         unhandledExceptionHandler.ShouldNotHaveExceptions();
     }
+    
+    public abstract Task LeaseUpdatersUpdatesPeekedFunctions();
+    public async Task LeaseUpdatersUpdatesPeekedFunctions(Task<IFunctionStore> storeTask)
+    {
+        var leaseLength = TimeSpan.FromSeconds(120);
+        var store = await storeTask;
+        
+        var id1 = TestStoredId.Create();
+        var id2 = TestStoredId.Create();
+        var id3 = TestStoredId.Create();
+        
+        var now = DateTime.UtcNow;
+        var tenSeconds = now.AddSeconds(10);
+        var seventySeconds = now.AddSeconds(70);
+        var thousandSeconds = now.AddSeconds(1_000);
+
+        await store.CreateFunction(id1, "SomeInstanceId", param: null, leaseExpiration: tenSeconds.Ticks, postponeUntil: null, timestamp: 0, parent: null);
+        await store.CreateFunction(id2, "SomeInstanceId", param: null, leaseExpiration: seventySeconds.Ticks, postponeUntil: null, timestamp: 0, parent: null);
+        await store.CreateFunction(id3, "SomeInstanceId", param: null, leaseExpiration: thousandSeconds.Ticks, postponeUntil: null, timestamp: 0, parent: null);
+        
+        var unhandledExceptionHandler = new UnhandledExceptionCatcher();
+        var handler = new UnhandledExceptionHandler(unhandledExceptionHandler.Catch);
+        var leaseUpdaters = new LeasesUpdater(leaseLength, store, handler);
+
+        leaseUpdaters.Set(id1, epoch: 0, expiresTicks: tenSeconds.Ticks);
+        leaseUpdaters.Set(id2, epoch: 0, expiresTicks: seventySeconds.Ticks);
+        leaseUpdaters.Set(id3, epoch: 0, expiresTicks: thousandSeconds.Ticks);
+        
+        await leaseUpdaters.RenewLeases();
+
+        var sf1 = await store.GetFunction(id1).ShouldNotBeNullAsync();
+        sf1.Expires.ShouldBeGreaterThan(tenSeconds.Ticks);
+        var sf2 = await store.GetFunction(id2).ShouldNotBeNullAsync();
+        sf2.Expires.ShouldBeGreaterThan(seventySeconds.Ticks);
+        var sf3 = await store.GetFunction(id3).ShouldNotBeNullAsync();
+        sf3.Expires.ShouldBe(thousandSeconds.Ticks);
+        
+        unhandledExceptionHandler.ShouldNotHaveExceptions();
+    }
 }
