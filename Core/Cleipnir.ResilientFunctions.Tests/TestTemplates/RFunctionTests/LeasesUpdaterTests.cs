@@ -11,7 +11,7 @@ using Shouldly;
 
 namespace Cleipnir.ResilientFunctions.Tests.TestTemplates.RFunctionTests;
 
-public abstract class LeaseUpdatersForLeaseLengthTests
+public abstract class LeasesUpdaterTests
 {
     public abstract Task LeaseUpdaterUpdatesExpiryForEligibleFlows();
     public async Task LeaseUpdaterUpdatesExpiryForEligibleFlows(Task<IFunctionStore> storeTask)
@@ -21,7 +21,7 @@ public abstract class LeaseUpdatersForLeaseLengthTests
         var store = await storeTask;
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         var handler = new UnhandledExceptionHandler(unhandledExceptionHandler.Catch);
-        var leaseUpdaters = new LeaseUpdatersForLeaseLength(leaseLength, store, handler);
+        var leaseUpdaters = new LeasesUpdater(leaseLength, store, handler);
 
         var id1 = TestStoredId.Create();
         await store.CreateFunction(id1, id1.ToString(), param: null, leaseExpiration: 0, postponeUntil: null, timestamp: DateTime.UtcNow.Ticks, parent: null).ShouldBeTrueAsync();
@@ -67,7 +67,7 @@ public abstract class LeaseUpdatersForLeaseLengthTests
         var store = await storeTask;
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         var handler = new UnhandledExceptionHandler(unhandledExceptionHandler.Catch);
-        var leaseUpdaters = new LeaseUpdatersForLeaseLength(leaseLength, store, handler);
+        var leaseUpdaters = new LeasesUpdater(leaseLength, store, handler);
 
         var id1 = TestStoredId.Create();
         await store.CreateFunction(id1, id1.ToString(), param: null, leaseExpiration: 0, postponeUntil: null, timestamp: DateTime.UtcNow.Ticks, parent: null).ShouldBeTrueAsync();
@@ -112,7 +112,7 @@ public abstract class LeaseUpdatersForLeaseLengthTests
         
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         var handler = new UnhandledExceptionHandler(unhandledExceptionHandler.Catch);
-        var leaseUpdaters = new LeaseUpdatersForLeaseLength(leaseLength, store, handler);
+        var leaseUpdaters = new LeasesUpdater(leaseLength, store, handler);
 
         var id1 = TestStoredId.Create();
         await store.CreateFunction(id1, id1.ToString(), param: null, leaseExpiration: 0, postponeUntil: null, timestamp: DateTime.UtcNow.Ticks, parent: null).ShouldBeTrueAsync();
@@ -125,24 +125,6 @@ public abstract class LeaseUpdatersForLeaseLengthTests
         unhandledExceptionHandler.ThrownExceptions.ShouldNotBeEmpty();
     }
     
-    public abstract Task RunningLeaseUpdatersCanBeDisposed();
-    public async Task RunningLeaseUpdatersCanBeDisposed(Task<IFunctionStore> storeTask)
-    {
-        var leaseLength = TimeSpan.FromSeconds(120);
-        var store = new CrashableFunctionStore(await storeTask);
-        
-        var unhandledExceptionHandler = new UnhandledExceptionCatcher();
-        var handler = new UnhandledExceptionHandler(unhandledExceptionHandler.Catch);
-        var leaseUpdaters = new LeaseUpdatersForLeaseLength(leaseLength, store, handler);
-
-        var leaseUpdatersTask = leaseUpdaters.Start();
-        var stopWatch = Stopwatch.StartNew();
-        await leaseUpdaters.DisposeAsync();
-        stopWatch.Elapsed.ShouldBeLessThan(TimeSpan.FromSeconds(5));
-
-        leaseUpdatersTask.Wait(TimeSpan.FromSeconds(1)); 
-    }
-    
     public abstract Task FilterOutContainsFiltersOutActiveFlows();
     public async Task FilterOutContainsFiltersOutActiveFlows(Task<IFunctionStore> storeTask)
     {
@@ -150,7 +132,7 @@ public abstract class LeaseUpdatersForLeaseLengthTests
         var store = await storeTask;
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         var handler = new UnhandledExceptionHandler(unhandledExceptionHandler.Catch);
-        var leaseUpdaters = new LeaseUpdatersForLeaseLength(leaseLength, store, handler);
+        var leaseUpdaters = new LeasesUpdater(leaseLength, store, handler);
 
         var id1 = TestStoredId.Create();
         var id2 = TestStoredId.Create();
@@ -176,7 +158,7 @@ public abstract class LeaseUpdatersForLeaseLengthTests
         var store = await storeTask;
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         var handler = new UnhandledExceptionHandler(unhandledExceptionHandler.Catch);
-        var leaseUpdaters = new LeaseUpdatersForLeaseLength(leaseLength, store, handler);
+        var leaseUpdaters = new LeasesUpdater(leaseLength, store, handler);
 
         var id1 = TestStoredId.Create();
         var id2 = TestStoredId.Create();
@@ -198,23 +180,19 @@ public abstract class LeaseUpdatersForLeaseLengthTests
     public abstract Task LeaseUpdatersFiltersOutAlreadyContains();
     public async Task LeaseUpdatersFiltersOutAlreadyContains(Task<IFunctionStore> storeTask)
     {
-        var leaseLength120 = TimeSpan.FromSeconds(120);
-        var leaseLength125 = TimeSpan.FromSeconds(125);
+        var leaseLength = TimeSpan.FromSeconds(120);
         var store = await storeTask;
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         var handler = new UnhandledExceptionHandler(unhandledExceptionHandler.Catch);
-        var leaseUpdaters = new LeaseUpdaters(store, handler);
-
-        var leaseUpdatersForLeaseLength120 = leaseUpdaters.GetOrCreateLeaseUpdatersForLeaseLength(leaseLength120);
-        var leaseUpdatersForLeaseLength125 = leaseUpdaters.GetOrCreateLeaseUpdatersForLeaseLength(leaseLength125);
+        var leaseUpdaters = new LeasesUpdater(leaseLength, store, handler);
 
         var id1 = TestStoredId.Create();
         var id2 = TestStoredId.Create();
         var id3 = TestStoredId.Create();
         var id4 = TestStoredId.Create();
         
-        leaseUpdatersForLeaseLength120.Set(id1, epoch: 0, expiresTicks: 0);
-        leaseUpdatersForLeaseLength125.Set(id2, epoch: 0, expiresTicks: 0);
+        leaseUpdaters.Set(id1, epoch: 0, expiresTicks: 0);
+        leaseUpdaters.Set(id2, epoch: 0, expiresTicks: 0);
 
         var idAndEpoches = new List<IdAndEpoch>
         {
@@ -234,23 +212,19 @@ public abstract class LeaseUpdatersForLeaseLengthTests
     public abstract Task LeaseUpdatersReturnsSameReferenceWhenFiltersWhenThereAreNoAlreadyContains();
     public async Task LeaseUpdatersReturnsSameReferenceWhenFiltersWhenThereAreNoAlreadyContains(Task<IFunctionStore> storeTask)
     {
-        var leaseLength120 = TimeSpan.FromSeconds(120);
-        var leaseLength125 = TimeSpan.FromSeconds(125);
+        var leaseLength = TimeSpan.FromSeconds(120);
         var store = await storeTask;
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         var handler = new UnhandledExceptionHandler(unhandledExceptionHandler.Catch);
-        var leaseUpdaters = new LeaseUpdaters(store, handler);
-
-        var leaseUpdatersForLeaseLength120 = leaseUpdaters.GetOrCreateLeaseUpdatersForLeaseLength(leaseLength120);
-        var leaseUpdatersForLeaseLength125 = leaseUpdaters.GetOrCreateLeaseUpdatersForLeaseLength(leaseLength125);
+        var leaseUpdaters = new LeasesUpdater(leaseLength, store, handler);
 
         var id1 = TestStoredId.Create();
         var id2 = TestStoredId.Create();
         var id3 = TestStoredId.Create();
         var id4 = TestStoredId.Create();
         
-        leaseUpdatersForLeaseLength120.Set(id1, epoch: 0, expiresTicks: 0);
-        leaseUpdatersForLeaseLength125.Set(id2, epoch: 0, expiresTicks: 0);
+        leaseUpdaters.Set(id1, epoch: 0, expiresTicks: 0);
+        leaseUpdaters.Set(id2, epoch: 0, expiresTicks: 0);
 
         var idAndEpoches = new List<IdAndEpoch>
         {

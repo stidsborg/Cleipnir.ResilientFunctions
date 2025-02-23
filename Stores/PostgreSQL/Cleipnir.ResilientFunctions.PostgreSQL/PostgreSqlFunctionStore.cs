@@ -241,29 +241,6 @@ public class PostgreSqlFunctionStore : IFunctionStore
             : default;
     }
 
-    private string? _renewLeaseSql;
-    public async Task<bool> RenewLease(StoredId storedId, int expectedEpoch, long leaseExpiration)
-    {
-        await using var conn = await CreateConnection();
-        _renewLeaseSql ??= $@"
-            UPDATE {_tableName}
-            SET expires = $1
-            WHERE type = $2 AND instance = $3 AND epoch = $4";
-        await using var command = new NpgsqlCommand(_renewLeaseSql, conn)
-        {
-            Parameters =
-            {
-                new() {Value = leaseExpiration},
-                new() {Value = storedId.Type.Value},
-                new() {Value = storedId.Instance.Value},
-                new() {Value = expectedEpoch},
-            }
-        };
-
-        var affectedRows = await command.ExecuteNonQueryAsync();
-        return affectedRows == 1;
-    }
-
     public async Task<int> RenewLeases(IReadOnlyList<LeaseUpdate> leaseUpdates, long leaseExpiration)
     {
         await using var conn = await CreateConnection();

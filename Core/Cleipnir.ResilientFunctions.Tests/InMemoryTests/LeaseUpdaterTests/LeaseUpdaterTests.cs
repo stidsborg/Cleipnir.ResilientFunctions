@@ -29,26 +29,27 @@ public class LeaseUpdaterTests
         const int expectedEpoch = 100;
         var invocations = new SyncedList<Parameters>();
         var store = new LeaseUpdaterTestFunctionStore(
-            (id, epoch, leaseExpiry) =>
+            (leaseUpdates, leaseExpiry) =>
             {
+                var (id, epoch) = leaseUpdates.Single();
                 invocations.Add(new Parameters(id, ExpectedEpoch: epoch, LeaseExpiry: leaseExpiry));
-                return true;
+                return 1;
             });
-        
-        var settings = new Settings(
-            _unhandledExceptionCatcher.Catch,
-            leaseLength: TimeSpan.FromMilliseconds(10)
+
+        using var leasesUpdater = new LeasesUpdater(
+            leaseLength: TimeSpan.FromMilliseconds(10),
+            store,
+            new UnhandledExceptionHandler(e => _unhandledExceptionCatcher.Catch(e))
         );
+        _ = Task.Run(leasesUpdater.Start);
+        
         var updater = LeaseUpdater.CreateAndStart(
             _storedId,
-            _flowId,
             expectedEpoch,
-            store,
-            SettingsWithDefaults.Default.Merge(settings),
-            new LeaseUpdaters(store, new UnhandledExceptionHandler(_ => {}))
+            leasesUpdater
         );
-
-        await Task.Delay(200);
+        
+        await Task.Delay(200); 
         updater.Dispose();
 
         invocations.Count.ShouldBeGreaterThan(2);
@@ -67,23 +68,23 @@ public class LeaseUpdaterTests
     public async Task LeaseUpdaterStopsInvokingStoreWhenFalseIsReturnedFromStore()
     {
         var syncedCounter = new SyncedCounter();
-        var store = new LeaseUpdaterTestFunctionStore((id, epoch, life) =>
+        var store = new LeaseUpdaterTestFunctionStore((leaseUpdates, leaseExpiration) =>
         {
             syncedCounter.Increment();
-            return false;
+            return 0;
         });
 
-        var settings = new Settings(
-            _unhandledExceptionCatcher.Catch,
-            leaseLength: TimeSpan.FromMilliseconds(10)
+        using var leasesUpdater = new LeasesUpdater(
+            leaseLength: TimeSpan.FromMilliseconds(10),
+            store,
+            new UnhandledExceptionHandler(e => _unhandledExceptionCatcher.Catch(e))
         );
+        _ = leasesUpdater.Start();
+        
         var updater = LeaseUpdater.CreateAndStart(
             _storedId,
-            _flowId,
             epoch: 0,
-            store,
-            SettingsWithDefaults.Default.Merge(settings),
-            new LeaseUpdaters(store, new UnhandledExceptionHandler(_ => {}))
+            leasesUpdater
         );
 
         await Task.Delay(100);
@@ -98,23 +99,23 @@ public class LeaseUpdaterTests
     {
         var syncedCounter = new SyncedCounter();
         var store = new LeaseUpdaterTestFunctionStore(
-            (id, epoch, life) =>
+            (leaseUpdates, leaseExpiration) =>
             {
                 syncedCounter.Increment();
                 throw new Exception();
             });
-
-        var settings = new Settings(
-            _unhandledExceptionCatcher.Catch,
-            leaseLength: TimeSpan.FromMilliseconds(10)
+        
+        using var leasesUpdater = new LeasesUpdater(
+            leaseLength: TimeSpan.FromMilliseconds(10),
+            store,
+            new UnhandledExceptionHandler(e => _unhandledExceptionCatcher.Catch(e))
         );
+        _ = leasesUpdater.Start();
+        
         using var updater = LeaseUpdater.CreateAndStart(
             _storedId,
-            _flowId,
             epoch: 0,
-            store,
-            SettingsWithDefaults.Default.Merge(settings),
-            new LeaseUpdaters(store, new UnhandledExceptionHandler(_ => {}))
+            leasesUpdater
         );
 
         await BusyWait.Until(() => _unhandledExceptionCatcher.ThrownExceptions.Any());

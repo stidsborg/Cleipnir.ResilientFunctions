@@ -116,7 +116,7 @@ public abstract class StoreCrudTests
             parent: null
         ).ShouldBeTrueAsync();
 
-        await store.RenewLease(StoredId, expectedEpoch: 0, leaseExpiration: 1).ShouldBeTrueAsync();
+        await store.RenewLeases([new LeaseUpdate(StoredId, ExpectedEpoch: 0)], leaseExpiration: 1).ShouldBeAsync(1);
 
         var storedFunction = await store.GetFunction(StoredId);
         storedFunction!.Epoch.ShouldBe(0);
@@ -138,7 +138,7 @@ public abstract class StoreCrudTests
             parent: null
         ).ShouldBeTrueAsync();
 
-        await store.RenewLease(StoredId, expectedEpoch: 1, leaseExpiration: 1).ShouldBeFalseAsync();
+        await store.RenewLeases([new LeaseUpdate(StoredId, ExpectedEpoch: 1)], leaseExpiration: 1).ShouldBeAsync(0);
 
         var storedFunction = await store.GetFunction(StoredId);
         storedFunction!.Epoch.ShouldBe(0);

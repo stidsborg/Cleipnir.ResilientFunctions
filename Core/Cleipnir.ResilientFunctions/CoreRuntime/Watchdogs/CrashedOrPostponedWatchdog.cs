@@ -18,7 +18,7 @@ internal class CrashedOrPostponedWatchdog
     private readonly TimeSpan _checkFrequency;
     private readonly TimeSpan _delayStartUp;
     
-    private readonly LeaseUpdaters _leaseUpdaters;
+    private readonly LeasesUpdater _leasesUpdater;
     
     private volatile ImmutableDictionary<StoredType, Tuple<RestartFunction, ScheduleRestartFromWatchdog, AsyncSemaphore>> _flowsDictionary
         = ImmutableDictionary<StoredType, Tuple<RestartFunction, ScheduleRestartFromWatchdog, AsyncSemaphore>>.Empty;
@@ -29,7 +29,7 @@ internal class CrashedOrPostponedWatchdog
         IFunctionStore functionStore,
         ShutdownCoordinator shutdownCoordinator, UnhandledExceptionHandler unhandledExceptionHandler, 
         TimeSpan checkFrequency, TimeSpan delayStartUp,
-        LeaseUpdaters leaseUpdaters
+        LeasesUpdater leasesUpdater
     )
     {
         _functionStore = functionStore;
@@ -37,7 +37,7 @@ internal class CrashedOrPostponedWatchdog
         _unhandledExceptionHandler = unhandledExceptionHandler;
         _checkFrequency = checkFrequency;
         _delayStartUp = delayStartUp;
-        _leaseUpdaters = leaseUpdaters;
+        _leasesUpdater = leasesUpdater;
     }
 
     public void Register(
@@ -69,7 +69,7 @@ internal class CrashedOrPostponedWatchdog
                 var now = DateTime.UtcNow;
 
                 var eligibleFunctions = await _functionStore.GetExpiredFunctions(expiresBefore: now.Ticks);
-                eligibleFunctions = _leaseUpdaters.FilterOutContains(eligibleFunctions);
+                eligibleFunctions = _leasesUpdater.FilterOutContains(eligibleFunctions);
 
                 var flowsDictionary = _flowsDictionary;     
                 foreach (var sef in eligibleFunctions.WithRandomOffset())

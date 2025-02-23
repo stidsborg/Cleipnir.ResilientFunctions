@@ -221,7 +221,7 @@ public class Invoker<TParam, TReturn>
                     parent
                 );
             disposables.Add(runningFunction);
-            disposables.Add(_invocationHelper.StartLeaseUpdater(storedId, flowId, epoch: 0));
+            disposables.Add(_invocationHelper.StartLeaseUpdater(storedId, epoch: 0));
             var isWorkflowRunningDisposable = new PropertyDisposable();
             disposables.Add(isWorkflowRunningDisposable);
             success = persisted;
@@ -273,7 +273,7 @@ public class Invoker<TParam, TReturn>
             var (flowId, param, epoch, runningFunction, parent) = 
                 await _invocationHelper.PrepareForReInvocation(storedId, restartedFunction);
             disposables.Add(runningFunction);
-            disposables.Add(_invocationHelper.StartLeaseUpdater(storedId, flowId, epoch));
+            disposables.Add(_invocationHelper.StartLeaseUpdater(storedId, epoch));
             var isWorkflowRunningDisposable = new PropertyDisposable();
             disposables.Add(isWorkflowRunningDisposable);
             

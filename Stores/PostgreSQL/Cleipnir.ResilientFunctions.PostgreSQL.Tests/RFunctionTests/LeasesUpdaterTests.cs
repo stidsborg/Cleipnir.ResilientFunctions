@@ -1,10 +1,10 @@
 ﻿using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-namespace Cleipnir.ResilientFunctions.SqlServer.Tests.RFunctionTests;
+namespace Cleipnir.ResilientFunctions.PostgreSQL.Tests.RFunctionTests;
 
 [TestClass]
-public class LeaseUpdatersTests : ResilientFunctions.Tests.TestTemplates.RFunctionTests.LeaseUpdatersForLeaseLengthTests
+public class LeasesUpdaterTests : ResilientFunctions.Tests.TestTemplates.RFunctionTests.LeasesUpdaterTests
 {
     [TestMethod]
     public override Task LeaseUpdaterUpdatesExpiryForEligibleFlows()
@@ -17,10 +17,6 @@ public class LeaseUpdatersTests : ResilientFunctions.Tests.TestTemplates.RFuncti
     [TestMethod]
     public override Task LeaseUpdatersRepositoryThrowsResultsInUnhandledException()
         => LeaseUpdatersRepositoryThrowsResultsInUnhandledException(FunctionStoreFactory.Create());
-    
-    [TestMethod]
-    public override Task RunningLeaseUpdatersCanBeDisposed()
-        => RunningLeaseUpdatersCanBeDisposed(FunctionStoreFactory.Create());
     
     [TestMethod]
     public override Task FilterOutContainsFiltersOutActiveFlows()

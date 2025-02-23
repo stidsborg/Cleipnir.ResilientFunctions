@@ -223,30 +223,7 @@ public class MariaDbFunctionStore : IFunctionStore
             ? sf
             : default;
     }
-
-    private string? _renewLeaseSql;
-    public async Task<bool> RenewLease(StoredId storedId, int expectedEpoch, long leaseExpiration)
-    {
-        await using var conn = await CreateOpenConnection(_connectionString);
-        _renewLeaseSql ??= $@"
-            UPDATE {_tablePrefix}
-            SET expires = ?
-            WHERE type = ? AND instance = ? AND epoch = ? AND status = {(int) Status.Executing}";
-        await using var command = new MySqlCommand(_renewLeaseSql, conn)
-        {
-            Parameters =
-            {
-                new() {Value = leaseExpiration},
-                new() {Value = storedId.Type.Value},
-                new() {Value = storedId.Instance.Value.ToString("N")},
-                new() {Value = expectedEpoch},
-            }
-        };
-
-        var affectedRows = await command.ExecuteNonQueryAsync();
-        return affectedRows == 1;
-    }
-
+    
     public async Task<int> RenewLeases(IReadOnlyList<LeaseUpdate> leaseUpdates, long leaseExpiration)
     {
         await using var conn = await CreateOpenConnection(_connectionString);

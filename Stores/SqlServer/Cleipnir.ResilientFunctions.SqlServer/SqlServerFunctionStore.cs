@@ -284,25 +284,6 @@ public class SqlServerFunctionStore : IFunctionStore
             ? sf
             : default;
     }
-
-    private string? _renewLeaseSql;
-    public async Task<bool> RenewLease(StoredId storedId, int expectedEpoch, long leaseExpiration)
-    {
-        await using var conn = await _connFunc();
-        _renewLeaseSql ??= @$"
-            UPDATE {_tableName}
-            SET Expires = @Expires
-            WHERE FlowType = @FlowType AND FlowInstance = @FlowInstance AND Epoch = @Epoch";
-        
-        await using var command = new SqlCommand(_renewLeaseSql, conn);
-        command.Parameters.AddWithValue("@Expires", leaseExpiration);
-        command.Parameters.AddWithValue("@FlowType", storedId.Type.Value);
-        command.Parameters.AddWithValue("@FlowInstance", storedId.Instance.Value);
-        command.Parameters.AddWithValue("@Epoch", expectedEpoch);
-
-        var affectedRows = await command.ExecuteNonQueryAsync();
-        return affectedRows > 0;
-    }
     
     public async Task<int> RenewLeases(IReadOnlyList<LeaseUpdate> leaseUpdates, long leaseExpiration)
     {

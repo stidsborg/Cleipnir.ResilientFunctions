@@ -57,11 +57,6 @@ public class CrashableFunctionStore : IFunctionStore
         => _crashed
             ? Task.FromException<StoredFlow?>(new TimeoutException())
             : _inner.RestartExecution(storedId, expectedEpoch, leaseExpiration);
-    
-    public Task<bool> RenewLease(StoredId storedId, int expectedEpoch, long leaseExpiration)
-        => _crashed
-            ? Task.FromException<bool>(new TimeoutException())
-            : _inner.RenewLease(storedId, expectedEpoch, leaseExpiration);
 
     public Task<int> RenewLeases(IReadOnlyList<LeaseUpdate> leaseUpdates, long leaseExpiration)
         => _crashed

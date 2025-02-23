@@ -9,11 +9,9 @@ using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.CoreRuntime;
 
-internal class LeaseUpdatersForLeaseLength(TimeSpan leaseLength, IFunctionStore functionStore, UnhandledExceptionHandler unhandledExceptionHandler) : IAsyncDisposable
+internal class LeasesUpdater(TimeSpan leaseLength, IFunctionStore functionStore, UnhandledExceptionHandler unhandledExceptionHandler) : IDisposable
 {
     private volatile bool _disposed;
-    private readonly TaskCompletionSource _disposedTcs = new();
-    private readonly CancellationTokenSource _cts = new();
     
     private readonly Lock _lock = new();
     private readonly Dictionary<StoredId, EpochAndExpiry> _executingFlows = new();
@@ -41,19 +39,15 @@ internal class LeaseUpdatersForLeaseLength(TimeSpan leaseLength, IFunctionStore 
                     : leaseLength / 2;
 
                 if (delay > TimeSpan.Zero)
-                    await Task.Delay(delay, _cts.Token);
+                    await Task.Delay(delay);
 
                 await RenewLeases(); 
             }
         }
-        catch (OperationCanceledException) { }
         catch (Exception exception)
         {
             unhandledExceptionHandler.Invoke(new FrameworkException("LeaseUpdater threw exception", exception));
-        }
-        finally
-        {
-            _disposedTcs.SetResult();    
+            await Task.Delay(TimeSpan.FromSeconds(1));
         }
     }
 
@@ -94,18 +88,21 @@ internal class LeaseUpdatersForLeaseLength(TimeSpan leaseLength, IFunctionStore 
                         ConditionalSet(x.StoredId, x.ExpectedEpoch, nextLeaseExpiry);
             else
             {
-                var functionsStatus = await functionStore.GetFunctionsStatus(leaseUpdates.Select(u => u.StoredId));
-                lock (_lock)
-                    foreach (var (id, status, epoch, expiry) in functionsStatus)
-                    {
-                        if (!_executingFlows.TryGetValue(id, out var epochAndExpiry))
-                            continue;
+                var functionsStatus = 
+                    (await functionStore.GetFunctionsStatus(leaseUpdates.Select(u => u.StoredId)))
+                        .ToDictionary(s => s.StoredId);
 
-                        if (status != Status.Executing || epochAndExpiry.Epoch != epoch)
-                            ConditionalRemove(id, epoch: leaseUpdates.Single(u => u.StoredId == id).ExpectedEpoch);
-                        else
-                            ConditionalSet(id, epoch, expiry);
-                    }
+                foreach (var leaseUpdate in leaseUpdates)
+                {
+                    if (!functionsStatus.ContainsKey(leaseUpdate.StoredId))
+                        ConditionalRemove(leaseUpdate.StoredId, leaseUpdate.ExpectedEpoch);
+                    
+                    var (_, status, epoch, expiry) = functionsStatus[leaseUpdate.StoredId];
+                    if (epoch != leaseUpdate.ExpectedEpoch || status != Status.Executing)
+                        ConditionalRemove(leaseUpdate.StoredId, leaseUpdate.ExpectedEpoch);
+                    
+                    ConditionalSet(leaseUpdate.StoredId, leaseUpdate.ExpectedEpoch, expiry);
+                }
             }
         }
         catch (Exception exception)
@@ -147,6 +144,23 @@ internal class LeaseUpdatersForLeaseLength(TimeSpan leaseLength, IFunctionStore 
             return alreadyContains;
         }
     }
+    
+    public IReadOnlyList<IdAndEpoch> FilterOutContains(IReadOnlyList<IdAndEpoch> idAndEpoches)
+    {
+        if (idAndEpoches.Count == 0) return idAndEpoches;
+        
+        HashSet<IdAndEpoch> alreadyContained;
+        lock (_lock)
+            alreadyContained = FindAlreadyContains(idAndEpoches).ToHashSet();
+        
+        if (alreadyContained.Count == 0) return idAndEpoches;
+        var toReturn = new List<IdAndEpoch>(capacity: idAndEpoches.Count);
+        foreach (var idAndEpoch in idAndEpoches)
+            if (!alreadyContained.Contains(idAndEpoch))
+                toReturn.Add(idAndEpoch);
+
+        return toReturn;
+    }
 
     public void Set(StoredId flowId, int epoch, long? expiresTicks = null)
     {
@@ -159,12 +173,12 @@ internal class LeaseUpdatersForLeaseLength(TimeSpan leaseLength, IFunctionStore 
                 _executingFlows[flowId] = new EpochAndExpiry(epoch, expiry);
     }
 
-    public void ConditionalRemove(StoredId flowId, int epoch)
+    public void ConditionalRemove(StoredId storedId, int epoch)
     {
         lock (_lock)
-            if (_executingFlows.TryGetValue(flowId, out var epochAndExpiry))
+            if (_executingFlows.TryGetValue(storedId, out var epochAndExpiry))
                 if (epochAndExpiry.Epoch == epoch)
-                    _executingFlows.Remove(flowId);
+                    _executingFlows.Remove(storedId);
     }
 
     public IReadOnlyDictionary<StoredId, EpochAndExpiry> GetExecutingFlows()
@@ -173,11 +187,6 @@ internal class LeaseUpdatersForLeaseLength(TimeSpan leaseLength, IFunctionStore 
             return _executingFlows.ToDictionary(kv => kv.Key, kv => kv.Value);
     }
     public record EpochAndExpiry(int Epoch, long Expiry);
-
-    public async ValueTask DisposeAsync()
-    {
-        _disposed = true;
-        await _cts.CancelAsync();
-        await _disposedTcs.Task;
-    }
+    
+    public void Dispose() => _disposed = true;
 }

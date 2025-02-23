@@ -98,7 +98,7 @@ public record SettingsWithDefaults(
             UnhandledExceptionHandler: new UnhandledExceptionHandler(_ => {}),
             RetentionPeriod: TimeSpan.MaxValue,
             RetentionCleanUpFrequency: TimeSpan.FromHours(1), 
-            LeaseLength: TimeSpan.FromSeconds(10),
+            LeaseLength: TimeSpan.FromSeconds(60),
             EnableWatchdogs: true,
             WatchdogCheckFrequency: TimeSpan.FromSeconds(1),
             MessagesPullFrequency: TimeSpan.FromMilliseconds(250),

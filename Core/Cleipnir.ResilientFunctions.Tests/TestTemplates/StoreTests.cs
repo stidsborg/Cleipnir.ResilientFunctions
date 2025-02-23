@@ -94,13 +94,13 @@ public abstract class StoreTests
     public abstract Task LeaseIsUpdatedWhenAsExpected();
     protected async Task LeaseIsUpdatedWhenAsExpected(Task<IFunctionStore> storeTask)
     {
-        var functionId = TestStoredId.Create();
+        var storedId = TestStoredId.Create();
         
         var store = await storeTask;
         var paramJson = PARAM.ToJson();
 
         await store.CreateFunction(
-            functionId, 
+            storedId, 
             "humanInstanceId",
             paramJson.ToUtf8Bytes(),
             leaseExpiration: DateTime.UtcNow.Ticks,
@@ -109,11 +109,10 @@ public abstract class StoreTests
             parent: null
         ).ShouldBeTrueAsync();
 
-        await store
-            .RenewLease(functionId, expectedEpoch: 0, leaseExpiration: 1)
-            .ShouldBeTrueAsync();
+        var affectedRows = await store.RenewLeases([new LeaseUpdate(storedId, ExpectedEpoch: 0)], leaseExpiration: 1);
+        affectedRows.ShouldBe(1);
 
-        var sf = await store.GetFunction(functionId);
+        var sf = await store.GetFunction(storedId);
         sf.ShouldNotBeNull();
         sf.Epoch.ShouldBe(0);
         sf.Expires.ShouldBe(1);
@@ -138,11 +137,7 @@ public abstract class StoreTests
             parent: null
         ).ShouldBeTrueAsync();
 
-        await store.RenewLease(
-            functionId,  
-            expectedEpoch: 1,
-            leaseExpiration: 1
-        ).ShouldBeFalseAsync();
+        await store.RenewLeases([new LeaseUpdate(functionId, ExpectedEpoch: 1)], leaseExpiration: 1).ShouldBeAsync(0);
 
         await store
             .GetExpiredFunctions(expiresBefore: leaseExpiration + 1)

@@ -9,110 +9,25 @@ namespace Cleipnir.ResilientFunctions.CoreRuntime;
 
 internal class LeaseUpdater : IDisposable
 {
-    private readonly FlowId _flowId;
     private readonly StoredId _storedId;
     private readonly int _epoch;
+    private readonly LeasesUpdater _leasesUpdater;
 
-    private readonly TimeSpan _leaseLength;
-    private readonly LeaseUpdatersForLeaseLength _leaseUpdaters;
-
-    private readonly IFunctionStore _functionStore;
-    private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
-    private volatile bool _disposed;
-    private readonly CancellationTokenSource _cts = new();
-
-    private LeaseUpdater(
-        FlowId flowId,
-        StoredId storedId, 
-        int epoch, 
-        IFunctionStore functionStore,
-        UnhandledExceptionHandler unhandledExceptionHandler,
-        TimeSpan leaseLength,
-        LeaseUpdatersForLeaseLength leaseUpdaters)
+    private LeaseUpdater(StoredId storedId, int epoch, LeasesUpdater leasesUpdater)
     {
-        _flowId = flowId;
         _storedId = storedId;
         _epoch = epoch;
-            
-        _functionStore = functionStore;
-        _unhandledExceptionHandler = unhandledExceptionHandler;
-        _leaseLength = leaseLength;
-        _leaseUpdaters = leaseUpdaters;
+        _leasesUpdater = leasesUpdater;
     }
 
-    public static IDisposable CreateAndStart(
-        StoredId storedId, FlowId flowId, int epoch, 
-        IFunctionStore functionStore, SettingsWithDefaults settings, 
-        LeaseUpdaters leaseUpdaters)
+    public static IDisposable CreateAndStart(StoredId storedId, int epoch, LeasesUpdater leasesUpdater)
     {
-        var leaseUpdatersForLeaseLength = leaseUpdaters.GetOrCreateLeaseUpdatersForLeaseLength(settings.LeaseLength);
-        leaseUpdatersForLeaseLength.Set(storedId, epoch);
-        
-        var leaseUpdater = new LeaseUpdater(
-            flowId,
-            storedId,
-            epoch,
-            functionStore,
-            settings.UnhandledExceptionHandler,
-            leaseLength: settings.LeaseLength,
-            leaseUpdatersForLeaseLength
-        );
-        
-        Task.Run(leaseUpdater.Start);
+        var leaseUpdater = new LeaseUpdater(storedId, epoch, leasesUpdater);
+        leaseUpdater.Register();
         return leaseUpdater;
     }
 
-    private async Task Start()
-    {
-        if (_leaseLength == TimeSpan.Zero || _leaseLength == TimeSpan.MaxValue)
-            _disposed = true;
-        
-        while (!_disposed)
-        {
-            try
-            {
-                await Task.Delay(_leaseLength / 2, _cts.Token);
-
-                if (_disposed) break;
-
-                var success = await _functionStore.RenewLease(
-                    _storedId,
-                    expectedEpoch: _epoch,
-                    leaseExpiration: DateTime.UtcNow.Ticks + _leaseLength.Ticks
-                );
-
-                if (!success)
-                {
-                    _disposed = true;
-                    _unhandledExceptionHandler.Invoke(UnexpectedStateException.LeaseUpdateFailed(_flowId));
-                }
-            }
-            catch (TaskCanceledException)
-            {
-                _disposed = true;
-            } 
-            catch (Exception e)
-            {
-                _disposed = true;
-                _unhandledExceptionHandler.Invoke(
-                    new FrameworkException(
-                        $"{nameof(LeaseUpdater)} failed for '{_storedId}'",
-                        e,
-                        _flowId
-                    )
-                );
-            }
-        }
-        
-        RemoveFromLeaseUpdaters();
-    }
-
-    private void RemoveFromLeaseUpdaters() => _leaseUpdaters.ConditionalRemove(_storedId, _epoch);
-
-    public void Dispose()
-    {
-        RemoveFromLeaseUpdaters();
-        _disposed = true;
-        _cts.Cancel();
-    } 
+    private void Register() => _leasesUpdater.Set(_storedId, _epoch);
+    private void RemoveFromLeaseUpdaters() => _leasesUpdater.ConditionalRemove(_storedId, _epoch);
+    public void Dispose() => RemoveFromLeaseUpdaters();  
 }

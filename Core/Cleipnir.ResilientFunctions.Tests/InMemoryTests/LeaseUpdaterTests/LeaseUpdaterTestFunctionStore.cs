@@ -10,7 +10,7 @@ namespace Cleipnir.ResilientFunctions.Tests.InMemoryTests.LeaseUpdaterTests;
 
 public class LeaseUpdaterTestFunctionStore : IFunctionStore
 {
-    public delegate bool LeaseUpdaterCallback(StoredId flowId, int expectedEpoch, long newLeaseExpiry);
+    public delegate int LeaseUpdaterCallback(IReadOnlyList<LeaseUpdate> leaseUpdates, long leaseExpiration);
 
     private readonly LeaseUpdaterCallback _leaseUpdaterCallback;
     private readonly IFunctionStore _inner = new InMemoryFunctionStore();
@@ -43,14 +43,8 @@ public class LeaseUpdaterTestFunctionStore : IFunctionStore
     public Task<StoredFlow?> RestartExecution(StoredId storedId, int expectedEpoch, long leaseExpiration)
         => _inner.RestartExecution(storedId, expectedEpoch, leaseExpiration);
     
-    public Task<bool> RenewLease(StoredId storedId, int expectedEpoch, long leaseExpiration)
-    {
-        var success = _leaseUpdaterCallback(storedId, expectedEpoch, leaseExpiration);
-        return success.ToTask();
-    }
-
     public Task<int> RenewLeases(IReadOnlyList<LeaseUpdate> leaseUpdates, long leaseExpiration)
-        => _inner.RenewLeases(leaseUpdates, leaseExpiration);
+        => _leaseUpdaterCallback(leaseUpdates, leaseExpiration).ToTask();
 
     public Task<IReadOnlyList<IdAndEpoch>> GetExpiredFunctions(long expiresBefore)
         => _inner.GetExpiredFunctions(expiresBefore);
