@@ -101,7 +101,8 @@ internal class LeasesUpdater(TimeSpan leaseLength, IFunctionStore functionStore,
                     if (epoch != leaseUpdate.ExpectedEpoch || status != Status.Executing)
                         ConditionalRemove(leaseUpdate.StoredId, leaseUpdate.ExpectedEpoch);
                     
-                    ConditionalSet(leaseUpdate.StoredId, leaseUpdate.ExpectedEpoch, expiry);
+                    lock (_lock)
+                        ConditionalSet(leaseUpdate.StoredId, leaseUpdate.ExpectedEpoch, expiry);
                 }
             }
         }
