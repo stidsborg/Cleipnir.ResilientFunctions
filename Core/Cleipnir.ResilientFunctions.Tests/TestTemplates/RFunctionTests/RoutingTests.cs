@@ -297,13 +297,13 @@ public abstract class RoutingTests
 
         var registration = functionsRegistry.RegisterParamless(
             flowType,
-            inner: async (Workflow workflow) =>
+            inner: async (workflow) =>
             {
                 var someMessage = await workflow.Messages.FirstOfType<SomeMessage>();
                 syncedValue.Value = someMessage.Value;
                 syncedFlag.Raise();
             },
-            new Settings(
+            new LocalSettings(
                 messagesDefaultMaxWaitForCompletion: TimeSpan.MaxValue
             )
         );

@@ -60,7 +60,7 @@ public class FunctionsRegistry : IDisposable
     public FuncRegistration<TParam, TReturn> RegisterFunc<TParam, TReturn>(
         FlowType flowType,
         Func<TParam, Task<TReturn>> inner,
-        Settings? settings = null
+        LocalSettings? settings = null
     ) where TParam : notnull => RegisterFunc(
         flowType,
         InnerToAsyncResultAdapters.ToInnerFuncWithTaskResultReturn(inner),
@@ -71,7 +71,7 @@ public class FunctionsRegistry : IDisposable
     public FuncRegistration<TParam, TReturn> RegisterFunc<TParam, TReturn>(
         FlowType flowType,
         Func<TParam, Workflow, Task<TReturn>> inner,
-        Settings? settings = null
+        LocalSettings? settings = null
     ) where TParam : notnull => RegisterFunc(
         flowType,
         InnerToAsyncResultAdapters.ToInnerFuncWithTaskResultReturn(inner),
@@ -82,7 +82,7 @@ public class FunctionsRegistry : IDisposable
     public FuncRegistration<TParam, TReturn> RegisterFunc<TParam, TReturn>(
         FlowType flowType,
         Func<TParam, Task<Result<TReturn>>> inner,
-        Settings? settings = null
+        LocalSettings? settings = null
     ) where TParam : notnull
         => RegisterFunc(
             flowType,
@@ -97,7 +97,7 @@ public class FunctionsRegistry : IDisposable
     public ActionRegistration<TParam> RegisterAction<TParam>(
         FlowType flowType,
         Func<TParam, Task> inner,
-        Settings? settings = null
+        LocalSettings? settings = null
     ) where TParam : notnull
         => RegisterAction(
             flowType,
@@ -109,7 +109,7 @@ public class FunctionsRegistry : IDisposable
     public ActionRegistration<TParam> RegisterAction<TParam>(
         FlowType flowType,
         Func<TParam, Workflow, Task> inner,
-        Settings? settings = null
+        LocalSettings? settings = null
     ) where TParam : notnull
         => RegisterAction(
             flowType,
@@ -121,7 +121,7 @@ public class FunctionsRegistry : IDisposable
     public ActionRegistration<TParam> RegisterAction<TParam>(
         FlowType flowType,
         Func<TParam, Task<Result<Unit>>> inner,
-        Settings? settings = null
+        LocalSettings? settings = null
     ) where TParam : notnull
         => RegisterAction(
             flowType,
@@ -137,7 +137,7 @@ public class FunctionsRegistry : IDisposable
     public ParamlessRegistration RegisterParamless(
         FlowType flowType,
         Func<Task<Result<Unit>>> inner,
-        Settings? settings = null
+        LocalSettings? settings = null
     ) => RegisterParamless(
         flowType,
         InnerToAsyncResultAdapters.ToInnerParamlessWithTaskResultReturn(inner),
@@ -147,7 +147,7 @@ public class FunctionsRegistry : IDisposable
     public ParamlessRegistration RegisterParamless(
         FlowType flowType,
         Func<Workflow, Task<Result<Unit>>> inner,
-        Settings? settings = null
+        LocalSettings? settings = null
     ) => RegisterParamless(
         flowType,
         InnerToAsyncResultAdapters.ToInnerParamlessWithTaskResultReturn(inner),
@@ -157,7 +157,7 @@ public class FunctionsRegistry : IDisposable
     public ParamlessRegistration RegisterParamless(
         FlowType flowType,
         Func<Task> inner,
-        Settings? settings = null
+        LocalSettings? settings = null
     ) => RegisterParamless(
         flowType,
         InnerToAsyncResultAdapters.ToInnerParamlessWithTaskResultReturn(inner),
@@ -167,7 +167,7 @@ public class FunctionsRegistry : IDisposable
     public ParamlessRegistration RegisterParamless(
         FlowType flowType,
         Func<Workflow, Task> inner,
-        Settings? settings = null
+        LocalSettings? settings = null
     ) => RegisterParamless(
         flowType,
         InnerToAsyncResultAdapters.ToInnerParamlessWithTaskResultReturn(inner),
@@ -180,7 +180,7 @@ public class FunctionsRegistry : IDisposable
     public FuncRegistration<TParam, TReturn> RegisterFunc<TParam, TReturn>(
         FlowType flowType,
         Func<TParam, Workflow, Task<Result<TReturn>>> inner,
-        Settings? settings = null
+        LocalSettings? settings = null
     ) where TParam : notnull
     {
         if (_disposed)
@@ -266,7 +266,7 @@ public class FunctionsRegistry : IDisposable
     private ParamlessRegistration RegisterParamless(
         FlowType flowType,
         Func<Unit, Workflow, Task<Result<Unit>>> inner,
-        Settings? settings = null
+        LocalSettings? settings = null
     ) 
     {
         if (_disposed)
@@ -352,7 +352,7 @@ public class FunctionsRegistry : IDisposable
     public ActionRegistration<TParam> RegisterAction<TParam>(
         FlowType flowType,
         Func<TParam, Workflow, Task<Result<Unit>>> inner,
-        Settings? settings = null
+        LocalSettings? settings = null
     ) where TParam : notnull
     {
         if (_disposed)

@@ -16,7 +16,7 @@ public static class Do
         var rAction = functionsRegistry.RegisterAction<Order>(
             "OrderProcessorMessaging",
             orderProcessor.Execute,
-            new Settings(messagesDefaultMaxWaitForCompletion: TimeSpan.FromMinutes(1))
+            new LocalSettings(messagesDefaultMaxWaitForCompletion: TimeSpan.FromMinutes(1))
         );        
         
         messageBroker.Subscribe(async msg =>

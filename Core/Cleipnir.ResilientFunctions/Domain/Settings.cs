@@ -79,6 +79,19 @@ public record SettingsWithDefaults(
             child.Serializer ?? Serializer
         );
     }
+    
+    public SettingsWithDefaults Merge(LocalSettings? child)
+    {
+        if (child == null) return this;
+        
+        return this with
+        {
+            RetentionPeriod = child.RetentionPeriod ?? RetentionPeriod, 
+            EnableWatchdogs = child.EnableWatchdogs ?? EnableWatchdogs, 
+            MessagesDefaultMaxWaitForCompletion = child.MessagesDefaultMaxWaitForCompletion ?? MessagesDefaultMaxWaitForCompletion, 
+            MaxParallelRetryInvocations = child.MaxParallelRetryInvocations ?? MaxParallelRetryInvocations
+        };
+    }
 
     public static SettingsWithDefaults Default { get; }
         = new(
