@@ -92,18 +92,18 @@ internal class LeasesUpdater(TimeSpan leaseLength, IFunctionStore functionStore,
                     (await functionStore.GetFunctionsStatus(leaseUpdates.Select(u => u.StoredId)))
                         .ToDictionary(s => s.StoredId);
 
-                foreach (var leaseUpdate in leaseUpdates)
-                {
-                    if (!functionsStatus.ContainsKey(leaseUpdate.StoredId))
-                        ConditionalRemove(leaseUpdate.StoredId, leaseUpdate.ExpectedEpoch);
+                lock (_lock)
+                    foreach (var leaseUpdate in leaseUpdates)
+                    {
+                        if (!functionsStatus.ContainsKey(leaseUpdate.StoredId))
+                            ConditionalRemove(leaseUpdate.StoredId, leaseUpdate.ExpectedEpoch);
                     
-                    var (_, status, epoch, expiry) = functionsStatus[leaseUpdate.StoredId];
-                    if (epoch != leaseUpdate.ExpectedEpoch || status != Status.Executing)
-                        ConditionalRemove(leaseUpdate.StoredId, leaseUpdate.ExpectedEpoch);
-                    
-                    lock (_lock)
+                        var (_, status, epoch, expiry) = functionsStatus[leaseUpdate.StoredId];
+                        if (epoch != leaseUpdate.ExpectedEpoch || status != Status.Executing)
+                            ConditionalRemove(leaseUpdate.StoredId, leaseUpdate.ExpectedEpoch);
+                        
                         ConditionalSet(leaseUpdate.StoredId, leaseUpdate.ExpectedEpoch, expiry);
-                }
+                    }
             }
         }
         catch (Exception exception)
