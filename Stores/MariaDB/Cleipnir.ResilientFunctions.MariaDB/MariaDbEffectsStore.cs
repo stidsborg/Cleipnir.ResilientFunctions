@@ -64,51 +64,30 @@ public class MariaDbEffectsStore(string connectionString, string tablePrefix = "
 
         await command.ExecuteNonQueryAsync();
     }
-
-    private string? _setEffectResultsSql;
+    
     public async Task SetEffectResults(StoredId storedId, IReadOnlyList<StoredEffect> upsertEffects, IReadOnlyList<StoredEffectId> removeEffects)
     {
-        if (upsertEffects.Count == 0 && removeEffects.Count == 0)
-            return;
-        if (upsertEffects.Count == 0)
-        {
-            await DeleteEffectResults(storedId, removeEffects);
-            return;
-        }
+        var changes = upsertEffects
+            .Select(u => new StoredEffectChange(
+                storedId,
+                u.StoredEffectId,
+                CrudOperation.Upsert,
+                u
+            ))
+            .Concat(
+                removeEffects.Select(id =>
+                    new StoredEffectChange(storedId, id, CrudOperation.Delete, StoredEffect: null)
+                )
+            )
+            .ToList();
         
         await using var conn = await CreateConnection();
-        _setEffectResultsSql ??= $@"
-          INSERT INTO {tablePrefix}_effects 
-              (type, instance, id_hash, status, result, exception, effect_id)
-          VALUES
-              @VALUES  
-           ON DUPLICATE KEY UPDATE
-                status = VALUES(status), result = VALUES(result), exception = VALUES(exception);";
-        
-        var sql = _setEffectResultsSql.Replace(
-            "@VALUES",
-            "(?, ?, ?, ?, ?, ?, ?)".Replicate(upsertEffects.Count).StringJoin(", ")
-        );
+        await using var command = new MySqlCommand();
+        command.Connection = conn;
 
-        if (removeEffects.Count > 0)
-            sql += Environment.NewLine +
-                   @$"DELETE FROM {tablePrefix}_effects 
-                      WHERE type = {storedId.Type.Value} AND 
-                            instance = '{storedId.Instance.Value:N}' AND 
-                            id_hash IN ({removeEffects.Select(id => $"'{id.Value:N}'").StringJoin(", ")});";
+        var sql = SqlGenerator.UpdateEffects(command, changes, tablePrefix);
+        command.CommandText = sql;
         
-        await using var command = new MySqlCommand(sql, conn);
-        foreach (var storedEffect in upsertEffects)
-        {
-            command.Parameters.Add(new MySqlParameter(name: null, storedId.Type.Value));
-            command.Parameters.Add(new MySqlParameter(name: null, storedId.Instance.Value.ToString("N")));
-            command.Parameters.Add(new MySqlParameter(name: null, storedEffect.StoredEffectId.Value.ToString("N")));
-            command.Parameters.Add(new MySqlParameter(name: null, (int) storedEffect.WorkStatus));
-            command.Parameters.Add(new MySqlParameter(name: null, storedEffect.Result ?? (object) DBNull.Value));
-            command.Parameters.Add(new MySqlParameter(name: null, JsonHelper.ToJson(storedEffect.StoredException) ?? (object) DBNull.Value));
-            command.Parameters.Add(new MySqlParameter(name: null, storedEffect.EffectId.Serialize()));
-        }
-
         await command.ExecuteNonQueryAsync();
     }
 
