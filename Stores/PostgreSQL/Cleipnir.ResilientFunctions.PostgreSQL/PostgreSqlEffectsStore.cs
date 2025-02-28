@@ -72,53 +72,23 @@ public class PostgreSqlEffectsStore(string connectionString, string tablePrefix 
 
     public async Task SetEffectResults(StoredId storedId, IReadOnlyList<StoredEffect> upsertEffects, IReadOnlyList<StoredEffectId> removeEffects)
     {
-        if (upsertEffects.Count == 0 && removeEffects.Count == 0)
-            return;
-        if (upsertEffects.Count == 0)
-        {
-            await DeleteEffectResults(storedId, removeEffects);
-            return;
-        }
-        
         await using var conn = await CreateConnection();
-        _setEffectResultSql ??= $@"
-          INSERT INTO {tablePrefix}_effects 
-              (type, instance, id_hash, status, result, exception, effect_id)
-          VALUES
-              ($1, $2, $3, $4, $5, $6, $7) 
-          ON CONFLICT (type, instance, id_hash) 
-          DO 
-            UPDATE SET status = EXCLUDED.status, result = EXCLUDED.result, exception = EXCLUDED.exception";
-        
         await using var batch = new NpgsqlBatch(conn);
-        foreach (var storedEffect in upsertEffects)
-        {
-            var command = new NpgsqlBatchCommand(_setEffectResultSql)
-            {
-                Parameters =
-                {
-                    new() {Value = storedId.Type.Value},
-                    new() {Value = storedId.Instance.Value},
-                    new() {Value = storedEffect.StoredEffectId.Value},
-                    new() {Value = (int) storedEffect.WorkStatus},
-                    new() {Value = storedEffect.Result ?? (object) DBNull.Value},
-                    new() {Value = JsonHelper.ToJson(storedEffect.StoredException) ?? (object) DBNull.Value},
-                    new() {Value = storedEffect.EffectId.Serialize()},
-                }
-            };
-            batch.BatchCommands.Add(command);
-        }
-
-        if (removeEffects.Count > 0)
-            batch.BatchCommands.Add(
-                new NpgsqlBatchCommand(
-                    @$"DELETE FROM {tablePrefix}_effects 
-                       WHERE type = {storedId.Type.Value} AND 
-                             instance = '{storedId.Instance.Value}' AND 
-                             id_hash IN ({removeEffects.Select(id => $"'{id.Value}'").StringJoin(", ")});"
+        var changes = upsertEffects
+            .Select(u => new StoredEffectChange(
+                storedId,
+                u.StoredEffectId,
+                CrudOperation.Upsert,
+                u
+            ))
+            .Concat(
+                removeEffects.Select(id =>
+                    new StoredEffectChange(storedId, id, CrudOperation.Delete, StoredEffect: null)
                 )
-            );
+            )
+            .ToList();
         
+        SqlGenerator.UpdateEffects(batch, changes, tablePrefix);        
         await batch.ExecuteNonQueryAsync();
     }
 

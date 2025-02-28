@@ -74,10 +74,13 @@ public static class StoredEffectIdExtensions
     public static StoredEffectId ToStoredEffectId(this EffectId effectId) => StoredEffectId.Create(effectId);
 }
 
-public record StoredEffectChanges(
-    IReadOnlyList<StoredEffect> Upserts,
-    IReadOnlyList<StoredEffectId> Deletes
-);
+public record StoredEffectChange(StoredId StoredId, StoredEffectId EffectId, CrudOperation Operation, StoredEffect? StoredEffect);
+
+public enum CrudOperation
+{
+    Upsert,
+    Delete
+}
 
 public record StoredEffect(
     EffectId EffectId,

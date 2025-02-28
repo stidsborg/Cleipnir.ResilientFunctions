@@ -1,8 +1,11 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Storage;
+using Cleipnir.ResilientFunctions.Storage.Utils;
+using Npgsql;
 
 namespace Cleipnir.ResilientFunctions.PostgreSQL;
 
@@ -37,4 +40,55 @@ public static class SqlGenerator
         
         return sql;
     }
+    
+    public static void UpdateEffects(NpgsqlBatch batch, IReadOnlyList<StoredEffectChange> changes, string tablePrefix)
+   {
+       if (changes.Count == 0)
+           return;
+      
+       var sql= $@"
+         INSERT INTO {tablePrefix}_effects
+             (type, instance, id_hash, status, result, exception, effect_id)
+         VALUES
+             ($1, $2, $3, $4, $5, $6, $7)
+         ON CONFLICT (type, instance, id_hash)
+         DO
+           UPDATE SET status = EXCLUDED.status, result = EXCLUDED.result, exception = EXCLUDED.exception";
+      
+       foreach (var (storedId, _, _, storedEffect) in changes.Where(s => s.Operation == CrudOperation.Upsert))
+       {
+           var command = new NpgsqlBatchCommand(sql)
+           {
+               Parameters =
+               {
+                   new() {Value = storedId.Type.Value},
+                   new() {Value = storedId.Instance.Value},
+                   new() {Value = storedEffect!.StoredEffectId.Value},
+                   new() {Value = (int) storedEffect.WorkStatus},
+                   new() {Value = storedEffect.Result ?? (object) DBNull.Value},
+                   new() {Value = JsonHelper.ToJson(storedEffect.StoredException) ?? (object) DBNull.Value},
+                   new() {Value = storedEffect.EffectId.Serialize()},
+               }
+           };
+           batch.BatchCommands.Add(command);
+       }
+
+       var removedEffects = changes
+           .Where(s => s.Operation == CrudOperation.Delete)
+           .Select(s => new { Id = s.StoredId, s.EffectId })
+           .GroupBy(s => s.Id, s => s.EffectId.Value);
+
+       foreach (var removedEffectGroup in removedEffects)
+       {
+           var storedId = removedEffectGroup.Key;
+           batch.BatchCommands.Add(
+               new NpgsqlBatchCommand(
+                   @$"DELETE FROM {tablePrefix}_effects
+                      WHERE type = {storedId.Type.Value} AND
+                            instance = '{storedId.Instance.Value}' AND
+                            id_hash IN ({removedEffectGroup.Select(id => $"'{id}'").StringJoin(", ")});"
+               )
+           );
+       }
+   }
 }
