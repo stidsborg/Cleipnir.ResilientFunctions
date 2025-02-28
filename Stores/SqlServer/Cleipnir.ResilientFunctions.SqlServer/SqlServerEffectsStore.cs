@@ -73,58 +73,27 @@ public class SqlServerEffectsStore(string connectionString, string tablePrefix =
 
         await command.ExecuteNonQueryAsync();
     }
-
-    private string? _setEffectResultsSql;
+    
     public async Task SetEffectResults(StoredId storedId, IReadOnlyList<StoredEffect> upsertEffects, IReadOnlyList<StoredEffectId> removeEffects)
     {
-        if (upsertEffects.Count == 0 && removeEffects.Count == 0)
-            return;
-        if (upsertEffects.Count == 0)
-        {
-            await DeleteEffectResults(storedId, removeEffects);
-            return;
-        }
-            
+        var changes = upsertEffects
+            .Select(u => new StoredEffectChange(
+                storedId,
+                u.StoredEffectId,
+                CrudOperation.Upsert,
+                u
+            ))
+            .Concat(
+                removeEffects.Select(id =>
+                    new StoredEffectChange(storedId, id, CrudOperation.Delete, StoredEffect: null)
+                )
+            )
+            .ToList();
         await using var conn = await CreateConnection();
-        _setEffectResultsSql ??= $@"
-             MERGE INTO {tablePrefix}_Effects
-                USING (VALUES @VALUES) 
-                AS source (FlowType, FlowInstance, StoredId, EffectId, Status, Result, Exception)
-                ON {tablePrefix}_Effects.FlowType = source.FlowType AND {tablePrefix}_Effects.FlowInstance = source.FlowInstance AND {tablePrefix}_Effects.StoredId = source.StoredId
-                WHEN MATCHED THEN
-                    UPDATE SET Status = source.Status, Result = source.Result, Exception = source.Exception 
-                WHEN NOT MATCHED THEN
-                    INSERT (FlowType, FlowInstance, StoredId, EffectId, Status, Result, Exception)
-                    VALUES (source.FlowType, source.FlowInstance, source.StoredId, source.EffectId, source.Status, source.Result, source.Exception);";
-
-        var sql = _setEffectResultsSql.Replace(
-            "@VALUES",
-            "(@FlowType#, @FlowInstance#, @StoredId#, @EffectId#, @Status#, @Result#, @Exception#)"
-                .Replicate(upsertEffects.Count)
-                .Select((s, i) => s.Replace("#", i.ToString()))
-                .StringJoin(", ")
-        );
+        await using var command = new SqlCommand();
+        command.Connection = conn;
+        command.CommandText = SqlGenerator.UpdateEffects(command, changes, tablePrefix, paramPrefix: "");
         
-        if (removeEffects.Count > 0)
-            sql += Environment.NewLine + 
-                   @$"DELETE FROM {tablePrefix}_Effects 
-                      WHERE FlowType = {storedId.Type.Value} AND 
-                            FlowInstance = '{storedId.Instance.Value}' AND 
-                            StoredId IN ({removeEffects.Select(id => $"'{id.Value}'").StringJoin(", ")}) ";
-        
-        await using var command = new SqlCommand(sql, conn);
-        for (var i = 0; i < upsertEffects.Count; i++)
-        {
-            var storedEffect = upsertEffects[i];
-            command.Parameters.AddWithValue($"@FlowType{i}", storedId.Type.Value);
-            command.Parameters.AddWithValue($"@FlowInstance{i}", storedId.Instance.Value);
-            command.Parameters.AddWithValue($"@StoredId{i}", storedEffect.StoredEffectId.Value);
-            command.Parameters.AddWithValue($"@EffectId{i}", storedEffect.EffectId.Serialize());
-            command.Parameters.AddWithValue($"@Status{i}", storedEffect.WorkStatus);
-            command.Parameters.AddWithValue($"@Result{i}", storedEffect.Result ?? (object) SqlBinary.Null);
-            command.Parameters.AddWithValue($"@Exception{i}", JsonHelper.ToJson(storedEffect.StoredException) ?? (object) DBNull.Value);
-        }
-
         await command.ExecuteNonQueryAsync();
     }
 
