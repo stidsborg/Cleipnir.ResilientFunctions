@@ -10,7 +10,7 @@ using Microsoft.Data.SqlClient;
 
 namespace Cleipnir.ResilientFunctions.SqlServer;
 
-public class SqlServerMessageStore(string connectionString, string tablePrefix = "") : IMessageStore
+public class SqlServerMessageStore(string connectionString, SqlGenerator sqlGenerator, string tablePrefix = "") : IMessageStore
 {
     private string? _initializeSql;
     public async Task Initialize()
@@ -55,7 +55,7 @@ public class SqlServerMessageStore(string connectionString, string tablePrefix =
             storedIds: messages.Select(msg => msg.StoredId).Distinct().ToList()
         );
         var storedIds = messages.Select(m => m.StoredId).Distinct();
-        var interuptsSql = SqlGenerator.Interrupt(storedIds, tablePrefix);
+        var interuptsSql = sqlGenerator.Interrupt(storedIds);
 
         await using var conn = await CreateConnection();
         var sql = @$"    

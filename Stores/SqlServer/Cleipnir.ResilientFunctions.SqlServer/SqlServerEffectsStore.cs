@@ -12,7 +12,7 @@ using Microsoft.Data.SqlClient;
 
 namespace Cleipnir.ResilientFunctions.SqlServer;
 
-public class SqlServerEffectsStore(string connectionString, string tablePrefix = "") : IEffectsStore
+public class SqlServerEffectsStore(string connectionString, SqlGenerator sqlGenerator, string tablePrefix = "") : IEffectsStore
 {
     private string? _initializeSql;
     public async Task Initialize()
@@ -79,7 +79,7 @@ public class SqlServerEffectsStore(string connectionString, string tablePrefix =
         await using var conn = await CreateConnection();
         await using var command = new SqlCommand();
         command.Connection = conn;
-        command.CommandText = SqlGenerator.UpdateEffects(command, changes, tablePrefix, paramPrefix: "");
+        command.CommandText = sqlGenerator.UpdateEffects(command, changes, paramPrefix: "");
         
         await command.ExecuteNonQueryAsync();
     }

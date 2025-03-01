@@ -36,16 +36,19 @@ public class SqlServerFunctionStore : IFunctionStore
     public ISemaphoreStore SemaphoreStore => _semaphoreStore;
 
     private readonly SqlServerUnderlyingRegister _underlyingRegister;
+    
+    private readonly SqlGenerator _sqlGenerator;
 
     public SqlServerFunctionStore(string connectionString, string tablePrefix = "")
     {
         _tableName = tablePrefix == "" ? "RFunctions" : tablePrefix;
+        _sqlGenerator = new SqlGenerator(_tableName);
         
         _connFunc = CreateConnection(connectionString);
-        _messageStore = new SqlServerMessageStore(connectionString, _tableName);
+        _messageStore = new SqlServerMessageStore(connectionString, _sqlGenerator, _tableName);
         _timeoutStore = new SqlServerTimeoutStore(connectionString, _tableName);
         _underlyingRegister = new SqlServerUnderlyingRegister(connectionString, _tableName);
-        _effectsStore = new SqlServerEffectsStore(connectionString, _tableName);
+        _effectsStore = new SqlServerEffectsStore(connectionString, _sqlGenerator, _tableName);
         _correlationStore = new SqlServerCorrelationsStore(connectionString, _tableName);
         _semaphoreStore = new SqlServerSemaphoreStore(connectionString, _tableName);
         _typeStore = new SqlServerTypeStore(connectionString, _tableName);
@@ -554,7 +557,7 @@ public class SqlServerFunctionStore : IFunctionStore
     {
         await using var conn = await _connFunc();
         await using var cmd = new SqlCommand(
-            SqlGenerator.Interrupt(storedIds, _tableName),
+            _sqlGenerator.Interrupt(storedIds),
             conn
         );
         await cmd.ExecuteNonQueryAsync();

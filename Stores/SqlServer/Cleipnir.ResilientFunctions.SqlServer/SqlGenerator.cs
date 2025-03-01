@@ -11,9 +11,9 @@ using Microsoft.Data.SqlClient;
 
 namespace Cleipnir.ResilientFunctions.SqlServer;
 
-internal static class SqlGenerator
+public class SqlGenerator(string tablePrefix)
 {
-    public static string Interrupt(IEnumerable<StoredId> storedIds, string tableName)
+    public string Interrupt(IEnumerable<StoredId> storedIds)
     {
         var conditionals = storedIds
             .GroupBy(id => id.Type.Value, id => id.Instance.Value)
@@ -21,7 +21,7 @@ internal static class SqlGenerator
             .StringJoin(" OR ");
 
         var sql = @$"
-                UPDATE {tableName}
+                UPDATE {tablePrefix}
                 SET 
                     Interrupted = 1,
                     Status = 
@@ -40,7 +40,7 @@ internal static class SqlGenerator
         return sql;
     }
     
-    public static string UpdateEffects(SqlCommand command, IReadOnlyList<StoredEffectChange> changes, string tablePrefix, string paramPrefix)
+    public string UpdateEffects(SqlCommand command, IReadOnlyList<StoredEffectChange> changes, string paramPrefix)
     {
         var stringBuilder = new StringBuilder(capacity: 2);
         var upserts = changes
