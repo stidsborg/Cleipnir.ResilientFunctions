@@ -268,8 +268,11 @@ public abstract class EffectStoreTests
             Result: "some result 2".ToUtf8Bytes(),
             StoredException: null
         );
-        
-        await store.SetEffectResults(storedId, [storedEffect1, storedEffect2]);
+
+        await store.SetEffectResults(
+            storedId,
+            [storedEffect1.ToStoredChange(storedId), storedEffect2.ToStoredChange(storedId)]
+        );
 
         var effects = await store.GetEffectResults(storedId);
         effects.Count.ShouldBe(2);
@@ -306,11 +309,14 @@ public abstract class EffectStoreTests
             StoredException: null
         );
         
-        await store.SetEffectResults(storedId, [storedEffect1, storedEffect2]);
+        await store.SetEffectResults(storedId, [storedEffect1.ToStoredChange(storedId), storedEffect2.ToStoredChange(storedId)]);
         await store.SetEffectResults(
             storedId,
-            upsertEffects: [storedEffect3],
-            removeEffects: [storedEffect1.StoredEffectId, storedEffect2.StoredEffectId]
+            changes: [
+                storedEffect3.ToStoredChange(storedId), 
+                StoredEffectChange.CreateDelete(storedId, storedEffect1.StoredEffectId), 
+                StoredEffectChange.CreateDelete(storedId, storedEffect2.StoredEffectId)
+            ]
         );
         
         var effects = await store.GetEffectResults(storedId);
@@ -338,12 +344,17 @@ public abstract class EffectStoreTests
             Result: "some result 2".ToUtf8Bytes(),
             StoredException: null
         );
-        
-        await store.SetEffectResults(storedId, [storedEffect1, storedEffect2]);
+
         await store.SetEffectResults(
             storedId,
-            upsertEffects: [],
-            removeEffects: [storedEffect1.StoredEffectId, storedEffect2.StoredEffectId]
+            changes: [storedEffect1.ToStoredChange(storedId), storedEffect2.ToStoredChange(storedId)]
+        );
+        await store.SetEffectResults(
+            storedId,
+            changes: [
+                StoredEffectChange.CreateDelete(storedId, storedEffect1.StoredEffectId), 
+                StoredEffectChange.CreateDelete(storedId, storedEffect2.StoredEffectId)
+            ]
         );
         
         var effects = await store.GetEffectResults(storedId);

@@ -358,11 +358,14 @@ public class EffectResults
                 return;
             }
 
-            await _effectsStore.SetEffectResults(
-                _storedId,
-                upsertEffects: pendingChanges.Where(pc => pc.StoredEffect != null).Select(pc => pc.StoredEffect!).ToList(),
-                removeEffects: pendingChanges.Where(pc => pc.StoredEffect == null).Select(pc => pc.Id).ToList()
-            );
+            var changes = pendingChanges
+                .Select(pc => new StoredEffectChange(
+                    _storedId,
+                    pc.Id,
+                    pc.StoredEffect == null ? CrudOperation.Delete : CrudOperation.Upsert,
+                    pc.StoredEffect)
+                ).ToList();
+            await _effectsStore.SetEffectResults(_storedId, changes);
         }
         finally
         {

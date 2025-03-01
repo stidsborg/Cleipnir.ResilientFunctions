@@ -73,22 +73,9 @@ public class SqlServerEffectsStore(string connectionString, string tablePrefix =
 
         await command.ExecuteNonQueryAsync();
     }
-    
-    public async Task SetEffectResults(StoredId storedId, IReadOnlyList<StoredEffect> upsertEffects, IReadOnlyList<StoredEffectId> removeEffects)
+
+    public async Task SetEffectResults(StoredId storedId, IReadOnlyList<StoredEffectChange> changes)
     {
-        var changes = upsertEffects
-            .Select(u => new StoredEffectChange(
-                storedId,
-                u.StoredEffectId,
-                CrudOperation.Upsert,
-                u
-            ))
-            .Concat(
-                removeEffects.Select(id =>
-                    new StoredEffectChange(storedId, id, CrudOperation.Delete, StoredEffect: null)
-                )
-            )
-            .ToList();
         await using var conn = await CreateConnection();
         await using var command = new SqlCommand();
         command.Connection = conn;
@@ -96,7 +83,7 @@ public class SqlServerEffectsStore(string connectionString, string tablePrefix =
         
         await command.ExecuteNonQueryAsync();
     }
-
+    
     private string? _getEffectResultsSql;
     public async Task<IReadOnlyList<StoredEffect>> GetEffectResults(StoredId storedId)
     {

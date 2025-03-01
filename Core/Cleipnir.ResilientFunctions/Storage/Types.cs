@@ -74,7 +74,15 @@ public static class StoredEffectIdExtensions
     public static StoredEffectId ToStoredEffectId(this EffectId effectId) => StoredEffectId.Create(effectId);
 }
 
-public record StoredEffectChange(StoredId StoredId, StoredEffectId EffectId, CrudOperation Operation, StoredEffect? StoredEffect);
+public record StoredEffectChange(
+    StoredId StoredId,
+    StoredEffectId EffectId,
+    CrudOperation Operation,
+    StoredEffect? StoredEffect)
+{
+    public static StoredEffectChange CreateDelete(StoredId storedId, StoredEffectId effectId)
+        => new(storedId, effectId, CrudOperation.Delete, StoredEffect: null);
+}
 
 public enum CrudOperation
 {
@@ -116,3 +124,9 @@ public record StoredState(StateId StateId, byte[] StateJson);
 
 public record IdWithParam(StoredId StoredId, string HumanInstanceId, byte[]? Param);
 public record LeaseUpdate(StoredId StoredId, int ExpectedEpoch);
+
+public static class StoredEffectExtensions
+{
+    public static StoredEffectChange ToStoredChange(this StoredEffect effect, StoredId storedId) 
+        => new(storedId, effect.StoredEffectId, CrudOperation.Upsert, effect);
+}

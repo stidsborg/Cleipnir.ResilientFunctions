@@ -70,24 +70,10 @@ public class PostgreSqlEffectsStore(string connectionString, string tablePrefix 
         await command.ExecuteNonQueryAsync();
     }
 
-    public async Task SetEffectResults(StoredId storedId, IReadOnlyList<StoredEffect> upsertEffects, IReadOnlyList<StoredEffectId> removeEffects)
+    public async Task SetEffectResults(StoredId storedId, IReadOnlyList<StoredEffectChange> changes)
     {
         await using var conn = await CreateConnection();
         await using var batch = new NpgsqlBatch(conn);
-        var changes = upsertEffects
-            .Select(u => new StoredEffectChange(
-                storedId,
-                u.StoredEffectId,
-                CrudOperation.Upsert,
-                u
-            ))
-            .Concat(
-                removeEffects.Select(id =>
-                    new StoredEffectChange(storedId, id, CrudOperation.Delete, StoredEffect: null)
-                )
-            )
-            .ToList();
-        
         SqlGenerator.UpdateEffects(batch, changes, tablePrefix);        
         await batch.ExecuteNonQueryAsync();
     }
