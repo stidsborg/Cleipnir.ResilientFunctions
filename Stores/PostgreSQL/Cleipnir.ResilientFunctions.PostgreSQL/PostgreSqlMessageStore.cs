@@ -11,7 +11,7 @@ using Npgsql;
 
 namespace Cleipnir.ResilientFunctions.PostgreSQL;
 
-public class PostgreSqlMessageStore(string connectionString, string tablePrefix = "") : IMessageStore
+public class PostgreSqlMessageStore(string connectionString, SqlGenerator sqlGenerator, string tablePrefix = "") : IMessageStore
 {
     private readonly string _tablePrefix = tablePrefix.ToLower();
 
@@ -131,7 +131,7 @@ public class PostgreSqlMessageStore(string connectionString, string tablePrefix 
             storedIds: messages.Select(msg => msg.StoredId).Distinct().ToList()
         );
         var storedIds = messages.Select(m => m.StoredId).Distinct();
-        var interuptsSql = SqlGenerator.Interrupt(storedIds, _tablePrefix)!;
+        var interuptsSql = sqlGenerator.Interrupt(storedIds)!;
 
         await using var conn = await CreateConnection();
         await using var batch = new NpgsqlBatch(conn);

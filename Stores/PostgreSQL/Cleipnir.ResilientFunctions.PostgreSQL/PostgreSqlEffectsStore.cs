@@ -10,7 +10,7 @@ using Npgsql;
 
 namespace Cleipnir.ResilientFunctions.PostgreSQL;
 
-public class PostgreSqlEffectsStore(string connectionString, string tablePrefix = "") : IEffectsStore
+public class PostgreSqlEffectsStore(string connectionString, SqlGenerator sqlGenerator, string tablePrefix = "") : IEffectsStore
 {
     private string? _initializeSql;
     public async Task Initialize()
@@ -74,7 +74,7 @@ public class PostgreSqlEffectsStore(string connectionString, string tablePrefix 
     {
         await using var conn = await CreateConnection();
         await using var batch = new NpgsqlBatch(conn);
-        SqlGenerator.UpdateEffects(batch, changes, tablePrefix);        
+        sqlGenerator.UpdateEffects(batch, changes);        
         await batch.ExecuteNonQueryAsync();
     }
 

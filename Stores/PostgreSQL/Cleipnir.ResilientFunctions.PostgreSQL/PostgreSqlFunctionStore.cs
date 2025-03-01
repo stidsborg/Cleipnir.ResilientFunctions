@@ -40,14 +40,16 @@ public class PostgreSqlFunctionStore : IFunctionStore
     private readonly PostgreSqlMigrator _migrator;
     
     private readonly PostgresSqlUnderlyingRegister _postgresSqlUnderlyingRegister;
+    private readonly SqlGenerator _sqlGenerator;
 
     public PostgreSqlFunctionStore(string connectionString, string tablePrefix = "")
     {
         _tableName = tablePrefix == "" ? "rfunctions" : tablePrefix;
         _connectionString = connectionString;
+        _sqlGenerator = new SqlGenerator(_tableName);
         
-        _messageStore = new PostgreSqlMessageStore(connectionString, _tableName);
-        _effectsStore = new PostgreSqlEffectsStore(connectionString, _tableName);
+        _messageStore = new PostgreSqlMessageStore(connectionString, _sqlGenerator, _tableName);
+        _effectsStore = new PostgreSqlEffectsStore(connectionString, _sqlGenerator, _tableName);
         _timeoutStore = new PostgreSqlTimeoutStore(connectionString, _tableName);
         _correlationStore = new PostgreSqlCorrelationStore(connectionString, _tableName);
         _semaphoreStore = new PostgreSqlSemaphoreStore(connectionString, _tableName);

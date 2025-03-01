@@ -9,9 +9,9 @@ using Npgsql;
 
 namespace Cleipnir.ResilientFunctions.PostgreSQL;
 
-public static class SqlGenerator
+public class SqlGenerator(string tablePrefix)
 {
-    public static string? Interrupt(IEnumerable<StoredId> storedIds, string tablePrefix)
+    public string? Interrupt(IEnumerable<StoredId> storedIds)
     {
         var conditionals = storedIds
             .GroupBy(id => id.Type.Value, id => id.Instance.Value)
@@ -41,7 +41,7 @@ public static class SqlGenerator
         return sql;
     }
     
-    public static void UpdateEffects(NpgsqlBatch batch, IReadOnlyList<StoredEffectChange> changes, string tablePrefix)
+    public void UpdateEffects(NpgsqlBatch batch, IReadOnlyList<StoredEffectChange> changes)
    {
        if (changes.Count == 0)
            return;
