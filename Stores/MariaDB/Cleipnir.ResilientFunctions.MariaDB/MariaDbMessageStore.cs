@@ -10,11 +10,13 @@ public class MariaDbMessageStore : IMessageStore
 {
     private readonly string _connectionString;
     private readonly string _tablePrefix;
+    private readonly SqlGenerator _sqlGenerator;
     
-    public MariaDbMessageStore(string connectionString, string tablePrefix = "")
+    public MariaDbMessageStore(string connectionString, SqlGenerator sqlGenerator, string tablePrefix = "")
     {
         _connectionString = connectionString;
         _tablePrefix = tablePrefix;
+        _sqlGenerator = sqlGenerator;
     }
 
     private string? _initializeSql;
@@ -115,7 +117,7 @@ public class MariaDbMessageStore : IMessageStore
             storedIds: messages.Select(msg => msg.StoredId).Distinct().ToList()
         );
         var storedIds = messages.Select(m => m.StoredId).Distinct();
-        var interuptsSql = SqlGenerator.Interrupt(storedIds, _tablePrefix);
+        var interuptsSql = _sqlGenerator.Interrupt(storedIds);
 
         await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
         var sql = @$"    

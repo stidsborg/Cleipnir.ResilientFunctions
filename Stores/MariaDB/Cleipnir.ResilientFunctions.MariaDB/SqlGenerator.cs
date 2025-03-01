@@ -7,9 +7,9 @@ using MySqlConnector;
 
 namespace Cleipnir.ResilientFunctions.MariaDb;
 
-public static class SqlGenerator
+public class SqlGenerator(string tablePrefix)
 {
-    public static string? Interrupt(IEnumerable<StoredId> storedIds, string tablePrefix)
+    public string? Interrupt(IEnumerable<StoredId> storedIds)
     {
         var conditionals = storedIds
             .GroupBy(id => id.Type.Value, id => id.Instance.Value)
@@ -38,7 +38,7 @@ public static class SqlGenerator
         return sql;
     }
     
-    public static string UpdateEffects(MySqlCommand command, IReadOnlyList<StoredEffectChange> changes, string tablePrefix)
+    public string UpdateEffects(MySqlCommand command, IReadOnlyList<StoredEffectChange> changes)
     {
         var stringBuilder = new StringBuilder(capacity: 2);
         var upserts = changes

@@ -40,15 +40,18 @@ public class MariaDbFunctionStore : IFunctionStore
     public Utilities Utilities { get; }
     private readonly MariaDbUnderlyingRegister _mariaDbUnderlyingRegister;
 
+    private readonly SqlGenerator _sqlGenerator;
+
     public MariaDbFunctionStore(string connectionString, string tablePrefix = "")
     {
         tablePrefix = tablePrefix == "" ? "rfunctions" : tablePrefix;
         
         _connectionString = connectionString;
         _tablePrefix = tablePrefix;
+        _sqlGenerator = new SqlGenerator(tablePrefix);
         
-        _messageStore = new MariaDbMessageStore(connectionString, tablePrefix);
-        _effectsStore = new MariaDbEffectsStore(connectionString, tablePrefix);
+        _messageStore = new MariaDbMessageStore(connectionString, _sqlGenerator, tablePrefix);
+        _effectsStore = new MariaDbEffectsStore(connectionString, _sqlGenerator, tablePrefix);
         _correlationStore = new MariaDbCorrelationStore(connectionString, tablePrefix);
         _semaphoreStore = new MariaDbSemaphoreStore(connectionString, tablePrefix);
         _timeoutStore = new MariaDbTimeoutStore(connectionString, tablePrefix);
@@ -516,7 +519,7 @@ public class MariaDbFunctionStore : IFunctionStore
     public async Task Interrupt(IEnumerable<StoredId> storedIds)
     {
         await using var conn = await CreateOpenConnection(_connectionString);
-        var sql= SqlGenerator.Interrupt(storedIds, _tablePrefix);
+        var sql= _sqlGenerator.Interrupt(storedIds);
         await using var cmd = new MySqlCommand(sql, conn);
         await cmd.ExecuteNonQueryAsync();
     }

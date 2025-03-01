@@ -6,7 +6,7 @@ using MySqlConnector;
 
 namespace Cleipnir.ResilientFunctions.MariaDb;
 
-public class MariaDbEffectsStore(string connectionString, string tablePrefix = "") : IEffectsStore
+public class MariaDbEffectsStore(string connectionString, SqlGenerator sqlGenerator, string tablePrefix = "") : IEffectsStore
 {
     private string? _initializeSql;
     public async Task Initialize()
@@ -71,7 +71,7 @@ public class MariaDbEffectsStore(string connectionString, string tablePrefix = "
         await using var command = new MySqlCommand();
         command.Connection = conn;
 
-        var sql = SqlGenerator.UpdateEffects(command, changes, tablePrefix);
+        var sql = sqlGenerator.UpdateEffects(command, changes);
         command.CommandText = sql;
         
         await command.ExecuteNonQueryAsync();
