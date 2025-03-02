@@ -405,8 +405,7 @@ public class SqlServerFunctionStore : IFunctionStore
         var affectedRows = await command.ExecuteNonQueryAsync();
         return affectedRows > 0;
     }
-
-    private string? _succeedFunctionSql;
+    
     public async Task<bool> SucceedFunction(
         StoredId storedId, 
         byte[]? result, 
@@ -415,26 +414,23 @@ public class SqlServerFunctionStore : IFunctionStore
         ComplimentaryState complimentaryState)
     {
         await using var conn = await _connFunc();
+        await using var command = new SqlCommand();
+        command.Connection = conn;
         
-        _succeedFunctionSql ??= @$"
-            UPDATE {_tableName}
-            SET Status = {(int) Status.Succeeded}, ResultJson = @ResultJson, Timestamp = @Timestamp, Epoch = @ExpectedEpoch
-            WHERE FlowType = @FlowType
-            AND FlowInstance = @FlowInstance
-            AND Epoch = @ExpectedEpoch";
-
-        await using var command = new SqlCommand(_succeedFunctionSql, conn);
-        command.Parameters.AddWithValue("@ResultJson", result == null ? SqlBinary.Null : result);
-        command.Parameters.AddWithValue("@Timestamp", timestamp);
-        command.Parameters.AddWithValue("@FlowInstance", storedId.Instance.Value);
-        command.Parameters.AddWithValue("@FlowType", storedId.Type.Value);
-        command.Parameters.AddWithValue("@ExpectedEpoch", expectedEpoch);
-
+        var sql = _sqlGenerator.SucceedFunction(
+            storedId,
+            result,
+            timestamp,
+            expectedEpoch,
+            command,
+            paramPrefix: ""
+        );
+        command.CommandText = sql;
+        
         var affectedRows = await command.ExecuteNonQueryAsync();
         return affectedRows > 0;
     }
-
-    private string? _postponedFunctionSql;
+    
     public async Task<bool> PostponeFunction(
         StoredId storedId, 
         long postponeUntil, 
@@ -443,26 +439,23 @@ public class SqlServerFunctionStore : IFunctionStore
         ComplimentaryState complimentaryState)
     {
         await using var conn = await _connFunc();
+        await using var command = new SqlCommand();
+        command.Connection = conn;
         
-        _postponedFunctionSql ??= @$"
-            UPDATE {_tableName}
-            SET Status = {(int) Status.Postponed}, Expires = @PostponedUntil, Timestamp = @Timestamp, Epoch = @ExpectedEpoch
-            WHERE FlowType = @FlowType
-            AND FlowInstance = @FlowInstance
-            AND Epoch = @ExpectedEpoch";
-
-        await using var command = new SqlCommand(_postponedFunctionSql, conn);
-        command.Parameters.AddWithValue("@PostponedUntil", postponeUntil);
-        command.Parameters.AddWithValue("@Timestamp", timestamp);
-        command.Parameters.AddWithValue("@FlowInstance", storedId.Instance.Value);
-        command.Parameters.AddWithValue("@FlowType", storedId.Type.Value);
-        command.Parameters.AddWithValue("@ExpectedEpoch", expectedEpoch);
+        var sql = _sqlGenerator.PostponeFunction(
+            storedId,
+            postponeUntil,
+            timestamp,
+            expectedEpoch,
+            command,
+            paramPrefix: ""
+        );
+        command.CommandText = sql;
 
         var affectedRows = await command.ExecuteNonQueryAsync();
         return affectedRows > 0;
     }
-
-    private string? _failFunctionSql;
+    
     public async Task<bool> FailFunction(
         StoredId storedId, 
         StoredException storedException, 
@@ -473,25 +466,23 @@ public class SqlServerFunctionStore : IFunctionStore
         
         await using var conn = await _connFunc();
         
-        _failFunctionSql ??= @$"
-            UPDATE {_tableName}
-            SET Status = {(int) Status.Failed}, ExceptionJson = @ExceptionJson, Timestamp = @timestamp, Epoch = @ExpectedEpoch
-            WHERE FlowType = @FlowType
-            AND FlowInstance = @FlowInstance
-            AND Epoch = @ExpectedEpoch";
-
-        await using var command = new SqlCommand(_failFunctionSql, conn);
-        command.Parameters.AddWithValue("@ExceptionJson", JsonSerializer.Serialize(storedException));
-        command.Parameters.AddWithValue("@Timestamp", timestamp);
-        command.Parameters.AddWithValue("@FlowInstance", storedId.Instance.Value);
-        command.Parameters.AddWithValue("@FlowType", storedId.Type.Value);
-        command.Parameters.AddWithValue("@ExpectedEpoch", expectedEpoch);
+        await using var command = new SqlCommand();
+        command.Connection = conn;
+        
+        var sql = _sqlGenerator.FailFunction(
+            storedId,
+            storedException,
+            timestamp,
+            expectedEpoch,
+            command,
+            paramPrefix: ""
+        );
+        command.CommandText = sql;
 
         var affectedRows = await command.ExecuteNonQueryAsync();
         return affectedRows > 0;
     }
-
-    private string? _suspendFunctionSql;
+    
     public async Task<bool> SuspendFunction(
         StoredId storedId, 
         long timestamp,
@@ -499,20 +490,17 @@ public class SqlServerFunctionStore : IFunctionStore
         ComplimentaryState complimentaryState)
     {
         await using var conn = await _connFunc();
-
-        _suspendFunctionSql ??= @$"
-                UPDATE {_tableName}
-                SET Status = {(int)Status.Suspended}, Timestamp = @Timestamp
-                WHERE FlowType = @FlowType AND 
-                      FlowInstance = @FlowInstance AND                       
-                      Epoch = @ExpectedEpoch AND
-                      Interrupted = 0;";
-
-        await using var command = new SqlCommand(_suspendFunctionSql, conn);
-        command.Parameters.AddWithValue("@Timestamp", timestamp);
-        command.Parameters.AddWithValue("@FlowType", storedId.Type.Value);
-        command.Parameters.AddWithValue("@FlowInstance", storedId.Instance.Value);
-        command.Parameters.AddWithValue("@ExpectedEpoch", expectedEpoch);
+        await using var command = new SqlCommand();
+        command.Connection = conn;
+        
+        var sql = _sqlGenerator.SuspendFunction(
+            storedId,
+            timestamp,
+            expectedEpoch,
+            command,
+            paramPrefix: ""
+        );
+        command.CommandText = sql;
 
         var affectedRows = await command.ExecuteNonQueryAsync();
         return affectedRows == 1;

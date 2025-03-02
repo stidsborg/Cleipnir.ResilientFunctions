@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Data.SqlTypes;
 using System.Linq;
 using System.Text;
+using System.Text.Json;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Storage;
@@ -102,5 +103,105 @@ public class SqlGenerator(string tablePrefix)
             stringBuilder.AppendLine(removeSql);
         
         return stringBuilder.ToString();
+    }
+    
+    private string? _succeedFunctionSql;
+    public string SucceedFunction(
+        StoredId storedId, byte[]? result, long timestamp, int expectedEpoch,
+        SqlCommand command, string paramPrefix)
+    {
+        _succeedFunctionSql ??= @$"
+            UPDATE {tablePrefix}
+            SET Status = {(int) Status.Succeeded}, ResultJson = @ResultJson, Timestamp = @Timestamp, Epoch = @ExpectedEpoch
+            WHERE FlowType = @FlowType AND FlowInstance = @FlowInstance AND Epoch = @ExpectedEpoch";
+        
+        var sql = paramPrefix == "" 
+            ? _succeedFunctionSql
+            : _succeedFunctionSql.Replace("@", $"@{paramPrefix}");
+        
+        command.Parameters.AddWithValue($"@{paramPrefix}ResultJson", result ?? SqlBinary.Null);
+        command.Parameters.AddWithValue($"@{paramPrefix}Timestamp", timestamp);
+        command.Parameters.AddWithValue($"@{paramPrefix}FlowInstance", storedId.Instance.Value);
+        command.Parameters.AddWithValue($"@{paramPrefix}FlowType", storedId.Type.Value);
+        command.Parameters.AddWithValue($"@{paramPrefix}ExpectedEpoch", expectedEpoch);
+
+        return sql;
+    }
+    
+    private string? _postponedFunctionSql;
+    public string PostponeFunction(
+        StoredId storedId, long postponeUntil, long timestamp, int expectedEpoch, 
+        SqlCommand command, string paramPrefix)
+    {
+        _postponedFunctionSql ??= @$"
+            UPDATE {tablePrefix}
+            SET Status = {(int) Status.Postponed}, Expires = @PostponedUntil, Timestamp = @Timestamp, Epoch = @ExpectedEpoch
+            WHERE FlowType = @FlowType AND FlowInstance = @FlowInstance AND Epoch = @ExpectedEpoch";
+        
+        var sql = paramPrefix == "" 
+            ? _postponedFunctionSql
+            : _postponedFunctionSql.Replace("@", $"@{paramPrefix}");
+        
+        command.Parameters.AddWithValue($"@{paramPrefix}PostponedUntil", postponeUntil);
+        command.Parameters.AddWithValue($"@{paramPrefix}Timestamp", timestamp);
+        command.Parameters.AddWithValue($"@{paramPrefix}FlowInstance", storedId.Instance.Value);
+        command.Parameters.AddWithValue($"@{paramPrefix}FlowType", storedId.Type.Value);
+        command.Parameters.AddWithValue($"@{paramPrefix}ExpectedEpoch", expectedEpoch);
+
+        return sql;
+    }
+
+    private string? _failFunctionSql;
+    public string FailFunction(
+        StoredId storedId, StoredException storedException, long timestamp, int expectedEpoch, 
+        SqlCommand command, string paramPrefix)
+    {
+        _failFunctionSql ??= @$"
+            UPDATE {tablePrefix}
+            SET Status = {(int) Status.Failed}, ExceptionJson = @ExceptionJson, Timestamp = @timestamp, Epoch = @ExpectedEpoch
+            WHERE FlowType = @FlowType
+            AND FlowInstance = @FlowInstance
+            AND Epoch = @ExpectedEpoch";
+
+        var sql = paramPrefix == "" 
+            ? _failFunctionSql
+            : _failFunctionSql.Replace("@", $"@{paramPrefix}");
+        
+        command.Parameters.AddWithValue($"@{paramPrefix}ExceptionJson", JsonSerializer.Serialize(storedException));
+        command.Parameters.AddWithValue($"@{paramPrefix}Timestamp", timestamp);
+        command.Parameters.AddWithValue($"@{paramPrefix}FlowInstance", storedId.Instance.Value);
+        command.Parameters.AddWithValue($"@{paramPrefix}FlowType", storedId.Type.Value);
+        command.Parameters.AddWithValue($"@{paramPrefix}ExpectedEpoch", expectedEpoch);
+
+        return sql;
+    }
+    
+    private string? _suspendFunctionSql;
+    public string SuspendFunction(
+        StoredId storedId, 
+        long timestamp,
+        int expectedEpoch, 
+        SqlCommand command,
+        string paramPrefix
+        )
+    {
+        _suspendFunctionSql ??= @$"
+                UPDATE {tablePrefix}
+                SET Status = {(int)Status.Suspended}, Timestamp = @Timestamp
+                WHERE FlowType = @FlowType AND 
+                      FlowInstance = @FlowInstance AND                       
+                      Epoch = @ExpectedEpoch AND
+                      Interrupted = 0;";
+        
+        var sql = paramPrefix == "" 
+            ? _suspendFunctionSql
+            : _suspendFunctionSql.Replace("@", $"@{paramPrefix}");
+        
+        command.Parameters.AddWithValue($"@{paramPrefix}Timestamp", timestamp);
+        command.Parameters.AddWithValue($"@{paramPrefix}FlowType", storedId.Type.Value);
+        command.Parameters.AddWithValue($"@{paramPrefix}FlowInstance", storedId.Instance.Value);
+        command.Parameters.AddWithValue($"@{paramPrefix}ExpectedEpoch", expectedEpoch);
+
+        return sql;
     }
 }
