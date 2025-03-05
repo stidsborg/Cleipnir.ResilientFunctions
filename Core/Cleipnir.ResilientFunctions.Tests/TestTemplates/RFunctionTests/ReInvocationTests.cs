@@ -52,7 +52,7 @@ public abstract class ReInvocationTests
         
         syncedParameter.Value.ShouldBe("something");
 
-        var function = await store.GetFunction(rFunc.MapToStoredId(new FlowId(functionType, "something")));
+        var function = await store.GetFunction(rFunc.MapToStoredId("something"));
         function.ShouldNotBeNull();
         function.Status.ShouldBe(Status.Succeeded);
         
@@ -106,7 +106,7 @@ public abstract class ReInvocationTests
         
         controlPanel = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
         await controlPanel.Restart();
-        var function = await store.GetFunction(rAction.MapToStoredId(functionId));
+        var function = await store.GetFunction(rAction.MapToStoredId(functionId.Instance));
         function.ShouldNotBeNull();
         function.Status.ShouldBe(Status.Succeeded);
         await controlPanel.Refresh();
@@ -251,7 +251,7 @@ public abstract class ReInvocationTests
         var controlPanel = await rFunc.ControlPanel(flowInstance).ShouldNotBeNullAsync();
         await controlPanel.Restart();
 
-        var function = await store.GetFunction(rFunc.MapToStoredId(functionId));
+        var function = await store.GetFunction(rFunc.MapToStoredId(functionId.Instance));
         function.ShouldNotBeNull();
         function.Status.ShouldBe(Status.Succeeded);
         function.Result!.ToStringFromUtf8Bytes().DeserializeFromJsonTo<string>().ShouldBe("something");
@@ -305,7 +305,7 @@ public abstract class ReInvocationTests
         var result = await controlPanel.Restart(); 
         result.ShouldBe("something");
 
-        var function = await store.GetFunction(rFunc.MapToStoredId(functionId));
+        var function = await store.GetFunction(rFunc.MapToStoredId(functionId.Instance));
         function.ShouldNotBeNull();
         function.Status.ShouldBe(Status.Succeeded);
         function.Result!.ToStringFromUtf8Bytes().DeserializeFromJsonTo<string>().ShouldBe("something");

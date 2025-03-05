@@ -116,7 +116,7 @@ public class RFunctionsShutdownTests
         );
         
         await store.CreateFunction(
-            registration.MapToStoredId(functionId), 
+            registration.MapToStoredId(functionId.Instance), 
             "humanInstanceId",
             param: "".ToJson().ToUtf8Bytes(),
             leaseExpiration: DateTime.UtcNow.Ticks,
@@ -168,7 +168,7 @@ public class RFunctionsShutdownTests
         );
         
         await store.CreateFunction(
-            registration.MapToStoredId(functionId), 
+            registration.MapToStoredId(functionId.Instance), 
             "humanInstanceId",
             storedParameter.ToUtf8Bytes(),
             leaseExpiration: DateTime.UtcNow.Ticks,
@@ -178,7 +178,7 @@ public class RFunctionsShutdownTests
         ).ShouldBeTrueAsync();
 
         await store.PostponeFunction(
-            registration.MapToStoredId(functionId),
+            registration.MapToStoredId(functionId.Instance),
             postponeUntil: DateTime.UtcNow.AddDays(-1).Ticks,
             timestamp: DateTime.UtcNow.Ticks,
             expectedEpoch: 0,
@@ -235,7 +235,7 @@ public class RFunctionsShutdownTests
         
         counter.Current.ShouldBe(1);
 
-        var sf = await store.GetFunction(registration.MapToStoredId(new FlowId(flowType, "instanceId")));
+        var sf = await store.GetFunction(registration.MapToStoredId("instanceId"));
         sf!.Status.ShouldBe(Status.Postponed);
             
         unhandledExceptionCatcher.ShouldNotHaveExceptions();

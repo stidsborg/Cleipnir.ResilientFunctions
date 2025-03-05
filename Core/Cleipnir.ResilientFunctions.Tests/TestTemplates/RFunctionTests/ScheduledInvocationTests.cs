@@ -27,7 +27,7 @@ public abstract class ScheduledInvocationTests
         
         await schedule(flowInstance, flowInstance);
 
-        var storedFunction = await store.GetFunction(reg.MapToStoredId(functionId));
+        var storedFunction = await store.GetFunction(reg.MapToStoredId(functionId.Instance));
         storedFunction.ShouldNotBeNull();
         
         storedFunction.Status.ShouldBe(Status.Executing);
@@ -53,7 +53,7 @@ public abstract class ScheduledInvocationTests
 
         await schedule(flowInstance, flowInstance);
 
-        var storedFunction = await store.GetFunction(reg.MapToStoredId(functionId));
+        var storedFunction = await store.GetFunction(reg.MapToStoredId(functionId.Instance));
         storedFunction.ShouldNotBeNull();
         
         storedFunction.Status.ShouldBe(Status.Executing);
@@ -79,7 +79,7 @@ public abstract class ScheduledInvocationTests
 
         await schedule(flowInstance, flowInstance);
         
-        var storedFunction = await store.GetFunction(reg.MapToStoredId(functionId));
+        var storedFunction = await store.GetFunction(reg.MapToStoredId(functionId.Instance));
         storedFunction.ShouldNotBeNull();
         
         storedFunction.Status.ShouldBe(Status.Executing);
@@ -105,7 +105,7 @@ public abstract class ScheduledInvocationTests
 
         await schedule(flowInstance, flowInstance);
 
-        var storedFunction = await store.GetFunction(reg.MapToStoredId(functionId));
+        var storedFunction = await store.GetFunction(reg.MapToStoredId(functionId.Instance));
         storedFunction.ShouldNotBeNull();
         
         storedFunction.Status.ShouldBe(Status.Executing);

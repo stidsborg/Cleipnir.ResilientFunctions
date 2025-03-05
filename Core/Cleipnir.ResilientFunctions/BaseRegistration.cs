@@ -22,8 +22,8 @@ public abstract class BaseRegistration
 
     public Task RouteMessage<T>(T message, string correlationId, string? idempotencyKey = null) where T : notnull 
         => Postman.RouteMessage(message, correlationId, idempotencyKey);
-
-    public StoredId MapToStoredId(FlowId id) => new(StoredType, id.Instance.Value.ToStoredInstance());
+    
+    public StoredId MapToStoredId(FlowInstance instance) => new(StoredType, instance.Value.ToStoredInstance());
 
     public async Task<IReadOnlyList<StoredInstance>> GetInstances(Status? status = null)
     {

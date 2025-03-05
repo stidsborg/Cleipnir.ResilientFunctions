@@ -40,12 +40,7 @@ public abstract class SunshineTests
         result.ShouldBe("HELLO");
             
         var storedFunction = await store.GetFunction(
-            reg.MapToStoredId(
-                new FlowId(
-                    flowType, 
-                    "hello".ToFlowInstance()
-                )
-            )
+            reg.MapToStoredId("hello".ToFlowInstance())
         );
         storedFunction.ShouldNotBeNull();
         storedFunction.Status.ShouldBe(Status.Succeeded);
@@ -77,7 +72,7 @@ public abstract class SunshineTests
         await invoke("SomeInstanceId");
         flag.Position.ShouldBe(FlagPosition.Raised);
             
-        var storedFunction = await store.GetFunction(reg.MapToStoredId(new FlowId(flowType, flowInstance: "SomeInstanceId")));
+        var storedFunction = await store.GetFunction(reg.MapToStoredId("SomeInstanceId"));
         storedFunction.ShouldNotBeNull();
         storedFunction.Status.ShouldBe(Status.Succeeded);
         storedFunction.Result.ShouldBeNull();
@@ -108,7 +103,7 @@ public abstract class SunshineTests
         await invoke("SomeInstanceId");
         flag.Position.ShouldBe(FlagPosition.Raised);
             
-        var storedFunction = await store.GetFunction(reg.MapToStoredId(new FlowId(flowType, flowInstance: "SomeInstanceId")));
+        var storedFunction = await store.GetFunction(reg.MapToStoredId("SomeInstanceId"));
         storedFunction.ShouldNotBeNull();
         storedFunction.Status.ShouldBe(Status.Succeeded);
         storedFunction.Result.ShouldBeNull();
@@ -143,11 +138,7 @@ public abstract class SunshineTests
         result.ShouldBe("HELLO");
 
         var storedFunction = await store.GetFunction(
-            reg.MapToStoredId(new FlowId(
-                    flowType,
-                    "hello".ToFlowInstance()
-                )
-            )
+            reg.MapToStoredId("hello".ToFlowInstance())
         );
         storedFunction.ShouldNotBeNull();
         storedFunction.Status.ShouldBe(Status.Succeeded);
@@ -176,11 +167,7 @@ public abstract class SunshineTests
         await rAction("hello", "hello");
 
         var storedFunction = await store.GetFunction(
-            reg.MapToStoredId(new FlowId(
-                    flowType,
-                    "hello".ToFlowInstance()
-                )
-            )
+            reg.MapToStoredId("hello".ToFlowInstance())
         );
         storedFunction.ShouldNotBeNull();
         storedFunction.Status.ShouldBe(Status.Succeeded);
@@ -206,12 +193,7 @@ public abstract class SunshineTests
         await rFunc("hello", "hello");
 
         var storedFunction = await store.GetFunction(
-            reg.MapToStoredId(
-                new FlowId(
-                    flowType,
-                    "hello".ToFlowInstance()
-                )
-            )
+            reg.MapToStoredId("hello".ToFlowInstance())
         );
         storedFunction.ShouldNotBeNull();
         storedFunction.Status.ShouldBe(Status.Succeeded);
@@ -260,10 +242,10 @@ public abstract class SunshineTests
         result.ShouldBeNull();
 
         await store
-            .GetFunction(reg.MapToStoredId(functionId))
+            .GetFunction(reg.MapToStoredId(functionId.Instance))
             .ShouldNotBeNullAsync();
 
-        var states = await store.EffectsStore.GetEffectResults(reg.MapToStoredId(functionId));
+        var states = await store.EffectsStore.GetEffectResults(reg.MapToStoredId(functionId.Instance));
         var state = states.Single(e => e.EffectId == "State".ToEffectId(EffectType.State)).Result!.ToStringFromUtf8Bytes().DeserializeFromJsonTo<ListState<string>>();
         state.List.Single().ShouldBe("hello world");
     }
@@ -332,7 +314,7 @@ public abstract class SunshineTests
                 inner: (string _) => Task.CompletedTask
             );
             
-            await BusyWait.Until(async () => await store.GetFunction(reg.MapToStoredId(functionId)) is null);
+            await BusyWait.Until(async () => await store.GetFunction(reg.MapToStoredId(functionId.Instance)) is null);
         }
         
         unhandledExceptionCatcher.ShouldNotHaveExceptions();
@@ -522,7 +504,7 @@ public abstract class SunshineTests
         await reg.Invoke(instance);
         
             
-        storedId.ShouldBe(reg.MapToStoredId(new FlowId(type, instance)));
+        storedId.ShouldBe(reg.MapToStoredId(instance));
         unhandledExceptionHandler.ShouldNotHaveExceptions();
     }
     
@@ -557,7 +539,7 @@ public abstract class SunshineTests
 
         await BusyWait.Until(() => storedId != null);
         
-        storedId.ShouldBe(reg.MapToStoredId(new FlowId(type, instance)));
+        storedId.ShouldBe(reg.MapToStoredId(instance));
         unhandledExceptionHandler.ShouldNotHaveExceptions();
     }
 }

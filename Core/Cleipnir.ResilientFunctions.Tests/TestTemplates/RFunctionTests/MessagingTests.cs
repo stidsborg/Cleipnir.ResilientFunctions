@@ -69,7 +69,7 @@ public abstract class MessagingTests
         await Should.ThrowAsync<InvocationSuspendedException>(() =>
             rAction.Invoke(functionId.Instance.Value, "")
         );
-        var sf = await store.GetFunction(rAction.MapToStoredId(functionId));
+        var sf = await store.GetFunction(rAction.MapToStoredId(functionId.Instance));
         sf.ShouldNotBeNull();
         sf.Status.ShouldBe(Status.Suspended);
         

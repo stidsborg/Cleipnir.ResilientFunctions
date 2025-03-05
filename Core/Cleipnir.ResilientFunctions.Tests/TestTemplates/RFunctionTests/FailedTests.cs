@@ -51,7 +51,7 @@ public abstract class FailedTests
                 );
 
             await Should.ThrowAsync<Exception>(async () => await actionRegistration.Invoke(flowInstance.ToString(), Param));
-            var sf = await store.GetFunction(actionRegistration.MapToStoredId(functionId));
+            var sf = await store.GetFunction(actionRegistration.MapToStoredId(functionId.Instance));
             sf.ShouldNotBeNull();
         }
         {
@@ -75,7 +75,7 @@ public abstract class FailedTests
             
             flag.Position.ShouldBe(Lowered);
             
-            var sf = await store.GetFunction(rFunc.MapToStoredId(functionId));
+            var sf = await store.GetFunction(rFunc.MapToStoredId(functionId.Instance));
             sf.ShouldNotBeNull();
             sf.Status.ShouldBe(Status.Failed);
             await Should.ThrowAsync<Exception>(async () => await rFunc.Invoke(flowInstance.ToString(), Param));
@@ -144,7 +144,7 @@ public abstract class FailedTests
             flag.Position.ShouldBe(Lowered);
             
             var functionId = new FlowId(flowType, Param.ToFlowInstance());
-            var storedFunction = await store.GetFunction(rAction.MapToStoredId(functionId));
+            var storedFunction = await store.GetFunction(rAction.MapToStoredId(functionId.Instance));
             storedFunction.ShouldNotBeNull();
             storedFunction.Status.ShouldBe(Status.Failed);
 
@@ -201,7 +201,7 @@ public abstract class FailedTests
             await Task.Delay(250);
             flag.Position.ShouldBe(Lowered);
             
-            var status = await store.GetFunction(rFunc.MapToStoredId(functionId)).Map(t => t?.Status);
+            var status = await store.GetFunction(rFunc.MapToStoredId(functionId.Instance)).Map(t => t?.Status);
             status.ShouldNotBeNull();
             status.ShouldBe(Status.Failed);
             await Should.ThrowAsync<Exception>(rFunc.Invoke(flowInstance.ToString(), Param));
@@ -295,7 +295,7 @@ public abstract class FailedTests
             await Task.Delay(250);
             flag.Position.ShouldBe(Lowered);
             
-            var storedFunction = await store.GetFunction(rFunc.MapToStoredId(functionId));
+            var storedFunction = await store.GetFunction(rFunc.MapToStoredId(functionId.Instance));
             storedFunction.ShouldNotBeNull();
             storedFunction.Status.ShouldBe(Status.Failed);
             

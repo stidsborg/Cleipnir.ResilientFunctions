@@ -28,7 +28,7 @@ public abstract class InitialInvocationFailedTests
             });
 
         await store.CreateFunction(
-            registration.MapToStoredId(functionId), 
+            registration.MapToStoredId(functionId.Instance), 
             "humanInstanceId",
             param: "hello world".ToJson().ToUtf8Bytes(),
             leaseExpiration: DateTime.UtcNow.Ticks,
@@ -40,7 +40,7 @@ public abstract class InitialInvocationFailedTests
         await flag.WaitForRaised();
 
         await BusyWait.Until(
-            () => store.GetFunction(registration.MapToStoredId(functionId)).Map(sf => sf?.Status == Status.Succeeded)
+            () => store.GetFunction(registration.MapToStoredId(functionId.Instance)).Map(sf => sf?.Status == Status.Succeeded)
         );
     }
 
@@ -61,7 +61,7 @@ public abstract class InitialInvocationFailedTests
             });
 
         await store.CreateFunction(
-            registration.MapToStoredId(functionId), 
+            registration.MapToStoredId(functionId.Instance), 
             "humanInstanceId",
             param: "hello world".ToJson().ToUtf8Bytes(),
             leaseExpiration: DateTime.UtcNow.Ticks,
@@ -73,7 +73,7 @@ public abstract class InitialInvocationFailedTests
         await flag.WaitForRaised();
 
         await BusyWait.Until(
-            () => store.GetFunction(registration.MapToStoredId(functionId)).Map(sf => sf?.Status == Status.Succeeded)
+            () => store.GetFunction(registration.MapToStoredId(functionId.Instance)).Map(sf => sf?.Status == Status.Succeeded)
         );
     }
 
@@ -94,7 +94,7 @@ public abstract class InitialInvocationFailedTests
             });
 
         await store.CreateFunction(
-            registration.MapToStoredId(functionId), 
+            registration.MapToStoredId(functionId.Instance), 
             "humanInstanceId",
             param: "hello world".ToJson().ToUtf8Bytes(),
             leaseExpiration: DateTime.UtcNow.Ticks,
@@ -106,9 +106,9 @@ public abstract class InitialInvocationFailedTests
         await flag.WaitForRaised();
 
         await BusyWait.Until(
-            () => store.GetFunction(registration.MapToStoredId(functionId)).Map(sf => sf?.Status == Status.Succeeded)
+            () => store.GetFunction(registration.MapToStoredId(functionId.Instance)).Map(sf => sf?.Status == Status.Succeeded)
         );
-        var resultJson = await store.GetFunction(registration.MapToStoredId(functionId)).Map(sf => sf?.Result);
+        var resultJson = await store.GetFunction(registration.MapToStoredId(functionId.Instance)).Map(sf => sf?.Result);
         resultJson.ShouldNotBeNull();
         JsonConvert.DeserializeObject<string>(resultJson.ToStringFromUtf8Bytes()).ShouldBe("HELLO WORLD");
     }
@@ -130,7 +130,7 @@ public abstract class InitialInvocationFailedTests
             });
 
         await store.CreateFunction(
-            registration.MapToStoredId(functionId), 
+            registration.MapToStoredId(functionId.Instance), 
             "humanInstanceId",
             param: "hello world".ToJson().ToUtf8Bytes(),
             leaseExpiration: DateTime.UtcNow.Ticks,
@@ -142,10 +142,10 @@ public abstract class InitialInvocationFailedTests
         await flag.WaitForRaised();
 
         await BusyWait.Until(
-            () => store.GetFunction(registration.MapToStoredId(functionId)).Map(sf => sf?.Status == Status.Succeeded)
+            () => store.GetFunction(registration.MapToStoredId(functionId.Instance)).Map(sf => sf?.Status == Status.Succeeded)
         );
         
-        var resultJson = await store.GetFunction(registration.MapToStoredId(functionId)).Map(sf => sf?.Result);
+        var resultJson = await store.GetFunction(registration.MapToStoredId(functionId.Instance)).Map(sf => sf?.Result);
         resultJson.ShouldNotBeNull();
         JsonConvert.DeserializeObject<string>(resultJson.ToStringFromUtf8Bytes()).ShouldBe("HELLO WORLD");
     }

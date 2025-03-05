@@ -40,7 +40,7 @@ public abstract class AtMostOnceWorkStatusTests
         await rAction.Schedule(flowInstance.ToString(), "hello");
 
         await BusyWait.Until(() =>
-            store.GetFunction(rAction.MapToStoredId(functionId))
+            store.GetFunction(rAction.MapToStoredId(functionId.Instance))
                 .SelectAsync(sf => sf?.Status == Status.Failed)
         );
         
@@ -74,7 +74,7 @@ public abstract class AtMostOnceWorkStatusTests
         await rAction.Schedule(flowInstance.ToString(), "hello");
 
         await BusyWait.Until(() =>
-            store.GetFunction(rAction.MapToStoredId(functionId))
+            store.GetFunction(rAction.MapToStoredId(functionId.Instance))
                 .SelectAsync(sf => sf?.Status == Status.Failed)
         );
         

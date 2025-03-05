@@ -41,7 +41,7 @@ public abstract class SemaphoreTests
         
         await checkSemaphoreFlag.WaitForRaised();
         
-        var storedId = rAction.MapToStoredId(flowId);
+        var storedId = rAction.MapToStoredId(flowId.Instance);
         var queued = await store.SemaphoreStore.GetQueued("SomeGroup", "SomeInstance", count: 10);
         queued.Count.ShouldBe(1);
         var queuedStoredId = queued.Single();
@@ -185,9 +185,9 @@ public abstract class SemaphoreTests
         var thirdFlowControlPanel = await thirdFlow.ControlPanel(flowId3.Instance).ShouldNotBeNullAsync();
         await thirdFlowControlPanel.BusyWaitUntil(c => c.Status == Status.Suspended);
         
-        var storedId1 = firstFlow.MapToStoredId(flowId1);
-        var storedId2 = secondFlow.MapToStoredId(flowId2);
-        var storedId3 = thirdFlow.MapToStoredId(flowId3);
+        var storedId1 = firstFlow.MapToStoredId(flowId1.Instance);
+        var storedId2 = secondFlow.MapToStoredId(flowId2.Instance);
+        var storedId3 = thirdFlow.MapToStoredId(flowId3.Instance);
         var queued = await store.SemaphoreStore.GetQueued("SomeGroup", "SomeInstance", count: 10);
         queued.Count.ShouldBe(3);
         queued.Any(s => s == storedId1).ShouldBeTrue();

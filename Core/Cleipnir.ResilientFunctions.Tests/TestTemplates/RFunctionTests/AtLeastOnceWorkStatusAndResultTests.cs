@@ -43,7 +43,7 @@ public abstract class AtLeastOnceWorkStatusAndResultTests
         _ = rAction.Invoke(flowInstance.ToString(), "hello");
         
         await BusyWait.Until(() =>
-            store.GetFunction(rAction.MapToStoredId(functionId))
+            store.GetFunction(rAction.MapToStoredId(functionId.Instance))
                 .SelectAsync(sf => sf?.Status == Status.Succeeded)
         );
 
@@ -82,7 +82,7 @@ public abstract class AtLeastOnceWorkStatusAndResultTests
         _ = rFunc.Schedule(flowInstance.ToString(), "hello");
 
         await BusyWait.Until(() =>
-            store.GetFunction(rFunc.MapToStoredId(functionId))
+            store.GetFunction(rFunc.MapToStoredId(functionId.Instance))
                 .SelectAsync(sf => sf?.Status == Status.Succeeded)
         );
 
@@ -122,7 +122,7 @@ public abstract class AtLeastOnceWorkStatusAndResultTests
         _ = rFunc.Schedule(flowInstance.ToString(), "hello");
 
         await BusyWait.Until(() =>
-            store.GetFunction(rFunc.MapToStoredId(functionId))
+            store.GetFunction(rFunc.MapToStoredId(functionId.Instance))
                 .SelectAsync(sf => sf?.Status == Status.Succeeded)
         );
 
@@ -156,7 +156,7 @@ public abstract class AtLeastOnceWorkStatusAndResultTests
             });
 
         await rAction.Invoke(flowInstance.ToString(), "hello");
-        await BusyWait.Until(async () => await store.GetFunction(rAction.MapToStoredId(functionId)) != null);
+        await BusyWait.Until(async () => await store.GetFunction(rAction.MapToStoredId(functionId.Instance)) != null);
         await rAction.ControlPanel(flowInstance).Result!.Restart();
 
         counter.Current.ShouldBe(1);

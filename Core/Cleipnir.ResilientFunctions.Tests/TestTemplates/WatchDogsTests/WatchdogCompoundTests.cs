@@ -119,10 +119,10 @@ public abstract class WatchdogCompoundTests
             );
 
             await BusyWait.Until(async () =>
-                await store.GetFunction(registration.MapToStoredId(functionId)).Map(sf => sf!.Status) == Status.Succeeded
+                await store.GetFunction(registration.MapToStoredId(functionId.Instance)).Map(sf => sf!.Status) == Status.Succeeded
             );
             
-            var storedFunction = await store.GetFunction(registration.MapToStoredId(functionId));
+            var storedFunction = await store.GetFunction(registration.MapToStoredId(functionId.Instance));
             storedFunction!.Result!.ToStringFromUtf8Bytes().DeserializeFromJsonTo<string>().CastTo<string>().ShouldBe($"{param.Id}-{param.Value}");
         }
     }
@@ -248,13 +248,13 @@ public abstract class WatchdogCompoundTests
             );
 
             await BusyWait.Until(async () =>
-                await store.GetFunction(registration.MapToStoredId(functionId)).Map(sf => sf!.Status) == Status.Succeeded,
+                await store.GetFunction(registration.MapToStoredId(functionId.Instance)).Map(sf => sf!.Status) == Status.Succeeded,
                 maxWait: TimeSpan.FromSeconds(5)
             );
 
-            var storedFunction = await store.GetFunction(registration.MapToStoredId(functionId));
+            var storedFunction = await store.GetFunction(registration.MapToStoredId(functionId.Instance));
             storedFunction!.Result!.ToStringFromUtf8Bytes().DeserializeFromJsonTo<string>().ShouldBe($"{param.Id}-{param.Value}");
-            var states = await store.EffectsStore.GetEffectResults(registration.MapToStoredId(functionId));
+            var states = await store.EffectsStore.GetEffectResults(registration.MapToStoredId(functionId.Instance));
             states.Single(e => e.EffectId == "Scraps".ToEffectId(EffectType.State))
                 .Result!
                 .ToStringFromUtf8Bytes()
@@ -373,12 +373,12 @@ public abstract class WatchdogCompoundTests
                 );
 
             await BusyWait.Until(async () =>
-                await store.GetFunction(registration.MapToStoredId(functionId)).Map(sf => sf!.Status) == Status.Succeeded
+                await store.GetFunction(registration.MapToStoredId(functionId.Instance)).Map(sf => sf!.Status) == Status.Succeeded
             );
             
             paramTcs.Task.Result.ShouldBe(param);
             
-            await store.GetFunction(registration.MapToStoredId(functionId));
+            await store.GetFunction(registration.MapToStoredId(functionId.Instance));
         }
     }
     
@@ -504,13 +504,13 @@ public abstract class WatchdogCompoundTests
             );
 
             await BusyWait.Until(async () =>
-                await store.GetFunction(registration.MapToStoredId(functionId)).Map(sf => sf!.Status) == Status.Succeeded
+                await store.GetFunction(registration.MapToStoredId(functionId.Instance)).Map(sf => sf!.Status) == Status.Succeeded
             );
 
             paramTcs.Task.Result.ShouldBe(param);
             
-            var storedFunction = await store.GetFunction(registration.MapToStoredId(functionId));
-            var states = await store.EffectsStore.GetEffectResults(registration.MapToStoredId(functionId));
+            var storedFunction = await store.GetFunction(registration.MapToStoredId(functionId.Instance));
+            var states = await store.EffectsStore.GetEffectResults(registration.MapToStoredId(functionId.Instance));
             states.Single(e => e.EffectId == "Scraps".ToEffectId(EffectType.State))
                 .Result!
                 .ToStringFromUtf8Bytes()
@@ -545,7 +545,7 @@ public abstract class WatchdogCompoundTests
         await registration.Invoke(functionId.Instance.Value, "SomeParam");
 
         await BusyWait.Until(
-            () => store.GetFunction(registration.MapToStoredId(functionId)).SelectAsync(sf => sf is not null)
+            () => store.GetFunction(registration.MapToStoredId(functionId.Instance)).SelectAsync(sf => sf is not null)
         );
     }
     

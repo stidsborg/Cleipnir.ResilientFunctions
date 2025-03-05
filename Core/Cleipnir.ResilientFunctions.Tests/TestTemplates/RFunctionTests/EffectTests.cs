@@ -37,7 +37,7 @@ public abstract class EffectTests
 
         await rAction.Schedule(flowInstance.ToString(), "hello");
 
-        var storedId = rAction.MapToStoredId(flowId);
+        var storedId = rAction.MapToStoredId(flowId.Instance);
         await BusyWait.Until(() =>
             store.GetFunction(storedId).SelectAsync(sf => sf?.Status == Status.Succeeded)
         );
@@ -75,7 +75,7 @@ public abstract class EffectTests
 
         await rAction.Schedule(flowInstance.ToString(), "hello");
 
-        var storedId = rAction.MapToStoredId(flowId);
+        var storedId = rAction.MapToStoredId(flowId.Instance);
         await BusyWait.Until(() =>
             store.GetFunction(storedId).SelectAsync(sf => sf?.Status == Status.Succeeded)
         );
@@ -117,7 +117,7 @@ public abstract class EffectTests
 
         await rAction.Schedule(flowInstance.ToString(), param: "hello");
 
-        var storedId = rAction.MapToStoredId(flowId);
+        var storedId = rAction.MapToStoredId(flowId.Instance);
         await BusyWait.Until(() =>
             store.GetFunction(storedId).SelectAsync(sf => sf?.Status == Status.Succeeded)
         );
@@ -163,7 +163,7 @@ public abstract class EffectTests
 
         await rAction.Schedule(flowInstance.ToString(), param: "hello");
         
-        var storedId = rAction.MapToStoredId(flowId);
+        var storedId = rAction.MapToStoredId(flowId.Instance);
         await BusyWait.Until(() =>
             store.GetFunction(storedId).SelectAsync(sf => sf?.Status == Status.Succeeded)
         );
@@ -209,7 +209,7 @@ public abstract class EffectTests
 
         await rAction.Schedule(flowInstance.ToString(), "hello");
 
-        var storedId = rAction.MapToStoredId(flowId);
+        var storedId = rAction.MapToStoredId(flowId.Instance);
         await BusyWait.Until(() =>
             store.GetFunction(storedId).SelectAsync(sf => sf?.Status == Status.Failed)
         );
@@ -253,7 +253,7 @@ public abstract class EffectTests
         var result = await rAction.Invoke(flowInstance.ToString(), param: "hello");
         result.ShouldBe(2);
         
-        var storedId = rAction.MapToStoredId(flowId);
+        var storedId = rAction.MapToStoredId(flowId.Instance);
         var effectResults = await store.EffectsStore.GetEffectResults(storedId);
         var storedEffect = effectResults.Single(r => r.EffectId == "WhenAny".ToEffectId());
         storedEffect.WorkStatus.ShouldBe(WorkStatus.Completed);
@@ -280,7 +280,7 @@ public abstract class EffectTests
         var result = await rAction.Invoke(flowInstance.ToString(), param: "hello");
         result.ShouldBe(new [] { 1, 2 });
         
-        var storedId = rAction.MapToStoredId(flowId);
+        var storedId = rAction.MapToStoredId(flowId.Instance);
         var effectResults = await store.EffectsStore.GetEffectResults(storedId);
         var storedEffect = effectResults.Single(r => r.EffectId == "WhenAll".ToEffectId());
         storedEffect.WorkStatus.ShouldBe(WorkStatus.Completed);
@@ -304,7 +304,7 @@ public abstract class EffectTests
             });
 
         await store.CreateFunction(
-            registration.MapToStoredId(flowId), 
+            registration.MapToStoredId(flowId.Instance), 
             "humanInstanceId",
             Test.SimpleStoredParameter,
             leaseExpiration: (DateTime.UtcNow + TimeSpan.FromMinutes(10)).Ticks,
@@ -425,7 +425,7 @@ public abstract class EffectTests
 
         await rAction.Invoke(flowInstance.ToString());
         
-        var storedId = rAction.MapToStoredId(flowId);
+        var storedId = rAction.MapToStoredId(flowId.Instance);
         var effectResults = await store.EffectsStore.GetEffectResults(storedId);
 
         var subEffectValue1Id = effectResults.Single(se => se.EffectId.Id == "SubEffectValue1").EffectId;
@@ -468,7 +468,7 @@ public abstract class EffectTests
 
         await rAction.Invoke(flowInstance.ToString());
         
-        var storedId = rAction.MapToStoredId(flowId);
+        var storedId = rAction.MapToStoredId(flowId.Instance);
         var effectResults = await store.EffectsStore.GetEffectResults(storedId);
 
         var subEffectValue1Id = effectResults.Single(se => se.EffectId.Id == "SubEffectValue1").EffectId;

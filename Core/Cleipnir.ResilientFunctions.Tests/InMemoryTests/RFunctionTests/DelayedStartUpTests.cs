@@ -31,7 +31,7 @@ public class DelayedStartUpTests
             Task (string param) => Task.CompletedTask
         );
         await store.CreateFunction(
-            registration.MapToStoredId(functionId), 
+            registration.MapToStoredId(functionId.Instance), 
             "humanInstanceId",
             "hello world".ToJson().ToUtf8Bytes(),
             leaseExpiration: DateTime.UtcNow.Ticks,
@@ -40,7 +40,7 @@ public class DelayedStartUpTests
             parent: null
         );
 
-        await BusyWait.Until(() => store.GetFunction(registration.MapToStoredId(functionId)).Map(sf => sf?.Status == Status.Succeeded));
+        await BusyWait.Until(() => store.GetFunction(registration.MapToStoredId(functionId.Instance)).Map(sf => sf?.Status == Status.Succeeded));
         stopWatch.Elapsed.ShouldBeGreaterThan(TimeSpan.FromMilliseconds(750));
     }
     
@@ -96,7 +96,7 @@ public class DelayedStartUpTests
         );
 
         await store.CreateFunction(
-            registration.MapToStoredId(functionId), 
+            registration.MapToStoredId(functionId.Instance), 
             "humanInstanceId",
             storedParameter.ToUtf8Bytes(),
             leaseExpiration: DateTime.UtcNow.Ticks,
@@ -105,14 +105,14 @@ public class DelayedStartUpTests
             parent: null
         );
         await store.PostponeFunction(
-            registration.MapToStoredId(functionId),
+            registration.MapToStoredId(functionId.Instance),
             postponeUntil: 0,
             timestamp: DateTime.UtcNow.Ticks,
             expectedEpoch: 0,
             complimentaryState: new ComplimentaryState(storedParameter.ToUtf8Bytes().ToFunc(), LeaseLength: 0)
         ).ShouldBeTrueAsync();
         
-        await BusyWait.Until(() => store.GetFunction(registration.MapToStoredId(functionId)).Map(sf => sf?.Status == Status.Succeeded));
+        await BusyWait.Until(() => store.GetFunction(registration.MapToStoredId(functionId.Instance)).Map(sf => sf?.Status == Status.Succeeded));
         stopWatch.Elapsed.ShouldBeGreaterThan(TimeSpan.FromMilliseconds(750));
     }
     
@@ -133,7 +133,7 @@ public class DelayedStartUpTests
         );
         
         await store.CreateFunction(
-            registration.MapToStoredId(functionId), 
+            registration.MapToStoredId(functionId.Instance), 
             "humanInstanceId",
             storedParameter,
             leaseExpiration: DateTime.UtcNow.Ticks,
@@ -142,14 +142,14 @@ public class DelayedStartUpTests
             parent: null
         );
         await store.PostponeFunction(
-            registration.MapToStoredId(functionId),
+            registration.MapToStoredId(functionId.Instance),
             postponeUntil: 0,
             timestamp: DateTime.UtcNow.Ticks,
             expectedEpoch: 0,
             new ComplimentaryState(storedParameter.ToFunc(), LeaseLength: 0)
         );
 
-        await BusyWait.Until(() => store.GetFunction(registration.MapToStoredId(functionId)).Map(sf => sf?.Status == Status.Succeeded));
+        await BusyWait.Until(() => store.GetFunction(registration.MapToStoredId(functionId.Instance)).Map(sf => sf?.Status == Status.Succeeded));
         stopWatch.Elapsed.ShouldBeLessThan(TimeSpan.FromMilliseconds(500));
     }
 }

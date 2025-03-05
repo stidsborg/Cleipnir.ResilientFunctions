@@ -47,7 +47,7 @@ public abstract class ControlPanelTests
         
         await Should.ThrowAsync<UnexpectedStateException>(controlPanel.Refresh());
 
-        var storedId = rAction.MapToStoredId(functionId);
+        var storedId = rAction.MapToStoredId(functionId.Instance);
         await store.GetFunction(storedId).ShouldBeNullAsync();
 
         await store
@@ -108,7 +108,7 @@ public abstract class ControlPanelTests
 
         await Should.ThrowAsync<UnexpectedStateException>(controlPanel.Refresh());
 
-        var storedId = rFunc.MapToStoredId(functionId);
+        var storedId = rFunc.MapToStoredId(functionId.Instance);
         await store.GetFunction(storedId).ShouldBeNullAsync();
         
         await store
@@ -166,7 +166,7 @@ public abstract class ControlPanelTests
         controlPanel.PostponedUntil.ShouldNotBeNull();
         controlPanel.PostponedUntil.Value.Ticks.ShouldBe(1_000_000);
         
-        var sf = await store.GetFunction(rAction.MapToStoredId(functionId));
+        var sf = await store.GetFunction(rAction.MapToStoredId(functionId.Instance));
         sf.ShouldNotBeNull();
         sf.Status.ShouldBe(Status.Postponed);
         sf.Expires.ShouldBe(1_000_000);
@@ -202,7 +202,7 @@ public abstract class ControlPanelTests
         controlPanel.PostponedUntil.ShouldNotBeNull();
         controlPanel.PostponedUntil.Value.Ticks.ShouldBe(1_000_000);
         
-        var sf = await store.GetFunction(rFunc.MapToStoredId(functionId));
+        var sf = await store.GetFunction(rFunc.MapToStoredId(functionId.Instance));
         sf.ShouldNotBeNull();
         sf.Status.ShouldBe(Status.Postponed);
         sf.Expires.ShouldBe(1_000_000);
@@ -237,7 +237,7 @@ public abstract class ControlPanelTests
         controlPanel.Status.ShouldBe(Status.Failed);
         controlPanel.FatalWorkflowException.ShouldNotBeNull();
 
-        var sf = await store.GetFunction(rAction.MapToStoredId(functionId));
+        var sf = await store.GetFunction(rAction.MapToStoredId(functionId.Instance));
         sf.ShouldNotBeNull();
         sf.Status.ShouldBe(Status.Failed);
         sf.Exception.ShouldNotBeNull();
@@ -272,7 +272,7 @@ public abstract class ControlPanelTests
         controlPanel.Status.ShouldBe(Status.Failed);
         controlPanel.FatalWorkflowException.ShouldNotBeNull();
         
-        var sf = await store.GetFunction(rFunc.MapToStoredId(functionId));
+        var sf = await store.GetFunction(rFunc.MapToStoredId(functionId.Instance));
         sf.ShouldNotBeNull();
         sf.Status.ShouldBe(Status.Failed);
         sf.Exception.ShouldNotBeNull();
@@ -306,7 +306,7 @@ public abstract class ControlPanelTests
         await controlPanel.Refresh();
         controlPanel.Status.ShouldBe(Status.Succeeded);
         
-        var sf = await store.GetFunction(rAction.MapToStoredId(functionId));
+        var sf = await store.GetFunction(rAction.MapToStoredId(functionId.Instance));
         sf.ShouldNotBeNull();
         sf.Status.ShouldBe(Status.Succeeded);
         
@@ -339,7 +339,7 @@ public abstract class ControlPanelTests
         await controlPanel.Refresh();
         controlPanel.Status.ShouldBe(Status.Succeeded);
         
-        var sf = await store.GetFunction(paramlessRegistration.MapToStoredId(functionId));
+        var sf = await store.GetFunction(paramlessRegistration.MapToStoredId(functionId.Instance));
         sf.ShouldNotBeNull();
         sf.Status.ShouldBe(Status.Succeeded);
         
@@ -373,7 +373,7 @@ public abstract class ControlPanelTests
         controlPanel.Status.ShouldBe(Status.Succeeded);
         controlPanel.Result.ShouldBe("hello world");
         
-        var sf = await store.GetFunction(rFunc.MapToStoredId(functionId));
+        var sf = await store.GetFunction(rFunc.MapToStoredId(functionId.Instance));
         sf.ShouldNotBeNull();
         sf.Status.ShouldBe(Status.Succeeded);
         var result = DefaultSerializer.Instance.Deserialize<string>(sf.Result!);
@@ -415,7 +415,7 @@ public abstract class ControlPanelTests
         controlPanel.Status.ShouldBe(Status.Succeeded);
         (await controlPanel.States.Get<TestState>("State")).Value.ShouldBe("second");
         
-        var sf = await store.GetFunction(rAction.MapToStoredId(functionId));
+        var sf = await store.GetFunction(rAction.MapToStoredId(functionId.Instance));
         sf.ShouldNotBeNull();
         sf.Status.ShouldBe(Status.Succeeded);
         
@@ -452,7 +452,7 @@ public abstract class ControlPanelTests
         var result = await controlPanel.Restart();
         result.ShouldBe("second");
         
-        var sf = await store.GetFunction(rAction.MapToStoredId(functionId));
+        var sf = await store.GetFunction(rAction.MapToStoredId(functionId.Instance));
         sf.ShouldNotBeNull();
         sf.Status.ShouldBe(Status.Succeeded);
         
@@ -489,12 +489,12 @@ public abstract class ControlPanelTests
         await controlPanel.Refresh();
         await controlPanel.ScheduleRestart();
 
-        await BusyWait.Until(() => store.GetFunction(rAction.MapToStoredId(functionId)).SelectAsync(sf => sf?.Status == Status.Succeeded));
+        await BusyWait.Until(() => store.GetFunction(rAction.MapToStoredId(functionId.Instance)).SelectAsync(sf => sf?.Status == Status.Succeeded));
         await controlPanel.Refresh();
         controlPanel.Status.ShouldBe(Status.Succeeded);
         (await controlPanel.States.Get<TestState>("State")).Value.ShouldBe("second");
         
-        var sf = await store.GetFunction(rAction.MapToStoredId(functionId));
+        var sf = await store.GetFunction(rAction.MapToStoredId(functionId.Instance));
         sf.ShouldNotBeNull();
         sf.Status.ShouldBe(Status.Succeeded);
         
@@ -524,11 +524,11 @@ public abstract class ControlPanelTests
 
         controlPanel.Param = "second";
         await controlPanel.ScheduleRestart();
-        await BusyWait.Until(() => store.GetFunction(rAction.MapToStoredId(functionId)).SelectAsync(sf => sf?.Status == Status.Succeeded));
+        await BusyWait.Until(() => store.GetFunction(rAction.MapToStoredId(functionId.Instance)).SelectAsync(sf => sf?.Status == Status.Succeeded));
         await controlPanel.Refresh();
         controlPanel.Result.ShouldBe("second");
         
-        var sf = await store.GetFunction(rAction.MapToStoredId(functionId));
+        var sf = await store.GetFunction(rAction.MapToStoredId(functionId.Instance));
         sf.ShouldNotBeNull();
         sf.Status.ShouldBe(Status.Succeeded);
         
@@ -944,7 +944,7 @@ public abstract class ControlPanelTests
 
         await rAction.Invoke(flowInstance.Value, param: "param");
         await store.MessageStore.AppendMessage(
-            rAction.MapToStoredId(functionId),
+            rAction.MapToStoredId(functionId.Instance),
             new StoredMessage("hello world".ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes())
         );
 
@@ -953,7 +953,7 @@ public abstract class ControlPanelTests
         await existingMessages.Count.ShouldBeAsync(1);
 
         await store.MessageStore.AppendMessage(
-            rAction.MapToStoredId(functionId),
+            rAction.MapToStoredId(functionId.Instance),
             new StoredMessage("hello universe".ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes())
         );
         
@@ -981,14 +981,14 @@ public abstract class ControlPanelTests
 
         await rAction.Invoke(flowInstance.Value, param: "param");
         await store.MessageStore.AppendMessage(
-            rAction.MapToStoredId(functionId),
+            rAction.MapToStoredId(functionId.Instance),
             new StoredMessage("hello world".ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes())
         );
 
         var controlPanel = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
 
         await store.MessageStore.AppendMessage(
-            rAction.MapToStoredId(functionId),
+            rAction.MapToStoredId(functionId.Instance),
             new StoredMessage("hello universe".ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes())
         );
 
@@ -1025,7 +1025,7 @@ public abstract class ControlPanelTests
 
         await rAction.Invoke(flowInstance.Value, param: "param");
         await store.MessageStore.AppendMessage(
-            rAction.MapToStoredId(functionId),
+            rAction.MapToStoredId(functionId.Instance),
             new StoredMessage("hello world".ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes())
         );
 
@@ -1034,7 +1034,7 @@ public abstract class ControlPanelTests
         await existingMessages.Count.ShouldBeAsync(1);
 
         await store.MessageStore.AppendMessage(
-            rAction.MapToStoredId(functionId),
+            rAction.MapToStoredId(functionId.Instance),
             new StoredMessage("hello universe".ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes())
         );
         
@@ -1062,14 +1062,14 @@ public abstract class ControlPanelTests
 
         await rAction.Invoke(flowInstance.Value, param: "param");
         await store.MessageStore.AppendMessage(
-            rAction.MapToStoredId(functionId),
+            rAction.MapToStoredId(functionId.Instance),
             new StoredMessage("hello world".ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes())
         );
 
         var controlPanel = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
 
         await store.MessageStore.AppendMessage(
-            rAction.MapToStoredId(functionId),
+            rAction.MapToStoredId(functionId.Instance),
             new StoredMessage("hello universe".ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes())
         );
 
@@ -1308,7 +1308,7 @@ public abstract class ControlPanelTests
         await controlPanel.Effects.AllIds;
         
         await store.EffectsStore.SetEffectResult(
-            rAction.MapToStoredId(functionId),
+            rAction.MapToStoredId(functionId.Instance),
             new StoredEffect(
                 "SomeId".ToEffectId(),
                 "SomeId".ToStoredEffectId(EffectType.Effect),
@@ -1345,7 +1345,7 @@ public abstract class ControlPanelTests
         await controlPanel.Effects.AllIds;
         
         await store.EffectsStore.SetEffectResult(
-            rAction.MapToStoredId(functionId),
+            rAction.MapToStoredId(functionId.Instance),
             new StoredEffect(
                 "SomeId".ToEffectId(),
                 "SomeId".ToStoredEffectId(EffectType.Effect),
@@ -1677,7 +1677,7 @@ public abstract class ControlPanelTests
         
         await controlPanel.Delete();
 
-        var storedId = registration.MapToStoredId(functionId);
+        var storedId = registration.MapToStoredId(functionId.Instance);
         await store.GetFunction(storedId).ShouldBeNullAsync();
         
         await store.MessageStore.GetMessages(storedId, skip: 0)
