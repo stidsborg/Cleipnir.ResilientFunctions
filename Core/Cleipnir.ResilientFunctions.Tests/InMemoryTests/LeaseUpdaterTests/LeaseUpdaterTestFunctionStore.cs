@@ -72,10 +72,10 @@ public class LeaseUpdaterTestFunctionStore : IFunctionStore
         StoredId storedId,
         long postponeUntil,
         long timestamp,
-        bool onlyIfNotInterrupted,
+        bool ignoreInterrupted,
         int expectedEpoch,
         ComplimentaryState complimentaryState
-    ) => _inner.PostponeFunction(storedId, postponeUntil, timestamp, onlyIfNotInterrupted, expectedEpoch, complimentaryState);
+    ) => _inner.PostponeFunction(storedId, postponeUntil, timestamp, ignoreInterrupted, expectedEpoch, complimentaryState);
 
     public Task<bool> FailFunction(
         StoredId storedId, 

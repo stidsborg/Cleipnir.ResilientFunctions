@@ -32,7 +32,9 @@ public abstract class BaseRegistration
                 : _functionStore.GetInstances(StoredType, status.Value)
             );
     }
-    
+
+    public Task Interrupt(IEnumerable<FlowInstance> instances)
+        => Interrupt(instances.Select(i => i.ToStoredInstance()));
     public async Task Interrupt(IEnumerable<StoredInstance> storedInstances) 
         => await _functionStore.Interrupt(storedInstances.Select(si => new StoredId(StoredType, si)));
 }

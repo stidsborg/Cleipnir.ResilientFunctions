@@ -181,7 +181,7 @@ public class RFunctionsShutdownTests
             registration.MapToStoredId(functionId.Instance),
             postponeUntil: DateTime.UtcNow.AddDays(-1).Ticks,
             timestamp: DateTime.UtcNow.Ticks,
-            onlyIfNotInterrupted: false,
+            ignoreInterrupted: true,
             expectedEpoch: 0,
             new ComplimentaryState(() => storedParameter.ToUtf8Bytes(), LeaseLength: 0)
         ).ShouldBeTrueAsync();

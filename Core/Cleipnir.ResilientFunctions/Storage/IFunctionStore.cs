@@ -69,7 +69,7 @@ public interface IFunctionStore
         StoredId storedId,
         long postponeUntil, 
         long timestamp,
-        bool onlyIfNotInterrupted, 
+        bool ignoreInterrupted, 
         int expectedEpoch, 
         ComplimentaryState complimentaryState
     );

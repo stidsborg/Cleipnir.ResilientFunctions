@@ -160,10 +160,10 @@ internal class InvocationHelper<TParam, TReturn>
                     storedId,
                     postponeUntil: result.Postpone!.DateTime.Ticks,
                     timestamp: DateTime.UtcNow.Ticks,
-                    onlyIfNotInterrupted: false, //todo handler this the same way as suspension
+                    ignoreInterrupted: false, 
                     expectedEpoch,
                     complementaryState
-                ) ? PersistResultOutcome.Success : PersistResultOutcome.Failed;
+                ) ? PersistResultOutcome.Success : PersistResultOutcome.Reschedule;
             case Outcome.Fail:
                 return await _functionStore.FailFunction(
                     storedId,
@@ -173,15 +173,12 @@ internal class InvocationHelper<TParam, TReturn>
                     complementaryState
                 ) ? PersistResultOutcome.Success : PersistResultOutcome.Failed;
             case Outcome.Suspend:
-                var success = await _functionStore.SuspendFunction(
+                return await _functionStore.SuspendFunction(
                     storedId,
                     timestamp: DateTime.UtcNow.Ticks,
                     expectedEpoch,
                     complementaryState
-                );
-                return success ? 
-                    PersistResultOutcome.Success : 
-                    PersistResultOutcome.Reschedule;
+                ) ? PersistResultOutcome.Success : PersistResultOutcome.Reschedule;
             default:
                 throw new ArgumentOutOfRangeException();
         }

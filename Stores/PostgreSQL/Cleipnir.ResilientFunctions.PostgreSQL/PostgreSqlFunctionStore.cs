@@ -397,7 +397,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         StoredId storedId, 
         long postponeUntil, 
         long timestamp,
-        bool onlyIfNotInterrupted,
+        bool ignoreInterrupted,
         int expectedEpoch, 
         ComplimentaryState complimentaryState)
     {
@@ -409,11 +409,11 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 type = $3 AND 
                 instance = $4 AND 
                 epoch = $5 AND
-                1 = 1";
+                interrupted = FALSE";
         
         var sql = _postponeFunctionSql;
-        if (onlyIfNotInterrupted)
-            sql = sql.Replace("1 = 1", "interrupted = FALSE");
+        if (ignoreInterrupted)
+            sql = sql.Replace("interrupted = FALSE", "1 = 1");
         
         await using var command = new NpgsqlCommand(sql, conn)
         {

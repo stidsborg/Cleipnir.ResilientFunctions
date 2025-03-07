@@ -291,7 +291,7 @@ public abstract class StoreTests
             functionId,
             postponeUntil: nowTicks,
             timestamp: DateTime.UtcNow.Ticks,
-            onlyIfNotInterrupted: false,
+            ignoreInterrupted: false,
             expectedEpoch: 0,
             complimentaryState: new ComplimentaryState(storedParameter.ToUtf8Bytes().ToFunc(), LeaseLength: 0)
         ).ShouldBeTrueAsync();
@@ -326,7 +326,7 @@ public abstract class StoreTests
             functionId,
             postponeUntil: nowTicks,
             timestamp: DateTime.UtcNow.Ticks,
-            onlyIfNotInterrupted: false,
+            ignoreInterrupted: false,
             expectedEpoch: 0,
             complimentaryState: new ComplimentaryState(storedParameter.ToUtf8Bytes().ToFunc(), LeaseLength: 0)
         ).ShouldBeTrueAsync();
@@ -361,7 +361,7 @@ public abstract class StoreTests
             functionId,
             postponeUntil: nowTicks,
             timestamp: DateTime.UtcNow.Ticks,
-            onlyIfNotInterrupted: false,
+            ignoreInterrupted: false,
             expectedEpoch: 1,
             complimentaryState: new ComplimentaryState(storedParameter.ToUtf8Bytes().ToFunc(), LeaseLength: 0)
         ).ShouldBeFalseAsync();
@@ -875,7 +875,7 @@ public abstract class StoreTests
             functionId,
             postponeUntil: DateTime.UtcNow.Ticks,
             timestamp: DateTime.UtcNow.Ticks,
-            onlyIfNotInterrupted: false,
+            ignoreInterrupted: false,
             expectedEpoch: 0,
             complimentaryState: new ComplimentaryState(Test.SimpleStoredParameter.ToFunc(), LeaseLength: 0)
         );
@@ -1476,7 +1476,7 @@ public abstract class StoreTests
             storedId,
             postponeUntil: 0,
             timestamp: 0,
-            onlyIfNotInterrupted: true,
+            ignoreInterrupted: false,
             expectedEpoch: 0,
             new ComplimentaryState(() => Test.SimpleStoredParameter, LeaseLength: 0)
         );
@@ -1485,5 +1485,37 @@ public abstract class StoreTests
         var sf = await store.GetFunction(storedId).ShouldNotBeNullAsync();
         sf.Status.ShouldBe(Status.Executing);
         sf.Epoch.ShouldBe(0);
+    }
+    
+    public abstract Task InterruptedFunctionIsPostponedWhenIgnoringInterruptedFunction();
+    protected async Task InterruptedFunctionIsPostponedWhenIgnoringInterruptedFunction(Task<IFunctionStore> storeTask)
+    {
+        var storedId = TestStoredId.Create();
+        var store = await storeTask;
+
+        await store.CreateFunction(
+            storedId,
+            "humanInstanceId",
+            param: Test.SimpleStoredParameter,
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks,
+            parent: null
+        ).ShouldBeTrueAsync();
+
+        await store.Interrupt([storedId]);
+
+        var success = await store.PostponeFunction(
+            storedId,
+            postponeUntil: 0,
+            timestamp: 0,
+            ignoreInterrupted: true,
+            expectedEpoch: 0,
+            new ComplimentaryState(() => Test.SimpleStoredParameter, LeaseLength: 0)
+        );
+        success.ShouldBeTrue();
+
+        var sf = await store.GetFunction(storedId).ShouldNotBeNullAsync();
+        sf.Status.ShouldBe(Status.Postponed);
     }
 }

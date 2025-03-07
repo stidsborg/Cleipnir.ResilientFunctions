@@ -101,12 +101,12 @@ public class CrashableFunctionStore : IFunctionStore
         StoredId storedId, 
         long postponeUntil, 
         long timestamp,
-        bool onlyIfNotInterrupted,
+        bool ignoreInterrupted,
         int expectedEpoch, 
         ComplimentaryState complimentaryState
     ) => _crashed
         ? Task.FromException<bool>(new TimeoutException())
-        : _inner.PostponeFunction(storedId, postponeUntil, timestamp, onlyIfNotInterrupted, expectedEpoch, complimentaryState); 
+        : _inner.PostponeFunction(storedId, postponeUntil, timestamp, ignoreInterrupted, expectedEpoch, complimentaryState); 
 
     public Task<bool> FailFunction(
         StoredId storedId, 

@@ -108,7 +108,7 @@ public class DelayedStartUpTests
             registration.MapToStoredId(functionId.Instance),
             postponeUntil: 0,
             timestamp: DateTime.UtcNow.Ticks,
-            onlyIfNotInterrupted: false,
+            ignoreInterrupted: true,
             expectedEpoch: 0,
             complimentaryState: new ComplimentaryState(storedParameter.ToUtf8Bytes().ToFunc(), LeaseLength: 0)
         ).ShouldBeTrueAsync();
@@ -146,7 +146,7 @@ public class DelayedStartUpTests
             registration.MapToStoredId(functionId.Instance),
             postponeUntil: 0,
             timestamp: DateTime.UtcNow.Ticks,
-            onlyIfNotInterrupted: false,
+            ignoreInterrupted: true,
             expectedEpoch: 0,
             new ComplimentaryState(storedParameter.ToFunc(), LeaseLength: 0)
         );

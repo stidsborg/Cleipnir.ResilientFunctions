@@ -689,7 +689,7 @@ public abstract class PostponedTests
             storedId,
             postponeUntil: DateTime.UtcNow.AddDays(-1).Ticks,
             timestamp: DateTime.UtcNow.Ticks,
-            onlyIfNotInterrupted: false,
+            ignoreInterrupted: false,
             expectedEpoch: 0,
             complimentaryState: new ComplimentaryState(storedParameter.ToUtf8Bytes().ToFunc(), LeaseLength: 0)
         ).ShouldBeTrueAsync();
@@ -874,6 +874,48 @@ public abstract class PostponedTests
         var controlPanel = await registration.ControlPanel(functionId.Instance);
         controlPanel.ShouldNotBeNull();
         
+        unhandledExceptionHandler.ShouldNotHaveExceptions();
+    }
+    
+    public abstract Task InterruptedFunctionIsRescheduledWhenPostponed();
+    protected async Task InterruptedFunctionIsRescheduledWhenPostponed(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var testId = TestFlowId.Create();
+        var unhandledExceptionHandler = new UnhandledExceptionCatcher();
+
+        using var functionsRegistry = new FunctionsRegistry
+        (
+            store,
+            new Settings(unhandledExceptionHandler.Catch)
+        );
+
+        var insideFunctionFlag = new SyncedFlag();
+        var mayContinueFlag = new SyncedFlag();
+        var invocations = new SyncedCounter();
+        
+        var registration = functionsRegistry
+            .RegisterParamless(
+                testId.Type,
+                async workflow =>
+                {
+                    invocations.Increment();
+                    insideFunctionFlag.Raise();
+                    await mayContinueFlag.WaitForRaised();
+                    await workflow.Delay(TimeSpan.FromDays(1));
+                });
+
+        await registration.Schedule(testId.Instance);
+
+        await insideFunctionFlag.WaitForRaised();
+        await registration.Interrupt([testId.Instance]);
+        mayContinueFlag.Raise();
+        
+        var controlPanel = await registration.ControlPanel(testId.Instance);
+        controlPanel.ShouldNotBeNull();
+        await controlPanel.BusyWaitUntil(c => c.Status == Status.Postponed);
+        
+        invocations.Current.ShouldBe(2);
         unhandledExceptionHandler.ShouldNotHaveExceptions();
     }
 }

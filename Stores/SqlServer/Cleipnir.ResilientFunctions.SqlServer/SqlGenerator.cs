@@ -130,20 +130,20 @@ public class SqlGenerator(string tablePrefix)
     
     private string? _postponedFunctionSql;
     public string PostponeFunction(
-        StoredId storedId, long postponeUntil, long timestamp, bool onlyIfNotInterrupted, int expectedEpoch, 
+        StoredId storedId, long postponeUntil, long timestamp, bool ignoreInterrupted, int expectedEpoch, 
         SqlCommand command, string paramPrefix)
     {
         _postponedFunctionSql ??= @$"
             UPDATE {tablePrefix}
             SET Status = {(int) Status.Postponed}, Expires = @PostponedUntil, Timestamp = @Timestamp, Epoch = @ExpectedEpoch
-            WHERE FlowType = @FlowType AND FlowInstance = @FlowInstance AND Epoch = @ExpectedEpoch AND 1 = 1";
+            WHERE FlowType = @FlowType AND FlowInstance = @FlowInstance AND Epoch = @ExpectedEpoch AND Interrupted = 0";
         
         var sql = paramPrefix == "" 
             ? _postponedFunctionSql
             : _postponedFunctionSql.Replace("@", $"@{paramPrefix}");
         
-        if (onlyIfNotInterrupted)
-            sql = sql.Replace("1 = 1", "Interrupted = 0");
+        if (ignoreInterrupted)
+            sql = sql.Replace("Interrupted = 0", "1 = 1");
         
         command.Parameters.AddWithValue($"@{paramPrefix}PostponedUntil", postponeUntil);
         command.Parameters.AddWithValue($"@{paramPrefix}Timestamp", timestamp);
