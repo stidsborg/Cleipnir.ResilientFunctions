@@ -41,11 +41,9 @@ public class SqlGenerator(string tablePrefix)
         return sql;
     }
     
-    public void UpdateEffects(NpgsqlBatch batch, IReadOnlyList<StoredEffectChange> changes)
+    public IEnumerable<NpgsqlBatchCommand> UpdateEffects(IReadOnlyList<StoredEffectChange> changes)
    {
-       if (changes.Count == 0)
-           return;
-      
+       var commands = new List<NpgsqlBatchCommand>(changes.Count);
        var sql= $@"
          INSERT INTO {tablePrefix}_effects
              (type, instance, id_hash, status, result, exception, effect_id)
@@ -70,7 +68,7 @@ public class SqlGenerator(string tablePrefix)
                    new() {Value = storedEffect.EffectId.Serialize()},
                }
            };
-           batch.BatchCommands.Add(command);
+           commands.Add(command);
        }
 
        var removedEffects = changes
@@ -81,7 +79,7 @@ public class SqlGenerator(string tablePrefix)
        foreach (var removedEffectGroup in removedEffects)
        {
            var storedId = removedEffectGroup.Key;
-           batch.BatchCommands.Add(
+           commands.Add(
                new NpgsqlBatchCommand(
                    @$"DELETE FROM {tablePrefix}_effects
                       WHERE type = {storedId.Type.Value} AND
@@ -90,5 +88,7 @@ public class SqlGenerator(string tablePrefix)
                )
            );
        }
+
+       return commands;
    }
 }
