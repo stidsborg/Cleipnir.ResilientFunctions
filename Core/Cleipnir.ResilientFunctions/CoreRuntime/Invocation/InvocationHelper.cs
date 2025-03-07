@@ -179,18 +179,9 @@ internal class InvocationHelper<TParam, TReturn>
                     expectedEpoch,
                     complementaryState
                 );
-                if (success) return PersistResultOutcome.Success;
-                success = await _functionStore.PostponeFunction(
-                    storedId,
-                    postponeUntil: DateTime.UtcNow.Add(_settings.LeaseLength).Ticks,
-                    timestamp: DateTime.UtcNow.Ticks,
-                    onlyIfNotInterrupted: false,
-                    expectedEpoch,
-                    complementaryState
-                );
-                return success 
-                    ? PersistResultOutcome.Reschedule 
-                    : PersistResultOutcome.Failed;
+                return success ? 
+                    PersistResultOutcome.Success : 
+                    PersistResultOutcome.Reschedule;
             default:
                 throw new ArgumentOutOfRangeException();
         }
