@@ -435,6 +435,7 @@ public class SqlServerFunctionStore : IFunctionStore
         StoredId storedId, 
         long postponeUntil, 
         long timestamp,
+        bool onlyIfNotInterrupted,
         int expectedEpoch, 
         ComplimentaryState complimentaryState)
     {
@@ -446,6 +447,7 @@ public class SqlServerFunctionStore : IFunctionStore
             storedId,
             postponeUntil,
             timestamp,
+            onlyIfNotInterrupted,
             expectedEpoch,
             command,
             paramPrefix: ""

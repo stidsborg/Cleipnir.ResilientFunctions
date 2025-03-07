@@ -232,6 +232,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         StoredId storedId, 
         long postponeUntil, 
         long timestamp,
+        bool onlyIfNotInterrupted,
         int expectedEpoch, 
         ComplimentaryState complimentaryState)
     {
@@ -242,6 +243,9 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
             var state = _states[storedId];
             if (state.Epoch != expectedEpoch) return false.ToTask();
 
+            if (onlyIfNotInterrupted && state.Interrupted)
+                return false.ToTask();
+            
             state.Status = Status.Postponed;
             state.Expires = postponeUntil;
             state.Timestamp = timestamp;

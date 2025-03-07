@@ -160,6 +160,7 @@ internal class InvocationHelper<TParam, TReturn>
                     storedId,
                     postponeUntil: result.Postpone!.DateTime.Ticks,
                     timestamp: DateTime.UtcNow.Ticks,
+                    onlyIfNotInterrupted: false, //todo handler this the same way as suspension
                     expectedEpoch,
                     complementaryState
                 ) ? PersistResultOutcome.Success : PersistResultOutcome.Failed;
@@ -183,6 +184,7 @@ internal class InvocationHelper<TParam, TReturn>
                     storedId,
                     postponeUntil: DateTime.UtcNow.Add(_settings.LeaseLength).Ticks,
                     timestamp: DateTime.UtcNow.Ticks,
+                    onlyIfNotInterrupted: false,
                     expectedEpoch,
                     complementaryState
                 );

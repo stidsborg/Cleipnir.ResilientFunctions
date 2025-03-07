@@ -195,4 +195,8 @@ public class StoreTests : TestTemplates.StoreTests
     [TestMethod]
     public override Task MultipleFunctionsStatusCanBeFetched()
         => MultipleFunctionsStatusCanBeFetched(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task InterruptedFunctionIsNotPostponedWhenFlagIsSet()
+        => InterruptedFunctionIsNotPostponedWhenFlagIsSet(FunctionStoreFactory.Create());
 }

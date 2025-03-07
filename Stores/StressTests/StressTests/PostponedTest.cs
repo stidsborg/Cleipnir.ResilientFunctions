@@ -40,6 +40,7 @@ public static class PostponedTest
                 new StoredId(storedType, i.ToString().ToStoredInstance()),
                 postponeUntil: start.Ticks,
                 timestamp: DateTime.UtcNow.Ticks,
+                onlyIfNotInterrupted: false,
                 expectedEpoch: 0,
                 complimentaryState: new ComplimentaryState(() => storedParameter.ToUtf8Bytes(), LeaseLength: 0)
             );

@@ -119,6 +119,7 @@ public class CrashableFunctionStore : IFunctionStore
         StoredId storedId,
         long postponeUntil,
         long timestamp,
+        bool onlyIfNotInterrupted,
         int expectedEpoch,
         ComplimentaryState complimentaryState
     )
@@ -126,7 +127,7 @@ public class CrashableFunctionStore : IFunctionStore
         if (_crashed)
             throw new TimeoutException();
 
-        var result = await _inner.PostponeFunction(storedId, postponeUntil, timestamp, expectedEpoch, complimentaryState);
+        var result = await _inner.PostponeFunction(storedId, postponeUntil, timestamp, onlyIfNotInterrupted, expectedEpoch, complimentaryState);
         AfterPostponeFunctionFlag.Raise();
 
         return result;

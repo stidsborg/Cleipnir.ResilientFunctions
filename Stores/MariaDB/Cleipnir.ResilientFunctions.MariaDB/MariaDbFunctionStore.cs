@@ -381,6 +381,7 @@ public class MariaDbFunctionStore : IFunctionStore
         StoredId storedId, 
         long postponeUntil, 
         long timestamp,
+        bool onlyIfNotInterrupted,
         int expectedEpoch, 
         ComplimentaryState complimentaryState)
     {
@@ -391,9 +392,14 @@ public class MariaDbFunctionStore : IFunctionStore
             WHERE 
                 type = ? AND 
                 instance = ? AND 
-                epoch = ?";
+                epoch = ? AND
+                1 = 1";
 
-        await using var command = new MySqlCommand(_postponedFunctionSql, conn)
+        var sql = _postponedFunctionSql;
+        if (onlyIfNotInterrupted)
+            sql = sql.Replace("1 = 1", "interrupted = 0");
+        
+        await using var command = new MySqlCommand(sql, conn)
         {
             Parameters =
             {
