@@ -127,8 +127,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         await using var command = new NpgsqlCommand(_truncateTableSql, conn);
         await command.ExecuteNonQueryAsync();
     }
-
-    private string? _createFunctionSql;
+    
     public async Task<bool> CreateFunction(
         StoredId storedId,
         FlowInstance humanInstanceId,
@@ -139,28 +138,16 @@ public class PostgreSqlFunctionStore : IFunctionStore
         StoredId? parent)
     {
         await using var conn = await CreateConnection();
-        
-        _createFunctionSql ??= @$"
-            INSERT INTO {_tableName}
-                (type, instance, status, param_json, expires, timestamp, human_instance_id, parent)
-            VALUES
-                ($1, $2, $3, $4, $5, $6, $7, $8)
-            ON CONFLICT DO NOTHING;";
-        
-        await using var command = new NpgsqlCommand(_createFunctionSql, conn)
-        {
-            Parameters =
-            {
-                new() {Value = storedId.Type.Value},
-                new() {Value = storedId.Instance.Value},
-                new() {Value = (int) (postponeUntil == null ? Status.Executing : Status.Postponed)},
-                new() {Value = param == null ? DBNull.Value : param},
-                new() {Value = postponeUntil ?? leaseExpiration},
-                new() {Value = timestamp},
-                new() {Value = humanInstanceId.Value},
-                new() {Value = parent?.Serialize() ?? (object) DBNull.Value},
-            }
-        };
+
+        await using var command = _sqlGenerator.CreateFunction(
+            storedId,
+            humanInstanceId,
+            param,
+            leaseExpiration,
+            postponeUntil,
+            timestamp,
+            parent
+        ).ToNpgsqlCommand(conn);
 
         var affectedRows = await command.ExecuteNonQueryAsync();
         return affectedRows == 1;

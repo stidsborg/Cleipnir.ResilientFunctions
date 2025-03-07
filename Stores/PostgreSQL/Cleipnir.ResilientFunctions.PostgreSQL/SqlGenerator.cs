@@ -91,4 +91,40 @@ public class SqlGenerator(string tablePrefix)
 
        return commands;
    }
+    
+    private string? _createFunctionSql;
+    public PostgresCommand CreateFunction(
+        StoredId storedId,
+        FlowInstance humanInstanceId,
+        byte[]? param, 
+        long leaseExpiration,
+        long? postponeUntil,
+        long timestamp,
+        StoredId? parent)
+    {
+        _createFunctionSql ??= @$"
+            INSERT INTO {tablePrefix}
+                (type, instance, status, param_json, expires, timestamp, human_instance_id, parent)
+            VALUES
+                ($1, $2, $3, $4, $5, $6, $7, $8)
+            ON CONFLICT DO NOTHING;";
+
+
+        var cmd = new PostgresCommand
+        {
+            Sql = _createFunctionSql,
+            Parameters =
+            [
+                storedId.Type.Value,
+                storedId.Instance.Value,
+                (int)(postponeUntil == null ? Status.Executing : Status.Postponed),
+                param == null ? DBNull.Value : param,
+                postponeUntil ?? leaseExpiration,
+                timestamp,
+                humanInstanceId.Value,
+                parent?.Serialize() ?? (object)DBNull.Value
+            ]
+        };
+        return cmd;
+    }
 }
