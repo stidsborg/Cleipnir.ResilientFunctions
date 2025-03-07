@@ -4,7 +4,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace Cleipnir.ResilientFunctions.PostgreSQL.Tests.RFunctionTests;
 
 [TestClass]
-public class EffectImplicitIdTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.RFunctionTests.EffectImplicitIdTests
+public class EffectImplicitIdTests : ResilientFunctions.Tests.TestTemplates.FunctionTests.EffectImplicitIdTests
 {
     [TestMethod]
     public override Task SunshineActionTest()

@@ -4,7 +4,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace Cleipnir.ResilientFunctions.Tests.InMemoryTests.RFunctionTests;
 
 [TestClass]
-public class TimeoutTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.RFunctionTests.TimeoutTests
+public class TimeoutTests : TestTemplates.FunctionTests.TimeoutTests
 {
     [TestMethod]
     public override Task ExpiredTimeoutIsAddedToMessages()

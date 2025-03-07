@@ -4,7 +4,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace Cleipnir.ResilientFunctions.PostgreSQL.Tests.RFunctionTests;
 
 [TestClass]
-public class RoutingTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.RFunctionTests.RoutingTests
+public class RoutingTests : ResilientFunctions.Tests.TestTemplates.FunctionTests.RoutingTests
 {
     [TestMethod]
     public override Task MessageIsRoutedToParamlessInstance()

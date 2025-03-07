@@ -4,7 +4,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace Cleipnir.ResilientFunctions.SqlServer.Tests.RFunctionTests;
 
 [TestClass]
-public class ExceptionHandlingTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.RFunctionTests.ExceptionHandlingTests
+public class ExceptionHandlingTests : ResilientFunctions.Tests.TestTemplates.FunctionTests.ExceptionHandlingTests
 {
     [TestMethod]
     public override Task UnhandledExceptionIsRethrownWhenEnsuringSuccessOnFunc()

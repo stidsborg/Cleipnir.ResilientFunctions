@@ -6,7 +6,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace Cleipnir.ResilientFunctions.Tests.InMemoryTests.RFunctionTests;
 
 [TestClass]
-public class ReInvocationTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.RFunctionTests.ReInvocationTests
+public class ReInvocationTests : TestTemplates.FunctionTests.ReInvocationTests
 {
     [TestMethod]
     public override Task ActionReInvocationSunshineScenario()

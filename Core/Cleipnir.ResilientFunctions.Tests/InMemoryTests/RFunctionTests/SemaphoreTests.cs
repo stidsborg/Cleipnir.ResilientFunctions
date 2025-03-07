@@ -4,7 +4,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace Cleipnir.ResilientFunctions.Tests.InMemoryTests.RFunctionTests;
 
 [TestClass]
-public class SemaphoreTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.RFunctionTests.SemaphoreTests
+public class SemaphoreTests : TestTemplates.FunctionTests.SemaphoreTests
 {
     [TestMethod]
     public override Task SunshineTest()

@@ -6,7 +6,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace Cleipnir.ResilientFunctions.Tests.InMemoryTests.RFunctionTests;
 
 [TestClass]
-public class ScheduledInvocationTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.RFunctionTests.ScheduledInvocationTests
+public class ScheduledInvocationTests : TestTemplates.FunctionTests.ScheduledInvocationTests
 {
     [TestMethod]
     public override Task ScheduledFunctionIsInvokedAfterFuncStateHasBeenPersisted()

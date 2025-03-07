@@ -4,7 +4,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace Cleipnir.ResilientFunctions.SqlServer.Tests.RFunctionTests;
 
 [TestClass]
-public class AtMostOnceWorkStatusAndResultTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.RFunctionTests.AtMostOnceWorkStatusAndResultTests
+public class AtMostOnceWorkStatusAndResultTests : ResilientFunctions.Tests.TestTemplates.FunctionTests.AtMostOnceWorkStatusAndResultTests
 {
     [TestMethod]
     public override Task AtMostOnceWorkIsNotExecutedMultipleTimes()

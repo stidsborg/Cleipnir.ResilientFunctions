@@ -9,7 +9,7 @@ using Cleipnir.ResilientFunctions.Tests.Utils;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Shouldly;
 
-namespace Cleipnir.ResilientFunctions.Tests.TestTemplates.RFunctionTests;
+namespace Cleipnir.ResilientFunctions.Tests.TestTemplates.FunctionTests;
 
 public abstract class DoubleInvocationTests
 {

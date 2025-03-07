@@ -4,7 +4,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace Cleipnir.ResilientFunctions.SqlServer.Tests.RFunctionTests;
 
 [TestClass]
-public class ScheduledInvocationTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.RFunctionTests.ScheduledInvocationTests
+public class ScheduledInvocationTests : ResilientFunctions.Tests.TestTemplates.FunctionTests.ScheduledInvocationTests
 {
     [TestMethod]
     public override Task ScheduledFunctionIsInvokedAfterFuncStateHasBeenPersisted()

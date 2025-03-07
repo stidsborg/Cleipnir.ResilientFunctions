@@ -4,7 +4,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace Cleipnir.ResilientFunctions.Tests.InMemoryTests.RFunctionTests;
 
 [TestClass]
-public class ControlPanelTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.RFunctionTests.ControlPanelTests
+public class ControlPanelTests : TestTemplates.FunctionTests.ControlPanelTests
 {
     [TestMethod]
     public override Task ExistingActionCanBeDeletedFromControlPanel()

@@ -13,7 +13,7 @@ using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Tests.Utils;
 using Shouldly;
 
-namespace Cleipnir.ResilientFunctions.Tests.TestTemplates.RFunctionTests;
+namespace Cleipnir.ResilientFunctions.Tests.TestTemplates.FunctionTests;
 
 public abstract class ControlPanelTests
 {

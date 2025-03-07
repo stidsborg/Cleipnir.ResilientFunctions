@@ -3,7 +3,7 @@
 namespace Cleipnir.ResilientFunctions.MariaDb.Tests.RFunctionTests;
 
 [TestClass]
-public class AtLeastOnceWorkStatusAndResultTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.RFunctionTests.AtLeastOnceWorkStatusAndResultTests
+public class AtLeastOnceWorkStatusAndResultTests : ResilientFunctions.Tests.TestTemplates.FunctionTests.AtLeastOnceWorkStatusAndResultTests
 {
     [TestMethod]
     public override Task AtLeastOnceWorkIsExecutedMultipleTimesWhenNotCompleted()

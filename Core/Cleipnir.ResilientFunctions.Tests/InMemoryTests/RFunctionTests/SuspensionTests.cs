@@ -4,7 +4,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace Cleipnir.ResilientFunctions.Tests.InMemoryTests.RFunctionTests;
 
 [TestClass]
-public class SuspensionTests : TestTemplates.RFunctionTests.SuspensionTests
+public class SuspensionTests : TestTemplates.FunctionTests.SuspensionTests
 {
     [TestMethod]
     public override Task ActionCanBeSuspended()

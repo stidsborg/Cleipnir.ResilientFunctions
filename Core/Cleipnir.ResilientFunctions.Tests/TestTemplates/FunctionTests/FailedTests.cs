@@ -9,7 +9,7 @@ using Cleipnir.ResilientFunctions.Tests.Utils;
 using Shouldly;
 using static Cleipnir.ResilientFunctions.Tests.Utils.FlagPosition;
 
-namespace Cleipnir.ResilientFunctions.Tests.TestTemplates.RFunctionTests;
+namespace Cleipnir.ResilientFunctions.Tests.TestTemplates.FunctionTests;
 
 public abstract class FailedTests
 {

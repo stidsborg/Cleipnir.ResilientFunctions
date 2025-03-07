@@ -4,7 +4,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace Cleipnir.ResilientFunctions.Tests.InMemoryTests.RFunctionTests;
 
 [TestClass]
-public class EffectTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.RFunctionTests.EffectTests
+public class EffectTests : TestTemplates.FunctionTests.EffectTests
 {
     [TestMethod]
     public override Task SunshineActionTest()

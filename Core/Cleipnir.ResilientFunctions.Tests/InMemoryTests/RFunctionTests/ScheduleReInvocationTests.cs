@@ -6,7 +6,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace Cleipnir.ResilientFunctions.Tests.InMemoryTests.RFunctionTests;
 
 [TestClass]
-public class ScheduleReInvocationTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.RFunctionTests.ScheduleReInvocationTests
+public class ScheduleReInvocationTests : TestTemplates.FunctionTests.ScheduleReInvocationTests
 {
     [TestMethod]
     public override Task ActionReInvocationSunshineScenario()

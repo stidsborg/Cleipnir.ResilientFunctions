@@ -6,7 +6,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace Cleipnir.ResilientFunctions.Tests.InMemoryTests.RFunctionTests;
 
 [TestClass]
-public class DoubleInvocationTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.RFunctionTests.DoubleInvocationTests
+public class DoubleInvocationTests : TestTemplates.FunctionTests.DoubleInvocationTests
 {
     [TestMethod]
     public override Task SecondInvocationWaitsForAndReturnsSuccessfulResult()

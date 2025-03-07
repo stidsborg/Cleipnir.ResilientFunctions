@@ -4,7 +4,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace Cleipnir.ResilientFunctions.PostgreSQL.Tests.RFunctionTests;
 
 [TestClass]
-public class SuspensionTests : ResilientFunctions.Tests.TestTemplates.RFunctionTests.SuspensionTests
+public class SuspensionTests : ResilientFunctions.Tests.TestTemplates.FunctionTests.SuspensionTests
 {
     [TestMethod]
     public override Task ActionCanBeSuspended()

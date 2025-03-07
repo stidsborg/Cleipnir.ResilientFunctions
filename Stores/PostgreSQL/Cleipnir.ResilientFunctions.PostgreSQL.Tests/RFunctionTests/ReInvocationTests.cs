@@ -4,7 +4,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace Cleipnir.ResilientFunctions.PostgreSQL.Tests.RFunctionTests;
 
 [TestClass]
-public class ReInvocationTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.RFunctionTests.ReInvocationTests
+public class ReInvocationTests : ResilientFunctions.Tests.TestTemplates.FunctionTests.ReInvocationTests
 {
     [TestMethod]
     public override Task ActionReInvocationSunshineScenario()

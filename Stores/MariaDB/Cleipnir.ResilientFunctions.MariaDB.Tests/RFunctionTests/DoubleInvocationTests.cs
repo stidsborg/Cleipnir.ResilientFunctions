@@ -3,7 +3,7 @@
 namespace Cleipnir.ResilientFunctions.MariaDb.Tests.RFunctionTests;
 
 [TestClass]
-public class DoubleInvocationTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.RFunctionTests.DoubleInvocationTests
+public class DoubleInvocationTests : ResilientFunctions.Tests.TestTemplates.FunctionTests.DoubleInvocationTests
 {
     [TestMethod]
     public override Task SecondInvocationWaitsForAndReturnsSuccessfulResult()

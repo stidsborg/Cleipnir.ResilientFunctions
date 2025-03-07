@@ -3,7 +3,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace Cleipnir.ResilientFunctions.MariaDb.Tests.RFunctionTests;
 
 [TestClass]
-public class StateTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.RFunctionTests.StateTests
+public class StateTests : ResilientFunctions.Tests.TestTemplates.FunctionTests.StateTests
 {
     [TestMethod]
     public override Task StateCanBeFetchedFromFuncRegistration()

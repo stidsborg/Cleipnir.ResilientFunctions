@@ -3,7 +3,7 @@
 namespace Cleipnir.ResilientFunctions.MariaDb.Tests.RFunctionTests;
 
 [TestClass]
-public class ControlPanelTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.RFunctionTests.ControlPanelTests
+public class ControlPanelTests : ResilientFunctions.Tests.TestTemplates.FunctionTests.ControlPanelTests
 {
     [TestMethod]
     public override Task ExistingActionCanBeDeletedFromControlPanel()

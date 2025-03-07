@@ -4,7 +4,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace Cleipnir.ResilientFunctions.MariaDB.Tests.RFunctionTests;
 
 [TestClass]
-public class LeasesUpdaterTests : ResilientFunctions.Tests.TestTemplates.RFunctionTests.LeasesUpdaterTests
+public class LeasesUpdaterTests : ResilientFunctions.Tests.TestTemplates.FunctionTests.LeasesUpdaterTests
 {
     [TestMethod]
     public override Task LeaseUpdaterUpdatesExpiryForEligibleFlows()

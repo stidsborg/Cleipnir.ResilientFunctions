@@ -4,7 +4,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace Cleipnir.ResilientFunctions.Tests.InMemoryTests.RFunctionTests;
 
 [TestClass]
-public class AtMostOnceWorkStatusTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.RFunctionTests.AtMostOnceWorkStatusTests
+public class AtMostOnceWorkStatusTests : TestTemplates.FunctionTests.AtMostOnceWorkStatusTests
 {
     [TestMethod]
     public override Task AtMostOnceWorkIsNotExecutedMultipleTimes()

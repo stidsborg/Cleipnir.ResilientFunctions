@@ -4,7 +4,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace Cleipnir.ResilientFunctions.Tests.InMemoryTests.RFunctionTests;
 
 [TestClass]
-public class RoutingTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.RFunctionTests.RoutingTests
+public class RoutingTests : TestTemplates.FunctionTests.RoutingTests
 {
     [TestMethod]
     public override Task MessageIsRoutedToParamlessInstance()

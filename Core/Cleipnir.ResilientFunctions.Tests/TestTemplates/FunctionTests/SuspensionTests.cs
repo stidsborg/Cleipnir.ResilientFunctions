@@ -14,7 +14,7 @@ using Shouldly;
 using FlagPosition = Cleipnir.ResilientFunctions.Tests.Utils.FlagPosition;
 using SyncedFlag = Cleipnir.ResilientFunctions.Tests.Utils.SyncedFlag;
 
-namespace Cleipnir.ResilientFunctions.Tests.TestTemplates.RFunctionTests;
+namespace Cleipnir.ResilientFunctions.Tests.TestTemplates.FunctionTests;
 
 public abstract class SuspensionTests
 {

@@ -4,7 +4,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace Cleipnir.ResilientFunctions.Tests.InMemoryTests;
 
 [TestClass]
-public class LeasesUpdaterTests : TestTemplates.RFunctionTests.LeasesUpdaterTests
+public class LeasesUpdaterTests : TestTemplates.FunctionTests.LeasesUpdaterTests
 {
     [TestMethod]
     public override Task LeaseUpdaterUpdatesExpiryForEligibleFlows()

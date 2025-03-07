@@ -3,7 +3,7 @@
 namespace Cleipnir.ResilientFunctions.MariaDb.Tests.RFunctionTests;
 
 [TestClass]
-public class CrashedTests : ResilientFunctions.Tests.TestTemplates.RFunctionTests.CrashedTests
+public class CrashedTests : ResilientFunctions.Tests.TestTemplates.FunctionTests.CrashedTests
 {
     [TestMethod]
     public override Task NonCompletedFuncIsCompletedByWatchDog()

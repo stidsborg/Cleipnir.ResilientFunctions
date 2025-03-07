@@ -4,7 +4,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace Cleipnir.ResilientFunctions.Tests.InMemoryTests.RFunctionTests;
 
 [TestClass]
-public class StateTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.RFunctionTests.StateTests
+public class StateTests : TestTemplates.FunctionTests.StateTests
 {
     [TestMethod]
     public override Task StateCanBeFetchedFromFuncRegistration()

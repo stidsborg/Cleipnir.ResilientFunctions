@@ -4,7 +4,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace Cleipnir.ResilientFunctions.PostgreSQL.Tests.RFunctionTests;
 
 [TestClass]
-public class TimeoutTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.RFunctionTests.TimeoutTests
+public class TimeoutTests : ResilientFunctions.Tests.TestTemplates.FunctionTests.TimeoutTests
 {
     [TestMethod]
     public override Task ExpiredTimeoutIsAddedToMessages()

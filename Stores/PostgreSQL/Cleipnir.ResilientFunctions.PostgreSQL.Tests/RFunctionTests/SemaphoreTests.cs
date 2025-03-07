@@ -4,7 +4,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace Cleipnir.ResilientFunctions.PostgreSQL.Tests.RFunctionTests;
 
 [TestClass]
-public class SemaphoreTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.RFunctionTests.SemaphoreTests
+public class SemaphoreTests : ResilientFunctions.Tests.TestTemplates.FunctionTests.SemaphoreTests
 {
     [TestMethod]
     public override Task SunshineTest()

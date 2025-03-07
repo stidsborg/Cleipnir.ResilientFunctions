@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime;
@@ -9,7 +8,7 @@ using Cleipnir.ResilientFunctions.Tests.TestTemplates.WatchDogsTests;
 using Cleipnir.ResilientFunctions.Tests.Utils;
 using Shouldly;
 
-namespace Cleipnir.ResilientFunctions.Tests.TestTemplates.RFunctionTests;
+namespace Cleipnir.ResilientFunctions.Tests.TestTemplates.FunctionTests;
 
 public abstract class LeasesUpdaterTests
 {

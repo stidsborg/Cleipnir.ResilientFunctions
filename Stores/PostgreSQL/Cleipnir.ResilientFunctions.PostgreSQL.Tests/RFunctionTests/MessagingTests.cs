@@ -4,7 +4,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace Cleipnir.ResilientFunctions.PostgreSQL.Tests.RFunctionTests;
 
 [TestClass]
-public class MessagingTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.RFunctionTests.MessagingTests
+public class MessagingTests : ResilientFunctions.Tests.TestTemplates.FunctionTests.MessagingTests
 {
     [TestMethod]
     public override Task FunctionCompletesAfterAwaitedMessageIsReceived()
