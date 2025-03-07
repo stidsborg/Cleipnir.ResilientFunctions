@@ -105,6 +105,58 @@ public class SqlGenerator(string tablePrefix)
         return stringBuilder.ToString();
     }
     
+    private string? _createFunctionSql;
+
+    public string CreateFunction(
+        StoredId storedId,
+        FlowInstance humanInstanceId,
+        byte[]? param,
+        long leaseExpiration,
+        long? postponeUntil,
+        long timestamp,
+        StoredId? parent,
+        SqlCommand command,
+        string? paramPrefix)
+    {
+        _createFunctionSql ??= @$"
+                INSERT INTO {tablePrefix}(
+                    FlowType, FlowInstance, 
+                    ParamJson, 
+                    Status,
+                    Epoch, 
+                    Expires,
+                    Timestamp,
+                    HumanInstanceId,
+                    Parent
+                )
+                VALUES
+                (
+                    @FlowType, @flowInstance, 
+                    @ParamJson,   
+                    @Status,
+                    0,
+                    @Expires,
+                    @Timestamp,
+                    @HumanInstanceId,
+                    @Parent
+                )";
+
+        var sql = _createFunctionSql;
+        if (paramPrefix != null)
+            sql = sql.Replace("@", $"@{paramPrefix}");
+
+        command.Parameters.AddWithValue($"@{paramPrefix}FlowType", storedId.Type.Value);
+        command.Parameters.AddWithValue($"@{paramPrefix}FlowInstance", storedId.Instance.Value);
+        command.Parameters.AddWithValue($"@{paramPrefix}Status", (int)(postponeUntil == null ? Status.Executing : Status.Postponed));
+        command.Parameters.AddWithValue($"@{paramPrefix}ParamJson", param == null ? SqlBinary.Null : param);
+        command.Parameters.AddWithValue($"@{paramPrefix}Expires", postponeUntil ?? leaseExpiration);
+        command.Parameters.AddWithValue($"@{paramPrefix}HumanInstanceId", humanInstanceId.Value);
+        command.Parameters.AddWithValue($"@{paramPrefix}Timestamp", timestamp);
+        command.Parameters.AddWithValue($"@{paramPrefix}Parent", parent?.Serialize() ?? (object)DBNull.Value);
+
+        return sql;
+    }
+
     private string? _succeedFunctionSql;
     public string SucceedFunction(
         StoredId storedId, byte[]? result, long timestamp, int expectedEpoch,

@@ -146,41 +146,21 @@ public class SqlServerFunctionStore : IFunctionStore
         await using var conn = await _connFunc();
         
         try
-        {
-            _createFunctionSql ??= @$"
-                INSERT INTO {_tableName}(
-                    FlowType, FlowInstance, 
-                    ParamJson, 
-                    Status,
-                    Epoch, 
-                    Expires,
-                    Timestamp,
-                    HumanInstanceId,
-                    Parent
-                )
-                VALUES
-                (
-                    @FlowType, @flowInstance, 
-                    @ParamJson,   
-                    @Status,
-                    0,
-                    @Expires,
-                    @Timestamp,
-                    @HumanInstanceId,
-                    @Parent
-                )";
-
-            await using var command = new SqlCommand(_createFunctionSql, conn);
+        { 
+            await using var command = new SqlCommand();
+            command.Connection = conn;
+            command.CommandText = _sqlGenerator.CreateFunction(
+                storedId,
+                humanInstanceId,
+                param,
+                leaseExpiration,
+                postponeUntil,
+                timestamp,
+                parent,
+                command,
+                paramPrefix: null
+            );
             
-            command.Parameters.AddWithValue("@FlowType", storedId.Type.Value);
-            command.Parameters.AddWithValue("@FlowInstance", storedId.Instance.Value);
-            command.Parameters.AddWithValue("@Status", (int) (postponeUntil == null ? Status.Executing : Status.Postponed));
-            command.Parameters.AddWithValue("@ParamJson", param == null ? SqlBinary.Null : param);
-            command.Parameters.AddWithValue("@Expires", postponeUntil ?? leaseExpiration);
-            command.Parameters.AddWithValue("@HumanInstanceId", humanInstanceId.Value);
-            command.Parameters.AddWithValue("@Timestamp", timestamp);
-            command.Parameters.AddWithValue("@Parent", parent?.Serialize() ?? (object) DBNull.Value);
-
             await command.ExecuteNonQueryAsync();
         }
         catch (SqlException sqlException) when (sqlException.Number == SqlError.UNIQUENESS_VIOLATION)
