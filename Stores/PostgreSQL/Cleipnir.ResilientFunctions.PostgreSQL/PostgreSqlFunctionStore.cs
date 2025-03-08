@@ -355,7 +355,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         ComplimentaryState complimentaryState)
     {
         await using var conn = await CreateConnection();
-        var command = _sqlGenerator.SucceedFunction(
+        await using var command = _sqlGenerator.SucceedFunction(
             storedId,
             result,
             timestamp,
@@ -375,7 +375,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         ComplimentaryState complimentaryState)
     {
         await using var conn = await CreateConnection();
-        var command = _sqlGenerator.PostponeFunction(
+        await using var command = _sqlGenerator.PostponeFunction(
             storedId,
             postponeUntil,
             timestamp,
@@ -395,7 +395,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         ComplimentaryState complimentaryState)
     {
         await using var conn = await CreateConnection();
-        var command = _sqlGenerator.FailFunction(
+        await using var command = _sqlGenerator.FailFunction(
             storedId,
             storedException,
             timestamp,
@@ -405,8 +405,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         var affectedRows = await command.ExecuteNonQueryAsync();
         return affectedRows == 1;
     }
-
-    private string? _suspendFunctionSql;
+    
     public async Task<bool> SuspendFunction(
         StoredId storedId, 
         long timestamp,
@@ -415,23 +414,9 @@ public class PostgreSqlFunctionStore : IFunctionStore
     {
         await using var conn = await CreateConnection();
 
-        _suspendFunctionSql ??= $@"
-            UPDATE {_tableName}
-            SET status = {(int)Status.Suspended}, timestamp = $1
-            WHERE type = $2 AND 
-                  instance = $3 AND 
-                  epoch = $4 AND
-                  NOT interrupted;";
-        await using var command = new NpgsqlCommand(_suspendFunctionSql, conn)
-        {
-            Parameters =
-            {
-                new() { Value = timestamp },
-                new() { Value = storedId.Type.Value },
-                new() { Value = storedId.Instance.Value },
-                new() { Value = expectedEpoch }
-            }
-        };
+        await using var command = _sqlGenerator
+            .SuspendFunction(storedId, timestamp, expectedEpoch)
+            .ToNpgsqlCommand(conn);
         var affectedRows = await command.ExecuteNonQueryAsync();
         return affectedRows == 1;
     }
@@ -451,7 +436,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 epoch = epoch + 1
             WHERE type = $3 AND instance = $4 AND epoch = $5";
         
-        var command = new NpgsqlCommand(_setParametersSql, conn)
+        await using var command = new NpgsqlCommand(_setParametersSql, conn)
         {
             Parameters =
             {
@@ -462,8 +447,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 new() { Value = expectedEpoch },
             }
         };
-
-        await using var _ = command;
+        
         var affectedRows = await command.ExecuteNonQueryAsync();
         return affectedRows == 1;
     }

@@ -218,4 +218,28 @@ public class SqlGenerator(string tablePrefix)
             ]
         };
     }
+    
+    private string? _suspendFunctionSql;
+    public PostgresCommand SuspendFunction(StoredId storedId, long timestamp, int expectedEpoch)
+    {
+        _suspendFunctionSql ??= $@"
+            UPDATE {tablePrefix}
+            SET status = {(int)Status.Suspended}, timestamp = $1
+            WHERE type = $2 AND 
+                  instance = $3 AND 
+                  epoch = $4 AND
+                  NOT interrupted;";
+        
+        return new PostgresCommand
+        {
+            Sql = _suspendFunctionSql,
+            Parameters =
+            [
+                timestamp,
+                storedId.Type.Value,
+                storedId.Instance.Value,
+                expectedEpoch
+            ] 
+        };
+    }
 }
