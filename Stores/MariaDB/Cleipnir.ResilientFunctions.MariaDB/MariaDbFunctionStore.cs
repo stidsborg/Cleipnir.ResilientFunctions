@@ -354,8 +354,7 @@ public class MariaDbFunctionStore : IFunctionStore
         var affectedRows = await command.ExecuteNonQueryAsync();
         return affectedRows == 1;
     }
-
-    private string? _failFunctionSql;
+    
     public async Task<bool> FailFunction(
         StoredId storedId, 
         StoredException storedException, 
@@ -364,26 +363,9 @@ public class MariaDbFunctionStore : IFunctionStore
         ComplimentaryState complimentaryState)
     {
         await using var conn = await CreateOpenConnection(_connectionString);
-        _failFunctionSql ??= $@"
-            UPDATE {_tablePrefix}
-            SET status = {(int) Status.Failed}, exception_json = ?, timestamp = ?, epoch = ?
-            WHERE 
-                type = ? AND 
-                instance = ? AND 
-                epoch = ?";
-
-        await using var command = new MySqlCommand(_failFunctionSql, conn)
-        {
-            Parameters =
-            {
-                new() { Value = JsonSerializer.Serialize(storedException) },
-                new() { Value = timestamp },
-                new() { Value = expectedEpoch },
-                new() { Value = storedId.Type.Value },
-                new() { Value = storedId.Instance.Value.ToString("N") },
-                new() { Value = expectedEpoch },
-            }
-        };
+        await using var command = _sqlGenerator
+            .FailFunction(storedId, storedException, timestamp, expectedEpoch)
+            .ToSqlCommand(conn);
         
         var affectedRows = await command.ExecuteNonQueryAsync();
         return affectedRows == 1;
