@@ -346,8 +346,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         var affectedRows = await command.ExecuteNonQueryAsync();
         return affectedRows == 1;
     }
-
-    private string? _succeedFunctionSql;
+    
     public async Task<bool> SucceedFunction(
         StoredId storedId, 
         byte[]? result, 
@@ -356,24 +355,12 @@ public class PostgreSqlFunctionStore : IFunctionStore
         ComplimentaryState complimentaryState)
     {
         await using var conn = await CreateConnection();
-        _succeedFunctionSql ??= $@"
-            UPDATE {_tableName}
-            SET status = {(int) Status.Succeeded}, result_json = $1, timestamp = $2
-            WHERE 
-                type = $3 AND 
-                instance = $4 AND 
-                epoch = $5";
-        await using var command = new NpgsqlCommand(_succeedFunctionSql, conn)
-        {
-            Parameters =
-            {
-                new() { Value = result == null ? DBNull.Value : result },
-                new() { Value = timestamp },
-                new() { Value = storedId.Type.Value },
-                new() { Value = storedId.Instance.Value },
-                new() { Value = expectedEpoch },
-            }
-        };
+        var command = _sqlGenerator.SucceedFunction(
+            storedId,
+            result,
+            timestamp,
+            expectedEpoch
+        ).ToNpgsqlCommand(conn);
         
         var affectedRows = await command.ExecuteNonQueryAsync();
         return affectedRows == 1;

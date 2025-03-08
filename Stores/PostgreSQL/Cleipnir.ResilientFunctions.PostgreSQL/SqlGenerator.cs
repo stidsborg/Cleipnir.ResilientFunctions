@@ -127,4 +127,32 @@ public class SqlGenerator(string tablePrefix)
         };
         return cmd;
     }
+    
+    private string? _succeedFunctionSql;
+    public PostgresCommand SucceedFunction(
+        StoredId storedId, 
+        byte[]? result, 
+        long timestamp,
+        int expectedEpoch)
+    {
+        _succeedFunctionSql ??= $@"
+            UPDATE {tablePrefix}
+            SET status = {(int) Status.Succeeded}, result_json = $1, timestamp = $2
+            WHERE 
+                type = $3 AND 
+                instance = $4 AND 
+                epoch = $5";
+
+        return new PostgresCommand
+        {
+            Sql = _succeedFunctionSql,
+            Parameters = [
+                result == null ? DBNull.Value : result,
+                timestamp,
+                storedId.Type.Value,
+                storedId.Instance.Value,
+                expectedEpoch,
+            ]
+        };
+    }
 }
