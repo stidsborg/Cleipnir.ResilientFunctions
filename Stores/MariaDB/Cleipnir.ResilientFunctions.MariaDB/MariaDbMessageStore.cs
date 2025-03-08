@@ -117,32 +117,27 @@ public class MariaDbMessageStore : IMessageStore
             storedIds: messages.Select(msg => msg.StoredId).Distinct().ToList()
         );
         var storedIds = messages.Select(m => m.StoredId).Distinct();
-        var interuptsSql = _sqlGenerator.Interrupt(storedIds);
 
+        var messagesWithPosition = messages.Select(msg =>
+            new StoredIdAndMessageWithPosition(
+                msg.StoredId,
+                msg.StoredMessage,
+                ++maxPositions[msg.StoredId]
+            )
+        ).ToList();
+
+        var appendMessagesCommand = _sqlGenerator.AppendMessages(messagesWithPosition);
+        var interuptsCommand = _sqlGenerator.Interrupt(storedIds);
+
+        var command =
+            interrupt
+                ? StoreCommand.Merge(appendMessagesCommand, interuptsCommand!)
+                : appendMessagesCommand;
+        
         await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
-        var sql = @$"    
-            INSERT INTO {_tablePrefix}_messages
-                (type, instance, position, message_json, message_type, idempotency_key)
-            VALUES 
-                 {messages.Select((_, i) => "(?, ?, ?, ?, ?, ?)").StringJoin($",{Environment.NewLine}")};
-
-            {(interrupt ? interuptsSql!.Sql : string.Empty)}";
-
-        await using var command = new MySqlCommand(sql, conn);
-        for (var i = 0; i < messages.Count; i++)
-        {
-            var (storedId, (messageContent, messageType, idempotencyKey)) = messages[i];
-            var (storedType, storedInstance) = storedId;
-            var position = ++maxPositions[storedId];
-            command.Parameters.Add(new MySqlParameter {Value = storedType.Value });
-            command.Parameters.Add(new MySqlParameter {Value = storedInstance.Value.ToString("N") });
-            command.Parameters.Add(new MySqlParameter {Value = position });
-            command.Parameters.Add(new MySqlParameter {Value = messageContent });
-            command.Parameters.Add(new MySqlParameter {Value = messageType });
-            command.Parameters.Add(new MySqlParameter {Value = idempotencyKey ?? (object)DBNull.Value });
-        }
-
-        await command.ExecuteNonQueryAsync();
+        await using var sqlCommand = command.ToSqlCommand(conn);        
+        
+        await sqlCommand.ExecuteNonQueryAsync();
     }
 
     private string? _replaceMessageSql;

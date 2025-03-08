@@ -2,6 +2,7 @@ using System.Text;
 using System.Text.Json;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
+using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Storage.Utils;
 using MySqlConnector;
@@ -34,7 +35,7 @@ public class SqlGenerator(string tablePrefix)
                             WHEN status = {(int)Status.Suspended} THEN 0
                             ELSE expires
                         END
-                WHERE {conditionals}";
+                WHERE {conditionals};";
 
         return new StoreCommand(sql);
     }
@@ -236,5 +237,28 @@ public class SqlGenerator(string tablePrefix)
                 expectedEpoch
             ]
         );
+    }
+
+    public StoreCommand AppendMessages(IReadOnlyList<StoredIdAndMessageWithPosition> messages)
+    {
+        var sql = @$"    
+            INSERT INTO {tablePrefix}_messages
+                (type, instance, position, message_json, message_type, idempotency_key)
+            VALUES 
+                 {"(?, ?, ?, ?, ?, ?)".Replicate(messages.Count).StringJoin($",{Environment.NewLine}")};";
+
+        var command = new StoreCommand(sql);
+        foreach (var (storedId, (messageContent, messageType, idempotencyKey), position) in messages)
+        {
+            var (storedType, storedInstance) = storedId;
+            command.AddParameter(storedType.Value);
+            command.AddParameter(storedInstance.Value.ToString("N"));
+            command.AddParameter(position);
+            command.AddParameter(messageContent);
+            command.AddParameter(messageType);
+            command.AddParameter(idempotencyKey ?? (object)DBNull.Value);
+        }
+
+        return command;
     }
 }

@@ -1,5 +1,7 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
+using Cleipnir.ResilientFunctions.Helpers;
 
 namespace Cleipnir.ResilientFunctions.Storage;
 
@@ -26,8 +28,16 @@ public class StoreCommand
         Parameters = parameters;
     }
     
-    public void AddParameter(string name, object value)
-        => Parameters.Add(new ParameterValueAndName(name, value));
+    public void AddParameter(string name, object value) => Parameters.Add(new ParameterValueAndName(name, value));
+    public void AddParameter(object value) => Parameters.Add(new ParameterValueAndName(value));
+
+    public static StoreCommand Merge(params StoreCommand[] commands)
+    {
+        return new StoreCommand(
+            sql: commands.Select(cmd => cmd.Sql).StringJoin(Environment.NewLine),
+            parameters: commands.SelectMany(cmd => cmd.Parameters).ToList()
+        );
+    }
 }
 
 public class ParameterValueAndName
