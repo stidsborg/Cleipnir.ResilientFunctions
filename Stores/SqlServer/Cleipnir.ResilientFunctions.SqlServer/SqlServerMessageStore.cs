@@ -64,7 +64,7 @@ public class SqlServerMessageStore(string connectionString, SqlGenerator sqlGene
             VALUES 
                  {messages.Select((_, i) => $"(@FlowType{i}, @FlowInstance{i}, @Position{i}, @MessageJson{i}, @MessageType{i}, @IdempotencyKey{i})").StringJoin($",{Environment.NewLine}")};
 
-            {(interrupt ? interuptsSql : string.Empty)}";
+            {(interrupt ? interuptsSql.Sql : string.Empty)}";
 
         await using var command = new SqlCommand(sql, conn);
         for (var i = 0; i < messages.Count; i++)

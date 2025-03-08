@@ -14,7 +14,7 @@ namespace Cleipnir.ResilientFunctions.SqlServer;
 
 public class SqlGenerator(string tablePrefix)
 {
-    public string Interrupt(IEnumerable<StoredId> storedIds)
+    public StoreCommand Interrupt(IEnumerable<StoredId> storedIds)
     {
         var conditionals = storedIds
             .GroupBy(id => id.Type.Value, id => id.Instance.Value)
@@ -38,10 +38,10 @@ public class SqlGenerator(string tablePrefix)
                         END
                 WHERE {conditionals};";
 
-        return sql;
+        return new StoreCommand(sql);
     }
     
-    public string UpdateEffects(SqlCommand command, IReadOnlyList<StoredEffectChange> changes, string paramPrefix)
+    public StoreCommand UpdateEffects(IReadOnlyList<StoredEffectChange> changes, string paramPrefix)
     {
         var stringBuilder = new StringBuilder(capacity: 2);
         var upserts = changes
@@ -75,16 +75,19 @@ public class SqlGenerator(string tablePrefix)
         
         if (upserts.Any())
             stringBuilder.AppendLine(setSql);
+
+        var parameters = new List<ParameterValueAndName>();
+        
         for (var i = 0; i < upserts.Count; i++)
         {
             var upsert = upserts[i];
-            command.Parameters.AddWithValue($"@{paramPrefix}FlowType{i}", upsert.Type);
-            command.Parameters.AddWithValue($"@{paramPrefix}FlowInstance{i}", upsert.Instance);
-            command.Parameters.AddWithValue($"@{paramPrefix}StoredId{i}", upsert.StoredEffectId);
-            command.Parameters.AddWithValue($"@{paramPrefix}EffectId{i}", upsert.EffectId.Serialize());
-            command.Parameters.AddWithValue($"@{paramPrefix}Status{i}", upsert.WorkStatus);
-            command.Parameters.AddWithValue($"@{paramPrefix}Result{i}", upsert.Result ?? (object) SqlBinary.Null);
-            command.Parameters.AddWithValue($"@{paramPrefix}Exception{i}", JsonHelper.ToJson(upsert.Exception) ?? (object) DBNull.Value);
+            parameters.Add(new ParameterValueAndName($"@{paramPrefix}FlowType{i}", upsert.Type));
+            parameters.Add(new ParameterValueAndName($"@{paramPrefix}FlowInstance{i}", upsert.Instance));
+            parameters.Add(new ParameterValueAndName($"@{paramPrefix}StoredId{i}", upsert.StoredEffectId));
+            parameters.Add(new ParameterValueAndName($"@{paramPrefix}EffectId{i}", upsert.EffectId.Serialize()));
+            parameters.Add(new ParameterValueAndName($"@{paramPrefix}Status{i}", upsert.WorkStatus));
+            parameters.Add(new ParameterValueAndName($"@{paramPrefix}Result{i}", upsert.Result ?? (object) SqlBinary.Null));
+            parameters.Add(new ParameterValueAndName($"@{paramPrefix}Exception{i}", JsonHelper.ToJson(upsert.Exception) ?? (object) DBNull.Value));
         }
 
         var removes = changes
@@ -101,8 +104,11 @@ public class SqlGenerator(string tablePrefix)
             WHERE {predicates}";
         if (removes.Any())
             stringBuilder.AppendLine(removeSql);
-        
-        return stringBuilder.ToString();
+
+        return new StoreCommand(
+            sql: stringBuilder.ToString(),
+            parameters
+        );
     }
     
     private string? _createFunctionSql;

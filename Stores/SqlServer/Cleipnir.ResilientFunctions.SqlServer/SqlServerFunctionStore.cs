@@ -525,10 +525,10 @@ public class SqlServerFunctionStore : IFunctionStore
     public async Task Interrupt(IEnumerable<StoredId> storedIds)
     {
         await using var conn = await _connFunc();
-        await using var cmd = new SqlCommand(
-            _sqlGenerator.Interrupt(storedIds),
-            conn
-        );
+        await using var cmd = _sqlGenerator
+                .Interrupt(storedIds)
+                .ToSqlCommand(conn);
+        
         await cmd.ExecuteNonQueryAsync();
     }
 
