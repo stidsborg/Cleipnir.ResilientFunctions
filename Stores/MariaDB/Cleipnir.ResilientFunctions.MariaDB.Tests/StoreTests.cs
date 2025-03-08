@@ -192,6 +192,10 @@ public class StoreTests : ResilientFunctions.Tests.TestTemplates.StoreTests
         => InterruptedFunctionIsNotPostponedWhenFlagIsSet(FunctionStoreFactory.Create());
     
     [TestMethod]
+    public override Task InterruptNothingWorks()
+        => InterruptNothingWorks(FunctionStoreFactory.Create());
+
+    [TestMethod]
     public override Task InterruptedFunctionIsPostponedWhenIgnoringInterruptedFunction()
         => InterruptedFunctionIsPostponedWhenIgnoringInterruptedFunction(FunctionStoreFactory.Create());
 }

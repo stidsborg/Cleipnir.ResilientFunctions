@@ -126,7 +126,7 @@ public class MariaDbMessageStore : IMessageStore
             VALUES 
                  {messages.Select((_, i) => "(?, ?, ?, ?, ?, ?)").StringJoin($",{Environment.NewLine}")};
 
-            {(interrupt ? interuptsSql : string.Empty)}";
+            {(interrupt ? interuptsSql!.Sql : string.Empty)}";
 
         await using var command = new MySqlCommand(sql, conn);
         for (var i = 0; i < messages.Count; i++)

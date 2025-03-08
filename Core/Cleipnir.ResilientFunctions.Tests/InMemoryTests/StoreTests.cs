@@ -201,6 +201,10 @@ public class StoreTests : TestTemplates.StoreTests
         => InterruptedFunctionIsNotPostponedWhenFlagIsSet(FunctionStoreFactory.Create());
 
     [TestMethod]
+    public override Task InterruptNothingWorks()
+        => InterruptNothingWorks(FunctionStoreFactory.Create());
+
+    [TestMethod]
     public override Task InterruptedFunctionIsPostponedWhenIgnoringInterruptedFunction()
         => InterruptedFunctionIsPostponedWhenIgnoringInterruptedFunction(FunctionStoreFactory.Create());
 }

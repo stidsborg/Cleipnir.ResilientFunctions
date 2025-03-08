@@ -525,8 +525,11 @@ public class MariaDbFunctionStore : IFunctionStore
     public async Task Interrupt(IEnumerable<StoredId> storedIds)
     {
         await using var conn = await CreateOpenConnection(_connectionString);
-        var sql= _sqlGenerator.Interrupt(storedIds);
-        await using var cmd = new MySqlCommand(sql, conn);
+        await using var cmd = _sqlGenerator
+            .Interrupt(storedIds)?
+            .ToSqlCommand(conn);
+        if (cmd == null) return;
+        
         await cmd.ExecuteNonQueryAsync();
     }
 

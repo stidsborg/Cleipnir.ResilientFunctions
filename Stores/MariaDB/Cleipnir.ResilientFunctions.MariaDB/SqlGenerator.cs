@@ -9,7 +9,7 @@ namespace Cleipnir.ResilientFunctions.MariaDb;
 
 public class SqlGenerator(string tablePrefix)
 {
-    public string? Interrupt(IEnumerable<StoredId> storedIds)
+    public StoreCommand? Interrupt(IEnumerable<StoredId> storedIds)
     {
         var conditionals = storedIds
             .GroupBy(id => id.Type.Value, id => id.Instance.Value)
@@ -35,7 +35,7 @@ public class SqlGenerator(string tablePrefix)
                         END
                 WHERE {conditionals}";
 
-        return sql;
+        return new StoreCommand(sql);
     }
     
     public string UpdateEffects(MySqlCommand command, IReadOnlyList<StoredEffectChange> changes)

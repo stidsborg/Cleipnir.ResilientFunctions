@@ -526,8 +526,9 @@ public class SqlServerFunctionStore : IFunctionStore
     {
         await using var conn = await _connFunc();
         await using var cmd = _sqlGenerator
-                .Interrupt(storedIds)
+                .Interrupt(storedIds)?
                 .ToSqlCommand(conn);
+        if (cmd == null) return;
         
         await cmd.ExecuteNonQueryAsync();
     }

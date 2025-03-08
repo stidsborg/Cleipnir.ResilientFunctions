@@ -1486,6 +1486,13 @@ public abstract class StoreTests
         sf.Status.ShouldBe(Status.Executing);
         sf.Epoch.ShouldBe(0);
     }
+
+    public abstract Task InterruptNothingWorks();
+    protected async Task InterruptNothingWorks(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        await store.Interrupt(storedIds: []);
+    }
     
     public abstract Task InterruptedFunctionIsPostponedWhenIgnoringInterruptedFunction();
     protected async Task InterruptedFunctionIsPostponedWhenIgnoringInterruptedFunction(Task<IFunctionStore> storeTask)

@@ -516,6 +516,9 @@ public class PostgreSqlFunctionStore : IFunctionStore
             .Select(storedId => $"(type = {storedId.Type.Value} AND instance = '{storedId.Instance.Value}')")
             .StringJoin(" OR ");
 
+        if (string.IsNullOrEmpty(conditionals))
+            return;
+        
         var sql = _interruptsSql.Replace("@CONDITIONALS", conditionals);
 
         await using var cmd = new NpgsqlCommand(sql, conn);
