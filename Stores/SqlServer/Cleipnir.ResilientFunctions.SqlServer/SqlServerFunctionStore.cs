@@ -132,8 +132,7 @@ public class SqlServerFunctionStore : IFunctionStore
         await using var command = new SqlCommand(_truncateSql, conn);
         await command.ExecuteNonQueryAsync();
     }
-
-    private string? _createFunctionSql;
+    
     public async Task<bool> CreateFunction(
         StoredId storedId, 
         FlowInstance humanInstanceId,
