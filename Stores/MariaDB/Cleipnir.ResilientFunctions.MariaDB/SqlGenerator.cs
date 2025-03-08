@@ -152,4 +152,38 @@ public class SqlGenerator(string tablePrefix)
             ]
         );
     }
+    
+    private string? _postponedFunctionSql;
+    public StoreCommand PostponeFunction(
+        StoredId storedId, 
+        long postponeUntil, 
+        long timestamp,
+        bool ignoreInterrupted,
+        int expectedEpoch)
+    {
+        _postponedFunctionSql ??= $@"
+            UPDATE {tablePrefix}
+            SET status = {(int) Status.Postponed}, expires = ?, timestamp = ?, epoch = ?
+            WHERE 
+                type = ? AND 
+                instance = ? AND 
+                epoch = ? AND
+                interrupted = 0";
+
+        var sql = _postponedFunctionSql;
+        if (ignoreInterrupted)
+            sql = sql.Replace("interrupted = 0", "1 = 1");
+
+        return new StoreCommand(
+            sql,
+            [
+                postponeUntil,
+                timestamp,
+                expectedEpoch,
+                storedId.Type.Value,
+                storedId.Instance.Value.ToString("N"),
+                expectedEpoch,
+            ]
+        );
+    }
 }

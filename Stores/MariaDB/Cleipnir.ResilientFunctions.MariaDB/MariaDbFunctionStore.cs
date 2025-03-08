@@ -337,8 +337,7 @@ public class MariaDbFunctionStore : IFunctionStore
         var affectedRows = await command.ExecuteNonQueryAsync();
         return affectedRows == 1;
     }
-
-    private string? _postponedFunctionSql;
+    
     public async Task<bool> PostponeFunction(
         StoredId storedId, 
         long postponeUntil, 
@@ -348,31 +347,9 @@ public class MariaDbFunctionStore : IFunctionStore
         ComplimentaryState complimentaryState)
     {
         await using var conn = await CreateOpenConnection(_connectionString);
-        _postponedFunctionSql ??= $@"
-            UPDATE {_tablePrefix}
-            SET status = {(int) Status.Postponed}, expires = ?, timestamp = ?, epoch = ?
-            WHERE 
-                type = ? AND 
-                instance = ? AND 
-                epoch = ? AND
-                interrupted = 0";
-
-        var sql = _postponedFunctionSql;
-        if (ignoreInterrupted)
-            sql = sql.Replace("interrupted = 0", "1 = 1");
-        
-        await using var command = new MySqlCommand(sql, conn)
-        {
-            Parameters =
-            {
-                new() { Value = postponeUntil },
-                new() { Value = timestamp },
-                new() { Value = expectedEpoch },
-                new() { Value = storedId.Type.Value },
-                new() { Value = storedId.Instance.Value.ToString("N") },
-                new() { Value = expectedEpoch },
-            }
-        };
+        await using var command = _sqlGenerator
+            .PostponeFunction(storedId, postponeUntil, timestamp, ignoreInterrupted, expectedEpoch)
+            .ToSqlCommand(conn);
         
         var affectedRows = await command.ExecuteNonQueryAsync();
         return affectedRows == 1;
