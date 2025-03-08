@@ -232,8 +232,6 @@ public class PostgreSqlFunctionStore : IFunctionStore
 
     public async Task<int> RenewLeases(IReadOnlyList<LeaseUpdate> leaseUpdates, long leaseExpiration)
     {
-        await using var conn = await CreateConnection();
-        
         var predicates = leaseUpdates
             .Select(u =>
                 $"(type = {u.StoredId.Type.Value} AND instance = '{u.StoredId.Instance.Value}' AND epoch = {u.ExpectedEpoch})"
@@ -244,6 +242,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
             SET expires = {leaseExpiration}
             WHERE {predicates}";
 
+        await using var conn = await CreateConnection();
         await using var command = new NpgsqlCommand(sql, conn);
 
         return await command.ExecuteNonQueryAsync();
