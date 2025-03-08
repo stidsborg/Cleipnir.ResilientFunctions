@@ -386,8 +386,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         var affectedRows = await command.ExecuteNonQueryAsync();
         return affectedRows == 1;
     }
-
-    private string? _failFunctionSql;
+    
     public async Task<bool> FailFunction(
         StoredId storedId, 
         StoredException storedException, 
@@ -396,24 +395,12 @@ public class PostgreSqlFunctionStore : IFunctionStore
         ComplimentaryState complimentaryState)
     {
         await using var conn = await CreateConnection();
-        _failFunctionSql ??= $@"
-            UPDATE {_tableName}
-            SET status = {(int) Status.Failed}, exception_json = $1, timestamp = $2
-            WHERE 
-                type = $3 AND 
-                instance = $4 AND 
-                epoch = $5";
-        await using var command = new NpgsqlCommand(_failFunctionSql, conn)
-        {
-            Parameters =
-            {
-                new() { Value = JsonSerializer.Serialize(storedException) },
-                new() { Value = timestamp },
-                new() { Value = storedId.Type.Value },
-                new() { Value = storedId.Instance.Value },
-                new() { Value = expectedEpoch },
-            }
-        };
+        var command = _sqlGenerator.FailFunction(
+            storedId,
+            storedException,
+            timestamp,
+            expectedEpoch
+        ).ToNpgsqlCommand(conn);
         
         var affectedRows = await command.ExecuteNonQueryAsync();
         return affectedRows == 1;

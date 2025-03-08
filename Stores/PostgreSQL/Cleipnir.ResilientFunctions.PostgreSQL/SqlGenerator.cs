@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Storage;
@@ -183,6 +184,33 @@ public class SqlGenerator(string tablePrefix)
             Parameters =
             [
                 postponeUntil,
+                timestamp,
+                storedId.Type.Value,
+                storedId.Instance.Value,
+                expectedEpoch,
+            ]
+        };
+    }
+    
+    private string? _failFunctionSql;
+    public PostgresCommand FailFunction(
+        StoredId storedId, 
+        StoredException storedException, 
+        long timestamp,
+        int expectedEpoch)
+    {
+        _failFunctionSql ??= $@"
+            UPDATE {tablePrefix}
+            SET status = {(int) Status.Failed}, exception_json = $1, timestamp = $2
+            WHERE 
+                type = $3 AND 
+                instance = $4 AND 
+                epoch = $5";
+        return new PostgresCommand
+        {
+            Sql = _failFunctionSql,
+            Parameters = [
+                JsonSerializer.Serialize(storedException),
                 timestamp,
                 storedId.Type.Value,
                 storedId.Instance.Value,
