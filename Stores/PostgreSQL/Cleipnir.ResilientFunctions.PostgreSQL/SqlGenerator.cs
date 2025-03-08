@@ -94,7 +94,7 @@ public class SqlGenerator(string tablePrefix)
    }
     
     private string? _createFunctionSql;
-    public PostgresCommand CreateFunction(
+    public StoreCommand CreateFunction(
         StoredId storedId,
         FlowInstance humanInstanceId,
         byte[]? param, 
@@ -111,7 +111,7 @@ public class SqlGenerator(string tablePrefix)
             ON CONFLICT DO NOTHING;";
 
 
-        var cmd = new PostgresCommand
+        var cmd = new StoreCommand
         {
             Sql = _createFunctionSql,
             Parameters =
@@ -130,7 +130,7 @@ public class SqlGenerator(string tablePrefix)
     }
     
     private string? _succeedFunctionSql;
-    public PostgresCommand SucceedFunction(
+    public StoreCommand SucceedFunction(
         StoredId storedId, 
         byte[]? result, 
         long timestamp,
@@ -144,7 +144,7 @@ public class SqlGenerator(string tablePrefix)
                 instance = $4 AND 
                 epoch = $5";
 
-        return new PostgresCommand
+        return new StoreCommand
         {
             Sql = _succeedFunctionSql,
             Parameters = [
@@ -158,7 +158,7 @@ public class SqlGenerator(string tablePrefix)
     }
     
     private string? _postponeFunctionSql;
-    public PostgresCommand PostponeFunction(
+    public StoreCommand PostponeFunction(
         StoredId storedId, 
         long postponeUntil, 
         long timestamp,
@@ -178,7 +178,7 @@ public class SqlGenerator(string tablePrefix)
         if (ignoreInterrupted)
             sql = sql.Replace("interrupted = FALSE", "1 = 1");
         
-        return new PostgresCommand
+        return new StoreCommand
         {
             Sql = sql,
             Parameters =
@@ -193,7 +193,7 @@ public class SqlGenerator(string tablePrefix)
     }
     
     private string? _failFunctionSql;
-    public PostgresCommand FailFunction(
+    public StoreCommand FailFunction(
         StoredId storedId, 
         StoredException storedException, 
         long timestamp,
@@ -206,7 +206,7 @@ public class SqlGenerator(string tablePrefix)
                 type = $3 AND 
                 instance = $4 AND 
                 epoch = $5";
-        return new PostgresCommand
+        return new StoreCommand
         {
             Sql = _failFunctionSql,
             Parameters = [
@@ -220,7 +220,7 @@ public class SqlGenerator(string tablePrefix)
     }
     
     private string? _suspendFunctionSql;
-    public PostgresCommand SuspendFunction(StoredId storedId, long timestamp, int expectedEpoch)
+    public StoreCommand SuspendFunction(StoredId storedId, long timestamp, int expectedEpoch)
     {
         _suspendFunctionSql ??= $@"
             UPDATE {tablePrefix}
@@ -230,7 +230,7 @@ public class SqlGenerator(string tablePrefix)
                   epoch = $4 AND
                   NOT interrupted;";
         
-        return new PostgresCommand
+        return new StoreCommand
         {
             Sql = _suspendFunctionSql,
             Parameters =

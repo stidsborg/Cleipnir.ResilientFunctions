@@ -1,26 +1,23 @@
-using System.Collections.Generic;
+using Cleipnir.ResilientFunctions.Storage;
 using Npgsql;
 
 namespace Cleipnir.ResilientFunctions.PostgreSQL;
 
-public class PostgresCommand
+internal static class StoreCommandExtensions
 {
-    public required string Sql { get; init; }
-    public required List<object> Parameters { get; init; }
-
-    public NpgsqlCommand ToNpgsqlCommand(NpgsqlConnection conn)
+    public static NpgsqlCommand ToNpgsqlCommand(this StoreCommand command, NpgsqlConnection conn)
     {
-        var cmd = new NpgsqlCommand(Sql, conn);
-        foreach (var parameter in Parameters)
+        var cmd = new NpgsqlCommand(command.Sql, conn);
+        foreach (var parameter in command.Parameters)
             cmd.Parameters.Add(new NpgsqlParameter { Value = parameter });
 
         return cmd;
     }
     
-    public NpgsqlBatchCommand ToNpgsqlBatchCommand()
+    public static NpgsqlBatchCommand ToNpgsqlBatchCommand(this StoreCommand command)
     {
-        var cmd = new NpgsqlBatchCommand(Sql);
-        foreach (var parameter in Parameters)
+        var cmd = new NpgsqlBatchCommand(command.Sql);
+        foreach (var parameter in command.Parameters)
             cmd.Parameters.Add(new NpgsqlParameter { Value = parameter });
 
         return cmd;
