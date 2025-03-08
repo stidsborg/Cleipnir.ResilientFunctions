@@ -370,8 +370,7 @@ public class MariaDbFunctionStore : IFunctionStore
         var affectedRows = await command.ExecuteNonQueryAsync();
         return affectedRows == 1;
     }
-
-    private string? _suspendFunctionSql;
+    
     public async Task<bool> SuspendFunction(
         StoredId storedId, 
         long timestamp,
@@ -379,25 +378,9 @@ public class MariaDbFunctionStore : IFunctionStore
         ComplimentaryState complimentaryState)
     {
         await using var conn = await CreateOpenConnection(_connectionString);
-        
-        _suspendFunctionSql ??= $@"
-            UPDATE {_tablePrefix}
-            SET status = {(int) Status.Suspended}, timestamp = ?
-            WHERE type = ? AND 
-                  instance = ? AND 
-                  epoch = ? AND
-                  NOT interrupted";
-
-        await using var command = new MySqlCommand(_suspendFunctionSql, conn)
-        {
-            Parameters =
-            {
-                new() { Value = timestamp },
-                new() { Value = storedId.Type.Value },
-                new() { Value = storedId.Instance.Value.ToString("N") },
-                new() { Value = expectedEpoch }
-            }
-        };
+        await using var command = _sqlGenerator
+            .SuspendFunction(storedId, timestamp, expectedEpoch)
+            .ToSqlCommand(conn);
         
         var affectedRows = await command.ExecuteNonQueryAsync();
         return affectedRows == 1;

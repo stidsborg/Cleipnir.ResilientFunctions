@@ -215,4 +215,26 @@ public class SqlGenerator(string tablePrefix)
             ]
         );
     }
+    
+    private string? _suspendFunctionSql;
+    public StoreCommand SuspendFunction(StoredId storedId, long timestamp, int expectedEpoch)
+    {
+        _suspendFunctionSql ??= $@"
+            UPDATE {tablePrefix}
+            SET status = {(int) Status.Suspended}, timestamp = ?
+            WHERE type = ? AND 
+                  instance = ? AND 
+                  epoch = ? AND
+                  NOT interrupted";
+
+        return new StoreCommand(
+            _suspendFunctionSql,
+            [
+                timestamp,
+                storedId.Type.Value,
+                storedId.Instance.Value.ToString("N"),
+                expectedEpoch
+            ]
+        );
+    }
 }
