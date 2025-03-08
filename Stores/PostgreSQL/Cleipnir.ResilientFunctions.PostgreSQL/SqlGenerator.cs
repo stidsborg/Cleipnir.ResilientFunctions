@@ -155,4 +155,39 @@ public class SqlGenerator(string tablePrefix)
             ]
         };
     }
+    
+    private string? _postponeFunctionSql;
+    public PostgresCommand PostponeFunction(
+        StoredId storedId, 
+        long postponeUntil, 
+        long timestamp,
+        bool ignoreInterrupted,
+        int expectedEpoch)
+    {
+        _postponeFunctionSql ??= $@"
+            UPDATE {tablePrefix}
+            SET status = {(int) Status.Postponed}, expires = $1, timestamp = $2
+            WHERE 
+                type = $3 AND 
+                instance = $4 AND 
+                epoch = $5 AND
+                interrupted = FALSE";
+        
+        var sql = _postponeFunctionSql;
+        if (ignoreInterrupted)
+            sql = sql.Replace("interrupted = FALSE", "1 = 1");
+        
+        return new PostgresCommand
+        {
+            Sql = sql,
+            Parameters =
+            [
+                postponeUntil,
+                timestamp,
+                storedId.Type.Value,
+                storedId.Instance.Value,
+                expectedEpoch,
+            ]
+        };
+    }
 }

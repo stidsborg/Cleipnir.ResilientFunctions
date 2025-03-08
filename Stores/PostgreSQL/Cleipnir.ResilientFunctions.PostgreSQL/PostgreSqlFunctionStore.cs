@@ -365,8 +365,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         var affectedRows = await command.ExecuteNonQueryAsync();
         return affectedRows == 1;
     }
-
-    private string? _postponeFunctionSql;
+    
     public async Task<bool> PostponeFunction(
         StoredId storedId, 
         long postponeUntil, 
@@ -376,30 +375,13 @@ public class PostgreSqlFunctionStore : IFunctionStore
         ComplimentaryState complimentaryState)
     {
         await using var conn = await CreateConnection();
-        _postponeFunctionSql ??= $@"
-            UPDATE {_tableName}
-            SET status = {(int) Status.Postponed}, expires = $1, timestamp = $2
-            WHERE 
-                type = $3 AND 
-                instance = $4 AND 
-                epoch = $5 AND
-                interrupted = FALSE";
-        
-        var sql = _postponeFunctionSql;
-        if (ignoreInterrupted)
-            sql = sql.Replace("interrupted = FALSE", "1 = 1");
-        
-        await using var command = new NpgsqlCommand(sql, conn)
-        {
-            Parameters =
-            {
-                new() { Value = postponeUntil },
-                new() { Value = timestamp },
-                new() { Value = storedId.Type.Value },
-                new() { Value = storedId.Instance.Value },
-                new() { Value = expectedEpoch },
-            }
-        };
+        var command = _sqlGenerator.PostponeFunction(
+            storedId,
+            postponeUntil,
+            timestamp,
+            ignoreInterrupted,
+            expectedEpoch
+        ).ToNpgsqlCommand(conn);
         
         var affectedRows = await command.ExecuteNonQueryAsync();
         return affectedRows == 1;
