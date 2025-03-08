@@ -111,10 +111,9 @@ public class SqlGenerator(string tablePrefix)
             ON CONFLICT DO NOTHING;";
 
 
-        var cmd = new StoreCommand
-        {
-            Sql = _createFunctionSql,
-            Parameters =
+        return new StoreCommand(
+            _createFunctionSql,
+            values:
             [
                 storedId.Type.Value,
                 storedId.Instance.Value,
@@ -124,9 +123,7 @@ public class SqlGenerator(string tablePrefix)
                 timestamp,
                 humanInstanceId.Value,
                 parent?.Serialize() ?? (object)DBNull.Value
-            ]
-        };
-        return cmd;
+            ]);
     }
     
     private string? _succeedFunctionSql;
@@ -144,17 +141,17 @@ public class SqlGenerator(string tablePrefix)
                 instance = $4 AND 
                 epoch = $5";
 
-        return new StoreCommand
-        {
-            Sql = _succeedFunctionSql,
-            Parameters = [
+        return new StoreCommand(
+            _succeedFunctionSql,
+            values:
+            [
                 result == null ? DBNull.Value : result,
                 timestamp,
                 storedId.Type.Value,
                 storedId.Instance.Value,
                 expectedEpoch,
             ]
-        };
+        );
     }
     
     private string? _postponeFunctionSql;
@@ -177,11 +174,9 @@ public class SqlGenerator(string tablePrefix)
         var sql = _postponeFunctionSql;
         if (ignoreInterrupted)
             sql = sql.Replace("interrupted = FALSE", "1 = 1");
-        
-        return new StoreCommand
-        {
-            Sql = sql,
-            Parameters =
+
+        return new StoreCommand(
+            sql,
             [
                 postponeUntil,
                 timestamp,
@@ -189,7 +184,7 @@ public class SqlGenerator(string tablePrefix)
                 storedId.Instance.Value,
                 expectedEpoch,
             ]
-        };
+        );
     }
     
     private string? _failFunctionSql;
@@ -206,17 +201,17 @@ public class SqlGenerator(string tablePrefix)
                 type = $3 AND 
                 instance = $4 AND 
                 epoch = $5";
-        return new StoreCommand
-        {
-            Sql = _failFunctionSql,
-            Parameters = [
+        return new StoreCommand(
+            _failFunctionSql,
+            values:
+            [
                 JsonSerializer.Serialize(storedException),
                 timestamp,
                 storedId.Type.Value,
                 storedId.Instance.Value,
                 expectedEpoch,
             ]
-        };
+        );
     }
     
     private string? _suspendFunctionSql;
@@ -229,17 +224,15 @@ public class SqlGenerator(string tablePrefix)
                   instance = $3 AND 
                   epoch = $4 AND
                   NOT interrupted;";
-        
-        return new StoreCommand
-        {
-            Sql = _suspendFunctionSql,
-            Parameters =
+
+        return new StoreCommand(
+            _suspendFunctionSql,
             [
                 timestamp,
                 storedId.Type.Value,
                 storedId.Instance.Value,
                 expectedEpoch
-            ] 
-        };
+            ]
+        );
     }
 }
