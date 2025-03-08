@@ -124,4 +124,32 @@ public class SqlGenerator(string tablePrefix)
             ]
         );
     }
+    
+    private string? _succeedFunctionSql;
+    public StoreCommand SucceedFunction(
+        StoredId storedId, 
+        byte[]? result, 
+        long timestamp,
+        int expectedEpoch)
+    {
+        _succeedFunctionSql ??= $@"
+            UPDATE {tablePrefix}
+            SET status = {(int) Status.Succeeded}, result_json = ?, timestamp = ?, epoch = ?
+            WHERE 
+                type = ? AND 
+                instance = ? AND 
+                epoch = ?";
+
+        return new StoreCommand(
+            _succeedFunctionSql,
+            [
+                result ?? (object)DBNull.Value,
+                timestamp,
+                expectedEpoch,
+                storedId.Type.Value,
+                storedId.Instance.Value.ToString("N"),
+                expectedEpoch,
+            ]
+        );
+    }
 }

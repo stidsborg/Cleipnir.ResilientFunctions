@@ -321,8 +321,7 @@ public class MariaDbFunctionStore : IFunctionStore
         var affectedRows = await command.ExecuteNonQueryAsync();
         return affectedRows == 1;
     }
-
-    private string? _succeedFunctionSql;
+    
     public async Task<bool> SucceedFunction(
         StoredId storedId, 
         byte[]? result, 
@@ -331,26 +330,9 @@ public class MariaDbFunctionStore : IFunctionStore
         ComplimentaryState complimentaryState)
     {
         await using var conn = await CreateOpenConnection(_connectionString);
-        _succeedFunctionSql ??= $@"
-            UPDATE {_tablePrefix}
-            SET status = {(int) Status.Succeeded}, result_json = ?, timestamp = ?, epoch = ?
-            WHERE 
-                type = ? AND 
-                instance = ? AND 
-                epoch = ?";
-
-        await using var command = new MySqlCommand(_succeedFunctionSql, conn)
-        {
-            Parameters =
-            {
-                new() { Value = result ?? (object)DBNull.Value },
-                new() { Value = timestamp },
-                new() { Value = expectedEpoch },
-                new() { Value = storedId.Type.Value },
-                new() { Value = storedId.Instance.Value.ToString("N") },
-                new() { Value = expectedEpoch },
-            }
-        };
+        await using var command = _sqlGenerator
+            .SucceedFunction(storedId, result, timestamp, expectedEpoch)
+            .ToSqlCommand(conn);
         
         var affectedRows = await command.ExecuteNonQueryAsync();
         return affectedRows == 1;
