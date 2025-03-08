@@ -3,7 +3,6 @@ using System.Text.Json;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
-using Cleipnir.ResilientFunctions.MariaDb;
 using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Storage;
 using MySqlConnector;
@@ -115,8 +114,7 @@ public class MariaDbFunctionStore : IFunctionStore
         await using var command = new MySqlCommand(_truncateTablesSql, conn);
         await command.ExecuteNonQueryAsync();
     }
-
-    private string? _createFunctionSql;
+    
     public async Task<bool> CreateFunction(
         StoredId storedId, 
         FlowInstance humanInstanceId,
@@ -127,28 +125,10 @@ public class MariaDbFunctionStore : IFunctionStore
         StoredId? parent)
     {
         await using var conn = await CreateOpenConnection(_connectionString);
-
-        var status = postponeUntil == null ? Status.Executing : Status.Postponed;
-        _createFunctionSql ??= @$"
-            INSERT IGNORE INTO {_tablePrefix}
-                (type, instance, param_json, status, epoch, expires, timestamp, human_instance_id, parent)
-            VALUES
-                (?, ?, ?, ?, 0, ?, ?, ?, ?)";
-        await using var command = new MySqlCommand(_createFunctionSql, conn)
-        {
-            Parameters =
-            {
-                new() {Value = storedId.Type.Value},
-                new() {Value = storedId.Instance.Value.ToString("N")},
-                new() {Value = param ?? (object) DBNull.Value},
-                new() {Value = (int) status}, 
-                new() {Value = postponeUntil ?? leaseExpiration},
-                new() {Value = timestamp},
-                new() {Value = humanInstanceId.Value},
-                new() {Value = parent?.Serialize() ?? (object) DBNull.Value},
-            }
-        };
-
+        await using var command = _sqlGenerator
+            .CreateFunction(storedId, humanInstanceId, param, leaseExpiration, postponeUntil, timestamp, parent)
+            .ToSqlCommand(conn);
+        
         var affectedRows = await command.ExecuteNonQueryAsync();
         return affectedRows == 1;
     }

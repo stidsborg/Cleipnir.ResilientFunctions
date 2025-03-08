@@ -92,4 +92,36 @@ public class SqlGenerator(string tablePrefix)
         
         return stringBuilder.ToString();
     }
+    
+    private string? _createFunctionSql;
+    public StoreCommand CreateFunction(
+        StoredId storedId, 
+        FlowInstance humanInstanceId,
+        byte[]? param, 
+        long leaseExpiration,
+        long? postponeUntil,
+        long timestamp,
+        StoredId? parent)
+    {
+        _createFunctionSql ??= @$"
+            INSERT IGNORE INTO {tablePrefix}
+                (type, instance, param_json, status, epoch, expires, timestamp, human_instance_id, parent)
+            VALUES
+                (?, ?, ?, ?, 0, ?, ?, ?, ?)";
+        var status = postponeUntil == null ? Status.Executing : Status.Postponed;
+
+        return new StoreCommand(
+            _createFunctionSql,
+            [
+                storedId.Type.Value,
+                storedId.Instance.Value.ToString("N"),
+                param ?? (object)DBNull.Value,
+                (int)status,
+                postponeUntil ?? leaseExpiration,
+                timestamp,
+                humanInstanceId.Value,
+                parent?.Serialize() ?? (object)DBNull.Value,
+            ]
+        );
+    }
 }
