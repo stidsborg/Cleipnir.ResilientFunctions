@@ -189,9 +189,7 @@ public class SqlGenerator(string tablePrefix)
     }
     
     private string? _postponedFunctionSql;
-    public string PostponeFunction(
-        StoredId storedId, long postponeUntil, long timestamp, bool ignoreInterrupted, int expectedEpoch, 
-        SqlCommand command, string paramPrefix)
+    public StoreCommand PostponeFunction(StoredId storedId, long postponeUntil, long timestamp, bool ignoreInterrupted, int expectedEpoch, string paramPrefix)
     {
         _postponedFunctionSql ??= @$"
             UPDATE {tablePrefix}
@@ -204,14 +202,16 @@ public class SqlGenerator(string tablePrefix)
         
         if (ignoreInterrupted)
             sql = sql.Replace("Interrupted = 0", "1 = 1");
-        
-        command.Parameters.AddWithValue($"@{paramPrefix}PostponedUntil", postponeUntil);
-        command.Parameters.AddWithValue($"@{paramPrefix}Timestamp", timestamp);
-        command.Parameters.AddWithValue($"@{paramPrefix}FlowInstance", storedId.Instance.Value);
-        command.Parameters.AddWithValue($"@{paramPrefix}FlowType", storedId.Type.Value);
-        command.Parameters.AddWithValue($"@{paramPrefix}ExpectedEpoch", expectedEpoch);
 
-        return sql;
+        var command = new StoreCommand(sql);
+        
+        command.AddParameter($"@{paramPrefix}PostponedUntil", postponeUntil);
+        command.AddParameter($"@{paramPrefix}Timestamp", timestamp);
+        command.AddParameter($"@{paramPrefix}FlowInstance", storedId.Instance.Value);
+        command.AddParameter($"@{paramPrefix}FlowType", storedId.Type.Value);
+        command.AddParameter($"@{paramPrefix}ExpectedEpoch", expectedEpoch);
+
+        return command;
     }
 
     private string? _failFunctionSql;
