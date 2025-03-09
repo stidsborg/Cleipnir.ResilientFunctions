@@ -112,12 +112,9 @@ public class MariaDbMessageStore : IMessageStore
     {
         if (messages.Count == 0)
             return;
+        var storedIds = messages.Select(m => m.StoredId).Distinct().ToList();
+        var maxPositions = await GetMaxPositions(storedIds);
         
-        var maxPositions = await GetMaxPositions(
-            storedIds: messages.Select(msg => msg.StoredId).Distinct().ToList()
-        );
-        var storedIds = messages.Select(m => m.StoredId).Distinct();
-
         var messagesWithPosition = messages.Select(msg =>
             new StoredIdAndMessageWithPosition(
                 msg.StoredId,
