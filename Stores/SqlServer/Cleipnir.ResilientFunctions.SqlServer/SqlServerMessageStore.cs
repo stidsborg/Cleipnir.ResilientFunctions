@@ -51,10 +51,9 @@ public class SqlServerMessageStore(string connectionString, SqlGenerator sqlGene
         if (messages.Count == 0)
             return;
         
-        var maxPositions = await GetMaxPositions(
-            storedIds: messages.Select(msg => msg.StoredId).Distinct().ToList()
-        );
-        var storedIds = messages.Select(m => m.StoredId).Distinct();
+        var storedIds = messages.Select(m => m.StoredId).Distinct().ToList();
+        var maxPositions = await GetMaxPositions(storedIds);
+        
         var interuptsSql = sqlGenerator.Interrupt(storedIds)!;
 
         await using var conn = await CreateConnection();
