@@ -215,9 +215,7 @@ public class SqlGenerator(string tablePrefix)
     }
 
     private string? _failFunctionSql;
-    public string FailFunction(
-        StoredId storedId, StoredException storedException, long timestamp, int expectedEpoch, 
-        SqlCommand command, string paramPrefix)
+    public StoreCommand FailFunction(StoredId storedId, StoredException storedException, long timestamp, int expectedEpoch, string paramPrefix)
     {
         _failFunctionSql ??= @$"
             UPDATE {tablePrefix}
@@ -229,14 +227,15 @@ public class SqlGenerator(string tablePrefix)
         var sql = paramPrefix == "" 
             ? _failFunctionSql
             : _failFunctionSql.Replace("@", $"@{paramPrefix}");
-        
-        command.Parameters.AddWithValue($"@{paramPrefix}ExceptionJson", JsonSerializer.Serialize(storedException));
-        command.Parameters.AddWithValue($"@{paramPrefix}Timestamp", timestamp);
-        command.Parameters.AddWithValue($"@{paramPrefix}FlowInstance", storedId.Instance.Value);
-        command.Parameters.AddWithValue($"@{paramPrefix}FlowType", storedId.Type.Value);
-        command.Parameters.AddWithValue($"@{paramPrefix}ExpectedEpoch", expectedEpoch);
 
-        return sql;
+        var command = new StoreCommand(sql);
+        command.AddParameter($"@{paramPrefix}ExceptionJson", JsonSerializer.Serialize(storedException));
+        command.AddParameter($"@{paramPrefix}Timestamp", timestamp);
+        command.AddParameter($"@{paramPrefix}FlowInstance", storedId.Instance.Value);
+        command.AddParameter($"@{paramPrefix}FlowType", storedId.Type.Value);
+        command.AddParameter($"@{paramPrefix}ExpectedEpoch", expectedEpoch);
+
+        return command;
     }
     
     private string? _suspendFunctionSql;

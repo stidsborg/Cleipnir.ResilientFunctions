@@ -446,19 +446,15 @@ public class SqlServerFunctionStore : IFunctionStore
     {
         
         await using var conn = await _connFunc();
+        await using var command = _sqlGenerator
+            .FailFunction(
+                storedId,
+                storedException,
+                timestamp,
+                expectedEpoch,
+                paramPrefix: ""
+            ).ToSqlCommand(conn);
         
-        await using var command = new SqlCommand();
-        command.Connection = conn;
-        
-        var sql = _sqlGenerator.FailFunction(
-            storedId,
-            storedException,
-            timestamp,
-            expectedEpoch,
-            command,
-            paramPrefix: ""
-        );
-        command.CommandText = sql;
 
         var affectedRows = await command.ExecuteNonQueryAsync();
         return affectedRows > 0;
