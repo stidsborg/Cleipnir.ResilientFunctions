@@ -145,20 +145,18 @@ public class SqlServerFunctionStore : IFunctionStore
         await using var conn = await _connFunc();
         
         try
-        { 
-            await using var command = new SqlCommand();
-            command.Connection = conn;
-            command.CommandText = _sqlGenerator.CreateFunction(
-                storedId,
-                humanInstanceId,
-                param,
-                leaseExpiration,
-                postponeUntil,
-                timestamp,
-                parent,
-                command,
-                paramPrefix: null
-            );
+        {
+            await using var command = _sqlGenerator
+                .CreateFunction(
+                    storedId,
+                    humanInstanceId,
+                    param,
+                    leaseExpiration,
+                    postponeUntil,
+                    timestamp,
+                    parent,
+                    paramPrefix: null
+                ).ToSqlCommand(conn);
             
             await command.ExecuteNonQueryAsync();
         }
