@@ -31,13 +31,13 @@ public class StoreCommand
     public void AddParameter(string name, object value) => Parameters.Add(new ParameterValueAndName(name, value));
     public void AddParameter(object value) => Parameters.Add(new ParameterValueAndName(value));
 
-    public static StoreCommand Merge(params StoreCommand[] commands)
-    {
-        return new StoreCommand(
-            sql: commands.Select(cmd => cmd.Sql).StringJoin(Environment.NewLine),
-            parameters: commands.SelectMany(cmd => cmd.Parameters).ToList()
+    public static StoreCommand Merge(params StoreCommand?[] commands) 
+        => new(
+            sql: commands.Where(c => c != null).Select(cmd => cmd!.Sql).StringJoin(Environment.NewLine),
+            parameters: commands.Where(c => c != null).SelectMany(cmd => cmd!.Parameters).ToList()
         );
-    }
+    
+    public StoreCommand AppendSql(string sql) => new(Sql + Environment.NewLine + sql);
 }
 
 public class ParameterValueAndName

@@ -67,12 +67,13 @@ public class MariaDbEffectsStore(string connectionString, SqlGenerator sqlGenera
 
     public async Task SetEffectResults(StoredId storedId, IReadOnlyList<StoredEffectChange> changes)
     {
+        if (!changes.Any())
+            return;
+        
         await using var conn = await CreateConnection();
-        await using var command = new MySqlCommand();
-        command.Connection = conn;
-
-        var sql = sqlGenerator.UpdateEffects(command, changes);
-        command.CommandText = sql;
+        await using var command = sqlGenerator
+            .UpdateEffects(changes)!
+            .ToSqlCommand(conn);
         
         await command.ExecuteNonQueryAsync();
     }

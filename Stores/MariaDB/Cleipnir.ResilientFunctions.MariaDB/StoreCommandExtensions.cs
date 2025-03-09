@@ -12,7 +12,7 @@ internal static class StoreCommandExtensions
         cmd.CommandText = command.Sql;
 
         foreach (var (value, _) in command.Parameters)
-            cmd.Parameters.Add(new MySqlParameter {Value = value });
+            cmd.Parameters.Add(new MySqlParameter { Value = value });
 
         return cmd;
     }

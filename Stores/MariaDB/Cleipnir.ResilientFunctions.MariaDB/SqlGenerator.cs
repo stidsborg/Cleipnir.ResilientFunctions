@@ -40,59 +40,69 @@ public class SqlGenerator(string tablePrefix)
         return new StoreCommand(sql);
     }
     
-    public string UpdateEffects(MySqlCommand command, IReadOnlyList<StoredEffectChange> changes)
+    public StoreCommand? UpdateEffects(IReadOnlyList<StoredEffectChange> changes)
     {
-        var stringBuilder = new StringBuilder(capacity: 2);
-        var upserts = changes
-            .Where(c => c.Operation == CrudOperation.Upsert)
-            .Select(c => new
-            {
-                Type = c.StoredId.Type.Value, 
-                Instance = c.StoredId.Instance.Value, 
-                IdHash = c.EffectId.Value,
-                WorkStatus = (int)c.StoredEffect!.WorkStatus, 
-                Result = c.StoredEffect!.Result,
-                Exception = c.StoredEffect!.StoredException, 
-                EffectId = c.StoredEffect!.EffectId
-            })
-            .ToList();
-        
-        var setSql = $@"
-          INSERT INTO {tablePrefix}_effects 
-              (type, instance, id_hash, status, result, exception, effect_id)
-          VALUES
-              {"(?, ?, ?, ?, ?, ?, ?)".Replicate(upserts.Count).StringJoin(", ")}  
-           ON DUPLICATE KEY UPDATE
-                status = VALUES(status), result = VALUES(result), exception = VALUES(exception);";
-        if (upserts.Any())
-            stringBuilder.AppendLine(setSql);
-        foreach (var a in upserts)
+        if (!changes.Any())
+            return null;
+
+        var upsertCommand = default(StoreCommand);
+        if (changes.Any(c => c.Operation == CrudOperation.Upsert))
         {
-            command.Parameters.Add(new MySqlParameter(name: null, a.Type));
-            command.Parameters.Add(new MySqlParameter(name: null, a.Instance.ToString("N")));
-            command.Parameters.Add(new MySqlParameter(name: null, a.IdHash.ToString("N")));
-            command.Parameters.Add(new MySqlParameter(name: null, a.WorkStatus));
-            command.Parameters.Add(new MySqlParameter(name: null, a.Result ?? (object) DBNull.Value));
-            command.Parameters.Add(new MySqlParameter(name: null, JsonHelper.ToJson(a.Exception) ?? (object) DBNull.Value));
-            command.Parameters.Add(new MySqlParameter(name: null, a.EffectId.Serialize()));
+            var upserts = changes
+                .Where(c => c.Operation == CrudOperation.Upsert)
+                .Select(c => new
+                {
+                    Type = c.StoredId.Type.Value, 
+                    Instance = c.StoredId.Instance.Value, 
+                    IdHash = c.EffectId.Value,
+                    WorkStatus = (int)c.StoredEffect!.WorkStatus, 
+                    Result = c.StoredEffect!.Result,
+                    Exception = c.StoredEffect!.StoredException, 
+                    EffectId = c.StoredEffect!.EffectId
+                })
+                .ToList();
+        
+            var setSql = $@"
+                INSERT INTO {tablePrefix}_effects 
+                    (type, instance, id_hash, status, result, exception, effect_id)
+                VALUES
+                    {"(?, ?, ?, ?, ?, ?, ?)".Replicate(upserts.Count).StringJoin(", ")}  
+                ON DUPLICATE KEY UPDATE
+                    status = VALUES(status), result = VALUES(result), exception = VALUES(exception);";
+
+            upsertCommand = new StoreCommand(setSql);
+            foreach (var a in upserts)
+            {
+                upsertCommand.AddParameter(a.Type);
+                upsertCommand.AddParameter(a.Instance.ToString("N"));
+                upsertCommand.AddParameter(a.IdHash.ToString("N"));
+                upsertCommand.AddParameter(a.WorkStatus);
+                upsertCommand.AddParameter(a.Result ?? (object) DBNull.Value);
+                upsertCommand.AddParameter(JsonHelper.ToJson(a.Exception) ?? (object) DBNull.Value);
+                upsertCommand.AddParameter(a.EffectId.Serialize());
+            }    
         }
 
-        var removes = changes
-            .Where(c => c.Operation == CrudOperation.Delete)
-            .Select(c => new { Type = c.StoredId.Type.Value, Instance = c.StoredId.Instance.Value, IdHash = c.EffectId.Value })
-            .GroupBy(a => new {a.Type, a.Instance }, a => a.IdHash)
-            .ToList();
-        var predicates = removes
-            .Select(r =>
-                $"(type = {r.Key.Type} AND instance = '{r.Key.Instance:N}' AND id_hash IN ({r.Select(id => $"'{id:N}'").StringJoin(", ")}))")
-            .StringJoin($" OR {Environment.NewLine}");
-        var removeSql = @$"
+        var removeCommand = default(StoreCommand);
+        if (changes.Any(c => c.Operation == CrudOperation.Delete))
+        {
+            var removes = changes
+                .Where(c => c.Operation == CrudOperation.Delete)
+                .Select(c => new { Type = c.StoredId.Type.Value, Instance = c.StoredId.Instance.Value, IdHash = c.EffectId.Value })
+                .GroupBy(a => new {a.Type, a.Instance }, a => a.IdHash)
+                .ToList();
+            var predicates = removes
+                .Select(r =>
+                    $"(type = {r.Key.Type} AND instance = '{r.Key.Instance:N}' AND id_hash IN ({r.Select(id => $"'{id:N}'").StringJoin(", ")}))")
+                .StringJoin($" OR {Environment.NewLine}");
+            var removeSql = @$"
             DELETE FROM {tablePrefix}_effects 
             WHERE {predicates}";
-        if (removes.Any())
-            stringBuilder.AppendLine(removeSql);
+            
+            removeCommand = new StoreCommand(removeSql);
+        }
         
-        return stringBuilder.ToString();
+        return StoreCommand.Merge(upsertCommand, removeCommand);
     }
     
     private string? _createFunctionSql;
