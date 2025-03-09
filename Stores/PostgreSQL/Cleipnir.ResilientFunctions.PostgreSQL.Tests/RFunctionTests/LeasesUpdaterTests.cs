@@ -37,4 +37,8 @@ public class LeasesUpdaterTests : ResilientFunctions.Tests.TestTemplates.Functio
     [TestMethod]
     public override Task LeaseUpdatersUpdatesPeekedFunctions()
         => LeaseUpdatersUpdatesPeekedFunctions(FunctionStoreFactory.Create());
+    
+    [TestMethod]
+    public override Task LeaseUpdatersRemovesFunctionWithLowerEpoch()
+        => LeaseUpdatersRemovesFunctionWithLowerEpoch(FunctionStoreFactory.Create());
 }

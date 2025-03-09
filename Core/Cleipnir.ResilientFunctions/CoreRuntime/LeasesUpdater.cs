@@ -84,8 +84,8 @@ internal class LeasesUpdater(TimeSpan leaseLength, IFunctionStore functionStore,
         
             if (leasesUpdated == leaseUpdates.Count)
                 lock (_lock)
-                    foreach (var x in leaseUpdates)
-                        ConditionalSet(x.StoredId, x.ExpectedEpoch, nextLeaseExpiry);
+                    foreach (var leaseUpdate in leaseUpdates)
+                        ConditionalSet(leaseUpdate.StoredId, leaseUpdate.ExpectedEpoch, nextLeaseExpiry);
             else
             {
                 var functionsStatus = 
@@ -99,10 +99,10 @@ internal class LeasesUpdater(TimeSpan leaseLength, IFunctionStore functionStore,
                             ConditionalRemove(leaseUpdate.StoredId, leaseUpdate.ExpectedEpoch);
                     
                         var (_, status, epoch, expiry) = functionsStatus[leaseUpdate.StoredId];
-                        if (epoch != leaseUpdate.ExpectedEpoch || status != Status.Executing)
+                        if (epoch == leaseUpdate.ExpectedEpoch && status == Status.Executing)
+                            ConditionalSet(leaseUpdate.StoredId, leaseUpdate.ExpectedEpoch, expiry);
+                        else
                             ConditionalRemove(leaseUpdate.StoredId, leaseUpdate.ExpectedEpoch);
-                        
-                        ConditionalSet(leaseUpdate.StoredId, leaseUpdate.ExpectedEpoch, expiry);
                     }
             }
         }
@@ -118,7 +118,7 @@ internal class LeasesUpdater(TimeSpan leaseLength, IFunctionStore functionStore,
         if (!_executingFlows.TryGetValue(flowId, out EpochAndExpiry? value)) 
             return;
         
-        if (value.Epoch >= epoch)
+        if (value.Epoch == epoch)
             _executingFlows[flowId] = new EpochAndExpiry(epoch, expiry);
     }
     
