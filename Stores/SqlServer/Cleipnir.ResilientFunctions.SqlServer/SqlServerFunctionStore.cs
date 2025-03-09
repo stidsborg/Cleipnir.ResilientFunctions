@@ -393,18 +393,14 @@ public class SqlServerFunctionStore : IFunctionStore
         ComplimentaryState complimentaryState)
     {
         await using var conn = await _connFunc();
-        await using var command = new SqlCommand();
-        command.Connection = conn;
-        
-        var sql = _sqlGenerator.SucceedFunction(
-            storedId,
-            result,
-            timestamp,
-            expectedEpoch,
-            command,
-            paramPrefix: ""
-        );
-        command.CommandText = sql;
+        await using var command = _sqlGenerator
+            .SucceedFunction(
+                storedId,
+                result,
+                timestamp,
+                expectedEpoch,
+                paramPrefix: ""
+            ).ToSqlCommand(conn);
         
         var affectedRows = await command.ExecuteNonQueryAsync();
         return affectedRows > 0;

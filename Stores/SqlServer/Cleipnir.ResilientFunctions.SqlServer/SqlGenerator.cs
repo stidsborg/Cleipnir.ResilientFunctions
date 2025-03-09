@@ -166,9 +166,7 @@ public class SqlGenerator(string tablePrefix)
     }
 
     private string? _succeedFunctionSql;
-    public string SucceedFunction(
-        StoredId storedId, byte[]? result, long timestamp, int expectedEpoch,
-        SqlCommand command, string paramPrefix)
+    public StoreCommand SucceedFunction(StoredId storedId, byte[]? result, long timestamp, int expectedEpoch, string paramPrefix)
     {
         _succeedFunctionSql ??= @$"
             UPDATE {tablePrefix}
@@ -178,14 +176,15 @@ public class SqlGenerator(string tablePrefix)
         var sql = paramPrefix == "" 
             ? _succeedFunctionSql
             : _succeedFunctionSql.Replace("@", $"@{paramPrefix}");
-        
-        command.Parameters.AddWithValue($"@{paramPrefix}ResultJson", result ?? SqlBinary.Null);
-        command.Parameters.AddWithValue($"@{paramPrefix}Timestamp", timestamp);
-        command.Parameters.AddWithValue($"@{paramPrefix}FlowInstance", storedId.Instance.Value);
-        command.Parameters.AddWithValue($"@{paramPrefix}FlowType", storedId.Type.Value);
-        command.Parameters.AddWithValue($"@{paramPrefix}ExpectedEpoch", expectedEpoch);
 
-        return sql;
+        var command = new StoreCommand(sql);
+        command.AddParameter($"@{paramPrefix}ResultJson", result ?? SqlBinary.Null);
+        command.AddParameter($"@{paramPrefix}Timestamp", timestamp);
+        command.AddParameter($"@{paramPrefix}FlowInstance", storedId.Instance.Value);
+        command.AddParameter($"@{paramPrefix}FlowType", storedId.Type.Value);
+        command.AddParameter($"@{paramPrefix}ExpectedEpoch", expectedEpoch);
+
+        return command;
     }
     
     private string? _postponedFunctionSql;
