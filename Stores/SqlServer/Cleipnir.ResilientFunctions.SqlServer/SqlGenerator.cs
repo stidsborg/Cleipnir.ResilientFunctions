@@ -115,7 +115,6 @@ public class SqlGenerator(string tablePrefix)
     }
     
     private string? _createFunctionSql;
-
     public string CreateFunction(
         StoredId storedId,
         FlowInstance humanInstanceId,
@@ -241,11 +240,10 @@ public class SqlGenerator(string tablePrefix)
     }
     
     private string? _suspendFunctionSql;
-    public string SuspendFunction(
+    public StoreCommand SuspendFunction(
         StoredId storedId, 
         long timestamp,
         int expectedEpoch, 
-        SqlCommand command,
         string paramPrefix
         )
     {
@@ -261,11 +259,12 @@ public class SqlGenerator(string tablePrefix)
             ? _suspendFunctionSql
             : _suspendFunctionSql.Replace("@", $"@{paramPrefix}");
         
-        command.Parameters.AddWithValue($"@{paramPrefix}Timestamp", timestamp);
-        command.Parameters.AddWithValue($"@{paramPrefix}FlowType", storedId.Type.Value);
-        command.Parameters.AddWithValue($"@{paramPrefix}FlowInstance", storedId.Instance.Value);
-        command.Parameters.AddWithValue($"@{paramPrefix}ExpectedEpoch", expectedEpoch);
+        var command = new StoreCommand(sql);
+        command.AddParameter($"@{paramPrefix}Timestamp", timestamp);
+        command.AddParameter($"@{paramPrefix}FlowType", storedId.Type.Value);
+        command.AddParameter($"@{paramPrefix}FlowInstance", storedId.Instance.Value);
+        command.AddParameter($"@{paramPrefix}ExpectedEpoch", expectedEpoch);
 
-        return sql;
+        return command;
     }
 }
