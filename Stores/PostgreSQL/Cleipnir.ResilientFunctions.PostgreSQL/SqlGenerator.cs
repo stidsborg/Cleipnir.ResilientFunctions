@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text.Json;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
+using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Storage.Utils;
 using Npgsql;
@@ -12,7 +13,7 @@ namespace Cleipnir.ResilientFunctions.PostgreSQL;
 
 public class SqlGenerator(string tablePrefix)
 {
-    public string? Interrupt(IEnumerable<StoredId> storedIds)
+    public StoreCommand? Interrupt(IEnumerable<StoredId> storedIds)
     {
         var conditionals = storedIds
             .GroupBy(id => id.Type.Value, id => id.Instance.Value)
@@ -39,12 +40,12 @@ public class SqlGenerator(string tablePrefix)
                         END
                 WHERE {conditionals}";
         
-        return sql;
+        return StoreCommand.Create(sql);
     }
     
-    public IEnumerable<NpgsqlBatchCommand> UpdateEffects(IReadOnlyList<StoredEffectChange> changes)
+    public IEnumerable<StoreCommand> UpdateEffects(IReadOnlyList<StoredEffectChange> changes)
    {
-       var commands = new List<NpgsqlBatchCommand>(changes.Count);
+       var commands = new List<StoreCommand>(changes.Count);
        var sql= $@"
          INSERT INTO {tablePrefix}_effects
              (type, instance, id_hash, status, result, exception, effect_id)
@@ -56,19 +57,15 @@ public class SqlGenerator(string tablePrefix)
       
        foreach (var (storedId, _, _, storedEffect) in changes.Where(s => s.Operation == CrudOperation.Upsert))
        {
-           var command = new NpgsqlBatchCommand(sql)
-           {
-               Parameters =
-               {
-                   new() {Value = storedId.Type.Value},
-                   new() {Value = storedId.Instance.Value},
-                   new() {Value = storedEffect!.StoredEffectId.Value},
-                   new() {Value = (int) storedEffect.WorkStatus},
-                   new() {Value = storedEffect.Result ?? (object) DBNull.Value},
-                   new() {Value = JsonHelper.ToJson(storedEffect.StoredException) ?? (object) DBNull.Value},
-                   new() {Value = storedEffect.EffectId.Serialize()},
-               }
-           };
+           var command = new StoreCommand(sql);
+           command.AddParameter(storedId.Type.Value);
+           command.AddParameter(storedId.Instance.Value);
+           command.AddParameter(storedEffect!.StoredEffectId.Value);
+           command.AddParameter((int) storedEffect.WorkStatus);
+           command.AddParameter(storedEffect.Result ?? (object) DBNull.Value);
+           command.AddParameter(JsonHelper.ToJson(storedEffect.StoredException) ?? (object) DBNull.Value);
+           command.AddParameter(storedEffect.EffectId.Serialize());
+           
            commands.Add(command);
        }
 
@@ -80,14 +77,13 @@ public class SqlGenerator(string tablePrefix)
        foreach (var removedEffectGroup in removedEffects)
        {
            var storedId = removedEffectGroup.Key;
-           commands.Add(
-               new NpgsqlBatchCommand(
-                   @$"DELETE FROM {tablePrefix}_effects
-                      WHERE type = {storedId.Type.Value} AND
-                            instance = '{storedId.Instance.Value}' AND
-                            id_hash IN ({removedEffectGroup.Select(id => $"'{id}'").StringJoin(", ")});"
-               )
-           );
+           var removeSql = @$"
+                DELETE FROM {tablePrefix}_effects
+                WHERE type = {storedId.Type.Value} AND
+                      instance = '{storedId.Instance.Value}' AND
+                      id_hash IN ({removedEffectGroup.Select(id => $"'{id}'").StringJoin(", ")});";
+           var command = new StoreCommand(removeSql);
+           commands.Add(command);
        }
 
        return commands;
@@ -234,5 +230,30 @@ public class SqlGenerator(string tablePrefix)
                 expectedEpoch
             ]
         );
+    }
+
+    public StoreCommand AppendMessages(IReadOnlyList<StoredIdAndMessageWithPosition> messages)
+    {
+        var sql = @$"    
+            INSERT INTO {tablePrefix}_messages
+                (type, instance, position, message_json, message_type, idempotency_key)
+            VALUES 
+                 {messages.Select((_, i) => $"(${i * 6 + 1}, ${i * 6 + 2}, ${i * 6 + 3}, ${i * 6 + 4}, ${i * 6 + 5}, ${i * 6 + 6})").StringJoin($",{Environment.NewLine}")};";
+
+        var command = StoreCommand.Create(sql);
+
+        foreach (var (storedId, (messageContent, messageType, idempotencyKey), position) in messages)
+        {
+            var (storedType, storedInstance) = storedId;
+            
+            command.AddParameter(storedType.Value);
+            command.AddParameter(storedInstance.Value);
+            command.AddParameter(position);
+            command.AddParameter(messageContent);
+            command.AddParameter(messageType);
+            command.AddParameter(idempotencyKey ?? (object)DBNull.Value);
+        }
+
+        return command;
     }
 }

@@ -490,39 +490,13 @@ public class PostgreSqlFunctionStore : IFunctionStore
         var affectedRows = await command.ExecuteNonQueryAsync();
         return affectedRows == 1;
     }
-
-    private string? _interruptsSql;
+    
     public async Task Interrupt(IEnumerable<StoredId> storedIds)
     {
         await using var conn = await CreateConnection();
-        _interruptsSql ??= @$"
-                UPDATE {_tableName}
-                SET 
-                    interrupted = TRUE,
-                    status = 
-                        CASE 
-                            WHEN status = {(int) Status.Suspended} THEN {(int) Status.Postponed}
-                            ELSE status
-                        END,
-                    expires = 
-                        CASE
-                            WHEN status = {(int) Status.Postponed} THEN 0
-                            WHEN status = {(int) Status.Suspended} THEN 0
-                            ELSE expires
-                        END
-                WHERE @CONDITIONALS";
-
-        var conditionals = storedIds
-            .Select(storedId => $"(type = {storedId.Type.Value} AND instance = '{storedId.Instance.Value}')")
-            .StringJoin(" OR ");
-
-        if (string.IsNullOrEmpty(conditionals))
-            return;
-        
-        var sql = _interruptsSql.Replace("@CONDITIONALS", conditionals);
-
-        await using var cmd = new NpgsqlCommand(sql, conn);
-        await cmd.ExecuteNonQueryAsync();
+        await using var command = _sqlGenerator.Interrupt(storedIds)?.ToNpgsqlCommand(conn);
+        if (command != null)
+            await command.ExecuteNonQueryAsync();
     }
 
     private string? _interruptedSql;

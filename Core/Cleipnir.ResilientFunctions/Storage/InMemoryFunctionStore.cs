@@ -506,6 +506,24 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         }
     }
 
+    public async Task AppendMessages(IReadOnlyList<StoredIdAndMessageWithPosition> messages, bool interrupt = true)
+    {
+        foreach (var (storedId, storedMessage, position) in messages)
+        {
+            lock (_sync)
+            {
+                if (!_messages.ContainsKey(storedId))
+                    _messages[storedId] = new List<StoredMessage>();
+
+                var flowMessages = _messages[storedId];
+                flowMessages.Insert(position, storedMessage);
+            }
+            
+            if (interrupt)
+                await Interrupt(storedId, onlyIfExecuting: false);
+        }
+    }
+
     public Task<bool> ReplaceMessage(StoredId storedId, int position, StoredMessage storedMessage)
     {
         lock (_sync)

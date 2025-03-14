@@ -72,11 +72,9 @@ public class PostgreSqlEffectsStore(string connectionString, SqlGenerator sqlGen
 
     public async Task SetEffectResults(StoredId storedId, IReadOnlyList<StoredEffectChange> changes)
     {
+        await using var batch = sqlGenerator.UpdateEffects(changes).ToNpgsqlBatch();
         await using var conn = await CreateConnection();
-        await using var batch = new NpgsqlBatch(conn);
-        var commands = sqlGenerator.UpdateEffects(changes);
-        foreach (var command in commands)
-            batch.BatchCommands.Add(command);
+        batch.WithConnection(conn);
         
         await batch.ExecuteNonQueryAsync();
     }

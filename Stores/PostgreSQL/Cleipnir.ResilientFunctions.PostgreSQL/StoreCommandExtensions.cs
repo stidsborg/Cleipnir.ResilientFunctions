@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Cleipnir.ResilientFunctions.Storage;
 using Npgsql;
 
@@ -21,5 +22,27 @@ internal static class StoreCommandExtensions
             cmd.Parameters.Add(new NpgsqlParameter { Value = parameter });
 
         return cmd;
+    }
+    
+    public static NpgsqlBatch ToNpgsqlBatch(this IEnumerable<StoreCommand> commands) => commands.CreateBatch();
+    
+}
+
+internal static class StoreCommands
+{
+    public static NpgsqlBatch CreateBatch(params StoreCommand[] commands) => CreateBatch((IEnumerable<StoreCommand>) commands);
+    public static NpgsqlBatch CreateBatch(this IEnumerable<StoreCommand> commands)
+    {
+        var batch = new NpgsqlBatch();
+        foreach (var command in commands)
+            batch.BatchCommands.Add(command.ToNpgsqlBatchCommand());
+
+        return batch;
+    }
+    
+    public static NpgsqlBatch WithConnection(this NpgsqlBatch batch, NpgsqlConnection conn)
+    {
+        batch.Connection = conn;
+        return batch;
     }
 }

@@ -77,4 +77,9 @@ public class MessageStoreTests :  Cleipnir.ResilientFunctions.Tests.Messaging.Te
     [TestMethod]
     public override Task AppendedBatchedMessageCanBeFetchedAgain()
         => AppendedBatchedMessageCanBeFetchedAgain(FunctionStoreFactory.Create());
+    
+    [TestMethod]
+    public override Task AppendedBatchedMessagesWithPositinCanBeFetchedAgain()
+        => AppendedBatchedMessagesWithPositinCanBeFetchedAgain(FunctionStoreFactory.Create());
+
 }

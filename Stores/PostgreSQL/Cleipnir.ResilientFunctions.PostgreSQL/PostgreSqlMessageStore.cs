@@ -124,46 +124,46 @@ public class PostgreSqlMessageStore(string connectionString, SqlGenerator sqlGen
 
     public async Task AppendMessages(IReadOnlyList<StoredIdAndMessage> messages, bool interrupt = true)
     {
-        if (messages.Count == 0)
-            return;
-        
         var maxPositions = await GetMaxPositions(
             storedIds: messages.Select(msg => msg.StoredId).Distinct().ToList()
         );
-        var storedIds = messages.Select(m => m.StoredId).Distinct();
-        var interuptsSql = sqlGenerator.Interrupt(storedIds)!;
 
+        var messageWithPositions = messages
+            .Select(msg =>
+                new StoredIdAndMessageWithPosition(
+                    msg.StoredId,
+                    msg.StoredMessage,
+                    ++maxPositions[msg.StoredId]
+                )
+            ).ToList();
+
+        await AppendMessages(messageWithPositions, interrupt);
+    }
+
+    public async Task AppendMessages(IReadOnlyList<StoredIdAndMessageWithPosition> messages, bool interrupt)
+    {
+        if (messages.Count == 0)
+            return;
+        
+        var appendMessagesCommand = sqlGenerator.AppendMessages(messages);
+        var interruptCommand = interrupt
+            ? sqlGenerator.Interrupt(messages.Select(m => m.StoredId).Distinct())
+            : null;
+        
         await using var conn = await CreateConnection();
-        await using var batch = new NpgsqlBatch(conn);
-        var sql = @$"    
-            INSERT INTO {_tablePrefix}_messages
-                (type, instance, position, message_json, message_type, idempotency_key)
-            VALUES 
-                 {messages.Select((_, i) => $"(${i*6 + 1}, ${i*6 + 2}, ${i*6 + 3}, ${i*6 + 4}, ${i*6 + 5}, ${i*6 + 6})").StringJoin($",{Environment.NewLine}")};";
-
+        if (interrupt)
         {
-            var command = new NpgsqlBatchCommand(sql);
-            for (var i = 0; i < messages.Count; i++)
-            {
-                var (storedId, (messageContent, messageType, idempotencyKey)) = messages[i];
-                var (storedType, storedInstance) = storedId;
-                var position = ++maxPositions[storedId];
-                command.Parameters.Add(new NpgsqlParameter {Value = storedType.Value });
-                command.Parameters.Add(new NpgsqlParameter {Value = storedInstance.Value });
-                command.Parameters.Add(new NpgsqlParameter {Value = position });
-                command.Parameters.Add(new NpgsqlParameter {Value = messageContent });
-                command.Parameters.Add(new NpgsqlParameter {Value = messageType });
-                command.Parameters.Add(new NpgsqlParameter {Value = idempotencyKey ?? (object)DBNull.Value });
-            }  
-            batch.BatchCommands.Add(command);
+            await using var command = StoreCommands
+                .CreateBatch(appendMessagesCommand, interruptCommand!)
+                .WithConnection(conn);
+            
+            await command.ExecuteNonQueryAsync();
         }
-
+        else
         {
-            var command = new NpgsqlBatchCommand(interuptsSql);
-            batch.BatchCommands.Add(command);
+            await using var command = appendMessagesCommand.ToNpgsqlCommand(conn);
+            await command.ExecuteNonQueryAsync();
         }
-
-        await batch.ExecuteNonQueryAsync();
     }
 
     private string? _replaceMessageSql;
@@ -245,6 +245,9 @@ public class PostgreSqlMessageStore(string connectionString, SqlGenerator sqlGen
 
     public async Task<IDictionary<StoredId, int>> GetMaxPositions(IReadOnlyList<StoredId> storedIds)
     {
+        if (storedIds.Count == 0)
+            return new Dictionary<StoredId, int>();
+        
         var predicates = storedIds
             .GroupBy(id => id.Type.Value, id => id.Instance.Value)
             .Select(g => $"type = {g.Key} AND instance IN ({g.Select(instance => $"'{instance}'").StringJoin(", ")})")

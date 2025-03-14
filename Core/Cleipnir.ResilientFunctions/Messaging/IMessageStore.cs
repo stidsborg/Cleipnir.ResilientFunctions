@@ -10,6 +10,7 @@ public interface IMessageStore
 
     Task<FunctionStatus?> AppendMessage(StoredId storedId, StoredMessage storedMessage);
     Task AppendMessages(IReadOnlyList<StoredIdAndMessage> messages, bool interrupt = true);
+    Task AppendMessages(IReadOnlyList<StoredIdAndMessageWithPosition> messages, bool interrupt);
 
     Task<bool> ReplaceMessage(StoredId storedId, int position, StoredMessage storedMessage);
     

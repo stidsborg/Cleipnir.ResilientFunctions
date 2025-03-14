@@ -6,6 +6,7 @@ using System.Text;
 using System.Text.Json;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
+using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Storage.Utils;
 using Microsoft.Data.SqlClient;
@@ -264,5 +265,36 @@ public class SqlGenerator(string tablePrefix)
         command.AddParameter($"@{paramPrefix}ExpectedEpoch", expectedEpoch);
 
         return command;
+    }
+    
+    public StoreCommand? AppendMessages(IReadOnlyList<StoredIdAndMessageWithPosition> messages, bool interrupt)
+    {
+        if (messages.Count == 0)
+            return null;
+        
+        var interruptCommand = interrupt 
+            ? Interrupt(messages.Select(m => m.StoredId).Distinct().ToList()) 
+            : null;
+        
+        var sql = @$"    
+            INSERT INTO {tablePrefix}_Messages
+                (FlowType, FlowInstance, Position, MessageJson, MessageType, IdempotencyKey)
+            VALUES 
+                 {messages.Select((_, i) => $"(@FlowType{i}, @FlowInstance{i}, @Position{i}, @MessageJson{i}, @MessageType{i}, @IdempotencyKey{i})").StringJoin($",{Environment.NewLine}")};";
+
+        var appendCommand = new StoreCommand(sql);
+        for (var i = 0; i < messages.Count; i++)
+        {
+            var (storedId, (messageContent, messageType, idempotencyKey), position) = messages[i];
+            var (storedType, storedInstance) = storedId;
+            appendCommand.AddParameter($"@FlowType{i}", storedType.Value);
+            appendCommand.AddParameter($"@FlowInstance{i}", storedInstance.Value);
+            appendCommand.AddParameter($"@Position{i}", position);
+            appendCommand.AddParameter($"@MessageJson{i}", messageContent);
+            appendCommand.AddParameter($"@MessageType{i}", messageType);
+            appendCommand.AddParameter($"@IdempotencyKey{i}", idempotencyKey ?? (object)DBNull.Value);
+        }
+
+        return StoreCommand.Merge(appendCommand, interruptCommand);
     }
 }

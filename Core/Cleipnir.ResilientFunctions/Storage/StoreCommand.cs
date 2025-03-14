@@ -38,6 +38,7 @@ public class StoreCommand
         );
     
     public StoreCommand AppendSql(string sql) => new(Sql + Environment.NewLine + sql);
+    public static StoreCommand Create(string sql) => new StoreCommand(sql);
 }
 
 public class ParameterValueAndName

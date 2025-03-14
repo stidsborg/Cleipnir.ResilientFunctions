@@ -137,6 +137,24 @@ public class MariaDbMessageStore : IMessageStore
         await sqlCommand.ExecuteNonQueryAsync();
     }
 
+    public async Task AppendMessages(IReadOnlyList<StoredIdAndMessageWithPosition> messages, bool interrupt)
+    {
+        if (messages.Count == 0)
+            return;
+        
+        var appendCommand = _sqlGenerator.AppendMessages(messages);
+        var interruptCommand = interrupt
+            ? _sqlGenerator.Interrupt(messages.Select(m => m.StoredId).Distinct())
+            : null;
+        
+        await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
+        await using var command = StoreCommand
+            .Merge(appendCommand, interruptCommand)
+            .ToSqlCommand(conn);
+
+        await command.ExecuteNonQueryAsync();
+    }
+
     private string? _replaceMessageSql;
     public async Task<bool> ReplaceMessage(StoredId storedId, int position, StoredMessage storedMessage)
     {

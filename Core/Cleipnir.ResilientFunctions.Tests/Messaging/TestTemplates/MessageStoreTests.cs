@@ -706,5 +706,89 @@ public abstract class MessageStoreTests
         var sf = await functionStore.GetFunction(id).ShouldNotBeNullAsync();
         sf.Interrupted.ShouldBeTrue();
         sf.Expires.ShouldBe(0);
-    }   
+    }
+    
+    public abstract Task AppendedBatchedMessagesWithPositinCanBeFetchedAgain();
+    protected async Task AppendedBatchedMessagesWithPositinCanBeFetchedAgain(Task<IFunctionStore> functionStoreTask)
+    {
+        var id1 = TestStoredId.Create();
+        var id2 = TestStoredId.Create();
+        
+        var functionStore = await functionStoreTask;
+        await functionStore.CreateFunction(
+            id1, 
+            "humanInstanceId",
+            Test.SimpleStoredParameter, 
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: long.MaxValue,
+            timestamp: DateTime.UtcNow.Ticks,
+            parent: null
+        ).ShouldBeTrueAsync();
+        await functionStore.CreateFunction(
+            id2, 
+            "humanInstanceId",
+            Test.SimpleStoredParameter, 
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: long.MaxValue,
+            timestamp: DateTime.UtcNow.Ticks,
+            parent: null
+        ).ShouldBeTrueAsync();
+        var messageStore = functionStore.MessageStore;
+
+        var stringType = typeof(string).SimpleQualifiedName().ToUtf8Bytes();
+        var msg1String = "Hello";
+        var msg2String = "World!";
+        var msg1 = new StoredMessage(msg1String.ToUtf8Bytes(), stringType, IdempotencyKey: "1");
+        var msg2 = new StoredMessage(msg2String.ToUtf8Bytes(), stringType);
+        
+        await messageStore.AppendMessages(
+            [
+                new StoredIdAndMessageWithPosition(id1, msg1, Position: 0),
+                new StoredIdAndMessageWithPosition(id2, msg1, Position: 0),
+                new StoredIdAndMessageWithPosition(id1, msg2, Position: 1),
+            ],
+            interrupt: false
+        );
+        
+        var messagesId1 = await messageStore.GetMessages(id1, skip: 0);
+        messagesId1.Count.ShouldBe(2);
+        messagesId1[0].IdempotencyKey.ShouldBe("1");
+        messagesId1[0].MessageType.ShouldBe(stringType);
+        messagesId1[0].MessageContent.ToStringFromUtf8Bytes().ShouldBe(msg1String);
+        messagesId1[1].IdempotencyKey.ShouldBeNull();
+        messagesId1[1].MessageType.ShouldBe(stringType);
+        messagesId1[1].MessageContent.ToStringFromUtf8Bytes().ShouldBe(msg2String);
+        
+        var messagesId2 = await messageStore.GetMessages(id2, skip: 0);
+        messagesId2.Count.ShouldBe(1);
+        messagesId2[0].IdempotencyKey.ShouldBe("1");
+        messagesId2[0].MessageType.ShouldBe(stringType);
+        messagesId2[0].MessageContent.ToStringFromUtf8Bytes().ShouldBe(msg1String);
+
+        var sf1 = await functionStore.GetFunction(id1).ShouldNotBeNullAsync();
+        sf1.Interrupted.ShouldBeFalse();
+        
+        var sf2 = await functionStore.GetFunction(id2).ShouldNotBeNullAsync();
+        sf2.Interrupted.ShouldBeFalse();
+        
+        await messageStore.AppendMessages(
+            [
+                new StoredIdAndMessageWithPosition(id2, msg2, Position: 1)
+            ],
+            interrupt: true
+        );
+        
+        messagesId2 = await messageStore.GetMessages(id1, skip: 0);
+        messagesId2.Count.ShouldBe(2);
+        messagesId2[0].IdempotencyKey.ShouldBe("1");
+        messagesId2[0].MessageType.ShouldBe(stringType);
+        messagesId2[0].MessageContent.ToStringFromUtf8Bytes().ShouldBe(msg1String);
+        messagesId2[1].IdempotencyKey.ShouldBeNull();
+        messagesId2[1].MessageType.ShouldBe(stringType);
+        messagesId2[1].MessageContent.ToStringFromUtf8Bytes().ShouldBe(msg2String);
+        
+        sf2 = await functionStore.GetFunction(id2).ShouldNotBeNullAsync();
+        sf2.Interrupted.ShouldBeTrue();
+        sf2.Expires.ShouldBe(0);
+    }  
 }
