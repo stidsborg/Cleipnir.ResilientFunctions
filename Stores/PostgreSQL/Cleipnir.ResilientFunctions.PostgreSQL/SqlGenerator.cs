@@ -54,7 +54,7 @@ public class SqlGenerator(string tablePrefix)
       
        foreach (var (storedId, _, _, storedEffect) in changes.Where(s => s.Operation == CrudOperation.Upsert))
        {
-           var command = new StoreCommand(sql);
+           var command = StoreCommand.Create(sql);
            command.AddParameter(storedId.Type.Value);
            command.AddParameter(storedId.Instance.Value);
            command.AddParameter(storedEffect!.StoredEffectId.Value);
@@ -79,7 +79,7 @@ public class SqlGenerator(string tablePrefix)
                 WHERE type = {storedId.Type.Value} AND
                       instance = '{storedId.Instance.Value}' AND
                       id_hash IN ({removedEffectGroup.Select(id => $"'{id}'").StringJoin(", ")});";
-           var command = new StoreCommand(removeSql);
+           var command = StoreCommand.Create(removeSql);
            commands.Add(command);
        }
 
@@ -104,7 +104,7 @@ public class SqlGenerator(string tablePrefix)
             ON CONFLICT DO NOTHING;";
 
 
-        return new StoreCommand(
+        return StoreCommand.Create(
             _createFunctionSql,
             values:
             [
@@ -134,7 +134,7 @@ public class SqlGenerator(string tablePrefix)
                 instance = $4 AND 
                 epoch = $5";
 
-        return new StoreCommand(
+        return StoreCommand.Create(
             _succeedFunctionSql,
             values:
             [
@@ -168,9 +168,9 @@ public class SqlGenerator(string tablePrefix)
         if (ignoreInterrupted)
             sql = sql.Replace("interrupted = FALSE", "1 = 1");
 
-        return new StoreCommand(
+        return StoreCommand.Create(
             sql,
-            [
+            values: [
                 postponeUntil,
                 timestamp,
                 storedId.Type.Value,
@@ -194,7 +194,7 @@ public class SqlGenerator(string tablePrefix)
                 type = $3 AND 
                 instance = $4 AND 
                 epoch = $5";
-        return new StoreCommand(
+        return StoreCommand.Create(
             _failFunctionSql,
             values:
             [
@@ -218,9 +218,9 @@ public class SqlGenerator(string tablePrefix)
                   epoch = $4 AND
                   NOT interrupted;";
 
-        return new StoreCommand(
+        return StoreCommand.Create(
             _suspendFunctionSql,
-            [
+            values: [
                 timestamp,
                 storedId.Type.Value,
                 storedId.Instance.Value,

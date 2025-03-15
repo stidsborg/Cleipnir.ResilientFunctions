@@ -1,4 +1,3 @@
-using System.Text;
 using System.Text.Json;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
@@ -34,14 +33,11 @@ public class SqlGenerator(string tablePrefix)
                         END
                 WHERE {conditionals};";
 
-        return new StoreCommand(sql);
+        return StoreCommand.Create(sql);
     }
     
-    public StoreCommand? UpdateEffects(IReadOnlyList<StoredEffectChange> changes)
+    public StoreCommand UpdateEffects(IReadOnlyList<StoredEffectChange> changes)
     {
-        if (!changes.Any())
-            return null;
-
         var upsertCommand = default(StoreCommand);
         if (changes.Any(c => c.Operation == CrudOperation.Upsert))
         {
@@ -67,7 +63,7 @@ public class SqlGenerator(string tablePrefix)
                 ON DUPLICATE KEY UPDATE
                     status = VALUES(status), result = VALUES(result), exception = VALUES(exception);";
 
-            upsertCommand = new StoreCommand(setSql);
+            upsertCommand = StoreCommand.Create(setSql);
             foreach (var upsert in upserts)
             {
                 upsertCommand.AddParameter(upsert.Type);
@@ -96,10 +92,10 @@ public class SqlGenerator(string tablePrefix)
             DELETE FROM {tablePrefix}_effects 
             WHERE {predicates}";
             
-            removeCommand = new StoreCommand(removeSql);
+            removeCommand = StoreCommand.Create(removeSql);
         }
         
-        return StoreCommand.Merge(upsertCommand, removeCommand);
+        return StoreCommand.Merge([upsertCommand, removeCommand])!;
     }
     
     private string? _createFunctionSql;
@@ -119,9 +115,9 @@ public class SqlGenerator(string tablePrefix)
                 (?, ?, ?, ?, 0, ?, ?, ?, ?)";
         var status = postponeUntil == null ? Status.Executing : Status.Postponed;
 
-        return new StoreCommand(
+        return StoreCommand.Create(
             _createFunctionSql,
-            [
+            values: [
                 storedId.Type.Value,
                 storedId.Instance.Value.ToString("N"),
                 param ?? (object)DBNull.Value,
@@ -149,9 +145,9 @@ public class SqlGenerator(string tablePrefix)
                 instance = ? AND 
                 epoch = ?";
 
-        return new StoreCommand(
+        return StoreCommand.Create(
             _succeedFunctionSql,
-            [
+            values: [
                 result ?? (object)DBNull.Value,
                 timestamp,
                 expectedEpoch,
@@ -183,9 +179,9 @@ public class SqlGenerator(string tablePrefix)
         if (ignoreInterrupted)
             sql = sql.Replace("interrupted = 0", "1 = 1");
 
-        return new StoreCommand(
+        return StoreCommand.Create(
             sql,
-            [
+            values: [
                 postponeUntil,
                 timestamp,
                 expectedEpoch,
@@ -211,9 +207,9 @@ public class SqlGenerator(string tablePrefix)
                 instance = ? AND 
                 epoch = ?";
 
-        return new StoreCommand(
+        return StoreCommand.Create(
             _failFunctionSql,
-            [
+            values: [
                 JsonSerializer.Serialize(storedException),
                 timestamp,
                 expectedEpoch,
@@ -235,9 +231,9 @@ public class SqlGenerator(string tablePrefix)
                   epoch = ? AND
                   NOT interrupted";
 
-        return new StoreCommand(
+        return StoreCommand.Create(
             _suspendFunctionSql,
-            [
+            values: [
                 timestamp,
                 storedId.Type.Value,
                 storedId.Instance.Value.ToString("N"),
@@ -254,7 +250,7 @@ public class SqlGenerator(string tablePrefix)
             VALUES 
                  {"(?, ?, ?, ?, ?, ?)".Replicate(messages.Count).StringJoin($",{Environment.NewLine}")};";
 
-        var command = new StoreCommand(sql);
+        var command = StoreCommand.Create(sql);
         foreach (var (storedId, (messageContent, messageType, idempotencyKey), position) in messages)
         {
             var (storedType, storedInstance) = storedId;

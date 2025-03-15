@@ -39,7 +39,7 @@ public class SqlGenerator(string tablePrefix)
                         END
                 WHERE {conditionals};";
 
-        return new StoreCommand(sql);
+        return StoreCommand.Create(sql);
     }
     
     public StoreCommand UpdateEffects(IReadOnlyList<StoredEffectChange> changes, string paramPrefix)
@@ -107,7 +107,7 @@ public class SqlGenerator(string tablePrefix)
             stringBuilder.AppendLine(removeSql);
 
         return new StoreCommand(
-            sql: stringBuilder.ToString(),
+            Sql: stringBuilder.ToString(),
             parameters
         );
     }
@@ -150,7 +150,7 @@ public class SqlGenerator(string tablePrefix)
         if (paramPrefix != null)
             sql = sql.Replace("@", $"@{paramPrefix}");
 
-        var command = new StoreCommand(sql);
+        var command = StoreCommand.Create(sql);
         command.AddParameter($"@{paramPrefix}FlowType", storedId.Type.Value);
         command.AddParameter($"@{paramPrefix}FlowInstance", storedId.Instance.Value);
         command.AddParameter($"@{paramPrefix}Status", (int)(postponeUntil == null ? Status.Executing : Status.Postponed));
@@ -175,7 +175,7 @@ public class SqlGenerator(string tablePrefix)
             ? _succeedFunctionSql
             : _succeedFunctionSql.Replace("@", $"@{paramPrefix}");
 
-        var command = new StoreCommand(sql);
+        var command = StoreCommand.Create(sql);
         command.AddParameter($"@{paramPrefix}ResultJson", result ?? SqlBinary.Null);
         command.AddParameter($"@{paramPrefix}Timestamp", timestamp);
         command.AddParameter($"@{paramPrefix}FlowInstance", storedId.Instance.Value);
@@ -200,8 +200,7 @@ public class SqlGenerator(string tablePrefix)
         if (ignoreInterrupted)
             sql = sql.Replace("Interrupted = 0", "1 = 1");
 
-        var command = new StoreCommand(sql);
-        
+        var command = StoreCommand.Create(sql);
         command.AddParameter($"@{paramPrefix}PostponedUntil", postponeUntil);
         command.AddParameter($"@{paramPrefix}Timestamp", timestamp);
         command.AddParameter($"@{paramPrefix}FlowInstance", storedId.Instance.Value);
@@ -225,7 +224,7 @@ public class SqlGenerator(string tablePrefix)
             ? _failFunctionSql
             : _failFunctionSql.Replace("@", $"@{paramPrefix}");
 
-        var command = new StoreCommand(sql);
+        var command = StoreCommand.Create(sql);
         command.AddParameter($"@{paramPrefix}ExceptionJson", JsonSerializer.Serialize(storedException));
         command.AddParameter($"@{paramPrefix}Timestamp", timestamp);
         command.AddParameter($"@{paramPrefix}FlowInstance", storedId.Instance.Value);
@@ -255,7 +254,7 @@ public class SqlGenerator(string tablePrefix)
             ? _suspendFunctionSql
             : _suspendFunctionSql.Replace("@", $"@{paramPrefix}");
         
-        var command = new StoreCommand(sql);
+        var command = StoreCommand.Create(sql);
         command.AddParameter($"@{paramPrefix}Timestamp", timestamp);
         command.AddParameter($"@{paramPrefix}FlowType", storedId.Type.Value);
         command.AddParameter($"@{paramPrefix}FlowInstance", storedId.Instance.Value);
@@ -279,7 +278,7 @@ public class SqlGenerator(string tablePrefix)
             VALUES 
                  {messages.Select((_, i) => $"(@FlowType{i}, @FlowInstance{i}, @Position{i}, @MessageJson{i}, @MessageType{i}, @IdempotencyKey{i})").StringJoin($",{Environment.NewLine}")};";
 
-        var appendCommand = new StoreCommand(sql);
+        var appendCommand = StoreCommand.Create(sql);
         for (var i = 0; i < messages.Count; i++)
         {
             var (storedId, (messageContent, messageType, idempotencyKey), position) = messages[i];
