@@ -71,15 +71,15 @@ public class SqlGenerator(string tablePrefix)
                     status = VALUES(status), result = VALUES(result), exception = VALUES(exception);";
 
             upsertCommand = new StoreCommand(setSql);
-            foreach (var a in upserts)
+            foreach (var upsert in upserts)
             {
-                upsertCommand.AddParameter(a.Type);
-                upsertCommand.AddParameter(a.Instance.ToString("N"));
-                upsertCommand.AddParameter(a.IdHash.ToString("N"));
-                upsertCommand.AddParameter(a.WorkStatus);
-                upsertCommand.AddParameter(a.Result ?? (object) DBNull.Value);
-                upsertCommand.AddParameter(JsonHelper.ToJson(a.Exception) ?? (object) DBNull.Value);
-                upsertCommand.AddParameter(a.EffectId.Serialize());
+                upsertCommand.AddParameter(upsert.Type);
+                upsertCommand.AddParameter(upsert.Instance.ToString("N"));
+                upsertCommand.AddParameter(upsert.IdHash.ToString("N"));
+                upsertCommand.AddParameter(upsert.WorkStatus);
+                upsertCommand.AddParameter(upsert.Result ?? (object) DBNull.Value);
+                upsertCommand.AddParameter(JsonHelper.ToJson(upsert.Exception) ?? (object) DBNull.Value);
+                upsertCommand.AddParameter(upsert.EffectId.Serialize());
             }    
         }
 
