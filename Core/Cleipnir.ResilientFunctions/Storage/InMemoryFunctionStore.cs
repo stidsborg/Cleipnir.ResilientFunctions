@@ -343,7 +343,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         }
     }
 
-    public async Task Interrupt(IEnumerable<StoredId> storedIds)
+    public async Task Interrupt(IReadOnlyList<StoredId> storedIds)
     {
         foreach (var storedId in storedIds)
             await Interrupt(storedId, onlyIfExecuting: false);

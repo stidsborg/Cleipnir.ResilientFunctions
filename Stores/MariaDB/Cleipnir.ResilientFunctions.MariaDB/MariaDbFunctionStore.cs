@@ -426,14 +426,13 @@ public class MariaDbFunctionStore : IFunctionStore
         return affectedRows == 1;
     }
     
-    public async Task Interrupt(IEnumerable<StoredId> storedIds)
+    public async Task Interrupt(IReadOnlyList<StoredId> storedIds)
     {
-        await using var conn = await CreateOpenConnection(_connectionString);
-        await using var cmd = _sqlGenerator
-            .Interrupt(storedIds)?
-            .ToSqlCommand(conn);
-        if (cmd == null) return;
+        if (storedIds.Count == 0)
+            return;
         
+        await using var conn = await CreateOpenConnection(_connectionString);
+        await using var cmd = _sqlGenerator.Interrupt(storedIds).ToSqlCommand(conn);
         await cmd.ExecuteNonQueryAsync();
     }
 

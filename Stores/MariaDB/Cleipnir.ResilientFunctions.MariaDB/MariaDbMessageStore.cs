@@ -112,6 +112,7 @@ public class MariaDbMessageStore : IMessageStore
     {
         if (messages.Count == 0)
             return;
+        
         var storedIds = messages.Select(m => m.StoredId).Distinct().ToList();
         var maxPositions = await GetMaxPositions(storedIds);
         
@@ -124,11 +125,11 @@ public class MariaDbMessageStore : IMessageStore
         ).ToList();
 
         var appendMessagesCommand = _sqlGenerator.AppendMessages(messagesWithPosition);
-        var interuptsCommand = _sqlGenerator.Interrupt(storedIds);
+        var interruptsCommand = _sqlGenerator.Interrupt(storedIds);
 
         var command =
             interrupt
-                ? StoreCommand.Merge(appendMessagesCommand, interuptsCommand!)
+                ? StoreCommand.Merge(appendMessagesCommand, interruptsCommand)
                 : appendMessagesCommand;
         
         await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);

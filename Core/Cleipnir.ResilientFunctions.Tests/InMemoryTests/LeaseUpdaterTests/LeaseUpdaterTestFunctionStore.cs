@@ -95,7 +95,7 @@ public class LeaseUpdaterTestFunctionStore : IFunctionStore
     public Task<bool> Interrupt(StoredId storedId, bool onlyIfExecuting)
         => _inner.Interrupt(storedId, onlyIfExecuting);
 
-    public Task Interrupt(IEnumerable<StoredId> storedIds) => _inner.Interrupt(storedIds);
+    public Task Interrupt(IReadOnlyList<StoredId> storedIds) => _inner.Interrupt(storedIds);
 
     public Task<bool?> Interrupted(StoredId storedId) => _inner.Interrupted(storedId);
 

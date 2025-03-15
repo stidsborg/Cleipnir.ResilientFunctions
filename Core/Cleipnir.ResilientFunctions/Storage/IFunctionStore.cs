@@ -90,7 +90,7 @@ public interface IFunctionStore
     );
 
     Task<bool> Interrupt(StoredId storedId, bool onlyIfExecuting);
-    Task Interrupt(IEnumerable<StoredId> storedIds);
+    Task Interrupt(IReadOnlyList<StoredId> storedIds);
     Task<bool?> Interrupted(StoredId storedId); 
 
     Task<StatusAndEpoch?> GetFunctionStatus(StoredId storedId);

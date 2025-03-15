@@ -491,12 +491,14 @@ public class PostgreSqlFunctionStore : IFunctionStore
         return affectedRows == 1;
     }
     
-    public async Task Interrupt(IEnumerable<StoredId> storedIds)
+    public async Task Interrupt(IReadOnlyList<StoredId> storedIds)
     {
+        if (storedIds.Count == 0)
+            return;
+        
         await using var conn = await CreateConnection();
-        await using var command = _sqlGenerator.Interrupt(storedIds)?.ToNpgsqlCommand(conn);
-        if (command != null)
-            await command.ExecuteNonQueryAsync();
+        await using var command = _sqlGenerator.Interrupt(storedIds).ToNpgsqlCommand(conn);
+        await command.ExecuteNonQueryAsync();
     }
 
     private string? _interruptedSql;

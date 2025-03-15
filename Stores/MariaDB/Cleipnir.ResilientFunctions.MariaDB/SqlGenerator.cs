@@ -5,20 +5,17 @@ using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Storage.Utils;
-using MySqlConnector;
 
 namespace Cleipnir.ResilientFunctions.MariaDb;
 
 public class SqlGenerator(string tablePrefix)
 {
-    public StoreCommand? Interrupt(IEnumerable<StoredId> storedIds)
+    public StoreCommand Interrupt(IEnumerable<StoredId> storedIds)
     {
         var conditionals = storedIds
             .GroupBy(id => id.Type.Value, id => id.Instance.Value)
             .Select(group => $"(type = {group.Key} AND instance IN ({group.Select(i => $"'{i:N}'").StringJoin(", ")}))")
             .StringJoin(" OR ");
-        if (string.IsNullOrEmpty(conditionals))
-            return null;
 
         var sql = @$"
                 UPDATE {tablePrefix}
