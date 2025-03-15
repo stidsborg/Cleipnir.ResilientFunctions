@@ -708,8 +708,8 @@ public abstract class MessageStoreTests
         sf.Expires.ShouldBe(0);
     }
     
-    public abstract Task AppendedBatchedMessagesWithPositinCanBeFetchedAgain();
-    protected async Task AppendedBatchedMessagesWithPositinCanBeFetchedAgain(Task<IFunctionStore> functionStoreTask)
+    public abstract Task AppendedBatchedMessagesWithPositionCanBeFetchedAgain();
+    protected async Task AppendedBatchedMessagesWithPositionCanBeFetchedAgain(Task<IFunctionStore> functionStoreTask)
     {
         var id1 = TestStoredId.Create();
         var id2 = TestStoredId.Create();

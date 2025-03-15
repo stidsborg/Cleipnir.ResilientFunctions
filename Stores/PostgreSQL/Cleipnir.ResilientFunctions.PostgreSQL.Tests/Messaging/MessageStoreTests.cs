@@ -79,7 +79,7 @@ public class MessageStoreTests :  ResilientFunctions.Tests.Messaging.TestTemplat
         => AppendedBatchedMessageCanBeFetchedAgain(FunctionStoreFactory.Create());
     
     [TestMethod]
-    public override Task AppendedBatchedMessagesWithPositinCanBeFetchedAgain()
-        => AppendedBatchedMessagesWithPositinCanBeFetchedAgain(FunctionStoreFactory.Create());
+    public override Task AppendedBatchedMessagesWithPositionCanBeFetchedAgain()
+        => AppendedBatchedMessagesWithPositionCanBeFetchedAgain(FunctionStoreFactory.Create());
 
 }
