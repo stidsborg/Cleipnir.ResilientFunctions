@@ -76,6 +76,9 @@ public class SqlServerEffectsStore(string connectionString, SqlGenerator sqlGene
 
     public async Task SetEffectResults(StoredId storedId, IReadOnlyList<StoredEffectChange> changes)
     {
+        if (changes.Count == 0)
+            return;
+        
         await using var conn = await CreateConnection();
         await using var command = sqlGenerator
             .UpdateEffects(changes, paramPrefix: "")

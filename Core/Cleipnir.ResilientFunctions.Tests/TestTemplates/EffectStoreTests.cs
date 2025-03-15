@@ -360,4 +360,15 @@ public abstract class EffectStoreTests
         var effects = await store.GetEffectResults(storedId);
         effects.Count.ShouldBe(0);
     }
+    
+    public abstract Task UpsertEmptyCollectionOfEffectsDoesNotThrowException();
+    protected async Task UpsertEmptyCollectionOfEffectsDoesNotThrowException(Task<IEffectsStore> storeTask)
+    {
+        var store = await storeTask;
+        var storedId = TestStoredId.Create();
+        await store.SetEffectResults(
+            storedId,
+            changes: []
+        );
+    }
 }

@@ -67,7 +67,7 @@ public class MariaDbEffectsStore(string connectionString, SqlGenerator sqlGenera
 
     public async Task SetEffectResults(StoredId storedId, IReadOnlyList<StoredEffectChange> changes)
     {
-        if (!changes.Any())
+        if (changes.Count == 0)
             return;
         
         await using var conn = await CreateConnection();
