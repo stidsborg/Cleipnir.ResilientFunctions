@@ -34,7 +34,9 @@ public class LeaseUpdaterTestFunctionStore : IFunctionStore
         long leaseExpiration,
         long? postponeUntil,
         long timestamp,
-        StoredId? parent
+        StoredId? parent,
+        IReadOnlyList<StoredEffect>? effects = null, 
+        IReadOnlyList<StoredMessage>? messages = null
     ) => _inner.CreateFunction(storedId, humanInstanceId, param, leaseExpiration, postponeUntil, timestamp, parent);
 
     public Task BulkScheduleFunctions(IEnumerable<IdWithParam> functionsWithParam, StoredId? parent)

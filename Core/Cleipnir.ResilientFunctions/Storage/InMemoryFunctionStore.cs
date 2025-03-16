@@ -51,7 +51,9 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         long leaseExpiration,
         long? postponeUntil,
         long timestamp,
-        StoredId? parent)
+        StoredId? parent,
+        IReadOnlyList<StoredEffect>? effects = null, 
+        IReadOnlyList<StoredMessage>? messages = null)
     {
         lock (_sync)
         {
@@ -73,6 +75,14 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
             };
             if (!_messages.ContainsKey(storedId)) //messages can already have been added - i.e. paramless started by received message
                 _messages[storedId] = new List<StoredMessage>();
+            
+            _messages[storedId].AddRange(messages ?? []);
+
+            if (effects?.Any() ?? false)
+                _effectsStore
+                    .SetEffectResults(storedId, effects.Select(e => new StoredEffectChange(storedId, e.StoredEffectId, Operation: CrudOperation.Upsert, e)).ToList())
+                    .GetAwaiter()
+                    .GetResult();
 
             return true.ToTask();
         }

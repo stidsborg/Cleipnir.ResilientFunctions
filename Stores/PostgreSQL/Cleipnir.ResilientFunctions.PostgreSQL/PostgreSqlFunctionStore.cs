@@ -135,22 +135,67 @@ public class PostgreSqlFunctionStore : IFunctionStore
         long leaseExpiration,
         long? postponeUntil,
         long timestamp,
-        StoredId? parent)
+        StoredId? parent,
+        IReadOnlyList<StoredEffect>? effects = null, 
+        IReadOnlyList<StoredMessage>? messages = null
+        )
     {
-        await using var conn = await CreateConnection();
+        if (effects == null && messages == null)
+        {
+            await using var conn = await CreateConnection();
+            await using var command = _sqlGenerator.CreateFunction(
+                storedId,
+                humanInstanceId,
+                param,
+                leaseExpiration,
+                postponeUntil,
+                timestamp,
+                parent,
+                ignoreConflict: true
+            ).ToNpgsqlCommand(conn);
 
-        await using var command = _sqlGenerator.CreateFunction(
-            storedId,
-            humanInstanceId,
-            param,
-            leaseExpiration,
-            postponeUntil,
-            timestamp,
-            parent
-        ).ToNpgsqlCommand(conn);
+            var affectedRows = await command.ExecuteNonQueryAsync();
+            return affectedRows == 1;    
+        }
 
-        var affectedRows = await command.ExecuteNonQueryAsync();
-        return affectedRows == 1;
+        try
+        {
+            var commands = new List<StoreCommand>();
+            var createCommand = _sqlGenerator.CreateFunction(
+                storedId,
+                humanInstanceId,
+                param,
+                leaseExpiration,
+                postponeUntil,
+                timestamp,
+                parent,
+                ignoreConflict: false
+            );
+            commands.Add(createCommand);
+
+            if (effects?.Any() ?? false)
+                commands.AddRange(
+                    _sqlGenerator.UpdateEffects(
+                        effects.Select(e => new StoredEffectChange(storedId, e.StoredEffectId, CrudOperation.Upsert, e)).ToList()
+                    )
+                );
+
+            if (messages?.Any() ?? false)
+                commands.AddRange(_sqlGenerator.AppendMessages(
+                        messages.Select((msg, position) => new StoredIdAndMessageWithPosition(storedId, msg, position)).ToList()
+                    )
+                );
+
+            await using var batch = commands.ToNpgsqlBatch();
+            await using var conn = await CreateConnection();
+            batch.WithConnection(conn);
+            await batch.ExecuteNonQueryAsync();
+            return true;
+        }
+        catch (PostgresException e) when (e.SqlState == "23505")
+        {
+            return false;
+        }
     }
 
     private string? _bulkScheduleFunctionsSql;

@@ -263,7 +263,7 @@ public class SqlGenerator(string tablePrefix)
         return command;
     }
     
-    public StoreCommand? AppendMessages(IReadOnlyList<StoredIdAndMessageWithPosition> messages, bool interrupt)
+    public StoreCommand? AppendMessages(IReadOnlyList<StoredIdAndMessageWithPosition> messages, bool interrupt, string prefix = "")
     {
         if (messages.Count == 0)
             return null;
@@ -276,19 +276,19 @@ public class SqlGenerator(string tablePrefix)
             INSERT INTO {tablePrefix}_Messages
                 (FlowType, FlowInstance, Position, MessageJson, MessageType, IdempotencyKey)
             VALUES 
-                 {messages.Select((_, i) => $"(@FlowType{i}, @FlowInstance{i}, @Position{i}, @MessageJson{i}, @MessageType{i}, @IdempotencyKey{i})").StringJoin($",{Environment.NewLine}")};";
+                 {messages.Select((_, i) => $"(@{prefix}FlowType{i}, @{prefix}FlowInstance{i}, @{prefix}Position{i}, @{prefix}MessageJson{i}, @{prefix}MessageType{i}, @{prefix}IdempotencyKey{i})").StringJoin($",{Environment.NewLine}")};";
 
         var appendCommand = StoreCommand.Create(sql);
         for (var i = 0; i < messages.Count; i++)
         {
             var (storedId, (messageContent, messageType, idempotencyKey), position) = messages[i];
             var (storedType, storedInstance) = storedId;
-            appendCommand.AddParameter($"@FlowType{i}", storedType.Value);
-            appendCommand.AddParameter($"@FlowInstance{i}", storedInstance.Value);
-            appendCommand.AddParameter($"@Position{i}", position);
-            appendCommand.AddParameter($"@MessageJson{i}", messageContent);
-            appendCommand.AddParameter($"@MessageType{i}", messageType);
-            appendCommand.AddParameter($"@IdempotencyKey{i}", idempotencyKey ?? (object)DBNull.Value);
+            appendCommand.AddParameter($"@{prefix}FlowType{i}", storedType.Value);
+            appendCommand.AddParameter($"@{prefix}FlowInstance{i}", storedInstance.Value);
+            appendCommand.AddParameter($"@{prefix}Position{i}", position);
+            appendCommand.AddParameter($"@{prefix}MessageJson{i}", messageContent);
+            appendCommand.AddParameter($"@{prefix}MessageType{i}", messageType);
+            appendCommand.AddParameter($"@{prefix}IdempotencyKey{i}", idempotencyKey ?? (object)DBNull.Value);
         }
 
         return StoreCommand.Merge(appendCommand, interruptCommand);

@@ -122,15 +122,51 @@ public class MariaDbFunctionStore : IFunctionStore
         long leaseExpiration,
         long? postponeUntil,
         long timestamp,
-        StoredId? parent)
+        StoredId? parent,
+        IReadOnlyList<StoredEffect>? effects = null, 
+        IReadOnlyList<StoredMessage>? messages = null)
     {
-        await using var conn = await CreateOpenConnection(_connectionString);
-        await using var command = _sqlGenerator
-            .CreateFunction(storedId, humanInstanceId, param, leaseExpiration, postponeUntil, timestamp, parent)
-            .ToSqlCommand(conn);
-        
-        var affectedRows = await command.ExecuteNonQueryAsync();
-        return affectedRows == 1;
+        if (effects == null && messages == null)
+        {
+            await using var conn = await CreateOpenConnection(_connectionString);
+            await using var command = _sqlGenerator
+                .CreateFunction(storedId, humanInstanceId, param, leaseExpiration, postponeUntil, timestamp, parent, ignoreDuplicate: true)
+                .ToSqlCommand(conn);
+            var affectedRows = await command.ExecuteNonQueryAsync();
+            return affectedRows == 1;
+        }
+        else
+        {
+            var storeCommand = _sqlGenerator.CreateFunction(storedId, humanInstanceId, param, leaseExpiration, postponeUntil, timestamp, parent, ignoreDuplicate: false);
+            if (messages?.Any() ?? false)
+            {
+                var messagesCommand = _sqlGenerator.AppendMessages(
+                    messages.Select((msg, position) => new StoredIdAndMessageWithPosition(storedId, msg, position)).ToList()
+                );
+                storeCommand = storeCommand.Merge(messagesCommand);
+            }
+
+            if (effects?.Any() ?? false)
+            {
+                var effectsCommand = _sqlGenerator.UpdateEffects(
+                    effects.Select(e => new StoredEffectChange(storedId, e.StoredEffectId, CrudOperation.Upsert, e)).ToList()
+                );
+                storeCommand = storeCommand.Merge(effectsCommand);
+            }
+            
+            await using var conn = await CreateOpenConnection(_connectionString);
+            await using var command = storeCommand.ToSqlCommand(conn);
+
+            try
+            {
+                await command.ExecuteNonQueryAsync();
+                return true;
+            }
+            catch (MySqlException ex) when (ex.Number == 1062)
+            {
+                return false;
+            }
+        }
     }
 
     public async Task BulkScheduleFunctions(IEnumerable<IdWithParam> functionsWithParam, StoredId? parent)

@@ -74,4 +74,6 @@ public class ParameterValueAndName
         value = Value;
         name = Name;
     }
+
+    public override string ToString() => $"{Name}: {Value}";
 }

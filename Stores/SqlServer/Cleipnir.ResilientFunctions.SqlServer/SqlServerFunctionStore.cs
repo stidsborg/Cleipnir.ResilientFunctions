@@ -140,13 +140,16 @@ public class SqlServerFunctionStore : IFunctionStore
         long leaseExpiration,
         long? postponeUntil,
         long timestamp,
-        StoredId? parent)
+        StoredId? parent,
+        IReadOnlyList<StoredEffect>? effects = null, 
+        IReadOnlyList<StoredMessage>? messages = null
+    )
     {
         await using var conn = await _connFunc();
         
         try
         {
-            await using var command = _sqlGenerator
+            var storeCommand = _sqlGenerator
                 .CreateFunction(
                     storedId,
                     humanInstanceId,
@@ -156,8 +159,28 @@ public class SqlServerFunctionStore : IFunctionStore
                     timestamp,
                     parent,
                     paramPrefix: null
-                ).ToSqlCommand(conn);
+                );
+
+            if (messages?.Any() ?? false)
+            {
+                var messagesCommand = _sqlGenerator.AppendMessages(
+                    messages.Select((msg, position) => new StoredIdAndMessageWithPosition(storedId, msg, position)).ToList(),
+                    interrupt: false,
+                    prefix: "Message"
+                );
+                storeCommand = storeCommand.Merge(messagesCommand);
+            }
+
+            if (effects?.Any() ?? false)
+            {
+                var effectsCommand = _sqlGenerator.UpdateEffects(
+                    effects.Select(e => new StoredEffectChange(storedId, e.StoredEffectId, CrudOperation.Upsert, e)).ToList(),
+                    paramPrefix: "Effect"
+                );
+                storeCommand = storeCommand.Merge(effectsCommand);
+            }
             
+            await using var command = storeCommand.ToSqlCommand(conn);
             await command.ExecuteNonQueryAsync();
         }
         catch (SqlException sqlException) when (sqlException.Number == SqlError.UNIQUENESS_VIOLATION)

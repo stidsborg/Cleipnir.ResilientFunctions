@@ -25,7 +25,9 @@ public interface IFunctionStore
         long leaseExpiration,
         long? postponeUntil,
         long timestamp,
-        StoredId? parent
+        StoredId? parent,
+        IReadOnlyList<StoredEffect>? effects = null,
+        IReadOnlyList<StoredMessage>? messages = null
     );
     
     Task BulkScheduleFunctions(

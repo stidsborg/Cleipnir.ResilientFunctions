@@ -94,7 +94,8 @@ public class SqlGenerator(string tablePrefix)
         long leaseExpiration,
         long? postponeUntil,
         long timestamp,
-        StoredId? parent)
+        StoredId? parent,
+        bool ignoreConflict)
     {
         _createFunctionSql ??= @$"
             INSERT INTO {tablePrefix}
@@ -103,9 +104,12 @@ public class SqlGenerator(string tablePrefix)
                 ($1, $2, $3, $4, $5, $6, $7, $8)
             ON CONFLICT DO NOTHING;";
 
+        var sql = _createFunctionSql;
+        if (!ignoreConflict)
+            sql = sql.Replace("ON CONFLICT DO NOTHING", "");
 
         return StoreCommand.Create(
-            _createFunctionSql,
+            sql,
             values:
             [
                 storedId.Type.Value,

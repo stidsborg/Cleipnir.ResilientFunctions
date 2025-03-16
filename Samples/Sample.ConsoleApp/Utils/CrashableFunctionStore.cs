@@ -35,7 +35,9 @@ public class CrashableFunctionStore : IFunctionStore
         long leaseExpiration,
         long? postponeUntil,
         long timestamp,
-        StoredId? parent
+        StoredId? parent,
+        IReadOnlyList<StoredEffect>? effects = null, 
+        IReadOnlyList<StoredMessage>? messages = null
     ) => _crashed
         ? Task.FromException<bool>(new TimeoutException())
         : _inner.CreateFunction(

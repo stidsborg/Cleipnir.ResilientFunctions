@@ -207,4 +207,16 @@ public class StoreTests : TestTemplates.StoreTests
     [TestMethod]
     public override Task InterruptedFunctionIsPostponedWhenIgnoringInterruptedFunction()
         => InterruptedFunctionIsPostponedWhenIgnoringInterruptedFunction(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task FunctionCanBeCreatedWithMessagesAndEffects()
+        => FunctionCanBeCreatedWithMessagesAndEffects(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task FunctionCanBeCreatedWithMessagesOnly()
+        => FunctionCanBeCreatedWithMessagesOnly(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task FunctionCanBeCreatedWithEffectsOnly()
+        => FunctionCanBeCreatedWithEffectsOnly(FunctionStoreFactory.Create());
 }

@@ -106,17 +106,22 @@ public class SqlGenerator(string tablePrefix)
         long leaseExpiration,
         long? postponeUntil,
         long timestamp,
-        StoredId? parent)
+        StoredId? parent,
+        bool ignoreDuplicate)
     {
         _createFunctionSql ??= @$"
             INSERT IGNORE INTO {tablePrefix}
-                (type, instance, param_json, status, epoch, expires, timestamp, human_instance_id, parent)
+                (type, instance, param_json, status, epoch, expires, timestamp, human_instance_id, parent, interrupted)
             VALUES
-                (?, ?, ?, ?, 0, ?, ?, ?, ?)";
+                (?, ?, ?, ?, 0, ?, ?, ?, ?, 0);";
         var status = postponeUntil == null ? Status.Executing : Status.Postponed;
 
+        var sql = _createFunctionSql;
+        if (!ignoreDuplicate)
+            sql = sql.Replace("IGNORE ", "");
+        
         return StoreCommand.Create(
-            _createFunctionSql,
+            sql,
             values: [
                 storedId.Type.Value,
                 storedId.Instance.Value.ToString("N"),

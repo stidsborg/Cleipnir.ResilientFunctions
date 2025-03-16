@@ -1525,4 +1525,202 @@ public abstract class StoreTests
         var sf = await store.GetFunction(storedId).ShouldNotBeNullAsync();
         sf.Status.ShouldBe(Status.Postponed);
     }
+    
+    public abstract Task FunctionCanBeCreatedWithMessagesAndEffects();
+    protected async Task FunctionCanBeCreatedWithMessagesAndEffects(Task<IFunctionStore> storeTask)
+    {
+        var storedId = TestStoredId.Create();
+        
+        var store = await storeTask;
+        var paramJson = PARAM.ToJson();
+
+        var effectId1 = new EffectId("SomeEffect1", EffectType.State, Context: "");
+        var effect1 = new StoredEffect(
+            effectId1,
+            new StoredEffectId(Guid.NewGuid()), WorkStatus.Completed, Result: "hello world".ToUtf8Bytes(),
+            StoredException: null
+        );
+        var effectId2 = new EffectId("SomeEffect2", EffectType.State, Context: "");
+        var effect2 = new StoredEffect(
+            effectId2,
+            new StoredEffectId(Guid.NewGuid()), WorkStatus.Completed, Result: "hello universe".ToUtf8Bytes(),
+            StoredException: null
+        );
+
+        var message1 = new StoredMessage(
+            MessageContent: "hallo world".ToUtf8Bytes(),
+            MessageType: "some type".ToUtf8Bytes(),
+            IdempotencyKey: "some idempotency key"
+        );
+        var message2 = new StoredMessage(
+            MessageContent: "hallo universe".ToUtf8Bytes(),
+            MessageType: "some type".ToUtf8Bytes(),
+            IdempotencyKey: "some idempotency key"
+        );
+        
+        await store.CreateFunction(
+            storedId, 
+            "humanInstanceId",
+            paramJson.ToUtf8Bytes(), 
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks,
+            parent: null,
+            effects: [effect1, effect2],
+            messages: [message1, message2]
+        ).ShouldBeTrueAsync();
+
+        var effectResults = await store.EffectsStore.GetEffectResults(storedId);
+        effectResults.Count.ShouldBe(2);
+        var effectResult1 = effectResults.Single(r => r.EffectId.Id == "SomeEffect1");
+        effectResult1.EffectId.ShouldBe(new EffectId("SomeEffect1", EffectType.State, Context: ""));
+        effectResult1.Result!.ToStringFromUtf8Bytes().ShouldBe("hello world");
+        var effectResult2 = effectResults.Single(r => r.EffectId.Id == "SomeEffect2");
+        effectResult2.EffectId.ShouldBe(new EffectId("SomeEffect2", EffectType.State, Context: ""));
+        effectResult2.Result!.ToStringFromUtf8Bytes().ShouldBe("hello universe");
+
+        var messages = await store.MessageStore.GetMessages(storedId, skip: 0);
+        messages.Count.ShouldBe(2);
+        var fetchedMessage1 = messages[0];
+        fetchedMessage1.MessageType.ToStringFromUtf8Bytes().ShouldBe("some type");
+        fetchedMessage1.MessageContent.ToStringFromUtf8Bytes().ShouldBe("hallo world");
+        fetchedMessage1.IdempotencyKey.ShouldBe("some idempotency key");
+        
+        var fetchedMessage2 = messages[1];
+        fetchedMessage2.MessageType.ToStringFromUtf8Bytes().ShouldBe("some type");
+        fetchedMessage2.MessageContent.ToStringFromUtf8Bytes().ShouldBe("hallo universe");
+        fetchedMessage2.IdempotencyKey.ShouldBe("some idempotency key");
+        
+        //idempotency check
+        await store.CreateFunction(
+            storedId, 
+            "humanInstanceId",
+            paramJson.ToUtf8Bytes(), 
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks,
+            parent: null,
+            effects: [effect1, effect2],
+            messages: [message1, message2]
+        ).ShouldBeFalseAsync();
+    }
+    
+    public abstract Task FunctionCanBeCreatedWithMessagesOnly();
+    protected async Task FunctionCanBeCreatedWithMessagesOnly(Task<IFunctionStore> storeTask)
+    {
+        var storedId = TestStoredId.Create();
+        
+        var store = await storeTask;
+        var paramJson = PARAM.ToJson();
+
+        var message1 = new StoredMessage(
+            MessageContent: "hallo world".ToUtf8Bytes(),
+            MessageType: "some type".ToUtf8Bytes(),
+            IdempotencyKey: "some idempotency key"
+        );
+        var message2 = new StoredMessage(
+            MessageContent: "hallo universe".ToUtf8Bytes(),
+            MessageType: "some type".ToUtf8Bytes(),
+            IdempotencyKey: "some idempotency key"
+        );
+        
+        await store.CreateFunction(
+            storedId, 
+            "humanInstanceId",
+            paramJson.ToUtf8Bytes(), 
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks,
+            parent: null,
+            effects: null,
+            messages: [message1, message2]
+        ).ShouldBeTrueAsync();
+
+        var effectResults = await store.EffectsStore.GetEffectResults(storedId);
+        effectResults.Count.ShouldBe(0);
+
+        var messages = await store.MessageStore.GetMessages(storedId, skip: 0);
+        messages.Count.ShouldBe(2);
+        var fetchedMessage1 = messages[0];
+        fetchedMessage1.MessageType.ToStringFromUtf8Bytes().ShouldBe("some type");
+        fetchedMessage1.MessageContent.ToStringFromUtf8Bytes().ShouldBe("hallo world");
+        fetchedMessage1.IdempotencyKey.ShouldBe("some idempotency key");
+        
+        var fetchedMessage2 = messages[1];
+        fetchedMessage2.MessageType.ToStringFromUtf8Bytes().ShouldBe("some type");
+        fetchedMessage2.MessageContent.ToStringFromUtf8Bytes().ShouldBe("hallo universe");
+        fetchedMessage2.IdempotencyKey.ShouldBe("some idempotency key");
+        
+        //idempotency check
+        await store.CreateFunction(
+            storedId, 
+            "humanInstanceId",
+            paramJson.ToUtf8Bytes(), 
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks,
+            parent: null,
+            effects: null,
+            messages: [message1, message2]
+        ).ShouldBeFalseAsync();
+    }
+    
+    public abstract Task FunctionCanBeCreatedWithEffectsOnly();
+    protected async Task FunctionCanBeCreatedWithEffectsOnly(Task<IFunctionStore> storeTask)
+    {
+        var storedId = TestStoredId.Create();
+        
+        var store = await storeTask;
+        var paramJson = PARAM.ToJson();
+
+        var effectId1 = new EffectId("SomeEffect1", EffectType.State, Context: "");
+        var effect1 = new StoredEffect(
+            effectId1,
+            new StoredEffectId(Guid.NewGuid()), WorkStatus.Completed, Result: "hello world".ToUtf8Bytes(),
+            StoredException: null
+        );
+        var effectId2 = new EffectId("SomeEffect2", EffectType.State, Context: "");
+        var effect2 = new StoredEffect(
+            effectId2,
+            new StoredEffectId(Guid.NewGuid()), WorkStatus.Completed, Result: "hello universe".ToUtf8Bytes(),
+            StoredException: null
+        );
+        
+        await store.CreateFunction(
+            storedId, 
+            "humanInstanceId",
+            paramJson.ToUtf8Bytes(), 
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks,
+            parent: null,
+            effects: [effect1, effect2],
+            messages: null
+        ).ShouldBeTrueAsync();
+
+        var effectResults = await store.EffectsStore.GetEffectResults(storedId);
+        effectResults.Count.ShouldBe(2);
+        var effectResult1 = effectResults.Single(r => r.EffectId.Id == "SomeEffect1");
+        effectResult1.EffectId.ShouldBe(new EffectId("SomeEffect1", EffectType.State, Context: ""));
+        effectResult1.Result!.ToStringFromUtf8Bytes().ShouldBe("hello world");
+        var effectResult2 = effectResults.Single(r => r.EffectId.Id == "SomeEffect2");
+        effectResult2.EffectId.ShouldBe(new EffectId("SomeEffect2", EffectType.State, Context: ""));
+        effectResult2.Result!.ToStringFromUtf8Bytes().ShouldBe("hello universe");
+
+        var messages = await store.MessageStore.GetMessages(storedId, skip: 0);
+        messages.Count.ShouldBe(0);
+        
+        //idempotency check
+        await store.CreateFunction(
+            storedId, 
+            "humanInstanceId",
+            paramJson.ToUtf8Bytes(), 
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks,
+            parent: null,
+            effects: [effect1, effect2],
+            messages: null
+        ).ShouldBeFalseAsync();
+    }
 }
