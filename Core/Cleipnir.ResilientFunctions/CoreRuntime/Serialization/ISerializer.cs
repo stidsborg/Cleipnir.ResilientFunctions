@@ -7,6 +7,7 @@ namespace Cleipnir.ResilientFunctions.CoreRuntime.Serialization;
 public interface ISerializer
 {
     byte[] Serialize<T>(T value);
+    byte[] Serialize(object? value, Type type);
     T Deserialize<T>(byte[] bytes);
     
     StoredException SerializeException(FatalWorkflowException fatalWorkflowException);

@@ -53,6 +53,8 @@ public class RActionWithStateRegistrationTests
             return Default.Serialize(value);
         }
 
+        public byte[] Serialize(object? value, Type type) => Default.Serialize(value, type);
+
         public T Deserialize<T>(byte[] json) 
             => Default.Deserialize<T>(json);
 

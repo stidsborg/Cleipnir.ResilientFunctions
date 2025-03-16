@@ -12,6 +12,7 @@ public class ErrorHandlingDecorator : ISerializer
     public ErrorHandlingDecorator(ISerializer inner) => _inner = inner;
     
     public byte[] Serialize<T>(T value) => _inner.Serialize(value);
+    public byte[] Serialize(object? value, Type type) => _inner.Serialize(value, type);
 
     public T Deserialize<T>(byte[] bytes)
     {

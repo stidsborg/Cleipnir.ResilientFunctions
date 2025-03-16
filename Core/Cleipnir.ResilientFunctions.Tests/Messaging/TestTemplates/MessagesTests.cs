@@ -469,6 +469,8 @@ public abstract class MessagesTests
         public byte[] Serialize<T>(T value) 
             => DefaultSerializer.Instance.Serialize(value);
 
+        public byte[] Serialize(object? value, Type type) => DefaultSerializer.Instance.Serialize(value, type);
+
         public T Deserialize<T>(byte[] json)
             => DefaultSerializer.Instance.Deserialize<T>(json);
 

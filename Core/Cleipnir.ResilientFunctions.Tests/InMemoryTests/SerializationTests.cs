@@ -1,7 +1,6 @@
 ﻿using System;
 using Cleipnir.ResilientFunctions.CoreRuntime.Serialization;
 using Cleipnir.ResilientFunctions.Domain;
-using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Reactive.Utilities;
 using Cleipnir.ResilientFunctions.Tests.Utils;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -23,6 +22,15 @@ public class SerializationTests
             throw new Exception("Expected event to be of child-type");
                 
         child.Value.ShouldBe("Hello World");
+    }
+    
+    [TestMethod]
+    public void StringCanBeSerializedAndDeserializedUsingValueTypeSerializationOverload()
+    {
+        var serializer = DefaultSerializer.Instance;
+        var serializedBytes = serializer.Serialize("Hello World", typeof(string));
+        var deserialized = serializer.Deserialize<string>(serializedBytes);
+        deserialized.ShouldBe("Hello World");
     }
 
     [TestMethod]
