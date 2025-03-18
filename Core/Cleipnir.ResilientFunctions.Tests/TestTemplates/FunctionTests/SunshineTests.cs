@@ -5,6 +5,8 @@ using Cleipnir.ResilientFunctions.CoreRuntime;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
+using Cleipnir.ResilientFunctions.Messaging;
+using Cleipnir.ResilientFunctions.Reactive.Extensions;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Tests.TestTemplates.WatchDogsTests;
 using Cleipnir.ResilientFunctions.Tests.Utils;
@@ -540,6 +542,120 @@ public abstract class SunshineTests
         await BusyWait.Until(() => storedId != null);
         
         storedId.ShouldBe(reg.MapToStoredId(instance));
+        unhandledExceptionHandler.ShouldNotHaveExceptions();
+    }
+    
+    public abstract Task FuncCanBeCreatedWithInitialState();
+    public async Task FuncCanBeCreatedWithInitialState(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var flowId = TestFlowId.Create(); 
+
+        var unhandledExceptionHandler = new UnhandledExceptionCatcher();
+
+        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler.Catch));
+
+        string? initialEffectValue = null;
+        string? initialMessageValue = null;
+        
+        var registration = functionsRegistry
+            .RegisterFunc(
+                flowId.Type,
+                async (string s, Workflow workflow) =>
+                {
+                    initialEffectValue = await workflow.Effect.Get<string>("InitialEffectId");
+                    initialMessageValue = await workflow.Messages.OfType<string>().First();
+                    return s;
+                });
+
+
+        await registration.Invoke(
+            flowInstance: "hello",
+            param: "hello",
+            initialState: new InitialState(
+                Messages: [new MessageAndIdempotencyKey("InitialMessage")],
+                Effects: [new InitialEffect(Id: "InitialEffectId", Value: "InitialEffectValue", Exception: null)]
+            )
+        );
+        
+        initialEffectValue.ShouldBe("InitialEffectValue");
+        initialMessageValue.ShouldBe("InitialMessage");
+            
+        unhandledExceptionHandler.ShouldNotHaveExceptions();
+    }
+    
+    public abstract Task ActionCanBeCreatedWithInitialState();
+    public async Task ActionCanBeCreatedWithInitialState(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var flowId = TestFlowId.Create(); 
+
+        var unhandledExceptionHandler = new UnhandledExceptionCatcher();
+
+        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler.Catch));
+
+        string? initialEffectValue = null;
+        string? initialMessageValue = null;
+        
+        var registration = functionsRegistry
+            .RegisterAction(
+                flowId.Type,
+                async (string _, Workflow workflow) =>
+                {
+                    initialEffectValue = await workflow.Effect.Get<string>("InitialEffectId");
+                    initialMessageValue = await workflow.Messages.OfType<string>().First();
+                });
+
+
+        await registration.Invoke(
+            flowInstance: "hello",
+            param: "hello",
+            initialState: new InitialState(
+                Messages: [new MessageAndIdempotencyKey("InitialMessage")],
+                Effects: [new InitialEffect(Id: "InitialEffectId", Value: "InitialEffectValue", Exception: null)]
+            )
+        );
+        
+        initialEffectValue.ShouldBe("InitialEffectValue");
+        initialMessageValue.ShouldBe("InitialMessage");
+            
+        unhandledExceptionHandler.ShouldNotHaveExceptions();
+    }
+    
+    public abstract Task ParamlessCanBeCreatedWithInitialState();
+    public async Task ParamlessCanBeCreatedWithInitialState(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var flowId = TestFlowId.Create(); 
+
+        var unhandledExceptionHandler = new UnhandledExceptionCatcher();
+
+        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler.Catch));
+
+        string? initialEffectValue = null;
+        string? initialMessageValue = null;
+        
+        var registration = functionsRegistry
+            .RegisterParamless(
+                flowId.Type,
+                async (Workflow workflow) =>
+                {
+                    initialEffectValue = await workflow.Effect.Get<string>("InitialEffectId");
+                    initialMessageValue = await workflow.Messages.OfType<string>().First();
+                });
+
+
+        await registration.Invoke(
+            flowInstance: "hello",
+            initialState: new InitialState(
+                Messages: [new MessageAndIdempotencyKey("InitialMessage")],
+                Effects: [new InitialEffect(Id: "InitialEffectId", Value: "InitialEffectValue", Exception: null)]
+            )
+        );
+        
+        initialEffectValue.ShouldBe("InitialEffectValue");
+        initialMessageValue.ShouldBe("InitialMessage");
+            
         unhandledExceptionHandler.ShouldNotHaveExceptions();
     }
 }

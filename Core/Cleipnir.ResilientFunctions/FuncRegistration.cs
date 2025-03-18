@@ -11,13 +11,15 @@ public static class FuncRegistration
 {
     public delegate Task<TReturn> Invoke<in TParam, TReturn>(
         FlowInstance flowInstance,
-        TParam param
+        TParam param,
+        InitialState? initialState = null
     ) where TParam : notnull;
 
     public delegate Task<Scheduled<TReturn>> Schedule<in TParam, TReturn>(
         FlowInstance flowInstance,
         TParam param,
-        bool? detach = null
+        bool? detach = null,
+        InitialState? initialState = null
     ) where TParam : notnull;
 
     public delegate Task<Scheduled<TReturn>> ScheduleAt<in TParam, TReturn>(

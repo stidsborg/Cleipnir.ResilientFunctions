@@ -40,11 +40,13 @@ internal class InvocationHelper<TParam, TReturn>
     }
 
     public async Task<Tuple<bool, IDisposable>> PersistFunctionInStore(
+        FlowId flowId,
         StoredId storedId, 
         FlowInstance humanInstanceId, 
         TParam param, 
         DateTime? scheduleAt,
-        StoredId? parent)
+        StoredId? parent,
+        InitialState? initialState)
     {
         if (!_isParamlessFunction)
             ArgumentNullException.ThrowIfNull(param);
@@ -53,16 +55,24 @@ internal class InvocationHelper<TParam, TReturn>
         try
         {
             var storedParameter = SerializeParameter(param);
-
             var utcNowTicks = DateTime.UtcNow.Ticks;
+            var effects = initialState == null
+                ? null
+                : MapInitialEffects(initialState.Effects, flowId);
+            var messages = initialState == null
+                ? null
+                : MapInitialMessages(initialState.Messages);
+            
             var created = await _functionStore.CreateFunction(
                 storedId,
                 humanInstanceId,
                 storedParameter,
-                postponeUntil: scheduleAt?.ToUniversalTime().Ticks,
                 leaseExpiration: utcNowTicks + _settings.LeaseLength.Ticks,
+                postponeUntil: scheduleAt?.ToUniversalTime().Ticks,
                 timestamp: utcNowTicks,
-                parent: parent
+                parent: parent,
+                effects,
+                messages
             );
 
             if (!created) runningFunction.Dispose();
@@ -474,4 +484,30 @@ internal class InvocationHelper<TParam, TReturn>
         
         return parentWorkflow;
     }
+    
+    private IReadOnlyList<StoredEffect> MapInitialEffects(IEnumerable<InitialEffect> initialEffects, FlowId flowId)
+    => initialEffects
+        .Select(e =>
+            e.Exception == null
+                ? new StoredEffect(
+                    e.Id.ToEffectId(EffectType.Effect),
+                    e.Id.ToEffectId(EffectType.Effect).ToStoredEffectId(),
+                    WorkStatus.Completed,
+                    Result: Serializer.Serialize(e.Value, e.Value?.GetType() ?? typeof(object)),
+                    StoredException: null)
+                : new StoredEffect(
+                    e.Id.ToEffectId(EffectType.Effect),
+                    e.Id.ToEffectId(EffectType.Effect).ToStoredEffectId(),
+                    WorkStatus.Completed,
+                    Result: null,
+                    StoredException: Serializer.SerializeException(FatalWorkflowException.CreateNonGeneric(flowId, e.Exception))
+                )
+        ).ToList();
+
+    private IReadOnlyList<StoredMessage> MapInitialMessages(IEnumerable<MessageAndIdempotencyKey> initialMessages)
+        => initialMessages.Select(m =>
+        {
+            var (content, type) = Serializer.SerializeMessage(m.Message, m.Message.GetType());
+            return new StoredMessage(content, type, m.IdempotencyKey);
+        }).ToList();
 }

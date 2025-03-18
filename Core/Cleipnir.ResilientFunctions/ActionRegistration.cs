@@ -9,8 +9,8 @@ namespace Cleipnir.ResilientFunctions;
 
 public static class ActionRegistration
 {
-    public delegate Task Invoke<in TParam>(FlowInstance flowInstance, TParam param) where TParam : notnull;
-    public delegate Task<Scheduled> Schedule<in TParam>(FlowInstance flowInstance, TParam param, bool? detach = null) where TParam : notnull;
+    public delegate Task Invoke<in TParam>(FlowInstance flowInstance, TParam param, InitialState? initialState = null) where TParam : notnull;
+    public delegate Task<Scheduled> Schedule<in TParam>(FlowInstance flowInstance, TParam param, bool? detach = null, InitialState? initialState = null) where TParam : notnull;
     public delegate Task<BulkScheduled> BulkSchedule<TParam>(IEnumerable<BulkWork<TParam>> instances, bool? detach = null) where TParam : notnull;
 
     public delegate Task<Scheduled> ScheduleAt<in TParam>(

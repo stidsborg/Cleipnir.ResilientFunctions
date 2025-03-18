@@ -9,8 +9,8 @@ namespace Cleipnir.ResilientFunctions;
 
 public static class Paramless
 {
-    public delegate Task Invoke(FlowInstance flowInstance);
-    public delegate Task<Scheduled> Schedule(FlowInstance flowInstance, bool? detach = null);
+    public delegate Task Invoke(FlowInstance flowInstance, InitialState? initialState = null);
+    public delegate Task<Scheduled> Schedule(FlowInstance flowInstance, bool? detach = null, InitialState? initialState = null);
     public delegate Task<BulkScheduled> BulkSchedule(IEnumerable<FlowInstance> instances, bool? detach = null);
     public delegate Task<Scheduled> ScheduleAt(
         FlowInstance flowInstance,

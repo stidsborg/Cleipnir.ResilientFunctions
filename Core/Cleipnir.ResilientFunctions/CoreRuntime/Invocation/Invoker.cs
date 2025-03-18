@@ -34,10 +34,10 @@ public class Invoker<TParam, TReturn>
         _utilities = utilities;
     }
 
-    public async Task<TReturn> Invoke(FlowInstance instance, TParam param)
+    public async Task<TReturn> Invoke(FlowInstance instance, TParam param, InitialState? initialState = null)
     {
         var (flowId, storedId) = CreateIds(instance);
-        var (created, workflow, disposables) = await PrepareForInvocation(flowId, storedId, param, parent: null);
+        var (created, workflow, disposables) = await PrepareForInvocation(flowId, storedId, param, parent: null, initialState);
         CurrentFlow._workflow.Value = workflow;
         if (!created) return await WaitForFunctionResult(flowId, storedId, maxWait: null);
 
@@ -59,7 +59,7 @@ public class Invoker<TParam, TReturn>
         return result.SucceedWithValue!;
     }
 
-    public async Task<InnerScheduled<TReturn>> ScheduleInvoke(FlowInstance flowInstance, TParam param, bool? detach)
+    public async Task<InnerScheduled<TReturn>> ScheduleInvoke(FlowInstance flowInstance, TParam param, bool? detach, InitialState? initialState)
     {
         var parent = GetAndEnsureParent(detach);
         var (flowId, storedId) = CreateIds(flowInstance);
@@ -71,7 +71,7 @@ public class Invoker<TParam, TReturn>
                 return _invocationHelper.CreateInnerScheduled([flowId], parent, detach);    
         }
         
-        var (created, workflow, disposables) = await PrepareForInvocation(flowId, storedId, param, parent?.StoredId);
+        var (created, workflow, disposables) = await PrepareForInvocation(flowId, storedId, param, parent?.StoredId, initialState);
         CurrentFlow._workflow.Value = workflow;
         if (!created) 
             return _invocationHelper.CreateInnerScheduled([flowId], parent, detach);
@@ -101,7 +101,7 @@ public class Invoker<TParam, TReturn>
     public async Task<InnerScheduled<TReturn>> ScheduleAt(FlowInstance instanceId, TParam param, DateTime scheduleAt, bool? detach)
     {
         if (scheduleAt.ToUniversalTime() <= DateTime.UtcNow)
-            return await ScheduleInvoke(instanceId, param, detach);
+            return await ScheduleInvoke(instanceId, param, detach, initialState: null);
 
         var parent = GetAndEnsureParent(detach);
         var id = new FlowId(_flowType, instanceId);
@@ -113,11 +113,13 @@ public class Invoker<TParam, TReturn>
         }
 
         var (_, disposable) = await _invocationHelper.PersistFunctionInStore(
+            id,
             id.ToStoredId(_storedType),
             instanceId,
             param,
             scheduleAt,
-            parent?.StoredId
+            parent?.StoredId,
+            initialState: null
         );
 
         disposable.Dispose();
@@ -206,7 +208,7 @@ public class Invoker<TParam, TReturn>
         });
     }
     
-    private async Task<PreparedInvocation> PrepareForInvocation(FlowId flowId, StoredId storedId, TParam param, StoredId? parent)
+    private async Task<PreparedInvocation> PrepareForInvocation(FlowId flowId, StoredId storedId, TParam param, StoredId? parent, InitialState? initialState)
     {
         var disposables = new List<IDisposable>(capacity: 3);
         var success = false;
@@ -214,11 +216,13 @@ public class Invoker<TParam, TReturn>
         {
             var (persisted, runningFunction) =
                 await _invocationHelper.PersistFunctionInStore(
+                    flowId,
                     storedId,
                     flowId.Instance.Value,
                     param,
                     scheduleAt: null,
-                    parent
+                    parent,
+                    initialState
                 );
             disposables.Add(runningFunction);
             disposables.Add(_invocationHelper.StartLeaseUpdater(storedId, epoch: 0));
@@ -226,7 +230,7 @@ public class Invoker<TParam, TReturn>
             disposables.Add(isWorkflowRunningDisposable);
             success = persisted;
             
-            var (effect, states) = _invocationHelper.CreateEffectAndStates(storedId, flowId, anyEffects: false);
+            var (effect, states) = _invocationHelper.CreateEffectAndStates(storedId, flowId, anyEffects: initialState != null);
             var messages = _invocationHelper.CreateMessages(
                 storedId,
                 ScheduleRestart, 

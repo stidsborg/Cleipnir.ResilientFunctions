@@ -68,4 +68,16 @@ public class SunshineTests : ResilientFunctions.Tests.TestTemplates.FunctionTest
     [TestMethod]
     public override Task FlowIdCanBeExtractedFromAmbientStateAfterSuspension()
         => FlowIdCanBeExtractedFromAmbientStateAfterSuspension(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task FuncCanBeCreatedWithInitialState()
+        => FuncCanBeCreatedWithInitialState(FunctionStoreFactory.Create());
+    
+    [TestMethod]
+    public override Task ActionCanBeCreatedWithInitialState()
+        => ActionCanBeCreatedWithInitialState(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task ParamlessCanBeCreatedWithInitialState()
+        => ParamlessCanBeCreatedWithInitialState(FunctionStoreFactory.Create());
 }
