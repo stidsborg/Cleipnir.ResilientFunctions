@@ -83,4 +83,12 @@ public class SunshineTests : TestTemplates.FunctionTests.SunshineTests
     [TestMethod]
     public override Task ParamlessCanBeCreatedWithInitialState()
         => ParamlessCanBeCreatedWithInitialState(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task ParamlessCanBeCreatedWithInitialStateContainedStartedButNotCompletedEffect()
+        => ParamlessCanBeCreatedWithInitialStateContainedStartedButNotCompletedEffect(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task ParamlessCanBeCreatedWithInitialFailedEffect()
+        => ParamlessCanBeCreatedWithInitialFailedEffect(FunctionStoreFactory.Create());
 }

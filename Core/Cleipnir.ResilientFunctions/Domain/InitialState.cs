@@ -9,4 +9,4 @@ public record InitialState(
     IEnumerable<InitialEffect> Effects
 );
 
-public record InitialEffect(string Id, object? Value, Exception? Exception = null);
+public record InitialEffect(string Id, object? Value = null, Exception? Exception = null, WorkStatus? Status = null);

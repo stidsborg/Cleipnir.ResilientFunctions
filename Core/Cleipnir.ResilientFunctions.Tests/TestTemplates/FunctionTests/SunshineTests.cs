@@ -10,6 +10,7 @@ using Cleipnir.ResilientFunctions.Reactive.Extensions;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Tests.TestTemplates.WatchDogsTests;
 using Cleipnir.ResilientFunctions.Tests.Utils;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Shouldly;
 
 namespace Cleipnir.ResilientFunctions.Tests.TestTemplates.FunctionTests;
@@ -656,6 +657,80 @@ public abstract class SunshineTests
         initialEffectValue.ShouldBe("InitialEffectValue");
         initialMessageValue.ShouldBe("InitialMessage");
             
+        unhandledExceptionHandler.ShouldNotHaveExceptions();
+    }
+    
+    public abstract Task ParamlessCanBeCreatedWithInitialStateContainedStartedButNotCompletedEffect();
+    public async Task ParamlessCanBeCreatedWithInitialStateContainedStartedButNotCompletedEffect(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var flowId = TestFlowId.Create(); 
+
+        var unhandledExceptionHandler = new UnhandledExceptionCatcher();
+
+        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler.Catch));
+
+        WorkStatus? workStatus = null;
+
+        var registration = functionsRegistry
+            .RegisterParamless(
+                flowId.Type,
+                async workflow =>
+                {
+                    workStatus = await workflow.Effect.GetStatus("InitialEffectId");
+                }
+            );
+
+
+        await registration.Invoke(
+            flowInstance: "hello",
+            initialState: new InitialState(
+                Messages: [],
+                Effects: [new InitialEffect(Id: "InitialEffectId", Status: WorkStatus.Started)]
+            )
+        );
+        
+        workStatus.ShouldBe(WorkStatus.Started);
+            
+        unhandledExceptionHandler.ShouldNotHaveExceptions();
+    }
+    
+    public abstract Task ParamlessCanBeCreatedWithInitialFailedEffect();
+    public async Task ParamlessCanBeCreatedWithInitialFailedEffect(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var flowId = TestFlowId.Create(); 
+
+        var unhandledExceptionHandler = new UnhandledExceptionCatcher();
+
+        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler.Catch));
+        
+        var registration = functionsRegistry
+            .RegisterParamless(
+                flowId.Type,
+                async workflow =>
+                {
+                    await workflow.Effect.Capture("InitialEffectId", () => Task.CompletedTask);
+                }
+            );
+
+
+        try
+        {
+            await registration.Invoke(
+                flowInstance: "hello",
+                initialState: new InitialState(
+                    Messages: [],
+                    Effects: [new InitialEffect(Id: "InitialEffectId", Exception: new TimeoutException())]
+                )
+            );
+            Assert.Fail("Expected TimeoutException");
+        }
+        catch (FatalWorkflowException exception)
+        {
+            exception.ErrorType.ShouldBe(typeof(TimeoutException));
+        }
+
         unhandledExceptionHandler.ShouldNotHaveExceptions();
     }
 }
