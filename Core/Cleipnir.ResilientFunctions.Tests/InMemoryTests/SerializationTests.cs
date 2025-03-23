@@ -53,7 +53,6 @@ public class SerializationTests
         deserialized.ShouldBe(option);
     }
     
-    //
     [TestMethod]
     public void OptionCanBeDeserializedAsMessageByDefaultSerializer()
     {
