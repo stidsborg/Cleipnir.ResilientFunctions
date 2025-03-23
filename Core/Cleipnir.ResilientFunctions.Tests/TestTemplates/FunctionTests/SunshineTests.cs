@@ -7,6 +7,7 @@ using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Reactive.Extensions;
+using Cleipnir.ResilientFunctions.Reactive.Utilities;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Tests.TestTemplates.WatchDogsTests;
 using Cleipnir.ResilientFunctions.Tests.Utils;
@@ -731,6 +732,36 @@ public abstract class SunshineTests
             exception.ErrorType.ShouldBe(typeof(TimeoutException));
         }
 
+        unhandledExceptionHandler.ShouldNotHaveExceptions();
+    }
+    
+    public abstract Task FunctionCanAcceptAndReturnOptionType();
+    public async Task FunctionCanAcceptAndReturnOptionType(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var flowId = TestFlowId.Create(); 
+
+        var unhandledExceptionHandler = new UnhandledExceptionCatcher();
+        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler.Catch));
+        var registration = functionsRegistry
+            .RegisterFunc(
+                flowId.Type,
+                Task<Option<string>> (Option<string> param) => param.ToTask()
+            );
+
+        {
+            var optionWithValue = Option.Create("Hallo World");
+            var returnedOption = await registration.Invoke("WithValue", optionWithValue);    
+            returnedOption.HasValue.ShouldBeTrue();
+            returnedOption.Value.ShouldBe("Hallo World");
+        }
+
+        {
+            var optionWithoutValue = Option.CreateNoValue<string>();
+            var returnedOption = await registration.Invoke("WithoutValue", optionWithoutValue);    
+            returnedOption.HasValue.ShouldBeFalse();
+        }
+        
         unhandledExceptionHandler.ShouldNotHaveExceptions();
     }
 }
