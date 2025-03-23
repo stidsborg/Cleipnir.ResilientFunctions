@@ -13,7 +13,7 @@ public static class CurrentFlow
         {
             var currentFlowId = _workflow.Value?.StoredId;;
             if (currentFlowId is null)
-                throw new InvalidOperationException("Unable to determine current flow. Flow must be invoked through the framework");
+                throw new InvalidOperationException("Unable to determine current flow. Flow must be started through the Cleipnir framework");
 
             return currentFlowId;
         }
