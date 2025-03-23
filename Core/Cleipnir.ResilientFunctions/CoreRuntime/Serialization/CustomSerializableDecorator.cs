@@ -20,7 +20,10 @@ public class CustomSerializableDecorator : ISerializer
             ? customSerializable.Serialize(this)
             : _inner.Serialize(parameter);
 
-    public byte[] Serialize(object? value, Type type) => _inner.Serialize(value, type);
+    public byte[] Serialize(object? value, Type type) => 
+        value is ICustomSerializable customSerializable
+            ? customSerializable.Serialize(this)
+            : _inner.Serialize(value, type);
 
     public T Deserialize<T>(byte[] json) 
         => typeof(T).IsAssignableTo(typeof(ICustomSerializable)) 

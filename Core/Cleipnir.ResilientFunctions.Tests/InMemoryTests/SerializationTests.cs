@@ -37,6 +37,27 @@ public class SerializationTests
     public void OptionCanBeDeserializedByDefaultSerializer()
     {
         var option = Option.Create("some value");
+        var serializer = new CustomSerializableDecorator(DefaultSerializer.Instance);
+        var serialized = serializer.Serialize(option, option.GetType());
+        var deserialized = serializer.Deserialize<Option<string>>(serialized);
+        deserialized.ShouldBe(option);
+    }
+    
+    [TestMethod]
+    public void OptionWithNoValueCanBeDeserializedByDefaultSerializer()
+    {
+        var option = Option<string>.NoValue;
+        var serializer = DefaultSerializer.Instance;
+        var serialized = serializer.Serialize(option, option.GetType());
+        var deserialized = serializer.Deserialize<Option<string>>(serialized);
+        deserialized.ShouldBe(option);
+    }
+    
+    //
+    [TestMethod]
+    public void OptionCanBeDeserializedAsMessageByDefaultSerializer()
+    {
+        var option = Option.Create("some value");
         var serializer = DefaultSerializer.Instance;
         var serialized = serializer.SerializeMessage(option, option.GetType());
         var deserialized = serializer.DeserializeMessage(serialized.Content, serialized.Type);
@@ -44,7 +65,7 @@ public class SerializationTests
     }
     
     [TestMethod]
-    public void OptionWithNoValueCanBeDeserializedByDefaultSerializer()
+    public void OptionWithNoValueCanBeDeserializedAsMessageByDefaultSerializer()
     {
         var option = Option<string>.NoValue;
         var serializer = DefaultSerializer.Instance;

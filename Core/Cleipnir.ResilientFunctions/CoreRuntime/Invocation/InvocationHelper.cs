@@ -36,7 +36,7 @@ internal class InvocationHelper<TParam, TReturn>
         _leasesUpdater = leasesUpdater;
         _storedType = storedType;
         _functionStore = functionStore;
-        _resultBusyWaiter = new ResultBusyWaiter<TReturn>(_functionStore, _settings.Serializer);
+        _resultBusyWaiter = new ResultBusyWaiter<TReturn>(_functionStore, Serializer);
     }
 
     public async Task<Tuple<bool, IDisposable>> PersistFunctionInStore(
@@ -90,8 +90,7 @@ internal class InvocationHelper<TParam, TReturn>
     
     public async Task PersistFailure(StoredId storedId, FlowId flowId, FatalWorkflowException exception, TParam param, StoredId? parent, int expectedEpoch)
     {
-        var serializer = _settings.Serializer;
-        var storedException = serializer.SerializeException(exception);
+        var storedException = Serializer.SerializeException(exception);
         
         var success = await _functionStore.FailFunction(
             storedId,
@@ -186,8 +185,7 @@ internal class InvocationHelper<TParam, TReturn>
     {
         if (parent == null)
             return;
-
-        var serializer = _settings.Serializer;
+        
         var msg = result.Outcome switch
         {
             Outcome.Succeed => new FlowCompleted(childId, Result: SerializeResult(result.SucceedWithValue), Failed: false),
@@ -198,7 +196,7 @@ internal class InvocationHelper<TParam, TReturn>
         if (msg == null)
             return;
         
-        var (content, type) = serializer.SerializeMessage(msg, msg.GetType());
+        var (content, type) = Serializer.SerializeMessage(msg, msg.GetType());
         var storedMessage = new StoredMessage(content, type, IdempotencyKey: $"FlowCompleted:{childId}");
         await _functionStore.MessageStore.AppendMessage(parent, storedMessage);
         await _functionStore.Interrupt(parent, onlyIfExecuting: false);
@@ -283,13 +281,12 @@ internal class InvocationHelper<TParam, TReturn>
         int expectedEpoch
     )
     {
-        var serializer = _settings.Serializer;
         return await _functionStore.SetFunctionState(
             storedId,
             status,
             param: SerializeParameter(param),
             result: SerializeResult(result),
-            exception == null ? null : serializer.SerializeException(exception),
+            exception == null ? null : Serializer.SerializeException(exception),
             expires,
             expectedEpoch
         );
@@ -321,8 +318,6 @@ internal class InvocationHelper<TParam, TReturn>
     
     public async Task<FunctionState<TParam, TReturn>?> GetFunction(StoredId storedId, FlowId flowId)
     {
-        var serializer = _settings.Serializer;
-        
         var sf = await _functionStore.GetFunction(storedId);
         if (sf == null) 
             return null;
@@ -334,19 +329,18 @@ internal class InvocationHelper<TParam, TReturn>
             Param:
                 sf.Parameter == null 
                 ? default
-                : serializer.Deserialize<TParam>(sf.Parameter),
+                : Serializer.Deserialize<TParam>(sf.Parameter),
             Result: sf.Result == null 
                 ? default 
-                : serializer.Deserialize<TReturn>(sf.Result),
+                : Serializer.Deserialize<TReturn>(sf.Result),
             FatalWorkflowException: sf.Exception == null 
                 ? null 
-                : serializer.DeserializeException(flowId, sf.Exception)
+                : Serializer.DeserializeException(flowId, sf.Exception)
         );
     }
 
     public async Task<InnerScheduled<TReturn>> BulkSchedule(IReadOnlyList<BulkWork<TParam>> work, bool? detach = null)
     {
-        var serializer = _settings.Serializer;
         var parent = GetAndEnsureParent(detach);
         if (parent != null)
         {
@@ -364,7 +358,7 @@ internal class InvocationHelper<TParam, TReturn>
                 new IdWithParam(
                     new StoredId(_storedType, bw.Instance.ToStoredInstance()),
                     bw.Instance,
-                    _isParamlessFunction ? null : serializer.Serialize(bw.Param)
+                    _isParamlessFunction ? null : Serializer.Serialize(bw.Param)
                 )
             ),
             parent?.StoredId
@@ -386,7 +380,7 @@ internal class InvocationHelper<TParam, TReturn>
             _settings.MessagesDefaultMaxWaitForCompletion,
             isWorkflowRunning,
             _functionStore,
-            _settings.Serializer,
+            Serializer,
             registeredTimeouts
         );
         
@@ -406,7 +400,7 @@ internal class InvocationHelper<TParam, TReturn>
             storedId,
             effectsStore,
             lazyEffects,
-            _settings.Serializer
+            Serializer
         );
 
         var effectResults = new EffectResults(
@@ -414,7 +408,7 @@ internal class InvocationHelper<TParam, TReturn>
             storedId,
             lazyEffects,
             effectsStore,
-            _settings.Serializer
+            Serializer
         );
         
         var effect = new Effect(effectResults);
@@ -431,11 +425,11 @@ internal class InvocationHelper<TParam, TReturn>
         => new(
             MapToStoredId(flowId),
             _functionStore,
-            _settings.Serializer
+            Serializer
         );
 
-    public ExistingEffects CreateExistingEffects(FlowId flowId) => new(MapToStoredId(flowId), flowId, _functionStore.EffectsStore, _settings.Serializer);
-    public ExistingMessages CreateExistingMessages(FlowId flowId) => new(MapToStoredId(flowId), _functionStore.MessageStore, _settings.Serializer);
+    public ExistingEffects CreateExistingEffects(FlowId flowId) => new(MapToStoredId(flowId), flowId, _functionStore.EffectsStore, Serializer);
+    public ExistingMessages CreateExistingMessages(FlowId flowId) => new(MapToStoredId(flowId), _functionStore.MessageStore, Serializer);
     public ExistingRegisteredTimeouts CreateExistingTimeouts(FlowId flowId, ExistingEffects existingEffects) => new(MapToStoredId(flowId), _functionStore.TimeoutStore, existingEffects);
     public ExistingSemaphores CreateExistingSemaphores(FlowId flowId) => new(MapToStoredId(flowId), _functionStore, CreateExistingEffects(flowId));
 
@@ -469,7 +463,7 @@ internal class InvocationHelper<TParam, TReturn>
             _storedType,
             scheduledIds,
             parentWorkflow: detach == false ? null : parentWorkflow,
-            _settings.Serializer,
+            Serializer,
             _resultBusyWaiter
         );
     
