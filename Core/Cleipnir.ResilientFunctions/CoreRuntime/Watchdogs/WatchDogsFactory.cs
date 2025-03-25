@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
+using Cleipnir.ResilientFunctions.CoreRuntime.Serialization;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Storage;
@@ -19,7 +20,8 @@ internal static class WatchDogsFactory
         RestartFunction restartFunction,
         ScheduleRestartFromWatchdog scheduleRestart,
         SettingsWithDefaults settings,
-        ShutdownCoordinator shutdownCoordinator)
+        ShutdownCoordinator shutdownCoordinator, 
+        ISerializer serializer)
     {
         if (!settings.EnableWatchdogs)
             return;
@@ -39,7 +41,7 @@ internal static class WatchDogsFactory
         var messagesWriters = new MessageWriters(
             storedType,
             functionStore,
-            settings.Serializer,
+            serializer,
             scheduleReInvocation: (id, epoch) => restart(id, epoch)
         );
         timeoutWatchdog.Register(storedType, messagesWriters);

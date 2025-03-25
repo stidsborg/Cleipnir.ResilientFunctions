@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
+using Cleipnir.ResilientFunctions.CoreRuntime.Serialization;
 using Cleipnir.ResilientFunctions.CoreRuntime.Watchdogs;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
@@ -193,6 +194,11 @@ public class FunctionsRegistry : IDisposable
                 return (FuncRegistration<TParam, TReturn>)_functions[flowType];
             
             var settingsWithDefaults = _settings.Merge(settings);
+            var serializer = settingsWithDefaults
+                .Serializer
+                .DecorateWithCustomerSerializableHandling()
+                .DecorateWithErrorHandling();
+            
             var storedType = _storedTypes.InsertOrGet(flowType).GetAwaiter().GetResult();
             var invocationHelper = new InvocationHelper<TParam, TReturn>(
                 flowType,
@@ -201,7 +207,8 @@ public class FunctionsRegistry : IDisposable
                 settingsWithDefaults,
                 _functionStore,
                 _shutdownCoordinator,
-                _leasesUpdater
+                _leasesUpdater,
+                serializer
             );
             var invoker = new Invoker<TParam, TReturn>(
                 flowType, 
@@ -222,7 +229,8 @@ public class FunctionsRegistry : IDisposable
                 invocationHelper.RestartFunction,
                 invoker.ScheduleRestart,
                 settingsWithDefaults,
-                _shutdownCoordinator
+                _shutdownCoordinator,
+                serializer
             );
 
             var controlPanels = new ControlPanelFactory<TParam, TReturn>(
@@ -235,7 +243,7 @@ public class FunctionsRegistry : IDisposable
             var messageWriters = new MessageWriters(
                 storedType,
                 _functionStore,
-                settingsWithDefaults.Serializer,
+                serializer,
                 invoker.ScheduleRestart
             );
 
@@ -255,7 +263,7 @@ public class FunctionsRegistry : IDisposable
                 bulkSchedule: async (instances, detach) => (await invocationHelper.BulkSchedule(instances.ToList(), detach)).ToScheduledWithResults(),
                 controlPanels,
                 messageWriters,
-                new StateFetcher(storedType, _functionStore.EffectsStore, settingsWithDefaults.Serializer),
+                new StateFetcher(storedType, _functionStore.EffectsStore, serializer),
                 postman
             );
             _functions[flowType] = registration;
@@ -279,6 +287,10 @@ public class FunctionsRegistry : IDisposable
                 return (ParamlessRegistration)_functions[flowType];
             
             var settingsWithDefaults = _settings.Merge(settings);
+            var serializer = settingsWithDefaults
+                .Serializer
+                .DecorateWithCustomerSerializableHandling()
+                .DecorateWithErrorHandling();
             var storedType = _storedTypes.InsertOrGet(flowType).GetAwaiter().GetResult();
             var invocationHelper = new InvocationHelper<Unit, Unit>(
                 flowType,
@@ -287,7 +299,8 @@ public class FunctionsRegistry : IDisposable
                 settingsWithDefaults,
                 _functionStore,
                 _shutdownCoordinator,
-                _leasesUpdater
+                _leasesUpdater,
+                serializer
             );
             var invoker = new Invoker<Unit, Unit>(
                 flowType, 
@@ -308,7 +321,8 @@ public class FunctionsRegistry : IDisposable
                 invocationHelper.RestartFunction,
                 invoker.ScheduleRestart,
                 settingsWithDefaults,
-                _shutdownCoordinator
+                _shutdownCoordinator,
+                serializer
             );
 
             var controlPanels = new ControlPanelFactory(
@@ -321,7 +335,7 @@ public class FunctionsRegistry : IDisposable
             var messageWriters = new MessageWriters(
                 storedType,
                 _functionStore,
-                settingsWithDefaults.Serializer,
+                serializer,
                 invoker.ScheduleRestart
             );
 
@@ -341,7 +355,7 @@ public class FunctionsRegistry : IDisposable
                 bulkSchedule: async (ids, detach) => (await invocationHelper.BulkSchedule(ids.Select(id => new BulkWork<Unit>(id.Value, Unit.Instance)).ToList(), detach)).ToScheduledWithoutResults(),
                 controlPanels,
                 messageWriters,
-                new StateFetcher(storedType, _functionStore.EffectsStore, settingsWithDefaults.Serializer),
+                new StateFetcher(storedType, _functionStore.EffectsStore, serializer),
                 postman
             );
             _functions[flowType] = registration;
@@ -366,6 +380,10 @@ public class FunctionsRegistry : IDisposable
 
             var storedType = _storedTypes.InsertOrGet(flowType).GetAwaiter().GetResult();
             var settingsWithDefaults = _settings.Merge(settings);
+            var serializer = settingsWithDefaults
+                .Serializer
+                .DecorateWithCustomerSerializableHandling()
+                .DecorateWithErrorHandling();
             var invocationHelper = new InvocationHelper<TParam, Unit>(
                 flowType,
                 storedType,
@@ -373,7 +391,8 @@ public class FunctionsRegistry : IDisposable
                 settingsWithDefaults,
                 _functionStore,
                 _shutdownCoordinator,
-                _leasesUpdater
+                _leasesUpdater,
+                serializer
             );
             var rActionInvoker = new Invoker<TParam, Unit>(
                 flowType, 
@@ -394,7 +413,8 @@ public class FunctionsRegistry : IDisposable
                 invocationHelper.RestartFunction,
                 rActionInvoker.ScheduleRestart,
                 settingsWithDefaults,
-                _shutdownCoordinator
+                _shutdownCoordinator,
+                serializer
             );
 
             var controlPanels = new ControlPanelFactory<TParam>(
@@ -407,7 +427,7 @@ public class FunctionsRegistry : IDisposable
             var messageWriters = new MessageWriters(
                 storedType,
                 _functionStore,
-                settingsWithDefaults.Serializer,
+                serializer,
                 rActionInvoker.ScheduleRestart
             );
             var postman = new Postman(
@@ -426,7 +446,7 @@ public class FunctionsRegistry : IDisposable
                 bulkSchedule: async (instances, detach) => (await invocationHelper.BulkSchedule(instances.ToList(), detach)).ToScheduledWithoutResults(),
                 controlPanels,
                 messageWriters,
-                new StateFetcher(storedType, _functionStore.EffectsStore, settingsWithDefaults.Serializer),
+                new StateFetcher(storedType, _functionStore.EffectsStore, serializer),
                 postman
             );
             _functions[flowType] = registration;

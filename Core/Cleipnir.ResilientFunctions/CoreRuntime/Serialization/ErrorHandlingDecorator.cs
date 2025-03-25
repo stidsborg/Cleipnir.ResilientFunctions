@@ -5,20 +5,16 @@ using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.CoreRuntime.Serialization;
 
-public class ErrorHandlingDecorator : ISerializer
+public class ErrorHandlingDecorator(ISerializer inner) : ISerializer
 {
-    private readonly ISerializer _inner;
-
-    public ErrorHandlingDecorator(ISerializer inner) => _inner = inner;
-    
-    public byte[] Serialize<T>(T value) => _inner.Serialize(value);
-    public byte[] Serialize(object? value, Type type) => _inner.Serialize(value, type);
+    public byte[] Serialize<T>(T value) => inner.Serialize(value);
+    public byte[] Serialize(object? value, Type type) => inner.Serialize(value, type);
 
     public T Deserialize<T>(byte[] bytes)
     {
         try
         {
-            return _inner.Deserialize<T>(bytes);
+            return inner.Deserialize<T>(bytes);
         }
         catch (DeserializationException)
         {
@@ -34,13 +30,13 @@ public class ErrorHandlingDecorator : ISerializer
     }
     
     public StoredException SerializeException(FatalWorkflowException exception)
-        => _inner.SerializeException(exception);
+        => inner.SerializeException(exception);
 
     public FatalWorkflowException DeserializeException(FlowId flowId, StoredException storedException)
     {
         try
         {
-            return _inner.DeserializeException(flowId, storedException);
+            return inner.DeserializeException(flowId, storedException);
         }
         catch (DeserializationException)
         {
@@ -56,12 +52,12 @@ public class ErrorHandlingDecorator : ISerializer
     }
 
     public SerializedMessage SerializeMessage(object message, Type messageType)
-        => _inner.SerializeMessage(message, messageType);
+        => inner.SerializeMessage(message, messageType);
     public object DeserializeMessage(byte[] json, byte[] type)
     {
         try
         {
-            return _inner.DeserializeMessage(json, type)
+            return inner.DeserializeMessage(json, type)
                    ?? throw new DeserializationException(
                        $"Deserialized event was null with type: '{type}' and json: '{Convert.ToBase64String(json)}'", 
                        new NullReferenceException()
@@ -79,4 +75,10 @@ public class ErrorHandlingDecorator : ISerializer
             );
         }
     }
+}
+
+public static class ErrorHandlingDecoratorExtensions
+{
+    public static ISerializer DecorateWithErrorHandling(this ISerializer serializer)
+        => new ErrorHandlingDecorator(serializer);
 }

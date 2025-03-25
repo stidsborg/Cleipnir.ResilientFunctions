@@ -25,13 +25,13 @@ internal class InvocationHelper<TParam, TReturn>
 
     private ISerializer Serializer { get; }
 
-    public InvocationHelper(FlowType flowType, StoredType storedType, bool isParamlessFunction, SettingsWithDefaults settings, IFunctionStore functionStore, ShutdownCoordinator shutdownCoordinator, LeasesUpdater leasesUpdater)
+    public InvocationHelper(FlowType flowType, StoredType storedType, bool isParamlessFunction, SettingsWithDefaults settings, IFunctionStore functionStore, ShutdownCoordinator shutdownCoordinator, LeasesUpdater leasesUpdater, ISerializer serializer)
     {
         _flowType = flowType;
         _isParamlessFunction = isParamlessFunction;
         _settings = settings;
 
-        Serializer = new ErrorHandlingDecorator(new CustomSerializableDecorator(settings.Serializer));
+        Serializer = serializer;
         _shutdownCoordinator = shutdownCoordinator;
         _leasesUpdater = leasesUpdater;
         _storedType = storedType;
