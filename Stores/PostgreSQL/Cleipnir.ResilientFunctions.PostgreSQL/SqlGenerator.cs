@@ -43,29 +43,51 @@ public class SqlGenerator(string tablePrefix)
     public IEnumerable<StoreCommand> UpdateEffects(IReadOnlyList<StoredEffectChange> changes)
    {
        var commands = new List<StoreCommand>(changes.Count);
-       var sql= $@"
-         INSERT INTO {tablePrefix}_effects
-             (type, instance, id_hash, status, result, exception, effect_id)
-         VALUES
-             ($1, $2, $3, $4, $5, $6, $7)
-         ON CONFLICT (type, instance, id_hash)
-         DO
-           UPDATE SET status = EXCLUDED.status, result = EXCLUDED.result, exception = EXCLUDED.exception";
-      
-       foreach (var (storedId, _, _, storedEffect) in changes.Where(s => s.Operation == CrudOperation.Upsert))
+
+       // INSERT
        {
-           var command = StoreCommand.Create(sql);
-           command.AddParameter(storedId.Type.Value);
-           command.AddParameter(storedId.Instance.Value);
-           command.AddParameter(storedEffect!.StoredEffectId.Value);
-           command.AddParameter((int) storedEffect.WorkStatus);
-           command.AddParameter(storedEffect.Result ?? (object) DBNull.Value);
-           command.AddParameter(JsonHelper.ToJson(storedEffect.StoredException) ?? (object) DBNull.Value);
-           command.AddParameter(storedEffect.EffectId.Serialize());
+           var sql= $@"
+                INSERT INTO {tablePrefix}_effects
+                    (type, instance, id_hash, status, result, exception, effect_id)
+                VALUES
+                    ($1, $2, $3, $4, $5, $6, $7);";
+      
+           foreach (var (storedId, _, _, storedEffect) in changes.Where(s => s.Operation == CrudOperation.Insert))
+           {
+               var command = StoreCommand.Create(sql);
+               command.AddParameter(storedId.Type.Value);
+               command.AddParameter(storedId.Instance.Value);
+               command.AddParameter(storedEffect!.StoredEffectId.Value);
+               command.AddParameter((int) storedEffect.WorkStatus);
+               command.AddParameter(storedEffect.Result ?? (object) DBNull.Value);
+               command.AddParameter(JsonHelper.ToJson(storedEffect.StoredException) ?? (object) DBNull.Value);
+               command.AddParameter(storedEffect.EffectId.Serialize());
            
-           commands.Add(command);
+               commands.Add(command);
+           }   
+       }
+       
+       // UPDATE
+       {
+            var sql= $@"
+                UPDATE {tablePrefix}_effects
+                SET status = $1, result = $2, exception = $3
+                WHERE type = $4 AND instance = $5;";
+      
+           foreach (var (storedId, _, _, storedEffect) in changes.Where(s => s.Operation == CrudOperation.Update))
+           {
+               var command = StoreCommand.Create(sql);
+               command.AddParameter((int) storedEffect!.WorkStatus);
+               command.AddParameter(storedEffect.Result ?? (object) DBNull.Value);
+               command.AddParameter(JsonHelper.ToJson(storedEffect.StoredException) ?? (object) DBNull.Value);
+               command.AddParameter(storedId.Type.Value);
+               command.AddParameter(storedId.Instance.Value);
+           
+               commands.Add(command);
+           }   
        }
 
+       // DELETE
        var removedEffects = changes
            .Where(s => s.Operation == CrudOperation.Delete)
            .Select(s => new { Id = s.StoredId, s.EffectId })

@@ -176,7 +176,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
             if (effects?.Any() ?? false)
                 commands.AddRange(
                     _sqlGenerator.UpdateEffects(
-                        effects.Select(e => new StoredEffectChange(storedId, e.StoredEffectId, CrudOperation.Upsert, e)).ToList()
+                        effects.Select(e => new StoredEffectChange(storedId, e.StoredEffectId, CrudOperation.Insert, e)).ToList()
                     )
                 );
 

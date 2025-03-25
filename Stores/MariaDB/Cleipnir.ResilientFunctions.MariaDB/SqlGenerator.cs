@@ -39,10 +39,46 @@ public class SqlGenerator(string tablePrefix)
     public StoreCommand UpdateEffects(IReadOnlyList<StoredEffectChange> changes)
     {
         var upsertCommand = default(StoreCommand);
-        if (changes.Any(c => c.Operation == CrudOperation.Upsert))
+        
+        if (changes.Any(c => c.Operation == CrudOperation.Insert))
         {
             var upserts = changes
-                .Where(c => c.Operation == CrudOperation.Upsert)
+                .Where(c => c.Operation == CrudOperation.Insert)
+                .Select(c => new
+                {
+                    Type = c.StoredId.Type.Value, 
+                    Instance = c.StoredId.Instance.Value, 
+                    IdHash = c.EffectId.Value,
+                    WorkStatus = (int)c.StoredEffect!.WorkStatus, 
+                    Result = c.StoredEffect!.Result,
+                    Exception = c.StoredEffect!.StoredException, 
+                    EffectId = c.StoredEffect!.EffectId
+                })
+                .ToList();
+        
+            var setSql = $@"
+                INSERT INTO {tablePrefix}_effects 
+                    (type, instance, id_hash, status, result, exception, effect_id)
+                VALUES
+                    {"(?, ?, ?, ?, ?, ?, ?)".Replicate(upserts.Count).StringJoin(", ")};";
+
+            upsertCommand = StoreCommand.Create(setSql);
+            foreach (var upsert in upserts)
+            {
+                upsertCommand.AddParameter(upsert.Type);
+                upsertCommand.AddParameter(upsert.Instance.ToString("N"));
+                upsertCommand.AddParameter(upsert.IdHash.ToString("N"));
+                upsertCommand.AddParameter(upsert.WorkStatus);
+                upsertCommand.AddParameter(upsert.Result ?? (object) DBNull.Value);
+                upsertCommand.AddParameter(JsonHelper.ToJson(upsert.Exception) ?? (object) DBNull.Value);
+                upsertCommand.AddParameter(upsert.EffectId.Serialize());
+            }    
+        } 
+        
+        if (changes.Any(c => c.Operation == CrudOperation.Update))
+        {
+            var upserts = changes
+                .Where(c => c.Operation == CrudOperation.Update)
                 .Select(c => new
                 {
                     Type = c.StoredId.Type.Value, 

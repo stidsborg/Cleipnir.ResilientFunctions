@@ -2,4 +2,4 @@ using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.Domain;
 
-public record PendingChange(StoredEffectId Id, StoredEffect? StoredEffect);
+public record PendingEffectChange(StoredEffectId Id, StoredEffect? StoredEffect, CrudOperation? Operation, bool Existing);

@@ -35,7 +35,7 @@ public record StoreCommand(string Sql, List<ParameterValueAndName> Parameters)
         return firstCommand;
     }
 
-    public static StoreCommand? Merge(params StoreCommand?[] commands)
+    public static StoreCommand? Merge(IEnumerable<StoreCommand?> commands)
     {
         var firstCommand = default(StoreCommand);
         foreach (var command in commands) 
@@ -45,6 +45,8 @@ public record StoreCommand(string Sql, List<ParameterValueAndName> Parameters)
 
         return firstCommand;
     }
+
+    public static StoreCommand? Merge(params StoreCommand?[] commands) => Merge(commands.AsEnumerable());
     
     public StoreCommand AppendSql(string sql) => new(Sql + Environment.NewLine + sql, Parameters);
     public static StoreCommand Create(string sql) => new StoreCommand(sql, new List<ParameterValueAndName>());

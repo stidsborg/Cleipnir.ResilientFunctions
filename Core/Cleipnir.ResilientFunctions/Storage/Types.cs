@@ -86,7 +86,8 @@ public record StoredEffectChange(
 
 public enum CrudOperation
 {
-    Upsert,
+    Insert,
+    Update,
     Delete
 }
 
@@ -127,6 +128,6 @@ public record LeaseUpdate(StoredId StoredId, int ExpectedEpoch);
 
 public static class StoredEffectExtensions
 {
-    public static StoredEffectChange ToStoredChange(this StoredEffect effect, StoredId storedId) 
-        => new(storedId, effect.StoredEffectId, CrudOperation.Upsert, effect);
+    public static StoredEffectChange ToStoredChange(this StoredEffect effect, StoredId storedId, CrudOperation operation) 
+        => new(storedId, effect.StoredEffectId, operation, effect);
 }

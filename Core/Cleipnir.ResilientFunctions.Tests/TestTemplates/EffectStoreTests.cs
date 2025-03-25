@@ -5,6 +5,7 @@ using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Tests.Utils;
 using Shouldly;
+using static Cleipnir.ResilientFunctions.Storage.CrudOperation;
 
 namespace Cleipnir.ResilientFunctions.Tests.TestTemplates;
 
@@ -271,7 +272,7 @@ public abstract class EffectStoreTests
 
         await store.SetEffectResults(
             storedId,
-            [storedEffect1.ToStoredChange(storedId), storedEffect2.ToStoredChange(storedId)]
+            [storedEffect1.ToStoredChange(storedId, Insert), storedEffect2.ToStoredChange(storedId, Insert)]
         );
 
         var effects = await store.GetEffectResults(storedId);
@@ -309,11 +310,11 @@ public abstract class EffectStoreTests
             StoredException: null
         );
         
-        await store.SetEffectResults(storedId, [storedEffect1.ToStoredChange(storedId), storedEffect2.ToStoredChange(storedId)]);
+        await store.SetEffectResults(storedId, [storedEffect1.ToStoredChange(storedId, Insert), storedEffect2.ToStoredChange(storedId, Insert)]);
         await store.SetEffectResults(
             storedId,
             changes: [
-                storedEffect3.ToStoredChange(storedId), 
+                storedEffect3.ToStoredChange(storedId, Insert), 
                 StoredEffectChange.CreateDelete(storedId, storedEffect1.StoredEffectId), 
                 StoredEffectChange.CreateDelete(storedId, storedEffect2.StoredEffectId)
             ]
@@ -347,7 +348,7 @@ public abstract class EffectStoreTests
 
         await store.SetEffectResults(
             storedId,
-            changes: [storedEffect1.ToStoredChange(storedId), storedEffect2.ToStoredChange(storedId)]
+            changes: [storedEffect1.ToStoredChange(storedId, Insert), storedEffect2.ToStoredChange(storedId, Insert)]
         );
         await store.SetEffectResults(
             storedId,

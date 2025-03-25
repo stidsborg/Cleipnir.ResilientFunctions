@@ -44,26 +44,73 @@ public class SqlGenerator(string tablePrefix)
     
     public StoreCommand UpdateEffects(IReadOnlyList<StoredEffectChange> changes, string paramPrefix)
     {
-        var stringBuilder = new StringBuilder(capacity: 2);
-        var upserts = changes
-            .Where(c => c.Operation == CrudOperation.Upsert)
-            .Select(c => new
-            {
-                Type = c.StoredId.Type.Value, 
-                Instance = c.StoredId.Instance.Value, 
-                StoredEffectId = c.EffectId.Value,
-                WorkStatus = (int)c.StoredEffect!.WorkStatus, 
-                Result = c.StoredEffect!.Result,
-                Exception = c.StoredEffect!.StoredException, 
-                EffectId = c.StoredEffect!.EffectId
-            })
-            .ToList();
-
-        var parameterValues = upserts
-            .Select((_, i) => $"(@{paramPrefix}FlowType{i}, @{paramPrefix}FlowInstance{i}, @{paramPrefix}StoredId{i}, @{paramPrefix}EffectId{i}, @{paramPrefix}Status{i}, @{paramPrefix}Result{i}, @{paramPrefix}Exception{i})")
-            .StringJoin(", ");
+        var storeCommands = new List<StoreCommand>(3);
         
-        var setSql = $@"
+        //INSERTION
+        {
+            var inserts = changes
+                .Where(c => c.Operation == CrudOperation.Insert)
+                .Select(c => new
+                {
+                    Type = c.StoredId.Type.Value, 
+                    Instance = c.StoredId.Instance.Value, 
+                    StoredEffectId = c.EffectId.Value,
+                    WorkStatus = (int)c.StoredEffect!.WorkStatus, 
+                    Result = c.StoredEffect!.Result,
+                    Exception = c.StoredEffect!.StoredException, 
+                    EffectId = c.StoredEffect!.EffectId
+                })
+                .ToList();
+        
+            var parameterValues = inserts
+                .Select((_, i) => $"(@{paramPrefix}InsertionFlowType{i}, @{paramPrefix}InsertionFlowInstance{i}, @{paramPrefix}InsertionStoredId{i}, @{paramPrefix}InsertionEffectId{i}, @{paramPrefix}InsertionStatus{i}, @{paramPrefix}InsertionResult{i}, @{paramPrefix}InsertionException{i})")
+                .StringJoin(", ");
+        
+            var parameters = new List<ParameterValueAndName>();
+            for (var i = 0; i < inserts.Count; i++)
+            {
+                var upsert = inserts[i];
+                parameters.Add(new ParameterValueAndName($"@{paramPrefix}InsertionFlowType{i}", upsert.Type));
+                parameters.Add(new ParameterValueAndName($"@{paramPrefix}InsertionFlowInstance{i}", upsert.Instance));
+                parameters.Add(new ParameterValueAndName($"@{paramPrefix}InsertionStoredId{i}", upsert.StoredEffectId));
+                parameters.Add(new ParameterValueAndName($"@{paramPrefix}InsertionEffectId{i}", upsert.EffectId.Serialize()));
+                parameters.Add(new ParameterValueAndName($"@{paramPrefix}InsertionStatus{i}", upsert.WorkStatus));
+                parameters.Add(new ParameterValueAndName($"@{paramPrefix}InsertionResult{i}",
+                    upsert.Result ?? (object)SqlBinary.Null));
+                parameters.Add(new ParameterValueAndName($"@{paramPrefix}InsertionException{i}",
+                    JsonHelper.ToJson(upsert.Exception) ?? (object)DBNull.Value));
+            }
+            
+            var insertSql = $@"
+            INSERT INTO {tablePrefix}_Effects
+            VALUES {parameterValues} ";
+            
+            if (inserts.Any())
+                storeCommands.Add(StoreCommand.Create(insertSql, parameters));
+        }
+
+        //UPDATE
+        {
+            var upserts = changes
+                .Where(c => c.Operation == CrudOperation.Update)
+                .Select(c => new
+                {
+                    Type = c.StoredId.Type.Value,
+                    Instance = c.StoredId.Instance.Value,
+                    StoredEffectId = c.EffectId.Value,
+                    WorkStatus = (int)c.StoredEffect!.WorkStatus,
+                    Result = c.StoredEffect!.Result,
+                    Exception = c.StoredEffect!.StoredException,
+                    EffectId = c.StoredEffect!.EffectId
+                })
+                .ToList();
+
+            var parameterValues = upserts
+                .Select((_, i) =>
+                    $"(@{paramPrefix}FlowType{i}, @{paramPrefix}FlowInstance{i}, @{paramPrefix}StoredId{i}, @{paramPrefix}EffectId{i}, @{paramPrefix}Status{i}, @{paramPrefix}Result{i}, @{paramPrefix}Exception{i})")
+                .StringJoin(", ");
+
+            var setSql = $@"
             MERGE INTO {tablePrefix}_Effects
                 USING (VALUES {parameterValues}) 
                 AS source (FlowType, FlowInstance, StoredId, EffectId, Status, Result, Exception)
@@ -73,43 +120,48 @@ public class SqlGenerator(string tablePrefix)
                 WHEN NOT MATCHED THEN
                     INSERT (FlowType, FlowInstance, StoredId, EffectId, Status, Result, Exception)
                     VALUES (source.FlowType, source.FlowInstance, source.StoredId, source.EffectId, source.Status, source.Result, source.Exception);";
-        
-        if (upserts.Any())
-            stringBuilder.AppendLine(setSql);
 
-        var parameters = new List<ParameterValueAndName>();
-        
-        for (var i = 0; i < upserts.Count; i++)
-        {
-            var upsert = upserts[i];
-            parameters.Add(new ParameterValueAndName($"@{paramPrefix}FlowType{i}", upsert.Type));
-            parameters.Add(new ParameterValueAndName($"@{paramPrefix}FlowInstance{i}", upsert.Instance));
-            parameters.Add(new ParameterValueAndName($"@{paramPrefix}StoredId{i}", upsert.StoredEffectId));
-            parameters.Add(new ParameterValueAndName($"@{paramPrefix}EffectId{i}", upsert.EffectId.Serialize()));
-            parameters.Add(new ParameterValueAndName($"@{paramPrefix}Status{i}", upsert.WorkStatus));
-            parameters.Add(new ParameterValueAndName($"@{paramPrefix}Result{i}", upsert.Result ?? (object) SqlBinary.Null));
-            parameters.Add(new ParameterValueAndName($"@{paramPrefix}Exception{i}", JsonHelper.ToJson(upsert.Exception) ?? (object) DBNull.Value));
+            var parameters = new List<ParameterValueAndName>();
+
+            for (var i = 0; i < upserts.Count; i++)
+            {
+                var upsert = upserts[i];
+                parameters.Add(new ParameterValueAndName($"@{paramPrefix}FlowType{i}", upsert.Type));
+                parameters.Add(new ParameterValueAndName($"@{paramPrefix}FlowInstance{i}", upsert.Instance));
+                parameters.Add(new ParameterValueAndName($"@{paramPrefix}StoredId{i}", upsert.StoredEffectId));
+                parameters.Add(new ParameterValueAndName($"@{paramPrefix}EffectId{i}", upsert.EffectId.Serialize()));
+                parameters.Add(new ParameterValueAndName($"@{paramPrefix}Status{i}", upsert.WorkStatus));
+                parameters.Add(new ParameterValueAndName($"@{paramPrefix}Result{i}",
+                    upsert.Result ?? (object)SqlBinary.Null));
+                parameters.Add(new ParameterValueAndName($"@{paramPrefix}Exception{i}",
+                    JsonHelper.ToJson(upsert.Exception) ?? (object)DBNull.Value));
+            }
+            
+            if (upserts.Any())
+                storeCommands.Add(StoreCommand.Create(setSql, parameters));
         }
-
-        var removes = changes
-            .Where(c => c.Operation == CrudOperation.Delete)
-            .Select(c => new { Type = c.StoredId.Type.Value, Instance = c.StoredId.Instance.Value, IdHash = c.EffectId.Value })
-            .GroupBy(a => new {a.Type, a.Instance }, a => a.IdHash)
-            .ToList();
-        var predicates = removes
-            .Select(r =>
-                $"(FlowType = {r.Key.Type} AND FlowInstance = '{r.Key.Instance}' AND StoredId IN ({r.Select(id => $"'{id}'").StringJoin(", ")}))")
-            .StringJoin($" OR {Environment.NewLine}");
-        var removeSql = @$"
+        
+        //DELETE
+        {
+            var removes = changes
+                .Where(c => c.Operation == CrudOperation.Delete)
+                .Select(c => new { Type = c.StoredId.Type.Value, Instance = c.StoredId.Instance.Value, IdHash = c.EffectId.Value })
+                .GroupBy(a => new {a.Type, a.Instance }, a => a.IdHash)
+                .ToList();
+            var predicates = removes
+                .Select(r =>
+                    $"(FlowType = {r.Key.Type} AND FlowInstance = '{r.Key.Instance}' AND StoredId IN ({r.Select(id => $"'{id}'").StringJoin(", ")}))")
+                .StringJoin($" OR {Environment.NewLine}");
+        
+            var removeSql = @$"
             DELETE FROM {tablePrefix}_effects 
             WHERE {predicates}";
-        if (removes.Any())
-            stringBuilder.AppendLine(removeSql);
+            if (removes.Any())
+                storeCommands.Add(StoreCommand.Create(removeSql));
+            
+        }
 
-        return new StoreCommand(
-            Sql: stringBuilder.ToString(),
-            parameters
-        );
+        return StoreCommand.Merge(storeCommands)!;
     }
     
     private string? _createFunctionSql;

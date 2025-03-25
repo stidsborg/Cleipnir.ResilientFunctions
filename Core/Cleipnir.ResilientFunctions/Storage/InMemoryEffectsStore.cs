@@ -36,7 +36,7 @@ public class InMemoryEffectsStore : IEffectsStore
 
     public async Task SetEffectResults(StoredId storedId, IReadOnlyList<StoredEffectChange> changes)
     {
-        foreach (var storedEffect in changes.Where(c => c.Operation == CrudOperation.Upsert).Select(c => c.StoredEffect!))
+        foreach (var storedEffect in changes.Where(c => c.Operation != CrudOperation.Delete).Select(c => c.StoredEffect!))
             await SetEffectResult(storedId, storedEffect);
 
         foreach (var effectId in changes.Where(c => c.Operation == CrudOperation.Delete).Select(c => c.EffectId))
