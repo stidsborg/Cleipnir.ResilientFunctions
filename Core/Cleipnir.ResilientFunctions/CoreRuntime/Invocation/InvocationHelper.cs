@@ -215,7 +215,7 @@ internal class InvocationHelper<TParam, TReturn>
             );
 
             return sf != null
-                ? new RestartedFunction(sf, runningFunction)
+                ? new RestartedFunction(sf.StoredFlow, runningFunction) //todo extend this class as well
                 : null;
         }
         catch

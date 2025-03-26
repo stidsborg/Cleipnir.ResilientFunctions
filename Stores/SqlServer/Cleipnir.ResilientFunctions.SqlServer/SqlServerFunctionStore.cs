@@ -246,46 +246,21 @@ public class SqlServerFunctionStore : IFunctionStore
             await command.ExecuteNonQueryAsync();
         }
     }
-
-    private string? _restartExecutionSql;
-    public async Task<StoredFlow?> RestartExecution(StoredId storedId, int expectedEpoch, long leaseExpiration)
+    
+    public async Task<StoredFlowWithEffectsAndMessages?> RestartExecution(StoredId storedId, int expectedEpoch, long leaseExpiration)
     {
+        var storeCommand = _sqlGenerator.RestartExecution(storedId, expectedEpoch, leaseExpiration);
         await using var conn = await _connFunc();
-        _restartExecutionSql ??= @$"
-            UPDATE {_tableName}
-            SET Epoch = Epoch + 1, 
-                Status = {(int)Status.Executing}, 
-                Expires = @LeaseExpiration,
-                Interrupted = 0
-            WHERE FlowType = @FlowType AND FlowInstance = @FlowInstance AND Epoch = @ExpectedEpoch;
-
-            SELECT ParamJson,                
-                   Status,
-                   ResultJson, 
-                   ExceptionJson,                   
-                   Expires,
-                   Epoch,
-                   Interrupted,
-                   Timestamp,
-                   HumanInstanceId,
-                   Parent
-            FROM {_tableName}
-            WHERE FlowType = @FlowType AND FlowInstance = @FlowInstance";
-
-        await using var command = new SqlCommand(_restartExecutionSql, conn);
-        command.Parameters.AddWithValue("@LeaseExpiration", leaseExpiration);
-        command.Parameters.AddWithValue("@FlowType", storedId.Type.Value);
-        command.Parameters.AddWithValue("@FlowInstance", storedId.Instance.Value);
-        command.Parameters.AddWithValue("@ExpectedEpoch", expectedEpoch);
-
+        await using var command = storeCommand.ToSqlCommand(conn);
+        
         await using var reader = await command.ExecuteReaderAsync();
         if (reader.RecordsAffected == 0)
-            return default;
+            return null;
         
-        var sf = ReadToStoredFlow(storedId, reader);
+        var sf = _sqlGenerator.ReadToStoredFlow(storedId, reader);
         return sf?.Epoch == expectedEpoch + 1
-            ? sf
-            : default;
+            ? new StoredFlowWithEffectsAndMessages(sf, Effects: [], Messages: [])
+            : null;
     }
     
     public async Task<int> RenewLeases(IReadOnlyList<LeaseUpdate> leaseUpdates, long leaseExpiration)

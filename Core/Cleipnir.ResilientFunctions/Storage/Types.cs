@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Messaging;
 
 namespace Cleipnir.ResilientFunctions.Storage;
 
@@ -125,6 +126,12 @@ public record StoredState(StateId StateId, byte[] StateJson);
 
 public record IdWithParam(StoredId StoredId, string HumanInstanceId, byte[]? Param);
 public record LeaseUpdate(StoredId StoredId, int ExpectedEpoch);
+
+public record StoredFlowWithEffectsAndMessages(
+    StoredFlow StoredFlow,
+    IReadOnlyList<StoredEffect> Effects,
+    IReadOnlyList<StoredMessage> Messages
+);
 
 public static class StoredEffectExtensions
 {

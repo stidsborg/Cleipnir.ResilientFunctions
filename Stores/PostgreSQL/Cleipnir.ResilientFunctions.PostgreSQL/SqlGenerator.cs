@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
+using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
@@ -254,6 +255,76 @@ public class SqlGenerator(string tablePrefix)
             ]
         );
     }
+    
+    private string? _restartExecutionSql;
+    public StoreCommand RestartExecution(StoredId storedId, int expectedEpoch, long leaseExpiration)
+    {
+        _restartExecutionSql ??= @$"
+            UPDATE {tablePrefix}
+            SET epoch = epoch + 1, status = {(int)Status.Executing}, expires = $1, interrupted = FALSE
+            WHERE type = $2 AND instance = $3 AND epoch = $4
+            RETURNING               
+                param_json, 
+                status,
+                result_json, 
+                exception_json,
+                expires,
+                epoch, 
+                interrupted,
+                timestamp,
+                human_instance_id,
+                parent";
+
+        var command = StoreCommand.Create(
+            _restartExecutionSql,
+            values: [
+                leaseExpiration,
+                storedId.Type.Value,
+                storedId.Instance.Value,
+                expectedEpoch,
+            ]);
+
+        return command;
+    }
+    
+    public async Task<StoredFlow?> ReadToStoredFunction(StoredId storedId, NpgsqlDataReader reader)
+    {
+        /*
+           0  param_json,
+           1  status,
+           2  result_json,
+           3  exception_json,
+           4  expires,
+           5  epoch,
+           6 interrupted,
+           7 timestamp,
+           8 human_instance_id
+           9 parent
+         */
+        while (await reader.ReadAsync())
+        {
+            var hasParameter = !await reader.IsDBNullAsync(0);
+            var hasResult = !await reader.IsDBNullAsync(2);
+            var hasException = !await reader.IsDBNullAsync(3);
+            var hasParent = !await reader.IsDBNullAsync(9);
+            
+            return new StoredFlow(
+                storedId,
+                HumanInstanceId: reader.GetString(8),
+                hasParameter ? (byte[]) reader.GetValue(0) : null,
+                Status: (Status) reader.GetInt32(1),
+                Result: hasResult ? (byte[]) reader.GetValue(2) : null, 
+                Exception: !hasException ? null : JsonSerializer.Deserialize<StoredException>(reader.GetString(3)),
+                Expires: reader.GetInt64(4),
+                Epoch: reader.GetInt32(5),
+                Interrupted: reader.GetBoolean(6),
+                Timestamp: reader.GetInt64(7),
+                ParentId: hasParent ? StoredId.Deserialize(reader.GetString(9)) : null
+            );
+        }
+
+        return null;
+    } 
 
     public StoreCommand AppendMessages(IReadOnlyList<StoredIdAndMessageWithPosition> messages)
     {

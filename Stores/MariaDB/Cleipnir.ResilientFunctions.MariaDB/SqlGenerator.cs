@@ -4,6 +4,7 @@ using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Storage.Utils;
+using MySqlConnector;
 
 namespace Cleipnir.ResilientFunctions.MariaDb;
 
@@ -282,6 +283,41 @@ public class SqlGenerator(string tablePrefix)
             ]
         );
     }
+    
+    private string? _restartExecutionSql;
+    public StoreCommand RestartExecution(StoredId storedId, int expectedEpoch, long leaseExpiration)
+    {
+        _restartExecutionSql ??= @$"
+            UPDATE {tablePrefix}
+            SET epoch = epoch + 1, status = {(int)Status.Executing}, expires = ?, interrupted = FALSE
+            WHERE type = ? AND instance = ? AND epoch = ?;
+            
+            SELECT               
+                param_json,            
+                status,
+                result_json, 
+                exception_json,
+                epoch, 
+                expires,
+                interrupted,
+                timestamp,
+                human_instance_id,
+                parent
+            FROM {tablePrefix}
+            WHERE type = ? AND instance = ?;";
+
+        var command = StoreCommand.Create(
+            _restartExecutionSql,
+            values: [
+                leaseExpiration,
+                storedId.Type.Value,
+                storedId.Instance.Value.ToString("N"),
+                expectedEpoch,
+                storedId.Type.Value,
+                storedId.Instance.Value.ToString("N"),
+            ]);
+        return command;
+    }
 
     public StoreCommand AppendMessages(IReadOnlyList<StoredIdAndMessageWithPosition> messages)
     {
@@ -304,5 +340,44 @@ public class SqlGenerator(string tablePrefix)
         }
 
         return command;
+    }
+    
+    public async Task<StoredFlow?> ReadToStoredFunction(StoredId storedId, MySqlDataReader reader)
+    {
+        const int paramIndex = 0;
+        const int statusIndex = 1;
+        const int resultIndex = 2;
+        const int exceptionIndex = 3;
+        const int epochIndex = 4;
+        const int expiresIndex = 5;
+        const int interruptedIndex = 6;
+        const int timestampIndex = 7;
+        const int humanInstanceIdIndex = 8;
+        const int parentIndex = 9;
+        
+        while (await reader.ReadAsync())
+        {
+            var hasParam = !await reader.IsDBNullAsync(paramIndex);
+            var hasResult = !await reader.IsDBNullAsync(resultIndex);
+            var hasError = !await reader.IsDBNullAsync(exceptionIndex);
+            var hasParent = !await reader.IsDBNullAsync(parentIndex);
+            var storedException = hasError
+                ? JsonSerializer.Deserialize<StoredException>(reader.GetString(exceptionIndex))
+                : null;
+            return new StoredFlow(
+                storedId,
+                HumanInstanceId: reader.GetString(humanInstanceIdIndex),
+                hasParam ? (byte[]) reader.GetValue(paramIndex) : null,
+                Status: (Status) reader.GetInt32(statusIndex),
+                Result: hasResult ? (byte[]) reader.GetValue(resultIndex) : null, 
+                storedException, Epoch: reader.GetInt32(epochIndex),
+                Expires: reader.GetInt64(expiresIndex),
+                Interrupted: reader.GetBoolean(interruptedIndex),
+                Timestamp: reader.GetInt64(timestampIndex),
+                ParentId: hasParent ? StoredId.Deserialize(reader.GetString(parentIndex)) : null
+            );
+        }
+
+        return null;
     }
 }

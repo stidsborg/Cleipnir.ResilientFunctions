@@ -35,7 +35,7 @@ public interface IFunctionStore
         StoredId? parent
     );
     
-    Task<StoredFlow?> RestartExecution(StoredId storedId, int expectedEpoch, long leaseExpiration);
+    Task<StoredFlowWithEffectsAndMessages?> RestartExecution(StoredId storedId, int expectedEpoch, long leaseExpiration);
     
     Task<int> RenewLeases(IReadOnlyList<LeaseUpdate> leaseUpdates, long leaseExpiration);
     

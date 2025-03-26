@@ -113,23 +113,33 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         return Task.CompletedTask;
     }
 
-    public virtual Task<StoredFlow?> RestartExecution(StoredId storedId, int expectedEpoch, long leaseExpiration)
+    public virtual async Task<StoredFlowWithEffectsAndMessages?> RestartExecution(StoredId storedId, int expectedEpoch, long leaseExpiration)
     {
         lock (_sync)
         {
             if (!_states.ContainsKey(storedId))
-                return default(StoredFlow).ToTask();
+                return null;
 
             var state = _states[storedId];
             if (state.Epoch != expectedEpoch)
-                return default(StoredFlow).ToTask();
+                return null;
 
             state.Epoch += 1;
             state.Status = Status.Executing;
             state.Expires = leaseExpiration;
             state.Interrupted = false;
-            return GetFunction(storedId);
         }
+        var sf = await GetFunction(storedId);
+        var effects = await EffectsStore.GetEffectResults(storedId);
+        var messages = await MessageStore.GetMessages(storedId, skip: 0);
+        return
+            sf == null
+                ? null
+                : new StoredFlowWithEffectsAndMessages(
+                    sf,
+                    effects,
+                    messages
+                );
     }
 
     public virtual Task<bool> RenewLease(StoredId storedId, int expectedEpoch, long leaseExpiration)

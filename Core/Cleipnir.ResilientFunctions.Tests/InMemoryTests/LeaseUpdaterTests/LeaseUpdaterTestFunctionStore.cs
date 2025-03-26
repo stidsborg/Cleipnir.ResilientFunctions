@@ -42,7 +42,7 @@ public class LeaseUpdaterTestFunctionStore : IFunctionStore
     public Task BulkScheduleFunctions(IEnumerable<IdWithParam> functionsWithParam, StoredId? parent)
         => _inner.BulkScheduleFunctions(functionsWithParam, parent);
 
-    public Task<StoredFlow?> RestartExecution(StoredId storedId, int expectedEpoch, long leaseExpiration)
+    public Task<StoredFlowWithEffectsAndMessages?> RestartExecution(StoredId storedId, int expectedEpoch, long leaseExpiration)
         => _inner.RestartExecution(storedId, expectedEpoch, leaseExpiration);
     
     public Task<int> RenewLeases(IReadOnlyList<LeaseUpdate> leaseUpdates, long leaseExpiration)

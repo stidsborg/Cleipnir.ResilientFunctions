@@ -197,50 +197,20 @@ public class MariaDbFunctionStore : IFunctionStore
         await using var cmd = new MySqlCommand(sql, conn);
         cmd.ExecuteNonQuery();
     }
-
-    private string? _restartExecutionSql;
-    public async Task<StoredFlow?> RestartExecution(StoredId storedId, int expectedEpoch, long leaseExpiration)
+    
+    public async Task<StoredFlowWithEffectsAndMessages?> RestartExecution(StoredId storedId, int expectedEpoch, long leaseExpiration)
     {
+        var storeCommand = _sqlGenerator.RestartExecution(storedId, expectedEpoch, leaseExpiration);
         await using var conn = await CreateOpenConnection(_connectionString);
-        _restartExecutionSql ??= @$"
-            UPDATE {_tablePrefix}
-            SET epoch = epoch + 1, status = {(int)Status.Executing}, expires = ?, interrupted = FALSE
-            WHERE type = ? AND instance = ? AND epoch = ?;
-            SELECT               
-                param_json,            
-                status,
-                result_json, 
-                exception_json,
-                epoch, 
-                expires,
-                interrupted,
-                timestamp,
-                human_instance_id,
-                parent
-            FROM {_tablePrefix}
-            WHERE type = ? AND instance = ?;";
-
-        await using var command = new MySqlCommand(_restartExecutionSql, conn)
-        {
-            Parameters =
-            {
-                new() { Value = leaseExpiration },
-                new() { Value = storedId.Type.Value },
-                new() { Value = storedId.Instance.Value.ToString("N") },
-                new() { Value = expectedEpoch },
-                new() { Value = storedId.Type.Value },
-                new() { Value = storedId.Instance.Value.ToString("N") },
-            }
-        };
-
+        await using var command = storeCommand.ToSqlCommand(conn);
         var reader = await command.ExecuteReaderAsync();
         if (reader.RecordsAffected == 0)
-            return default;
+            return null;
 
         var sf = await ReadToStoredFunction(storedId, reader);
         return sf?.Epoch == expectedEpoch + 1
-            ? sf
-            : default;
+            ? new StoredFlowWithEffectsAndMessages(sf, Effects: [], Messages: [])
+            : null;
     }
     
     public async Task<int> RenewLeases(IReadOnlyList<LeaseUpdate> leaseUpdates, long leaseExpiration)

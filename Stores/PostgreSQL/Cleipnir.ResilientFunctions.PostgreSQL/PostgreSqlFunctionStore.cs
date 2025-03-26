@@ -233,46 +233,19 @@ public class PostgreSqlFunctionStore : IFunctionStore
         }
     }
 
-    private string? _restartExecutionSql;
-    public async Task<StoredFlow?> RestartExecution(StoredId storedId, int expectedEpoch, long leaseExpiration)
+    public async Task<StoredFlowWithEffectsAndMessages?> RestartExecution(StoredId storedId, int expectedEpoch, long leaseExpiration)
     {
+        var storeCommand = _sqlGenerator.RestartExecution(storedId, expectedEpoch, leaseExpiration);
         await using var conn = await CreateConnection();
-
-        _restartExecutionSql ??= @$"
-            UPDATE {_tableName}
-            SET epoch = epoch + 1, status = {(int)Status.Executing}, expires = $1, interrupted = FALSE
-            WHERE type = $2 AND instance = $3 AND epoch = $4
-            RETURNING               
-                param_json, 
-                status,
-                result_json, 
-                exception_json,
-                expires,
-                epoch, 
-                interrupted,
-                timestamp,
-                human_instance_id,
-                parent";
-
-        await using var command = new NpgsqlCommand(_restartExecutionSql, conn)
-        {
-            Parameters =
-            {
-                new() { Value = leaseExpiration },
-                new() { Value = storedId.Type.Value },
-                new() { Value = storedId.Instance.Value },
-                new() { Value = expectedEpoch },
-            }
-        };
-        
+        await using var command = storeCommand.ToNpgsqlCommand(conn);
         await using var reader = await command.ExecuteReaderAsync();
         if (reader.RecordsAffected == 0)
-            return default;
+            return null;
 
-        var sf = await ReadToStoredFunction(storedId, reader);
+        var sf = await _sqlGenerator.ReadToStoredFunction(storedId, reader);
         return sf?.Epoch == expectedEpoch + 1
-            ? sf
-            : default;
+            ? new StoredFlowWithEffectsAndMessages(sf, Effects: [], Messages: [])
+            : null;
     }
 
     public async Task<int> RenewLeases(IReadOnlyList<LeaseUpdate> leaseUpdates, long leaseExpiration)

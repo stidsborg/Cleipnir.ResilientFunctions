@@ -315,6 +315,39 @@ public class SqlGenerator(string tablePrefix)
         return command;
     }
     
+    private string? _restartExecutionSql;
+    public StoreCommand RestartExecution(StoredId storedId, int expectedEpoch, long leaseExpiration)
+    {
+        _restartExecutionSql ??= @$"
+            UPDATE {tablePrefix}
+            SET Epoch = Epoch + 1, 
+                Status = {(int)Status.Executing}, 
+                Expires = @LeaseExpiration,
+                Interrupted = 0
+            WHERE FlowType = @FlowType AND FlowInstance = @FlowInstance AND Epoch = @ExpectedEpoch;
+
+            SELECT ParamJson,                
+                   Status,
+                   ResultJson, 
+                   ExceptionJson,                   
+                   Expires,
+                   Epoch,
+                   Interrupted,
+                   Timestamp,
+                   HumanInstanceId,
+                   Parent
+            FROM {tablePrefix}
+            WHERE FlowType = @FlowType AND FlowInstance = @FlowInstance";
+
+        var storeCommand = StoreCommand.Create(_restartExecutionSql);
+        storeCommand.AddParameter("@LeaseExpiration", leaseExpiration);
+        storeCommand.AddParameter("@FlowType", storedId.Type.Value);
+        storeCommand.AddParameter("@FlowInstance", storedId.Instance.Value);
+        storeCommand.AddParameter("@ExpectedEpoch", expectedEpoch);
+
+        return storeCommand;
+    }
+    
     public StoreCommand? AppendMessages(IReadOnlyList<StoredIdAndMessageWithPosition> messages, bool interrupt, string prefix = "")
     {
         if (messages.Count == 0)
@@ -344,5 +377,44 @@ public class SqlGenerator(string tablePrefix)
         }
 
         return StoreCommand.Merge(appendCommand, interruptCommand);
+    }
+    
+    public StoredFlow? ReadToStoredFlow(StoredId storedId, SqlDataReader reader)
+    {
+        while (reader.HasRows)
+        {
+            while (reader.Read())
+            {
+                var parameter = reader.IsDBNull(0) ? null : (byte[]) reader.GetValue(0);
+                var status = (Status) reader.GetInt32(1);
+                var result = reader.IsDBNull(2) ? null : (byte[]) reader.GetValue(2);
+                var exceptionJson = reader.IsDBNull(3) ? null : reader.GetString(3);
+                var storedException = exceptionJson == null
+                    ? null
+                    : JsonSerializer.Deserialize<StoredException>(exceptionJson);
+                var expires = reader.GetInt64(4);
+                var epoch = reader.GetInt32(5);
+                var interrupted = reader.GetBoolean(6);
+                var timestamp = reader.GetInt64(7);
+                var humanInstanceId = reader.GetString(8);
+                var parentId = reader.IsDBNull(9) ? null : StoredId.Deserialize(reader.GetString(9));
+
+                return new StoredFlow(
+                    storedId,
+                    humanInstanceId,
+                    parameter,
+                    status,
+                    result,
+                    storedException,
+                    epoch,
+                    expires,
+                    timestamp,
+                    interrupted,
+                    parentId
+                );
+            }
+        }
+
+        return default;
     }
 }
