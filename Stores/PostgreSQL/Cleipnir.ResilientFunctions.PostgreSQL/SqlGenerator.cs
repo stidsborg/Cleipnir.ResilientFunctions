@@ -41,6 +41,40 @@ public class SqlGenerator(string tablePrefix)
         return StoreCommand.Create(sql);
     }
     
+    private string? _getEffectResultsSql;
+    public StoreCommand GetEffects(StoredId storedId)
+    {
+        _getEffectResultsSql ??= @$"
+            SELECT id_hash, status, result, exception, effect_id
+            FROM {tablePrefix}_effects
+            WHERE type = $1 AND instance = $2;";
+        
+        return StoreCommand.Create(
+            _getEffectResultsSql,
+            values: [
+                storedId.Type.Value,
+                storedId.Instance.Value
+            ]);
+    }
+
+    public async Task<IReadOnlyList<StoredEffect>> ReadEffects(NpgsqlDataReader reader)
+    {
+        var functions = new List<StoredEffect>();
+        while (await reader.ReadAsync())
+        {
+            var idHash = reader.GetGuid(0);
+            var status = (WorkStatus) reader.GetInt32(1);
+            var result = reader.IsDBNull(2) ? null : (byte[]) reader.GetValue(2);
+            var exception = reader.IsDBNull(3) ? null : reader.GetString(3);
+            var effectId = reader.GetString(4);
+            functions.Add(
+                new StoredEffect(EffectId.Deserialize(effectId), new StoredEffectId(idHash), status, result, JsonHelper.FromJson<StoredException>(exception))
+            );
+        }
+
+        return functions;
+    }
+    
     public IEnumerable<StoreCommand> UpdateEffects(IReadOnlyList<StoredEffectChange> changes)
    {
        var commands = new List<StoreCommand>(changes.Count);
@@ -287,7 +321,7 @@ public class SqlGenerator(string tablePrefix)
         return command;
     }
     
-    public async Task<StoredFlow?> ReadToStoredFunction(StoredId storedId, NpgsqlDataReader reader)
+    public async Task<StoredFlow?> ReadFunction(StoredId storedId, NpgsqlDataReader reader)
     {
         /*
            0  param_json,
@@ -349,5 +383,36 @@ public class SqlGenerator(string tablePrefix)
         }
 
         return command;
+    }
+    
+    private string? _getMessagesSql;
+    public StoreCommand GetMessages(StoredId storedId, int skip)
+    {
+        _getMessagesSql ??= @$"    
+            SELECT message_json, message_type, idempotency_key
+            FROM {tablePrefix}_messages
+            WHERE type = $1 AND instance = $2 AND position >= $3
+            ORDER BY position ASC;";
+
+        var storeCommand = StoreCommand.Create(
+            _getMessagesSql,
+            values: [storedId.Type.Value, storedId.Instance.Value, skip]
+        );
+        
+        return storeCommand;
+    }
+
+    public async Task<IReadOnlyList<StoredMessage>> ReadMessages(NpgsqlDataReader reader)
+    {
+        var storedMessages = new List<StoredMessage>();
+        while (await reader.ReadAsync())
+        {
+            var messageJson = (byte[]) reader.GetValue(0);
+            var messageType = (byte[]) reader.GetValue(1);
+            var idempotencyKey = reader.IsDBNull(2) ? null : reader.GetString(2);
+            storedMessages.Add(new StoredMessage(messageJson, messageType, idempotencyKey));
+        }
+
+        return storedMessages;
     }
 }

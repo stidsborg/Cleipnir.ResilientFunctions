@@ -1723,4 +1723,88 @@ public abstract class StoreTests
             messages: null
         ).ShouldBeFalseAsync();
     }
+    
+    public abstract Task RestartExecutionReturnsEffectsAndMessages();
+    protected async Task RestartExecutionReturnsEffectsAndMessages(Task<IFunctionStore> storeTask)
+    {
+        var functionId = TestStoredId.Create();
+        
+        var store = await storeTask;
+        var paramJson = PARAM.ToJson();
+
+        await store.CreateFunction(
+            functionId, 
+            "humanInstanceId",
+            paramJson.ToUtf8Bytes(), 
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks,
+            parent: null
+        ).ShouldBeTrueAsync();
+
+        await store.MessageStore.AppendMessage(
+            functionId,
+            new StoredMessage(
+                "hallo message".ToUtf8Bytes(),
+                typeof(string).SimpleQualifiedName().ToUtf8Bytes()
+            )
+        );
+
+        await store.EffectsStore.SetEffectResult(
+            functionId,
+            new StoredEffect(
+                "Test".ToEffectId(),
+                "Test".ToEffectId().ToStoredEffectId(),
+                WorkStatus.Completed,
+                "hallo effect".ToUtf8Bytes(),
+                StoredException: null
+                )
+        );
+        
+        var leaseExpiration = DateTime.UtcNow.Ticks;
+        var (sf, effects, messages) = await store
+            .RestartExecution(
+                functionId,
+                expectedEpoch: 0,
+                leaseExpiration
+            ).ShouldNotBeNullAsync();
+
+        sf.StoredId.ShouldBe(functionId);
+        effects.Count.ShouldBe(1);
+        effects.Single().EffectId.Id.ShouldBe("Test");
+        effects.Single().Result!.ToStringFromUtf8Bytes().ShouldBe("hallo effect");
+        messages.Count.ShouldBe(1);
+        messages.Single().MessageContent.ToStringFromUtf8Bytes().ShouldBe("hallo message");
+    }
+    
+    public abstract Task RestartExecutionWorksWithEmptyEffectsAndMessages();
+    protected async Task RestartExecutionWorksWithEmptyEffectsAndMessages(Task<IFunctionStore> storeTask)
+    {
+        var functionId = TestStoredId.Create();
+        
+        var store = await storeTask;
+        var paramJson = PARAM.ToJson();
+
+        await store.CreateFunction(
+            functionId, 
+            "humanInstanceId",
+            paramJson.ToUtf8Bytes(), 
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks,
+            parent: null
+        ).ShouldBeTrueAsync();
+        
+        var leaseExpiration = DateTime.UtcNow.Ticks;
+        var (sf, effects, messages) = await store
+            .RestartExecution(
+                functionId,
+                expectedEpoch: 0,
+                leaseExpiration
+            ).ShouldNotBeNullAsync();
+
+        sf.StoredId.ShouldBe(functionId);
+        effects.Count.ShouldBe(0);
+        messages.Count.ShouldBe(0);
+    }
 }

@@ -200,17 +200,29 @@ public class MariaDbFunctionStore : IFunctionStore
     
     public async Task<StoredFlowWithEffectsAndMessages?> RestartExecution(StoredId storedId, int expectedEpoch, long leaseExpiration)
     {
-        var storeCommand = _sqlGenerator.RestartExecution(storedId, expectedEpoch, leaseExpiration);
+        var restartCommand = _sqlGenerator.RestartExecution(storedId, expectedEpoch, leaseExpiration);
+        var effectsCommand = _sqlGenerator.GetEffects(storedId);
+        var messagesCommand = _sqlGenerator.GetMessages(storedId, skip: 0);
+        
         await using var conn = await CreateOpenConnection(_connectionString);
-        await using var command = storeCommand.ToSqlCommand(conn);
+        await using var command = StoreCommand
+            .Merge(restartCommand, effectsCommand, messagesCommand)
+            .ToSqlCommand(conn);
+        
         var reader = await command.ExecuteReaderAsync();
-        if (reader.RecordsAffected == 0)
+        if (reader.RecordsAffected != 1)
             return null;
-
+        
         var sf = await ReadToStoredFunction(storedId, reader);
-        return sf?.Epoch == expectedEpoch + 1
-            ? new StoredFlowWithEffectsAndMessages(sf, Effects: [], Messages: [])
-            : null;
+        if (sf?.Epoch != expectedEpoch + 1)
+            return null;
+        await reader.NextResultAsync();
+        
+        var effects = await _sqlGenerator.ReadEffects(reader);
+        await reader.NextResultAsync();
+            
+        var messages = await _sqlGenerator.ReadMessages(reader);
+        return new StoredFlowWithEffectsAndMessages(sf, effects, messages);
     }
     
     public async Task<int> RenewLeases(IReadOnlyList<LeaseUpdate> leaseUpdates, long leaseExpiration)

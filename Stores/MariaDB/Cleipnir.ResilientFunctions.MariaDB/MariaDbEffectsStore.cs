@@ -1,5 +1,4 @@
-﻿using Cleipnir.ResilientFunctions.Domain;
-using Cleipnir.ResilientFunctions.Helpers;
+﻿using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Storage.Utils;
 using MySqlConnector;
@@ -78,45 +77,14 @@ public class MariaDbEffectsStore(string connectionString, SqlGenerator sqlGenera
         await command.ExecuteNonQueryAsync();
     }
 
-    private string? _getEffectResultsSql;
     public async Task<IReadOnlyList<StoredEffect>> GetEffectResults(StoredId storedId)
     {
         await using var conn = await CreateConnection();
-        _getEffectResultsSql ??= @$"
-            SELECT id_hash, status, result, exception, effect_id
-            FROM {tablePrefix}_effects
-            WHERE type = ? AND instance = ?";
-        await using var command = new MySqlCommand(_getEffectResultsSql, conn)
-        {
-            Parameters =
-            {
-                new() {Value = storedId.Type.Value},
-                new() {Value = storedId.Instance.Value.ToString("N")},
-            }
-        };
-
+        await using var command = sqlGenerator.GetEffects(storedId).ToSqlCommand(conn);
         await using var reader = await command.ExecuteReaderAsync();
 
-        var functions = new List<StoredEffect>();
-        while (await reader.ReadAsync())
-        {
-            var idHash = reader.GetString(0);
-            var status = (WorkStatus) reader.GetInt32(1);
-            var result = reader.IsDBNull(2) ? null : (byte[]) reader.GetValue(2);
-            var exception = reader.IsDBNull(3) ? null : reader.GetString(3);
-            var effectId = reader.GetString(4);
-            functions.Add(
-                new StoredEffect(
-                    EffectId.Deserialize(effectId),
-                    new StoredEffectId(Guid.Parse(idHash)),
-                    status,
-                    result,
-                    StoredException: JsonHelper.FromJson<StoredException>(exception)
-                )
-            );
-        }
-
-        return functions;
+        var effects = await sqlGenerator.ReadEffects(reader);
+        return effects;
     }
 
     private string? _deleteEffectResultSql;

@@ -197,36 +197,17 @@ public class MariaDbMessageStore : IMessageStore
         await command.ExecuteNonQueryAsync();
     }
 
-    private string? _getMessagesSql;
     public async Task<IReadOnlyList<StoredMessage>> GetMessages(StoredId storedId, int skip)
     {
         await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
-        _getMessagesSql ??= @$"    
-            SELECT message_json, message_type, idempotency_key
-            FROM {_tablePrefix}_messages
-            WHERE type = ? AND instance = ? AND position >= ?
-            ORDER BY position ASC;";
-        await using var command = new MySqlCommand(_getMessagesSql, conn)
-        {
-            Parameters =
-            {
-                new() {Value = storedId.Type.Value},
-                new() {Value = storedId.Instance.Value.ToString("N")},
-                new () {Value = skip}
-            }
-        };
+        await using var command = _sqlGenerator
+            .GetMessages(storedId, skip)
+            .ToSqlCommand(conn);
         
-        var storedMessages = new List<StoredMessage>();
         await using var reader = await command.ExecuteReaderAsync();
-        while (await reader.ReadAsync())
-        {
-            var messageJson = (byte[]) reader.GetValue(0);
-            var messageType = (byte[]) reader.GetValue(1);
-            var idempotencyKey = reader.IsDBNull(2) ? null : reader.GetString(2);
-            storedMessages.Add(new StoredMessage(messageJson, messageType, idempotencyKey));
-        }
 
-        return storedMessages;
+        var messages = await _sqlGenerator.ReadMessages(reader);
+        return messages;
     }
 
     public async Task<IDictionary<StoredId, int>> GetMaxPositions(IReadOnlyList<StoredId> storedIds)

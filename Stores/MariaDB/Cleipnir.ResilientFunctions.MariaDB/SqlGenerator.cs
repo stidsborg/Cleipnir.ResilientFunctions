@@ -37,6 +37,50 @@ public class SqlGenerator(string tablePrefix)
         return StoreCommand.Create(sql);
     }
     
+    private string? _getEffectResultsSql;
+    public StoreCommand GetEffects(StoredId storedId)
+    {
+        _getEffectResultsSql ??= @$"
+            SELECT id_hash, status, result, exception, effect_id
+            FROM {tablePrefix}_effects
+            WHERE type = ? AND instance = ?;";
+
+        var command = StoreCommand.Create(
+            _getEffectResultsSql,
+            values:
+            [
+                storedId.Type.Value,
+                storedId.Instance.Value.ToString("N")
+            ]
+        );
+        return command;
+    }
+    
+    public async Task<IReadOnlyList<StoredEffect>> ReadEffects(MySqlDataReader reader)
+    {
+        var functions = new List<StoredEffect>();
+        while (await reader.ReadAsync())
+        {
+            var idHash = reader.GetString(0);
+            var status = (WorkStatus) reader.GetInt32(1);
+            var result = reader.IsDBNull(2) ? null : (byte[]) reader.GetValue(2);
+            var exception = reader.IsDBNull(3) ? null : reader.GetString(3);
+            var effectId = reader.GetString(4);
+            functions.Add(
+                new StoredEffect(
+                    EffectId.Deserialize(effectId),
+                    new StoredEffectId(Guid.Parse(idHash)),
+                    status,
+                    result,
+                    StoredException: JsonHelper.FromJson<StoredException>(exception)
+                )
+            );
+        }
+
+        return functions;
+    }
+
+    
     public StoreCommand UpdateEffects(IReadOnlyList<StoredEffectChange> changes)
     {
         var upsertCommand = default(StoreCommand);
@@ -318,29 +362,6 @@ public class SqlGenerator(string tablePrefix)
             ]);
         return command;
     }
-
-    public StoreCommand AppendMessages(IReadOnlyList<StoredIdAndMessageWithPosition> messages)
-    {
-        var sql = @$"    
-            INSERT INTO {tablePrefix}_messages
-                (type, instance, position, message_json, message_type, idempotency_key)
-            VALUES 
-                 {"(?, ?, ?, ?, ?, ?)".Replicate(messages.Count).StringJoin($",{Environment.NewLine}")};";
-
-        var command = StoreCommand.Create(sql);
-        foreach (var (storedId, (messageContent, messageType, idempotencyKey), position) in messages)
-        {
-            var (storedType, storedInstance) = storedId;
-            command.AddParameter(storedType.Value);
-            command.AddParameter(storedInstance.Value.ToString("N"));
-            command.AddParameter(position);
-            command.AddParameter(messageContent);
-            command.AddParameter(messageType);
-            command.AddParameter(idempotencyKey ?? (object)DBNull.Value);
-        }
-
-        return command;
-    }
     
     public async Task<StoredFlow?> ReadToStoredFunction(StoredId storedId, MySqlDataReader reader)
     {
@@ -379,5 +400,63 @@ public class SqlGenerator(string tablePrefix)
         }
 
         return null;
+    }
+
+    public StoreCommand AppendMessages(IReadOnlyList<StoredIdAndMessageWithPosition> messages)
+    {
+        var sql = @$"    
+            INSERT INTO {tablePrefix}_messages
+                (type, instance, position, message_json, message_type, idempotency_key)
+            VALUES 
+                 {"(?, ?, ?, ?, ?, ?)".Replicate(messages.Count).StringJoin($",{Environment.NewLine}")};";
+
+        var command = StoreCommand.Create(sql);
+        foreach (var (storedId, (messageContent, messageType, idempotencyKey), position) in messages)
+        {
+            var (storedType, storedInstance) = storedId;
+            command.AddParameter(storedType.Value);
+            command.AddParameter(storedInstance.Value.ToString("N"));
+            command.AddParameter(position);
+            command.AddParameter(messageContent);
+            command.AddParameter(messageType);
+            command.AddParameter(idempotencyKey ?? (object)DBNull.Value);
+        }
+
+        return command;
+    }
+    
+    private string? _getMessagesSql;
+    public StoreCommand GetMessages(StoredId storedId, int skip)
+    {
+        _getMessagesSql ??= @$"    
+            SELECT message_json, message_type, idempotency_key
+            FROM {tablePrefix}_messages
+            WHERE type = ? AND instance = ? AND position >= ?
+            ORDER BY position ASC;";
+
+        var command = StoreCommand.Create(
+            _getMessagesSql,
+            values:
+            [
+                storedId.Type.Value,
+                storedId.Instance.Value.ToString("N"),
+                skip
+            ]
+        );
+        return command;
+    }
+    
+    public async Task<IReadOnlyList<StoredMessage>> ReadMessages(MySqlDataReader reader)
+    {
+        var storedMessages = new List<StoredMessage>();
+        while (await reader.ReadAsync())
+        {
+            var messageJson = (byte[]) reader.GetValue(0);
+            var messageType = (byte[]) reader.GetValue(1);
+            var idempotencyKey = reader.IsDBNull(2) ? null : reader.GetString(2);
+            storedMessages.Add(new StoredMessage(messageJson, messageType, idempotencyKey));
+        }
+
+        return storedMessages;
     }
 }

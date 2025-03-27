@@ -235,17 +235,26 @@ public class PostgreSqlFunctionStore : IFunctionStore
 
     public async Task<StoredFlowWithEffectsAndMessages?> RestartExecution(StoredId storedId, int expectedEpoch, long leaseExpiration)
     {
-        var storeCommand = _sqlGenerator.RestartExecution(storedId, expectedEpoch, leaseExpiration);
+        var restartCommand = _sqlGenerator.RestartExecution(storedId, expectedEpoch, leaseExpiration);
+        var effectsCommand = _sqlGenerator.GetEffects(storedId);
+        var messagesCommand = _sqlGenerator.GetMessages(storedId, skip: 0);
+        
         await using var conn = await CreateConnection();
-        await using var command = storeCommand.ToNpgsqlCommand(conn);
+        await using var command = StoreCommands
+            .CreateBatch(restartCommand, effectsCommand, messagesCommand)
+            .WithConnection(conn);
+        
         await using var reader = await command.ExecuteReaderAsync();
-        if (reader.RecordsAffected == 0)
+        
+        var sf = await _sqlGenerator.ReadFunction(storedId, reader);
+        if (sf?.Epoch != expectedEpoch + 1)
             return null;
-
-        var sf = await _sqlGenerator.ReadToStoredFunction(storedId, reader);
-        return sf?.Epoch == expectedEpoch + 1
-            ? new StoredFlowWithEffectsAndMessages(sf, Effects: [], Messages: [])
-            : null;
+        await reader.NextResultAsync();
+        var effects = await _sqlGenerator.ReadEffects(reader);
+        await reader.NextResultAsync();
+        
+        var messages = await _sqlGenerator.ReadMessages(reader);
+        return new StoredFlowWithEffectsAndMessages(sf, effects, messages);
     }
 
     public async Task<int> RenewLeases(IReadOnlyList<LeaseUpdate> leaseUpdates, long leaseExpiration)

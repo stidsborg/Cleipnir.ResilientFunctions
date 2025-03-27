@@ -2,8 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Data.SqlTypes;
 using System.Linq;
-using System.Text;
 using System.Text.Json;
+using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
@@ -162,6 +162,49 @@ public class SqlGenerator(string tablePrefix)
         }
 
         return StoreCommand.Merge(storeCommands)!;
+    }
+    
+    private string? _getEffectsSql;
+    public StoreCommand GetEffects(StoredId storedId, string paramPrefix = "")
+    {
+        _getEffectsSql ??= @$"
+            SELECT StoredId, EffectId, Status, Result, Exception           
+            FROM {tablePrefix}_Effects
+            WHERE FlowType = @FlowType AND FlowInstance = @FlowInstance";
+
+        var sql = _getEffectsSql;
+        if (paramPrefix != "")
+            sql = sql.Replace("@", $"@{paramPrefix}");
+        
+        var command = StoreCommand.Create(sql);
+        command.AddParameter($"@{paramPrefix}FlowType", storedId.Type.Value);
+        command.AddParameter($"@{paramPrefix}FlowInstance", storedId.Instance.Value);
+        return command;
+    }
+    
+    public async Task<IReadOnlyList<StoredEffect>> ReadEffects(SqlDataReader reader)
+    {
+        _getEffectsSql ??= @$"
+            SELECT StoredId, EffectId, Status, Result, Exception           
+            FROM {tablePrefix}_Effects
+            WHERE FlowType = @FlowType AND FlowInstance = @FlowInstance";
+        
+        var storedEffects = new List<StoredEffect>();
+        while (reader.HasRows && await reader.ReadAsync())
+        {
+            var storedEffectId = reader.GetGuid(0);
+            var effectId = reader.GetString(1);
+            
+            var status = (WorkStatus) reader.GetInt32(2);
+            var result = reader.IsDBNull(3) ? null : (byte[]) reader.GetValue(3);
+            var exception = reader.IsDBNull(4) ? null : reader.GetString(4);
+
+            var storedException = exception == null ? null : JsonSerializer.Deserialize<StoredException>(exception);
+            var storedEffect = new StoredEffect(EffectId.Deserialize(effectId), new StoredEffectId(storedEffectId), status, result, storedException);
+            storedEffects.Add(storedEffect);
+        }
+
+        return storedEffects;
     }
     
     private string? _createFunctionSql;
@@ -348,37 +391,6 @@ public class SqlGenerator(string tablePrefix)
         return storeCommand;
     }
     
-    public StoreCommand? AppendMessages(IReadOnlyList<StoredIdAndMessageWithPosition> messages, bool interrupt, string prefix = "")
-    {
-        if (messages.Count == 0)
-            return null;
-        
-        var interruptCommand = interrupt 
-            ? Interrupt(messages.Select(m => m.StoredId).Distinct().ToList()) 
-            : null;
-        
-        var sql = @$"    
-            INSERT INTO {tablePrefix}_Messages
-                (FlowType, FlowInstance, Position, MessageJson, MessageType, IdempotencyKey)
-            VALUES 
-                 {messages.Select((_, i) => $"(@{prefix}FlowType{i}, @{prefix}FlowInstance{i}, @{prefix}Position{i}, @{prefix}MessageJson{i}, @{prefix}MessageType{i}, @{prefix}IdempotencyKey{i})").StringJoin($",{Environment.NewLine}")};";
-
-        var appendCommand = StoreCommand.Create(sql);
-        for (var i = 0; i < messages.Count; i++)
-        {
-            var (storedId, (messageContent, messageType, idempotencyKey), position) = messages[i];
-            var (storedType, storedInstance) = storedId;
-            appendCommand.AddParameter($"@{prefix}FlowType{i}", storedType.Value);
-            appendCommand.AddParameter($"@{prefix}FlowInstance{i}", storedInstance.Value);
-            appendCommand.AddParameter($"@{prefix}Position{i}", position);
-            appendCommand.AddParameter($"@{prefix}MessageJson{i}", messageContent);
-            appendCommand.AddParameter($"@{prefix}MessageType{i}", messageType);
-            appendCommand.AddParameter($"@{prefix}IdempotencyKey{i}", idempotencyKey ?? (object)DBNull.Value);
-        }
-
-        return StoreCommand.Merge(appendCommand, interruptCommand);
-    }
-    
     public StoredFlow? ReadToStoredFlow(StoredId storedId, SqlDataReader reader)
     {
         while (reader.HasRows)
@@ -416,5 +428,69 @@ public class SqlGenerator(string tablePrefix)
         }
 
         return default;
+    }
+    
+    public StoreCommand? AppendMessages(IReadOnlyList<StoredIdAndMessageWithPosition> messages, bool interrupt, string prefix = "")
+    {
+        if (messages.Count == 0)
+            return null;
+        
+        var interruptCommand = interrupt 
+            ? Interrupt(messages.Select(m => m.StoredId).Distinct().ToList()) 
+            : null;
+        
+        var sql = @$"    
+            INSERT INTO {tablePrefix}_Messages
+                (FlowType, FlowInstance, Position, MessageJson, MessageType, IdempotencyKey)
+            VALUES 
+                 {messages.Select((_, i) => $"(@{prefix}FlowType{i}, @{prefix}FlowInstance{i}, @{prefix}Position{i}, @{prefix}MessageJson{i}, @{prefix}MessageType{i}, @{prefix}IdempotencyKey{i})").StringJoin($",{Environment.NewLine}")};";
+
+        var appendCommand = StoreCommand.Create(sql);
+        for (var i = 0; i < messages.Count; i++)
+        {
+            var (storedId, (messageContent, messageType, idempotencyKey), position) = messages[i];
+            var (storedType, storedInstance) = storedId;
+            appendCommand.AddParameter($"@{prefix}FlowType{i}", storedType.Value);
+            appendCommand.AddParameter($"@{prefix}FlowInstance{i}", storedInstance.Value);
+            appendCommand.AddParameter($"@{prefix}Position{i}", position);
+            appendCommand.AddParameter($"@{prefix}MessageJson{i}", messageContent);
+            appendCommand.AddParameter($"@{prefix}MessageType{i}", messageType);
+            appendCommand.AddParameter($"@{prefix}IdempotencyKey{i}", idempotencyKey ?? (object)DBNull.Value);
+        }
+
+        return StoreCommand.Merge(appendCommand, interruptCommand);
+    }
+    
+    private string? _getMessagesSql;
+    public StoreCommand GetMessages(StoredId storedId, int skip, string paramPrefix = "")
+    {
+        _getMessagesSql ??= @$"    
+            SELECT MessageJson, MessageType, IdempotencyKey
+            FROM {tablePrefix}_Messages
+            WHERE FlowType = @FlowType AND FlowInstance = @FlowInstance AND Position >= @Position
+            ORDER BY Position ASC;";
+
+        var sql = _getMessagesSql;
+        if (paramPrefix != "")
+            sql = sql.Replace("@", $"@{paramPrefix}");
+        var command = StoreCommand.Create(sql);
+        command.AddParameter($"@{paramPrefix}FlowType", storedId.Type.Value);
+        command.AddParameter($"@{paramPrefix}FlowInstance", storedId.Instance.Value);
+        command.AddParameter($"@{paramPrefix}Position", skip);
+
+        return command;
+    }
+    
+    public async Task<IReadOnlyList<StoredMessage>> ReadMessages(SqlDataReader reader)
+    {
+        var storedMessages = new List<StoredMessage>();
+        while (await reader.ReadAsync())
+        {
+            var messageJson = (byte[]) reader.GetValue(0);
+            var messageType = (byte[]) reader.GetValue(1);
+            var idempotencyKey = reader.IsDBNull(2) ? null : reader.GetString(2);
+            storedMessages.Add(new StoredMessage(messageJson, messageType, idempotencyKey));
+        }
+        return storedMessages;
     }
 }

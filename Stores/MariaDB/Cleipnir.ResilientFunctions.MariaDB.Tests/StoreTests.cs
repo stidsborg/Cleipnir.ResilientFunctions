@@ -210,4 +210,13 @@ public class StoreTests : ResilientFunctions.Tests.TestTemplates.StoreTests
     [TestMethod]
     public override Task FunctionCanBeCreatedWithEffectsOnly()
         => FunctionCanBeCreatedWithEffectsOnly(FunctionStoreFactory.Create());
+    
+    [TestMethod]
+    public override Task RestartExecutionReturnsEffectsAndMessages()
+        => RestartExecutionReturnsEffectsAndMessages(FunctionStoreFactory.Create());
+    
+    [TestMethod]
+    public override Task RestartExecutionWorksWithEmptyEffectsAndMessages()
+        => RestartExecutionWorksWithEmptyEffectsAndMessages(FunctionStoreFactory.Create());
+
 }

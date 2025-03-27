@@ -87,36 +87,14 @@ public class SqlServerEffectsStore(string connectionString, SqlGenerator sqlGene
         await command.ExecuteNonQueryAsync();
     }
     
-    private string? _getEffectResultsSql;
     public async Task<IReadOnlyList<StoredEffect>> GetEffectResults(StoredId storedId)
     {
         await using var conn = await CreateConnection();
-        _getEffectResultsSql ??= @$"
-            SELECT StoredId, EffectId, Status, Result, Exception           
-            FROM {tablePrefix}_Effects
-            WHERE FlowType = @FlowType AND FlowInstance = @FlowInstance";
-        
-        await using var command = new SqlCommand(_getEffectResultsSql, conn);
-        command.Parameters.AddWithValue("@FlowType", storedId.Type.Value);
-        command.Parameters.AddWithValue("@FlowInstance", storedId.Instance.Value);
+        await using var command = sqlGenerator.GetEffects(storedId).ToSqlCommand(conn);
 
-        var storedEffects = new List<StoredEffect>();
         await using var reader = await command.ExecuteReaderAsync();
-        while (reader.HasRows && reader.Read())
-        {
-            var storedEffectId = reader.GetGuid(0);
-            var effectId = reader.GetString(1);
-            
-            var status = (WorkStatus) reader.GetInt32(2);
-            var result = reader.IsDBNull(3) ? default : (byte[]) reader.GetValue(3);
-            var exception = reader.IsDBNull(4) ? default : reader.GetString(4);
-
-            var storedException = exception == null ? null : JsonSerializer.Deserialize<StoredException>(exception);
-            var storedEffect = new StoredEffect(EffectId.Deserialize(effectId), new StoredEffectId(storedEffectId), status, result, storedException);
-            storedEffects.Add(storedEffect);
-        }
-
-        return storedEffects;
+        var effects = await sqlGenerator.ReadEffects(reader);
+        return effects;
     }
 
     private string? _deleteEffectResultSql;
