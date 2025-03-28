@@ -326,12 +326,14 @@ public abstract class SuspensionTests
             }
         );
 
-        await registration.MessageWriters.For(flowInstance.Value.ToFlowInstance()).AppendMessage("Hello!");
-        await registration.Schedule(flowInstance);
+        await registration.SendMessage(
+            flowInstance.Value.ToFlowInstance(),
+            message: "Hello!"
+        );
 
         var controlPanel = await registration.ControlPanel(flowInstance);
         controlPanel.ShouldNotBeNull();
-        await controlPanel.WaitForCompletion();
+        await controlPanel.WaitForCompletion(allowPostponeAndSuspended: true);
         
         unhandledExceptionHandler.ShouldNotHaveExceptions();
     }

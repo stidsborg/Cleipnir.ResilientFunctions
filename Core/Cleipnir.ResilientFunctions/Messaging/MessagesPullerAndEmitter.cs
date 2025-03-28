@@ -24,6 +24,7 @@ public class MessagesPullerAndEmitter
 
     private Exception? _thrownException;
 
+    private IReadOnlyList<StoredMessage>? _initialMessages;
     private readonly HashSet<string> _idempotencyKeys = new();
     private int _skip;
 
@@ -44,11 +45,12 @@ public class MessagesPullerAndEmitter
         TimeSpan defaultDelay,
         TimeSpan defaultMaxWait,
         Func<bool> isWorkflowRunning,
-        IFunctionStore functionStore, ISerializer serializer, IRegisteredTimeouts registeredTimeouts)
+        IFunctionStore functionStore, ISerializer serializer, IRegisteredTimeouts registeredTimeouts,
+        IReadOnlyList<StoredMessage>? initialMessages)
     {
         _storedId = storedId;
         _messageStore = functionStore.MessageStore;
-        
+        _initialMessages = initialMessages;
         _serializer = serializer;
         
         Source = new Source(
@@ -78,7 +80,8 @@ public class MessagesPullerAndEmitter
 
         try
         {
-            var storedMessages = await _messageStore.GetMessages(_storedId, _skip);
+            var storedMessages = _initialMessages ?? await _messageStore.GetMessages(_storedId, _skip);
+            _initialMessages = null;
             
             _lastSynced = DateTime.UtcNow;
             _skip += storedMessages.Count;

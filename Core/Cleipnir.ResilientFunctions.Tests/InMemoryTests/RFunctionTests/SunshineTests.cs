@@ -55,11 +55,7 @@ public class SunshineTests : TestTemplates.FunctionTests.SunshineTests
     [TestMethod]
     public override Task EffectsAreNotFetchedOnFirstInvocation()
         => EffectsAreNotFetchedOnFirstInvocation(FunctionStoreFactory.Create());
-
-    [TestMethod]
-    public override Task EffectsAreFetchedOnSecondInvocation()
-        => EffectsAreFetchedOnSecondInvocation(FunctionStoreFactory.Create());
-
+    
     [TestMethod]
     public override Task FlowIdCanBeExtractedFromWorkflowInstance()
         => FlowIdCanBeExtractedFromWorkflowInstance(FunctionStoreFactory.Create());

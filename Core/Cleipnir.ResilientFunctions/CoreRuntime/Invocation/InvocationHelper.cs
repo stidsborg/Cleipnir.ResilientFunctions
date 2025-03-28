@@ -208,14 +208,19 @@ internal class InvocationHelper<TParam, TReturn>
 
         try
         {
-            var sf = await _functionStore.RestartExecution(
+            var restarted = await _functionStore.RestartExecution(
                 flowId,
                 expectedEpoch,
                 leaseExpiration: DateTime.UtcNow.Ticks + _settings.LeaseLength.Ticks
             );
 
-            return sf != null
-                ? new RestartedFunction(sf.StoredFlow, runningFunction) //todo extend this class as well
+            return restarted != null
+                ? new RestartedFunction(
+                    restarted.StoredFlow, 
+                    restarted.Effects,
+                    restarted.Messages,
+                    runningFunction
+                ) 
                 : null;
         }
         catch
@@ -228,7 +233,7 @@ internal class InvocationHelper<TParam, TReturn>
     
     public async Task<PreparedReInvocation> PrepareForReInvocation(StoredId storedId, RestartedFunction restartedFunction)
     {
-        var (sf, runningFunction) = restartedFunction;
+        var (sf, effects, messages, runningFunction) = restartedFunction;
         var expectedEpoch = sf.Epoch;
         var flowId = new FlowId(_flowType, sf.HumanInstanceId);
         
@@ -236,9 +241,17 @@ internal class InvocationHelper<TParam, TReturn>
         {
             var param = sf.Parameter == null 
                 ? default 
-                : Serializer.Deserialize<TParam>(sf.Parameter);                
-            
-            return new PreparedReInvocation(flowId, param, sf.Epoch, runningFunction, sf.ParentId);
+                : Serializer.Deserialize<TParam>(sf.Parameter);
+
+            return new PreparedReInvocation(
+                flowId,
+                param,
+                sf.Epoch,
+                effects, 
+                messages,
+                runningFunction,
+                sf.ParentId
+            );
         }
         catch (DeserializationException e)
         {
@@ -266,7 +279,15 @@ internal class InvocationHelper<TParam, TReturn>
         }
     }
 
-    internal record PreparedReInvocation(FlowId FlowId, TParam? Param, int Epoch, IDisposable RunningFunction, StoredId? Parent);
+    internal record PreparedReInvocation(
+        FlowId FlowId, 
+        TParam? Param, 
+        int Epoch, 
+        IReadOnlyList<StoredEffect> Effects,
+        IReadOnlyList<StoredMessage> Messages,
+        IDisposable RunningFunction, 
+        StoredId? Parent
+    );
 
     public IDisposable StartLeaseUpdater(StoredId storedId, int epoch = 0) 
         => LeaseUpdater.CreateAndStart(storedId, epoch, _leasesUpdater);
@@ -370,7 +391,13 @@ internal class InvocationHelper<TParam, TReturn>
         );
     }
 
-    public Messages CreateMessages(StoredId storedId, ScheduleReInvocation scheduleReInvocation, Func<bool> isWorkflowRunning, Effect effect)
+    public Messages CreateMessages(
+        FlowId flowId,
+        StoredId storedId, 
+        ScheduleReInvocation scheduleReInvocation, 
+        Func<bool> isWorkflowRunning, 
+        Effect effect,
+        IReadOnlyList<StoredMessage> initialMessages)
     {
         var messageWriter = new MessageWriter(storedId, _functionStore, Serializer, scheduleReInvocation);
         var registeredTimeouts = new RegisteredTimeouts(storedId, _functionStore.TimeoutStore, effect);
@@ -381,20 +408,18 @@ internal class InvocationHelper<TParam, TReturn>
             isWorkflowRunning,
             _functionStore,
             Serializer,
-            registeredTimeouts
+            registeredTimeouts,
+            initialMessages
         );
         
         return new Messages(messageWriter, registeredTimeouts, messagesPullerAndEmitter);
     }
     
-    private static Task<IReadOnlyList<StoredEffect>> EmptyList { get; } = Task.FromResult((IReadOnlyList<StoredEffect>) new List<StoredEffect>());
-    public Tuple<Effect, States> CreateEffectAndStates(StoredId storedId, FlowId flowId, bool anyEffects)
+    public Tuple<Effect, States> CreateEffectAndStates(StoredId storedId, FlowId flowId, IReadOnlyList<StoredEffect> storedEffects)
     {
         var effectsStore = _functionStore.EffectsStore;
         
-        var lazyEffects = !anyEffects 
-            ? new Lazy<Task<IReadOnlyList<StoredEffect>>>(EmptyList)
-            : new Lazy<Task<IReadOnlyList<StoredEffect>>>(() => effectsStore.GetEffectResults(storedId));
+        var lazyEffects = new Lazy<Task<IReadOnlyList<StoredEffect>>>(storedEffects.ToTask);
         
         var states = new States(
             storedId,
@@ -479,7 +504,7 @@ internal class InvocationHelper<TParam, TReturn>
         return parentWorkflow;
     }
     
-    private IReadOnlyList<StoredEffect> MapInitialEffects(IEnumerable<InitialEffect> initialEffects, FlowId flowId)
+    public IReadOnlyList<StoredEffect> MapInitialEffects(IEnumerable<InitialEffect> initialEffects, FlowId flowId)
     => initialEffects
         .Select(e =>
             e.Exception == null
@@ -498,7 +523,7 @@ internal class InvocationHelper<TParam, TReturn>
                 )
         ).ToList();
 
-    private IReadOnlyList<StoredMessage> MapInitialMessages(IEnumerable<MessageAndIdempotencyKey> initialMessages)
+    public IReadOnlyList<StoredMessage> MapInitialMessages(IEnumerable<MessageAndIdempotencyKey> initialMessages)
         => initialMessages.Select(m =>
         {
             var (content, type) = Serializer.SerializeMessage(m.Message, m.Message.GetType());

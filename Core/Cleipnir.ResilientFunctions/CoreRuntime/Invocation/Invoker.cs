@@ -100,9 +100,6 @@ public class Invoker<TParam, TReturn>
 
     public async Task<InnerScheduled<TReturn>> ScheduleAt(FlowInstance instanceId, TParam param, DateTime scheduleAt, bool? detach)
     {
-        if (scheduleAt.ToUniversalTime() <= DateTime.UtcNow)
-            return await ScheduleInvoke(instanceId, param, detach, initialState: null);
-
         var parent = GetAndEnsureParent(detach);
         var id = new FlowId(_flowType, instanceId);
         if (parent != null)
@@ -229,13 +226,19 @@ public class Invoker<TParam, TReturn>
             var isWorkflowRunningDisposable = new PropertyDisposable();
             disposables.Add(isWorkflowRunningDisposable);
             success = persisted;
-            
-            var (effect, states) = _invocationHelper.CreateEffectAndStates(storedId, flowId, anyEffects: initialState != null);
+
+            var (effect, states) = _invocationHelper.CreateEffectAndStates(
+                storedId,
+                flowId,
+                initialState == null ? [] : _invocationHelper.MapInitialEffects(initialState.Effects, flowId)
+            );
             var messages = _invocationHelper.CreateMessages(
+                flowId,
                 storedId,
                 ScheduleRestart, 
                 isWorkflowRunning: () => !isWorkflowRunningDisposable.Disposed,
-                effect
+                effect,
+                initialState == null ? [] : _invocationHelper.MapInitialMessages(initialState.Messages)
             );
             
             var correlations = _invocationHelper.CreateCorrelations(flowId);
@@ -274,19 +277,21 @@ public class Invoker<TParam, TReturn>
         var disposables = new List<IDisposable>(capacity: 3);
         try
         {
-            var (flowId, param, epoch, runningFunction, parent) = 
+            var (flowId, param, epoch, effects, storedMessages, runningFunction, parent) = 
                 await _invocationHelper.PrepareForReInvocation(storedId, restartedFunction);
             disposables.Add(runningFunction);
             disposables.Add(_invocationHelper.StartLeaseUpdater(storedId, epoch));
             var isWorkflowRunningDisposable = new PropertyDisposable();
             disposables.Add(isWorkflowRunningDisposable);
             
-            var (effect, states) = _invocationHelper.CreateEffectAndStates(storedId, flowId, anyEffects: true);
+            var (effect, states) = _invocationHelper.CreateEffectAndStates(storedId, flowId, effects);
             var messages = _invocationHelper.CreateMessages(
+                flowId,
                 storedId,
                 ScheduleRestart,
                 isWorkflowRunning: () => !isWorkflowRunningDisposable.Disposed,
-                effect
+                effect,
+                storedMessages
             );
             
             var correlations = _invocationHelper.CreateCorrelations(flowId);

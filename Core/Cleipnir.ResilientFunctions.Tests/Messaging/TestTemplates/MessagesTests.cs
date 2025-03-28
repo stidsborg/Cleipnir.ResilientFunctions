@@ -41,7 +41,8 @@ public abstract class MessagesTests
             isWorkflowRunning: () => true,
             functionStore,
             DefaultSerializer.Instance,
-            registeredTimeouts
+            registeredTimeouts,
+            initialMessages: []
         );
         var messages = new Messages(messagesWriter, registeredTimeouts, messagesPullerAndEmitter);
         
@@ -106,7 +107,8 @@ public abstract class MessagesTests
             isWorkflowRunning: () => true,
             functionStore,
             DefaultSerializer.Instance,
-            registeredTimeouts
+            registeredTimeouts,
+            initialMessages: []
         );
         var messages = new Messages(messagesWriter, registeredTimeouts, messagesPullerAndEmitter);
         
@@ -145,7 +147,8 @@ public abstract class MessagesTests
             isWorkflowRunning: () => true,
             functionStore,
             DefaultSerializer.Instance,
-            registeredTimeouts
+            registeredTimeouts,
+            initialMessages: []
         );
         var messages = new Messages(messagesWriter, registeredTimeouts, messagesPullerAndEmitter);
         
@@ -184,7 +187,8 @@ public abstract class MessagesTests
             isWorkflowRunning: () => true,
             functionStore,
             DefaultSerializer.Instance,
-            registeredTimeouts
+            registeredTimeouts,
+            initialMessages: []
         );
         var messages = new Messages(messagesWriter, registeredTimeouts, messagesPullerAndEmitter);
 
@@ -225,7 +229,8 @@ public abstract class MessagesTests
             isWorkflowRunning: () => true,
             functionStore,
             DefaultSerializer.Instance,
-            registeredTimeouts
+            registeredTimeouts,
+            initialMessages: []
         );
         var messages = new Messages(messagesWriter, registeredTimeouts, messagesPullerAndEmitter);
         
@@ -271,7 +276,8 @@ public abstract class MessagesTests
             isWorkflowRunning: () => true,
             functionStore,
             DefaultSerializer.Instance,
-            registeredTimeouts
+            registeredTimeouts,
+            initialMessages: []
         );
         var messages = new Messages(messagesWriter, registeredTimeouts, messagesPullerAndEmitter);
 
@@ -316,7 +322,8 @@ public abstract class MessagesTests
             isWorkflowRunning: () => true,
             functionStore,
             DefaultSerializer.Instance,
-            registeredTimeouts
+            registeredTimeouts,
+            initialMessages: []
         );
         var messages = new Messages(messagesWriter, registeredTimeouts, messagesPullerAndEmitter);
         
@@ -357,7 +364,8 @@ public abstract class MessagesTests
             isWorkflowRunning: () => true,
             functionStore,
             DefaultSerializer.Instance,
-            registeredTimeouts
+            registeredTimeouts,
+            initialMessages: []
         );
         var messages = new Messages(messagesWriter, registeredTimeouts, messagesPullerAndEmitter);
 
@@ -410,7 +418,8 @@ public abstract class MessagesTests
             isWorkflowRunning: () => true,
             functionStore,
             new ExceptionThrowingEventSerializer(typeof(int)),
-            registeredTimeouts
+            registeredTimeouts,
+            initialMessages: []
         );
         var messages = new Messages(messagesWriter, registeredTimeouts, messagesPullerAndEmitter);
         

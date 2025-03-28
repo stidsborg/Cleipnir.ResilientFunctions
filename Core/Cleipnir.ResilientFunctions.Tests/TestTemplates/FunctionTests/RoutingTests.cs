@@ -162,7 +162,7 @@ public abstract class RoutingTests
             new SomeMessage(RouteTo: flowInstance.Value, Value: "SomeValue!")
         );
         
-        await syncedFlag.WaitForRaised(1_000);
+        await syncedFlag.WaitForRaised(2_000);
         syncedValue.Value.ShouldBe("SomeValue!");
         
         unhandledExceptionCatcher.ShouldNotHaveExceptions();

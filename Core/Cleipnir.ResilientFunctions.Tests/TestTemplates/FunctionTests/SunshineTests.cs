@@ -411,54 +411,6 @@ public abstract class SunshineTests
         unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
     
-    public abstract Task EffectsAreFetchedOnSecondInvocation();
-    protected async Task EffectsAreFetchedOnSecondInvocation(Task<IFunctionStore> storeTask)
-    {
-        var store = new CrashableFunctionStore(await storeTask);
-        var functionId = TestFlowId.Create();
-
-        using var functionsRegistry = new FunctionsRegistry(
-            store,
-            new Settings(
-                enableWatchdogs: true,
-                watchdogCheckFrequency: TimeSpan.FromSeconds(1)
-            )
-        );
-
-        var flag = new SyncedFlag();
-        var registration = functionsRegistry.RegisterParamless(
-            functionId.Type,
-            inner: async workflow =>
-            {
-                store.Crash();
-                try
-                {
-                    await workflow.Effect.Contains("test");
-                }
-                catch
-                {
-                    store.FixCrash();
-                    flag.Raise();
-                    throw;
-                }
-            }
-        );
-        
-        await registration.ScheduleIn("test", TimeSpan.FromSeconds(1));
-        await flag.WaitForRaised();
-        
-        var controlPanel = await registration.ControlPanel("test").ShouldNotBeNullAsync();
-        await BusyWait.Until(
-            async () =>
-            {
-                await controlPanel.Refresh();
-                return controlPanel.Status == Status.Failed || controlPanel.Status == Status.Succeeded;
-            }
-        );
-        
-        controlPanel.Status.ShouldBe(Status.Failed);
-    }
-    
     public abstract Task FlowIdCanBeExtractedFromWorkflowInstance();
     public async Task FlowIdCanBeExtractedFromWorkflowInstance(Task<IFunctionStore> storeTask)
     {

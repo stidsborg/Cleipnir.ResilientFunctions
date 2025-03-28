@@ -42,7 +42,8 @@ public abstract class CustomMessageSerializerTests
             isWorkflowRunning: () => true,
             functionStore,
             eventSerializer,
-            registeredTimeouts
+            registeredTimeouts,
+            initialMessages: null
         );
         var messages = new Messages(messagesWriter, registeredTimeouts, messagesPullerAndEmitter);
         
