@@ -50,7 +50,15 @@ public class SqlServerMessageStore(string connectionString, SqlGenerator sqlGene
     {
         if (messages.Count == 0)
             return;
-        
+
+        if (messages.Count > 300)
+        {
+            foreach (var chunk in messages.Chunk(300))
+                await AppendMessages(chunk, interrupt);
+
+            return;
+        }
+            
         var storedIds = messages.Select(m => m.StoredId).Distinct().ToList();
         var maxPositions = await GetMaxPositions(storedIds);
         
