@@ -1,14 +1,15 @@
 ﻿using System.Diagnostics;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Helpers;
+using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Reactive.Extensions;
-using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.StressTests.Engines;
 using Cleipnir.ResilientFunctions.StressTests.StressTests.Utils;
 
 namespace Cleipnir.ResilientFunctions.StressTests.StressTests;
 
-public class SuspensionTest
+public static class SuspensionTest
 {
     public static async Task<TestResult> Perform(IEngine helper)
     {
@@ -24,26 +25,43 @@ public class SuspensionTest
             store,
             new Settings(unhandledExceptionHandler: Console.WriteLine)
         );        
-        var actionRegistration = functionsRegistry.RegisterAction(
+        var registration = functionsRegistry.RegisterAction(
             "SuspensionTest",
             async Task (string param, Workflow workflow) =>
-                await workflow.Messages.First(TimeSpan.Zero)
+            {
+                await workflow.Messages.First(TimeSpan.Zero);
+                await workflow.Effect.Capture(() => param);
+            }
         );
         
         Console.WriteLine("SUSPENSION_TEST: Initializing");
-        for (var i = 0; i < testSize; i++)
-            await actionRegistration.Schedule(i.ToString(), "hello world");
-        
+        var instances = Enumerable.Range(0, testSize).Select(i => i.ToString()).ToList();
+        await registration.BulkSchedule(
+            instances: instances.Select(instance => new BulkWork<string>(instance, Param: instance))
+        );
+
+        Console.WriteLine("SUSPENSION_TEST: Waiting for instances to suspend");
+        await BusyWait.Until(async () =>
+            {
+                var suspended = await registration.GetInstances(Status.Suspended).SelectAsync(i => i.Count);
+                if (suspended == testSize)
+                    return true;
+
+                Console.WriteLine($"SUSPENSION_TEST: Suspended {suspended} / {testSize}");
+                await Task.Delay(250);
+                return false;
+            },
+            maxWait: TimeSpan.FromSeconds(360)
+        );
         stopWatch.Stop();
         var insertionAverageSpeed = testSize * 1000 / stopWatch.ElapsedMilliseconds;
         
         Console.WriteLine("SUSPENSION_TEST: Appending messages to functions...");
-        _ = Task.Run(async () =>
-        {
-            for (var i = 0; i < testSize; i++)
-                await actionRegistration.MessageWriters.For(i.ToString().ToStoredInstance()).AppendMessage("some message");
-        });
+        await registration.SendMessages(
+            instances.Select(i => new BatchedMessage(i, "some message")).ToList()
+        );
         
+        Console.WriteLine("SUSPENSION_TEST: Waiting for instances to complete...");
         var executionAverageSpeed = await 
             WaitFor.AllSuccessfullyCompleted(helper, testSize, logPrefix: "SUSPENSION_TEST: ");
 
