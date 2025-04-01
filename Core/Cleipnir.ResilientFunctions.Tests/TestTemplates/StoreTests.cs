@@ -59,6 +59,8 @@ public abstract class StoreTests
             result: resultJson.ToUtf8Bytes(),
             expectedEpoch: 0,
             timestamp: DateTime.UtcNow.Ticks,
+            effects: null,
+            messages: null,
             complimentaryState: new ComplimentaryState(() => storedParameter.ToUtf8Bytes(), LeaseLength: 0)
         ).ShouldBeTrueAsync();
             
@@ -293,6 +295,8 @@ public abstract class StoreTests
             timestamp: DateTime.UtcNow.Ticks,
             ignoreInterrupted: false,
             expectedEpoch: 0,
+            effects: null,
+            messages: null,
             complimentaryState: new ComplimentaryState(storedParameter.ToUtf8Bytes().ToFunc(), LeaseLength: 0)
         ).ShouldBeTrueAsync();
         
@@ -328,6 +332,8 @@ public abstract class StoreTests
             timestamp: DateTime.UtcNow.Ticks,
             ignoreInterrupted: false,
             expectedEpoch: 0,
+            effects: null,
+            messages: null,
             complimentaryState: new ComplimentaryState(storedParameter.ToUtf8Bytes().ToFunc(), LeaseLength: 0)
         ).ShouldBeTrueAsync();
         
@@ -363,6 +369,8 @@ public abstract class StoreTests
             timestamp: DateTime.UtcNow.Ticks,
             ignoreInterrupted: false,
             expectedEpoch: 1,
+            effects: null,
+            messages: null,
             complimentaryState: new ComplimentaryState(storedParameter.ToUtf8Bytes().ToFunc(), LeaseLength: 0)
         ).ShouldBeFalseAsync();
 
@@ -551,6 +559,8 @@ public abstract class StoreTests
             storedException,
             timestamp: DateTime.UtcNow.Ticks,
             expectedEpoch: 0,
+            effects: null,
+            messages: null,
             complimentaryState: new ComplimentaryState(storedParameter.ToUtf8Bytes().ToFunc(), LeaseLength: 0)
         );
         
@@ -673,6 +683,8 @@ public abstract class StoreTests
             functionId,
             timestamp: DateTime.UtcNow.Ticks,
             expectedEpoch: 0,
+            effects: null,
+            messages: null,
             complimentaryState: new ComplimentaryState(storedParameter.ToUtf8Bytes().ToFunc(), LeaseLength: 0)
         ).ShouldBeAsync(true);
 
@@ -847,6 +859,8 @@ public abstract class StoreTests
             result: null,
             DateTime.UtcNow.Ticks,
             expectedEpoch: 0,
+            effects: null,
+            messages: null,
             complimentaryState: new ComplimentaryState(Test.SimpleStoredParameter.ToFunc(), LeaseLength: 0)
         );
         
@@ -877,6 +891,8 @@ public abstract class StoreTests
             timestamp: DateTime.UtcNow.Ticks,
             ignoreInterrupted: false,
             expectedEpoch: 0,
+            effects: null,
+            messages: null,
             complimentaryState: new ComplimentaryState(Test.SimpleStoredParameter.ToFunc(), LeaseLength: 0)
         );
         
@@ -906,6 +922,8 @@ public abstract class StoreTests
             new StoredException("ExceptionMessage", ExceptionStackTrace: null, typeof(Exception).SimpleQualifiedName()),
             timestamp: DateTime.UtcNow.Ticks,
             expectedEpoch: 0,
+            effects: null,
+            messages: null,
             complimentaryState: new ComplimentaryState(Test.SimpleStoredParameter.ToFunc(), LeaseLength: 0)
         );
         
@@ -934,6 +952,8 @@ public abstract class StoreTests
             functionId,
             timestamp: DateTime.UtcNow.Ticks,
             expectedEpoch: 0,
+            effects: null,
+            messages: null,
             complimentaryState: new ComplimentaryState(Test.SimpleStoredParameter.ToFunc(), LeaseLength: 0)
         );
         
@@ -969,6 +989,8 @@ public abstract class StoreTests
             functionId,
             timestamp: DateTime.UtcNow.Ticks,
             expectedEpoch: 0,
+            effects: null,
+            messages: null,
             complimentaryState: new ComplimentaryState(Test.SimpleStoredParameter.ToFunc(), LeaseLength: 0)
         ).ShouldBeFalseAsync();
         
@@ -1004,6 +1026,8 @@ public abstract class StoreTests
             functionId,
             timestamp: DateTime.UtcNow.Ticks,
             expectedEpoch: 0,
+            effects: null,
+            messages: null,
             complimentaryState: new ComplimentaryState(Test.SimpleStoredParameter.ToFunc(), LeaseLength: 0)
         );
         
@@ -1063,6 +1087,8 @@ public abstract class StoreTests
             functionId,
             timestamp: DateTime.UtcNow.Ticks,
             expectedEpoch: 0,
+            effects: null,
+            messages: null,
             new ComplimentaryState(() => Test.SimpleStoredParameter, LeaseLength: 0)
         ).ShouldBeTrueAsync();
 
@@ -1141,6 +1167,8 @@ public abstract class StoreTests
                 result: null,
                 timestamp: timestamp,
                 expectedEpoch: 0,
+                effects: null,
+                messages: null,
                 new ComplimentaryState(() => Test.SimpleStoredParameter, LeaseLength: 0)
             ).ShouldBeTrueAsync();
         }
@@ -1280,7 +1308,9 @@ public abstract class StoreTests
             result: null,
             timestamp,
             expectedEpoch: 0,
-            new ComplimentaryState(StoredParameterFunc: () => default, LeaseLength: 0)
+            effects: null,
+            messages: null,
+            new ComplimentaryState(StoredParameterFunc: () => null, LeaseLength: 0)
         );
 
         instances = await store.GetInstances(storedType1, Status.Succeeded);
@@ -1436,6 +1466,8 @@ public abstract class StoreTests
                 result: null,
                 timestamp: timestamp,
                 expectedEpoch: 0,
+                effects: null,
+                messages: null,
                 new ComplimentaryState(() => Test.SimpleStoredParameter, LeaseLength: 0)
             ).ShouldBeTrueAsync();
         }
@@ -1478,6 +1510,8 @@ public abstract class StoreTests
             timestamp: 0,
             ignoreInterrupted: false,
             expectedEpoch: 0,
+            effects: null,
+            messages: null,
             new ComplimentaryState(() => Test.SimpleStoredParameter, LeaseLength: 0)
         );
         success.ShouldBeFalse();
@@ -1518,6 +1552,8 @@ public abstract class StoreTests
             timestamp: 0,
             ignoreInterrupted: true,
             expectedEpoch: 0,
+            effects: null,
+            messages: null,
             new ComplimentaryState(() => Test.SimpleStoredParameter, LeaseLength: 0)
         );
         success.ShouldBeTrue();

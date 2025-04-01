@@ -97,6 +97,8 @@ internal class InvocationHelper<TParam, TReturn>
             storedException,
             timestamp: DateTime.UtcNow.Ticks,
             expectedEpoch,
+            effects: null,
+            messages: null,
             complimentaryState: new ComplimentaryState(
                 () => SerializeParameter(param),
                 _settings.LeaseLength.Ticks
@@ -126,6 +128,8 @@ internal class InvocationHelper<TParam, TReturn>
                     result: SerializeResult(result.SucceedWithValue),
                     timestamp: DateTime.UtcNow.Ticks,
                     expectedEpoch,
+                    effects: null,
+                    messages: null,
                     complementaryState
                 ) ? PersistResultOutcome.Success : PersistResultOutcome.Failed;
             case Outcome.Postpone:
@@ -135,6 +139,8 @@ internal class InvocationHelper<TParam, TReturn>
                     timestamp: DateTime.UtcNow.Ticks,
                     ignoreInterrupted: false, 
                     expectedEpoch,
+                    effects: null,
+                    messages: null,
                     complementaryState
                 ) ? PersistResultOutcome.Success : PersistResultOutcome.Reschedule;
             case Outcome.Fail:
@@ -143,6 +149,8 @@ internal class InvocationHelper<TParam, TReturn>
                     storedException: Serializer.SerializeException(result.Fail!),
                     timestamp: DateTime.UtcNow.Ticks,
                     expectedEpoch,
+                    effects: null,
+                    messages: null,
                     complementaryState
                 ) ? PersistResultOutcome.Success : PersistResultOutcome.Failed;
             case Outcome.Suspend:
@@ -150,6 +158,8 @@ internal class InvocationHelper<TParam, TReturn>
                     storedId,
                     timestamp: DateTime.UtcNow.Ticks,
                     expectedEpoch,
+                    effects: null,
+                    messages: null,
                     complementaryState
                 ) ? PersistResultOutcome.Success : PersistResultOutcome.Reschedule;
             default:
@@ -265,6 +275,8 @@ internal class InvocationHelper<TParam, TReturn>
                 storedException: Serializer.SerializeException(FatalWorkflowException.CreateNonGeneric(flowId, e)),
                 timestamp: DateTime.UtcNow.Ticks,
                 expectedEpoch,
+                effects: null,
+                messages: null,
                 complimentaryState: new ComplimentaryState(
                     () => sf.Parameter,
                     _settings.LeaseLength.Ticks

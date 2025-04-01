@@ -231,6 +231,8 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         byte[]? result, 
         long timestamp,
         int expectedEpoch, 
+        IReadOnlyList<StoredEffect>? effects,
+        IReadOnlyList<StoredMessage>? messages,
         ComplimentaryState complimentaryState)
     {
         lock (_sync)
@@ -254,6 +256,8 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         long timestamp,
         bool ignoreInterrupted,
         int expectedEpoch, 
+        IReadOnlyList<StoredEffect>? effects,
+        IReadOnlyList<StoredMessage>? messages,
         ComplimentaryState complimentaryState)
     {
         lock (_sync)
@@ -279,6 +283,8 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         StoredException storedException, 
         long timestamp,
         int expectedEpoch, 
+        IReadOnlyList<StoredEffect>? effects,
+        IReadOnlyList<StoredMessage>? messages,
         ComplimentaryState complimentaryState)
     {
         lock (_sync)
@@ -300,6 +306,8 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         StoredId storedId, 
         long timestamp,
         int expectedEpoch, 
+        IReadOnlyList<StoredEffect>? effects,
+        IReadOnlyList<StoredMessage>? messages,
         ComplimentaryState complimentaryState)
     {
         lock (_sync)

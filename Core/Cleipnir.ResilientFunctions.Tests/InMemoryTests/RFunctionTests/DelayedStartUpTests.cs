@@ -110,6 +110,8 @@ public class DelayedStartUpTests
             timestamp: DateTime.UtcNow.Ticks,
             ignoreInterrupted: true,
             expectedEpoch: 0,
+            effects: null,
+            messages: null,
             complimentaryState: new ComplimentaryState(storedParameter.ToUtf8Bytes().ToFunc(), LeaseLength: 0)
         ).ShouldBeTrueAsync();
         
@@ -148,6 +150,8 @@ public class DelayedStartUpTests
             timestamp: DateTime.UtcNow.Ticks,
             ignoreInterrupted: true,
             expectedEpoch: 0,
+            effects: null,
+            messages: null,
             new ComplimentaryState(storedParameter.ToFunc(), LeaseLength: 0)
         );
 

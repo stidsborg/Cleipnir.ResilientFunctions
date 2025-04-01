@@ -691,6 +691,8 @@ public abstract class PostponedTests
             timestamp: DateTime.UtcNow.Ticks,
             ignoreInterrupted: false,
             expectedEpoch: 0,
+            effects: null,
+            messages: null,
             complimentaryState: new ComplimentaryState(storedParameter.ToUtf8Bytes().ToFunc(), LeaseLength: 0)
         ).ShouldBeTrueAsync();
         

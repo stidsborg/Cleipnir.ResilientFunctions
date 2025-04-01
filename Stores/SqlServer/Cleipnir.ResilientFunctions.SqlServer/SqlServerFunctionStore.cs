@@ -395,6 +395,8 @@ public class SqlServerFunctionStore : IFunctionStore
         byte[]? result, 
         long timestamp,
         int expectedEpoch, 
+        IReadOnlyList<StoredEffect>? effects,
+        IReadOnlyList<StoredMessage>? messages,
         ComplimentaryState complimentaryState)
     {
         await using var conn = await _connFunc();
@@ -417,6 +419,8 @@ public class SqlServerFunctionStore : IFunctionStore
         long timestamp,
         bool ignoreInterrupted,
         int expectedEpoch, 
+        IReadOnlyList<StoredEffect>? effects,
+        IReadOnlyList<StoredMessage>? messages,
         ComplimentaryState complimentaryState)
     {
         await using var conn = await _connFunc();
@@ -438,9 +442,10 @@ public class SqlServerFunctionStore : IFunctionStore
         StoredException storedException, 
         long timestamp,
         int expectedEpoch, 
+        IReadOnlyList<StoredEffect>? effects,
+        IReadOnlyList<StoredMessage>? messages,
         ComplimentaryState complimentaryState)
     {
-        
         await using var conn = await _connFunc();
         await using var command = _sqlGenerator
             .FailFunction(
@@ -459,7 +464,9 @@ public class SqlServerFunctionStore : IFunctionStore
     public async Task<bool> SuspendFunction(
         StoredId storedId, 
         long timestamp,
-        int expectedEpoch, 
+        int expectedEpoch,
+        IReadOnlyList<StoredEffect>? effects,
+        IReadOnlyList<StoredMessage>? messages,
         ComplimentaryState complimentaryState)
     {
         await using var conn = await _connFunc();

@@ -345,6 +345,8 @@ public class MariaDbFunctionStore : IFunctionStore
         byte[]? result, 
         long timestamp,
         int expectedEpoch, 
+        IReadOnlyList<StoredEffect>? effects,
+        IReadOnlyList<StoredMessage>? messages,
         ComplimentaryState complimentaryState)
     {
         await using var conn = await CreateOpenConnection(_connectionString);
@@ -362,6 +364,8 @@ public class MariaDbFunctionStore : IFunctionStore
         long timestamp,
         bool ignoreInterrupted,
         int expectedEpoch, 
+        IReadOnlyList<StoredEffect>? effects,
+        IReadOnlyList<StoredMessage>? messages,
         ComplimentaryState complimentaryState)
     {
         await using var conn = await CreateOpenConnection(_connectionString);
@@ -378,6 +382,8 @@ public class MariaDbFunctionStore : IFunctionStore
         StoredException storedException, 
         long timestamp,
         int expectedEpoch, 
+        IReadOnlyList<StoredEffect>? effects,
+        IReadOnlyList<StoredMessage>? messages,
         ComplimentaryState complimentaryState)
     {
         await using var conn = await CreateOpenConnection(_connectionString);
@@ -393,6 +399,8 @@ public class MariaDbFunctionStore : IFunctionStore
         StoredId storedId, 
         long timestamp,
         int expectedEpoch, 
+        IReadOnlyList<StoredEffect>? effects,
+        IReadOnlyList<StoredMessage>? messages,
         ComplimentaryState complimentaryState)
     {
         await using var conn = await CreateOpenConnection(_connectionString);

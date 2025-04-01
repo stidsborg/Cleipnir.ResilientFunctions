@@ -66,9 +66,11 @@ public class LeaseUpdaterTestFunctionStore : IFunctionStore
         StoredId storedId, 
         byte[]? result, 
         long timestamp, 
-        int expectedEpoch, 
+        int expectedEpoch,
+        IReadOnlyList<StoredEffect>? effects,
+        IReadOnlyList<StoredMessage>? messages,
         ComplimentaryState complimentaryState
-    ) => _inner.SucceedFunction(storedId, result, timestamp, expectedEpoch, complimentaryState);
+    ) => _inner.SucceedFunction(storedId, result, timestamp, expectedEpoch, effects, messages, complimentaryState);
 
     public Task<bool> PostponeFunction(
         StoredId storedId,
@@ -76,23 +78,29 @@ public class LeaseUpdaterTestFunctionStore : IFunctionStore
         long timestamp,
         bool ignoreInterrupted,
         int expectedEpoch,
+        IReadOnlyList<StoredEffect>? effects,
+        IReadOnlyList<StoredMessage>? messages,
         ComplimentaryState complimentaryState
-    ) => _inner.PostponeFunction(storedId, postponeUntil, timestamp, ignoreInterrupted, expectedEpoch, complimentaryState);
+    ) => _inner.PostponeFunction(storedId, postponeUntil, timestamp, ignoreInterrupted, expectedEpoch, effects, messages, complimentaryState);
 
     public Task<bool> FailFunction(
         StoredId storedId, 
         StoredException storedException, 
         long timestamp,
         int expectedEpoch, 
+        IReadOnlyList<StoredEffect>? effects,
+        IReadOnlyList<StoredMessage>? messages,
         ComplimentaryState complimentaryState
-    ) => _inner.FailFunction(storedId, storedException, timestamp, expectedEpoch, complimentaryState);
+    ) => _inner.FailFunction(storedId, storedException, timestamp, expectedEpoch, effects, messages, complimentaryState);
 
     public Task<bool> SuspendFunction(
         StoredId storedId,
         long timestamp,
         int expectedEpoch,
+        IReadOnlyList<StoredEffect>? effects,
+        IReadOnlyList<StoredMessage>? messages,
         ComplimentaryState complimentaryState
-    ) => _inner.SuspendFunction(storedId, timestamp, expectedEpoch, complimentaryState);
+    ) => _inner.SuspendFunction(storedId, timestamp, expectedEpoch, effects, messages, complimentaryState);
 
     public Task<bool> Interrupt(StoredId storedId, bool onlyIfExecuting)
         => _inner.Interrupt(storedId, onlyIfExecuting);

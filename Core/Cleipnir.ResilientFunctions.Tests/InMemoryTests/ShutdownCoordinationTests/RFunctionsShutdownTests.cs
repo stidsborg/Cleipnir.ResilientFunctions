@@ -183,6 +183,8 @@ public class RFunctionsShutdownTests
             timestamp: DateTime.UtcNow.Ticks,
             ignoreInterrupted: true,
             expectedEpoch: 0,
+            effects: null,
+            messages: null,
             new ComplimentaryState(() => storedParameter.ToUtf8Bytes(), LeaseLength: 0)
         ).ShouldBeTrueAsync();
 
