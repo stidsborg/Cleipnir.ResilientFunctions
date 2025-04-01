@@ -259,9 +259,6 @@ public class SqlServerFunctionStore : IFunctionStore
             .ToSqlCommand(conn);
         
         await using var reader = await command.ExecuteReaderAsync();
-        if (reader.RecordsAffected != 1)
-            return null;
-        
         var sf = _sqlGenerator.ReadToStoredFlow(storedId, reader);
         if (sf?.Epoch != expectedEpoch + 1)
             return null;

@@ -367,20 +367,17 @@ public class SqlGenerator(string tablePrefix)
                 Status = {(int)Status.Executing}, 
                 Expires = @LeaseExpiration,
                 Interrupted = 0
-            WHERE FlowType = @FlowType AND FlowInstance = @FlowInstance AND Epoch = @ExpectedEpoch;
-
-            SELECT ParamJson,                
-                   Status,
-                   ResultJson, 
-                   ExceptionJson,                   
-                   Expires,
-                   Epoch,
-                   Interrupted,
-                   Timestamp,
-                   HumanInstanceId,
-                   Parent
-            FROM {tablePrefix}
-            WHERE FlowType = @FlowType AND FlowInstance = @FlowInstance";
+            OUTPUT inserted.ParamJson,                
+                   inserted.Status,
+                   inserted.ResultJson, 
+                   inserted.ExceptionJson,                   
+                   inserted.Expires,
+                   inserted.Epoch,
+                   inserted.Interrupted,
+                   inserted.Timestamp,
+                   inserted.HumanInstanceId,
+                   inserted.Parent
+            WHERE FlowType = @FlowType AND FlowInstance = @FlowInstance AND Epoch = @ExpectedEpoch;";
 
         var storeCommand = StoreCommand.Create(_restartExecutionSql);
         storeCommand.AddParameter("@LeaseExpiration", leaseExpiration);
