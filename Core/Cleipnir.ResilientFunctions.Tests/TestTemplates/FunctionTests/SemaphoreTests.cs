@@ -174,8 +174,10 @@ public abstract class SemaphoreTests
         }
         catch (Exception)
         {
-            await firstFlowTask;
-            await secondFlowTask;
+            if (firstFlowTask.IsFaulted)
+                await firstFlowTask;
+            if (secondFlowTask.IsFaulted) 
+                await secondFlowTask;
 
             throw;
         }
