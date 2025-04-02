@@ -382,7 +382,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         IReadOnlyList<StoredMessage>? messages,
         ComplimentaryState complimentaryState)
     {
-        var suspendCommand = _sqlGenerator.SucceedFunction(storedId, result, timestamp, expectedEpoch);
+        var succeedCommand = _sqlGenerator.SucceedFunction(storedId, result, timestamp, expectedEpoch);
         var effectsCommand = effects == null
             ? []
             : _sqlGenerator.UpdateEffects(effects);
@@ -393,7 +393,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         if (effects == null && messages == null)
         {
             await using var conn = await CreateConnection();
-            await using var command = suspendCommand.ToNpgsqlCommand(conn);
+            await using var command = succeedCommand.ToNpgsqlCommand(conn);
             var affectedRows = await command.ExecuteNonQueryAsync();
             return affectedRows == 1; 
         }
@@ -402,7 +402,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
             await using var conn = await CreateConnection();
             await using var command = effectsCommand
                 .Concat(messagesCommand)
-                .Append(suspendCommand)
+                .Append(succeedCommand)
                 .CreateBatch(conn);
             
             var affectedRows = await command.ExecuteNonQueryAsync();
@@ -420,7 +420,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         IReadOnlyList<StoredMessage>? messages,
         ComplimentaryState complimentaryState)
     {
-        var suspendCommand = _sqlGenerator.PostponeFunction(
+        var postponeCommand = _sqlGenerator.PostponeFunction(
             storedId,
             postponeUntil,
             timestamp,
@@ -437,7 +437,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         if (effects == null && messages == null)
         {
             await using var conn = await CreateConnection();
-            await using var command = suspendCommand.ToNpgsqlCommand(conn);
+            await using var command = postponeCommand.ToNpgsqlCommand(conn);
             var affectedRows = await command.ExecuteNonQueryAsync();
             return affectedRows == 1; 
         }
@@ -446,7 +446,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
             await using var conn = await CreateConnection();
             await using var command = effectsCommand
                 .Concat(messagesCommand)
-                .Append(suspendCommand)
+                .Append(postponeCommand)
                 .CreateBatch(conn);
             
             var affectedRows = await command.ExecuteNonQueryAsync();
@@ -463,7 +463,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         IReadOnlyList<StoredMessage>? messages,
         ComplimentaryState complimentaryState)
     {
-        var suspendCommand = _sqlGenerator.FailFunction(
+        var failCommand = _sqlGenerator.FailFunction(
             storedId,
             storedException,
             timestamp,
@@ -479,7 +479,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         if (effects == null && messages == null)
         {
             await using var conn = await CreateConnection();
-            await using var command = suspendCommand.ToNpgsqlCommand(conn);
+            await using var command = failCommand.ToNpgsqlCommand(conn);
             var affectedRows = await command.ExecuteNonQueryAsync();
             return affectedRows == 1; 
         }
@@ -488,7 +488,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
             await using var conn = await CreateConnection();
             await using var command = effectsCommand
                 .Concat(messagesCommand)
-                .Append(suspendCommand)
+                .Append(failCommand)
                 .CreateBatch(conn);
             
             var affectedRows = await command.ExecuteNonQueryAsync();
