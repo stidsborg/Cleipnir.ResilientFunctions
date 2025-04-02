@@ -409,7 +409,7 @@ internal class InvocationHelper<TParam, TReturn>
         ScheduleReInvocation scheduleReInvocation, 
         Func<bool> isWorkflowRunning, 
         Effect effect,
-        IReadOnlyList<StoredMessage> initialMessages)
+        IReadOnlyList<StoredMessage>? initialMessages)
     {
         var messageWriter = new MessageWriter(storedId, _functionStore, Serializer, scheduleReInvocation);
         var registeredTimeouts = new RegisteredTimeouts(storedId, _functionStore.TimeoutStore, effect);

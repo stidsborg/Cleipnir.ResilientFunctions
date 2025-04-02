@@ -238,7 +238,7 @@ public class Invoker<TParam, TReturn>
                 ScheduleRestart, 
                 isWorkflowRunning: () => !isWorkflowRunningDisposable.Disposed,
                 effect,
-                initialState == null ? [] : _invocationHelper.MapInitialMessages(initialState.Messages)
+                initialState == null ? null : _invocationHelper.MapInitialMessages(initialState.Messages)
             );
             
             var correlations = _invocationHelper.CreateCorrelations(flowId);
