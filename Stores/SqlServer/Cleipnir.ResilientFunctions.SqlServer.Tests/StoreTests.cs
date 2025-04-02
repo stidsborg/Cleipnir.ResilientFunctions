@@ -255,4 +255,16 @@ public class StoreTests : ResilientFunctions.Tests.TestTemplates.StoreTests
     [TestMethod]
     public override Task EffectsOnlyArePersistedOnPostponeFunction()
         => EffectsOnlyArePersistedOnPostponeFunction(FunctionStoreFactory.Create());
+    
+    [TestMethod]
+    public override Task EffectsAndMessagesArePersistedOnFailFunction()
+        => EffectsAndMessagesArePersistedOnFailFunction(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task MessagesOnlyArePersistedOnFailFunction()
+        => MessagesOnlyArePersistedOnFailFunction(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task EffectsOnlyArePersistedOnFailFunction()
+        => EffectsOnlyArePersistedOnFailFunction(FunctionStoreFactory.Create());
 }

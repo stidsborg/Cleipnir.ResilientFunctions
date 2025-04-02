@@ -1962,7 +1962,6 @@ public abstract class StoreTests
         );
     }
     
-    //
     public abstract Task EffectsAndMessagesArePersistedOnPostponeFunction();
     protected async Task EffectsAndMessagesArePersistedOnPostponeFunction(Task<IFunctionStore> storeTask)
     {
@@ -2016,6 +2015,67 @@ public abstract class StoreTests
                     postponeUntil: 0,
                     timestamp: DateTime.UtcNow.Ticks,
                     ignoreInterrupted: false,
+                    expectedEpoch: 0,
+                    effects,
+                    messages,
+                    complimentaryState
+                ),
+            effects: true,
+            messages: false
+        );
+    } 
+    
+    //
+    public abstract Task EffectsAndMessagesArePersistedOnFailFunction();
+    protected async Task EffectsAndMessagesArePersistedOnFailFunction(Task<IFunctionStore> storeTask)
+    {
+        await SharedEffectsAndMessagesArePersistedOnFunctionPersist(
+            storeTask,
+            storeFunc: (store, id, effects, messages, complimentaryState) =>
+                store.FailFunction(
+                    id,
+                    new StoredException("SomeMessage", "SomeStackTrace", "SomeExceptionType"),
+                    timestamp: DateTime.UtcNow.Ticks,
+                    expectedEpoch: 0,
+                    effects,
+                    messages,
+                    complimentaryState
+                ),
+            effects: true,
+            messages: true
+        );
+    }
+    
+    public abstract Task MessagesOnlyArePersistedOnFailFunction();
+    protected async Task MessagesOnlyArePersistedOnFailFunction(Task<IFunctionStore> storeTask)
+    {
+        await SharedEffectsAndMessagesArePersistedOnFunctionPersist(
+            storeTask,
+            storeFunc: (store, id, effects, messages, complimentaryState) =>
+                store.FailFunction(
+                    id,
+                    new StoredException("SomeMessage", "SomeStackTrace", "SomeExceptionType"),
+                    timestamp: DateTime.UtcNow.Ticks,
+                    expectedEpoch: 0,
+                    effects,
+                    messages,
+                    complimentaryState
+                ),
+            effects: false,
+            messages: true
+        );
+    }
+    
+    public abstract Task EffectsOnlyArePersistedOnFailFunction();
+    protected async Task EffectsOnlyArePersistedOnFailFunction(Task<IFunctionStore> storeTask)
+    {
+        await SharedEffectsAndMessagesArePersistedOnFunctionPersist(
+            storeTask,
+            storeFunc: (store, id, effects, messages, complimentaryState) =>
+                store.FailFunction(
+                    id,
+                    new StoredException("SomeMessage", "SomeStackTrace", "SomeExceptionType"),
+                    timestamp: DateTime.UtcNow.Ticks,
                     expectedEpoch: 0,
                     effects,
                     messages,
