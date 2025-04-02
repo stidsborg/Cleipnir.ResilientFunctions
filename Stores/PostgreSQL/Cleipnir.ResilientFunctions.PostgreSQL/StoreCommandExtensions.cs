@@ -40,6 +40,15 @@ internal static class StoreCommands
         return batch;
     }
     
+    public static NpgsqlBatch CreateBatch(this IEnumerable<StoreCommand> commands, NpgsqlConnection conn)
+    {
+        var batch = new NpgsqlBatch(conn);
+        foreach (var command in commands)
+            batch.BatchCommands.Add(command.ToNpgsqlBatchCommand());
+
+        return batch;
+    }
+    
     public static NpgsqlBatch WithConnection(this NpgsqlBatch batch, NpgsqlConnection conn)
     {
         batch.Connection = conn;

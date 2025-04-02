@@ -71,7 +71,7 @@ public class MariaDbEffectsStore(string connectionString, SqlGenerator sqlGenera
         
         await using var conn = await CreateConnection();
         await using var command = sqlGenerator
-            .UpdateEffects(changes)!
+            .UpsertEffects(changes)
             .ToSqlCommand(conn);
         
         await command.ExecuteNonQueryAsync();
