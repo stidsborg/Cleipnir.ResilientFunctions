@@ -1845,8 +1845,8 @@ public abstract class StoreTests
         messages.Count.ShouldBe(0);
     }
     
-    public abstract Task EffectAndMessagesArePersistedOnSuspendFunction();
-    protected async Task EffectAndMessagesArePersistedOnSuspendFunction(Task<IFunctionStore> storeTask)
+    public abstract Task EffectsAndMessagesArePersistedOnSuspendFunction();
+    protected async Task EffectsAndMessagesArePersistedOnSuspendFunction(Task<IFunctionStore> storeTask)
     {
         var storedId = TestStoredId.Create();
         
@@ -1874,7 +1874,7 @@ public abstract class StoreTests
         var storedMessages = new List<StoredMessage>
         {
             new("Hallo".ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes()),
-            new("Hallo".ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes())
+            new("World".ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes())
         };
 
         await store.SuspendFunction(
@@ -1888,7 +1888,102 @@ public abstract class StoreTests
         
         var fetchedEffects = await store.EffectsStore.GetEffectResults(storedId);
         fetchedEffects.Count.ShouldBe(2);
+        var fetchedEffect1 = fetchedEffects.Single(s => s.EffectId == effectId1);
+        fetchedEffect1.Result!.ToStringFromUtf8Bytes().ShouldBe("Hallo");
+        var fetchedEffect2 = fetchedEffects.Single(s => s.EffectId == effectId2);
+        fetchedEffect2.Result!.ToStringFromUtf8Bytes().ShouldBe("World");
+        
         var fetchedMessages = await store.MessageStore.GetMessages(storedId, skip: 0);
         fetchedMessages.Count.ShouldBe(2);
+        fetchedMessages[0].MessageContent.ToStringFromUtf8Bytes().ShouldBe("Hallo");
+        fetchedMessages[1].MessageContent.ToStringFromUtf8Bytes().ShouldBe("World");
+    }
+    
+    public abstract Task MessagesOnlyArePersistedOnSuspendFunction();
+    protected async Task MessagesOnlyArePersistedOnSuspendFunction(Task<IFunctionStore> storeTask)
+    {
+        var storedId = TestStoredId.Create();
+        
+        var store = await storeTask;
+        var paramJson = PARAM.ToJson();
+
+        await store.CreateFunction(
+            storedId, 
+            "humanInstanceId",
+            paramJson.ToUtf8Bytes(), 
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks,
+            parent: null
+        ).ShouldBeTrueAsync();
+        
+        var storedMessages = new List<StoredMessage>
+        {
+            new("Hallo".ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes()),
+            new("World".ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes())
+        };
+
+        await store.SuspendFunction(
+            storedId,
+            timestamp: DateTime.UtcNow.Ticks,
+            expectedEpoch: 0,
+            effects: null,
+            storedMessages,
+            complimentaryState: new ComplimentaryState(() => null, LeaseLength: 0)
+        ).ShouldBeTrueAsync();
+        
+        var fetchedEffects = await store.EffectsStore.GetEffectResults(storedId);
+        fetchedEffects.Count.ShouldBe(0);
+        
+        var fetchedMessages = await store.MessageStore.GetMessages(storedId, skip: 0);
+        fetchedMessages.Count.ShouldBe(2);
+        fetchedMessages[0].MessageContent.ToStringFromUtf8Bytes().ShouldBe("Hallo");
+        fetchedMessages[1].MessageContent.ToStringFromUtf8Bytes().ShouldBe("World");
+    }
+    
+    public abstract Task EffectsOnlyArePersistedOnSuspendFunction();
+    protected async Task EffectsOnlyArePersistedOnSuspendFunction(Task<IFunctionStore> storeTask)
+    {
+        var storedId = TestStoredId.Create();
+        
+        var store = await storeTask;
+        var paramJson = PARAM.ToJson();
+
+        await store.CreateFunction(
+            storedId, 
+            "humanInstanceId",
+            paramJson.ToUtf8Bytes(), 
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks,
+            parent: null
+        ).ShouldBeTrueAsync();
+
+        var effectId1 = new EffectId("EffectId#1", EffectType.Effect, Context: "");
+        var effectId2 = new EffectId("EffectId#2", EffectType.Effect, Context: "");
+        var storedEffects = new List<StoredEffectChange>
+        {
+            new(storedId, effectId1.ToStoredEffectId(), CrudOperation.Insert, new StoredEffect(effectId1, effectId1.ToStoredEffectId(), WorkStatus.Completed, Result: "Hallo".ToUtf8Bytes(), StoredException: null)),
+            new(storedId, effectId2.ToStoredEffectId(), CrudOperation.Insert, new StoredEffect(effectId2, effectId2.ToStoredEffectId(), WorkStatus.Completed, Result: "World".ToUtf8Bytes(), StoredException: null)),
+        };
+
+        await store.SuspendFunction(
+            storedId,
+            timestamp: DateTime.UtcNow.Ticks,
+            expectedEpoch: 0,
+            storedEffects,
+            messages: null,
+            complimentaryState: new ComplimentaryState(() => null, LeaseLength: 0)
+        ).ShouldBeTrueAsync();
+        
+        var fetchedEffects = await store.EffectsStore.GetEffectResults(storedId);
+        fetchedEffects.Count.ShouldBe(2);
+        var fetchedEffect1 = fetchedEffects.Single(s => s.EffectId == effectId1);
+        fetchedEffect1.Result!.ToStringFromUtf8Bytes().ShouldBe("Hallo");
+        var fetchedEffect2 = fetchedEffects.Single(s => s.EffectId == effectId2);
+        fetchedEffect2.Result!.ToStringFromUtf8Bytes().ShouldBe("World");
+        
+        var fetchedMessages = await store.MessageStore.GetMessages(storedId, skip: 0);
+        fetchedMessages.Count.ShouldBe(0);
     }
 }
