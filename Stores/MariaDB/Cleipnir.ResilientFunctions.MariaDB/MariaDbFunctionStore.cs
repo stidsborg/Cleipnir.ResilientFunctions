@@ -349,7 +349,7 @@ public class MariaDbFunctionStore : IFunctionStore
         IReadOnlyList<StoredMessage>? messages,
         ComplimentaryState complimentaryState)
     {
-        var suspendCommand = _sqlGenerator.SucceedFunction(storedId, result, timestamp, expectedEpoch);
+        var succeedCommand = _sqlGenerator.SucceedFunction(storedId, result, timestamp, expectedEpoch);
         var effectsCommand = effects == null
             ? null
             : _sqlGenerator.UpsertEffects(effects);
@@ -360,14 +360,14 @@ public class MariaDbFunctionStore : IFunctionStore
         await using var conn = await CreateOpenConnection(_connectionString);
         if (effects == null && messages == null)
         {
-            await using var command = suspendCommand.ToSqlCommand(conn);
+            await using var command = succeedCommand.ToSqlCommand(conn);
             var affectedRows = await command.ExecuteNonQueryAsync();
             return affectedRows == 1;            
         }
         else
         {
             await using var command = StoreCommand.Merge(
-                messagesCommand.Append(effectsCommand).Append(suspendCommand)
+                messagesCommand.Append(effectsCommand).Append(succeedCommand)
             )!.ToSqlCommand(conn);
             var affectedRows = await command.ExecuteNonQueryAsync();
             return affectedRows == 1 + (effects?.Count ?? 0) + (messages?.Count ?? 0);            
@@ -384,7 +384,7 @@ public class MariaDbFunctionStore : IFunctionStore
         IReadOnlyList<StoredMessage>? messages,
         ComplimentaryState complimentaryState)
     {
-        var suspendCommand = _sqlGenerator
+        var postponeCommand = _sqlGenerator
             .PostponeFunction(storedId, postponeUntil, timestamp, ignoreInterrupted, expectedEpoch);
         var effectsCommand = effects == null
             ? null
@@ -396,14 +396,14 @@ public class MariaDbFunctionStore : IFunctionStore
         await using var conn = await CreateOpenConnection(_connectionString);
         if (effects == null && messages == null)
         {
-            await using var command = suspendCommand.ToSqlCommand(conn);
+            await using var command = postponeCommand.ToSqlCommand(conn);
             var affectedRows = await command.ExecuteNonQueryAsync();
             return affectedRows == 1;            
         }
         else
         {
             await using var command = StoreCommand.Merge(
-                messagesCommand.Append(effectsCommand).Append(suspendCommand)
+                messagesCommand.Append(effectsCommand).Append(postponeCommand)
             )!.ToSqlCommand(conn);
             var affectedRows = await command.ExecuteNonQueryAsync();
             return affectedRows == 1 + (effects?.Count ?? 0) + (messages?.Count ?? 0);            
