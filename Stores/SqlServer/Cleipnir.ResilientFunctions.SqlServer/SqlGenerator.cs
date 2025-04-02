@@ -426,6 +426,33 @@ public class SqlGenerator(string tablePrefix)
 
         return default;
     }
+
+    private string? _appendMessageSql;
+    public StoreCommand AppendMessage(StoredId storedId, StoredMessage storedMessage, string paramPrefix)
+    {
+        _appendMessageSql ??= @$"    
+            INSERT INTO {tablePrefix}_Messages
+                (FlowType, FlowInstance, Position, MessageJson, MessageType, IdempotencyKey)
+            VALUES ( 
+                @FlowType, 
+                @FlowInstance, 
+                (SELECT COALESCE(MAX(position), -1) + 1 FROM {tablePrefix}_Messages WHERE FlowType = @FlowType AND FlowInstance = @FlowInstance), 
+                @MessageJson, @MessageType, @IdempotencyKey
+            );";
+
+        var sql = _appendMessageSql;
+        if (paramPrefix != "")
+            sql = sql.Replace("@", $"@{paramPrefix}");
+        
+        var command = StoreCommand.Create(sql);
+        command.AddParameter($"@{paramPrefix}FlowType", storedId.Type.Value);
+        command.AddParameter($"@{paramPrefix}FlowInstance", storedId.Instance.Value);
+        command.AddParameter($"@{paramPrefix}MessageJson", storedMessage.MessageContent);
+        command.AddParameter($"@{paramPrefix}MessageType", storedMessage.MessageType);
+        command.AddParameter($"@{paramPrefix}IdempotencyKey", storedMessage.IdempotencyKey ?? (object)DBNull.Value);
+        
+        return command;
+    }
     
     public StoreCommand? AppendMessages(IReadOnlyList<StoredIdAndMessageWithPosition> messages, bool interrupt, string prefix = "")
     {

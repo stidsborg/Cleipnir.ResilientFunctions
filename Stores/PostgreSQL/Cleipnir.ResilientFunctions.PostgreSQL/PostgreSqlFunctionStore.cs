@@ -378,7 +378,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         byte[]? result, 
         long timestamp,
         int expectedEpoch, 
-        IReadOnlyList<StoredEffect>? effects,
+        IReadOnlyList<StoredEffectChange>? effects,
         IReadOnlyList<StoredMessage>? messages,
         ComplimentaryState complimentaryState)
     {
@@ -400,7 +400,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         long timestamp,
         bool ignoreInterrupted,
         int expectedEpoch, 
-        IReadOnlyList<StoredEffect>? effects,
+        IReadOnlyList<StoredEffectChange>? effects,
         IReadOnlyList<StoredMessage>? messages,
         ComplimentaryState complimentaryState)
     {
@@ -422,7 +422,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         StoredException storedException, 
         long timestamp,
         int expectedEpoch, 
-        IReadOnlyList<StoredEffect>? effects,
+        IReadOnlyList<StoredEffectChange>? effects,
         IReadOnlyList<StoredMessage>? messages,
         ComplimentaryState complimentaryState)
     {
@@ -442,7 +442,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         StoredId storedId, 
         long timestamp,
         int expectedEpoch, 
-        IReadOnlyList<StoredEffect>? effects,
+        IReadOnlyList<StoredEffectChange>? effects,
         IReadOnlyList<StoredMessage>? messages,
         ComplimentaryState complimentaryState)
     {

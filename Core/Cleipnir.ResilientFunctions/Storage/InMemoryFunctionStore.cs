@@ -231,7 +231,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         byte[]? result, 
         long timestamp,
         int expectedEpoch, 
-        IReadOnlyList<StoredEffect>? effects,
+        IReadOnlyList<StoredEffectChange>? effects,
         IReadOnlyList<StoredMessage>? messages,
         ComplimentaryState complimentaryState)
     {
@@ -256,7 +256,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         long timestamp,
         bool ignoreInterrupted,
         int expectedEpoch, 
-        IReadOnlyList<StoredEffect>? effects,
+        IReadOnlyList<StoredEffectChange>? effects,
         IReadOnlyList<StoredMessage>? messages,
         ComplimentaryState complimentaryState)
     {
@@ -283,7 +283,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         StoredException storedException, 
         long timestamp,
         int expectedEpoch, 
-        IReadOnlyList<StoredEffect>? effects,
+        IReadOnlyList<StoredEffectChange>? effects,
         IReadOnlyList<StoredMessage>? messages,
         ComplimentaryState complimentaryState)
     {
@@ -306,7 +306,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         StoredId storedId, 
         long timestamp,
         int expectedEpoch, 
-        IReadOnlyList<StoredEffect>? effects,
+        IReadOnlyList<StoredEffectChange>? effects,
         IReadOnlyList<StoredMessage>? messages,
         ComplimentaryState complimentaryState)
     {
@@ -314,7 +314,12 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         {
             if (!_states.ContainsKey(storedId))
                 return false.ToTask();
-
+            
+            if (effects != null)
+                _effectsStore.SetEffectResults(storedId, effects).Wait();
+            if (messages != null)
+                MessageStore.AppendMessages(messages.Select(msg => new StoredIdAndMessage(storedId, msg)).ToList(), interrupt: false).Wait();
+            
             var state = _states[storedId];
             if (state.Epoch != expectedEpoch)
                 return false.ToTask();

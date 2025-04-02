@@ -112,7 +112,7 @@ public class CrashableFunctionStore : IFunctionStore
         byte[]? result,
         long timestamp,
         int expectedEpoch,
-        IReadOnlyList<StoredEffect>? effects,
+        IReadOnlyList<StoredEffectChange>? effects,
         IReadOnlyList<StoredMessage>? messages,
         ComplimentaryState complimentaryState
     ) => _crashed
@@ -125,7 +125,7 @@ public class CrashableFunctionStore : IFunctionStore
         long timestamp,
         bool ignoreInterrupted,
         int expectedEpoch,
-        IReadOnlyList<StoredEffect>? effects,
+        IReadOnlyList<StoredEffectChange>? effects,
         IReadOnlyList<StoredMessage>? messages,
         ComplimentaryState complimentaryState
     )
@@ -144,7 +144,7 @@ public class CrashableFunctionStore : IFunctionStore
         StoredException storedException,
         long timestamp,
         int expectedEpoch,
-        IReadOnlyList<StoredEffect>? effects,
+        IReadOnlyList<StoredEffectChange>? effects,
         IReadOnlyList<StoredMessage>? messages,
         ComplimentaryState complimentaryState
     ) => _crashed
@@ -155,7 +155,7 @@ public class CrashableFunctionStore : IFunctionStore
         StoredId storedId, 
         long timestamp, 
         int expectedEpoch,
-        IReadOnlyList<StoredEffect>? effects,
+        IReadOnlyList<StoredEffectChange>? effects,
         IReadOnlyList<StoredMessage>? messages,
         ComplimentaryState complimentaryState)
         => _crashed
