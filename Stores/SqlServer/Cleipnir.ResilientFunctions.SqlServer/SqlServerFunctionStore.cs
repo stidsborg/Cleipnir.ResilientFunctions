@@ -432,18 +432,34 @@ public class SqlServerFunctionStore : IFunctionStore
         IReadOnlyList<StoredMessage>? messages,
         ComplimentaryState complimentaryState)
     {
-        await using var conn = await _connFunc();
-        await using var command = _sqlGenerator.PostponeFunction(
+        var suspendCommand = _sqlGenerator.PostponeFunction(
             storedId,
             postponeUntil,
             timestamp,
             ignoreInterrupted,
             expectedEpoch,
-            paramPrefix: ""
-        ).ToSqlCommand(conn);
+            paramPrefix: "Postpone"
+        );
+        var effectCommand = effects == null
+            ? null
+            : _sqlGenerator.UpdateEffects(effects, paramPrefix: "Effect");
+        
+        var messageCommands = Array.Empty<StoreCommand>();
 
+        if (messages != null)
+            messageCommands = messages
+                .Select((msg, i) => _sqlGenerator.AppendMessage(storedId, msg, $"Message{i}"))
+                .ToArray();
+
+        await using var conn = await _connFunc();
+        await using var command = (effectCommand == null && messageCommands.Length == 0
+                ? suspendCommand
+                : StoreCommand.Merge(messageCommands.Append(effectCommand).Append(suspendCommand))!
+            ).ToSqlCommand(conn);
+
+        var expectedAffectedRows = 1 + (effects?.Count ?? 0) + (messages?.Count ?? 0);
         var affectedRows = await command.ExecuteNonQueryAsync();
-        return affectedRows > 0;
+        return affectedRows == expectedAffectedRows;
     }
     
     public async Task<bool> FailFunction(

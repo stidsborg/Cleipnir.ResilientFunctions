@@ -384,13 +384,30 @@ public class MariaDbFunctionStore : IFunctionStore
         IReadOnlyList<StoredMessage>? messages,
         ComplimentaryState complimentaryState)
     {
-        await using var conn = await CreateOpenConnection(_connectionString);
-        await using var command = _sqlGenerator
-            .PostponeFunction(storedId, postponeUntil, timestamp, ignoreInterrupted, expectedEpoch)
-            .ToSqlCommand(conn);
+        var suspendCommand = _sqlGenerator
+            .PostponeFunction(storedId, postponeUntil, timestamp, ignoreInterrupted, expectedEpoch);
+        var effectsCommand = effects == null
+            ? null
+            : _sqlGenerator.UpsertEffects(effects);
+        var messagesCommand = messages == null
+            ? []
+            : messages.Select(msg => _sqlGenerator.AppendMessage(storedId, msg));
         
-        var affectedRows = await command.ExecuteNonQueryAsync();
-        return affectedRows == 1;
+        await using var conn = await CreateOpenConnection(_connectionString);
+        if (effects == null && messages == null)
+        {
+            await using var command = suspendCommand.ToSqlCommand(conn);
+            var affectedRows = await command.ExecuteNonQueryAsync();
+            return affectedRows == 1;            
+        }
+        else
+        {
+            await using var command = StoreCommand.Merge(
+                messagesCommand.Append(effectsCommand).Append(suspendCommand)
+            )!.ToSqlCommand(conn);
+            var affectedRows = await command.ExecuteNonQueryAsync();
+            return affectedRows == 1 + (effects?.Count ?? 0) + (messages?.Count ?? 0);            
+        }
     }
     
     public async Task<bool> FailFunction(

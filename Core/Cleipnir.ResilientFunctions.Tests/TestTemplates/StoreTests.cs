@@ -1902,7 +1902,6 @@ public abstract class StoreTests
         );
     }
     
-    //
     public abstract Task EffectsAndMessagesArePersistedOnSucceededFunction();
     protected async Task EffectsAndMessagesArePersistedOnSucceededFunction(Task<IFunctionStore> storeTask)
     {
@@ -1953,6 +1952,70 @@ public abstract class StoreTests
                     id,
                     result: null,
                     DateTime.UtcNow.Ticks,
+                    expectedEpoch: 0,
+                    effects,
+                    messages,
+                    complimentaryState
+                ),
+            effects: true,
+            messages: false
+        );
+    }
+    
+    //
+    public abstract Task EffectsAndMessagesArePersistedOnPostponeFunction();
+    protected async Task EffectsAndMessagesArePersistedOnPostponeFunction(Task<IFunctionStore> storeTask)
+    {
+        await SharedEffectsAndMessagesArePersistedOnFunctionPersist(
+            storeTask,
+            storeFunc: (store, id, effects, messages, complimentaryState) =>
+                store.PostponeFunction(
+                    id,
+                    postponeUntil: 0,
+                    timestamp: DateTime.UtcNow.Ticks,
+                    ignoreInterrupted: false,
+                    expectedEpoch: 0,
+                    effects,
+                    messages,
+                    complimentaryState
+                ),
+            effects: true,
+            messages: true
+        );
+    }
+    
+    public abstract Task MessagesOnlyArePersistedOnPostponeFunction();
+    protected async Task MessagesOnlyArePersistedOnPostponeFunction(Task<IFunctionStore> storeTask)
+    {
+        await SharedEffectsAndMessagesArePersistedOnFunctionPersist(
+            storeTask,
+            storeFunc: (store, id, effects, messages, complimentaryState) =>
+                store.PostponeFunction(
+                    id,
+                    postponeUntil: 0,
+                    timestamp: DateTime.UtcNow.Ticks,
+                    ignoreInterrupted: false,
+                    expectedEpoch: 0,
+                    effects,
+                    messages,
+                    complimentaryState
+                ),
+            effects: false,
+            messages: true
+        );
+    }
+    
+    public abstract Task EffectsOnlyArePersistedOnPostponeFunction();
+    protected async Task EffectsOnlyArePersistedOnPostponeFunction(Task<IFunctionStore> storeTask)
+    {
+        await SharedEffectsAndMessagesArePersistedOnFunctionPersist(
+            storeTask,
+            storeFunc: (store, id, effects, messages, complimentaryState) =>
+                store.PostponeFunction(
+                    id,
+                    postponeUntil: 0,
+                    timestamp: DateTime.UtcNow.Ticks,
+                    ignoreInterrupted: false,
                     expectedEpoch: 0,
                     effects,
                     messages,
