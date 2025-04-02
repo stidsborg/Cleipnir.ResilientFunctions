@@ -242,6 +242,11 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
             var state = _states[storedId];
             if (state.Epoch != expectedEpoch) return false.ToTask();
 
+            if (effects != null)
+                _effectsStore.SetEffectResults(storedId, effects).Wait();
+            if (messages != null)
+                MessageStore.AppendMessages(messages.Select(msg => new StoredIdAndMessage(storedId, msg)).ToList(), interrupt: false).Wait();
+            
             state.Status = Status.Succeeded;
             state.Result = result;
             state.Timestamp = timestamp;

@@ -231,4 +231,16 @@ public class StoreTests : ResilientFunctions.Tests.TestTemplates.StoreTests
     [TestMethod]
     public override Task EffectsOnlyArePersistedOnSuspendFunction()
         => EffectsOnlyArePersistedOnSuspendFunction(FunctionStoreFactory.Create());
+    
+    [TestMethod]
+    public override Task EffectsAndMessagesArePersistedOnSucceededFunction()
+        => EffectsAndMessagesArePersistedOnSucceededFunction(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task MessagesOnlyArePersistedOnSucceedFunction()
+        => MessagesOnlyArePersistedOnSucceedFunction(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task EffectsOnlyArePersistedOnSucceedFunction()
+        => EffectsOnlyArePersistedOnSucceedFunction(FunctionStoreFactory.Create());
 }

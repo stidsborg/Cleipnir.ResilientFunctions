@@ -1864,6 +1864,105 @@ public abstract class StoreTests
         );
     }
     
+    public abstract Task MessagesOnlyArePersistedOnSuspendFunction();
+    protected async Task MessagesOnlyArePersistedOnSuspendFunction(Task<IFunctionStore> storeTask)
+    {
+        await SharedEffectsAndMessagesArePersistedOnFunctionPersist(
+            storeTask,
+            storeFunc: (store, id, effects, messages, complimentaryState) =>
+                store.SuspendFunction(
+                    id,
+                    DateTime.UtcNow.Ticks,
+                    expectedEpoch: 0,
+                    effects,
+                    messages,
+                    complimentaryState
+                ),
+            effects: false,
+            messages: true
+        );
+    }
+    
+    public abstract Task EffectsOnlyArePersistedOnSuspendFunction();
+    protected async Task EffectsOnlyArePersistedOnSuspendFunction(Task<IFunctionStore> storeTask)
+    {
+        await SharedEffectsAndMessagesArePersistedOnFunctionPersist(
+            storeTask,
+            storeFunc: (store, id, effects, messages, complimentaryState) =>
+                store.SuspendFunction(
+                    id,
+                    DateTime.UtcNow.Ticks,
+                    expectedEpoch: 0,
+                    effects,
+                    messages,
+                    complimentaryState
+                ),
+            effects: true,
+            messages: false
+        );
+    }
+    
+    //
+    public abstract Task EffectsAndMessagesArePersistedOnSucceededFunction();
+    protected async Task EffectsAndMessagesArePersistedOnSucceededFunction(Task<IFunctionStore> storeTask)
+    {
+        await SharedEffectsAndMessagesArePersistedOnFunctionPersist(
+            storeTask,
+            storeFunc: (store, id, effects, messages, complimentaryState) =>
+                store.SucceedFunction(
+                    id,
+                    result: null,
+                    DateTime.UtcNow.Ticks,
+                    expectedEpoch: 0,
+                    effects,
+                    messages,
+                    complimentaryState
+                ),
+            effects: true,
+            messages: true
+        );
+    }
+    
+    public abstract Task MessagesOnlyArePersistedOnSucceedFunction();
+    protected async Task MessagesOnlyArePersistedOnSucceedFunction(Task<IFunctionStore> storeTask)
+    {
+        await SharedEffectsAndMessagesArePersistedOnFunctionPersist(
+            storeTask,
+            storeFunc: (store, id, effects, messages, complimentaryState) =>
+                store.SucceedFunction(
+                    id,
+                    result: null,
+                    DateTime.UtcNow.Ticks,
+                    expectedEpoch: 0,
+                    effects,
+                    messages,
+                    complimentaryState
+                ),
+            effects: false,
+            messages: true
+        );
+    }
+    
+    public abstract Task EffectsOnlyArePersistedOnSucceedFunction();
+    protected async Task EffectsOnlyArePersistedOnSucceedFunction(Task<IFunctionStore> storeTask)
+    {
+        await SharedEffectsAndMessagesArePersistedOnFunctionPersist(
+            storeTask,
+            storeFunc: (store, id, effects, messages, complimentaryState) =>
+                store.SucceedFunction(
+                    id,
+                    result: null,
+                    DateTime.UtcNow.Ticks,
+                    expectedEpoch: 0,
+                    effects,
+                    messages,
+                    complimentaryState
+                ),
+            effects: true,
+            messages: false
+        );
+    }
+    
     private async Task SharedEffectsAndMessagesArePersistedOnFunctionPersist(
         Task<IFunctionStore> storeTask, 
         Func<IFunctionStore, StoredId, List<StoredEffectChange>?, List<StoredMessage>?, ComplimentaryState, Task<bool>> storeFunc,
@@ -1933,43 +2032,5 @@ public abstract class StoreTests
         {
             fetchedMessages.Count.ShouldBe(0);   
         }
-    }
-    
-    public abstract Task MessagesOnlyArePersistedOnSuspendFunction();
-    protected async Task MessagesOnlyArePersistedOnSuspendFunction(Task<IFunctionStore> storeTask)
-    {
-        await SharedEffectsAndMessagesArePersistedOnFunctionPersist(
-            storeTask,
-            storeFunc: (store, id, effects, messages, complimentaryState) =>
-                store.SuspendFunction(
-                    id,
-                    DateTime.UtcNow.Ticks,
-                    expectedEpoch: 0,
-                    effects,
-                    messages,
-                    complimentaryState
-                ),
-            effects: false,
-            messages: true
-        );
-    }
-    
-    public abstract Task EffectsOnlyArePersistedOnSuspendFunction();
-    protected async Task EffectsOnlyArePersistedOnSuspendFunction(Task<IFunctionStore> storeTask)
-    {
-        await SharedEffectsAndMessagesArePersistedOnFunctionPersist(
-            storeTask,
-            storeFunc: (store, id, effects, messages, complimentaryState) =>
-                store.SuspendFunction(
-                    id,
-                    DateTime.UtcNow.Ticks,
-                    expectedEpoch: 0,
-                    effects,
-                    messages,
-                    complimentaryState
-                ),
-            effects: true,
-            messages: false
-        );
     }
 }
