@@ -55,7 +55,7 @@ public class Invoker<TParam, TReturn>
         }
         finally{ disposables.Dispose(); }
 
-        await PersistResultAndEnsureSuccess(storedId, flowId, result, param, parent: null);
+        await PersistResultAndEnsureSuccess(storedId, flowId, result, param, parent: null, workflow);
         return result.SucceedWithValue!;
     }
 
@@ -90,7 +90,7 @@ public class Invoker<TParam, TReturn>
                 catch (Exception exception) { var fwe = FatalWorkflowException.CreateNonGeneric(flowId, exception); await PersistFailure(storedId, flowId, fwe, param, parent?.StoredId); throw fwe; }
                 finally{ disposables.Dispose(); }
 
-                await PersistResultAndEnsureSuccess(storedId, flowId, result, param, parent?.StoredId, allowPostponedOrSuspended: true);
+                await PersistResultAndEnsureSuccess(storedId, flowId, result, param, parent?.StoredId, workflow, allowPostponedOrSuspended: true);
             }
             catch (Exception exception) { _unhandledExceptionHandler.Invoke(_flowType, exception); }
         });
@@ -141,7 +141,7 @@ public class Invoker<TParam, TReturn>
         catch (Exception exception) { var fwe = FatalWorkflowException.CreateNonGeneric(flowId, exception); await PersistFailure(storedId, flowId, fwe, param, parent, epoch); throw fwe; }
         finally{ disposables.Dispose(); }
         
-        await PersistResultAndEnsureSuccess(storedId, flowId, result, param, parent, epoch);
+        await PersistResultAndEnsureSuccess(storedId, flowId, result, param, parent, workflow, epoch);
         return result.SucceedWithValue!;
     }
 
@@ -167,7 +167,7 @@ public class Invoker<TParam, TReturn>
                 catch (Exception exception) { var fwe = FatalWorkflowException.CreateNonGeneric(flowId, exception); await PersistFailure(storedId, flowId, fwe, param, parent, epoch); throw fwe; }
                 finally{ disposables.Dispose(); }
                 
-                await PersistResultAndEnsureSuccess(storedId, flowId, result, param, parent, epoch, allowPostponedOrSuspended: true);
+                await PersistResultAndEnsureSuccess(storedId, flowId, result, param, parent, workflow, epoch, allowPostponedOrSuspended: true);
             }
             catch (Exception exception) { _unhandledExceptionHandler.Invoke(_flowType, exception); }
         });
@@ -198,7 +198,7 @@ public class Invoker<TParam, TReturn>
                 catch (Exception exception) { var fwe = FatalWorkflowException.CreateNonGeneric(flowId, exception); await PersistFailure(storedId, flowId, fwe, param, parent, epoch); throw fwe; }
                 finally { disposables.Dispose(); }
                 
-                await PersistResultAndEnsureSuccess(storedId, flowId, result, param, parent, epoch, allowPostponedOrSuspended: true);
+                await PersistResultAndEnsureSuccess(storedId, flowId, result, param, parent, workflow, epoch, allowPostponedOrSuspended: true);
             }
             catch (Exception exception) { _unhandledExceptionHandler.Invoke(_flowType, exception); }
             finally{ onCompletion(); }
@@ -341,11 +341,11 @@ public class Invoker<TParam, TReturn>
         await _invocationHelper.PersistFailure(storedId, flowId, exception, param, parent, expectedEpoch);
     }
 
-    private async Task PersistResultAndEnsureSuccess(StoredId storedId, FlowId flowId, Result<TReturn> result, TParam param, StoredId? parent, int expectedEpoch = 0, bool allowPostponedOrSuspended = false)
+    private async Task PersistResultAndEnsureSuccess(StoredId storedId, FlowId flowId, Result<TReturn> result, TParam param, StoredId? parent, Workflow workflow, int expectedEpoch = 0, bool allowPostponedOrSuspended = false)
     {
         await _invocationHelper.PublishCompletionMessageToParent(parent, childId: flowId, result);
         
-        var outcome = await _invocationHelper.PersistResult(storedId, flowId, result, param, parent, expectedEpoch);
+        var outcome = await _invocationHelper.PersistResult(storedId, result, param, workflow, expectedEpoch);
         switch (outcome)
         {
             case PersistResultOutcome.Failed:

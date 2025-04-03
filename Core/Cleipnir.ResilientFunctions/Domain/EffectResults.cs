@@ -20,7 +20,14 @@ public class EffectResults
     private readonly ISerializer _serializer;
     private volatile bool _initialized;
 
-    private readonly Dictionary<EffectId, PendingEffectChange> _effectResults = new();
+    public Dictionary<EffectId, PendingEffectChange> PendingChanges { get; } = new();
+
+    private volatile bool _hasPendingChanges;
+    public bool HasPendingChanges
+    {
+        get => _hasPendingChanges;
+        private set => _hasPendingChanges = value;
+    }
         
     public EffectResults(
         FlowId flowId,
@@ -48,7 +55,7 @@ public class EffectResults
                 return;
 
             foreach (var existingEffect in existingEffects)
-                _effectResults[existingEffect.EffectId] =
+                PendingChanges[existingEffect.EffectId] =
                     new PendingEffectChange(
                         existingEffect.StoredEffectId,
                         existingEffect,
@@ -64,14 +71,14 @@ public class EffectResults
     {
         await InitializeIfRequired();
         lock (_sync)
-            return _effectResults.ContainsKey(effectId);
+            return PendingChanges.ContainsKey(effectId);
     }
 
     public async Task<StoredEffect?> GetOrValueDefault(EffectId effectId)
     {
         await InitializeIfRequired();
         lock (_sync)
-            return _effectResults.GetValueOrDefault(effectId)?.StoredEffect;
+            return PendingChanges.GetValueOrDefault(effectId)?.StoredEffect;
     }
 
     public async Task Set(StoredEffect storedEffect, bool flush)
@@ -91,7 +98,7 @@ public class EffectResults
         await InitializeIfRequired();
         lock (_sync)
         {
-            if (_effectResults.TryGetValue(effectId, out var existing) && existing.StoredEffect?.WorkStatus == WorkStatus.Completed)
+            if (PendingChanges.TryGetValue(effectId, out var existing) && existing.StoredEffect?.WorkStatus == WorkStatus.Completed)
                 return _serializer.Deserialize<T>(existing.StoredEffect.Result!);
             
             if (existing?.StoredEffect?.StoredException != null)
@@ -130,7 +137,7 @@ public class EffectResults
         
         lock (_sync)
         {
-            if (_effectResults.TryGetValue(effectId, out var change))
+            if (PendingChanges.TryGetValue(effectId, out var change))
             {
                 var storedEffect = change.StoredEffect;
                 if (storedEffect?.WorkStatus == WorkStatus.Completed)
@@ -156,7 +163,7 @@ public class EffectResults
         
         lock (_sync)
         {
-            var success = _effectResults.TryGetValue(effectId, out var pendingChange);
+            var success = PendingChanges.TryGetValue(effectId, out var pendingChange);
             var storedEffect = pendingChange?.StoredEffect;
             if (success && storedEffect?.WorkStatus == WorkStatus.Completed)
                 return;
@@ -236,7 +243,7 @@ public class EffectResults
         
         lock (_sync)
         {
-            var success = _effectResults.TryGetValue(effectId, out var storedEffect);
+            var success = PendingChanges.TryGetValue(effectId, out var storedEffect);
             if (success && storedEffect!.StoredEffect?.WorkStatus == WorkStatus.Completed)
                 return (storedEffect.StoredEffect?.Result == null ? default : _serializer.Deserialize<T>(storedEffect.StoredEffect?.Result!))!;
             if (success && storedEffect!.StoredEffect?.WorkStatus == WorkStatus.Failed)
@@ -320,7 +327,7 @@ public class EffectResults
         await InitializeIfRequired();
         
         lock (_sync)
-            if (!_effectResults.ContainsKey(effectId))
+            if (!PendingChanges.ContainsKey(effectId))
                 return;
         
         await FlushOrAddToPending(
@@ -335,10 +342,10 @@ public class EffectResults
     private async Task FlushOrAddToPending(EffectId effectId, StoredEffectId storedEffectId, StoredEffect? storedEffect, bool flush, bool delete)
     {
         lock (_sync)
-            if (_effectResults.ContainsKey(effectId))
+            if (PendingChanges.ContainsKey(effectId))
             {
-                var existing = _effectResults[effectId];
-                _effectResults[effectId] = existing with
+                var existing = PendingChanges[effectId];
+                PendingChanges[effectId] = existing with
                 {
                     StoredEffect = storedEffect,
                     Operation = delete 
@@ -348,7 +355,7 @@ public class EffectResults
             }
             else
             {
-                _effectResults[effectId] = new PendingEffectChange(
+                PendingChanges[effectId] = new PendingEffectChange(
                     storedEffectId,
                     storedEffect,
                     CrudOperation.Insert,
@@ -356,8 +363,10 @@ public class EffectResults
                 );
             }
 
-        if (flush)
-            await Flush();   
+        if (flush) 
+            await Flush();
+
+        HasPendingChanges = !flush;
     }
     
     private readonly SemaphoreSlim _flushSync = new(initialCount: 1, maxCount: 1);
@@ -369,7 +378,7 @@ public class EffectResults
         {
             IReadOnlyList<PendingEffectChange> pendingChanges;
             lock (_sync)
-                pendingChanges = _effectResults.Values.Where(r => r.Operation != null).ToList();
+                pendingChanges = PendingChanges.Values.Where(r => r.Operation != null).ToList();
             
             if (pendingChanges.Count == 0)
                 return;
@@ -387,19 +396,20 @@ public class EffectResults
             await _effectsStore.SetEffectResults(_storedId, changes);
             
             lock (_sync)
-                foreach (var (key, value) in _effectResults.ToList())
+                foreach (var (key, value) in PendingChanges.ToList())
                 {
                     if (value.Operation == CrudOperation.Delete)
-                        _effectResults.Remove(key);
+                        PendingChanges.Remove(key);
                     else
-                        _effectResults[key] = value with
+                        PendingChanges[key] = value with
                         {
                             Existing = true,
                             Operation = null
                         };
                 }
+
+            HasPendingChanges = false;
         }
-        
         finally
         {
             _flushSync.Release();

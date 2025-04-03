@@ -17,6 +17,7 @@ public class Effect(EffectResults effectResults)
 {
     public async Task<bool> Contains(string id) => await Contains(CreateEffectId(id, EffectType.Effect));
     internal Task<bool> Contains(EffectId effectId) => effectResults.Contains(effectId);
+    internal EffectResults EffectResults => effectResults;
 
     public async Task<WorkStatus?> GetStatus(string id)
     {

@@ -110,12 +110,24 @@ internal class InvocationHelper<TParam, TReturn>
 
     public async Task<PersistResultOutcome> PersistResult(
         StoredId storedId,
-        FlowId flowId,
         Result<TReturn> result,
         TParam param,
-        StoredId? parent,
+        Workflow workflow,
         int expectedEpoch)
     {
+        var pendingEffectChanges = workflow.Effect.EffectResults.PendingChanges;
+        var storedEffectChanges = workflow.Effect.EffectResults.HasPendingChanges 
+            ? workflow.Effect.EffectResults.PendingChanges.Values
+                .Where(pc => !pc.Existing)
+                .Select(pc => new StoredEffectChange(
+                    storedId,
+                    pc.Id,
+                    pc.Operation!.Value,
+                    pc.StoredEffect
+                ))
+                .ToList()
+            : null;
+        
         var complementaryState = new ComplimentaryState(
             () => SerializeParameter(param),
             _settings.LeaseLength.Ticks
@@ -128,7 +140,7 @@ internal class InvocationHelper<TParam, TReturn>
                     result: SerializeResult(result.SucceedWithValue),
                     timestamp: DateTime.UtcNow.Ticks,
                     expectedEpoch,
-                    effects: null,
+                    effects: storedEffectChanges,
                     messages: null,
                     complementaryState
                 ) ? PersistResultOutcome.Success : PersistResultOutcome.Failed;
@@ -139,7 +151,7 @@ internal class InvocationHelper<TParam, TReturn>
                     timestamp: DateTime.UtcNow.Ticks,
                     ignoreInterrupted: false, 
                     expectedEpoch,
-                    effects: null,
+                    effects: storedEffectChanges,
                     messages: null,
                     complementaryState
                 ) ? PersistResultOutcome.Success : PersistResultOutcome.Reschedule;
@@ -149,7 +161,7 @@ internal class InvocationHelper<TParam, TReturn>
                     storedException: Serializer.SerializeException(result.Fail!),
                     timestamp: DateTime.UtcNow.Ticks,
                     expectedEpoch,
-                    effects: null,
+                    effects: storedEffectChanges,
                     messages: null,
                     complementaryState
                 ) ? PersistResultOutcome.Success : PersistResultOutcome.Failed;
@@ -158,7 +170,7 @@ internal class InvocationHelper<TParam, TReturn>
                     storedId,
                     timestamp: DateTime.UtcNow.Ticks,
                     expectedEpoch,
-                    effects: null,
+                    effects: storedEffectChanges,
                     messages: null,
                     complementaryState
                 ) ? PersistResultOutcome.Success : PersistResultOutcome.Reschedule;
