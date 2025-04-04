@@ -232,7 +232,6 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         long timestamp,
         int expectedEpoch, 
         IReadOnlyList<StoredEffectChange>? effects,
-        IReadOnlyList<StoredMessage>? messages,
         ComplimentaryState complimentaryState)
     {
         lock (_sync)
@@ -244,8 +243,6 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
 
             if (effects != null)
                 _effectsStore.SetEffectResults(storedId, effects).Wait();
-            if (messages != null)
-                MessageStore.AppendMessages(messages.Select(msg => new StoredIdAndMessage(storedId, msg)).ToList(), interrupt: false).Wait();
             
             state.Status = Status.Succeeded;
             state.Result = result;
@@ -262,7 +259,6 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         bool ignoreInterrupted,
         int expectedEpoch, 
         IReadOnlyList<StoredEffectChange>? effects,
-        IReadOnlyList<StoredMessage>? messages,
         ComplimentaryState complimentaryState)
     {
         lock (_sync)
@@ -277,9 +273,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
             
             if (effects != null)
                 _effectsStore.SetEffectResults(storedId, effects).Wait();
-            if (messages != null)
-                MessageStore.AppendMessages(messages.Select(msg => new StoredIdAndMessage(storedId, msg)).ToList(), interrupt: false).Wait();
-
+            
             state.Status = Status.Postponed;
             state.Expires = postponeUntil;
             state.Timestamp = timestamp;
@@ -294,7 +288,6 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         long timestamp,
         int expectedEpoch, 
         IReadOnlyList<StoredEffectChange>? effects,
-        IReadOnlyList<StoredMessage>? messages,
         ComplimentaryState complimentaryState)
     {
         lock (_sync)
@@ -306,9 +299,6 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
 
             if (effects != null)
                 _effectsStore.SetEffectResults(storedId, effects).Wait();
-            if (messages != null)
-                MessageStore.AppendMessages(messages.Select(msg => new StoredIdAndMessage(storedId, msg)).ToList(), interrupt: false).Wait();
-
             
             state.Status = Status.Failed;
             state.Exception = storedException;
@@ -323,7 +313,6 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         long timestamp,
         int expectedEpoch, 
         IReadOnlyList<StoredEffectChange>? effects,
-        IReadOnlyList<StoredMessage>? messages,
         ComplimentaryState complimentaryState)
     {
         lock (_sync)
@@ -333,9 +322,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
             
             if (effects != null)
                 _effectsStore.SetEffectResults(storedId, effects).Wait();
-            if (messages != null)
-                MessageStore.AppendMessages(messages.Select(msg => new StoredIdAndMessage(storedId, msg)).ToList(), interrupt: false).Wait();
-            
+                      
             var state = _states[storedId];
             if (state.Epoch != expectedEpoch)
                 return false.ToTask();

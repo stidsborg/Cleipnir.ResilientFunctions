@@ -229,50 +229,17 @@ public class StoreTests : TestTemplates.StoreTests
         => RestartExecutionWorksWithEmptyEffectsAndMessages(FunctionStoreFactory.Create());
 
     [TestMethod]
-    public override Task EffectsAndMessagesArePersistedOnSuspendFunction()
-        => EffectsAndMessagesArePersistedOnSuspendFunction(FunctionStoreFactory.Create());
+    public override Task EffectsArePersistedOnSuspendFunction()
+        => EffectsArePersistedOnSuspendFunction(FunctionStoreFactory.Create());
 
     [TestMethod]
-    public override Task MessagesOnlyArePersistedOnSuspendFunction()
-        => MessagesOnlyArePersistedOnSuspendFunction(FunctionStoreFactory.Create());
+    public override Task EffectsArePersistedOnSucceededFunction()
+        => EffectsArePersistedOnSucceededFunction(FunctionStoreFactory.Create());
 
     [TestMethod]
-    public override Task EffectsOnlyArePersistedOnSuspendFunction()
-        => EffectsOnlyArePersistedOnSuspendFunction(FunctionStoreFactory.Create());
+    public override Task EffectsArePersistedOnPostponeFunction()
+        => EffectsArePersistedOnPostponeFunction(FunctionStoreFactory.Create());
 
-    [TestMethod]
-    public override Task EffectsAndMessagesArePersistedOnSucceededFunction()
-        => EffectsAndMessagesArePersistedOnSucceededFunction(FunctionStoreFactory.Create());
-
-    [TestMethod]
-    public override Task MessagesOnlyArePersistedOnSucceedFunction()
-        => MessagesOnlyArePersistedOnSucceedFunction(FunctionStoreFactory.Create());
-
-    [TestMethod]
-    public override Task EffectsOnlyArePersistedOnSucceedFunction()
-        => EffectsOnlyArePersistedOnSucceedFunction(FunctionStoreFactory.Create());
-
-    [TestMethod]
-    public override Task EffectsAndMessagesArePersistedOnPostponeFunction()
-        => EffectsAndMessagesArePersistedOnPostponeFunction(FunctionStoreFactory.Create());
-
-    [TestMethod]
-    public override Task MessagesOnlyArePersistedOnPostponeFunction()
-        => MessagesOnlyArePersistedOnPostponeFunction(FunctionStoreFactory.Create());
-
-    [TestMethod]
-    public override Task EffectsOnlyArePersistedOnPostponeFunction()
-        => EffectsOnlyArePersistedOnPostponeFunction(FunctionStoreFactory.Create());
-
-    [TestMethod]
-    public override Task EffectsAndMessagesArePersistedOnFailFunction()
-        => EffectsAndMessagesArePersistedOnFailFunction(FunctionStoreFactory.Create());
-
-    [TestMethod]
-    public override Task MessagesOnlyArePersistedOnFailFunction()
-        => MessagesOnlyArePersistedOnFailFunction(FunctionStoreFactory.Create());
-
-    [TestMethod]
-    public override Task EffectsOnlyArePersistedOnFailFunction()
-        => EffectsOnlyArePersistedOnFailFunction(FunctionStoreFactory.Create());
+    public override Task EffectsArePersistedOnFailFunction()
+        => EffectsArePersistedOnFailFunction(FunctionStoreFactory.Create());
 }

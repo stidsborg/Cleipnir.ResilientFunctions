@@ -61,7 +61,6 @@ public abstract class StoreTests
             expectedEpoch: 0,
             timestamp: DateTime.UtcNow.Ticks,
             effects: null,
-            messages: null,
             complimentaryState: new ComplimentaryState(() => storedParameter.ToUtf8Bytes(), LeaseLength: 0)
         ).ShouldBeTrueAsync();
             
@@ -297,7 +296,6 @@ public abstract class StoreTests
             ignoreInterrupted: false,
             expectedEpoch: 0,
             effects: null,
-            messages: null,
             complimentaryState: new ComplimentaryState(storedParameter.ToUtf8Bytes().ToFunc(), LeaseLength: 0)
         ).ShouldBeTrueAsync();
         
@@ -334,7 +332,6 @@ public abstract class StoreTests
             ignoreInterrupted: false,
             expectedEpoch: 0,
             effects: null,
-            messages: null,
             complimentaryState: new ComplimentaryState(storedParameter.ToUtf8Bytes().ToFunc(), LeaseLength: 0)
         ).ShouldBeTrueAsync();
         
@@ -371,7 +368,6 @@ public abstract class StoreTests
             ignoreInterrupted: false,
             expectedEpoch: 1,
             effects: null,
-            messages: null,
             complimentaryState: new ComplimentaryState(storedParameter.ToUtf8Bytes().ToFunc(), LeaseLength: 0)
         ).ShouldBeFalseAsync();
 
@@ -561,7 +557,6 @@ public abstract class StoreTests
             timestamp: DateTime.UtcNow.Ticks,
             expectedEpoch: 0,
             effects: null,
-            messages: null,
             complimentaryState: new ComplimentaryState(storedParameter.ToUtf8Bytes().ToFunc(), LeaseLength: 0)
         );
         
@@ -685,7 +680,6 @@ public abstract class StoreTests
             timestamp: DateTime.UtcNow.Ticks,
             expectedEpoch: 0,
             effects: null,
-            messages: null,
             complimentaryState: new ComplimentaryState(storedParameter.ToUtf8Bytes().ToFunc(), LeaseLength: 0)
         ).ShouldBeAsync(true);
 
@@ -861,7 +855,6 @@ public abstract class StoreTests
             DateTime.UtcNow.Ticks,
             expectedEpoch: 0,
             effects: null,
-            messages: null,
             complimentaryState: new ComplimentaryState(Test.SimpleStoredParameter.ToFunc(), LeaseLength: 0)
         );
         
@@ -893,7 +886,6 @@ public abstract class StoreTests
             ignoreInterrupted: false,
             expectedEpoch: 0,
             effects: null,
-            messages: null,
             complimentaryState: new ComplimentaryState(Test.SimpleStoredParameter.ToFunc(), LeaseLength: 0)
         );
         
@@ -924,7 +916,6 @@ public abstract class StoreTests
             timestamp: DateTime.UtcNow.Ticks,
             expectedEpoch: 0,
             effects: null,
-            messages: null,
             complimentaryState: new ComplimentaryState(Test.SimpleStoredParameter.ToFunc(), LeaseLength: 0)
         );
         
@@ -954,7 +945,6 @@ public abstract class StoreTests
             timestamp: DateTime.UtcNow.Ticks,
             expectedEpoch: 0,
             effects: null,
-            messages: null,
             complimentaryState: new ComplimentaryState(Test.SimpleStoredParameter.ToFunc(), LeaseLength: 0)
         );
         
@@ -991,7 +981,6 @@ public abstract class StoreTests
             timestamp: DateTime.UtcNow.Ticks,
             expectedEpoch: 0,
             effects: null,
-            messages: null,
             complimentaryState: new ComplimentaryState(Test.SimpleStoredParameter.ToFunc(), LeaseLength: 0)
         ).ShouldBeFalseAsync();
         
@@ -1028,7 +1017,6 @@ public abstract class StoreTests
             timestamp: DateTime.UtcNow.Ticks,
             expectedEpoch: 0,
             effects: null,
-            messages: null,
             complimentaryState: new ComplimentaryState(Test.SimpleStoredParameter.ToFunc(), LeaseLength: 0)
         );
         
@@ -1089,7 +1077,6 @@ public abstract class StoreTests
             timestamp: DateTime.UtcNow.Ticks,
             expectedEpoch: 0,
             effects: null,
-            messages: null,
             new ComplimentaryState(() => Test.SimpleStoredParameter, LeaseLength: 0)
         ).ShouldBeTrueAsync();
 
@@ -1169,7 +1156,6 @@ public abstract class StoreTests
                 timestamp: timestamp,
                 expectedEpoch: 0,
                 effects: null,
-                messages: null,
                 new ComplimentaryState(() => Test.SimpleStoredParameter, LeaseLength: 0)
             ).ShouldBeTrueAsync();
         }
@@ -1310,7 +1296,6 @@ public abstract class StoreTests
             timestamp,
             expectedEpoch: 0,
             effects: null,
-            messages: null,
             new ComplimentaryState(StoredParameterFunc: () => null, LeaseLength: 0)
         );
 
@@ -1468,7 +1453,6 @@ public abstract class StoreTests
                 timestamp: timestamp,
                 expectedEpoch: 0,
                 effects: null,
-                messages: null,
                 new ComplimentaryState(() => Test.SimpleStoredParameter, LeaseLength: 0)
             ).ShouldBeTrueAsync();
         }
@@ -1512,7 +1496,6 @@ public abstract class StoreTests
             ignoreInterrupted: false,
             expectedEpoch: 0,
             effects: null,
-            messages: null,
             new ComplimentaryState(() => Test.SimpleStoredParameter, LeaseLength: 0)
         );
         success.ShouldBeFalse();
@@ -1554,7 +1537,6 @@ public abstract class StoreTests
             ignoreInterrupted: true,
             expectedEpoch: 0,
             effects: null,
-            messages: null,
             new ComplimentaryState(() => Test.SimpleStoredParameter, LeaseLength: 0)
         );
         success.ShouldBeTrue();
@@ -1845,129 +1827,45 @@ public abstract class StoreTests
         messages.Count.ShouldBe(0);
     }
     
-    public abstract Task EffectsAndMessagesArePersistedOnSuspendFunction();
-    protected async Task EffectsAndMessagesArePersistedOnSuspendFunction(Task<IFunctionStore> storeTask)
+    public abstract Task EffectsArePersistedOnSuspendFunction();
+    protected async Task EffectsArePersistedOnSuspendFunction(Task<IFunctionStore> storeTask)
     {
-        await SharedEffectsAndMessagesArePersistedOnFunctionPersist(
+        await SharedEffectsArePersistedOnFunctionPersist(
             storeTask,
-            storeFunc: (store, id, effects, messages, complimentaryState) =>
+            storeFunc: (store, id, effects, complimentaryState) =>
                 store.SuspendFunction(
                     id,
                     DateTime.UtcNow.Ticks,
                     expectedEpoch: 0,
                     effects,
-                    messages,
                     complimentaryState
-                ),
-            effects: true,
-            messages: true
+                )
         );
     }
     
-    public abstract Task MessagesOnlyArePersistedOnSuspendFunction();
-    protected async Task MessagesOnlyArePersistedOnSuspendFunction(Task<IFunctionStore> storeTask)
+    public abstract Task EffectsArePersistedOnSucceededFunction();
+    protected async Task EffectsArePersistedOnSucceededFunction(Task<IFunctionStore> storeTask)
     {
-        await SharedEffectsAndMessagesArePersistedOnFunctionPersist(
+        await SharedEffectsArePersistedOnFunctionPersist(
             storeTask,
-            storeFunc: (store, id, effects, messages, complimentaryState) =>
-                store.SuspendFunction(
-                    id,
-                    DateTime.UtcNow.Ticks,
-                    expectedEpoch: 0,
-                    effects,
-                    messages,
-                    complimentaryState
-                ),
-            effects: false,
-            messages: true
-        );
-    }
-    
-    public abstract Task EffectsOnlyArePersistedOnSuspendFunction();
-    protected async Task EffectsOnlyArePersistedOnSuspendFunction(Task<IFunctionStore> storeTask)
-    {
-        await SharedEffectsAndMessagesArePersistedOnFunctionPersist(
-            storeTask,
-            storeFunc: (store, id, effects, messages, complimentaryState) =>
-                store.SuspendFunction(
-                    id,
-                    DateTime.UtcNow.Ticks,
-                    expectedEpoch: 0,
-                    effects,
-                    messages,
-                    complimentaryState
-                ),
-            effects: true,
-            messages: false
-        );
-    }
-    
-    public abstract Task EffectsAndMessagesArePersistedOnSucceededFunction();
-    protected async Task EffectsAndMessagesArePersistedOnSucceededFunction(Task<IFunctionStore> storeTask)
-    {
-        await SharedEffectsAndMessagesArePersistedOnFunctionPersist(
-            storeTask,
-            storeFunc: (store, id, effects, messages, complimentaryState) =>
+            storeFunc: (store, id, effects, complimentaryState) =>
                 store.SucceedFunction(
                     id,
                     result: null,
                     DateTime.UtcNow.Ticks,
                     expectedEpoch: 0,
                     effects,
-                    messages,
                     complimentaryState
-                ),
-            effects: true,
-            messages: true
+                )
         );
     }
     
-    public abstract Task MessagesOnlyArePersistedOnSucceedFunction();
-    protected async Task MessagesOnlyArePersistedOnSucceedFunction(Task<IFunctionStore> storeTask)
+    public abstract Task EffectsArePersistedOnPostponeFunction();
+    protected async Task EffectsArePersistedOnPostponeFunction(Task<IFunctionStore> storeTask)
     {
-        await SharedEffectsAndMessagesArePersistedOnFunctionPersist(
+        await SharedEffectsArePersistedOnFunctionPersist(
             storeTask,
-            storeFunc: (store, id, effects, messages, complimentaryState) =>
-                store.SucceedFunction(
-                    id,
-                    result: null,
-                    DateTime.UtcNow.Ticks,
-                    expectedEpoch: 0,
-                    effects,
-                    messages,
-                    complimentaryState
-                ),
-            effects: false,
-            messages: true
-        );
-    }
-    
-    public abstract Task EffectsOnlyArePersistedOnSucceedFunction();
-    protected async Task EffectsOnlyArePersistedOnSucceedFunction(Task<IFunctionStore> storeTask)
-    {
-        await SharedEffectsAndMessagesArePersistedOnFunctionPersist(
-            storeTask,
-            storeFunc: (store, id, effects, messages, complimentaryState) =>
-                store.SucceedFunction(
-                    id,
-                    result: null,
-                    DateTime.UtcNow.Ticks,
-                    expectedEpoch: 0,
-                    effects,
-                    messages,
-                    complimentaryState
-                ),
-            effects: true,
-            messages: false
-        );
-    }
-    
-    public abstract Task EffectsAndMessagesArePersistedOnPostponeFunction();
-    protected async Task EffectsAndMessagesArePersistedOnPostponeFunction(Task<IFunctionStore> storeTask)
-    {
-        await SharedEffectsAndMessagesArePersistedOnFunctionPersist(
-            storeTask,
-            storeFunc: (store, id, effects, messages, complimentaryState) =>
+            storeFunc: (store, id, effects, complimentaryState) =>
                 store.PostponeFunction(
                     id,
                     postponeUntil: 0,
@@ -1975,122 +1873,31 @@ public abstract class StoreTests
                     ignoreInterrupted: false,
                     expectedEpoch: 0,
                     effects,
-                    messages,
                     complimentaryState
-                ),
-            effects: true,
-            messages: true
+                )
         );
     }
     
-    public abstract Task MessagesOnlyArePersistedOnPostponeFunction();
-    protected async Task MessagesOnlyArePersistedOnPostponeFunction(Task<IFunctionStore> storeTask)
+    public abstract Task EffectsArePersistedOnFailFunction();
+    protected async Task EffectsArePersistedOnFailFunction(Task<IFunctionStore> storeTask)
     {
-        await SharedEffectsAndMessagesArePersistedOnFunctionPersist(
+        await SharedEffectsArePersistedOnFunctionPersist(
             storeTask,
-            storeFunc: (store, id, effects, messages, complimentaryState) =>
-                store.PostponeFunction(
-                    id,
-                    postponeUntil: 0,
-                    timestamp: DateTime.UtcNow.Ticks,
-                    ignoreInterrupted: false,
-                    expectedEpoch: 0,
-                    effects,
-                    messages,
-                    complimentaryState
-                ),
-            effects: false,
-            messages: true
-        );
-    }
-    
-    public abstract Task EffectsOnlyArePersistedOnPostponeFunction();
-    protected async Task EffectsOnlyArePersistedOnPostponeFunction(Task<IFunctionStore> storeTask)
-    {
-        await SharedEffectsAndMessagesArePersistedOnFunctionPersist(
-            storeTask,
-            storeFunc: (store, id, effects, messages, complimentaryState) =>
-                store.PostponeFunction(
-                    id,
-                    postponeUntil: 0,
-                    timestamp: DateTime.UtcNow.Ticks,
-                    ignoreInterrupted: false,
-                    expectedEpoch: 0,
-                    effects,
-                    messages,
-                    complimentaryState
-                ),
-            effects: true,
-            messages: false
-        );
-    } 
-    
-    //
-    public abstract Task EffectsAndMessagesArePersistedOnFailFunction();
-    protected async Task EffectsAndMessagesArePersistedOnFailFunction(Task<IFunctionStore> storeTask)
-    {
-        await SharedEffectsAndMessagesArePersistedOnFunctionPersist(
-            storeTask,
-            storeFunc: (store, id, effects, messages, complimentaryState) =>
+            storeFunc: (store, id, effects, complimentaryState) =>
                 store.FailFunction(
                     id,
                     new StoredException("SomeMessage", "SomeStackTrace", "SomeExceptionType"),
                     timestamp: DateTime.UtcNow.Ticks,
                     expectedEpoch: 0,
                     effects,
-                    messages,
                     complimentaryState
-                ),
-            effects: true,
-            messages: true
+                )
         );
     }
     
-    public abstract Task MessagesOnlyArePersistedOnFailFunction();
-    protected async Task MessagesOnlyArePersistedOnFailFunction(Task<IFunctionStore> storeTask)
-    {
-        await SharedEffectsAndMessagesArePersistedOnFunctionPersist(
-            storeTask,
-            storeFunc: (store, id, effects, messages, complimentaryState) =>
-                store.FailFunction(
-                    id,
-                    new StoredException("SomeMessage", "SomeStackTrace", "SomeExceptionType"),
-                    timestamp: DateTime.UtcNow.Ticks,
-                    expectedEpoch: 0,
-                    effects,
-                    messages,
-                    complimentaryState
-                ),
-            effects: false,
-            messages: true
-        );
-    }
-    
-    public abstract Task EffectsOnlyArePersistedOnFailFunction();
-    protected async Task EffectsOnlyArePersistedOnFailFunction(Task<IFunctionStore> storeTask)
-    {
-        await SharedEffectsAndMessagesArePersistedOnFunctionPersist(
-            storeTask,
-            storeFunc: (store, id, effects, messages, complimentaryState) =>
-                store.FailFunction(
-                    id,
-                    new StoredException("SomeMessage", "SomeStackTrace", "SomeExceptionType"),
-                    timestamp: DateTime.UtcNow.Ticks,
-                    expectedEpoch: 0,
-                    effects,
-                    messages,
-                    complimentaryState
-                ),
-            effects: true,
-            messages: false
-        );
-    }
-    
-    private async Task SharedEffectsAndMessagesArePersistedOnFunctionPersist(
+    private async Task SharedEffectsArePersistedOnFunctionPersist(
         Task<IFunctionStore> storeTask, 
-        Func<IFunctionStore, StoredId, List<StoredEffectChange>?, List<StoredMessage>?, ComplimentaryState, Task<bool>> storeFunc,
-        bool effects,
-        bool messages 
+        Func<IFunctionStore, StoredId, List<StoredEffectChange>?, ComplimentaryState, Task<bool>> storeFunc
     )
     {
         var storedId = TestStoredId.Create();
@@ -2115,45 +1922,19 @@ public abstract class StoreTests
             new(storedId, effectId1.ToStoredEffectId(), CrudOperation.Insert, new StoredEffect(effectId1, effectId1.ToStoredEffectId(), WorkStatus.Completed, Result: "Hallo".ToUtf8Bytes(), StoredException: null)),
             new(storedId, effectId2.ToStoredEffectId(), CrudOperation.Insert, new StoredEffect(effectId2, effectId2.ToStoredEffectId(), WorkStatus.Completed, Result: "World".ToUtf8Bytes(), StoredException: null)),
         };
-
-        var storedMessages = new List<StoredMessage>
-        {
-            new("Hallo".ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes()),
-            new("World".ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes())
-        };
-
+        
         await storeFunc(
             store, 
             storedId, 
-            effects ? storedEffects : null, 
-            messages ? storedMessages : null, 
+            storedEffects, 
             new ComplimentaryState(() => null, LeaseLength: 0)
         ).ShouldBeTrueAsync();
         
         var fetchedEffects = await store.EffectsStore.GetEffectResults(storedId);
-        if (effects)
-        {
-            fetchedEffects.Count.ShouldBe(2);
-            var fetchedEffect1 = fetchedEffects.Single(s => s.EffectId == effectId1);
-            fetchedEffect1.Result!.ToStringFromUtf8Bytes().ShouldBe("Hallo");
-            var fetchedEffect2 = fetchedEffects.Single(s => s.EffectId == effectId2);
-            fetchedEffect2.Result!.ToStringFromUtf8Bytes().ShouldBe("World");            
-        }
-        else
-        {
-            fetchedEffects.Count.ShouldBe(0);
-        }
-
-        var fetchedMessages = await store.MessageStore.GetMessages(storedId, skip: 0);
-        if (messages)
-        {
-            fetchedMessages.Count.ShouldBe(2);
-            fetchedMessages[0].MessageContent.ToStringFromUtf8Bytes().ShouldBe("Hallo");
-            fetchedMessages[1].MessageContent.ToStringFromUtf8Bytes().ShouldBe("World");            
-        }
-        else
-        {
-            fetchedMessages.Count.ShouldBe(0);   
-        }
+        fetchedEffects.Count.ShouldBe(2);
+        var fetchedEffect1 = fetchedEffects.Single(s => s.EffectId == effectId1);
+        fetchedEffect1.Result!.ToStringFromUtf8Bytes().ShouldBe("Hallo");
+        var fetchedEffect2 = fetchedEffects.Single(s => s.EffectId == effectId2);
+        fetchedEffect2.Result!.ToStringFromUtf8Bytes().ShouldBe("World");     
     }
 }

@@ -346,19 +346,15 @@ public class MariaDbFunctionStore : IFunctionStore
         long timestamp,
         int expectedEpoch, 
         IReadOnlyList<StoredEffectChange>? effects,
-        IReadOnlyList<StoredMessage>? messages,
         ComplimentaryState complimentaryState)
     {
         var succeedCommand = _sqlGenerator.SucceedFunction(storedId, result, timestamp, expectedEpoch);
         var effectsCommand = effects == null
             ? null
             : _sqlGenerator.UpsertEffects(effects);
-        var messagesCommand = messages == null
-            ? []
-            : messages.Select(msg => _sqlGenerator.AppendMessage(storedId, msg));
         
         await using var conn = await CreateOpenConnection(_connectionString);
-        if (effects == null && messages == null)
+        if (effects == null)
         {
             await using var command = succeedCommand.ToSqlCommand(conn);
             var affectedRows = await command.ExecuteNonQueryAsync();
@@ -366,11 +362,9 @@ public class MariaDbFunctionStore : IFunctionStore
         }
         else
         {
-            await using var command = StoreCommand.Merge(
-                messagesCommand.Append(effectsCommand).Append(succeedCommand)
-            )!.ToSqlCommand(conn);
+            await using var command = StoreCommand.Merge(effectsCommand!, succeedCommand).ToSqlCommand(conn);
             var affectedRows = await command.ExecuteNonQueryAsync();
-            return affectedRows == 1 + (effects?.Count ?? 0) + (messages?.Count ?? 0);            
+            return affectedRows == 1 + (effects?.Count ?? 0);            
         }
     }
     
@@ -381,7 +375,6 @@ public class MariaDbFunctionStore : IFunctionStore
         bool ignoreInterrupted,
         int expectedEpoch, 
         IReadOnlyList<StoredEffectChange>? effects,
-        IReadOnlyList<StoredMessage>? messages,
         ComplimentaryState complimentaryState)
     {
         var postponeCommand = _sqlGenerator
@@ -389,12 +382,9 @@ public class MariaDbFunctionStore : IFunctionStore
         var effectsCommand = effects == null
             ? null
             : _sqlGenerator.UpsertEffects(effects);
-        var messagesCommand = messages == null
-            ? []
-            : messages.Select(msg => _sqlGenerator.AppendMessage(storedId, msg));
         
         await using var conn = await CreateOpenConnection(_connectionString);
-        if (effects == null && messages == null)
+        if (effects == null)
         {
             await using var command = postponeCommand.ToSqlCommand(conn);
             var affectedRows = await command.ExecuteNonQueryAsync();
@@ -402,11 +392,9 @@ public class MariaDbFunctionStore : IFunctionStore
         }
         else
         {
-            await using var command = StoreCommand.Merge(
-                messagesCommand.Append(effectsCommand).Append(postponeCommand)
-            )!.ToSqlCommand(conn);
+            await using var command = StoreCommand.Merge(effectsCommand!, postponeCommand).ToSqlCommand(conn);
             var affectedRows = await command.ExecuteNonQueryAsync();
-            return affectedRows == 1 + (effects?.Count ?? 0) + (messages?.Count ?? 0);            
+            return affectedRows == 1 + (effects?.Count ?? 0);            
         }
     }
     
@@ -416,19 +404,15 @@ public class MariaDbFunctionStore : IFunctionStore
         long timestamp,
         int expectedEpoch, 
         IReadOnlyList<StoredEffectChange>? effects,
-        IReadOnlyList<StoredMessage>? messages,
         ComplimentaryState complimentaryState)
     {
         var failCommand = _sqlGenerator.FailFunction(storedId, storedException, timestamp, expectedEpoch);
         var effectsCommand = effects == null
             ? null
             : _sqlGenerator.UpsertEffects(effects);
-        var messagesCommand = messages == null
-            ? []
-            : messages.Select(msg => _sqlGenerator.AppendMessage(storedId, msg));
         
         await using var conn = await CreateOpenConnection(_connectionString);
-        if (effects == null && messages == null)
+        if (effects == null)
         {
             await using var command = failCommand.ToSqlCommand(conn);
             var affectedRows = await command.ExecuteNonQueryAsync();
@@ -436,11 +420,9 @@ public class MariaDbFunctionStore : IFunctionStore
         }
         else
         {
-            await using var command = StoreCommand.Merge(
-                messagesCommand.Append(effectsCommand).Append(failCommand)
-            )!.ToSqlCommand(conn);
+            await using var command = StoreCommand.Merge(effectsCommand!, failCommand).ToSqlCommand(conn);
             var affectedRows = await command.ExecuteNonQueryAsync();
-            return affectedRows == 1 + (effects?.Count ?? 0) + (messages?.Count ?? 0);            
+            return affectedRows == 1 + (effects?.Count ?? 0);            
         }
     }
     
@@ -449,19 +431,15 @@ public class MariaDbFunctionStore : IFunctionStore
         long timestamp,
         int expectedEpoch, 
         IReadOnlyList<StoredEffectChange>? effects,
-        IReadOnlyList<StoredMessage>? messages,
         ComplimentaryState complimentaryState)
     {
         var suspendCommand = _sqlGenerator.SuspendFunction(storedId, timestamp, expectedEpoch);
         var effectsCommand = effects == null
             ? null
             : _sqlGenerator.UpsertEffects(effects);
-        var messagesCommand = messages == null
-            ? []
-            : messages.Select(msg => _sqlGenerator.AppendMessage(storedId, msg));
-        
+              
         await using var conn = await CreateOpenConnection(_connectionString);
-        if (effects == null && messages == null)
+        if (effects == null)
         {
             await using var command = suspendCommand.ToSqlCommand(conn);
             var affectedRows = await command.ExecuteNonQueryAsync();
@@ -469,11 +447,9 @@ public class MariaDbFunctionStore : IFunctionStore
         }
         else
         {
-            await using var command = StoreCommand.Merge(
-                messagesCommand.Append(effectsCommand).Append(suspendCommand)
-            )!.ToSqlCommand(conn);
+            await using var command = StoreCommand.Merge(effectsCommand!, suspendCommand).ToSqlCommand(conn);
             var affectedRows = await command.ExecuteNonQueryAsync();
-            return affectedRows == 1 + (effects?.Count ?? 0) + (messages?.Count ?? 0);            
+            return affectedRows == 1 + effects.Count;            
         }
     }
 

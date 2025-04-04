@@ -379,18 +379,14 @@ public class PostgreSqlFunctionStore : IFunctionStore
         long timestamp,
         int expectedEpoch, 
         IReadOnlyList<StoredEffectChange>? effects,
-        IReadOnlyList<StoredMessage>? messages,
         ComplimentaryState complimentaryState)
     {
         var succeedCommand = _sqlGenerator.SucceedFunction(storedId, result, timestamp, expectedEpoch);
         var effectsCommand = effects == null
             ? []
             : _sqlGenerator.UpdateEffects(effects);
-        var messagesCommand = messages == null
-            ? []
-            : messages.Select(msg => _sqlGenerator.AppendMessage(storedId, msg)).ToList();
-
-        if (effects == null && messages == null)
+      
+        if (effects == null)
         {
             await using var conn = await CreateConnection();
             await using var command = succeedCommand.ToNpgsqlCommand(conn);
@@ -401,12 +397,11 @@ public class PostgreSqlFunctionStore : IFunctionStore
         {
             await using var conn = await CreateConnection();
             await using var command = effectsCommand
-                .Concat(messagesCommand)
                 .Append(succeedCommand)
                 .CreateBatch(conn);
             
             var affectedRows = await command.ExecuteNonQueryAsync();
-            return affectedRows == 1 + (effects?.Count ?? 0) + (messages?.Count ?? 0); 
+            return affectedRows == 1 + effects.Count;
         }
     }
     
@@ -417,7 +412,6 @@ public class PostgreSqlFunctionStore : IFunctionStore
         bool ignoreInterrupted,
         int expectedEpoch, 
         IReadOnlyList<StoredEffectChange>? effects,
-        IReadOnlyList<StoredMessage>? messages,
         ComplimentaryState complimentaryState)
     {
         var postponeCommand = _sqlGenerator.PostponeFunction(
@@ -430,11 +424,8 @@ public class PostgreSqlFunctionStore : IFunctionStore
         var effectsCommand = effects == null
             ? []
             : _sqlGenerator.UpdateEffects(effects);
-        var messagesCommand = messages == null
-            ? []
-            : messages.Select(msg => _sqlGenerator.AppendMessage(storedId, msg)).ToList();
-
-        if (effects == null && messages == null)
+      
+        if (effects == null)
         {
             await using var conn = await CreateConnection();
             await using var command = postponeCommand.ToNpgsqlCommand(conn);
@@ -445,12 +436,11 @@ public class PostgreSqlFunctionStore : IFunctionStore
         {
             await using var conn = await CreateConnection();
             await using var command = effectsCommand
-                .Concat(messagesCommand)
                 .Append(postponeCommand)
                 .CreateBatch(conn);
             
             var affectedRows = await command.ExecuteNonQueryAsync();
-            return affectedRows == 1 + (effects?.Count ?? 0) + (messages?.Count ?? 0); 
+            return affectedRows == 1 + effects.Count; 
         }
     }
     
@@ -460,7 +450,6 @@ public class PostgreSqlFunctionStore : IFunctionStore
         long timestamp,
         int expectedEpoch, 
         IReadOnlyList<StoredEffectChange>? effects,
-        IReadOnlyList<StoredMessage>? messages,
         ComplimentaryState complimentaryState)
     {
         var failCommand = _sqlGenerator.FailFunction(
@@ -472,11 +461,8 @@ public class PostgreSqlFunctionStore : IFunctionStore
         var effectsCommand = effects == null
             ? []
             : _sqlGenerator.UpdateEffects(effects);
-        var messagesCommand = messages == null
-            ? []
-            : messages.Select(msg => _sqlGenerator.AppendMessage(storedId, msg)).ToList();
-
-        if (effects == null && messages == null)
+        
+        if (effects == null)
         {
             await using var conn = await CreateConnection();
             await using var command = failCommand.ToNpgsqlCommand(conn);
@@ -487,12 +473,11 @@ public class PostgreSqlFunctionStore : IFunctionStore
         {
             await using var conn = await CreateConnection();
             await using var command = effectsCommand
-                .Concat(messagesCommand)
                 .Append(failCommand)
                 .CreateBatch(conn);
             
             var affectedRows = await command.ExecuteNonQueryAsync();
-            return affectedRows == 1 + (effects?.Count ?? 0) + (messages?.Count ?? 0); 
+            return affectedRows == 1 + effects.Count; 
         }
     }
     
@@ -501,18 +486,14 @@ public class PostgreSqlFunctionStore : IFunctionStore
         long timestamp,
         int expectedEpoch, 
         IReadOnlyList<StoredEffectChange>? effects,
-        IReadOnlyList<StoredMessage>? messages,
         ComplimentaryState complimentaryState)
     {
         var suspendCommand = _sqlGenerator.SuspendFunction(storedId, timestamp, expectedEpoch);
         var effectsCommand = effects == null
             ? []
             : _sqlGenerator.UpdateEffects(effects);
-        var messagesCommand = messages == null
-            ? []
-            : messages.Select(msg => _sqlGenerator.AppendMessage(storedId, msg)).ToList();
-
-        if (effects == null && messages == null)
+        
+        if (effects == null)
         {
             await using var conn = await CreateConnection();
             await using var command = suspendCommand.ToNpgsqlCommand(conn);
@@ -523,12 +504,11 @@ public class PostgreSqlFunctionStore : IFunctionStore
         {
             await using var conn = await CreateConnection();
             await using var command = effectsCommand
-                .Concat(messagesCommand)
                 .Append(suspendCommand)
                 .CreateBatch(conn);
             
             var affectedRows = await command.ExecuteNonQueryAsync();
-            return affectedRows == 1 + (effects?.Count ?? 0) + (messages?.Count ?? 0); 
+            return affectedRows == 1 + effects.Count; 
         }
     }
 
