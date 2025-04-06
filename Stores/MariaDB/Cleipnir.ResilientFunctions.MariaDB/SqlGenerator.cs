@@ -379,7 +379,7 @@ public class SqlGenerator(string tablePrefix)
                 storedId.Type.Value,
                 storedId.Instance.Value.ToString("N"),
                 storedMessage.MessageContent,
-                storedId.Type.Value,
+                storedMessage.MessageType,
                 storedMessage.IdempotencyKey ?? (object)DBNull.Value,
                 storedId.Type.Value,
                 storedId.Instance.Value.ToString("N")

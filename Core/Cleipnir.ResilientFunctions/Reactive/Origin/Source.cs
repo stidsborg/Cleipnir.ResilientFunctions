@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using Cleipnir.ResilientFunctions.CoreRuntime;
-using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Reactive.Utilities;
 
 namespace Cleipnir.ResilientFunctions.Reactive.Origin;
@@ -10,8 +8,7 @@ namespace Cleipnir.ResilientFunctions.Reactive.Origin;
 public class Source : IReactiveChain<object>
 {
     private bool _completed;
-
-    private readonly IRegisteredTimeouts _registeredTimeouts;
+    
     private readonly SyncStore _syncStore;
     private readonly TimeSpan _defaultDelay;
     private readonly TimeSpan _defaultMaxWait;
@@ -34,7 +31,6 @@ public class Source : IReactiveChain<object>
     }
     
     public Source(
-        IRegisteredTimeouts registeredTimeouts, 
         SyncStore syncStore, 
         TimeSpan defaultDelay, 
         TimeSpan defaultMaxWait, 
@@ -42,7 +38,6 @@ public class Source : IReactiveChain<object>
         Func<bool> initialSyncPerformed
     )
     {
-        _registeredTimeouts = registeredTimeouts;
         _syncStore = syncStore;
         _defaultDelay = defaultDelay;
         
@@ -56,7 +51,7 @@ public class Source : IReactiveChain<object>
         var subscription = new SourceSubscription(
             onNext, onCompletion, onError,
             source: this,
-            _emittedEvents, _syncStore, _initialSyncPerformed, _isWorkflowRunning, _registeredTimeouts,
+            _emittedEvents, _syncStore, _initialSyncPerformed, _isWorkflowRunning, 
             _defaultDelay, _defaultMaxWait
         );
 

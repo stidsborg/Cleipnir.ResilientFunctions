@@ -17,20 +17,22 @@ public class ControlPanel : BaseControlPanel<Unit, Unit>
         Status status, int epoch, long expires,  
         ExistingEffects effects,
         ExistingStates states, ExistingMessages messages, ExistingSemaphores semaphores, 
-        ExistingRegisteredTimeouts registeredTimeouts, Correlations correlations,
+        Correlations correlations,
         FatalWorkflowException? fatalWorkflowException
     ) : base(
         invoker, invocationHelper, 
         flowId, storedId, status, epoch, 
         expires, innerParam: Unit.Instance, innerResult: Unit.Instance, effects,
-        states, messages, registeredTimeouts, semaphores, correlations, fatalWorkflowException
+        states, messages, semaphores, correlations, fatalWorkflowException
     ) { }
     
     public Task Succeed() => InnerSucceed(result: Unit.Instance);
     
-    public async Task BusyWaitUntil(Func<ControlPanel, bool> predicate, TimeSpan? maxWait = null, TimeSpan? checkFrequency = null)
+    public Task BusyWaitUntil(Func<ControlPanel, bool> predicate, TimeSpan? maxWait = null, TimeSpan? checkFrequency = null)
+        => BusyWaitUntil(predicate: cp => predicate(cp).ToTask(), maxWait, checkFrequency);
+    public async Task BusyWaitUntil(Func<ControlPanel, Task<bool>> predicate, TimeSpan? maxWait = null, TimeSpan? checkFrequency = null)
     {
-        if (predicate(this))
+        if (await predicate(this))
             return;
         
         maxWait ??= TimeSpan.FromSeconds(10);
@@ -41,7 +43,7 @@ public class ControlPanel : BaseControlPanel<Unit, Unit>
         {
             await Task.Delay(checkFrequency.Value);
             await Refresh();
-            if (predicate(this))
+            if (await predicate(this))
                 return;
         } while (stopWatch.Elapsed < maxWait);
         
@@ -58,13 +60,13 @@ public class ControlPanel<TParam> : BaseControlPanel<TParam, Unit> where TParam 
         Status status, int epoch, long expires, TParam innerParam, 
         ExistingEffects effects,
         ExistingStates states, ExistingMessages messages, ExistingSemaphores semaphores, 
-        ExistingRegisteredTimeouts registeredTimeouts, Correlations correlations, 
+        Correlations correlations, 
         FatalWorkflowException? fatalWorkflowException
     ) : base(
         invoker, invocationHelper, 
         flowId, storedId, status, epoch, 
         expires, innerParam, innerResult: Unit.Instance, effects,
-        states, messages, registeredTimeouts, semaphores, correlations, fatalWorkflowException
+        states, messages, semaphores, correlations, fatalWorkflowException
     ) { }
     
     public TParam Param
@@ -75,9 +77,12 @@ public class ControlPanel<TParam> : BaseControlPanel<TParam, Unit> where TParam 
     
     public Task Succeed() => InnerSucceed(result: Unit.Instance);
     
-    public async Task BusyWaitUntil(Func<ControlPanel<TParam>, bool> predicate, TimeSpan? maxWait = null, TimeSpan? checkFrequency = null)
+    public Task BusyWaitUntil(Func<ControlPanel<TParam>, bool> predicate, TimeSpan? maxWait = null, TimeSpan? checkFrequency = null)
+        => BusyWaitUntil(predicate: cp => predicate(cp).ToTask(), maxWait, checkFrequency);
+    
+    public async Task BusyWaitUntil(Func<ControlPanel<TParam>, Task<bool>> predicate, TimeSpan? maxWait = null, TimeSpan? checkFrequency = null)
     {
-        if (predicate(this))
+        if (await predicate(this))
             return;
         
         maxWait ??= TimeSpan.FromSeconds(10);
@@ -88,7 +93,7 @@ public class ControlPanel<TParam> : BaseControlPanel<TParam, Unit> where TParam 
         {
             await Task.Delay(checkFrequency.Value);
             await Refresh();
-            if (predicate(this))
+            if (await predicate(this))
                 return;
         } while (stopWatch.Elapsed < maxWait);
         
@@ -105,12 +110,12 @@ public class ControlPanel<TParam, TReturn> : BaseControlPanel<TParam, TReturn> w
         long expires, TParam innerParam, 
         TReturn? innerResult, 
         ExistingEffects effects, ExistingStates states, ExistingMessages messages, ExistingSemaphores semaphores,
-        ExistingRegisteredTimeouts registeredTimeouts, Correlations correlations, FatalWorkflowException? fatalWorkflowException
+        Correlations correlations, FatalWorkflowException? fatalWorkflowException
     ) : base(
         invoker, invocationHelper, 
         flowId, storedId, status, epoch, expires, 
         innerParam, innerResult, effects, states, messages, 
-        registeredTimeouts, semaphores, correlations, fatalWorkflowException
+        semaphores, correlations, fatalWorkflowException
     ) { }
 
     public Task Succeed(TReturn result) => InnerSucceed(result);
@@ -121,10 +126,13 @@ public class ControlPanel<TParam, TReturn> : BaseControlPanel<TParam, TReturn> w
         get => InnerParam;
         set => InnerParam = value;
     }
+
+    public Task BusyWaitUntil(Func<ControlPanel<TParam, TReturn>, bool> predicate, TimeSpan? maxWait = null, TimeSpan? checkFrequency = null)
+        => BusyWaitUntil(predicate: cp => predicate(cp).ToTask(), maxWait, checkFrequency);
     
-    public async Task BusyWaitUntil(Func<ControlPanel<TParam, TReturn>, bool> predicate, TimeSpan? maxWait = null, TimeSpan? checkFrequency = null)
+    public async Task BusyWaitUntil(Func<ControlPanel<TParam, TReturn>, Task<bool>> predicate, TimeSpan? maxWait = null, TimeSpan? checkFrequency = null)
     {
-        if (predicate(this))
+        if (await predicate(this))
             return;
         
         maxWait ??= TimeSpan.FromSeconds(10);
@@ -135,7 +143,7 @@ public class ControlPanel<TParam, TReturn> : BaseControlPanel<TParam, TReturn> w
         {
             await Task.Delay(checkFrequency.Value);
             await Refresh();
-            if (predicate(this))
+            if (await predicate(this))
                 return;
         } while (stopWatch.Elapsed < maxWait);
         
@@ -162,7 +170,6 @@ public abstract class BaseControlPanel<TParam, TReturn>
         ExistingEffects effects,
         ExistingStates states,
         ExistingMessages messages,
-        ExistingRegisteredTimeouts registeredTimeouts,
         ExistingSemaphores semaphores,
         Correlations correlations,
         FatalWorkflowException? fatalWorkflowException)
@@ -183,7 +190,6 @@ public abstract class BaseControlPanel<TParam, TReturn>
         Effects = effects;
         States = states;
         Messages = messages;
-        RegisteredTimeouts = registeredTimeouts;
         Semaphores = semaphores;
         Correlations = correlations;
         FatalWorkflowException = fatalWorkflowException;
@@ -203,8 +209,6 @@ public abstract class BaseControlPanel<TParam, TReturn>
     public ExistingStates States { get; private set; }
     public ExistingSemaphores Semaphores { get; private set; }
     public Correlations Correlations { get; private set; }
-
-    public ExistingRegisteredTimeouts RegisteredTimeouts { get; private set; }
 
     private TParam _innerParam;
     protected TParam InnerParam
@@ -330,7 +334,6 @@ public abstract class BaseControlPanel<TParam, TReturn>
         Effects = _invocationHelper.CreateExistingEffects(FlowId);
         Messages = _invocationHelper.CreateExistingMessages(FlowId);
         States = _invocationHelper.CreateExistingStates(FlowId);
-        RegisteredTimeouts = _invocationHelper.CreateExistingTimeouts(FlowId, Effects);
         Correlations = _invocationHelper.CreateCorrelations(FlowId);
 
         _innerParamChanged = false;

@@ -418,7 +418,6 @@ internal class InvocationHelper<TParam, TReturn>
         IReadOnlyList<StoredMessage>? initialMessages)
     {
         var messageWriter = new MessageWriter(storedId, _functionStore, Serializer, scheduleReInvocation);
-        var registeredTimeouts = new RegisteredTimeouts(storedId, _functionStore.TimeoutStore, effect);
         var messagesPullerAndEmitter = new MessagesPullerAndEmitter(
             storedId,
             defaultDelay: _settings.MessagesPullFrequency,
@@ -426,11 +425,10 @@ internal class InvocationHelper<TParam, TReturn>
             isWorkflowRunning,
             _functionStore,
             Serializer,
-            registeredTimeouts,
             initialMessages
         );
         
-        return new Messages(messageWriter, registeredTimeouts, messagesPullerAndEmitter);
+        return new Messages(messageWriter, messagesPullerAndEmitter);
     }
     
     public Tuple<Effect, States> CreateEffectAndStates(StoredId storedId, FlowId flowId, IReadOnlyList<StoredEffect> storedEffects)
@@ -473,7 +471,6 @@ internal class InvocationHelper<TParam, TReturn>
 
     public ExistingEffects CreateExistingEffects(FlowId flowId) => new(MapToStoredId(flowId), flowId, _functionStore.EffectsStore, Serializer);
     public ExistingMessages CreateExistingMessages(FlowId flowId) => new(MapToStoredId(flowId), _functionStore.MessageStore, Serializer);
-    public ExistingRegisteredTimeouts CreateExistingTimeouts(FlowId flowId, ExistingEffects existingEffects) => new(MapToStoredId(flowId), _functionStore.TimeoutStore, existingEffects);
     public ExistingSemaphores CreateExistingSemaphores(FlowId flowId) => new(MapToStoredId(flowId), _functionStore, CreateExistingEffects(flowId));
 
     public DistributedSemaphores CreateSemaphores(StoredId storedId, Effect effect)

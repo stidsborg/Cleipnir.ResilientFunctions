@@ -37,11 +37,21 @@ public static class LeafOperators
             return await tcs.Task;
         }
 
-        await subscription.RegisterTimeout();
+        var registerTimeoutResult = await subscription.RegisterTimeout();
+        if (registerTimeoutResult?.AppendedTimeoutToMessages == true)
+        {
+            await subscription.SyncStore(maxSinceLastSynced: TimeSpan.Zero);
+            subscription.PushMessages();
+            if (tcs.Task.IsCompleted)
+                return await tcs.Task;
+        }
+        var timeout = registerTimeoutResult?.TimeoutExpiry;
         
         maxWait ??= subscription.DefaultMessageMaxWait;
         if (maxWait == TimeSpan.Zero)
-            throw new SuspendInvocationException();
+            throw timeout == null
+                ? new SuspendInvocationException()
+                : new PostponeInvocationException(timeout.Value);
 
         var stopWatch = new Stopwatch();
         stopWatch.Start();
@@ -59,7 +69,9 @@ public static class LeafOperators
             return await tcs.Task;
         }
         
-        throw new SuspendInvocationException();
+        throw timeout == null
+            ? new SuspendInvocationException()
+            : new PostponeInvocationException(timeout.Value);
     }
     
     public static Task<List<T>> Completion<T>(this IReactiveChain<T> s, TimeSpan? maxWait = null)
@@ -182,29 +194,8 @@ public static class LeafOperators
 
     #region Suspend
 
-    public static async Task SuspendUntil(this Messages s, string timeoutEventId, DateTime resumeAt)
-    {
-        var timeoutEmitted = false;
-        var effectId = EffectId.CreateWithCurrentContext(timeoutEventId, EffectType.Timeout);
-        var subscription = s
-            .OfType<TimeoutEvent>()
-            .Where(t => t.TimeoutId == effectId)
-            .Take(1)
-            .Subscribe(
-                onNext: _ => timeoutEmitted = true,
-                onCompletion: () => { },
-                onError: _ => { }
-            );
-        await subscription.Initialize();
-        
-        subscription.PushMessages();
-        
-        if (timeoutEmitted)
-            return;
-
-        await subscription.RegisteredTimeouts.RegisterTimeout(effectId, resumeAt);
-        throw new SuspendInvocationException();
-    }
+    public static Task SuspendUntil(this Messages s, string timeoutEventId, DateTime resumeAt) 
+        => s.TakeUntilTimeout(timeoutEventId, resumeAt).Completion();
 
     public static Task SuspendFor(this Messages s, string timeoutEventId, TimeSpan resumeAfter)
         => s.SuspendUntil(timeoutEventId, DateTime.UtcNow.Add(resumeAfter));

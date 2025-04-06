@@ -532,6 +532,9 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         }
     }
 
+    public Task AppendMessageNoStatusAndInterrupt(StoredId storedId, StoredMessage storedMessage) 
+        => AppendMessage(storedId, storedMessage);
+
     public async Task AppendMessages(IReadOnlyList<StoredIdAndMessage> messages, bool interrupt = true)
     {
         foreach (var (storedId, storedMessage) in messages)

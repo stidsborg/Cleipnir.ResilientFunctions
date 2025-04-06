@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Threading.Tasks;
-using Cleipnir.ResilientFunctions.CoreRuntime;
 
 namespace Cleipnir.ResilientFunctions.Reactive.Operators;
 
@@ -67,14 +66,12 @@ public class CustomOperator<TIn, TOut> : IReactiveChain<TOut>
             _innerSubscription = inner.Subscribe(OnNext, OnCompletion, OnError);
         }
 
-        public IRegisteredTimeouts RegisteredTimeouts => _innerSubscription.RegisteredTimeouts;
-
         public Task Initialize() => _innerSubscription.Initialize();
 
         public Task SyncStore(TimeSpan maxSinceLastSynced) => _innerSubscription.SyncStore(maxSinceLastSynced);
         public void PushMessages() => _innerSubscription.PushMessages();
         
-        public Task RegisterTimeout() => _innerSubscription.RegisterTimeout();
+        public Task<RegisterTimeoutResult?> RegisterTimeout() => _innerSubscription.RegisterTimeout();
         public Task CancelTimeout() => _innerSubscription.CancelTimeout();
 
         private void OnNext(TIn next)

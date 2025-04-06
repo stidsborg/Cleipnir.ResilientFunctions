@@ -23,6 +23,10 @@ public class MessagesTests : ResilientFunctions.Tests.Messaging.TestTemplates.Me
         => MessagesFirstOfTypesReturnsSecondForFirstOfTypesOnSecond(FunctionStoreFactory.Create());
 
     [TestMethod]
+    public override Task MessagesFirstOfTypesReturnsNoneForTimeout()
+        => MessagesFirstOfTypesReturnsNoneForTimeout(FunctionStoreFactory.Create());
+
+    [TestMethod]
     public override Task ExistingEventsShouldBeSameAsAllAfterEmit()
         => ExistingEventsShouldBeSameAsAllAfterEmit(FunctionStoreFactory.Create());
 

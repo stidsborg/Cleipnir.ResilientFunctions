@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Threading.Tasks;
-using Cleipnir.ResilientFunctions.CoreRuntime;
-using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Reactive.Operators;
 
 namespace Cleipnir.ResilientFunctions.Reactive.Origin;
 
@@ -19,7 +18,6 @@ internal class SourceSubscription : ISubscription
     private readonly Func<bool> _isWorkflowRunning;
     public bool IsWorkflowRunning => _isWorkflowRunning();
     public IReactiveChain<object> Source { get; }
-    public IRegisteredTimeouts RegisteredTimeouts { get; }
     public TimeSpan DefaultMessageSyncDelay { get; }
     public TimeSpan DefaultMessageMaxWait { get; }
 
@@ -30,7 +28,6 @@ internal class SourceSubscription : ISubscription
         SyncStore syncStore, 
         Func<bool> initialSyncPerformed,
         Func<bool> isWorkflowRunning,
-        IRegisteredTimeouts registeredTimeouts,
         TimeSpan defaultDelay,
         TimeSpan defaultMessageMaxWait
     )
@@ -43,7 +40,6 @@ internal class SourceSubscription : ISubscription
         _syncStore = syncStore;
         _initialSyncPerformed = initialSyncPerformed;
         _isWorkflowRunning = isWorkflowRunning;
-        RegisteredTimeouts = registeredTimeouts;
         DefaultMessageSyncDelay = defaultDelay;
         DefaultMessageMaxWait = defaultMessageMaxWait;
     }
@@ -70,6 +66,6 @@ internal class SourceSubscription : ISubscription
                 _onNext(toEmit.Event!);
     }
 
-    public Task RegisterTimeout() => Task.CompletedTask;
+    public Task<RegisterTimeoutResult?> RegisterTimeout() => Task.FromResult(default(RegisterTimeoutResult?));
     public Task CancelTimeout() => Task.CompletedTask;
 }

@@ -240,6 +240,11 @@ public class StoreTests : TestTemplates.StoreTests
     public override Task EffectsArePersistedOnPostponeFunction()
         => EffectsArePersistedOnPostponeFunction(FunctionStoreFactory.Create());
 
+    [TestMethod]
     public override Task EffectsArePersistedOnFailFunction()
         => EffectsArePersistedOnFailFunction(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task AppendMessageNoStatusAndInterruptWorks()
+        => AppendMessageNoStatusAndInterruptWorks(FunctionStoreFactory.Create());
 }

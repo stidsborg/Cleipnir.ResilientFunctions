@@ -5,12 +5,11 @@ using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Events;
-using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.Domain.Exceptions.Commands;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Reactive.Extensions;
-using Cleipnir.ResilientFunctions.Reactive.Origin;
 using Cleipnir.ResilientFunctions.Reactive.Utilities;
+using Cleipnir.ResilientFunctions.Storage;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Shouldly;
 
@@ -119,18 +118,34 @@ public class LeafOperatorsTests
     [TestMethod]
     public async Task FirstOperatorWithSuspensionAndTimeoutEventThrowsSuspensionExceptionWhenNothingIsSignalled()
     {
-        var source = new TestSource();
-        var timeoutEventId = "TimeoutEventId".ToEffectId();
         var expiresAt = DateTime.UtcNow.AddDays(1);
         
-        source.SignalNext(new TimeoutEvent("OtherEventId".ToEffectId(), expiresAt));
-        
-        var nextOrSuspend = source
-            .TakeUntilTimeout(timeoutEventId, expiresAt)
-            .OfType<string>()
-            .First(maxWait: TimeSpan.Zero);
-        
-        await Should.ThrowAsync<SuspendInvocationException>(nextOrSuspend);
+        using var registry = new FunctionsRegistry(new InMemoryFunctionStore());
+        var registration = registry.RegisterFunc<string, DateTime?>(
+            "SomeFlowType",
+            async Task<DateTime?> (_, workflow) =>
+            {
+                var timeoutEventId = "TimeoutEventId";
+                await workflow.Messages.AppendMessage(new TimeoutEvent("OtherEventId".ToEffectId(), expiresAt));
+                try
+                {
+                    await workflow
+                        .Messages
+                        .TakeUntilTimeout(timeoutEventId, expiresAt)
+                        .OfType<string>()
+                        .First(maxWait: TimeSpan.Zero);
+                }
+                catch (PostponeInvocationException e)
+                {
+                    return e.PostponeUntil;
+                }
+
+                return null;
+            }
+        );
+
+        var result = await registration.Invoke("SomeFlowInstance", "SomeParam");
+        result.ShouldBe(expiresAt);
     }
     
     [TestMethod]
@@ -412,17 +427,32 @@ public class LeafOperatorsTests
     [TestMethod]
     public async Task LastOperatorWithSuspensionAndTimeoutEventThrowsSuspensionExceptionWhenNothingIsSignalled()
     {
-        var source = new TestSource();
-        var timeoutEventId = "TimeoutEventId".ToEffectId();
         var expiresAt = DateTime.UtcNow.AddDays(1);
-        
-        source.SignalNext(new TimeoutEvent("OtherEventId".ToEffectId(), expiresAt));
-        
-        var nextOrSuspend = source
-            .TakeUntilTimeout(timeoutEventId, expiresAt)
-            .Last(maxWait: TimeSpan.Zero);
-        
-        await Should.ThrowAsync<SuspendInvocationException>(nextOrSuspend);
+        using var registry = new FunctionsRegistry(new InMemoryFunctionStore());
+        var registration = registry.RegisterFunc<string, DateTime?>(
+            "SomeFlowType",
+            async Task<DateTime?> (_, workflow) =>
+            {
+                var timeoutEventId = "TimeoutEventId";
+                await workflow.Messages.AppendMessage(new TimeoutEvent("OtherEventId".ToEffectId(), expiresAt));
+                try
+                {
+                    await workflow
+                        .Messages
+                        .TakeUntilTimeout(timeoutEventId, expiresAt)
+                        .Last(maxWait: TimeSpan.Zero);
+                }
+                catch (PostponeInvocationException e)
+                {
+                    return e.PostponeUntil;
+                }
+
+                return null;
+            }
+        );
+
+        var result = await registration.Invoke("SomeFlowInstance", "SomeParam");
+        result.ShouldBe(expiresAt);
     }
     
     [TestMethod]

@@ -64,30 +64,66 @@ public class TimeoutOperator<T> : IReactiveChain<T>
         
         public bool IsWorkflowRunning => _innerSubscription.IsWorkflowRunning;
         public IReactiveChain<object> Source => _innerSubscription.Source;
-        public IRegisteredTimeouts RegisteredTimeouts => _innerSubscription.RegisteredTimeouts;
-        
+
+        private bool _createdTimeout;
+
         public Task Initialize() => _innerSubscription.Initialize();
 
-        public Task SyncStore(TimeSpan maxSinceLastSynced) => _innerSubscription.SyncStore(maxSinceLastSynced);
+        public async Task SyncStore(TimeSpan maxSinceLastSynced)
+        {
+            if (!TimeoutExists && !_createdTimeout)
+            {
+                //append timeout event to messages if it has expired
+                var workflow = CurrentFlow.Workflow;
+                if (workflow == null)
+                    throw new InvalidOperationException("Reactive operator must be invoked by the Cleipnir framework");
+
+                var timeout = await workflow.Effect.CreateOrGet(_timeoutId, _expiresAt);
+                if (DateTime.UtcNow >= timeout)
+                {
+                    var timeoutEvent = new TimeoutEvent(_timeoutId, _expiresAt);
+                    var idempotencyKey = $"Timeout¤{_timeoutId}";
+                    await workflow.Messages.AppendMessageNoSync(timeoutEvent, idempotencyKey);
+                    await _innerSubscription.SyncStore(maxSinceLastSynced: TimeSpan.Zero);
+                    return;
+                }
+            }
+            
+            await _innerSubscription.SyncStore(maxSinceLastSynced);
+        } 
 
         public void PushMessages() => _innerSubscription.PushMessages();
 
-        public Task RegisterTimeout() => _innerSubscription.RegisteredTimeouts.RegisterTimeout(_timeoutId, _expiresAt);
-        public Task CancelTimeout()
+        private bool TimeoutExists => _innerSubscription
+            .Source
+            .OfType<TimeoutEvent>()
+            .Where(t => t.TimeoutId == _timeoutId)
+            .Take(1)
+            .Existing(out _)
+            .Any();
+        
+        public async Task<RegisterTimeoutResult?> RegisterTimeout()
         {
-            var timeoutExists = _innerSubscription
-                .Source
-                .OfType<TimeoutEvent>()
-                .Where(t => t.TimeoutId == _timeoutId)
-                .Take(1)
-                .Existing(out _)
-                .Any();
-
-            if (timeoutExists)
-                return Task.CompletedTask;
+            if (TimeoutExists || _createdTimeout)
+                return null;
             
-            return _innerSubscription.RegisteredTimeouts.CancelTimeout(_timeoutId);  
-        }   
+            var workflow = CurrentFlow.Workflow;
+            if (workflow == null)
+                throw new InvalidOperationException("Reactive operator must be invoked by the Cleipnir framework");
+
+            var timeout = await workflow.Effect.CreateOrGet(_timeoutId, _expiresAt);
+            if (timeout > DateTime.UtcNow) 
+                return new RegisterTimeoutResult(timeout, AppendedTimeoutToMessages: false);
+            
+            //append timeout event to messages
+            var timeoutEvent = new TimeoutEvent(_timeoutId, _expiresAt);
+            var idempotencyKey = $"Timeout¤{_timeoutId}";
+            await workflow.Messages.AppendMessageNoSync(timeoutEvent, idempotencyKey);
+            _createdTimeout = true;
+            return new RegisterTimeoutResult(TimeoutExpiry: null, AppendedTimeoutToMessages: true);
+        }
+
+        public Task CancelTimeout() => Task.CompletedTask;
 
         private void OnNext(T next)
         {

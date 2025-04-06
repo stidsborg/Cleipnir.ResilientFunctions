@@ -29,7 +29,7 @@ public class ReactiveIntegrationTests
                 await messages.SuspendFor(timeoutEventId: "timeout", resumeAfter: TimeSpan.FromSeconds(1));
             });
         
-        await Should.ThrowAsync<InvocationSuspendedException>(rAction.Invoke(flowInstance.Value, "param"));
+        await Should.ThrowAsync<InvocationPostponedException>(rAction.Invoke(flowInstance.Value, "param"));
         
         await BusyWait.Until(() =>
             store.GetFunction(rAction.MapToStoredId(functionId.Instance)).SelectAsync(sf => sf?.Status == Status.Succeeded)
@@ -42,7 +42,6 @@ public class ReactiveIntegrationTests
         var counter = new SyncedCounter();
         
         var source = new TestSource(
-            NoOpRegisteredTimeouts.Instance,
             syncStore: _ =>
             {
                 counter.Increment();

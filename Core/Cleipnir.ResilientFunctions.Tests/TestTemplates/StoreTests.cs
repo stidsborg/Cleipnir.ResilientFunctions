@@ -1937,4 +1937,37 @@ public abstract class StoreTests
         var fetchedEffect2 = fetchedEffects.Single(s => s.EffectId == effectId2);
         fetchedEffect2.Result!.ToStringFromUtf8Bytes().ShouldBe("World");     
     }
+    
+    public abstract Task AppendMessageNoStatusAndInterruptWorks();
+    protected async Task AppendMessageNoStatusAndInterruptWorks(Task<IFunctionStore> storeTask)
+    {
+        var storedId = TestStoredId.Create();
+        
+        var store = await storeTask;
+        var paramJson = PARAM.ToJson();
+
+        await store.CreateFunction(
+            storedId, 
+            "humanInstanceId",
+            paramJson.ToUtf8Bytes(), 
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks,
+            parent: null
+        ).ShouldBeTrueAsync();
+
+        var msg = new StoredMessage("HelloWorld".ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes(), IdempotencyKey: "SomeIdempotencyKey");
+        await store.MessageStore.AppendMessageNoStatusAndInterrupt(storedId, msg);
+
+        var sf = await store.GetFunction(storedId);
+        sf.ShouldNotBeNull();
+        sf.Interrupted.ShouldBeFalse();
+
+        var messages = await store.MessageStore.GetMessages(storedId, skip: 0);
+        messages.Count.ShouldBe(1);
+        var fetchedMessage = messages.Single();
+        fetchedMessage.MessageContent.ToStringFromUtf8Bytes().ShouldBe("HelloWorld");
+        fetchedMessage.MessageType.ToStringFromUtf8Bytes().ShouldBe(typeof(string).SimpleQualifiedName());
+        fetchedMessage.IdempotencyKey.ShouldBe("SomeIdempotencyKey");
+    }
 }

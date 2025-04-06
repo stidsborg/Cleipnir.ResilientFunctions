@@ -107,9 +107,9 @@ public static class InnerOperators
     public static IReactiveChain<object> TakeUntilTimeout(this Messages s, string timeoutEventId, DateTime expiresAt)
         => new TimeoutOperator<object>(s.Source, EffectId.CreateWithCurrentContext(timeoutEventId, EffectType.Timeout), expiresAt);
     public static IReactiveChain<object> TakeUntilTimeout(this Messages s, TimeSpan expiresIn)
-        => s.TakeUntilTimeout(s.RegisteredTimeouts.GetNextImplicitId(), expiresIn);
+        => s.TakeUntilTimeout(EffectContext.CurrentContext.NextImplicitId(), expiresIn);
     public static IReactiveChain<object> TakeUntilTimeout(this Messages s, DateTime expiresAt)
-        => s.TakeUntilTimeout(s.RegisteredTimeouts.GetNextImplicitId(), expiresAt);
+        => s.TakeUntilTimeout(EffectContext.CurrentContext.NextImplicitId(), expiresAt);
 
     public static IReactiveChain<T> Skip<T>(this IReactiveChain<T> s, int toSkip)
     {

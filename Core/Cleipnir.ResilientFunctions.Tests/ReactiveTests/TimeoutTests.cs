@@ -1,14 +1,13 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
-using Cleipnir.ResilientFunctions.CoreRuntime;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Events;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Reactive.Extensions;
 using Cleipnir.ResilientFunctions.Reactive.Utilities;
+using Cleipnir.ResilientFunctions.Storage;
+using Cleipnir.ResilientFunctions.Tests.Utils;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Shouldly;
 
@@ -17,149 +16,115 @@ namespace Cleipnir.ResilientFunctions.Tests.ReactiveTests;
 [TestClass]
 public class TimeoutTests
 {
+    //rewrite into integration tests
     [TestMethod]
     public async Task StreamCompletesAndThrowsNoResultExceptionAfterFiredTimeoutEvent()
     {
-        var timeoutId = "TimeoutId".ToEffectId();
+        var timeoutId = "TimeoutId";
         var expiresAt = DateTime.UtcNow.Add(TimeSpan.FromMinutes(15));
         
-        var registeredTimeoutsStub = new RegisteredTimeoutsStub();
-        var source = new TestSource(registeredTimeoutsStub);
+        using var registry = new FunctionsRegistry(new InMemoryFunctionStore());
+        var flow = registry.RegisterFunc<string, bool>("Flow",
+            async (_, workflow) =>
+            {
+                var messages = workflow.Messages;
+                try
+                {
+                    await messages.TakeUntilTimeout(timeoutId, expiresAt).First(maxWait: TimeSpan.FromSeconds(5));
+                }
+                catch (NoResultException)
+                {
+                    return true;
+                }
 
-        var task = source.TakeUntilTimeout(timeoutId, expiresAt).First();
-        
-        await BusyWait.Until(() => registeredTimeoutsStub.Registrations.Any());
-        
-        var (id, expiry) = registeredTimeoutsStub.Registrations.Single();
-        id.ShouldBe(timeoutId);
-        expiry.ShouldBe(expiresAt);
-        
-        source.SignalNext(new TimeoutEvent(timeoutId, expiresAt));
+                return false;
+            });
 
-        await BusyWait.Until(() => task.IsCompleted);
-        task.IsCompleted.ShouldBeTrue();
+        var scheduled = await flow.Schedule("Instance", param: "");
+        
+        var cp = await flow.ControlPanel("Instance").ShouldNotBeNullAsync();
+        await cp.BusyWaitUntil(c => c.Effects.AllIds.SelectAsync(ids => ids.Any()));
+        
+        var timeoutEffectId = (await cp.Effects.AllIds).Single(eId => eId.Id == timeoutId);
+        var effectTimeout = await cp.Effects.GetValue<DateTime>(timeoutEffectId);
+        
+        effectTimeout.ShouldBe(expiresAt);
 
-        await Should.ThrowAsync<NoResultException>(task);
+        await flow.SendMessage("Instance", new TimeoutEvent(timeoutEffectId, effectTimeout));
+        var result = await scheduled.Completion();
+        result.ShouldBeTrue();
     }
+    
     
     [TestMethod]
     public async Task StreamCompletesAndReturnsNothingAfterFiredTimeoutEvent()
     {
-        var timeoutId = "TimeoutId".ToEffectId();
+        var timeoutId = "TimeoutId";
+        var effectId = new EffectId(timeoutId, EffectType.Timeout, Context: "");
         var expiresAt = DateTime.UtcNow.Add(TimeSpan.FromMinutes(15));
-        
-        var registeredTimeoutsStub = new RegisteredTimeoutsStub();
-        var source = new TestSource(registeredTimeoutsStub);
+    
+        using var registry = new FunctionsRegistry(new InMemoryFunctionStore());
+        var flow = registry.RegisterFunc<string, Option<object>>("Flow",
+            async (_, workflow) =>
+            {
+                var messages = workflow.Messages;
+                return await messages.TakeUntilTimeout(timeoutId, expiresAt).FirstOrNone();
+            });
 
-        var task = source.TakeUntilTimeout(timeoutId, expiresAt).FirstOrNone();
+        var scheduled = await flow.Schedule("Instance", param: "");
         
-        await BusyWait.Until(() => registeredTimeoutsStub.Registrations.Any());
-        
-        source.SignalNext(new TimeoutEvent(timeoutId, expiresAt));
+        var cp = await flow.ControlPanel("Instance").ShouldNotBeNullAsync();
+        await cp.BusyWaitUntil(c => c.Effects.AllIds.SelectAsync(ids => ids.Any()));
 
-        await BusyWait.Until(() => task.IsCompleted);
-        task.IsCompletedSuccessfully.ShouldBeTrue();
+        var effectExpiresAt = await cp.Effects.GetValue<DateTime>(effectId);
+        effectExpiresAt.ShouldBe(expiresAt);
 
-        var option = await task;
-        option.HasValue.ShouldBeFalse();
-        
-        var (id, expiry) = registeredTimeoutsStub.Registrations.Single();
-        id.ShouldBe(timeoutId);
-        expiry.ShouldBe(expiresAt);
+        await flow.SendMessage("Instance", new TimeoutEvent(effectId, expiresAt));
+
+        var result = await scheduled.Completion();
+        result.HasValue.ShouldBeFalse();
     }
     
     [TestMethod]
     public async Task StreamCompletesSuccessfullyWhenEventSupersedesTimeout()
     {
-        var timeoutId = "TimeoutId".ToEffectId();
+        var timeoutId = "TimeoutId";
         var expiresAt = DateTime.UtcNow.Add(TimeSpan.FromMinutes(15));
-        
-        var registeredTimeoutsStub = new RegisteredTimeoutsStub();
-        var source = new TestSource(registeredTimeoutsStub);
+     
+        using var registry = new FunctionsRegistry(new InMemoryFunctionStore());
+        var flow = registry.RegisterFunc<string, string>("Flow",
+            async (_, workflow) =>
+            {
+                var messages = workflow.Messages;
+                return await messages.TakeUntilTimeout(timeoutId, expiresAt).FirstOfType<string>();
+            });
 
-        var task = source.TakeUntilTimeout(timeoutId, expiresAt).First();
-        
-        source.SignalNext("Hello");
+        var scheduled = await flow.Schedule("Instance", param: "");
+        await flow.SendMessage("Instance", "Hello");
 
-        await BusyWait.Until(() => task.IsCompleted);
-        task.IsCompletedSuccessfully.ShouldBeTrue();
-        task.Result.ShouldBe("Hello");
+        var result = await scheduled.Completion();
+        result.ShouldBe("Hello");
     }
     
     [TestMethod]
     public async Task StreamCompletesSuccessfullyWithValuedOptionWhenEventSupersedesTimeout()
     {
-        var timeoutId = "TimeoutId".ToEffectId();
+        var timeoutId = "TimeoutId";
         var expiresAt = DateTime.UtcNow.Add(TimeSpan.FromMinutes(15));
         
-        var registeredTimeoutsStub = new RegisteredTimeoutsStub();
-        var source = new TestSource(registeredTimeoutsStub);
-
-        var task = source.TakeUntilTimeout(timeoutId, expiresAt).FirstOrNone();
-        
-        source.SignalNext("Hello");
-
-        await BusyWait.Until(() => task.IsCompleted);
-        task.IsCompletedSuccessfully.ShouldBeTrue();
-        var option = task.Result;
-        option.HasValue.ShouldBeTrue();
-        option.Value.ShouldBe("Hello");
-        
-        registeredTimeoutsStub.Cancelled.ShouldBe(timeoutId);
-    }
-    
-    [TestMethod]
-    public async Task ExistingTimeoutEventInMessagesAvoidRegisteredTimeoutsCancellation()
-    {
-        var timeoutId = "TimeoutId".ToEffectId();
-        var expiresAt = DateTime.UtcNow.Add(TimeSpan.FromMinutes(15));
-        
-        var registeredTimeoutsStub = new RegisteredTimeoutsStub();
-        var source = new TestSource(registeredTimeoutsStub);
-        source.SignalNext(new TimeoutEvent(timeoutId, expiresAt));
-
-        var task = await source.TakeUntilTimeout(timeoutId, expiresAt).FirstOrNone();
-        task.HasValue.ShouldBeFalse();
-
-        registeredTimeoutsStub.Cancelled.ShouldBeNull();
-    }
-    
-    private class RegisteredTimeoutsStub : IRegisteredTimeouts
-    {
-        public List<Tuple<EffectId, DateTime>> Registrations
-        {
-            get
+        using var registry = new FunctionsRegistry(new InMemoryFunctionStore());
+        var flow = registry.RegisterFunc<string, Option<string>>("Flow",
+            async (_, workflow) =>
             {
-                lock (_sync)
-                    return _registrations
-                        .Select(kv => Tuple.Create(kv.Key, kv.Value))
-                        .ToList();
-            }
-        }
+                var messages = workflow.Messages;
+                return await messages.TakeUntilTimeout(timeoutId, expiresAt).OfType<string>().FirstOrNone();
+            });
 
-        public volatile EffectId? Cancelled = null; 
+        var scheduled = await flow.Schedule("Instance", param: "");
+        await flow.SendMessage("Instance", "Hello");
 
-        private readonly Lock _sync = new();
-        private readonly Dictionary<EffectId, DateTime> _registrations = new();
-            
-        public Task RegisterTimeout(EffectId timeoutId, DateTime expiresAt)
-        {
-            lock (_sync)
-                _registrations[timeoutId] = expiresAt;
-
-            return Task.CompletedTask;
-        }
-
-        public Task RegisterTimeout(EffectId timeoutId, TimeSpan expiresIn)
-            => RegisterTimeout(timeoutId, DateTime.UtcNow.Add(expiresIn));
-
-        public Task CancelTimeout(EffectId timeoutId)
-        {
-            Cancelled = timeoutId;
-            return Task.CompletedTask;
-        }
-        
-        public Task<IReadOnlyList<RegisteredTimeout>> PendingTimeouts()
-            => Task.FromException<IReadOnlyList<RegisteredTimeout>>(new Exception("Stub-method invocation"));
+        var result = await scheduled.Completion();
+        result.HasValue.ShouldBeTrue();
+        result.Value.ShouldBe("Hello");
     }
 }
