@@ -94,6 +94,9 @@ namespace Cleipnir.ResilientFunctions.StressTests
                 Console.WriteLine(nameof(RestartSuspensionTest).ToUpper());
                 engineTestResults[nameof(RestartSuspensionTest)] = await RestartSuspensionTest.Perform(engine);
                 Console.WriteLine();
+                Console.WriteLine(nameof(TimeoutSuspensionTest).ToUpper());
+                engineTestResults[nameof(TimeoutSuspensionTest)] = await TimeoutSuspensionTest.Perform(engine);
+                Console.WriteLine();
                 Console.WriteLine(nameof(DirectInvocationTest).ToUpper());
                 engineTestResults[nameof(DirectInvocationTest)] = await DirectInvocationTest.Perform(engine);
                 Console.WriteLine();
