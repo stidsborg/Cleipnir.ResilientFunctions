@@ -111,7 +111,7 @@ public class TimeoutOperator<T> : IReactiveChain<T>
             if (workflow == null)
                 throw new InvalidOperationException("Reactive operator must be invoked by the Cleipnir framework");
 
-            var timeout = await workflow.Effect.CreateOrGet(_timeoutId, _expiresAt);
+            var timeout = await workflow.Effect.CreateOrGet(_timeoutId, _expiresAt, flush: false);
             if (timeout > DateTime.UtcNow) 
                 return new RegisterTimeoutResult(timeout, AppendedTimeoutToMessages: false);
             

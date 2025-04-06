@@ -43,6 +43,10 @@ public class EffectTests : TestTemplates.FunctionTests.EffectTests
         => EffectsCrudTest(FunctionStoreFactory.Create());
 
     [TestMethod]
+    public override Task EffectsCreateOrGetWithoutFlushTest()
+        => EffectsCreateOrGetWithoutFlushTest(FunctionStoreFactory.Create());
+
+    [TestMethod]
     public override Task ExistingEffectsFuncIsOnlyInvokedAfterGettingValue()
         => ExistingEffectsFuncIsOnlyInvokedAfterGettingValue(FunctionStoreFactory.Create());
 

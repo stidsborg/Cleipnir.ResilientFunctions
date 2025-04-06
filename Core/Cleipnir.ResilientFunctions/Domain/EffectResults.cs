@@ -370,10 +370,9 @@ public class EffectResults
     }
     
     private readonly SemaphoreSlim _flushSync = new(initialCount: 1, maxCount: 1);
-    private async Task Flush()
+    public async Task Flush()
     {
         await _flushSync.WaitAsync();
-
         try
         {
             IReadOnlyList<PendingEffectChange> pendingChanges;

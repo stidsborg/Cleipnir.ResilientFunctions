@@ -359,6 +359,36 @@ public abstract class EffectTests
         await effect.Contains("Id1").ShouldBeTrueAsync();
     }
     
+    public abstract Task EffectsCreateOrGetWithoutFlushTest();
+    public async Task EffectsCreateOrGetWithoutFlushTest(Task<IFunctionStore> storeTask)
+    {  
+        var store = await storeTask;
+        var storedId = TestStoredId.Create();
+        var effectResults = new EffectResults(
+            TestFlowId.Create(),
+            storedId,
+            lazyExistingEffects: new Lazy<Task<IReadOnlyList<StoredEffect>>>(() => store.EffectsStore.GetEffectResults(storedId)),
+            store.EffectsStore,
+            DefaultSerializer.Instance
+        );
+        var effect = new Effect(effectResults);
+
+        var id = await effect.CreateOrGet("EffectId", Guid.NewGuid(), flush: false);
+        var id2 = await effect.CreateOrGet("EffectId", Guid.NewGuid(), flush: false);
+        id2.ShouldBe(id);
+
+        effectResults.HasPendingChanges.ShouldBeTrue();
+        await store.EffectsStore.GetEffectResults(storedId).SelectAsync(e => e.Any()).ShouldBeFalseAsync();
+        await effect.Flush();
+        
+        effectResults.HasPendingChanges.ShouldBeFalse();
+        var storedEffects = await store.EffectsStore.GetEffectResults(storedId);
+        storedEffects.Count.ShouldBe(1);
+        var storedEffect = storedEffects.Single();
+        var storedGuid = storedEffect.Result!.ToStringFromUtf8Bytes().DeserializeFromJsonTo<Guid>();
+        storedGuid.ShouldBe(id);
+    }
+    
     public abstract Task ExistingEffectsFuncIsOnlyInvokedAfterGettingValue();
     public async Task ExistingEffectsFuncIsOnlyInvokedAfterGettingValue(Task<IFunctionStore> storeTask)
     {  

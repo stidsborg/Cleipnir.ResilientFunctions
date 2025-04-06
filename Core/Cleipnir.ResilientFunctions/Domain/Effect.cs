@@ -37,8 +37,8 @@ public class Effect(EffectResults effectResults)
         return true;
     }
 
-    public Task<T> CreateOrGet<T>(string id, T value) => CreateOrGet(CreateEffectId(id), value);
-    internal Task<T> CreateOrGet<T>(EffectId effectId, T value) => effectResults.CreateOrGet(effectId, value, flush: true);
+    public Task<T> CreateOrGet<T>(string id, T value, bool flush = true) => CreateOrGet(CreateEffectId(id), value, flush);
+    internal Task<T> CreateOrGet<T>(EffectId effectId, T value, bool flush = true) => effectResults.CreateOrGet(effectId, value, flush);
 
     public async Task Upsert<T>(string id, T value) => await Upsert(CreateEffectId(id, EffectType.Effect), value);
     internal Task Upsert<T>(EffectId effectId, T value) => effectResults.Upsert(effectId, value, flush: true);
@@ -84,6 +84,8 @@ public class Effect(EffectResults effectResults)
         => effectResults.InnerCapture(id, effectType, work, resiliency, effectContext);
 
     public Task Clear(string id) => effectResults.Clear(CreateEffectId(id), flush: true);
+
+    public Task Flush() => effectResults.Flush();
     
     public Task<T> WhenAny<T>(string id, params Task<T>[] tasks)
         => Capture(id, work: async () => await await Task.WhenAny(tasks));

@@ -39,6 +39,10 @@ public class EffectTests : ResilientFunctions.Tests.TestTemplates.FunctionTests.
         => ClearEffectsTest(FunctionStoreFactory.Create());
     
     [TestMethod]
+    public override Task EffectsCreateOrGetWithoutFlushTest()
+        => EffectsCreateOrGetWithoutFlushTest(FunctionStoreFactory.Create());
+
+    [TestMethod]
     public override Task ExistingEffectsFuncIsOnlyInvokedAfterGettingValue()
         => ExistingEffectsFuncIsOnlyInvokedAfterGettingValue(FunctionStoreFactory.Create());
     
