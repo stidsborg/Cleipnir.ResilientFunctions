@@ -218,5 +218,24 @@ public class StoreTests : ResilientFunctions.Tests.TestTemplates.StoreTests
     [TestMethod]
     public override Task RestartExecutionWorksWithEmptyEffectsAndMessages()
         => RestartExecutionWorksWithEmptyEffectsAndMessages(FunctionStoreFactory.Create());
+    
+    [TestMethod]
+    public override Task EffectsArePersistedOnSuspendFunction()
+        => EffectsArePersistedOnSuspendFunction(FunctionStoreFactory.Create());
 
+    [TestMethod]
+    public override Task EffectsArePersistedOnSucceededFunction()
+        => EffectsArePersistedOnSucceededFunction(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task EffectsArePersistedOnPostponeFunction()
+        => EffectsArePersistedOnPostponeFunction(FunctionStoreFactory.Create());
+    
+    [TestMethod]
+    public override Task EffectsArePersistedOnFailFunction()
+        => EffectsArePersistedOnFailFunction(FunctionStoreFactory.Create());
+    
+    [TestMethod]
+    public override Task AppendMessageNoStatusAndInterruptWorks()
+        => AppendMessageNoStatusAndInterruptWorks(FunctionStoreFactory.Create());
 }

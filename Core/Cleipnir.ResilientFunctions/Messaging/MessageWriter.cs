@@ -63,4 +63,13 @@ public class MessageWriter
 
         return Finding.Found;
     }
+
+    internal async Task AppendMessageNoSync<TMessage>(TMessage message, string? idempotencyKey = null) where TMessage : notnull
+    {
+        var (eventJson, eventType) = _serializer.SerializeMessage(message, typeof(TMessage));
+        await _messageStore.AppendMessageNoStatusAndInterrupt(
+            _storedId,
+            new StoredMessage(eventJson, eventType, idempotencyKey)
+        );
+    }
 }

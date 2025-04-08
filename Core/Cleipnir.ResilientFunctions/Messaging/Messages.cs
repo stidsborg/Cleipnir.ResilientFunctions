@@ -2,14 +2,12 @@
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using Cleipnir.ResilientFunctions.CoreRuntime;
 using Cleipnir.ResilientFunctions.Reactive;
 
 namespace Cleipnir.ResilientFunctions.Messaging;
 
 public class Messages : IReactiveChain<object> 
 {
-    public RegisteredTimeouts RegisteredTimeouts { get; }
     public IReactiveChain<object> Source => _messagePullerAndEmitter.Source;
     
     private readonly MessageWriter _messageWriter;
@@ -17,12 +15,10 @@ public class Messages : IReactiveChain<object>
     
     public Messages(
         MessageWriter messageWriter,
-        RegisteredTimeouts registeredTimeouts,
         MessagesPullerAndEmitter messagePullerAndEmitter
     )
     {
         _messageWriter = messageWriter;
-        RegisteredTimeouts = registeredTimeouts;
         _messagePullerAndEmitter = messagePullerAndEmitter;
     }
 
@@ -30,6 +26,11 @@ public class Messages : IReactiveChain<object>
     {
         await _messageWriter.AppendMessage(@event, idempotencyKey);
         await Sync();
+    }
+    
+    internal async Task AppendMessageNoSync(object @event, string? idempotencyKey = null)
+    {
+        await _messageWriter.AppendMessage(@event, idempotencyKey);
     }
 
     public Task Sync() => _messagePullerAndEmitter.PullEvents(maxSinceLastSynced: TimeSpan.Zero);

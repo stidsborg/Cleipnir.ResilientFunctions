@@ -26,6 +26,10 @@ public class MessagesTests : TestTemplates.MessagesTests
         => MessagesFirstOfTypesReturnsSecondForFirstOfTypesOnSecond(FunctionStoreFactory.Create());
 
     [TestMethod]
+    public override Task MessagesFirstOfTypesReturnsNoneForTimeout()
+        => MessagesFirstOfTypesReturnsNoneForTimeout(FunctionStoreFactory.Create());
+
+    [TestMethod]
     public override Task ExistingEventsShouldBeSameAsAllAfterEmit()
         => ExistingEventsShouldBeSameAsAllAfterEmit(FunctionStoreFactory.Create());
 

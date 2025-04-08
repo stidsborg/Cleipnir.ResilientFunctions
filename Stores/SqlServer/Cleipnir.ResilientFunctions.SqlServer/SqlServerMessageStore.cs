@@ -46,6 +46,15 @@ public class SqlServerMessageStore(string connectionString, SqlGenerator sqlGene
     public async Task<FunctionStatus?> AppendMessage(StoredId storedId, StoredMessage storedMessage)
         => await AppendMessage(storedId, storedMessage, depth: 0);
 
+    public async Task AppendMessageNoStatusAndInterrupt(StoredId storedId, StoredMessage storedMessage)
+    {
+        await using var conn = await CreateConnection();
+        await using var command = sqlGenerator
+            .AppendMessage(storedId, storedMessage, paramPrefix: "")
+            .ToSqlCommand(conn);
+        await command.ExecuteNonQueryAsync();
+    }
+
     public async Task AppendMessages(IReadOnlyList<StoredIdAndMessage> messages, bool interrupt = true)
     {
         if (messages.Count == 0)

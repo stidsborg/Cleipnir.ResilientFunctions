@@ -91,81 +91,12 @@ public abstract class TimeoutStoreTests
         timeouts[0].Expiry.ShouldBe(expiry);
     }
     
-    public abstract Task RegisteredTimeoutIsReturnedFromRegisteredTimeouts();
-    protected async Task RegisteredTimeoutIsReturnedFromRegisteredTimeouts(Task<IFunctionStore> storeTask)
-    {
-        var store = await storeTask;
-        var flowId = TestFlowId.Create();
-        var storedId = flowId.ToStoredId(new StoredType(1));
-        
-        var registeredTimeouts = new RegisteredTimeouts(storedId, store.TimeoutStore, CreateEffect(flowId, storedId, store));
-
-        await registeredTimeouts.RegisterTimeout("timeoutId1".ToEffectId(), expiresIn: TimeSpan.FromHours(1));
-        await registeredTimeouts.RegisterTimeout("timeoutId2".ToEffectId(), expiresIn: TimeSpan.FromHours(2));
-        
-        await BusyWait.Until(() => registeredTimeouts.PendingTimeouts().SelectAsync(t => t.Count == 2));
-       
-        var timeouts = await registeredTimeouts.PendingTimeouts();
-        timeouts.Count.ShouldBe(2);
-        timeouts.Any(t => t.TimeoutId == "timeoutId1".ToEffectId()).ShouldBe(true);
-        timeouts.Any(t => t.TimeoutId == "timeoutId2".ToEffectId()).ShouldBe(true);
-    }
-    
     public abstract Task TimeoutStoreCanBeInitializedMultipleTimes();
     protected async Task TimeoutStoreCanBeInitializedMultipleTimes(Task<ITimeoutStore> storeTask)
     {
         var store = await storeTask;
         await store.Initialize();
         await store.Initialize();
-    }
-    
-    public abstract Task RegisteredTimeoutIsReturnedFromRegisteredTimeoutsForFunctionId();
-    protected async Task RegisteredTimeoutIsReturnedFromRegisteredTimeoutsForFunctionId(Task<IFunctionStore> storeTask)
-    {
-        var store = await storeTask;
-        var flowId = TestFlowId.Create();
-        var storedId = flowId.ToStoredId(new StoredType(1));
-
-        var effect = CreateEffect(flowId, storedId, store);
-        var registeredTimeouts = new RegisteredTimeouts(storedId, store.TimeoutStore, effect);
-
-        var otherInstanceRegisteredTimeouts = new RegisteredTimeouts(
-            storedId with { Instance = (storedId.Instance + "2").ToStoredInstance() }, 
-            store.TimeoutStore,
-            effect
-        );
-
-        await registeredTimeouts.RegisterTimeout("timeoutId1".ToEffectId(), expiresIn: TimeSpan.FromHours(1));
-        await registeredTimeouts.RegisterTimeout("timeoutId2".ToEffectId(), expiresIn: TimeSpan.FromHours(2));
-        await otherInstanceRegisteredTimeouts.RegisterTimeout("timeoutId3".ToEffectId(), expiresIn: TimeSpan.FromHours(3));
-        
-        await BusyWait.Until(() => registeredTimeouts.PendingTimeouts().SelectAsync(t => t.Count == 2));
-       
-        var timeouts = await registeredTimeouts.PendingTimeouts();
-        timeouts.Count.ShouldBe(2);
-        timeouts.Any(t => t.TimeoutId == "timeoutId1".ToEffectId()).ShouldBe(true);
-        timeouts.Any(t => t.TimeoutId == "timeoutId2".ToEffectId()).ShouldBe(true);
-    }
-    
-    public abstract Task TimeoutIsNotRegisteredAgainWhenProviderAlreadyContainsTimeout();
-    protected async Task TimeoutIsNotRegisteredAgainWhenProviderAlreadyContainsTimeout(Task<IFunctionStore> storeTask)
-    {
-        var upsertCount = 0;
-        var store = new TimeoutStoreDecorator((await storeTask).TimeoutStore, () => upsertCount++);
-        var flowId = TestFlowId.Create();
-        var storedId = flowId.ToStoredId(new StoredType(1));
-
-        var registeredTimeouts = new RegisteredTimeouts(storedId, store, CreateEffect(flowId, storedId, await storeTask));
-
-        await registeredTimeouts.RegisterTimeout("timeoutId1".ToEffectId(), expiresIn: TimeSpan.FromHours(1));
-        upsertCount.ShouldBe(1);
-
-        var pendingTimeouts = await registeredTimeouts.PendingTimeouts();
-        pendingTimeouts.Count.ShouldBe(1);
-        pendingTimeouts.Single().TimeoutId.ShouldBe("timeoutId1".ToEffectId());
-
-        await registeredTimeouts.RegisterTimeout("timeoutId1".ToEffectId(), expiresIn: TimeSpan.FromHours(1));
-        upsertCount.ShouldBe(1);
     }
     
     public abstract Task TimeoutsForDifferentTypesCanBeCreatedFetchedSuccessfully();
@@ -196,26 +127,6 @@ public abstract class TimeoutStoreTests
 
         timeouts = await store.GetTimeouts(expiresBefore: expiry - 1).ToListAsync();
         timeouts.ShouldBeEmpty();
-    }
-    
-    public abstract Task CancellingNonExistingTimeoutDoesResultInIO();
-    protected async Task CancellingNonExistingTimeoutDoesResultInIO(Task<IFunctionStore> storeTask)
-    {
-        var removeCount = 0;
-        var store = new TimeoutStoreDecorator((await storeTask).TimeoutStore, removeTimeoutCallback: () => removeCount++);
-        var flowId = TestFlowId.Create();
-        var storedId = flowId.ToStoredId(new StoredType(1));
-        
-        var registeredTimeouts = new RegisteredTimeouts(storedId, store, CreateEffect(flowId, storedId, await storeTask));
-        
-        var pendingTimeouts = await registeredTimeouts.PendingTimeouts();
-        pendingTimeouts.ShouldBeEmpty();
-
-        await registeredTimeouts.RegisterTimeout("SomeOtherTimeoutId".ToEffectId(), expiresIn: TimeSpan.FromHours(1));
-        
-        await registeredTimeouts.CancelTimeout("SomeTimeoutId".ToEffectId());
-        
-        removeCount.ShouldBe(1);
     }
     
     private Effect CreateEffect(FlowId flowId, StoredId storedId, IFunctionStore functionStore)

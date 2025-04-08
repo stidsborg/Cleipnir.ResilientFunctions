@@ -75,7 +75,7 @@ public class SqlGenerator(string tablePrefix)
         return functions;
     }
     
-    public IEnumerable<StoreCommand> UpdateEffects(IReadOnlyList<StoredEffectChange> changes)
+    public IReadOnlyList<StoreCommand> UpdateEffects(IReadOnlyList<StoredEffectChange> changes)
    {
        var commands = new List<StoreCommand>(changes.Count);
 
@@ -360,6 +360,29 @@ public class SqlGenerator(string tablePrefix)
         return null;
     } 
 
+    private string? _appendMessageSql;
+    public StoreCommand AppendMessage(StoredId storedId, StoredMessage storedMessage)
+    {
+        var (messageJson, messageType, idempotencyKey) = storedMessage;
+        _appendMessageSql ??= @$"    
+                INSERT INTO {tablePrefix}_messages
+                    (type, instance, position, message_json, message_type, idempotency_key)
+                VALUES (
+                     $1, $2, 
+                     (SELECT COALESCE(MAX(position), -1) + 1 FROM {tablePrefix}_messages WHERE type = $1 AND instance = $2), 
+                     $3, $4, $5
+                );";
+        
+        var command = StoreCommand.Create(_appendMessageSql);
+        command.AddParameter(storedId.Type.Value);
+        command.AddParameter(storedId.Instance.Value);
+        command.AddParameter(messageJson);
+        command.AddParameter(messageType);
+        command.AddParameter(idempotencyKey ?? (object)DBNull.Value);
+
+        return command;
+    }
+    
     public StoreCommand AppendMessages(IReadOnlyList<StoredIdAndMessageWithPosition> messages)
     {
         var sql = @$"    

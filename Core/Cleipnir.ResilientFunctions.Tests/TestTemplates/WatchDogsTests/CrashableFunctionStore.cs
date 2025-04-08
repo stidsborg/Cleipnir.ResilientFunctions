@@ -112,12 +112,11 @@ public class CrashableFunctionStore : IFunctionStore
         byte[]? result,
         long timestamp,
         int expectedEpoch,
-        IReadOnlyList<StoredEffect>? effects,
-        IReadOnlyList<StoredMessage>? messages,
+        IReadOnlyList<StoredEffectChange>? effects,
         ComplimentaryState complimentaryState
     ) => _crashed
         ? Task.FromException<bool>(new TimeoutException())
-        : _inner.SucceedFunction(storedId, result, timestamp, expectedEpoch, effects, messages, complimentaryState);
+        : _inner.SucceedFunction(storedId, result, timestamp, expectedEpoch, effects, complimentaryState);
 
     public async Task<bool> PostponeFunction(
         StoredId storedId,
@@ -125,15 +124,14 @@ public class CrashableFunctionStore : IFunctionStore
         long timestamp,
         bool ignoreInterrupted,
         int expectedEpoch,
-        IReadOnlyList<StoredEffect>? effects,
-        IReadOnlyList<StoredMessage>? messages,
+        IReadOnlyList<StoredEffectChange>? effects,
         ComplimentaryState complimentaryState
     )
     {
         if (_crashed)
             throw new TimeoutException();
 
-        var result = await _inner.PostponeFunction(storedId, postponeUntil, timestamp, ignoreInterrupted, expectedEpoch, effects, messages, complimentaryState);
+        var result = await _inner.PostponeFunction(storedId, postponeUntil, timestamp, ignoreInterrupted, expectedEpoch, effects, complimentaryState);
         AfterPostponeFunctionFlag.Raise();
 
         return result;
@@ -144,23 +142,21 @@ public class CrashableFunctionStore : IFunctionStore
         StoredException storedException,
         long timestamp,
         int expectedEpoch,
-        IReadOnlyList<StoredEffect>? effects,
-        IReadOnlyList<StoredMessage>? messages,
+        IReadOnlyList<StoredEffectChange>? effects,
         ComplimentaryState complimentaryState
     ) => _crashed
         ? Task.FromException<bool>(new TimeoutException())
-        : _inner.FailFunction(storedId, storedException, timestamp, expectedEpoch, effects, messages, complimentaryState);
+        : _inner.FailFunction(storedId, storedException, timestamp, expectedEpoch, effects, complimentaryState);
 
     public Task<bool> SuspendFunction(
         StoredId storedId, 
         long timestamp, 
         int expectedEpoch,
-        IReadOnlyList<StoredEffect>? effects,
-        IReadOnlyList<StoredMessage>? messages,
+        IReadOnlyList<StoredEffectChange>? effects,
         ComplimentaryState complimentaryState)
         => _crashed
             ? Task.FromException<bool>(new TimeoutException())
-            : _inner.SuspendFunction(storedId, timestamp, expectedEpoch, effects, messages, complimentaryState);
+            : _inner.SuspendFunction(storedId, timestamp, expectedEpoch, effects, complimentaryState);
 
     public Task<bool> Interrupt(StoredId storedId, bool onlyIfExecuting)
         => _crashed

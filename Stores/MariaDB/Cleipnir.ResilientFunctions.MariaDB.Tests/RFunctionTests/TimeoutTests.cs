@@ -14,18 +14,6 @@ public class TimeoutTests : ResilientFunctions.Tests.TestTemplates.FunctionTests
         => ExpiredTimeoutMakesReactiveChainThrowTimeoutException(FunctionStoreFactory.Create());
     
     [TestMethod]
-    public override Task RegisteredTimeoutIsCancelledAfterReactiveChainCompletes()
-        => RegisteredTimeoutIsCancelledAfterReactiveChainCompletes(FunctionStoreFactory.Create());
-
-    [TestMethod]
-    public override Task PendingTimeoutCanBeRemovedFromControlPanel()
-        => PendingTimeoutCanBeRemovedFromControlPanel(FunctionStoreFactory.Create());
-
-    [TestMethod]
-    public override Task PendingTimeoutCanBeUpdatedFromControlPanel()
-        => PendingTimeoutCanBeUpdatedFromControlPanel(FunctionStoreFactory.Create());
-
-    [TestMethod]
     public override Task ExpiredImplicitTimeoutsAreAddedToMessages()
         => ExpiredImplicitTimeoutsAreAddedToMessages(FunctionStoreFactory.Create());
     

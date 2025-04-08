@@ -43,7 +43,6 @@ public static class PostponedTest
                 ignoreInterrupted: true,
                 expectedEpoch: 0,
                 effects: null,
-                messages: null,
                 complimentaryState: new ComplimentaryState(() => storedParameter.ToUtf8Bytes(), LeaseLength: 0)
             );
         }

@@ -108,6 +108,15 @@ public class MariaDbMessageStore : IMessageStore
         return null;
     }
 
+    public async Task AppendMessageNoStatusAndInterrupt(StoredId storedId, StoredMessage storedMessage)
+    {
+        await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
+        await using var command = _sqlGenerator
+            .AppendMessage(storedId, storedMessage)
+            .ToSqlCommand(conn);
+        await command.ExecuteNonQueryAsync();
+    }
+
     public async Task AppendMessages(IReadOnlyList<StoredIdAndMessage> messages, bool interrupt = true)
     {
         if (messages.Count == 0)

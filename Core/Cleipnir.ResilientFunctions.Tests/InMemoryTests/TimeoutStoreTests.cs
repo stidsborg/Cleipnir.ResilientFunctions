@@ -1,6 +1,5 @@
 ﻿using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Helpers;
-using Cleipnir.ResilientFunctions.Storage;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Cleipnir.ResilientFunctions.Tests.InMemoryTests;
@@ -21,26 +20,10 @@ public class TimeoutStoreTests : TestTemplates.TimeoutStoreTests
         => OverwriteFalseDoesNotAffectExistingTimeout(FunctionStoreFactory.Create().SelectAsync(fs => fs.TimeoutStore));
 
     [TestMethod]
-    public override Task RegisteredTimeoutIsReturnedFromRegisteredTimeouts()
-        => RegisteredTimeoutIsReturnedFromRegisteredTimeouts(FunctionStoreFactory.Create());
-
-    [TestMethod]
     public override Task TimeoutStoreCanBeInitializedMultipleTimes()
         => TimeoutStoreCanBeInitializedMultipleTimes(FunctionStoreFactory.Create().SelectAsync(fs => fs.TimeoutStore));
-
-    [TestMethod]
-    public override Task RegisteredTimeoutIsReturnedFromRegisteredTimeoutsForFunctionId()
-        => RegisteredTimeoutIsReturnedFromRegisteredTimeoutsForFunctionId(FunctionStoreFactory.Create());
-
-    [TestMethod]
-    public override Task TimeoutIsNotRegisteredAgainWhenProviderAlreadyContainsTimeout()
-        => TimeoutIsNotRegisteredAgainWhenProviderAlreadyContainsTimeout(FunctionStoreFactory.Create());
-
+    
     [TestMethod]
     public override Task TimeoutsForDifferentTypesCanBeCreatedFetchedSuccessfully()
         => TimeoutsForDifferentTypesCanBeCreatedFetchedSuccessfully(FunctionStoreFactory.Create().SelectAsync(fs => fs.TimeoutStore));
-
-    [TestMethod]
-    public override Task CancellingNonExistingTimeoutDoesResultInIO()
-        => CancellingNonExistingTimeoutDoesResultInIO(FunctionStoreFactory.Create());
 }

@@ -91,4 +91,20 @@ public class SunshineTests : TestTemplates.FunctionTests.SunshineTests
     [TestMethod]
     public override Task FunctionCanAcceptAndReturnOptionType()
         => FunctionCanAcceptAndReturnOptionType(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task PendingEffectChangesArePersistedWithSucceedFunctionResult()
+        => PendingEffectChangesArePersistedWithSucceedFunctionResult(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task PendingEffectChangesArePersistedWithPostponedFunctionResult()
+        => PendingEffectChangesArePersistedWithPostponedFunctionResult(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task PendingEffectChangesArePersistedWithSuspendedFunctionResult()
+        => PendingEffectChangesArePersistedWithSuspendedFunctionResult(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task PendingEffectChangesArePersistedWithFailedFunctionResult()
+        => PendingEffectChangesArePersistedWithFailedFunctionResult(FunctionStoreFactory.Create());
 }

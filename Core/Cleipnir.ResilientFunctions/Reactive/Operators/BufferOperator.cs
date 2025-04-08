@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using Cleipnir.ResilientFunctions.CoreRuntime;
 
 namespace Cleipnir.ResilientFunctions.Reactive.Operators;
 
@@ -54,13 +53,12 @@ public class BufferOperator<T> : IReactiveChain<List<T>>
 
         public bool IsWorkflowRunning => _subscription.IsWorkflowRunning;
         public IReactiveChain<object> Source => _subscription.Source;
-        public IRegisteredTimeouts RegisteredTimeouts => _subscription.RegisteredTimeouts;
         public Task Initialize() => _subscription.Initialize();
 
         public Task SyncStore(TimeSpan maxSinceLastSynced) => _subscription.SyncStore(maxSinceLastSynced);
         public void PushMessages() => _subscription.PushMessages();
 
-        public Task RegisterTimeout() => _subscription.RegisterTimeout();
+        public Task<RegisterTimeoutResult?> RegisterTimeout() => _subscription.RegisterTimeout();
         public Task CancelTimeout() => _subscription.CancelTimeout();
 
         private void OnNext(T next)

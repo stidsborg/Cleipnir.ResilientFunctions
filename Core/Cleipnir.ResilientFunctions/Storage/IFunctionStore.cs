@@ -64,8 +64,7 @@ public interface IFunctionStore
         byte[]? result, 
         long timestamp,
         int expectedEpoch,
-        IReadOnlyList<StoredEffect>? effects,
-        IReadOnlyList<StoredMessage>? messages,
+        IReadOnlyList<StoredEffectChange>? effects,
         ComplimentaryState complimentaryState
     );
     
@@ -75,8 +74,7 @@ public interface IFunctionStore
         long timestamp,
         bool ignoreInterrupted, 
         int expectedEpoch, 
-        IReadOnlyList<StoredEffect>? effects,
-        IReadOnlyList<StoredMessage>? messages,
+        IReadOnlyList<StoredEffectChange>? effects,
         ComplimentaryState complimentaryState
     );
     
@@ -85,8 +83,7 @@ public interface IFunctionStore
         StoredException storedException,
         long timestamp,
         int expectedEpoch, 
-        IReadOnlyList<StoredEffect>? effects,
-        IReadOnlyList<StoredMessage>? messages,
+        IReadOnlyList<StoredEffectChange>? effects,
         ComplimentaryState complimentaryState
     );
     
@@ -94,8 +91,7 @@ public interface IFunctionStore
         StoredId storedId, 
         long timestamp,
         int expectedEpoch, 
-        IReadOnlyList<StoredEffect>? effects,
-        IReadOnlyList<StoredMessage>? messages,
+        IReadOnlyList<StoredEffectChange>? effects,
         ComplimentaryState complimentaryState
     );
 

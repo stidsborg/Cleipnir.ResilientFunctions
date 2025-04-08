@@ -395,22 +395,25 @@ public class SqlServerFunctionStore : IFunctionStore
         byte[]? result, 
         long timestamp,
         int expectedEpoch, 
-        IReadOnlyList<StoredEffect>? effects,
-        IReadOnlyList<StoredMessage>? messages,
+        IReadOnlyList<StoredEffectChange>? effects,
         ComplimentaryState complimentaryState)
     {
-        await using var conn = await _connFunc();
-        await using var command = _sqlGenerator
-            .SucceedFunction(
-                storedId,
-                result,
-                timestamp,
-                expectedEpoch,
-                paramPrefix: ""
-            ).ToSqlCommand(conn);
+        var succeedCommand = _sqlGenerator.SucceedFunction(storedId, result, timestamp, expectedEpoch, paramPrefix: "Succeed");
+        var effectCommand = effects == null
+            ? null
+            : _sqlGenerator.UpdateEffects(effects, paramPrefix: "Effect");
         
+        var messageCommands = Array.Empty<StoreCommand>();
+
+        await using var conn = await _connFunc();
+        await using var command = (effectCommand == null && messageCommands.Length == 0
+                ? succeedCommand
+                : StoreCommand.Merge(messageCommands.Append(effectCommand).Append(succeedCommand))!
+            ).ToSqlCommand(conn);
+
+        var expectedAffectedRows = 1 + (effects?.Count ?? 0);
         var affectedRows = await command.ExecuteNonQueryAsync();
-        return affectedRows > 0;
+        return affectedRows == expectedAffectedRows;
     }
     
     public async Task<bool> PostponeFunction(
@@ -419,22 +422,32 @@ public class SqlServerFunctionStore : IFunctionStore
         long timestamp,
         bool ignoreInterrupted,
         int expectedEpoch, 
-        IReadOnlyList<StoredEffect>? effects,
-        IReadOnlyList<StoredMessage>? messages,
+        IReadOnlyList<StoredEffectChange>? effects,
         ComplimentaryState complimentaryState)
     {
-        await using var conn = await _connFunc();
-        await using var command = _sqlGenerator.PostponeFunction(
+        var postponeCommand = _sqlGenerator.PostponeFunction(
             storedId,
             postponeUntil,
             timestamp,
             ignoreInterrupted,
             expectedEpoch,
-            paramPrefix: ""
-        ).ToSqlCommand(conn);
+            paramPrefix: "Postpone"
+        );
+        var effectCommand = effects == null
+            ? null
+            : _sqlGenerator.UpdateEffects(effects, paramPrefix: "Effect");
+        
+        var messageCommands = Array.Empty<StoreCommand>();
 
+        await using var conn = await _connFunc();
+        await using var command = (effectCommand == null && messageCommands.Length == 0
+                ? postponeCommand
+                : StoreCommand.Merge(messageCommands.Append(effectCommand).Append(postponeCommand))!
+            ).ToSqlCommand(conn);
+
+        var expectedAffectedRows = 1 + (effects?.Count ?? 0);
         var affectedRows = await command.ExecuteNonQueryAsync();
-        return affectedRows > 0;
+        return affectedRows == expectedAffectedRows;
     }
     
     public async Task<bool> FailFunction(
@@ -442,44 +455,57 @@ public class SqlServerFunctionStore : IFunctionStore
         StoredException storedException, 
         long timestamp,
         int expectedEpoch, 
-        IReadOnlyList<StoredEffect>? effects,
-        IReadOnlyList<StoredMessage>? messages,
+        IReadOnlyList<StoredEffectChange>? effects,
         ComplimentaryState complimentaryState)
     {
-        await using var conn = await _connFunc();
-        await using var command = _sqlGenerator
+        var failCommand = _sqlGenerator
             .FailFunction(
                 storedId,
                 storedException,
                 timestamp,
                 expectedEpoch,
                 paramPrefix: ""
-            ).ToSqlCommand(conn);
+            );
+        var effectCommand = effects == null
+            ? null
+            : _sqlGenerator.UpdateEffects(effects, paramPrefix: "Effect");
         
+        var messageCommands = Array.Empty<StoreCommand>();
 
+        await using var conn = await _connFunc();
+        await using var command = (effectCommand == null && messageCommands.Length == 0
+                ? failCommand
+                : StoreCommand.Merge(messageCommands.Append(effectCommand).Append(failCommand))!
+            ).ToSqlCommand(conn);
+
+        var expectedAffectedRows = 1 + (effects?.Count ?? 0);
         var affectedRows = await command.ExecuteNonQueryAsync();
-        return affectedRows > 0;
+        return affectedRows == expectedAffectedRows;
     }
     
     public async Task<bool> SuspendFunction(
         StoredId storedId, 
         long timestamp,
         int expectedEpoch,
-        IReadOnlyList<StoredEffect>? effects,
-        IReadOnlyList<StoredMessage>? messages,
+        IReadOnlyList<StoredEffectChange>? effects,
         ComplimentaryState complimentaryState)
     {
-        await using var conn = await _connFunc();
-        await using var command = _sqlGenerator
-            .SuspendFunction(
-                storedId,
-                timestamp,
-                expectedEpoch,
-                paramPrefix: ""
-            ).ToSqlCommand(conn); 
+        var suspendCommand = _sqlGenerator.SuspendFunction(storedId, timestamp, expectedEpoch, paramPrefix: "Suspend");
+        var effectCommand = effects == null
+            ? null
+            : _sqlGenerator.UpdateEffects(effects, paramPrefix: "Effect");
+        
+        var messageCommands = Array.Empty<StoreCommand>();
 
+        await using var conn = await _connFunc();
+        await using var command = (effectCommand == null && messageCommands.Length == 0
+            ? suspendCommand
+            : StoreCommand.Merge(messageCommands.Append(effectCommand).Append(suspendCommand))!
+            ).ToSqlCommand(conn);
+
+        var expectedAffectedRows = 1 + (effects?.Count ?? 0);
         var affectedRows = await command.ExecuteNonQueryAsync();
-        return affectedRows == 1;
+        return affectedRows == expectedAffectedRows;
     }
     
     private string? _interruptSql;

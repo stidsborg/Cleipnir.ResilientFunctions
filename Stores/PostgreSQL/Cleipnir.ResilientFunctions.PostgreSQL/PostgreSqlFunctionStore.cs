@@ -378,20 +378,31 @@ public class PostgreSqlFunctionStore : IFunctionStore
         byte[]? result, 
         long timestamp,
         int expectedEpoch, 
-        IReadOnlyList<StoredEffect>? effects,
-        IReadOnlyList<StoredMessage>? messages,
+        IReadOnlyList<StoredEffectChange>? effects,
         ComplimentaryState complimentaryState)
     {
-        await using var conn = await CreateConnection();
-        await using var command = _sqlGenerator.SucceedFunction(
-            storedId,
-            result,
-            timestamp,
-            expectedEpoch
-        ).ToNpgsqlCommand(conn);
-        
-        var affectedRows = await command.ExecuteNonQueryAsync();
-        return affectedRows == 1;
+        var succeedCommand = _sqlGenerator.SucceedFunction(storedId, result, timestamp, expectedEpoch);
+        var effectsCommand = effects == null
+            ? []
+            : _sqlGenerator.UpdateEffects(effects);
+      
+        if (effects == null)
+        {
+            await using var conn = await CreateConnection();
+            await using var command = succeedCommand.ToNpgsqlCommand(conn);
+            var affectedRows = await command.ExecuteNonQueryAsync();
+            return affectedRows == 1; 
+        }
+        else
+        {
+            await using var conn = await CreateConnection();
+            await using var command = effectsCommand
+                .Append(succeedCommand)
+                .CreateBatch(conn);
+            
+            var affectedRows = await command.ExecuteNonQueryAsync();
+            return affectedRows == 1 + effects.Count;
+        }
     }
     
     public async Task<bool> PostponeFunction(
@@ -400,21 +411,37 @@ public class PostgreSqlFunctionStore : IFunctionStore
         long timestamp,
         bool ignoreInterrupted,
         int expectedEpoch, 
-        IReadOnlyList<StoredEffect>? effects,
-        IReadOnlyList<StoredMessage>? messages,
+        IReadOnlyList<StoredEffectChange>? effects,
         ComplimentaryState complimentaryState)
     {
-        await using var conn = await CreateConnection();
-        await using var command = _sqlGenerator.PostponeFunction(
+        var postponeCommand = _sqlGenerator.PostponeFunction(
             storedId,
             postponeUntil,
             timestamp,
             ignoreInterrupted,
             expectedEpoch
-        ).ToNpgsqlCommand(conn);
-        
-        var affectedRows = await command.ExecuteNonQueryAsync();
-        return affectedRows == 1;
+        );
+        var effectsCommand = effects == null
+            ? []
+            : _sqlGenerator.UpdateEffects(effects);
+      
+        if (effects == null)
+        {
+            await using var conn = await CreateConnection();
+            await using var command = postponeCommand.ToNpgsqlCommand(conn);
+            var affectedRows = await command.ExecuteNonQueryAsync();
+            return affectedRows == 1; 
+        }
+        else
+        {
+            await using var conn = await CreateConnection();
+            await using var command = effectsCommand
+                .Append(postponeCommand)
+                .CreateBatch(conn);
+            
+            var affectedRows = await command.ExecuteNonQueryAsync();
+            return affectedRows == 1 + effects.Count; 
+        }
     }
     
     public async Task<bool> FailFunction(
@@ -422,37 +449,67 @@ public class PostgreSqlFunctionStore : IFunctionStore
         StoredException storedException, 
         long timestamp,
         int expectedEpoch, 
-        IReadOnlyList<StoredEffect>? effects,
-        IReadOnlyList<StoredMessage>? messages,
+        IReadOnlyList<StoredEffectChange>? effects,
         ComplimentaryState complimentaryState)
     {
-        await using var conn = await CreateConnection();
-        await using var command = _sqlGenerator.FailFunction(
+        var failCommand = _sqlGenerator.FailFunction(
             storedId,
             storedException,
             timestamp,
             expectedEpoch
-        ).ToNpgsqlCommand(conn);
+        );
+        var effectsCommand = effects == null
+            ? []
+            : _sqlGenerator.UpdateEffects(effects);
         
-        var affectedRows = await command.ExecuteNonQueryAsync();
-        return affectedRows == 1;
+        if (effects == null)
+        {
+            await using var conn = await CreateConnection();
+            await using var command = failCommand.ToNpgsqlCommand(conn);
+            var affectedRows = await command.ExecuteNonQueryAsync();
+            return affectedRows == 1; 
+        }
+        else
+        {
+            await using var conn = await CreateConnection();
+            await using var command = effectsCommand
+                .Append(failCommand)
+                .CreateBatch(conn);
+            
+            var affectedRows = await command.ExecuteNonQueryAsync();
+            return affectedRows == 1 + effects.Count; 
+        }
     }
     
     public async Task<bool> SuspendFunction(
         StoredId storedId, 
         long timestamp,
         int expectedEpoch, 
-        IReadOnlyList<StoredEffect>? effects,
-        IReadOnlyList<StoredMessage>? messages,
+        IReadOnlyList<StoredEffectChange>? effects,
         ComplimentaryState complimentaryState)
     {
-        await using var conn = await CreateConnection();
-
-        await using var command = _sqlGenerator
-            .SuspendFunction(storedId, timestamp, expectedEpoch)
-            .ToNpgsqlCommand(conn);
-        var affectedRows = await command.ExecuteNonQueryAsync();
-        return affectedRows == 1;
+        var suspendCommand = _sqlGenerator.SuspendFunction(storedId, timestamp, expectedEpoch);
+        var effectsCommand = effects == null
+            ? []
+            : _sqlGenerator.UpdateEffects(effects);
+        
+        if (effects == null)
+        {
+            await using var conn = await CreateConnection();
+            await using var command = suspendCommand.ToNpgsqlCommand(conn);
+            var affectedRows = await command.ExecuteNonQueryAsync();
+            return affectedRows == 1; 
+        }
+        else
+        {
+            await using var conn = await CreateConnection();
+            await using var command = effectsCommand
+                .Append(suspendCommand)
+                .CreateBatch(conn);
+            
+            var affectedRows = await command.ExecuteNonQueryAsync();
+            return affectedRows == 1 + effects.Count; 
+        }
     }
 
     private string? _setParametersSql;

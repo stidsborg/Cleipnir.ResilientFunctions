@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Threading.Tasks;
+using Cleipnir.ResilientFunctions.Domain.Exceptions.Commands;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Reactive.Utilities;
 using Cleipnir.ResilientFunctions.Storage;
@@ -17,6 +18,7 @@ public class Effect(EffectResults effectResults)
 {
     public async Task<bool> Contains(string id) => await Contains(CreateEffectId(id, EffectType.Effect));
     internal Task<bool> Contains(EffectId effectId) => effectResults.Contains(effectId);
+    internal EffectResults EffectResults => effectResults;
 
     public async Task<WorkStatus?> GetStatus(string id)
     {
@@ -36,8 +38,8 @@ public class Effect(EffectResults effectResults)
         return true;
     }
 
-    public Task<T> CreateOrGet<T>(string id, T value) => CreateOrGet(CreateEffectId(id), value);
-    internal Task<T> CreateOrGet<T>(EffectId effectId, T value) => effectResults.CreateOrGet(effectId, value, flush: true);
+    public Task<T> CreateOrGet<T>(string id, T value, bool flush = true) => CreateOrGet(CreateEffectId(id), value, flush);
+    internal Task<T> CreateOrGet<T>(EffectId effectId, T value, bool flush = true) => effectResults.CreateOrGet(effectId, value, flush);
 
     public async Task Upsert<T>(string id, T value) => await Upsert(CreateEffectId(id, EffectType.Effect), value);
     internal Task Upsert<T>(EffectId effectId, T value) => effectResults.Upsert(effectId, value, flush: true);
@@ -83,11 +85,45 @@ public class Effect(EffectResults effectResults)
         => effectResults.InnerCapture(id, effectType, work, resiliency, effectContext);
 
     public Task Clear(string id) => effectResults.Clear(CreateEffectId(id), flush: true);
+
+    public Task Flush() => effectResults.Flush();
     
     public Task<T> WhenAny<T>(string id, params Task<T>[] tasks)
         => Capture(id, work: async () => await await Task.WhenAny(tasks));
     public Task<T[]> WhenAll<T>(string id, params Task<T>[] tasks)
-        => Capture(id, work: () => Task.WhenAll(tasks));
+        => Capture(id, work: async () =>
+        {
+            var results = new T[tasks.Length];
+            var minPostponeException = default(PostponeInvocationException);
+            var suspendException = default(SuspendInvocationException);
+            for (var i = 0; i < tasks.Length; i++)
+            {
+                var task = tasks[i];
+                try
+                {
+                    var result = await task;
+                    results[i] = result;
+                }
+                catch (PostponeInvocationException e)
+                {
+                    minPostponeException ??= e;
+                    minPostponeException = minPostponeException.PostponeUntil < e.PostponeUntil
+                        ? minPostponeException
+                        : e;
+                }
+                catch (SuspendInvocationException e)
+                {
+                    suspendException ??= e;
+                }
+            }
+
+            if (minPostponeException != null)
+                throw new PostponeInvocationException(minPostponeException.PostponeUntil, minPostponeException);
+            if (suspendException != null)
+                throw new SuspendInvocationException(suspendException);
+            
+            return results;
+        });
 
     public Task<T> WhenAny<T>(params Task<T>[] tasks)
         => WhenAny(EffectContext.CurrentContext.NextImplicitId(), tasks);

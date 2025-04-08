@@ -122,6 +122,15 @@ public class PostgreSqlMessageStore(string connectionString, SqlGenerator sqlGen
         return null;
     }
 
+    public async Task AppendMessageNoStatusAndInterrupt(StoredId storedId, StoredMessage storedMessage)
+    {
+        await using var conn = await CreateConnection();
+        await using var command = sqlGenerator
+            .AppendMessage(storedId, storedMessage)
+            .ToNpgsqlCommand(conn);
+        await command.ExecuteNonQueryAsync();
+    }
+
     public async Task AppendMessages(IReadOnlyList<StoredIdAndMessage> messages, bool interrupt = true)
     {
         var maxPositions = await GetMaxPositions(

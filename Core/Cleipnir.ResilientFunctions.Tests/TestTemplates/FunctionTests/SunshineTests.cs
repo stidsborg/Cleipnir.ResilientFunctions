@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Domain.Exceptions.Commands;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Reactive.Extensions;
@@ -713,6 +714,127 @@ public abstract class SunshineTests
             var returnedOption = await registration.Invoke("WithoutValue", optionWithoutValue);    
             returnedOption.HasValue.ShouldBeFalse();
         }
+        
+        unhandledExceptionHandler.ShouldNotHaveExceptions();
+    }
+    
+    public abstract Task PendingEffectChangesArePersistedWithSucceedFunctionResult();
+    public async Task PendingEffectChangesArePersistedWithSucceedFunctionResult(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var flowId = TestFlowId.Create(); 
+
+        var unhandledExceptionHandler = new UnhandledExceptionCatcher();
+        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler.Catch));
+        var registration = functionsRegistry
+            .RegisterParamless(
+                flowId.Type,
+                 async Task (workflow) =>
+                 {
+                     await workflow
+                         .Effect
+                         .Capture("SomeEffect", () => "SomeEffectValue", ResiliencyLevel.AtLeastOnceDelayFlush);
+                 }
+            );
+
+        await registration.Invoke(flowId.Instance);
+        var cp = await registration.ControlPanel(flowId.Instance).ShouldNotBeNullAsync();
+        cp.Status.ShouldBe(Status.Succeeded);
+        var effectValue = await cp.Effects.GetValue<string>("SomeEffect");
+        effectValue.ShouldBe(effectValue);
+        
+        unhandledExceptionHandler.ShouldNotHaveExceptions();
+    }
+    
+    public abstract Task PendingEffectChangesArePersistedWithPostponedFunctionResult();
+    public async Task PendingEffectChangesArePersistedWithPostponedFunctionResult(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var flowId = TestFlowId.Create(); 
+
+        var unhandledExceptionHandler = new UnhandledExceptionCatcher();
+        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler.Catch));
+        var registration = functionsRegistry
+            .RegisterParamless(
+                flowId.Type,
+                async Task (workflow) =>
+                {
+                    await workflow
+                        .Effect
+                        .Capture("SomeEffect", () => "SomeEffectValue", ResiliencyLevel.AtLeastOnceDelayFlush);
+
+                    await workflow.Delay(TimeSpan.FromHours(1));
+                }
+            );
+
+        await Safe.Try(() => registration.Invoke(flowId.Instance));
+        
+        var cp = await registration.ControlPanel(flowId.Instance).ShouldNotBeNullAsync();
+        cp.Status.ShouldBe(Status.Postponed);
+        var effectValue = await cp.Effects.GetValue<string>("SomeEffect");
+        effectValue.ShouldBe(effectValue);
+        
+        unhandledExceptionHandler.ShouldNotHaveExceptions();
+    }
+    
+    public abstract Task PendingEffectChangesArePersistedWithSuspendedFunctionResult();
+    public async Task PendingEffectChangesArePersistedWithSuspendedFunctionResult(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var flowId = TestFlowId.Create(); 
+
+        var unhandledExceptionHandler = new UnhandledExceptionCatcher();
+        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler.Catch));
+        var registration = functionsRegistry
+            .RegisterParamless(
+                flowId.Type,
+                async Task (workflow) =>
+                {
+                    await workflow
+                        .Effect
+                        .Capture("SomeEffect", () => "SomeEffectValue", ResiliencyLevel.AtLeastOnceDelayFlush);
+
+                    throw new SuspendInvocationException();
+                }
+            );
+
+        await Safe.Try(() => registration.Invoke(flowId.Instance));
+        
+        var cp = await registration.ControlPanel(flowId.Instance).ShouldNotBeNullAsync();
+        cp.Status.ShouldBe(Status.Suspended);
+        var effectValue = await cp.Effects.GetValue<string>("SomeEffect");
+        effectValue.ShouldBe(effectValue);
+        
+        unhandledExceptionHandler.ShouldNotHaveExceptions();
+    }
+    
+    public abstract Task PendingEffectChangesArePersistedWithFailedFunctionResult();
+    public async Task PendingEffectChangesArePersistedWithFailedFunctionResult(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var flowId = TestFlowId.Create(); 
+
+        var unhandledExceptionHandler = new UnhandledExceptionCatcher();
+        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler.Catch));
+        var registration = functionsRegistry
+            .RegisterParamless(
+                flowId.Type,
+                async Task (workflow) =>
+                {
+                    await workflow
+                        .Effect
+                        .Capture("SomeEffect", () => "SomeEffectValue", ResiliencyLevel.AtLeastOnceDelayFlush);
+
+                    throw new TimeoutException();
+                }
+            );
+
+        await Safe.Try(() => registration.Invoke(flowId.Instance));
+        
+        var cp = await registration.ControlPanel(flowId.Instance).ShouldNotBeNullAsync();
+        cp.Status.ShouldBe(Status.Failed);
+        var effectValue = await cp.Effects.GetValue<string>("SomeEffect");
+        effectValue.ShouldBe(effectValue);
         
         unhandledExceptionHandler.ShouldNotHaveExceptions();
     }

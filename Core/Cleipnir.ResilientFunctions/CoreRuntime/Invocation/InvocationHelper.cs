@@ -98,7 +98,6 @@ internal class InvocationHelper<TParam, TReturn>
             timestamp: DateTime.UtcNow.Ticks,
             expectedEpoch,
             effects: null,
-            messages: null,
             complimentaryState: new ComplimentaryState(
                 () => SerializeParameter(param),
                 _settings.LeaseLength.Ticks
@@ -110,12 +109,24 @@ internal class InvocationHelper<TParam, TReturn>
 
     public async Task<PersistResultOutcome> PersistResult(
         StoredId storedId,
-        FlowId flowId,
         Result<TReturn> result,
         TParam param,
-        StoredId? parent,
+        Workflow workflow,
         int expectedEpoch)
     {
+        var pendingEffectChanges = workflow.Effect.EffectResults.PendingChanges;
+        var storedEffectChanges = workflow.Effect.EffectResults.HasPendingChanges 
+            ? workflow.Effect.EffectResults.PendingChanges.Values
+                .Where(pc => !pc.Existing)
+                .Select(pc => new StoredEffectChange(
+                    storedId,
+                    pc.Id,
+                    pc.Operation!.Value,
+                    pc.StoredEffect
+                ))
+                .ToList()
+            : null;
+        
         var complementaryState = new ComplimentaryState(
             () => SerializeParameter(param),
             _settings.LeaseLength.Ticks
@@ -128,8 +139,7 @@ internal class InvocationHelper<TParam, TReturn>
                     result: SerializeResult(result.SucceedWithValue),
                     timestamp: DateTime.UtcNow.Ticks,
                     expectedEpoch,
-                    effects: null,
-                    messages: null,
+                    effects: storedEffectChanges,
                     complementaryState
                 ) ? PersistResultOutcome.Success : PersistResultOutcome.Failed;
             case Outcome.Postpone:
@@ -139,8 +149,7 @@ internal class InvocationHelper<TParam, TReturn>
                     timestamp: DateTime.UtcNow.Ticks,
                     ignoreInterrupted: false, 
                     expectedEpoch,
-                    effects: null,
-                    messages: null,
+                    effects: storedEffectChanges,
                     complementaryState
                 ) ? PersistResultOutcome.Success : PersistResultOutcome.Reschedule;
             case Outcome.Fail:
@@ -149,8 +158,7 @@ internal class InvocationHelper<TParam, TReturn>
                     storedException: Serializer.SerializeException(result.Fail!),
                     timestamp: DateTime.UtcNow.Ticks,
                     expectedEpoch,
-                    effects: null,
-                    messages: null,
+                    effects: storedEffectChanges,
                     complementaryState
                 ) ? PersistResultOutcome.Success : PersistResultOutcome.Failed;
             case Outcome.Suspend:
@@ -158,8 +166,7 @@ internal class InvocationHelper<TParam, TReturn>
                     storedId,
                     timestamp: DateTime.UtcNow.Ticks,
                     expectedEpoch,
-                    effects: null,
-                    messages: null,
+                    effects: storedEffectChanges,
                     complementaryState
                 ) ? PersistResultOutcome.Success : PersistResultOutcome.Reschedule;
             default:
@@ -276,7 +283,6 @@ internal class InvocationHelper<TParam, TReturn>
                 timestamp: DateTime.UtcNow.Ticks,
                 expectedEpoch,
                 effects: null,
-                messages: null,
                 complimentaryState: new ComplimentaryState(
                     () => sf.Parameter,
                     _settings.LeaseLength.Ticks
@@ -409,10 +415,9 @@ internal class InvocationHelper<TParam, TReturn>
         ScheduleReInvocation scheduleReInvocation, 
         Func<bool> isWorkflowRunning, 
         Effect effect,
-        IReadOnlyList<StoredMessage> initialMessages)
+        IReadOnlyList<StoredMessage>? initialMessages)
     {
         var messageWriter = new MessageWriter(storedId, _functionStore, Serializer, scheduleReInvocation);
-        var registeredTimeouts = new RegisteredTimeouts(storedId, _functionStore.TimeoutStore, effect);
         var messagesPullerAndEmitter = new MessagesPullerAndEmitter(
             storedId,
             defaultDelay: _settings.MessagesPullFrequency,
@@ -420,11 +425,10 @@ internal class InvocationHelper<TParam, TReturn>
             isWorkflowRunning,
             _functionStore,
             Serializer,
-            registeredTimeouts,
             initialMessages
         );
         
-        return new Messages(messageWriter, registeredTimeouts, messagesPullerAndEmitter);
+        return new Messages(messageWriter, messagesPullerAndEmitter);
     }
     
     public Tuple<Effect, States> CreateEffectAndStates(StoredId storedId, FlowId flowId, IReadOnlyList<StoredEffect> storedEffects)
@@ -467,7 +471,6 @@ internal class InvocationHelper<TParam, TReturn>
 
     public ExistingEffects CreateExistingEffects(FlowId flowId) => new(MapToStoredId(flowId), flowId, _functionStore.EffectsStore, Serializer);
     public ExistingMessages CreateExistingMessages(FlowId flowId) => new(MapToStoredId(flowId), _functionStore.MessageStore, Serializer);
-    public ExistingRegisteredTimeouts CreateExistingTimeouts(FlowId flowId, ExistingEffects existingEffects) => new(MapToStoredId(flowId), _functionStore.TimeoutStore, existingEffects);
     public ExistingSemaphores CreateExistingSemaphores(FlowId flowId) => new(MapToStoredId(flowId), _functionStore, CreateExistingEffects(flowId));
 
     public DistributedSemaphores CreateSemaphores(StoredId storedId, Effect effect)

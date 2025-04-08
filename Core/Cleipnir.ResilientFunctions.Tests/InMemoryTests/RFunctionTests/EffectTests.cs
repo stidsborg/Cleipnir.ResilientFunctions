@@ -35,12 +35,24 @@ public class EffectTests : TestTemplates.FunctionTests.EffectTests
         => TaskWhenAllFuncTest(FunctionStoreFactory.Create());
 
     [TestMethod]
+    public override Task TaskWhenAnyPostponeTest()
+        => TaskWhenAnyPostponeTest(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task TaskWhenAllPostponeTest()
+        => TaskWhenAllPostponeTest(FunctionStoreFactory.Create());
+
+    [TestMethod]
     public override Task ClearEffectsTest()
         => ClearEffectsTest(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task EffectsCrudTest()
         => EffectsCrudTest(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task EffectsCreateOrGetWithoutFlushTest()
+        => EffectsCreateOrGetWithoutFlushTest(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task ExistingEffectsFuncIsOnlyInvokedAfterGettingValue()

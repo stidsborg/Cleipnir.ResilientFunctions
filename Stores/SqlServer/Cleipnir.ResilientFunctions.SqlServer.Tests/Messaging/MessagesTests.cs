@@ -21,6 +21,10 @@ public class MessagesTests : Cleipnir.ResilientFunctions.Tests.Messaging.TestTem
     [TestMethod]
     public override Task MessagesFirstOfTypesReturnsSecondForFirstOfTypesOnSecond()
         => MessagesFirstOfTypesReturnsSecondForFirstOfTypesOnSecond(FunctionStoreFactory.Create());
+    
+    [TestMethod]
+    public override Task MessagesFirstOfTypesReturnsNoneForTimeout()
+        => MessagesFirstOfTypesReturnsNoneForTimeout(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task ExistingEventsShouldBeSameAsAllAfterEmit()

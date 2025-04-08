@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Threading.Tasks;
-using Cleipnir.ResilientFunctions.CoreRuntime;
-using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Reactive.Operators;
 
 namespace Cleipnir.ResilientFunctions.Reactive;
 
@@ -9,7 +8,6 @@ public interface ISubscription
 {
     bool IsWorkflowRunning { get; }
     IReactiveChain<object> Source { get; }
-    IRegisteredTimeouts RegisteredTimeouts { get; }
  
     TimeSpan DefaultMessageSyncDelay { get; }
     TimeSpan DefaultMessageMaxWait { get; }
@@ -18,6 +16,6 @@ public interface ISubscription
     Task SyncStore(TimeSpan maxSinceLastSynced);
     void PushMessages();
     
-    Task RegisterTimeout();
+    Task<RegisterTimeoutResult?> RegisterTimeout();
     Task CancelTimeout();
 }

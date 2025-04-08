@@ -692,7 +692,6 @@ public abstract class PostponedTests
             ignoreInterrupted: false,
             expectedEpoch: 0,
             effects: null,
-            messages: null,
             complimentaryState: new ComplimentaryState(storedParameter.ToUtf8Bytes().ToFunc(), LeaseLength: 0)
         ).ShouldBeTrueAsync();
         

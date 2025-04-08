@@ -12,4 +12,6 @@ public class PostponeInvocationException : Exception
         => PostponeUntil = DateTime.UtcNow.AddMilliseconds(postponeForMs);
     public PostponeInvocationException(DateTime postponeUntil) 
         => PostponeUntil = postponeUntil.ToUniversalTime();
+    public PostponeInvocationException(DateTime postponeUntil, PostponeInvocationException innerException) : base(message: null, innerException)
+        => PostponeUntil = postponeUntil.ToUniversalTime();
 }

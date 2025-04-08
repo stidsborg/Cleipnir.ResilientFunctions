@@ -79,9 +79,8 @@ public class SqlGenerator(string tablePrefix)
 
         return functions;
     }
-
     
-    public StoreCommand UpdateEffects(IReadOnlyList<StoredEffectChange> changes)
+    public StoreCommand UpsertEffects(IReadOnlyList<StoredEffectChange> changes)
     {
         var upsertCommand = default(StoreCommand);
         
@@ -315,7 +314,7 @@ public class SqlGenerator(string tablePrefix)
             WHERE type = ? AND 
                   instance = ? AND 
                   epoch = ? AND
-                  NOT interrupted";
+                  NOT interrupted;";
 
         return StoreCommand.Create(
             _suspendFunctionSql,
@@ -363,45 +362,32 @@ public class SqlGenerator(string tablePrefix)
         return command;
     }
     
-    public async Task<StoredFlow?> ReadToStoredFunction(StoredId storedId, MySqlDataReader reader)
+    private string? _appendMessageSql;
+    public StoreCommand AppendMessage(StoredId storedId, StoredMessage storedMessage)
     {
-        const int paramIndex = 0;
-        const int statusIndex = 1;
-        const int resultIndex = 2;
-        const int exceptionIndex = 3;
-        const int epochIndex = 4;
-        const int expiresIndex = 5;
-        const int interruptedIndex = 6;
-        const int timestampIndex = 7;
-        const int humanInstanceIdIndex = 8;
-        const int parentIndex = 9;
-        
-        while (await reader.ReadAsync())
-        {
-            var hasParam = !await reader.IsDBNullAsync(paramIndex);
-            var hasResult = !await reader.IsDBNullAsync(resultIndex);
-            var hasError = !await reader.IsDBNullAsync(exceptionIndex);
-            var hasParent = !await reader.IsDBNullAsync(parentIndex);
-            var storedException = hasError
-                ? JsonSerializer.Deserialize<StoredException>(reader.GetString(exceptionIndex))
-                : null;
-            return new StoredFlow(
-                storedId,
-                HumanInstanceId: reader.GetString(humanInstanceIdIndex),
-                hasParam ? (byte[]) reader.GetValue(paramIndex) : null,
-                Status: (Status) reader.GetInt32(statusIndex),
-                Result: hasResult ? (byte[]) reader.GetValue(resultIndex) : null, 
-                storedException, Epoch: reader.GetInt32(epochIndex),
-                Expires: reader.GetInt64(expiresIndex),
-                Interrupted: reader.GetBoolean(interruptedIndex),
-                Timestamp: reader.GetInt64(timestampIndex),
-                ParentId: hasParent ? StoredId.Deserialize(reader.GetString(parentIndex)) : null
-            );
-        }
+        _appendMessageSql ??= @$"    
+            INSERT INTO {tablePrefix}_messages
+            (type, instance, position, message_json, message_type, idempotency_key)
+            SELECT ?, ?, COALESCE(MAX(position), -1) + 1, ?, ?, ? 
+            FROM {tablePrefix}_messages
+            WHERE type = ? AND instance = ?;";
 
-        return null;
+        var command = StoreCommand.Create(
+            _appendMessageSql,
+            values:
+            [
+                storedId.Type.Value,
+                storedId.Instance.Value.ToString("N"),
+                storedMessage.MessageContent,
+                storedMessage.MessageType,
+                storedMessage.IdempotencyKey ?? (object)DBNull.Value,
+                storedId.Type.Value,
+                storedId.Instance.Value.ToString("N")
+            ]
+        );
+        return command;
     }
-
+    
     public StoreCommand AppendMessages(IReadOnlyList<StoredIdAndMessageWithPosition> messages)
     {
         var sql = @$"    

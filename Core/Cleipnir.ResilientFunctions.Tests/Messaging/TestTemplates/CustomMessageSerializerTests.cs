@@ -31,10 +31,6 @@ public abstract class CustomMessageSerializerTests
         );
         var eventSerializer = new EventSerializer();
         var messagesWriter = new MessageWriter(storedId, functionStore, eventSerializer, scheduleReInvocation: (_, _) => Task.CompletedTask);
-        var lazyExistingEffects = new Lazy<Task<IReadOnlyList<StoredEffect>>>(() => Task.FromResult((IReadOnlyList<StoredEffect>) new List<StoredEffect>()));
-        var effectResults = new EffectResults(flowId, storedId, lazyExistingEffects, functionStore.EffectsStore, DefaultSerializer.Instance);
-        var effect = new Effect(effectResults);
-        var registeredTimeouts = new RegisteredTimeouts(storedId, functionStore.TimeoutStore, effect);
         var messagesPullerAndEmitter = new MessagesPullerAndEmitter(
             storedId,
             defaultDelay: TimeSpan.FromSeconds(1),
@@ -42,10 +38,9 @@ public abstract class CustomMessageSerializerTests
             isWorkflowRunning: () => true,
             functionStore,
             eventSerializer,
-            registeredTimeouts,
             initialMessages: null
         );
-        var messages = new Messages(messagesWriter, registeredTimeouts, messagesPullerAndEmitter);
+        var messages = new Messages(messagesWriter, messagesPullerAndEmitter);
         
         await messages.AppendMessage("hello world");
         
