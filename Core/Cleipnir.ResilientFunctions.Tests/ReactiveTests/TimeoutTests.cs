@@ -76,7 +76,7 @@ public class TimeoutTests
         var cp = await flow.ControlPanel("Instance").ShouldNotBeNullAsync();
         await cp.BusyWaitUntil(c => c.Effects.AllIds.SelectAsync(ids => ids.Any()));
 
-        var effectExpiresAt = await cp.Effects.GetValue<DateTime>(effectId);
+        var effectExpiresAt = await cp.Effects.GetValue<DateTime>(effectId with { Id =  effectId.Id + "_Expires"});
         effectExpiresAt.ShouldBe(expiresAt);
 
         await flow.SendMessage("Instance", new TimeoutEvent(effectId, expiresAt));

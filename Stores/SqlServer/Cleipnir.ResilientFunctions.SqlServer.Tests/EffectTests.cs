@@ -31,6 +31,14 @@ public class EffectTests : ResilientFunctions.Tests.TestTemplates.FunctionTests.
         => TaskWhenAnyFuncTest(FunctionStoreFactory.Create());
     
     [TestMethod]
+    public override Task TaskWhenAnyPostponeTest()
+        => TaskWhenAnyPostponeTest(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task TaskWhenAllPostponeTest()
+        => TaskWhenAllPostponeTest(FunctionStoreFactory.Create());
+
+    [TestMethod]
     public override Task ClearEffectsTest()
         => ClearEffectsTest(FunctionStoreFactory.Create());
     

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Threading.Tasks;
+using Cleipnir.ResilientFunctions.Domain.Exceptions.Commands;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Reactive.Utilities;
 using Cleipnir.ResilientFunctions.Storage;
@@ -90,7 +91,39 @@ public class Effect(EffectResults effectResults)
     public Task<T> WhenAny<T>(string id, params Task<T>[] tasks)
         => Capture(id, work: async () => await await Task.WhenAny(tasks));
     public Task<T[]> WhenAll<T>(string id, params Task<T>[] tasks)
-        => Capture(id, work: () => Task.WhenAll(tasks));
+        => Capture(id, work: async () =>
+        {
+            var results = new T[tasks.Length];
+            var minPostponeException = default(PostponeInvocationException);
+            var suspendException = default(SuspendInvocationException);
+            for (var i = 0; i < tasks.Length; i++)
+            {
+                var task = tasks[i];
+                try
+                {
+                    var result = await task;
+                    results[i] = result;
+                }
+                catch (PostponeInvocationException e)
+                {
+                    minPostponeException ??= e;
+                    minPostponeException = minPostponeException.PostponeUntil < e.PostponeUntil
+                        ? minPostponeException
+                        : e;
+                }
+                catch (SuspendInvocationException e)
+                {
+                    suspendException ??= e;
+                }
+            }
+
+            if (minPostponeException != null)
+                throw new PostponeInvocationException(minPostponeException.PostponeUntil, minPostponeException);
+            if (suspendException != null)
+                throw new SuspendInvocationException(suspendException);
+            
+            return results;
+        });
 
     public Task<T> WhenAny<T>(params Task<T>[] tasks)
         => WhenAny(EffectContext.CurrentContext.NextImplicitId(), tasks);

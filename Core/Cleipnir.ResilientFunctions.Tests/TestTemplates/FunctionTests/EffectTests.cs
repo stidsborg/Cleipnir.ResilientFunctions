@@ -1,10 +1,13 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.CoreRuntime.Serialization;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Domain.Exceptions;
+using Cleipnir.ResilientFunctions.Domain.Exceptions.Commands;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Reactive.Utilities;
 using Cleipnir.ResilientFunctions.Storage;
@@ -285,6 +288,61 @@ public abstract class EffectTests
         var storedEffect = effectResults.Single(r => r.EffectId == "WhenAll".ToEffectId());
         storedEffect.WorkStatus.ShouldBe(WorkStatus.Completed);
         storedEffect.Result!.ToStringFromUtf8Bytes().DeserializeFromJsonTo<int[]>().ShouldBe(new [] {1, 2});
+    }
+    
+    public abstract Task TaskWhenAnyPostponeTest();
+    public async Task TaskWhenAnyPostponeTest(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        using var functionsRegistry = new FunctionsRegistry(store);
+        var flowId = TestFlowId.Create();
+        var (flowType, flowInstance) = flowId;
+        var postponeUntil = DateTime.UtcNow;
+        var rAction = functionsRegistry.RegisterFunc(
+            flowType,
+            async Task<int> (string param, Workflow workflow) =>
+            {
+                var (effect, _, _) = workflow;
+                var t1 = Task.Delay(Timeout.Infinite).ContinueWith(_ => 1);
+                var t2 = Task.FromException<int>(new PostponeInvocationException(postponeUntil));
+                return await effect.WhenAny("WhenAll", t1, t2);
+            });
+
+        await Should.ThrowAsync<InvocationPostponedException>(
+            () => rAction.Invoke(flowInstance.ToString(), param: "hello")
+        );
+    }
+    
+    public abstract Task TaskWhenAllPostponeTest();
+    public async Task TaskWhenAllPostponeTest(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        using var functionsRegistry = new FunctionsRegistry(store);
+        var flowId = TestFlowId.Create();
+        var (flowType, flowInstance) = flowId;
+        var postponeUntil = DateTime.UtcNow;
+        var rAction = functionsRegistry.RegisterParamless(
+            flowType,
+            async Task (workflow) =>
+            {
+                var (effect, _, _) = workflow;
+                var t1 = Task.FromException<int>(new PostponeInvocationException(DateTime.MaxValue));
+                var t2 = Task.FromException<int>(new PostponeInvocationException(postponeUntil));
+
+                try
+                {
+                    await effect.WhenAll("WhenAll", t1, t2);
+                }
+                catch (PostponeInvocationException e)
+                {
+                    e.PostponeUntil.ShouldBe(postponeUntil);
+                    throw;
+                }
+            });
+
+        await Should.ThrowAsync<InvocationPostponedException>(
+            () => rAction.Invoke(flowInstance.ToString())
+        );
     }
     
     public abstract Task ClearEffectsTest();

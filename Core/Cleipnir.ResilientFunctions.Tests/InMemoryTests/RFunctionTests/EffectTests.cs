@@ -35,6 +35,14 @@ public class EffectTests : TestTemplates.FunctionTests.EffectTests
         => TaskWhenAllFuncTest(FunctionStoreFactory.Create());
 
     [TestMethod]
+    public override Task TaskWhenAnyPostponeTest()
+        => TaskWhenAnyPostponeTest(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task TaskWhenAllPostponeTest()
+        => TaskWhenAllPostponeTest(FunctionStoreFactory.Create());
+
+    [TestMethod]
     public override Task ClearEffectsTest()
         => ClearEffectsTest(FunctionStoreFactory.Create());
 
