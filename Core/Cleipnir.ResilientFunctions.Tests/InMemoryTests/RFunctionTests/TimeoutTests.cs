@@ -33,4 +33,8 @@ public class TimeoutTests : TestTemplates.FunctionTests.TimeoutTests
     [TestMethod]
     public override Task TimeoutsWithSameIdsButDifferentContextsDoNotCollide()
         => TimeoutsWithSameIdsButDifferentContextsDoNotCollide(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task ProvidedUtcNowDelegateIsUsedInWatchdog()
+        => ProvidedUtcNowDelegateIsUsedInWatchdog(FunctionStoreFactory.Create());
 }

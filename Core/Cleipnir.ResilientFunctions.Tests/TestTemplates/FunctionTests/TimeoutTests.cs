@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Linq;
 using System.Threading.Tasks;
+using Cleipnir.ResilientFunctions.CoreRuntime;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Events;
@@ -330,5 +331,50 @@ public abstract class TimeoutTests
         secondTimeout.ShouldBeFalse();
         
         unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
+    }
+    
+    public abstract Task ProvidedUtcNowDelegateIsUsedInWatchdog();
+    protected async Task ProvidedUtcNowDelegateIsUsedInWatchdog(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var flowId = TestFlowId.Create();
+        var (flowType, flowInstance) = flowId;
+        
+        DateTime now = DateTime.UtcNow;
+        
+        var unhandledExceptionHandler = new UnhandledExceptionCatcher();
+        using var functionsRegistry = new FunctionsRegistry
+        (
+            store,
+            new Settings(
+                unhandledExceptionHandler.Catch,
+                watchdogCheckFrequency: TimeSpan.FromMilliseconds(250),
+                utcNow: () => now
+            )
+        );
+        
+        var registration = functionsRegistry.RegisterParamless(
+            flowType,
+            inner: async Task (workflow) =>
+            {
+                await workflow.Delay(now.AddMilliseconds(100));
+            }
+        );
+        await registration.Schedule("SomeInstance");
+
+        var cp = await registration.ControlPanel("SomeInstance").ShouldNotBeNullAsync();
+        await cp.BusyWaitUntil(c => c.Status == Status.Postponed);
+
+        await Task.Delay(250);
+        
+        await cp.ScheduleRestart();
+        await cp.BusyWaitUntil(c => c.Status == Status.Postponed);
+
+        now = now.AddHours(1);
+
+        await cp.Refresh();
+        await cp.BusyWaitUntil(c => c.Status == Status.Succeeded);
+        
+        unhandledExceptionHandler.ShouldNotHaveExceptions();
     }
 }
