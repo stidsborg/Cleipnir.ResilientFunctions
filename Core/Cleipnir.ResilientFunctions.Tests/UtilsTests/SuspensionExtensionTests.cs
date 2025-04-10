@@ -11,13 +11,6 @@ namespace Cleipnir.ResilientFunctions.Tests.UtilsTests;
 public class SuspensionExtensionTests
 {
     [TestMethod]
-    public async Task OnExceptionSuspendForSunshine()
-    {
-        await Task.CompletedTask
-            .OnExceptionSuspendFor(TimeSpan.FromMinutes(10));
-    }  
-    
-    [TestMethod]
     public async Task OnExceptionSuspendUntilSunshine()
     {
         await Task.CompletedTask
@@ -25,35 +18,11 @@ public class SuspensionExtensionTests
     }  
     
     [TestMethod]
-    public async Task OnExceptionSuspendForWithResultSunshine()
-    {
-        var result = await Task.FromResult("hello").OnExceptionSuspendFor(TimeSpan.FromMinutes(10));
-        result.ShouldBe("hello");
-    }
-    
-    [TestMethod]
     public async Task OnExceptionWithResultSuspendUntilSunshine()
     {
         var result = await Task.FromResult("hello").OnExceptionSuspendUntil(DateTime.Now);
         result.ShouldBe("hello");
     }
-    
-    [TestMethod]
-    public async Task OnExceptionSuspendForException()
-    {
-        var utcNow = DateTime.UtcNow;
-        try
-        {
-            await Task
-                .FromException(new TimeoutException())
-                .OnExceptionSuspendFor(TimeSpan.FromMinutes(10));
-        }
-        catch (PostponeInvocationException ex)
-        {
-            ((ex.PostponeUntil - utcNow) - TimeSpan.FromMinutes(10) > TimeSpan.Zero).ShouldBeTrue();
-            ((ex.PostponeUntil - utcNow) - TimeSpan.FromMinutes(11) < TimeSpan.Zero).ShouldBeTrue();
-        }
-    }  
 
     [TestMethod]
     public async Task OnExceptionSuspendUntilException()
@@ -72,23 +41,6 @@ public class SuspensionExtensionTests
     }  
     
     [TestMethod]
-    public async Task OnExceptionWithResultSuspendForException()
-    {
-        var utcNow = DateTime.UtcNow;
-        try
-        {
-            await Task
-                .FromException<string>(new TimeoutException())
-                .OnExceptionSuspendFor(TimeSpan.FromMinutes(10));
-        }
-        catch (PostponeInvocationException ex)
-        {
-            ((ex.PostponeUntil - utcNow) - TimeSpan.FromMinutes(10) > TimeSpan.Zero).ShouldBeTrue();
-            ((ex.PostponeUntil - utcNow) - TimeSpan.FromMinutes(11) < TimeSpan.Zero).ShouldBeTrue();
-        }
-    }  
-
-    [TestMethod]
     public async Task OnExceptionWithResultSuspendUntilException()
     {
         var suspendUntil = DateTime.UtcNow.AddMinutes(10);
@@ -105,13 +57,6 @@ public class SuspensionExtensionTests
     }
 
     #region ValueTasks
-
-     [TestMethod]
-    public async Task OnExceptionSuspendForSunshineValueTask()
-    {
-        await ValueTask.CompletedTask
-            .OnExceptionSuspendFor(TimeSpan.FromMinutes(10));
-    }  
     
     [TestMethod]
     public async Task OnExceptionSuspendUntilSunshineValueTask()
@@ -121,36 +66,12 @@ public class SuspensionExtensionTests
     }  
     
     [TestMethod]
-    public async Task OnExceptionSuspendForWithResultSunshineValueTask()
-    {
-        var result = await ValueTask.FromResult("hello").OnExceptionSuspendFor(TimeSpan.FromMinutes(10));
-        result.ShouldBe("hello");
-    }
-    
-    [TestMethod]
     public async Task OnExceptionWithResultSuspendUntilSunshineValueTask()
     {
         var result = await ValueTask.FromResult("hello").OnExceptionSuspendUntil(DateTime.Now);
         result.ShouldBe("hello");
     }
     
-    [TestMethod]
-    public async Task OnExceptionSuspendForExceptionValueTask()
-    {
-        var utcNow = DateTime.UtcNow;
-        try
-        {
-            await ValueTask
-                .FromException(new TimeoutException())
-                .OnExceptionSuspendFor(TimeSpan.FromMinutes(10));
-        }
-        catch (PostponeInvocationException ex)
-        {
-            ((ex.PostponeUntil - utcNow) - TimeSpan.FromMinutes(10) > TimeSpan.Zero).ShouldBeTrue();
-            ((ex.PostponeUntil - utcNow) - TimeSpan.FromMinutes(11) < TimeSpan.Zero).ShouldBeTrue();
-        }
-    }  
-
     [TestMethod]
     public async Task OnExceptionSuspendUntilExceptionValueTask()
     {
@@ -167,23 +88,6 @@ public class SuspensionExtensionTests
         }
     }  
     
-    [TestMethod]
-    public async Task OnExceptionWithResultSuspendForExceptionValueTask()
-    {
-        var utcNow = DateTime.UtcNow;
-        try
-        {
-            await ValueTask
-                .FromException<string>(new TimeoutException())
-                .OnExceptionSuspendFor(TimeSpan.FromMinutes(10));
-        }
-        catch (PostponeInvocationException ex)
-        {
-            ((ex.PostponeUntil - utcNow) - TimeSpan.FromMinutes(10) > TimeSpan.Zero).ShouldBeTrue();
-            ((ex.PostponeUntil - utcNow) - TimeSpan.FromMinutes(11) < TimeSpan.Zero).ShouldBeTrue();
-        }
-    }  
-
     [TestMethod]
     public async Task OnExceptionWithResultSuspendUntilExceptionValueTask()
     {

@@ -47,12 +47,7 @@ public class Postpone
     public Result<Unit> ToUnitResult => ToResult<Unit>();
     
     public static Postpone Until(DateTime dateTime) => new(dateTime.ToUniversalTime());
-
-    public static Postpone For(TimeSpan timeSpan) => new(DateTime.UtcNow.Add(timeSpan));
-
-    public static Postpone For(int ms) => new(DateTime.UtcNow.Add(TimeSpan.FromMilliseconds(ms)));
     public static void Throw(DateTime postponeUntil) => throw new PostponeInvocationException(postponeUntil);
-    public static void Throw(TimeSpan postponeFor) => throw new PostponeInvocationException(DateTime.UtcNow.Add(postponeFor));
 }
 
 public class Suspend

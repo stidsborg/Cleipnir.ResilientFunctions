@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Threading.Tasks;
+using Cleipnir.ResilientFunctions.CoreRuntime;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.Helpers;
@@ -18,12 +19,14 @@ public class ControlPanel : BaseControlPanel<Unit, Unit>
         ExistingEffects effects,
         ExistingStates states, ExistingMessages messages, ExistingSemaphores semaphores, 
         ExistingRegisteredTimeouts registeredTimeouts, Correlations correlations,
-        FatalWorkflowException? fatalWorkflowException
+        FatalWorkflowException? fatalWorkflowException,
+        UtcNow utcNow
     ) : base(
         invoker, invocationHelper, 
         flowId, storedId, status, epoch, 
         expires, innerParam: Unit.Instance, innerResult: Unit.Instance, effects,
-        states, messages, registeredTimeouts, semaphores, correlations, fatalWorkflowException
+        states, messages, registeredTimeouts, semaphores, correlations, fatalWorkflowException,
+        utcNow
     ) { }
     
     public Task Succeed() => InnerSucceed(result: Unit.Instance);
@@ -59,12 +62,14 @@ public class ControlPanel<TParam> : BaseControlPanel<TParam, Unit> where TParam 
         ExistingEffects effects,
         ExistingStates states, ExistingMessages messages, ExistingSemaphores semaphores, 
         ExistingRegisteredTimeouts registeredTimeouts, Correlations correlations, 
-        FatalWorkflowException? fatalWorkflowException
+        FatalWorkflowException? fatalWorkflowException,
+        UtcNow utcNow
     ) : base(
         invoker, invocationHelper, 
         flowId, storedId, status, epoch, 
         expires, innerParam, innerResult: Unit.Instance, effects,
-        states, messages, registeredTimeouts, semaphores, correlations, fatalWorkflowException
+        states, messages, registeredTimeouts, semaphores, correlations, fatalWorkflowException,
+        utcNow
     ) { }
     
     public TParam Param
@@ -105,12 +110,14 @@ public class ControlPanel<TParam, TReturn> : BaseControlPanel<TParam, TReturn> w
         long expires, TParam innerParam, 
         TReturn? innerResult, 
         ExistingEffects effects, ExistingStates states, ExistingMessages messages, ExistingSemaphores semaphores,
-        ExistingRegisteredTimeouts registeredTimeouts, Correlations correlations, FatalWorkflowException? fatalWorkflowException
+        ExistingRegisteredTimeouts registeredTimeouts, Correlations correlations, FatalWorkflowException? fatalWorkflowException,
+        UtcNow utcNow
     ) : base(
         invoker, invocationHelper, 
         flowId, storedId, status, epoch, expires, 
         innerParam, innerResult, effects, states, messages, 
-        registeredTimeouts, semaphores, correlations, fatalWorkflowException
+        registeredTimeouts, semaphores, correlations, fatalWorkflowException,
+        utcNow
     ) { }
 
     public Task Succeed(TReturn result) => InnerSucceed(result);
@@ -165,7 +172,8 @@ public abstract class BaseControlPanel<TParam, TReturn>
         ExistingRegisteredTimeouts registeredTimeouts,
         ExistingSemaphores semaphores,
         Correlations correlations,
-        FatalWorkflowException? fatalWorkflowException)
+        FatalWorkflowException? fatalWorkflowException,
+        UtcNow utcNow)
     {
         _invoker = invoker;
         _invocationHelper = invocationHelper;
@@ -187,11 +195,13 @@ public abstract class BaseControlPanel<TParam, TReturn>
         Semaphores = semaphores;
         Correlations = correlations;
         FatalWorkflowException = fatalWorkflowException;
+        UtcNow = utcNow;
     }
 
     public FlowId FlowId { get; }
     public StoredId StoredId { get; }
     public Status Status { get; private set; }
+    protected UtcNow UtcNow { get; }
     
     public int Epoch { get; private set; }
     public DateTime LeaseExpiration { get; private set; }
@@ -264,7 +274,7 @@ public abstract class BaseControlPanel<TParam, TReturn>
         _innerParamChanged = false;
     }
         
-    public Task Postpone(TimeSpan delay) => Postpone(DateTime.UtcNow + delay);
+    public Task Postpone(TimeSpan delay) => Postpone(UtcNow() + delay);
 
     public async Task Fail(Exception exception)
     {

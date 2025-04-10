@@ -24,13 +24,15 @@ internal class CrashedOrPostponedWatchdog
         = ImmutableDictionary<StoredType, Tuple<RestartFunction, ScheduleRestartFromWatchdog, AsyncSemaphore>>.Empty;
     private readonly Lock _sync = new();
     private bool _started;
+    
+    private readonly UtcNow _utcNow;
 
     public CrashedOrPostponedWatchdog(
         IFunctionStore functionStore,
         ShutdownCoordinator shutdownCoordinator, UnhandledExceptionHandler unhandledExceptionHandler, 
         TimeSpan checkFrequency, TimeSpan delayStartUp,
-        LeasesUpdater leasesUpdater
-    )
+        LeasesUpdater leasesUpdater, 
+        UtcNow utcNow)
     {
         _functionStore = functionStore;
         _shutdownCoordinator = shutdownCoordinator;
@@ -38,6 +40,7 @@ internal class CrashedOrPostponedWatchdog
         _checkFrequency = checkFrequency;
         _delayStartUp = delayStartUp;
         _leasesUpdater = leasesUpdater;
+        _utcNow = utcNow;
     }
 
     public void Register(
@@ -66,7 +69,7 @@ internal class CrashedOrPostponedWatchdog
         {
             while (!_shutdownCoordinator.ShutdownInitiated)
             {
-                var now = DateTime.UtcNow;
+                var now = _utcNow();
 
                 var eligibleFunctions = await _functionStore.GetExpiredFunctions(expiresBefore: now.Ticks);
                 eligibleFunctions = _leasesUpdater.FilterOutContains(eligibleFunctions);
@@ -116,7 +119,7 @@ internal class CrashedOrPostponedWatchdog
                     }
                 }
                 
-                var timeElapsed = DateTime.UtcNow - now;
+                var timeElapsed = _utcNow() - now;
                 var delay = (_checkFrequency - timeElapsed).RoundUpToZero();
                 
                 await Task.Delay(delay);

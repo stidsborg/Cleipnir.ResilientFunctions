@@ -20,7 +20,7 @@ public abstract class LeasesUpdaterTests
         var store = await storeTask;
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         var handler = new UnhandledExceptionHandler(unhandledExceptionHandler.Catch);
-        var leaseUpdaters = new LeasesUpdater(leaseLength, store, handler);
+        var leaseUpdaters = new LeasesUpdater(leaseLength, store, handler, () => DateTime.UtcNow);
 
         var id1 = TestStoredId.Create();
         await store.CreateFunction(id1, id1.ToString(), param: null, leaseExpiration: 0, postponeUntil: null, timestamp: DateTime.UtcNow.Ticks, parent: null).ShouldBeTrueAsync();
@@ -66,7 +66,7 @@ public abstract class LeasesUpdaterTests
         var store = await storeTask;
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         var handler = new UnhandledExceptionHandler(unhandledExceptionHandler.Catch);
-        var leaseUpdaters = new LeasesUpdater(leaseLength, store, handler);
+        var leaseUpdaters = new LeasesUpdater(leaseLength, store, handler, () => DateTime.UtcNow);
 
         var id1 = TestStoredId.Create();
         await store.CreateFunction(id1, id1.ToString(), param: null, leaseExpiration: 0, postponeUntil: null, timestamp: DateTime.UtcNow.Ticks, parent: null).ShouldBeTrueAsync();
@@ -111,7 +111,7 @@ public abstract class LeasesUpdaterTests
         
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         var handler = new UnhandledExceptionHandler(unhandledExceptionHandler.Catch);
-        var leaseUpdaters = new LeasesUpdater(leaseLength, store, handler);
+        var leaseUpdaters = new LeasesUpdater(leaseLength, store, handler, () => DateTime.UtcNow);
 
         var id1 = TestStoredId.Create();
         await store.CreateFunction(id1, id1.ToString(), param: null, leaseExpiration: 0, postponeUntil: null, timestamp: DateTime.UtcNow.Ticks, parent: null).ShouldBeTrueAsync();
@@ -131,7 +131,7 @@ public abstract class LeasesUpdaterTests
         var store = await storeTask;
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         var handler = new UnhandledExceptionHandler(unhandledExceptionHandler.Catch);
-        var leaseUpdaters = new LeasesUpdater(leaseLength, store, handler);
+        var leaseUpdaters = new LeasesUpdater(leaseLength, store, handler, () => DateTime.UtcNow);
 
         var id1 = TestStoredId.Create();
         var id2 = TestStoredId.Create();
@@ -157,7 +157,7 @@ public abstract class LeasesUpdaterTests
         var store = await storeTask;
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         var handler = new UnhandledExceptionHandler(unhandledExceptionHandler.Catch);
-        var leaseUpdaters = new LeasesUpdater(leaseLength, store, handler);
+        var leaseUpdaters = new LeasesUpdater(leaseLength, store, handler, () => DateTime.UtcNow);
 
         var id1 = TestStoredId.Create();
         var id2 = TestStoredId.Create();
@@ -183,7 +183,7 @@ public abstract class LeasesUpdaterTests
         var store = await storeTask;
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         var handler = new UnhandledExceptionHandler(unhandledExceptionHandler.Catch);
-        var leaseUpdaters = new LeasesUpdater(leaseLength, store, handler);
+        var leaseUpdaters = new LeasesUpdater(leaseLength, store, handler, () => DateTime.UtcNow);
 
         var id1 = TestStoredId.Create();
         var id2 = TestStoredId.Create();
@@ -215,7 +215,7 @@ public abstract class LeasesUpdaterTests
         var store = await storeTask;
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         var handler = new UnhandledExceptionHandler(unhandledExceptionHandler.Catch);
-        var leaseUpdaters = new LeasesUpdater(leaseLength, store, handler);
+        var leaseUpdaters = new LeasesUpdater(leaseLength, store, handler, () => DateTime.UtcNow);
 
         var id1 = TestStoredId.Create();
         var id2 = TestStoredId.Create();
@@ -257,7 +257,7 @@ public abstract class LeasesUpdaterTests
         
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         var handler = new UnhandledExceptionHandler(unhandledExceptionHandler.Catch);
-        var leaseUpdaters = new LeasesUpdater(leaseLength, store, handler);
+        var leaseUpdaters = new LeasesUpdater(leaseLength, store, handler, () => DateTime.UtcNow);
 
         leaseUpdaters.Set(id1, epoch: 0, expiresTicks: tenSeconds.Ticks);
         leaseUpdaters.Set(id2, epoch: 0, expiresTicks: seventySeconds.Ticks);
@@ -295,7 +295,7 @@ public abstract class LeasesUpdaterTests
         
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         var handler = new UnhandledExceptionHandler(unhandledExceptionHandler.Catch);
-        var leaseUpdaters = new LeasesUpdater(leaseLength, store, handler);
+        var leaseUpdaters = new LeasesUpdater(leaseLength, store, handler, () => DateTime.UtcNow);
 
         leaseUpdaters.Set(id1, epoch: 0, expiresTicks: tenSeconds.Ticks);
         leaseUpdaters.Set(id2, epoch: 0, expiresTicks: seventySeconds.Ticks);

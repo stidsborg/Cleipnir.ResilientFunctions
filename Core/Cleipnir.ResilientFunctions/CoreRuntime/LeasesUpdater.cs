@@ -9,7 +9,7 @@ using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.CoreRuntime;
 
-internal class LeasesUpdater(TimeSpan leaseLength, IFunctionStore functionStore, UnhandledExceptionHandler unhandledExceptionHandler) : IDisposable
+internal class LeasesUpdater(TimeSpan leaseLength, IFunctionStore functionStore, UnhandledExceptionHandler unhandledExceptionHandler, UtcNow utcNow) : IDisposable
 {
     private volatile bool _disposed;
     
@@ -26,7 +26,7 @@ internal class LeasesUpdater(TimeSpan leaseLength, IFunctionStore functionStore,
             while (!_disposed)
             {
                 long minExpiry;
-                var threshold = (DateTime.UtcNow + (leaseLength / 2)).Ticks;
+                var threshold = (utcNow() + (leaseLength / 2)).Ticks;
                 lock (_lock)
                     minExpiry = _executingFlows
                         .Values
@@ -55,10 +55,10 @@ internal class LeasesUpdater(TimeSpan leaseLength, IFunctionStore functionStore,
     {
         if (_disposed) return;
         
-        var thresholdDateTime = DateTime.UtcNow + (leaseLength / 2);
+        var thresholdDateTime = utcNow() + (leaseLength / 2);
         var threshold = thresholdDateTime.Ticks;
         var thresholdAndPeek = (thresholdDateTime + leaseLength / 4).Ticks;
-        var nextLeaseExpiry = DateTime.UtcNow.Add(leaseLength).Ticks;
+        var nextLeaseExpiry = utcNow().Add(leaseLength).Ticks;
         var leaseUpdates = new List<LeaseUpdate>();
         lock (_lock)
         {
@@ -165,7 +165,7 @@ internal class LeasesUpdater(TimeSpan leaseLength, IFunctionStore functionStore,
 
     public void Set(StoredId flowId, int epoch, long? expiresTicks = null)
     {
-        var expiry = expiresTicks ?? DateTime.UtcNow.Add(leaseLength).Ticks;
+        var expiry = expiresTicks ?? utcNow().Add(leaseLength).Ticks;
         
         lock (_lock)
             if (!_executingFlows.TryGetValue(flowId, out EpochAndExpiry? value))

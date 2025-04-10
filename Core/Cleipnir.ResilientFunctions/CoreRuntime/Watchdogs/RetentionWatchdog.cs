@@ -18,6 +18,8 @@ internal class RetentionWatchdog
     private readonly FlowType _flowType;
     private readonly StoredType _storedType;
     
+    private readonly UtcNow _utcNow;
+    
     public RetentionWatchdog(
         FlowType flowType,
         StoredType storedType,
@@ -26,7 +28,8 @@ internal class RetentionWatchdog
         TimeSpan delayStartUp,
         TimeSpan retentionPeriod,
         UnhandledExceptionHandler unhandledExceptionHandler,
-        ShutdownCoordinator shutdownCoordinator)
+        ShutdownCoordinator shutdownCoordinator,
+        UtcNow utcNow)
     {
         _flowType = flowType;
         _storedType = storedType;
@@ -36,6 +39,7 @@ internal class RetentionWatchdog
         _cleanUpFrequency = cleanUpFrequency;
         _delayStartUp = delayStartUp;
         _retentionPeriod = retentionPeriod;
+        _utcNow = utcNow;
     }
     
     public async Task Start()
@@ -48,7 +52,7 @@ internal class RetentionWatchdog
         {
             while (!_shutdownCoordinator.ShutdownInitiated)
             {
-                var now = DateTime.UtcNow;
+                var now = _utcNow();
                 var completedBefore = now - _retentionPeriod;
                 var eligibleFunctions = 
                     await _functionStore.GetSucceededFunctions(_storedType, completedBefore.Ticks);
@@ -60,7 +64,7 @@ internal class RetentionWatchdog
                         break;
                 }
                 
-                var timeElapsed = DateTime.UtcNow - now;
+                var timeElapsed = _utcNow() - now;
                 var delay = (_cleanUpFrequency - timeElapsed).RoundUpToZero();
 
                 await Task.Delay(delay);

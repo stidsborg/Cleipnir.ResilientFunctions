@@ -21,7 +21,8 @@ internal static class WatchDogsFactory
         ScheduleRestartFromWatchdog scheduleRestart,
         SettingsWithDefaults settings,
         ShutdownCoordinator shutdownCoordinator, 
-        ISerializer serializer)
+        ISerializer serializer,
+        UtcNow utcNow)
     {
         if (!settings.EnableWatchdogs)
             return;
@@ -54,7 +55,8 @@ internal static class WatchDogsFactory
             settings.DelayStartup,
             settings.RetentionPeriod,
             settings.UnhandledExceptionHandler,
-            shutdownCoordinator
+            shutdownCoordinator,
+            utcNow
         );
         
         Task.Run(retentionWatchdog.Start);

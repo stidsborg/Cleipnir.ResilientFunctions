@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Cleipnir.ResilientFunctions.CoreRuntime;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Storage;
@@ -45,8 +46,9 @@ public class ActionRegistration<TParam> : BaseRegistration where TParam : notnul
         ControlPanelFactory<TParam> controlPanelFactory, 
         MessageWriters messageWriters, 
         StateFetcher stateFetcher,
-        Postman postman
-    ) : base(storedType, postman, functionStore)
+        Postman postman,
+        UtcNow utcNow
+    ) : base(storedType, postman, functionStore, utcNow)
     {
         Type = flowType;
         
@@ -68,7 +70,7 @@ public class ActionRegistration<TParam> : BaseRegistration where TParam : notnul
         : _stateFetcher.FetchState<TState>(instance, stateId);
     
     public Task ScheduleIn(string flowInstance, TParam param, TimeSpan delay, bool? detach = null) 
-        => ScheduleAt(flowInstance, param, delayUntil: DateTime.UtcNow.Add(delay), detach);
+        => ScheduleAt(flowInstance, param, delayUntil: UtcNow().Add(delay), detach);
     
     public async Task<Finding> SendMessage<T>(
         FlowInstance flowInstance,

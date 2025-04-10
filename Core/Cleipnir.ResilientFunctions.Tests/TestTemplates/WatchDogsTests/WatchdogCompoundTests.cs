@@ -70,7 +70,7 @@ public abstract class WatchdogCompoundTests
                 (Param p) =>
                 {
                     Task.Run(() => paramTcs.TrySetResult(p));
-                    return Postpone.For(100).ToResult<string>().ToTask();
+                    return Postpone.Until(DateTime.UtcNow.AddMilliseconds(100)).ToResult<string>().ToTask();
                 });
             
             await crashableStore.AfterPostponeFunctionFlag.WaitForRaised();
@@ -190,7 +190,7 @@ public abstract class WatchdogCompoundTests
                     var state = await workflow.States.CreateOrGet<ListState>("Scraps");
                     state.Scraps.Add(2);
                     await state.Save();
-                    return Postpone.For(100);
+                    return Postpone.Until(DateTime.UtcNow.AddMilliseconds(100));
                 });
             
             await crashableStore.AfterPostponeFunctionFlag.WaitForRaised();
@@ -319,7 +319,7 @@ public abstract class WatchdogCompoundTests
                     inner: (Param p) =>
                     {
                         Task.Run(() => paramTcs.TrySetResult(p));
-                        return Postpone.For(100).ToUnitResult.ToTask();
+                        return Postpone.Until(DateTime.UtcNow.AddMilliseconds(100)).ToUnitResult.ToTask();
                     }
                 );
 
@@ -442,7 +442,7 @@ public abstract class WatchdogCompoundTests
                         state.Scraps.Add(2);
                         await state.Save();
                         
-                        return Postpone.For(100);
+                        return Postpone.Until(DateTime.UtcNow.AddMilliseconds(100));
                     });
             
             await crashableStore.AfterPostponeFunctionFlag.WaitForRaised();

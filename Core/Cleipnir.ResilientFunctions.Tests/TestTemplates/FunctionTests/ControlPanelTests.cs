@@ -222,7 +222,7 @@ public abstract class ControlPanelTests
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
         var rAction = functionsRegistry.RegisterAction(
             flowType,
-            Task (string _) => throw new PostponeInvocationException(TimeSpan.FromMinutes(1))
+            Task (string _) => throw new PostponeInvocationException(DateTime.UtcNow + TimeSpan.FromMinutes(1))
         );
         
         await Should.ThrowAsync<Exception>(() => rAction.Invoke(flowInstance.Value, ""));
@@ -257,7 +257,7 @@ public abstract class ControlPanelTests
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
         var rFunc = functionsRegistry.RegisterFunc<string, string>(
             flowType,
-            Task<string> (string _) => throw new PostponeInvocationException(TimeSpan.FromMinutes(1))
+            Task<string> (string _) => throw new PostponeInvocationException(DateTime.UtcNow + TimeSpan.FromMinutes(1))
         );
         
         await Should.ThrowAsync<Exception>(() => rFunc.Invoke(flowInstance.Value, ""));

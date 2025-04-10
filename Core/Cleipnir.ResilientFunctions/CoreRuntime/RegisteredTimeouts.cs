@@ -22,7 +22,7 @@ public enum TimeoutStatus
     Cancelled
 }
 
-public class RegisteredTimeouts(StoredId storedId, ITimeoutStore timeoutStore, Effect effect) : IRegisteredTimeouts
+public class RegisteredTimeouts(StoredId storedId, ITimeoutStore timeoutStore, Effect effect, UtcNow utcNow) : IRegisteredTimeouts
 {
     public string GetNextImplicitId() => EffectContext.CurrentContext.NextImplicitId();
     
@@ -41,11 +41,11 @@ public class RegisteredTimeouts(StoredId storedId, ITimeoutStore timeoutStore, E
     }
     
     public Task RegisterTimeout(string timeoutId, TimeSpan expiresIn)
-        => RegisterTimeout(EffectId.CreateWithCurrentContext(timeoutId, EffectType.Timeout), expiresAt: DateTime.UtcNow.Add(expiresIn));
+        => RegisterTimeout(EffectId.CreateWithCurrentContext(timeoutId, EffectType.Timeout), expiresAt: utcNow().Add(expiresIn));
     public Task RegisterTimeout(string timeoutId, DateTime expiresAt)
         => RegisterTimeout(EffectId.CreateWithCurrentContext(timeoutId, EffectType.Timeout), expiresAt);
     public Task RegisterTimeout(EffectId timeoutId, TimeSpan expiresIn)
-        => RegisterTimeout(timeoutId, expiresAt: DateTime.UtcNow.Add(expiresIn));
+        => RegisterTimeout(timeoutId, expiresAt: utcNow().Add(expiresIn));
 
     public async Task CancelTimeout(EffectId timeoutId)
     {

@@ -346,7 +346,7 @@ public abstract class SunshineTests
                 inner: Task<Result<Unit>> (bool postpone) => 
                     Task.FromResult(
                         postpone 
-                        ? Postpone.For(TimeSpan.FromHours(1)) 
+                        ? Postpone.Until(DateTime.UtcNow.AddHours(1)) 
                         : Succeed.WithUnit
                     )
             );
@@ -484,7 +484,7 @@ public abstract class SunshineTests
                     if (!postponed)
                     {
                         postponed = true;
-                        return Postpone.For(100).ToUnitResult.ToTask();
+                        return Postpone.Until(DateTime.UtcNow.AddMilliseconds(100)).ToUnitResult.ToTask();
                     }
                         
                     storedId = CurrentFlow.StoredId;

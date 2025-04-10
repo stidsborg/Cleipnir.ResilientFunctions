@@ -151,7 +151,7 @@ public abstract class SuspensionTests
                 if (invocations == 0)
                 {
                     invocations++;
-                    return Postpone.For(TimeSpan.FromHours(1)).ToResult<string>().ToTask();
+                    return Postpone.Until(DateTime.UtcNow.AddHours(1)).ToResult<string>().ToTask();
                 }
 
                 invocations++;

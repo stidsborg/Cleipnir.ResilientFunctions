@@ -22,16 +22,18 @@ internal class InvocationHelper<TParam, TReturn>
     private readonly StoredType _storedType;
     private readonly LeasesUpdater _leasesUpdater;
     private readonly ResultBusyWaiter<TReturn> _resultBusyWaiter;
+    public UtcNow UtcNow { get; }
 
     private ISerializer Serializer { get; }
 
-    public InvocationHelper(FlowType flowType, StoredType storedType, bool isParamlessFunction, SettingsWithDefaults settings, IFunctionStore functionStore, ShutdownCoordinator shutdownCoordinator, LeasesUpdater leasesUpdater, ISerializer serializer)
+    public InvocationHelper(FlowType flowType, StoredType storedType, bool isParamlessFunction, SettingsWithDefaults settings, IFunctionStore functionStore, ShutdownCoordinator shutdownCoordinator, LeasesUpdater leasesUpdater, ISerializer serializer, UtcNow utcNow)
     {
         _flowType = flowType;
         _isParamlessFunction = isParamlessFunction;
         _settings = settings;
 
         Serializer = serializer;
+        UtcNow = utcNow;
         _shutdownCoordinator = shutdownCoordinator;
         _leasesUpdater = leasesUpdater;
         _storedType = storedType;
@@ -55,7 +57,7 @@ internal class InvocationHelper<TParam, TReturn>
         try
         {
             var storedParameter = SerializeParameter(param);
-            var utcNowTicks = DateTime.UtcNow.Ticks;
+            var utcNowTicks = UtcNow().Ticks;
             var effects = initialState == null
                 ? null
                 : MapInitialEffects(initialState.Effects, flowId);
@@ -95,7 +97,7 @@ internal class InvocationHelper<TParam, TReturn>
         var success = await _functionStore.FailFunction(
             storedId,
             storedException,
-            timestamp: DateTime.UtcNow.Ticks,
+            timestamp: UtcNow().Ticks,
             expectedEpoch,
             effects: null,
             messages: null,
@@ -126,7 +128,7 @@ internal class InvocationHelper<TParam, TReturn>
                 return await _functionStore.SucceedFunction(
                     storedId,
                     result: SerializeResult(result.SucceedWithValue),
-                    timestamp: DateTime.UtcNow.Ticks,
+                    timestamp: UtcNow().Ticks,
                     expectedEpoch,
                     effects: null,
                     messages: null,
@@ -136,7 +138,7 @@ internal class InvocationHelper<TParam, TReturn>
                 return await _functionStore.PostponeFunction(
                     storedId,
                     postponeUntil: result.Postpone!.DateTime.Ticks,
-                    timestamp: DateTime.UtcNow.Ticks,
+                    timestamp: UtcNow().Ticks,
                     ignoreInterrupted: false, 
                     expectedEpoch,
                     effects: null,
@@ -147,7 +149,7 @@ internal class InvocationHelper<TParam, TReturn>
                 return await _functionStore.FailFunction(
                     storedId,
                     storedException: Serializer.SerializeException(result.Fail!),
-                    timestamp: DateTime.UtcNow.Ticks,
+                    timestamp: UtcNow().Ticks,
                     expectedEpoch,
                     effects: null,
                     messages: null,
@@ -156,7 +158,7 @@ internal class InvocationHelper<TParam, TReturn>
             case Outcome.Suspend:
                 return await _functionStore.SuspendFunction(
                     storedId,
-                    timestamp: DateTime.UtcNow.Ticks,
+                    timestamp: UtcNow().Ticks,
                     expectedEpoch,
                     effects: null,
                     messages: null,
@@ -221,7 +223,7 @@ internal class InvocationHelper<TParam, TReturn>
             var restarted = await _functionStore.RestartExecution(
                 flowId,
                 expectedEpoch,
-                leaseExpiration: DateTime.UtcNow.Ticks + _settings.LeaseLength.Ticks
+                leaseExpiration: UtcNow().Ticks + _settings.LeaseLength.Ticks
             );
 
             return restarted != null
@@ -273,7 +275,7 @@ internal class InvocationHelper<TParam, TReturn>
             await _functionStore.FailFunction(
                 storedId,
                 storedException: Serializer.SerializeException(FatalWorkflowException.CreateNonGeneric(flowId, e)),
-                timestamp: DateTime.UtcNow.Ticks,
+                timestamp: UtcNow().Ticks,
                 expectedEpoch,
                 effects: null,
                 messages: null,
@@ -412,7 +414,7 @@ internal class InvocationHelper<TParam, TReturn>
         IReadOnlyList<StoredMessage> initialMessages)
     {
         var messageWriter = new MessageWriter(storedId, _functionStore, Serializer, scheduleReInvocation);
-        var registeredTimeouts = new RegisteredTimeouts(storedId, _functionStore.TimeoutStore, effect);
+        var registeredTimeouts = new RegisteredTimeouts(storedId, _functionStore.TimeoutStore, effect, UtcNow);
         var messagesPullerAndEmitter = new MessagesPullerAndEmitter(
             storedId,
             defaultDelay: _settings.MessagesPullFrequency,
@@ -421,10 +423,11 @@ internal class InvocationHelper<TParam, TReturn>
             _functionStore,
             Serializer,
             registeredTimeouts,
-            initialMessages
+            initialMessages,
+            UtcNow
         );
         
-        return new Messages(messageWriter, registeredTimeouts, messagesPullerAndEmitter);
+        return new Messages(messageWriter, registeredTimeouts, messagesPullerAndEmitter, UtcNow);
     }
     
     public Tuple<Effect, States> CreateEffectAndStates(StoredId storedId, FlowId flowId, IReadOnlyList<StoredEffect> storedEffects)
@@ -467,7 +470,7 @@ internal class InvocationHelper<TParam, TReturn>
 
     public ExistingEffects CreateExistingEffects(FlowId flowId) => new(MapToStoredId(flowId), flowId, _functionStore.EffectsStore, Serializer);
     public ExistingMessages CreateExistingMessages(FlowId flowId) => new(MapToStoredId(flowId), _functionStore.MessageStore, Serializer);
-    public ExistingRegisteredTimeouts CreateExistingTimeouts(FlowId flowId, ExistingEffects existingEffects) => new(MapToStoredId(flowId), _functionStore.TimeoutStore, existingEffects);
+    public ExistingRegisteredTimeouts CreateExistingTimeouts(FlowId flowId, ExistingEffects existingEffects) => new(MapToStoredId(flowId), _functionStore.TimeoutStore, existingEffects, UtcNow);
     public ExistingSemaphores CreateExistingSemaphores(FlowId flowId) => new(MapToStoredId(flowId), _functionStore, CreateExistingEffects(flowId));
 
     public DistributedSemaphores CreateSemaphores(StoredId storedId, Effect effect)

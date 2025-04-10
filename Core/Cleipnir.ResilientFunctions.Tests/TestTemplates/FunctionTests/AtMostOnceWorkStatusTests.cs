@@ -31,7 +31,7 @@ public abstract class AtMostOnceWorkStatusTests
                         work: () =>
                         {
                             counter.Increment();
-                            throw new PostponeInvocationException(1);
+                            throw new PostponeInvocationException(DateTime.UtcNow);
                         }, ResiliencyLevel.AtMostOnce
                     );
             });
@@ -65,7 +65,7 @@ public abstract class AtMostOnceWorkStatusTests
                         work: () =>
                         {
                             counter.Increment();
-                            throw new PostponeInvocationException(1);
+                            throw new PostponeInvocationException(DateTime.UtcNow);
                         }, ResiliencyLevel.AtMostOnce
                     );
             });

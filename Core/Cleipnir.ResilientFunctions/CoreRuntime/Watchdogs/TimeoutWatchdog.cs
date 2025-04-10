@@ -26,13 +26,16 @@ internal class TimeoutWatchdog
 
     private bool _started = false;
     private readonly Lock _sync = new();
+    
+    private readonly UtcNow _utcNow;
 
     public TimeoutWatchdog(
         ITimeoutStore timeoutStore,
         TimeSpan checkFrequency, 
         TimeSpan delayStartUp,
         UnhandledExceptionHandler unhandledExceptionHandler,
-        ShutdownCoordinator shutdownCoordinator)
+        ShutdownCoordinator shutdownCoordinator,
+        UtcNow utcNow)
     {
         _timeoutStore = timeoutStore;
 
@@ -40,6 +43,7 @@ internal class TimeoutWatchdog
         _delayStartUp = delayStartUp;
         _unhandledExceptionHandler = unhandledExceptionHandler;
         _shutdownCoordinator = shutdownCoordinator;
+        _utcNow = utcNow;
     }
 
     public void Register(StoredType storedType, MessageWriters messageWriters)
@@ -65,7 +69,7 @@ internal class TimeoutWatchdog
         {
             while (!_shutdownCoordinator.ShutdownInitiated)
             {
-                var nextTimeoutSlot = DateTime.UtcNow.Add(_checkFrequency).Ticks;
+                var nextTimeoutSlot = _utcNow().Add(_checkFrequency).Ticks;
                 var upcomingTimeouts = await _timeoutStore.GetTimeouts(nextTimeoutSlot);
 
                 stopWatch.Restart();
@@ -95,7 +99,7 @@ internal class TimeoutWatchdog
         foreach (var (functionId, timeoutId, expiry) in upcomingTimeouts.Where(t => messageWriters.ContainsKey(t.StoredId.Type)).OrderBy(t => t.Expiry))
         {
             var expiresAt = new DateTime(expiry, DateTimeKind.Utc);
-            var delay = (expiresAt - DateTime.UtcNow).RoundUpToZero();
+            var delay = (expiresAt - _utcNow()).RoundUpToZero();
             await Task.Delay(delay);
             await messageWriters[functionId.Type].For(functionId.Instance).AppendMessage(new TimeoutEvent(timeoutId, expiresAt), idempotencyKey: $"Timeout¤{timeoutId}");
             await _timeoutStore.RemoveTimeout(functionId, timeoutId);

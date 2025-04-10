@@ -16,8 +16,9 @@ public class Settings
     internal TimeSpan? DelayStartup { get; }
     internal int? MaxParallelRetryInvocations { get; }
     internal TimeSpan? MessagesPullFrequency { get; }
-    public TimeSpan? MessagesDefaultMaxWaitForCompletion { get; }
+    internal TimeSpan? MessagesDefaultMaxWaitForCompletion { get; }
     internal ISerializer? Serializer { get; }
+    internal UtcNow? UtcNow { get; }
 
     public Settings(
         Action<FrameworkException>? unhandledExceptionHandler = null, 
@@ -30,7 +31,8 @@ public class Settings
         TimeSpan? messagesDefaultMaxWaitForCompletion = null,
         TimeSpan? delayStartup = null, 
         int? maxParallelRetryInvocations = null, 
-        ISerializer? serializer = null)
+        ISerializer? serializer = null,
+        UtcNow? utcNow = null)
     {
         UnhandledExceptionHandler = unhandledExceptionHandler;
         RetentionPeriod = retentionPeriod;
@@ -43,6 +45,7 @@ public class Settings
         Serializer = serializer;
         MessagesPullFrequency = messagesPullFrequency;
         MessagesDefaultMaxWaitForCompletion = messagesDefaultMaxWaitForCompletion;
+        UtcNow = utcNow;
     }
 }
 
@@ -57,7 +60,8 @@ public record SettingsWithDefaults(
     TimeSpan MessagesDefaultMaxWaitForCompletion,
     TimeSpan DelayStartup,
     int MaxParallelRetryInvocations,
-    ISerializer Serializer)
+    ISerializer Serializer,
+    UtcNow UtcNow)
 {
     public SettingsWithDefaults Merge(Settings? child)
     {
@@ -76,7 +80,8 @@ public record SettingsWithDefaults(
             child.MessagesDefaultMaxWaitForCompletion ?? MessagesDefaultMaxWaitForCompletion,
             child.DelayStartup ?? DelayStartup,
             child.MaxParallelRetryInvocations ?? MaxParallelRetryInvocations,
-            child.Serializer ?? Serializer
+            child.Serializer ?? Serializer,
+            child.UtcNow ?? (() => DateTime.UtcNow)
         );
     }
     
@@ -105,6 +110,7 @@ public record SettingsWithDefaults(
             MessagesDefaultMaxWaitForCompletion: TimeSpan.Zero, 
             DelayStartup: TimeSpan.FromSeconds(0),
             MaxParallelRetryInvocations: 100,
-            Serializer: DefaultSerializer.Instance
+            Serializer: DefaultSerializer.Instance,
+            UtcNow: () => DateTime.UtcNow
         );
 }

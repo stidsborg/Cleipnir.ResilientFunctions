@@ -20,9 +20,10 @@ public class Workflow
     [Obsolete("Use Synchronization property instead")]
     public DistributedSemaphores Semaphores { get; }
     public Synchronization Synchronization { get; }
+    private readonly UtcNow _utcNow;
     
     
-    public Workflow(FlowId flowId, StoredId storedId, Messages messages, Effect effect, States states, Utilities utilities, Correlations correlations, DistributedSemaphores semaphores)
+    public Workflow(FlowId flowId, StoredId storedId, Messages messages, Effect effect, States states, Utilities utilities, Correlations correlations, DistributedSemaphores semaphores, UtcNow utcNow)
     {
         FlowId = flowId;
         StoredId = storedId;
@@ -35,6 +36,7 @@ public class Workflow
         Semaphores = semaphores;
         #pragma warning restore
         Synchronization = new Synchronization(semaphores);
+        _utcNow = utcNow;
     }
 
     public void Deconstruct(out Effect effect, out Messages messages, out States states)
@@ -46,13 +48,13 @@ public class Workflow
 
     public async Task RegisterCorrelation(string correlation) => await Correlations.Register(correlation);
 
-    public Task Delay(TimeSpan @for, bool suspend = true, string? effectId = null) => Delay(until: DateTime.UtcNow + @for, suspend, effectId);
+    public Task Delay(TimeSpan @for, bool suspend = true, string? effectId = null) => Delay(until: _utcNow() + @for, suspend, effectId);
     public async Task Delay(DateTime until, bool suspend = true, string? effectId = null)
     {
         effectId ??= $"Delay#{Effect.TakeNextImplicitId()}";
         var systemEffectId = EffectId.CreateWithCurrentContext(effectId, EffectType.System);
         until = await Effect.CreateOrGet(systemEffectId, until);
-        var delay = (until - DateTime.UtcNow).RoundUpToZero();
+        var delay = (until - _utcNow()).RoundUpToZero();
 
         if (delay == TimeSpan.Zero)
             return;

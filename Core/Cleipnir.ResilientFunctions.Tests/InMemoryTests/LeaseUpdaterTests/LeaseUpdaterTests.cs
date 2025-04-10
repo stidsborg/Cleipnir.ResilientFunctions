@@ -39,7 +39,8 @@ public class LeaseUpdaterTests
         using var leasesUpdater = new LeasesUpdater(
             leaseLength: TimeSpan.FromMilliseconds(10),
             store,
-            new UnhandledExceptionHandler(e => _unhandledExceptionCatcher.Catch(e))
+            new UnhandledExceptionHandler(e => _unhandledExceptionCatcher.Catch(e)),
+            () => DateTime.UtcNow
         );
         _ = Task.Run(leasesUpdater.Start);
         
@@ -77,7 +78,8 @@ public class LeaseUpdaterTests
         using var leasesUpdater = new LeasesUpdater(
             leaseLength: TimeSpan.FromMilliseconds(10),
             store,
-            new UnhandledExceptionHandler(e => _unhandledExceptionCatcher.Catch(e))
+            new UnhandledExceptionHandler(e => _unhandledExceptionCatcher.Catch(e)),
+            () => DateTime.UtcNow
         );
         _ = leasesUpdater.Start();
         
@@ -108,7 +110,8 @@ public class LeaseUpdaterTests
         using var leasesUpdater = new LeasesUpdater(
             leaseLength: TimeSpan.FromMilliseconds(10),
             store,
-            new UnhandledExceptionHandler(e => _unhandledExceptionCatcher.Catch(e))
+            new UnhandledExceptionHandler(e => _unhandledExceptionCatcher.Catch(e)),
+            () => DateTime.UtcNow
         );
         _ = leasesUpdater.Start();
         

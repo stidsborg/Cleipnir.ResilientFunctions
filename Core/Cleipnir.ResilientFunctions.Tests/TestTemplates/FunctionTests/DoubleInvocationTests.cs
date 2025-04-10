@@ -101,7 +101,7 @@ public abstract class DoubleInvocationTests
         );
         var rFunc = functionsRegistry.RegisterFunc(
             flowType,
-            (string input) => Postpone.For(100_000).ToResult<string>().ToTask()
+            (string input) => Postpone.Until(DateTime.UtcNow.AddMilliseconds(100_000)).ToResult<string>().ToTask()
         );
         
         await Safe.Try(() => rFunc.Invoke(flowInstance.Value, param: "Hallo World"));

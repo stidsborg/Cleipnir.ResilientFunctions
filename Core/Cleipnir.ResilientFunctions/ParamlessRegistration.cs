@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Cleipnir.ResilientFunctions.CoreRuntime;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Storage;
@@ -43,8 +44,9 @@ public class ParamlessRegistration : BaseRegistration
         ControlPanelFactory controlPanelFactory, 
         MessageWriters messageWriters, 
         StateFetcher stateFetcher,
-        Postman postman
-    ) : base(storedType, postman, functionStore)
+        Postman postman,
+        UtcNow utcNow
+    ) : base(storedType, postman, functionStore, utcNow)
     {
         Type = flowType;
         
@@ -69,7 +71,7 @@ public class ParamlessRegistration : BaseRegistration
     }
     
     public Task ScheduleIn(string flowInstance, TimeSpan delay, bool? detach = null) 
-        => ScheduleAt(flowInstance, DateTime.UtcNow.Add(delay), detach);
+        => ScheduleAt(flowInstance, delayUntil: UtcNow().Add(delay), detach);
 
     public async Task<Finding> SendMessage<T>(
         FlowInstance flowInstance,
@@ -79,7 +81,7 @@ public class ParamlessRegistration : BaseRegistration
     {
         var finding = await Postman.SendMessage(flowInstance.Value.ToStoredInstance(), message, idempotencyKey);
         if (create && finding == Finding.NotFound)
-            await ScheduleAt(flowInstance, delayUntil: DateTime.UtcNow);            
+            await ScheduleAt(flowInstance, delayUntil: UtcNow());            
         
         return finding;
     }

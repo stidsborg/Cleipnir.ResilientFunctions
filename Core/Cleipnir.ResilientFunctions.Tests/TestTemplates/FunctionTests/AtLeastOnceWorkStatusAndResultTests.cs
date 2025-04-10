@@ -32,7 +32,7 @@ public abstract class AtLeastOnceWorkStatusAndResultTests
                         {
                             counter.Increment();
                             if (counter.Current == 1)
-                                throw new PostponeInvocationException(1);
+                                throw new PostponeInvocationException(DateTime.UtcNow);
                             
                             return 1.ToTask();
                         }
@@ -71,7 +71,7 @@ public abstract class AtLeastOnceWorkStatusAndResultTests
                         {
                             counter.Increment();
                             if (counter.Current == 1)
-                                throw new PostponeInvocationException(1);
+                                throw new PostponeInvocationException(DateTime.UtcNow);
                             
                             return "hello world".ToTask();
                         }
@@ -111,7 +111,7 @@ public abstract class AtLeastOnceWorkStatusAndResultTests
                         {
                             counter.Increment();
                             if (counter.Current == 1)
-                                throw new PostponeInvocationException(1);
+                                throw new PostponeInvocationException(DateTime.UtcNow);
                             
                             return new Person("Peter", 32).ToTask();
                         }

@@ -37,7 +37,8 @@ public class FunctionsRegistry : IDisposable
         _storedTypes = new StoredTypes(functionStore.TypeStore);
         _shutdownCoordinator = new ShutdownCoordinator();
         _settings = SettingsWithDefaults.Default.Merge(settings);
-        _leasesUpdater = new LeasesUpdater(_settings.LeaseLength, _functionStore, _settings.UnhandledExceptionHandler);
+        var utcNow = _settings.UtcNow;
+        _leasesUpdater = new LeasesUpdater(_settings.LeaseLength, _functionStore, _settings.UnhandledExceptionHandler, utcNow);
         _ = _leasesUpdater.Start();
         
         _timeoutWatchdog = new TimeoutWatchdog(
@@ -45,7 +46,8 @@ public class FunctionsRegistry : IDisposable
             _settings.WatchdogCheckFrequency,
             _settings.DelayStartup,
             _settings.UnhandledExceptionHandler,
-            _shutdownCoordinator
+            _shutdownCoordinator,
+            utcNow
         );
         _crashedOrPostponedWatchdog = new CrashedOrPostponedWatchdog(
             _functionStore,
@@ -53,7 +55,8 @@ public class FunctionsRegistry : IDisposable
             _settings.UnhandledExceptionHandler,
             _settings.WatchdogCheckFrequency,
             _settings.DelayStartup,
-            _leasesUpdater
+            _leasesUpdater, 
+            utcNow
         );
     }
 
@@ -208,7 +211,8 @@ public class FunctionsRegistry : IDisposable
                 _functionStore,
                 _shutdownCoordinator,
                 _leasesUpdater,
-                serializer
+                serializer,
+                _settings.UtcNow
             );
             var invoker = new Invoker<TParam, TReturn>(
                 flowType, 
@@ -230,14 +234,16 @@ public class FunctionsRegistry : IDisposable
                 invoker.ScheduleRestart,
                 settingsWithDefaults,
                 _shutdownCoordinator,
-                serializer
+                serializer,
+                _settings.UtcNow
             );
 
             var controlPanels = new ControlPanelFactory<TParam, TReturn>(
                 flowType,
                 storedType,
                 invoker,
-                invocationHelper
+                invocationHelper,
+                _settings.UtcNow
             );
 
             var messageWriters = new MessageWriters(
@@ -264,7 +270,8 @@ public class FunctionsRegistry : IDisposable
                 controlPanels,
                 messageWriters,
                 new StateFetcher(storedType, _functionStore.EffectsStore, serializer),
-                postman
+                postman,
+                _settings.UtcNow
             );
             _functions[flowType] = registration;
             
@@ -300,7 +307,8 @@ public class FunctionsRegistry : IDisposable
                 _functionStore,
                 _shutdownCoordinator,
                 _leasesUpdater,
-                serializer
+                serializer,
+                _settings.UtcNow
             );
             var invoker = new Invoker<Unit, Unit>(
                 flowType, 
@@ -322,14 +330,16 @@ public class FunctionsRegistry : IDisposable
                 invoker.ScheduleRestart,
                 settingsWithDefaults,
                 _shutdownCoordinator,
-                serializer
+                serializer,
+                _settings.UtcNow
             );
 
             var controlPanels = new ControlPanelFactory(
                 flowType,
                 storedType,
                 invoker,
-                invocationHelper
+                invocationHelper,
+                _settings.UtcNow
             );
 
             var messageWriters = new MessageWriters(
@@ -356,7 +366,8 @@ public class FunctionsRegistry : IDisposable
                 controlPanels,
                 messageWriters,
                 new StateFetcher(storedType, _functionStore.EffectsStore, serializer),
-                postman
+                postman,
+                _settings.UtcNow
             );
             _functions[flowType] = registration;
             
@@ -392,7 +403,8 @@ public class FunctionsRegistry : IDisposable
                 _functionStore,
                 _shutdownCoordinator,
                 _leasesUpdater,
-                serializer
+                serializer,
+                _settings.UtcNow
             );
             var rActionInvoker = new Invoker<TParam, Unit>(
                 flowType, 
@@ -414,14 +426,16 @@ public class FunctionsRegistry : IDisposable
                 rActionInvoker.ScheduleRestart,
                 settingsWithDefaults,
                 _shutdownCoordinator,
-                serializer
+                serializer,
+                _settings.UtcNow
             );
 
             var controlPanels = new ControlPanelFactory<TParam>(
                 flowType,
                 storedType,
                 rActionInvoker,
-                invocationHelper
+                invocationHelper,
+                _settings.UtcNow
             );
 
             var messageWriters = new MessageWriters(
@@ -447,7 +461,8 @@ public class FunctionsRegistry : IDisposable
                 controlPanels,
                 messageWriters,
                 new StateFetcher(storedType, _functionStore.EffectsStore, serializer),
-                postman
+                postman,
+                _settings.UtcNow
             );
             _functions[flowType] = registration;
             

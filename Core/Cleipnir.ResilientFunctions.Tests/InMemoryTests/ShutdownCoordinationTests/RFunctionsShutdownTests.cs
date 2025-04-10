@@ -222,7 +222,7 @@ public class RFunctionsShutdownTests
             Task<Result<Unit>> (string _) =>
             {
                 counter.Increment();
-                return Postpone.For(500).ToUnitResult.ToTask();
+                return Postpone.Until(DateTime.UtcNow.AddMilliseconds(500)).ToUnitResult.ToTask();
             }
         );
         var rAction = registration.Invoke;

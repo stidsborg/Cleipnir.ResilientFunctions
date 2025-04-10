@@ -207,7 +207,7 @@ public static class LeafOperators
     }
 
     public static Task SuspendFor(this Messages s, string timeoutEventId, TimeSpan resumeAfter)
-        => s.SuspendUntil(timeoutEventId, DateTime.UtcNow.Add(resumeAfter));
+        => s.SuspendUntil(timeoutEventId, resumeAt: s.UtcNow().Add(resumeAfter));
 
     #endregion
 }

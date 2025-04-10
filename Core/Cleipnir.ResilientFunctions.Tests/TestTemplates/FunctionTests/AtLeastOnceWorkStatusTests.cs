@@ -32,7 +32,7 @@ public abstract class AtLeastOnceWorkStatusTests
                         {
                             counter.Increment();
                             if (counter.Current == 1)
-                                throw new PostponeInvocationException(1);
+                                throw new PostponeInvocationException(DateTime.UtcNow);
                             return Task.CompletedTask;
                         }
                     );
@@ -68,7 +68,7 @@ public abstract class AtLeastOnceWorkStatusTests
                         {
                             counter.Increment();
                             if (counter.Current == 1)
-                                throw new PostponeInvocationException(1);
+                                throw new PostponeInvocationException(DateTime.UtcNow);
                             return Task.CompletedTask;
                         }
                     );

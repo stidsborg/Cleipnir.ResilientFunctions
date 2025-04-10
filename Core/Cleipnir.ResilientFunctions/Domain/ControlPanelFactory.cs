@@ -1,4 +1,5 @@
 ﻿using System.Threading.Tasks;
+using Cleipnir.ResilientFunctions.CoreRuntime;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Storage;
@@ -11,13 +12,15 @@ public class ControlPanelFactory
     private readonly StoredType _storedType;
     private readonly Invoker<Unit, Unit> _invoker;
     private readonly InvocationHelper<Unit, Unit> _invocationHelper;
+    private readonly UtcNow _utcNow;
 
-    internal ControlPanelFactory(FlowType flowType, StoredType storedType, Invoker<Unit, Unit> invoker, InvocationHelper<Unit, Unit> invocationHelper)
+    internal ControlPanelFactory(FlowType flowType, StoredType storedType, Invoker<Unit, Unit> invoker, InvocationHelper<Unit, Unit> invocationHelper, UtcNow utcNow)
     {
         _invoker = invoker;
         _invocationHelper = invocationHelper;
         _flowType = flowType;
         _storedType = storedType;
+        _utcNow = utcNow;
     }
     
     public async Task<ControlPanel?> Create(FlowInstance flowInstance)
@@ -43,7 +46,8 @@ public class ControlPanelFactory
             _invocationHelper.CreateExistingSemaphores(flowId),
             _invocationHelper.CreateExistingTimeouts(flowId, existingEffects),
             _invocationHelper.CreateCorrelations(flowId),
-            functionState.FatalWorkflowException
+            functionState.FatalWorkflowException,
+            _utcNow
         );
     }
 }
@@ -55,13 +59,15 @@ public class ControlPanelFactory<TParam> where TParam : notnull
     private readonly StoredType _storedType;
     private readonly Invoker<TParam, Unit> _invoker;
     private readonly InvocationHelper<TParam, Unit> _invocationHelper;
+    private readonly UtcNow _utcNow;
 
-    internal ControlPanelFactory(FlowType flowType, StoredType storedType, Invoker<TParam, Unit> invoker, InvocationHelper<TParam, Unit> invocationHelper)
+    internal ControlPanelFactory(FlowType flowType, StoredType storedType, Invoker<TParam, Unit> invoker, InvocationHelper<TParam, Unit> invocationHelper, UtcNow utcNow)
     {
         _invoker = invoker;
         _invocationHelper = invocationHelper;
         _flowType = flowType;
         _storedType = storedType;
+        _utcNow = utcNow;
     }
     
     public async Task<ControlPanel<TParam>?> Create(FlowInstance flowInstance)
@@ -88,7 +94,8 @@ public class ControlPanelFactory<TParam> where TParam : notnull
             _invocationHelper.CreateExistingSemaphores(flowId),
             _invocationHelper.CreateExistingTimeouts(flowId, existingEffects),
             _invocationHelper.CreateCorrelations(flowId),
-            functionState.FatalWorkflowException
+            functionState.FatalWorkflowException,
+            _utcNow
         );
     }
 }
@@ -99,13 +106,15 @@ public class ControlPanelFactory<TParam, TReturn> where TParam : notnull
     private readonly StoredType _storedType;
     private readonly Invoker<TParam, TReturn> _invoker;
     private readonly InvocationHelper<TParam, TReturn> _invocationHelper;
+    private readonly UtcNow _utcNow;
 
-    internal ControlPanelFactory(FlowType flowType, StoredType storedType, Invoker<TParam, TReturn> invoker, InvocationHelper<TParam, TReturn> invocationHelper)
+    internal ControlPanelFactory(FlowType flowType, StoredType storedType, Invoker<TParam, TReturn> invoker, InvocationHelper<TParam, TReturn> invocationHelper, UtcNow utcNow)
     {
         _invoker = invoker;
         _invocationHelper = invocationHelper;
         _flowType = flowType;
         _storedType = storedType;
+        _utcNow = utcNow;
     }
 
     public async Task<ControlPanel<TParam, TReturn>?> Create(FlowInstance flowInstance)
@@ -133,7 +142,8 @@ public class ControlPanelFactory<TParam, TReturn> where TParam : notnull
             _invocationHelper.CreateExistingSemaphores(flowId),
             _invocationHelper.CreateExistingTimeouts(flowId, existingEffects),
             _invocationHelper.CreateCorrelations(flowId),
-            f.FatalWorkflowException
+            f.FatalWorkflowException,
+            _utcNow
         );
     }
 }

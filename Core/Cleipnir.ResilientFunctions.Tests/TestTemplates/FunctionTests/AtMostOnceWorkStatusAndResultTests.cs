@@ -31,7 +31,7 @@ public abstract class AtMostOnceWorkStatusAndResultTests
                         work: () =>
                         {
                             counter.Increment();
-                            throw new PostponeInvocationException(1);
+                            throw new PostponeInvocationException(DateTime.UtcNow);
                         }, ResiliencyLevel.AtMostOnce
                     );
             });
@@ -66,7 +66,7 @@ public abstract class AtMostOnceWorkStatusAndResultTests
                         {
                             counter.Increment();
                             if (counter.Current != 0)
-                                throw new PostponeInvocationException(1);
+                                throw new PostponeInvocationException(DateTime.UtcNow);
 
                             return "hello world".ToTask();
                         }, ResiliencyLevel.AtMostOnce
@@ -103,7 +103,7 @@ public abstract class AtMostOnceWorkStatusAndResultTests
                         {
                             counter.Increment();
                             if (counter.Current != 0)
-                                throw new PostponeInvocationException(1);
+                                throw new PostponeInvocationException(DateTime.UtcNow);
 
                             return new Person("Peter", 32).ToTask();
                         }, ResiliencyLevel.AtMostOnce

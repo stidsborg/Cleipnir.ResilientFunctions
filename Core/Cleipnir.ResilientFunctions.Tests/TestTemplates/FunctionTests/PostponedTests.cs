@@ -34,7 +34,7 @@ public abstract class PostponedTests
                 );
             var rFunc = functionsRegistry.RegisterFunc<string, string>(
                 flowType,
-                (string _) => Postpone.For(1_000).ToResult<string>().ToTask()
+                (string _) => Postpone.Until(DateTime.UtcNow.AddMilliseconds(1_000)).ToResult<string>().ToTask()
             ).Invoke;
 
             await Should.ThrowAsync<InvocationPostponedException>(() =>
@@ -85,7 +85,7 @@ public abstract class PostponedTests
             var rFunc = functionsRegistry
                 .RegisterFunc<string, string>(
                     flowType,
-                    inner: (_, _) => throw new PostponeInvocationException(1_000)
+                    inner: (_, _) => throw new PostponeInvocationException(DateTime.UtcNow + TimeSpan.FromSeconds(1))
                 ).Invoke;
 
             await Should.ThrowAsync<InvocationPostponedException>(() => rFunc(param, param));
@@ -211,7 +211,7 @@ public abstract class PostponedTests
             );
             var rAction = functionsRegistry.RegisterAction(
                 flowType,
-                Task<Result<Unit>> (string _, Workflow _) => Postpone.For(1_000).ToUnitResult.ToTask()
+                Task<Result<Unit>> (string _, Workflow _) => Postpone.Until(DateTime.UtcNow.AddMilliseconds(1_000)).ToUnitResult.ToTask()
             ).Invoke;
 
             await Should.ThrowAsync<InvocationPostponedException>(() => 
@@ -270,7 +270,7 @@ public abstract class PostponedTests
                 )
             );
             var rFunc = functionsRegistry
-                .RegisterAction(functionId.Type, Task<Result<Unit>> (string _) => Postpone.For(1_000).ToUnitResult.ToTask())
+                .RegisterAction(functionId.Type, Task<Result<Unit>> (string _) => Postpone.Until(DateTime.UtcNow.AddMilliseconds(1_000)).ToUnitResult.ToTask())
                 .Invoke;
 
             var instanceId = functionId.Instance.ToString();
@@ -307,7 +307,7 @@ public abstract class PostponedTests
         var rAction = functionsRegistry.RegisterAction(
             flowType, Task (string _) =>
             {
-                Postpone.Throw(postponeFor: TimeSpan.FromSeconds(10));
+                Postpone.Throw(DateTime.UtcNow.AddMilliseconds(10_000));
                 return Task.CompletedTask;
             }
         );
@@ -401,7 +401,7 @@ public abstract class PostponedTests
         var rAction = functionsRegistry.RegisterAction(
             flowType, Task (string _, Workflow _) =>
             {
-                Postpone.Throw(postponeFor: TimeSpan.FromSeconds(10));
+                Postpone.Throw(DateTime.UtcNow.AddMilliseconds(10_000));
                 return Task.CompletedTask;
             });
 
@@ -492,7 +492,7 @@ public abstract class PostponedTests
         );
         var rFunc = functionsRegistry.RegisterFunc(
             flowType,
-            Task<string> (string _) => throw new PostponeInvocationException(TimeSpan.FromSeconds(10))
+            Task<string> (string _) => throw new PostponeInvocationException(DateTime.UtcNow + TimeSpan.FromSeconds(10))
         );
 
         //invoke
@@ -584,7 +584,7 @@ public abstract class PostponedTests
         );
         var rFunc = functionsRegistry.RegisterFunc(
             flowType,
-            Task<string> (string _) => throw new PostponeInvocationException(TimeSpan.FromSeconds(10))
+            Task<string> (string _) => throw new PostponeInvocationException(DateTime.UtcNow + TimeSpan.FromSeconds(10))
         );
 
         //invoke

@@ -11,6 +11,7 @@ public class Messages : IReactiveChain<object>
 {
     public RegisteredTimeouts RegisteredTimeouts { get; }
     public IReactiveChain<object> Source => _messagePullerAndEmitter.Source;
+    internal UtcNow UtcNow { get; }
     
     private readonly MessageWriter _messageWriter;
     private readonly MessagesPullerAndEmitter _messagePullerAndEmitter;
@@ -18,12 +19,14 @@ public class Messages : IReactiveChain<object>
     public Messages(
         MessageWriter messageWriter,
         RegisteredTimeouts registeredTimeouts,
-        MessagesPullerAndEmitter messagePullerAndEmitter
+        MessagesPullerAndEmitter messagePullerAndEmitter,
+        UtcNow utcNow
     )
     {
         _messageWriter = messageWriter;
         RegisteredTimeouts = registeredTimeouts;
         _messagePullerAndEmitter = messagePullerAndEmitter;
+        UtcNow = utcNow;
     }
 
     public async Task AppendMessage(object @event, string? idempotencyKey = null)

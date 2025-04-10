@@ -33,7 +33,7 @@ public abstract class MessagesTests
             parent: null
         );
         var messagesWriter = new MessageWriter(storedId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
-        var registeredTimeouts = new RegisteredTimeouts(storedId, functionStore.TimeoutStore, CreateEffect(storedId, flowId, functionStore));
+        var registeredTimeouts = new RegisteredTimeouts(storedId, functionStore.TimeoutStore, CreateEffect(storedId, flowId, functionStore), () => DateTime.UtcNow);
         var messagesPullerAndEmitter = new MessagesPullerAndEmitter(
             storedId,
             defaultDelay: TimeSpan.FromMilliseconds(250),
@@ -42,9 +42,10 @@ public abstract class MessagesTests
             functionStore,
             DefaultSerializer.Instance,
             registeredTimeouts,
-            initialMessages: []
+            initialMessages: [],
+            utcNow: () => DateTime.UtcNow
         );
-        var messages = new Messages(messagesWriter, registeredTimeouts, messagesPullerAndEmitter);
+        var messages = new Messages(messagesWriter, registeredTimeouts, messagesPullerAndEmitter, utcNow: () => DateTime.UtcNow);
         
         var task = messages.First();
         
@@ -99,7 +100,7 @@ public abstract class MessagesTests
             parent: null
         );
         var messagesWriter = new MessageWriter(storedId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
-        var registeredTimeouts = new RegisteredTimeouts(storedId, functionStore.TimeoutStore, CreateEffect(storedId, flowId, functionStore));
+        var registeredTimeouts = new RegisteredTimeouts(storedId, functionStore.TimeoutStore, CreateEffect(storedId, flowId, functionStore), () => DateTime.UtcNow);
         var messagesPullerAndEmitter = new MessagesPullerAndEmitter(
             storedId,
             defaultDelay: TimeSpan.FromMilliseconds(250),
@@ -108,9 +109,10 @@ public abstract class MessagesTests
             functionStore,
             DefaultSerializer.Instance,
             registeredTimeouts,
-            initialMessages: []
+            initialMessages: [],
+            utcNow: () => DateTime.UtcNow
         );
-        var messages = new Messages(messagesWriter, registeredTimeouts, messagesPullerAndEmitter);
+        var messages = new Messages(messagesWriter, registeredTimeouts, messagesPullerAndEmitter, utcNow: () => DateTime.UtcNow);
         
         var eitherOrNoneTask = messages.FirstOfTypes<string, int>(expiresIn: TimeSpan.FromSeconds(10));
 
@@ -139,7 +141,7 @@ public abstract class MessagesTests
             parent: null
         );
         var messagesWriter = new MessageWriter(storedId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
-        var registeredTimeouts = new RegisteredTimeouts(storedId, functionStore.TimeoutStore, CreateEffect(storedId, flowId, functionStore));
+        var registeredTimeouts = new RegisteredTimeouts(storedId, functionStore.TimeoutStore, CreateEffect(storedId, flowId, functionStore), () => DateTime.UtcNow);
         var messagesPullerAndEmitter = new MessagesPullerAndEmitter(
             storedId,
             defaultDelay: TimeSpan.FromMilliseconds(250),
@@ -148,9 +150,10 @@ public abstract class MessagesTests
             functionStore,
             DefaultSerializer.Instance,
             registeredTimeouts,
-            initialMessages: []
+            initialMessages: [],
+            utcNow: () => DateTime.UtcNow
         );
-        var messages = new Messages(messagesWriter, registeredTimeouts, messagesPullerAndEmitter);
+        var messages = new Messages(messagesWriter, registeredTimeouts, messagesPullerAndEmitter, utcNow: () => DateTime.UtcNow);
         
         var eitherOrNoneTask = messages.FirstOfTypes<string, int>(expiresIn: TimeSpan.FromSeconds(10));
 
@@ -179,7 +182,7 @@ public abstract class MessagesTests
             parent: null
         );
         var messagesWriter = new MessageWriter(storedId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
-        var registeredTimeouts = new RegisteredTimeouts(storedId, functionStore.TimeoutStore, CreateEffect(storedId, flowId, functionStore));
+        var registeredTimeouts = new RegisteredTimeouts(storedId, functionStore.TimeoutStore, CreateEffect(storedId, flowId, functionStore), () => DateTime.UtcNow);
         var messagesPullerAndEmitter = new MessagesPullerAndEmitter(
             storedId,
             defaultDelay: TimeSpan.FromMilliseconds(250),
@@ -188,9 +191,10 @@ public abstract class MessagesTests
             functionStore,
             DefaultSerializer.Instance,
             registeredTimeouts,
-            initialMessages: []
+            initialMessages: [],
+            utcNow: () => DateTime.UtcNow
         );
-        var messages = new Messages(messagesWriter, registeredTimeouts, messagesPullerAndEmitter);
+        var messages = new Messages(messagesWriter, registeredTimeouts, messagesPullerAndEmitter, utcNow: () => DateTime.UtcNow);
 
         await messages.AppendMessage("hello world");
 
@@ -221,7 +225,7 @@ public abstract class MessagesTests
             parent: null
         );
         var messagesWriter = new MessageWriter(storedId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
-        var registeredTimeouts = new RegisteredTimeouts(storedId, functionStore.TimeoutStore, CreateEffect(storedId, flowId, functionStore));
+        var registeredTimeouts = new RegisteredTimeouts(storedId, functionStore.TimeoutStore, CreateEffect(storedId, flowId, functionStore), () => DateTime.UtcNow);
         var messagesPullerAndEmitter = new MessagesPullerAndEmitter(
             storedId,
             defaultDelay: TimeSpan.FromMilliseconds(250),
@@ -230,9 +234,10 @@ public abstract class MessagesTests
             functionStore,
             DefaultSerializer.Instance,
             registeredTimeouts,
-            initialMessages: []
+            initialMessages: [],
+            utcNow: () => DateTime.UtcNow
         );
-        var messages = new Messages(messagesWriter, registeredTimeouts, messagesPullerAndEmitter);
+        var messages = new Messages(messagesWriter, registeredTimeouts, messagesPullerAndEmitter, utcNow: () => DateTime.UtcNow);
         
         var task = messages.Take(2).ToList();
         
@@ -268,7 +273,7 @@ public abstract class MessagesTests
             parent: null
         );
         var messagesWriter = new MessageWriter(storedId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
-        var registeredTimeouts = new RegisteredTimeouts(storedId, functionStore.TimeoutStore, CreateEffect(storedId, flowId, functionStore));
+        var registeredTimeouts = new RegisteredTimeouts(storedId, functionStore.TimeoutStore, CreateEffect(storedId, flowId, functionStore), () => DateTime.UtcNow);
         var messagesPullerAndEmitter = new MessagesPullerAndEmitter(
             storedId,
             defaultDelay: TimeSpan.FromMilliseconds(250),
@@ -277,9 +282,10 @@ public abstract class MessagesTests
             functionStore,
             DefaultSerializer.Instance,
             registeredTimeouts,
-            initialMessages: []
+            initialMessages: [],
+            utcNow: () => DateTime.UtcNow
         );
-        var messages = new Messages(messagesWriter, registeredTimeouts, messagesPullerAndEmitter);
+        var messages = new Messages(messagesWriter, registeredTimeouts, messagesPullerAndEmitter, utcNow: () => DateTime.UtcNow);
 
         var task = messages.Take(2).ToList();
         
@@ -314,7 +320,7 @@ public abstract class MessagesTests
             parent: null
         );
         var messagesWriter = new MessageWriter(storedId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
-        var registeredTimeouts = new RegisteredTimeouts(storedId, functionStore.TimeoutStore, CreateEffect(storedId, flowId, functionStore));
+        var registeredTimeouts = new RegisteredTimeouts(storedId, functionStore.TimeoutStore, CreateEffect(storedId, flowId, functionStore), () => DateTime.UtcNow);
         var messagesPullerAndEmitter = new MessagesPullerAndEmitter(
             storedId,
             defaultDelay: TimeSpan.FromMilliseconds(250),
@@ -323,9 +329,10 @@ public abstract class MessagesTests
             functionStore,
             DefaultSerializer.Instance,
             registeredTimeouts,
-            initialMessages: []
+            initialMessages: [],
+            utcNow: () => DateTime.UtcNow
         );
-        var messages = new Messages(messagesWriter, registeredTimeouts, messagesPullerAndEmitter);
+        var messages = new Messages(messagesWriter, registeredTimeouts, messagesPullerAndEmitter, utcNow: () => DateTime.UtcNow);
         
         var task = messages.First();
         
@@ -356,7 +363,7 @@ public abstract class MessagesTests
             parent: null
         );
         var messagesWriter = new MessageWriter(storedId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
-        var registeredTimeouts = new RegisteredTimeouts(storedId, functionStore.TimeoutStore, CreateEffect(storedId, flowId, functionStore));
+        var registeredTimeouts = new RegisteredTimeouts(storedId, functionStore.TimeoutStore, CreateEffect(storedId, flowId, functionStore), () => DateTime.UtcNow);
         var messagesPullerAndEmitter = new MessagesPullerAndEmitter(
             storedId,
             defaultDelay: TimeSpan.FromMilliseconds(250),
@@ -365,9 +372,10 @@ public abstract class MessagesTests
             functionStore,
             DefaultSerializer.Instance,
             registeredTimeouts,
-            initialMessages: []
+            initialMessages: [],
+            utcNow: () => DateTime.UtcNow
         );
-        var messages = new Messages(messagesWriter, registeredTimeouts, messagesPullerAndEmitter);
+        var messages = new Messages(messagesWriter, registeredTimeouts, messagesPullerAndEmitter, utcNow: () => DateTime.UtcNow);
 
         var task = messages.Take(2).ToList();
         
@@ -410,7 +418,7 @@ public abstract class MessagesTests
             parent: null
         );
         var messagesWriter = new MessageWriter(storedId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
-        var registeredTimeouts = new RegisteredTimeouts(storedId, functionStore.TimeoutStore, CreateEffect(storedId, flowId, functionStore));
+        var registeredTimeouts = new RegisteredTimeouts(storedId, functionStore.TimeoutStore, CreateEffect(storedId, flowId, functionStore), () => DateTime.UtcNow);
         var messagesPullerAndEmitter = new MessagesPullerAndEmitter(
             storedId,
             defaultDelay: TimeSpan.FromMilliseconds(250),
@@ -419,9 +427,10 @@ public abstract class MessagesTests
             functionStore,
             new ExceptionThrowingEventSerializer(typeof(int)),
             registeredTimeouts,
-            initialMessages: []
+            initialMessages: [],
+            utcNow: () => DateTime.UtcNow
         );
-        var messages = new Messages(messagesWriter, registeredTimeouts, messagesPullerAndEmitter);
+        var messages = new Messages(messagesWriter, registeredTimeouts, messagesPullerAndEmitter, utcNow: () => DateTime.UtcNow);
         
         await messages.AppendMessage("hello world");
         await Should.ThrowAsync<MessageProcessingException>(messages.AppendMessage(1));

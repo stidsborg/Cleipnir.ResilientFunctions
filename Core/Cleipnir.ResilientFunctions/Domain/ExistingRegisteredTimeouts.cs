@@ -8,7 +8,7 @@ using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.Domain;
 
-public class ExistingRegisteredTimeouts(StoredId storedId, ITimeoutStore timeoutStore, ExistingEffects effects)
+public class ExistingRegisteredTimeouts(StoredId storedId, ITimeoutStore timeoutStore, ExistingEffects effects, UtcNow utcNow)
 {
     private Dictionary<EffectId, DateTime>? _timeouts;
 
@@ -58,7 +58,7 @@ public class ExistingRegisteredTimeouts(StoredId storedId, ITimeoutStore timeout
         timeouts[timeoutId] = expiresAt;
     }
     public Task Upsert(TimeoutId timeoutId, TimeSpan expiresIn) 
-        => Upsert(timeoutId, expiresAt: DateTime.UtcNow.Add(expiresIn));
+        => Upsert(timeoutId, expiresAt: utcNow().Add(expiresIn));
     public Task Upsert(EffectId timeoutId, TimeSpan expiresIn) 
-        => Upsert(timeoutId, expiresAt: DateTime.UtcNow.Add(expiresIn));
+        => Upsert(timeoutId, expiresAt: utcNow().Add(expiresIn));
 }

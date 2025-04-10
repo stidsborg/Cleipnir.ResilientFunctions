@@ -98,7 +98,7 @@ public abstract class TimeoutStoreTests
         var flowId = TestFlowId.Create();
         var storedId = flowId.ToStoredId(new StoredType(1));
         
-        var registeredTimeouts = new RegisteredTimeouts(storedId, store.TimeoutStore, CreateEffect(flowId, storedId, store));
+        var registeredTimeouts = new RegisteredTimeouts(storedId, store.TimeoutStore, CreateEffect(flowId, storedId, store), () => DateTime.UtcNow);
 
         await registeredTimeouts.RegisterTimeout("timeoutId1".ToEffectId(), expiresIn: TimeSpan.FromHours(1));
         await registeredTimeouts.RegisterTimeout("timeoutId2".ToEffectId(), expiresIn: TimeSpan.FromHours(2));
@@ -127,12 +127,13 @@ public abstract class TimeoutStoreTests
         var storedId = flowId.ToStoredId(new StoredType(1));
 
         var effect = CreateEffect(flowId, storedId, store);
-        var registeredTimeouts = new RegisteredTimeouts(storedId, store.TimeoutStore, effect);
+        var registeredTimeouts = new RegisteredTimeouts(storedId, store.TimeoutStore, effect, () => DateTime.UtcNow);
 
         var otherInstanceRegisteredTimeouts = new RegisteredTimeouts(
             storedId with { Instance = (storedId.Instance + "2").ToStoredInstance() }, 
             store.TimeoutStore,
-            effect
+            effect,
+            () => DateTime.UtcNow
         );
 
         await registeredTimeouts.RegisterTimeout("timeoutId1".ToEffectId(), expiresIn: TimeSpan.FromHours(1));
@@ -155,7 +156,7 @@ public abstract class TimeoutStoreTests
         var flowId = TestFlowId.Create();
         var storedId = flowId.ToStoredId(new StoredType(1));
 
-        var registeredTimeouts = new RegisteredTimeouts(storedId, store, CreateEffect(flowId, storedId, await storeTask));
+        var registeredTimeouts = new RegisteredTimeouts(storedId, store, CreateEffect(flowId, storedId, await storeTask), () => DateTime.UtcNow);
 
         await registeredTimeouts.RegisterTimeout("timeoutId1".ToEffectId(), expiresIn: TimeSpan.FromHours(1));
         upsertCount.ShouldBe(1);
@@ -206,7 +207,7 @@ public abstract class TimeoutStoreTests
         var flowId = TestFlowId.Create();
         var storedId = flowId.ToStoredId(new StoredType(1));
         
-        var registeredTimeouts = new RegisteredTimeouts(storedId, store, CreateEffect(flowId, storedId, await storeTask));
+        var registeredTimeouts = new RegisteredTimeouts(storedId, store, CreateEffect(flowId, storedId, await storeTask), () => DateTime.UtcNow);
         
         var pendingTimeouts = await registeredTimeouts.PendingTimeouts();
         pendingTimeouts.ShouldBeEmpty();

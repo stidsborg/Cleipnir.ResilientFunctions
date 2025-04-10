@@ -30,6 +30,7 @@ public class MessagesPullerAndEmitter
 
     private readonly AsyncSemaphore _semaphore = new(maxParallelism: 1);
     private readonly Lock _sync = new();
+    private readonly UtcNow _utcNow;
 
     private bool InitialSyncPerformed
     {
@@ -46,12 +47,14 @@ public class MessagesPullerAndEmitter
         TimeSpan defaultMaxWait,
         Func<bool> isWorkflowRunning,
         IFunctionStore functionStore, ISerializer serializer, IRegisteredTimeouts registeredTimeouts,
-        IReadOnlyList<StoredMessage>? initialMessages)
+        IReadOnlyList<StoredMessage>? initialMessages,
+        UtcNow utcNow)
     {
         _storedId = storedId;
         _messageStore = functionStore.MessageStore;
         _initialMessages = initialMessages;
         _serializer = serializer;
+        _utcNow = utcNow;
         
         Source = new Source(
             registeredTimeouts,
@@ -69,13 +72,13 @@ public class MessagesPullerAndEmitter
             if (
                 _lastSynced != default &&
                 maxSinceLastSynced > TimeSpan.Zero &&
-                DateTime.UtcNow - maxSinceLastSynced < _lastSynced
+                _utcNow() - maxSinceLastSynced < _lastSynced
             ) return;
 
         using var @lock = await _semaphore.Take();
         if (_thrownException != null)
             throw new MessageProcessingException(_thrownException);
-        if (DateTime.UtcNow - maxSinceLastSynced < _lastSynced)
+        if (_utcNow() - maxSinceLastSynced < _lastSynced)
             return;
 
         try
@@ -83,7 +86,7 @@ public class MessagesPullerAndEmitter
             var storedMessages = _initialMessages ?? await _messageStore.GetMessages(_storedId, _skip);
             _initialMessages = null;
             
-            _lastSynced = DateTime.UtcNow;
+            _lastSynced = _utcNow();
             _skip += storedMessages.Count;
 
             if (storedMessages.Count == 0)
