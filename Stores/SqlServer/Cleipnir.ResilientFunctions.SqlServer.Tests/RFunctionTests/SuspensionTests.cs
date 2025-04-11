@@ -80,4 +80,8 @@ public class SuspensionTests : ResilientFunctions.Tests.TestTemplates.FunctionTe
     [TestMethod]
     public override Task InterruptSuspendedFlows()
         => InterruptSuspendedFlows(FunctionStoreFactory.Create());
+    
+    [TestMethod]
+    public override Task AwaitMessageAfterAppendShouldNotCauseSuspension()
+        => AwaitMessageAfterAppendShouldNotCauseSuspension(FunctionStoreFactory.Create());
 }

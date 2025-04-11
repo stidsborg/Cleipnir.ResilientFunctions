@@ -84,8 +84,10 @@ public class MessagesPullerAndEmitter
         try
         {
             var storedMessages = _initialMessages ?? await _messageStore.GetMessages(_storedId, _skip);
-            _initialMessages = null;
+            if (_initialMessages != null && maxSinceLastSynced == TimeSpan.Zero)
+                storedMessages = storedMessages.Concat(await _messageStore.GetMessages(_storedId, _skip)).ToList();   
             
+            _initialMessages = null;
             _lastSynced = _utcNow();
             _skip += storedMessages.Count;
 
@@ -118,7 +120,5 @@ public class MessagesPullerAndEmitter
 
             throw eventHandlingException;
         }
-
-        return;
     }
 }

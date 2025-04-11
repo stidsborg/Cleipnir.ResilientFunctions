@@ -742,4 +742,35 @@ public abstract class SuspensionTests
         
         unhandledExceptionHandler.ShouldNotHaveExceptions();
     }
+    
+    public abstract Task AwaitMessageAfterAppendShouldNotCauseSuspension();
+    protected async Task AwaitMessageAfterAppendShouldNotCauseSuspension(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var id = TestFlowId.Create();
+        var (flowType, flowInstance) = id;
+
+        var unhandledExceptionHandler = new UnhandledExceptionCatcher();
+        using var functionsRegistry = new FunctionsRegistry
+        (
+            store,
+            new Settings(unhandledExceptionHandler.Catch)
+        );
+        
+        var registration = functionsRegistry.RegisterFunc<string, string>(
+            flowType,
+            inner: async Task<string> (param, workflow) =>
+            {
+                var messages = workflow.Messages;
+                await messages.AppendMessage(param);
+                    
+                return await messages.FirstOfType<string>();
+            }
+        );
+
+        var result = await registration.Invoke("SomeInstance", "Hello World");
+        result.ShouldBe("Hello World");
+        
+        unhandledExceptionHandler.ShouldNotHaveExceptions();
+    }
 }

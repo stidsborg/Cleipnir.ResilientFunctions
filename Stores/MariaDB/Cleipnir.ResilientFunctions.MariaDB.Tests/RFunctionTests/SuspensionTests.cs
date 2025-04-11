@@ -79,4 +79,8 @@ public class SuspensionTests : ResilientFunctions.Tests.TestTemplates.FunctionTe
     [TestMethod]
     public override Task ChildIsCreatedWithParentsId()
         => ChildIsCreatedWithParentsId(FunctionStoreFactory.Create());
+    
+    [TestMethod]
+    public override Task AwaitMessageAfterAppendShouldNotCauseSuspension()
+        => AwaitMessageAfterAppendShouldNotCauseSuspension(FunctionStoreFactory.Create());
 }

@@ -91,4 +91,8 @@ public class SuspensionTests : TestTemplates.FunctionTests.SuspensionTests
     [TestMethod]
     public override Task InterruptSuspendedFlows()
         => InterruptSuspendedFlows(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task AwaitMessageAfterAppendShouldNotCauseSuspension()
+        => AwaitMessageAfterAppendShouldNotCauseSuspension(FunctionStoreFactory.Create());
 }
