@@ -184,11 +184,6 @@ public class SqlGenerator(string tablePrefix)
     
     public async Task<IReadOnlyList<StoredEffect>> ReadEffects(SqlDataReader reader)
     {
-        _getEffectsSql ??= @$"
-            SELECT StoredId, EffectId, Status, Result, Exception           
-            FROM {tablePrefix}_Effects
-            WHERE FlowType = @FlowType AND FlowInstance = @FlowInstance";
-        
         var storedEffects = new List<StoredEffect>();
         while (reader.HasRows && await reader.ReadAsync())
         {
