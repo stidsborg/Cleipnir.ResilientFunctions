@@ -706,5 +706,34 @@ public abstract class EffectTests
         effectIds.Single().Id.ShouldBe("SomeEffectId");
         (await cp.Effects.GetValue<Guid>("SomeEffectId")).ShouldBe(someEffectIdValue);
     }
-    
+ 
+    public abstract Task UpsertingExistingEffectDoesNotAffectOtherExistingEffects();
+    public async Task UpsertingExistingEffectDoesNotAffectOtherExistingEffects(Task<IFunctionStore> storeTask)
+    {  
+        var store = await storeTask;
+        var storedId = TestStoredId.Create();
+
+        var effectStore = store.EffectsStore;
+        var effectResults = new EffectResults(
+            TestFlowId.Create(),
+            storedId,
+            lazyExistingEffects: new Lazy<Task<IReadOnlyList<StoredEffect>>>(
+                () => new List<StoredEffect>().CastTo<IReadOnlyList<StoredEffect>>().ToTask()
+            ),
+            effectStore,
+            DefaultSerializer.Instance
+        );
+        var effect = new Effect(effectResults);
+
+        await effect.Capture("1", () => "hello world");
+        await effect.Capture("2", () => "hello universe");
+        await effect.Flush();
+
+        await effect.Upsert("1", "hello world again");
+        
+        var storedEffects = await effectStore.GetEffectResults(storedId);
+        storedEffects.Count.ShouldBe(2);
+        storedEffects.Single(se => se.EffectId.Id == "1").Result!.ToStringFromUtf8Bytes().DeserializeFromJsonTo<string>().ShouldBe("hello world again");
+        storedEffects.Single(se => se.EffectId.Id == "2").Result!.ToStringFromUtf8Bytes().DeserializeFromJsonTo<string>().ShouldBe("hello universe");
+    }
 }

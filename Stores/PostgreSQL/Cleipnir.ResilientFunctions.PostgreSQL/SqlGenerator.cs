@@ -107,7 +107,7 @@ public class SqlGenerator(string tablePrefix)
             var sql= $@"
                 UPDATE {tablePrefix}_effects
                 SET status = $1, result = $2, exception = $3
-                WHERE type = $4 AND instance = $5;";
+                WHERE type = $4 AND instance = $5 AND id_hash = $6;";
       
            foreach (var (storedId, _, _, storedEffect) in changes.Where(s => s.Operation == CrudOperation.Update))
            {
@@ -117,6 +117,7 @@ public class SqlGenerator(string tablePrefix)
                command.AddParameter(JsonHelper.ToJson(storedEffect.StoredException) ?? (object) DBNull.Value);
                command.AddParameter(storedId.Type.Value);
                command.AddParameter(storedId.Instance.Value);
+               command.AddParameter(storedEffect.StoredEffectId.Value);
            
                commands.Add(command);
            }   

@@ -76,4 +76,8 @@ public class EffectTests : ResilientFunctions.Tests.TestTemplates.FunctionTests.
     [TestMethod]
     public override Task CaptureUsingAtLeastOnceWithoutFlushResiliencyDelaysFlushInFlow()
         => CaptureUsingAtLeastOnceWithoutFlushResiliencyDelaysFlushInFlow(FunctionStoreFactory.Create());
+    
+    [TestMethod]
+    public override Task UpsertingExistingEffectDoesNotAffectOtherExistingEffects()
+        => UpsertingExistingEffectDoesNotAffectOtherExistingEffects(FunctionStoreFactory.Create());
 }
