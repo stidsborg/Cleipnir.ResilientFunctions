@@ -98,4 +98,6 @@ public class Effect(EffectResults effectResults)
 
     internal EffectId CreateEffectId(string id, EffectType? type = null) 
         => id.ToEffectId(type, context: EffectContext.CurrentContext.Parent?.Serialize());
+
+    public Task Flush() => effectResults.Flush();
 }

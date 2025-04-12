@@ -665,4 +665,46 @@ public abstract class EffectTests
         storedEffects.Single(se => se.EffectId.Id == "2").Result!.ToStringFromUtf8Bytes().DeserializeFromJsonTo<string>().ShouldBe("hello universe");
     }
 
+    public abstract Task CaptureUsingAtLeastOnceWithoutFlushResiliencyDelaysFlushInFlow();
+    public async Task CaptureUsingAtLeastOnceWithoutFlushResiliencyDelaysFlushInFlow(Task<IFunctionStore> storeTask)
+    {  
+        var store = await storeTask;
+        var (type, instance) = TestFlowId.Create();
+        var storedId = TestStoredId.Create();
+        var someEffectIdValue = Guid.NewGuid();
+
+        var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
+        var registry = new FunctionsRegistry(store, settings: new Settings(unhandledExceptionHandler: unhandledExceptionCatcher.Catch));
+
+        var writtenEffectFlag = new SyncedFlag();
+        var continueFlag = new SyncedFlag();
+        
+        var flow = registry.RegisterParamless(
+            type,
+            async Task (workflow) =>
+            {
+                await workflow.Effect.Capture("SomeEffectId", () => someEffectIdValue, ResiliencyLevel.AtLeastOnceDelayFlush);
+                writtenEffectFlag.Raise();
+                await continueFlag.WaitForRaised();
+            }
+        );
+
+        await flow.Schedule(instance);
+        
+        await writtenEffectFlag.WaitForRaised();
+        var cp = await flow.ControlPanel(instance).ShouldNotBeNullAsync();
+        var effectIds = await cp.Effects.AllIds;
+        effectIds.Any().ShouldBeFalse();
+        
+        continueFlag.Raise();
+
+        await cp.WaitForCompletion();
+
+        await cp.Refresh();
+        effectIds = (await cp.Effects.AllIds).ToList();
+        effectIds.Count().ShouldBe(1);
+        effectIds.Single().Id.ShouldBe("SomeEffectId");
+        (await cp.Effects.GetValue<Guid>("SomeEffectId")).ShouldBe(someEffectIdValue);
+    }
+    
 }
