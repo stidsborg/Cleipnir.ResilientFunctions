@@ -29,7 +29,7 @@ public static class SuspensionTest
             "SuspensionTest",
             async Task (string param, Workflow workflow) =>
             {
-                await workflow.Messages.First(TimeSpan.Zero);
+                await workflow.Messages.First(maxWait: TimeSpan.Zero);
                 await workflow.Effect.Capture(() => param);
             }
         );
