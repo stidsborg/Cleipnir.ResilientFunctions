@@ -53,6 +53,13 @@ public class ExistingEffects(StoredId storedId, FlowId flowId, IEffectsStore eff
         return storedEffects[effectId].WorkStatus;
     }
 
+    public async Task RemoveFailed()
+    {
+        foreach (var effectId in await AllIds)
+            if (await GetStatus(effectId) == WorkStatus.Failed)
+                await Remove(effectId);
+    }
+
     public Task Remove(string effectId) => Remove(effectId.ToEffectId());
     public async Task Remove(EffectId effectId)
     {

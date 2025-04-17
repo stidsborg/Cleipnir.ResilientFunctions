@@ -307,15 +307,21 @@ public abstract class BaseControlPanel<TParam, TReturn>
     
     public Task Delete() => _invocationHelper.Delete(StoredId);
 
-    public async Task<TReturn> Restart()
+    public async Task<TReturn> Restart(bool clearFailedEffects = false)
     {
+        if (clearFailedEffects)
+            await Effects.RemoveFailed();
+        
         if (_innerParamChanged)
             await SaveChanges();
 
         return await _invoker.Restart(StoredId.Instance, Epoch);   
     }
-    public async Task ScheduleRestart()
+    public async Task ScheduleRestart(bool clearFailedEffects = false)
     {
+        if (clearFailedEffects)
+            await Effects.RemoveFailed();
+            
         if (_innerParamChanged)
             await SaveChanges();
 

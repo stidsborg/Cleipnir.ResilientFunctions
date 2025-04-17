@@ -1699,4 +1699,47 @@ public abstract class ControlPanelTests
         
         unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
+    
+    public abstract Task ClearFailedEffectsRemovesFailedEffectBeforeRestart();
+    protected async Task ClearFailedEffectsRemovesFailedEffectBeforeRestart(Task<IFunctionStore> storeTask)
+    {
+        var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
+        
+        var store = await storeTask;
+        var functionId = TestFlowId.Create();
+        var (flowType, flowInstance) = functionId;
+        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
+
+        var shouldFail = true;
+        var registration = functionsRegistry.RegisterParamless(
+            flowType,
+            inner: async workflow =>
+            {
+                await workflow.Effect.Capture(() =>
+                {
+                    if (shouldFail)
+                        throw new TimeoutException("Timeout!");
+                });
+            } 
+        );
+
+        try
+        {
+            await registration.Invoke(flowInstance);
+        }
+        catch (FatalWorkflowException exception)
+        {
+            exception.ErrorType.ShouldBe(typeof(TimeoutException));
+        }
+        
+        var controlPanel = await registration.ControlPanel(flowInstance.Value);
+        controlPanel.ShouldNotBeNull();
+
+        await controlPanel.BusyWaitUntil(c => c.Status == Status.Failed);
+
+        shouldFail = false;
+        await controlPanel.Restart(clearFailedEffects: true);
+        
+        unhandledExceptionCatcher.ShouldNotHaveExceptions();
+    }
 }

@@ -181,4 +181,8 @@ public class ControlPanelTests : ResilientFunctions.Tests.TestTemplates.Function
     [TestMethod]
     public override Task DeleteRemovesFunctionFromAllStores()
         => DeleteRemovesFunctionFromAllStores(FunctionStoreFactory.Create());
+    
+    [TestMethod]
+    public override Task ClearFailedEffectsRemovesFailedEffectBeforeRestart()
+        => ClearFailedEffectsRemovesFailedEffectBeforeRestart(FunctionStoreFactory.Create());
 }

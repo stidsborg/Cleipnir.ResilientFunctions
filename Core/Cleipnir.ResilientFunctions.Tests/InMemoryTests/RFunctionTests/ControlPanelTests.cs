@@ -181,4 +181,8 @@ public class ControlPanelTests : TestTemplates.FunctionTests.ControlPanelTests
     [TestMethod]
     public override Task DeleteRemovesFunctionFromAllStores()
         => DeleteRemovesFunctionFromAllStores(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task ClearFailedEffectsRemovesFailedEffectBeforeRestart()
+        => ClearFailedEffectsRemovesFailedEffectBeforeRestart(FunctionStoreFactory.Create());
 }
