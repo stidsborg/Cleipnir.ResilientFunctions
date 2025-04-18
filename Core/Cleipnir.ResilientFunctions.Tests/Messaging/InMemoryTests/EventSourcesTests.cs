@@ -56,4 +56,8 @@ public class MessagesTests : TestTemplates.MessagesTests
     [TestMethod]
     public override Task BatchedMessagesIsDeliveredToAwaitingFlows()
         => BatchedMessagesIsDeliveredToAwaitingFlows(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task NoOpMessageIsIgnored()
+        => NoOpMessageIsIgnored(FunctionStoreFactory.Create());
 }

@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime;
 using Cleipnir.ResilientFunctions.CoreRuntime.Serialization;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Domain.Events;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Reactive.Extensions;
@@ -467,6 +468,26 @@ public abstract class MessagesTests
         
         await controlPanel1.BusyWaitUntil(c => c.Status == Status.Succeeded);
         await controlPanel2.BusyWaitUntil(c => c.Status == Status.Succeeded);
+    }
+    
+    public abstract Task NoOpMessageIsIgnored();
+    protected async Task NoOpMessageIsIgnored(Task<IFunctionStore> functionStoreTask)
+    {
+        var flowType = TestFlowId.Create().Type;
+        var functionStore = await functionStoreTask;
+        using var registry = new FunctionsRegistry(functionStore);
+        var registration = registry.RegisterFunc<string, string>(
+            flowType,
+            async Task<string> (_, workflow) => (await workflow.Messages.First(maxWait: TimeSpan.FromSeconds(10))).ToString()!
+        );
+
+        var invocation = registration.Invoke("SomeInstance", "SomeParam");
+
+        await registration.SendMessage("SomeInstance", NoOp.Instance);
+        await registration.SendMessage("SomeInstance", "Hallo World!");
+
+        var result = await invocation;
+        result.ShouldBe("Hallo World!");
     }
 
     private Effect CreateEffect(StoredId storedId, FlowId flowId, IFunctionStore functionStore)

@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.CoreRuntime.Serialization;
-using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Domain.Events;
 using Cleipnir.ResilientFunctions.Reactive.Origin;
 using Cleipnir.ResilientFunctions.Storage;
 
@@ -105,9 +105,11 @@ public class MessagesPullerAndEmitter
 
             storedMessages = filterStoredMessages;
 
-            var events = storedMessages.Select(
-                storedEvent => _serializer.DeserializeMessage(storedEvent.MessageContent, storedEvent.MessageType)
-            );
+            var events = storedMessages
+                .Select(
+                    storedEvent => _serializer.DeserializeMessage(storedEvent.MessageContent, storedEvent.MessageType)
+                )
+                .Where(@event => @event is not NoOp);
 
             Source.SignalNext(events);
         }
