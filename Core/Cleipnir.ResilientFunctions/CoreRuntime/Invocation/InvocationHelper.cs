@@ -451,7 +451,7 @@ internal class InvocationHelper<TParam, TReturn>
             Serializer
         );
         
-        var effect = new Effect(effectResults);
+       var effect = new Effect(effectResults, UtcNow);
        return Tuple.Create(effect, states);
     }
     

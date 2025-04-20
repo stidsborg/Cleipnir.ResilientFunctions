@@ -307,25 +307,59 @@ public abstract class BaseControlPanel<TParam, TReturn>
     
     public Task Delete() => _invocationHelper.Delete(StoredId);
 
-    public async Task<TReturn> Restart(bool clearFailedEffects = false)
+    /// <summary>
+    /// Clear existing failed effects, retry information and timeouts.
+    /// </summary>
+    public async Task ClearFailures()
     {
-        if (clearFailedEffects)
-            await Effects.RemoveFailed();
+        await Effects.RemoveFailed();
+        await Messages.RemoveTimeouts();
+
+        await Refresh();
+    }
+    
+    /// <summary>
+    /// Restart invocation inlined immediately
+    /// </summary>
+    /// <param name="clearFailures">Clear existing failed effects, retry information and timeouts</param>
+    /// <param name="refresh">Refresh control panel after invocation</param>
+    /// <returns>Result of invocation</returns>
+    public async Task<TReturn> Restart(bool clearFailures = false, bool refresh = true)
+    {
+        if (clearFailures)
+            await ClearFailures();
         
         if (_innerParamChanged)
             await SaveChanges();
 
-        return await _invoker.Restart(StoredId.Instance, Epoch);   
+        try
+        {
+            return await _invoker.Restart(StoredId.Instance, Epoch);
+        }
+        finally
+        {
+            if (refresh)
+                await Refresh();
+        }
     }
-    public async Task ScheduleRestart(bool clearFailedEffects = false)
+    
+    /// <summary>
+    /// Schedule invocation immediately
+    /// </summary>
+    /// <param name="clearFailures">Clear existing failed effects, retry information and timeouts</param>
+    /// <param name="refresh">Refresh control panel after invocation</param>
+    public async Task ScheduleRestart(bool clearFailures = false, bool refresh = true)
     {
-        if (clearFailedEffects)
-            await Effects.RemoveFailed();
+        if (clearFailures)
+            await ClearFailures();
             
         if (_innerParamChanged)
             await SaveChanges();
 
         await _invoker.ScheduleRestart(StoredId.Instance, Epoch);
+        
+        if (refresh)
+            await Refresh();
     }
     
     public async Task Refresh()

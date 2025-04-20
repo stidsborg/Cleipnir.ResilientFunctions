@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.CoreRuntime.Serialization;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Reactive.Utilities;
 using Cleipnir.ResilientFunctions.Storage;
@@ -335,7 +336,7 @@ public abstract class EffectTests
             store.EffectsStore,
             DefaultSerializer.Instance
         );
-        var effect = new Effect(effectResults);
+        var effect = new Effect(effectResults, utcNow: () => DateTime.UtcNow);
         
         var option = await effect.TryGet<int>("Id1");
         option.HasValue.ShouldBeFalse();
@@ -381,7 +382,7 @@ public abstract class EffectTests
             store.EffectsStore,
             DefaultSerializer.Instance
         );
-        var effect = new Effect(effectResults);
+        var effect = new Effect(effectResults, utcNow: () => DateTime.UtcNow);
         
         syncedCounter.Current.ShouldBe(0);
         
@@ -650,7 +651,7 @@ public abstract class EffectTests
             effectStore,
             DefaultSerializer.Instance
         );
-        var effect = new Effect(effectResults);
+        var effect = new Effect(effectResults, utcNow: () => DateTime.UtcNow);
 
         var result = await effect.Capture("1", () => "hello world", ResiliencyLevel.AtLeastOnceDelayFlush);
         result.ShouldBe("hello world");
@@ -723,7 +724,7 @@ public abstract class EffectTests
             effectStore,
             DefaultSerializer.Instance
         );
-        var effect = new Effect(effectResults);
+        var effect = new Effect(effectResults, utcNow: () => DateTime.UtcNow);
 
         await effect.Capture("1", () => "hello world");
         await effect.Capture("2", () => "hello universe");
@@ -735,5 +736,96 @@ public abstract class EffectTests
         storedEffects.Count.ShouldBe(2);
         storedEffects.Single(se => se.EffectId.Id == "1").Result!.ToStringFromUtf8Bytes().DeserializeFromJsonTo<string>().ShouldBe("hello world again");
         storedEffects.Single(se => se.EffectId.Id == "2").Result!.ToStringFromUtf8Bytes().DeserializeFromJsonTo<string>().ShouldBe("hello universe");
+    }
+    
+    public abstract Task CaptureEffectWithRetryPolicy();
+    public async Task CaptureEffectWithRetryPolicy(Task<IFunctionStore> storeTask)
+    {
+        var utcNow = DateTime.UtcNow;
+        
+        var store = await storeTask;
+        var flowId = TestFlowId.Create();
+        using var registry = new FunctionsRegistry(store, new Settings(utcNow: () => utcNow, enableWatchdogs: false));
+        var syncedCounter = new SyncedCounter();
+
+        var retryPolicy = RetryPolicy.Create(suspendThreshold: TimeSpan.Zero, initialInterval: TimeSpan.FromSeconds(1), backoffCoefficient: 1);
+        var registration = registry.RegisterParamless(
+            flowType: flowId.Type,
+            async workflow =>
+            {
+                var effect = workflow.Effect;
+                await effect.Capture(() =>
+                {
+                    if (syncedCounter.Current <= 1)
+                    {
+                        syncedCounter.Increment();
+                        throw new TimeoutException();
+                    } 
+                    
+                    syncedCounter.Increment();
+                    return Task.CompletedTask;
+                }, retryPolicy);
+            }
+        );
+
+        await Should.ThrowAsync<InvocationPostponedException>(() => registration.Invoke(flowId.Instance));
+        utcNow += TimeSpan.FromSeconds(2);
+        
+        var cp = await registration.ControlPanel(flowId.Instance).ShouldNotBeNullAsync();
+        cp.Status.ShouldBe(Status.Postponed);
+        
+        await Should.ThrowAsync<InvocationPostponedException>(() => cp.Restart());
+        
+        utcNow += TimeSpan.FromSeconds(10);
+        
+        await cp.Restart();
+        
+        syncedCounter.Current.ShouldBe(3);
+    }
+    
+    public abstract Task CaptureEffectWithRetryPolicyWithResult();
+    public async Task CaptureEffectWithRetryPolicyWithResult(Task<IFunctionStore> storeTask)
+    {
+        var utcNow = DateTime.UtcNow;
+        
+        var store = await storeTask;
+        var flowId = TestFlowId.Create();
+        using var registry = new FunctionsRegistry(store, new Settings(utcNow: () => utcNow, enableWatchdogs: false));
+        var syncedCounter = new SyncedCounter();
+
+        var retryPolicy = RetryPolicy.Create(suspendThreshold: TimeSpan.Zero, initialInterval: TimeSpan.FromSeconds(1), backoffCoefficient: 1);
+        var registration = registry.RegisterFunc<string, string>(
+            flowType: flowId.Type,
+            async (param, workflow) =>
+            {
+                var effect = workflow.Effect;
+                return await effect.Capture(() =>
+                {
+                    if (syncedCounter.Current <= 1)
+                    {
+                        syncedCounter.Increment();
+                        throw new TimeoutException();
+                    } 
+                    
+                    syncedCounter.Increment();
+                    return Task.FromResult(param);
+                }, retryPolicy);
+            }
+        );
+
+        await Should.ThrowAsync<InvocationPostponedException>(() => registration.Invoke(flowId.Instance, "Hello World!"));
+        utcNow += TimeSpan.FromSeconds(2);
+        
+        var cp = await registration.ControlPanel(flowId.Instance).ShouldNotBeNullAsync();
+        cp.Status.ShouldBe(Status.Postponed);
+        
+        await Should.ThrowAsync<InvocationPostponedException>(() => cp.Restart());
+        
+        utcNow += TimeSpan.FromSeconds(10);
+        
+        var result = await cp.Restart();
+        result.ShouldBe("Hello World!");
+        
+        syncedCounter.Current.ShouldBe(3);
     }
 }

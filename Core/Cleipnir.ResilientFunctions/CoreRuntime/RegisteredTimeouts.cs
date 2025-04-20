@@ -37,7 +37,7 @@ public class RegisteredTimeouts(StoredId storedId, ITimeoutStore timeoutStore, E
             overwrite: true
         );
 
-        await effect.Upsert(timeoutId, TimeoutStatus.Registered);
+        await effect.Upsert(timeoutId, TimeoutStatus.Registered, flush: false);
     }
     
     public Task RegisterTimeout(string timeoutId, TimeSpan expiresIn)
@@ -60,7 +60,7 @@ public class RegisteredTimeouts(StoredId storedId, ITimeoutStore timeoutStore, E
             return;
         
         await timeoutStore.RemoveTimeout(storedId, timeoutId);
-        await effect.Upsert(timeoutId, TimeoutStatus.Cancelled);
+        await effect.Upsert(timeoutId, TimeoutStatus.Cancelled, flush: false);
     }
 
     public async Task<IReadOnlyList<RegisteredTimeout>> PendingTimeouts()

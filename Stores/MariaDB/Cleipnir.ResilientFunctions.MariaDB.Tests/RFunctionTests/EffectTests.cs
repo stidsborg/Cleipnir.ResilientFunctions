@@ -80,4 +80,13 @@ public class EffectTests : ResilientFunctions.Tests.TestTemplates.FunctionTests.
     [TestMethod]
     public override Task UpsertingExistingEffectDoesNotAffectOtherExistingEffects()
         => UpsertingExistingEffectDoesNotAffectOtherExistingEffects(FunctionStoreFactory.Create());
+    
+    [TestMethod]
+    public override Task CaptureEffectWithRetryPolicy()
+        => CaptureEffectWithRetryPolicy(FunctionStoreFactory.Create());
+    
+    [TestMethod]
+    public override Task CaptureEffectWithRetryPolicyWithResult()
+        => CaptureEffectWithRetryPolicyWithResult(FunctionStoreFactory.Create());
+
 }

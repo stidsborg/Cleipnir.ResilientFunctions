@@ -53,7 +53,7 @@ public class Workflow
     {
         effectId ??= $"Delay#{Effect.TakeNextImplicitId()}";
         var systemEffectId = EffectId.CreateWithCurrentContext(effectId, EffectType.System);
-        until = await Effect.CreateOrGet(systemEffectId, until);
+        until = await Effect.CreateOrGet(systemEffectId, until, flush: false);
         var delay = (until - _utcNow()).RoundUpToZero();
 
         if (delay == TimeSpan.Zero)

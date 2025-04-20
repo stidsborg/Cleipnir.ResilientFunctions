@@ -494,7 +494,7 @@ public abstract class MessagesTests
     {
         var lazyExistingEffects = new Lazy<Task<IReadOnlyList<StoredEffect>>>(() => Task.FromResult((IReadOnlyList<StoredEffect>) new List<StoredEffect>()));
         var effectResults = new EffectResults(flowId, storedId, lazyExistingEffects, functionStore.EffectsStore, DefaultSerializer.Instance);
-        var effect = new Effect(effectResults);
+        var effect = new Effect(effectResults, utcNow: () => DateTime.UtcNow);
         return effect;
     }
     

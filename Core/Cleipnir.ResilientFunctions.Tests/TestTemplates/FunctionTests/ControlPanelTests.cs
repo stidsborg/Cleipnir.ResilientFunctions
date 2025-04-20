@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.CoreRuntime.Serialization;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Domain.Events;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.Domain.Exceptions.Commands;
 using Cleipnir.ResilientFunctions.Helpers;
@@ -1710,22 +1711,33 @@ public abstract class ControlPanelTests
         var (flowType, flowInstance) = functionId;
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
 
+        var retryPolicy = RetryPolicy.CreateConstantDelay(
+            interval: TimeSpan.FromMilliseconds(10),
+            maximumAttempts: 1,
+            suspendThreshold: TimeSpan.FromMinutes(5)
+        );
         var shouldFail = true;
         var registration = functionsRegistry.RegisterParamless(
             flowType,
             inner: async workflow =>
             {
-                await workflow.Effect.Capture(() =>
+                await workflow.Effect.Capture("AlwaysFail", () =>
                 {
                     if (shouldFail)
                         throw new TimeoutException("Timeout!");
-                });
+                }, retryPolicy);
             } 
         );
 
         try
         {
-            await registration.Invoke(flowInstance);
+            var timeoutEvent = new TimeoutEvent(EffectId.CreateWithRootContext("SomeTimeout", EffectType.Timeout), DateTime.UtcNow)
+                .ToMessageAndIdempotencyKey();
+
+            await registration.Invoke(
+                flowInstance,
+                InitialState.CreateWithMessagesOnly([timeoutEvent])
+            );
         }
         catch (FatalWorkflowException exception)
         {
@@ -1734,11 +1746,25 @@ public abstract class ControlPanelTests
         
         var controlPanel = await registration.ControlPanel(flowInstance.Value);
         controlPanel.ShouldNotBeNull();
+        
+        try
+        {
+            await controlPanel.Restart();
+        }
+        catch (FatalWorkflowException exception)
+        {
+            exception.ErrorType.ShouldBe(typeof(TimeoutException));
+        }
 
-        await controlPanel.BusyWaitUntil(c => c.Status == Status.Failed);
-
+        await controlPanel.Effects.AllIds.SelectAsync(ids => ids.Any()).ShouldBeTrueAsync();
+        await controlPanel.Messages.AsObjects.SelectAsync(ids => ids.Any()).ShouldBeTrueAsync();
+        
+        await controlPanel.ClearFailures();
+        await controlPanel.Effects.AllIds.SelectAsync(ids => ids.Any()).ShouldBeFalseAsync();
+        await controlPanel.Messages.AsObjects.SelectAsync(msgs => msgs.Any(msg => msg is not NoOp)).ShouldBeFalseAsync();
+        
         shouldFail = false;
-        await controlPanel.Restart(clearFailedEffects: true);
+        await controlPanel.Restart();
         
         unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
