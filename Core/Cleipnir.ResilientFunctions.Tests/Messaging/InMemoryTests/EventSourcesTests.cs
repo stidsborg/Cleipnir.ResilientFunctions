@@ -62,6 +62,10 @@ public class MessagesTests : TestTemplates.MessagesTests
         => MultipleMessagesCanBeAppendedOneAfterTheOther(FunctionStoreFactory.Create());
 
     [TestMethod]
+    public override Task PingPongMessagesCanBeExchangedMultipleTimes()
+        => PingPongMessagesCanBeExchangedMultipleTimes(FunctionStoreFactory.Create());
+
+    [TestMethod]
     public override Task NoOpMessageIsIgnored()
         => NoOpMessageIsIgnored(FunctionStoreFactory.Create());
 }

@@ -498,13 +498,64 @@ public abstract class MessagesTests
         await registration.SendMessage(instanceId, -1);
 
         var cp = await registration.ControlPanel(instanceId).ShouldNotBeNullAsync();
-        await cp.WaitForCompletion(allowPostponeAndSuspended: true);
+        await cp.WaitForCompletion();
         
         messages.Count.ShouldBe(4);
         messages[0].ShouldBe("Hallo");
         messages[1].ShouldBe("World");
         messages[2].ShouldBe("And");
         messages[3].ShouldBe("Universe");
+    }
+
+    private record Ping(int Number);
+    private record Pong(int Number);
+    
+    public abstract Task PingPongMessagesCanBeExchangedMultipleTimes();
+    protected async Task PingPongMessagesCanBeExchangedMultipleTimes(Task<IFunctionStore> functionStoreTask)
+    {
+        var functionStore = await functionStoreTask;
+        using var registry = new FunctionsRegistry(functionStore, new Settings(messagesDefaultMaxWaitForCompletion: TimeSpan.FromSeconds(10)));
+        ParamlessRegistration pongRegistration = null!;
+        ParamlessRegistration pingRegistration = null!;
+        
+        pingRegistration = registry.RegisterParamless(
+            "PingFlow",
+            async Task (workflow) =>
+            {
+                for (var i = 0; i < 10; i++)
+                {
+                    await pongRegistration.SendMessage("Pong", new Ping(i));
+                    await workflow.Messages.OfType<Pong>().Where(pong => pong.Number == i).First();
+                }
+                    
+            });
+        
+        pongRegistration = registry.RegisterParamless(
+            "PongFlow",
+            async Task (workflow) =>
+            {
+                for (var i = 0; i < 10; i++)
+                {
+                    await workflow.Messages.OfType<Ping>().Where(pong => pong.Number == i).First();
+                    await pingRegistration.SendMessage("Ping", new Pong(i));
+                }
+            });
+
+        await pongRegistration.Schedule("Pong");
+        await pingRegistration.Schedule("Ping");
+
+        var pongCp = await pongRegistration.ControlPanel("Pong").ShouldNotBeNullAsync();
+        var pingCp = await pingRegistration.ControlPanel("Ping").ShouldNotBeNullAsync();
+
+        await pongCp.WaitForCompletion(allowPostponeAndSuspended: true);
+        await pingCp.WaitForCompletion(allowPostponeAndSuspended: true);
+
+        await pongCp.Refresh();
+        await pongCp.Messages.Count.ShouldBeAsync(10);
+        (await pongCp.Messages.AsObjects).OfType<Ping>().Count().ShouldBe(10);
+        await pingCp.Refresh();
+        await pingCp.Messages.Count.ShouldBeAsync(10);
+        (await pingCp.Messages.AsObjects).OfType<Pong>().Count().ShouldBe(10);
     }
     
     public abstract Task NoOpMessageIsIgnored();
