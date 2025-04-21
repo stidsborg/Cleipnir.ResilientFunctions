@@ -131,8 +131,11 @@ public class RetryPolicy(TimeSpan initialInterval, double backoffCoefficient, Ti
                 
                 delayUntil = utcNow().Add(delay);
                 iteration += 1;
-                await effect.Upsert(delayUntilId, delayUntil.Ticks, flush: false);
-                await effect.Upsert(iterationId, iteration, flush: false);
+                {
+                    using var @lock = await effect.DisableFlush();
+                    await effect.Upsert(delayUntilId, delayUntil.Ticks, flush: false);
+                    await effect.Upsert(iterationId, iteration, flush: false);    
+                }
 
                 if (iteration >= maximumAttempts)
                     throw;

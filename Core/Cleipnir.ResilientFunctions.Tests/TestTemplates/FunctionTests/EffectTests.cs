@@ -828,4 +828,86 @@ public abstract class EffectTests
         
         syncedCounter.Current.ShouldBe(3);
     }
+    
+    public abstract Task CaptureEffectWithRetryPolicyWithoutSuspension();
+    public async Task CaptureEffectWithRetryPolicyWithoutSuspension(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var flowId = TestFlowId.Create();
+        using var registry = new FunctionsRegistry(store);
+        var syncedCounter = new SyncedCounter();
+
+        var retryPolicy = RetryPolicy.Create(suspendThreshold: TimeSpan.MaxValue, initialInterval: TimeSpan.FromMilliseconds(100), backoffCoefficient: 1);
+        var registration = registry.RegisterFunc<string, string>(
+            flowType: flowId.Type,
+            async (param, workflow) =>
+            {
+                var effect = workflow.Effect;
+                return await effect.Capture(() =>
+                {
+                    if (syncedCounter.Current < 2)
+                    {
+                        syncedCounter.Increment();
+                        throw new TimeoutException();
+                    } 
+                    
+                    syncedCounter.Increment();
+                    return Task.FromResult(param);
+                }, retryPolicy);
+            }
+        );
+
+        var result = await registration.Invoke(flowId.Instance, "Hello World!");
+        result.ShouldBe("Hello World!");
+        
+        syncedCounter.Current.ShouldBe(3);
+    }
+    
+    public abstract Task ExceptionPredicateIsUsedForRetryPolicy();
+    public async Task ExceptionPredicateIsUsedForRetryPolicy(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var flowId = TestFlowId.Create();
+        using var registry = new FunctionsRegistry(store);
+        var syncedCounter = new SyncedCounter();
+
+        var retryPolicy = RetryPolicy.Create(
+            suspendThreshold: TimeSpan.MaxValue,
+            initialInterval: TimeSpan.FromMilliseconds(100),
+            backoffCoefficient: 1,
+            shouldRetry: e => e is TimeoutException
+        );
+        var registration = registry.RegisterParamless(
+            flowType: flowId.Type,
+            async workflow =>
+            {
+                var effect = workflow.Effect;
+                await effect.Capture(() =>
+                {
+                    if (syncedCounter.Current == 0)
+                    {
+                        syncedCounter.Increment();
+                        throw new TimeoutException();
+                    }
+                    else
+                    {
+                        syncedCounter.Increment();
+                        throw new InvalidOperationException();
+                    }
+                }, retryPolicy);
+            }
+        );
+
+        try
+        {
+            await registration.Invoke(flowId.Instance);
+            Assert.Fail("Expected InvalidOperationException");
+        }
+        catch (FatalWorkflowException e)
+        {
+            e.ErrorType.ShouldBe(typeof(InvalidOperationException));
+        }
+        
+        syncedCounter.Current.ShouldBe(2);
+    }
 }

@@ -43,6 +43,13 @@ public class Effect(EffectResults effectResults, UtcNow utcNow)
     public async Task Upsert<T>(string id, T value, bool flush = true) => await Upsert(CreateEffectId(id, EffectType.Effect), value, flush);
     internal Task Upsert<T>(EffectId effectId, T value, bool flush) => effectResults.Upsert(effectId, value, flush);
 
+    /// <summary>
+    /// Take flush lock - thereby posting any new flushes until the lock is released.
+    /// Useful for adding multiple effects without risking only some of the effects are persisted.
+    /// </summary>
+    /// <returns>A disposable instance needed to release the lock</returns>
+    internal Task<IDisposable> DisableFlush() => effectResults.DisableFlush();
+
     public async Task<Option<T>> TryGet<T>(string id) => await TryGet<T>(CreateEffectId(id, EffectType.Effect));
     internal Task<Option<T>> TryGet<T>(EffectId effectId) => effectResults.TryGet<T>(effectId);
     public async Task<T> Get<T>(string id) => await Get<T>(CreateEffectId(id, EffectType.Effect));

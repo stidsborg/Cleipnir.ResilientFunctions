@@ -89,4 +89,11 @@ public class EffectTests : ResilientFunctions.Tests.TestTemplates.FunctionTests.
     public override Task CaptureEffectWithRetryPolicyWithResult()
         => CaptureEffectWithRetryPolicyWithResult(FunctionStoreFactory.Create());
 
+    [TestMethod]
+    public override Task CaptureEffectWithRetryPolicyWithoutSuspension()
+        => CaptureEffectWithRetryPolicyWithoutSuspension(FunctionStoreFactory.Create());
+    
+    [TestMethod]
+    public override Task ExceptionPredicateIsUsedForRetryPolicy()
+        => ExceptionPredicateIsUsedForRetryPolicy(FunctionStoreFactory.Create());
 }

@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Serialization;
 using Cleipnir.ResilientFunctions.Domain.Exceptions.Commands;
+using Cleipnir.ResilientFunctions.Helpers.Disposables;
 using Cleipnir.ResilientFunctions.Reactive.Utilities;
 using Cleipnir.ResilientFunctions.Storage;
 
@@ -122,6 +123,12 @@ public class EffectResults
             flush,
             delete: false
         );
+    }
+
+    public async Task<IDisposable> DisableFlush()
+    {
+        await _flushSync.WaitAsync();
+        return new ActionDisposable(() => _flushSync.Release());
     }
     
     public async Task<Option<T>> TryGet<T>(EffectId effectId)
