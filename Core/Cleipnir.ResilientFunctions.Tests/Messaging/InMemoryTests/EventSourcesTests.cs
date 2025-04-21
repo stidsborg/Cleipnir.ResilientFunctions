@@ -58,6 +58,10 @@ public class MessagesTests : TestTemplates.MessagesTests
         => BatchedMessagesIsDeliveredToAwaitingFlows(FunctionStoreFactory.Create());
 
     [TestMethod]
+    public override Task MultipleMessagesCanBeAppendedOneAfterTheOther()
+        => MultipleMessagesCanBeAppendedOneAfterTheOther(FunctionStoreFactory.Create());
+
+    [TestMethod]
     public override Task NoOpMessageIsIgnored()
         => NoOpMessageIsIgnored(FunctionStoreFactory.Create());
 }

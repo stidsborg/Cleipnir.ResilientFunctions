@@ -51,6 +51,10 @@ public class MessagesTests : Cleipnir.ResilientFunctions.Tests.Messaging.TestTem
         => BatchedMessagesIsDeliveredToAwaitingFlows(FunctionStoreFactory.Create());
     
     [TestMethod]
+    public override Task MultipleMessagesCanBeAppendedOneAfterTheOther()
+        => MultipleMessagesCanBeAppendedOneAfterTheOther(FunctionStoreFactory.Create());
+    
+    [TestMethod]
     public override Task NoOpMessageIsIgnored()
         => NoOpMessageIsIgnored(FunctionStoreFactory.Create());
 }

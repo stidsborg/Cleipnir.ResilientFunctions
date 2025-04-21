@@ -32,6 +32,7 @@ public class ParamlessRegistration : BaseRegistration
     
     private readonly StateFetcher _stateFetcher;
     public MessageWriters MessageWriters { get; }
+    private readonly IFunctionStore _functionStore;
     
     public ParamlessRegistration(
         FlowType flowType,
@@ -57,6 +58,7 @@ public class ParamlessRegistration : BaseRegistration
         _controlPanelFactory = controlPanelFactory;
         MessageWriters = messageWriters;
         _stateFetcher = stateFetcher;
+        _functionStore = functionStore;
     }
     
     public Task<ControlPanel?> ControlPanel(FlowInstance flowInstance)
@@ -79,11 +81,14 @@ public class ParamlessRegistration : BaseRegistration
         bool create = true,
         string? idempotencyKey = null) where T : notnull
     {
-        var finding = await Postman.SendMessage(flowInstance.Value.ToStoredInstance(), message, idempotencyKey);
-        if (create && finding == Finding.NotFound)
-            await ScheduleAt(flowInstance, delayUntil: UtcNow());            
+        if (create)
+        {
+            var sf = await _functionStore.GetFunction(new StoredId(StoredType, flowInstance.ToStoredInstance()));
+            if (sf is null)
+                await Schedule(flowInstance);    
+        }
         
-        return finding;
+        return await Postman.SendMessage(flowInstance.Value.ToStoredInstance(), message, idempotencyKey);
     }
     
     public async Task SendMessages(IReadOnlyList<BatchedMessage> messages, bool interrupt = true)

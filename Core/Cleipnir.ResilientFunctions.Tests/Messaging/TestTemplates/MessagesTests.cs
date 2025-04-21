@@ -469,6 +469,43 @@ public abstract class MessagesTests
         await controlPanel1.BusyWaitUntil(c => c.Status == Status.Succeeded);
         await controlPanel2.BusyWaitUntil(c => c.Status == Status.Succeeded);
     }
+    public abstract Task MultipleMessagesCanBeAppendedOneAfterTheOther();
+    protected async Task MultipleMessagesCanBeAppendedOneAfterTheOther(Task<IFunctionStore> functionStoreTask)
+    {
+        var flowType = TestFlowId.Create().Type;
+        var functionStore = await functionStoreTask;
+        using var registry = new FunctionsRegistry(functionStore, new Settings(messagesDefaultMaxWaitForCompletion: TimeSpan.FromSeconds(10)));
+        var messages = new List<string>();
+        var registration = registry.RegisterParamless(
+            flowType,
+            async Task (workflow) =>
+            {
+                await foreach (var message in workflow.Messages)
+                {
+                    if (message is string s)
+                        await workflow.Effect.Capture(() => messages.Add(s));
+                    else
+                        return;
+                }
+            });
+
+        var instanceId = "Instance#1";
+
+        await registration.SendMessage(instanceId, "Hallo");
+        await registration.SendMessage(instanceId, "World");
+        await registration.SendMessage(instanceId, "And");
+        await registration.SendMessage(instanceId, "Universe");
+        await registration.SendMessage(instanceId, -1);
+
+        var cp = await registration.ControlPanel(instanceId).ShouldNotBeNullAsync();
+        await cp.WaitForCompletion(allowPostponeAndSuspended: true);
+        
+        messages.Count.ShouldBe(4);
+        messages[0].ShouldBe("Hallo");
+        messages[1].ShouldBe("World");
+        messages[2].ShouldBe("And");
+        messages[3].ShouldBe("Universe");
+    }
     
     public abstract Task NoOpMessageIsIgnored();
     protected async Task NoOpMessageIsIgnored(Task<IFunctionStore> functionStoreTask)
