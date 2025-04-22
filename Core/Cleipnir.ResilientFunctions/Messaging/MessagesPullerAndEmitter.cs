@@ -83,9 +83,9 @@ public class MessagesPullerAndEmitter
 
         try
         {
-            var storedMessages = _initialMessages ?? await _messageStore.GetMessages(_storedId, _skip);
-            if (_initialMessages != null && maxSinceLastSynced == TimeSpan.Zero)
-                storedMessages = storedMessages.Concat(await _messageStore.GetMessages(_storedId, _skip)).ToList();   
+            var storedMessages = maxSinceLastSynced == TimeSpan.Zero
+                ? await _messageStore.GetMessages(_storedId, _skip)
+                : _initialMessages ?? await _messageStore.GetMessages(_storedId, _skip);
             
             _initialMessages = null;
             _lastSynced = _utcNow();
