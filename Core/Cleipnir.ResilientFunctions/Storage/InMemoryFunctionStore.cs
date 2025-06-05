@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -30,6 +31,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
     
     public IMigrator Migrator { get; } = new InMemoryMigrator();
     public ISemaphoreStore SemaphoreStore { get; } = new InMemorySemaphoreStore();
+    public IReplicaStore ReplicaStore { get; } = new InMemoryReplicaStore();
 
     public Task Initialize() => Task.CompletedTask;
 

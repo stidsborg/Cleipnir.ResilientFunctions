@@ -34,6 +34,8 @@ public class SqlServerFunctionStore : IFunctionStore
     public IMigrator Migrator => _migrator;
     private readonly SqlServerSemaphoreStore _semaphoreStore;
     public ISemaphoreStore SemaphoreStore => _semaphoreStore;
+    private readonly SqlServerReplicaStore _replicaStore;
+    public IReplicaStore ReplicaStore => _replicaStore;
 
     private readonly SqlServerUnderlyingRegister _underlyingRegister;
     
@@ -53,6 +55,7 @@ public class SqlServerFunctionStore : IFunctionStore
         _semaphoreStore = new SqlServerSemaphoreStore(connectionString, _tableName);
         _typeStore = new SqlServerTypeStore(connectionString, _tableName);
         _migrator = new SqlServerMigrator(connectionString, _tableName);
+        _replicaStore = new SqlServerReplicaStore(connectionString, _tableName);
         Utilities = new Utilities(_underlyingRegister);
     }
     
@@ -80,6 +83,7 @@ public class SqlServerFunctionStore : IFunctionStore
         await _correlationStore.Initialize();
         await _typeStore.Initialize();
         await _semaphoreStore.Initialize();
+        await _replicaStore.Initialize();
         await using var conn = await _connFunc();
         _initializeSql ??= @$"    
             CREATE TABLE {_tableName} (
@@ -126,6 +130,7 @@ public class SqlServerFunctionStore : IFunctionStore
         await _correlationStore.Truncate();
         await _typeStore.Truncate();
         await _semaphoreStore.Truncate();
+        await _replicaStore.Truncate();
         
         await using var conn = await _connFunc();
         _truncateSql ??= $"TRUNCATE TABLE {_tableName}";
