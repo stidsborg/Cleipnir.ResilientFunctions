@@ -34,7 +34,8 @@ public class PostgreSqlFunctionStore : IFunctionStore
     
     private readonly PostgreSqlSemaphoreStore _semaphoreStore;
     public ISemaphoreStore SemaphoreStore => _semaphoreStore;
-    public IReplicaStore ReplicaStore => throw new NotImplementedException();
+    private readonly PostgreSqlDbReplicaStore _replicaStore;
+    public IReplicaStore ReplicaStore => _replicaStore;
 
     public Utilities Utilities { get; }
     public IMigrator Migrator => _migrator;
@@ -57,6 +58,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         _typeStore = new PostgreSqlTypeStore(connectionString, _tableName);
         _postgresSqlUnderlyingRegister = new PostgresSqlUnderlyingRegister(connectionString, _tableName);
         _migrator = new PostgreSqlMigrator(connectionString, _tableName);
+        _replicaStore = new PostgreSqlDbReplicaStore(connectionString, _tableName);
         Utilities = new Utilities(_postgresSqlUnderlyingRegister);
     } 
 
@@ -81,6 +83,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         await _correlationStore.Initialize();
         await _semaphoreStore.Initialize();
         await _typeStore.Initialize();
+        await _replicaStore.Initialize();
         await using var conn = await CreateConnection();
         _initializeSql ??= $@"
             CREATE TABLE IF NOT EXISTS {_tableName} (
@@ -122,6 +125,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         await _correlationStore.Truncate();
         await _typeStore.Truncate();
         await _semaphoreStore.Truncate();
+        await _replicaStore.Truncate();
         
         await using var conn = await CreateConnection();
         _truncateTableSql ??= $"TRUNCATE TABLE {_tableName}";

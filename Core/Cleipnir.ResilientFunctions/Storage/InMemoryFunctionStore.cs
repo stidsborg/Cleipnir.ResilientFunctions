@@ -31,7 +31,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
     
     public IMigrator Migrator { get; } = new InMemoryMigrator();
     public ISemaphoreStore SemaphoreStore { get; } = new InMemorySemaphoreStore();
-    public IReplicaStore ReplicaStore => throw new NotImplementedException(); //todo
+    public IReplicaStore ReplicaStore { get; } = new InMemoryReplicaStore();
 
     public Task Initialize() => Task.CompletedTask;
 
