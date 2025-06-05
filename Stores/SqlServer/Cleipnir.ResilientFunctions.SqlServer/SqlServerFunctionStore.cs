@@ -34,6 +34,7 @@ public class SqlServerFunctionStore : IFunctionStore
     public IMigrator Migrator => _migrator;
     private readonly SqlServerSemaphoreStore _semaphoreStore;
     public ISemaphoreStore SemaphoreStore => _semaphoreStore;
+    public IReplicaStore ReplicaStore => throw new NotImplementedException(); //todo
 
     private readonly SqlServerUnderlyingRegister _underlyingRegister;
     

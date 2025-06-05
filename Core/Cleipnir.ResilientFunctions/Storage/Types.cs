@@ -138,3 +138,5 @@ public static class StoredEffectExtensions
     public static StoredEffectChange ToStoredChange(this StoredEffect effect, StoredId storedId, CrudOperation operation) 
         => new(storedId, effect.StoredEffectId, operation, effect);
 }
+
+public record StoredReplica(Guid ReplicaId, int Heartbeat);

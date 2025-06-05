@@ -36,6 +36,9 @@ public class MariaDbFunctionStore : IFunctionStore
     private readonly MariaDbSemaphoreStore _semaphoreStore;
     public ISemaphoreStore SemaphoreStore => _semaphoreStore;
 
+    private readonly MariaDbReplicaStore _replicaStore;
+    public IReplicaStore ReplicaStore => _replicaStore;
+
     public Utilities Utilities { get; }
     private readonly MariaDbUnderlyingRegister _mariaDbUnderlyingRegister;
 
@@ -57,6 +60,7 @@ public class MariaDbFunctionStore : IFunctionStore
         _mariaDbUnderlyingRegister = new MariaDbUnderlyingRegister(connectionString, tablePrefix);
         _typeStore = new MariaDbTypeStore(connectionString, tablePrefix);
         _migrator  = new MariaDbMigrator(connectionString, tablePrefix);
+        _replicaStore = new MariaDbReplicaStore(connectionString, tablePrefix);
         
         Utilities = new Utilities(_mariaDbUnderlyingRegister);
     }
@@ -75,6 +79,7 @@ public class MariaDbFunctionStore : IFunctionStore
         await _semaphoreStore.Initialize();
         await TimeoutStore.Initialize();
         await _typeStore.Initialize();
+        await _replicaStore.Initialize();
         await using var conn = await CreateOpenConnection(_connectionString);
         _initializeSql ??= $@"
             CREATE TABLE IF NOT EXISTS {_tablePrefix} (
@@ -108,6 +113,7 @@ public class MariaDbFunctionStore : IFunctionStore
         await _correlationStore.Truncate();
         await _semaphoreStore.Truncate();
         await _typeStore.Truncate();
+        await _replicaStore.Truncate();
         
         await using var conn = await CreateOpenConnection(_connectionString);
         _truncateTablesSql ??= $"TRUNCATE TABLE {_tablePrefix}";

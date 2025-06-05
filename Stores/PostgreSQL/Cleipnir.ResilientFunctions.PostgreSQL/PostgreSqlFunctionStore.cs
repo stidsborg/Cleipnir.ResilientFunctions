@@ -34,6 +34,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
     
     private readonly PostgreSqlSemaphoreStore _semaphoreStore;
     public ISemaphoreStore SemaphoreStore => _semaphoreStore;
+    public IReplicaStore ReplicaStore => throw new NotImplementedException();
 
     public Utilities Utilities { get; }
     public IMigrator Migrator => _migrator;
