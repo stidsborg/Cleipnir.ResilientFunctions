@@ -1,0 +1,110 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Storage;
+
+namespace Cleipnir.ResilientFunctions.CoreRuntime.Watchdogs;
+
+internal class ReplicaWatchdog(ReplicaId replicaId, IReplicaStore replicaStore, TimeSpan checkFrequency, Action<Guid> onStrikeOut) : IDisposable
+{
+    private volatile bool _disposed;
+    private bool _started;
+    private bool _initialized;
+    private readonly Dictionary<StoredReplica, int> _strikes = new();
+    
+    public async Task Start()
+    {
+        var originalValue = Interlocked.CompareExchange(ref _started, value: true, comparand: false);
+        if (originalValue is true)
+            return;
+        
+        if (!_initialized)
+            await Initialize();
+        
+        _ = Task.Run(Run);
+    }
+
+    public async Task Initialize()
+    {
+        await replicaStore.Insert(replicaId.Id);
+        _initialized = true;
+    }
+
+    private async Task Run()
+    {
+        while (!_disposed)
+        {
+            await PerformIteration();
+            await Task.Delay(checkFrequency);
+        }
+    }
+
+   public async Task PerformIteration()
+    {
+        await replicaStore.UpdateHeartbeat(replicaId.Id);
+        
+        var storedReplicas = await replicaStore.GetAll();
+        var offset = CalculateOffset(storedReplicas.Select(sr => sr.ReplicaId), replicaId.Id);
+
+        if (offset is not null)
+            replicaId.Offset = offset.Value;
+        else
+        {
+            await replicaStore.Insert(replicaId.Id);
+            _strikes.Clear();
+            await PerformIteration();
+        }
+        
+        IncrementStrikesCount();
+        ClearNonRelevantStrikes(storedReplicas);
+        AddNewStrikes(storedReplicas);
+        
+        await DeleteStrikedOutReplicas();
+    }
+
+    public static int? CalculateOffset(IEnumerable<Guid> allReplicaIds, Guid ownReplicaId)
+        => allReplicaIds
+            .Select(s => s)
+            .Order()
+            .Select((id, i) => new { Id = id, Index = i })
+            .FirstOrDefault(a => a.Id == ownReplicaId)
+            ?.Index;
+
+    private void ClearNonRelevantStrikes(IReadOnlyList<StoredReplica> storedReplicas)
+    {
+        foreach (var strikeKey in _strikes.Keys.ToList())
+            if (storedReplicas.All(sr => sr != strikeKey))
+                _strikes.Remove(strikeKey);
+    }
+    
+    private void AddNewStrikes(IReadOnlyList<StoredReplica> storedReplicas)
+    {
+        foreach (var storedReplica in storedReplicas)
+            _strikes.TryAdd(storedReplica, 0);
+    }
+    
+    private void IncrementStrikesCount()
+    {
+        foreach (var storedReplica in _strikes.Keys)
+            _strikes[storedReplica]++;
+    }
+
+    private async Task DeleteStrikedOutReplicas()
+    {
+        foreach (var (storedReplica, strikes) in _strikes.Where(kv => kv.Value >= 2))
+        {
+            var strikedOutId = storedReplica.ReplicaId;
+            await replicaStore.Delete(strikedOutId);
+            _strikes.Remove(storedReplica);
+            onStrikeOut(strikedOutId);
+        }
+    }
+    
+    public IReadOnlyDictionary<StoredReplica, int> Strikes => _strikes;
+
+    public void Stop() => Dispose();
+    public void Dispose() => _disposed = true;
+}
