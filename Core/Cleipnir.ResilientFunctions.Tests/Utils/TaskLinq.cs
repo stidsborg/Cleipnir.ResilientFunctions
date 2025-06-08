@@ -12,6 +12,15 @@ public static class TaskLinq
 
     public static Task<List<T>> ToListAsync<T>(this Task<IEnumerable<T>> task)
         => task.ContinueWith(t => t.Result.ToList());
+
+    public static async Task<List<T>> AwaitAll<T>(this IEnumerable<Task<T>> tasks)
+    {
+        var results = new List<T>();
+        foreach (var task in tasks)
+            results.Add(await task);
+        
+        return results;
+    }
     
     public static Task<bool> AnyAsync<T>(this Task<IEnumerable<T>> task) => task.ContinueWith(t => t.Result.Any());
     public static Task<bool> AnyAsync<T>(this Task<IReadOnlyList<T>> task) => task.ContinueWith(t => t.Result.Any());

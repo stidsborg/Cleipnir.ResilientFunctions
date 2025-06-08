@@ -365,8 +365,34 @@ public abstract class SuspensionTests
             });
 
         var param = "hello world and universe";
-        var result = await parent.Schedule(parentFunctionId.Instance.Value, param).Completion();
-        result.ShouldBe(param.ToUpper());
+        try
+        {
+            var result = await parent.Schedule(parentFunctionId.Instance.Value, param).Completion();
+            result.ShouldBe(param.ToUpper());
+        }
+        catch (Exception ex)
+        {
+            var parentStatus = await store
+                .GetFunction(parentFunctionId.ToStoredId(parent.StoredType))
+                .SelectAsync(sf => new { Name = "Parent", Status = sf?.Status });
+            var childrenStatus = await param
+                .Split(" ")
+                .Select((_, i) => store
+                    .GetFunction(new StoredId(child.StoredType, $"Child{i}".ToStoredInstance()))
+                    .SelectAsync(sf => new { Name = $"Child{i}", Status = sf?.Status })
+                )
+                .AwaitAll();
+            
+            var statusStr = parentStatus.AsEnumerable()
+                .Concat(childrenStatus)
+                .Select(a => $"{a.Name}: {a.Status}")
+                .JoinStrings(Environment.NewLine);
+            
+            throw new TimeoutException(
+                "FunctionStates: " + Environment.NewLine + statusStr,
+                innerException: ex
+            );
+        }
         
         unhandledExceptionHandler.ShouldNotHaveExceptions();
     }
