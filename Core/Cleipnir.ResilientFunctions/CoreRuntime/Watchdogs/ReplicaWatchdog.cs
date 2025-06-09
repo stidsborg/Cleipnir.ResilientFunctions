@@ -8,7 +8,7 @@ using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.CoreRuntime.Watchdogs;
 
-internal class ReplicaWatchdog(ReplicaId replicaId, IReplicaStore replicaStore, TimeSpan checkFrequency, Action<Guid> onStrikeOut) : IDisposable
+internal class ReplicaWatchdog(ClusterInfo clusterInfo, IReplicaStore replicaStore, TimeSpan checkFrequency, Action<Guid> onStrikeOut) : IDisposable
 {
     private volatile bool _disposed;
     private bool _started;
@@ -29,7 +29,14 @@ internal class ReplicaWatchdog(ReplicaId replicaId, IReplicaStore replicaStore, 
 
     public async Task Initialize()
     {
-        await replicaStore.Insert(replicaId.Id);
+        await replicaStore.Insert(clusterInfo.ReplicaId);
+        var replicas = await replicaStore.GetAll();
+        var offset = CalculateOffset(replicas.Select(sr => sr.ReplicaId), clusterInfo.ReplicaId);
+        if (offset is null)
+            throw new InvalidOperationException("Replica offset was null after initialization");
+        
+        clusterInfo.ReplicaCount = replicas.Count;
+        clusterInfo.Offset = offset.Value;
         _initialized = true;
     }
 
@@ -44,16 +51,19 @@ internal class ReplicaWatchdog(ReplicaId replicaId, IReplicaStore replicaStore, 
 
    public async Task PerformIteration()
     {
-        await replicaStore.UpdateHeartbeat(replicaId.Id);
+        await replicaStore.UpdateHeartbeat(clusterInfo.ReplicaId);
         
         var storedReplicas = await replicaStore.GetAll();
-        var offset = CalculateOffset(storedReplicas.Select(sr => sr.ReplicaId), replicaId.Id);
+        var offset = CalculateOffset(storedReplicas.Select(sr => sr.ReplicaId), clusterInfo.ReplicaId);
 
         if (offset is not null)
-            replicaId.Offset = offset.Value;
+        {
+            clusterInfo.Offset = offset.Value;
+            clusterInfo.ReplicaCount = storedReplicas.Count;
+        }
         else
         {
-            await replicaStore.Insert(replicaId.Id);
+            await replicaStore.Insert(clusterInfo.ReplicaId);
             _strikes.Clear();
             await PerformIteration();
         }

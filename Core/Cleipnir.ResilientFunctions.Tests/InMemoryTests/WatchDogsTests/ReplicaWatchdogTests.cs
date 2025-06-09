@@ -27,6 +27,10 @@ public class ReplicaWatchdogTests : TestTemplates.WatchDogsTests.ReplicaWatchdog
         => ReplicaIdOffsetIfCalculatedCorrectly(FunctionStoreFactory.Create());
 
     [TestMethod]
+    public override Task ReplicaIdOffsetIsUpdatedWhenNodeIsAddedAndDeleted()
+        => ReplicaIdOffsetIsUpdatedWhenNodeIsAddedAndDeleted(FunctionStoreFactory.Create());
+
+    [TestMethod]
     public override Task NonExistingReplicaIdOffsetIsNull()
         => NonExistingReplicaIdOffsetIsNull(FunctionStoreFactory.Create());
 }
