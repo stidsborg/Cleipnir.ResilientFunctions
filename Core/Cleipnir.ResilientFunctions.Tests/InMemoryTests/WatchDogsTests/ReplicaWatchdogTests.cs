@@ -31,6 +31,10 @@ public class ReplicaWatchdogTests : TestTemplates.WatchDogsTests.ReplicaWatchdog
         => ReplicaIdOffsetIsUpdatedWhenNodeIsAddedAndDeleted(FunctionStoreFactory.Create());
 
     [TestMethod]
+    public override Task ActiveReplicasDoNotDeleteEachOther()
+        => ActiveReplicasDoNotDeleteEachOther(FunctionStoreFactory.Create());
+
+    [TestMethod]
     public override Task NonExistingReplicaIdOffsetIsNull()
         => NonExistingReplicaIdOffsetIsNull(FunctionStoreFactory.Create());
 }

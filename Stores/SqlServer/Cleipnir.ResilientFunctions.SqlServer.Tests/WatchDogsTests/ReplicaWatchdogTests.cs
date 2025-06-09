@@ -33,4 +33,8 @@ public class ReplicaWatchdogTests : ResilientFunctions.Tests.TestTemplates.Watch
     [TestMethod]
     public override Task ReplicaIdOffsetIsUpdatedWhenNodeIsAddedAndDeleted()
         => ReplicaIdOffsetIsUpdatedWhenNodeIsAddedAndDeleted(FunctionStoreFactory.Create());
+    
+    [TestMethod]
+    public override Task ActiveReplicasDoNotDeleteEachOther()
+        => ActiveReplicasDoNotDeleteEachOther(FunctionStoreFactory.Create());
 }

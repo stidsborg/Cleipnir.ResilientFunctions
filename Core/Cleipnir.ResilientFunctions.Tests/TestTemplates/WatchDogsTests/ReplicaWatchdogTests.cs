@@ -220,6 +220,41 @@ public abstract class ReplicaWatchdogTests
         cluster3.ReplicaCount.ShouldBe(1);
     }
     
+    public abstract Task ActiveReplicasDoNotDeleteEachOther();
+    public async Task ActiveReplicasDoNotDeleteEachOther(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask.SelectAsync(s => s.ReplicaStore);
+        
+        var cluster1 = new ClusterInfo(Guid.Parse("10000000-0000-0000-0000-000000000000"));
+        var cluster2 = new ClusterInfo(Guid.Parse("20000000-0000-0000-0000-000000000000"));
+        var cluster3 = new ClusterInfo(Guid.Parse("30000000-0000-0000-0000-000000000000"));
+
+        var watchdog1 = new ReplicaWatchdog(cluster1, store, checkFrequency: TimeSpan.FromHours(1), onStrikeOut: _ => { });
+        var watchdog2 = new ReplicaWatchdog(cluster2, store, checkFrequency: TimeSpan.FromHours(1), onStrikeOut: _ => { });
+        var watchdog3 = new ReplicaWatchdog(cluster3, store, checkFrequency: TimeSpan.FromHours(1), onStrikeOut: _ => { });
+
+        await watchdog1.Initialize();
+        await watchdog2.Initialize();
+        await watchdog3.Initialize();
+
+        await watchdog1.PerformIteration();
+        await watchdog2.PerformIteration();
+        
+        await watchdog1.PerformIteration();
+        await watchdog2.PerformIteration();
+        
+        await watchdog1.PerformIteration();
+        await watchdog2.PerformIteration();
+        
+        await watchdog1.PerformIteration();
+        await watchdog2.PerformIteration();
+
+        var storedReplicas = await store.GetAll();
+        storedReplicas.Count.ShouldBe(2);
+        storedReplicas.Any(sr => sr.ReplicaId == cluster1.ReplicaId).ShouldBeTrue();
+        storedReplicas.Any(sr => sr.ReplicaId == cluster2.ReplicaId).ShouldBeTrue();
+    }
+    
     public abstract Task NonExistingReplicaIdOffsetIsNull();
     public Task NonExistingReplicaIdOffsetIsNull(Task<IFunctionStore> storeTask)
     {
