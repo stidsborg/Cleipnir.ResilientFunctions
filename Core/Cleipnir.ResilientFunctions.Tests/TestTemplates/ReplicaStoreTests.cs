@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Tests.Utils;
@@ -15,8 +16,8 @@ public abstract class ReplicaStoreTests
     {
         var store = await storeTask.SelectAsync(s => s.ReplicaStore);
         await store.GetAll().ShouldBeEmptyAsync();
-        var replicaId1 = Guid.NewGuid();        
-        var replicaId2 = Guid.NewGuid();
+        var replicaId1 = Guid.NewGuid().ToReplicaId();        
+        var replicaId2 = Guid.NewGuid().ToReplicaId();
         
         {
             await store.Insert(replicaId1);

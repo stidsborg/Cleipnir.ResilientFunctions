@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Storage;
 using Npgsql;
 
@@ -22,7 +23,7 @@ public class PostgreSqlDbReplicaStore(string connectionString, string tablePrefi
     }
 
     private string? _insertSql;
-    public async Task Insert(Guid replicaId)
+    public async Task Insert(ReplicaId replicaId)
     {
         _insertSql ??= $@"
             INSERT INTO {tablePrefix}_replicas
@@ -35,7 +36,7 @@ public class PostgreSqlDbReplicaStore(string connectionString, string tablePrefi
         {
             Parameters =
             {
-                new() {Value = replicaId.ToString("N")}
+                new() {Value = replicaId.AsGuid.ToString("N")}
             }
         };
 
@@ -43,7 +44,7 @@ public class PostgreSqlDbReplicaStore(string connectionString, string tablePrefi
     }
 
     private string? _deleteSql;
-    public async Task Delete(Guid replicaId)
+    public async Task Delete(ReplicaId replicaId)
     {
         _deleteSql ??= $"DELETE FROM {tablePrefix}_replicas WHERE id = $1";
         
@@ -52,7 +53,7 @@ public class PostgreSqlDbReplicaStore(string connectionString, string tablePrefi
         {
             Parameters =
             {
-                new() {Value = replicaId.ToString("N")}
+                new() {Value = replicaId.AsGuid.ToString("N")}
             }
         };
 
@@ -60,7 +61,7 @@ public class PostgreSqlDbReplicaStore(string connectionString, string tablePrefi
     }
 
     private string? _updateHeartbeatSql;
-    public async Task UpdateHeartbeat(Guid replicaId)
+    public async Task UpdateHeartbeat(ReplicaId replicaId)
     {
         _updateHeartbeatSql ??= $@"
             UPDATE {tablePrefix}_replicas
@@ -72,7 +73,7 @@ public class PostgreSqlDbReplicaStore(string connectionString, string tablePrefi
         {
             Parameters =
             {
-                new() {Value = replicaId.ToString("N")}
+                new() {Value = replicaId.AsGuid.ToString("N")}
             }
         };
 
@@ -93,7 +94,7 @@ public class PostgreSqlDbReplicaStore(string connectionString, string tablePrefi
         {
             var id = Guid.Parse(reader.GetString(0));
             var heartbeat = reader.GetInt32(1);
-            storedReplicas.Add(new StoredReplica(id, heartbeat));
+            storedReplicas.Add(new StoredReplica(id.ToReplicaId(), heartbeat));
         }
 
         return storedReplicas;

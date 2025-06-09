@@ -139,4 +139,4 @@ public static class StoredEffectExtensions
         => new(storedId, effect.StoredEffectId, operation, effect);
 }
 
-public record StoredReplica(Guid ReplicaId, int Heartbeat);
+public record StoredReplica(ReplicaId ReplicaId, int Heartbeat);

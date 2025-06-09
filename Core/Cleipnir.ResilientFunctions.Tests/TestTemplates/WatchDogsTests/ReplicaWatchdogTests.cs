@@ -5,7 +5,6 @@ using Cleipnir.ResilientFunctions.CoreRuntime.Watchdogs;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Storage;
-using Cleipnir.ResilientFunctions.Tests.Utils;
 using Shouldly;
 
 namespace Cleipnir.ResilientFunctions.Tests.TestTemplates.WatchDogsTests;
@@ -16,7 +15,7 @@ public abstract class ReplicaWatchdogTests
     public async Task SunshineScenario(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask.SelectAsync(s => s.ReplicaStore);
-        var replicaId1 = new ClusterInfo(Guid.Parse("10000000-0000-0000-0000-000000000000"));
+        var replicaId1 = new ClusterInfo(Guid.Parse("10000000-0000-0000-0000-000000000000").ToReplicaId());
         using var watchdog1 = new ReplicaWatchdog(
             replicaId1,
             store,
@@ -29,7 +28,7 @@ public abstract class ReplicaWatchdogTests
         var storedReplica1 = allReplicas.Single(sr => sr.ReplicaId == replicaId1.ReplicaId);
         storedReplica1.Heartbeat.ShouldBe(0);
         
-        var replicaId2 = new ClusterInfo(Guid.Parse("20000000-0000-0000-0000-000000000000"));
+        var replicaId2 = new ClusterInfo(Guid.Parse("20000000-0000-0000-0000-000000000000").ToReplicaId());
         using var watchdog2 = new ReplicaWatchdog(
             replicaId2,
             store,
@@ -70,7 +69,7 @@ public abstract class ReplicaWatchdogTests
     public async Task ReplicaWatchdogStartResultsInAddedReplicaInStore(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask.SelectAsync(s => s.ReplicaStore);
-        var replicaId1 = new ClusterInfo(Guid.Parse("10000000-0000-0000-0000-000000000000"));
+        var replicaId1 = new ClusterInfo(Guid.Parse("10000000-0000-0000-0000-000000000000").ToReplicaId());
         using var watchdog1 = new ReplicaWatchdog(
             replicaId1,
             store,
@@ -81,7 +80,7 @@ public abstract class ReplicaWatchdogTests
         var allReplicas = await store.GetAll();
         allReplicas.Count.ShouldBe(1);
         
-        var replicaId2 = new ClusterInfo(Guid.Parse("20000000-0000-0000-0000-000000000000"));
+        var replicaId2 = new ClusterInfo(Guid.Parse("20000000-0000-0000-0000-000000000000").ToReplicaId());
         using var watchdog2 = new ReplicaWatchdog(
             replicaId2,
             store,
@@ -97,10 +96,10 @@ public abstract class ReplicaWatchdogTests
     public async Task StrikedOutReplicaIsRemovedFromStore(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask.SelectAsync(s => s.ReplicaStore);
-        var toBeStrikedOut = Guid.NewGuid();
-        Guid? strikedOut = null;
+        var toBeStrikedOut = ReplicaId.NewId();
+        ReplicaId? strikedOut = null;
         await store.Insert(toBeStrikedOut);
-        var replicaId1 = new ClusterInfo(Guid.Parse("10000000-0000-0000-0000-000000000000"));
+        var replicaId1 = new ClusterInfo(Guid.Parse("10000000-0000-0000-0000-000000000000").ToReplicaId());
         using var watchdog1 = new ReplicaWatchdog(
             replicaId1,
             store,
@@ -125,7 +124,7 @@ public abstract class ReplicaWatchdogTests
     {
         var store = await storeTask.SelectAsync(s => s.ReplicaStore);
         var anyStrikesOut = false;
-        var replicaId1 = new ClusterInfo(Guid.NewGuid());
+        var replicaId1 = new ClusterInfo(ReplicaId.NewId());
         using var watchdog1 = new ReplicaWatchdog(
             replicaId1,
             store,
@@ -152,9 +151,9 @@ public abstract class ReplicaWatchdogTests
     {
         var store = await storeTask.SelectAsync(s => s.ReplicaStore);
         
-        var replicaId1 = new ClusterInfo(Guid.Parse("10000000-0000-0000-0000-000000000000"));
-        var replicaId2 = new ClusterInfo(Guid.Parse("20000000-0000-0000-0000-000000000000"));
-        var replicaId3 = new ClusterInfo(Guid.Parse("30000000-0000-0000-0000-000000000000"));
+        var replicaId1 = new ClusterInfo(Guid.Parse("10000000-0000-0000-0000-000000000000").ToReplicaId());
+        var replicaId2 = new ClusterInfo(Guid.Parse("20000000-0000-0000-0000-000000000000").ToReplicaId());
+        var replicaId3 = new ClusterInfo(Guid.Parse("30000000-0000-0000-0000-000000000000").ToReplicaId());
 
         var watchdog1 = new ReplicaWatchdog(replicaId1, store, checkFrequency: TimeSpan.FromHours(1), onStrikeOut: _ => { });
         var watchdog2 = new ReplicaWatchdog(replicaId2, store, checkFrequency: TimeSpan.FromHours(1), onStrikeOut: _ => { });
@@ -177,9 +176,9 @@ public abstract class ReplicaWatchdogTests
     {
         var store = await storeTask.SelectAsync(s => s.ReplicaStore);
         
-        var cluster1 = new ClusterInfo(Guid.Parse("10000000-0000-0000-0000-000000000000"));
-        var cluster2 = new ClusterInfo(Guid.Parse("20000000-0000-0000-0000-000000000000"));
-        var cluster3 = new ClusterInfo(Guid.Parse("30000000-0000-0000-0000-000000000000"));
+        var cluster1 = new ClusterInfo(Guid.Parse("10000000-0000-0000-0000-000000000000").ToReplicaId());
+        var cluster2 = new ClusterInfo(Guid.Parse("20000000-0000-0000-0000-000000000000").ToReplicaId());
+        var cluster3 = new ClusterInfo(Guid.Parse("30000000-0000-0000-0000-000000000000").ToReplicaId());
 
         var watchdog1 = new ReplicaWatchdog(cluster1, store, checkFrequency: TimeSpan.FromHours(1), onStrikeOut: _ => { });
         var watchdog2 = new ReplicaWatchdog(cluster2, store, checkFrequency: TimeSpan.FromHours(1), onStrikeOut: _ => { });
@@ -225,9 +224,9 @@ public abstract class ReplicaWatchdogTests
     {
         var store = await storeTask.SelectAsync(s => s.ReplicaStore);
         
-        var cluster1 = new ClusterInfo(Guid.Parse("10000000-0000-0000-0000-000000000000"));
-        var cluster2 = new ClusterInfo(Guid.Parse("20000000-0000-0000-0000-000000000000"));
-        var cluster3 = new ClusterInfo(Guid.Parse("30000000-0000-0000-0000-000000000000"));
+        var cluster1 = new ClusterInfo(Guid.Parse("10000000-0000-0000-0000-000000000000").ToReplicaId());
+        var cluster2 = new ClusterInfo(Guid.Parse("20000000-0000-0000-0000-000000000000").ToReplicaId());
+        var cluster3 = new ClusterInfo(Guid.Parse("30000000-0000-0000-0000-000000000000").ToReplicaId());
 
         var watchdog1 = new ReplicaWatchdog(cluster1, store, checkFrequency: TimeSpan.FromHours(1), onStrikeOut: _ => { });
         var watchdog2 = new ReplicaWatchdog(cluster2, store, checkFrequency: TimeSpan.FromHours(1), onStrikeOut: _ => { });
@@ -258,7 +257,7 @@ public abstract class ReplicaWatchdogTests
     public abstract Task NonExistingReplicaIdOffsetIsNull();
     public Task NonExistingReplicaIdOffsetIsNull(Task<IFunctionStore> storeTask)
     {
-        var offset = ReplicaWatchdog.CalculateOffset(allReplicaIds: [], ownReplicaId: Guid.NewGuid());
+        var offset = ReplicaWatchdog.CalculateOffset(allReplicaIds: [], ownReplicaId: ReplicaId.NewId());
         offset.ShouldBeNull();
         
         return Task.CompletedTask;

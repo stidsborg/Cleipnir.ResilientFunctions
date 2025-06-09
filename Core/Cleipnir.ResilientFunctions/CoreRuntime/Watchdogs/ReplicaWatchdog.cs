@@ -8,7 +8,7 @@ using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.CoreRuntime.Watchdogs;
 
-internal class ReplicaWatchdog(ClusterInfo clusterInfo, IReplicaStore replicaStore, TimeSpan checkFrequency, Action<Guid> onStrikeOut) : IDisposable
+internal class ReplicaWatchdog(ClusterInfo clusterInfo, IReplicaStore replicaStore, TimeSpan checkFrequency, Action<ReplicaId> onStrikeOut) : IDisposable
 {
     private volatile bool _disposed;
     private bool _started;
@@ -75,7 +75,7 @@ internal class ReplicaWatchdog(ClusterInfo clusterInfo, IReplicaStore replicaSto
         await DeleteStrikedOutReplicas();
     }
 
-    public static int? CalculateOffset(IEnumerable<Guid> allReplicaIds, Guid ownReplicaId)
+    public static int? CalculateOffset(IEnumerable<ReplicaId> allReplicaIds, ReplicaId ownReplicaId)
         => allReplicaIds
             .Select(s => s)
             .Order()
@@ -104,7 +104,7 @@ internal class ReplicaWatchdog(ClusterInfo clusterInfo, IReplicaStore replicaSto
 
     private async Task DeleteStrikedOutReplicas()
     {
-        foreach (var (storedReplica, strikes) in _strikes.Where(kv => kv.Value >= 2))
+        foreach (var (storedReplica, _) in _strikes.Where(kv => kv.Value >= 2))
         {
             var strikedOutId = storedReplica.ReplicaId;
             await replicaStore.Delete(strikedOutId);

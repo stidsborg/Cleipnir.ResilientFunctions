@@ -1,11 +1,10 @@
-﻿using System;
-using System.Threading;
+﻿using System.Threading;
 
 namespace Cleipnir.ResilientFunctions.Domain;
 
 public class ClusterInfo
 {
-    public Guid ReplicaId { get; }
+    public ReplicaId ReplicaId { get; }
 
     private int _offset;
     public int Offset
@@ -39,5 +38,5 @@ public class ClusterInfo
 
     private readonly Lock _sync = new();
 
-    public ClusterInfo(Guid replicaId) => ReplicaId = replicaId;
+    public ClusterInfo(ReplicaId replicaId) => ReplicaId = replicaId;
 }
