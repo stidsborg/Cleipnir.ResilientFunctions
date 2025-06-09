@@ -37,7 +37,8 @@ public class DelayedStartUpTests
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
-            parent: null
+            parent: null,
+            owner: null
         );
 
         await BusyWait.Until(() => store.GetFunction(registration.MapToStoredId(functionId.Instance)).Map(sf => sf?.Status == Status.Succeeded));
@@ -60,7 +61,8 @@ public class DelayedStartUpTests
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
-            parent: null
+            parent: null,
+            owner: null
         );
         
         var stopWatch = new Stopwatch();
@@ -102,7 +104,8 @@ public class DelayedStartUpTests
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
-            parent: null
+            parent: null,
+            owner: null
         );
         await store.PostponeFunction(
             registration.MapToStoredId(functionId.Instance),
@@ -142,7 +145,8 @@ public class DelayedStartUpTests
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
-            parent: null
+            parent: null,
+            owner: null
         );
         await store.PostponeFunction(
             registration.MapToStoredId(functionId.Instance),

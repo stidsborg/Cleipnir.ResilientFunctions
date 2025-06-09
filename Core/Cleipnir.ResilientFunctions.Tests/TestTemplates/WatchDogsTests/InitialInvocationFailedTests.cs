@@ -34,7 +34,8 @@ public abstract class InitialInvocationFailedTests
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
-            parent: null
+            parent: null,
+            owner: null
         );
         
         await flag.WaitForRaised();
@@ -67,7 +68,8 @@ public abstract class InitialInvocationFailedTests
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
-            parent: null
+            parent: null,
+            owner: null
         );
         
         await flag.WaitForRaised();
@@ -100,7 +102,8 @@ public abstract class InitialInvocationFailedTests
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
-            parent: null
+            parent: null,
+            owner: null
         );
         
         await flag.WaitForRaised();
@@ -136,7 +139,8 @@ public abstract class InitialInvocationFailedTests
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
-            parent: null
+            parent: null,
+            owner: null
         );
         
         await flag.WaitForRaised();

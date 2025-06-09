@@ -122,7 +122,8 @@ public class RFunctionsShutdownTests
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
-            parent: null
+            parent: null,
+            owner: null
         ).ShouldBeTrueAsync();
 
         await insideRFuncFlag.WaitForRaised();
@@ -174,7 +175,8 @@ public class RFunctionsShutdownTests
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
-            parent: null
+            parent: null,
+            owner: null
         ).ShouldBeTrueAsync();
 
         await store.PostponeFunction(

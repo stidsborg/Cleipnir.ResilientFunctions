@@ -54,6 +54,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         long? postponeUntil,
         long timestamp,
         StoredId? parent,
+        ReplicaId? owner,
         IReadOnlyList<StoredEffect>? effects = null, 
         IReadOnlyList<StoredMessage>? messages = null)
     {
@@ -73,7 +74,8 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
                 Result = null,
                 Expires = postponeUntil ?? leaseExpiration,
                 Timestamp = timestamp,
-                Parent = parent
+                Parent = parent,
+                Owner = owner
             };
             if (!_messages.ContainsKey(storedId)) //messages can already have been added - i.e. paramless started by received message
                 _messages[storedId] = new List<StoredMessage>();
@@ -435,7 +437,8 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
                     state.Expires,
                     state.Timestamp,
                     state.Interrupted,
-                    state.Parent
+                    state.Parent,
+                    state.Owner
                 )
                 .ToNullable()
                 .ToTask();
@@ -502,6 +505,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         public long Expires { get; set; }
         public long Timestamp { get; set; }
         public StoredId? Parent { get; set; }
+        public ReplicaId? Owner { get; set; }
     }
     #endregion
     

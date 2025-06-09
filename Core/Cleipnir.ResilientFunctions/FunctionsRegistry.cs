@@ -28,6 +28,8 @@ public class FunctionsRegistry : IDisposable
     private readonly LeasesUpdater _leasesUpdater;
     private readonly StoredTypes _storedTypes;
     
+    private readonly ClusterInfo _clusterInfo;
+    
     private volatile bool _disposed;
     private readonly Lock _sync = new();
     
@@ -58,6 +60,8 @@ public class FunctionsRegistry : IDisposable
             _leasesUpdater, 
             utcNow
         );
+
+        _clusterInfo = new ClusterInfo(ReplicaId.NewId());
     }
 
     #region Func overloads
@@ -220,7 +224,8 @@ public class FunctionsRegistry : IDisposable
                 inner,
                 invocationHelper,
                 settingsWithDefaults.UnhandledExceptionHandler,
-                _functionStore.Utilities
+                _functionStore.Utilities,
+                _clusterInfo.ReplicaId
             );
 
             WatchDogsFactory.CreateAndStart(
@@ -316,7 +321,8 @@ public class FunctionsRegistry : IDisposable
                 inner, 
                 invocationHelper,
                 settingsWithDefaults.UnhandledExceptionHandler,
-                _functionStore.Utilities
+                _functionStore.Utilities,
+                _clusterInfo.ReplicaId
             );
             
             WatchDogsFactory.CreateAndStart(
@@ -412,7 +418,8 @@ public class FunctionsRegistry : IDisposable
                 inner, 
                 invocationHelper,
                 settingsWithDefaults.UnhandledExceptionHandler,
-                _functionStore.Utilities
+                _functionStore.Utilities,
+                _clusterInfo.ReplicaId
             );
             
             WatchDogsFactory.CreateAndStart(

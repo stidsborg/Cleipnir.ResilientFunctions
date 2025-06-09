@@ -95,6 +95,7 @@ public class MariaDbFunctionStore : IFunctionStore
                 timestamp BIGINT NOT NULL,
                 human_instance_id TEXT NOT NULL,
                 parent TEXT NULL,
+                owner CHAR(32) NULL,
                 PRIMARY KEY (type, instance),
                 INDEX (expires, type, instance, status)   
             );";
@@ -129,6 +130,7 @@ public class MariaDbFunctionStore : IFunctionStore
         long? postponeUntil,
         long timestamp,
         StoredId? parent,
+        ReplicaId? owner,
         IReadOnlyList<StoredEffect>? effects = null, 
         IReadOnlyList<StoredMessage>? messages = null)
     {
@@ -136,14 +138,14 @@ public class MariaDbFunctionStore : IFunctionStore
         {
             await using var conn = await CreateOpenConnection(_connectionString);
             await using var command = _sqlGenerator
-                .CreateFunction(storedId, humanInstanceId, param, leaseExpiration, postponeUntil, timestamp, parent, ignoreDuplicate: true)
+                .CreateFunction(storedId, humanInstanceId, param, leaseExpiration, postponeUntil, timestamp, parent, owner, ignoreDuplicate: true)
                 .ToSqlCommand(conn);
             var affectedRows = await command.ExecuteNonQueryAsync();
             return affectedRows == 1;
         }
         else
         {
-            var storeCommand = _sqlGenerator.CreateFunction(storedId, humanInstanceId, param, leaseExpiration, postponeUntil, timestamp, parent, ignoreDuplicate: false);
+            var storeCommand = _sqlGenerator.CreateFunction(storedId, humanInstanceId, param, leaseExpiration, postponeUntil, timestamp, parent, owner, ignoreDuplicate: false);
             if (messages?.Any() ?? false)
             {
                 var messagesCommand = _sqlGenerator.AppendMessages(
@@ -601,7 +603,8 @@ public class MariaDbFunctionStore : IFunctionStore
                 interrupted,
                 timestamp,
                 human_instance_id,
-                parent
+                parent,
+                owner
             FROM {_tablePrefix}
             WHERE type = ? AND instance = ?;";
         await using var command = new MySqlCommand(_getFunctionSql, conn)
@@ -683,6 +686,7 @@ public class MariaDbFunctionStore : IFunctionStore
         const int timestampIndex = 7;
         const int humanInstanceIdIndex = 8;
         const int parentIndex = 9;
+        const int ownerIndex = 10;
         
         while (await reader.ReadAsync())
         {
@@ -690,6 +694,7 @@ public class MariaDbFunctionStore : IFunctionStore
             var hasResult = !await reader.IsDBNullAsync(resultIndex);
             var hasError = !await reader.IsDBNullAsync(exceptionIndex);
             var hasParent = !await reader.IsDBNullAsync(parentIndex);
+            var hasOwner = !await reader.IsDBNullAsync(ownerIndex);
             var storedException = hasError
                 ? JsonSerializer.Deserialize<StoredException>(reader.GetString(exceptionIndex))
                 : null;
@@ -703,7 +708,8 @@ public class MariaDbFunctionStore : IFunctionStore
                 Expires: reader.GetInt64(expiresIndex),
                 Interrupted: reader.GetBoolean(interruptedIndex),
                 Timestamp: reader.GetInt64(timestampIndex),
-                ParentId: hasParent ? StoredId.Deserialize(reader.GetString(parentIndex)) : null
+                ParentId: hasParent ? StoredId.Deserialize(reader.GetString(parentIndex)) : null,
+                OwnerId: hasOwner ? reader.GetString(ownerIndex).ParseToReplicaId() : null
             );
         }
 

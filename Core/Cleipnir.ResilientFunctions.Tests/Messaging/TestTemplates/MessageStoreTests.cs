@@ -26,7 +26,8 @@ public abstract class MessageStoreTests
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
-            parent: null
+            parent: null,
+            owner: null
         );
         var messageStore = functionStore.MessageStore;
 
@@ -63,7 +64,8 @@ public abstract class MessageStoreTests
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
-            parent: null
+            parent: null,
+            owner: null
         );
         var messageStore = functionStore.MessageStore;
 
@@ -106,7 +108,8 @@ public abstract class MessageStoreTests
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
-            parent: null
+            parent: null,
+            owner: null
         );
         var messageStore = functionStore.MessageStore;
 
@@ -150,7 +153,8 @@ public abstract class MessageStoreTests
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
-            parent: null
+            parent: null,
+            owner: null
         );
         var messageStore = functionStore.MessageStore;
 
@@ -194,7 +198,8 @@ public abstract class MessageStoreTests
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
-            parent: null
+            parent: null,
+            owner: null
         );
         var messageStore = functionStore.MessageStore;
 
@@ -235,7 +240,8 @@ public abstract class MessageStoreTests
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
-            parent: null
+            parent: null,
+            owner: null
         );
         var messageStore = functionStore.MessageStore;
 
@@ -263,7 +269,8 @@ public abstract class MessageStoreTests
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
-            parent: null
+            parent: null,
+            owner: null
         );
         var messageStore = functionStore.MessageStore;
 
@@ -292,7 +299,8 @@ public abstract class MessageStoreTests
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
-            parent: null
+            parent: null,
+            owner: null
         );
         var messageStore = functionStore.MessageStore;
         
@@ -313,7 +321,8 @@ public abstract class MessageStoreTests
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
-            parent: null
+            parent: null,
+            owner: null
         );
         var messageStore = functionStore.MessageStore;
 
@@ -352,7 +361,8 @@ public abstract class MessageStoreTests
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
-            parent: null
+            parent: null,
+            owner: null
         );
         var messageStore = functionStore.MessageStore;
 
@@ -392,7 +402,8 @@ public abstract class MessageStoreTests
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
-            parent: null
+            parent: null,
+            owner: null
         );
         var messageStore = functionStore.MessageStore;
 
@@ -430,7 +441,8 @@ public abstract class MessageStoreTests
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
-            parent: null
+            parent: null,
+            owner: null
         );
         var messageStore = functionStore.MessageStore;
 
@@ -457,7 +469,8 @@ public abstract class MessageStoreTests
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
-            parent: null
+            parent: null,
+            owner: null
         );
         var messageStore = functionStore.MessageStore;
         var events = await messageStore.GetMessages(functionId, skip: 0);
@@ -476,7 +489,8 @@ public abstract class MessageStoreTests
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
-            parent: null
+            parent: null,
+            owner: null
         );
         var messageStore = functionStore.MessageStore;
         
@@ -526,7 +540,8 @@ public abstract class MessageStoreTests
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
-            parent: null
+            parent: null,
+            owner: null
         );
         var messageStore = functionStore.MessageStore;
         
@@ -577,7 +592,8 @@ public abstract class MessageStoreTests
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
-            parent: null
+            parent: null,
+            owner: null
         ).ShouldBeTrueAsync();
         await functionStore.CreateFunction(
             id2, 
@@ -586,7 +602,8 @@ public abstract class MessageStoreTests
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
-            parent: null
+            parent: null,
+            owner: null
         ).ShouldBeTrueAsync();
         var messageStore = functionStore.MessageStore;
 
@@ -628,7 +645,8 @@ public abstract class MessageStoreTests
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: long.MaxValue,
             timestamp: DateTime.UtcNow.Ticks,
-            parent: null
+            parent: null,
+            owner: null
         ).ShouldBeTrueAsync();
         await functionStore.CreateFunction(
             id2, 
@@ -637,7 +655,8 @@ public abstract class MessageStoreTests
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: long.MaxValue,
             timestamp: DateTime.UtcNow.Ticks,
-            parent: null
+            parent: null,
+            owner: null
         ).ShouldBeTrueAsync();
         var messageStore = functionStore.MessageStore;
 
@@ -687,7 +706,8 @@ public abstract class MessageStoreTests
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: long.MaxValue,
             timestamp: DateTime.UtcNow.Ticks,
-            parent: null
+            parent: null,
+            owner: null
         ).ShouldBeTrueAsync();
         var messageStore = functionStore.MessageStore;
 
@@ -722,7 +742,8 @@ public abstract class MessageStoreTests
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: long.MaxValue,
             timestamp: DateTime.UtcNow.Ticks,
-            parent: null
+            parent: null,
+            owner: null
         ).ShouldBeTrueAsync();
         await functionStore.CreateFunction(
             id2, 
@@ -731,7 +752,8 @@ public abstract class MessageStoreTests
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: long.MaxValue,
             timestamp: DateTime.UtcNow.Ticks,
-            parent: null
+            parent: null,
+            owner: null
         ).ShouldBeTrueAsync();
         var messageStore = functionStore.MessageStore;
 

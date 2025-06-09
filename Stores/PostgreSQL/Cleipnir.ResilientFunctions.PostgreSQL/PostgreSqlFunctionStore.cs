@@ -99,6 +99,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 timestamp BIGINT NOT NULL,
                 human_instance_id TEXT NOT NULL,
                 parent TEXT NULL,
+                owner UUID NULL,
                 PRIMARY KEY (type, instance)
             );
             CREATE INDEX IF NOT EXISTS idx_{_tableName}_expires
@@ -141,6 +142,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         long? postponeUntil,
         long timestamp,
         StoredId? parent,
+        ReplicaId? owner,
         IReadOnlyList<StoredEffect>? effects = null, 
         IReadOnlyList<StoredMessage>? messages = null
         )
@@ -156,6 +158,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 postponeUntil,
                 timestamp,
                 parent,
+                owner,
                 ignoreConflict: true
             ).ToNpgsqlCommand(conn);
 
@@ -174,6 +177,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 postponeUntil,
                 timestamp,
                 parent,
+                owner,
                 ignoreConflict: false
             );
             commands.Add(createCommand);
@@ -637,7 +641,8 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 interrupted,
                 timestamp,
                 human_instance_id,
-                parent
+                parent,
+                owner
             FROM {_tableName}
             WHERE type = $1 AND instance = $2;";
         await using var command = new NpgsqlCommand(_getFunctionSql, conn)
@@ -723,6 +728,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
            7 timestamp,
            8 human_instance_id
            9 parent
+           10 owner
          */
         while (await reader.ReadAsync())
         {
@@ -730,6 +736,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
             var hasResult = !await reader.IsDBNullAsync(2);
             var hasException = !await reader.IsDBNullAsync(3);
             var hasParent = !await reader.IsDBNullAsync(9);
+            var hasOwner = !await reader.IsDBNullAsync(10);
             
             return new StoredFlow(
                 storedId,
@@ -742,7 +749,8 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 Epoch: reader.GetInt32(5),
                 Interrupted: reader.GetBoolean(6),
                 Timestamp: reader.GetInt64(7),
-                ParentId: hasParent ? StoredId.Deserialize(reader.GetString(9)) : null
+                ParentId: hasParent ? StoredId.Deserialize(reader.GetString(9)) : null,
+                OwnerId: hasOwner ? reader.GetGuid(10).ToReplicaId() : null
             );
         }
 

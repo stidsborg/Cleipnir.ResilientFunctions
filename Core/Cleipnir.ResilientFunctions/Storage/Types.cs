@@ -54,7 +54,8 @@ public record StoredFlow(
     long Expires,
     long Timestamp,
     bool Interrupted,
-    StoredId? ParentId
+    StoredId? ParentId,
+    ReplicaId? OwnerId
 );
 
 public record IdAndEpoch(StoredId FlowId, int Epoch);

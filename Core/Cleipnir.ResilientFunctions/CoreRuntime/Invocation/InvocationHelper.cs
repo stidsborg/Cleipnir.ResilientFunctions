@@ -48,6 +48,7 @@ internal class InvocationHelper<TParam, TReturn>
         TParam param, 
         DateTime? scheduleAt,
         StoredId? parent,
+        ReplicaId? owner,
         InitialState? initialState)
     {
         if (!_isParamlessFunction)
@@ -72,7 +73,8 @@ internal class InvocationHelper<TParam, TReturn>
                 leaseExpiration: utcNowTicks + _settings.LeaseLength.Ticks,
                 postponeUntil: scheduleAt?.ToUniversalTime().Ticks,
                 timestamp: utcNowTicks,
-                parent: parent,
+                parent,
+                owner,
                 effects,
                 messages
             );

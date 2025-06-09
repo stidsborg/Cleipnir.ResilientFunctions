@@ -26,7 +26,8 @@ public abstract class MessagesSubscriptionTests
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
-            parent: null
+            parent: null,
+            owner: null
         );
         var messageStore = functionStore.MessageStore;
 

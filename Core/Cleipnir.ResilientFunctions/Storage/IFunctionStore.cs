@@ -27,6 +27,7 @@ public interface IFunctionStore
         long? postponeUntil,
         long timestamp,
         StoredId? parent,
+        ReplicaId? owner,
         IReadOnlyList<StoredEffect>? effects = null,
         IReadOnlyList<StoredMessage>? messages = null
     );

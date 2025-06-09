@@ -12,6 +12,7 @@ public class Invoker<TParam, TReturn>
 {
     private readonly FlowType _flowType;
     private readonly StoredType _storedType;
+    private readonly ReplicaId _replicaId;
     private readonly Func<TParam, Workflow, Task<Result<TReturn>>> _inner;
     
     private readonly InvocationHelper<TParam, TReturn> _invocationHelper;
@@ -23,11 +24,13 @@ public class Invoker<TParam, TReturn>
         Func<TParam, Workflow, Task<Result<TReturn>>> inner,
         InvocationHelper<TParam, TReturn> invocationHelper,
         UnhandledExceptionHandler unhandledExceptionHandler,
-        Utilities utilities
+        Utilities utilities,
+        ReplicaId replicaId
     )
     {
         _flowType = flowType;
         _storedType = storedType;
+        _replicaId = replicaId;
         _inner = inner;
         _invocationHelper = invocationHelper;
         _unhandledExceptionHandler = unhandledExceptionHandler;
@@ -116,6 +119,7 @@ public class Invoker<TParam, TReturn>
             param,
             scheduleAt,
             parent?.StoredId,
+            _replicaId,
             initialState: null
         );
 
@@ -219,6 +223,7 @@ public class Invoker<TParam, TReturn>
                     param,
                     scheduleAt: null,
                     parent,
+                    _replicaId,
                     initialState
                 );
             disposables.Add(runningFunction);

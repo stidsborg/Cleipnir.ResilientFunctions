@@ -6,6 +6,8 @@ public record ReplicaId(Guid AsGuid) : IComparable<ReplicaId>
 {
     public static ReplicaId NewId() => new(Guid.NewGuid());
     
+    public static ReplicaId Parse(string s) => new(Guid.Parse(s));
+    
     public int CompareTo(ReplicaId? other)
     {
         if (ReferenceEquals(this, other)) return 0;
@@ -17,4 +19,5 @@ public record ReplicaId(Guid AsGuid) : IComparable<ReplicaId>
 public static class ReplicaIdExtensions
 {
     public static ReplicaId ToReplicaId(this Guid replicaId) => new(replicaId);
+    public static ReplicaId ParseToReplicaId(this string replicaId) => new(Guid.Parse(replicaId));
 }

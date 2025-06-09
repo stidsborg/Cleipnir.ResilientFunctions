@@ -211,6 +211,7 @@ public class SqlGenerator(string tablePrefix)
         long? postponeUntil,
         long timestamp,
         StoredId? parent,
+        ReplicaId? owner,
         string? paramPrefix)
     {
         _createFunctionSql ??= @$"
@@ -222,7 +223,8 @@ public class SqlGenerator(string tablePrefix)
                     Expires,
                     Timestamp,
                     HumanInstanceId,
-                    Parent
+                    Parent,
+                    Owner                                                          
                 )
                 VALUES
                 (
@@ -233,7 +235,8 @@ public class SqlGenerator(string tablePrefix)
                     @Expires,
                     @Timestamp,
                     @HumanInstanceId,
-                    @Parent
+                    @Parent,
+                    @Owner
                 )";
 
         var sql = _createFunctionSql;
@@ -249,6 +252,7 @@ public class SqlGenerator(string tablePrefix)
         command.AddParameter($"@{paramPrefix}HumanInstanceId", humanInstanceId.Value);
         command.AddParameter($"@{paramPrefix}Timestamp", timestamp);
         command.AddParameter($"@{paramPrefix}Parent", parent?.Serialize() ?? (object)DBNull.Value);
+        command.AddParameter($"@{paramPrefix}Owner", owner?.AsGuid ?? (object)DBNull.Value);
 
         return command;
     }
@@ -371,7 +375,8 @@ public class SqlGenerator(string tablePrefix)
                    inserted.Interrupted,
                    inserted.Timestamp,
                    inserted.HumanInstanceId,
-                   inserted.Parent
+                   inserted.Parent,
+                   inserted.Owner
             WHERE FlowType = @FlowType AND FlowInstance = @FlowInstance AND Epoch = @ExpectedEpoch;";
 
         var storeCommand = StoreCommand.Create(_restartExecutionSql);
@@ -402,6 +407,7 @@ public class SqlGenerator(string tablePrefix)
                 var timestamp = reader.GetInt64(7);
                 var humanInstanceId = reader.GetString(8);
                 var parentId = reader.IsDBNull(9) ? null : StoredId.Deserialize(reader.GetString(9));
+                var ownerId = reader.IsDBNull(10) ? null : reader.GetGuid(10).ToReplicaId();
 
                 return new StoredFlow(
                     storedId,
@@ -414,7 +420,8 @@ public class SqlGenerator(string tablePrefix)
                     expires,
                     timestamp,
                     interrupted,
-                    parentId
+                    parentId,
+                    ownerId
                 );
             }
         }

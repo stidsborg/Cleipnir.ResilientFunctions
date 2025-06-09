@@ -23,14 +23,14 @@ public abstract class LeasesUpdaterTests
         var leaseUpdaters = new LeasesUpdater(leaseLength, store, handler, () => DateTime.UtcNow);
 
         var id1 = TestStoredId.Create();
-        await store.CreateFunction(id1, id1.ToString(), param: null, leaseExpiration: 0, postponeUntil: null, timestamp: DateTime.UtcNow.Ticks, parent: null).ShouldBeTrueAsync();
+        await store.CreateFunction(id1, id1.ToString(), param: null, leaseExpiration: 0, postponeUntil: null, timestamp: DateTime.UtcNow.Ticks, parent: null, owner: null).ShouldBeTrueAsync();
         
         var id2 = TestStoredId.Create();
         var id2Expires = 1_000_000_000_000_000_000L;
-        await store.CreateFunction(id2, id2.ToString(), param: null, leaseExpiration: id2Expires, postponeUntil: null, timestamp: DateTime.UtcNow.Ticks, parent: null).ShouldBeTrueAsync();
+        await store.CreateFunction(id2, id2.ToString(), param: null, leaseExpiration: id2Expires, postponeUntil: null, timestamp: DateTime.UtcNow.Ticks, parent: null, owner: null).ShouldBeTrueAsync();
         
         var id3 = TestStoredId.Create();
-        await store.CreateFunction(id3, id3.ToString(), param: null, leaseExpiration: 0, postponeUntil: null, timestamp: DateTime.UtcNow.Ticks, parent: null).ShouldBeTrueAsync();
+        await store.CreateFunction(id3, id3.ToString(), param: null, leaseExpiration: 0, postponeUntil: null, timestamp: DateTime.UtcNow.Ticks, parent: null, owner: null).ShouldBeTrueAsync();
         
         leaseUpdaters.Set(id1, epoch: 0, expiresTicks: 0);
         leaseUpdaters.Set(id2, epoch: 0, expiresTicks: id2Expires);
@@ -69,14 +69,14 @@ public abstract class LeasesUpdaterTests
         var leaseUpdaters = new LeasesUpdater(leaseLength, store, handler, () => DateTime.UtcNow);
 
         var id1 = TestStoredId.Create();
-        await store.CreateFunction(id1, id1.ToString(), param: null, leaseExpiration: 0, postponeUntil: null, timestamp: DateTime.UtcNow.Ticks, parent: null).ShouldBeTrueAsync();
+        await store.CreateFunction(id1, id1.ToString(), param: null, leaseExpiration: 0, postponeUntil: null, timestamp: DateTime.UtcNow.Ticks, parent: null, owner: null).ShouldBeTrueAsync();
         
         var id2 = TestStoredId.Create();
         var id2Expires = 1_000_000_000_000_000_000L;
-        await store.CreateFunction(id2, id2.ToString(), param: null, leaseExpiration: id2Expires, postponeUntil: null, timestamp: DateTime.UtcNow.Ticks, parent: null).ShouldBeTrueAsync();
+        await store.CreateFunction(id2, id2.ToString(), param: null, leaseExpiration: id2Expires, postponeUntil: null, timestamp: DateTime.UtcNow.Ticks, parent: null, owner: null).ShouldBeTrueAsync();
         
         var id3 = TestStoredId.Create();
-        await store.CreateFunction(id3, id3.ToString(), param: null, leaseExpiration: 0, postponeUntil: null, timestamp: DateTime.UtcNow.Ticks, parent: null).ShouldBeTrueAsync();
+        await store.CreateFunction(id3, id3.ToString(), param: null, leaseExpiration: 0, postponeUntil: null, timestamp: DateTime.UtcNow.Ticks, parent: null, owner: null).ShouldBeTrueAsync();
         await store.RestartExecution(id3, expectedEpoch: 0, leaseExpiration: 0).ShouldNotBeNullAsync();
         
         leaseUpdaters.Set(id1, epoch: 0, expiresTicks: 0);
@@ -114,7 +114,7 @@ public abstract class LeasesUpdaterTests
         var leaseUpdaters = new LeasesUpdater(leaseLength, store, handler, () => DateTime.UtcNow);
 
         var id1 = TestStoredId.Create();
-        await store.CreateFunction(id1, id1.ToString(), param: null, leaseExpiration: 0, postponeUntil: null, timestamp: DateTime.UtcNow.Ticks, parent: null).ShouldBeTrueAsync();
+        await store.CreateFunction(id1, id1.ToString(), param: null, leaseExpiration: 0, postponeUntil: null, timestamp: DateTime.UtcNow.Ticks, parent: null, owner: null).ShouldBeTrueAsync();
         
         leaseUpdaters.Set(id1, epoch: 0, expiresTicks: 0);
         store.Crash();
@@ -251,9 +251,9 @@ public abstract class LeasesUpdaterTests
         var seventySeconds = now.AddSeconds(70);
         var thousandSeconds = now.AddSeconds(1_000);
 
-        await store.CreateFunction(id1, "SomeInstanceId", param: null, leaseExpiration: tenSeconds.Ticks, postponeUntil: null, timestamp: 0, parent: null);
-        await store.CreateFunction(id2, "SomeInstanceId", param: null, leaseExpiration: seventySeconds.Ticks, postponeUntil: null, timestamp: 0, parent: null);
-        await store.CreateFunction(id3, "SomeInstanceId", param: null, leaseExpiration: thousandSeconds.Ticks, postponeUntil: null, timestamp: 0, parent: null);
+        await store.CreateFunction(id1, "SomeInstanceId", param: null, leaseExpiration: tenSeconds.Ticks, postponeUntil: null, timestamp: 0, parent: null, owner: null);
+        await store.CreateFunction(id2, "SomeInstanceId", param: null, leaseExpiration: seventySeconds.Ticks, postponeUntil: null, timestamp: 0, parent: null, owner: null);
+        await store.CreateFunction(id3, "SomeInstanceId", param: null, leaseExpiration: thousandSeconds.Ticks, postponeUntil: null, timestamp: 0, parent: null, owner: null);
         
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         var handler = new UnhandledExceptionHandler(unhandledExceptionHandler.Catch);
@@ -289,8 +289,8 @@ public abstract class LeasesUpdaterTests
         var seventySeconds = now.AddSeconds(70);
         var thousandSeconds = now.AddSeconds(1_000);
         
-        await store.CreateFunction(id1, "SomeInstanceId", param: null, leaseExpiration: tenSeconds.Ticks, postponeUntil: null, timestamp: 0, parent: null);
-        await store.CreateFunction(id2, "SomeInstanceId", param: null, leaseExpiration: seventySeconds.Ticks, postponeUntil: null, timestamp: 0, parent: null);
+        await store.CreateFunction(id1, "SomeInstanceId", param: null, leaseExpiration: tenSeconds.Ticks, postponeUntil: null, timestamp: 0, parent: null, owner: null);
+        await store.CreateFunction(id2, "SomeInstanceId", param: null, leaseExpiration: seventySeconds.Ticks, postponeUntil: null, timestamp: 0, parent: null, owner: null);
         await store.RestartExecution(id2, expectedEpoch: 0, leaseExpiration: thousandSeconds.Ticks);
         
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();

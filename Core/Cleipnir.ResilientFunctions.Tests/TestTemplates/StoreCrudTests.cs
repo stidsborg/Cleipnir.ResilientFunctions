@@ -35,7 +35,8 @@ public abstract class StoreCrudTests
             leaseExpiration,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
-            parent: null
+            parent: null,
+            owner: null
         ).ShouldBeTrueAsync();
 
         var stored = await store.GetFunction(StoredId);
@@ -59,7 +60,8 @@ public abstract class StoreCrudTests
             leaseExpiration,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
-            parent: null
+            parent: null,
+            owner: null
         ).ShouldBeTrueAsync();
 
         var stored = await store.GetFunction(StoredId);
@@ -83,7 +85,8 @@ public abstract class StoreCrudTests
             leaseExpiration,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
-            parent: null
+            parent: null,
+            owner: null
         ).ShouldBeTrueAsync();
 
         var stored = await store.GetFunction(StoredId);
@@ -113,7 +116,8 @@ public abstract class StoreCrudTests
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
-            parent: null
+            parent: null,
+            owner: null
         ).ShouldBeTrueAsync();
 
         await store.RenewLeases([new LeaseUpdate(StoredId, ExpectedEpoch: 0)], leaseExpiration: 1).ShouldBeAsync(1);
@@ -135,7 +139,8 @@ public abstract class StoreCrudTests
             leaseExpiration,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
-            parent: null
+            parent: null,
+            owner: null
         ).ShouldBeTrueAsync();
 
         await store.RenewLeases([new LeaseUpdate(StoredId, ExpectedEpoch: 1)], leaseExpiration: 1).ShouldBeAsync(0);
@@ -157,7 +162,8 @@ public abstract class StoreCrudTests
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
-            parent: null
+            parent: null,
+            owner: null
         ).ShouldBeTrueAsync();
 
         await store.EffectsStore.SetEffectResult(
@@ -202,7 +208,8 @@ public abstract class StoreCrudTests
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
-            parent: null
+            parent: null,
+            owner: null
         ).ShouldBeTrueAsync();
 
         var updatedStoredParameter = "hello world".ToJson();
@@ -232,7 +239,8 @@ public abstract class StoreCrudTests
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
-            parent: null
+            parent: null,
+            owner: null
         ).ShouldBeTrueAsync();
 
         var updatedStoredParameter = "hello world".ToJson();
@@ -261,7 +269,8 @@ public abstract class StoreCrudTests
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
-            parent: null
+            parent: null,
+            owner: null
         ).ShouldBeTrueAsync();
         
         await store.SetParameters(
@@ -287,7 +296,8 @@ public abstract class StoreCrudTests
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
-            parent: null
+            parent: null,
+            owner: null
         ).ShouldBeTrueAsync();
         await store.RestartExecution(
             StoredId,

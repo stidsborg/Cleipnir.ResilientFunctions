@@ -188,13 +188,14 @@ public class SqlGenerator(string tablePrefix)
         long? postponeUntil,
         long timestamp,
         StoredId? parent,
+        ReplicaId? owner,
         bool ignoreDuplicate)
     {
         _createFunctionSql ??= @$"
             INSERT IGNORE INTO {tablePrefix}
-                (type, instance, param_json, status, epoch, expires, timestamp, human_instance_id, parent, interrupted)
+                (type, instance, param_json, status, epoch, expires, timestamp, human_instance_id, parent, interrupted, owner)
             VALUES
-                (?, ?, ?, ?, 0, ?, ?, ?, ?, 0);";
+                (?, ?, ?, ?, 0, ?, ?, ?, ?, 0, ?);";
         var status = postponeUntil == null ? Status.Executing : Status.Postponed;
 
         var sql = _createFunctionSql;
@@ -212,6 +213,7 @@ public class SqlGenerator(string tablePrefix)
                 timestamp,
                 humanInstanceId.Value,
                 parent?.Serialize() ?? (object)DBNull.Value,
+                owner?.AsGuid.ToString("N") ?? (object)DBNull.Value,
             ]
         );
     }
@@ -346,7 +348,8 @@ public class SqlGenerator(string tablePrefix)
                 interrupted,
                 timestamp,
                 human_instance_id,
-                parent
+                parent,
+                owner
             FROM {tablePrefix}
             WHERE type = ? AND instance = ?;";
 
@@ -363,45 +366,6 @@ public class SqlGenerator(string tablePrefix)
         return command;
     }
     
-    public async Task<StoredFlow?> ReadToStoredFunction(StoredId storedId, MySqlDataReader reader)
-    {
-        const int paramIndex = 0;
-        const int statusIndex = 1;
-        const int resultIndex = 2;
-        const int exceptionIndex = 3;
-        const int epochIndex = 4;
-        const int expiresIndex = 5;
-        const int interruptedIndex = 6;
-        const int timestampIndex = 7;
-        const int humanInstanceIdIndex = 8;
-        const int parentIndex = 9;
-        
-        while (await reader.ReadAsync())
-        {
-            var hasParam = !await reader.IsDBNullAsync(paramIndex);
-            var hasResult = !await reader.IsDBNullAsync(resultIndex);
-            var hasError = !await reader.IsDBNullAsync(exceptionIndex);
-            var hasParent = !await reader.IsDBNullAsync(parentIndex);
-            var storedException = hasError
-                ? JsonSerializer.Deserialize<StoredException>(reader.GetString(exceptionIndex))
-                : null;
-            return new StoredFlow(
-                storedId,
-                HumanInstanceId: reader.GetString(humanInstanceIdIndex),
-                hasParam ? (byte[]) reader.GetValue(paramIndex) : null,
-                Status: (Status) reader.GetInt32(statusIndex),
-                Result: hasResult ? (byte[]) reader.GetValue(resultIndex) : null, 
-                storedException, Epoch: reader.GetInt32(epochIndex),
-                Expires: reader.GetInt64(expiresIndex),
-                Interrupted: reader.GetBoolean(interruptedIndex),
-                Timestamp: reader.GetInt64(timestampIndex),
-                ParentId: hasParent ? StoredId.Deserialize(reader.GetString(parentIndex)) : null
-            );
-        }
-
-        return null;
-    }
-
     public StoreCommand AppendMessages(IReadOnlyList<StoredIdAndMessageWithPosition> messages)
     {
         var sql = @$"    

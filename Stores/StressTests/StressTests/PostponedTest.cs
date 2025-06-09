@@ -34,7 +34,8 @@ public static class PostponedTest
                 leaseExpiration: DateTime.UtcNow.Ticks,
                 postponeUntil: null,
                 timestamp: DateTime.UtcNow.Ticks,
-                parent: null
+                parent: null,
+                owner: null
             );
             await store.PostponeFunction(
                 new StoredId(storedType, i.ToString().ToStoredInstance()),

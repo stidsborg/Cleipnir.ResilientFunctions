@@ -99,6 +99,7 @@ public class SqlServerFunctionStore : IFunctionStore
                 HumanInstanceId NVARCHAR(MAX) NOT NULL,                                                                        
                 Timestamp BIGINT NOT NULL,
                 Parent NVARCHAR(MAX) NULL,
+                Owner UNIQUEIDENTIFIER NULL,
                 PRIMARY KEY (FlowType, FlowInstance)
             );
             CREATE INDEX {_tableName}_idx_Executing
@@ -146,6 +147,7 @@ public class SqlServerFunctionStore : IFunctionStore
         long? postponeUntil,
         long timestamp,
         StoredId? parent,
+        ReplicaId? owner,
         IReadOnlyList<StoredEffect>? effects = null, 
         IReadOnlyList<StoredMessage>? messages = null
     )
@@ -163,6 +165,7 @@ public class SqlServerFunctionStore : IFunctionStore
                     postponeUntil,
                     timestamp,
                     parent,
+                    owner,
                     paramPrefix: null
                 );
 
@@ -649,7 +652,8 @@ public class SqlServerFunctionStore : IFunctionStore
                     Interrupted,
                     Timestamp,
                     HumanInstanceId,
-                    Parent
+                    Parent,
+                    Owner
             FROM {_tableName}
             WHERE FlowType = @FlowType
             AND flowInstance = @FlowInstance";
@@ -728,6 +732,7 @@ public class SqlServerFunctionStore : IFunctionStore
                 var timestamp = reader.GetInt64(7);
                 var humanInstanceId = reader.GetString(8);
                 var parentId = reader.IsDBNull(9) ? null : StoredId.Deserialize(reader.GetString(9));
+                var ownerId = reader.IsDBNull(10) ? null : reader.GetGuid(10).ToReplicaId();
 
                 return new StoredFlow(
                     storedId,
@@ -740,7 +745,8 @@ public class SqlServerFunctionStore : IFunctionStore
                     expires,
                     timestamp,
                     interrupted,
-                    parentId
+                    parentId,
+                    ownerId
                 );
             }
         }

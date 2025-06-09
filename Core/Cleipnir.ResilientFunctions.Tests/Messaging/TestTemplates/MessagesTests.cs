@@ -31,7 +31,8 @@ public abstract class MessagesTests
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
-            parent: null
+            parent: null,
+            owner: null
         );
         var messagesWriter = new MessageWriter(storedId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
         var registeredTimeouts = new RegisteredTimeouts(storedId, functionStore.TimeoutStore, CreateEffect(storedId, flowId, functionStore), () => DateTime.UtcNow);
@@ -98,7 +99,8 @@ public abstract class MessagesTests
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
-            parent: null
+            parent: null,
+            owner: null
         );
         var messagesWriter = new MessageWriter(storedId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
         var registeredTimeouts = new RegisteredTimeouts(storedId, functionStore.TimeoutStore, CreateEffect(storedId, flowId, functionStore), () => DateTime.UtcNow);
@@ -139,7 +141,8 @@ public abstract class MessagesTests
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
-            parent: null
+            parent: null,
+            owner: null
         );
         var messagesWriter = new MessageWriter(storedId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
         var registeredTimeouts = new RegisteredTimeouts(storedId, functionStore.TimeoutStore, CreateEffect(storedId, flowId, functionStore), () => DateTime.UtcNow);
@@ -180,7 +183,8 @@ public abstract class MessagesTests
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
-            parent: null
+            parent: null,
+            owner: null
         );
         var messagesWriter = new MessageWriter(storedId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
         var registeredTimeouts = new RegisteredTimeouts(storedId, functionStore.TimeoutStore, CreateEffect(storedId, flowId, functionStore), () => DateTime.UtcNow);
@@ -223,7 +227,8 @@ public abstract class MessagesTests
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
-            parent: null
+            parent: null,
+            owner: null
         );
         var messagesWriter = new MessageWriter(storedId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
         var registeredTimeouts = new RegisteredTimeouts(storedId, functionStore.TimeoutStore, CreateEffect(storedId, flowId, functionStore), () => DateTime.UtcNow);
@@ -271,7 +276,8 @@ public abstract class MessagesTests
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
-            parent: null
+            parent: null,
+            owner: null
         );
         var messagesWriter = new MessageWriter(storedId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
         var registeredTimeouts = new RegisteredTimeouts(storedId, functionStore.TimeoutStore, CreateEffect(storedId, flowId, functionStore), () => DateTime.UtcNow);
@@ -318,7 +324,8 @@ public abstract class MessagesTests
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
-            parent: null
+            parent: null,
+            owner: null
         );
         var messagesWriter = new MessageWriter(storedId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
         var registeredTimeouts = new RegisteredTimeouts(storedId, functionStore.TimeoutStore, CreateEffect(storedId, flowId, functionStore), () => DateTime.UtcNow);
@@ -361,7 +368,8 @@ public abstract class MessagesTests
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
-            parent: null
+            parent: null,
+            owner: null
         );
         var messagesWriter = new MessageWriter(storedId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
         var registeredTimeouts = new RegisteredTimeouts(storedId, functionStore.TimeoutStore, CreateEffect(storedId, flowId, functionStore), () => DateTime.UtcNow);
@@ -416,7 +424,8 @@ public abstract class MessagesTests
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
-            parent: null
+            parent: null,
+            owner: null
         );
         var messagesWriter = new MessageWriter(storedId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
         var registeredTimeouts = new RegisteredTimeouts(storedId, functionStore.TimeoutStore, CreateEffect(storedId, flowId, functionStore), () => DateTime.UtcNow);

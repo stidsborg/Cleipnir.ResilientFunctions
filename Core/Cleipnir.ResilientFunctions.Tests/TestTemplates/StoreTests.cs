@@ -33,7 +33,8 @@ public abstract class StoreTests
             leaseExpiration,
             postponeUntil: null,
             timestamp,
-            parent: null
+            parent: null,
+            owner: null
         ).ShouldBeTrueAsync();
         
         var nonCompletes = await store.GetExpiredFunctions(expiresBefore: DateTime.UtcNow.Ticks);
@@ -85,7 +86,8 @@ public abstract class StoreTests
             leaseExpiration,
             postponeUntil: null,
             timestamp,
-            parent: null
+            parent: null,
+            owner: null
         ).ShouldBeTrueAsync();
 
         var sf = await store.GetFunction(functionId);
@@ -108,7 +110,8 @@ public abstract class StoreTests
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
-            parent: null
+            parent: null,
+            owner: null
         ).ShouldBeTrueAsync();
 
         var affectedRows = await store.RenewLeases([new LeaseUpdate(storedId, ExpectedEpoch: 0)], leaseExpiration: 1);
@@ -136,7 +139,8 @@ public abstract class StoreTests
             leaseExpiration,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
-            parent: null
+            parent: null,
+            owner: null
         ).ShouldBeTrueAsync();
 
         await store.RenewLeases([new LeaseUpdate(functionId, ExpectedEpoch: 1)], leaseExpiration: 1).ShouldBeAsync(0);
@@ -167,7 +171,8 @@ public abstract class StoreTests
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
-            parent: null
+            parent: null,
+            owner: null
         ).ShouldBeTrueAsync();
 
         var leaseExpiration = DateTime.UtcNow.Ticks;
@@ -200,7 +205,8 @@ public abstract class StoreTests
             leaseExpiration,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
-            parent: null
+            parent: null,
+            owner: null
         ).ShouldBeTrueAsync();
         
         await store
@@ -231,7 +237,8 @@ public abstract class StoreTests
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
-            parent: null
+            parent: null,
+            owner: null
         ).ShouldBeTrueAsync();
 
         await store.CreateFunction(
@@ -241,7 +248,8 @@ public abstract class StoreTests
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
-            parent: null
+            parent: null,
+            owner: null
         ).ShouldBeFalseAsync();
     }
     
@@ -261,7 +269,8 @@ public abstract class StoreTests
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
-            parent: null
+            parent: null,
+            owner: null
         ).ShouldBeTrueAsync();
 
         var sf = await store.GetFunction(functionId);
@@ -286,7 +295,8 @@ public abstract class StoreTests
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
-            parent: null
+            parent: null,
+            owner: null
         ).ShouldBeTrueAsync();
 
         await store.PostponeFunction(
@@ -323,7 +333,8 @@ public abstract class StoreTests
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
-            parent: null
+            parent: null,
+            owner: null
         ).ShouldBeTrueAsync();
 
         await store.PostponeFunction(
@@ -360,7 +371,8 @@ public abstract class StoreTests
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
-            parent: null
+            parent: null,
+            owner: null
         ).ShouldBeTrueAsync();
 
         await store.PostponeFunction(
@@ -405,7 +417,8 @@ public abstract class StoreTests
             leaseExpiration,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
-            parent: null
+            parent: null,
+            owner: null
         );
         
         var storedFunctions = await store.GetExpiredFunctions(expiresBefore: DateTime.UtcNow.Ticks);
@@ -430,7 +443,8 @@ public abstract class StoreTests
             leaseExpiration: 0,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
-            parent: null
+            parent: null,
+            owner: null
         );
         
         await store.CreateFunction(
@@ -440,7 +454,8 @@ public abstract class StoreTests
             leaseExpiration: 2,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
-            parent: null
+            parent: null,
+            owner: null
         );
         
         var storedFunctions = await store.GetExpiredFunctions(expiresBefore: 1);
@@ -463,7 +478,8 @@ public abstract class StoreTests
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
-            parent: null
+            parent: null,
+            owner: null
         ).ShouldBeTrueAsync();
 
         await store.RestartExecution(functionId, expectedEpoch: 0, DateTime.UtcNow.Ticks).ShouldNotBeNullAsync();
@@ -486,7 +502,8 @@ public abstract class StoreTests
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
-            parent: null
+            parent: null,
+            owner: null
         ).ShouldBeTrueAsync();
 
         await store.RestartExecution(functionId, expectedEpoch: 1, leaseExpiration: DateTime.UtcNow.Ticks).ShouldBeNullAsync();
@@ -515,7 +532,8 @@ public abstract class StoreTests
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
-            parent: null
+            parent: null,
+            owner: null
         ).ShouldBeTrueAsync();
 
         await BusyWait.Until(() => store.GetFunction(functionId).SelectAsync(sf => sf != null));
@@ -545,7 +563,8 @@ public abstract class StoreTests
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
-            parent: null
+            parent: null,
+            owner: null
         ).ShouldBeTrueAsync();
 
         var storedException = new StoredException(
@@ -591,7 +610,8 @@ public abstract class StoreTests
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
-            parent: null
+            parent: null,
+            owner: null
         ).ShouldBeTrueAsync();
 
         await store.SetFunctionState(
@@ -628,7 +648,8 @@ public abstract class StoreTests
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
-            parent: null
+            parent: null,
+            owner: null
         ).ShouldBeTrueAsync();
 
         var message1 = new StoredMessage(
@@ -676,7 +697,8 @@ public abstract class StoreTests
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
-            parent: null
+            parent: null,
+            owner: null
         ).ShouldBeTrueAsync();
 
         await store.SuspendFunction(
@@ -734,7 +756,8 @@ public abstract class StoreTests
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
-            parent: null
+            parent: null,
+            owner: null
         ).ShouldBeTrueAsync();
 
         await store.RestartExecution(
@@ -763,7 +786,8 @@ public abstract class StoreTests
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
-            parent: null
+            parent: null,
+            owner: null
         ).ShouldBeTrueAsync();
 
         await store.Interrupt(functionId, onlyIfExecuting: false).ShouldBeTrueAsync();
@@ -792,7 +816,8 @@ public abstract class StoreTests
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
-            parent: null
+            parent: null,
+            owner: null
         ).ShouldBeTrueAsync();
 
         await store.MessageStore.AppendMessage(functionId, new StoredMessage("Hello".ToJson().ToUtf8Bytes(), MessageType: typeof(string).SimpleQualifiedName().ToUtf8Bytes()));
@@ -818,7 +843,8 @@ public abstract class StoreTests
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
-            parent: null
+            parent: null,
+            owner: null
         ).ShouldBeTrueAsync();
 
         await store.SetFunctionState(
@@ -851,7 +877,8 @@ public abstract class StoreTests
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
-            parent: null
+            parent: null,
+            owner: null
         ).ShouldBeTrueAsync();
 
         await store.SucceedFunction(
@@ -882,7 +909,8 @@ public abstract class StoreTests
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
-            parent: null
+            parent: null,
+            owner: null
         ).ShouldBeTrueAsync();
 
         await store.PostponeFunction(
@@ -914,7 +942,8 @@ public abstract class StoreTests
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
-            parent: null
+            parent: null,
+            owner: null
         ).ShouldBeTrueAsync();
 
         await store.FailFunction(
@@ -945,7 +974,8 @@ public abstract class StoreTests
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
-            parent: null
+            parent: null,
+            owner: null
         ).ShouldBeTrueAsync();
 
         await store.SuspendFunction(
@@ -975,7 +1005,8 @@ public abstract class StoreTests
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
-            parent: null
+            parent: null,
+            owner: null
         ).ShouldBeTrueAsync();
 
         await store.MessageStore.AppendMessage(
@@ -1012,7 +1043,8 @@ public abstract class StoreTests
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
-            parent: null
+            parent: null,
+            owner: null
         ).ShouldBeTrueAsync();
 
         await store.MessageStore.AppendMessage(
@@ -1052,7 +1084,8 @@ public abstract class StoreTests
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
-            parent: null
+            parent: null,
+            owner: null
         ).ShouldBeTrueAsync();
 
         var storedFunction = await store.GetFunction(functionId);
@@ -1080,7 +1113,8 @@ public abstract class StoreTests
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
-            parent: null
+            parent: null,
+            owner: null
         ).ShouldBeTrueAsync();
 
         await store.SuspendFunction(
@@ -1131,7 +1165,8 @@ public abstract class StoreTests
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
-            parent: null
+            parent: null,
+            owner: null
         ).ShouldBeTrueAsync();
 
         await effectsStore.SetEffectResult(functionId, new StoredEffect(EffectId: "".ToEffectId(EffectType.State), "".ToStoredEffectId(EffectType.State), WorkStatus.Completed, "some default state".ToUtf8Bytes(), StoredException: null));
@@ -1159,7 +1194,8 @@ public abstract class StoreTests
                 leaseExpiration: DateTime.UtcNow.Ticks,
                 postponeUntil: null,
                 timestamp: timestamp,
-                parent: null
+                parent: null,
+                owner: null
             ).ShouldBeTrueAsync();
 
             await store.SucceedFunction(
@@ -1235,7 +1271,8 @@ public abstract class StoreTests
             leaseExpiration,
             postponeUntil: 0,
             timestamp,
-            parent: null
+            parent: null,
+            owner: null
         ).ShouldBeTrueAsync();
         await store.CreateFunction(
             flowId2, 
@@ -1244,7 +1281,8 @@ public abstract class StoreTests
             leaseExpiration,
             postponeUntil: 0,
             timestamp,
-            parent: null
+            parent: null,
+            owner: null
         ).ShouldBeTrueAsync();
         
         var expires = await store.GetExpiredFunctions(expiresBefore: DateTime.UtcNow.Ticks);
@@ -1277,7 +1315,8 @@ public abstract class StoreTests
             leaseExpiration,
             postponeUntil: 0,
             timestamp,
-            parent: null
+            parent: null,
+            owner: null
         ).ShouldBeTrueAsync();
         await store.CreateFunction(
             flowId2, 
@@ -1286,7 +1325,8 @@ public abstract class StoreTests
             leaseExpiration,
             postponeUntil: 0,
             timestamp,
-            parent: null
+            parent: null,
+            owner: null
         ).ShouldBeTrueAsync();
         await store.CreateFunction(
             flowId3, 
@@ -1295,7 +1335,8 @@ public abstract class StoreTests
             leaseExpiration,
             postponeUntil: 0,
             timestamp,
-            parent: null
+            parent: null,
+            owner: null
         ).ShouldBeTrueAsync();
         
         var instances = await store.GetInstances(storedType1);
@@ -1364,7 +1405,8 @@ public abstract class StoreTests
             leaseExpiration: 0,
             postponeUntil: null,
             timestamp: 0,
-            parentId
+            parentId,
+            owner: null
         ).ShouldBeTrueAsync();
 
         var sf = await store.GetFunction(id).ShouldNotBeNullAsync();
@@ -1383,7 +1425,8 @@ public abstract class StoreTests
             leaseExpiration: 0,
             postponeUntil: null,
             timestamp: 0,
-            parent: null
+            parent: null,
+            owner: null
         ).ShouldBeTrueAsync();
 
         var sf = await store.GetFunction(id).ShouldNotBeNullAsync();
@@ -1406,7 +1449,8 @@ public abstract class StoreTests
             leaseExpiration: 0,
             postponeUntil: null,
             timestamp: 0,
-            parent: null
+            parent: null,
+            owner: null
         ).ShouldBeTrueAsync();
         await store.CreateFunction(
             id2,
@@ -1415,7 +1459,8 @@ public abstract class StoreTests
             leaseExpiration: 0,
             postponeUntil: null,
             timestamp: 0,
-            parent: null
+            parent: null,
+            owner: null
         ).ShouldBeTrueAsync();
         await store.RestartExecution(id2, expectedEpoch: 0, leaseExpiration: 0);
         await store.CreateFunction(
@@ -1425,7 +1470,8 @@ public abstract class StoreTests
             leaseExpiration: 0,
             postponeUntil: null,
             timestamp: 0,
-            parent: null
+            parent: null,
+            owner: null
         ).ShouldBeTrueAsync();
 
         await store.RenewLeases(
@@ -1458,7 +1504,8 @@ public abstract class StoreTests
                 leaseExpiration: DateTime.UtcNow.Ticks,
                 postponeUntil: null,
                 timestamp: timestamp,
-                parent: null
+                parent: null,
+                owner: null
             ).ShouldBeTrueAsync();
 
             await store.SucceedFunction(
@@ -1499,7 +1546,8 @@ public abstract class StoreTests
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
-            parent: null
+            parent: null,
+            owner: null
         ).ShouldBeTrueAsync();
 
         await store.Interrupt([storedId]);
@@ -1541,7 +1589,8 @@ public abstract class StoreTests
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
-            parent: null
+            parent: null,
+            owner: null
         ).ShouldBeTrueAsync();
 
         await store.Interrupt([storedId]);
@@ -1603,7 +1652,8 @@ public abstract class StoreTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             effects: [effect1, effect2],
-            messages: [message1, message2]
+            messages: [message1, message2],
+            owner: null
         ).ShouldBeTrueAsync();
 
         var effectResults = await store.EffectsStore.GetEffectResults(storedId);
@@ -1637,7 +1687,8 @@ public abstract class StoreTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             effects: [effect1, effect2],
-            messages: [message1, message2]
+            messages: [message1, message2],
+            owner: null
         ).ShouldBeFalseAsync();
     }
     
@@ -1669,7 +1720,8 @@ public abstract class StoreTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             effects: null,
-            messages: [message1, message2]
+            messages: [message1, message2],
+            owner: null
         ).ShouldBeTrueAsync();
 
         var effectResults = await store.EffectsStore.GetEffectResults(storedId);
@@ -1697,7 +1749,8 @@ public abstract class StoreTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             effects: null,
-            messages: [message1, message2]
+            messages: [message1, message2],
+            owner: null
         ).ShouldBeFalseAsync();
     }
     
@@ -1731,7 +1784,8 @@ public abstract class StoreTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             effects: [effect1, effect2],
-            messages: null
+            messages: null,
+            owner: null
         ).ShouldBeTrueAsync();
 
         var effectResults = await store.EffectsStore.GetEffectResults(storedId);
@@ -1756,7 +1810,8 @@ public abstract class StoreTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             effects: [effect1, effect2],
-            messages: null
+            messages: null,
+            owner: null
         ).ShouldBeFalseAsync();
     }
     
@@ -1775,7 +1830,8 @@ public abstract class StoreTests
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
-            parent: null
+            parent: null,
+            owner: null
         ).ShouldBeTrueAsync();
 
         await store.MessageStore.AppendMessage(
@@ -1828,7 +1884,8 @@ public abstract class StoreTests
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
-            parent: null
+            parent: null,
+            owner: null
         ).ShouldBeTrueAsync();
         
         var leaseExpiration = DateTime.UtcNow.Ticks;

@@ -55,6 +55,7 @@ public class CrashableFunctionStore : IFunctionStore
         long? postponeUntil,
         long timestamp,
         StoredId? parent,
+        ReplicaId? owner,
         IReadOnlyList<StoredEffect>? effects = null, 
         IReadOnlyList<StoredMessage>? messages = null
     ) => _crashed
@@ -66,7 +67,8 @@ public class CrashableFunctionStore : IFunctionStore
             leaseExpiration,
             postponeUntil,
             timestamp,
-            parent
+            parent,
+            owner
         );
 
     public Task BulkScheduleFunctions(IEnumerable<IdWithParam> functionsWithParam, StoredId? parent)

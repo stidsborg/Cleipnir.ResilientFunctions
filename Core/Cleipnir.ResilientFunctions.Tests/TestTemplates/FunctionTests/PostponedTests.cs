@@ -350,7 +350,8 @@ public abstract class PostponedTests
                 leaseExpiration: DateTime.UtcNow.Ticks,
                 postponeUntil: null,
                 timestamp: DateTime.UtcNow.Ticks,
-                parent: null
+                parent: null,
+                owner: null
             ).ShouldBeTrueAsync();
             
             Should.Throw<InvocationPostponedException>(
@@ -373,7 +374,8 @@ public abstract class PostponedTests
                 leaseExpiration: DateTime.UtcNow.Ticks,
                 postponeUntil: null,
                 timestamp: DateTime.UtcNow.Ticks,
-                parent: null
+                parent: null,
+                owner: null
             ).ShouldBeTrueAsync();
 
             await rAction.ControlPanel(functionId.Instance).Result!.ScheduleRestart();
@@ -441,7 +443,8 @@ public abstract class PostponedTests
                 leaseExpiration: DateTime.UtcNow.Ticks,
                 postponeUntil: null,
                 timestamp: DateTime.UtcNow.Ticks,
-                parent: null
+                parent: null,
+                owner: null
             ).ShouldBeTrueAsync();
             
             Should.Throw<InvocationPostponedException>(
@@ -464,7 +467,8 @@ public abstract class PostponedTests
                 leaseExpiration: DateTime.UtcNow.Ticks,
                 postponeUntil: null,
                 timestamp: DateTime.UtcNow.Ticks,
-                parent: null
+                parent: null,
+                owner: null
             ).ShouldBeTrueAsync();
 
             await rAction.ControlPanel(functionId.Instance).Result!.ScheduleRestart();
@@ -534,7 +538,8 @@ public abstract class PostponedTests
                 leaseExpiration: DateTime.UtcNow.Ticks,
                 postponeUntil: null,
                 timestamp: DateTime.UtcNow.Ticks,
-                parent: null
+                parent: null,
+                owner: null
             ).ShouldBeTrueAsync();
             var controlPanel = await rFunc.ControlPanel(functionId.Instance).ShouldNotBeNullAsync();
             Should.Throw<InvocationPostponedException>(() => controlPanel.Restart());
@@ -555,7 +560,8 @@ public abstract class PostponedTests
                 leaseExpiration: DateTime.UtcNow.Ticks,
                 postponeUntil: null,
                 timestamp: DateTime.UtcNow.Ticks,
-                parent: null
+                parent: null,
+                owner: null
             ).ShouldBeTrueAsync();
 
             var controlPanel = await rFunc.ControlPanel(functionId.Instance).ShouldNotBeNullAsync();
@@ -624,7 +630,8 @@ public abstract class PostponedTests
                 leaseExpiration: DateTime.UtcNow.Ticks,
                 postponeUntil: null,
                 timestamp: DateTime.UtcNow.Ticks,
-                parent: null
+                parent: null,
+                owner: null
             ).ShouldBeTrueAsync();
 
             var controlPanel = await rFunc.ControlPanel(functionId.Instance).ShouldNotBeNullAsync();
@@ -646,7 +653,8 @@ public abstract class PostponedTests
                 leaseExpiration: DateTime.UtcNow.Ticks,
                 postponeUntil: null,
                 timestamp: DateTime.UtcNow.Ticks,
-                parent: null
+                parent: null,
+                owner: null
             ).ShouldBeTrueAsync();
 
             var controlPanel = await rFunc.ControlPanel(functionId.Instance).ShouldNotBeNullAsync();
@@ -682,7 +690,8 @@ public abstract class PostponedTests
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
-            parent: null
+            parent: null,
+            owner: null
         ).ShouldBeTrueAsync();
 
         await store.PostponeFunction(

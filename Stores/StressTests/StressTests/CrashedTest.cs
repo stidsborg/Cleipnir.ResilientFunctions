@@ -34,7 +34,8 @@ public static class CrashedTest
                 leaseExpiration,
                 postponeUntil: null,
                 timestamp: DateTime.UtcNow.Ticks,
-                parent: null
+                parent: null,
+                owner: null
             );
         }
         

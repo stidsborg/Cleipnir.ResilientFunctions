@@ -153,13 +153,14 @@ public class SqlGenerator(string tablePrefix)
         long? postponeUntil,
         long timestamp,
         StoredId? parent,
+        ReplicaId? owner,
         bool ignoreConflict)
     {
         _createFunctionSql ??= @$"
             INSERT INTO {tablePrefix}
-                (type, instance, status, param_json, expires, timestamp, human_instance_id, parent)
+                (type, instance, status, param_json, expires, timestamp, human_instance_id, parent, owner)
             VALUES
-                ($1, $2, $3, $4, $5, $6, $7, $8)
+                ($1, $2, $3, $4, $5, $6, $7, $8, $9)
             ON CONFLICT DO NOTHING;";
 
         var sql = _createFunctionSql;
@@ -177,7 +178,8 @@ public class SqlGenerator(string tablePrefix)
                 postponeUntil ?? leaseExpiration,
                 timestamp,
                 humanInstanceId.Value,
-                parent?.Serialize() ?? (object)DBNull.Value
+                parent?.Serialize() ?? (object)DBNull.Value,
+                owner?.AsGuid ?? (object)DBNull.Value,
             ]);
     }
     
@@ -308,7 +310,8 @@ public class SqlGenerator(string tablePrefix)
                 interrupted,
                 timestamp,
                 human_instance_id,
-                parent";
+                parent,
+                owner";
 
         var command = StoreCommand.Create(
             _restartExecutionSql,
@@ -334,7 +337,8 @@ public class SqlGenerator(string tablePrefix)
            6 interrupted,
            7 timestamp,
            8 human_instance_id
-           9 parent
+           9 parent,
+           10 owner
          */
         while (await reader.ReadAsync())
         {
@@ -342,6 +346,7 @@ public class SqlGenerator(string tablePrefix)
             var hasResult = !await reader.IsDBNullAsync(2);
             var hasException = !await reader.IsDBNullAsync(3);
             var hasParent = !await reader.IsDBNullAsync(9);
+            var hasOwner = !await reader.IsDBNullAsync(10);
             
             return new StoredFlow(
                 storedId,
@@ -354,7 +359,8 @@ public class SqlGenerator(string tablePrefix)
                 Epoch: reader.GetInt32(5),
                 Interrupted: reader.GetBoolean(6),
                 Timestamp: reader.GetInt64(7),
-                ParentId: hasParent ? StoredId.Deserialize(reader.GetString(9)) : null
+                ParentId: hasParent ? StoredId.Deserialize(reader.GetString(9)) : null,
+                OwnerId: hasOwner ? new ReplicaId(reader.GetGuid(10)) : null
             );
         }
 
