@@ -363,6 +363,7 @@ internal class InvocationHelper<TParam, TReturn>
             sf.Status,
             sf.Epoch,
             sf.Expires,
+            sf.OwnerId,
             Param:
                 sf.Parameter == null 
                 ? default

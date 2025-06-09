@@ -716,4 +716,40 @@ public abstract class SunshineTests
         
         unhandledExceptionHandler.ShouldNotHaveExceptions();
     }
+    
+    public abstract Task ExecutingFunctionHasOwner();
+    public async Task ExecutingFunctionHasOwner(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var flowId = TestFlowId.Create(); 
+
+        var unhandledExceptionHandler = new UnhandledExceptionCatcher();
+        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler.Catch));
+        
+        var insideFlag = new SyncedFlag();
+        var completeFlag = new SyncedFlag();
+        var registration = functionsRegistry
+            .RegisterAction(
+                flowId.Type,
+                inner: async Task (string _) =>
+                {
+                    insideFlag.Raise();
+                    await completeFlag.WaitForRaised();
+                }
+            );
+        var flowTask = registration.Invoke(flowId.Instance, "param");
+        await insideFlag.WaitForRaised();
+
+        var cp = await registration.ControlPanel(flowId.Instance).ShouldNotBeNullAsync();
+        cp.Owner.ShouldNotBeNull();
+        cp.Owner.ShouldBe(functionsRegistry.ClusterInfo.ReplicaId);
+        
+        completeFlag.Raise();
+        await flowTask;
+
+        await cp.Refresh();
+        //todo cp.Owner.ShouldBeNull();
+        
+        unhandledExceptionHandler.ShouldNotHaveExceptions();
+    }
 }

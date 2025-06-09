@@ -14,7 +14,7 @@ public class ClusterInfo
             lock (_sync)
                 return _offset;
         }
-        set
+        internal set
         {
             lock (_sync)
                 _offset = value;
@@ -29,7 +29,7 @@ public class ClusterInfo
             lock (_sync)
                 return _replicaCount;
         }
-        set
+        internal set
         {
             lock (_sync)
                 _replicaCount = value;

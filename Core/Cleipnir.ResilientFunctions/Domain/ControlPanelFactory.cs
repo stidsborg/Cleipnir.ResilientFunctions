@@ -37,6 +37,7 @@ public class ControlPanelFactory
             _invocationHelper,
             flowId,
             storedId,
+            functionState.Owner,
             functionState.Status,
             functionState.Epoch,
             functionState.Expires,
@@ -84,6 +85,7 @@ public class ControlPanelFactory<TParam> where TParam : notnull
             _invocationHelper,
             flowId,
             storedId,
+            functionState.Owner,
             functionState.Status,
             functionState.Epoch,
             functionState.Expires,
@@ -121,8 +123,8 @@ public class ControlPanelFactory<TParam, TReturn> where TParam : notnull
     {
         var flowId = new FlowId(_flowType, flowInstance);
         var storedId = new StoredId(_storedType, flowInstance.Value.ToStoredInstance());
-        var f = await _invocationHelper.GetFunction(storedId, flowId);
-        if (f == null)
+        var functionState = await _invocationHelper.GetFunction(storedId, flowId);
+        if (functionState == null)
             return null;
         
         var existingEffects = _invocationHelper.CreateExistingEffects(flowId);
@@ -131,18 +133,19 @@ public class ControlPanelFactory<TParam, TReturn> where TParam : notnull
             _invocationHelper,
             flowId,
             storedId,
-            f.Status,
-            f.Epoch,
-            f.Expires,
-            f.Param!,
-            f.Result,
+            functionState.Owner,
+            functionState.Status,
+            functionState.Epoch,
+            functionState.Expires,
+            functionState.Param!,
+            functionState.Result,
             existingEffects,
             _invocationHelper.CreateExistingStates(flowId),
             _invocationHelper.CreateExistingMessages(flowId),
             _invocationHelper.CreateExistingSemaphores(flowId),
             _invocationHelper.CreateExistingTimeouts(flowId, existingEffects),
             _invocationHelper.CreateCorrelations(flowId),
-            f.FatalWorkflowException,
+            functionState.FatalWorkflowException,
             _utcNow
         );
     }
