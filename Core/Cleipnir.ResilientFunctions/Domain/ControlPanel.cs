@@ -15,7 +15,7 @@ public class ControlPanel : BaseControlPanel<Unit, Unit>
         Invoker<Unit, Unit> invoker, 
         InvocationHelper<Unit, Unit> invocationHelper, 
         FlowId flowId, StoredId storedId,
-        ReplicaId? owner,
+        ReplicaId? ownerReplica,
         Status status, int epoch, long expires,  
         ExistingEffects effects,
         ExistingStates states, ExistingMessages messages, ExistingSemaphores semaphores, 
@@ -24,7 +24,7 @@ public class ControlPanel : BaseControlPanel<Unit, Unit>
         UtcNow utcNow
     ) : base(
         invoker, invocationHelper, 
-        flowId, storedId, owner, status, epoch,
+        flowId, storedId, ownerReplica, status, epoch,
         expires, innerParam: Unit.Instance, innerResult: Unit.Instance, effects,
         states, messages, registeredTimeouts, semaphores, correlations, fatalWorkflowException,
         utcNow
@@ -59,7 +59,7 @@ public class ControlPanel<TParam> : BaseControlPanel<TParam, Unit> where TParam 
         Invoker<TParam, Unit> invoker, 
         InvocationHelper<TParam, Unit> invocationHelper, 
         FlowId flowId, StoredId storedId,
-        ReplicaId? owner,
+        ReplicaId? ownerReplica,
         Status status, int epoch, long expires, TParam innerParam, 
         ExistingEffects effects,
         ExistingStates states, ExistingMessages messages, ExistingSemaphores semaphores, 
@@ -68,7 +68,7 @@ public class ControlPanel<TParam> : BaseControlPanel<TParam, Unit> where TParam 
         UtcNow utcNow
     ) : base(
         invoker, invocationHelper, 
-        flowId, storedId, owner, status, epoch,
+        flowId, storedId, ownerReplica, status, epoch,
         expires, innerParam, innerResult: Unit.Instance, effects,
         states, messages, registeredTimeouts, semaphores, correlations, fatalWorkflowException,
         utcNow
@@ -108,7 +108,7 @@ public class ControlPanel<TParam, TReturn> : BaseControlPanel<TParam, TReturn> w
     internal ControlPanel(
         Invoker<TParam, TReturn> invoker, 
         InvocationHelper<TParam, TReturn> invocationHelper, 
-        FlowId flowId, StoredId storedId, ReplicaId? owner, Status status, int epoch, 
+        FlowId flowId, StoredId storedId, ReplicaId? ownerReplica, Status status, int epoch, 
         long expires, TParam innerParam, 
         TReturn? innerResult, 
         ExistingEffects effects, ExistingStates states, ExistingMessages messages, ExistingSemaphores semaphores,
@@ -116,7 +116,7 @@ public class ControlPanel<TParam, TReturn> : BaseControlPanel<TParam, TReturn> w
         UtcNow utcNow
     ) : base(
         invoker, invocationHelper, 
-        flowId, storedId, owner, status, epoch, expires, 
+        flowId, storedId, ownerReplica, status, epoch, expires, 
         innerParam, innerResult, effects, states, messages, 
         registeredTimeouts, semaphores, correlations, fatalWorkflowException,
         utcNow
@@ -163,7 +163,7 @@ public abstract class BaseControlPanel<TParam, TReturn>
         InvocationHelper<TParam, TReturn> invocationHelper,
         FlowId flowId, 
         StoredId storedId,
-        ReplicaId? owner,
+        ReplicaId? ownerReplica,
         Status status, 
         int epoch,
         long expires,
@@ -182,7 +182,7 @@ public abstract class BaseControlPanel<TParam, TReturn>
         _invocationHelper = invocationHelper;
         FlowId = flowId;
         StoredId = storedId;
-        Owner = owner;
+        OwnerReplica = ownerReplica;
         Status = status;
         Epoch = epoch;
         LeaseExpiration = expires == long.MaxValue
@@ -204,7 +204,7 @@ public abstract class BaseControlPanel<TParam, TReturn>
 
     public FlowId FlowId { get; }
     public StoredId StoredId { get; }
-    public ReplicaId? Owner { get; }
+    public ReplicaId? OwnerReplica { get; }
     public Status Status { get; private set; }
     protected UtcNow UtcNow { get; }
     

@@ -741,8 +741,8 @@ public abstract class SunshineTests
         await insideFlag.WaitForRaised();
 
         var cp = await registration.ControlPanel(flowId.Instance).ShouldNotBeNullAsync();
-        cp.Owner.ShouldNotBeNull();
-        cp.Owner.ShouldBe(functionsRegistry.ClusterInfo.ReplicaId);
+        cp.OwnerReplica.ShouldNotBeNull();
+        cp.OwnerReplica.ShouldBe(functionsRegistry.ClusterInfo.ReplicaId);
         
         completeFlag.Raise();
         await flowTask;
