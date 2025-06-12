@@ -4,11 +4,12 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.CoreRuntime.Watchdogs;
 
-internal class ReplicaWatchdog(ClusterInfo clusterInfo, IFunctionStore functionStore, TimeSpan checkFrequency) : IDisposable
+internal class ReplicaWatchdog(ClusterInfo clusterInfo, IFunctionStore functionStore, TimeSpan checkFrequency, UnhandledExceptionHandler unhandledExceptionHandler) : IDisposable
 {
     private volatile bool _disposed;
     private bool _started;
@@ -54,7 +55,15 @@ internal class ReplicaWatchdog(ClusterInfo clusterInfo, IFunctionStore functionS
     {
         while (!_disposed)
         {
-            await PerformIteration();
+            try
+            {
+                await PerformIteration();
+            }
+            catch (Exception ex)
+            {
+                unhandledExceptionHandler.Invoke(new FrameworkException("ReplicaWatchdog failed during iteration", ex));
+            }
+            
             await Task.Delay(checkFrequency);
         }
     }
@@ -121,7 +130,7 @@ internal class ReplicaWatchdog(ClusterInfo clusterInfo, IFunctionStore functionS
             await functionStore.RescheduleCrashedFunctions(strikedOutId);
             _ = Task
                 .Delay(TimeSpan.FromSeconds(5))
-                .ContinueWith(_ => functionStore.RescheduleCrashedFunctions(strikedOutId));
+                .ContinueWith(_ => { if (!_disposed) functionStore.RescheduleCrashedFunctions(strikedOutId); });
             
             _strikes.Remove(storedReplica);
         }

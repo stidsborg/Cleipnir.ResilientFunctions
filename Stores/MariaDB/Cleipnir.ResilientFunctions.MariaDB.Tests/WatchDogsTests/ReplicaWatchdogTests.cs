@@ -41,4 +41,8 @@ public class ReplicaWatchdogTests : ResilientFunctions.Tests.TestTemplates.Watch
     [TestMethod]
     public override Task StrikedOutReplicasFunctionIsPostponedAfterCrash()
         => StrikedOutReplicasFunctionIsPostponedAfterCrash(FunctionStoreFactory.Create());
+    
+    [TestMethod]
+    public override Task ReplicaWatchdogUpdatesHeartbeat()
+        => ReplicaWatchdogUpdatesHeartbeat(FunctionStoreFactory.Create());
 }

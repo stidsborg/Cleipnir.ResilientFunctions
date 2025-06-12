@@ -32,7 +32,8 @@ public class FunctionsRegistry : IDisposable
     
     private volatile bool _disposed;
     private readonly Lock _sync = new();
-    
+    private readonly ReplicaWatchdog _replicaWatchdog;
+
     public FunctionsRegistry(IFunctionStore functionStore, Settings? settings = null)
     {
         _functionStore = functionStore;
@@ -62,6 +63,8 @@ public class FunctionsRegistry : IDisposable
         );
 
         ClusterInfo = new ClusterInfo(ReplicaId.NewId());
+        _replicaWatchdog = new ReplicaWatchdog(ClusterInfo, functionStore, checkFrequency: TimeSpan.FromSeconds(1), _settings.UnhandledExceptionHandler);
+        
     }
 
     #region Func overloads
@@ -482,19 +485,24 @@ public class FunctionsRegistry : IDisposable
     public Task ShutdownGracefully(TimeSpan? maxWait = null)
     {
         _disposed = true;
+        
         // ReSharper disable once InconsistentlySynchronizedField
         var shutdownTask = _shutdownCoordinator.PerformShutdown();
         if (maxWait == null)
             return shutdownTask;
 
         var tcs = new TaskCompletionSource();
-        shutdownTask.ContinueWith(_ => tcs.TrySetResult());
+        shutdownTask.ContinueWith(_ =>
+        {
+            _replicaWatchdog.Dispose();
+            tcs.TrySetResult();
+        });
             
         Task.Delay(maxWait.Value)
             .ContinueWith(_ =>
                 tcs.TrySetException(new TimeoutException("Shutdown did not complete within threshold"))
             );
-
+        
         return tcs.Task;
     }
 }
