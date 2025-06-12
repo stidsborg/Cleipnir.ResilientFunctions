@@ -5,6 +5,7 @@ using Cleipnir.ResilientFunctions.CoreRuntime.Watchdogs;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Storage;
+using Cleipnir.ResilientFunctions.Tests.Utils;
 using Shouldly;
 
 namespace Cleipnir.ResilientFunctions.Tests.TestTemplates.WatchDogsTests;
@@ -14,13 +15,13 @@ public abstract class ReplicaWatchdogTests
     public abstract Task SunshineScenario();
     public async Task SunshineScenario(Task<IFunctionStore> storeTask)
     {
-        var store = await storeTask.SelectAsync(s => s.ReplicaStore);
+        var functionStore = await storeTask;
+        var store = functionStore.ReplicaStore;
         var replicaId1 = new ClusterInfo(Guid.Parse("10000000-0000-0000-0000-000000000000").ToReplicaId());
         using var watchdog1 = new ReplicaWatchdog(
             replicaId1,
-            store,
-            checkFrequency: TimeSpan.FromHours(1),
-            onStrikeOut: _ => {}
+            functionStore,
+            checkFrequency: TimeSpan.FromHours(1)
         );
         await watchdog1.Initialize();
         var allReplicas = await store.GetAll();
@@ -31,9 +32,8 @@ public abstract class ReplicaWatchdogTests
         var replicaId2 = new ClusterInfo(Guid.Parse("20000000-0000-0000-0000-000000000000").ToReplicaId());
         using var watchdog2 = new ReplicaWatchdog(
             replicaId2,
-            store,
-            checkFrequency: TimeSpan.FromHours(1),
-            onStrikeOut: _ => {}
+            functionStore,
+            checkFrequency: TimeSpan.FromHours(1)
         );
         await watchdog2.Initialize();
         allReplicas = await store.GetAll();
@@ -68,13 +68,13 @@ public abstract class ReplicaWatchdogTests
     public abstract Task ReplicaWatchdogStartResultsInAddedReplicaInStore();
     public async Task ReplicaWatchdogStartResultsInAddedReplicaInStore(Task<IFunctionStore> storeTask)
     {
-        var store = await storeTask.SelectAsync(s => s.ReplicaStore);
+        var functionStore = await storeTask;
+        var store = functionStore.ReplicaStore;
         var replicaId1 = new ClusterInfo(Guid.Parse("10000000-0000-0000-0000-000000000000").ToReplicaId());
         using var watchdog1 = new ReplicaWatchdog(
             replicaId1,
-            store,
-            checkFrequency: TimeSpan.FromHours(1),
-            onStrikeOut: _ => {}
+            functionStore,
+            checkFrequency: TimeSpan.FromHours(1)
         );
         await watchdog1.Start();
         var allReplicas = await store.GetAll();
@@ -83,9 +83,8 @@ public abstract class ReplicaWatchdogTests
         var replicaId2 = new ClusterInfo(Guid.Parse("20000000-0000-0000-0000-000000000000").ToReplicaId());
         using var watchdog2 = new ReplicaWatchdog(
             replicaId2,
-            store,
-            checkFrequency: TimeSpan.FromHours(1),
-            onStrikeOut: _ => {}
+            functionStore,
+            checkFrequency: TimeSpan.FromHours(1)
         );
         await watchdog2.Start();
         allReplicas = await store.GetAll();
@@ -95,24 +94,23 @@ public abstract class ReplicaWatchdogTests
     public abstract Task StrikedOutReplicaIsRemovedFromStore();
     public async Task StrikedOutReplicaIsRemovedFromStore(Task<IFunctionStore> storeTask)
     {
-        var store = await storeTask.SelectAsync(s => s.ReplicaStore);
+        var functionStore = await storeTask;
+        var store = functionStore.ReplicaStore;
         var toBeStrikedOut = ReplicaId.NewId();
-        ReplicaId? strikedOut = null;
+        
         await store.Insert(toBeStrikedOut);
         var replicaId1 = new ClusterInfo(Guid.Parse("10000000-0000-0000-0000-000000000000").ToReplicaId());
         using var watchdog1 = new ReplicaWatchdog(
             replicaId1,
-            store,
-            checkFrequency: TimeSpan.FromHours(1),
-            onStrikeOut: id => strikedOut = id
+            functionStore,
+            checkFrequency: TimeSpan.FromHours(1)
         );
         await watchdog1.Initialize();
         await watchdog1.PerformIteration();
-        strikedOut.ShouldBeNull();
+        await store.GetAll().SelectAsync(rs => rs.Count == 2).ShouldBeTrueAsync();
         await watchdog1.PerformIteration();
-        strikedOut.ShouldBeNull();
+        await store.GetAll().SelectAsync(rs => rs.Count == 2).ShouldBeTrueAsync();
         await watchdog1.PerformIteration();
-        strikedOut.ShouldBe(toBeStrikedOut);
 
         var all = await store.GetAll();
         all.Count.ShouldBe(1);
@@ -122,14 +120,14 @@ public abstract class ReplicaWatchdogTests
     public abstract Task RunningWatchdogUpdatesItsOwnHeartbeat();
     public async Task RunningWatchdogUpdatesItsOwnHeartbeat(Task<IFunctionStore> storeTask)
     {
-        var store = await storeTask.SelectAsync(s => s.ReplicaStore);
-        var anyStrikesOut = false;
+        var functionStore = await storeTask;
+        var store = functionStore.ReplicaStore;
+        
         var replicaId1 = new ClusterInfo(ReplicaId.NewId());
         using var watchdog1 = new ReplicaWatchdog(
             replicaId1,
-            store,
-            checkFrequency: TimeSpan.FromMilliseconds(100),
-            onStrikeOut: _ => anyStrikesOut = true 
+            functionStore,
+            checkFrequency: TimeSpan.FromMilliseconds(100)
         );
 
         await watchdog1.Start();
@@ -142,22 +140,21 @@ public abstract class ReplicaWatchdogTests
             single.ReplicaId.ShouldBe(replicaId1.ReplicaId);
             return single.Heartbeat > 0;
         });
-        
-        anyStrikesOut.ShouldBe(false);
     }
     
     public abstract Task ReplicaIdOffsetIfCalculatedCorrectly();
     public async Task ReplicaIdOffsetIfCalculatedCorrectly(Task<IFunctionStore> storeTask)
     {
-        var store = await storeTask.SelectAsync(s => s.ReplicaStore);
+        var store = await storeTask;
+        var replicaStore = store.ReplicaStore;
         
         var replicaId1 = new ClusterInfo(Guid.Parse("10000000-0000-0000-0000-000000000000").ToReplicaId());
         var replicaId2 = new ClusterInfo(Guid.Parse("20000000-0000-0000-0000-000000000000").ToReplicaId());
         var replicaId3 = new ClusterInfo(Guid.Parse("30000000-0000-0000-0000-000000000000").ToReplicaId());
 
-        var watchdog1 = new ReplicaWatchdog(replicaId1, store, checkFrequency: TimeSpan.FromHours(1), onStrikeOut: _ => { });
-        var watchdog2 = new ReplicaWatchdog(replicaId2, store, checkFrequency: TimeSpan.FromHours(1), onStrikeOut: _ => { });
-        var watchdog3 = new ReplicaWatchdog(replicaId3, store, checkFrequency: TimeSpan.FromHours(1), onStrikeOut: _ => { });
+        var watchdog1 = new ReplicaWatchdog(replicaId1, store, checkFrequency: TimeSpan.FromHours(1));
+        var watchdog2 = new ReplicaWatchdog(replicaId2, store, checkFrequency: TimeSpan.FromHours(1));
+        var watchdog3 = new ReplicaWatchdog(replicaId3, store, checkFrequency: TimeSpan.FromHours(1));
 
         await watchdog1.Initialize();
         await watchdog2.Initialize();
@@ -174,15 +171,16 @@ public abstract class ReplicaWatchdogTests
     public abstract Task ReplicaIdOffsetIsUpdatedWhenNodeIsAddedAndDeleted();
     public async Task ReplicaIdOffsetIsUpdatedWhenNodeIsAddedAndDeleted(Task<IFunctionStore> storeTask)
     {
-        var store = await storeTask.SelectAsync(s => s.ReplicaStore);
+        var functionStore = await storeTask;
+        var store = functionStore.ReplicaStore;
         
         var cluster1 = new ClusterInfo(Guid.Parse("10000000-0000-0000-0000-000000000000").ToReplicaId());
         var cluster2 = new ClusterInfo(Guid.Parse("20000000-0000-0000-0000-000000000000").ToReplicaId());
         var cluster3 = new ClusterInfo(Guid.Parse("30000000-0000-0000-0000-000000000000").ToReplicaId());
 
-        var watchdog1 = new ReplicaWatchdog(cluster1, store, checkFrequency: TimeSpan.FromHours(1), onStrikeOut: _ => { });
-        var watchdog2 = new ReplicaWatchdog(cluster2, store, checkFrequency: TimeSpan.FromHours(1), onStrikeOut: _ => { });
-        var watchdog3 = new ReplicaWatchdog(cluster3, store, checkFrequency: TimeSpan.FromHours(1), onStrikeOut: _ => { });
+        var watchdog1 = new ReplicaWatchdog(cluster1, functionStore, checkFrequency: TimeSpan.FromHours(1));
+        var watchdog2 = new ReplicaWatchdog(cluster2, functionStore, checkFrequency: TimeSpan.FromHours(1));
+        var watchdog3 = new ReplicaWatchdog(cluster3, functionStore, checkFrequency: TimeSpan.FromHours(1));
 
         await watchdog3.Initialize();
         cluster3.Offset.ShouldBe(0);
@@ -222,15 +220,16 @@ public abstract class ReplicaWatchdogTests
     public abstract Task ActiveReplicasDoNotDeleteEachOther();
     public async Task ActiveReplicasDoNotDeleteEachOther(Task<IFunctionStore> storeTask)
     {
-        var store = await storeTask.SelectAsync(s => s.ReplicaStore);
+        var store = await storeTask;
+        var replicaStore = store.ReplicaStore;
         
         var cluster1 = new ClusterInfo(Guid.Parse("10000000-0000-0000-0000-000000000000").ToReplicaId());
         var cluster2 = new ClusterInfo(Guid.Parse("20000000-0000-0000-0000-000000000000").ToReplicaId());
         var cluster3 = new ClusterInfo(Guid.Parse("30000000-0000-0000-0000-000000000000").ToReplicaId());
 
-        var watchdog1 = new ReplicaWatchdog(cluster1, store, checkFrequency: TimeSpan.FromHours(1), onStrikeOut: _ => { });
-        var watchdog2 = new ReplicaWatchdog(cluster2, store, checkFrequency: TimeSpan.FromHours(1), onStrikeOut: _ => { });
-        var watchdog3 = new ReplicaWatchdog(cluster3, store, checkFrequency: TimeSpan.FromHours(1), onStrikeOut: _ => { });
+        var watchdog1 = new ReplicaWatchdog(cluster1, store, checkFrequency: TimeSpan.FromHours(1));
+        var watchdog2 = new ReplicaWatchdog(cluster2, store, checkFrequency: TimeSpan.FromHours(1));
+        var watchdog3 = new ReplicaWatchdog(cluster3, store, checkFrequency: TimeSpan.FromHours(1));
 
         await watchdog1.Initialize();
         await watchdog2.Initialize();
@@ -248,7 +247,7 @@ public abstract class ReplicaWatchdogTests
         await watchdog1.PerformIteration();
         await watchdog2.PerformIteration();
 
-        var storedReplicas = await store.GetAll();
+        var storedReplicas = await replicaStore.GetAll();
         storedReplicas.Count.ShouldBe(2);
         storedReplicas.Any(sr => sr.ReplicaId == cluster1.ReplicaId).ShouldBeTrue();
         storedReplicas.Any(sr => sr.ReplicaId == cluster2.ReplicaId).ShouldBeTrue();
@@ -261,5 +260,44 @@ public abstract class ReplicaWatchdogTests
         offset.ShouldBeNull();
         
         return Task.CompletedTask;
+    }
+    
+    public abstract Task StrikedOutReplicasFunctionIsPostponedAfterCrash();
+    public async Task StrikedOutReplicasFunctionIsPostponedAfterCrash(Task<IFunctionStore> storeTask)
+    {
+        var functionStore = await storeTask;
+        
+        var toBeStrikedOut = ReplicaId.NewId();
+        var storedId = TestStoredId.Create();
+        await functionStore.CreateFunction(
+            storedId,
+            humanInstanceId: "SomeInstanceId",
+            param: null,
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks,
+            parent: null,
+            owner: toBeStrikedOut
+        ).ShouldBeTrueAsync();
+        
+        var store = functionStore.ReplicaStore;
+        
+        await store.Insert(toBeStrikedOut);
+        var replicaId1 = new ClusterInfo(Guid.Parse("10000000-0000-0000-0000-000000000000").ToReplicaId());
+        using var watchdog1 = new ReplicaWatchdog(
+            replicaId1,
+            functionStore,
+            checkFrequency: TimeSpan.FromHours(1)
+        );
+        await watchdog1.Initialize();
+        await watchdog1.PerformIteration();
+        await watchdog1.PerformIteration();
+        await watchdog1.PerformIteration();
+
+        var sf = await functionStore.GetFunction(storedId).ShouldNotBeNullAsync();
+        sf.Epoch.ShouldBe(1);
+        sf.Status.ShouldBe(Status.Postponed);
+        sf.Expires.ShouldBe(0);
+        sf.OwnerId.ShouldBeNull();
     }
 }

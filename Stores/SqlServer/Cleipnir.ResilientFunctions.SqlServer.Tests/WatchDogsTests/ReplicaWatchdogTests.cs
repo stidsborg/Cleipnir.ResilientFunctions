@@ -37,4 +37,8 @@ public class ReplicaWatchdogTests : ResilientFunctions.Tests.TestTemplates.Watch
     [TestMethod]
     public override Task ActiveReplicasDoNotDeleteEachOther()
         => ActiveReplicasDoNotDeleteEachOther(FunctionStoreFactory.Create());
+    
+    [TestMethod]
+    public override Task StrikedOutReplicasFunctionIsPostponedAfterCrash()
+        => StrikedOutReplicasFunctionIsPostponedAfterCrash(FunctionStoreFactory.Create());
 }

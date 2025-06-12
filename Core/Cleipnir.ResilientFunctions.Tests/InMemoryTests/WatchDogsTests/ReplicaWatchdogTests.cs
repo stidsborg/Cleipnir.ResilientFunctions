@@ -37,4 +37,8 @@ public class ReplicaWatchdogTests : TestTemplates.WatchDogsTests.ReplicaWatchdog
     [TestMethod]
     public override Task NonExistingReplicaIdOffsetIsNull()
         => NonExistingReplicaIdOffsetIsNull(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task StrikedOutReplicasFunctionIsPostponedAfterCrash()
+        => StrikedOutReplicasFunctionIsPostponedAfterCrash(FunctionStoreFactory.Create());
 }
