@@ -46,8 +46,8 @@ internal class ReplicaWatchdog(ClusterInfo clusterInfo, IFunctionStore functionS
         foreach (var crashedReplicaId in crashedReplicas)
             await functionStore.RescheduleCrashedFunctions(crashedReplicaId);
         
-        clusterInfo.ReplicaCount = replicas.Count;
-        clusterInfo.Offset = offset.Value;
+        clusterInfo.ReplicaCount = (ulong) replicas.Count;
+        clusterInfo.Offset = (ulong) offset.Value;
         _initialized = true;
     }
 
@@ -77,8 +77,8 @@ internal class ReplicaWatchdog(ClusterInfo clusterInfo, IFunctionStore functionS
 
         if (offset is not null)
         {
-            clusterInfo.Offset = offset.Value;
-            clusterInfo.ReplicaCount = storedReplicas.Count;
+            clusterInfo.Offset = (ulong) offset.Value;
+            clusterInfo.ReplicaCount = (ulong) storedReplicas.Count;
         }
         else
         {

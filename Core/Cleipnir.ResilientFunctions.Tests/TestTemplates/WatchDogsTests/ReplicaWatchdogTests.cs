@@ -168,11 +168,11 @@ public abstract class ReplicaWatchdogTests
         await watchdog3.Initialize();
         
         await watchdog3.PerformIteration();
-        replicaId3.Offset.ShouldBe(2);
+        replicaId3.Offset.ShouldBe((ulong) 2);
         await watchdog2.PerformIteration();
-        replicaId2.Offset.ShouldBe(1);
+        replicaId2.Offset.ShouldBe((ulong) 1);
         await watchdog1.PerformIteration();
-        replicaId1.Offset.ShouldBe(0);
+        replicaId1.Offset.ShouldBe((ulong) 0);
     }
     
     public abstract Task ReplicaIdOffsetIsUpdatedWhenNodeIsAddedAndDeleted();
@@ -190,38 +190,38 @@ public abstract class ReplicaWatchdogTests
         var watchdog3 = new ReplicaWatchdog(cluster3, functionStore, checkFrequency: TimeSpan.FromHours(1), default(UnhandledExceptionHandler)!);
 
         await watchdog3.Initialize();
-        cluster3.Offset.ShouldBe(0);
-        cluster3.ReplicaCount.ShouldBe(1);
+        cluster3.Offset.ShouldBe((ulong) 0);
+        cluster3.ReplicaCount.ShouldBe((ulong) 1);
 
         await watchdog2.Initialize();
         await watchdog3.PerformIteration();
-        cluster3.Offset.ShouldBe(1);
-        cluster3.ReplicaCount.ShouldBe(2);
-        cluster2.Offset.ShouldBe(0);
-        cluster2.ReplicaCount.ShouldBe(2);
+        cluster3.Offset.ShouldBe((ulong) 1);
+        cluster3.ReplicaCount.ShouldBe((ulong) 2);
+        cluster2.Offset.ShouldBe((ulong) 0);
+        cluster2.ReplicaCount.ShouldBe((ulong) 2);
         
         await watchdog1.Initialize();
         await watchdog2.PerformIteration();
         await watchdog3.PerformIteration();
-        cluster3.Offset.ShouldBe(2);
-        cluster3.ReplicaCount.ShouldBe(3);
-        cluster2.Offset.ShouldBe(1);
-        cluster2.ReplicaCount.ShouldBe(3);
-        cluster1.Offset.ShouldBe(0);
-        cluster1.ReplicaCount.ShouldBe(3);
+        cluster3.Offset.ShouldBe((ulong) 2);
+        cluster3.ReplicaCount.ShouldBe((ulong) 3);
+        cluster2.Offset.ShouldBe((ulong) 1);
+        cluster2.ReplicaCount.ShouldBe((ulong) 3);
+        cluster1.Offset.ShouldBe((ulong) 0);
+        cluster1.ReplicaCount.ShouldBe((ulong) 3);
 
         await store.Delete(cluster1.ReplicaId);
         await watchdog3.PerformIteration();
         await watchdog2.PerformIteration();
-        cluster3.Offset.ShouldBe(1);
-        cluster3.ReplicaCount.ShouldBe(2);
-        cluster2.Offset.ShouldBe(0);
-        cluster2.ReplicaCount.ShouldBe(2);
+        cluster3.Offset.ShouldBe((ulong) 1);
+        cluster3.ReplicaCount.ShouldBe((ulong) 2);
+        cluster2.Offset.ShouldBe((ulong) 0);
+        cluster2.ReplicaCount.ShouldBe((ulong) 2);
         
         await store.Delete(cluster2.ReplicaId);
         await watchdog3.PerformIteration();
-        cluster3.Offset.ShouldBe(0);
-        cluster3.ReplicaCount.ShouldBe(1);
+        cluster3.Offset.ShouldBe((ulong) 0);
+        cluster3.ReplicaCount.ShouldBe((ulong) 1);
     }
     
     public abstract Task ActiveReplicasDoNotDeleteEachOther();
@@ -327,5 +327,36 @@ public abstract class ReplicaWatchdogTests
         storedReplicas.Single().ReplicaId.ShouldBe(replicaId);
         storedReplicas.Single().Heartbeat.ShouldBeGreaterThan(1);
 
+    }
+    
+    public abstract Task WorkIsDividedBetweenReplicas();
+    public Task WorkIsDividedBetweenReplicas(Task<IFunctionStore> storeTask)
+    {
+        var replicaId1 = ReplicaId.NewId();
+        var clusterInfo = new ClusterInfo(replicaId1)
+        {
+            ReplicaCount = 3
+        };
+
+        var storedIds = Enumerable
+            .Range(0, 10)
+            .Select(i => new StoredId(new StoredType(0), i.ToString().ToStoredInstance()))
+            .ToList();
+
+        //offset 0
+        var owned = storedIds.Select(clusterInfo.OwnedByThisReplica).ToList();
+        owned.Any().ShouldBeTrue();
+        
+        //offset 1
+        clusterInfo.Offset = 1;
+        owned = storedIds.Select(clusterInfo.OwnedByThisReplica).ToList();
+        owned.Any().ShouldBeTrue();
+        
+        //offset 2
+        clusterInfo.Offset = 2;
+        owned = storedIds.Select(clusterInfo.OwnedByThisReplica).ToList();
+        owned.Any().ShouldBeTrue();
+        
+        return Task.CompletedTask;
     }
 }

@@ -45,4 +45,8 @@ public class ReplicaWatchdogTests : ResilientFunctions.Tests.TestTemplates.Watch
     [TestMethod]
     public override Task ReplicaWatchdogUpdatesHeartbeat()
         => ReplicaWatchdogUpdatesHeartbeat(FunctionStoreFactory.Create());
+    
+    [TestMethod]
+    public override Task WorkIsDividedBetweenReplicas()
+        => WorkIsDividedBetweenReplicas(FunctionStoreFactory.Create());
 }
