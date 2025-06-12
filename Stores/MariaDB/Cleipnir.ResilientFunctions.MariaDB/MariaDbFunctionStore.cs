@@ -98,7 +98,9 @@ public class MariaDbFunctionStore : IFunctionStore
                 owner CHAR(32) NULL,
                 PRIMARY KEY (type, instance),
                 INDEX (expires, type, instance, status)   
-            );";
+            );
+
+            CREATE INDEX FlowOwnersIdx ON {_tablePrefix}(owner, type, instance);";
 
         await using var command = new MySqlCommand(_initializeSql, conn);
         await command.ExecuteNonQueryAsync();
@@ -418,6 +420,51 @@ public class MariaDbFunctionStore : IFunctionStore
         
         var affectedRows = await command.ExecuteNonQueryAsync();
         return affectedRows == 1;
+    }
+
+    private string? _getReplicasSql;
+    public async Task<IReadOnlyList<ReplicaId>> GetOwnerReplicas()
+    {
+        await using var conn = await CreateOpenConnection(_connectionString);
+        _getReplicasSql ??= @$"
+            SELECT DISTINCT(Owner)
+            FROM {_tablePrefix}
+            WHERE Status = {(int) Status.Executing} AND Owner IS NOT NULL";
+        
+        await using var command = new MySqlCommand(_getReplicasSql, conn);
+        
+        await using var reader = await command.ExecuteReaderAsync();
+        var replicas = new List<ReplicaId>();
+        while (await reader.ReadAsync())
+            replicas.Add(reader.GetString(0).ToGuid().ToReplicaId());
+        
+        return replicas;
+    }
+
+    private string? _rescheduleFunctionsSql;
+    public async Task RescheduleCrashedFunctions(ReplicaId replicaId)
+    {
+        await using var conn = await CreateOpenConnection(_connectionString);
+        
+        _rescheduleFunctionsSql ??= $@"
+            UPDATE {_tablePrefix}
+            SET 
+                status = {(int) Status.Postponed},
+                expires = 0,
+                owner = NULL,
+                epoch = epoch + 1
+            WHERE 
+                owner = ?";
+        
+        await using var command = new MySqlCommand(_rescheduleFunctionsSql, conn)
+        {
+            Parameters =
+            {
+                new() { Value = replicaId.AsGuid.ToString("N") },
+            }
+        };
+        
+        await command.ExecuteNonQueryAsync();
     }
 
     private string? _interruptSql;

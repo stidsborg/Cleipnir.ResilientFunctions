@@ -110,6 +110,10 @@ public class PostgreSqlFunctionStore : IFunctionStore
             CREATE INDEX IF NOT EXISTS idx_{_tableName}_succeeded
             ON {_tableName}(type, instance)
             WHERE status = {(int) Status.Succeeded};
+
+            CREATE INDEX IF NOT EXISTS idx_{_tableName}_owners
+            ON {_tableName}(owner, type, instance)
+            WHERE status = {(int) Status.Executing};
             ";
 
         await using var command = new NpgsqlCommand(_initializeSql, conn);
@@ -462,6 +466,49 @@ public class PostgreSqlFunctionStore : IFunctionStore
             .ToNpgsqlCommand(conn);
         var affectedRows = await command.ExecuteNonQueryAsync();
         return affectedRows == 1;
+    }
+
+    private string? _getReplicasSql;
+    public async Task<IReadOnlyList<ReplicaId>> GetOwnerReplicas()
+    {
+        await using var conn = await CreateConnection();
+        _getReplicasSql ??= @$"
+            SELECT DISTINCT(Owner)
+            FROM {_tableName}
+            WHERE Status = {(int) Status.Executing} AND Owner IS NOT NULL";
+        
+        await using var command = new NpgsqlCommand(_getReplicasSql, conn);
+        
+        await using var reader = await command.ExecuteReaderAsync();
+        var replicas = new List<ReplicaId>();
+        while (await reader.ReadAsync())
+            replicas.Add(reader.GetGuid(0).ToReplicaId());
+        
+        return replicas;
+    }
+
+    private string? _rescheduleFunctionsSql;
+    public async Task RescheduleCrashedFunctions(ReplicaId replicaId)
+    {
+        await using var conn = await CreateConnection();
+       
+        _rescheduleFunctionsSql ??= $@"
+            UPDATE {_tableName}
+            SET status = {(int) Status.Postponed},
+                expires = 0,
+                owner = NULL,
+                epoch = epoch + 1
+            WHERE 
+                owner = $1";
+        await using var command = new NpgsqlCommand(_rescheduleFunctionsSql, conn)
+        {
+            Parameters =
+            {
+                new() {Value = replicaId.AsGuid}
+            }
+        };
+
+        await command.ExecuteNonQueryAsync();
     }
 
     private string? _setParametersSql;

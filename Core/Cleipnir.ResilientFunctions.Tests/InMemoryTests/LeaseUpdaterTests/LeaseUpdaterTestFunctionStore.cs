@@ -104,6 +104,12 @@ public class LeaseUpdaterTestFunctionStore : IFunctionStore
         ComplimentaryState complimentaryState
     ) => _inner.SuspendFunction(storedId, timestamp, expectedEpoch, effects, messages, complimentaryState);
 
+    public Task<IReadOnlyList<ReplicaId>> GetOwnerReplicas()
+        => _inner.GetOwnerReplicas();
+
+    public Task RescheduleCrashedFunctions(ReplicaId replicaId)
+        => _inner.RescheduleCrashedFunctions(replicaId);
+
     public Task<bool> Interrupt(StoredId storedId, bool onlyIfExecuting)
         => _inner.Interrupt(storedId, onlyIfExecuting);
 

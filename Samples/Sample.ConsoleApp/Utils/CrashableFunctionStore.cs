@@ -136,8 +136,19 @@ public class CrashableFunctionStore : IFunctionStore
         IReadOnlyList<StoredEffect>? effects,
         IReadOnlyList<StoredMessage>? messages,
         ComplimentaryState complimentaryState
-    ) => _crashed ? Task.FromException<bool>(new TimeoutException())
+    ) => _crashed 
+            ? Task.FromException<bool>(new TimeoutException())
             : _inner.SuspendFunction(storedId, timestamp, expectedEpoch, effects, messages, complimentaryState);
+
+    public Task<IReadOnlyList<ReplicaId>> GetOwnerReplicas()
+        => _crashed
+            ? Task.FromException<IReadOnlyList<ReplicaId>>(new TimeoutException())
+            : _inner.GetOwnerReplicas();
+
+    public Task RescheduleCrashedFunctions(ReplicaId replicaId)
+        => _crashed
+            ? Task.FromException(new TimeoutException())
+            : _inner.RescheduleCrashedFunctions(replicaId);    
 
     public Task<bool> Interrupt(StoredId storedId, bool onlyIfExecuting)
         => _crashed

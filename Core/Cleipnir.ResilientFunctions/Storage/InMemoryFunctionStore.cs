@@ -333,6 +333,32 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         }
     }
 
+    public Task<IReadOnlyList<ReplicaId>> GetOwnerReplicas()
+    {
+        lock (_sync)
+            return _states.Values
+                .Select(s => s.Owner)
+                .Where(owner => owner != null)
+                .Distinct()
+                .ToList()
+                .CastTo<IReadOnlyList<ReplicaId>>()
+                .ToTask();
+    }
+
+    public Task RescheduleCrashedFunctions(ReplicaId replicaId)
+    {
+        lock (_sync)
+            foreach (var state in _states.Values.Where(v => v.Owner == replicaId).ToList())
+            {
+                state.Owner = null;
+                state.Status = Status.Postponed;
+                state.Expires = 0;
+                state.Epoch += 1;
+            }
+        
+        return Task.CompletedTask;
+    }
+
     public virtual Task<bool> SetParameters(
         StoredId storedId, 
         byte[]? param, 

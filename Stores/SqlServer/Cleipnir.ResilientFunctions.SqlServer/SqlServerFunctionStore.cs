@@ -105,7 +105,10 @@ public class SqlServerFunctionStore : IFunctionStore
             CREATE INDEX {_tableName}_idx_Executing
                 ON {_tableName} (Expires, FlowType, FlowInstance)
                 INCLUDE (Epoch)
-                WHERE Status = {(int)Status.Executing};           
+                WHERE Status = {(int)Status.Executing};    
+            CREATE INDEX {_tableName}_idx_Owners
+                ON {_tableName} (Owner, FlowType, FlowInstance)                
+                WHERE Status = {(int)Status.Executing};  
             CREATE INDEX {_tableName}_idx_Postponed
                 ON {_tableName} (Expires, FlowType, FlowInstance)
                 INCLUDE (Epoch)
@@ -489,7 +492,45 @@ public class SqlServerFunctionStore : IFunctionStore
         var affectedRows = await command.ExecuteNonQueryAsync();
         return affectedRows == 1;
     }
-    
+
+    private string? _getReplicasSql;
+    public async Task<IReadOnlyList<ReplicaId>> GetOwnerReplicas()
+    {
+        await using var conn = await _connFunc();
+        _getReplicasSql ??= @$"
+            SELECT DISTINCT(Owner)
+            FROM {_tableName}
+            WHERE Status = {(int) Status.Executing} AND Owner IS NOT NULL";
+        
+        await using var command = new SqlCommand(_getReplicasSql, conn);
+        
+        await using var reader = await command.ExecuteReaderAsync();
+        var replicas = new List<ReplicaId>();
+        while (reader.Read())
+            replicas.Add(reader.GetGuid(0).ToReplicaId());
+        
+        return replicas;
+    }
+
+    private string? _rescheduleFunctionsSql;
+    public async Task RescheduleCrashedFunctions(ReplicaId replicaId)
+    {
+        await using var conn = await _connFunc();
+        _rescheduleFunctionsSql ??= @$"
+                UPDATE {_tableName}
+                SET 
+                    Owner = NULL,
+                    Status = {(int) Status.Postponed},
+                    Expires = 0,
+                    Epoch = Epoch + 1
+                WHERE Owner = @Owner";
+        
+        await using var command = new SqlCommand(_rescheduleFunctionsSql, conn);
+        command.Parameters.AddWithValue("@Owner", replicaId.AsGuid);
+        
+        await command.ExecuteNonQueryAsync();
+    }
+
     private string? _interruptSql;
     private string? _interruptIfExecutingSql;
     public async Task<bool> Interrupt(StoredId storedId, bool onlyIfExecuting)

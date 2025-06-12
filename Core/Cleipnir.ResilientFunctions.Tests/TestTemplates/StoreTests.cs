@@ -1900,4 +1900,73 @@ public abstract class StoreTests
         effects.Count.ShouldBe(0);
         messages.Count.ShouldBe(0);
     }
+    
+    public abstract Task FunctionOwnedByReplicaIsPostponedAfterRescheduleFunctionsInvocation();
+    protected async Task FunctionOwnedByReplicaIsPostponedAfterRescheduleFunctionsInvocation(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var replicaId1 = ReplicaId.NewId();
+        var replicaId2 = ReplicaId.NewId();
+        var storedId1 = TestStoredId.Create();
+        await store.CreateFunction(
+            storedId1,
+            humanInstanceId: "SomeInstanceId",
+            param: null,
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks,
+            parent: null,
+            owner: replicaId1
+        ).ShouldBeTrueAsync();
+        var storedId2 = TestStoredId.Create();
+        await store.CreateFunction(
+            storedId2,
+            humanInstanceId: "SomeInstanceId1",
+            param: null,
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks,
+            parent: null,
+            owner: replicaId1
+        ).ShouldBeTrueAsync();
+        var storedId3 = TestStoredId.Create();
+        await store.CreateFunction(
+            storedId3,
+            humanInstanceId: "SomeInstanceId",
+            param: null,
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks,
+            parent: null,
+            owner: replicaId2
+        ).ShouldBeTrueAsync();
+
+        var replicas = await store.GetOwnerReplicas();
+        replicas.Count.ShouldBe(2);
+        replicas.Any(r => r == replicaId1).ShouldBeTrue();
+        replicas.Any(r => r == replicaId2).ShouldBeTrue();
+        
+        await store.RescheduleCrashedFunctions(replicaId1);
+        
+        var sf1 = await store.GetFunction(storedId1).ShouldNotBeNullAsync();
+        sf1.Status.ShouldBe(Status.Postponed);
+        sf1.OwnerId.ShouldBeNull();
+        sf1.Epoch.ShouldBe(1);
+        sf1.Expires.ShouldBe(0);
+        
+        var sf2 = await store.GetFunction(storedId2).ShouldNotBeNullAsync();
+        sf2.Status.ShouldBe(Status.Postponed);
+        sf2.OwnerId.ShouldBeNull();
+        sf2.Epoch.ShouldBe(1);
+        sf2.Expires.ShouldBe(0);
+        
+        var sf3 = await store.GetFunction(storedId3).ShouldNotBeNullAsync();
+        sf3.Status.ShouldBe(Status.Executing);
+        sf3.OwnerId.ShouldBe(replicaId2);
+        sf3.Epoch.ShouldBe(0);
+        
+        replicas = await store.GetOwnerReplicas();
+        replicas.Count.ShouldBe(1);
+        replicas.Any(r => r == replicaId2).ShouldBeTrue();
+    }
 }
