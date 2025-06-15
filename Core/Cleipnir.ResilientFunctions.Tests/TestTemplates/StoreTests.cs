@@ -1981,4 +1981,132 @@ public abstract class StoreTests
         replicas.Count.ShouldBe(1);
         replicas.Any(r => r == replicaId2).ShouldBeTrue();
     }
+    
+    public abstract Task SuspensionSetsOwnerToNull();
+    protected async Task SuspensionSetsOwnerToNull(Task<IFunctionStore> storeTask)
+    {
+        var functionId = TestStoredId.Create();
+        
+        var store = await storeTask;
+        await store.CreateFunction(
+            functionId, 
+            "humanInstanceId",
+            param: Test.SimpleStoredParameter,
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks,
+            parent: null,
+            owner: ReplicaId.NewId()
+        ).ShouldBeTrueAsync();
+
+        await store.SuspendFunction(
+            functionId,
+            timestamp: DateTime.UtcNow.Ticks,
+            expectedEpoch: 0,
+            effects: null,
+            messages: null,
+            complimentaryState: new ComplimentaryState(Test.SimpleStoredParameter.ToFunc(), LeaseLength: 0)
+        ).ShouldBeTrueAsync();
+        
+        var storedFunction = await store.GetFunction(functionId);
+        storedFunction.ShouldNotBeNull();
+        storedFunction.OwnerId.ShouldBeNull();
+    }
+    
+    public abstract Task FailureSetsOwnerToNull();
+    protected async Task FailureSetsOwnerToNull(Task<IFunctionStore> storeTask)
+    {
+        var functionId = TestStoredId.Create();
+        
+        var store = await storeTask;
+        await store.CreateFunction(
+            functionId, 
+            "humanInstanceId",
+            param: Test.SimpleStoredParameter,
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks,
+            parent: null,
+            owner: ReplicaId.NewId()
+        ).ShouldBeTrueAsync();
+
+        await store.FailFunction(
+            functionId,
+            timestamp: DateTime.UtcNow.Ticks,
+            expectedEpoch: 0,
+            effects: null,
+            messages: null,
+            storedException: new StoredException("SomeMessage", ExceptionStackTrace: null, "SomeExceptionType"),
+            complimentaryState: new ComplimentaryState(Test.SimpleStoredParameter.ToFunc(), LeaseLength: 0)
+        ).ShouldBeTrueAsync();
+        
+        var storedFunction = await store.GetFunction(functionId);
+        storedFunction.ShouldNotBeNull();
+        storedFunction.OwnerId.ShouldBeNull();
+    }
+    
+    public abstract Task PostponedSetsOwnerToNull();
+    protected async Task PostponedSetsOwnerToNull(Task<IFunctionStore> storeTask)
+    {
+        var functionId = TestStoredId.Create();
+        
+        var store = await storeTask;
+        await store.CreateFunction(
+            functionId, 
+            "humanInstanceId",
+            param: Test.SimpleStoredParameter,
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks,
+            parent: null,
+            owner: ReplicaId.NewId()
+        ).ShouldBeTrueAsync();
+
+        await store.PostponeFunction(
+            functionId,
+            postponeUntil: DateTime.UtcNow.Ticks,
+            ignoreInterrupted: false,
+            timestamp: DateTime.UtcNow.Ticks,
+            expectedEpoch: 0,
+            effects: null,
+            messages: null,
+            complimentaryState: new ComplimentaryState(Test.SimpleStoredParameter.ToFunc(), LeaseLength: 0)
+        ).ShouldBeTrueAsync();
+        
+        var storedFunction = await store.GetFunction(functionId);
+        storedFunction.ShouldNotBeNull();
+        storedFunction.OwnerId.ShouldBeNull();
+    }
+    
+    public abstract Task SucceedSetsOwnerToNull();
+    protected async Task SucceedSetsOwnerToNull(Task<IFunctionStore> storeTask)
+    {
+        var functionId = TestStoredId.Create();
+        
+        var store = await storeTask;
+        await store.CreateFunction(
+            functionId, 
+            "humanInstanceId",
+            param: Test.SimpleStoredParameter,
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks,
+            parent: null,
+            owner: ReplicaId.NewId()
+        ).ShouldBeTrueAsync();
+
+        await store.SucceedFunction(
+            functionId,
+            result: null,
+            timestamp: DateTime.UtcNow.Ticks,
+            expectedEpoch: 0,
+            effects: null,
+            messages: null,
+            complimentaryState: new ComplimentaryState(Test.SimpleStoredParameter.ToFunc(), LeaseLength: 0)
+        ).ShouldBeTrueAsync();
+        
+        var storedFunction = await store.GetFunction(functionId);
+        storedFunction.ShouldNotBeNull();
+        storedFunction.OwnerId.ShouldBeNull();
+    }
 }

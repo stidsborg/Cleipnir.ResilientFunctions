@@ -192,7 +192,7 @@ public class SqlGenerator(string tablePrefix)
     {
         _succeedFunctionSql ??= $@"
             UPDATE {tablePrefix}
-            SET status = {(int) Status.Succeeded}, result_json = $1, timestamp = $2
+            SET status = {(int) Status.Succeeded}, result_json = $1, timestamp = $2, owner = NULL
             WHERE 
                 type = $3 AND 
                 instance = $4 AND 
@@ -221,7 +221,7 @@ public class SqlGenerator(string tablePrefix)
     {
         _postponeFunctionSql ??= $@"
             UPDATE {tablePrefix}
-            SET status = {(int) Status.Postponed}, expires = $1, timestamp = $2
+            SET status = {(int) Status.Postponed}, expires = $1, timestamp = $2, owner = NULL
             WHERE 
                 type = $3 AND 
                 instance = $4 AND 
@@ -253,7 +253,7 @@ public class SqlGenerator(string tablePrefix)
     {
         _failFunctionSql ??= $@"
             UPDATE {tablePrefix}
-            SET status = {(int) Status.Failed}, exception_json = $1, timestamp = $2
+            SET status = {(int) Status.Failed}, exception_json = $1, timestamp = $2, owner = NULL
             WHERE 
                 type = $3 AND 
                 instance = $4 AND 
@@ -276,7 +276,7 @@ public class SqlGenerator(string tablePrefix)
     {
         _suspendFunctionSql ??= $@"
             UPDATE {tablePrefix}
-            SET status = {(int)Status.Suspended}, timestamp = $1
+            SET status = {(int)Status.Suspended}, timestamp = $1, owner = NULL
             WHERE type = $2 AND 
                   instance = $3 AND 
                   epoch = $4 AND

@@ -262,7 +262,7 @@ public class SqlGenerator(string tablePrefix)
     {
         _succeedFunctionSql ??= @$"
             UPDATE {tablePrefix}
-            SET Status = {(int) Status.Succeeded}, ResultJson = @ResultJson, Timestamp = @Timestamp, Epoch = @ExpectedEpoch
+            SET Status = {(int) Status.Succeeded}, ResultJson = @ResultJson, Timestamp = @Timestamp, Epoch = @ExpectedEpoch, Owner = NULL
             WHERE FlowType = @FlowType AND FlowInstance = @FlowInstance AND Epoch = @ExpectedEpoch";
         
         var sql = paramPrefix == "" 
@@ -284,7 +284,7 @@ public class SqlGenerator(string tablePrefix)
     {
         _postponedFunctionSql ??= @$"
             UPDATE {tablePrefix}
-            SET Status = {(int) Status.Postponed}, Expires = @PostponedUntil, Timestamp = @Timestamp, Epoch = @ExpectedEpoch
+            SET Status = {(int) Status.Postponed}, Expires = @PostponedUntil, Timestamp = @Timestamp, Epoch = @ExpectedEpoch, Owner = NULL
             WHERE FlowType = @FlowType AND FlowInstance = @FlowInstance AND Epoch = @ExpectedEpoch AND Interrupted = 0";
         
         var sql = paramPrefix == "" 
@@ -309,7 +309,7 @@ public class SqlGenerator(string tablePrefix)
     {
         _failFunctionSql ??= @$"
             UPDATE {tablePrefix}
-            SET Status = {(int) Status.Failed}, ExceptionJson = @ExceptionJson, Timestamp = @timestamp, Epoch = @ExpectedEpoch
+            SET Status = {(int) Status.Failed}, ExceptionJson = @ExceptionJson, Timestamp = @timestamp, Epoch = @ExpectedEpoch, Owner = NULL
             WHERE FlowType = @FlowType
             AND FlowInstance = @FlowInstance
             AND Epoch = @ExpectedEpoch";
@@ -338,7 +338,7 @@ public class SqlGenerator(string tablePrefix)
     {
         _suspendFunctionSql ??= @$"
                 UPDATE {tablePrefix}
-                SET Status = {(int)Status.Suspended}, Timestamp = @Timestamp
+                SET Status = {(int)Status.Suspended}, Timestamp = @Timestamp, Owner = NULL
                 WHERE FlowType = @FlowType AND 
                       FlowInstance = @FlowInstance AND                       
                       Epoch = @ExpectedEpoch AND

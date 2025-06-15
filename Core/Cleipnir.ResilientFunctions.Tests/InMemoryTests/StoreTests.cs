@@ -231,4 +231,20 @@ public class StoreTests : TestTemplates.StoreTests
     [TestMethod]
     public override Task FunctionOwnedByReplicaIsPostponedAfterRescheduleFunctionsInvocation()
         => FunctionOwnedByReplicaIsPostponedAfterRescheduleFunctionsInvocation(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task SuspensionSetsOwnerToNull()
+        => SuspensionSetsOwnerToNull(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task FailureSetsOwnerToNull()
+        => FailureSetsOwnerToNull(FunctionStoreFactory.Create());
+    
+    [TestMethod]
+    public override Task PostponedSetsOwnerToNull()
+        =>  PostponedSetsOwnerToNull(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task SucceedSetsOwnerToNull()
+        => SucceedSetsOwnerToNull(FunctionStoreFactory.Create());
 }

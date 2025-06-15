@@ -250,6 +250,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
             state.Status = Status.Succeeded;
             state.Result = result;
             state.Timestamp = timestamp;
+            state.Owner = null;
 
             return true.ToTask();
         }
@@ -278,6 +279,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
             state.Status = Status.Postponed;
             state.Expires = postponeUntil;
             state.Timestamp = timestamp;
+            state.Owner = null;
             
             return true.ToTask();
         }
@@ -302,6 +304,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
             state.Status = Status.Failed;
             state.Exception = storedException;
             state.Timestamp = timestamp;
+            state.Owner = null;
             
             return true.ToTask();
         }
@@ -329,6 +332,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
                 
             state.Status = Status.Suspended;
             state.Timestamp = timestamp;
+            state.Owner = null;
             
             return true.ToTask();
         }
