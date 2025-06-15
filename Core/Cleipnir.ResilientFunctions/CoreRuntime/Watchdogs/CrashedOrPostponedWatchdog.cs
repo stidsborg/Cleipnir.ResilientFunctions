@@ -3,6 +3,7 @@ using System.Collections.Immutable;
 using System.Threading;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
+using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Storage;
@@ -17,7 +18,8 @@ internal class CrashedOrPostponedWatchdog
 
     private readonly TimeSpan _checkFrequency;
     private readonly TimeSpan _delayStartUp;
-    
+    private readonly ClusterInfo _clusterInfo;
+
     private readonly LeasesUpdater _leasesUpdater;
     
     private volatile ImmutableDictionary<StoredType, Tuple<RestartFunction, ScheduleRestartFromWatchdog, AsyncSemaphore>> _flowsDictionary
@@ -31,6 +33,7 @@ internal class CrashedOrPostponedWatchdog
         IFunctionStore functionStore,
         ShutdownCoordinator shutdownCoordinator, UnhandledExceptionHandler unhandledExceptionHandler, 
         TimeSpan checkFrequency, TimeSpan delayStartUp,
+        ClusterInfo clusterInfo,
         LeasesUpdater leasesUpdater, 
         UtcNow utcNow)
     {
@@ -39,6 +42,7 @@ internal class CrashedOrPostponedWatchdog
         _unhandledExceptionHandler = unhandledExceptionHandler;
         _checkFrequency = checkFrequency;
         _delayStartUp = delayStartUp;
+        _clusterInfo = clusterInfo;
         _leasesUpdater = leasesUpdater;
         _utcNow = utcNow;
     }

@@ -44,6 +44,8 @@ public class FunctionsRegistry : IDisposable
         _leasesUpdater = new LeasesUpdater(_settings.LeaseLength, _functionStore, _settings.UnhandledExceptionHandler, utcNow);
         _ = _leasesUpdater.Start();
         
+        ClusterInfo = new ClusterInfo(ReplicaId.NewId());
+        
         _timeoutWatchdog = new TimeoutWatchdog(
             functionStore.TimeoutStore,
             _settings.WatchdogCheckFrequency,
@@ -58,13 +60,14 @@ public class FunctionsRegistry : IDisposable
             _settings.UnhandledExceptionHandler,
             _settings.WatchdogCheckFrequency,
             _settings.DelayStartup,
+            ClusterInfo,
             _leasesUpdater, 
             utcNow
         );
-
-        ClusterInfo = new ClusterInfo(ReplicaId.NewId());
-        _replicaWatchdog = new ReplicaWatchdog(ClusterInfo, functionStore, checkFrequency: TimeSpan.FromSeconds(1), _settings.UnhandledExceptionHandler);
         
+        _replicaWatchdog = new ReplicaWatchdog(ClusterInfo, functionStore, checkFrequency: TimeSpan.FromSeconds(1), _settings.UnhandledExceptionHandler);
+        _replicaWatchdog.Initialize().GetAwaiter().GetResult();
+        _ = _replicaWatchdog.Start();
     }
 
     #region Func overloads

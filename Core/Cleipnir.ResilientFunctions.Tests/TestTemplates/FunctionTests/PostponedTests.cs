@@ -264,7 +264,6 @@ public abstract class PostponedTests
             (
                 crashableStore,
                 new Settings(
-                    unhandledExceptionHandler.Catch,
                     leaseLength: TimeSpan.Zero,
                     enableWatchdogs: false
                 )
