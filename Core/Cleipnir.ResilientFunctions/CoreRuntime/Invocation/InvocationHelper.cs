@@ -20,13 +20,14 @@ internal class InvocationHelper<TParam, TReturn>
     private readonly bool _isParamlessFunction;
     private readonly FlowType _flowType;
     private readonly StoredType _storedType;
+    private readonly ReplicaId _replicaId;
     private readonly LeasesUpdater _leasesUpdater;
     private readonly ResultBusyWaiter<TReturn> _resultBusyWaiter;
     public UtcNow UtcNow { get; }
 
     private ISerializer Serializer { get; }
 
-    public InvocationHelper(FlowType flowType, StoredType storedType, bool isParamlessFunction, SettingsWithDefaults settings, IFunctionStore functionStore, ShutdownCoordinator shutdownCoordinator, LeasesUpdater leasesUpdater, ISerializer serializer, UtcNow utcNow)
+    public InvocationHelper(FlowType flowType, StoredType storedType, ReplicaId replicaId, bool isParamlessFunction, SettingsWithDefaults settings, IFunctionStore functionStore, ShutdownCoordinator shutdownCoordinator, LeasesUpdater leasesUpdater, ISerializer serializer, UtcNow utcNow)
     {
         _flowType = flowType;
         _isParamlessFunction = isParamlessFunction;
@@ -37,6 +38,7 @@ internal class InvocationHelper<TParam, TReturn>
         _shutdownCoordinator = shutdownCoordinator;
         _leasesUpdater = leasesUpdater;
         _storedType = storedType;
+        _replicaId = replicaId;
         _functionStore = functionStore;
         _resultBusyWaiter = new ResultBusyWaiter<TReturn>(_functionStore, Serializer);
     }
@@ -225,7 +227,8 @@ internal class InvocationHelper<TParam, TReturn>
             var restarted = await _functionStore.RestartExecution(
                 flowId,
                 expectedEpoch,
-                leaseExpiration: UtcNow().Ticks + _settings.LeaseLength.Ticks
+                leaseExpiration: UtcNow().Ticks + _settings.LeaseLength.Ticks,
+                _replicaId
             );
 
             return restarted != null

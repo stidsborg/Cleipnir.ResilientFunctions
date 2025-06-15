@@ -358,14 +358,15 @@ public class SqlGenerator(string tablePrefix)
     }
     
     private string? _restartExecutionSql;
-    public StoreCommand RestartExecution(StoredId storedId, int expectedEpoch, long leaseExpiration)
+    public StoreCommand RestartExecution(StoredId storedId, int expectedEpoch, long leaseExpiration, ReplicaId replicaId)
     {
         _restartExecutionSql ??= @$"
             UPDATE {tablePrefix}
             SET Epoch = Epoch + 1, 
                 Status = {(int)Status.Executing}, 
                 Expires = @LeaseExpiration,
-                Interrupted = 0
+                Interrupted = 0,
+                Owner = @Owner
             OUTPUT inserted.ParamJson,                
                    inserted.Status,
                    inserted.ResultJson, 
@@ -381,6 +382,7 @@ public class SqlGenerator(string tablePrefix)
 
         var storeCommand = StoreCommand.Create(_restartExecutionSql);
         storeCommand.AddParameter("@LeaseExpiration", leaseExpiration);
+        storeCommand.AddParameter("@Owner", replicaId.AsGuid);
         storeCommand.AddParameter("@FlowType", storedId.Type.Value);
         storeCommand.AddParameter("@FlowInstance", storedId.Instance.Value);
         storeCommand.AddParameter("@ExpectedEpoch", expectedEpoch);

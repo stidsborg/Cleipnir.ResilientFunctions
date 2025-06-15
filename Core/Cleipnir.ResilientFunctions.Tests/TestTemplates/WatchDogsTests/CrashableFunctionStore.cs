@@ -76,10 +76,10 @@ public class CrashableFunctionStore : IFunctionStore
             ? Task.FromException(new TimeoutException())
             : _inner.BulkScheduleFunctions(functionsWithParam, parent);
 
-    public Task<StoredFlowWithEffectsAndMessages?> RestartExecution(StoredId storedId, int expectedEpoch, long leaseExpiration)
+    public Task<StoredFlowWithEffectsAndMessages?> RestartExecution(StoredId storedId, int expectedEpoch, long leaseExpiration, ReplicaId replicaId)
         => _crashed
             ? Task.FromException<StoredFlowWithEffectsAndMessages?>(new TimeoutException())
-            : _inner.RestartExecution(storedId, expectedEpoch, leaseExpiration);
+            : _inner.RestartExecution(storedId, expectedEpoch, leaseExpiration, replicaId);
     
     public Task<int> RenewLeases(IReadOnlyList<LeaseUpdate> leaseUpdates, long leaseExpiration)
         => _crashed

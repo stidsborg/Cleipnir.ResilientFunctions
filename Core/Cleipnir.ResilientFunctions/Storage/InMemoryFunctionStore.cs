@@ -117,7 +117,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         return Task.CompletedTask;
     }
 
-    public virtual async Task<StoredFlowWithEffectsAndMessages?> RestartExecution(StoredId storedId, int expectedEpoch, long leaseExpiration)
+    public virtual async Task<StoredFlowWithEffectsAndMessages?> RestartExecution(StoredId storedId, int expectedEpoch, long leaseExpiration, ReplicaId owner)
     {
         lock (_sync)
         {
@@ -132,6 +132,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
             state.Status = Status.Executing;
             state.Expires = leaseExpiration;
             state.Interrupted = false;
+            state.Owner = owner;
         }
         var sf = await GetFunction(storedId);
         var effects = await EffectsStore.GetEffectResults(storedId);

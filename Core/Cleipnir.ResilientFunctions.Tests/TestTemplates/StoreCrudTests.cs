@@ -302,7 +302,8 @@ public abstract class StoreCrudTests
         await store.RestartExecution(
             StoredId,
             expectedEpoch: 0,
-            leaseExpiration: DateTime.UtcNow.Ticks
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            owner: ReplicaId.NewId()
         ).ShouldNotBeNullAsync();
 
         var updatedStoredParameter = "hello world".ToJson();

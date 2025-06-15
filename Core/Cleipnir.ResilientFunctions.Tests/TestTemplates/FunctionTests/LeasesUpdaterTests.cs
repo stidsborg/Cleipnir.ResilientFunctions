@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime;
+using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Tests.TestTemplates.WatchDogsTests;
 using Cleipnir.ResilientFunctions.Tests.Utils;
@@ -77,7 +78,7 @@ public abstract class LeasesUpdaterTests
         
         var id3 = TestStoredId.Create();
         await store.CreateFunction(id3, id3.ToString(), param: null, leaseExpiration: 0, postponeUntil: null, timestamp: DateTime.UtcNow.Ticks, parent: null, owner: null).ShouldBeTrueAsync();
-        await store.RestartExecution(id3, expectedEpoch: 0, leaseExpiration: 0).ShouldNotBeNullAsync();
+        await store.RestartExecution(id3, expectedEpoch: 0, leaseExpiration: 0, owner: ReplicaId.NewId()).ShouldNotBeNullAsync();
         
         leaseUpdaters.Set(id1, epoch: 0, expiresTicks: 0);
         leaseUpdaters.Set(id2, epoch: 0, expiresTicks: id2Expires);
@@ -291,7 +292,7 @@ public abstract class LeasesUpdaterTests
         
         await store.CreateFunction(id1, "SomeInstanceId", param: null, leaseExpiration: tenSeconds.Ticks, postponeUntil: null, timestamp: 0, parent: null, owner: null);
         await store.CreateFunction(id2, "SomeInstanceId", param: null, leaseExpiration: seventySeconds.Ticks, postponeUntil: null, timestamp: 0, parent: null, owner: null);
-        await store.RestartExecution(id2, expectedEpoch: 0, leaseExpiration: thousandSeconds.Ticks);
+        await store.RestartExecution(id2, expectedEpoch: 0, leaseExpiration: thousandSeconds.Ticks, owner: ReplicaId.NewId());
         
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         var handler = new UnhandledExceptionHandler(unhandledExceptionHandler.Catch);

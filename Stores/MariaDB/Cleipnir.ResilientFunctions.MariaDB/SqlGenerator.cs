@@ -331,11 +331,11 @@ public class SqlGenerator(string tablePrefix)
     }
     
     private string? _restartExecutionSql;
-    public StoreCommand RestartExecution(StoredId storedId, int expectedEpoch, long leaseExpiration)
+    public StoreCommand RestartExecution(StoredId storedId, int expectedEpoch, long leaseExpiration, ReplicaId replicaId)
     {
         _restartExecutionSql ??= @$"
             UPDATE {tablePrefix}
-            SET epoch = epoch + 1, status = {(int)Status.Executing}, expires = ?, interrupted = FALSE
+            SET epoch = epoch + 1, status = {(int)Status.Executing}, expires = ?, interrupted = FALSE, owner = ?
             WHERE type = ? AND instance = ? AND epoch = ?;
             
             SELECT               
@@ -357,6 +357,7 @@ public class SqlGenerator(string tablePrefix)
             _restartExecutionSql,
             values: [
                 leaseExpiration,
+                replicaId.AsGuid.ToString("N"),
                 storedId.Type.Value,
                 storedId.Instance.Value.ToString("N"),
                 expectedEpoch,

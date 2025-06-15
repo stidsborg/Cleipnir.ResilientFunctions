@@ -294,12 +294,12 @@ public class SqlGenerator(string tablePrefix)
     }
     
     private string? _restartExecutionSql;
-    public StoreCommand RestartExecution(StoredId storedId, int expectedEpoch, long leaseExpiration)
+    public StoreCommand RestartExecution(StoredId storedId, int expectedEpoch, long leaseExpiration, ReplicaId replicaId)
     {
         _restartExecutionSql ??= @$"
             UPDATE {tablePrefix}
-            SET epoch = epoch + 1, status = {(int)Status.Executing}, expires = $1, interrupted = FALSE
-            WHERE type = $2 AND instance = $3 AND epoch = $4
+            SET epoch = epoch + 1, status = {(int)Status.Executing}, expires = $1, interrupted = FALSE, owner = $2
+            WHERE type = $3 AND instance = $4 AND epoch = $5
             RETURNING               
                 param_json, 
                 status,
@@ -317,6 +317,7 @@ public class SqlGenerator(string tablePrefix)
             _restartExecutionSql,
             values: [
                 leaseExpiration,
+                replicaId.AsGuid,
                 storedId.Type.Value,
                 storedId.Instance.Value,
                 expectedEpoch,

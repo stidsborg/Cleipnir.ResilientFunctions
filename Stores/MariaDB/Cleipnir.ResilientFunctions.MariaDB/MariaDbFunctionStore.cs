@@ -208,9 +208,9 @@ public class MariaDbFunctionStore : IFunctionStore
         cmd.ExecuteNonQuery();
     }
     
-    public async Task<StoredFlowWithEffectsAndMessages?> RestartExecution(StoredId storedId, int expectedEpoch, long leaseExpiration)
+    public async Task<StoredFlowWithEffectsAndMessages?> RestartExecution(StoredId storedId, int expectedEpoch, long leaseExpiration, ReplicaId replicaId)
     {
-        var restartCommand = _sqlGenerator.RestartExecution(storedId, expectedEpoch, leaseExpiration);
+        var restartCommand = _sqlGenerator.RestartExecution(storedId, expectedEpoch, leaseExpiration, replicaId);
         var effectsCommand = _sqlGenerator.GetEffects(storedId);
         var messagesCommand = _sqlGenerator.GetMessages(storedId, skip: 0);
         

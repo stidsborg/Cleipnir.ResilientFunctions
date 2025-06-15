@@ -216,6 +216,7 @@ public class FunctionsRegistry : IDisposable
             var invocationHelper = new InvocationHelper<TParam, TReturn>(
                 flowType,
                 storedType,
+                ClusterInfo.ReplicaId,
                 isParamlessFunction: false,
                 settingsWithDefaults,
                 _functionStore,
@@ -313,6 +314,7 @@ public class FunctionsRegistry : IDisposable
             var invocationHelper = new InvocationHelper<Unit, Unit>(
                 flowType,
                 storedType,
+                ClusterInfo.ReplicaId,
                 isParamlessFunction: true,
                 settingsWithDefaults,
                 _functionStore,
@@ -410,6 +412,7 @@ public class FunctionsRegistry : IDisposable
             var invocationHelper = new InvocationHelper<TParam, Unit>(
                 flowType,
                 storedType,
+                ClusterInfo.ReplicaId,
                 isParamlessFunction: false,
                 settingsWithDefaults,
                 _functionStore,
