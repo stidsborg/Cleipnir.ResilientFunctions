@@ -8,6 +8,19 @@ namespace Cleipnir.ResilientFunctions.Tests.UtilsTests;
 public class StoredIdTests
 {
     [TestMethod]
+    public void ToGuidIsSameForTwoEqualStoredIds()
+    {
+        var id1 = new StoredId(1.ToStoredType(), "Instance#1".ToStoredInstance());
+        var id2 = new StoredId(1.ToStoredType(), "Instance#1".ToStoredInstance());
+        var id3 = new StoredId(2.ToStoredType(), "Instance#1".ToStoredInstance());
+        var id4 = new StoredId(1.ToStoredType(), "Instance#2".ToStoredInstance());
+
+        id1.ToGuid().ShouldBe(id2.ToGuid());
+        id1.ToGuid().ShouldNotBe(id3.ToGuid());
+        id1.ToGuid().ShouldNotBe(id4.ToGuid());
+    }
+    
+    [TestMethod]
     public void DifferentStringsHashToDifferentGuids()
     {
         var hash1 = StoredIdFactory.FromString("Test123");

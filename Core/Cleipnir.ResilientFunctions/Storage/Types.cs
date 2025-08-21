@@ -1,4 +1,5 @@
 using System;
+using System.Buffers.Binary;
 using System.Collections.Generic;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Messaging;
@@ -16,6 +17,19 @@ public record StoredId(StoredType Type, StoredInstance Instance)
     }
 
     public string Serialize() => ToString();
+
+    public Guid ToGuid()
+    {
+        var instanceGuid = Instance.Value;
+        var instanceBytes = instanceGuid.ToByteArray();
+        var typeBytes = BitConverter.GetBytes(Type.Value);
+        if (!BitConverter.IsLittleEndian)
+            Array.Reverse(typeBytes);
+        
+        typeBytes.CopyTo(instanceBytes, index: 0); // overwrites first 4 bytes
+        var id = new Guid(instanceBytes);
+        return id;
+    }
 }
 public record StoredType(int Value);
 
