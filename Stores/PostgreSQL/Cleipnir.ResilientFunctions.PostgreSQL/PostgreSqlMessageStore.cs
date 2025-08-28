@@ -28,13 +28,12 @@ public class PostgreSqlMessageStore(string connectionString, SqlGenerator sqlGen
         await using var conn = await CreateConnection();
         _initializeSql ??= @$"
             CREATE TABLE IF NOT EXISTS {_tablePrefix}_messages (
-                type INT,
-                instance UUID,
+                id UUID,
                 position INT NOT NULL,
                 message_json BYTEA NOT NULL,
                 message_type BYTEA NOT NULL,   
                 idempotency_key VARCHAR(255),          
-                PRIMARY KEY (type, instance, position)
+                PRIMARY KEY (id, position)
             );";
         
         var command = new NpgsqlCommand(_initializeSql, conn);
@@ -61,18 +60,17 @@ public class PostgreSqlMessageStore(string connectionString, SqlGenerator sqlGen
         { //append Message to message stream sql
             _appendMessageSql ??= @$"    
                 INSERT INTO {_tablePrefix}_messages
-                    (type, instance, position, message_json, message_type, idempotency_key)
+                    (id, position, message_json, message_type, idempotency_key)
                 VALUES (
-                     $1, $2, 
-                     (SELECT COALESCE(MAX(position), -1) + 1 FROM {_tablePrefix}_messages WHERE type = $1 AND instance = $2), 
-                     $3, $4, $5
+                     $1,
+                     (SELECT COALESCE(MAX(position), -1) + 1 FROM {_tablePrefix}_messages WHERE id = $1), 
+                     $2, $3, $4
                 );";
             var command = new NpgsqlBatchCommand(_appendMessageSql)
             {
                 Parameters =
                 {
-                    new() {Value = storedId.Type.Value},
-                    new() {Value = storedId.Instance.Value},
+                    new() {Value = storedId.ToGuid()},
                     new() {Value = messageJson},
                     new() {Value = messageType},
                     new() {Value = idempotencyKey ?? (object) DBNull.Value}
@@ -85,13 +83,12 @@ public class PostgreSqlMessageStore(string connectionString, SqlGenerator sqlGen
             _getFunctionStatusInAppendMessageSql ??= @$"    
             SELECT epoch, status
             FROM {_tablePrefix}
-            WHERE type = $1 AND instance = $2;";
+            WHERE id = $1;";
            
             var command = new NpgsqlBatchCommand(_getFunctionStatusInAppendMessageSql)
             {
                 Parameters = { 
-                    new() {Value = storedId.Type.Value},
-                    new() {Value = storedId.Instance.Value}
+                    new() {Value = storedId.ToGuid()}
                 }
             };
             batch.BatchCommands.Add(command);  
@@ -173,7 +170,7 @@ public class PostgreSqlMessageStore(string connectionString, SqlGenerator sqlGen
         _replaceMessageSql ??= @$"    
                 UPDATE {_tablePrefix}_messages
                 SET message_json = $1, message_type = $2, idempotency_key = $3
-                WHERE type = $4 AND instance = $5 AND position = $6";
+                WHERE id = $4 AND position = $5";
 
         var (messageJson, messageType, idempotencyKey) = storedMessage;
         var command = new NpgsqlCommand(_replaceMessageSql, conn)
@@ -183,8 +180,7 @@ public class PostgreSqlMessageStore(string connectionString, SqlGenerator sqlGen
                 new() {Value = messageJson},
                 new() {Value = messageType},
                 new() {Value = idempotencyKey ?? (object) DBNull.Value},
-                new() {Value = storedId.Type.Value},
-                new() {Value = storedId.Instance.Value},
+                new() {Value = storedId.ToGuid()},
                 new() {Value = position},
             }
         };
@@ -199,13 +195,12 @@ public class PostgreSqlMessageStore(string connectionString, SqlGenerator sqlGen
         await using var conn = await CreateConnection();
         _truncateFunctionSql ??= @$"    
                 DELETE FROM {_tablePrefix}_messages
-                WHERE type = $1 AND instance = $2;";
+                WHERE id = $1;";
         await using var command = new NpgsqlCommand(_truncateFunctionSql, conn)
         {
             Parameters =
             {
-                new() {Value = storedId.Type.Value},
-                new() {Value = storedId.Instance.Value}
+                new() {Value = storedId.ToGuid()}
             }
         };
         await command.ExecuteNonQueryAsync();
@@ -225,16 +220,17 @@ public class PostgreSqlMessageStore(string connectionString, SqlGenerator sqlGen
     {
         if (storedIds.Count == 0)
             return new Dictionary<StoredId, int>();
-        
-        var predicates = storedIds
-            .GroupBy(id => id.Type.Value, id => id.Instance.Value)
-            .Select(g => $"type = {g.Key} AND instance IN ({g.Select(instance => $"'{instance}'").StringJoin(", ")})")
-            .StringJoin(" OR " + Environment.NewLine);
+
+        var idMap = storedIds.ToDictionary(id => id.ToGuid(), id => id);
+
+        var inClause = storedIds
+            .Select(id => $"'{id.ToGuid()}'")
+            .StringJoin(", ");
 
         var sql = @$"    
-            SELECT type, instance, position
+            SELECT id, position
             FROM {tablePrefix}_messages
-            WHERE {predicates};";
+            WHERE id IN ({inClause});";
 
         await using var conn = await CreateConnection();
         await using var command = new NpgsqlCommand(sql, conn);
@@ -246,11 +242,9 @@ public class PostgreSqlMessageStore(string connectionString, SqlGenerator sqlGen
         await using var reader = await command.ExecuteReaderAsync();
         while (await reader.ReadAsync())
         {
-            var type = reader.GetInt32(0).ToStoredType();
-            var instance = reader.GetGuid(1).ToStoredInstance();
-            var storedId = new StoredId(type, instance);
-            var position = reader.GetInt32(2);
-            positions[storedId] = position;
+            var id = reader.GetGuid(0);
+            var position = reader.GetInt32(1);
+            positions[idMap[id]] = position;
         }
         
         return positions;
