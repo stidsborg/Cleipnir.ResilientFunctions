@@ -47,11 +47,14 @@ public class SqlGenerator(string tablePrefix)
         _getEffectResultsSql ??= @$"
             SELECT id_hash, status, result, exception, effect_id
             FROM {tablePrefix}_effects
-            WHERE id = $1;";
+            WHERE type = $1 AND instance = $2;";
         
         return StoreCommand.Create(
             _getEffectResultsSql,
-            values: [ storedId.ToGuid() ]);
+            values: [
+                storedId.Type.Value,
+                storedId.Instance.Value
+            ]);
     }
 
     public async Task<IReadOnlyList<StoredEffect>> ReadEffects(NpgsqlDataReader reader)
@@ -80,14 +83,15 @@ public class SqlGenerator(string tablePrefix)
        {
            var sql= $@"
                 INSERT INTO {tablePrefix}_effects
-                    (id, id_hash, status, result, exception, effect_id)
+                    (type, instance, id_hash, status, result, exception, effect_id)
                 VALUES
-                    ($1, $2, $3, $4, $5, $6);";
+                    ($1, $2, $3, $4, $5, $6, $7);";
       
            foreach (var (storedId, _, _, storedEffect) in changes.Where(s => s.Operation == CrudOperation.Insert))
            {
                var command = StoreCommand.Create(sql);
-               command.AddParameter(storedId.ToGuid());
+               command.AddParameter(storedId.Type.Value);
+               command.AddParameter(storedId.Instance.Value);
                command.AddParameter(storedEffect!.StoredEffectId.Value);
                command.AddParameter((int) storedEffect.WorkStatus);
                command.AddParameter(storedEffect.Result ?? (object) DBNull.Value);
@@ -103,7 +107,7 @@ public class SqlGenerator(string tablePrefix)
             var sql= $@"
                 UPDATE {tablePrefix}_effects
                 SET status = $1, result = $2, exception = $3
-                WHERE id = $4 AND id_hash = $5;";
+                WHERE type = $4 AND instance = $5 AND id_hash = $6;";
       
            foreach (var (storedId, _, _, storedEffect) in changes.Where(s => s.Operation == CrudOperation.Update))
            {
@@ -111,7 +115,8 @@ public class SqlGenerator(string tablePrefix)
                command.AddParameter((int) storedEffect!.WorkStatus);
                command.AddParameter(storedEffect.Result ?? (object) DBNull.Value);
                command.AddParameter(JsonHelper.ToJson(storedEffect.StoredException) ?? (object) DBNull.Value);
-               command.AddParameter(storedId.ToGuid());
+               command.AddParameter(storedId.Type.Value);
+               command.AddParameter(storedId.Instance.Value);
                command.AddParameter(storedEffect.StoredEffectId.Value);
            
                commands.Add(command);
@@ -129,7 +134,8 @@ public class SqlGenerator(string tablePrefix)
            var storedId = removedEffectGroup.Key;
            var removeSql = @$"
                 DELETE FROM {tablePrefix}_effects
-                WHERE id = '{ storedId.ToGuid() }' AND
+                WHERE type = {storedId.Type.Value} AND
+                      instance = '{storedId.Instance.Value}' AND
                       id_hash IN ({removedEffectGroup.Select(id => $"'{id}'").StringJoin(", ")});";
            var command = StoreCommand.Create(removeSql);
            commands.Add(command);
@@ -152,9 +158,9 @@ public class SqlGenerator(string tablePrefix)
     {
         _createFunctionSql ??= @$"
             INSERT INTO {tablePrefix}
-                (id, type, instance, status, param_json, expires, timestamp, human_instance_id, parent, owner)
+                (type, instance, status, param_json, expires, timestamp, human_instance_id, parent, owner)
             VALUES
-                ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+                ($1, $2, $3, $4, $5, $6, $7, $8, $9)
             ON CONFLICT DO NOTHING;";
 
         var sql = _createFunctionSql;
@@ -165,7 +171,6 @@ public class SqlGenerator(string tablePrefix)
             sql,
             values:
             [
-                storedId.ToGuid(),
                 storedId.Type.Value,
                 storedId.Instance.Value,
                 (int)(postponeUntil == null ? Status.Executing : Status.Postponed),
@@ -189,8 +194,9 @@ public class SqlGenerator(string tablePrefix)
             UPDATE {tablePrefix}
             SET status = {(int) Status.Succeeded}, result_json = $1, timestamp = $2, owner = NULL
             WHERE 
-                id = $3 AND 
-                epoch = $4;";
+                type = $3 AND 
+                instance = $4 AND 
+                epoch = $5";
 
         return StoreCommand.Create(
             _succeedFunctionSql,
@@ -198,7 +204,8 @@ public class SqlGenerator(string tablePrefix)
             [
                 result == null ? DBNull.Value : result,
                 timestamp,
-                storedId.ToGuid(),
+                storedId.Type.Value,
+                storedId.Instance.Value,
                 expectedEpoch,
             ]
         );
@@ -216,8 +223,9 @@ public class SqlGenerator(string tablePrefix)
             UPDATE {tablePrefix}
             SET status = {(int) Status.Postponed}, expires = $1, timestamp = $2, owner = NULL
             WHERE 
-                id = $3 AND 
-                epoch = $4 AND
+                type = $3 AND 
+                instance = $4 AND 
+                epoch = $5 AND
                 interrupted = FALSE";
         
         var sql = _postponeFunctionSql;
@@ -229,7 +237,8 @@ public class SqlGenerator(string tablePrefix)
             values: [
                 postponeUntil,
                 timestamp,
-                storedId.ToGuid(),
+                storedId.Type.Value,
+                storedId.Instance.Value,
                 expectedEpoch,
             ]
         );
@@ -246,15 +255,17 @@ public class SqlGenerator(string tablePrefix)
             UPDATE {tablePrefix}
             SET status = {(int) Status.Failed}, exception_json = $1, timestamp = $2, owner = NULL
             WHERE 
-                id = $3 AND 
-                epoch = $4";
+                type = $3 AND 
+                instance = $4 AND 
+                epoch = $5";
         return StoreCommand.Create(
             _failFunctionSql,
             values:
             [
                 JsonSerializer.Serialize(storedException),
                 timestamp,
-                storedId.ToGuid(),
+                storedId.Type.Value,
+                storedId.Instance.Value,
                 expectedEpoch,
             ]
         );
@@ -266,14 +277,17 @@ public class SqlGenerator(string tablePrefix)
         _suspendFunctionSql ??= $@"
             UPDATE {tablePrefix}
             SET status = {(int)Status.Suspended}, timestamp = $1, owner = NULL
-            WHERE id = $2 AND 
+            WHERE type = $2 AND 
+                  instance = $3 AND 
+                  epoch = $4 AND
                   NOT interrupted;";
 
         return StoreCommand.Create(
             _suspendFunctionSql,
             values: [
                 timestamp,
-                storedId.ToGuid(),
+                storedId.Type.Value,
+                storedId.Instance.Value,
                 expectedEpoch
             ]
         );
@@ -285,7 +299,7 @@ public class SqlGenerator(string tablePrefix)
         _restartExecutionSql ??= @$"
             UPDATE {tablePrefix}
             SET epoch = epoch + 1, status = {(int)Status.Executing}, expires = $1, interrupted = FALSE, owner = $2
-            WHERE id = $3 AND epoch = $4
+            WHERE type = $3 AND instance = $4 AND epoch = $5
             RETURNING               
                 param_json, 
                 status,
@@ -304,7 +318,8 @@ public class SqlGenerator(string tablePrefix)
             values: [
                 leaseExpiration,
                 replicaId.AsGuid,
-                storedId.ToGuid(),
+                storedId.Type.Value,
+                storedId.Instance.Value,
                 expectedEpoch,
             ]);
 
@@ -357,15 +372,18 @@ public class SqlGenerator(string tablePrefix)
     {
         var sql = @$"    
             INSERT INTO {tablePrefix}_messages
-                (id, position, message_json, message_type, idempotency_key)
+                (type, instance, position, message_json, message_type, idempotency_key)
             VALUES 
-                 {messages.Select((_, i) => $"(${i * 5 + 1}, ${i * 5 + 2}, ${i * 5 + 3}, ${i * 5 + 4}, ${i * 5 + 5})").StringJoin($",{Environment.NewLine}")};";
+                 {messages.Select((_, i) => $"(${i * 6 + 1}, ${i * 6 + 2}, ${i * 6 + 3}, ${i * 6 + 4}, ${i * 6 + 5}, ${i * 6 + 6})").StringJoin($",{Environment.NewLine}")};";
 
         var command = StoreCommand.Create(sql);
 
         foreach (var (storedId, (messageContent, messageType, idempotencyKey), position) in messages)
         {
-            command.AddParameter(storedId.ToGuid());
+            var (storedType, storedInstance) = storedId;
+            
+            command.AddParameter(storedType.Value);
+            command.AddParameter(storedInstance.Value);
             command.AddParameter(position);
             command.AddParameter(messageContent);
             command.AddParameter(messageType);
@@ -381,12 +399,12 @@ public class SqlGenerator(string tablePrefix)
         _getMessagesSql ??= @$"    
             SELECT message_json, message_type, idempotency_key
             FROM {tablePrefix}_messages
-            WHERE id = $1 AND position >= $2
+            WHERE type = $1 AND instance = $2 AND position >= $3
             ORDER BY position ASC;";
 
         var storeCommand = StoreCommand.Create(
             _getMessagesSql,
-            values: [storedId.ToGuid(), skip]
+            values: [storedId.Type.Value, storedId.Instance.Value, skip]
         );
         
         return storeCommand;

@@ -87,7 +87,6 @@ public class PostgreSqlFunctionStore : IFunctionStore
         await using var conn = await CreateConnection();
         _initializeSql ??= $@"
             CREATE TABLE IF NOT EXISTS {_tableName} (
-                id UUID NOT NULL PRIMARY KEY,
                 type INT NOT NULL,
                 instance UUID NOT NULL,
                 epoch INT NOT NULL DEFAULT 0,
@@ -100,19 +99,20 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 timestamp BIGINT NOT NULL,
                 human_instance_id TEXT NOT NULL,
                 parent TEXT NULL,
-                owner UUID NULL
+                owner UUID NULL,
+                PRIMARY KEY (type, instance)
             );
             CREATE INDEX IF NOT EXISTS idx_{_tableName}_expires
-            ON {_tableName}(expires, id)
+            ON {_tableName}(expires, type, instance)
             INCLUDE (epoch)
             WHERE status = {(int) Status.Executing} OR status = {(int) Status.Postponed};           
 
             CREATE INDEX IF NOT EXISTS idx_{_tableName}_succeeded
-            ON {_tableName}(id)
+            ON {_tableName}(type, instance)
             WHERE status = {(int) Status.Succeeded};
 
             CREATE INDEX IF NOT EXISTS idx_{_tableName}_owners
-            ON {_tableName}(owner)
+            ON {_tableName}(owner, type, instance)
             WHERE status = {(int) Status.Executing};
             ";
 
@@ -216,9 +216,9 @@ public class PostgreSqlFunctionStore : IFunctionStore
     {
         _bulkScheduleFunctionsSql ??= @$"
             INSERT INTO {_tableName}
-                (id, type, instance, status, param_json, expires, timestamp, human_instance_id, parent)
+                (type, instance, status, param_json, expires, timestamp, human_instance_id, parent)
             VALUES
-                ($1, $2, $3, {(int) Status.Postponed}, $4, 0, 0, $5, $6)
+                ($1, $2, {(int) Status.Postponed}, $3, 0, 0, $4, $5)
             ON CONFLICT DO NOTHING;";
 
         await using var conn = await CreateConnection();
@@ -232,7 +232,6 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 {
                     Parameters =
                     {
-                        new() { Value = idWithParam.StoredId.ToGuid() },
                         new() { Value = idWithParam.StoredId.Type.Value },
                         new() { Value = idWithParam.StoredId.Instance.Value },
                         new() { Value = idWithParam.Param == null ? DBNull.Value : idWithParam.Param },

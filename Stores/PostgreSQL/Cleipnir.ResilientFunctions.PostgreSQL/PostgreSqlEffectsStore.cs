@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Storage.Utils;
@@ -17,13 +18,14 @@ public class PostgreSqlEffectsStore(string connectionString, SqlGenerator sqlGen
         await using var conn = await CreateConnection();
         _initializeSql ??= @$"
             CREATE TABLE IF NOT EXISTS {tablePrefix}_effects (
-                id UUID,
+                type INT,
+                instance UUID,
                 id_hash UUID,
                 status INT NOT NULL,
                 result BYTEA NULL,
                 exception TEXT NULL,
                 effect_id TEXT NOT NULL,
-                PRIMARY KEY (id, id_hash)
+                PRIMARY KEY (type, instance, id_hash)
             );";
         var command = new NpgsqlCommand(_initializeSql, conn);
         await command.ExecuteNonQueryAsync();
@@ -44,10 +46,10 @@ public class PostgreSqlEffectsStore(string connectionString, SqlGenerator sqlGen
         await using var conn = await CreateConnection();
         _setEffectResultSql ??= $@"
           INSERT INTO {tablePrefix}_effects 
-              (id, id_hash, status, result, exception, effect_id)
+              (type, instance, id_hash, status, result, exception, effect_id)
           VALUES
-              ($1, $2, $3, $4, $5, $6) 
-          ON CONFLICT (id, id_hash) 
+              ($1, $2, $3, $4, $5, $6, $7) 
+          ON CONFLICT (type, instance, id_hash) 
           DO 
             UPDATE SET status = EXCLUDED.status, result = EXCLUDED.result, exception = EXCLUDED.exception";
         
@@ -55,7 +57,8 @@ public class PostgreSqlEffectsStore(string connectionString, SqlGenerator sqlGen
         {
             Parameters =
             {
-                new() {Value = storedId.ToGuid()},
+                new() {Value = storedId.Type.Value},
+                new() {Value = storedId.Instance.Value},
                 new() {Value = storedEffect.StoredEffectId.Value},
                 new() {Value = (int) storedEffect.WorkStatus},
                 new() {Value = storedEffect.Result ?? (object) DBNull.Value},
@@ -93,13 +96,14 @@ public class PostgreSqlEffectsStore(string connectionString, SqlGenerator sqlGen
     public async Task DeleteEffectResult(StoredId storedId, StoredEffectId effectId)
     {
         await using var conn = await CreateConnection();
-        _deleteEffectResultSql ??= $"DELETE FROM {tablePrefix}_effects WHERE id = $1 AND id_hash = $2";
+        _deleteEffectResultSql ??= $"DELETE FROM {tablePrefix}_effects WHERE type = $1 AND instance = $2 AND id_hash = $3";
         
         await using var command = new NpgsqlCommand(_deleteEffectResultSql, conn)
         {
             Parameters =
             {
-                new() {Value = storedId.ToGuid() },
+                new() {Value = storedId.Type.Value },
+                new() {Value = storedId.Instance.Value },
                 new() {Value = effectId.Value },
             }
         };
@@ -112,7 +116,8 @@ public class PostgreSqlEffectsStore(string connectionString, SqlGenerator sqlGen
         await using var conn = await CreateConnection();
         var sql = @$"
             DELETE FROM {tablePrefix}_effects 
-            WHERE id = {storedId.ToGuid()} AND                  
+            WHERE type = {storedId.Type.Value} AND 
+                  instance = '{storedId.Instance.Value}' AND 
                   id_hash IN ({effectIds.Select(id => $"'{id.Value}'").StringJoin(", ")})";
 
         await using var command = new NpgsqlCommand(sql, conn);
@@ -123,13 +128,14 @@ public class PostgreSqlEffectsStore(string connectionString, SqlGenerator sqlGen
     public async Task Remove(StoredId storedId)
     {
         await using var conn = await CreateConnection();
-        _removeSql ??= $"DELETE FROM {tablePrefix}_effects WHERE id = $1";
+        _removeSql ??= $"DELETE FROM {tablePrefix}_effects WHERE type = $1 AND instance = $2";
         
         await using var command = new NpgsqlCommand(_removeSql, conn)
         {
             Parameters =
             {
-                new() {Value = storedId.ToGuid() }
+                new() {Value = storedId.Type.Value },
+                new() {Value = storedId.Instance.Value },
             }
         };
 
