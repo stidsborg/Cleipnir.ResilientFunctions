@@ -105,7 +105,16 @@ public class PostgreSqlFunctionStore : IFunctionStore
             CREATE INDEX IF NOT EXISTS idx_{_tableName}_expires
             ON {_tableName}(expires, id)
             INCLUDE (epoch)
-            WHERE status = {(int) Status.Executing} OR status = {(int) Status.Postponed};";
+            WHERE status = {(int) Status.Executing} OR status = {(int) Status.Postponed};           
+
+            CREATE INDEX IF NOT EXISTS idx_{_tableName}_succeeded
+            ON {_tableName}(id)
+            WHERE status = {(int) Status.Succeeded};
+
+            CREATE INDEX IF NOT EXISTS idx_{_tableName}_owners
+            ON {_tableName}(owner)
+            WHERE status = {(int) Status.Executing};
+            ";
 
         await using var command = new NpgsqlCommand(_initializeSql, conn);
         await command.ExecuteNonQueryAsync();
