@@ -28,26 +28,22 @@ public abstract class AtLeastOnceWorkStatusAndResultTests
                 await workflow.Effect
                     .Capture(
                         "id",
-                        work: () =>
+                        work: async () =>
                         {
                             counter.Increment();
-                            if (counter.Current == 1)
-                                throw new PostponeInvocationException(DateTime.UtcNow);
-                            
-                            return 1.ToTask();
+                            await workflow.Delay(TimeSpan.FromMilliseconds(100));
+                            return 1;
                         }
                     );
             });
 
-        _ = rAction.Invoke(flowInstance.ToString(), "hello");
+        await rAction.Schedule(flowInstance.ToString(), "hello");
         
-        await BusyWait.Until(() =>
-            store.GetFunction(rAction.MapToStoredId(functionId.Instance))
-                .SelectAsync(sf => sf?.Status == Status.Succeeded)
-        );
-
         var controlPanel = await rAction.ControlPanel(flowInstance);
-        await controlPanel!.Effects.GetValue<int>("id").ShouldBeAsync(1);
+        controlPanel.ShouldNotBeNull();
+        await controlPanel.WaitForCompletion(allowPostponeAndSuspended: true);
+        
+        await controlPanel.Effects.GetValue<int>("id").ShouldBeAsync(1);
         counter.Current.ShouldBe(2);
     }
 
@@ -67,13 +63,16 @@ public abstract class AtLeastOnceWorkStatusAndResultTests
                 return await workflow.Effect
                     .Capture(
                         "someId",
-                        work: () =>
+                        work: async () =>
                         {
                             counter.Increment();
                             if (counter.Current == 1)
-                                throw new PostponeInvocationException(DateTime.UtcNow);
+                            {
+                                await workflow.Delay(TimeSpan.FromMilliseconds(10));
+                                return "nothing";
+                            }
                             
-                            return "hello world".ToTask();
+                            return "hello world";
                         }
                     );
             });
@@ -107,13 +106,16 @@ public abstract class AtLeastOnceWorkStatusAndResultTests
                 return await workflow.Effect
                     .Capture(
                         "someId",
-                        work: () =>
+                        work: async () =>
                         {
                             counter.Increment();
-                            if (counter.Current == 1)
-                                throw new PostponeInvocationException(DateTime.UtcNow);
+                            if (counter.Current == 1) 
+                            {
+                                await workflow.Delay(TimeSpan.FromMilliseconds(10));
+                                return null!;
+                            }
                             
-                            return new Person("Peter", 32).ToTask();
+                            return new Person("Peter", 32);
                         }
                     );
             });

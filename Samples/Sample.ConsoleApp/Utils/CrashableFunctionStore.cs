@@ -16,7 +16,6 @@ public class CrashableFunctionStore : IFunctionStore
     public ITypeStore TypeStore => _inner.TypeStore;
     public IMessageStore MessageStore => _inner.MessageStore;
     public IEffectsStore EffectsStore => _inner.EffectsStore;
-    public ITimeoutStore TimeoutStore => _inner.TimeoutStore;
     public ICorrelationStore CorrelationStore => _inner.CorrelationStore;
     public Utilities Utilities => _inner.Utilities;
     public IMigrator Migrator => _inner.Migrator;

@@ -11,7 +11,6 @@ public interface IFunctionStore
     public ITypeStore TypeStore { get; }
     public IMessageStore MessageStore { get; }
     public IEffectsStore EffectsStore { get; }
-    public ITimeoutStore TimeoutStore { get; }
     public ICorrelationStore CorrelationStore { get; }
     public Utilities Utilities { get; }
     public IMigrator Migrator { get; }

@@ -47,7 +47,6 @@ public class Postpone
     public Result<Unit> ToUnitResult => ToResult<Unit>();
     
     public static Postpone Until(DateTime dateTime) => new(dateTime.ToUniversalTime());
-    public static void Throw(DateTime postponeUntil) => throw new PostponeInvocationException(postponeUntil);
 }
 
 public class Suspend

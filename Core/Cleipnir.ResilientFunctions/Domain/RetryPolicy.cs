@@ -88,7 +88,7 @@ public class RetryPolicy(TimeSpan initialInterval, double backoffCoefficient, Ti
     );
     
     
-    public Task Invoke(Func<Task> work, Effect effect, UtcNow utcNow)
+    public Task Invoke(Func<Task> work, Effect effect, UtcNow utcNow, FlowMinimumTimeout flowMinimumTimeout)
     {
         return Invoke(
             work: async () =>
@@ -97,17 +97,21 @@ public class RetryPolicy(TimeSpan initialInterval, double backoffCoefficient, Ti
                 return Unit.Instance;
             },
             effect,
-            utcNow
+            utcNow,
+            flowMinimumTimeout
         );
     }
 
-    public async Task<T> Invoke<T>(Func<Task<T>> work, Effect effect, UtcNow utcNow)
+    public async Task<T> Invoke<T>(Func<Task<T>> work, Effect effect, UtcNow utcNow, FlowMinimumTimeout flowMinimumTimeout)
     {
         var delayUntilId = effect.CreateEffectId("DelayUntil", EffectType.Retry);
         var delayUntilOption = await effect.TryGet<long>(delayUntilId);
         var delayUntil = delayUntilOption.HasValue ? delayUntilOption.Value.ToDateTime() : DateTime.MinValue;
         if (delayUntilOption.HasValue && delayUntil > utcNow())
-            throw new PostponeInvocationException(delayUntil);
+        {
+            flowMinimumTimeout.AddTimeout(delayUntilId, delayUntil);
+            throw new SuspendInvocationException();
+        }
 
         var iterationId = effect.CreateEffectId("Iteration", EffectType.Retry);
         var iteration = await effect.CreateOrGet(iterationId, 0, flush: false);
@@ -139,9 +143,12 @@ public class RetryPolicy(TimeSpan initialInterval, double backoffCoefficient, Ti
 
                 if (iteration >= maximumAttempts)
                     throw;
-                
+
                 if (delay >= suspendThreshold)
-                    throw new PostponeInvocationException(delayUntil);
+                {
+                    flowMinimumTimeout.AddTimeout(delayUntilId, delayUntil);
+                    throw new SuspendInvocationException();
+                }
                 
                 await Task.Delay(delay);
             }            

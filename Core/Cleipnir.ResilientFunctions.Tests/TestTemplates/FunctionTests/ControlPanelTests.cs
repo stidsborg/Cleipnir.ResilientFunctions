@@ -36,7 +36,7 @@ public abstract class ControlPanelTests
                 await messages.AppendMessage("Message");
                 var state = await states.CreateOrGetDefault<State>();
                 state.Value = "State";
-                await workflow.Messages.RegisteredTimeouts.RegisterTimeout("Timeout", TimeSpan.FromDays(1));
+                await workflow.Messages.FlowRegisteredTimeouts.RegisterTimeout("Timeout", TimeSpan.FromDays(1), publishMessage: true);
                 await state.Save();
             }
         );
@@ -68,12 +68,6 @@ public abstract class ControlPanelTests
             .GetEffectResults(storedId)
             .SelectAsync(states => states.Count())
             .ShouldBeAsync(0);
-
-        await store
-            .TimeoutStore
-            .GetTimeouts(storedId)
-            .SelectAsync(timeouts => timeouts.Count())
-            .ShouldBeAsync(0);
         
         unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
@@ -98,7 +92,7 @@ public abstract class ControlPanelTests
                 var state = await states.CreateOrGetDefault<State>();
                 state.Value = "State";
                 await state.Save();
-                await workflow.Messages.RegisteredTimeouts.RegisterTimeout("Timeout", TimeSpan.FromDays(1));
+                await workflow.Messages.FlowRegisteredTimeouts.RegisterTimeout("Timeout", TimeSpan.FromDays(1), publishMessage: true);
                 return "hello";
             });
         
@@ -128,12 +122,6 @@ public abstract class ControlPanelTests
             .EffectsStore
             .GetEffectResults(storedId)
             .SelectAsync(states => states.Count())
-            .ShouldBeAsync(0);
-        
-        await store
-            .TimeoutStore
-            .GetTimeouts(storedId)
-            .SelectAsync(timeouts => timeouts.Count())
             .ShouldBeAsync(0);
         
         unhandledExceptionCatcher.ShouldNotHaveExceptions();
@@ -223,7 +211,7 @@ public abstract class ControlPanelTests
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
         var rAction = functionsRegistry.RegisterAction(
             flowType,
-            Task (string _) => throw new PostponeInvocationException(DateTime.UtcNow + TimeSpan.FromMinutes(1))
+            Task (string _, Workflow workflow) => workflow.Delay(TimeSpan.FromMinutes(1))
         );
         
         await Should.ThrowAsync<Exception>(() => rAction.Invoke(flowInstance.Value, ""));
@@ -258,7 +246,11 @@ public abstract class ControlPanelTests
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
         var rFunc = functionsRegistry.RegisterFunc<string, string>(
             flowType,
-            Task<string> (string _) => throw new PostponeInvocationException(DateTime.UtcNow + TimeSpan.FromMinutes(1))
+            async Task<string> (string _, Workflow workflow) =>
+            {
+                await workflow.Delay(TimeSpan.FromSeconds(10));
+                return "Ok";
+            }
         );
         
         await Should.ThrowAsync<Exception>(() => rFunc.Invoke(flowInstance.Value, ""));
@@ -1539,9 +1531,10 @@ public abstract class ControlPanelTests
         var actionRegistration = functionsRegistry.RegisterAction(
             flowType,
             Task (string param, Workflow workflow) =>
-                workflow.Messages.RegisteredTimeouts.RegisterTimeout(
+                workflow.Messages.FlowRegisteredTimeouts.RegisterTimeout(
                     "someTimeoutId", 
-                    expiresAt: new DateTime(2100, 1,1, 1,1,1, DateTimeKind.Utc)
+                    expiresAt: new DateTime(2100, 1,1, 1,1,1, DateTimeKind.Utc),
+                    publishMessage: true
                 )
         );
 
@@ -1582,9 +1575,10 @@ public abstract class ControlPanelTests
             flowType,
             async Task<string> (string param, Workflow workflow) =>
             {
-                await workflow.Messages.RegisteredTimeouts.RegisterTimeout(
+                await workflow.Messages.FlowRegisteredTimeouts.RegisterTimeout(
                     "someTimeoutId", 
-                    expiresAt: new DateTime(2100, 1, 1, 1, 1, 1, DateTimeKind.Utc)
+                    expiresAt: new DateTime(2100, 1, 1, 1, 1, 1, DateTimeKind.Utc), 
+                    publishMessage: true
                 );
 
                 return param;
@@ -1684,10 +1678,6 @@ public abstract class ControlPanelTests
         await store.MessageStore.GetMessages(storedId, skip: 0)
             .SelectAsync(msgs => msgs.Count == 0)
             .ShouldBeTrueAsync();
-
-        await store.TimeoutStore.GetTimeouts(storedId)
-            .SelectAsync(ts => ts.Any())
-            .ShouldBeFalseAsync();
 
         await store.CorrelationStore.GetCorrelations(storedId)
             .SelectAsync(c => c.Any())

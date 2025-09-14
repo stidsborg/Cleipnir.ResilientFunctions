@@ -25,9 +25,6 @@ public class PostgreSqlFunctionStore : IFunctionStore
     
     private readonly PostgreSqlEffectsStore _effectsStore;
     public IEffectsStore EffectsStore => _effectsStore;
-
-    private readonly PostgreSqlTimeoutStore _timeoutStore;
-    public ITimeoutStore TimeoutStore => _timeoutStore;
     
     private readonly ICorrelationStore _correlationStore;
     public ICorrelationStore CorrelationStore => _correlationStore;
@@ -52,7 +49,6 @@ public class PostgreSqlFunctionStore : IFunctionStore
         
         _messageStore = new PostgreSqlMessageStore(connectionString, _sqlGenerator, _tableName);
         _effectsStore = new PostgreSqlEffectsStore(connectionString, _sqlGenerator, _tableName);
-        _timeoutStore = new PostgreSqlTimeoutStore(connectionString, _tableName);
         _correlationStore = new PostgreSqlCorrelationStore(connectionString, _tableName);
         _semaphoreStore = new PostgreSqlSemaphoreStore(connectionString, _tableName);
         _typeStore = new PostgreSqlTypeStore(connectionString, _tableName);
@@ -79,7 +75,6 @@ public class PostgreSqlFunctionStore : IFunctionStore
         await _postgresSqlUnderlyingRegister.Initialize();
         await _messageStore.Initialize();
         await _effectsStore.Initialize();
-        await _timeoutStore.Initialize();
         await _correlationStore.Initialize();
         await _semaphoreStore.Initialize();
         await _typeStore.Initialize();
@@ -124,7 +119,6 @@ public class PostgreSqlFunctionStore : IFunctionStore
     public async Task TruncateTables()
     {
         await _messageStore.TruncateTable();
-        await _timeoutStore.Truncate();
         await _postgresSqlUnderlyingRegister.TruncateTable();
         await _effectsStore.Truncate();
         await _correlationStore.Truncate();
@@ -808,7 +802,6 @@ public class PostgreSqlFunctionStore : IFunctionStore
     {
         await _messageStore.Truncate(storedId);
         await _effectsStore.Remove(storedId);
-        await _timeoutStore.Remove(storedId);
         await _correlationStore.RemoveCorrelations(storedId);
 
         return await DeleteStoredFunction(storedId);

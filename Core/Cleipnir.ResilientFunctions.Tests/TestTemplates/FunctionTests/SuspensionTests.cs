@@ -799,4 +799,42 @@ public abstract class SuspensionTests
         
         unhandledExceptionHandler.ShouldNotHaveExceptions();
     }
+    
+    public abstract Task DelayedFlowIsRestartedOnce();
+    protected async Task DelayedFlowIsRestartedOnce(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var id = TestFlowId.Create();
+        var (flowType, flowInstance) = id;
+
+        var unhandledExceptionHandler = new UnhandledExceptionCatcher();
+        using var functionsRegistry = new FunctionsRegistry
+        (
+            store,
+            new Settings(unhandledExceptionHandler.Catch)
+        );
+        
+        var syncedCounter = new SyncedCounter();
+        var registration = functionsRegistry.RegisterParamless(
+            flowType,
+            inner: async Task (workflow) =>
+            {
+                syncedCounter.Increment();
+                await workflow.Delay(TimeSpan.FromMilliseconds(100));
+            }
+        );
+
+        await registration.Schedule(flowInstance);
+        
+        var cp = await registration.ControlPanel(flowInstance);
+        cp.ShouldNotBeNull();
+
+        await cp.WaitForCompletion(allowPostponeAndSuspended: true);
+        await cp.Refresh();
+        
+        cp.Status.ShouldBe(Status.Succeeded);
+        syncedCounter.Current.ShouldBe(2);
+        
+        unhandledExceptionHandler.ShouldNotHaveExceptions();
+    }
 }

@@ -14,7 +14,6 @@ internal static class WatchDogsFactory
         FlowType flowType, 
         StoredType storedType,
         IFunctionStore functionStore,
-        TimeoutWatchdog timeoutWatchdog,
         CrashedOrPostponedWatchdog crashedOrPostponedWatchdog,
         Restart restart, 
         RestartFunction restartFunction,
@@ -38,14 +37,6 @@ internal static class WatchDogsFactory
             scheduleRestart,
             asyncSemaphore
         );
-
-        var messagesWriters = new MessageWriters(
-            storedType,
-            functionStore,
-            serializer,
-            scheduleReInvocation: (id, epoch) => restart(id, epoch)
-        );
-        timeoutWatchdog.Register(storedType, messagesWriters);
 
         var retentionWatchdog = new RetentionWatchdog(
             flowType,

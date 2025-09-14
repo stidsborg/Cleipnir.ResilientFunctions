@@ -95,4 +95,8 @@ public class SuspensionTests : TestTemplates.FunctionTests.SuspensionTests
     [TestMethod]
     public override Task AwaitMessageAfterAppendShouldNotCauseSuspension()
         => AwaitMessageAfterAppendShouldNotCauseSuspension(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task DelayedFlowIsRestartedOnce()
+        => DelayedFlowIsRestartedOnce(FunctionStoreFactory.Create());
 }

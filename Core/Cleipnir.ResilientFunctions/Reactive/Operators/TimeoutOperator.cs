@@ -72,8 +72,7 @@ public class TimeoutOperator<T> : IReactiveChain<T>
 
         public void PushMessages() => _innerSubscription.PushMessages();
 
-        public Task RegisterTimeout() => _innerSubscription.RegisteredTimeouts.RegisterTimeout(_timeoutId, _expiresAt);
-        public Task CancelTimeout()
+        public async Task RegisterTimeout()
         {
             var timeoutExists = _innerSubscription
                 .Source
@@ -82,12 +81,14 @@ public class TimeoutOperator<T> : IReactiveChain<T>
                 .Take(1)
                 .Existing(out _)
                 .Any();
-
-            if (timeoutExists)
-                return Task.CompletedTask;
             
-            return _innerSubscription.RegisteredTimeouts.CancelTimeout(_timeoutId);  
-        }   
+            if (timeoutExists)
+                await _innerSubscription.RegisteredTimeouts.CompleteTimeout(_timeoutId);
+            else
+                await _innerSubscription.RegisteredTimeouts.RegisterTimeout(_timeoutId, _expiresAt, publishMessage: true);
+        } 
+        
+        public Task CancelTimeout() => _innerSubscription.RegisteredTimeouts.CancelTimeout(_timeoutId);
 
         private void OnNext(T next)
         {
@@ -111,6 +112,7 @@ public class TimeoutOperator<T> : IReactiveChain<T>
         {
             if (_completed) return;
             _completed = true;
+            _innerSubscription.RegisteredTimeouts.CompleteTimeout(_timeoutId);
 
             _signalCompletion();  
         }

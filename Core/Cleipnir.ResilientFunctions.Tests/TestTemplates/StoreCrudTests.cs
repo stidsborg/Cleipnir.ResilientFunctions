@@ -176,10 +176,6 @@ public abstract class StoreCrudTests
             new StoredEffect("SomeEffectId".ToEffectId(), "SomeEffectId".ToStoredEffectId(EffectType.Effect), WorkStatus.Completed, Result: null, StoredException: null)
         );
         await store.MessageStore.AppendMessage(functionId, new StoredMessage("SomeJson".ToUtf8Bytes(), "SomeType".ToUtf8Bytes()));
-        await store.TimeoutStore.UpsertTimeout(
-            new StoredTimeout(functionId, "SomeTimeoutId".ToEffectId(), Expiry: DateTime.UtcNow.AddDays(1).Ticks),
-            overwrite: false
-        );
         
         await store.DeleteFunction(functionId);
 
@@ -187,7 +183,6 @@ public abstract class StoreCrudTests
         await store.CorrelationStore.GetCorrelations(functionId).ShouldBeEmptyAsync();
         await store.EffectsStore.GetEffectResults(functionId).ShouldBeEmptyAsync();
         await store.MessageStore.GetMessages(functionId, skip: 0).ShouldBeEmptyAsync();
-        await store.TimeoutStore.GetTimeouts(functionId).ShouldBeEmptyAsync();
     }
     
     public abstract Task NonExistingFunctionCanBeDeleted();

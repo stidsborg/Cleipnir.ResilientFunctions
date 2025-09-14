@@ -22,6 +22,8 @@ public class EffectResults
     private volatile bool _initialized;
 
     private readonly Dictionary<EffectId, PendingEffectChange> _effectResults = new();
+    
+    public IEnumerable<EffectId> EffectIds => _effectResults.Keys.ToList();
         
     public EffectResults(
         FlowId flowId,

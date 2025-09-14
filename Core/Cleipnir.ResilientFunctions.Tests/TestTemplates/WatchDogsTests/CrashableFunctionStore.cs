@@ -20,7 +20,6 @@ public class CrashableFunctionStore : IFunctionStore
 
     private readonly CrashableEffectStore _crashableEffectStore;
     public IEffectsStore EffectsStore => _crashableEffectStore;
-    public ITimeoutStore TimeoutStore => _crashed ? throw new TimeoutException() : _inner.TimeoutStore;
     public ICorrelationStore CorrelationStore => _crashed ? throw new TimeoutException() : _inner.CorrelationStore;
     public Utilities Utilities => _crashed ? throw new TimeoutException() : _inner.Utilities;
     public IMigrator Migrator => _crashed ? throw new TimeoutException() : _inner.Migrator;

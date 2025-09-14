@@ -232,10 +232,12 @@ public class Invoker<TParam, TReturn>
             disposables.Add(isWorkflowRunningDisposable);
             success = persisted;
 
+            var minimumTimeout = new FlowMinimumTimeout();
             var (effect, states) = _invocationHelper.CreateEffectAndStates(
                 storedId,
                 flowId,
-                initialState == null ? [] : _invocationHelper.MapInitialEffects(initialState.Effects, flowId)
+                initialState == null ? [] : _invocationHelper.MapInitialEffects(initialState.Effects, flowId),
+                minimumTimeout
             );
             var messages = _invocationHelper.CreateMessages(
                 flowId,
@@ -243,7 +245,9 @@ public class Invoker<TParam, TReturn>
                 ScheduleRestart, 
                 isWorkflowRunning: () => !isWorkflowRunningDisposable.Disposed,
                 effect,
-                initialState == null ? [] : _invocationHelper.MapInitialMessages(initialState.Messages)
+                initialState == null ? [] : _invocationHelper.MapInitialMessages(initialState.Messages),
+                minimumTimeout,
+                _unhandledExceptionHandler
             );
             
             var correlations = _invocationHelper.CreateCorrelations(flowId);
@@ -289,14 +293,17 @@ public class Invoker<TParam, TReturn>
             var isWorkflowRunningDisposable = new PropertyDisposable();
             disposables.Add(isWorkflowRunningDisposable);
             
-            var (effect, states) = _invocationHelper.CreateEffectAndStates(storedId, flowId, effects);
+            var minimumTimeout = new FlowMinimumTimeout();
+            var (effect, states) = _invocationHelper.CreateEffectAndStates(storedId, flowId, effects, minimumTimeout);
             var messages = _invocationHelper.CreateMessages(
                 flowId,
                 storedId,
                 ScheduleRestart,
                 isWorkflowRunning: () => !isWorkflowRunningDisposable.Disposed,
                 effect,
-                storedMessages
+                storedMessages,
+                minimumTimeout,
+                _unhandledExceptionHandler
             );
             
             var correlations = _invocationHelper.CreateCorrelations(flowId);

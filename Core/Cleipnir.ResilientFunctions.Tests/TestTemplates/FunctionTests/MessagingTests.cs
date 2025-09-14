@@ -105,10 +105,10 @@ public abstract class MessagingTests
             }
         );
 
-        await Should.ThrowAsync<InvocationSuspendedException>(() =>
+        await Should.ThrowAsync<InvocationPostponedException>(() =>
             rFunc.Invoke(functionId.Instance.Value, "")
         );
-
+        
         var controlPanel = await rFunc.ControlPanel("instanceId");
         controlPanel.ShouldNotBeNull();
 

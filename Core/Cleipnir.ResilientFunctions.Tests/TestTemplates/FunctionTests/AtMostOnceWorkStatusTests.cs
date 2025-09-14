@@ -28,16 +28,16 @@ public abstract class AtMostOnceWorkStatusTests
                 await workflow.Effect
                     .Capture(
                         "Id",
-                        work: () =>
+                        work: async () =>
                         {
                             counter.Increment();
-                            throw new PostponeInvocationException(DateTime.UtcNow);
+                            await workflow.Delay(TimeSpan.FromMilliseconds(100));
                         }, ResiliencyLevel.AtMostOnce
                     );
             });
 
         await rAction.Schedule(flowInstance.ToString(), "hello");
-
+        
         await BusyWait.Until(() =>
             store.GetFunction(rAction.MapToStoredId(functionId.Instance))
                 .SelectAsync(sf => sf?.Status == Status.Failed)
@@ -62,10 +62,10 @@ public abstract class AtMostOnceWorkStatusTests
                 await workflow.Effect
                     .Capture(
                         "someId",
-                        work: () =>
+                        work: async () =>
                         {
                             counter.Increment();
-                            throw new PostponeInvocationException(DateTime.UtcNow);
+                            await workflow.Delay(TimeSpan.FromMilliseconds(10));
                         }, ResiliencyLevel.AtMostOnce
                     );
             });

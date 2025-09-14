@@ -29,8 +29,7 @@ public class Example
 
     private static async Task SuspensionDelayWorkflow(string param, Workflow workflow)
     {
-        var messages = workflow.Messages;
-        await messages.SuspendFor(timeoutEventId: "timeout", resumeAfter: TimeSpan.FromSeconds(5));
+        await workflow.Delay(TimeSpan.FromSeconds(5));
         Console.WriteLine("Completed!");
     }
 }

@@ -22,8 +22,7 @@ public class FunctionsRegistry : IDisposable
     private readonly IFunctionStore _functionStore;
     private readonly ShutdownCoordinator _shutdownCoordinator;
     private readonly SettingsWithDefaults _settings;
-
-    private readonly TimeoutWatchdog _timeoutWatchdog;
+    
     private readonly CrashedOrPostponedWatchdog _crashedOrPostponedWatchdog;
     private readonly LeasesUpdater _leasesUpdater;
     private readonly StoredTypes _storedTypes;
@@ -46,14 +45,6 @@ public class FunctionsRegistry : IDisposable
         
         ClusterInfo = new ClusterInfo(ReplicaId.NewId());
         
-        _timeoutWatchdog = new TimeoutWatchdog(
-            functionStore.TimeoutStore,
-            _settings.WatchdogCheckFrequency,
-            _settings.DelayStartup,
-            _settings.UnhandledExceptionHandler,
-            _shutdownCoordinator,
-            utcNow
-        );
         _crashedOrPostponedWatchdog = new CrashedOrPostponedWatchdog(
             _functionStore,
             _shutdownCoordinator,
@@ -239,7 +230,6 @@ public class FunctionsRegistry : IDisposable
                 flowType,
                 storedType,
                 _functionStore,
-                _timeoutWatchdog,
                 _crashedOrPostponedWatchdog,
                 invoker.Restart,
                 invocationHelper.RestartFunction,
@@ -337,7 +327,6 @@ public class FunctionsRegistry : IDisposable
                 flowType,
                 storedType,
                 _functionStore,
-                _timeoutWatchdog,
                 _crashedOrPostponedWatchdog,
                 invoker.Restart,
                 invocationHelper.RestartFunction,
@@ -435,7 +424,6 @@ public class FunctionsRegistry : IDisposable
                 flowType,
                 storedType,
                 _functionStore,
-                _timeoutWatchdog,
                 _crashedOrPostponedWatchdog,
                 rActionInvoker.Restart,
                 invocationHelper.RestartFunction,

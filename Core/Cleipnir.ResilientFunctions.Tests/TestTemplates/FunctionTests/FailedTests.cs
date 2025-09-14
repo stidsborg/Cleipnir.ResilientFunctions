@@ -50,7 +50,7 @@ public abstract class FailedTests
                             : Task.FromException(new Exception())
                 );
 
-            await Should.ThrowAsync<Exception>(async () => await actionRegistration.Invoke(flowInstance.ToString(), Param));
+            await Should.ThrowAsync<FatalWorkflowException>(async () => await actionRegistration.Invoke(flowInstance.ToString(), Param));
             var sf = await store.GetFunction(actionRegistration.MapToStoredId(functionId.Instance));
             sf.ShouldNotBeNull();
         }

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Cleipnir.ResilientFunctions.CoreRuntime;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.CoreRuntime.Serialization;
 using Cleipnir.ResilientFunctions.Domain;
@@ -337,7 +338,7 @@ public abstract class EffectTests
             store.EffectsStore,
             DefaultSerializer.Instance
         );
-        var effect = new Effect(effectResults, utcNow: () => DateTime.UtcNow);
+        var effect = new Effect(effectResults, utcNow: () => DateTime.UtcNow, new FlowMinimumTimeout());
         
         var option = await effect.TryGet<int>("Id1");
         option.HasValue.ShouldBeFalse();
@@ -383,7 +384,7 @@ public abstract class EffectTests
             store.EffectsStore,
             DefaultSerializer.Instance
         );
-        var effect = new Effect(effectResults, utcNow: () => DateTime.UtcNow);
+        var effect = new Effect(effectResults, utcNow: () => DateTime.UtcNow, new FlowMinimumTimeout());
         
         syncedCounter.Current.ShouldBe(0);
         
@@ -652,7 +653,7 @@ public abstract class EffectTests
             effectStore,
             DefaultSerializer.Instance
         );
-        var effect = new Effect(effectResults, utcNow: () => DateTime.UtcNow);
+        var effect = new Effect(effectResults, utcNow: () => DateTime.UtcNow, new FlowMinimumTimeout());
 
         var result = await effect.Capture("1", () => "hello world", ResiliencyLevel.AtLeastOnceDelayFlush);
         result.ShouldBe("hello world");
@@ -725,7 +726,7 @@ public abstract class EffectTests
             effectStore,
             DefaultSerializer.Instance
         );
-        var effect = new Effect(effectResults, utcNow: () => DateTime.UtcNow);
+        var effect = new Effect(effectResults, utcNow: () => DateTime.UtcNow, new FlowMinimumTimeout());
 
         await effect.Capture("1", () => "hello world");
         await effect.Capture("2", () => "hello universe");

@@ -120,8 +120,6 @@ public class TimeoutTests
 
         var task = await source.TakeUntilTimeout(timeoutId, expiresAt).FirstOrNone();
         task.HasValue.ShouldBeFalse();
-
-        registeredTimeoutsStub.Cancelled.ShouldBeNull();
     }
     
     private class RegisteredTimeoutsStub : IRegisteredTimeouts
@@ -142,24 +140,28 @@ public class TimeoutTests
         private readonly Lock _sync = new();
         private readonly Dictionary<EffectId, DateTime> _registrations = new();
             
-        public Task RegisterTimeout(EffectId timeoutId, DateTime expiresAt)
+        public Task<Tuple<TimeoutStatus, DateTime>> RegisterTimeout(EffectId timeoutId, DateTime expiresAt, bool publishMessage)
         {
             lock (_sync)
                 _registrations[timeoutId] = expiresAt;
 
-            return Task.CompletedTask;
+            return Tuple.Create(TimeoutStatus.Registered, expiresAt).ToTask();
         }
 
-        public Task RegisterTimeout(EffectId timeoutId, TimeSpan expiresIn)
-            => RegisterTimeout(timeoutId, DateTime.UtcNow.Add(expiresIn));
+        public Task<Tuple<TimeoutStatus, DateTime>> RegisterTimeout(EffectId timeoutId, TimeSpan expiresIn, bool publishMessage)
+            => RegisterTimeout(timeoutId, DateTime.UtcNow.Add(expiresIn), publishMessage);
 
         public Task CancelTimeout(EffectId timeoutId)
         {
             Cancelled = timeoutId;
             return Task.CompletedTask;
         }
-        
+
+        public Task CompleteTimeout(EffectId timeoutId) => Task.CompletedTask;
+
         public Task<IReadOnlyList<RegisteredTimeout>> PendingTimeouts()
             => Task.FromException<IReadOnlyList<RegisteredTimeout>>(new Exception("Stub-method invocation"));
+
+        public void Dispose() { }
     }
 }

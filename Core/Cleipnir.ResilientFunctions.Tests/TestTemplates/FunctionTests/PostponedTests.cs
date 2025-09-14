@@ -85,8 +85,11 @@ public abstract class PostponedTests
             var rFunc = functionsRegistry
                 .RegisterFunc<string, string>(
                     flowType,
-                    inner: (_, _) => throw new PostponeInvocationException(DateTime.UtcNow + TimeSpan.FromSeconds(1))
-                ).Invoke;
+                    inner: async Task<string> (_, workflow) =>
+                    {
+                        await workflow.Delay(TimeSpan.FromSeconds(1));
+                        return "OK";
+                    }).Invoke;
 
             await Should.ThrowAsync<InvocationPostponedException>(() => rFunc(param, param));
             unhandledExceptionHandler.ShouldNotHaveExceptions();
@@ -304,11 +307,9 @@ public abstract class PostponedTests
             new Settings(unhandledExceptionHandler: unhandledExceptionCatcher.Catch)
         );
         var rAction = functionsRegistry.RegisterAction(
-            flowType, Task (string _) =>
-            {
-                Postpone.Throw(DateTime.UtcNow.AddMilliseconds(10_000));
-                return Task.CompletedTask;
-            }
+            flowType, 
+            inner: async Task (string _, Workflow workflow) =>
+                await workflow.Delay(TimeSpan.FromSeconds(10))
         );
 
         //invoke
@@ -400,11 +401,7 @@ public abstract class PostponedTests
             new Settings(unhandledExceptionHandler: unhandledExceptionCatcher.Catch)
         );
         var rAction = functionsRegistry.RegisterAction(
-            flowType, Task (string _, Workflow _) =>
-            {
-                Postpone.Throw(DateTime.UtcNow.AddMilliseconds(10_000));
-                return Task.CompletedTask;
-            });
+            flowType, Task (string _, Workflow workflow) => workflow.Delay(TimeSpan.FromSeconds(10)));
 
         //invoke
         {
@@ -495,7 +492,11 @@ public abstract class PostponedTests
         );
         var rFunc = functionsRegistry.RegisterFunc(
             flowType,
-            Task<string> (string _) => throw new PostponeInvocationException(DateTime.UtcNow + TimeSpan.FromSeconds(10))
+            async Task<string> (string _, Workflow workflow) =>
+            {
+                await workflow.Delay(TimeSpan.FromSeconds(10));
+                return "OK";
+            }
         );
 
         //invoke
@@ -589,8 +590,11 @@ public abstract class PostponedTests
         );
         var rFunc = functionsRegistry.RegisterFunc(
             flowType,
-            Task<string> (string _) => throw new PostponeInvocationException(DateTime.UtcNow + TimeSpan.FromSeconds(10))
-        );
+            async Task<string> (string _, Workflow workflow) =>
+            {
+                await workflow.Delay(TimeSpan.FromSeconds(10));
+                return "OK";
+            });
 
         //invoke
         {

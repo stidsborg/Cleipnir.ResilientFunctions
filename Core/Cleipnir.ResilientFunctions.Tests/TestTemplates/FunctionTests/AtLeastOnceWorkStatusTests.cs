@@ -28,12 +28,11 @@ public abstract class AtLeastOnceWorkStatusTests
                 await workflow.Effect
                     .Capture(
                         "Id",
-                        work: () =>
+                        work: async () =>
                         {
                             counter.Increment();
                             if (counter.Current == 1)
-                                throw new PostponeInvocationException(DateTime.UtcNow);
-                            return Task.CompletedTask;
+                                await workflow.Delay(TimeSpan.FromMilliseconds(10));
                         }
                     );
             });
@@ -64,11 +63,11 @@ public abstract class AtLeastOnceWorkStatusTests
                 await workflow.Effect
                     .Capture(
                         "someId",
-                        work: () =>
+                        work: async () =>
                         {
                             counter.Increment();
                             if (counter.Current == 1)
-                                throw new PostponeInvocationException(DateTime.UtcNow);
+                                await workflow.Delay(TimeSpan.FromMilliseconds(10));
                             return Task.CompletedTask;
                         }
                     );

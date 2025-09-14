@@ -17,8 +17,7 @@ public class SqlServerFunctionStore : IFunctionStore
 {
     private readonly Func<Task<SqlConnection>> _connFunc;
     private readonly string _tableName;
-
-    private readonly SqlServerTimeoutStore _timeoutStore;
+    
     private readonly SqlServerEffectsStore _effectsStore;
     private readonly SqlServerMessageStore _messageStore;
     private readonly SqlServerCorrelationsStore _correlationStore;
@@ -26,7 +25,6 @@ public class SqlServerFunctionStore : IFunctionStore
     private readonly SqlServerMigrator _migrator;
     
     public IEffectsStore EffectsStore => _effectsStore;
-    public ITimeoutStore TimeoutStore => _timeoutStore;
     public ICorrelationStore CorrelationStore => _correlationStore;
     public ITypeStore TypeStore => _typeStore;
     public IMessageStore MessageStore => _messageStore;
@@ -48,7 +46,6 @@ public class SqlServerFunctionStore : IFunctionStore
         
         _connFunc = CreateConnection(connectionString);
         _messageStore = new SqlServerMessageStore(connectionString, _sqlGenerator, _tableName);
-        _timeoutStore = new SqlServerTimeoutStore(connectionString, _tableName);
         _underlyingRegister = new SqlServerUnderlyingRegister(connectionString, _tableName);
         _effectsStore = new SqlServerEffectsStore(connectionString, _sqlGenerator, _tableName);
         _correlationStore = new SqlServerCorrelationsStore(connectionString, _tableName);
@@ -79,7 +76,6 @@ public class SqlServerFunctionStore : IFunctionStore
         await _underlyingRegister.Initialize();
         await _messageStore.Initialize();
         await _effectsStore.Initialize();
-        await _timeoutStore.Initialize();
         await _correlationStore.Initialize();
         await _typeStore.Initialize();
         await _semaphoreStore.Initialize();
@@ -129,7 +125,6 @@ public class SqlServerFunctionStore : IFunctionStore
     {
         await _underlyingRegister.TruncateTable();
         await _messageStore.TruncateTable();
-        await _timeoutStore.Truncate();
         await _effectsStore.Truncate();
         await _correlationStore.Truncate();
         await _typeStore.Truncate();
@@ -799,7 +794,6 @@ public class SqlServerFunctionStore : IFunctionStore
     {
         await _messageStore.Truncate(storedId);
         await _effectsStore.Remove(storedId);
-        await _timeoutStore.Remove(storedId);
         await _correlationStore.RemoveCorrelations(storedId);
 
         return await DeleteStoredFunction(storedId);

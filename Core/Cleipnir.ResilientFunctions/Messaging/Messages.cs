@@ -9,7 +9,7 @@ namespace Cleipnir.ResilientFunctions.Messaging;
 
 public class Messages : IReactiveChain<object> 
 {
-    public RegisteredTimeouts RegisteredTimeouts { get; }
+    public FlowRegisteredTimeouts FlowRegisteredTimeouts { get; }
     public IReactiveChain<object> Source => _messagePullerAndEmitter.Source;
     internal UtcNow UtcNow { get; }
     
@@ -18,13 +18,13 @@ public class Messages : IReactiveChain<object>
     
     public Messages(
         MessageWriter messageWriter,
-        RegisteredTimeouts registeredTimeouts,
+        FlowRegisteredTimeouts flowRegisteredTimeouts,
         MessagesPullerAndEmitter messagePullerAndEmitter,
         UtcNow utcNow
     )
     {
         _messageWriter = messageWriter;
-        RegisteredTimeouts = registeredTimeouts;
+        FlowRegisteredTimeouts = flowRegisteredTimeouts;
         _messagePullerAndEmitter = messagePullerAndEmitter;
         UtcNow = utcNow;
     }

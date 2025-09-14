@@ -417,10 +417,19 @@ internal class InvocationHelper<TParam, TReturn>
         ScheduleReInvocation scheduleReInvocation, 
         Func<bool> isWorkflowRunning, 
         Effect effect,
-        IReadOnlyList<StoredMessage> initialMessages)
+        IReadOnlyList<StoredMessage> initialMessages,
+        FlowMinimumTimeout flowMinimumTimeout,
+        UnhandledExceptionHandler unhandledExceptionHandler)
     {
         var messageWriter = new MessageWriter(storedId, _functionStore, Serializer, scheduleReInvocation);
-        var registeredTimeouts = new RegisteredTimeouts(storedId, _functionStore.TimeoutStore, effect, UtcNow);
+        var registeredTimeouts = new FlowRegisteredTimeouts(
+            effect,
+            UtcNow,
+            flowMinimumTimeout,
+            publishTimeoutEvent: timeoutEvent => messageWriter.AppendMessage(timeoutEvent, idempotencyKey: timeoutEvent.TimeoutId.Serialize()),
+            unhandledExceptionHandler,
+            flowId
+        );
         var messagesPullerAndEmitter = new MessagesPullerAndEmitter(
             storedId,
             defaultDelay: _settings.MessagesPullFrequency,
@@ -436,7 +445,7 @@ internal class InvocationHelper<TParam, TReturn>
         return new Messages(messageWriter, registeredTimeouts, messagesPullerAndEmitter, UtcNow);
     }
     
-    public Tuple<Effect, States> CreateEffectAndStates(StoredId storedId, FlowId flowId, IReadOnlyList<StoredEffect> storedEffects)
+    public Tuple<Effect, States> CreateEffectAndStates(StoredId storedId, FlowId flowId, IReadOnlyList<StoredEffect> storedEffects, FlowMinimumTimeout flowMinimumTimeout)
     {
         var effectsStore = _functionStore.EffectsStore;
         
@@ -457,7 +466,7 @@ internal class InvocationHelper<TParam, TReturn>
             Serializer
         );
         
-       var effect = new Effect(effectResults, UtcNow);
+       var effect = new Effect(effectResults, UtcNow, flowMinimumTimeout);
        return Tuple.Create(effect, states);
     }
     
@@ -476,7 +485,7 @@ internal class InvocationHelper<TParam, TReturn>
 
     public ExistingEffects CreateExistingEffects(FlowId flowId) => new(MapToStoredId(flowId), flowId, _functionStore.EffectsStore, Serializer);
     public ExistingMessages CreateExistingMessages(FlowId flowId) => new(MapToStoredId(flowId), _functionStore.MessageStore, Serializer);
-    public ExistingRegisteredTimeouts CreateExistingTimeouts(FlowId flowId, ExistingEffects existingEffects) => new(MapToStoredId(flowId), _functionStore.TimeoutStore, existingEffects, UtcNow);
+    public ExistingRegisteredTimeouts CreateExistingTimeouts(FlowId flowId, ExistingEffects existingEffects) => new(existingEffects, UtcNow);
     public ExistingSemaphores CreateExistingSemaphores(FlowId flowId) => new(MapToStoredId(flowId), _functionStore, CreateExistingEffects(flowId));
 
     public DistributedSemaphores CreateSemaphores(StoredId storedId, Effect effect)

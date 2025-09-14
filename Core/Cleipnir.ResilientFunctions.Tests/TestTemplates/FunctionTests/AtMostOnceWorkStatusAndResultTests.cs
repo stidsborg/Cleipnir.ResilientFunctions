@@ -28,10 +28,10 @@ public abstract class AtMostOnceWorkStatusAndResultTests
                 await workflow.Effect
                     .Capture(
                         "id",
-                        work: () =>
+                        work: async () =>
                         {
                             counter.Increment();
-                            throw new PostponeInvocationException(DateTime.UtcNow);
+                            await workflow.Delay(TimeSpan.FromMilliseconds(10));
                         }, ResiliencyLevel.AtMostOnce
                     );
             });
@@ -62,11 +62,11 @@ public abstract class AtMostOnceWorkStatusAndResultTests
                 await workflow.Effect
                     .Capture(
                         "someId",
-                        work: () =>
+                        work: async () =>
                         {
                             counter.Increment();
                             if (counter.Current != 0)
-                                throw new PostponeInvocationException(DateTime.UtcNow);
+                                await workflow.Delay(TimeSpan.FromMilliseconds(10));
 
                             return "hello world".ToTask();
                         }, ResiliencyLevel.AtMostOnce
@@ -99,11 +99,11 @@ public abstract class AtMostOnceWorkStatusAndResultTests
                 await workflow.Effect
                     .Capture(
                         "someId",
-                        work: () =>
+                        work: async () =>
                         {
                             counter.Increment();
                             if (counter.Current != 0)
-                                throw new PostponeInvocationException(DateTime.UtcNow);
+                                await workflow.Delay(TimeSpan.FromMilliseconds(10));
 
                             return new Person("Peter", 32).ToTask();
                         }, ResiliencyLevel.AtMostOnce

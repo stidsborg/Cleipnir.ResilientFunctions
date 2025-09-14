@@ -21,9 +21,6 @@ public class MariaDbFunctionStore : IFunctionStore
     private readonly MariaDbEffectsStore _effectsStore;
     public IEffectsStore EffectsStore => _effectsStore;
     
-    private readonly MariaDbTimeoutStore _timeoutStore;
-    public ITimeoutStore TimeoutStore => _timeoutStore;
-    
     private readonly MariaDbTypeStore _typeStore;
     public ITypeStore TypeStore => _typeStore;
     
@@ -56,7 +53,6 @@ public class MariaDbFunctionStore : IFunctionStore
         _effectsStore = new MariaDbEffectsStore(connectionString, _sqlGenerator, tablePrefix);
         _correlationStore = new MariaDbCorrelationStore(connectionString, tablePrefix);
         _semaphoreStore = new MariaDbSemaphoreStore(connectionString, tablePrefix);
-        _timeoutStore = new MariaDbTimeoutStore(connectionString, tablePrefix);
         _mariaDbUnderlyingRegister = new MariaDbUnderlyingRegister(connectionString, tablePrefix);
         _typeStore = new MariaDbTypeStore(connectionString, tablePrefix);
         _migrator  = new MariaDbMigrator(connectionString, tablePrefix);
@@ -77,7 +73,6 @@ public class MariaDbFunctionStore : IFunctionStore
         await EffectsStore.Initialize();
         await CorrelationStore.Initialize();
         await _semaphoreStore.Initialize();
-        await TimeoutStore.Initialize();
         await _typeStore.Initialize();
         await _replicaStore.Initialize();
         await using var conn = await CreateOpenConnection(_connectionString);
@@ -110,7 +105,6 @@ public class MariaDbFunctionStore : IFunctionStore
     public async Task TruncateTables()
     {
         await _messageStore.TruncateTable();
-        await _timeoutStore.Truncate();
         await _mariaDbUnderlyingRegister.TruncateTable();
         await _effectsStore.Truncate();
         await _correlationStore.Truncate();
@@ -767,7 +761,6 @@ public class MariaDbFunctionStore : IFunctionStore
     {
         await _messageStore.Truncate(storedId);
         await _effectsStore.Remove(storedId);
-        await _timeoutStore.Remove(storedId);
         await _correlationStore.RemoveCorrelations(storedId);
 
         return await DeleteStoredFunction(storedId);

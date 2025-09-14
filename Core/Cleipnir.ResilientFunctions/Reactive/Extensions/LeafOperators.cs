@@ -179,35 +179,4 @@ public static class LeafOperators
         => messages.TakeUntilTimeout(timeoutId, expiresIn).OfType<T>().LastOrNone();
     
     #endregion
-
-    #region Suspend
-
-    public static async Task SuspendUntil(this Messages s, string timeoutEventId, DateTime resumeAt)
-    {
-        var timeoutEmitted = false;
-        var effectId = EffectId.CreateWithCurrentContext(timeoutEventId, EffectType.Timeout);
-        var subscription = s
-            .OfType<TimeoutEvent>()
-            .Where(t => t.TimeoutId == effectId)
-            .Take(1)
-            .Subscribe(
-                onNext: _ => timeoutEmitted = true,
-                onCompletion: () => { },
-                onError: _ => { }
-            );
-        await subscription.Initialize();
-        
-        subscription.PushMessages();
-        
-        if (timeoutEmitted)
-            return;
-
-        await subscription.RegisteredTimeouts.RegisterTimeout(effectId, resumeAt);
-        throw new SuspendInvocationException();
-    }
-
-    public static Task SuspendFor(this Messages s, string timeoutEventId, TimeSpan resumeAfter)
-        => s.SuspendUntil(timeoutEventId, resumeAt: s.UtcNow().Add(resumeAfter));
-
-    #endregion
 }

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime;
 using Cleipnir.ResilientFunctions.Helpers;
@@ -14,10 +15,13 @@ public enum ResiliencyLevel
     AtLeastOnceDelayFlush
 }
 
-public class Effect(EffectResults effectResults, UtcNow utcNow)
+public class Effect(EffectResults effectResults, UtcNow utcNow, FlowMinimumTimeout flowMinimumTimeout)
 {
     public async Task<bool> Contains(string id) => await Contains(CreateEffectId(id, EffectType.Effect));
     internal Task<bool> Contains(EffectId effectId) => effectResults.Contains(effectId);
+
+    internal IEnumerable<EffectId> EffectIds => effectResults.EffectIds;
+    internal FlowMinimumTimeout FlowMinimumTimeout => flowMinimumTimeout;
 
     public async Task<WorkStatus?> GetStatus(string id)
     {
@@ -113,7 +117,7 @@ public class Effect(EffectResults effectResults, UtcNow utcNow)
         else
             await effectResults.InnerCapture(
                 id, effectType,
-                work: () => retryPolicy.Invoke(work, effect: this, utcNow),
+                work: () => retryPolicy.Invoke(work, effect: this, utcNow, flowMinimumTimeout),
                 resiliency,
                 effectContext
             );
@@ -129,7 +133,7 @@ public class Effect(EffectResults effectResults, UtcNow utcNow)
 
         return await effectResults.InnerCapture(
             id, effectType,
-            work: () => retryPolicy.Invoke(work, effect: this, utcNow),
+            work: () => retryPolicy.Invoke(work, effect: this, utcNow, flowMinimumTimeout),
             resiliency,
             effectContext
         );

@@ -52,16 +52,31 @@ public class Workflow
     public async Task Delay(DateTime until, bool suspend = true, string? effectId = null)
     {
         effectId ??= $"Delay#{Effect.TakeNextImplicitId()}";
-        var systemEffectId = EffectId.CreateWithCurrentContext(effectId, EffectType.System);
-        until = await Effect.CreateOrGet(systemEffectId, until, flush: false);
-        var delay = (until - _utcNow()).RoundUpToZero();
+        var timeoutId = EffectId.CreateWithCurrentContext(effectId, EffectType.Timeout);
 
-        if (delay == TimeSpan.Zero)
+        var (status, expiry) = await Messages.FlowRegisteredTimeouts.RegisterTimeout(
+            timeoutId,
+            until,
+            publishMessage: false
+        );
+
+        if (status is TimeoutStatus.Completed or TimeoutStatus.Cancelled)
+        {
             return;
-        
+        }
+
+        var delay =  (expiry - _utcNow()).RoundUpToZero();
         if (!suspend)
+        {
             await Task.Delay(delay);
-        else 
-            throw new PostponeInvocationException(until);            
+            delay = TimeSpan.Zero;
+        }
+        
+        if (delay == TimeSpan.Zero)
+            await Messages
+                .FlowRegisteredTimeouts
+                .CompleteTimeout(timeoutId);
+        else
+            throw new SuspendInvocationException();                
     }
 }

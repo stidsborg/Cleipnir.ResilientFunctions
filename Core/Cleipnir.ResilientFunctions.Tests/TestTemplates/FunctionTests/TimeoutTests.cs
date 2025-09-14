@@ -37,7 +37,7 @@ public abstract class TimeoutTests
             {
                 var messages = workflow.Messages;
                 var timeoutTask = messages.OfType<TimeoutEvent>().First();
-                await messages.RegisteredTimeouts.RegisterTimeout("test", expiresIn: TimeSpan.FromMilliseconds(500));
+                await messages.FlowRegisteredTimeouts.RegisterTimeout("test", expiresIn: TimeSpan.FromMilliseconds(500), publishMessage: true);
                 timeoutTask.IsCompleted.ShouldBeFalse();
                 var timeout = await timeoutTask;
                 timeout.TimeoutId.Id.ShouldBe("test");
@@ -105,7 +105,8 @@ public abstract class TimeoutTests
         );
 
         await registration.Schedule("someInstanceId", "someParam");
-
+        await Task.Delay(10);
+        
         var messageWriter = registration.MessageWriters.For(new FlowInstance("someInstanceId"));
         await messageWriter.AppendMessage("someMessage");
 
@@ -115,11 +116,11 @@ public abstract class TimeoutTests
         await controlPanel.WaitForCompletion(allowPostponeAndSuspended: true);
         
         await controlPanel.Refresh();
-
+        
         await controlPanel
             .RegisteredTimeouts
             .All
-            .SelectAsync(ts => ts.Count == 0)
+            .SelectAsync(ts => ts.All(t => t.Status != TimeoutStatus.Registered))
             .ShouldBeTrueAsync();
         
         unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
@@ -152,7 +153,8 @@ public abstract class TimeoutTests
         
         var controlPanel = await registration.ControlPanel("someInstanceId");
         controlPanel.ShouldNotBeNull();
-        await controlPanel.BusyWaitUntil(cp => cp.Status == Status.Suspended);
+        await controlPanel.BusyWaitUntil(cp => 
+            cp.Status == Status.Postponed, maxWait: TimeSpan.FromSeconds(10));
 
         var registeredTimeouts = await controlPanel.RegisteredTimeouts.All;
         registeredTimeouts.Count.ShouldBe(1);
@@ -162,17 +164,11 @@ public abstract class TimeoutTests
         id.Id.ShouldBe("TimeoutId4321");
         id.Type.ShouldBe(EffectType.Timeout);
 
-        var timeouts = (await store.TimeoutStore.GetTimeouts(controlPanel.StoredId)).ToList();
-        timeouts.Count.ShouldBe(1);
-        var timeout = timeouts.First();
-        timeout.TimeoutId.ShouldBe(id);
-
         await controlPanel.RegisteredTimeouts.Remove(id);
         
         await controlPanel.Refresh();
 
         await controlPanel.RegisteredTimeouts.All.ShouldBeEmptyAsync();
-        await store.TimeoutStore.GetTimeouts(controlPanel.StoredId).ShouldBeEmptyAsync();
         
         unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
     }
@@ -204,7 +200,7 @@ public abstract class TimeoutTests
         
         var controlPanel = await registration.ControlPanel("someInstanceId");
         controlPanel.ShouldNotBeNull();
-        await controlPanel.BusyWaitUntil(cp => cp.Status == Status.Suspended);
+        await controlPanel.BusyWaitUntil(cp => cp.Status == Status.Postponed);
 
         var registeredTimeouts = await controlPanel.RegisteredTimeouts.All;
         registeredTimeouts.Count.ShouldBe(1);
@@ -214,23 +210,15 @@ public abstract class TimeoutTests
         id.Id.ShouldBe("TimeoutId4321");
         id.Type.ShouldBe(EffectType.Timeout);
 
-        var timeouts = (await store.TimeoutStore.GetTimeouts(controlPanel.StoredId)).ToList();
-        timeouts.Count.ShouldBe(1);
-        var timeout = timeouts.First();
-        timeout.TimeoutId.ShouldBe(id);
-
         await controlPanel.RegisteredTimeouts.Upsert(id, new DateTime(2100, 1, 1, 0, 0, 0, DateTimeKind.Utc));
         
         await controlPanel.Refresh();
 
         registeredTimeout = (await controlPanel.RegisteredTimeouts.All).Single();
-        timeout = (await store.TimeoutStore.GetTimeouts(controlPanel.StoredId)).Single();
         
         registeredTimeout.TimeoutId.ShouldBe(id);
-        timeout.TimeoutId.ShouldBe(id);
         
         registeredTimeout.Expiry.ShouldBe(new DateTime(2100, 1, 1, 0, 0, 0, DateTimeKind.Utc));
-        new DateTime(timeout.Expiry).ShouldBe(new DateTime(2100, 1, 1, 0, 0, 0, DateTimeKind.Utc));
         
         unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
     }
@@ -267,14 +255,14 @@ public abstract class TimeoutTests
         );
         
         await registration.Invoke(flowInstance.Value, "param");
-
+        
         var controlPanel = await registration.ControlPanel(flowInstance);
         controlPanel.ShouldNotBeNull();
 
         await controlPanel.Restart();
         await controlPanel.Refresh();
         
-        (await controlPanel.RegisteredTimeouts.All).Count.ShouldBe(0);
+        (await controlPanel.RegisteredTimeouts.All).Count.ShouldBe(2);
 
         var messages = await controlPanel.Messages.AsObjects;
         messages.Count.ShouldBe(2);
