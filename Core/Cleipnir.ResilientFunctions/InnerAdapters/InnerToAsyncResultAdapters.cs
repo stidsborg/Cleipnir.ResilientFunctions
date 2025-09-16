@@ -20,7 +20,6 @@ internal static class InnerToAsyncResultAdapters
                 await inner();
                 return Unit.Instance;
             }
-            catch (PostponeInvocationException) { return SuspendOrPostpone<Unit>(workflow); }
             catch (SuspendInvocationException) { return SuspendOrPostpone<Unit>(workflow); }
             catch (FatalWorkflowException exception) { return Fail.WithException(exception, workflow.FlowId); }
             catch (Exception exception) { return Fail.WithException(FatalWorkflowException.CreateNonGeneric(workflow.FlowId, exception)); }
@@ -36,7 +35,6 @@ internal static class InnerToAsyncResultAdapters
                 await inner(workflow);
                 return Unit.Instance;
             }
-            catch (PostponeInvocationException) { return SuspendOrPostpone<Unit>(workflow); }
             catch (SuspendInvocationException) { return SuspendOrPostpone<Unit>(workflow); }
             catch (FatalWorkflowException exception) { return Fail.WithException(exception, workflow.FlowId); }
             catch (Exception exception) { return Fail.WithException(FatalWorkflowException.CreateNonGeneric(workflow.FlowId, exception)); }
@@ -52,7 +50,6 @@ internal static class InnerToAsyncResultAdapters
                 var result = await inner();
                 return result;
             }
-            catch (PostponeInvocationException) { return SuspendOrPostpone<Unit>(workflow); }
             catch (SuspendInvocationException) { return SuspendOrPostpone<Unit>(workflow); }
             catch (FatalWorkflowException exception) { return Fail.WithException(exception, workflow.FlowId); }
             catch (Exception exception) { return Fail.WithException(FatalWorkflowException.CreateNonGeneric(workflow.FlowId, exception)); }
@@ -68,7 +65,6 @@ internal static class InnerToAsyncResultAdapters
                 var result = await inner(workflow);
                 return result;
             }
-            catch (PostponeInvocationException) { return SuspendOrPostpone<Unit>(workflow); }
             catch (SuspendInvocationException) { return SuspendOrPostpone<Unit>(workflow); }
             catch (FatalWorkflowException exception) { return Fail.WithException(exception, workflow.FlowId); }
             catch (Exception exception) { return Fail.WithException(FatalWorkflowException.CreateNonGeneric(workflow.FlowId, exception)); }
@@ -86,7 +82,6 @@ internal static class InnerToAsyncResultAdapters
                 await inner(param);    
                 return Succeed.WithUnit;
             } 
-            catch (PostponeInvocationException) { return SuspendOrPostpone<Unit>(workflow); }
             catch (SuspendInvocationException) { return SuspendOrPostpone<Unit>(workflow); }
             catch (FatalWorkflowException exception) { return Fail.WithException(exception, workflow.FlowId); }
             catch (Exception exception) { return Fail.WithException(FatalWorkflowException.CreateNonGeneric(workflow.FlowId, exception)); }
@@ -103,7 +98,6 @@ internal static class InnerToAsyncResultAdapters
                 await inner(param, workflow);
                 return Succeed.WithUnit;
             }
-            catch (PostponeInvocationException) { return SuspendOrPostpone<Unit>(workflow); }
             catch (SuspendInvocationException) { return SuspendOrPostpone<Unit>(workflow); }
             catch (FatalWorkflowException exception) { return Fail.WithException(exception, workflow.FlowId); }
             catch (Exception exception) { return Fail.WithException(FatalWorkflowException.CreateNonGeneric(workflow.FlowId, exception)); }
@@ -120,7 +114,6 @@ internal static class InnerToAsyncResultAdapters
                 var result = await inner(param);
                 return result;
             }
-            catch (PostponeInvocationException) { return SuspendOrPostpone<Unit>(workflow); }
             catch (SuspendInvocationException) { return SuspendOrPostpone<Unit>(workflow); }
             catch (FatalWorkflowException exception) { return Fail.WithException(exception, workflow.FlowId); }
             catch (Exception exception) { return Fail.WithException(FatalWorkflowException.CreateNonGeneric(workflow.FlowId, exception)); }
@@ -137,7 +130,6 @@ internal static class InnerToAsyncResultAdapters
                 var result = await inner(param, workflow);
                 return result;
             }
-            catch (PostponeInvocationException) { return SuspendOrPostpone<Unit>(workflow); }
             catch (SuspendInvocationException) { return SuspendOrPostpone<Unit>(workflow); }
             catch (FatalWorkflowException exception) { return Fail.WithException(exception, workflow.FlowId); }
             catch (Exception exception) { return Fail.WithException(FatalWorkflowException.CreateNonGeneric(workflow.FlowId, exception)); }
@@ -155,7 +147,6 @@ internal static class InnerToAsyncResultAdapters
                 var result = await inner(param);
                 return Succeed.WithValue(result);
             }
-            catch (PostponeInvocationException) { return SuspendOrPostpone<TReturn>(workflow); }
             catch (SuspendInvocationException) { return SuspendOrPostpone<TReturn>(workflow); }
             catch (FatalWorkflowException exception) { return Fail.WithException(exception, workflow.FlowId); }
             catch (Exception exception) { return Fail.WithException(FatalWorkflowException.CreateNonGeneric(workflow.FlowId, exception)); }
@@ -172,7 +163,6 @@ internal static class InnerToAsyncResultAdapters
                 var result = await inner(param, workflow);
                 return Succeed.WithValue(result);
             }
-            catch (PostponeInvocationException) { return SuspendOrPostpone<TReturn>(workflow); }
             catch (SuspendInvocationException) { return SuspendOrPostpone<TReturn>(workflow); }
             catch (FatalWorkflowException exception) { return Fail.WithException(exception, workflow.FlowId); }
             catch (Exception exception) { return Fail.WithException(FatalWorkflowException.CreateNonGeneric(workflow.FlowId, exception)); }
@@ -189,7 +179,6 @@ internal static class InnerToAsyncResultAdapters
                 var result = await inner(param, workflow);
                 return result;
             }
-            catch (PostponeInvocationException) { return SuspendOrPostpone<TReturn>(workflow); }
             catch (SuspendInvocationException) { return SuspendOrPostpone<TReturn>(workflow); }
             catch (FatalWorkflowException exception) { return Fail.WithException(exception, workflow.FlowId); }
             catch (Exception exception) { return Fail.WithException(FatalWorkflowException.CreateNonGeneric(workflow.FlowId, exception)); }
@@ -206,7 +195,6 @@ internal static class InnerToAsyncResultAdapters
                 var result = await inner(param);
                 return result;
             }
-            catch (PostponeInvocationException) { return SuspendOrPostpone<TReturn>(workflow); }
             catch (SuspendInvocationException) { return SuspendOrPostpone<TReturn>(workflow); }
             catch (FatalWorkflowException exception) { return Fail.WithException(exception, workflow.FlowId); }
             catch (Exception exception) { return Fail.WithException(FatalWorkflowException.CreateNonGeneric(workflow.FlowId, exception)); }

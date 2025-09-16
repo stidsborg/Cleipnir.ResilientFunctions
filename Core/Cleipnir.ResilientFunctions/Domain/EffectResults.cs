@@ -185,10 +185,6 @@ public class EffectResults
         {
             await work();
         }
-        catch (PostponeInvocationException)
-        {
-            throw;
-        }
         catch (SuspendInvocationException)
         {
             throw;
@@ -270,10 +266,6 @@ public class EffectResults
         try
         {
             result = await work();
-        }
-        catch (PostponeInvocationException)
-        {
-            throw;
         }
         catch (SuspendInvocationException)
         {
