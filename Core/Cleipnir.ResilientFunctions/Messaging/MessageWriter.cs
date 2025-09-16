@@ -35,32 +35,7 @@ public class MessageWriter
         if (functionStatus == null)
             return Finding.NotFound;
         
-        var (status, epoch) = functionStatus;
-        if (status == Status.Failed || status == Status.Succeeded)
-            return Finding.Found;
-        
-        if (status == Status.Executing)
-        {
-            var success = await _functionStore.Interrupt(_storedId, onlyIfExecuting: true);
-            if (success)
-                return Finding.Found; //executing function will notice interrupt increment and reschedule itself on suspension
-            
-            //otherwise update status and epoch, so we can reschedule if new status is postponed or suspended
-            var statusAndEpoch = await _functionStore.GetFunctionStatus(_storedId);
-            if (statusAndEpoch == null)
-                return Finding.Found;
-
-            status = statusAndEpoch.Status;
-            epoch = statusAndEpoch.Epoch;
-        }
-
-        if (status == Status.Postponed || status == Status.Suspended)
-            try 
-            {
-                await _scheduleReInvocation(_storedId.Instance, expectedEpoch: epoch);
-            }
-            catch (UnexpectedStateException) { }
-
-        return Finding.Found;
+        await _functionStore.Interrupt(_storedId, onlyIfExecuting: false);
+        return Finding.Found; 
     }
 }

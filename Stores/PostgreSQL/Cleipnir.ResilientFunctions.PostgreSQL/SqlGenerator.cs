@@ -226,11 +226,11 @@ public class SqlGenerator(string tablePrefix)
                 type = $3 AND 
                 instance = $4 AND 
                 epoch = $5 AND
-                interrupted = FALSE";
+                NOT interrupted";
         
         var sql = _postponeFunctionSql;
         if (ignoreInterrupted)
-            sql = sql.Replace("interrupted = FALSE", "1 = 1");
+            sql = sql.Replace("NOT interrupted", "1 = 1");
 
         return StoreCommand.Create(
             sql,

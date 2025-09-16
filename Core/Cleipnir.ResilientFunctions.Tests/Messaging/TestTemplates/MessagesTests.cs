@@ -605,7 +605,7 @@ public abstract class MessagesTests
             {
                 for (var i = 0; i < 10; i++)
                 {
-                    await pongRegistration.SendMessage("Pong", new Ping(i));
+                    await pongRegistration.SendMessage("Pong", new Ping(i), idempotencyKey:  $"Pong{i}");
                     await workflow.Messages.OfType<Pong>().Where(pong => pong.Number == i).First();
                 }
                     
@@ -618,7 +618,7 @@ public abstract class MessagesTests
                 for (var i = 0; i < 10; i++)
                 {
                     await workflow.Messages.OfType<Ping>().Where(pong => pong.Number == i).First();
-                    await pingRegistration.SendMessage("Ping", new Pong(i));
+                    await pingRegistration.SendMessage("Ping", new Pong(i), idempotencyKey:  $"Ping{i}");
                 }
             });
 
