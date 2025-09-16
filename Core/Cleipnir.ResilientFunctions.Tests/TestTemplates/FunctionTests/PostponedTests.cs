@@ -928,8 +928,8 @@ public abstract class PostponedTests
         var controlPanel = await registration.ControlPanel(testId.Instance);
         controlPanel.ShouldNotBeNull();
         await controlPanel.BusyWaitUntil(c => c.Status == Status.Postponed);
-        
-        invocations.Current.ShouldBe(2);
+
+        await BusyWait.Until(() => invocations.Current == 2);
         unhandledExceptionHandler.ShouldNotHaveExceptions();
     }
 }

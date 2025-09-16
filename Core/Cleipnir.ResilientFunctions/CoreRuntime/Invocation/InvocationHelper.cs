@@ -559,4 +559,18 @@ internal class InvocationHelper<TParam, TReturn>
             var (content, type) = Serializer.SerializeMessage(m.Message, m.Message.GetType());
             return new StoredMessage(content, type, m.IdempotencyKey);
         }).ToList();
+
+    public async Task<bool> Reschedule(StoredId id, int expectedEpoch, TParam param)
+    {
+        return await _functionStore.PostponeFunction(
+            id,
+            postponeUntil: 0,
+            timestamp: UtcNow().Ticks,
+            ignoreInterrupted: true,
+            expectedEpoch,
+            effects: null,
+            messages: null,
+            complimentaryState: new ComplimentaryState(() => SerializeParameter(param), _settings.LeaseLength.Ticks)
+        );
+    }
 }
