@@ -25,7 +25,6 @@ public abstract class StoreCrudTests
     protected async Task FunctionCanBeCreatedWithASingleParameterSuccessfully(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        await store.Initialize();
         
         var leaseExpiration = DateTime.UtcNow.Ticks;
         await store.CreateFunction(

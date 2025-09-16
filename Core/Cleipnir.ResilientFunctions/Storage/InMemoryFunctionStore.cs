@@ -26,8 +26,6 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
     private readonly InMemoryCorrelationStore _correlationStore = new();
     public ICorrelationStore CorrelationStore => _correlationStore;
     public Utilities Utilities { get; }
-    
-    public IMigrator Migrator { get; } = new InMemoryMigrator();
     public ISemaphoreStore SemaphoreStore { get; } = new InMemorySemaphoreStore();
     public IReplicaStore ReplicaStore { get; } = new InMemoryReplicaStore();
 

@@ -35,8 +35,6 @@ public class PostgreSqlFunctionStore : IFunctionStore
     public IReplicaStore ReplicaStore => _replicaStore;
 
     public Utilities Utilities { get; }
-    public IMigrator Migrator => _migrator;
-    private readonly PostgreSqlMigrator _migrator;
     
     private readonly PostgresSqlUnderlyingRegister _postgresSqlUnderlyingRegister;
     private readonly SqlGenerator _sqlGenerator;
@@ -53,7 +51,6 @@ public class PostgreSqlFunctionStore : IFunctionStore
         _semaphoreStore = new PostgreSqlSemaphoreStore(connectionString, _tableName);
         _typeStore = new PostgreSqlTypeStore(connectionString, _tableName);
         _postgresSqlUnderlyingRegister = new PostgresSqlUnderlyingRegister(connectionString, _tableName);
-        _migrator = new PostgreSqlMigrator(connectionString, _tableName);
         _replicaStore = new PostgreSqlDbReplicaStore(connectionString, _tableName);
         Utilities = new Utilities(_postgresSqlUnderlyingRegister);
     } 
@@ -68,8 +65,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
     private string? _initializeSql;
     public async Task Initialize()
     {
-        var createTables = await _migrator.InitializeAndMigrate();
-        if (!createTables)
+        if (await DoTablesAlreadyExist())
             return;
         
         await _postgresSqlUnderlyingRegister.Initialize();
@@ -826,5 +822,26 @@ public class PostgreSqlFunctionStore : IFunctionStore
         };
        
         return await command.ExecuteNonQueryAsync() == 1;
+    }
+    
+    private async Task<bool> DoTablesAlreadyExist()
+    {
+        await using var conn = await CreateConnection();
+        
+        var sql = $"SELECT 1 FROM {_tableName} LIMIT 1;";
+        
+        await using var command = new NpgsqlCommand(sql, conn);
+        try
+        {
+            await command.ExecuteScalarAsync();
+            return true;    
+        } catch (NpgsqlException e)
+        {
+            const string undefinedTable = "42P01";
+            if (e.SqlState == undefinedTable)
+                return false;
+
+            throw;
+        }
     }
 }

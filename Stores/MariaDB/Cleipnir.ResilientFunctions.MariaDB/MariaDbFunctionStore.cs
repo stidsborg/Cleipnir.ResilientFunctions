@@ -26,9 +26,6 @@ public class MariaDbFunctionStore : IFunctionStore
     
     private readonly MariaDbCorrelationStore _correlationStore;
     public ICorrelationStore CorrelationStore => _correlationStore;
-
-    private readonly MariaDbMigrator _migrator;
-    public IMigrator Migrator => _migrator;
     
     private readonly MariaDbSemaphoreStore _semaphoreStore;
     public ISemaphoreStore SemaphoreStore => _semaphoreStore;
@@ -55,7 +52,6 @@ public class MariaDbFunctionStore : IFunctionStore
         _semaphoreStore = new MariaDbSemaphoreStore(connectionString, tablePrefix);
         _mariaDbUnderlyingRegister = new MariaDbUnderlyingRegister(connectionString, tablePrefix);
         _typeStore = new MariaDbTypeStore(connectionString, tablePrefix);
-        _migrator  = new MariaDbMigrator(connectionString, tablePrefix);
         _replicaStore = new MariaDbReplicaStore(connectionString, tablePrefix);
         
         Utilities = new Utilities(_mariaDbUnderlyingRegister);
@@ -64,8 +60,7 @@ public class MariaDbFunctionStore : IFunctionStore
     private string? _initializeSql;
     public async Task Initialize()
     {
-        var createTables = await _migrator.InitializeAndMigrate();
-        if (!createTables)
+        if (await DoTablesAlreadyExist())
             return;
         
         await _mariaDbUnderlyingRegister.Initialize();
@@ -95,7 +90,7 @@ public class MariaDbFunctionStore : IFunctionStore
                 INDEX (expires, type, instance, status)   
             );
 
-            CREATE INDEX FlowOwnersIdx ON {_tablePrefix}(owner, type, instance);";
+            CREATE INDEX {_tablePrefix}FlowOwnersIdx ON {_tablePrefix}(owner, type, instance);";
 
         await using var command = new MySqlCommand(_initializeSql, conn);
         await command.ExecuteNonQueryAsync();
@@ -785,5 +780,25 @@ public class MariaDbFunctionStore : IFunctionStore
         };
 
         return await command.ExecuteNonQueryAsync() == 1;
+    }
+    
+    private async Task<bool> DoTablesAlreadyExist()
+    {
+        await using var conn = await CreateOpenConnection(_connectionString);
+        
+        var sql = $"SELECT 1 FROM {_tablePrefix} LIMIT 1;";
+
+        await using var command = new MySqlCommand(sql, conn);
+        try
+        {
+            await command.ExecuteScalarAsync();
+            return true;    
+        } catch (MySqlException e)
+        {
+            if (e.ErrorCode == MySqlErrorCode.NoSuchTable)
+                return false;
+
+            throw;
+        }
     }
 }

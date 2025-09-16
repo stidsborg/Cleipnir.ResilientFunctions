@@ -22,14 +22,12 @@ public class SqlServerFunctionStore : IFunctionStore
     private readonly SqlServerMessageStore _messageStore;
     private readonly SqlServerCorrelationsStore _correlationStore;
     private readonly SqlServerTypeStore _typeStore;
-    private readonly SqlServerMigrator _migrator;
     
     public IEffectsStore EffectsStore => _effectsStore;
     public ICorrelationStore CorrelationStore => _correlationStore;
     public ITypeStore TypeStore => _typeStore;
     public IMessageStore MessageStore => _messageStore;
     public Utilities Utilities { get; }
-    public IMigrator Migrator => _migrator;
     private readonly SqlServerSemaphoreStore _semaphoreStore;
     public ISemaphoreStore SemaphoreStore => _semaphoreStore;
     private readonly SqlServerReplicaStore _replicaStore;
@@ -51,7 +49,6 @@ public class SqlServerFunctionStore : IFunctionStore
         _correlationStore = new SqlServerCorrelationsStore(connectionString, _tableName);
         _semaphoreStore = new SqlServerSemaphoreStore(connectionString, _tableName);
         _typeStore = new SqlServerTypeStore(connectionString, _tableName);
-        _migrator = new SqlServerMigrator(connectionString, _tableName);
         _replicaStore = new SqlServerReplicaStore(connectionString, _tableName);
         Utilities = new Utilities(_underlyingRegister);
     }
@@ -69,8 +66,7 @@ public class SqlServerFunctionStore : IFunctionStore
     private string? _initializeSql;
     public async Task Initialize()
     {
-        var createTables = await _migrator.InitializeAndMigrate();
-        if (!createTables)
+        if (await DoTablesAlreadyExist())
             return;
         
         await _underlyingRegister.Initialize();
@@ -813,5 +809,26 @@ public class SqlServerFunctionStore : IFunctionStore
         command.Parameters.AddWithValue("@FlowType", storedId.Type.Value);
         
         return await command.ExecuteNonQueryAsync() == 1;
+    }
+    
+    private async Task<bool> DoTablesAlreadyExist()
+    {
+        await using var conn = await _connFunc();
+        
+        var sql = $"SELECT TOP(1) 1 FROM {_tableName};";
+
+        await using var command = new SqlCommand(sql, conn);
+        try
+        {
+            await command.ExecuteScalarAsync();
+            return true;    
+        } catch (SqlException e)
+        {
+            const int invalidObjectName = 208;
+            if (e.Number == invalidObjectName)
+                return false;
+
+            throw;
+        }
     }
 }

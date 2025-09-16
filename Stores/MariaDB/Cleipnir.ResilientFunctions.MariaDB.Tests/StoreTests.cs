@@ -1,5 +1,3 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-
 namespace Cleipnir.ResilientFunctions.MariaDb.Tests;
 
 [TestClass]

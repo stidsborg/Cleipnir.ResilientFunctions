@@ -13,7 +13,6 @@ public interface IFunctionStore
     public IEffectsStore EffectsStore { get; }
     public ICorrelationStore CorrelationStore { get; }
     public Utilities Utilities { get; }
-    public IMigrator Migrator { get; }
     public ISemaphoreStore SemaphoreStore { get; }
     public IReplicaStore ReplicaStore { get; }
     public Task Initialize();

@@ -14,7 +14,6 @@ public class StoreTests : ResilientFunctions.Tests.TestTemplates.StoreTests
     public override Task NullParamScenarioTest()
         => NullParamScenarioTest(FunctionStoreFactory.Create());
 
-
     [TestMethod]
     public override Task LeaseIsUpdatedWhenAsExpected() 
         => LeaseIsUpdatedWhenAsExpected(FunctionStoreFactory.Create());
