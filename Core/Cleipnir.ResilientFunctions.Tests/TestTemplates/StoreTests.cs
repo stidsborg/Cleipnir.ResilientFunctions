@@ -797,7 +797,7 @@ public abstract class StoreTests
             owner: null
         ).ShouldBeTrueAsync();
 
-        await store.Interrupt(functionId, onlyIfExecuting: false).ShouldBeTrueAsync();
+        await store.Interrupt(functionId).ShouldBeTrueAsync();
         await store.Interrupted(functionId).ShouldBeAsync(true);
 
         await store.RestartExecution(
@@ -1022,7 +1022,7 @@ public abstract class StoreTests
             new StoredMessage("some message".ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes())
         );
 
-        await store.Interrupt(functionId, onlyIfExecuting: false);
+        await store.Interrupt(functionId);
         
         await store.SuspendFunction(
             functionId,
@@ -1060,7 +1060,7 @@ public abstract class StoreTests
             new StoredMessage("hello world".ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes())
         );
 
-        await store.Interrupt(functionId, onlyIfExecuting: false);
+        await store.Interrupt(functionId);
         
         var success = await store.SuspendFunction(
             functionId,
@@ -1100,7 +1100,7 @@ public abstract class StoreTests
         storedFunction.ShouldNotBeNull();
         storedFunction.Interrupted.ShouldBeFalse();
         
-        await store.Interrupt(functionId, onlyIfExecuting: true);
+        await store.Interrupt(functionId);
         
         storedFunction = await store.GetFunction(functionId);
         storedFunction.ShouldNotBeNull();
@@ -1139,7 +1139,7 @@ public abstract class StoreTests
         storedFunction.Interrupted.ShouldBeFalse();
         storedFunction.Status.ShouldBe(Status.Suspended);
         
-        await store.Interrupt(functionId, onlyIfExecuting: true).ShouldBeFalseAsync();
+        await store.Interrupt(functionId).ShouldBeFalseAsync();
 
         storedFunction = await store.GetFunction(functionId);
         storedFunction.ShouldNotBeNull();

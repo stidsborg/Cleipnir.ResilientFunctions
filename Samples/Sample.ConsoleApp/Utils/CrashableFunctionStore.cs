@@ -148,10 +148,10 @@ public class CrashableFunctionStore : IFunctionStore
             ? Task.FromException(new TimeoutException())
             : _inner.RescheduleCrashedFunctions(replicaId);    
 
-    public Task<bool> Interrupt(StoredId storedId, bool onlyIfExecuting)
+    public Task<bool> Interrupt(StoredId storedId)
         => _crashed
             ? Task.FromException<bool>(new TimeoutException())
-            : _inner.Interrupt(storedId, onlyIfExecuting);
+            : _inner.Interrupt(storedId);
 
     public Task Interrupt(IReadOnlyList<StoredId> storedIds)
         => _crashed

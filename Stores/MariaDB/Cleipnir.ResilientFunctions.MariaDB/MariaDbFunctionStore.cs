@@ -457,8 +457,7 @@ public class MariaDbFunctionStore : IFunctionStore
     }
 
     private string? _interruptSql;
-    private string? _interruptIfExecutingSql;
-    public async Task<bool> Interrupt(StoredId storedId, bool onlyIfExecuting)
+    public async Task<bool> Interrupt(StoredId storedId)
     {
         await using var conn = await CreateOpenConnection(_connectionString);
         
@@ -478,12 +477,8 @@ public class MariaDbFunctionStore : IFunctionStore
                         ELSE expires
                     END
             WHERE type = ? AND instance = ?";
-        _interruptIfExecutingSql ??= _interruptSql + $" AND status = {(int) Status.Executing}";
 
-        var sql = onlyIfExecuting
-            ? _interruptIfExecutingSql
-            : _interruptSql;
-        await using var command = new MySqlCommand(sql, conn)
+        await using var command = new MySqlCommand(_interruptSql, conn)
         {
             Parameters =
             {

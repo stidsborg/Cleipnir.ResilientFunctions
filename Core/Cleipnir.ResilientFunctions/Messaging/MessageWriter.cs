@@ -35,7 +35,7 @@ public class MessageWriter
         if (functionStatus == null)
             return Finding.NotFound;
         
-        await _functionStore.Interrupt(_storedId, onlyIfExecuting: false);
+        await _functionStore.Interrupt(_storedId);
         return Finding.Found; 
     }
 }

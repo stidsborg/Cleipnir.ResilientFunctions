@@ -523,8 +523,7 @@ public class SqlServerFunctionStore : IFunctionStore
     }
 
     private string? _interruptSql;
-    private string? _interruptIfExecutingSql;
-    public async Task<bool> Interrupt(StoredId storedId, bool onlyIfExecuting)
+    public async Task<bool> Interrupt(StoredId storedId)
     {
         await using var conn = await _connFunc();
         _interruptSql ??= @$"
@@ -543,13 +542,8 @@ public class SqlServerFunctionStore : IFunctionStore
                             ELSE Expires
                         END
                 WHERE FlowType = @FlowType AND FlowInstance = @FlowInstance";
-        _interruptIfExecutingSql ??= _interruptSql + $" AND Status = {(int) Status.Executing}";
-
-        var sql = onlyIfExecuting
-            ? _interruptIfExecutingSql
-            : _interruptSql;
         
-        await using var command = new SqlCommand(sql, conn);
+        await using var command = new SqlCommand(_interruptSql, conn);
         command.Parameters.AddWithValue("@FlowType", storedId.Type.Value);
         command.Parameters.AddWithValue("@FlowInstance", storedId.Instance.Value);
 

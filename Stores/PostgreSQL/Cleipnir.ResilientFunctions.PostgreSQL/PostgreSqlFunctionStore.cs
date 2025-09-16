@@ -533,8 +533,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
     }
 
     private string? _interruptSql;
-    private string? _interruptSqlIfExecuting;
-    public async Task<bool> Interrupt(StoredId storedId, bool onlyIfExecuting)
+    public async Task<bool> Interrupt(StoredId storedId)
     {
         await using var conn = await CreateConnection();
 
@@ -554,13 +553,8 @@ public class PostgreSqlFunctionStore : IFunctionStore
                             ELSE expires
                         END
                 WHERE type = $1 AND instance = $2";
-        _interruptSqlIfExecuting ??= _interruptSql + $" AND status = {(int) Status.Executing}";
-
-        var sql = onlyIfExecuting
-            ? _interruptSqlIfExecuting
-            : _interruptSql;
         
-        await using var command = new NpgsqlCommand(sql, conn)
+        await using var command = new NpgsqlCommand(_interruptedSql, conn)
         {
             Parameters =
             {

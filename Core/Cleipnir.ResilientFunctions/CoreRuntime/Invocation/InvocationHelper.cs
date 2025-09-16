@@ -215,7 +215,7 @@ internal class InvocationHelper<TParam, TReturn>
         var (content, type) = Serializer.SerializeMessage(msg, msg.GetType());
         var storedMessage = new StoredMessage(content, type, IdempotencyKey: $"FlowCompleted:{childId}");
         await _functionStore.MessageStore.AppendMessage(parent, storedMessage);
-        await _functionStore.Interrupt(parent, onlyIfExecuting: false);
+        await _functionStore.Interrupt(parent);
     }
 
     public async Task<RestartedFunction?> RestartFunction(StoredId flowId, int expectedEpoch)

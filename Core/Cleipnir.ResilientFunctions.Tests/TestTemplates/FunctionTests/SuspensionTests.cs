@@ -670,7 +670,7 @@ public abstract class SuspensionTests
             return controlPanel.Status == Status.Suspended;
         });
 
-        await store.Interrupt(registration.MapToStoredId(id.Instance), onlyIfExecuting: false);
+        await store.Interrupt(registration.MapToStoredId(id.Instance));
         
         await BusyWait.Until(async () =>
         {
@@ -718,7 +718,7 @@ public abstract class SuspensionTests
         await registration.Schedule(flowInstance);
         await insideFlowFlag.WaitForRaised();
 
-        await store.Interrupt(registration.MapToStoredId(id.Instance), onlyIfExecuting: true);
+        await store.Interrupt(registration.MapToStoredId(id.Instance));
         canContinueFlag.Raise();
         
         await executingAgainFlag.WaitForRaised();

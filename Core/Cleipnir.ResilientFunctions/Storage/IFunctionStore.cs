@@ -102,7 +102,7 @@ public interface IFunctionStore
     Task<IReadOnlyList<ReplicaId>> GetOwnerReplicas();
     Task RescheduleCrashedFunctions(ReplicaId replicaId);
 
-    Task<bool> Interrupt(StoredId storedId, bool onlyIfExecuting);
+    Task<bool> Interrupt(StoredId storedId);
     Task Interrupt(IReadOnlyList<StoredId> storedIds);
     Task<bool?> Interrupted(StoredId storedId); 
 

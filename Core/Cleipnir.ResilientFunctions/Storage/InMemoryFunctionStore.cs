@@ -381,14 +381,11 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         }
     }
 
-    public Task<bool> Interrupt(StoredId storedId, bool onlyIfExecuting)
+    public Task<bool> Interrupt(StoredId storedId)
     {
         lock (_sync)
         {
             if (!_states.TryGetValue(storedId, out var state))
-                return false.ToTask();
-            
-            if (state.Status != Status.Executing && onlyIfExecuting)
                 return false.ToTask();
             
             if (state.Status == Status.Postponed || state.Status == Status.Suspended)
@@ -405,7 +402,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
     public async Task Interrupt(IReadOnlyList<StoredId> storedIds)
     {
         foreach (var storedId in storedIds)
-            await Interrupt(storedId, onlyIfExecuting: false);
+            await Interrupt(storedId);
     }
 
     public Task<bool?> Interrupted(StoredId storedId)
@@ -562,7 +559,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         {
             await AppendMessage(storedId, storedMessage);
             if (interrupt)
-                await Interrupt(storedId, onlyIfExecuting: false);
+                await Interrupt(storedId);
         }
     }
 
@@ -580,7 +577,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
             }
             
             if (interrupt)
-                await Interrupt(storedId, onlyIfExecuting: false);
+                await Interrupt(storedId);
         }
     }
 

@@ -108,8 +108,8 @@ public class LeaseUpdaterTestFunctionStore : IFunctionStore
     public Task RescheduleCrashedFunctions(ReplicaId replicaId)
         => _inner.RescheduleCrashedFunctions(replicaId);
 
-    public Task<bool> Interrupt(StoredId storedId, bool onlyIfExecuting)
-        => _inner.Interrupt(storedId, onlyIfExecuting);
+    public Task<bool> Interrupt(StoredId storedId)
+        => _inner.Interrupt(storedId);
 
     public Task Interrupt(IReadOnlyList<StoredId> storedIds) => _inner.Interrupt(storedIds);
 
