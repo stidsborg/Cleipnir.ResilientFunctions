@@ -1108,8 +1108,8 @@ public abstract class StoreTests
         storedFunction.Status.ShouldBe(Status.Executing);
     }
     
-    public abstract Task InterruptCountCannotBeIncrementedForNonExecutingFunction();
-    protected async Task InterruptCountCannotBeIncrementedForNonExecutingFunction(Task<IFunctionStore> storeTask)
+    public abstract Task NonExecutingFunctionCanBeInterrupted();
+    protected async Task NonExecutingFunctionCanBeInterrupted(Task<IFunctionStore> storeTask)
     {
         var functionId = TestStoredId.Create();
         
@@ -1139,16 +1139,12 @@ public abstract class StoreTests
         storedFunction.Interrupted.ShouldBeFalse();
         storedFunction.Status.ShouldBe(Status.Suspended);
         
-        await store.Interrupt(functionId).ShouldBeFalseAsync();
+        await store.Interrupt(functionId).ShouldBeTrueAsync();
 
         storedFunction = await store.GetFunction(functionId);
         storedFunction.ShouldNotBeNull();
-        storedFunction.Interrupted.ShouldBeFalse();
-        storedFunction.Status.ShouldBe(Status.Suspended);
-
-        var interrupted = await store.Interrupted(functionId);
-        interrupted.HasValue.ShouldBeTrue();
-        interrupted!.Value.ShouldBeFalse();
+        storedFunction.Interrupted.ShouldBeTrue();
+        storedFunction.Status.ShouldBe(Status.Postponed);
     }
     
     public abstract Task InterruptCountForNonExistingFunctionIsNull();

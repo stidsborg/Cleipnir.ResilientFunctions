@@ -141,8 +141,8 @@ public class StoreTests : ResilientFunctions.Tests.TestTemplates.StoreTests
         => InterruptCountCanBeIncrementedForExecutingFunction(FunctionStoreFactory.Create());
 
     [TestMethod]
-    public override Task InterruptCountCannotBeIncrementedForNonExecutingFunction()
-        => InterruptCountCannotBeIncrementedForNonExecutingFunction(FunctionStoreFactory.Create());
+    public override Task NonExecutingFunctionCanBeInterrupted()
+        => NonExecutingFunctionCanBeInterrupted(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task InterruptCountForNonExistingFunctionIsNull()

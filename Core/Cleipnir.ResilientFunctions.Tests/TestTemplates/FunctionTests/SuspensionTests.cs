@@ -837,4 +837,48 @@ public abstract class SuspensionTests
         
         unhandledExceptionHandler.ShouldNotHaveExceptions();
     }
+    
+    public abstract Task InterruptedExecutingFlowIsRestartedOnce();
+    protected async Task InterruptedExecutingFlowIsRestartedOnce(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var id = TestFlowId.Create();
+        var (flowType, flowInstance) = id;
+
+        var unhandledExceptionHandler = new UnhandledExceptionCatcher();
+        using var functionsRegistry = new FunctionsRegistry
+        (
+            store,
+            new Settings(unhandledExceptionHandler.Catch)
+        );
+        
+        var syncedCounter = new SyncedCounter();
+        var insideFlow = new SyncedFlag();
+        var continueFlow = new SyncedFlag();
+        var registration = functionsRegistry.RegisterParamless(
+            flowType,
+            inner: async Task (workflow) =>
+            {
+                syncedCounter.Increment();
+                insideFlow.Raise();
+                if (syncedCounter.Current == 1)
+                {
+                    await continueFlow.WaitForRaised();
+                    throw new SuspendInvocationException();
+                }
+            }
+        );
+
+        await registration.Schedule(flowInstance);
+        await insideFlow.WaitForRaised();
+        await registration.Interrupt([flowInstance]);
+        continueFlow.Raise();
+        
+        var cp = await registration.ControlPanel(flowInstance).ShouldNotBeNullAsync();
+        await cp.WaitForCompletion(allowPostponeAndSuspended: true);
+        
+        syncedCounter.Current.ShouldBe(2);
+        
+        unhandledExceptionHandler.ShouldNotHaveExceptions();
+    }
 }

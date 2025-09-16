@@ -554,7 +554,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
                         END
                 WHERE type = $1 AND instance = $2";
         
-        await using var command = new NpgsqlCommand(_interruptedSql, conn)
+        await using var command = new NpgsqlCommand(_interruptSql, conn)
         {
             Parameters =
             {
