@@ -17,9 +17,9 @@ public abstract class ReplicaStoreTests
         var store = await storeTask.SelectAsync(s => s.ReplicaStore);
         await store.GetAll().ShouldBeEmptyAsync();
         var replicaId1 = Guid.NewGuid().ToReplicaId();
-        var replicaId1Heartbeat = DateTime.UtcNow.Ticks;
+        var replicaId1Heartbeat = 0;
         var replicaId2 = Guid.NewGuid().ToReplicaId();
-        var replicaId2Heartbeat = DateTime.UtcNow.Ticks;
+        var replicaId2Heartbeat = 0;
         
         {
             await store.Insert(replicaId1, replicaId1Heartbeat);

@@ -10,5 +10,5 @@ public interface IReplicaStore
     public Task Insert(ReplicaId replicaId, long timeStamp);
     public Task Delete(ReplicaId replicaId);
     public Task<bool> UpdateHeartbeat(ReplicaId replicaId, long timeStamp);
-    public Task<IReadOnlyList<StoredReplica>> GetAll(long olderThan);
+    public Task<IReadOnlyList<StoredReplica>> GetAll();
 }

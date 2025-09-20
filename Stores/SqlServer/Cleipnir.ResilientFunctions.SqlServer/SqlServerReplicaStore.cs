@@ -15,7 +15,7 @@ public class SqlServerReplicaStore(string connectionString, string tablePrefix) 
         _initializeSql ??= $@"
             CREATE TABLE {tablePrefix}Replicas (
                 Id CHAR(32) PRIMARY KEY,
-                Heartbeat INT
+                Heartbeat BIGINT
             );";
         await using var conn = await CreateConnection();
         var command = new SqlCommand(_initializeSql, conn);
@@ -96,7 +96,7 @@ public class SqlServerReplicaStore(string connectionString, string tablePrefix) 
         while (await reader.ReadAsync())
         {
             var id = Guid.Parse(reader.GetString(0));
-            var heartbeat = reader.GetInt32(1);
+            var heartbeat = reader.GetInt64(1);
             storedReplicas.Add(new StoredReplica(id.ToReplicaId(), heartbeat));
         }
 

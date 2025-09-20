@@ -56,7 +56,7 @@ public class FunctionsRegistry : IDisposable
             utcNow
         );
         
-        _replicaWatchdog = new ReplicaWatchdog(ClusterInfo, functionStore, leaseLength: TimeSpan.FromSeconds(1), _settings.UnhandledExceptionHandler);
+        _replicaWatchdog = new ReplicaWatchdog(ClusterInfo, functionStore, leaseLength: TimeSpan.FromSeconds(1), utcNow, _settings.UnhandledExceptionHandler);
         _replicaWatchdog.Initialize().GetAwaiter().GetResult();
         _ = _replicaWatchdog.Start();
     }
