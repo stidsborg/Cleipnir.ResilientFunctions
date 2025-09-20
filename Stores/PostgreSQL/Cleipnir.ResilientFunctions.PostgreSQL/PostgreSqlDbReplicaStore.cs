@@ -23,20 +23,21 @@ public class PostgreSqlDbReplicaStore(string connectionString, string tablePrefi
     }
 
     private string? _insertSql;
-    public async Task Insert(ReplicaId replicaId)
+    public async Task Insert(ReplicaId replicaId, long timestamp)
     {
         _insertSql ??= $@"
             INSERT INTO {tablePrefix}_replicas
                 (id, heartbeat)
             VALUES
-                ($1, 0)";
+                ($1, $2)";
         
         await using var conn = await CreateConnection();
         await using var command = new NpgsqlCommand(_insertSql, conn)
         {
             Parameters =
             {
-                new() {Value = replicaId.AsGuid.ToString("N")}
+                new() {Value = replicaId.AsGuid.ToString("N")},
+                new() {Value = timestamp}
             }
         };
 
@@ -59,25 +60,27 @@ public class PostgreSqlDbReplicaStore(string connectionString, string tablePrefi
 
         await command.ExecuteNonQueryAsync();
     }
-
+    
     private string? _updateHeartbeatSql;
-    public async Task UpdateHeartbeat(ReplicaId replicaId)
+    public async Task<bool> UpdateHeartbeat(ReplicaId replicaId, long timeStamp)
     {
         _updateHeartbeatSql ??= $@"
             UPDATE {tablePrefix}_replicas
-            SET heartbeat = heartbeat + 1
-            WHERE id = $1";
+            SET heartbeat = $1
+            WHERE id = $2";
         
         await using var conn = await CreateConnection();
         await using var command = new NpgsqlCommand(_updateHeartbeatSql, conn)
         {
             Parameters =
             {
+                new() {Value = timeStamp },
                 new() {Value = replicaId.AsGuid.ToString("N")}
             }
         };
 
-        await command.ExecuteNonQueryAsync();
+        var affectedRow = await command.ExecuteNonQueryAsync();
+        return affectedRow > 0;
     }
 
     private string? _getAllSql;

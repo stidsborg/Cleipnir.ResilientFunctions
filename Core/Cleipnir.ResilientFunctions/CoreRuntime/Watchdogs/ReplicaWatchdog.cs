@@ -9,12 +9,16 @@ using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.CoreRuntime.Watchdogs;
 
-internal class ReplicaWatchdog(ClusterInfo clusterInfo, IFunctionStore functionStore, TimeSpan checkFrequency, UnhandledExceptionHandler unhandledExceptionHandler) : IDisposable
+internal class ReplicaWatchdog(
+    ClusterInfo clusterInfo, 
+    IFunctionStore functionStore, 
+    TimeSpan leaseLength, 
+    UtcNow utcNow,
+    UnhandledExceptionHandler unhandledExceptionHandler) : IDisposable
 {
     private volatile bool _disposed;
     private bool _started;
     private bool _initialized;
-    private readonly Dictionary<StoredReplica, int> _strikes = new();
     private IReplicaStore ReplicaStore => functionStore.ReplicaStore;
     
     public async Task Start()
@@ -31,7 +35,7 @@ internal class ReplicaWatchdog(ClusterInfo clusterInfo, IFunctionStore functionS
 
     public async Task Initialize()
     {
-        await ReplicaStore.Insert(clusterInfo.ReplicaId);
+        await ReplicaStore.Insert(clusterInfo.ReplicaId, DateTime.UtcNow.Ticks);
         var replicas = await ReplicaStore.GetAll();
         var offset = CalculateOffset(replicas.Select(sr => sr.ReplicaId), clusterInfo.ReplicaId);
         if (offset is null)
@@ -64,15 +68,16 @@ internal class ReplicaWatchdog(ClusterInfo clusterInfo, IFunctionStore functionS
                 unhandledExceptionHandler.Invoke(new FrameworkException("ReplicaWatchdog failed during iteration", ex));
             }
             
-            await Task.Delay(checkFrequency);
+            await Task.Delay(leaseLength / 2);
         }
     }
 
-   public async Task PerformIteration()
-    {
-        await ReplicaStore.UpdateHeartbeat(clusterInfo.ReplicaId);
-        
-        var storedReplicas = await ReplicaStore.GetAll();
+   public async Task PerformIteration(DateTime utcNow)
+   {
+        await ReplicaStore.UpdateHeartbeat(clusterInfo.ReplicaId, utcNow.Ticks);
+
+        var threshold = utcNow - 2 * leaseLength;
+        var storedReplicas = await ReplicaStore.GetAll(threshold.Ticks);
         var offset = CalculateOffset(storedReplicas.Select(sr => sr.ReplicaId), clusterInfo.ReplicaId);
 
         if (offset is not null)
@@ -82,7 +87,7 @@ internal class ReplicaWatchdog(ClusterInfo clusterInfo, IFunctionStore functionS
         }
         else
         {
-            await ReplicaStore.Insert(clusterInfo.ReplicaId);
+            await ReplicaStore.Insert(clusterInfo.ReplicaId, DateTime.UtcNow.Ticks);
             _strikes.Clear();
             await PerformIteration();
         }

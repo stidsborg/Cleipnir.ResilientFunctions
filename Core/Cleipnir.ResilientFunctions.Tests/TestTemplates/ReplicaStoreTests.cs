@@ -16,45 +16,47 @@ public abstract class ReplicaStoreTests
     {
         var store = await storeTask.SelectAsync(s => s.ReplicaStore);
         await store.GetAll().ShouldBeEmptyAsync();
-        var replicaId1 = Guid.NewGuid().ToReplicaId();        
+        var replicaId1 = Guid.NewGuid().ToReplicaId();
+        var replicaId1Heartbeat = DateTime.UtcNow.Ticks;
         var replicaId2 = Guid.NewGuid().ToReplicaId();
+        var replicaId2Heartbeat = DateTime.UtcNow.Ticks;
         
         {
-            await store.Insert(replicaId1);
+            await store.Insert(replicaId1, replicaId1Heartbeat);
             var all = await store.GetAll();
             all.Count.ShouldBe(1);
             var stored = all.Single();
             stored.ReplicaId.ShouldBe(replicaId1);
-            stored.Heartbeat.ShouldBe(0);            
+            stored.LatestHeartbeat.ShouldBe(replicaId1Heartbeat);            
         }
 
         {
-            await store.Insert(replicaId2);
+            await store.Insert(replicaId2, replicaId2Heartbeat);
             var all = await store.GetAll();
             all.Count.ShouldBe(2);
             var stored = all.Single(id => id.ReplicaId == replicaId2);
             stored.ReplicaId.ShouldBe(replicaId2);
-            stored.Heartbeat.ShouldBe(0);            
+            stored.LatestHeartbeat.ShouldBe(0);            
         }
 
-        await store.UpdateHeartbeat(replicaId1);
+        await store.UpdateHeartbeat(replicaId1, replicaId1Heartbeat + 1);
         {
             var all = await store.GetAll();
             all.Count.ShouldBe(2);
             var stored1 = all.Single(r => r.ReplicaId == replicaId1);
-            stored1.Heartbeat.ShouldBe(1);
+            stored1.LatestHeartbeat.ShouldBe(replicaId1Heartbeat + 1);
             var stored2 = all.Single(r => r.ReplicaId == replicaId2);
-            stored2.Heartbeat.ShouldBe(0);
+            stored2.LatestHeartbeat.ShouldBe(replicaId2Heartbeat);
         }
         
-        await store.UpdateHeartbeat(replicaId2);
+        await store.UpdateHeartbeat(replicaId2, replicaId2Heartbeat + 1);
         {
             var all = await store.GetAll();
             all.Count.ShouldBe(2);
             var stored1 = all.Single(r => r.ReplicaId == replicaId1);
-            stored1.Heartbeat.ShouldBe(1);
+            stored1.LatestHeartbeat.ShouldBe(replicaId1Heartbeat + 1);
             var stored2 = all.Single(r => r.ReplicaId == replicaId2);
-            stored2.Heartbeat.ShouldBe(1);
+            stored2.LatestHeartbeat.ShouldBe(replicaId2Heartbeat + 1);
         }
 
         await store.Delete(replicaId1);
@@ -62,7 +64,7 @@ public abstract class ReplicaStoreTests
             var all = await store.GetAll();
             all.Count.ShouldBe(1);
             var stored2 = all.Single(r => r.ReplicaId == replicaId2);
-            stored2.Heartbeat.ShouldBe(1);
+            stored2.LatestHeartbeat.ShouldBe(replicaId2Heartbeat + 1);
         }
         
         await store.Delete(replicaId2);

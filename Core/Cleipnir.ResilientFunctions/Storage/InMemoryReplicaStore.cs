@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -9,15 +10,15 @@ namespace Cleipnir.ResilientFunctions.Storage;
 
 public class InMemoryReplicaStore : IReplicaStore
 {
-    private readonly Dictionary<ReplicaId, int> _replicas = new();
+    private readonly Dictionary<ReplicaId, long> _replicas = new();
     private readonly Lock _sync = new();
     
     public Task Initialize() => Task.CompletedTask;
 
-    public Task Insert(ReplicaId replicaId)
+    public Task Insert(ReplicaId replicaId, long timestamp)
     {
         lock (_sync)
-            _replicas.TryAdd(replicaId, 0);
+            _replicas.TryAdd(replicaId, timestamp);
         
         return Task.CompletedTask;
     }
@@ -30,13 +31,17 @@ public class InMemoryReplicaStore : IReplicaStore
         return Task.CompletedTask;
     }
 
-    public Task UpdateHeartbeat(ReplicaId replicaId)
+    public Task<bool> UpdateHeartbeat(ReplicaId replicaId, long timestamp)
     {
         lock (_sync)
             if (_replicas.ContainsKey(replicaId))
-                _replicas[replicaId]++;
+            {
+                _replicas[replicaId] = timestamp;
+                return true.ToTask();
+            }
+
         
-        return Task.CompletedTask;            
+        return false.ToTask();            
     }
 
     public Task<IReadOnlyList<StoredReplica>> GetAll()

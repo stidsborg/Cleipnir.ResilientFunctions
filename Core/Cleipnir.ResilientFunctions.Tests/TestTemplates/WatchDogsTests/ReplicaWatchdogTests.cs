@@ -22,20 +22,20 @@ public abstract class ReplicaWatchdogTests
         using var watchdog1 = new ReplicaWatchdog(
             replicaId1,
             functionStore,
-            checkFrequency: TimeSpan.FromHours(1),
+            leaseLength: TimeSpan.FromHours(1),
             default(UnhandledExceptionHandler)!
         );
         await watchdog1.Initialize();
         var allReplicas = await store.GetAll();
         allReplicas.Count.ShouldBe(1);
         var storedReplica1 = allReplicas.Single(sr => sr.ReplicaId == replicaId1.ReplicaId);
-        storedReplica1.Heartbeat.ShouldBe(0);
+        storedReplica1.LatestHeartbeat.ShouldBe(0);
         
         var replicaId2 = new ClusterInfo(Guid.Parse("20000000-0000-0000-0000-000000000000").ToReplicaId());
         using var watchdog2 = new ReplicaWatchdog(
             replicaId2,
             functionStore,
-            checkFrequency: TimeSpan.FromHours(1),
+            leaseLength: TimeSpan.FromHours(1),
             default(UnhandledExceptionHandler)!
         );
         await watchdog2.Initialize();
@@ -77,7 +77,7 @@ public abstract class ReplicaWatchdogTests
         using var watchdog1 = new ReplicaWatchdog(
             replicaId1,
             functionStore,
-            checkFrequency: TimeSpan.FromHours(1),
+            leaseLength: TimeSpan.FromHours(1),
             default(UnhandledExceptionHandler)!
         );
         await watchdog1.Start();
@@ -88,7 +88,7 @@ public abstract class ReplicaWatchdogTests
         using var watchdog2 = new ReplicaWatchdog(
             replicaId2,
             functionStore,
-            checkFrequency: TimeSpan.FromHours(1),
+            leaseLength: TimeSpan.FromHours(1),
             default(UnhandledExceptionHandler)!
         );
         await watchdog2.Start();
@@ -108,7 +108,7 @@ public abstract class ReplicaWatchdogTests
         using var watchdog1 = new ReplicaWatchdog(
             replicaId1,
             functionStore,
-            checkFrequency: TimeSpan.FromHours(1),
+            leaseLength: TimeSpan.FromHours(1),
             default(UnhandledExceptionHandler)!
         );
         await watchdog1.Initialize();
@@ -133,7 +133,7 @@ public abstract class ReplicaWatchdogTests
         using var watchdog1 = new ReplicaWatchdog(
             replicaId1,
             functionStore,
-            checkFrequency: TimeSpan.FromMilliseconds(100),
+            leaseLength: TimeSpan.FromMilliseconds(100),
             default(UnhandledExceptionHandler)!
         );
 
@@ -159,9 +159,9 @@ public abstract class ReplicaWatchdogTests
         var replicaId2 = new ClusterInfo(Guid.Parse("20000000-0000-0000-0000-000000000000").ToReplicaId());
         var replicaId3 = new ClusterInfo(Guid.Parse("30000000-0000-0000-0000-000000000000").ToReplicaId());
 
-        var watchdog1 = new ReplicaWatchdog(replicaId1, store, checkFrequency: TimeSpan.FromHours(1), default(UnhandledExceptionHandler)!);
-        var watchdog2 = new ReplicaWatchdog(replicaId2, store, checkFrequency: TimeSpan.FromHours(1), default(UnhandledExceptionHandler)!);
-        var watchdog3 = new ReplicaWatchdog(replicaId3, store, checkFrequency: TimeSpan.FromHours(1), default(UnhandledExceptionHandler)!);
+        var watchdog1 = new ReplicaWatchdog(replicaId1, store, leaseLength: TimeSpan.FromHours(1), default(UnhandledExceptionHandler)!);
+        var watchdog2 = new ReplicaWatchdog(replicaId2, store, leaseLength: TimeSpan.FromHours(1), default(UnhandledExceptionHandler)!);
+        var watchdog3 = new ReplicaWatchdog(replicaId3, store, leaseLength: TimeSpan.FromHours(1), default(UnhandledExceptionHandler)!);
 
         await watchdog1.Initialize();
         await watchdog2.Initialize();
@@ -185,9 +185,9 @@ public abstract class ReplicaWatchdogTests
         var cluster2 = new ClusterInfo(Guid.Parse("20000000-0000-0000-0000-000000000000").ToReplicaId());
         var cluster3 = new ClusterInfo(Guid.Parse("30000000-0000-0000-0000-000000000000").ToReplicaId());
 
-        var watchdog1 = new ReplicaWatchdog(cluster1, functionStore, checkFrequency: TimeSpan.FromHours(1), default(UnhandledExceptionHandler)!);
-        var watchdog2 = new ReplicaWatchdog(cluster2, functionStore, checkFrequency: TimeSpan.FromHours(1), default(UnhandledExceptionHandler)!);
-        var watchdog3 = new ReplicaWatchdog(cluster3, functionStore, checkFrequency: TimeSpan.FromHours(1), default(UnhandledExceptionHandler)!);
+        var watchdog1 = new ReplicaWatchdog(cluster1, functionStore, leaseLength: TimeSpan.FromHours(1), default(UnhandledExceptionHandler)!);
+        var watchdog2 = new ReplicaWatchdog(cluster2, functionStore, leaseLength: TimeSpan.FromHours(1), default(UnhandledExceptionHandler)!);
+        var watchdog3 = new ReplicaWatchdog(cluster3, functionStore, leaseLength: TimeSpan.FromHours(1), default(UnhandledExceptionHandler)!);
 
         await watchdog3.Initialize();
         cluster3.Offset.ShouldBe((ulong) 0);
@@ -234,9 +234,9 @@ public abstract class ReplicaWatchdogTests
         var cluster2 = new ClusterInfo(Guid.Parse("20000000-0000-0000-0000-000000000000").ToReplicaId());
         var cluster3 = new ClusterInfo(Guid.Parse("30000000-0000-0000-0000-000000000000").ToReplicaId());
 
-        var watchdog1 = new ReplicaWatchdog(cluster1, store, checkFrequency: TimeSpan.FromHours(1), default(UnhandledExceptionHandler)!);
-        var watchdog2 = new ReplicaWatchdog(cluster2, store, checkFrequency: TimeSpan.FromHours(1), default(UnhandledExceptionHandler)!);
-        var watchdog3 = new ReplicaWatchdog(cluster3, store, checkFrequency: TimeSpan.FromHours(1), default(UnhandledExceptionHandler)!);
+        var watchdog1 = new ReplicaWatchdog(cluster1, store, leaseLength: TimeSpan.FromHours(1), default(UnhandledExceptionHandler)!);
+        var watchdog2 = new ReplicaWatchdog(cluster2, store, leaseLength: TimeSpan.FromHours(1), default(UnhandledExceptionHandler)!);
+        var watchdog3 = new ReplicaWatchdog(cluster3, store, leaseLength: TimeSpan.FromHours(1), default(UnhandledExceptionHandler)!);
 
         await watchdog1.Initialize();
         await watchdog2.Initialize();
@@ -294,7 +294,7 @@ public abstract class ReplicaWatchdogTests
         using var watchdog1 = new ReplicaWatchdog(
             replicaId1,
             functionStore,
-            checkFrequency: TimeSpan.FromHours(1),
+            leaseLength: TimeSpan.FromHours(1),
             default(UnhandledExceptionHandler)!
         );
         await watchdog1.Initialize();
@@ -317,7 +317,7 @@ public abstract class ReplicaWatchdogTests
         
         var replicaId = ReplicaId.NewId();
         var clusterInfo = new ClusterInfo(replicaId);
-        using var watchdog = new ReplicaWatchdog(clusterInfo, functionStore, checkFrequency: TimeSpan.FromMilliseconds(10), default(UnhandledExceptionHandler)!);
+        using var watchdog = new ReplicaWatchdog(clusterInfo, functionStore, leaseLength: TimeSpan.FromMilliseconds(10), default(UnhandledExceptionHandler)!);
         await watchdog.Start();
 
         await Task.Delay(100);
