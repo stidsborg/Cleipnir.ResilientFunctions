@@ -595,7 +595,7 @@ public abstract class MessagesTests
     protected async Task PingPongMessagesCanBeExchangedMultipleTimes(Task<IFunctionStore> functionStoreTask)
     {
         var functionStore = await functionStoreTask;
-        using var registry = new FunctionsRegistry(functionStore, new Settings(messagesDefaultMaxWaitForCompletion: TimeSpan.FromSeconds(10)));
+        using var registry = new FunctionsRegistry(functionStore, new Settings(messagesDefaultMaxWaitForCompletion: TimeSpan.FromSeconds(1000), messagesPullFrequency: TimeSpan.FromMilliseconds(10)));
         ParamlessRegistration pongRegistration = null!;
         ParamlessRegistration pingRegistration = null!;
         

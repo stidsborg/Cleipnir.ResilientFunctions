@@ -15,7 +15,7 @@ public class SqlServerReplicaStore(string connectionString, string tablePrefix) 
         _initializeSql ??= $@"
             CREATE TABLE {tablePrefix}Replicas (
                 Id CHAR(32) PRIMARY KEY,
-                Heartbeat INT
+                Heartbeat BIGINT
             );";
         await using var conn = await CreateConnection();
         var command = new SqlCommand(_initializeSql, conn);
@@ -23,20 +23,21 @@ public class SqlServerReplicaStore(string connectionString, string tablePrefix) 
     }
 
     private string? _insertSql;
-    public async Task Insert(ReplicaId replicaId)
+    public async Task Insert(ReplicaId replicaId, long timestamp)
     {
         _insertSql ??= $@"
             INSERT INTO {tablePrefix}Replicas
                 (Id, Heartbeat)
             VALUES
-                (@Id, 0)";
+                (@Id, @Timestamp)";
         
         await using var conn = await CreateConnection();
         await using var command = new SqlCommand(_insertSql, conn)
         {
             Parameters =
             {
-                new() {ParameterName = "Id", Value = replicaId.AsGuid.ToString("N")}
+                new() {ParameterName = "Id", Value = replicaId.AsGuid.ToString("N")},
+                new() {ParameterName = "Timestamp", Value = timestamp}
             }
         };
 
@@ -61,11 +62,11 @@ public class SqlServerReplicaStore(string connectionString, string tablePrefix) 
     }
 
     private string? _updateHeartbeatSql;
-    public async Task UpdateHeartbeat(ReplicaId replicaId)
+    public async Task<bool> UpdateHeartbeat(ReplicaId replicaId, long timeStamp)
     {
         _updateHeartbeatSql ??= $@"
             UPDATE {tablePrefix}Replicas
-            SET heartbeat = heartbeat + 1
+            SET heartbeat = @Timestamp
             WHERE id = @Id";
         
         await using var conn = await CreateConnection();
@@ -73,11 +74,13 @@ public class SqlServerReplicaStore(string connectionString, string tablePrefix) 
         {
             Parameters =
             {
-                new() {ParameterName = "Id", Value = replicaId.AsGuid.ToString("N")}
+                new() {ParameterName = "Id", Value = replicaId.AsGuid.ToString("N")},
+                new() {ParameterName = "Timestamp", Value = timeStamp}
             }
         };
 
-        await command.ExecuteNonQueryAsync();
+        var affectedRows = await command.ExecuteNonQueryAsync();
+        return affectedRows > 0;
     }
 
     private string? _getAllSql;
@@ -93,7 +96,7 @@ public class SqlServerReplicaStore(string connectionString, string tablePrefix) 
         while (await reader.ReadAsync())
         {
             var id = Guid.Parse(reader.GetString(0));
-            var heartbeat = reader.GetInt32(1);
+            var heartbeat = reader.GetInt64(1);
             storedReplicas.Add(new StoredReplica(id.ToReplicaId(), heartbeat));
         }
 
