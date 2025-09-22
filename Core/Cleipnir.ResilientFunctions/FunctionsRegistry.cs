@@ -57,8 +57,11 @@ public class FunctionsRegistry : IDisposable
         );
         
         _replicaWatchdog = new ReplicaWatchdog(ClusterInfo, functionStore, leaseLength: TimeSpan.FromSeconds(1), utcNow, _settings.UnhandledExceptionHandler);
-        _replicaWatchdog.Initialize().GetAwaiter().GetResult();
-        _ = _replicaWatchdog.Start();
+        if (_settings.EnableWatchdogs)
+        {
+            _replicaWatchdog.Initialize().GetAwaiter().GetResult();
+            _ = _replicaWatchdog.Start();            
+        }
     }
 
     #region Func overloads

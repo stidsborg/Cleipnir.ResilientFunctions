@@ -17,6 +17,7 @@ public class SqlServerFunctionStore : IFunctionStore
 {
     private readonly Func<Task<SqlConnection>> _connFunc;
     private readonly string _tableName;
+    private readonly string _connectionString;
     
     private readonly SqlServerEffectsStore _effectsStore;
     private readonly SqlServerMessageStore _messageStore;
@@ -40,6 +41,7 @@ public class SqlServerFunctionStore : IFunctionStore
     public SqlServerFunctionStore(string connectionString, string tablePrefix = "")
     {
         _tableName = tablePrefix == "" ? "RFunctions" : tablePrefix;
+        _connectionString = connectionString;
         _sqlGenerator = new SqlGenerator(_tableName);
         
         _connFunc = CreateConnection(connectionString);
@@ -788,6 +790,9 @@ public class SqlServerFunctionStore : IFunctionStore
 
         return await DeleteStoredFunction(storedId);
     }
+
+    public IFunctionStore WithPrefix(string prefix)
+        => new SqlServerFunctionStore(_connectionString, prefix);
 
     private string? _deleteFunctionSql;
     private async Task<bool> DeleteStoredFunction(StoredId storedId)

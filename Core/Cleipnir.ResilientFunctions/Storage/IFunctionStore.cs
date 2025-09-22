@@ -113,4 +113,6 @@ public interface IFunctionStore
     Task<IReadOnlyList<StoredInstance>> GetInstances(StoredType storedType);
 
     Task<bool> DeleteFunction(StoredId storedId);
+
+    IFunctionStore WithPrefix(string prefix);
 }

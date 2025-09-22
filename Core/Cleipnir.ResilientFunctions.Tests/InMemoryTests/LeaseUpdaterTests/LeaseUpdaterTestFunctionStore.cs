@@ -134,4 +134,5 @@ public class LeaseUpdaterTestFunctionStore : IFunctionStore
         => _inner.GetInstances(storedType);
 
     public Task<bool> DeleteFunction(StoredId storedId) => _inner.DeleteFunction(storedId);
+    public IFunctionStore WithPrefix(string prefix) => _inner.WithPrefix(prefix);
 }

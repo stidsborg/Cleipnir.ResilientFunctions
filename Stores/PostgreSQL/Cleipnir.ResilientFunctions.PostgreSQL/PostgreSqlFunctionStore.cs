@@ -797,6 +797,12 @@ public class PostgreSqlFunctionStore : IFunctionStore
         return await DeleteStoredFunction(storedId);
     }
 
+    public IFunctionStore WithPrefix(string prefix)
+        => new PostgreSqlFunctionStore(
+            _connectionString,
+            prefix
+        );
+
     private string? _deleteFunctionSql;
     private async Task<bool> DeleteStoredFunction(StoredId storedId)
     {

@@ -219,6 +219,8 @@ public class CrashableFunctionStore : IFunctionStore
         => _crashed
             ? Task.FromException<bool>(new TimeoutException())
             : _inner.DeleteFunction(storedId);
+
+    public IFunctionStore WithPrefix(string prefix) => _inner.WithPrefix(prefix);
 }
 
 public static class CrashableFunctionStoreExtensions

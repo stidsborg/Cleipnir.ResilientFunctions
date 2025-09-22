@@ -756,6 +756,9 @@ public class MariaDbFunctionStore : IFunctionStore
         return await DeleteStoredFunction(storedId);
     }
 
+    public IFunctionStore WithPrefix(string prefix)
+        => new MariaDbFunctionStore(_connectionString, prefix);
+
     private string? _deleteFunctionSql;
     private async Task<bool> DeleteStoredFunction(StoredId storedId)
     {

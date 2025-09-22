@@ -515,6 +515,8 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         }
     }
 
+    public IFunctionStore WithPrefix(string prefix) => new InMemoryFunctionStore();
+
     private class InnerState
     {
         public StoredId StoredId { get; init; } = null!;

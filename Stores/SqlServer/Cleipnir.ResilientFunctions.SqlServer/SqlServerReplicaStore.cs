@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
@@ -14,7 +13,7 @@ public class SqlServerReplicaStore(string connectionString, string tablePrefix) 
     {
         _initializeSql ??= $@"
             CREATE TABLE {tablePrefix}Replicas (
-                Id CHAR(32) PRIMARY KEY,
+                Id UNIQUEIDENTIFIER PRIMARY KEY,
                 Heartbeat BIGINT
             );";
         await using var conn = await CreateConnection();
@@ -36,7 +35,7 @@ public class SqlServerReplicaStore(string connectionString, string tablePrefix) 
         {
             Parameters =
             {
-                new() {ParameterName = "Id", Value = replicaId.AsGuid.ToString("N")},
+                new() {ParameterName = "Id", Value = replicaId.AsGuid},
                 new() {ParameterName = "Timestamp", Value = timestamp}
             }
         };
@@ -54,7 +53,7 @@ public class SqlServerReplicaStore(string connectionString, string tablePrefix) 
         {
             Parameters =
             {
-                new() {ParameterName = "Id", Value = replicaId.AsGuid.ToString("N")}
+                new() {ParameterName = "Id", Value = replicaId.AsGuid}
             }
         };
 
@@ -74,7 +73,7 @@ public class SqlServerReplicaStore(string connectionString, string tablePrefix) 
         {
             Parameters =
             {
-                new() {ParameterName = "Id", Value = replicaId.AsGuid.ToString("N")},
+                new() {ParameterName = "Id", Value = replicaId.AsGuid},
                 new() {ParameterName = "Timestamp", Value = timeStamp}
             }
         };
@@ -95,7 +94,7 @@ public class SqlServerReplicaStore(string connectionString, string tablePrefix) 
         await using var reader = await command.ExecuteReaderAsync();
         while (await reader.ReadAsync())
         {
-            var id = Guid.Parse(reader.GetString(0));
+            var id = reader.GetGuid(0);
             var heartbeat = reader.GetInt64(1);
             storedReplicas.Add(new StoredReplica(id.ToReplicaId(), heartbeat));
         }

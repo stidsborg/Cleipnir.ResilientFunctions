@@ -16,7 +16,7 @@ public abstract class ReplicaWatchdogTests
     public abstract Task SunshineScenario();
     public async Task SunshineScenario(Task<IFunctionStore> storeTask)
     {
-        var functionStore = await storeTask;
+        var functionStore = await WithRandomPrefix(storeTask);
         var store = functionStore.ReplicaStore;
         var replicaId1 = new ClusterInfo(Guid.Parse("10000000-0000-0000-0000-000000000000").ToReplicaId());
         var utcNowTicks = 0;
@@ -68,7 +68,7 @@ public abstract class ReplicaWatchdogTests
     public abstract Task ReplicaWatchdogStartResultsInAddedReplicaInStore();
     public async Task ReplicaWatchdogStartResultsInAddedReplicaInStore(Task<IFunctionStore> storeTask)
     {
-        var functionStore = await storeTask;
+        var functionStore = await WithRandomPrefix(storeTask);
         var store = functionStore.ReplicaStore;
         var replicaId1 = new ClusterInfo(Guid.Parse("10000000-0000-0000-0000-000000000000").ToReplicaId());
         using var watchdog1 = new ReplicaWatchdog(
@@ -98,7 +98,7 @@ public abstract class ReplicaWatchdogTests
     public abstract Task StrikedOutReplicaIsRemovedFromStore();
     public async Task StrikedOutReplicaIsRemovedFromStore(Task<IFunctionStore> storeTask)
     {
-        var functionStore = await storeTask;
+        var functionStore = await WithRandomPrefix(storeTask);
         var store = functionStore.ReplicaStore;
         var toBeStrikedOut = ReplicaId.NewId();
         
@@ -126,7 +126,7 @@ public abstract class ReplicaWatchdogTests
     public abstract Task RunningWatchdogUpdatesItsOwnHeartbeat();
     public async Task RunningWatchdogUpdatesItsOwnHeartbeat(Task<IFunctionStore> storeTask)
     {
-        var functionStore = await storeTask;
+        var functionStore = await WithRandomPrefix(storeTask);
         var store = functionStore.ReplicaStore;
         
         var replicaId1 = new ClusterInfo(ReplicaId.NewId());
@@ -153,7 +153,7 @@ public abstract class ReplicaWatchdogTests
     public abstract Task ReplicaIdOffsetIfCalculatedCorrectly();
     public async Task ReplicaIdOffsetIfCalculatedCorrectly(Task<IFunctionStore> storeTask)
     {
-        var store = await storeTask;
+        var store = await WithRandomPrefix(storeTask);
         var replicaStore = store.ReplicaStore;
         
         var replicaId1 = new ClusterInfo(Guid.Parse("10000000-0000-0000-0000-000000000000").ToReplicaId());
@@ -179,7 +179,7 @@ public abstract class ReplicaWatchdogTests
     public abstract Task ReplicaIdOffsetIsUpdatedWhenNodeIsAddedAndDeleted();
     public async Task ReplicaIdOffsetIsUpdatedWhenNodeIsAddedAndDeleted(Task<IFunctionStore> storeTask)
     {
-        var functionStore = await storeTask;
+        var functionStore = await WithRandomPrefix(storeTask);
         var store = functionStore.ReplicaStore;
         
         var cluster1 = new ClusterInfo(Guid.Parse("10000000-0000-0000-0000-000000000000").ToReplicaId());
@@ -228,7 +228,7 @@ public abstract class ReplicaWatchdogTests
     public abstract Task ActiveReplicasDoNotDeleteEachOther();
     public async Task ActiveReplicasDoNotDeleteEachOther(Task<IFunctionStore> storeTask)
     {
-        var store = await storeTask;
+        var store = await WithRandomPrefix(storeTask);
         var replicaStore = store.ReplicaStore;
         
         var cluster1 = new ClusterInfo(Guid.Parse("10000000-0000-0000-0000-000000000000").ToReplicaId());
@@ -273,7 +273,7 @@ public abstract class ReplicaWatchdogTests
     public abstract Task StrikedOutReplicasFunctionIsPostponedAfterCrash();
     public async Task StrikedOutReplicasFunctionIsPostponedAfterCrash(Task<IFunctionStore> storeTask)
     {
-        var functionStore = await storeTask;
+        var functionStore = await WithRandomPrefix(storeTask);
         
         var toBeStrikedOut = ReplicaId.NewId();
         var storedId = TestStoredId.Create();
@@ -312,7 +312,7 @@ public abstract class ReplicaWatchdogTests
     public abstract Task ReplicaWatchdogUpdatesHeartbeat();
     public async Task ReplicaWatchdogUpdatesHeartbeat(Task<IFunctionStore> storeTask)
     {
-        var functionStore = await storeTask;
+        var functionStore = await WithRandomPrefix(storeTask);
         var replicaStore = functionStore.ReplicaStore;
         
         var replicaId = ReplicaId.NewId();
@@ -330,7 +330,7 @@ public abstract class ReplicaWatchdogTests
     }
     
     public abstract Task WorkIsDividedBetweenReplicas();
-    public Task WorkIsDividedBetweenReplicas(Task<IFunctionStore> storeTask)
+    public Task WorkIsDividedBetweenReplicas(Task<IFunctionStore> _)
     {
         var replicaId1 = ReplicaId.NewId();
         var clusterInfo = new ClusterInfo(replicaId1)
@@ -358,5 +358,13 @@ public abstract class ReplicaWatchdogTests
         owned.Any().ShouldBeTrue();
         
         return Task.CompletedTask;
+    }
+
+    private async Task<IFunctionStore> WithRandomPrefix(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        store = store.WithPrefix("rts_" + Guid.NewGuid().ToString("N"));
+        await store.Initialize();
+        return store;
     }
 }
