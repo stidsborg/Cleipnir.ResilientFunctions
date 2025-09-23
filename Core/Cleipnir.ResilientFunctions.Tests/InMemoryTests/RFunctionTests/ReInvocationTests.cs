@@ -12,9 +12,6 @@ public class ReInvocationTests : TestTemplates.FunctionTests.ReInvocationTests
     public override Task ActionReInvocationSunshineScenario()
         => ActionReInvocationSunshineScenario(CreateInMemoryStore());
     [TestMethod]
-    public override Task ActionWithStateReInvocationSunshineScenario()
-        => ActionWithStateReInvocationSunshineScenario(CreateInMemoryStore());
-    [TestMethod]
     public override Task UpdatedParameterIsPassedInOnReInvocationSunshineScenario()
         => UpdatedParameterIsPassedInOnReInvocationSunshineScenario(CreateInMemoryStore());
     [TestMethod]
@@ -23,9 +20,6 @@ public class ReInvocationTests : TestTemplates.FunctionTests.ReInvocationTests
     [TestMethod]
     public override Task FuncReInvocationSunshineScenario()
         => FuncReInvocationSunshineScenario(CreateInMemoryStore());
-    [TestMethod]
-    public override Task FuncWithStateReInvocationSunshineScenario()
-        => FuncWithStateReInvocationSunshineScenario(CreateInMemoryStore());
     [TestMethod]
     public override Task ReInvocationFailsWhenTheFunctionDoesNotExist()
         => ReInvocationFailsWhenTheFunctionDoesNotExist(CreateInMemoryStore());

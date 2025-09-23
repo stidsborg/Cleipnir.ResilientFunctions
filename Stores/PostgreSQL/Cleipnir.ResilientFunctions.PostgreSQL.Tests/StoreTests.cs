@@ -15,14 +15,6 @@ public class StoreTests : ResilientFunctions.Tests.TestTemplates.StoreTests
         => NullParamScenarioTest(FunctionStoreFactory.Create());
 
     [TestMethod]
-    public override Task LeaseIsUpdatedWhenAsExpected() 
-        => LeaseIsUpdatedWhenAsExpected(FunctionStoreFactory.Create());
-
-    [TestMethod]
-    public override Task LeaseIsNotUpdatedWhenNotAsExpected() 
-        => LeaseIsNotUpdatedWhenNotAsExpected(FunctionStoreFactory.Create());
-
-    [TestMethod]
     public override Task BecomeLeaderSucceedsWhenEpochIsAsExpected() 
         => BecomeLeaderSucceedsWhenEpochIsAsExpected(FunctionStoreFactory.Create());
 
@@ -54,12 +46,6 @@ public class StoreTests : ResilientFunctions.Tests.TestTemplates.StoreTests
     public override Task InitializeCanBeInvokedMultipleTimesSuccessfully()
         => InitializeCanBeInvokedMultipleTimesSuccessfully(FunctionStoreFactory.Create());
     
-    [TestMethod]
-    public override Task CreatedCrashedCheckFrequencyOfCreatedFunctionIsSameAsExecutingFunctionCrashCheckFrequency()
-        => CreatedCrashedCheckFrequencyOfCreatedFunctionIsSameAsExecutingFunctionCrashCheckFrequency(
-            FunctionStoreFactory.Create()
-        );
-
     [TestMethod]
     public override Task OnlyEligibleCrashedFunctionsAreReturnedFromStore()
         => OnlyEligibleCrashedFunctionsAreReturnedFromStore(FunctionStoreFactory.Create());
@@ -179,10 +165,6 @@ public class StoreTests : ResilientFunctions.Tests.TestTemplates.StoreTests
     [TestMethod]
     public override Task FlowWithWithoutParentIsReturnsNullParentInSubsequentGetTest()
         => FlowWithWithoutParentIsReturnsNullParentInSubsequentGetTest(FunctionStoreFactory.Create());
-
-    [TestMethod]
-    public override Task BatchOfLeasesCanBeUpdatedSimultaneously()
-        => BatchOfLeasesCanBeUpdatedSimultaneously(FunctionStoreFactory.Create());
     
     [TestMethod]
     public override Task MultipleFunctionsStatusCanBeFetched()

@@ -43,29 +43,13 @@ public class ControlPanelTests : TestTemplates.FunctionTests.ControlPanelTests
         => SucceedingExistingFunctionFromControlPanelSucceeds(Utils.CreateInMemoryFunctionStoreTask());
 
     [TestMethod]
-    public override Task ReInvokingExistingActionFromControlPanelSucceeds()
-        => ReInvokingExistingActionFromControlPanelSucceeds(Utils.CreateInMemoryFunctionStoreTask());
-
-    [TestMethod]
     public override Task ReInvokingExistingFunctionFromControlPanelSucceeds()
         => ReinvokingExistingFunctionFromControlPanelSucceeds(Utils.CreateInMemoryFunctionStoreTask());
 
     [TestMethod]
     public override Task ScheduleReInvokingExistingActionFromControlPanelSucceeds()
         => ScheduleReInvokingExistingActionFromControlPanelSucceeds(Utils.CreateInMemoryFunctionStoreTask());
-
-    [TestMethod]
-    public override Task ScheduleReInvokingExistingFunctionFromControlPanelSucceeds()
-        => ScheduleReInvokingExistingFunctionFromControlPanelSucceeds(Utils.CreateInMemoryFunctionStoreTask());
-
-    [TestMethod]
-    public override Task ScheduleReInvokingExistingActionFromControlPanelFailsWhenEpochIsNotAsExpected()
-        => ScheduleReInvokingExistingActionFromControlPanelFailsWhenEpochIsNotAsExpected(Utils.CreateInMemoryFunctionStoreTask());
-
-    [TestMethod]
-    public override Task ScheduleReInvokingExistingFunctionFromControlPanelFailsWhenEpochIsNotAsExpected()
-        => ScheduleReInvokingExistingFunctionFromControlPanelFailsWhenEpochIsNotAsExpected(Utils.CreateInMemoryFunctionStoreTask());
-
+    
     [TestMethod]
     public override Task WaitingForExistingFunctionFromControlPanelToCompleteSucceeds()
         => WaitingForExistingFunctionFromControlPanelToCompleteSucceeds(Utils.CreateInMemoryFunctionStoreTask());
@@ -73,14 +57,6 @@ public class ControlPanelTests : TestTemplates.FunctionTests.ControlPanelTests
     [TestMethod]
     public override Task WaitingForExistingActionFromControlPanelToCompleteSucceeds()
         => WaitingForExistingActionFromControlPanelToCompleteSucceeds(Utils.CreateInMemoryFunctionStoreTask());
-
-    [TestMethod]
-    public override Task LeaseIsUpdatedForExecutingFunc()
-        => LeaseIsUpdatedForExecutingFunc(Utils.CreateInMemoryFunctionStoreTask());
-    
-    [TestMethod]
-    public override Task LeaseIsUpdatedForExecutingAction()
-        => LeaseIsUpdatedForExecutingAction(Utils.CreateInMemoryFunctionStoreTask());
 
     [TestMethod]
     public override Task ReInvokeRFuncSucceedsAfterSuccessfullySavingParamAndState()
@@ -157,11 +133,7 @@ public class ControlPanelTests : TestTemplates.FunctionTests.ControlPanelTests
     [TestMethod]
     public override Task ExistingEffectCanBeSetToFailed()
         => ExistingEffectCanBeSetToFailed(Utils.CreateInMemoryFunctionStoreTask());
-
-    [TestMethod]
-    public override Task ExistingStateCanBeReplacedRemovedAndAdded()
-        => ExistingStateCanBeReplacedRemovedAndAdded(FunctionStoreFactory.Create());
-
+    
     [TestMethod]
     public override Task SaveChangesPersistsChangedResult()
         => SaveChangesPersistsChangedResult(Utils.CreateInMemoryFunctionStoreTask());

@@ -158,9 +158,9 @@ public class SqlGenerator(string tablePrefix)
     {
         _createFunctionSql ??= @$"
             INSERT IGNORE INTO {tablePrefix}
-                (type, instance, param_json, status, epoch, expires, timestamp, human_instance_id, parent, interrupted, owner)
+                (type, instance, param_json, status, expires, timestamp, human_instance_id, parent, interrupted, owner)
             VALUES
-                (?, ?, ?, ?, 0, ?, ?, ?, ?, 0, ?);";
+                (?, ?, ?, ?, ?, ?, ?, ?, 0, ?);";
         var status = postponeUntil == null ? Status.Executing : Status.Postponed;
 
         var sql = _createFunctionSql;
@@ -188,25 +188,24 @@ public class SqlGenerator(string tablePrefix)
         StoredId storedId, 
         byte[]? result, 
         long timestamp,
-        int expectedEpoch)
+        Guid expectedReplica)
     {
         _succeedFunctionSql ??= $@"
             UPDATE {tablePrefix}
-            SET status = {(int) Status.Succeeded}, result_json = ?, timestamp = ?, epoch = ?, owner = NULL
+            SET status = {(int) Status.Succeeded}, result_json = ?, timestamp = ?, owner = NULL
             WHERE 
                 type = ? AND 
                 instance = ? AND 
-                epoch = ?";
+                owner = ?";
 
         return StoreCommand.Create(
             _succeedFunctionSql,
             values: [
                 result ?? (object)DBNull.Value,
                 timestamp,
-                expectedEpoch,
                 storedId.Type.Value,
                 storedId.Instance.Value.ToString("N"),
-                expectedEpoch,
+                expectedReplica.ToString("N"),
             ]
         );
     }
@@ -217,15 +216,15 @@ public class SqlGenerator(string tablePrefix)
         long postponeUntil, 
         long timestamp,
         bool ignoreInterrupted,
-        int expectedEpoch)
+        ReplicaId expectedReplica)
     {
         _postponedFunctionSql ??= $@"
             UPDATE {tablePrefix}
-            SET status = {(int) Status.Postponed}, expires = ?, timestamp = ?, epoch = ?, owner = NULL
+            SET status = {(int) Status.Postponed}, expires = ?, timestamp = ?, owner = NULL
             WHERE 
                 type = ? AND 
                 instance = ? AND 
-                epoch = ? AND
+                owner = ? AND
                 interrupted = 0";
 
         var sql = _postponedFunctionSql;
@@ -237,10 +236,9 @@ public class SqlGenerator(string tablePrefix)
             values: [
                 postponeUntil,
                 timestamp,
-                expectedEpoch,
                 storedId.Type.Value,
                 storedId.Instance.Value.ToString("N"),
-                expectedEpoch,
+                expectedReplica.AsGuid.ToString("N"),
             ]
         );
     }
@@ -250,38 +248,37 @@ public class SqlGenerator(string tablePrefix)
         StoredId storedId, 
         StoredException storedException, 
         long timestamp,
-        int expectedEpoch)
+        ReplicaId expectedReplica)
     {
         _failFunctionSql ??= $@"
             UPDATE {tablePrefix}
-            SET status = {(int) Status.Failed}, exception_json = ?, timestamp = ?, epoch = ?, owner = NULL
+            SET status = {(int) Status.Failed}, exception_json = ?, timestamp = ?, owner = NULL
             WHERE 
                 type = ? AND 
                 instance = ? AND 
-                epoch = ?";
+                owner = ?";
 
         return StoreCommand.Create(
             _failFunctionSql,
             values: [
                 JsonSerializer.Serialize(storedException),
                 timestamp,
-                expectedEpoch,
                 storedId.Type.Value,
                 storedId.Instance.Value.ToString("N"),
-                expectedEpoch,
+                expectedReplica.AsGuid.ToString("N")
             ]
         );
     }
     
     private string? _suspendFunctionSql;
-    public StoreCommand SuspendFunction(StoredId storedId, long timestamp, int expectedEpoch)
+    public StoreCommand SuspendFunction(StoredId storedId, long timestamp, ReplicaId expectedReplica)
     {
         _suspendFunctionSql ??= $@"
             UPDATE {tablePrefix}
             SET status = {(int) Status.Suspended}, timestamp = ?, owner = NULL
             WHERE type = ? AND 
                   instance = ? AND 
-                  epoch = ? AND
+                  owner = ? AND
                   NOT interrupted";
 
         return StoreCommand.Create(
@@ -290,25 +287,24 @@ public class SqlGenerator(string tablePrefix)
                 timestamp,
                 storedId.Type.Value,
                 storedId.Instance.Value.ToString("N"),
-                expectedEpoch
+                expectedReplica.AsGuid.ToString("N")
             ]
         );
     }
     
     private string? _restartExecutionSql;
-    public StoreCommand RestartExecution(StoredId storedId, int expectedEpoch, long leaseExpiration, ReplicaId replicaId)
+    public StoreCommand RestartExecution(StoredId storedId, ReplicaId replicaId)
     {
         _restartExecutionSql ??= @$"
             UPDATE {tablePrefix}
-            SET epoch = epoch + 1, status = {(int)Status.Executing}, expires = ?, interrupted = FALSE, owner = ?
-            WHERE type = ? AND instance = ? AND epoch = ?;
+            SET status = {(int)Status.Executing}, expires = 0, interrupted = FALSE, owner = ?
+            WHERE type = ? AND instance = ? AND owner IS NULL;
             
             SELECT               
                 param_json,            
                 status,
                 result_json, 
                 exception_json,
-                epoch, 
                 expires,
                 interrupted,
                 timestamp,
@@ -321,11 +317,9 @@ public class SqlGenerator(string tablePrefix)
         var command = StoreCommand.Create(
             _restartExecutionSql,
             values: [
-                leaseExpiration,
                 replicaId.AsGuid.ToString("N"),
                 storedId.Type.Value,
                 storedId.Instance.Value.ToString("N"),
-                expectedEpoch,
                 storedId.Type.Value,
                 storedId.Instance.Value.ToString("N"),
             ]);

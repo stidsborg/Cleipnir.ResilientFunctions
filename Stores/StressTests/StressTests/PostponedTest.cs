@@ -35,14 +35,14 @@ public static class PostponedTest
                 postponeUntil: null,
                 timestamp: DateTime.UtcNow.Ticks,
                 parent: null,
-                owner: null
+                owner: ReplicaId.Empty
             );
             await store.PostponeFunction(
                 new StoredId(storedType, i.ToString().ToStoredInstance()),
                 postponeUntil: start.Ticks,
                 timestamp: DateTime.UtcNow.Ticks,
                 ignoreInterrupted: true,
-                expectedEpoch: 0,
+                expectedReplica: ReplicaId.Empty,
                 effects: null,
                 messages: null,
                 complimentaryState: new ComplimentaryState(() => storedParameter.ToUtf8Bytes(), LeaseLength: 0)

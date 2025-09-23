@@ -75,7 +75,6 @@ public class MariaDbFunctionStore : IFunctionStore
             CREATE TABLE IF NOT EXISTS {_tablePrefix} (
                 type INT NOT NULL,
                 instance CHAR(32) NOT NULL,
-                epoch INT NOT NULL,
                 status INT NOT NULL,
                 expires BIGINT NOT NULL,
                 interrupted BOOLEAN NOT NULL,                
@@ -172,7 +171,7 @@ public class MariaDbFunctionStore : IFunctionStore
     {
         var insertSql = @$"
             INSERT IGNORE INTO {_tablePrefix}
-              (type, instance, param_json, status, epoch, expires, timestamp, human_instance_id, parent)
+              (type, instance, param_json, status, expires, timestamp, human_instance_id, parent, owner)
             VALUES                      
                     ";
         
@@ -182,7 +181,7 @@ public class MariaDbFunctionStore : IFunctionStore
         var rows = new List<string>();
         foreach (var ((type, instance), humanInstanceId, param) in functionsWithParam)
         {
-            var row = $"({type.Value}, '{instance.Value:N}', {(param == null ? "NULL" : $"x'{Convert.ToHexString(param)}'")}, {(int) Status.Postponed}, 0, 0, {now}, '{humanInstanceId.EscapeString()}', {parentStr})"; 
+            var row = $"({type.Value}, '{instance.Value:N}', {(param == null ? "NULL" : $"x'{Convert.ToHexString(param)}'")}, {(int) Status.Postponed}, 0, {now}, '{humanInstanceId.EscapeString()}', {parentStr}, NULL)"; 
             rows.Add(row);
         }
         var rowsSql = string.Join(", " + Environment.NewLine, rows);
@@ -197,9 +196,9 @@ public class MariaDbFunctionStore : IFunctionStore
         cmd.ExecuteNonQuery();
     }
     
-    public async Task<StoredFlowWithEffectsAndMessages?> RestartExecution(StoredId storedId, int expectedEpoch, long leaseExpiration, ReplicaId replicaId)
+    public async Task<StoredFlowWithEffectsAndMessages?> RestartExecution(StoredId storedId, ReplicaId replicaId)
     {
-        var restartCommand = _sqlGenerator.RestartExecution(storedId, expectedEpoch, leaseExpiration, replicaId);
+        var restartCommand = _sqlGenerator.RestartExecution(storedId, replicaId);
         var effectsCommand = _sqlGenerator.GetEffects(storedId);
         var messagesCommand = _sqlGenerator.GetMessages(storedId, skip: 0);
         
@@ -213,7 +212,7 @@ public class MariaDbFunctionStore : IFunctionStore
             return null;
         
         var sf = await ReadToStoredFunction(storedId, reader);
-        if (sf?.Epoch != expectedEpoch + 1)
+        if (sf?.OwnerId != replicaId)
             return null;
         await reader.NextResultAsync();
         
@@ -224,31 +223,14 @@ public class MariaDbFunctionStore : IFunctionStore
         return new StoredFlowWithEffectsAndMessages(sf, effects, messages);
     }
     
-    public async Task<int> RenewLeases(IReadOnlyList<LeaseUpdate> leaseUpdates, long leaseExpiration)
-    {
-        await using var conn = await CreateOpenConnection(_connectionString);
-        
-        var predicates = leaseUpdates
-            .Select(u =>
-                $"(type = {u.StoredId.Type.Value} AND instance = '{u.StoredId.Instance.Value:N}' AND epoch = {u.ExpectedEpoch})"
-            ).StringJoin(" OR " + Environment.NewLine);
-        var sql = $@"
-            UPDATE {_tablePrefix}
-            SET expires = {leaseExpiration}
-            WHERE {predicates}";
-
-        await using var command = new MySqlCommand(sql, conn);
-        return await command.ExecuteNonQueryAsync();
-    }
-
     private string? _getExpiredFunctionsSql;
-    public async Task<IReadOnlyList<IdAndEpoch>> GetExpiredFunctions(long expiredBefore)
+    public async Task<IReadOnlyList<StoredId>> GetExpiredFunctions(long expiredBefore)
     {
         await using var conn = await CreateOpenConnection(_connectionString);
         _getExpiredFunctionsSql ??= @$"
-            SELECT type, instance, epoch
+            SELECT type, instance
             FROM {_tablePrefix}
-            WHERE expires <= ? AND (status = {(int) Status.Executing} OR status = {(int) Status.Postponed})";
+            WHERE expires <= ? AND status = {(int) Status.Postponed}";
         await using var command = new MySqlCommand(_getExpiredFunctionsSql, conn)
         {
             Parameters =
@@ -258,17 +240,16 @@ public class MariaDbFunctionStore : IFunctionStore
         };
         
         await using var reader = await command.ExecuteReaderAsync();
-        var functions = new List<IdAndEpoch>();
+        var ids = new List<StoredId>();
         while (await reader.ReadAsync())
         {
             var flowType = reader.GetInt32(0);
             var flowInstance = reader.GetString(1).ToGuid().ToStoredInstance();
             var flowId = new StoredId(new StoredType(flowType), flowInstance);
-            var epoch = reader.GetInt32(2);
-            functions.Add(new IdAndEpoch(flowId, epoch));
+            ids.Add(flowId);
         }
         
-        return functions;
+        return ids;
     }
 
     private string? _getSucceededFunctionsSql;
@@ -305,22 +286,24 @@ public class MariaDbFunctionStore : IFunctionStore
         byte[]? storedParameter, byte[]? storedResult, 
         StoredException? storedException, 
         long expires,
-        int expectedEpoch)
+        ReplicaId? expectedReplica)
     {
         await using var conn = await CreateOpenConnection(_connectionString);
-      
+
         _setFunctionStateSql ??= $@"
             UPDATE {_tablePrefix}
             SET status = ?, 
                 param_json = ?,  
                 result_json = ?,  
-                exception_json = ?, expires = ?,
-                epoch = epoch + 1
+                exception_json = ?, expires = ?
             WHERE 
                 type = ? AND 
-                instance = ? AND 
-                epoch = ?";
-        await using var command = new MySqlCommand(_setFunctionStateSql, conn)
+                instance = ?";
+        
+        var sql = expectedReplica == null
+             ? _setFunctionStateSql + " AND owner IS NULL" 
+             :  _setFunctionStateSql + $" AND owner = {expectedReplica}";
+        await using var command = new MySqlCommand(sql, conn)
         {
             Parameters =
             {
@@ -331,7 +314,6 @@ public class MariaDbFunctionStore : IFunctionStore
                 new() {Value = expires},
                 new() {Value = storedId.Type.Value},
                 new() {Value = storedId.Instance.Value.ToString("N")},
-                new() {Value = expectedEpoch},
             }
         };
 
@@ -343,14 +325,14 @@ public class MariaDbFunctionStore : IFunctionStore
         StoredId storedId, 
         byte[]? result, 
         long timestamp,
-        int expectedEpoch, 
+        ReplicaId expectedReplica, 
         IReadOnlyList<StoredEffect>? effects,
         IReadOnlyList<StoredMessage>? messages,
         ComplimentaryState complimentaryState)
     {
         await using var conn = await CreateOpenConnection(_connectionString);
         await using var command = _sqlGenerator
-            .SucceedFunction(storedId, result, timestamp, expectedEpoch)
+            .SucceedFunction(storedId, result, timestamp, expectedReplica.AsGuid)
             .ToSqlCommand(conn);
         
         var affectedRows = await command.ExecuteNonQueryAsync();
@@ -362,14 +344,14 @@ public class MariaDbFunctionStore : IFunctionStore
         long postponeUntil, 
         long timestamp,
         bool ignoreInterrupted,
-        int expectedEpoch, 
+        ReplicaId expectedReplica, 
         IReadOnlyList<StoredEffect>? effects,
         IReadOnlyList<StoredMessage>? messages,
         ComplimentaryState complimentaryState)
     {
         await using var conn = await CreateOpenConnection(_connectionString);
         await using var command = _sqlGenerator
-            .PostponeFunction(storedId, postponeUntil, timestamp, ignoreInterrupted, expectedEpoch)
+            .PostponeFunction(storedId, postponeUntil, timestamp, ignoreInterrupted, expectedReplica)
             .ToSqlCommand(conn);
         
         var affectedRows = await command.ExecuteNonQueryAsync();
@@ -380,14 +362,14 @@ public class MariaDbFunctionStore : IFunctionStore
         StoredId storedId, 
         StoredException storedException, 
         long timestamp,
-        int expectedEpoch, 
+        ReplicaId expectedReplica, 
         IReadOnlyList<StoredEffect>? effects,
         IReadOnlyList<StoredMessage>? messages,
         ComplimentaryState complimentaryState)
     {
         await using var conn = await CreateOpenConnection(_connectionString);
         await using var command = _sqlGenerator
-            .FailFunction(storedId, storedException, timestamp, expectedEpoch)
+            .FailFunction(storedId, storedException, timestamp, expectedReplica)
             .ToSqlCommand(conn);
         
         var affectedRows = await command.ExecuteNonQueryAsync();
@@ -397,14 +379,14 @@ public class MariaDbFunctionStore : IFunctionStore
     public async Task<bool> SuspendFunction(
         StoredId storedId, 
         long timestamp,
-        int expectedEpoch, 
+        ReplicaId expectedReplica, 
         IReadOnlyList<StoredEffect>? effects,
         IReadOnlyList<StoredMessage>? messages,
         ComplimentaryState complimentaryState)
     {
         await using var conn = await CreateOpenConnection(_connectionString);
         await using var command = _sqlGenerator
-            .SuspendFunction(storedId, timestamp, expectedEpoch)
+            .SuspendFunction(storedId, timestamp, expectedReplica)
             .ToSqlCommand(conn);
         
         var affectedRows = await command.ExecuteNonQueryAsync();
@@ -440,8 +422,7 @@ public class MariaDbFunctionStore : IFunctionStore
             SET 
                 status = {(int) Status.Postponed},
                 expires = 0,
-                owner = NULL,
-                epoch = epoch + 1
+                owner = NULL
             WHERE 
                 owner = ?";
         
@@ -505,29 +486,30 @@ public class MariaDbFunctionStore : IFunctionStore
     public async Task<bool> SetParameters(
         StoredId storedId,
         byte[]? storedParameter, byte[]? storedResult,
-        int expectedEpoch)
+        ReplicaId? expectedReplica)
     {
         await using var conn = await CreateOpenConnection(_connectionString);
-      
+
         _setParametersSql ??= $@"
             UPDATE {_tablePrefix}
             SET param_json = ?,  
-                result_json = ?,
-                epoch = epoch + 1
+                result_json = ?
             WHERE 
                 type = ? AND 
-                instance = ? AND 
-                epoch = ?";
+                instance = ?";
 
-        await using var command = new MySqlCommand(_setParametersSql, conn)
+        var sql = expectedReplica == null
+            ? _setParametersSql + " AND owner IS NULL"
+            : _setParametersSql + $" AND owner = '{expectedReplica.AsGuid:N}'";
+
+        await using var command = new MySqlCommand(sql, conn)
         {
             Parameters =
             {
                 new() { Value = storedParameter ?? (object) DBNull.Value },
                 new() { Value = storedResult ?? (object) DBNull.Value },
                 new() { Value = storedId.Type.Value },
-                new() { Value = storedId.Instance.Value.ToString("N") },
-                new() { Value = expectedEpoch },
+                new() { Value = storedId.Instance.Value.ToString("N") }
             }
         };
             
@@ -558,11 +540,11 @@ public class MariaDbFunctionStore : IFunctionStore
     }
 
     private string? _getFunctionStatusSql;
-    public async Task<StatusAndEpoch?> GetFunctionStatus(StoredId storedId)
+    public async Task<Status?> GetFunctionStatus(StoredId storedId)
     {
         await using var conn = await CreateOpenConnection(_connectionString);
         _getFunctionStatusSql ??= $@"
-            SELECT status, epoch
+            SELECT status
             FROM {_tablePrefix}
             WHERE type = ? AND instance = ?;";
         await using var command = new MySqlCommand(_getFunctionStatusSql, conn)
@@ -577,16 +559,13 @@ public class MariaDbFunctionStore : IFunctionStore
         
         while (await reader.ReadAsync())
         {
-            return new StatusAndEpoch(
-                Status: (Status) reader.GetInt32(0),
-                Epoch: reader.GetInt32(1)
-            );
+            return (Status) reader.GetInt32(0);
         }
 
         return null;
     }
 
-    public async Task<IReadOnlyList<StatusAndEpochWithId>> GetFunctionsStatus(IEnumerable<StoredId> storedIds)
+    public async Task<IReadOnlyList<StatusAndId>> GetFunctionsStatus(IEnumerable<StoredId> storedIds)
     {
         var predicates = storedIds
             .Select(s => new { Type = s.Type.Value, Instance = s.Instance.Value })
@@ -595,25 +574,24 @@ public class MariaDbFunctionStore : IFunctionStore
             .StringJoin(" OR " + Environment.NewLine);
 
         var sql = @$"
-            SELECT type, instance, status, epoch, expires
+            SELECT type, instance, status, expires
             FROM {_tablePrefix}
             WHERE {predicates}";
 
         await using var conn = await CreateOpenConnection(_connectionString);
         await using var command = new MySqlCommand(sql, conn);
         
-        var toReturn = new List<StatusAndEpochWithId>();
+        var toReturn = new List<StatusAndId>();
         await using var reader = await command.ExecuteReaderAsync();
         while (await reader.ReadAsync())
         {
             var type = reader.GetInt32(0).ToStoredType();
             var instance = reader.GetGuid(1).ToStoredInstance();
             var status = (Status) reader.GetInt32(2);
-            var epoch = reader.GetInt32(3);
-            var expires = reader.GetInt64(4);
+            var expires = reader.GetInt64(3);
 
             var storedId = new StoredId(type, instance);
-            toReturn.Add(new StatusAndEpochWithId(storedId, status, epoch, expires));
+            toReturn.Add(new StatusAndId(storedId, status, expires));
         }
 
         return toReturn;
@@ -629,7 +607,6 @@ public class MariaDbFunctionStore : IFunctionStore
                 status,
                 result_json,             
                 exception_json,               
-                epoch, 
                 expires,
                 interrupted,
                 timestamp,
@@ -711,13 +688,12 @@ public class MariaDbFunctionStore : IFunctionStore
         const int statusIndex = 1;
         const int resultIndex = 2;
         const int exceptionIndex = 3;
-        const int epochIndex = 4;
-        const int expiresIndex = 5;
-        const int interruptedIndex = 6;
-        const int timestampIndex = 7;
-        const int humanInstanceIdIndex = 8;
-        const int parentIndex = 9;
-        const int ownerIndex = 10;
+        const int expiresIndex = 4;
+        const int interruptedIndex = 5;
+        const int timestampIndex = 6;
+        const int humanInstanceIdIndex = 7;
+        const int parentIndex = 8;
+        const int ownerIndex = 9;
         
         while (await reader.ReadAsync())
         {
@@ -735,7 +711,7 @@ public class MariaDbFunctionStore : IFunctionStore
                 hasParam ? (byte[]) reader.GetValue(paramIndex) : null,
                 Status: (Status) reader.GetInt32(statusIndex),
                 Result: hasResult ? (byte[]) reader.GetValue(resultIndex) : null, 
-                storedException, Epoch: reader.GetInt32(epochIndex),
+                storedException, 
                 Expires: reader.GetInt64(expiresIndex),
                 Interrupted: reader.GetBoolean(interruptedIndex),
                 Timestamp: reader.GetInt64(timestampIndex),

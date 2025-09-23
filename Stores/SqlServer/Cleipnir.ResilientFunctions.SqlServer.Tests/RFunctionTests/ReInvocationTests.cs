@@ -10,9 +10,6 @@ public class ReInvocationTests : ResilientFunctions.Tests.TestTemplates.Function
     public override Task ActionReInvocationSunshineScenario()
         => ActionReInvocationSunshineScenario(FunctionStoreFactory.Create());
     [TestMethod]
-    public override Task ActionWithStateReInvocationSunshineScenario()
-        => ActionWithStateReInvocationSunshineScenario(FunctionStoreFactory.Create());
-    [TestMethod]
     public override Task UpdatedParameterIsPassedInOnReInvocationSunshineScenario()
         => UpdatedParameterIsPassedInOnReInvocationSunshineScenario(FunctionStoreFactory.Create());
     [TestMethod]
@@ -21,9 +18,6 @@ public class ReInvocationTests : ResilientFunctions.Tests.TestTemplates.Function
     [TestMethod]
     public override Task FuncReInvocationSunshineScenario()
         => FuncReInvocationSunshineScenario(FunctionStoreFactory.Create());
-    [TestMethod]
-    public override Task FuncWithStateReInvocationSunshineScenario()
-        => FuncWithStateReInvocationSunshineScenario(FunctionStoreFactory.Create());
     [TestMethod]
     public override Task ReInvocationFailsWhenTheFunctionDoesNotExist()
         => ReInvocationFailsWhenTheFunctionDoesNotExist(FunctionStoreFactory.Create());

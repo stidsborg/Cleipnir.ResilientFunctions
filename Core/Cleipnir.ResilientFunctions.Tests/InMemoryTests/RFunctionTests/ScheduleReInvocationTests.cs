@@ -12,14 +12,8 @@ public class ScheduleReInvocationTests : TestTemplates.FunctionTests.ScheduleReI
     public override Task ActionReInvocationSunshineScenario()
         => ActionReInvocationSunshineScenario(CreateInMemoryStore());
     [TestMethod]
-    public override Task ActionWithStateReInvocationSunshineScenario()
-        => ActionWithStateReInvocationSunshineScenario(CreateInMemoryStore());
-    [TestMethod]
     public override Task FuncReInvocationSunshineScenario()
         => FuncReInvocationSunshineScenario(CreateInMemoryStore());
-    [TestMethod]
-    public override Task FuncWithStateReInvocationSunshineScenario()
-        => FuncWithStateReInvocationSunshineScenario(CreateInMemoryStore());
 
     private Task<IFunctionStore> CreateInMemoryStore() 
         => FunctionStoreFactory.Create();

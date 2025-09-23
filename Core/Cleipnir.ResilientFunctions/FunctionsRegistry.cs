@@ -24,7 +24,6 @@ public class FunctionsRegistry : IDisposable
     private readonly SettingsWithDefaults _settings;
     
     private readonly CrashedOrPostponedWatchdog _crashedOrPostponedWatchdog;
-    private readonly LeasesUpdater _leasesUpdater;
     private readonly StoredTypes _storedTypes;
     
     public ClusterInfo ClusterInfo { get; }
@@ -40,8 +39,6 @@ public class FunctionsRegistry : IDisposable
         _shutdownCoordinator = new ShutdownCoordinator();
         _settings = SettingsWithDefaults.Default.Merge(settings);
         var utcNow = _settings.UtcNow;
-        _leasesUpdater = new LeasesUpdater(_settings.LeaseLength, _functionStore, _settings.UnhandledExceptionHandler, utcNow);
-        _ = _leasesUpdater.Start();
         
         ClusterInfo = new ClusterInfo(ReplicaId.NewId());
         
@@ -51,8 +48,7 @@ public class FunctionsRegistry : IDisposable
             _settings.UnhandledExceptionHandler,
             _settings.WatchdogCheckFrequency,
             _settings.DelayStartup,
-            ClusterInfo,
-            _leasesUpdater, 
+            ClusterInfo, 
             utcNow
         );
         
@@ -215,7 +211,6 @@ public class FunctionsRegistry : IDisposable
                 settingsWithDefaults,
                 _functionStore,
                 _shutdownCoordinator,
-                _leasesUpdater,
                 serializer,
                 _settings.UtcNow
             );
@@ -254,8 +249,7 @@ public class FunctionsRegistry : IDisposable
             var messageWriters = new MessageWriters(
                 storedType,
                 _functionStore,
-                serializer,
-                invoker.ScheduleRestart
+                serializer
             );
 
             var postman = new Postman(
@@ -274,7 +268,6 @@ public class FunctionsRegistry : IDisposable
                 bulkSchedule: async (instances, detach) => (await invocationHelper.BulkSchedule(instances.ToList(), detach)).ToScheduledWithResults(),
                 controlPanels,
                 messageWriters,
-                new StateFetcher(storedType, _functionStore.EffectsStore, serializer),
                 postman,
                 _settings.UtcNow
             );
@@ -312,7 +305,6 @@ public class FunctionsRegistry : IDisposable
                 settingsWithDefaults,
                 _functionStore,
                 _shutdownCoordinator,
-                _leasesUpdater,
                 serializer,
                 _settings.UtcNow
             );
@@ -351,8 +343,7 @@ public class FunctionsRegistry : IDisposable
             var messageWriters = new MessageWriters(
                 storedType,
                 _functionStore,
-                serializer,
-                invoker.ScheduleRestart
+                serializer
             );
 
             var postman = new Postman(
@@ -371,7 +362,6 @@ public class FunctionsRegistry : IDisposable
                 bulkSchedule: async (ids, detach) => (await invocationHelper.BulkSchedule(ids.Select(id => new BulkWork<Unit>(id.Value, Unit.Instance)).ToList(), detach)).ToScheduledWithoutResults(),
                 controlPanels,
                 messageWriters,
-                new StateFetcher(storedType, _functionStore.EffectsStore, serializer),
                 postman,
                 _settings.UtcNow
             );
@@ -409,7 +399,6 @@ public class FunctionsRegistry : IDisposable
                 settingsWithDefaults,
                 _functionStore,
                 _shutdownCoordinator,
-                _leasesUpdater,
                 serializer,
                 _settings.UtcNow
             );
@@ -448,8 +437,7 @@ public class FunctionsRegistry : IDisposable
             var messageWriters = new MessageWriters(
                 storedType,
                 _functionStore,
-                serializer,
-                rActionInvoker.ScheduleRestart
+                serializer
             );
             var postman = new Postman(
                 storedType,
@@ -467,7 +455,6 @@ public class FunctionsRegistry : IDisposable
                 bulkSchedule: async (instances, detach) => (await invocationHelper.BulkSchedule(instances.ToList(), detach)).ToScheduledWithoutResults(),
                 controlPanels,
                 messageWriters,
-                new StateFetcher(storedType, _functionStore.EffectsStore, serializer),
                 postman,
                 _settings.UtcNow
             );
@@ -489,16 +476,14 @@ public class FunctionsRegistry : IDisposable
             return shutdownTask;
 
         var tcs = new TaskCompletionSource();
-        shutdownTask.ContinueWith(_ =>
-        {
-            _replicaWatchdog.Dispose();
-            tcs.TrySetResult();
-        });
+        shutdownTask.ContinueWith(_ => tcs.TrySetResult());
             
         Task.Delay(maxWait.Value)
             .ContinueWith(_ =>
                 tcs.TrySetException(new TimeoutException("Shutdown did not complete within threshold"))
             );
+
+        tcs.Task.ContinueWith(_ => _replicaWatchdog.Dispose());
         
         return tcs.Task;
     }

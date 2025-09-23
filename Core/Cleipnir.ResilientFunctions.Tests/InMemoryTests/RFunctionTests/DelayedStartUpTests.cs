@@ -35,7 +35,7 @@ public class DelayedStartUpTests
             "humanInstanceId",
             "hello world".ToJson().ToUtf8Bytes(),
             leaseExpiration: DateTime.UtcNow.Ticks,
-            postponeUntil: null,
+            postponeUntil: 0,
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: null
@@ -59,7 +59,7 @@ public class DelayedStartUpTests
             "humanInstanceId",
             "hello world".ToJson().ToUtf8Bytes(),
             leaseExpiration: DateTime.UtcNow.Ticks,
-            postponeUntil: null,
+            postponeUntil: 0,
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: null
@@ -105,14 +105,14 @@ public class DelayedStartUpTests
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
-            owner: null
+            owner: ReplicaId.Empty
         );
         await store.PostponeFunction(
             registration.MapToStoredId(functionId.Instance),
             postponeUntil: 0,
             timestamp: DateTime.UtcNow.Ticks,
             ignoreInterrupted: true,
-            expectedEpoch: 0,
+            expectedReplica: ReplicaId.Empty,
             effects: null,
             messages: null,
             complimentaryState: new ComplimentaryState(storedParameter.ToUtf8Bytes().ToFunc(), LeaseLength: 0)
@@ -146,14 +146,14 @@ public class DelayedStartUpTests
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
-            owner: null
+            owner: ReplicaId.Empty
         );
         await store.PostponeFunction(
             registration.MapToStoredId(functionId.Instance),
             postponeUntil: 0,
             timestamp: DateTime.UtcNow.Ticks,
             ignoreInterrupted: true,
-            expectedEpoch: 0,
+            expectedReplica: ReplicaId.Empty,
             effects: null,
             messages: null,
             new ComplimentaryState(storedParameter.ToFunc(), LeaseLength: 0)

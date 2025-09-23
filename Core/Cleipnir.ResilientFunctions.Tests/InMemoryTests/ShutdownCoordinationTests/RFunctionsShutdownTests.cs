@@ -120,7 +120,7 @@ public class RFunctionsShutdownTests
             "humanInstanceId",
             param: "".ToJson().ToUtf8Bytes(),
             leaseExpiration: DateTime.UtcNow.Ticks,
-            postponeUntil: null,
+            postponeUntil: 0,
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: null
@@ -176,7 +176,7 @@ public class RFunctionsShutdownTests
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
-            owner: null
+            owner: Guid.Empty.ToReplicaId()
         ).ShouldBeTrueAsync();
 
         await store.PostponeFunction(
@@ -184,7 +184,7 @@ public class RFunctionsShutdownTests
             postponeUntil: DateTime.UtcNow.AddDays(-1).Ticks,
             timestamp: DateTime.UtcNow.Ticks,
             ignoreInterrupted: true,
-            expectedEpoch: 0,
+            Guid.Empty.ToReplicaId(),
             effects: null,
             messages: null,
             new ComplimentaryState(() => storedParameter.ToUtf8Bytes(), LeaseLength: 0)

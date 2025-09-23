@@ -303,7 +303,6 @@ public abstract class ReplicaWatchdogTests
         await watchdog1.PerformIteration(utcNowTicks: 3);
 
         var sf = await functionStore.GetFunction(storedId).ShouldNotBeNullAsync();
-        sf.Epoch.ShouldBe(1);
         sf.Status.ShouldBe(Status.Postponed);
         sf.Expires.ShouldBe(0);
         sf.OwnerId.ShouldBeNull();
@@ -326,7 +325,6 @@ public abstract class ReplicaWatchdogTests
         storedReplicas.Count.ShouldBe(1);
         storedReplicas.Single().ReplicaId.ShouldBe(replicaId);
         storedReplicas.Single().LatestHeartbeat.ShouldBeGreaterThan(1);
-
     }
     
     public abstract Task WorkIsDividedBetweenReplicas();
@@ -358,6 +356,44 @@ public abstract class ReplicaWatchdogTests
         owned.Any().ShouldBeTrue();
         
         return Task.CompletedTask;
+    }
+    
+    public abstract Task ReplicaCrashedFunctionIsTakenOverByOtherReplica();
+    public async Task ReplicaCrashedFunctionIsTakenOverByOtherReplica(Task<IFunctionStore> storeTask)
+    {
+        var functionStore = await WithRandomPrefix(storeTask);
+        var flowId = TestFlowId.Create();
+        var (flowType, flowInstance) = flowId;
+
+        var settings = new Settings(leaseLength: TimeSpan.FromMilliseconds(250));
+        using var crashingRegistry = new FunctionsRegistry(functionStore, settings);
+        using var overtakingRegistry = new FunctionsRegistry(functionStore, settings);
+
+        var insideTest1 = new SyncedFlag();
+        var insideTest2 = new SyncedFlag();
+        var testCompletedFlag = new SyncedFlag();
+        
+        var testRegistration1 = crashingRegistry.RegisterParamless(flowType, async workflow =>
+        {
+            insideTest1.Raise();
+            await testCompletedFlag.WaitForRaised();
+        });
+        
+        var testRegistration2 = overtakingRegistry.RegisterParamless(flowType, async workflow =>
+        {
+            insideTest2.Raise();
+            await testCompletedFlag.WaitForRaised();
+        });
+
+        await testRegistration1.Schedule(flowInstance);
+        await insideTest1.WaitForRaised();
+        await Safe.Try(() => crashingRegistry.ShutdownGracefully(maxWait: TimeSpan.Zero));
+        
+        await insideTest2.WaitForRaised();  
+        testCompletedFlag.Raise();
+
+        var sf = await functionStore.GetFunction(flowId.ToStoredId(testRegistration2.StoredType)).ShouldNotBeNullAsync();
+        sf.OwnerId.ShouldBe(overtakingRegistry.ClusterInfo.ReplicaId);
     }
 
     private async Task<IFunctionStore> WithRandomPrefix(Task<IFunctionStore> storeTask)

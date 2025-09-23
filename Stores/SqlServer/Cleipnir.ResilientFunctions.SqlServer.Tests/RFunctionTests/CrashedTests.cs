@@ -11,14 +11,6 @@ public class CrashedTests : ResilientFunctions.Tests.TestTemplates.FunctionTests
         => NonCompletedFuncIsCompletedByWatchDog(FunctionStoreFactory.Create());
 
     [TestMethod]
-    public override Task NonCompletedFuncWithStateIsCompletedByWatchDog()
-        => NonCompletedFuncWithStateIsCompletedByWatchDog(FunctionStoreFactory.Create());
-
-    [TestMethod]
     public override Task NonCompletedActionIsCompletedByWatchDog()
         => NonCompletedActionIsCompletedByWatchDog(FunctionStoreFactory.Create());
-
-    [TestMethod]
-    public override Task NonCompletedActionWithStateIsCompletedByWatchDog()
-        => NonCompletedActionWithStateIsCompletedByWatchDog(FunctionStoreFactory.Create());
 }

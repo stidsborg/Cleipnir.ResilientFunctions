@@ -66,88 +66,6 @@ public abstract class PostponedTests
         }
     }
     
-    public abstract Task PostponedFuncWithStateIsCompletedByWatchDog();
-    protected async Task PostponedFuncWithStateIsCompletedByWatchDog(Task<IFunctionStore> storeTask)
-    {
-        var store = await storeTask;
-        var flowType = nameof(PostponedFuncWithStateIsCompletedByWatchDog).ToFlowType();
-        var unhandledExceptionHandler = new UnhandledExceptionCatcher();
-        const string param = "test";
-        {
-            using var functionsRegistry = new FunctionsRegistry
-                (
-                    store,
-                    new Settings(
-                        unhandledExceptionHandler.Catch,
-                        enableWatchdogs: false
-                    )
-                );
-            var rFunc = functionsRegistry
-                .RegisterFunc<string, string>(
-                    flowType,
-                    inner: async Task<string> (_, workflow) =>
-                    {
-                        await workflow.Delay(TimeSpan.FromSeconds(1));
-                        return "OK";
-                    }).Invoke;
-
-            await Should.ThrowAsync<InvocationPostponedException>(() => rFunc(param, param));
-            unhandledExceptionHandler.ShouldNotHaveExceptions();
-        }
-        {
-            using var functionsRegistry = new FunctionsRegistry(
-                store,
-                new Settings(
-                    unhandledExceptionHandler.Catch,
-                    watchdogCheckFrequency: TimeSpan.FromMilliseconds(1000)
-                )
-            );
-
-            var rFunc = functionsRegistry
-                .RegisterFunc(
-                    flowType,
-                    async (string s, Workflow workflow) =>
-                    {
-                        var state = await workflow.States.CreateOrGet<State>("State");
-                        state.Value = 1;
-                        await state.Save();
-                        return s.ToUpper();
-                    }
-                );
-
-            var functionId = new FlowId(flowType, param.ToFlowInstance());
-
-            try
-            {
-                await BusyWait.Until(
-                    async () => (await store.GetFunction(rFunc.MapToStoredId(functionId.Instance)))!.Status == Status.Succeeded,
-                    maxWait: TimeSpan.FromSeconds(10)
-                );
-            }
-            catch (TimeoutException)
-            {
-                unhandledExceptionHandler.ShouldNotHaveExceptions();
-                var sf = await store.GetFunction(rFunc.MapToStoredId(functionId.Instance)); 
-                throw new TimeoutException(
-                    "Timeout when waiting for function completion - has status: " 
-                    + sf!.Status +
-                    " and expires: " + sf.Expires + 
-                    " ticks now is: " + DateTime.UtcNow.Ticks
-                );
-            }
-            
-            var storedFunction = await store.GetFunction(rFunc.MapToStoredId(functionId.Instance));
-            storedFunction.ShouldNotBeNull();
-
-            var states = await store.EffectsStore.GetEffectResults(rFunc.MapToStoredId(functionId.Instance));
-            var state = states.Single(e => e.EffectId == "State".ToEffectId(EffectType.State));
-            state.Result!.ToStringFromUtf8Bytes().DeserializeFromJsonTo<State>().Value.ShouldBe(1);
-            
-            await rFunc.Invoke(param, param).ShouldBeAsync("TEST");
-            unhandledExceptionHandler.ShouldNotHaveExceptions();
-        }
-    }
-    
     public abstract Task PostponedActionIsCompletedByWatchDog();
     protected async Task PostponedActionIsCompletedByWatchDog(Task<IFunctionStore> storeTask)
     {
@@ -190,66 +108,6 @@ public abstract class PostponedTests
                 );
             
             await BusyWait.Until(async () => (await store.GetFunction(rFunc.MapToStoredId(functionId.Instance)))!.Status == Status.Succeeded);
-            await rFunc.Invoke(flowInstance.Value, param);
-            unhandledExceptionHandler.ShouldNotHaveExceptions();
-        }
-    }
-    
-    public abstract Task PostponedActionWithStateIsCompletedByWatchDog();
-    protected async Task PostponedActionWithStateIsCompletedByWatchDog(Task<IFunctionStore> storeTask)
-    {
-        var store = await storeTask;
-        var functionId = TestFlowId.Create();
-        var (flowType, flowInstance) = functionId;
-        var unhandledExceptionHandler = new UnhandledExceptionCatcher();
-        const string param = "test";
-        {
-            using var functionsRegistry = new FunctionsRegistry
-            (
-                store,
-                new Settings(
-                    unhandledExceptionHandler.Catch,
-                    enableWatchdogs: false
-                )
-            );
-            var rAction = functionsRegistry.RegisterAction(
-                flowType,
-                Task<Result<Unit>> (string _, Workflow _) => Postpone.Until(DateTime.UtcNow.AddMilliseconds(1_000)).ToUnitResult.ToTask()
-            ).Invoke;
-
-            await Should.ThrowAsync<InvocationPostponedException>(() => 
-                rAction(flowInstance.Value, param)
-            );
-            unhandledExceptionHandler.ShouldNotHaveExceptions();
-        }
-        {
-            using var functionsRegistry = new FunctionsRegistry(
-                store,
-                new Settings(
-                    unhandledExceptionHandler.Catch,
-                    watchdogCheckFrequency: TimeSpan.FromMilliseconds(1_000)
-                )
-            );
-            
-            var rFunc = functionsRegistry
-                .RegisterAction(
-                    flowType,
-                    async (string _, Workflow workflow) =>
-                    {
-                        var state = await workflow.States.CreateOrGet<State>("State");
-                        state.Value = 1;
-                        await state.Save();
-                    }
-                );
-            
-            await BusyWait.Until(async () => (await store.GetFunction(rFunc.MapToStoredId(functionId.Instance)))!.Status == Status.Succeeded);
-            var storedFunction = await store.GetFunction(rFunc.MapToStoredId(functionId.Instance));
-            storedFunction.ShouldNotBeNull();
-
-            var states = await store.EffectsStore.GetEffectResults(rFunc.MapToStoredId(functionId.Instance));
-            var state = states.Single(e => e.EffectId == "State".ToEffectId(EffectType.State));
-            state.Result!.ToStringFromUtf8Bytes().DeserializeFromJsonTo<State>().Value.ShouldBe(1);
-
             await rFunc.Invoke(flowInstance.Value, param);
             unhandledExceptionHandler.ShouldNotHaveExceptions();
         }
@@ -694,7 +552,7 @@ public abstract class PostponedTests
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
-            owner: null
+            owner: ReplicaId.Empty
         ).ShouldBeTrueAsync();
 
         await store.PostponeFunction(
@@ -702,7 +560,7 @@ public abstract class PostponedTests
             postponeUntil: DateTime.UtcNow.AddDays(-1).Ticks,
             timestamp: DateTime.UtcNow.Ticks,
             ignoreInterrupted: false,
-            expectedEpoch: 0,
+            expectedReplica: ReplicaId.Empty,
             effects: null,
             messages: null,
             complimentaryState: new ComplimentaryState(storedParameter.ToUtf8Bytes().ToFunc(), LeaseLength: 0)
@@ -732,11 +590,6 @@ public abstract class PostponedTests
         unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
     
-    private class State : FlowState
-    {
-        public int Value { get; set; }
-    }
-    
     public abstract Task ScheduleAtActionIsCompletedAfterDelay();
     protected async Task ScheduleAtActionIsCompletedAfterDelay(Task<IFunctionStore> storeTask)
     {
@@ -748,10 +601,7 @@ public abstract class PostponedTests
         using var functionsRegistry = new FunctionsRegistry
         (
             store,
-            new Settings(
-                unhandledExceptionHandler.Catch,
-                watchdogCheckFrequency: TimeSpan.FromSeconds(1)
-            )
+            new Settings(unhandledExceptionHandler.Catch)
         );
         var rAction = functionsRegistry
             .RegisterAction(

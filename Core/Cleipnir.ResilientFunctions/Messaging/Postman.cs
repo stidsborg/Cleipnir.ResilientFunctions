@@ -6,7 +6,7 @@ namespace Cleipnir.ResilientFunctions.Messaging;
 
 public class Postman(StoredType storedType, ICorrelationStore correlationStore, MessageWriters messageWriters)
 {
-    public Task<Finding> SendMessage<TMessage>(
+    public Task SendMessage<TMessage>(
         StoredInstance instance, 
         TMessage message, 
         string? idempotencyKey = null

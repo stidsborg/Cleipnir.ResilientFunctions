@@ -32,7 +32,7 @@ public abstract class InitialInvocationFailedTests
             "humanInstanceId",
             param: "hello world".ToJson().ToUtf8Bytes(),
             leaseExpiration: DateTime.UtcNow.Ticks,
-            postponeUntil: null,
+            postponeUntil: 0,
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: null
@@ -66,7 +66,7 @@ public abstract class InitialInvocationFailedTests
             "humanInstanceId",
             param: "hello world".ToJson().ToUtf8Bytes(),
             leaseExpiration: DateTime.UtcNow.Ticks,
-            postponeUntil: null,
+            postponeUntil: 0,
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: null
@@ -100,7 +100,7 @@ public abstract class InitialInvocationFailedTests
             "humanInstanceId",
             param: "hello world".ToJson().ToUtf8Bytes(),
             leaseExpiration: DateTime.UtcNow.Ticks,
-            postponeUntil: null,
+            postponeUntil: 0,
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: null
@@ -137,7 +137,7 @@ public abstract class InitialInvocationFailedTests
             "humanInstanceId",
             param: "hello world".ToJson().ToUtf8Bytes(),
             leaseExpiration: DateTime.UtcNow.Ticks,
-            postponeUntil: null,
+            postponeUntil: 0,
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: null

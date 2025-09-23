@@ -22,23 +22,18 @@ public static class TickExample
             flowType: "Tick",
             inner: async (string param, Workflow workflow) =>
             {
-                var state = await workflow.States.CreateOrGetDefault<State>();
+                var i = await workflow.Effect.CreateOrGet("i", 0);
                 
                 while (true)
                 {
                     await Task.Delay(1_000);
-                    Console.WriteLine($"[{param}]: #{state.I} ticked...");
-                    state.I++;
-                    await state.Save();
+                    Console.WriteLine($"[{param}]: #{i} ticked...");
+                    i++;
+                    await workflow.Effect.Upsert("i", i);
                 }
             }
         );
 
         await registration.Invoke(flowInstance: "TICKER1", param: "TICKER1");
-    }
-    
-    private class State : FlowState
-    {
-        public int I { get; set; }
     }
 }

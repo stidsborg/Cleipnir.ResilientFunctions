@@ -40,11 +40,7 @@ public class ControlPanelTests : ResilientFunctions.Tests.TestTemplates.Function
     [TestMethod]
     public override Task SucceedingExistingFunctionFromControlPanelSucceeds()
         => SucceedingExistingFunctionFromControlPanelSucceeds(FunctionStoreFactory.Create());
-
-    [TestMethod]
-    public override Task ReInvokingExistingActionFromControlPanelSucceeds()
-        => ReInvokingExistingActionFromControlPanelSucceeds(FunctionStoreFactory.Create());
-
+    
     [TestMethod]
     public override Task ReInvokingExistingFunctionFromControlPanelSucceeds()
         => ReinvokingExistingFunctionFromControlPanelSucceeds(FunctionStoreFactory.Create());
@@ -54,32 +50,12 @@ public class ControlPanelTests : ResilientFunctions.Tests.TestTemplates.Function
         => ScheduleReInvokingExistingActionFromControlPanelSucceeds(FunctionStoreFactory.Create());
 
     [TestMethod]
-    public override Task ScheduleReInvokingExistingFunctionFromControlPanelSucceeds()
-        => ScheduleReInvokingExistingFunctionFromControlPanelSucceeds(FunctionStoreFactory.Create());
-
-    [TestMethod]
-    public override Task ScheduleReInvokingExistingActionFromControlPanelFailsWhenEpochIsNotAsExpected()
-        => ScheduleReInvokingExistingActionFromControlPanelFailsWhenEpochIsNotAsExpected(FunctionStoreFactory.Create());
-
-    [TestMethod]
-    public override Task ScheduleReInvokingExistingFunctionFromControlPanelFailsWhenEpochIsNotAsExpected()
-        => ScheduleReInvokingExistingFunctionFromControlPanelFailsWhenEpochIsNotAsExpected(FunctionStoreFactory.Create());
-
-    [TestMethod]
     public override Task WaitingForExistingFunctionFromControlPanelToCompleteSucceeds()
         => WaitingForExistingFunctionFromControlPanelToCompleteSucceeds(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task WaitingForExistingActionFromControlPanelToCompleteSucceeds()
         => WaitingForExistingActionFromControlPanelToCompleteSucceeds(FunctionStoreFactory.Create());
-
-    [TestMethod]
-    public override Task LeaseIsUpdatedForExecutingFunc()
-        => LeaseIsUpdatedForExecutingFunc(FunctionStoreFactory.Create());
-    
-    [TestMethod]
-    public override Task LeaseIsUpdatedForExecutingAction()
-        => LeaseIsUpdatedForExecutingAction(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task ReInvokeRFuncSucceedsAfterSuccessfullySavingParamAndState()
@@ -148,10 +124,6 @@ public class ControlPanelTests : ResilientFunctions.Tests.TestTemplates.Function
     [TestMethod]
     public override Task ExistingEffectCanBeSetToFailed()
         => ExistingEffectCanBeSetToFailed(FunctionStoreFactory.Create());
-
-    [TestMethod]
-    public override Task ExistingStateCanBeReplacedRemovedAndAdded()
-        => ExistingStateCanBeReplacedRemovedAndAdded(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task SaveChangesPersistsChangedResult()

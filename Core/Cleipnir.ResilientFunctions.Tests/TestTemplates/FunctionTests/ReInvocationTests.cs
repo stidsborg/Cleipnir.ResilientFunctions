@@ -57,63 +57,6 @@ public abstract class ReInvocationTests
         
         unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
-
-    public abstract Task ActionWithStateReInvocationSunshineScenario();
-    protected async Task ActionWithStateReInvocationSunshineScenario(Task<IFunctionStore> storeTask)
-    {
-        var store = await storeTask;
-        var functionId = TestFlowId.Create();
-        var (flowType, flowInstance) = functionId;
-        var flag = new SyncedFlag();
-        var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var functionsRegistry = new FunctionsRegistry(
-            store,
-            new Settings(
-                unhandledExceptionCatcher.Catch,
-                leaseLength: TimeSpan.Zero,
-                enableWatchdogs: false
-            )
-        );
-
-        var rAction = functionsRegistry.RegisterAction<string>(
-            flowType,
-            async (param, workflow) =>
-            {
-                var state = await workflow.States.CreateOrGet<ListState<string>>("State");
-                if (flag.Position == FlagPosition.Lowered)
-                {
-                    state.List.Add("hello");
-                    await state.Save();
-                    flag.Raise();
-                    throw new Exception("oh no");
-                }
-                state.List.Add("world");
-                await state.Save();
-            }
-        );
-
-        await Should.ThrowAsync<Exception>(() =>
-            rAction.Invoke(flowInstance.Value, "something")
-        );
-
-        var syncedListFromState = new Synced<List<string>>();
-        var controlPanel = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
-            
-        syncedListFromState.Value = new List<string>((await controlPanel.States.Get<ListState<string>>("State")).List);
-        await controlPanel.States.Set("State", new ListState<string>());
-        await controlPanel.SaveChanges();
-        
-        controlPanel = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
-        await controlPanel.Restart();
-        var function = await store.GetFunction(rAction.MapToStoredId(functionId.Instance));
-        function.ShouldNotBeNull();
-        function.Status.ShouldBe(Status.Succeeded);
-        await controlPanel.Refresh();
-        var state = await controlPanel.States.Get<ListState<string>>("State");
-        state.List.Single().ShouldBe("world");
-        
-        unhandledExceptionCatcher.ShouldNotHaveExceptions();
-    }
     
     public abstract Task UpdatedParameterIsPassedInOnReInvocationSunshineScenario();
     protected async Task UpdatedParameterIsPassedInOnReInvocationSunshineScenario(Task<IFunctionStore> storeTask)
@@ -255,63 +198,6 @@ public abstract class ReInvocationTests
         function.Status.ShouldBe(Status.Succeeded);
         function.Result!.ToStringFromUtf8Bytes().DeserializeFromJsonTo<string>().ShouldBe("something");
         
-        unhandledExceptionCatcher.ShouldNotHaveExceptions();
-    }
-
-    public abstract Task FuncWithStateReInvocationSunshineScenario();
-    protected async Task FuncWithStateReInvocationSunshineScenario(Task<IFunctionStore> storeTask)
-    {
-        var store = await storeTask;
-        var functionId = TestFlowId.Create();
-        var (flowType, flowInstance) = functionId;
-        var flag = new SyncedFlag();
-        var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var functionsRegistry = new FunctionsRegistry(
-            store,
-            new Settings(
-                unhandledExceptionCatcher.Catch,
-                leaseLength: TimeSpan.Zero,
-                enableWatchdogs: false
-            )
-        );
-        
-        var rFunc = functionsRegistry.RegisterFunc<string, string>(
-            flowType,
-            async (param, workflow) =>
-            {
-                var state = await workflow.States.CreateOrGet<ListState<string>>("State");
-                if (flag.Position == FlagPosition.Lowered)
-                {
-                    state.List.Add("hello");
-                    await state.Save();
-                    flag.Raise();
-                    throw new Exception("oh no");
-                }
-
-                state.List.Add("world");
-                await state.Save();
-                return param;
-            }
-        );
-
-        await Should.ThrowAsync<Exception>(() => rFunc.Invoke(flowInstance.Value, "something"));
-
-        var controlPanel = await rFunc.ControlPanel(flowInstance).ShouldNotBeNullAsync();
-        await controlPanel.States.Remove("State");
-        await controlPanel.SaveChanges();
-        
-        controlPanel = await rFunc.ControlPanel(flowInstance).ShouldNotBeNullAsync();
-        var result = await controlPanel.Restart(); 
-        result.ShouldBe("something");
-
-        var function = await store.GetFunction(rFunc.MapToStoredId(functionId.Instance));
-        function.ShouldNotBeNull();
-        function.Status.ShouldBe(Status.Succeeded);
-        function.Result!.ToStringFromUtf8Bytes().DeserializeFromJsonTo<string>().ShouldBe("something");
-        await controlPanel.Refresh();
-        var state = await controlPanel.States.Get<ListState<string>>("State");
-        state!.List.Single().ShouldBe("world");
-
         unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
 

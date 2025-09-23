@@ -65,7 +65,6 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
                 HumanInstanceId = humanInstanceId.Value,
                 Param = param,
                 Status = postponeUntil == null ? Status.Executing : Status.Postponed,
-                Epoch = 0,
                 Exception = null,
                 Result = null,
                 Expires = postponeUntil ?? leaseExpiration,
@@ -99,7 +98,6 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
                     {
                         StoredId = functionId,
                         HumanInstanceId = humanInstanceId,
-                        Epoch = 0,
                         Exception = null,
                         Expires = 0,
                         Param = param,
@@ -113,7 +111,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         return Task.CompletedTask;
     }
 
-    public virtual async Task<StoredFlowWithEffectsAndMessages?> RestartExecution(StoredId storedId, int expectedEpoch, long leaseExpiration, ReplicaId owner)
+    public virtual async Task<StoredFlowWithEffectsAndMessages?> RestartExecution(StoredId storedId, ReplicaId owner)
     {
         lock (_sync)
         {
@@ -121,12 +119,11 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
                 return null;
 
             var state = _states[storedId];
-            if (state.Epoch != expectedEpoch)
+            if (state.Owner != null)
                 return null;
-
-            state.Epoch += 1;
+            
             state.Status = Status.Executing;
-            state.Expires = leaseExpiration;
+            state.Expires = 0;
             state.Interrupted = false;
             state.Owner = owner;
         }
@@ -142,46 +139,17 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
                     messages
                 );
     }
-
-    public virtual Task<bool> RenewLease(StoredId storedId, int expectedEpoch, long leaseExpiration)
-    {
-        lock (_sync)
-        {
-            if (!_states.ContainsKey(storedId))
-                return false.ToTask();
-
-            var state = _states[storedId];
-            if (state.Epoch != expectedEpoch)
-                return false.ToTask();
-
-            state.Expires = leaseExpiration;
-            return true.ToTask();
-        }
-    }
     
-    public async Task<int> RenewLeases(IReadOnlyList<LeaseUpdate> leaseUpdates, long leaseExpiration)
-    {
-        var affected = 0;
-        foreach (var (id, expectedEpoch) in leaseUpdates)
-        {
-            var success = await RenewLease(id, expectedEpoch, leaseExpiration);
-            if (success)
-                affected++;
-        }
-
-        return affected;
-    }
-
-    public virtual Task<IReadOnlyList<IdAndEpoch>> GetExpiredFunctions(long expiresBefore)
+    public virtual Task<IReadOnlyList<StoredId>> GetExpiredFunctions(long expiresBefore)
     {
         lock (_sync)
             return _states
                 .Values
-                .Where(s => s.Status == Status.Executing || s.Status == Status.Postponed)
+                .Where(s => s.Status == Status.Postponed)
                 .Where(s => s.Expires <= expiresBefore)
-                .Select(s => new IdAndEpoch(s.StoredId, s.Epoch))
+                .Select(s => s.StoredId)
                 .ToList()
-                .CastTo<IReadOnlyList<IdAndEpoch>>()
+                .CastTo<IReadOnlyList<StoredId>>()
                 .ToTask();
     }
 
@@ -204,7 +172,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         byte[]? result,
         StoredException? storedException,
         long expires,
-        int expectedEpoch)
+        ReplicaId? expectedReplica)
     {
         lock (_sync)
         {
@@ -212,7 +180,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
                 return false.ToTask();
 
             var state = _states[storedId];
-            if (state.Epoch != expectedEpoch)
+            if (state.Owner != expectedReplica)
                 return false.ToTask();
 
             state.Status = status;
@@ -220,8 +188,6 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
             state.Result = result;
             state.Exception = storedException;
             state.Expires = expires;
-
-            state.Epoch += 1;
 
             return true.ToTask();
         }
@@ -231,7 +197,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         StoredId storedId, 
         byte[]? result, 
         long timestamp,
-        int expectedEpoch, 
+        ReplicaId? expectedReplica,
         IReadOnlyList<StoredEffect>? effects,
         IReadOnlyList<StoredMessage>? messages,
         ComplimentaryState complimentaryState)
@@ -241,7 +207,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
             if (!_states.ContainsKey(storedId)) return false.ToTask();
 
             var state = _states[storedId];
-            if (state.Epoch != expectedEpoch) return false.ToTask();
+            if (state.Owner != expectedReplica) return false.ToTask();
 
             state.Status = Status.Succeeded;
             state.Result = result;
@@ -257,7 +223,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         long postponeUntil, 
         long timestamp,
         bool ignoreInterrupted,
-        int expectedEpoch, 
+        ReplicaId? expectedReplica,
         IReadOnlyList<StoredEffect>? effects,
         IReadOnlyList<StoredMessage>? messages,
         ComplimentaryState complimentaryState)
@@ -267,7 +233,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
             if (!_states.ContainsKey(storedId)) return false.ToTask();
 
             var state = _states[storedId];
-            if (state.Epoch != expectedEpoch) return false.ToTask();
+            if (state.Owner != expectedReplica) return false.ToTask();
 
             if (!ignoreInterrupted && state.Interrupted)
                 return false.ToTask();
@@ -285,7 +251,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         StoredId storedId, 
         StoredException storedException, 
         long timestamp,
-        int expectedEpoch, 
+        ReplicaId? expectedReplica,
         IReadOnlyList<StoredEffect>? effects,
         IReadOnlyList<StoredMessage>? messages,
         ComplimentaryState complimentaryState)
@@ -295,7 +261,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
             if (!_states.ContainsKey(storedId)) return false.ToTask();
 
             var state = _states[storedId];
-            if (state.Epoch != expectedEpoch) return false.ToTask();
+            if (state.Owner != expectedReplica) return false.ToTask();
 
             state.Status = Status.Failed;
             state.Exception = storedException;
@@ -309,7 +275,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
     public Task<bool> SuspendFunction(
         StoredId storedId, 
         long timestamp,
-        int expectedEpoch, 
+        ReplicaId? expectedReplica,
         IReadOnlyList<StoredEffect>? effects,
         IReadOnlyList<StoredMessage>? messages,
         ComplimentaryState complimentaryState)
@@ -320,7 +286,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
                 return false.ToTask();
 
             var state = _states[storedId];
-            if (state.Epoch != expectedEpoch)
+            if (state.Owner != expectedReplica)
                 return false.ToTask();
 
             if (state.Interrupted)
@@ -354,7 +320,6 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
                 state.Owner = null;
                 state.Status = Status.Postponed;
                 state.Expires = 0;
-                state.Epoch += 1;
             }
         
         return Task.CompletedTask;
@@ -364,18 +329,16 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         StoredId storedId, 
         byte[]? param, 
         byte[]? result, 
-        int expectedEpoch)
+        ReplicaId? expectedReplica)
     {
         lock (_sync)
         {
             if (!_states.ContainsKey(storedId)) return false.ToTask();
             var state = _states[storedId];
-            if (state.Epoch != expectedEpoch) return false.ToTask();
+            if (state.Owner != expectedReplica) return false.ToTask();
             
             state.Param = param;
             state.Result = result;
-            
-            state.Epoch += 1;
 
             return true.ToTask();
         }
@@ -416,26 +379,26 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         }
     }
 
-    public Task<StatusAndEpoch?> GetFunctionStatus(StoredId storedId)
+    public Task<Status?> GetFunctionStatus(StoredId storedId)
     {
         lock (_sync)
         {
             if (!_states.ContainsKey(storedId))
-                return Task.FromResult(default(StatusAndEpoch));
+                return Task.FromResult(default(Status?));
 
             var state = _states[storedId];
-            return ((StatusAndEpoch?) new StatusAndEpoch(state.Status, state.Epoch)).ToTask();
+            return ((Status?) state.Status).ToTask();
         }
     }
 
-    public async Task<IReadOnlyList<StatusAndEpochWithId>> GetFunctionsStatus(IEnumerable<StoredId> storedIds)
+    public async Task<IReadOnlyList<StatusAndId>> GetFunctionsStatus(IEnumerable<StoredId> storedIds)
     {
-        var toReturn = new List<StatusAndEpochWithId>();
+        var toReturn = new List<StatusAndId>();
         foreach (var a in storedIds.Select(id => new { Id = id, Task = GetFunction(id)}))
         {
             var sf = await a.Task;
             if (sf != null)
-                toReturn.Add(new StatusAndEpochWithId(a.Id, sf.Status, sf.Epoch, sf.Expires));
+                toReturn.Add(new StatusAndId(a.Id, sf.Status, sf.Expires));
         }
 
         return toReturn;
@@ -457,7 +420,6 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
                     state.Status,
                     state.Result,
                     state.Exception,
-                    state.Epoch,
                     state.Expires,
                     state.Timestamp,
                     state.Interrupted,
@@ -525,7 +487,6 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         public Status Status { get; set; }
         public byte[]? Result { get; set; }
         public StoredException? Exception { get; set; }
-        public int Epoch { get; set; }
         public bool Interrupted { get; set; }
         public long Expires { get; set; }
         public long Timestamp { get; set; }
@@ -536,7 +497,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
     
     #region MessageStore
 
-    public virtual Task<FunctionStatus?> AppendMessage(StoredId storedId, StoredMessage storedMessage)
+    public virtual Task AppendMessage(StoredId storedId, StoredMessage storedMessage)
     {
         lock (_sync)
         {
@@ -546,12 +507,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
             var messages = _messages[storedId];
             messages.Add(storedMessage);
 
-            if (!_states.ContainsKey(storedId))
-                return Task.FromResult(default(FunctionStatus));
-            
-            return Task.FromResult((FunctionStatus?)
-                new FunctionStatus(_states[storedId].Status, Epoch: _states[storedId].Epoch)
-            );
+            return Task.CompletedTask;
         }
     }
 

@@ -312,6 +312,4 @@ public abstract class FailedTests
                 .ShouldNotBeNullAsync();
         }
     }
-    
-    private class FlowState : Domain.FlowState { }
 }

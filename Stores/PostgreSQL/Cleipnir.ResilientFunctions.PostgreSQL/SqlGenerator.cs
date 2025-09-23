@@ -188,7 +188,7 @@ public class SqlGenerator(string tablePrefix)
         StoredId storedId, 
         byte[]? result, 
         long timestamp,
-        int expectedEpoch)
+        ReplicaId expectedReplica)
     {
         _succeedFunctionSql ??= $@"
             UPDATE {tablePrefix}
@@ -196,7 +196,7 @@ public class SqlGenerator(string tablePrefix)
             WHERE 
                 type = $3 AND 
                 instance = $4 AND 
-                epoch = $5";
+                owner = $5";
 
         return StoreCommand.Create(
             _succeedFunctionSql,
@@ -206,7 +206,7 @@ public class SqlGenerator(string tablePrefix)
                 timestamp,
                 storedId.Type.Value,
                 storedId.Instance.Value,
-                expectedEpoch,
+                expectedReplica.AsGuid,
             ]
         );
     }
@@ -217,7 +217,7 @@ public class SqlGenerator(string tablePrefix)
         long postponeUntil, 
         long timestamp,
         bool ignoreInterrupted,
-        int expectedEpoch)
+        ReplicaId expectedReplica)
     {
         _postponeFunctionSql ??= $@"
             UPDATE {tablePrefix}
@@ -225,7 +225,7 @@ public class SqlGenerator(string tablePrefix)
             WHERE 
                 type = $3 AND 
                 instance = $4 AND 
-                epoch = $5 AND
+                owner = $5 AND
                 NOT interrupted";
         
         var sql = _postponeFunctionSql;
@@ -239,7 +239,7 @@ public class SqlGenerator(string tablePrefix)
                 timestamp,
                 storedId.Type.Value,
                 storedId.Instance.Value,
-                expectedEpoch,
+                expectedReplica.AsGuid,
             ]
         );
     }
@@ -249,7 +249,7 @@ public class SqlGenerator(string tablePrefix)
         StoredId storedId, 
         StoredException storedException, 
         long timestamp,
-        int expectedEpoch)
+        ReplicaId expectedReplica)
     {
         _failFunctionSql ??= $@"
             UPDATE {tablePrefix}
@@ -257,7 +257,7 @@ public class SqlGenerator(string tablePrefix)
             WHERE 
                 type = $3 AND 
                 instance = $4 AND 
-                epoch = $5";
+                owner = $5";
         return StoreCommand.Create(
             _failFunctionSql,
             values:
@@ -266,20 +266,20 @@ public class SqlGenerator(string tablePrefix)
                 timestamp,
                 storedId.Type.Value,
                 storedId.Instance.Value,
-                expectedEpoch,
+                expectedReplica.AsGuid,
             ]
         );
     }
     
     private string? _suspendFunctionSql;
-    public StoreCommand SuspendFunction(StoredId storedId, long timestamp, int expectedEpoch)
+    public StoreCommand SuspendFunction(StoredId storedId, long timestamp, ReplicaId expectedReplica)
     {
         _suspendFunctionSql ??= $@"
             UPDATE {tablePrefix}
             SET status = {(int)Status.Suspended}, timestamp = $1, owner = NULL
             WHERE type = $2 AND 
                   instance = $3 AND 
-                  epoch = $4 AND
+                  owner = $4 AND
                   NOT interrupted;";
 
         return StoreCommand.Create(
@@ -288,25 +288,24 @@ public class SqlGenerator(string tablePrefix)
                 timestamp,
                 storedId.Type.Value,
                 storedId.Instance.Value,
-                expectedEpoch
+                expectedReplica.AsGuid,
             ]
         );
     }
     
     private string? _restartExecutionSql;
-    public StoreCommand RestartExecution(StoredId storedId, int expectedEpoch, long leaseExpiration, ReplicaId replicaId)
+    public StoreCommand RestartExecution(StoredId storedId, ReplicaId replicaId)
     {
         _restartExecutionSql ??= @$"
             UPDATE {tablePrefix}
-            SET epoch = epoch + 1, status = {(int)Status.Executing}, expires = $1, interrupted = FALSE, owner = $2
-            WHERE type = $3 AND instance = $4 AND epoch = $5
+            SET status = {(int)Status.Executing}, expires = 0, interrupted = FALSE, owner = $1
+            WHERE type = $2 AND instance = $3 AND owner IS NULL
             RETURNING               
                 param_json, 
                 status,
                 result_json, 
                 exception_json,
                 expires,
-                epoch, 
                 interrupted,
                 timestamp,
                 human_instance_id,
@@ -316,11 +315,9 @@ public class SqlGenerator(string tablePrefix)
         var command = StoreCommand.Create(
             _restartExecutionSql,
             values: [
-                leaseExpiration,
                 replicaId.AsGuid,
                 storedId.Type.Value,
                 storedId.Instance.Value,
-                expectedEpoch,
             ]);
 
         return command;
@@ -334,34 +331,32 @@ public class SqlGenerator(string tablePrefix)
            2  result_json,
            3  exception_json,
            4  expires,
-           5  epoch,
-           6 interrupted,
-           7 timestamp,
-           8 human_instance_id
-           9 parent,
-           10 owner
+           5 interrupted,
+           6 timestamp,
+           7 human_instance_id
+           8 parent,
+           9 owner
          */
         while (await reader.ReadAsync())
         {
             var hasParameter = !await reader.IsDBNullAsync(0);
             var hasResult = !await reader.IsDBNullAsync(2);
             var hasException = !await reader.IsDBNullAsync(3);
-            var hasParent = !await reader.IsDBNullAsync(9);
-            var hasOwner = !await reader.IsDBNullAsync(10);
+            var hasParent = !await reader.IsDBNullAsync(8);
+            var hasOwner = !await reader.IsDBNullAsync(9);
             
             return new StoredFlow(
                 storedId,
-                HumanInstanceId: reader.GetString(8),
+                HumanInstanceId: reader.GetString(7),
                 hasParameter ? (byte[]) reader.GetValue(0) : null,
                 Status: (Status) reader.GetInt32(1),
                 Result: hasResult ? (byte[]) reader.GetValue(2) : null, 
                 Exception: !hasException ? null : JsonSerializer.Deserialize<StoredException>(reader.GetString(3)),
                 Expires: reader.GetInt64(4),
-                Epoch: reader.GetInt32(5),
-                Interrupted: reader.GetBoolean(6),
-                Timestamp: reader.GetInt64(7),
-                ParentId: hasParent ? StoredId.Deserialize(reader.GetString(9)) : null,
-                OwnerId: hasOwner ? new ReplicaId(reader.GetGuid(10)) : null
+                Interrupted: reader.GetBoolean(5),
+                Timestamp: reader.GetInt64(6),
+                ParentId: hasParent ? StoredId.Deserialize(reader.GetString(8)) : null,
+                OwnerId: hasOwner ? new ReplicaId(reader.GetGuid(9)) : null
             );
         }
 
