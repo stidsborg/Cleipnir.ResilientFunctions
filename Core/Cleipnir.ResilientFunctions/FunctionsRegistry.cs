@@ -23,7 +23,7 @@ public class FunctionsRegistry : IDisposable
     private readonly ShutdownCoordinator _shutdownCoordinator;
     private readonly SettingsWithDefaults _settings;
     
-    private readonly CrashedOrPostponedWatchdog _crashedOrPostponedWatchdog;
+    private readonly PostponedWatchdog _postponedWatchdog;
     private readonly StoredTypes _storedTypes;
     
     public ClusterInfo ClusterInfo { get; }
@@ -42,7 +42,7 @@ public class FunctionsRegistry : IDisposable
         
         ClusterInfo = new ClusterInfo(ReplicaId.NewId());
         
-        _crashedOrPostponedWatchdog = new CrashedOrPostponedWatchdog(
+        _postponedWatchdog = new PostponedWatchdog(
             _functionStore,
             _shutdownCoordinator,
             _settings.UnhandledExceptionHandler,
@@ -228,7 +228,7 @@ public class FunctionsRegistry : IDisposable
                 flowType,
                 storedType,
                 _functionStore,
-                _crashedOrPostponedWatchdog,
+                _postponedWatchdog,
                 invoker.Restart,
                 invocationHelper.RestartFunction,
                 invoker.ScheduleRestart,
@@ -322,7 +322,7 @@ public class FunctionsRegistry : IDisposable
                 flowType,
                 storedType,
                 _functionStore,
-                _crashedOrPostponedWatchdog,
+                _postponedWatchdog,
                 invoker.Restart,
                 invocationHelper.RestartFunction,
                 invoker.ScheduleRestart,
@@ -416,7 +416,7 @@ public class FunctionsRegistry : IDisposable
                 flowType,
                 storedType,
                 _functionStore,
-                _crashedOrPostponedWatchdog,
+                _postponedWatchdog,
                 rActionInvoker.Restart,
                 invocationHelper.RestartFunction,
                 rActionInvoker.ScheduleRestart,

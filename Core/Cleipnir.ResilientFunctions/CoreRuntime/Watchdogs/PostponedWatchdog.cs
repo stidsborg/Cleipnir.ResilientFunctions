@@ -10,7 +10,7 @@ using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.CoreRuntime.Watchdogs;
 
-internal class CrashedOrPostponedWatchdog
+internal class PostponedWatchdog
 {
     private readonly IFunctionStore _functionStore;
     private readonly ShutdownCoordinator _shutdownCoordinator;
@@ -27,7 +27,7 @@ internal class CrashedOrPostponedWatchdog
     
     private readonly UtcNow _utcNow;
 
-    public CrashedOrPostponedWatchdog(
+    public PostponedWatchdog(
         IFunctionStore functionStore,
         ShutdownCoordinator shutdownCoordinator, UnhandledExceptionHandler unhandledExceptionHandler, 
         TimeSpan checkFrequency, TimeSpan delayStartUp,
@@ -128,7 +128,7 @@ internal class CrashedOrPostponedWatchdog
         {
             _unhandledExceptionHandler.Invoke(
                 new FrameworkException(
-                    $"{nameof(CrashedOrPostponedWatchdog)} execution failed - retrying in 5 seconds",
+                    $"{nameof(PostponedWatchdog)} execution failed - retrying in 5 seconds",
                     innerException: thrownException
                 )
             );
