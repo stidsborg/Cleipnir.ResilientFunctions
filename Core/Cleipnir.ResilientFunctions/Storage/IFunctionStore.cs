@@ -35,18 +35,16 @@ public interface IFunctionStore
         StoredId? parent
     );
     
-    Task<StoredFlowWithEffectsAndMessages?> RestartExecution(StoredId storedId, int expectedEpoch, long leaseExpiration, ReplicaId owner);
+    Task<StoredFlowWithEffectsAndMessages?> RestartExecution(StoredId storedId, ReplicaId owner);
     
-    Task<int> RenewLeases(IReadOnlyList<LeaseUpdate> leaseUpdates, long leaseExpiration);
-    
-    Task<IReadOnlyList<IdAndEpoch>> GetExpiredFunctions(long expiresBefore);
+    Task<IReadOnlyList<StoredId>> GetExpiredFunctions(long expiresBefore);
     Task<IReadOnlyList<StoredInstance>> GetSucceededFunctions(StoredType storedType, long completedBefore);
     
     Task<bool> SetParameters(
         StoredId storedId,
         byte[]? param,
         byte[]? result,
-        int expectedEpoch
+        ReplicaId? expectedReplica
     );
     
     Task<bool> SetFunctionState(
@@ -56,14 +54,14 @@ public interface IFunctionStore
         byte[]? result,
         StoredException? storedException,
         long expires,
-        int expectedEpoch
+        ReplicaId? expectedReplica
     );
 
     Task<bool> SucceedFunction(
         StoredId storedId, 
         byte[]? result, 
         long timestamp,
-        int expectedEpoch,
+        ReplicaId expectedReplica,
         IReadOnlyList<StoredEffect>? effects,
         IReadOnlyList<StoredMessage>? messages,
         ComplimentaryState complimentaryState
@@ -74,7 +72,7 @@ public interface IFunctionStore
         long postponeUntil, 
         long timestamp,
         bool ignoreInterrupted, 
-        int expectedEpoch, 
+        ReplicaId expectedReplica, 
         IReadOnlyList<StoredEffect>? effects,
         IReadOnlyList<StoredMessage>? messages,
         ComplimentaryState complimentaryState
@@ -84,7 +82,7 @@ public interface IFunctionStore
         StoredId storedId, 
         StoredException storedException,
         long timestamp,
-        int expectedEpoch, 
+        ReplicaId expectedReplica, 
         IReadOnlyList<StoredEffect>? effects,
         IReadOnlyList<StoredMessage>? messages,
         ComplimentaryState complimentaryState
@@ -93,7 +91,7 @@ public interface IFunctionStore
     Task<bool> SuspendFunction(
         StoredId storedId, 
         long timestamp,
-        int expectedEpoch, 
+        ReplicaId expectedReplica, 
         IReadOnlyList<StoredEffect>? effects,
         IReadOnlyList<StoredMessage>? messages,
         ComplimentaryState complimentaryState
@@ -106,11 +104,13 @@ public interface IFunctionStore
     Task Interrupt(IReadOnlyList<StoredId> storedIds);
     Task<bool?> Interrupted(StoredId storedId); 
 
-    Task<StatusAndEpoch?> GetFunctionStatus(StoredId storedId);
-    Task<IReadOnlyList<StatusAndEpochWithId>> GetFunctionsStatus(IEnumerable<StoredId> storedIds);
+    Task<Status?> GetFunctionStatus(StoredId storedId);
+    Task<IReadOnlyList<StatusAndId>> GetFunctionsStatus(IEnumerable<StoredId> storedIds);
     Task<StoredFlow?> GetFunction(StoredId storedId);
     Task<IReadOnlyList<StoredInstance>> GetInstances(StoredType storedType, Status status);
     Task<IReadOnlyList<StoredInstance>> GetInstances(StoredType storedType);
 
     Task<bool> DeleteFunction(StoredId storedId);
+
+    IFunctionStore WithPrefix(string prefix);
 }

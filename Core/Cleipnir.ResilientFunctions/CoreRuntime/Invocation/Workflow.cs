@@ -14,36 +14,28 @@ public class Workflow
     internal StoredId StoredId { get; }
     public Messages Messages { get; }
     public Effect Effect { get; }
-    public States States { get; }
     public Utilities Utilities { get; }
     public Correlations Correlations { get; }
-    [Obsolete("Use Synchronization property instead")]
-    public DistributedSemaphores Semaphores { get; }
     public Synchronization Synchronization { get; }
     private readonly UtcNow _utcNow;
     
     
-    public Workflow(FlowId flowId, StoredId storedId, Messages messages, Effect effect, States states, Utilities utilities, Correlations correlations, DistributedSemaphores semaphores, UtcNow utcNow)
+    public Workflow(FlowId flowId, StoredId storedId, Messages messages, Effect effect, Utilities utilities, Correlations correlations, DistributedSemaphores semaphores, UtcNow utcNow)
     {
         FlowId = flowId;
         StoredId = storedId;
         Utilities = utilities;
         Messages = messages;
         Effect = effect;
-        States = states;
         Correlations = correlations;
-        #pragma warning disable //todo remove in the future
-        Semaphores = semaphores;
-        #pragma warning restore
         Synchronization = new Synchronization(semaphores);
         _utcNow = utcNow;
     }
 
-    public void Deconstruct(out Effect effect, out Messages messages, out States states)
+    public void Deconstruct(out Effect effect, out Messages messages)
     {
         effect = Effect;
         messages = Messages;
-        states = States;
     }
 
     public async Task RegisterCorrelation(string correlation) => await Correlations.Register(correlation);

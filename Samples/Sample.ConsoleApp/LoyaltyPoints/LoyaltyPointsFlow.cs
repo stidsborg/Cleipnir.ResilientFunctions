@@ -9,29 +9,23 @@ public class LoyaltyPointsFlow
 {
     public static async Task Execute(string customerId, Workflow workflow)
     {
-        var state = await workflow.States.CreateOrGetDefault<State>();
+        var effect = workflow.Effect;
+        var state = await effect.CreateOrGet("State", new LoyaltyPoints(DateTime.UtcNow, Points: 0));
         while (true)
         {
             var (date, points) = await Queue.Peek<LoyaltyPoints>();
-            if (state.LatestDate >= date)
+            if (state.Date >= date)
             {
                 await Queue.Pop();
                 continue;
             }
             
-            state.LoyaltyPoints += points;
-            state.LatestDate = date;
-            await state.Save();
+            state = new LoyaltyPoints(Date: date, Points: state.Points + points);
+            await effect.Upsert("State", state);
             
             await Queue.Pop();
         }
     }
     
     private record LoyaltyPoints(DateTime Date, int Points);
-
-    public class State : FlowState
-    {
-        public int LoyaltyPoints { get; set; }
-        public DateTime LatestDate { get; set; }
-    }
 }

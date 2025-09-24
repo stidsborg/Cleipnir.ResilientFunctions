@@ -9,18 +9,10 @@ public class PostponedTests : TestTemplates.FunctionTests.PostponedTests
     [TestMethod]
     public override Task PostponedFuncIsCompletedByWatchDog()
         => PostponedFuncIsCompletedByWatchDog(FunctionStoreFactory.Create());
-
-    [TestMethod]
-    public override Task PostponedFuncWithStateIsCompletedByWatchDog()
-        => PostponedFuncWithStateIsCompletedByWatchDog(FunctionStoreFactory.Create());
-
+    
     [TestMethod]
     public override Task PostponedActionIsCompletedByWatchDog()
         => PostponedActionIsCompletedByWatchDog(FunctionStoreFactory.Create());
-
-    [TestMethod]
-    public override Task PostponedActionWithStateIsCompletedByWatchDog()
-        => PostponedActionWithStateIsCompletedByWatchDog(FunctionStoreFactory.Create());
     
     [TestMethod]
     public override Task PostponedActionIsCompletedByWatchDogAfterCrash()

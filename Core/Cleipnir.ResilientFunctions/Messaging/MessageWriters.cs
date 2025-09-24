@@ -12,30 +12,27 @@ public class MessageWriters
     private readonly StoredType _storedType;
     private readonly IFunctionStore _functionStore;
     private readonly ISerializer _serializer;
-    private readonly ScheduleReInvocation _scheduleReInvocation;
 
     public MessageWriters(
         StoredType storedType,
         IFunctionStore functionStore, 
-        ISerializer serializer, 
-        ScheduleReInvocation scheduleReInvocation)
+        ISerializer serializer)
     {
         _storedType = storedType;
         _functionStore = functionStore;
         _serializer = serializer;
-        _scheduleReInvocation = scheduleReInvocation;
     }
 
     public MessageWriter For(FlowInstance instance)
     {
         var storedId = new StoredId(_storedType, instance.Value.ToStoredInstance());
-        return new MessageWriter(storedId, _functionStore, _serializer, _scheduleReInvocation);
+        return new MessageWriter(storedId, _functionStore, _serializer);
     }
     
     internal MessageWriter For(StoredInstance instance)
     {
         var storedId = new StoredId(_storedType, instance);
-        return new MessageWriter(storedId, _functionStore, _serializer, _scheduleReInvocation);
+        return new MessageWriter(storedId, _functionStore, _serializer);
     }
 
     public async Task AppendMessages(IReadOnlyList<BatchedMessage> messages, bool interrupt = true)

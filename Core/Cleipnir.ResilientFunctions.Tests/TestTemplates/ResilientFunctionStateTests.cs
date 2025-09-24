@@ -52,10 +52,5 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates
             
             unhandledExceptionHandler.ShouldNotHaveExceptions();
         }
-
-        private class FlowState : Domain.FlowState
-        {
-            public string Scrap { get; set; } = "";
-        }
     }
 }

@@ -14,7 +14,7 @@ internal static class WatchDogsFactory
         FlowType flowType, 
         StoredType storedType,
         IFunctionStore functionStore,
-        CrashedOrPostponedWatchdog crashedOrPostponedWatchdog,
+        PostponedWatchdog postponedWatchdog,
         Restart restart, 
         RestartFunction restartFunction,
         ScheduleRestartFromWatchdog scheduleRestart,
@@ -31,7 +31,7 @@ internal static class WatchDogsFactory
         
         var asyncSemaphore = new AsyncSemaphore(settings.MaxParallelRetryInvocations);
 
-        crashedOrPostponedWatchdog.Register(
+        postponedWatchdog.Register(
             storedType,
             restartFunction,
             scheduleRestart,

@@ -16,69 +16,67 @@ public abstract class ReplicaWatchdogTests
     public abstract Task SunshineScenario();
     public async Task SunshineScenario(Task<IFunctionStore> storeTask)
     {
-        var functionStore = await storeTask;
+        var functionStore = await WithRandomPrefix(storeTask);
         var store = functionStore.ReplicaStore;
         var replicaId1 = new ClusterInfo(Guid.Parse("10000000-0000-0000-0000-000000000000").ToReplicaId());
+        var utcNowTicks = 0;
         using var watchdog1 = new ReplicaWatchdog(
             replicaId1,
             functionStore,
-            checkFrequency: TimeSpan.FromHours(1),
-            default(UnhandledExceptionHandler)!
+            leaseLength: TimeSpan.FromTicks(1), 
+            utcNow: () => new DateTime(utcNowTicks),
+            unhandledExceptionHandler: default(UnhandledExceptionHandler)!
         );
-        await watchdog1.Initialize();
+        await watchdog1.Initialize(utcNowTicks: 0);
         var allReplicas = await store.GetAll();
         allReplicas.Count.ShouldBe(1);
         var storedReplica1 = allReplicas.Single(sr => sr.ReplicaId == replicaId1.ReplicaId);
-        storedReplica1.Heartbeat.ShouldBe(0);
+        storedReplica1.LatestHeartbeat.ShouldBe(0);
         
         var replicaId2 = new ClusterInfo(Guid.Parse("20000000-0000-0000-0000-000000000000").ToReplicaId());
         using var watchdog2 = new ReplicaWatchdog(
             replicaId2,
             functionStore,
-            checkFrequency: TimeSpan.FromHours(1),
-            default(UnhandledExceptionHandler)!
+            leaseLength: TimeSpan.FromTicks(1), 
+            utcNow: () => new DateTime(utcNowTicks),
+            unhandledExceptionHandler: default(UnhandledExceptionHandler)!
         );
-        await watchdog2.Initialize();
+        await watchdog2.Initialize(utcNowTicks: 0);
         allReplicas = await store.GetAll();
         allReplicas.Count.ShouldBe(2);
         storedReplica1 = allReplicas.Single(sr => sr.ReplicaId == replicaId1.ReplicaId);
-        storedReplica1.Heartbeat.ShouldBe(0);
+        storedReplica1.LatestHeartbeat.ShouldBe(0);
         var storedReplica2 = allReplicas.Single(sr => sr.ReplicaId == replicaId2.ReplicaId);
-        storedReplica2.Heartbeat.ShouldBe(0);
+        storedReplica2.LatestHeartbeat.ShouldBe(0);
 
-        await watchdog1.PerformIteration();
+        await watchdog1.PerformIteration(utcNowTicks: 1);
         var replicas = await store.GetAll();
-        replicas.Single(sr => sr.ReplicaId == replicaId1.ReplicaId).Heartbeat.ShouldBe(1);
-        replicas.Single(sr => sr.ReplicaId == replicaId2.ReplicaId).Heartbeat.ShouldBe(0);
-        watchdog1.Strikes[new StoredReplica(replicaId2.ReplicaId, Heartbeat: 0)].ShouldBe(0);
-        watchdog1.Strikes[new StoredReplica(replicaId1.ReplicaId, Heartbeat: 1)].ShouldBe(0);
+        replicas.Single(sr => sr.ReplicaId == replicaId1.ReplicaId).LatestHeartbeat.ShouldBe(1);
+        replicas.Single(sr => sr.ReplicaId == replicaId2.ReplicaId).LatestHeartbeat.ShouldBe(0);
         
-        await watchdog1.PerformIteration();
+        await watchdog1.PerformIteration(utcNowTicks: 2);
         replicas = await store.GetAll();
-        replicas.Single(sr => sr.ReplicaId == replicaId1.ReplicaId).Heartbeat.ShouldBe(2);
-        replicas.Single(sr => sr.ReplicaId == replicaId2.ReplicaId).Heartbeat.ShouldBe(0);
-        watchdog1.Strikes[new StoredReplica(replicaId2.ReplicaId, Heartbeat: 0)].ShouldBe(1);
-        watchdog1.Strikes[new StoredReplica(replicaId1.ReplicaId, Heartbeat: 2)].ShouldBe(0);
+        replicas.Single(sr => sr.ReplicaId == replicaId1.ReplicaId).LatestHeartbeat.ShouldBe(2);
+        replicas.Single(sr => sr.ReplicaId == replicaId2.ReplicaId).LatestHeartbeat.ShouldBe(0);
         
-        await watchdog1.PerformIteration();
+        await watchdog1.PerformIteration(utcNowTicks: 3);
         replicas = await store.GetAll();
         replicas.Count.ShouldBe(1);
-        replicas.Single(sr => sr.ReplicaId == replicaId1.ReplicaId).Heartbeat.ShouldBe(3);
-        watchdog1.Strikes.Count.ShouldBe(1);
-        watchdog1.Strikes[new StoredReplica(replicaId1.ReplicaId, Heartbeat: 3)].ShouldBe(0);
+        replicas.Single(sr => sr.ReplicaId == replicaId1.ReplicaId).LatestHeartbeat.ShouldBe(3);
     }
     
     public abstract Task ReplicaWatchdogStartResultsInAddedReplicaInStore();
     public async Task ReplicaWatchdogStartResultsInAddedReplicaInStore(Task<IFunctionStore> storeTask)
     {
-        var functionStore = await storeTask;
+        var functionStore = await WithRandomPrefix(storeTask);
         var store = functionStore.ReplicaStore;
         var replicaId1 = new ClusterInfo(Guid.Parse("10000000-0000-0000-0000-000000000000").ToReplicaId());
         using var watchdog1 = new ReplicaWatchdog(
             replicaId1,
             functionStore,
-            checkFrequency: TimeSpan.FromHours(1),
-            default(UnhandledExceptionHandler)!
+            leaseLength: TimeSpan.FromHours(1),
+            utcNow: () => DateTime.UtcNow,
+            unhandledExceptionHandler: default(UnhandledExceptionHandler)!
         );
         await watchdog1.Start();
         var allReplicas = await store.GetAll();
@@ -88,8 +86,9 @@ public abstract class ReplicaWatchdogTests
         using var watchdog2 = new ReplicaWatchdog(
             replicaId2,
             functionStore,
-            checkFrequency: TimeSpan.FromHours(1),
-            default(UnhandledExceptionHandler)!
+            leaseLength: TimeSpan.FromHours(1),
+            utcNow: () => DateTime.UtcNow,
+            unhandledExceptionHandler: default(UnhandledExceptionHandler)!
         );
         await watchdog2.Start();
         allReplicas = await store.GetAll();
@@ -99,24 +98,25 @@ public abstract class ReplicaWatchdogTests
     public abstract Task StrikedOutReplicaIsRemovedFromStore();
     public async Task StrikedOutReplicaIsRemovedFromStore(Task<IFunctionStore> storeTask)
     {
-        var functionStore = await storeTask;
+        var functionStore = await WithRandomPrefix(storeTask);
         var store = functionStore.ReplicaStore;
         var toBeStrikedOut = ReplicaId.NewId();
         
-        await store.Insert(toBeStrikedOut);
+        await store.Insert(toBeStrikedOut, timeStamp: 0);
         var replicaId1 = new ClusterInfo(Guid.Parse("10000000-0000-0000-0000-000000000000").ToReplicaId());
         using var watchdog1 = new ReplicaWatchdog(
             replicaId1,
             functionStore,
-            checkFrequency: TimeSpan.FromHours(1),
-            default(UnhandledExceptionHandler)!
+            leaseLength: TimeSpan.FromTicks(1),
+            utcNow: () => DateTime.UtcNow,
+            unhandledExceptionHandler: default(UnhandledExceptionHandler)!
         );
         await watchdog1.Initialize();
-        await watchdog1.PerformIteration();
+        await watchdog1.PerformIteration(utcNowTicks: 0);
         await store.GetAll().SelectAsync(rs => rs.Count == 2).ShouldBeTrueAsync();
-        await watchdog1.PerformIteration();
+        await watchdog1.PerformIteration(utcNowTicks: 1);
         await store.GetAll().SelectAsync(rs => rs.Count == 2).ShouldBeTrueAsync();
-        await watchdog1.PerformIteration();
+        await watchdog1.PerformIteration(utcNowTicks: 3);
 
         var all = await store.GetAll();
         all.Count.ShouldBe(1);
@@ -126,15 +126,16 @@ public abstract class ReplicaWatchdogTests
     public abstract Task RunningWatchdogUpdatesItsOwnHeartbeat();
     public async Task RunningWatchdogUpdatesItsOwnHeartbeat(Task<IFunctionStore> storeTask)
     {
-        var functionStore = await storeTask;
+        var functionStore = await WithRandomPrefix(storeTask);
         var store = functionStore.ReplicaStore;
         
         var replicaId1 = new ClusterInfo(ReplicaId.NewId());
         using var watchdog1 = new ReplicaWatchdog(
             replicaId1,
             functionStore,
-            checkFrequency: TimeSpan.FromMilliseconds(100),
-            default(UnhandledExceptionHandler)!
+            leaseLength: TimeSpan.FromMilliseconds(100),
+            utcNow: () => DateTime.UtcNow,
+            unhandledExceptionHandler: default(UnhandledExceptionHandler)!
         );
 
         await watchdog1.Start();
@@ -145,64 +146,64 @@ public abstract class ReplicaWatchdogTests
             all.Count.ShouldBe(1);
             var single = all.Single();
             single.ReplicaId.ShouldBe(replicaId1.ReplicaId);
-            return single.Heartbeat > 0;
+            return single.LatestHeartbeat > 0;
         });
     }
     
     public abstract Task ReplicaIdOffsetIfCalculatedCorrectly();
     public async Task ReplicaIdOffsetIfCalculatedCorrectly(Task<IFunctionStore> storeTask)
     {
-        var store = await storeTask;
+        var store = await WithRandomPrefix(storeTask);
         var replicaStore = store.ReplicaStore;
         
         var replicaId1 = new ClusterInfo(Guid.Parse("10000000-0000-0000-0000-000000000000").ToReplicaId());
         var replicaId2 = new ClusterInfo(Guid.Parse("20000000-0000-0000-0000-000000000000").ToReplicaId());
         var replicaId3 = new ClusterInfo(Guid.Parse("30000000-0000-0000-0000-000000000000").ToReplicaId());
 
-        var watchdog1 = new ReplicaWatchdog(replicaId1, store, checkFrequency: TimeSpan.FromHours(1), default(UnhandledExceptionHandler)!);
-        var watchdog2 = new ReplicaWatchdog(replicaId2, store, checkFrequency: TimeSpan.FromHours(1), default(UnhandledExceptionHandler)!);
-        var watchdog3 = new ReplicaWatchdog(replicaId3, store, checkFrequency: TimeSpan.FromHours(1), default(UnhandledExceptionHandler)!);
+        var watchdog1 = new ReplicaWatchdog(replicaId1, store, leaseLength: TimeSpan.FromHours(1), utcNow: () => DateTime.UtcNow, unhandledExceptionHandler: default(UnhandledExceptionHandler)!);
+        var watchdog2 = new ReplicaWatchdog(replicaId2, store, leaseLength: TimeSpan.FromHours(1), utcNow: () => DateTime.UtcNow, unhandledExceptionHandler: default(UnhandledExceptionHandler)!);
+        var watchdog3 = new ReplicaWatchdog(replicaId3, store, leaseLength: TimeSpan.FromHours(1), utcNow: () => DateTime.UtcNow, unhandledExceptionHandler: default(UnhandledExceptionHandler)!);
 
         await watchdog1.Initialize();
         await watchdog2.Initialize();
         await watchdog3.Initialize();
         
-        await watchdog3.PerformIteration();
+        await watchdog3.PerformIteration(utcNowTicks: 0);
         replicaId3.Offset.ShouldBe((ulong) 2);
-        await watchdog2.PerformIteration();
+        await watchdog2.PerformIteration(utcNowTicks: 0);
         replicaId2.Offset.ShouldBe((ulong) 1);
-        await watchdog1.PerformIteration();
+        await watchdog1.PerformIteration(utcNowTicks: 0);
         replicaId1.Offset.ShouldBe((ulong) 0);
     }
     
     public abstract Task ReplicaIdOffsetIsUpdatedWhenNodeIsAddedAndDeleted();
     public async Task ReplicaIdOffsetIsUpdatedWhenNodeIsAddedAndDeleted(Task<IFunctionStore> storeTask)
     {
-        var functionStore = await storeTask;
+        var functionStore = await WithRandomPrefix(storeTask);
         var store = functionStore.ReplicaStore;
         
         var cluster1 = new ClusterInfo(Guid.Parse("10000000-0000-0000-0000-000000000000").ToReplicaId());
         var cluster2 = new ClusterInfo(Guid.Parse("20000000-0000-0000-0000-000000000000").ToReplicaId());
         var cluster3 = new ClusterInfo(Guid.Parse("30000000-0000-0000-0000-000000000000").ToReplicaId());
 
-        var watchdog1 = new ReplicaWatchdog(cluster1, functionStore, checkFrequency: TimeSpan.FromHours(1), default(UnhandledExceptionHandler)!);
-        var watchdog2 = new ReplicaWatchdog(cluster2, functionStore, checkFrequency: TimeSpan.FromHours(1), default(UnhandledExceptionHandler)!);
-        var watchdog3 = new ReplicaWatchdog(cluster3, functionStore, checkFrequency: TimeSpan.FromHours(1), default(UnhandledExceptionHandler)!);
+        var watchdog1 = new ReplicaWatchdog(cluster1, functionStore, leaseLength: TimeSpan.FromHours(1), utcNow: () => DateTime.UtcNow, unhandledExceptionHandler: default(UnhandledExceptionHandler)!);
+        var watchdog2 = new ReplicaWatchdog(cluster2, functionStore, leaseLength: TimeSpan.FromHours(1), utcNow: () => DateTime.UtcNow, unhandledExceptionHandler: default(UnhandledExceptionHandler)!);
+        var watchdog3 = new ReplicaWatchdog(cluster3, functionStore, leaseLength: TimeSpan.FromHours(1), utcNow: () => DateTime.UtcNow, unhandledExceptionHandler: default(UnhandledExceptionHandler)!);
 
         await watchdog3.Initialize();
         cluster3.Offset.ShouldBe((ulong) 0);
         cluster3.ReplicaCount.ShouldBe((ulong) 1);
 
         await watchdog2.Initialize();
-        await watchdog3.PerformIteration();
+        await watchdog3.PerformIteration(utcNowTicks: 0);
         cluster3.Offset.ShouldBe((ulong) 1);
         cluster3.ReplicaCount.ShouldBe((ulong) 2);
         cluster2.Offset.ShouldBe((ulong) 0);
         cluster2.ReplicaCount.ShouldBe((ulong) 2);
         
         await watchdog1.Initialize();
-        await watchdog2.PerformIteration();
-        await watchdog3.PerformIteration();
+        await watchdog2.PerformIteration(utcNowTicks: 0);
+        await watchdog3.PerformIteration(utcNowTicks: 1);
         cluster3.Offset.ShouldBe((ulong) 2);
         cluster3.ReplicaCount.ShouldBe((ulong) 3);
         cluster2.Offset.ShouldBe((ulong) 1);
@@ -211,15 +212,15 @@ public abstract class ReplicaWatchdogTests
         cluster1.ReplicaCount.ShouldBe((ulong) 3);
 
         await store.Delete(cluster1.ReplicaId);
-        await watchdog3.PerformIteration();
-        await watchdog2.PerformIteration();
+        await watchdog3.PerformIteration(utcNowTicks: 1);
+        await watchdog2.PerformIteration(utcNowTicks: 1);
         cluster3.Offset.ShouldBe((ulong) 1);
         cluster3.ReplicaCount.ShouldBe((ulong) 2);
         cluster2.Offset.ShouldBe((ulong) 0);
         cluster2.ReplicaCount.ShouldBe((ulong) 2);
         
         await store.Delete(cluster2.ReplicaId);
-        await watchdog3.PerformIteration();
+        await watchdog3.PerformIteration(utcNowTicks: 2);
         cluster3.Offset.ShouldBe((ulong) 0);
         cluster3.ReplicaCount.ShouldBe((ulong) 1);
     }
@@ -227,32 +228,32 @@ public abstract class ReplicaWatchdogTests
     public abstract Task ActiveReplicasDoNotDeleteEachOther();
     public async Task ActiveReplicasDoNotDeleteEachOther(Task<IFunctionStore> storeTask)
     {
-        var store = await storeTask;
+        var store = await WithRandomPrefix(storeTask);
         var replicaStore = store.ReplicaStore;
         
         var cluster1 = new ClusterInfo(Guid.Parse("10000000-0000-0000-0000-000000000000").ToReplicaId());
         var cluster2 = new ClusterInfo(Guid.Parse("20000000-0000-0000-0000-000000000000").ToReplicaId());
         var cluster3 = new ClusterInfo(Guid.Parse("30000000-0000-0000-0000-000000000000").ToReplicaId());
 
-        var watchdog1 = new ReplicaWatchdog(cluster1, store, checkFrequency: TimeSpan.FromHours(1), default(UnhandledExceptionHandler)!);
-        var watchdog2 = new ReplicaWatchdog(cluster2, store, checkFrequency: TimeSpan.FromHours(1), default(UnhandledExceptionHandler)!);
-        var watchdog3 = new ReplicaWatchdog(cluster3, store, checkFrequency: TimeSpan.FromHours(1), default(UnhandledExceptionHandler)!);
+        var watchdog1 = new ReplicaWatchdog(cluster1, store, leaseLength: TimeSpan.FromTicks(1), utcNow: () => DateTime.UtcNow, unhandledExceptionHandler: default(UnhandledExceptionHandler)!);
+        var watchdog2 = new ReplicaWatchdog(cluster2, store, leaseLength: TimeSpan.FromTicks(1), utcNow: () => DateTime.UtcNow, unhandledExceptionHandler: default(UnhandledExceptionHandler)!);
+        var watchdog3 = new ReplicaWatchdog(cluster3, store, leaseLength: TimeSpan.FromTicks(1), utcNow: () => DateTime.UtcNow, unhandledExceptionHandler: default(UnhandledExceptionHandler)!);
 
-        await watchdog1.Initialize();
-        await watchdog2.Initialize();
-        await watchdog3.Initialize();
+        await watchdog1.Initialize(utcNowTicks: 0);
+        await watchdog2.Initialize(utcNowTicks: 0);
+        await watchdog3.Initialize(utcNowTicks: 0);
 
-        await watchdog1.PerformIteration();
-        await watchdog2.PerformIteration();
+        await watchdog1.PerformIteration(utcNowTicks: 0);
+        await watchdog2.PerformIteration(utcNowTicks: 0);
         
-        await watchdog1.PerformIteration();
-        await watchdog2.PerformIteration();
+        await watchdog1.PerformIteration(utcNowTicks: 1);
+        await watchdog2.PerformIteration(utcNowTicks: 1);
         
-        await watchdog1.PerformIteration();
-        await watchdog2.PerformIteration();
+        await watchdog1.PerformIteration(utcNowTicks: 2);
+        await watchdog2.PerformIteration(utcNowTicks: 2);
         
-        await watchdog1.PerformIteration();
-        await watchdog2.PerformIteration();
+        await watchdog1.PerformIteration(utcNowTicks: 3);
+        await watchdog2.PerformIteration(utcNowTicks: 3);
 
         var storedReplicas = await replicaStore.GetAll();
         storedReplicas.Count.ShouldBe(2);
@@ -272,7 +273,7 @@ public abstract class ReplicaWatchdogTests
     public abstract Task StrikedOutReplicasFunctionIsPostponedAfterCrash();
     public async Task StrikedOutReplicasFunctionIsPostponedAfterCrash(Task<IFunctionStore> storeTask)
     {
-        var functionStore = await storeTask;
+        var functionStore = await WithRandomPrefix(storeTask);
         
         var toBeStrikedOut = ReplicaId.NewId();
         var storedId = TestStoredId.Create();
@@ -287,23 +288,21 @@ public abstract class ReplicaWatchdogTests
             owner: toBeStrikedOut
         ).ShouldBeTrueAsync();
         
-        var store = functionStore.ReplicaStore;
+        var replicaStore = functionStore.ReplicaStore;
         
-        await store.Insert(toBeStrikedOut);
+        await replicaStore.Insert(toBeStrikedOut, timeStamp: 0);
         var replicaId1 = new ClusterInfo(Guid.Parse("10000000-0000-0000-0000-000000000000").ToReplicaId());
         using var watchdog1 = new ReplicaWatchdog(
             replicaId1,
             functionStore,
-            checkFrequency: TimeSpan.FromHours(1),
-            default(UnhandledExceptionHandler)!
+            leaseLength: TimeSpan.FromTicks(1),
+            utcNow: () => DateTime.UtcNow,
+            unhandledExceptionHandler: default(UnhandledExceptionHandler)!
         );
         await watchdog1.Initialize();
-        await watchdog1.PerformIteration();
-        await watchdog1.PerformIteration();
-        await watchdog1.PerformIteration();
+        await watchdog1.PerformIteration(utcNowTicks: 3);
 
         var sf = await functionStore.GetFunction(storedId).ShouldNotBeNullAsync();
-        sf.Epoch.ShouldBe(1);
         sf.Status.ShouldBe(Status.Postponed);
         sf.Expires.ShouldBe(0);
         sf.OwnerId.ShouldBeNull();
@@ -312,12 +311,12 @@ public abstract class ReplicaWatchdogTests
     public abstract Task ReplicaWatchdogUpdatesHeartbeat();
     public async Task ReplicaWatchdogUpdatesHeartbeat(Task<IFunctionStore> storeTask)
     {
-        var functionStore = await storeTask;
+        var functionStore = await WithRandomPrefix(storeTask);
         var replicaStore = functionStore.ReplicaStore;
         
         var replicaId = ReplicaId.NewId();
         var clusterInfo = new ClusterInfo(replicaId);
-        using var watchdog = new ReplicaWatchdog(clusterInfo, functionStore, checkFrequency: TimeSpan.FromMilliseconds(10), default(UnhandledExceptionHandler)!);
+        using var watchdog = new ReplicaWatchdog(clusterInfo, functionStore, leaseLength: TimeSpan.FromMilliseconds(10), utcNow: () => DateTime.UtcNow, unhandledExceptionHandler: default(UnhandledExceptionHandler)!);
         await watchdog.Start();
 
         await Task.Delay(100);
@@ -325,12 +324,11 @@ public abstract class ReplicaWatchdogTests
         var storedReplicas = await replicaStore.GetAll();
         storedReplicas.Count.ShouldBe(1);
         storedReplicas.Single().ReplicaId.ShouldBe(replicaId);
-        storedReplicas.Single().Heartbeat.ShouldBeGreaterThan(1);
-
+        storedReplicas.Single().LatestHeartbeat.ShouldBeGreaterThan(1);
     }
     
     public abstract Task WorkIsDividedBetweenReplicas();
-    public Task WorkIsDividedBetweenReplicas(Task<IFunctionStore> storeTask)
+    public Task WorkIsDividedBetweenReplicas(Task<IFunctionStore> _)
     {
         var replicaId1 = ReplicaId.NewId();
         var clusterInfo = new ClusterInfo(replicaId1)
@@ -358,5 +356,51 @@ public abstract class ReplicaWatchdogTests
         owned.Any().ShouldBeTrue();
         
         return Task.CompletedTask;
+    }
+    
+    public abstract Task ReplicaCrashedFunctionIsTakenOverByOtherReplica();
+    public async Task ReplicaCrashedFunctionIsTakenOverByOtherReplica(Task<IFunctionStore> storeTask)
+    {
+        var functionStore = await WithRandomPrefix(storeTask);
+        var flowId = TestFlowId.Create();
+        var (flowType, flowInstance) = flowId;
+
+        var settings = new Settings(leaseLength: TimeSpan.FromMilliseconds(250));
+        using var crashingRegistry = new FunctionsRegistry(functionStore, settings);
+        using var overtakingRegistry = new FunctionsRegistry(functionStore, settings);
+
+        var insideTest1 = new SyncedFlag();
+        var insideTest2 = new SyncedFlag();
+        var testCompletedFlag = new SyncedFlag();
+        
+        var testRegistration1 = crashingRegistry.RegisterParamless(flowType, async workflow =>
+        {
+            insideTest1.Raise();
+            await testCompletedFlag.WaitForRaised();
+        });
+        
+        var testRegistration2 = overtakingRegistry.RegisterParamless(flowType, async workflow =>
+        {
+            insideTest2.Raise();
+            await testCompletedFlag.WaitForRaised();
+        });
+
+        await testRegistration1.Schedule(flowInstance);
+        await insideTest1.WaitForRaised();
+        await Safe.Try(() => crashingRegistry.ShutdownGracefully(maxWait: TimeSpan.Zero));
+        
+        await insideTest2.WaitForRaised();  
+        testCompletedFlag.Raise();
+
+        var sf = await functionStore.GetFunction(flowId.ToStoredId(testRegistration2.StoredType)).ShouldNotBeNullAsync();
+        sf.OwnerId.ShouldBe(overtakingRegistry.ClusterInfo.ReplicaId);
+    }
+
+    private async Task<IFunctionStore> WithRandomPrefix(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        store = store.WithPrefix("rts_" + Guid.NewGuid().ToString("N"));
+        await store.Initialize();
+        return store;
     }
 }

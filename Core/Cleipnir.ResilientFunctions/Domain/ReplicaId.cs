@@ -5,6 +5,7 @@ namespace Cleipnir.ResilientFunctions.Domain;
 public record ReplicaId(Guid AsGuid) : IComparable<ReplicaId>
 {
     public static ReplicaId NewId() => new(Guid.NewGuid());
+    public static ReplicaId Empty => new(Guid.Empty);
     
     public static ReplicaId Parse(string s) => new(Guid.Parse(s));
     

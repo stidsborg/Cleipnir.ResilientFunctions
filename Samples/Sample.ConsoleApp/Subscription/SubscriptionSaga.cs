@@ -8,7 +8,7 @@ namespace ConsoleApp.Subscription;
 
 public class SubscriptionSaga
 {
-    public async Task<Result<Unit>> UpdateSubscription(SubscriptionChange subscriptionChange, State state, Workflow workflow)
+    public async Task<Result<Unit>> UpdateSubscription(SubscriptionChange subscriptionChange, Workflow workflow)
     {
         await using var monitor = await workflow.Synchronization.AcquireLock(nameof(UpdateSubscription), subscriptionChange.SubscriptionId);
         var (subscriptionId, startSubscription) = subscriptionChange;
@@ -44,9 +44,4 @@ public class SubscriptionSaga
     }
 
     public record SubscriptionChange(string SubscriptionId, bool StartSubscription);
-
-    public class State : FlowState
-    {
-        public string LockId { get; set; } = Guid.NewGuid().ToString();
-    }
 }

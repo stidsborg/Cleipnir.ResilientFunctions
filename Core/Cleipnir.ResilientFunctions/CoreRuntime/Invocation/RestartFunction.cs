@@ -4,4 +4,4 @@ using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 
-internal delegate Task<RestartedFunction?> RestartFunction(StoredId flowId, int expectedEpoch);
+internal delegate Task<RestartedFunction?> RestartFunction(StoredId flowId);

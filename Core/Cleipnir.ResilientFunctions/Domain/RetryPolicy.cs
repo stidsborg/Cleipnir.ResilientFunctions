@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO.Pipelines;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime;
 using Cleipnir.ResilientFunctions.Domain.Exceptions.Commands;
@@ -136,9 +137,13 @@ public class RetryPolicy(TimeSpan initialInterval, double backoffCoefficient, Ti
                 delayUntil = utcNow().Add(delay);
                 iteration += 1;
                 {
-                    using var @lock = await effect.DisableFlush();
-                    await effect.Upsert(delayUntilId, delayUntil.Ticks, flush: false);
-                    await effect.Upsert(iterationId, iteration, flush: false);    
+                    await effect.Upserts(
+                        [
+                            Tuple.Create(delayUntilId, (object) delayUntil.Ticks),
+                            Tuple.Create(iterationId, (object) iteration)
+                        ],
+                        flush: false
+                    );
                 }
 
                 if (iteration >= maximumAttempts)

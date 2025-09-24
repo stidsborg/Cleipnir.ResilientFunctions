@@ -1,6 +1,4 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
-
-namespace Cleipnir.ResilientFunctions.MariaDb.Tests.Messaging;
+﻿namespace Cleipnir.ResilientFunctions.MariaDb.Tests.Messaging;
 
 [TestClass]
 public class MessagesTests : ResilientFunctions.Tests.Messaging.TestTemplates.MessagesTests

@@ -9,7 +9,7 @@ public static class SignupFlow
 {
     public static async Task Start(string customerEmail, Workflow workflow)
     {
-        var (effect, messages, _) = workflow;
+        var (effect, messages) = workflow;
         
         await effect.Capture(() => SendWelcomeMail(customerEmail));
 

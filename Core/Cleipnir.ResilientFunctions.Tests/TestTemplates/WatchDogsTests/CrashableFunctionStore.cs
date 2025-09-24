@@ -74,19 +74,14 @@ public class CrashableFunctionStore : IFunctionStore
             ? Task.FromException(new TimeoutException())
             : _inner.BulkScheduleFunctions(functionsWithParam, parent);
 
-    public Task<StoredFlowWithEffectsAndMessages?> RestartExecution(StoredId storedId, int expectedEpoch, long leaseExpiration, ReplicaId replicaId)
+    public Task<StoredFlowWithEffectsAndMessages?> RestartExecution(StoredId storedId, ReplicaId replicaId)
         => _crashed
             ? Task.FromException<StoredFlowWithEffectsAndMessages?>(new TimeoutException())
-            : _inner.RestartExecution(storedId, expectedEpoch, leaseExpiration, replicaId);
-    
-    public Task<int> RenewLeases(IReadOnlyList<LeaseUpdate> leaseUpdates, long leaseExpiration)
-        => _crashed
-            ? Task.FromException<int>(new TimeoutException())
-            : _inner.RenewLeases(leaseUpdates, leaseExpiration);    
+            : _inner.RestartExecution(storedId, replicaId);
 
-    public Task<IReadOnlyList<IdAndEpoch>> GetExpiredFunctions(long isEligibleBefore)
+    public Task<IReadOnlyList<StoredId>> GetExpiredFunctions(long isEligibleBefore)
         => _crashed
-            ? Task.FromException<IReadOnlyList<IdAndEpoch>>(new TimeoutException())
+            ? Task.FromException<IReadOnlyList<StoredId>>(new TimeoutException())
             : _inner.GetExpiredFunctions(isEligibleBefore);
 
     public Task<IReadOnlyList<StoredInstance>> GetSucceededFunctions(StoredType storedType, long completedBefore)
@@ -98,34 +93,34 @@ public class CrashableFunctionStore : IFunctionStore
         StoredId storedId, Status status, byte[]? storedParameter,
         byte[]? storedResult, StoredException? storedException, 
         long expires, 
-        int expectedEpoch
+        ReplicaId? expectedReplica
     ) => _crashed
             ? Task.FromException<bool>(new TimeoutException())
             : _inner.SetFunctionState(
                 storedId, status, 
                 storedParameter, storedResult, 
                 storedException, expires, 
-                expectedEpoch
+                expectedReplica
             );
 
     public Task<bool> SucceedFunction(
         StoredId storedId,
         byte[]? result,
         long timestamp,
-        int expectedEpoch,
+        ReplicaId expectedReplica,
         IReadOnlyList<StoredEffect>? effects,
         IReadOnlyList<StoredMessage>? messages,
         ComplimentaryState complimentaryState
     ) => _crashed
         ? Task.FromException<bool>(new TimeoutException())
-        : _inner.SucceedFunction(storedId, result, timestamp, expectedEpoch, effects, messages, complimentaryState);
+        : _inner.SucceedFunction(storedId, result, timestamp, expectedReplica, effects, messages, complimentaryState);
 
     public async Task<bool> PostponeFunction(
         StoredId storedId,
         long postponeUntil,
         long timestamp,
         bool ignoreInterrupted,
-        int expectedEpoch,
+        ReplicaId expectedReplica,
         IReadOnlyList<StoredEffect>? effects,
         IReadOnlyList<StoredMessage>? messages,
         ComplimentaryState complimentaryState
@@ -134,7 +129,7 @@ public class CrashableFunctionStore : IFunctionStore
         if (_crashed)
             throw new TimeoutException();
 
-        var result = await _inner.PostponeFunction(storedId, postponeUntil, timestamp, ignoreInterrupted, expectedEpoch, effects, messages, complimentaryState);
+        var result = await _inner.PostponeFunction(storedId, postponeUntil, timestamp, ignoreInterrupted, expectedReplica, effects, messages, complimentaryState);
         AfterPostponeFunctionFlag.Raise();
 
         return result;
@@ -144,24 +139,24 @@ public class CrashableFunctionStore : IFunctionStore
         StoredId storedId,
         StoredException storedException,
         long timestamp,
-        int expectedEpoch,
+        ReplicaId expectedReplica,
         IReadOnlyList<StoredEffect>? effects,
         IReadOnlyList<StoredMessage>? messages,
         ComplimentaryState complimentaryState
     ) => _crashed
         ? Task.FromException<bool>(new TimeoutException())
-        : _inner.FailFunction(storedId, storedException, timestamp, expectedEpoch, effects, messages, complimentaryState);
+        : _inner.FailFunction(storedId, storedException, timestamp, expectedReplica, effects, messages, complimentaryState);
 
     public Task<bool> SuspendFunction(
         StoredId storedId, 
         long timestamp, 
-        int expectedEpoch,
+        ReplicaId expectedReplica,
         IReadOnlyList<StoredEffect>? effects,
         IReadOnlyList<StoredMessage>? messages,
         ComplimentaryState complimentaryState)
         => _crashed
             ? Task.FromException<bool>(new TimeoutException())
-            : _inner.SuspendFunction(storedId, timestamp, expectedEpoch, effects, messages, complimentaryState);
+            : _inner.SuspendFunction(storedId, timestamp, expectedReplica, effects, messages, complimentaryState);
 
     public Task<IReadOnlyList<ReplicaId>> GetOwnerReplicas()
         => _crashed
@@ -185,19 +180,19 @@ public class CrashableFunctionStore : IFunctionStore
             ? Task.FromException<bool?>(new TimeoutException())
             : _inner.Interrupted(storedId);
     
-    public Task<bool> SetParameters(StoredId storedId, byte[]? storedParameter, byte[]? storedResult, int expectedEpoch)
+    public Task<bool> SetParameters(StoredId storedId, byte[]? storedParameter, byte[]? storedResult, ReplicaId? expectedReplica)
         => _crashed
             ? Task.FromException<bool>(new TimeoutException())
-            : _inner.SetParameters(storedId, storedParameter, storedResult, expectedEpoch);
+            : _inner.SetParameters(storedId, storedParameter, storedResult, expectedReplica);
     
-    public Task<StatusAndEpoch?> GetFunctionStatus(StoredId storedId)
+    public Task<Status?> GetFunctionStatus(StoredId storedId)
         => _crashed
-            ? Task.FromException<StatusAndEpoch?>(new TimeoutException())
+            ? Task.FromException<Status?>(new TimeoutException())
             : _inner.GetFunctionStatus(storedId);
 
-    public Task<IReadOnlyList<StatusAndEpochWithId>> GetFunctionsStatus(IEnumerable<StoredId> storedIds)
+    public Task<IReadOnlyList<StatusAndId>> GetFunctionsStatus(IEnumerable<StoredId> storedIds)
         => _crashed
-            ? Task.FromException<IReadOnlyList<StatusAndEpochWithId>>(new TimeoutException())
+            ? Task.FromException<IReadOnlyList<StatusAndId>>(new TimeoutException())
             : _inner.GetFunctionsStatus(storedIds);
 
     public Task<StoredFlow?> GetFunction(StoredId storedId)
@@ -219,6 +214,8 @@ public class CrashableFunctionStore : IFunctionStore
         => _crashed
             ? Task.FromException<bool>(new TimeoutException())
             : _inner.DeleteFunction(storedId);
+
+    public IFunctionStore WithPrefix(string prefix) => _inner.WithPrefix(prefix);
 }
 
 public static class CrashableFunctionStoreExtensions

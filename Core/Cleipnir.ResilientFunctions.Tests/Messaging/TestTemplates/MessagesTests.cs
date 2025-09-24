@@ -34,7 +34,7 @@ public abstract class MessagesTests
             parent: null,
             owner: null
         );
-        var messagesWriter = new MessageWriter(storedId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
+        var messagesWriter = new MessageWriter(storedId, functionStore, DefaultSerializer.Instance);
         var minimumTimeout = new FlowMinimumTimeout();
         using var registeredTimeouts = new FlowRegisteredTimeouts(
             CreateEffect(storedId, flowId, functionStore, minimumTimeout), 
@@ -71,13 +71,12 @@ public abstract class MessagesTests
     protected async Task MessagesFirstOfTypesReturnsNoneForFirstOfTypesOnTimeout(Task<IFunctionStore> functionStoreTask)
     {
         var flowId = TestFlowId.Create();
-        var storedId = flowId.ToStoredId(new StoredType(1));
         var functionStore = await functionStoreTask;
 
-        var functionRegistry = new FunctionsRegistry(
+        using var functionRegistry = new FunctionsRegistry(
             functionStore,
-            settings: new Settings(watchdogCheckFrequency: TimeSpan.FromSeconds(1), messagesDefaultMaxWaitForCompletion: TimeSpan.MaxValue)
-            );
+            settings: new Settings(messagesDefaultMaxWaitForCompletion: TimeSpan.MaxValue)
+        );
 
         var registration = functionRegistry.RegisterParamless(
             flowId.Type,
@@ -110,7 +109,7 @@ public abstract class MessagesTests
             parent: null,
             owner: null
         );
-        var messagesWriter = new MessageWriter(storedId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
+        var messagesWriter = new MessageWriter(storedId, functionStore, DefaultSerializer.Instance);
         var minimumTimeout = new FlowMinimumTimeout();
         using var registeredTimeouts = new FlowRegisteredTimeouts(
             CreateEffect(storedId, flowId, functionStore, minimumTimeout), 
@@ -160,7 +159,7 @@ public abstract class MessagesTests
             parent: null,
             owner: null
         );
-        var messagesWriter = new MessageWriter(storedId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
+        var messagesWriter = new MessageWriter(storedId, functionStore, DefaultSerializer.Instance);
         var minimumTimeout = new FlowMinimumTimeout();
         using var registeredTimeouts = new FlowRegisteredTimeouts(
             CreateEffect(storedId, flowId, functionStore, minimumTimeout), 
@@ -210,7 +209,7 @@ public abstract class MessagesTests
             parent: null,
             owner: null
         );
-        var messagesWriter = new MessageWriter(storedId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
+        var messagesWriter = new MessageWriter(storedId, functionStore, DefaultSerializer.Instance);
         var minimumTimeout = new FlowMinimumTimeout();
         using var registeredTimeouts = new FlowRegisteredTimeouts(
             CreateEffect(storedId, flowId, functionStore, minimumTimeout), 
@@ -262,7 +261,7 @@ public abstract class MessagesTests
             parent: null,
             owner: null
         );
-        var messagesWriter = new MessageWriter(storedId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
+        var messagesWriter = new MessageWriter(storedId, functionStore, DefaultSerializer.Instance);
         var minimumTimeout = new FlowMinimumTimeout();
         using var registeredTimeouts = new FlowRegisteredTimeouts(
             CreateEffect(storedId, flowId, functionStore, minimumTimeout), 
@@ -319,7 +318,7 @@ public abstract class MessagesTests
             parent: null,
             owner: null
         );
-        var messagesWriter = new MessageWriter(storedId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
+        var messagesWriter = new MessageWriter(storedId, functionStore, DefaultSerializer.Instance);
         var minimumTimeout = new FlowMinimumTimeout();
         using var registeredTimeouts = new FlowRegisteredTimeouts(
             CreateEffect(storedId, flowId, functionStore, minimumTimeout), 
@@ -375,7 +374,7 @@ public abstract class MessagesTests
             parent: null,
             owner: null
         );
-        var messagesWriter = new MessageWriter(storedId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
+        var messagesWriter = new MessageWriter(storedId, functionStore, DefaultSerializer.Instance);
         var minimumTimeout = new FlowMinimumTimeout();
         using var registeredTimeouts = new FlowRegisteredTimeouts(
             CreateEffect(storedId, flowId, functionStore, minimumTimeout), 
@@ -427,7 +426,7 @@ public abstract class MessagesTests
             parent: null,
             owner: null
         );
-        var messagesWriter = new MessageWriter(storedId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
+        var messagesWriter = new MessageWriter(storedId, functionStore, DefaultSerializer.Instance);
         var minimumTimeout = new FlowMinimumTimeout();
         using var registeredTimeouts = new FlowRegisteredTimeouts(
             CreateEffect(storedId, flowId, functionStore, minimumTimeout), 
@@ -491,7 +490,7 @@ public abstract class MessagesTests
             parent: null,
             owner: null
         );
-        var messagesWriter = new MessageWriter(storedId, functionStore, DefaultSerializer.Instance, scheduleReInvocation: (_, _) => Task.CompletedTask);
+        var messagesWriter = new MessageWriter(storedId, functionStore, DefaultSerializer.Instance);
         var minimumTimeout = new FlowMinimumTimeout();
         using var registeredTimeouts = new FlowRegisteredTimeouts(
             CreateEffect(storedId, flowId, functionStore, minimumTimeout), 
@@ -579,7 +578,7 @@ public abstract class MessagesTests
         await registration.SendMessage(instanceId, -1);
 
         var cp = await registration.ControlPanel(instanceId).ShouldNotBeNullAsync();
-        await cp.WaitForCompletion();
+        await cp.WaitForCompletion(allowPostponeAndSuspended: true);
         
         messages.Count.ShouldBe(4);
         messages[0].ShouldBe("Hallo");
@@ -595,7 +594,9 @@ public abstract class MessagesTests
     protected async Task PingPongMessagesCanBeExchangedMultipleTimes(Task<IFunctionStore> functionStoreTask)
     {
         var functionStore = await functionStoreTask;
-        using var registry = new FunctionsRegistry(functionStore, new Settings(messagesDefaultMaxWaitForCompletion: TimeSpan.FromSeconds(10)));
+        functionStore = functionStore.WithPrefix("pingpong" + Guid.NewGuid().ToString("N"));
+        await functionStore.Initialize();
+        using var registry = new FunctionsRegistry(functionStore, new Settings(messagesDefaultMaxWaitForCompletion: TimeSpan.FromSeconds(1000), messagesPullFrequency: TimeSpan.FromMilliseconds(10)));
         ParamlessRegistration pongRegistration = null!;
         ParamlessRegistration pingRegistration = null!;
         
@@ -644,6 +645,9 @@ public abstract class MessagesTests
     {
         var flowType = TestFlowId.Create().Type;
         var functionStore = await functionStoreTask;
+        functionStore = functionStore.WithPrefix("NoOp" + Guid.NewGuid().ToString("N"));
+        await functionStore.Initialize();
+        
         using var registry = new FunctionsRegistry(functionStore);
         var registration = registry.RegisterFunc<string, string>(
             flowType,

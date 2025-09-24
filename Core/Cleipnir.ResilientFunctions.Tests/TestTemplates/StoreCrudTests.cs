@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
@@ -15,11 +16,6 @@ public abstract class StoreCrudTests
     private TestParameters TestParam { get; } = new TestParameters("Peter", 32);
     private string Param => TestParam.ToJson();
     private record TestParameters(string Name, int Age);
-
-    private class TestFlowState : FlowState
-    {
-        public string? Note { get; set; }
-    }
         
     public abstract Task FunctionCanBeCreatedWithASingleParameterSuccessfully();
     protected async Task FunctionCanBeCreatedWithASingleParameterSuccessfully(Task<IFunctionStore> storeTask)
@@ -43,7 +39,6 @@ public abstract class StoreCrudTests
         stored.Parameter.ShouldBe(Param.ToUtf8Bytes());
         stored.Result.ShouldBeNull();
         stored.Status.ShouldBe(Status.Executing);
-        stored.Epoch.ShouldBe(0);
         stored.Expires.ShouldBe(leaseExpiration);
     }
 
@@ -68,7 +63,6 @@ public abstract class StoreCrudTests
         stored.Parameter.ShouldBe(Param.ToUtf8Bytes());
         stored.Result.ShouldBeNull();
         stored.Status.ShouldBe(Status.Executing);
-        stored.Epoch.ShouldBe(0);
         stored.Expires.ShouldBe(leaseExpiration);
     }
         
@@ -93,7 +87,6 @@ public abstract class StoreCrudTests
         stored.Parameter.ShouldBe(Param.ToUtf8Bytes());
         stored.Result.ShouldBeNull();
         stored.Status.ShouldBe(Status.Executing);
-        stored.Epoch.ShouldBe(0);
         stored.Expires.ShouldBe(leaseExpiration);
     }
 
@@ -108,6 +101,7 @@ public abstract class StoreCrudTests
     protected async Task LeaseIsUpdatedWhenCurrentEpochMatches(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
+        var owner = Guid.NewGuid().ToReplicaId();
         await store.CreateFunction(
             StoredId, 
             "humanInstanceId",
@@ -116,37 +110,46 @@ public abstract class StoreCrudTests
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
-            owner: null
+            owner: owner
         ).ShouldBeTrueAsync();
 
-        await store.RenewLeases([new LeaseUpdate(StoredId, ExpectedEpoch: 0)], leaseExpiration: 1).ShouldBeAsync(1);
+        var owners = await store.GetOwnerReplicas();
+        owners.Single().ShouldBe(owner);
+        await store.RescheduleCrashedFunctions(owner);
 
+        var newOwner = Guid.NewGuid().ToReplicaId();
+        await store.RestartExecution(StoredId, newOwner);
+        
         var storedFunction = await store.GetFunction(StoredId);
-        storedFunction!.Epoch.ShouldBe(0);
-        storedFunction.Expires.ShouldBe(1);
+        storedFunction.ShouldNotBeNull();
+        storedFunction.OwnerId.ShouldBe(newOwner);
     }
     
     public abstract Task LeaseIsNotUpdatedWhenCurrentEpochIsDifferent();
     protected async Task LeaseIsNotUpdatedWhenCurrentEpochIsDifferent(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var leaseExpiration = DateTime.UtcNow.Ticks;
+        var owner = Guid.NewGuid().ToReplicaId();
         await store.CreateFunction(
             StoredId, 
             "humanInstanceId",
             Param.ToUtf8Bytes(),
-            leaseExpiration,
+            leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
-            owner: null
+            owner
         ).ShouldBeTrueAsync();
 
-        await store.RenewLeases([new LeaseUpdate(StoredId, ExpectedEpoch: 1)], leaseExpiration: 1).ShouldBeAsync(0);
+        var owners = await store.GetOwnerReplicas();
+        owners.Single().ShouldBe(owner);
 
+        var newOwner = Guid.NewGuid().ToReplicaId();
+        await store.RestartExecution(StoredId, newOwner);
+        
         var storedFunction = await store.GetFunction(StoredId);
-        storedFunction!.Epoch.ShouldBe(0);
-        storedFunction.Expires.ShouldBe(leaseExpiration);
+        storedFunction.ShouldNotBeNull();
+        storedFunction.OwnerId.ShouldBe(owner);
     }
 
     public abstract Task ExistingFunctionCanBeDeleted();
@@ -212,7 +215,7 @@ public abstract class StoreCrudTests
             StoredId,
             updatedStoredParameter.ToUtf8Bytes(),
             result: null,
-            expectedEpoch: 0
+            expectedReplica: null
         ).ShouldBeTrueAsync();
         
         var sf = await store.GetFunction(StoredId);
@@ -243,7 +246,7 @@ public abstract class StoreCrudTests
             StoredId,
             updatedStoredParameter.ToUtf8Bytes(),
             result: null,
-            expectedEpoch: 0
+            expectedReplica: null
         ).ShouldBeTrueAsync();
         
         var sf = await store.GetFunction(StoredId);
@@ -271,7 +274,7 @@ public abstract class StoreCrudTests
             StoredId,
             param: Param.ToUtf8Bytes(),
             result: null,
-            expectedEpoch: 0
+            expectedReplica: null
         ).ShouldBeTrueAsync();
         
         var sf = await store.GetFunction(StoredId);
@@ -291,14 +294,8 @@ public abstract class StoreCrudTests
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
-            owner: null
-        ).ShouldBeTrueAsync();
-        await store.RestartExecution(
-            StoredId,
-            expectedEpoch: 0,
-            leaseExpiration: DateTime.UtcNow.Ticks,
             owner: ReplicaId.NewId()
-        ).ShouldNotBeNullAsync();
+        ).ShouldBeTrueAsync();
 
         var updatedStoredParameter = "hello world".ToJson();
 
@@ -306,7 +303,7 @@ public abstract class StoreCrudTests
             StoredId,
             updatedStoredParameter.ToUtf8Bytes(),
             result: null,
-            expectedEpoch: 0
+            expectedReplica: ReplicaId.Empty
         ).ShouldBeFalseAsync();
         
         var sf = await store.GetFunction(StoredId);

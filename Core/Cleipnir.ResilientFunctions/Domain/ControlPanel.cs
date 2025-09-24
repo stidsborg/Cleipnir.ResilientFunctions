@@ -16,17 +16,17 @@ public class ControlPanel : BaseControlPanel<Unit, Unit>
         InvocationHelper<Unit, Unit> invocationHelper, 
         FlowId flowId, StoredId storedId,
         ReplicaId? ownerReplica,
-        Status status, int epoch, long expires,  
+        Status status, long expires,  
         ExistingEffects effects,
-        ExistingStates states, ExistingMessages messages, ExistingSemaphores semaphores, 
+        ExistingMessages messages, ExistingSemaphores semaphores, 
         ExistingRegisteredTimeouts registeredTimeouts, Correlations correlations,
         FatalWorkflowException? fatalWorkflowException,
         UtcNow utcNow
     ) : base(
         invoker, invocationHelper, 
-        flowId, storedId, ownerReplica, status, epoch,
+        flowId, storedId, ownerReplica, status,
         expires, innerParam: Unit.Instance, innerResult: Unit.Instance, effects,
-        states, messages, registeredTimeouts, semaphores, correlations, fatalWorkflowException,
+        messages, registeredTimeouts, semaphores, correlations, fatalWorkflowException,
         utcNow
     ) { }
     
@@ -60,17 +60,17 @@ public class ControlPanel<TParam> : BaseControlPanel<TParam, Unit> where TParam 
         InvocationHelper<TParam, Unit> invocationHelper, 
         FlowId flowId, StoredId storedId,
         ReplicaId? ownerReplica,
-        Status status, int epoch, long expires, TParam innerParam, 
+        Status status, long expires, TParam innerParam, 
         ExistingEffects effects,
-        ExistingStates states, ExistingMessages messages, ExistingSemaphores semaphores, 
+        ExistingMessages messages, ExistingSemaphores semaphores, 
         ExistingRegisteredTimeouts registeredTimeouts, Correlations correlations, 
         FatalWorkflowException? fatalWorkflowException,
         UtcNow utcNow
     ) : base(
         invoker, invocationHelper, 
-        flowId, storedId, ownerReplica, status, epoch,
+        flowId, storedId, ownerReplica, status,
         expires, innerParam, innerResult: Unit.Instance, effects,
-        states, messages, registeredTimeouts, semaphores, correlations, fatalWorkflowException,
+        messages, registeredTimeouts, semaphores, correlations, fatalWorkflowException,
         utcNow
     ) { }
     
@@ -108,16 +108,16 @@ public class ControlPanel<TParam, TReturn> : BaseControlPanel<TParam, TReturn> w
     internal ControlPanel(
         Invoker<TParam, TReturn> invoker, 
         InvocationHelper<TParam, TReturn> invocationHelper, 
-        FlowId flowId, StoredId storedId, ReplicaId? ownerReplica, Status status, int epoch, 
+        FlowId flowId, StoredId storedId, ReplicaId? ownerReplica, Status status,
         long expires, TParam innerParam, 
         TReturn? innerResult, 
-        ExistingEffects effects, ExistingStates states, ExistingMessages messages, ExistingSemaphores semaphores,
+        ExistingEffects effects, ExistingMessages messages, ExistingSemaphores semaphores,
         ExistingRegisteredTimeouts registeredTimeouts, Correlations correlations, FatalWorkflowException? fatalWorkflowException,
         UtcNow utcNow
     ) : base(
         invoker, invocationHelper, 
-        flowId, storedId, ownerReplica, status, epoch, expires, 
-        innerParam, innerResult, effects, states, messages, 
+        flowId, storedId, ownerReplica, status, expires, 
+        innerParam, innerResult, effects, messages, 
         registeredTimeouts, semaphores, correlations, fatalWorkflowException,
         utcNow
     ) { }
@@ -165,12 +165,10 @@ public abstract class BaseControlPanel<TParam, TReturn>
         StoredId storedId,
         ReplicaId? ownerReplica,
         Status status, 
-        int epoch,
         long expires,
         TParam innerParam, 
         TReturn? innerResult,
         ExistingEffects effects,
-        ExistingStates states,
         ExistingMessages messages,
         ExistingRegisteredTimeouts registeredTimeouts,
         ExistingSemaphores semaphores,
@@ -184,16 +182,13 @@ public abstract class BaseControlPanel<TParam, TReturn>
         StoredId = storedId;
         OwnerReplica = ownerReplica;
         Status = status;
-        Epoch = epoch;
-        LeaseExpiration = expires == long.MaxValue
-            ? DateTime.MaxValue 
-            : new DateTime(expires, DateTimeKind.Utc);
-        
         _innerParam = innerParam;
         InnerResult = innerResult;
-        PostponedUntil = Status == Status.Postponed ? LeaseExpiration : null;
+        PostponedUntil = Status == Status.Postponed ? 
+            (expires == long.MaxValue
+                ? DateTime.MaxValue 
+                : new DateTime(expires, DateTimeKind.Utc)) : null;
         Effects = effects;
-        States = states;
         Messages = messages;
         RegisteredTimeouts = registeredTimeouts;
         Semaphores = semaphores;
@@ -208,14 +203,10 @@ public abstract class BaseControlPanel<TParam, TReturn>
     public Status Status { get; private set; }
     protected UtcNow UtcNow { get; }
     
-    public int Epoch { get; private set; }
-    public DateTime LeaseExpiration { get; private set; }
-    
     public ExistingMessages Messages { get; private set; }
     
     public ExistingEffects Effects { get; private set; }
-
-    public ExistingStates States { get; private set; }
+    
     public ExistingSemaphores Semaphores { get; private set; }
     public Correlations Correlations { get; private set; }
 
@@ -248,13 +239,12 @@ public abstract class BaseControlPanel<TParam, TReturn>
             result, 
             expires: long.MaxValue, 
             exception: null, 
-            Epoch
+            OwnerReplica
         );
 
         if (!success)
             throw UnexpectedStateException.ConcurrentModification(FlowId);
         
-        Epoch++;
         Status = Status.Succeeded;
         _innerParamChanged = false;
     }
@@ -266,14 +256,13 @@ public abstract class BaseControlPanel<TParam, TReturn>
             InnerParam,  
             result: default, 
             expires: until.Ticks, 
-            exception: null, 
-            Epoch
+            exception: null,
+            OwnerReplica
         );
 
         if (!success)
             throw UnexpectedStateException.ConcurrentModification(FlowId);
         
-        Epoch++;
         Status = Status.Postponed;
         PostponedUntil = until;
         _innerParamChanged = false;
@@ -288,13 +277,12 @@ public abstract class BaseControlPanel<TParam, TReturn>
             StoredId, Status.Failed, 
             InnerParam,  
             result: default, expires: long.MaxValue, FatalWorkflowException.CreateNonGeneric(FlowId, exception), 
-            Epoch
+            OwnerReplica
         );
 
         if (!success)
             throw UnexpectedStateException.ConcurrentModification(FlowId);
         
-        Epoch++;
         Status = Status.Failed;
         FatalWorkflowException = fatalWorkflowException;
         _innerParamChanged = false;
@@ -302,11 +290,10 @@ public abstract class BaseControlPanel<TParam, TReturn>
 
     public async Task SaveChanges()
     {
-        var success = await _invocationHelper.SaveControlPanelChanges(StoredId, InnerParam, InnerResult, Epoch);
+        var success = await _invocationHelper.SaveControlPanelChanges(StoredId, InnerParam, InnerResult, OwnerReplica);
         if (!success)
             throw UnexpectedStateException.ConcurrentModification(FlowId);
         
-        Epoch++;
         _innerParamChanged = false;
     }
     
@@ -339,7 +326,7 @@ public abstract class BaseControlPanel<TParam, TReturn>
 
         try
         {
-            return await _invoker.Restart(StoredId.Instance, Epoch);
+            return await _invoker.Restart(StoredId.Instance);
         }
         finally
         {
@@ -361,7 +348,7 @@ public abstract class BaseControlPanel<TParam, TReturn>
         if (_innerParamChanged)
             await SaveChanges();
 
-        await _invoker.ScheduleRestart(StoredId.Instance, Epoch);
+        await _invoker.ScheduleRestart(StoredId.Instance);
         
         if (refresh)
             await Refresh();
@@ -374,17 +361,16 @@ public abstract class BaseControlPanel<TParam, TReturn>
             throw UnexpectedStateException.NotFound(FlowId);
 
         Status = sf.Status;
-        Epoch = sf.Epoch;
-        LeaseExpiration = sf.Expires == long.MaxValue
-            ? DateTime.MaxValue 
-            : new DateTime(sf.Expires, DateTimeKind.Utc);
         InnerParam = sf.Param!;
         InnerResult = sf.Result;
-        PostponedUntil = Status == Status.Postponed ? LeaseExpiration : null;
+        PostponedUntil = Status == Status.Postponed ? 
+            (sf.Expires == long.MaxValue
+                ? DateTime.MaxValue 
+                : new DateTime(sf.Expires, DateTimeKind.Utc))
+            : null;
         FatalWorkflowException = sf.FatalWorkflowException;
         Effects = _invocationHelper.CreateExistingEffects(FlowId);
         Messages = _invocationHelper.CreateExistingMessages(FlowId);
-        States = _invocationHelper.CreateExistingStates(FlowId);
         RegisteredTimeouts = _invocationHelper.CreateExistingTimeouts(FlowId, Effects);
         Correlations = _invocationHelper.CreateCorrelations(FlowId);
 

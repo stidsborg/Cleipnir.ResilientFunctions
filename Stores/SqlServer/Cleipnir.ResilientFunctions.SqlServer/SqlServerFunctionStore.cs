@@ -17,6 +17,7 @@ public class SqlServerFunctionStore : IFunctionStore
 {
     private readonly Func<Task<SqlConnection>> _connFunc;
     private readonly string _tableName;
+    private readonly string _connectionString;
     
     private readonly SqlServerEffectsStore _effectsStore;
     private readonly SqlServerMessageStore _messageStore;
@@ -40,6 +41,7 @@ public class SqlServerFunctionStore : IFunctionStore
     public SqlServerFunctionStore(string connectionString, string tablePrefix = "")
     {
         _tableName = tablePrefix == "" ? "RFunctions" : tablePrefix;
+        _connectionString = connectionString;
         _sqlGenerator = new SqlGenerator(_tableName);
         
         _connFunc = CreateConnection(connectionString);
@@ -81,8 +83,7 @@ public class SqlServerFunctionStore : IFunctionStore
             CREATE TABLE {_tableName} (
                 FlowType INT NOT NULL,
                 FlowInstance UNIQUEIDENTIFIER NOT NULL,
-                Status INT NOT NULL,
-                Epoch INT NOT NULL,               
+                Status INT NOT NULL,             
                 Expires BIGINT NOT NULL,
                 Interrupted BIT NOT NULL DEFAULT 0,
                 ParamJson VARBINARY(MAX) NULL,                                        
@@ -96,14 +97,14 @@ public class SqlServerFunctionStore : IFunctionStore
             );
             CREATE INDEX {_tableName}_idx_Executing
                 ON {_tableName} (Expires, FlowType, FlowInstance)
-                INCLUDE (Epoch)
+                INCLUDE (Owner)
                 WHERE Status = {(int)Status.Executing};    
             CREATE INDEX {_tableName}_idx_Owners
                 ON {_tableName} (Owner, FlowType, FlowInstance)                
                 WHERE Status = {(int)Status.Executing};  
             CREATE INDEX {_tableName}_idx_Postponed
                 ON {_tableName} (Expires, FlowType, FlowInstance)
-                INCLUDE (Epoch)
+                INCLUDE (Owner)
                 WHERE Status = {(int)Status.Postponed};
             CREATE INDEX {_tableName}_idx_Succeeded
                 ON {_tableName} (FlowType, FlowInstance)
@@ -204,7 +205,7 @@ public class SqlServerFunctionStore : IFunctionStore
                 FlowInstance, 
                 ParamJson, 
                 Status,
-                Epoch, 
+                Owner,
                 Expires,
                 Timestamp,
                 HumanInstanceId,
@@ -212,11 +213,11 @@ public class SqlServerFunctionStore : IFunctionStore
             )
             ON {_tableName}.FlowType = source.FlowType AND {_tableName}.flowInstance = source.flowInstance         
             WHEN NOT MATCHED THEN
-              INSERT (FlowType, FlowInstance, ParamJson, Status, Epoch, Expires, Timestamp, HumanInstanceId, Parent)
-              VALUES (source.FlowType, source.flowInstance, source.ParamJson, source.Status, source.Epoch, source.Expires, source.Timestamp, source.HumanInstanceId, source.Parent);";
+              INSERT (FlowType, FlowInstance, ParamJson, Status, Owner, Expires, Timestamp, HumanInstanceId, Parent)
+              VALUES (source.FlowType, source.flowInstance, source.ParamJson, source.Status, source.Owner, source.Expires, source.Timestamp, source.HumanInstanceId, source.Parent);";
 
         var parentStr = parent == null ? "NULL" : $"'{parent}'";
-        var valueSql = $"(@FlowType, @FlowInstance, @ParamJson, {(int)Status.Postponed}, 0, 0, 0, @HumanInstanceId, {parentStr})";
+        var valueSql = $"(@FlowType, @FlowInstance, @ParamJson, {(int)Status.Postponed}, NULL, 0, 0, @HumanInstanceId, {parentStr})";
         var chunk = functionsWithParam
             .Select(
                 (fp, i) =>
@@ -249,9 +250,9 @@ public class SqlServerFunctionStore : IFunctionStore
         }
     }
     
-    public async Task<StoredFlowWithEffectsAndMessages?> RestartExecution(StoredId storedId, int expectedEpoch, long leaseExpiration, ReplicaId replicaId)
+    public async Task<StoredFlowWithEffectsAndMessages?> RestartExecution(StoredId storedId, ReplicaId replicaId)
     {
-        var restartCommand = _sqlGenerator.RestartExecution(storedId, expectedEpoch, leaseExpiration, replicaId);
+        var restartCommand = _sqlGenerator.RestartExecution(storedId, replicaId);
         var effectsCommand = _sqlGenerator.GetEffects(storedId, paramPrefix: "Effect");
         var messagesCommand = _sqlGenerator.GetMessages(storedId, skip: 0, paramPrefix: "Message");
 
@@ -262,7 +263,7 @@ public class SqlServerFunctionStore : IFunctionStore
         
         await using var reader = await command.ExecuteReaderAsync();
         var sf = _sqlGenerator.ReadToStoredFlow(storedId, reader);
-        if (sf?.Epoch != expectedEpoch + 1)
+        if (sf?.OwnerId != replicaId)
             return null;
     
         await reader.NextResultAsync();
@@ -273,39 +274,21 @@ public class SqlServerFunctionStore : IFunctionStore
 
         return new StoredFlowWithEffectsAndMessages(sf, effects, messages);
     }
-    
-    public async Task<int> RenewLeases(IReadOnlyList<LeaseUpdate> leaseUpdates, long leaseExpiration)
-    {
-        await using var conn = await _connFunc();
-
-        var predicates = leaseUpdates
-            .Select(u =>
-                $"(FlowType = {u.StoredId.Type.Value} AND FlowInstance = '{u.StoredId.Instance.Value}' AND Epoch = {u.ExpectedEpoch})"
-            ).StringJoin(" OR " + Environment.NewLine);
-
-        var sql = @$"
-            UPDATE {_tableName}
-            SET Expires = {leaseExpiration}
-            WHERE {predicates}";
-        
-        await using var command = new SqlCommand(sql, conn);
-        return await command.ExecuteNonQueryAsync();
-    }
 
     private string? _getExpiredFunctionsSql;
-    public async Task<IReadOnlyList<IdAndEpoch>> GetExpiredFunctions(long expiresBefore)
+    public async Task<IReadOnlyList<StoredId>> GetExpiredFunctions(long expiresBefore)
     {
         await using var conn = await _connFunc();
         _getExpiredFunctionsSql ??= @$"
-            SELECT FlowType, FlowInstance, Epoch
+            SELECT FlowType, FlowInstance
             FROM {_tableName} WITH (NOLOCK) 
-            WHERE Expires <= @Expires AND (Status = { (int)Status.Executing } OR Status = { (int)Status.Postponed})";
+            WHERE Expires <= @Expires AND Status = { (int)Status.Postponed}";
 
         await using var command = new SqlCommand(_getExpiredFunctionsSql, conn);
         command.Parameters.AddWithValue("@Expires", expiresBefore);
 
         await using var reader = await command.ExecuteReaderAsync();
-        var rows = new List<IdAndEpoch>(); 
+        var rows = new List<StoredId>(); 
         while (reader.HasRows)
         {
             while (reader.Read())
@@ -313,8 +296,7 @@ public class SqlServerFunctionStore : IFunctionStore
                 var flowType = reader.GetInt32(0);
                 var flowInstance = reader.GetGuid(1);
                 var flowId = new StoredId(new StoredType(flowType), flowInstance.ToStoredInstance());
-                var epoch = reader.GetInt32(2);
-                rows.Add(new IdAndEpoch(flowId, epoch));    
+                rows.Add(flowId);
             }
 
             reader.NextResult();
@@ -360,10 +342,10 @@ public class SqlServerFunctionStore : IFunctionStore
         byte[]? param, byte[]? result, 
         StoredException? storedException, 
         long expires,
-        int expectedEpoch)
+        ReplicaId? expectedReplica)
     {
         await using var conn = await _connFunc();
-    
+
         _setFunctionStateSql ??= @$"
             UPDATE {_tableName}
             SET
@@ -371,13 +353,15 @@ public class SqlServerFunctionStore : IFunctionStore
                 ParamJson = @ParamJson,             
                 ResultJson = @ResultJson,
                 ExceptionJson = @ExceptionJson,
-                Expires = @Expires,
-                Epoch = Epoch + 1
+                Expires = @Expires
             WHERE FlowType = @FlowType
-            AND FlowInstance = @FlowInstance
-            AND Epoch = @ExpectedEpoch";
+            AND FlowInstance = @FlowInstance";
         
-        await using var command = new SqlCommand(_setFunctionStateSql, conn);
+        var sql = expectedReplica == null
+            ? _setFunctionStateSql + " AND Owner IS NULL"
+            : _setFunctionStateSql + $" AND Owner = {expectedReplica}";
+        
+        await using var command = new SqlCommand(sql, conn);
         command.Parameters.AddWithValue("@Status", (int) status);
         command.Parameters.AddWithValue("@ParamJson", param == null ? SqlBinary.Null : param);
         command.Parameters.AddWithValue("@ResultJson", result == null ? SqlBinary.Null : result);
@@ -386,7 +370,6 @@ public class SqlServerFunctionStore : IFunctionStore
         command.Parameters.AddWithValue("@Expires", expires);
         command.Parameters.AddWithValue("@FlowInstance", storedId.Instance.Value);
         command.Parameters.AddWithValue("@FlowType", storedId.Type.Value);
-        command.Parameters.AddWithValue("@ExpectedEpoch", expectedEpoch);
 
         var affectedRows = await command.ExecuteNonQueryAsync();
         return affectedRows > 0;
@@ -396,7 +379,7 @@ public class SqlServerFunctionStore : IFunctionStore
         StoredId storedId, 
         byte[]? result, 
         long timestamp,
-        int expectedEpoch, 
+        ReplicaId expectedReplica, 
         IReadOnlyList<StoredEffect>? effects,
         IReadOnlyList<StoredMessage>? messages,
         ComplimentaryState complimentaryState)
@@ -407,7 +390,7 @@ public class SqlServerFunctionStore : IFunctionStore
                 storedId,
                 result,
                 timestamp,
-                expectedEpoch,
+                expectedReplica,
                 paramPrefix: ""
             ).ToSqlCommand(conn);
         
@@ -420,7 +403,7 @@ public class SqlServerFunctionStore : IFunctionStore
         long postponeUntil, 
         long timestamp,
         bool ignoreInterrupted,
-        int expectedEpoch, 
+        ReplicaId expectedReplica, 
         IReadOnlyList<StoredEffect>? effects,
         IReadOnlyList<StoredMessage>? messages,
         ComplimentaryState complimentaryState)
@@ -431,7 +414,7 @@ public class SqlServerFunctionStore : IFunctionStore
             postponeUntil,
             timestamp,
             ignoreInterrupted,
-            expectedEpoch,
+            expectedReplica,
             paramPrefix: ""
         ).ToSqlCommand(conn);
 
@@ -443,7 +426,7 @@ public class SqlServerFunctionStore : IFunctionStore
         StoredId storedId, 
         StoredException storedException, 
         long timestamp,
-        int expectedEpoch, 
+        ReplicaId expectedReplica, 
         IReadOnlyList<StoredEffect>? effects,
         IReadOnlyList<StoredMessage>? messages,
         ComplimentaryState complimentaryState)
@@ -454,7 +437,7 @@ public class SqlServerFunctionStore : IFunctionStore
                 storedId,
                 storedException,
                 timestamp,
-                expectedEpoch,
+                expectedReplica,
                 paramPrefix: ""
             ).ToSqlCommand(conn);
         
@@ -466,7 +449,7 @@ public class SqlServerFunctionStore : IFunctionStore
     public async Task<bool> SuspendFunction(
         StoredId storedId, 
         long timestamp,
-        int expectedEpoch,
+        ReplicaId expectedReplica,
         IReadOnlyList<StoredEffect>? effects,
         IReadOnlyList<StoredMessage>? messages,
         ComplimentaryState complimentaryState)
@@ -476,7 +459,7 @@ public class SqlServerFunctionStore : IFunctionStore
             .SuspendFunction(
                 storedId,
                 timestamp,
-                expectedEpoch,
+                expectedReplica,
                 paramPrefix: ""
             ).ToSqlCommand(conn); 
 
@@ -512,8 +495,7 @@ public class SqlServerFunctionStore : IFunctionStore
                 SET 
                     Owner = NULL,
                     Status = {(int) Status.Postponed},
-                    Expires = 0,
-                    Epoch = Epoch + 1
+                    Expires = 0
                 WHERE Owner = @Owner";
         
         await using var command = new SqlCommand(_rescheduleFunctionsSql, conn);
@@ -565,23 +547,25 @@ public class SqlServerFunctionStore : IFunctionStore
     public async Task<bool> SetParameters(
         StoredId storedId,
         byte[]? param, byte[]? result,
-        int expectedEpoch)
+        ReplicaId? expectedReplica)
     {
         await using var conn = await _connFunc();
         
         _setParametersSql ??= @$"
             UPDATE {_tableName}
             SET ParamJson = @ParamJson,  
-                ResultJson = @ResultJson,
-                Epoch = Epoch + 1
-            WHERE FlowType = @FlowType AND FlowInstance = @FlowInstance AND Epoch = @ExpectedEpoch";
+                ResultJson = @ResultJson
+            WHERE FlowType = @FlowType AND FlowInstance = @FlowInstance";
+        
+        var sql = expectedReplica == null
+            ? _setParametersSql + " AND Owner IS NULL;"
+            : _setParametersSql + $" AND Owner = '{expectedReplica.AsGuid}'";
 
-        await using var command = new SqlCommand(_setParametersSql, conn);
+        await using var command = new SqlCommand(sql, conn);
         command.Parameters.AddWithValue("@ParamJson", param == null ? SqlBinary.Null : param);
         command.Parameters.AddWithValue("@ResultJson", result == null ? SqlBinary.Null : result);
         command.Parameters.AddWithValue("@FlowInstance", storedId.Instance.Value);
         command.Parameters.AddWithValue("@FlowType", storedId.Type.Value);
-        command.Parameters.AddWithValue("@ExpectedEpoch", expectedEpoch);
 
         var affectedRows = await command.ExecuteNonQueryAsync();
         return affectedRows > 0;
@@ -605,11 +589,11 @@ public class SqlServerFunctionStore : IFunctionStore
     }
 
     private string? _getFunctionStatusSql;
-    public async Task<StatusAndEpoch?> GetFunctionStatus(StoredId storedId)
+    public async Task<Status?> GetFunctionStatus(StoredId storedId)
     {
         await using var conn = await _connFunc();
         _getFunctionStatusSql ??= @$"
-            SELECT Status, Epoch
+            SELECT Status
             FROM {_tableName}
             WHERE FlowType = @FlowType AND FlowInstance = @FlowInstance";
         
@@ -622,15 +606,13 @@ public class SqlServerFunctionStore : IFunctionStore
             while (reader.Read())
             {
                 var status = (Status) reader.GetInt32(0);
-                var epoch = reader.GetInt32(1);
-
-                return new StatusAndEpoch(status, epoch);
+                return status;
             }
 
         return null;
     }
 
-    public async Task<IReadOnlyList<StatusAndEpochWithId>> GetFunctionsStatus(IEnumerable<StoredId> storedIds)
+    public async Task<IReadOnlyList<StatusAndId>> GetFunctionsStatus(IEnumerable<StoredId> storedIds)
     {
         var predicates = storedIds
             .Select(s => new { Type = s.Type.Value, Instance = s.Instance.Value })
@@ -639,7 +621,7 @@ public class SqlServerFunctionStore : IFunctionStore
             .StringJoin(" OR " + Environment.NewLine);
 
         var sql = @$"
-            SELECT FlowType, FlowInstance, Status, Epoch, Expires
+            SELECT FlowType, FlowInstance, Status, Expires
             FROM {_tableName}
             WHERE {predicates}";
         
@@ -647,18 +629,17 @@ public class SqlServerFunctionStore : IFunctionStore
         
         await using var command = new SqlCommand(sql, conn);
         await using var reader = await command.ExecuteReaderAsync();
-        var toReturn = new List<StatusAndEpochWithId>();
+        var toReturn = new List<StatusAndId>();
         
         while (reader.Read())
         {
             var type = reader.GetInt32(0).ToStoredType();
             var instance = reader.GetGuid(1).ToStoredInstance();
             var status = (Status) reader.GetInt32(2);
-            var epoch = reader.GetInt32(3);
-            var expires = reader.GetInt64(4);
+            var expires = reader.GetInt64(3);
 
             var storedId = new StoredId(type, instance);
-            toReturn.Add(new StatusAndEpochWithId(storedId, status, epoch, expires));
+            toReturn.Add(new StatusAndId(storedId, status, expires));
         }
 
         return toReturn;
@@ -674,7 +655,6 @@ public class SqlServerFunctionStore : IFunctionStore
                     ResultJson, 
                     ExceptionJson,
                     Expires,
-                    Epoch, 
                     Interrupted,
                     Timestamp,
                     HumanInstanceId,
@@ -753,12 +733,11 @@ public class SqlServerFunctionStore : IFunctionStore
                     ? null
                     : JsonSerializer.Deserialize<StoredException>(exceptionJson);
                 var expires = reader.GetInt64(4);
-                var epoch = reader.GetInt32(5);
-                var interrupted = reader.GetBoolean(6);
-                var timestamp = reader.GetInt64(7);
-                var humanInstanceId = reader.GetString(8);
-                var parentId = reader.IsDBNull(9) ? null : StoredId.Deserialize(reader.GetString(9));
-                var ownerId = reader.IsDBNull(10) ? null : reader.GetGuid(10).ToReplicaId();
+                var interrupted = reader.GetBoolean(5);
+                var timestamp = reader.GetInt64(6);
+                var humanInstanceId = reader.GetString(7);
+                var parentId = reader.IsDBNull(8) ? null : StoredId.Deserialize(reader.GetString(8));
+                var ownerId = reader.IsDBNull(9) ? null : reader.GetGuid(9).ToReplicaId();
 
                 return new StoredFlow(
                     storedId,
@@ -767,7 +746,6 @@ public class SqlServerFunctionStore : IFunctionStore
                     status,
                     result,
                     storedException,
-                    epoch,
                     expires,
                     timestamp,
                     interrupted,
@@ -788,6 +766,9 @@ public class SqlServerFunctionStore : IFunctionStore
 
         return await DeleteStoredFunction(storedId);
     }
+
+    public IFunctionStore WithPrefix(string prefix)
+        => new SqlServerFunctionStore(_connectionString, prefix);
 
     private string? _deleteFunctionSql;
     private async Task<bool> DeleteStoredFunction(StoredId storedId)

@@ -115,44 +115,7 @@ public abstract class SunshineTests
             
         unhandledExceptionHandler.ShouldNotHaveExceptions();
     }
-        
-    public abstract Task SunshineScenarioFuncWithState();
-    public async Task SunshineScenarioFuncWithState(Task<IFunctionStore> storeTask)
-    {
-        var store = await storeTask;
-        var flowType = nameof(SunshineScenarioFuncWithState).ToFlowType();
-        async Task<string> ToUpper(string s, State state)
-        {
-            await state.Save();
-            return s.ToUpper();
-        }
-
-        var unhandledExceptionHandler = new UnhandledExceptionCatcher();
-
-        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler.Catch));
-        var reg = functionsRegistry
-            .RegisterFunc(
-                flowType,
-                async Task<string> (string s, Workflow workflow) =>
-                    await ToUpper(s, await workflow.States.CreateOrGet<State>("State"))
-            );
-        var rFunc = reg.Invoke;
-
-        var result = await rFunc("hello", "hello");
-        result.ShouldBe("HELLO");
-
-        var storedFunction = await store.GetFunction(
-            reg.MapToStoredId("hello".ToFlowInstance())
-        );
-        storedFunction.ShouldNotBeNull();
-        storedFunction.Status.ShouldBe(Status.Succeeded);
-        storedFunction.Result.ShouldNotBeNull();
-        var storedResult = storedFunction.Result.ToStringFromUtf8Bytes().DeserializeFromJsonTo<string>();
-        storedResult.ShouldBe("HELLO");
-            
-        unhandledExceptionHandler.ShouldNotHaveExceptions();
-    }
-        
+    
     public abstract Task SunshineScenarioAction();
     public async Task SunshineScenarioAction(Task<IFunctionStore> storeTask)
     {
@@ -177,32 +140,6 @@ public abstract class SunshineTests
         storedFunction.Status.ShouldBe(Status.Succeeded);
         unhandledExceptionHandler.ShouldNotHaveExceptions();
     }
-        
-    public abstract Task SunshineScenarioActionWithState();
-    public async Task SunshineScenarioActionWithState(Task<IFunctionStore> storeTask)
-    {
-        var store = await storeTask;
-        var flowType = nameof(SunshineScenarioActionWithState).ToFlowType();
-
-        var unhandledExceptionHandler = new UnhandledExceptionCatcher();
-
-        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler.Catch));
-        var reg = functionsRegistry
-            .RegisterAction(
-                flowType,
-                async (string s, Workflow workflow) => await (await workflow.States.CreateOrGet<State>("State")).Save()
-            );
-        var rFunc = reg.Invoke;
-
-        await rFunc("hello", "hello");
-
-        var storedFunction = await store.GetFunction(
-            reg.MapToStoredId("hello".ToFlowInstance())
-        );
-        storedFunction.ShouldNotBeNull();
-        storedFunction.Status.ShouldBe(Status.Succeeded);
-        unhandledExceptionHandler.ShouldNotHaveExceptions();
-    }
 
     public abstract Task SunshineScenarioNullReturningFunc();
     protected async Task SunshineScenarioNullReturningFunc(Task<IFunctionStore> storeTask)
@@ -218,65 +155,6 @@ public abstract class SunshineTests
         ).Invoke;
 
         var result = await rFunc("hello world", "hello world");
-        result.ShouldBeNull();
-    }
-
-    public abstract Task SunshineScenarioNullReturningFuncWithState();
-    protected async Task SunshineScenarioNullReturningFuncWithState(Task<IFunctionStore> storeTask)
-    {
-        var store = await storeTask;
-        var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        var functionId = TestFlowId.Create();
-        var (flowType, flowInstance) = functionId;
-        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
-        
-        var reg = functionsRegistry.RegisterFunc(
-            flowType,
-            async (string _, Workflow workflow) =>
-            {
-                var state = await workflow.States.CreateOrGet<ListState<string>>("State");
-                state.List.Add("hello world");
-                state.Save().Wait();
-                return default(string);
-            }
-        );
-        var rFunc = reg.Invoke;
-
-        var result = await rFunc(flowInstance.Value, "hello world");
-        result.ShouldBeNull();
-
-        await store
-            .GetFunction(reg.MapToStoredId(functionId.Instance))
-            .ShouldNotBeNullAsync();
-
-        var states = await store.EffectsStore.GetEffectResults(reg.MapToStoredId(functionId.Instance));
-        var state = states.Single(e => e.EffectId == "State".ToEffectId(EffectType.State)).Result!.ToStringFromUtf8Bytes().DeserializeFromJsonTo<ListState<string>>();
-        state.List.Single().ShouldBe("hello world");
-    }
-    
-    public abstract Task SecondInvocationOnNullReturningFuncReturnsNullSuccessfully();
-    protected async Task SecondInvocationOnNullReturningFuncReturnsNullSuccessfully(Task<IFunctionStore> storeTask)
-    {
-        var store = await storeTask;
-        var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        FlowType flowType = "SomeFunctionType";
-        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
-
-        var rFunc = functionsRegistry.RegisterFunc(
-            flowType,
-            async (string _, Workflow workflow) =>
-            {
-                var state = await workflow.States.CreateOrGet<ListState<string>>("State");
-                state.List.Add("hello world");
-                state.Save().Wait();
-                return default(string);
-            }
-        ).Invoke;
-
-        var result = await rFunc("hello world", "hello world");
-        result.ShouldBeNull();
-
-        result = await rFunc("hello world", "hello world");
         result.ShouldBeNull();
     }
     
@@ -323,7 +201,6 @@ public abstract class SunshineTests
         
         unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
-    private class State : Domain.FlowState {}
     
     public abstract Task InstancesCanBeFetched();
     protected async Task InstancesCanBeFetched(Task<IFunctionStore> storeTask)

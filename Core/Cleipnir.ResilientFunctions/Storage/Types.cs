@@ -64,7 +64,6 @@ public record StoredFlow(
     Status Status,
     byte[]? Result,
     StoredException? Exception,
-    int Epoch,
     long Expires,
     long Timestamp,
     bool Interrupted,
@@ -72,11 +71,8 @@ public record StoredFlow(
     ReplicaId? OwnerId
 );
 
-public record IdAndEpoch(StoredId FlowId, int Epoch);
-
 public record StoredException(string ExceptionMessage, string? ExceptionStackTrace, string ExceptionType);
-public record StatusAndEpoch(Status Status, int Epoch);
-public record StatusAndEpochWithId(StoredId StoredId, Status Status, int Epoch, long Expiry);
+public record StatusAndId(StoredId StoredId, Status Status, long Expiry);
 
 public record StoredEffectId(Guid Value)
 {
@@ -140,7 +136,6 @@ public record StoredEffect(
 public record StoredState(StateId StateId, byte[] StateJson);
 
 public record IdWithParam(StoredId StoredId, string HumanInstanceId, byte[]? Param);
-public record LeaseUpdate(StoredId StoredId, int ExpectedEpoch);
 
 public record StoredFlowWithEffectsAndMessages(
     StoredFlow StoredFlow,
@@ -154,4 +149,4 @@ public static class StoredEffectExtensions
         => new(storedId, effect.StoredEffectId, operation, effect);
 }
 
-public record StoredReplica(ReplicaId ReplicaId, int Heartbeat);
+public record StoredReplica(ReplicaId ReplicaId, long LatestHeartbeat);

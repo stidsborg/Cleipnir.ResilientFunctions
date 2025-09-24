@@ -5,7 +5,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Serialization;
 using Cleipnir.ResilientFunctions.Domain.Exceptions.Commands;
-using Cleipnir.ResilientFunctions.Helpers.Disposables;
 using Cleipnir.ResilientFunctions.Reactive.Utilities;
 using Cleipnir.ResilientFunctions.Storage;
 
@@ -126,11 +125,20 @@ public class EffectResults
             delete: false
         );
     }
-
-    public async Task<IDisposable> DisableFlush()
+    
+    internal async Task Upserts(IEnumerable<Tuple<EffectId, object>> values, bool flush)
     {
-        await _flushSync.WaitAsync();
-        return new ActionDisposable(() => _flushSync.Release());
+        await InitializeIfRequired();
+
+        var storedEffects = values
+            .Select(t => new { Id = t.Item1, Bytes = _serializer.Serialize(t.Item2, t.Item2.GetType()) })
+            .Select(a => StoredEffect.CreateCompleted(a.Id, a.Bytes))
+            .ToList();
+        
+        AddToPending(storedEffects);
+
+        if (flush)
+            await Flush();
     }
     
     public async Task<Option<T>> TryGet<T>(EffectId effectId)
@@ -333,7 +341,14 @@ public class EffectResults
         );
     }
 
-    private async Task FlushOrAddToPending(EffectId effectId, StoredEffectId storedEffectId, StoredEffect? storedEffect, bool flush, bool delete)
+    private void AddToPending(IEnumerable<StoredEffect> storedEffects)
+    {
+        lock (_sync)
+            foreach (var storedEffect in storedEffects)
+                AddToPending(storedEffect.EffectId, storedEffect.StoredEffectId, storedEffect, delete: false);
+    }
+
+    private void AddToPending(EffectId effectId, StoredEffectId storedEffectId, StoredEffect? storedEffect, bool delete)
     {
         lock (_sync)
             if (_effectResults.ContainsKey(effectId))
@@ -356,6 +371,11 @@ public class EffectResults
                     Existing: false
                 );
             }
+    }
+    
+    private async Task FlushOrAddToPending(EffectId effectId, StoredEffectId storedEffectId, StoredEffect? storedEffect, bool flush, bool delete)
+    {
+        AddToPending(effectId, storedEffectId, storedEffect, delete);
 
         if (flush)
             await Flush();   

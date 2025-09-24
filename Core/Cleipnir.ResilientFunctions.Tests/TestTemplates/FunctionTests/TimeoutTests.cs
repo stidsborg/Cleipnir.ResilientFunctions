@@ -295,7 +295,7 @@ public abstract class TimeoutTests
             flowType,
             inner: async Task<Tuple<bool, bool>> (string _, Workflow workflow) =>
             {
-                var (effect, messages, _) = workflow;
+                var (effect, messages) = workflow;
                 var didFirstTimeout = await effect.Capture("First", () => 
                     messages.TakeUntilTimeout("TimeoutId", TimeSpan.FromMilliseconds(10))
                         .FirstOrNone()

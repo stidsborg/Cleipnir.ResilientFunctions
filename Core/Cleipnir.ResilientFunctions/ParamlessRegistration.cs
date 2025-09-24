@@ -30,7 +30,6 @@ public class ParamlessRegistration : BaseRegistration
     public Paramless.ScheduleAt ScheduleAt { get; }
     public Paramless.BulkSchedule BulkSchedule { get; }
     
-    private readonly StateFetcher _stateFetcher;
     public MessageWriters MessageWriters { get; }
     private readonly IFunctionStore _functionStore;
     
@@ -44,7 +43,6 @@ public class ParamlessRegistration : BaseRegistration
         Paramless.BulkSchedule bulkSchedule,
         ControlPanelFactory controlPanelFactory, 
         MessageWriters messageWriters, 
-        StateFetcher stateFetcher,
         Postman postman,
         UtcNow utcNow
     ) : base(storedType, postman, functionStore, utcNow)
@@ -57,25 +55,16 @@ public class ParamlessRegistration : BaseRegistration
         BulkSchedule = bulkSchedule;
         _controlPanelFactory = controlPanelFactory;
         MessageWriters = messageWriters;
-        _stateFetcher = stateFetcher;
         _functionStore = functionStore;
     }
     
     public Task<ControlPanel?> ControlPanel(FlowInstance flowInstance)
         => _controlPanelFactory.Create(flowInstance);
-
-    public Task<TState?> GetState<TState>(FlowInstance instance, StateId? stateId = null)
-        where TState : FlowState, new()
-    {
-        return stateId is null 
-            ? _stateFetcher.FetchState<TState>(instance) 
-            : _stateFetcher.FetchState<TState>(instance, stateId);
-    }
     
     public Task ScheduleIn(string flowInstance, TimeSpan delay, bool? detach = null) 
         => ScheduleAt(flowInstance, delayUntil: UtcNow().Add(delay), detach);
 
-    public async Task<Finding> SendMessage<T>(
+    public async Task SendMessage<T>(
         FlowInstance flowInstance,
         T message,
         bool create = true,
@@ -88,7 +77,7 @@ public class ParamlessRegistration : BaseRegistration
                 await Schedule(flowInstance);    
         }
         
-        return await Postman.SendMessage(flowInstance.Value.ToStoredInstance(), message, idempotencyKey);
+        await Postman.SendMessage(flowInstance.Value.ToStoredInstance(), message, idempotencyKey);
     }
     
     public async Task SendMessages(IReadOnlyList<BatchedMessage> messages, bool interrupt = true)

@@ -10,7 +10,7 @@ using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.CoreRuntime.Watchdogs;
 
-internal class CrashedOrPostponedWatchdog
+internal class PostponedWatchdog
 {
     private readonly IFunctionStore _functionStore;
     private readonly ShutdownCoordinator _shutdownCoordinator;
@@ -19,8 +19,6 @@ internal class CrashedOrPostponedWatchdog
     private readonly TimeSpan _checkFrequency;
     private readonly TimeSpan _delayStartUp;
     private readonly ClusterInfo _clusterInfo;
-
-    private readonly LeasesUpdater _leasesUpdater;
     
     private volatile ImmutableDictionary<StoredType, Tuple<RestartFunction, ScheduleRestartFromWatchdog, AsyncSemaphore>> _flowsDictionary
         = ImmutableDictionary<StoredType, Tuple<RestartFunction, ScheduleRestartFromWatchdog, AsyncSemaphore>>.Empty;
@@ -29,12 +27,11 @@ internal class CrashedOrPostponedWatchdog
     
     private readonly UtcNow _utcNow;
 
-    public CrashedOrPostponedWatchdog(
+    public PostponedWatchdog(
         IFunctionStore functionStore,
         ShutdownCoordinator shutdownCoordinator, UnhandledExceptionHandler unhandledExceptionHandler, 
         TimeSpan checkFrequency, TimeSpan delayStartUp,
         ClusterInfo clusterInfo,
-        LeasesUpdater leasesUpdater, 
         UtcNow utcNow)
     {
         _functionStore = functionStore;
@@ -43,7 +40,6 @@ internal class CrashedOrPostponedWatchdog
         _checkFrequency = checkFrequency;
         _delayStartUp = delayStartUp;
         _clusterInfo = clusterInfo;
-        _leasesUpdater = leasesUpdater;
         _utcNow = utcNow;
     }
 
@@ -76,12 +72,11 @@ internal class CrashedOrPostponedWatchdog
                 var now = _utcNow();
 
                 var eligibleFunctions = await _functionStore.GetExpiredFunctions(expiresBefore: now.Ticks);
-                eligibleFunctions = _leasesUpdater.FilterOutContains(eligibleFunctions);
-
+                
                 var flowsDictionary = _flowsDictionary;     
-                foreach (var sef in eligibleFunctions.WithRandomOffset())
+                foreach (var id in eligibleFunctions.WithRandomOffset())
                 {
-                    if (!flowsDictionary.TryGetValue(sef.FlowId.Type, out var tuple))
+                    if (!flowsDictionary.TryGetValue(id.Type, out var tuple))
                         continue;
                     
                     var (restartFunction, scheduleRestart, asyncSemaphore) = tuple;
@@ -97,7 +92,7 @@ internal class CrashedOrPostponedWatchdog
 
                     try
                     {
-                        var restartedFunction = await restartFunction(sef.FlowId, sef.Epoch);
+                        var restartedFunction = await restartFunction(id);
                         if (restartedFunction == null)
                         {
                             runningFunction.Dispose();
@@ -106,7 +101,7 @@ internal class CrashedOrPostponedWatchdog
                         }
 
                         await scheduleRestart(
-                            sef.FlowId.Instance,
+                            id.Instance,
                             restartedFunction,
                             onCompletion: () =>
                             {
@@ -133,7 +128,7 @@ internal class CrashedOrPostponedWatchdog
         {
             _unhandledExceptionHandler.Invoke(
                 new FrameworkException(
-                    $"{nameof(CrashedOrPostponedWatchdog)} execution failed - retrying in 5 seconds",
+                    $"{nameof(PostponedWatchdog)} execution failed - retrying in 5 seconds",
                     innerException: thrownException
                 )
             );

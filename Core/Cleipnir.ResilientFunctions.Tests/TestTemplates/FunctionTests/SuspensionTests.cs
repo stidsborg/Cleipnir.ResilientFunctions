@@ -47,7 +47,6 @@ public abstract class SuspensionTests
         var sf = await store.GetFunction(rAction.MapToStoredId(functionId.Instance));
         sf.ShouldNotBeNull();
         sf.Status.ShouldBe(Status.Suspended);
-        (sf.Epoch is 0).ShouldBeTrue();
         
         unhandledExceptionHandler.ShouldNotHaveExceptions();
     }
@@ -81,7 +80,6 @@ public abstract class SuspensionTests
         var sf = await store.GetFunction(rFunc.MapToStoredId(functionId.Instance));
         sf.ShouldNotBeNull();
         sf.Status.ShouldBe(Status.Suspended);
-        (sf.Epoch is 0).ShouldBeTrue();
         
         unhandledExceptionHandler.ShouldNotHaveExceptions();
     }

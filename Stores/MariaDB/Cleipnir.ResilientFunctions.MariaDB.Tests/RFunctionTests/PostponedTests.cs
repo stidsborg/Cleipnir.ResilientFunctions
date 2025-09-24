@@ -8,18 +8,10 @@ public class PostponedTests : ResilientFunctions.Tests.TestTemplates.FunctionTes
     [TestMethod]
     public override Task PostponedFuncIsCompletedByWatchDog()
         => PostponedFuncIsCompletedByWatchDog(FunctionStoreFactory.Create());
-
-    [TestMethod]
-    public override Task PostponedFuncWithStateIsCompletedByWatchDog()
-        => PostponedFuncWithStateIsCompletedByWatchDog(FunctionStoreFactory.Create());
-
+    
     [TestMethod]
     public override Task PostponedActionIsCompletedByWatchDog()
         => PostponedActionIsCompletedByWatchDog(FunctionStoreFactory.Create());
-
-    [TestMethod]
-    public override Task PostponedActionWithStateIsCompletedByWatchDog()
-        => PostponedActionWithStateIsCompletedByWatchDog(FunctionStoreFactory.Create());
     
     [TestMethod]
     public override Task PostponedActionIsCompletedByWatchDogAfterCrash()

@@ -13,13 +13,13 @@ public static class EmailSenderSaga
 {
     public static async Task Start(MailAndRecipients mailAndRecipients, Workflow workflow)
     {
-        var state = await workflow.States.CreateOrGetDefault<State>();
+        var atRecipient = await workflow.Effect.CreateOrGet("AtRecipient", value: 0);
         var (recipients, subject, content) = mailAndRecipients;
 
         using var client = new SmtpClient();
         await client.ConnectAsync("mail.smtpbucket.com", 8025);
         
-        for (var atRecipient = state.AtRecipient; atRecipient < mailAndRecipients.Recipients.Count; atRecipient++)
+        for (; atRecipient < mailAndRecipients.Recipients.Count; atRecipient++)
         {
             var recipient = recipients[atRecipient];
             var message = new MimeMessage();
@@ -30,14 +30,8 @@ public static class EmailSenderSaga
             message.Body = new TextPart(TextFormat.Html) { Text = content };
             await client.SendAsync(message);
 
-            state.AtRecipient = atRecipient;
-            await state.Save();
+            await workflow.Effect.Upsert("AtRecipient", atRecipient);
         }
-    }
-
-    public class State : FlowState
-    {
-        public int AtRecipient { get; set; }
     }
 }
 

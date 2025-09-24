@@ -31,13 +31,10 @@ public abstract class ControlPanelTests
             flowType,
             async (string _, Workflow workflow) =>
             {
-                var (effect, messages, states) = workflow;
+                var (effect, messages) = workflow;
                 await effect.CreateOrGet("Effect", 123);
                 await messages.AppendMessage("Message");
-                var state = await states.CreateOrGetDefault<State>();
-                state.Value = "State";
                 await workflow.Messages.FlowRegisteredTimeouts.RegisterTimeout("Timeout", TimeSpan.FromDays(1), publishMessage: true);
-                await state.Save();
             }
         );
         
@@ -86,12 +83,9 @@ public abstract class ControlPanelTests
             flowType,
             async Task<string>(string _, Workflow workflow) =>
             {
-                var (effect, messages, states) = workflow;
+                var (effect, messages) = workflow;
                 await effect.CreateOrGet("Effect", 123);
                 await messages.AppendMessage("Message");
-                var state = await states.CreateOrGetDefault<State>();
-                state.Value = "State";
-                await state.Save();
                 await workflow.Messages.FlowRegisteredTimeouts.RegisterTimeout("Timeout", TimeSpan.FromDays(1), publishMessage: true);
                 return "hello";
             });
@@ -375,51 +369,6 @@ public abstract class ControlPanelTests
         unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
     
-    public abstract Task ReInvokingExistingActionFromControlPanelSucceeds();
-    protected async Task ReInvokingExistingActionFromControlPanelSucceeds(Task<IFunctionStore> storeTask)
-    {
-        var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        
-        var store = await storeTask;
-        var functionId = TestFlowId.Create();
-        var (flowType, flowInstance) = functionId;
-        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
-        var rAction = functionsRegistry.RegisterAction(
-            flowType,
-            async Task (string param, Workflow workflow) =>
-            {
-                var state = await workflow.States.CreateOrGet<TestState>("State");
-                state.Value = param;
-                await state.Save();
-            });
-
-        await rAction.Invoke(flowInstance.Value, param: "first");
-
-        var controlPanel = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
-        controlPanel.Status.ShouldBe(Status.Succeeded);
-        (await controlPanel.States.Get<TestState>("State")).Value.ShouldBe("first");
-        controlPanel.FatalWorkflowException.ShouldBeNull();
-
-        controlPanel.Param = "second";
-        await controlPanel.SaveChanges();
-        await controlPanel.Refresh();
-        await controlPanel.Restart();
-        await controlPanel.Refresh();
-        controlPanel.Status.ShouldBe(Status.Succeeded);
-        (await controlPanel.States.Get<TestState>("State")).Value.ShouldBe("second");
-        
-        var sf = await store.GetFunction(rAction.MapToStoredId(functionId.Instance));
-        sf.ShouldNotBeNull();
-        sf.Status.ShouldBe(Status.Succeeded);
-        
-        unhandledExceptionCatcher.ShouldNotHaveExceptions();
-    }
-
-    private class TestState : FlowState
-    {
-        public string? Value { get; set; }
-    }
-    
     public abstract Task ReInvokingExistingFunctionFromControlPanelSucceeds();
     protected async Task ReinvokingExistingFunctionFromControlPanelSucceeds(Task<IFunctionStore> storeTask)
     {
@@ -463,18 +412,13 @@ public abstract class ControlPanelTests
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
         var rAction = functionsRegistry.RegisterAction(
             flowType,
-            async Task (string param, Workflow workflow) =>
-            {
-                var state = await workflow.States.CreateOrGet<TestState>("State");
-                state.Value = param;
-                await state.Save();
-            });
+            inner: Task (string param, Workflow workflow) => Task.CompletedTask 
+        );
 
         await rAction.Invoke(flowInstance.Value, param: "first");
 
         var controlPanel = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
         controlPanel.Status.ShouldBe(Status.Succeeded);
-        (await controlPanel.States.Get<TestState>("State")).Value.ShouldBe("first");
         controlPanel.FatalWorkflowException.ShouldBeNull();
 
         controlPanel.Param = "second";
@@ -485,104 +429,11 @@ public abstract class ControlPanelTests
         await BusyWait.Until(() => store.GetFunction(rAction.MapToStoredId(functionId.Instance)).SelectAsync(sf => sf?.Status == Status.Succeeded));
         await controlPanel.Refresh();
         controlPanel.Status.ShouldBe(Status.Succeeded);
-        (await controlPanel.States.Get<TestState>("State")).Value.ShouldBe("second");
         
         var sf = await store.GetFunction(rAction.MapToStoredId(functionId.Instance));
         sf.ShouldNotBeNull();
         sf.Status.ShouldBe(Status.Succeeded);
         
-        unhandledExceptionCatcher.ShouldNotHaveExceptions();
-    }
-    
-    public abstract Task ScheduleReInvokingExistingFunctionFromControlPanelSucceeds();
-    protected async Task ScheduleReInvokingExistingFunctionFromControlPanelSucceeds(Task<IFunctionStore> storeTask)
-    {
-        var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        
-        var store = await storeTask;
-        var functionId = TestFlowId.Create();
-        var (flowType, flowInstance) = functionId;
-        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
-        var rAction = functionsRegistry.RegisterFunc(
-            flowType,
-            Task<string> (string param) => param.ToTask()
-        );
-
-        await rAction.Invoke(flowInstance.Value, param: "first");
-
-        var controlPanel = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
-        controlPanel.Status.ShouldBe(Status.Succeeded);
-        controlPanel.Result.ShouldBe("first");
-        controlPanel.FatalWorkflowException.ShouldBeNull();
-
-        controlPanel.Param = "second";
-        await controlPanel.ScheduleRestart();
-        await BusyWait.Until(() => store.GetFunction(rAction.MapToStoredId(functionId.Instance)).SelectAsync(sf => sf?.Status == Status.Succeeded));
-        await controlPanel.Refresh();
-        controlPanel.Result.ShouldBe("second");
-        
-        var sf = await store.GetFunction(rAction.MapToStoredId(functionId.Instance));
-        sf.ShouldNotBeNull();
-        sf.Status.ShouldBe(Status.Succeeded);
-        
-        unhandledExceptionCatcher.ShouldNotHaveExceptions();
-    }
-    
-    public abstract Task ScheduleReInvokingExistingActionFromControlPanelFailsWhenEpochIsNotAsExpected();
-    protected async Task ScheduleReInvokingExistingActionFromControlPanelFailsWhenEpochIsNotAsExpected(Task<IFunctionStore> storeTask)
-    {
-        var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        
-        var store = await storeTask;
-        var functionId = TestFlowId.Create();
-        var (flowType, flowInstance) = functionId;
-        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
-        var rAction = functionsRegistry.RegisterAction(
-            flowType,
-            Task (string _) => Task.CompletedTask
-        );
-
-        await rAction.Invoke(flowInstance.Value, param: "first");
-
-        var controlPanel = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
-
-        {
-            var tempControlPanel = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
-            await tempControlPanel.SaveChanges(); //increment epoch
-        }
-        
-        controlPanel.Param = "second";
-        await Should.ThrowAsync<UnexpectedStateException>(() => controlPanel.ScheduleRestart());
-
-        unhandledExceptionCatcher.ShouldNotHaveExceptions();
-    }
-    
-    public abstract Task ScheduleReInvokingExistingFunctionFromControlPanelFailsWhenEpochIsNotAsExpected();
-    protected async Task ScheduleReInvokingExistingFunctionFromControlPanelFailsWhenEpochIsNotAsExpected(Task<IFunctionStore> storeTask)
-    {
-        var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        
-        var store = await storeTask;
-        var functionId = TestFlowId.Create();
-        var (flowType, flowInstance) = functionId;
-        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
-        var rFunc = functionsRegistry.RegisterFunc(
-            flowType,
-            Task<string> (string param) => param.ToTask()
-        );
-
-        await rFunc.Invoke(flowInstance.Value, param: "first");
-
-        var controlPanel = await rFunc.ControlPanel(flowInstance).ShouldNotBeNullAsync();
-
-        {
-            var tempControlPanel = await rFunc.ControlPanel(flowInstance).ShouldNotBeNullAsync();
-            await tempControlPanel.SaveChanges(); //increment epoch
-        }
-        
-        controlPanel.Param = "second";
-        await Should.ThrowAsync<UnexpectedStateException>(() => controlPanel.ScheduleRestart());
-
         unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
     
@@ -649,83 +500,6 @@ public abstract class ControlPanelTests
 
         await BusyWait.Until(() => completionTask.IsCompleted);
 
-        unhandledExceptionCatcher.ShouldNotHaveExceptions();
-    }
-    
-    public abstract Task LeaseIsUpdatedForExecutingFunc();
-    protected async Task LeaseIsUpdatedForExecutingFunc(Task<IFunctionStore> storeTask)
-    {
-        var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        
-        var store = await storeTask;
-        var functionId = TestFlowId.Create();
-        var (flowType, flowInstance) = functionId;
-        var before = DateTime.UtcNow;
-        
-        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch, leaseLength: TimeSpan.FromMilliseconds(250)));
-        var flag = new SyncedFlag();
-        var rFunc = functionsRegistry.RegisterFunc(
-            flowType,
-            async Task<string> (string param) =>
-            {
-                await flag.WaitForRaised();
-                return param;
-            });
-
-        await rFunc.Schedule(flowInstance.Value, param: "param");
-
-        var controlPanel = await rFunc.ControlPanel(flowInstance).ShouldNotBeNullAsync();
-        controlPanel.Status.ShouldBe(Status.Executing);
-        var curr = controlPanel.LeaseExpiration;
-        curr.ShouldBeGreaterThan(before);
-        while (controlPanel.LeaseExpiration == curr)
-        {
-            await Task.Delay(TimeSpan.FromMilliseconds(100));
-            await controlPanel.Refresh();
-        }
-
-        flag.Raise();
-        unhandledExceptionCatcher.ShouldNotHaveExceptions();
-    }
-    
-    public abstract Task LeaseIsUpdatedForExecutingAction();
-    protected async Task LeaseIsUpdatedForExecutingAction(Task<IFunctionStore> storeTask)
-    {
-        var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        
-        var store = await storeTask;
-        var functionId = TestFlowId.Create();
-        var (flowType, flowInstance) = functionId;
-        var before = DateTime.UtcNow;
-
-        using var functionsRegistry = new FunctionsRegistry(
-            store, new Settings(
-                unhandledExceptionCatcher.Catch,
-                leaseLength: TimeSpan.FromMilliseconds(250),
-                enableWatchdogs: false
-            )
-        );
-        var flag = new SyncedFlag();
-        var rAction = functionsRegistry.RegisterAction(
-            flowType,
-            async Task(string param) =>
-            {
-                await flag.WaitForRaised();
-            });
-
-        await rAction.Schedule(flowInstance.Value, param: "param");
-
-        var controlPanel = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
-        controlPanel.Status.ShouldBe(Status.Executing);
-        var curr = controlPanel.LeaseExpiration;
-        curr.ShouldBeGreaterThan(before);
-        while (controlPanel.LeaseExpiration == curr)
-        {
-            await controlPanel.Refresh();
-            await Task.Delay(TimeSpan.FromMilliseconds(100));
-        }
-
-        flag.Raise();
         unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
     
@@ -987,10 +761,8 @@ public abstract class ControlPanelTests
 
         controlPanel.Param = "PARAM";
         await controlPanel.SaveChanges();
-        var epoch = controlPanel.Epoch;
         var param = controlPanel.Param;
         await controlPanel.Refresh();
-        controlPanel.Epoch.ShouldBe(epoch);
         controlPanel.Param.ShouldBe(param);
 
         var messages = await controlPanel.Messages.AsObjects;
@@ -1068,10 +840,8 @@ public abstract class ControlPanelTests
 
         controlPanel.Param = "PARAM";
         await controlPanel.Succeed();
-        var epoch = controlPanel.Epoch;
         var param = controlPanel.Param;
         await controlPanel.Refresh();
-        controlPanel.Epoch.ShouldBe(epoch);
         controlPanel.Param.ShouldBe(param);
 
         var messages = await controlPanel.Messages.AsObjects;
@@ -1422,71 +1192,6 @@ public abstract class ControlPanelTests
         unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
     
-    private class State : FlowState
-    {
-        public string Value { get; set; } = "";
-    }
-    
-    public abstract Task ExistingStateCanBeReplacedRemovedAndAdded();
-    protected async Task ExistingStateCanBeReplacedRemovedAndAdded(Task<IFunctionStore> storeTask)
-    {
-        var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        
-        var store = await storeTask;
-        var functionId = TestFlowId.Create();
-        var (flowType, flowInstance) = functionId;
-        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
-        
-        var rFunc = functionsRegistry.RegisterFunc(
-            flowType,
-            async Task<string> (string param, Workflow workflow) =>
-            {
-                var state = await workflow.States.CreateOrGetDefault<State>();
-                state.Value = param;
-                await state.Save();
-                
-                var namedState = await workflow.States.CreateOrGet<State>("SomeId");
-                namedState.Value = "NamedValue";
-                await namedState.Save();
-                
-                return state.Value;
-            });
-
-        var result = await rFunc.Invoke(flowInstance.Value, param: "Some Param");
-        result.ShouldBe("Some Param");
-        
-        var controlPanel = await rFunc.ControlPanel(flowInstance).ShouldNotBeNullAsync();
-        var otherControlPanel = await rFunc.ControlPanel(flowInstance).ShouldNotBeNullAsync();
-        
-        var states = controlPanel.States;
-        await states.HasDefaultState().ShouldBeTrueAsync();
-        await states.HasState("SomeId").ShouldBeTrueAsync();
-        (await states.Get<State>()).Value.ShouldBe("Some Param");
-        (await states.Get<State>(stateId: "SomeId")).Value.ShouldBe("NamedValue");
-
-        await states.Set(new State { Value = "New Value" });
-        var s = await states.Get<State>(stateId: "SomeId");
-        s.Value = "New Value";
-        await s.Save();
-        (await states.Get<State>()).Value.ShouldBe("New Value");
-
-        await states.RemoveDefault();
-
-        await states.Set("NewState", new State { Value = "NewState's Value" });
-        
-        await otherControlPanel.Refresh();
-
-        states = otherControlPanel.States;
-        await states.HasDefaultState().ShouldBeFalseAsync();
-        await states.HasState("SomeId").ShouldBeTrueAsync();
-        await states.HasState("NewState").ShouldBeTrueAsync();
-        await states.HasState("UnknownState").ShouldBeFalseAsync();
-        (await states.Get<State>(stateId: "SomeId")).Value.ShouldBe("New Value");
-        (await states.Get<State>(stateId: "NewState")).Value.ShouldBe("NewState's Value");
-        
-        unhandledExceptionCatcher.ShouldNotHaveExceptions();
-    }
-    
     public abstract Task SaveChangesPersistsChangedResult();
     protected async Task SaveChangesPersistsChangedResult(Task<IFunctionStore> storeTask)
     {
@@ -1666,7 +1371,6 @@ public abstract class ControlPanelTests
 
         await controlPanel.Correlations.Register("SomeCorrelation");
         await controlPanel.Effects.SetSucceeded("SomeEffect");
-        await controlPanel.States.Set("SomeStateId", new TestState());
         await controlPanel.Messages.Append("Some Message");
         await controlPanel.RegisteredTimeouts.Upsert("SomeTimeout", expiresAt: DateTime.UtcNow.Add(TimeSpan.FromDays(1)));
         

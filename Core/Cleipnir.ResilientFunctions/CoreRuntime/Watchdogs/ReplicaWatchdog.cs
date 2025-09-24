@@ -9,12 +9,16 @@ using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.CoreRuntime.Watchdogs;
 
-internal class ReplicaWatchdog(ClusterInfo clusterInfo, IFunctionStore functionStore, TimeSpan checkFrequency, UnhandledExceptionHandler unhandledExceptionHandler) : IDisposable
+internal class ReplicaWatchdog(
+    ClusterInfo clusterInfo, 
+    IFunctionStore functionStore, 
+    TimeSpan leaseLength, 
+    UtcNow utcNow,
+    UnhandledExceptionHandler unhandledExceptionHandler) : IDisposable
 {
     private volatile bool _disposed;
     private bool _started;
     private bool _initialized;
-    private readonly Dictionary<StoredReplica, int> _strikes = new();
     private IReplicaStore ReplicaStore => functionStore.ReplicaStore;
     
     public async Task Start()
@@ -24,27 +28,18 @@ internal class ReplicaWatchdog(ClusterInfo clusterInfo, IFunctionStore functionS
             return;
         
         if (!_initialized)
-            await Initialize();
+            await Initialize(utcNow().Ticks);
         
         _ = Task.Run(Run);
     }
 
-    public async Task Initialize()
+    public async Task Initialize(long? utcNowTicks = null)
     {
-        await ReplicaStore.Insert(clusterInfo.ReplicaId);
+        await ReplicaStore.Insert(clusterInfo.ReplicaId, utcNowTicks ?? utcNow().Ticks);
         var replicas = await ReplicaStore.GetAll();
         var offset = CalculateOffset(replicas.Select(sr => sr.ReplicaId), clusterInfo.ReplicaId);
         if (offset is null)
             throw new InvalidOperationException("Replica offset was null after initialization");
-
-        var ownerReplicas = await functionStore.GetOwnerReplicas();
-        
-        //handle crashed orphan functions
-        var crashedReplicas = ownerReplicas
-            .Where(ownerReplicaId => replicas.All(storedReplica => storedReplica.ReplicaId != ownerReplicaId))
-            .ToList();
-        foreach (var crashedReplicaId in crashedReplicas)
-            await functionStore.RescheduleCrashedFunctions(crashedReplicaId);
         
         clusterInfo.ReplicaCount = (ulong) replicas.Count;
         clusterInfo.Offset = (ulong) offset.Value;
@@ -53,28 +48,52 @@ internal class ReplicaWatchdog(ClusterInfo clusterInfo, IFunctionStore functionS
 
     private async Task Run()
     {
+        var iteration = 0;
         while (!_disposed)
         {
             try
             {
-                await PerformIteration();
+                await PerformIteration(utcNow().Ticks);
             }
             catch (Exception ex)
             {
                 unhandledExceptionHandler.Invoke(new FrameworkException("ReplicaWatchdog failed during iteration", ex));
             }
             
-            await Task.Delay(checkFrequency);
+            await Task.Delay(leaseLength / 2);
+            iteration++;
+
+            if (iteration % 100 == 0)
+            {
+                _ = Task.Run(CheckForCrashedFunctions);
+                iteration = 0;
+            }
         }
     }
 
-   public async Task PerformIteration()
-    {
-        await ReplicaStore.UpdateHeartbeat(clusterInfo.ReplicaId);
+   public async Task PerformIteration(long utcNowTicks)
+   {
+        await ReplicaStore.UpdateHeartbeat(clusterInfo.ReplicaId, utcNowTicks);
         
         var storedReplicas = await ReplicaStore.GetAll();
         var offset = CalculateOffset(storedReplicas.Select(sr => sr.ReplicaId), clusterInfo.ReplicaId);
 
+        var threshold = (utcNowTicks - (2 * leaseLength).Ticks);
+        foreach (var crashedReplica in storedReplicas.Where(sr => sr.LatestHeartbeat < threshold))
+        {
+            if (crashedReplica.ReplicaId == clusterInfo.ReplicaId)
+            {
+                storedReplicas = await ReplicaStore.GetAll();
+                offset = CalculateOffset(storedReplicas.Select(sr => sr.ReplicaId), clusterInfo.ReplicaId);                
+                continue;                
+            }
+
+            await functionStore.RescheduleCrashedFunctions(crashedReplica.ReplicaId);
+            await ReplicaStore.Delete(crashedReplica.ReplicaId);
+            storedReplicas = await ReplicaStore.GetAll();
+            offset = CalculateOffset(storedReplicas.Select(sr => sr.ReplicaId), clusterInfo.ReplicaId);
+        }
+        
         if (offset is not null)
         {
             clusterInfo.Offset = (ulong) offset.Value;
@@ -82,17 +101,18 @@ internal class ReplicaWatchdog(ClusterInfo clusterInfo, IFunctionStore functionS
         }
         else
         {
-            await ReplicaStore.Insert(clusterInfo.ReplicaId);
-            _strikes.Clear();
-            await PerformIteration();
+            await Initialize();
         }
-        
-        IncrementStrikesCount();
-        ClearNonRelevantStrikes(storedReplicas);
-        AddNewStrikes(storedReplicas);
-        
-        await DeleteStrikedOutReplicas();
     }
+
+   public async Task CheckForCrashedFunctions()
+   {
+       var activeReplicas = (await ReplicaStore.GetAll()).Select(r => r.ReplicaId).ToHashSet();
+       var allOwners = await functionStore.GetOwnerReplicas();
+       var crashedOwners = allOwners.Where(o => !activeReplicas.Contains(o));
+       foreach (var crashedOwner in crashedOwners)
+           await functionStore.RescheduleCrashedFunctions(crashedOwner);
+   }
 
     public static int? CalculateOffset(IEnumerable<ReplicaId> allReplicaIds, ReplicaId ownReplicaId)
         => allReplicaIds
@@ -101,42 +121,6 @@ internal class ReplicaWatchdog(ClusterInfo clusterInfo, IFunctionStore functionS
             .Select((id, i) => new { Id = id, Index = i })
             .FirstOrDefault(a => a.Id == ownReplicaId)
             ?.Index;
-
-    private void ClearNonRelevantStrikes(IReadOnlyList<StoredReplica> storedReplicas)
-    {
-        foreach (var strikeKey in _strikes.Keys.ToList())
-            if (storedReplicas.All(sr => sr != strikeKey))
-                _strikes.Remove(strikeKey);
-    }
-    
-    private void AddNewStrikes(IReadOnlyList<StoredReplica> storedReplicas)
-    {
-        foreach (var storedReplica in storedReplicas)
-            _strikes.TryAdd(storedReplica, 0);
-    }
-    
-    private void IncrementStrikesCount()
-    {
-        foreach (var storedReplica in _strikes.Keys)
-            _strikes[storedReplica]++;
-    }
-
-    private async Task DeleteStrikedOutReplicas()
-    {
-        foreach (var (storedReplica, _) in _strikes.Where(kv => kv.Value >= 2))
-        {
-            var strikedOutId = storedReplica.ReplicaId;
-            await ReplicaStore.Delete(strikedOutId);
-            await functionStore.RescheduleCrashedFunctions(strikedOutId);
-            _ = Task
-                .Delay(TimeSpan.FromSeconds(5))
-                .ContinueWith(_ => { if (!_disposed) functionStore.RescheduleCrashedFunctions(strikedOutId); });
-            
-            _strikes.Remove(storedReplica);
-        }
-    }
-    
-    public IReadOnlyDictionary<StoredReplica, int> Strikes => _strikes;
 
     public void Stop() => Dispose();
     public void Dispose() => _disposed = true;

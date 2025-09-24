@@ -43,7 +43,7 @@ public class SqlServerMessageStore(string connectionString, SqlGenerator sqlGene
         await command.ExecuteNonQueryAsync();
     }
 
-    public async Task<FunctionStatus?> AppendMessage(StoredId storedId, StoredMessage storedMessage)
+    public async Task AppendMessage(StoredId storedId, StoredMessage storedMessage)
         => await AppendMessage(storedId, storedMessage, depth: 0);
 
     public async Task AppendMessages(IReadOnlyList<StoredIdAndMessage> messages, bool interrupt = true)
@@ -103,7 +103,7 @@ public class SqlServerMessageStore(string connectionString, SqlGenerator sqlGene
     }
 
     private string? _appendMessageSql;
-    private async Task<FunctionStatus?> AppendMessage(StoredId storedId, StoredMessage storedMessage, int depth)
+    private async Task AppendMessage(StoredId storedId, StoredMessage storedMessage, int depth)
     {
         await using var conn = await CreateConnection();
         
@@ -135,10 +135,8 @@ public class SqlServerMessageStore(string connectionString, SqlGenerator sqlGene
             // ReSharper disable once DisposeOnUsingVariable
             await conn.DisposeAsync();
             await Task.Delay(Random.Shared.Next(50, 250));
-            return await AppendMessage(storedId, storedMessage, depth + 1); 
+            await AppendMessage(storedId, storedMessage, depth + 1);
         }
-        
-        return await GetSuspensionStatus(storedId, conn);
     }
 
     private string? _replaceMessageSql;
@@ -256,10 +254,10 @@ public class SqlServerMessageStore(string connectionString, SqlGenerator sqlGene
     }
 
     private string? _getSuspensionStatusSql;
-    private async Task<FunctionStatus?> GetSuspensionStatus(StoredId storedId, SqlConnection connection)
+    private async Task<Status?> GetSuspensionStatus(StoredId storedId, SqlConnection connection)
     {
         _getSuspensionStatusSql ??= @$"    
-            SELECT Epoch, Status
+            SELECT Status
             FROM {tablePrefix}
             WHERE FlowType = @FlowType AND FlowInstance = @FlowInstance";
         await using var command = new SqlCommand(_getSuspensionStatusSql, connection);
@@ -269,9 +267,8 @@ public class SqlServerMessageStore(string connectionString, SqlGenerator sqlGene
         await using var reader = await command.ExecuteReaderAsync();
         while (await reader.ReadAsync())
         {
-            var epoch = reader.GetInt32(0);
-            var status = (Status) reader.GetInt32(1);
-            return new FunctionStatus(status, epoch);
+            var status = (Status) reader.GetInt32(0);
+            return status;
         }
 
         return null;

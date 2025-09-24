@@ -51,8 +51,7 @@ public class PostgreSqlMessageStore(string connectionString, SqlGenerator sqlGen
     }
 
     private string? _appendMessageSql;
-    private string? _getFunctionStatusInAppendMessageSql;
-    public async Task<FunctionStatus?> AppendMessage(StoredId storedId, StoredMessage storedMessage)
+    public async Task AppendMessage(StoredId storedId, StoredMessage storedMessage)
     {
         await using var conn = await CreateConnection();
         await using var batch = new NpgsqlBatch(conn);
@@ -80,32 +79,10 @@ public class PostgreSqlMessageStore(string connectionString, SqlGenerator sqlGen
             };
             batch.BatchCommands.Add(command);            
         }
-
-        { //get function status
-            _getFunctionStatusInAppendMessageSql ??= @$"    
-            SELECT epoch, status
-            FROM {_tablePrefix}
-            WHERE type = $1 AND instance = $2;";
-           
-            var command = new NpgsqlBatchCommand(_getFunctionStatusInAppendMessageSql)
-            {
-                Parameters = { 
-                    new() {Value = storedId.Type.Value},
-                    new() {Value = storedId.Instance.Value}
-                }
-            };
-            batch.BatchCommands.Add(command);  
-        }
-
+        
         try
         {
-            await using var reader = await batch.ExecuteReaderAsync();
-            while (await reader.ReadAsync())
-            {
-                var epoch = reader.GetInt32(0);
-                var status = (Status)reader.GetInt32(1);
-                return new FunctionStatus(status, epoch);
-            }
+            await batch.ExecuteNonQueryAsync();
         }
         catch (PostgresException e) when (e.SqlState == "23505")
         {
@@ -113,13 +90,9 @@ public class PostgreSqlMessageStore(string connectionString, SqlGenerator sqlGen
             {
                 await Task.Delay(Random.Shared.Next(10, 250));
                 conn.Dispose();
-                return await AppendMessage(storedId, storedMessage);
+                await AppendMessage(storedId, storedMessage);
             }
-            //read status separately
-            return await GetSuspensionStatus(storedId);
         } //ignore entry already exist error
-
-        return null;
     }
 
     public async Task AppendMessages(IReadOnlyList<StoredIdAndMessage> messages, bool interrupt = true)
@@ -261,7 +234,7 @@ public class PostgreSqlMessageStore(string connectionString, SqlGenerator sqlGen
     {
         await using var conn = await CreateConnection();
         _getSuspensionStatusSql ??= @$"    
-            SELECT epoch, status
+            SELECT status
             FROM {_tablePrefix}
             WHERE type = $1 AND instance = $2;";
         await using var command = new NpgsqlCommand(_getSuspensionStatusSql, conn)
@@ -275,9 +248,8 @@ public class PostgreSqlMessageStore(string connectionString, SqlGenerator sqlGen
         await using var reader = await command.ExecuteReaderAsync();
         while (await reader.ReadAsync())
         {
-            var epoch = reader.GetInt32(0);
             var status = (Status) reader.GetInt32(1);
-            return new FunctionStatus(status, epoch);
+            return new FunctionStatus(status);
         }
 
         throw UnexpectedStateException.ConcurrentModification(storedId); //row must have been deleted concurrently

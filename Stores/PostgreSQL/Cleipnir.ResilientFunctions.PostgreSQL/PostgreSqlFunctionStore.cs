@@ -79,8 +79,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         _initializeSql ??= $@"
             CREATE TABLE IF NOT EXISTS {_tableName} (
                 type INT NOT NULL,
-                instance UUID NOT NULL,
-                epoch INT NOT NULL DEFAULT 0,
+                instance UUID NOT NULL,              
                 expires BIGINT NOT NULL,
                 interrupted BOOLEAN NOT NULL DEFAULT FALSE,
                 param_json BYTEA NULL,            
@@ -95,7 +94,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
             );
             CREATE INDEX IF NOT EXISTS idx_{_tableName}_expires
             ON {_tableName}(expires, type, instance)
-            INCLUDE (epoch)
+            INCLUDE (owner)
             WHERE status = {(int) Status.Executing} OR status = {(int) Status.Postponed};           
 
             CREATE INDEX IF NOT EXISTS idx_{_tableName}_succeeded
@@ -236,9 +235,9 @@ public class PostgreSqlFunctionStore : IFunctionStore
         }
     }
 
-    public async Task<StoredFlowWithEffectsAndMessages?> RestartExecution(StoredId storedId, int expectedEpoch, long leaseExpiration, ReplicaId replicaId)
+    public async Task<StoredFlowWithEffectsAndMessages?> RestartExecution(StoredId storedId, ReplicaId replicaId)
     {
-        var restartCommand = _sqlGenerator.RestartExecution(storedId, expectedEpoch, leaseExpiration, replicaId);
+        var restartCommand = _sqlGenerator.RestartExecution(storedId, replicaId);
         var effectsCommand = _sqlGenerator.GetEffects(storedId);
         var messagesCommand = _sqlGenerator.GetMessages(storedId, skip: 0);
         
@@ -250,7 +249,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         await using var reader = await command.ExecuteReaderAsync();
         
         var sf = await _sqlGenerator.ReadFunction(storedId, reader);
-        if (sf?.Epoch != expectedEpoch + 1)
+        if (sf?.OwnerId != replicaId)
             return null;
         await reader.NextResultAsync();
         var effects = await _sqlGenerator.ReadEffects(reader);
@@ -260,32 +259,14 @@ public class PostgreSqlFunctionStore : IFunctionStore
         return new StoredFlowWithEffectsAndMessages(sf, effects, messages);
     }
 
-    public async Task<int> RenewLeases(IReadOnlyList<LeaseUpdate> leaseUpdates, long leaseExpiration)
-    {
-        var predicates = leaseUpdates
-            .Select(u =>
-                $"(type = {u.StoredId.Type.Value} AND instance = '{u.StoredId.Instance.Value}' AND epoch = {u.ExpectedEpoch})"
-            ).StringJoin(" OR " + Environment.NewLine);
-        
-        var sql = $@"
-            UPDATE {_tableName}
-            SET expires = {leaseExpiration}
-            WHERE {predicates}";
-
-        await using var conn = await CreateConnection();
-        await using var command = new NpgsqlCommand(sql, conn);
-
-        return await command.ExecuteNonQueryAsync();
-    }
-
     private string? _getExpiredFunctionsSql;
-    public async Task<IReadOnlyList<IdAndEpoch>> GetExpiredFunctions(long expiresBefore)
+    public async Task<IReadOnlyList<StoredId>> GetExpiredFunctions(long expiresBefore)
     {
         await using var conn = await CreateConnection();
         _getExpiredFunctionsSql ??= @$"
-            SELECT type, instance, epoch
+            SELECT type, instance
             FROM {_tableName}
-            WHERE expires <= $1 AND (status = {(int) Status.Postponed} OR status = {(int) Status.Executing})";
+            WHERE expires <= $1 AND status = {(int) Status.Postponed}";
         await using var command = new NpgsqlCommand(_getExpiredFunctionsSql, conn)
         {
             Parameters =
@@ -295,17 +276,15 @@ public class PostgreSqlFunctionStore : IFunctionStore
         };
         
         await using var reader = await command.ExecuteReaderAsync();
-        var functions = new List<IdAndEpoch>();
+        var ids = new List<StoredId>();
         while (await reader.ReadAsync())
         {
-            var type = reader.GetInt32(0);
+            var type = reader.GetInt32(0).ToStoredType();
             var instance = reader.GetGuid(1).ToStoredInstance();
-            var epoch = reader.GetInt32(2);
-            var flowId = new StoredId(new StoredType(type), instance);
-            functions.Add(new IdAndEpoch(flowId, epoch));
+            ids.Add(new StoredId(type, instance));
         }
 
-        return functions;
+        return ids;
     }
 
     private string? _getSucceededFunctionsSql;
@@ -342,7 +321,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         byte[]? param, byte[]? result, 
         StoredException? storedException, 
         long expires,
-        int expectedEpoch)
+        ReplicaId? expectedReplica)
     {
         await using var conn = await CreateConnection();
        
@@ -351,13 +330,13 @@ public class PostgreSqlFunctionStore : IFunctionStore
             SET status = $1,
                 param_json = $2, 
                 result_json = $3, 
-                exception_json = $4, expires = $5,
-                epoch = epoch + 1
-            WHERE 
-                type = $6 AND 
-                instance = $7 AND 
-                epoch = $8";
-        await using var command = new NpgsqlCommand(_setFunctionStateSql, conn)
+                exception_json = $4, expires = $5
+            WHERE type = $6 AND instance = $7";
+
+        var sql = expectedReplica == null
+            ? _setFunctionStateSql + " AND owner IS NULL;"
+            : _setFunctionStateSql + $" AND owner = '{expectedReplica.AsGuid}'";
+        await using var command = new NpgsqlCommand(sql, conn)
         {
             Parameters =
             {
@@ -367,8 +346,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 new() {Value = storedException == null ? DBNull.Value : JsonSerializer.Serialize(storedException)},
                 new() {Value = expires },
                 new() {Value = storedId.Type.Value},
-                new() {Value = storedId.Instance.Value},
-                new() {Value = expectedEpoch},
+                new() {Value = storedId.Instance.Value}
             }
         };
 
@@ -380,7 +358,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         StoredId storedId, 
         byte[]? result, 
         long timestamp,
-        int expectedEpoch, 
+        ReplicaId expectedReplica, 
         IReadOnlyList<StoredEffect>? effects,
         IReadOnlyList<StoredMessage>? messages,
         ComplimentaryState complimentaryState)
@@ -390,7 +368,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
             storedId,
             result,
             timestamp,
-            expectedEpoch
+            expectedReplica
         ).ToNpgsqlCommand(conn);
         
         var affectedRows = await command.ExecuteNonQueryAsync();
@@ -402,7 +380,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         long postponeUntil, 
         long timestamp,
         bool ignoreInterrupted,
-        int expectedEpoch, 
+        ReplicaId expectedReplica,
         IReadOnlyList<StoredEffect>? effects,
         IReadOnlyList<StoredMessage>? messages,
         ComplimentaryState complimentaryState)
@@ -413,7 +391,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
             postponeUntil,
             timestamp,
             ignoreInterrupted,
-            expectedEpoch
+            expectedReplica
         ).ToNpgsqlCommand(conn);
         
         var affectedRows = await command.ExecuteNonQueryAsync();
@@ -424,7 +402,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         StoredId storedId, 
         StoredException storedException, 
         long timestamp,
-        int expectedEpoch, 
+        ReplicaId expectedReplica, 
         IReadOnlyList<StoredEffect>? effects,
         IReadOnlyList<StoredMessage>? messages,
         ComplimentaryState complimentaryState)
@@ -434,7 +412,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
             storedId,
             storedException,
             timestamp,
-            expectedEpoch
+            expectedReplica
         ).ToNpgsqlCommand(conn);
         
         var affectedRows = await command.ExecuteNonQueryAsync();
@@ -444,7 +422,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
     public async Task<bool> SuspendFunction(
         StoredId storedId, 
         long timestamp,
-        int expectedEpoch, 
+        ReplicaId expectedReplica, 
         IReadOnlyList<StoredEffect>? effects,
         IReadOnlyList<StoredMessage>? messages,
         ComplimentaryState complimentaryState)
@@ -452,7 +430,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         await using var conn = await CreateConnection();
 
         await using var command = _sqlGenerator
-            .SuspendFunction(storedId, timestamp, expectedEpoch)
+            .SuspendFunction(storedId, timestamp, expectedReplica)
             .ToNpgsqlCommand(conn);
         var affectedRows = await command.ExecuteNonQueryAsync();
         return affectedRows == 1;
@@ -486,8 +464,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
             UPDATE {_tableName}
             SET status = {(int) Status.Postponed},
                 expires = 0,
-                owner = NULL,
-                epoch = epoch + 1
+                owner = NULL
             WHERE 
                 owner = $1";
         await using var command = new NpgsqlCommand(_rescheduleFunctionsSql, conn)
@@ -505,18 +482,20 @@ public class PostgreSqlFunctionStore : IFunctionStore
     public async Task<bool> SetParameters(
         StoredId storedId,
         byte[]? param, byte[]? result,
-        int expectedEpoch)
+        ReplicaId? expectedReplica)
     {
         await using var conn = await CreateConnection();
         
         _setParametersSql ??= $@"
             UPDATE {_tableName}
             SET param_json = $1,             
-                result_json = $2, 
-                epoch = epoch + 1
-            WHERE type = $3 AND instance = $4 AND epoch = $5";
-        
-        await using var command = new NpgsqlCommand(_setParametersSql, conn)
+                result_json = $2
+            WHERE type = $3 AND instance = $4";
+
+        var sql = expectedReplica == null
+            ? _setParametersSql + " AND owner IS NULL;"
+            : _setParametersSql + $" AND owner = '{expectedReplica.AsGuid:N}'";
+        await using var command = new NpgsqlCommand(sql, conn)
         {
             Parameters =
             {
@@ -524,7 +503,6 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 new() { Value = result ?? (object) DBNull.Value },
                 new() { Value = storedId.Type.Value },
                 new() { Value = storedId.Instance.Value },
-                new() { Value = expectedEpoch },
             }
         };
         
@@ -597,11 +575,11 @@ public class PostgreSqlFunctionStore : IFunctionStore
     }
 
     private string? _getFunctionStatusSql;
-    public async Task<StatusAndEpoch?> GetFunctionStatus(StoredId storedId)
+    public async Task<Status?> GetFunctionStatus(StoredId storedId)
     {
         await using var conn = await CreateConnection();
         _getFunctionStatusSql ??= $@"
-            SELECT status, epoch
+            SELECT status
             FROM {_tableName}
             WHERE type = $1 AND instance = $2;";
         await using var command = new NpgsqlCommand(_getFunctionStatusSql, conn)
@@ -615,16 +593,13 @@ public class PostgreSqlFunctionStore : IFunctionStore
         await using var reader = await command.ExecuteReaderAsync();
         while (await reader.ReadAsync())
         {
-            return new StatusAndEpoch(
-                (Status) reader.GetInt32(0),
-                Epoch: reader.GetInt32(1)
-            );
+            return (Status)reader.GetInt32(0);
         }
 
         return null;
     }
 
-    public async Task<IReadOnlyList<StatusAndEpochWithId>> GetFunctionsStatus(IEnumerable<StoredId> storedIds)
+    public async Task<IReadOnlyList<StatusAndId>> GetFunctionsStatus(IEnumerable<StoredId> storedIds)
     {
         var predicates = storedIds
             .Select(s => new { Type = s.Type.Value, Instance = s.Instance.Value })
@@ -633,25 +608,24 @@ public class PostgreSqlFunctionStore : IFunctionStore
             .StringJoin(" OR " + Environment.NewLine);
 
         var sql = @$"
-            SELECT type, instance, status, epoch, expires
+            SELECT type, instance, status, expires
             FROM {_tableName}
             WHERE {predicates}";
 
         await using var conn = await CreateConnection();
         await using var command = new NpgsqlCommand(sql, conn);
         
-        var toReturn = new List<StatusAndEpochWithId>();
+        var toReturn = new List<StatusAndId>();
         await using var reader = await command.ExecuteReaderAsync();
         while (await reader.ReadAsync())
         {
             var type = reader.GetInt32(0).ToStoredType();
             var instance = reader.GetGuid(1).ToStoredInstance();
             var status = (Status) reader.GetInt32(2);
-            var epoch = reader.GetInt32(3);
-            var expires = reader.GetInt64(4);
+            var expires = reader.GetInt64(3);
 
             var storedId = new StoredId(type, instance);
-            toReturn.Add(new StatusAndEpochWithId(storedId, status, epoch, expires));
+            toReturn.Add(new StatusAndId(storedId, status, expires));
         }
         
         return toReturn;
@@ -668,7 +642,6 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 result_json,         
                 exception_json,
                 expires,
-                epoch, 
                 interrupted,
                 timestamp,
                 human_instance_id,
@@ -753,35 +726,33 @@ public class PostgreSqlFunctionStore : IFunctionStore
            1  status,
            2  result_json,         
            3  exception_json,
-           4  expires,
-           5  epoch,         
-           6 interrupted,
-           7 timestamp,
-           8 human_instance_id
-           9 parent
-           10 owner
+           4  expires,     
+           5 interrupted,
+           6 timestamp,
+           7 human_instance_id
+           8 parent
+           9 owner
          */
         while (await reader.ReadAsync())
         {
             var hasParameter = !await reader.IsDBNullAsync(0);
             var hasResult = !await reader.IsDBNullAsync(2);
             var hasException = !await reader.IsDBNullAsync(3);
-            var hasParent = !await reader.IsDBNullAsync(9);
-            var hasOwner = !await reader.IsDBNullAsync(10);
+            var hasParent = !await reader.IsDBNullAsync(8);
+            var hasOwner = !await reader.IsDBNullAsync(9);
             
             return new StoredFlow(
                 storedId,
-                HumanInstanceId: reader.GetString(8),
+                HumanInstanceId: reader.GetString(7),
                 hasParameter ? (byte[]) reader.GetValue(0) : null,
                 Status: (Status) reader.GetInt32(1),
                 Result: hasResult ? (byte[]) reader.GetValue(2) : null, 
                 Exception: !hasException ? null : JsonSerializer.Deserialize<StoredException>(reader.GetString(3)),
                 Expires: reader.GetInt64(4),
-                Epoch: reader.GetInt32(5),
-                Interrupted: reader.GetBoolean(6),
-                Timestamp: reader.GetInt64(7),
-                ParentId: hasParent ? StoredId.Deserialize(reader.GetString(9)) : null,
-                OwnerId: hasOwner ? reader.GetGuid(10).ToReplicaId() : null
+                Interrupted: reader.GetBoolean(5),
+                Timestamp: reader.GetInt64(6),
+                ParentId: hasParent ? StoredId.Deserialize(reader.GetString(8)) : null,
+                OwnerId: hasOwner ? reader.GetGuid(9).ToReplicaId() : null
             );
         }
 
@@ -796,6 +767,12 @@ public class PostgreSqlFunctionStore : IFunctionStore
 
         return await DeleteStoredFunction(storedId);
     }
+
+    public IFunctionStore WithPrefix(string prefix)
+        => new PostgreSqlFunctionStore(
+            _connectionString,
+            prefix
+        );
 
     private string? _deleteFunctionSql;
     private async Task<bool> DeleteStoredFunction(StoredId storedId)

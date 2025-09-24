@@ -43,7 +43,6 @@ public class FuncRegistration<TParam, TReturn> : BaseRegistration where TParam :
     public FuncRegistration.BulkSchedule<TParam, TReturn> BulkSchedule { get; } 
     
     private readonly ControlPanelFactory<TParam,TReturn> _controlPanelFactory;
-    private readonly StateFetcher _stateFetcher;
     public MessageWriters MessageWriters { get; }
 
     public FuncRegistration(
@@ -56,7 +55,6 @@ public class FuncRegistration<TParam, TReturn> : BaseRegistration where TParam :
         FuncRegistration.BulkSchedule<TParam, TReturn> bulkSchedule,
         ControlPanelFactory<TParam, TReturn> controlPanelFactory, 
         MessageWriters messageWriters, 
-        StateFetcher stateFetcher,
         Postman postman,
         UtcNow utcNow
     ) : base(storedType, postman, functionStore, utcNow)
@@ -70,24 +68,15 @@ public class FuncRegistration<TParam, TReturn> : BaseRegistration where TParam :
 
         _controlPanelFactory = controlPanelFactory;
         MessageWriters = messageWriters;
-        _stateFetcher = stateFetcher;
     }
 
     public Task<ControlPanel<TParam, TReturn>?> ControlPanel(FlowInstance flowInstance)
         => _controlPanelFactory.Create(flowInstance);
 
-    public Task<TState?> GetState<TState>(FlowInstance instance, StateId? stateId = null) 
-        where TState : FlowState, new()
-    {
-        return stateId is null 
-            ? _stateFetcher.FetchState<TState>(instance) 
-            : _stateFetcher.FetchState<TState>(instance, stateId);
-    }
-
     public Task ScheduleIn(string flowInstance, TParam param, TimeSpan delay, bool? detach = null) 
         => ScheduleAt(flowInstance, param, delayUntil: UtcNow().Add(delay), detach);
     
-    public async Task<Finding> SendMessage<T>(
+    public async Task SendMessage<T>(
         FlowInstance flowInstance,
         T message,
         string? idempotencyKey = null

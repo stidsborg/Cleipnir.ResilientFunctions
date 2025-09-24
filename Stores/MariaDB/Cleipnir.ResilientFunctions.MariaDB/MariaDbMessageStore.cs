@@ -47,7 +47,7 @@ public class MariaDbMessageStore : IMessageStore
     }
 
     private string? _appendMessageSql;
-    public async Task<FunctionStatus?> AppendMessage(StoredId storedId, StoredMessage storedMessage)
+    public async Task AppendMessage(StoredId storedId, StoredMessage storedMessage)
     {
         for (var i = 0; i < 10; i++) //retry if deadlock occurs
             try
@@ -63,11 +63,7 @@ public class MariaDbMessageStore : IMessageStore
                     SELECT ?, ?, COALESCE(MAX(position), -1) + 1, ?, ?, ? 
                         FROM {_tablePrefix}_messages
                         WHERE type = ? AND instance = ?;
-                    SELECT RELEASE_LOCK(?);
-
-                    SELECT epoch, status
-                    FROM {_tablePrefix}
-                    WHERE type = ? AND instance = ?;";
+                    SELECT RELEASE_LOCK(?);";
 
                 await using var command = new MySqlCommand(_appendMessageSql, conn)
                 {
@@ -87,15 +83,8 @@ public class MariaDbMessageStore : IMessageStore
                     }
                 };
                 
-                await using var reader = await command.ExecuteReaderAsync();
-                await reader.NextResultAsync();
-                await reader.NextResultAsync();
-                while (await reader.ReadAsync())
-                {
-                    var epoch = reader.GetInt32(0);
-                    var status = (Status)reader.GetInt32(1);
-                    return new FunctionStatus(status, epoch);
-                }
+                await command.ExecuteNonQueryAsync();
+                return;
             }
             catch (MySqlException e) when (e.Number == 1213) //deadlock found when trying to get lock; try restarting transaction
             {
@@ -104,8 +93,6 @@ public class MariaDbMessageStore : IMessageStore
 
                 await Task.Delay(Random.Shared.Next(10, 250));
             }
-
-        return null;
     }
 
     public async Task AppendMessages(IReadOnlyList<StoredIdAndMessage> messages, bool interrupt = true)

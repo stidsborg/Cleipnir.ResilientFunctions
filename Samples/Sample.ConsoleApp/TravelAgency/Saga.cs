@@ -9,7 +9,7 @@ public static class Saga
 {
     public static async Task BookTravel(BookingRequest bookingRequest, Workflow workflow)
     {
-        var (effect, messages, _) = workflow;
+        var (effect, messages) = workflow;
         var (bookingId, customerId, amount, details) = bookingRequest;
         
         await effect.Capture(

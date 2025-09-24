@@ -12,28 +12,29 @@ public class MariaDbReplicaStore(string connectionString, string tablePrefix) : 
         _initializeSql ??= $@"
             CREATE TABLE IF NOT EXISTS {tablePrefix}_replicas (
                 id CHAR(32) PRIMARY KEY,
-                heartbeat INT
+                heartbeat BIGINT
             );";
         await using var conn = await CreateConnection();
         var command = new MySqlCommand(_initializeSql, conn);
         await command.ExecuteNonQueryAsync();
     }
-
+    
     private string? _insertSql;
-    public async Task Insert(ReplicaId replicaId)
+    public async Task Insert(ReplicaId replicaId, long timeStamp)
     {
         _insertSql ??= $@"
             INSERT INTO {tablePrefix}_replicas
                 (id, heartbeat)
             VALUES
-                (?, 0)";
+                (?, ?)";
         
         await using var conn = await CreateConnection();
         await using var command = new MySqlCommand(_insertSql, conn)
         {
             Parameters =
             {
-                new() {Value = replicaId.AsGuid.ToString("N")}
+                new() {Value = replicaId.AsGuid.ToString("N")},
+                new() {Value = timeStamp},
             }
         };
 
@@ -56,13 +57,13 @@ public class MariaDbReplicaStore(string connectionString, string tablePrefix) : 
 
         await command.ExecuteNonQueryAsync();
     }
-
+    
     private string? _updateHeartbeatSql;
-    public async Task UpdateHeartbeat(ReplicaId replicaId)
+    public async Task<bool> UpdateHeartbeat(ReplicaId replicaId, long timeStamp)
     {
         _updateHeartbeatSql ??= $@"
             UPDATE {tablePrefix}_replicas
-            SET heartbeat = heartbeat + 1
+            SET heartbeat = ?
             WHERE id = ?";
         
         await using var conn = await CreateConnection();
@@ -70,11 +71,13 @@ public class MariaDbReplicaStore(string connectionString, string tablePrefix) : 
         {
             Parameters =
             {
+                new() {Value = timeStamp},
                 new() {Value = replicaId.AsGuid.ToString("N")}
             }
         };
 
-        await command.ExecuteNonQueryAsync();
+        var affectedRows = await command.ExecuteNonQueryAsync();
+        return affectedRows > 0;
     }
 
     private string? _getAllSql;
@@ -90,7 +93,7 @@ public class MariaDbReplicaStore(string connectionString, string tablePrefix) : 
         while (await reader.ReadAsync())
         {
             var id = Guid.Parse(reader.GetString(0));
-            var heartbeat = reader.GetInt32(1);
+            var heartbeat = reader.GetInt64(1);
             storedReplicas.Add(new StoredReplica(id.ToReplicaId(), heartbeat));
         }
 
