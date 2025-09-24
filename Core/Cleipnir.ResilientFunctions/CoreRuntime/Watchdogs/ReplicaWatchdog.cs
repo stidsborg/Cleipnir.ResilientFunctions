@@ -81,6 +81,9 @@ internal class ReplicaWatchdog(
         var threshold = (utcNowTicks - (2 * leaseLength).Ticks);
         foreach (var crashedReplica in storedReplicas.Where(sr => sr.LatestHeartbeat < threshold))
         {
+            if (crashedReplica.ReplicaId == clusterInfo.ReplicaId)
+                continue;
+            
             await functionStore.RescheduleCrashedFunctions(crashedReplica.ReplicaId);
             await ReplicaStore.Delete(crashedReplica.ReplicaId);
             storedReplicas = await ReplicaStore.GetAll();
