@@ -71,13 +71,12 @@ public abstract class MessagesTests
     protected async Task MessagesFirstOfTypesReturnsNoneForFirstOfTypesOnTimeout(Task<IFunctionStore> functionStoreTask)
     {
         var flowId = TestFlowId.Create();
-        var storedId = flowId.ToStoredId(new StoredType(1));
         var functionStore = await functionStoreTask;
 
-        var functionRegistry = new FunctionsRegistry(
+        using var functionRegistry = new FunctionsRegistry(
             functionStore,
-            settings: new Settings(watchdogCheckFrequency: TimeSpan.FromSeconds(1), messagesDefaultMaxWaitForCompletion: TimeSpan.MaxValue)
-            );
+            settings: new Settings(messagesDefaultMaxWaitForCompletion: TimeSpan.MaxValue)
+        );
 
         var registration = functionRegistry.RegisterParamless(
             flowId.Type,
