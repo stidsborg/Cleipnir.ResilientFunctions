@@ -41,7 +41,7 @@ namespace Cleipnir.ResilientFunctions.PostgreSQL.Tests
 
         private static async Task<PostgreSqlFunctionStore> CreateAndInitializeStore(string testClass, string testMethod)
         {
-            var store = new PostgreSqlFunctionStore(ConnectionString); 
+            var store = new PostgreSqlFunctionStore(ConnectionString, tablePrefix: testClass); 
             await store.Initialize();
             await store.TruncateTables();
             return store;
