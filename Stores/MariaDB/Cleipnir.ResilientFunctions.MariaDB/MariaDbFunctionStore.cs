@@ -716,7 +716,8 @@ public class MariaDbFunctionStore : IFunctionStore
                 Interrupted: reader.GetBoolean(interruptedIndex),
                 Timestamp: reader.GetInt64(timestampIndex),
                 ParentId: hasParent ? StoredId.Deserialize(reader.GetString(parentIndex)) : null,
-                OwnerId: hasOwner ? reader.GetString(ownerIndex).ParseToReplicaId() : null
+                OwnerId: hasOwner ? reader.GetString(ownerIndex).ParseToReplicaId() : null,
+                StoredType: storedId.Type
             );
         }
 

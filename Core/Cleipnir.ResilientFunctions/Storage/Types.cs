@@ -68,7 +68,8 @@ public record StoredFlow(
     long Timestamp,
     bool Interrupted,
     StoredId? ParentId,
-    ReplicaId? OwnerId
+    ReplicaId? OwnerId,
+    StoredType StoredType
 );
 
 public record StoredException(string ExceptionMessage, string? ExceptionStackTrace, string ExceptionType);

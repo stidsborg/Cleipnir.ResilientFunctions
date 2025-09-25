@@ -752,7 +752,8 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 Interrupted: reader.GetBoolean(5),
                 Timestamp: reader.GetInt64(6),
                 ParentId: hasParent ? StoredId.Deserialize(reader.GetString(8)) : null,
-                OwnerId: hasOwner ? reader.GetGuid(9).ToReplicaId() : null
+                OwnerId: hasOwner ? reader.GetGuid(9).ToReplicaId() : null,
+                StoredType: storedId.Type
             );
         }
 

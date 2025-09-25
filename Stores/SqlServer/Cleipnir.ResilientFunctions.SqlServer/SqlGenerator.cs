@@ -415,7 +415,8 @@ public class SqlGenerator(string tablePrefix)
                     timestamp,
                     interrupted,
                     parentId,
-                    ownerId
+                    ownerId,
+                    storedId.Type
                 );
             }
         }

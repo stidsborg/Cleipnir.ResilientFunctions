@@ -356,7 +356,8 @@ public class SqlGenerator(string tablePrefix)
                 Interrupted: reader.GetBoolean(5),
                 Timestamp: reader.GetInt64(6),
                 ParentId: hasParent ? StoredId.Deserialize(reader.GetString(8)) : null,
-                OwnerId: hasOwner ? new ReplicaId(reader.GetGuid(9)) : null
+                OwnerId: hasOwner ? new ReplicaId(reader.GetGuid(9)) : null,
+                StoredType: storedId.Type
             );
         }
 

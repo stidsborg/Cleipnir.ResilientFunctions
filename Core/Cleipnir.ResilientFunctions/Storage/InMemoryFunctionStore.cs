@@ -424,7 +424,8 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
                     state.Timestamp,
                     state.Interrupted,
                     state.Parent,
-                    state.Owner
+                    state.Owner,
+                    storedId.Type
                 )
                 .ToNullable()
                 .ToTask();

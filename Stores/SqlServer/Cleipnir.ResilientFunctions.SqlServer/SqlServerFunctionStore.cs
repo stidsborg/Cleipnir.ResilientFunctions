@@ -750,7 +750,8 @@ public class SqlServerFunctionStore : IFunctionStore
                     timestamp,
                     interrupted,
                     parentId,
-                    ownerId
+                    ownerId,
+                    storedId.Type
                 );
             }
         }
