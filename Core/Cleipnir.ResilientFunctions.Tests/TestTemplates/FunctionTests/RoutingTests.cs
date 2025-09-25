@@ -240,13 +240,14 @@ public abstract class RoutingTests
                 await workflow.Messages.FirstOfType<SomeCorrelatedMessage>();
             }
         );
+        var storedType = registration.StoredType;
 
         await registration.Schedule(flowInstance1);
         await registration.Schedule(flowInstance2);
 
         await BusyWait.Until(() => store
             .CorrelationStore
-            .GetCorrelations(correlationId)
+            .GetCorrelations(storedType, correlationId)
             .SelectAsync(l => l.Count == 2)
         );
 
