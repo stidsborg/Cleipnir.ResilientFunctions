@@ -26,7 +26,7 @@ public abstract class BaseRegistration
     public Task RouteMessage<T>(T message, string correlationId, string? idempotencyKey = null) where T : notnull 
         => Postman.RouteMessage(message, correlationId, idempotencyKey);
     
-    public StoredId MapToStoredId(FlowInstance instance) => new(StoredType, instance.Value.ToStoredInstance());
+    public StoredId MapToStoredId(FlowInstance instance) => new(StoredType, instance.Value.ToStoredInstance(StoredType));
 
     public async Task<IReadOnlyList<StoredInstance>> GetInstances(Status? status = null)
     {
@@ -37,7 +37,7 @@ public abstract class BaseRegistration
     }
 
     public Task Interrupt(IEnumerable<FlowInstance> instances)
-        => Interrupt(instances.Select(i => i.ToStoredInstance()));
+        => Interrupt(instances.Select(i => i.ToStoredInstance(StoredType)));
     public async Task Interrupt(IEnumerable<StoredInstance> storedInstances) 
         => await _functionStore.Interrupt(storedInstances.Select(si => new StoredId(StoredType, si)).ToList());
 }

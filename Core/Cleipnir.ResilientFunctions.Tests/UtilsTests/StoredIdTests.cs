@@ -10,10 +10,10 @@ public class StoredIdTests
     [TestMethod]
     public void ToGuidIsSameForTwoEqualStoredIds()
     {
-        var id1 = new StoredId(1.ToStoredType(), "Instance#1".ToStoredInstance());
-        var id2 = new StoredId(1.ToStoredType(), "Instance#1".ToStoredInstance());
-        var id3 = new StoredId(2.ToStoredType(), "Instance#1".ToStoredInstance());
-        var id4 = new StoredId(1.ToStoredType(), "Instance#2".ToStoredInstance());
+        var id1 = new StoredId(1.ToStoredType(), "Instance#1".ToStoredInstance(1.ToStoredType()));
+        var id2 = new StoredId(1.ToStoredType(), "Instance#1".ToStoredInstance(2.ToStoredType()));
+        var id3 = new StoredId(2.ToStoredType(), "Instance#1".ToStoredInstance(3.ToStoredType()));
+        var id4 = new StoredId(1.ToStoredType(), "Instance#2".ToStoredInstance(4.ToStoredType()));
 
         id1.ToGuid().ShouldBe(id2.ToGuid());
         id1.ToGuid().ShouldNotBe(id3.ToGuid());
@@ -72,5 +72,17 @@ public class StoredIdTests
         var hash2 = StoredIdFactory.FromLong(1L);
         
         hash1.ShouldBe(hash2);
+    }
+    
+    [TestMethod]
+    public void TypeCanBeExtractedFromId()
+    {
+        var id = StoredInstance.Create("SomeInstanceId", new StoredType(1));
+        id.StoredType.Value.ShouldBe(1);
+        
+        var id2 = StoredInstance.Create("SomeInstanceId", new StoredType(2));
+        id2.StoredType.Value.ShouldBe(2);
+        
+        id2.Value.ShouldNotBe(id.Value);
     }
 }

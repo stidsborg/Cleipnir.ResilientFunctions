@@ -376,7 +376,7 @@ public abstract class SuspensionTests
             var childrenStatus = await param
                 .Split(" ")
                 .Select((_, i) => store
-                    .GetFunction(new StoredId(child.StoredType, $"Child{i}".ToStoredInstance()))
+                    .GetFunction(new StoredId(child.StoredType, $"Child{i}".ToStoredInstance(child.StoredType)))
                     .SelectAsync(sf => new { Name = $"Child{i}", Status = sf?.Status })
                 )
                 .AwaitAll();
@@ -573,7 +573,7 @@ public abstract class SuspensionTests
         result.ShouldBe("HELLO WORLD");
         
         var childStoredFunction = await store
-            .GetFunction(new StoredId(child.StoredType, StoredInstance.Create("Child")))
+            .GetFunction(new StoredId(child.StoredType, StoredInstance.Create("Child", child.StoredType)))
             .ShouldNotBeNullAsync();
 
         var parentStoredId = parentId.ToStoredId(parent.StoredType);
@@ -759,7 +759,7 @@ public abstract class SuspensionTests
         
         succeedFlag.Raise();
 
-        await registration.Interrupt(flows.Select(f => f.ToStoredInstance()));
+        await registration.Interrupt(flows.Select(f => f.ToStoredInstance(registration.StoredType)));
         
         foreach (var flow in flows)
             await (await registration.ControlPanel(flow))!.BusyWaitUntil(cp => cp.Status == Status.Succeeded);

@@ -25,7 +25,7 @@ public class MessageWriters
 
     public MessageWriter For(FlowInstance instance)
     {
-        var storedId = new StoredId(_storedType, instance.Value.ToStoredInstance());
+        var storedId = new StoredId(_storedType, instance.Value.ToStoredInstance(_storedType));
         return new MessageWriter(storedId, _functionStore, _serializer);
     }
     
@@ -40,7 +40,7 @@ public class MessageWriters
         var storedIdAndMessages = new List<StoredIdAndMessage>(messages.Count);
         foreach (var (instance, message, idempotencyKey) in messages)
         {
-            var storedId = new StoredId(_storedType, instance.Value.ToStoredInstance());
+            var storedId = new StoredId(_storedType, instance.Value.ToStoredInstance(_storedType));
             var (content, type) = _serializer.SerializeMessage(message, message.GetType());
             var storedMessage = new StoredMessage(content, type, idempotencyKey);
             storedIdAndMessages.Add(new StoredIdAndMessage(storedId,storedMessage));

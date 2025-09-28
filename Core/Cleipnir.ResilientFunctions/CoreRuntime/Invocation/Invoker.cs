@@ -373,7 +373,7 @@ public class Invoker<TParam, TReturn>
     private (FlowId, StoredId) CreateIds(FlowInstance instanceId)
         => CreateIds(instanceId.Value);
     private (FlowId, StoredId) CreateIds(string instanceId)
-        => (new FlowId(_flowType, instanceId), new StoredId(_storedType, instanceId.ToStoredInstance()));
+        => (new FlowId(_flowType, instanceId), new StoredId(_storedType, instanceId.ToStoredInstance(_storedType)));
 
     private Workflow? GetAndEnsureParent(bool? detach) => _invocationHelper.GetAndEnsureParent(detach);
 }
