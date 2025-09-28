@@ -84,7 +84,7 @@ public class SqlServerCorrelationsStore(string connectionString, string tablePre
         {
             var storedType = reader.GetInt32(0);
             var storedInstance = reader.GetGuid(1);
-            functions.Add(new StoredId(new StoredType(storedType), storedInstance.ToStoredInstance()));
+            functions.Add(new StoredId(storedInstance.ToStoredInstance()));
         }
 
         return functions;

@@ -338,7 +338,7 @@ public abstract class ReplicaWatchdogTests
 
         var storedIds = Enumerable
             .Range(0, 10)
-            .Select(i => new StoredId(new StoredType(0), i.ToString().ToStoredInstance(0.ToStoredType())))
+            .Select(i => new StoredId(i.ToString().ToStoredInstance(0.ToStoredType())))
             .ToList();
 
         //offset 0

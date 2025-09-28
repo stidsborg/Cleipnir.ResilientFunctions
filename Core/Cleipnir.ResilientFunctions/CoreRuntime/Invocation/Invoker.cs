@@ -130,7 +130,7 @@ public class Invoker<TParam, TReturn>
 
     public async Task<TReturn> Restart(StoredInstance instanceId)
     {
-        var storedId = new StoredId(_storedType, instanceId);
+        var storedId = new StoredId(instanceId);
         var (inner, param, humanInstanceId, workflow, disposables, parent) = await PrepareForReInvocation(storedId);
         CurrentFlow._workflow.Value = workflow;
         var flowId = new FlowId(_flowType, humanInstanceId);
@@ -151,7 +151,7 @@ public class Invoker<TParam, TReturn>
 
     public async Task ScheduleRestart(StoredInstance instance)
     {
-        var storedId = new StoredId(_storedType, instance);
+        var storedId = new StoredId(instance);
         var (inner, param, humanInstanceId, workflow, disposables, parent) = await PrepareForReInvocation(storedId);
         var flowId = new FlowId(_flowType, humanInstanceId);
         
@@ -182,7 +182,7 @@ public class Invoker<TParam, TReturn>
 
     internal async Task ScheduleRestart(StoredInstance instance, RestartedFunction rf, Action onCompletion)
     {
-        var storedId = new StoredId(_storedType, instance);
+        var storedId = new StoredId(instance);
         var (inner, param, humanInstanceId, workflow, disposables, parent) = await PrepareForReInvocation(storedId, rf);
         var flowId = new FlowId(_flowType, humanInstanceId);
         
@@ -373,7 +373,7 @@ public class Invoker<TParam, TReturn>
     private (FlowId, StoredId) CreateIds(FlowInstance instanceId)
         => CreateIds(instanceId.Value);
     private (FlowId, StoredId) CreateIds(string instanceId)
-        => (new FlowId(_flowType, instanceId), new StoredId(_storedType, instanceId.ToStoredInstance(_storedType)));
+        => (new FlowId(_flowType, instanceId), new StoredId(instanceId.ToStoredInstance(_storedType)));
 
     private Workflow? GetAndEnsureParent(bool? detach) => _invocationHelper.GetAndEnsureParent(detach);
 }

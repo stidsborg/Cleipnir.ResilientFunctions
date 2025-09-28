@@ -281,7 +281,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         {
             var type = reader.GetInt32(0).ToStoredType();
             var instance = reader.GetGuid(1).ToStoredInstance();
-            ids.Add(new StoredId(type, instance));
+            ids.Add(new StoredId(instance));
         }
 
         return ids;
@@ -624,7 +624,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
             var status = (Status) reader.GetInt32(2);
             var expires = reader.GetInt64(3);
 
-            var storedId = new StoredId(type, instance);
+            var storedId = new StoredId(instance);
             toReturn.Add(new StatusAndId(storedId, status, expires));
         }
         

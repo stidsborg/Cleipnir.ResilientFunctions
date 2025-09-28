@@ -72,7 +72,7 @@ public class ParamlessRegistration : BaseRegistration
     {
         if (create)
         {
-            var sf = await _functionStore.GetFunction(new StoredId(StoredType, flowInstance.ToStoredInstance(StoredType)));
+            var sf = await _functionStore.GetFunction(new StoredId(flowInstance.ToStoredInstance(StoredType)));
             if (sf is null)
                 await Schedule(flowInstance);    
         }

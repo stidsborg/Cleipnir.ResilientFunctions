@@ -295,7 +295,7 @@ public class SqlServerFunctionStore : IFunctionStore
             {
                 var flowType = reader.GetInt32(0);
                 var flowInstance = reader.GetGuid(1);
-                var flowId = new StoredId(new StoredType(flowType), flowInstance.ToStoredInstance());
+                var flowId = new StoredId(flowInstance.ToStoredInstance());
                 rows.Add(flowId);
             }
 
@@ -638,7 +638,7 @@ public class SqlServerFunctionStore : IFunctionStore
             var status = (Status) reader.GetInt32(2);
             var expires = reader.GetInt64(3);
 
-            var storedId = new StoredId(type, instance);
+            var storedId = new StoredId(instance);
             toReturn.Add(new StatusAndId(storedId, status, expires));
         }
 

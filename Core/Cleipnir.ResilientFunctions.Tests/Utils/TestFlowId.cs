@@ -19,4 +19,8 @@ public static class TestStoredId
     public static StoredId Create() => StoredInstance
         .Create(Guid.NewGuid().ToString(), new StoredType(Random.Shared.Next(0, 10_000)))
         .ToStoredId();
+    
+    public static StoredId Create(StoredType type) => StoredInstance
+        .Create(Guid.NewGuid().ToString(), type)
+        .ToStoredId();
 }

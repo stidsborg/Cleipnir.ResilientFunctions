@@ -1102,7 +1102,7 @@ public abstract class StoreTests
         var typeId = TestStoredId.Create().Type;
         var functionIds = Enumerable
             .Range(0, 500)
-            .Select(i => new StoredId(typeId, Instance: i.ToString().ToStoredInstance(typeId)))
+            .Select(i => new StoredId(Instance: i.ToString().ToStoredInstance(typeId)))
             .ToList();
         
         await store.BulkScheduleFunctions(
@@ -1175,11 +1175,11 @@ public abstract class StoreTests
         var store = await storeTask;
 
         var storedType1 = await store.TypeStore.InsertOrGetStoredType("FlowType1");
-        var flowId1 = TestStoredId.Create() with { Type = storedType1 };
-        var flowId2 = TestStoredId.Create() with { Type = storedType1 };
+        var flowId1 = TestStoredId.Create(storedType1);
+        var flowId2 = TestStoredId.Create(storedType1);
         
         var storedType2 = await store.TypeStore.InsertOrGetStoredType("FlowType2");
-        var flowId3 = TestStoredId.Create() with { Type = storedType2 };
+        var flowId3 = TestStoredId.Create(storedType2);
 
         var leaseExpiration = DateTime.UtcNow.Ticks;
         var timestamp = leaseExpiration;

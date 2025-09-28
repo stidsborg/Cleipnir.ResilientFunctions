@@ -245,7 +245,7 @@ public class MariaDbFunctionStore : IFunctionStore
         {
             var flowType = reader.GetInt32(0);
             var flowInstance = reader.GetString(1).ToGuid().ToStoredInstance();
-            var flowId = new StoredId(new StoredType(flowType), flowInstance);
+            var flowId = new StoredId(flowInstance);
             ids.Add(flowId);
         }
         
@@ -590,7 +590,7 @@ public class MariaDbFunctionStore : IFunctionStore
             var status = (Status) reader.GetInt32(2);
             var expires = reader.GetInt64(3);
 
-            var storedId = new StoredId(type, instance);
+            var storedId = new StoredId(instance);
             toReturn.Add(new StatusAndId(storedId, status, expires));
         }
 

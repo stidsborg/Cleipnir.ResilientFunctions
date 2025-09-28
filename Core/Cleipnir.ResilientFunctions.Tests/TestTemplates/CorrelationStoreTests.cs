@@ -99,7 +99,7 @@ public abstract class CorrelationStoreTests
     {
         var correlationStore = await storeTask.SelectAsync(s => s.CorrelationStore);
         var functionId1 = TestStoredId.Create();
-        var functionId2 = TestStoredId.Create() with { Type = functionId1.Type };
+        var functionId2 = TestStoredId.Create(functionId1.Type);
         var functionId3 = TestStoredId.Create();
 
         await correlationStore.SetCorrelation(functionId1, "SomeCorrelationId1");

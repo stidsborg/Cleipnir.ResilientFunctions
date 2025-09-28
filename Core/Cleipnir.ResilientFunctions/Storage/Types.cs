@@ -3,21 +3,21 @@ using System.Collections.Generic;
 using System.Security.Cryptography;
 using System.Text;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
 
 namespace Cleipnir.ResilientFunctions.Storage;
 
-public record StoredId(StoredType Type, StoredInstance Instance)
+public record StoredId(StoredInstance Instance)
 {
-    public override string ToString() => $"{Instance.Value}@{Type.Value}";
+    public override string ToString() => $"{Instance.Value}";
 
+    public StoredType Type => Instance.StoredType;
+    
     public static StoredId Deserialize(string s)
     {
-        var split = s.Split("@");
-        var storedType = int.Parse(split[1]).ToStoredType();
-        var storedInstanceId = Guid.Parse(split[0]);
-        var storedInstance = new StoredInstance(storedInstanceId, storedType);
-        return new StoredId(storedType, storedInstance);
+        var storedInstance = s.ToGuid().ToStoredInstance();
+        return new StoredId(storedInstance);
     }
 
     public string Serialize() => ToString();
@@ -33,6 +33,12 @@ public record StoredId(StoredType Type, StoredInstance Instance)
         typeBytes.CopyTo(instanceBytes, index: 0); // overwrites first 4 bytes
         var id = new Guid(instanceBytes);
         return id;
+    }
+    
+    public void Deconstruct(out StoredType type, out StoredInstance instance)
+    {
+        type = Type;
+        instance = Instance;
     }
 }
 public record StoredType(int Value);
@@ -62,7 +68,7 @@ public record StoredInstance(Guid Value, StoredType StoredType)
         return new StoredInstance(id);
     }
 
-    public StoredId ToStoredId() => new StoredId(StoredType, Value);
+    public StoredId ToStoredId() => new StoredId(this);
 }
 
 public static class StoredInstanceExtensions

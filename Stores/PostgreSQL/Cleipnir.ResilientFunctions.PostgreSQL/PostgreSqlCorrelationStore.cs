@@ -85,7 +85,7 @@ public class PostgreSqlCorrelationStore(string connectionString, string tablePre
             var type = reader.GetInt32(0);
             var instance = reader.GetGuid(1).ToStoredInstance();
             
-            functions.Add(new StoredId(new StoredType(type), instance));
+            functions.Add(new StoredId(instance));
         }
 
         return functions;

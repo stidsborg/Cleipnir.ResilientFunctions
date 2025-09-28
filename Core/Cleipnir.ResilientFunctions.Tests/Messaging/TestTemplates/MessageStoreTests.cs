@@ -581,7 +581,7 @@ public abstract class MessageStoreTests
     protected async Task MaxPositionIsCorrectForAppendedMessages(Task<IFunctionStore> functionStoreTask)
     {
         var id1 = TestStoredId.Create();
-        var id2 = TestStoredId.Create() with { Type = id1.Type };
+        var id2 = TestStoredId.Create(id1.Type);
         var id3 = TestStoredId.Create();
         
         var functionStore = await functionStoreTask;
@@ -635,7 +635,7 @@ public abstract class MessageStoreTests
     protected async Task AppendedMultipleMessagesAtOnceCanBeFetchedAgain(Task<IFunctionStore> functionStoreTask)
     {
         var id1 = TestStoredId.Create();
-        var id2 = TestStoredId.Create() with { Type = id1.Type };
+        var id2 = TestStoredId.Create(id1.Type);
         
         var functionStore = await functionStoreTask;
         await functionStore.CreateFunction(

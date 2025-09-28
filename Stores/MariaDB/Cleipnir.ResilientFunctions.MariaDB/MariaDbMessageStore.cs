@@ -221,7 +221,7 @@ public class MariaDbMessageStore : IMessageStore
         {
             var type = reader.GetInt32(0).ToStoredType();
             var instance = reader.GetGuid(1).ToStoredInstance();
-            var storedId = new StoredId(type, instance);
+            var storedId = new StoredId(instance);
             var position = reader.GetInt32(2);
             positions[storedId] = position;
         }

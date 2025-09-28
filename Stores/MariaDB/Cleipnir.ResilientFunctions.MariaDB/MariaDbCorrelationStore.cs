@@ -87,7 +87,7 @@ public class MariaDbCorrelationStore : ICorrelationStore
         {
             var type = reader.GetInt32(0);
             var instance = reader.GetString(1).ToGuid().ToStoredInstance();
-            states.Add(new StoredId(new StoredType(type), instance));
+            states.Add(new StoredId(instance));
         }
 
         return states;

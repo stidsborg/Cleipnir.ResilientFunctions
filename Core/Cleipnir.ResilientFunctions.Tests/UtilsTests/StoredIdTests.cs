@@ -10,10 +10,10 @@ public class StoredIdTests
     [TestMethod]
     public void ToGuidIsSameForTwoEqualStoredIds()
     {
-        var id1 = new StoredId(1.ToStoredType(), "Instance#1".ToStoredInstance(1.ToStoredType()));
-        var id2 = new StoredId(1.ToStoredType(), "Instance#1".ToStoredInstance(2.ToStoredType()));
-        var id3 = new StoredId(2.ToStoredType(), "Instance#1".ToStoredInstance(3.ToStoredType()));
-        var id4 = new StoredId(1.ToStoredType(), "Instance#2".ToStoredInstance(4.ToStoredType()));
+        var id1 = new StoredId("Instance#1".ToStoredInstance(1.ToStoredType()));
+        var id2 = new StoredId("Instance#1".ToStoredInstance(1.ToStoredType()));
+        var id3 = new StoredId("Instance#1".ToStoredInstance(3.ToStoredType()));
+        var id4 = new StoredId("Instance#2".ToStoredInstance(4.ToStoredType()));
 
         id1.ToGuid().ShouldBe(id2.ToGuid());
         id1.ToGuid().ShouldNotBe(id3.ToGuid());
