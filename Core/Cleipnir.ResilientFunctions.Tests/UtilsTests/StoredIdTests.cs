@@ -1,3 +1,5 @@
+using System;
+using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Storage;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Shouldly;
@@ -84,5 +86,22 @@ public class StoredIdTests
         id2.StoredType.Value.ShouldBe(2);
         
         id2.Value.ShouldNotBe(id.Value);
+    }
+    
+    [TestMethod]
+    public void TypeCanBeExtractedFromGuid()
+    {
+        var id = "FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF".ToGuid();
+        var type = 25;
+        var bytes = id.ToByteArray();
+        
+        BitConverter.GetBytes(type).CopyTo(bytes, index: 0);
+
+        var id2 = new Guid(bytes);
+        id2.ToString().ShouldBe("00000019-ffff-ffff-ffff-ffffffffffff");
+
+        var storedId = new StoredId(StoredInstance.Create(id2));
+        storedId.Type.Value.ShouldBe(25);
+        storedId.Instance.Value.ShouldBe(id2);
     }
 }

@@ -47,6 +47,8 @@ public record StoredInstance(Guid Value, StoredType StoredType)
 {
     public static implicit operator StoredInstance(Guid id) => new(id.ToStoredInstance());
 
+    public static StoredInstance Create(Guid id) => id.ToStoredInstance(); 
+    
     public static StoredInstance Create(string instanceId, StoredType storedType)
     {
         // Convert the input string to a byte array and compute the hash.
