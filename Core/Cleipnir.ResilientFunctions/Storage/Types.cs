@@ -41,7 +41,7 @@ public record StoredId(StoredInstance Instance)
         instance = Instance;
     }
 }
-public record StoredType(int Value);
+public record StoredType(ushort Value);
 
 public record StoredInstance(Guid Value, StoredType StoredType)
 {
@@ -85,16 +85,9 @@ public static class StoredInstanceExtensions
     {
         var bytes = instanceId.ToByteArray();
         if (!BitConverter.IsLittleEndian)
-        {
-            var b = bytes[0];
-            bytes[0] = bytes[3];
-            bytes[3] = b;
-            b = bytes[2];
-            bytes[2] = bytes[3];
-            bytes[3] = b;
-        }
+            (bytes[0], bytes[1]) = (bytes[1], bytes[0]);
 
-        var value = BitConverter.ToInt32(bytes, startIndex: 0);
+        var value = BitConverter.ToUInt16(bytes, startIndex: 0);
         var storedType = new StoredType(value);
         return new StoredInstance(instanceId, storedType);
     }
@@ -102,7 +95,7 @@ public static class StoredInstanceExtensions
 
 internal static class StoredTypeExtension
 {
-    public static StoredType ToStoredType(this int storedType) => new(storedType);
+    public static StoredType ToStoredType(this ushort storedType) => new(storedType);
 };
 
 public record StoredFlow(

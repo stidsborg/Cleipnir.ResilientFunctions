@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Storage;
 using Microsoft.Data.SqlClient;
 
@@ -66,7 +67,7 @@ public class SqlServerTypeStore(string connectionString, string tablePrefix = ""
         if (!value.HasValue)
             throw new InvalidOperationException($"Unexpected missing reference for type: '{flowType.Value}'");
 
-        return new StoredType(value.Value);
+        return new StoredType(value.Value.ToUshort());
     } 
 
     public async Task<IReadOnlyDictionary<FlowType, StoredType>> GetAllFlowTypes()
@@ -84,7 +85,7 @@ public class SqlServerTypeStore(string connectionString, string tablePrefix = ""
         {
             var value = reader.GetInt32(0); 
             var flowType = new FlowType(reader.GetString(1));
-            dict.TryAdd(flowType, new StoredType(value));
+            dict.TryAdd(flowType, new StoredType(value.ToUshort()));
         }
 
         return dict;

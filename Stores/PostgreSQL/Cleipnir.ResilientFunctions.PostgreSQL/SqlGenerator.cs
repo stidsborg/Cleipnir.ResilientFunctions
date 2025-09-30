@@ -52,7 +52,7 @@ public class SqlGenerator(string tablePrefix)
         return StoreCommand.Create(
             _getEffectResultsSql,
             values: [
-                storedId.Type.Value,
+                storedId.Type.Value.ToInt(),
                 storedId.Instance.Value
             ]);
     }
@@ -90,7 +90,7 @@ public class SqlGenerator(string tablePrefix)
            foreach (var (storedId, _, _, storedEffect) in changes.Where(s => s.Operation == CrudOperation.Insert))
            {
                var command = StoreCommand.Create(sql);
-               command.AddParameter(storedId.Type.Value);
+               command.AddParameter(storedId.Type.Value.ToInt());
                command.AddParameter(storedId.Instance.Value);
                command.AddParameter(storedEffect!.StoredEffectId.Value);
                command.AddParameter((int) storedEffect.WorkStatus);
@@ -115,7 +115,7 @@ public class SqlGenerator(string tablePrefix)
                command.AddParameter((int) storedEffect!.WorkStatus);
                command.AddParameter(storedEffect.Result ?? (object) DBNull.Value);
                command.AddParameter(JsonHelper.ToJson(storedEffect.StoredException) ?? (object) DBNull.Value);
-               command.AddParameter(storedId.Type.Value);
+               command.AddParameter(storedId.Type.Value.ToInt());
                command.AddParameter(storedId.Instance.Value);
                command.AddParameter(storedEffect.StoredEffectId.Value);
            
@@ -134,7 +134,7 @@ public class SqlGenerator(string tablePrefix)
            var storedId = removedEffectGroup.Key;
            var removeSql = @$"
                 DELETE FROM {tablePrefix}_effects
-                WHERE type = {storedId.Type.Value} AND
+                WHERE type = {storedId.Type.Value.ToInt()} AND
                       instance = '{storedId.Instance.Value}' AND
                       id_hash IN ({removedEffectGroup.Select(id => $"'{id}'").StringJoin(", ")});";
            var command = StoreCommand.Create(removeSql);
@@ -171,7 +171,7 @@ public class SqlGenerator(string tablePrefix)
             sql,
             values:
             [
-                storedId.Type.Value,
+                storedId.Type.Value.ToInt(),
                 storedId.Instance.Value,
                 (int)(postponeUntil == null ? Status.Executing : Status.Postponed),
                 param == null ? DBNull.Value : param,
@@ -204,7 +204,7 @@ public class SqlGenerator(string tablePrefix)
             [
                 result == null ? DBNull.Value : result,
                 timestamp,
-                storedId.Type.Value,
+                storedId.Type.Value.ToInt(),
                 storedId.Instance.Value,
                 expectedReplica.AsGuid,
             ]
@@ -237,7 +237,7 @@ public class SqlGenerator(string tablePrefix)
             values: [
                 postponeUntil,
                 timestamp,
-                storedId.Type.Value,
+                storedId.Type.Value.ToInt(),
                 storedId.Instance.Value,
                 expectedReplica.AsGuid,
             ]
@@ -264,7 +264,7 @@ public class SqlGenerator(string tablePrefix)
             [
                 JsonSerializer.Serialize(storedException),
                 timestamp,
-                storedId.Type.Value,
+                storedId.Type.Value.ToInt(),
                 storedId.Instance.Value,
                 expectedReplica.AsGuid,
             ]
@@ -286,7 +286,7 @@ public class SqlGenerator(string tablePrefix)
             _suspendFunctionSql,
             values: [
                 timestamp,
-                storedId.Type.Value,
+                storedId.Type.Value.ToInt(),
                 storedId.Instance.Value,
                 expectedReplica.AsGuid,
             ]
@@ -316,7 +316,7 @@ public class SqlGenerator(string tablePrefix)
             _restartExecutionSql,
             values: [
                 replicaId.AsGuid,
-                storedId.Type.Value,
+                storedId.Type.Value.ToInt(),
                 storedId.Instance.Value,
             ]);
 
@@ -378,7 +378,7 @@ public class SqlGenerator(string tablePrefix)
         {
             var (storedType, storedInstance) = storedId;
             
-            command.AddParameter(storedType.Value);
+            command.AddParameter(storedType.Value.ToInt());
             command.AddParameter(storedInstance.Value);
             command.AddParameter(position);
             command.AddParameter(messageContent);
@@ -400,7 +400,7 @@ public class SqlGenerator(string tablePrefix)
 
         var storeCommand = StoreCommand.Create(
             _getMessagesSql,
-            values: [storedId.Type.Value, storedId.Instance.Value, skip]
+            values: [storedId.Type.Value.ToInt(), storedId.Instance.Value, skip]
         );
         
         return storeCommand;

@@ -52,7 +52,7 @@ public class SqlGenerator(string tablePrefix)
                 .Where(c => c.Operation == CrudOperation.Insert)
                 .Select(c => new
                 {
-                    Type = c.StoredId.Type.Value, 
+                    Type = c.StoredId.Type.Value.ToInt(), 
                     Instance = c.StoredId.Instance.Value, 
                     StoredEffectId = c.EffectId.Value,
                     WorkStatus = (int)c.StoredEffect!.WorkStatus, 
@@ -95,7 +95,7 @@ public class SqlGenerator(string tablePrefix)
                 .Where(c => c.Operation == CrudOperation.Update)
                 .Select(c => new
                 {
-                    Type = c.StoredId.Type.Value,
+                    Type = c.StoredId.Type.Value.ToInt(),
                     Instance = c.StoredId.Instance.Value,
                     StoredEffectId = c.EffectId.Value,
                     WorkStatus = (int)c.StoredEffect!.WorkStatus,
@@ -145,7 +145,7 @@ public class SqlGenerator(string tablePrefix)
         {
             var removes = changes
                 .Where(c => c.Operation == CrudOperation.Delete)
-                .Select(c => new { Type = c.StoredId.Type.Value, Instance = c.StoredId.Instance.Value, IdHash = c.EffectId.Value })
+                .Select(c => new { Type = c.StoredId.Type.Value.ToInt(), Instance = c.StoredId.Instance.Value, IdHash = c.EffectId.Value })
                 .GroupBy(a => new {a.Type, a.Instance }, a => a.IdHash)
                 .ToList();
             var predicates = removes
@@ -177,7 +177,7 @@ public class SqlGenerator(string tablePrefix)
             sql = sql.Replace("@", $"@{paramPrefix}");
         
         var command = StoreCommand.Create(sql);
-        command.AddParameter($"@{paramPrefix}FlowType", storedId.Type.Value);
+        command.AddParameter($"@{paramPrefix}FlowType", storedId.Type.Value.ToInt());
         command.AddParameter($"@{paramPrefix}FlowInstance", storedId.Instance.Value);
         return command;
     }
@@ -242,7 +242,7 @@ public class SqlGenerator(string tablePrefix)
             sql = sql.Replace("@", $"@{paramPrefix}");
 
         var command = StoreCommand.Create(sql);
-        command.AddParameter($"@{paramPrefix}FlowType", storedId.Type.Value);
+        command.AddParameter($"@{paramPrefix}FlowType", storedId.Type.Value.ToInt());
         command.AddParameter($"@{paramPrefix}FlowInstance", storedId.Instance.Value);
         command.AddParameter($"@{paramPrefix}Status", (int)(postponeUntil == null ? Status.Executing : Status.Postponed));
         command.AddParameter($"@{paramPrefix}ParamJson", param == null ? SqlBinary.Null : param);
@@ -271,7 +271,7 @@ public class SqlGenerator(string tablePrefix)
         command.AddParameter($"@{paramPrefix}ResultJson", result ?? SqlBinary.Null);
         command.AddParameter($"@{paramPrefix}Timestamp", timestamp);
         command.AddParameter($"@{paramPrefix}FlowInstance", storedId.Instance.Value);
-        command.AddParameter($"@{paramPrefix}FlowType", storedId.Type.Value);
+        command.AddParameter($"@{paramPrefix}FlowType", storedId.Type.Value.ToInt());
         command.AddParameter($"@{paramPrefix}ExpectedReplica", expectedReplica.AsGuid);
 
         return command;
@@ -296,7 +296,7 @@ public class SqlGenerator(string tablePrefix)
         command.AddParameter($"@{paramPrefix}PostponedUntil", postponeUntil);
         command.AddParameter($"@{paramPrefix}Timestamp", timestamp);
         command.AddParameter($"@{paramPrefix}FlowInstance", storedId.Instance.Value);
-        command.AddParameter($"@{paramPrefix}FlowType", storedId.Type.Value);
+        command.AddParameter($"@{paramPrefix}FlowType", storedId.Type.Value.ToInt());
         command.AddParameter($"@{paramPrefix}ExpectedReplica", expectedReplica.AsGuid);
 
         return command;
@@ -320,7 +320,7 @@ public class SqlGenerator(string tablePrefix)
         command.AddParameter($"@{paramPrefix}ExceptionJson", JsonSerializer.Serialize(storedException));
         command.AddParameter($"@{paramPrefix}Timestamp", timestamp);
         command.AddParameter($"@{paramPrefix}FlowInstance", storedId.Instance.Value);
-        command.AddParameter($"@{paramPrefix}FlowType", storedId.Type.Value);
+        command.AddParameter($"@{paramPrefix}FlowType", storedId.Type.Value.ToInt());
         command.AddParameter($"@{paramPrefix}ExpectedReplica", expectedReplica.AsGuid);
 
         return command;
@@ -348,7 +348,7 @@ public class SqlGenerator(string tablePrefix)
         
         var command = StoreCommand.Create(sql);
         command.AddParameter($"@{paramPrefix}Timestamp", timestamp);
-        command.AddParameter($"@{paramPrefix}FlowType", storedId.Type.Value);
+        command.AddParameter($"@{paramPrefix}FlowType", storedId.Type.Value.ToInt());
         command.AddParameter($"@{paramPrefix}FlowInstance", storedId.Instance.Value);
         command.AddParameter($"@{paramPrefix}ExpectedReplica", expectedReplica.AsGuid);
 
@@ -378,7 +378,7 @@ public class SqlGenerator(string tablePrefix)
 
         var storeCommand = StoreCommand.Create(_restartExecutionSql);
         storeCommand.AddParameter("@Owner", replicaId.AsGuid);
-        storeCommand.AddParameter("@FlowType", storedId.Type.Value);
+        storeCommand.AddParameter("@FlowType", storedId.Type.Value.ToInt());
         storeCommand.AddParameter("@FlowInstance", storedId.Instance.Value);
 
         return storeCommand;
@@ -444,7 +444,7 @@ public class SqlGenerator(string tablePrefix)
         {
             var (storedId, (messageContent, messageType, idempotencyKey), position) = messages[i];
             var (storedType, storedInstance) = storedId;
-            appendCommand.AddParameter($"@{prefix}FlowType{i}", storedType.Value);
+            appendCommand.AddParameter($"@{prefix}FlowType{i}", storedType.Value.ToInt());
             appendCommand.AddParameter($"@{prefix}FlowInstance{i}", storedInstance.Value);
             appendCommand.AddParameter($"@{prefix}Position{i}", position);
             appendCommand.AddParameter($"@{prefix}MessageJson{i}", messageContent);
@@ -468,7 +468,7 @@ public class SqlGenerator(string tablePrefix)
         if (paramPrefix != "")
             sql = sql.Replace("@", $"@{paramPrefix}");
         var command = StoreCommand.Create(sql);
-        command.AddParameter($"@{paramPrefix}FlowType", storedId.Type.Value);
+        command.AddParameter($"@{paramPrefix}FlowType", storedId.Type.Value.ToInt());
         command.AddParameter($"@{paramPrefix}FlowInstance", storedId.Instance.Value);
         command.AddParameter($"@{paramPrefix}Position", skip);
 

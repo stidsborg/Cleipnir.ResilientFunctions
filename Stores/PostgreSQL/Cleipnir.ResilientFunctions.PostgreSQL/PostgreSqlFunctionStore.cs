@@ -221,7 +221,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 {
                     Parameters =
                     {
-                        new() { Value = idWithParam.StoredId.Type.Value },
+                        new() { Value = idWithParam.StoredId.Type.Value.ToInt() },
                         new() { Value = idWithParam.StoredId.Instance.Value },
                         new() { Value = idWithParam.Param == null ? DBNull.Value : idWithParam.Param },
                         new() { Value = idWithParam.HumanInstanceId },
@@ -279,7 +279,6 @@ public class PostgreSqlFunctionStore : IFunctionStore
         var ids = new List<StoredId>();
         while (await reader.ReadAsync())
         {
-            var type = reader.GetInt32(0).ToStoredType();
             var instance = reader.GetGuid(1).ToStoredInstance();
             ids.Add(new StoredId(instance));
         }
@@ -299,7 +298,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         {
             Parameters =
             {
-                new() {Value = storedType.Value},
+                new() {Value = storedType.Value.ToInt()},
                 new() {Value = completedBefore}
             }
         };
@@ -345,7 +344,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 new() {Value = result == null ? DBNull.Value : result},
                 new() {Value = storedException == null ? DBNull.Value : JsonSerializer.Serialize(storedException)},
                 new() {Value = expires },
-                new() {Value = storedId.Type.Value},
+                new() {Value = storedId.Type.Value.ToInt()},
                 new() {Value = storedId.Instance.Value}
             }
         };
@@ -501,7 +500,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
             {
                 new() { Value = param ?? (object) DBNull.Value },
                 new() { Value = result ?? (object) DBNull.Value },
-                new() { Value = storedId.Type.Value },
+                new() { Value = storedId.Type.Value.ToInt() },
                 new() { Value = storedId.Instance.Value },
             }
         };
@@ -536,7 +535,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         {
             Parameters =
             {
-                new() { Value = storedId.Type.Value },
+                new() { Value = storedId.Type.Value.ToInt() },
                 new() { Value = storedId.Instance.Value },
             }
         };
@@ -567,7 +566,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         {
             Parameters =
             {
-                new() { Value = storedId.Type.Value },
+                new() { Value = storedId.Type.Value.ToInt() },
                 new() { Value = storedId.Instance.Value },
             }
         };
@@ -585,7 +584,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         await using var command = new NpgsqlCommand(_getFunctionStatusSql, conn)
         {
             Parameters = { 
-                new() {Value = storedId.Type.Value},
+                new() {Value = storedId.Type.Value.ToInt()},
                 new() {Value = storedId.Instance.Value}
             }
         };
@@ -619,7 +618,6 @@ public class PostgreSqlFunctionStore : IFunctionStore
         await using var reader = await command.ExecuteReaderAsync();
         while (await reader.ReadAsync())
         {
-            var type = reader.GetInt32(0).ToStoredType();
             var instance = reader.GetGuid(1).ToStoredInstance();
             var status = (Status) reader.GetInt32(2);
             var expires = reader.GetInt64(3);
@@ -652,7 +650,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         await using var command = new NpgsqlCommand(_getFunctionSql, conn)
         {
             Parameters = { 
-                new() {Value = storedId.Type.Value},
+                new() {Value = storedId.Type.Value.ToInt()},
                 new() {Value = storedId.Instance.Value}
             }
         };
@@ -674,7 +672,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         {
             Parameters =
             {
-                new() {Value = storedType.Value},
+                new() {Value = storedType.Value.ToInt()},
                 new() {Value = (int) status},
             }
         };
@@ -704,7 +702,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         {
             Parameters =
             {
-                new() {Value = storedType.Value},
+                new() {Value = storedType.Value.ToInt()},
             }
         };
         
@@ -788,7 +786,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         {
             Parameters =
             {
-                new() {Value = storedId.Type.Value},
+                new() {Value = storedId.Type.Value.ToInt()},
                 new() {Value = storedId.Instance.Value},
             }
         };

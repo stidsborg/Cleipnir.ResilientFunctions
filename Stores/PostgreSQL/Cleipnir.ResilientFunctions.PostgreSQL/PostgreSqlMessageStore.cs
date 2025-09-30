@@ -70,7 +70,7 @@ public class PostgreSqlMessageStore(string connectionString, SqlGenerator sqlGen
             {
                 Parameters =
                 {
-                    new() {Value = storedId.Type.Value},
+                    new() {Value = storedId.Type.Value.ToInt()},
                     new() {Value = storedId.Instance.Value},
                     new() {Value = messageJson},
                     new() {Value = messageType},
@@ -156,7 +156,7 @@ public class PostgreSqlMessageStore(string connectionString, SqlGenerator sqlGen
                 new() {Value = messageJson},
                 new() {Value = messageType},
                 new() {Value = idempotencyKey ?? (object) DBNull.Value},
-                new() {Value = storedId.Type.Value},
+                new() {Value = storedId.Type.Value.ToInt()},
                 new() {Value = storedId.Instance.Value},
                 new() {Value = position},
             }
@@ -177,7 +177,7 @@ public class PostgreSqlMessageStore(string connectionString, SqlGenerator sqlGen
         {
             Parameters =
             {
-                new() {Value = storedId.Type.Value},
+                new() {Value = storedId.Type.Value.ToInt()},
                 new() {Value = storedId.Instance.Value}
             }
         };
@@ -219,7 +219,6 @@ public class PostgreSqlMessageStore(string connectionString, SqlGenerator sqlGen
         await using var reader = await command.ExecuteReaderAsync();
         while (await reader.ReadAsync())
         {
-            var type = reader.GetInt32(0).ToStoredType();
             var instance = reader.GetGuid(1).ToStoredInstance();
             var storedId = new StoredId(instance);
             var position = reader.GetInt32(2);
@@ -240,7 +239,7 @@ public class PostgreSqlMessageStore(string connectionString, SqlGenerator sqlGen
         await using var command = new NpgsqlCommand(_getSuspensionStatusSql, conn)
         {
             Parameters = { 
-                new() {Value = storedId.Type.Value},
+                new() {Value = storedId.Type.Value.ToInt()},
                 new() {Value = storedId.Instance.Value}
             }
         };

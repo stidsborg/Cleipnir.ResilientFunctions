@@ -84,7 +84,7 @@ public class PostgreSqlTypeStore(string connectionString, string tablePrefix = "
         if (!value.HasValue)
             throw new InvalidOperationException($"Unexpected missing reference for type: '{flowType.Value}'");
 
-        return new StoredType(value.Value);
+        return new StoredType((ushort) value.Value);
     } 
 
     public async Task<IReadOnlyDictionary<FlowType, StoredType>> GetAllFlowTypes()
@@ -99,7 +99,7 @@ public class PostgreSqlTypeStore(string connectionString, string tablePrefix = "
         {
             var flowType = reader.GetString(0);
             var value = reader.GetInt32(1);
-            dict[flowType] = new StoredType(value);
+            dict[flowType] = new StoredType((ushort) value);
         }
 
         return dict;
