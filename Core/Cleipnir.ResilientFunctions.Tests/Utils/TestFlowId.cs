@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Runtime.CompilerServices;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.Tests.Utils;
@@ -17,7 +18,7 @@ public static class TestFlowId
 public static class TestStoredId
 {
     public static StoredId Create() => StoredInstance
-        .Create(Guid.NewGuid().ToString(), new StoredType(Random.Shared.Next(0, 10_000)))
+        .Create(Guid.NewGuid().ToString(), new StoredType(Random.Shared.Next(0, 10_000).ToUshort()))
         .ToStoredId();
     
     public static StoredId Create(StoredType type) => StoredInstance

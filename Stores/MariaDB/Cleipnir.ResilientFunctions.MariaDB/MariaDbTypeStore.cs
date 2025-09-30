@@ -73,7 +73,7 @@ public class MariaDbTypeStore(string connectionString, string tablePrefix = "") 
         if (!value.HasValue)
             throw new InvalidOperationException($"Unexpected missing reference for type: '{flowType.Value}'");
 
-        return new StoredType(value.Value);
+        return new StoredType((ushort) value.Value);
     }
     
     public async Task<IReadOnlyDictionary<FlowType, StoredType>> GetAllFlowTypes()
@@ -87,7 +87,7 @@ public class MariaDbTypeStore(string connectionString, string tablePrefix = "") 
         while (await reader.ReadAsync())
         {
             var flowType = reader.GetString(0);
-            var value = new StoredType(reader.GetInt32(1));
+            var value = new StoredType((ushort) reader.GetInt32(1));
             dict[flowType] = value;
         }
 

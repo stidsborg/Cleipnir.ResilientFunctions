@@ -63,7 +63,7 @@ public class SqlServerEffectsStore(string connectionString, SqlGenerator sqlGene
                     VALUES (source.FlowType, source.FlowInstance, source.StoredId, source.EffectId, source.Status, source.Result, source.Exception);";
         
         await using var command = new SqlCommand(_setEffectResultSql, conn);
-        command.Parameters.AddWithValue("@FlowType", storedId.Type.Value);
+        command.Parameters.AddWithValue("@FlowType", storedId.Type.Value.ToInt());
         command.Parameters.AddWithValue("@FlowInstance", storedId.Instance.Value);
         command.Parameters.AddWithValue("@StoredId", storedEffect.StoredEffectId.Value);
         command.Parameters.AddWithValue("@EffectId", storedEffect.EffectId.Serialize());
@@ -106,7 +106,7 @@ public class SqlServerEffectsStore(string connectionString, SqlGenerator sqlGene
             WHERE FlowType = @FlowType AND FlowInstance = @FlowInstance AND StoredId = @StoredId";
         
         await using var command = new SqlCommand(_deleteEffectResultSql, conn);
-        command.Parameters.AddWithValue("@FlowType", storedId.Type.Value);
+        command.Parameters.AddWithValue("@FlowType", storedId.Type.Value.ToInt());
         command.Parameters.AddWithValue("@FlowInstance", storedId.Instance.Value);
         command.Parameters.AddWithValue("@StoredId", effectId.Value);
         
@@ -118,7 +118,7 @@ public class SqlServerEffectsStore(string connectionString, SqlGenerator sqlGene
         await using var conn = await CreateConnection();
         var sql = @$"
             DELETE FROM {tablePrefix}_Effects 
-            WHERE FlowType = {storedId.Type.Value} AND 
+            WHERE FlowType = {storedId.Type.Value.ToInt()} AND 
                   FlowInstance = '{storedId.Instance.Value}' AND 
                   StoredId IN ({effectIds.Select(id => $"'{id.Value}'").StringJoin(", ")}) ";
         
@@ -135,7 +135,7 @@ public class SqlServerEffectsStore(string connectionString, SqlGenerator sqlGene
             WHERE FlowType = @FlowType AND FlowInstance = @FlowInstance";
         
         await using var command = new SqlCommand(_removeSql, conn);
-        command.Parameters.AddWithValue("@FlowType", storedId.Type.Value);
+        command.Parameters.AddWithValue("@FlowType", storedId.Type.Value.ToInt());
         command.Parameters.AddWithValue("@FlowInstance", storedId.Instance.Value);
         
         await command.ExecuteNonQueryAsync();

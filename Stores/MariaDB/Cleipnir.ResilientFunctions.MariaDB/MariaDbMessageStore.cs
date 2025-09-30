@@ -219,7 +219,6 @@ public class MariaDbMessageStore : IMessageStore
         await using var reader = await command.ExecuteReaderAsync();
         while (await reader.ReadAsync())
         {
-            var type = reader.GetInt32(0).ToStoredType();
             var instance = reader.GetGuid(1).ToStoredInstance();
             var storedId = new StoredId(instance);
             var position = reader.GetInt32(2);

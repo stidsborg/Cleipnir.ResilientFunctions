@@ -338,7 +338,7 @@ public abstract class ReplicaWatchdogTests
 
         var storedIds = Enumerable
             .Range(0, 10)
-            .Select(i => new StoredId(i.ToString().ToStoredInstance(0.ToStoredType())))
+            .Select(i => new StoredId(i.ToString().ToStoredInstance(0.ToUshort().ToStoredType())))
             .ToList();
 
         //offset 0
@@ -390,10 +390,10 @@ public abstract class ReplicaWatchdogTests
         await Safe.Try(() => crashingRegistry.ShutdownGracefully(maxWait: TimeSpan.Zero));
         
         await insideTest2.WaitForRaised();  
-        testCompletedFlag.Raise();
 
         var sf = await functionStore.GetFunction(flowId.ToStoredId(testRegistration2.StoredType)).ShouldNotBeNullAsync();
         sf.OwnerId.ShouldBe(overtakingRegistry.ClusterInfo.ReplicaId);
+        testCompletedFlag.Raise();
     }
 
     private async Task<IFunctionStore> WithRandomPrefix(Task<IFunctionStore> storeTask)

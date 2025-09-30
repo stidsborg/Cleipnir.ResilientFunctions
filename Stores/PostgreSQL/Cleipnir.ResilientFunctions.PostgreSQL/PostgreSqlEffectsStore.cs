@@ -57,7 +57,7 @@ public class PostgreSqlEffectsStore(string connectionString, SqlGenerator sqlGen
         {
             Parameters =
             {
-                new() {Value = storedId.Type.Value},
+                new() {Value = storedId.Type.Value.ToInt()},
                 new() {Value = storedId.Instance.Value},
                 new() {Value = storedEffect.StoredEffectId.Value},
                 new() {Value = (int) storedEffect.WorkStatus},
@@ -102,7 +102,7 @@ public class PostgreSqlEffectsStore(string connectionString, SqlGenerator sqlGen
         {
             Parameters =
             {
-                new() {Value = storedId.Type.Value },
+                new() {Value = storedId.Type.Value.ToInt() },
                 new() {Value = storedId.Instance.Value },
                 new() {Value = effectId.Value },
             }
@@ -116,7 +116,7 @@ public class PostgreSqlEffectsStore(string connectionString, SqlGenerator sqlGen
         await using var conn = await CreateConnection();
         var sql = @$"
             DELETE FROM {tablePrefix}_effects 
-            WHERE type = {storedId.Type.Value} AND 
+            WHERE type = {storedId.Type.Value.ToInt()} AND 
                   instance = '{storedId.Instance.Value}' AND 
                   id_hash IN ({effectIds.Select(id => $"'{id.Value}'").StringJoin(", ")})";
 
@@ -134,7 +134,7 @@ public class PostgreSqlEffectsStore(string connectionString, SqlGenerator sqlGen
         {
             Parameters =
             {
-                new() {Value = storedId.Type.Value },
+                new() {Value = storedId.Type.Value.ToInt() },
                 new() {Value = storedId.Instance.Value },
             }
         };

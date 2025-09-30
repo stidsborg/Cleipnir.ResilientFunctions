@@ -10,7 +10,7 @@ namespace Cleipnir.ResilientFunctions.Storage;
 
 public class InMemoryTypeStore : ITypeStore
 {
-    private ImmutableDictionary<FlowType, int> _flowTypes = ImmutableDictionary<FlowType, int>.Empty;
+    private ImmutableDictionary<FlowType, ushort> _flowTypes = ImmutableDictionary<FlowType, ushort>.Empty;
     private readonly Lock _sync = new();
     
     public Task<StoredType> InsertOrGetStoredType(FlowType flowType)
@@ -20,7 +20,7 @@ public class InMemoryTypeStore : ITypeStore
             if (_flowTypes.TryGetValue(flowType, out var index))
                 return index.ToStoredType().ToTask();
 
-            index = _flowTypes.Count;
+            index = (ushort) _flowTypes.Count;
             _flowTypes = _flowTypes.SetItem(flowType, index);
             return index.ToStoredType().ToTask();
         }

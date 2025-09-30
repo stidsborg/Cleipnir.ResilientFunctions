@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Storage;
 using Npgsql;
 
@@ -52,7 +53,7 @@ public class PostgreSqlCorrelationStore(string connectionString, string tablePre
         {
             Parameters =
             {
-                new() {Value = flowType.Value},
+                new() {Value = flowType.Value.ToInt()},
                 new() {Value = flowInstance.Value},
                 new() {Value = correlationId}
             }
@@ -82,7 +83,6 @@ public class PostgreSqlCorrelationStore(string connectionString, string tablePre
         var functions = new List<StoredId>();
         while (await reader.ReadAsync())
         {
-            var type = reader.GetInt32(0);
             var instance = reader.GetGuid(1).ToStoredInstance();
             
             functions.Add(new StoredId(instance));
@@ -103,7 +103,7 @@ public class PostgreSqlCorrelationStore(string connectionString, string tablePre
         {
             Parameters =
             {
-                new() { Value = flowType.Value },
+                new() { Value = flowType.Value.ToInt() },
                 new() { Value = correlationId }
             }
         };
@@ -133,7 +133,7 @@ public class PostgreSqlCorrelationStore(string connectionString, string tablePre
         {
             Parameters =
             {
-                new() { Value = typeId.Value },
+                new() { Value = typeId.Value.ToInt() },
                 new() { Value = instanceId.Value }
             }
         };
@@ -164,7 +164,7 @@ public class PostgreSqlCorrelationStore(string connectionString, string tablePre
         {
             Parameters =
             {
-                new() {Value = flowType.Value},
+                new() {Value = flowType.Value.ToInt()},
                 new() {Value = flowInstance.Value},
             }
         };
@@ -186,7 +186,7 @@ public class PostgreSqlCorrelationStore(string connectionString, string tablePre
         {
             Parameters =
             {
-                new() {Value = flowType.Value},
+                new() {Value = flowType.Value.ToInt()},
                 new() {Value = flowInstance.Value},
                 new() {Value = correlationId},
             }

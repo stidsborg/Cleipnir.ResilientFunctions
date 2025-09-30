@@ -585,7 +585,6 @@ public class MariaDbFunctionStore : IFunctionStore
         await using var reader = await command.ExecuteReaderAsync();
         while (await reader.ReadAsync())
         {
-            var type = reader.GetInt32(0).ToStoredType();
             var instance = reader.GetGuid(1).ToStoredInstance();
             var status = (Status) reader.GetInt32(2);
             var expires = reader.GetInt64(3);

@@ -79,7 +79,7 @@ public class SqlServerMessageStore(string connectionString, SqlGenerator sqlGene
             var (storedId, (messageContent, messageType, idempotencyKey)) = messages[i];
             var (storedType, storedInstance) = storedId;
             var position = ++maxPositions[storedId];
-            command.Parameters.AddWithValue($"@FlowType{i}", storedType.Value);
+            command.Parameters.AddWithValue($"@FlowType{i}", storedType.Value.ToInt());
             command.Parameters.AddWithValue($"@FlowInstance{i}", storedInstance.Value);
             command.Parameters.AddWithValue($"@Position{i}", position);
             command.Parameters.AddWithValue($"@MessageJson{i}", messageContent);
@@ -118,7 +118,7 @@ public class SqlServerMessageStore(string connectionString, SqlGenerator sqlGene
             );";
         
         await using var command = new SqlCommand(_appendMessageSql, conn);
-        command.Parameters.AddWithValue("@FlowType", storedId.Type.Value);
+        command.Parameters.AddWithValue("@FlowType", storedId.Type.Value.ToInt());
         command.Parameters.AddWithValue("@FlowInstance", storedId.Instance.Value);
         command.Parameters.AddWithValue("@MessageJson", storedMessage.MessageContent);
         command.Parameters.AddWithValue("@MessageType", storedMessage.MessageType);
@@ -150,7 +150,7 @@ public class SqlServerMessageStore(string connectionString, SqlGenerator sqlGene
             WHERE FlowType = @FlowType AND FlowInstance = @FlowInstance AND Position = @Position";
         
         await using var command = new SqlCommand(_replaceMessageSql, conn);
-        command.Parameters.AddWithValue("@FlowType", storedId.Type.Value);
+        command.Parameters.AddWithValue("@FlowType", storedId.Type.Value.ToInt());
         command.Parameters.AddWithValue("@FlowInstance", storedId.Instance.Value);
         command.Parameters.AddWithValue("@Position", position);
         command.Parameters.AddWithValue("@MessageJson", storedMessage.MessageContent);
@@ -171,7 +171,7 @@ public class SqlServerMessageStore(string connectionString, SqlGenerator sqlGene
 
         await using var command = new SqlCommand(_truncateSql, conn);
         
-        command.Parameters.AddWithValue("@FlowType", storedId.Type.Value);
+        command.Parameters.AddWithValue("@FlowType", storedId.Type.Value.ToInt());
         command.Parameters.AddWithValue("@FlowInstance", storedId.Instance.Value);
         await command.ExecuteNonQueryAsync();
     }
@@ -187,7 +187,7 @@ public class SqlServerMessageStore(string connectionString, SqlGenerator sqlGene
             ORDER BY Position ASC;";
         
         await using var command = new SqlCommand(_getMessagesSql, conn);
-        command.Parameters.AddWithValue("@FlowType", storedId.Type.Value);
+        command.Parameters.AddWithValue("@FlowType", storedId.Type.Value.ToInt());
         command.Parameters.AddWithValue("@FlowInstance", storedId.Instance.Value);
         command.Parameters.AddWithValue("@Position", skip);
         
@@ -236,7 +236,6 @@ public class SqlServerMessageStore(string connectionString, SqlGenerator sqlGene
         await using var reader = await command.ExecuteReaderAsync();
         while (await reader.ReadAsync())
         {
-            var type = reader.GetInt32(0).ToStoredType();
             var instance = reader.GetGuid(1).ToStoredInstance();
             var storedId = new StoredId(instance);
             var position = reader.GetInt32(2);
@@ -261,7 +260,7 @@ public class SqlServerMessageStore(string connectionString, SqlGenerator sqlGene
             FROM {tablePrefix}
             WHERE FlowType = @FlowType AND FlowInstance = @FlowInstance";
         await using var command = new SqlCommand(_getSuspensionStatusSql, connection);
-        command.Parameters.AddWithValue("@FlowType", storedId.Type.Value);
+        command.Parameters.AddWithValue("@FlowType", storedId.Type.Value.ToInt());
         command.Parameters.AddWithValue("@FlowInstance", storedId.Instance.Value);
 
         await using var reader = await command.ExecuteReaderAsync();

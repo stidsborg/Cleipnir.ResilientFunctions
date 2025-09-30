@@ -173,7 +173,7 @@ public abstract class EffectStoreTests
         var store = await storeTask;
         var functionId = TestStoredId.Create();
         var otherFunctionId = new StoredId(
-            Instance: (functionId.Instance + "123").ToStoredInstance((functionId.Type.Value + 1).ToStoredType())
+            Instance: (functionId.Instance + "123").ToStoredInstance((functionId.Type.Value + 1).ToUshort().ToStoredType())
         );
         
         var storedEffect1 = new StoredEffect(

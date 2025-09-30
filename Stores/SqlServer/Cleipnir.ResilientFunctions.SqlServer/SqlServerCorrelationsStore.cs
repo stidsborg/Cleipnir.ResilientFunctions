@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Storage;
 using Microsoft.Data.SqlClient;
 
@@ -57,9 +58,8 @@ public class SqlServerCorrelationsStore(string connectionString, string tablePre
                 WHEN NOT MATCHED THEN
                     INSERT (Type, Instance, Correlation)
                     VALUES (source.Type, source.Instance, source.Correlation);";
-        
         await using var command = new SqlCommand(_setCorrelationSql, conn);
-        command.Parameters.AddWithValue("@Type", flowType.Value);
+        command.Parameters.AddWithValue("@Type", flowType.Value.ToInt());
         command.Parameters.AddWithValue("@Instance", flowInstance.Value);
         command.Parameters.AddWithValue("@Correlation", correlationId);
         
@@ -100,7 +100,7 @@ public class SqlServerCorrelationsStore(string connectionString, string tablePre
             WHERE Type = @Type AND Correlation = @Correlation";
         
         await using var command = new SqlCommand(_getInstancesForFunctionTypeAndCorrelationId, conn);
-        command.Parameters.AddWithValue("@Type", storedType.Value);
+        command.Parameters.AddWithValue("@Type", storedType.Value.ToInt());
         command.Parameters.AddWithValue("@Correlation", correlationId);
 
         var correlations = new List<StoredInstance>();
@@ -125,7 +125,7 @@ public class SqlServerCorrelationsStore(string connectionString, string tablePre
             WHERE Type = @Type AND Instance = @Instance";
         
         await using var command = new SqlCommand(_getCorrelationsForFunction, conn);
-        command.Parameters.AddWithValue("@Type", typeId.Value);
+        command.Parameters.AddWithValue("@Type", typeId.Value.ToInt());
         command.Parameters.AddWithValue("@Instance", instanceId.Value);
 
         var correlations = new List<string>();
@@ -149,7 +149,7 @@ public class SqlServerCorrelationsStore(string connectionString, string tablePre
             WHERE Type = @Type AND Instance = @Instance";
         
         await using var command = new SqlCommand(_removeCorrelationsSql, conn);
-        command.Parameters.AddWithValue("@Type", typeId.Value);
+        command.Parameters.AddWithValue("@Type", typeId.Value.ToInt());
         command.Parameters.AddWithValue("@Instance", instanceId.Value);
         
         await command.ExecuteNonQueryAsync();
@@ -165,7 +165,7 @@ public class SqlServerCorrelationsStore(string connectionString, string tablePre
             WHERE Type = @Type AND Instance = @Instance AND Correlation = @Correlation";
         
         await using var command = new SqlCommand(_removeCorrelationSql, conn);
-        command.Parameters.AddWithValue("@Type", typeId.Value);
+        command.Parameters.AddWithValue("@Type", typeId.Value.ToInt());
         command.Parameters.AddWithValue("@Instance", instanceId.Value);
         command.Parameters.AddWithValue("@Correlation", correlationId);
         
