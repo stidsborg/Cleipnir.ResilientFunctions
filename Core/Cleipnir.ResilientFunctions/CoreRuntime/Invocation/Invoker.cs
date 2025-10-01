@@ -148,9 +148,8 @@ public class Invoker<TParam, TReturn>
         return result.SucceedWithValue!;
     }
 
-    public async Task ScheduleRestart(StoredInstance instance)
+    public async Task ScheduleRestart(StoredId storedId)
     {
-        var storedId = new StoredId(instance);
         var (inner, param, humanInstanceId, workflow, disposables, parent) = await PrepareForReInvocation(storedId);
         var flowId = new FlowId(_flowType, humanInstanceId);
         

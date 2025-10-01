@@ -3,4 +3,4 @@ using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 
-public delegate Task ScheduleReInvocation(StoredInstance flowInstance);
+public delegate Task ScheduleReInvocation(StoredId storedId);

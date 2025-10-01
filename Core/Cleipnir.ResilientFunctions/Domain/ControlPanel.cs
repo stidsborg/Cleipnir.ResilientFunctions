@@ -348,7 +348,7 @@ public abstract class BaseControlPanel<TParam, TReturn>
         if (_innerParamChanged)
             await SaveChanges();
 
-        await _invoker.ScheduleRestart(StoredId.Instance);
+        await _invoker.ScheduleRestart(StoredId);
         
         if (refresh)
             await Refresh();
