@@ -4,4 +4,4 @@ using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 
-internal delegate Task ScheduleRestartFromWatchdog(StoredInstance flow, RestartedFunction restartedFunction, Action onCompletion);
+internal delegate Task ScheduleRestartFromWatchdog(StoredId storedId, RestartedFunction restartedFunction, Action onCompletion);

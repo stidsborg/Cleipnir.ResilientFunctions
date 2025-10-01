@@ -178,9 +178,8 @@ public class Invoker<TParam, TReturn>
     private async Task<TReturn> WaitForFunctionResult(FlowId flowId, StoredId storedId, TimeSpan? maxWait)
         => await _invocationHelper.WaitForFunctionResult(flowId, storedId, allowPostponedAndSuspended: false, maxWait);
 
-    internal async Task ScheduleRestart(StoredInstance instance, RestartedFunction rf, Action onCompletion)
+    internal async Task ScheduleRestart(StoredId storedId, RestartedFunction rf, Action onCompletion)
     {
-        var storedId = new StoredId(instance);
         var (inner, param, humanInstanceId, workflow, disposables, parent) = await PrepareForReInvocation(storedId, rf);
         var flowId = new FlowId(_flowType, humanInstanceId);
         
