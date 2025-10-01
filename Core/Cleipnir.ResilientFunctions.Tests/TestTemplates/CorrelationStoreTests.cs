@@ -19,7 +19,7 @@ public abstract class CorrelationStoreTests
         await correlationStore
             .GetCorrelations(functionId.Type, correlationId: "SomeCorrelationId")
             .SelectAsync(c => c.Single())
-            .ShouldBeAsync(functionId.Instance);
+            .ShouldBeAsync(functionId.Instance.ToStoredId());
 
         await correlationStore
             .GetCorrelations(functionId)
@@ -40,12 +40,12 @@ public abstract class CorrelationStoreTests
         var instances = await correlationStore
             .GetCorrelations(functionId1.Type, correlationId: "TwoDifferentFunctionsCanUseTheSameCorrelationId");
         instances.Count.ShouldBe(1);
-        instances.Single().ShouldBe(functionId1.Instance);
+        instances.Single().ShouldBe(functionId1.Instance.ToStoredId());
         
         instances = await correlationStore
             .GetCorrelations(functionId2.Type, correlationId: "TwoDifferentFunctionsCanUseTheSameCorrelationId");
         instances.Count.ShouldBe(1);
-        instances.Single().ShouldBe(functionId2.Instance);
+        instances.Single().ShouldBe(functionId2.Instance.ToStoredId());
     }
     
     public abstract Task FunctionCorrelationsCanBeDeleted();
@@ -108,8 +108,8 @@ public abstract class CorrelationStoreTests
 
         var instances = await correlationStore.GetCorrelations(functionId1.Type, "SomeCorrelationId1");
         instances.Count.ShouldBe(2);
-        instances.Any(i => i == functionId1.Instance).ShouldBeTrue();
-        instances.Any(i => i == functionId2.Instance).ShouldBeTrue();
+        instances.Any(i => i == functionId1.Instance.ToStoredId()).ShouldBeTrue();
+        instances.Any(i => i == functionId2.Instance.ToStoredId()).ShouldBeTrue();
     }
 }
 

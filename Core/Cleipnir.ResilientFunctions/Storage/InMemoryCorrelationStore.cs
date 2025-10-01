@@ -55,15 +55,15 @@ public class InMemoryCorrelationStore : ICorrelationStore
         }
     }
 
-    public Task<IReadOnlyList<StoredInstance>> GetCorrelations(StoredType flowType, string correlationId)
+    public Task<IReadOnlyList<StoredId>> GetCorrelations(StoredType flowType, string correlationId)
     {
         lock (_sync)
         {
             return _correlations
                 .Where(kv => kv.Key.Type == flowType && kv.Value.Contains(correlationId))
-                .Select(kv => kv.Key.Instance)
+                .Select(kv => kv.Key.Instance.ToStoredId())
                 .ToList()
-                .CastTo<IReadOnlyList<StoredInstance>>()
+                .CastTo<IReadOnlyList<StoredId>>()
                 .ToTask();
         }
     }

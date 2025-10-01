@@ -92,7 +92,7 @@ public class PostgreSqlCorrelationStore(string connectionString, string tablePre
     }
 
     private string? _getInstancesForFlowTypeAndCorrelation;
-    public async Task<IReadOnlyList<StoredInstance>> GetCorrelations(StoredType flowType, string correlationId)
+    public async Task<IReadOnlyList<StoredId>> GetCorrelations(StoredType flowType, string correlationId)
     {
         await using var conn = await CreateConnection();
         _getInstancesForFlowTypeAndCorrelation ??= @$"
@@ -110,14 +110,14 @@ public class PostgreSqlCorrelationStore(string connectionString, string tablePre
 
         await using var reader = await command.ExecuteReaderAsync();
 
-        var instances = new List<StoredInstance>();
+        var ids = new List<StoredId>();
         while (await reader.ReadAsync())
         {
-            var instance = reader.GetGuid(0).ToStoredInstance();
-            instances.Add(instance);
+            var id = reader.GetGuid(0).ToStoredInstance().ToStoredId();
+            ids.Add(id);
         }
 
-        return instances;
+        return ids;
     }
 
     private string? _getCorrelationsForFunction;

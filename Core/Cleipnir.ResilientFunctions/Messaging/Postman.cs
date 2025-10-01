@@ -18,7 +18,7 @@ public class Postman(StoredType storedType, ICorrelationStore correlationStore, 
     public async Task RouteMessage<TMessage>(TMessage message, string correlationId, string? idempotencyKey = null) where TMessage : notnull
     {
         var flowInstances = await correlationStore.GetCorrelations(storedType, correlationId);
-        foreach (var flowInstance in flowInstances)
-            await SendMessage(flowInstance, message, idempotencyKey);
+        foreach (var storedId in flowInstances)
+            await SendMessage(storedId.Instance, message, idempotencyKey);
     }
 }
