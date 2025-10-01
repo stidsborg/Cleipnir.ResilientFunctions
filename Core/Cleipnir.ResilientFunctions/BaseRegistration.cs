@@ -37,7 +37,7 @@ public abstract class BaseRegistration
     }
 
     public Task Interrupt(IEnumerable<FlowInstance> instances)
-        => Interrupt(instances.Select(i => i.ToStoredInstance(StoredType)));
-    public async Task Interrupt(IEnumerable<StoredInstance> storedInstances) 
-        => await _functionStore.Interrupt(storedInstances.Select(si => new StoredId(si)).ToList());
+        => Interrupt(instances.Select(i => i.ToStoredInstance(StoredType).ToStoredId()));
+    public async Task Interrupt(IEnumerable<StoredId> storedIds) 
+        => await _functionStore.Interrupt(storedIds.ToList());
 }
