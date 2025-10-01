@@ -660,7 +660,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
     }
 
     private string? _getInstancesWithStatusSql;
-    public async Task<IReadOnlyList<StoredInstance>> GetInstances(StoredType storedType, Status status)
+    public async Task<IReadOnlyList<StoredId>> GetInstances(StoredType storedType, Status status)
     {
         await using var conn = await CreateConnection();
         _getInstancesWithStatusSql ??= @$"
@@ -678,18 +678,18 @@ public class PostgreSqlFunctionStore : IFunctionStore
         };
         
         await using var reader = await command.ExecuteReaderAsync();
-        var instances = new List<StoredInstance>();
+        var ids = new List<StoredId>();
         while (await reader.ReadAsync())
         {
-            var instance = reader.GetGuid(0).ToStoredInstance();
-            instances.Add(instance);
+            var id = reader.GetGuid(0).ToStoredInstance().ToStoredId();
+            ids.Add(id);
         }
 
-        return instances;
+        return ids;
     }
 
     private string? _getInstancesSql;
-    public async Task<IReadOnlyList<StoredInstance>> GetInstances(StoredType storedType)
+    public async Task<IReadOnlyList<StoredId>> GetInstances(StoredType storedType)
     {
         await using var conn = await CreateConnection();
         
@@ -707,14 +707,14 @@ public class PostgreSqlFunctionStore : IFunctionStore
         };
         
         await using var reader = await command.ExecuteReaderAsync();
-        var instances = new List<StoredInstance>();
+        var ids = new List<StoredId>();
         while (await reader.ReadAsync())
         {
-            var flowInstance = reader.GetGuid(0).ToStoredInstance();
-            instances.Add(flowInstance);
+            var id = reader.GetGuid(0).ToStoredInstance().ToStoredId();
+            ids.Add(id);
         }
 
-        return instances;
+        return ids;
     }
 
     private async Task<StoredFlow?> ReadToStoredFunction(StoredId storedId, NpgsqlDataReader reader)

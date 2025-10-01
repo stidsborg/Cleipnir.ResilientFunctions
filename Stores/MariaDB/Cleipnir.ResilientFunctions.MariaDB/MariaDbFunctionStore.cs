@@ -627,7 +627,7 @@ public class MariaDbFunctionStore : IFunctionStore
     }
 
     private string? _getInstancesWithStatusSql;
-    public async Task<IReadOnlyList<StoredInstance>> GetInstances(StoredType storedType, Status status)
+    public async Task<IReadOnlyList<StoredId>> GetInstances(StoredType storedType, Status status)
     {
         await using var conn = await CreateOpenConnection(_connectionString);
         _getInstancesWithStatusSql ??= @$"
@@ -644,18 +644,18 @@ public class MariaDbFunctionStore : IFunctionStore
         };
         
         await using var reader = await command.ExecuteReaderAsync();
-        var instances = new List<StoredInstance>();
+        var ids = new List<StoredId>();
         while (await reader.ReadAsync())
         {
-            var flowInstance = reader.GetString(0).ToGuid().ToStoredInstance();
-            instances.Add(flowInstance);
+            var flowInstance = reader.GetString(0).ToGuid().ToStoredInstance().ToStoredId();
+            ids.Add(flowInstance);
         }
         
-        return instances;
+        return ids;
     }
 
     private string? _getInstancesSql;
-    public async Task<IReadOnlyList<StoredInstance>> GetInstances(StoredType storedType)
+    public async Task<IReadOnlyList<StoredId>> GetInstances(StoredType storedType)
     {
         await using var conn = await CreateOpenConnection(_connectionString);
         _getInstancesSql ??= @$"
@@ -671,14 +671,14 @@ public class MariaDbFunctionStore : IFunctionStore
         };
         
         await using var reader = await command.ExecuteReaderAsync();
-        var functions = new List<StoredInstance>();
+        var ids = new List<StoredId>();
         while (await reader.ReadAsync())
         {
-            var flowInstance = reader.GetString(0).ToGuid().ToStoredInstance();
-            functions.Add(flowInstance);
+            var id = reader.GetString(0).ToGuid().ToStoredInstance().ToStoredId();
+            ids.Add(id);
         }
         
-        return functions;
+        return ids;
     }
     
     private async Task<StoredFlow?> ReadToStoredFunction(StoredId storedId, MySqlDataReader reader)

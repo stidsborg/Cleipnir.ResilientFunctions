@@ -1217,8 +1217,8 @@ public abstract class StoreTests
         
         var instances = await store.GetInstances(storedType1);
         instances.Count.ShouldBe(2);
-        instances.Any(i => i == flowId1.Instance).ShouldBeTrue();
-        instances.Any(i => i == flowId2.Instance).ShouldBeTrue();
+        instances.Any(i => i == flowId1.Instance.ToStoredId()).ShouldBeTrue();
+        instances.Any(i => i == flowId2.Instance.ToStoredId()).ShouldBeTrue();
 
         await store.SucceedFunction(
             flowId1,
@@ -1232,7 +1232,7 @@ public abstract class StoreTests
 
         instances = await store.GetInstances(storedType1, Status.Succeeded);
         instances.Count.ShouldBe(1);
-        instances.Single().ShouldBe(flowId1.Instance);
+        instances.Single().ShouldBe(flowId1.Instance.ToStoredId());
 
         var flowTypes = await store.TypeStore.GetAllFlowTypes();
         flowTypes.Count.ShouldBe(2);

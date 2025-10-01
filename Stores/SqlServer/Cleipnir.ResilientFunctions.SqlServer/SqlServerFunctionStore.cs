@@ -672,7 +672,7 @@ public class SqlServerFunctionStore : IFunctionStore
     }
 
     private string? _getInstancesWithStatusSql;
-    public async Task<IReadOnlyList<StoredInstance>> GetInstances(StoredType storedType, Status status)
+    public async Task<IReadOnlyList<StoredId>> GetInstances(StoredType storedType, Status status)
     {
         await using var conn = await _connFunc();
         _getInstancesWithStatusSql ??= @$"
@@ -685,18 +685,18 @@ public class SqlServerFunctionStore : IFunctionStore
         command.Parameters.AddWithValue("@Status", (int) status);
 
         await using var reader = await command.ExecuteReaderAsync();
-        var instances = new List<StoredInstance>(); 
+        var ids = new List<StoredId>(); 
         while (reader.Read())
         {
-            var flowInstance = reader.GetGuid(0).ToStoredInstance();
-            instances.Add(flowInstance);    
+            var id = reader.GetGuid(0).ToStoredInstance().ToStoredId();
+            ids.Add(id);    
         }
 
-        return instances;
+        return ids;
     }
 
     private string? _getInstancesSql;
-    public async Task<IReadOnlyList<StoredInstance>> GetInstances(StoredType storedType)
+    public async Task<IReadOnlyList<StoredId>> GetInstances(StoredType storedType)
     {
         await using var conn = await _connFunc();
         _getInstancesSql ??= @$"
@@ -708,14 +708,14 @@ public class SqlServerFunctionStore : IFunctionStore
         command.Parameters.AddWithValue("@FlowType", storedType.Value.ToInt());
 
         await using var reader = await command.ExecuteReaderAsync();
-        var instances = new List<StoredInstance>();
+        var ids = new List<StoredId>();
         while (reader.Read())
         {
             var flowInstance = reader.GetGuid(0);
-            instances.Add(flowInstance.ToStoredInstance());
+            ids.Add(flowInstance.ToStoredInstance().ToStoredId());
         }
 
-        return instances;
+        return ids;
     }
 
     private StoredFlow? ReadToStoredFlow(StoredId storedId, SqlDataReader reader)

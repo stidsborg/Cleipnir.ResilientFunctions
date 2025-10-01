@@ -28,7 +28,7 @@ public abstract class BaseRegistration
     
     public StoredId MapToStoredId(FlowInstance instance) => new(instance.Value.ToStoredInstance(StoredType));
 
-    public async Task<IReadOnlyList<StoredInstance>> GetInstances(Status? status = null)
+    public async Task<IReadOnlyList<StoredId>> GetInstances(Status? status = null)
     {
         return await (status == null
                 ? _functionStore.GetInstances(StoredType)

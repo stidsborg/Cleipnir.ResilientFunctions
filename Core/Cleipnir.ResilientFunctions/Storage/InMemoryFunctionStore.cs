@@ -432,26 +432,26 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         }
     }
 
-    public Task<IReadOnlyList<StoredInstance>> GetInstances(StoredType storedType, Status status)
+    public Task<IReadOnlyList<StoredId>> GetInstances(StoredType storedType, Status status)
     {
         lock (_sync)
             return _states
                 .Where(kv => kv.Key.Type == storedType)
                 .Where(kv => kv.Value.Status == status)
-                .Select(kv => kv.Key.Instance)
+                .Select(kv => kv.Key.Instance.ToStoredId())
                 .ToList()
-                .CastTo<IReadOnlyList<StoredInstance>>()
+                .CastTo<IReadOnlyList<StoredId>>()
                 .ToTask();
     }
 
-    public Task<IReadOnlyList<StoredInstance>> GetInstances(StoredType storedType)
+    public Task<IReadOnlyList<StoredId>> GetInstances(StoredType storedType)
     {
         lock (_sync)
             return _states
                 .Where(kv => kv.Key.Type == storedType)
-                .Select(kv => kv.Key.Instance)
+                .Select(kv => kv.Key.Instance.ToStoredId())
                 .ToList()
-                .CastTo<IReadOnlyList<StoredInstance>>()
+                .CastTo<IReadOnlyList<StoredId>>()
                 .ToTask();
     }
 
