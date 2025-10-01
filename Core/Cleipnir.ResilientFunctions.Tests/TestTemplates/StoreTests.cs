@@ -1091,7 +1091,7 @@ public abstract class StoreTests
 
         var succeededFunctions = await store.GetSucceededFunctions(functionId1.Type, completedBefore: 2);
         succeededFunctions.Count.ShouldBe(1);
-        succeededFunctions.Single().ShouldBe(functionId1.Instance);
+        succeededFunctions.Single().ShouldBe(functionId1.Instance.ToStoredId());
     }
     
     public abstract Task BulkScheduleInsertsAllFunctionsSuccessfully();

@@ -153,15 +153,15 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
                 .ToTask();
     }
 
-    public Task<IReadOnlyList<StoredInstance>> GetSucceededFunctions(StoredType storedType, long completedBefore)
+    public Task<IReadOnlyList<StoredId>> GetSucceededFunctions(StoredType storedType, long completedBefore)
     {
         lock (_sync)
             return _states
                 .Values
                 .Where(s => s.StoredId.Type == storedType && s.Timestamp < completedBefore)
-                .Select(s => s.StoredId.Instance)
+                .Select(s => s.StoredId.Instance.ToStoredId())
                 .ToList()
-                .CastTo<IReadOnlyList<StoredInstance>>()
+                .CastTo<IReadOnlyList<StoredId>>()
                 .ToTask();
     }
 

@@ -306,7 +306,7 @@ public class SqlServerFunctionStore : IFunctionStore
     }
 
     private string? _getSucceededFunctionsSql;
-    public async Task<IReadOnlyList<StoredInstance>> GetSucceededFunctions(StoredType storedType, long completedBefore)
+    public async Task<IReadOnlyList<StoredId>> GetSucceededFunctions(StoredType storedType, long completedBefore)
     {
         await using var conn = await _connFunc();
         _getSucceededFunctionsSql ??= @$"
@@ -321,19 +321,19 @@ public class SqlServerFunctionStore : IFunctionStore
         command.Parameters.AddWithValue("@CompletedBefore", completedBefore);
 
         await using var reader = await command.ExecuteReaderAsync();
-        var storedInstances = new List<StoredInstance>(); 
+        var ids = new List<StoredId>(); 
         while (reader.HasRows)
         {
             while (reader.Read())
             {
-                var storedInstance = reader.GetGuid(0).ToStoredInstance();
-                storedInstances.Add(storedInstance);    
+                var storedInstance = reader.GetGuid(0).ToStoredInstance().ToStoredId();
+                ids.Add(storedInstance);    
             }
 
             reader.NextResult();
         }
 
-        return storedInstances;
+        return ids;
     }
 
     private string? _setFunctionStateSql;

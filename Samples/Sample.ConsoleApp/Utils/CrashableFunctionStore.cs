@@ -66,9 +66,9 @@ public class CrashableFunctionStore : IFunctionStore
             ? Task.FromException<IReadOnlyList<StoredId>>(new TimeoutException())
             : _inner.GetExpiredFunctions(expiresBefore);
 
-    public Task<IReadOnlyList<StoredInstance>> GetSucceededFunctions(StoredType storedType, long completedBefore)
+    public Task<IReadOnlyList<StoredId>> GetSucceededFunctions(StoredType storedType, long completedBefore)
         => _crashed
-            ? Task.FromException<IReadOnlyList<StoredInstance>>(new TimeoutException())
+            ? Task.FromException<IReadOnlyList<StoredId>>(new TimeoutException())
             : _inner.GetSucceededFunctions(storedType, completedBefore);
 
     public Task<bool> SetParameters(StoredId storedId, byte[]? param, byte[]? result, ReplicaId? expectedReplica)

@@ -287,7 +287,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
     }
 
     private string? _getSucceededFunctionsSql;
-    public async Task<IReadOnlyList<StoredInstance>> GetSucceededFunctions(StoredType storedType, long completedBefore)
+    public async Task<IReadOnlyList<StoredId>> GetSucceededFunctions(StoredType storedType, long completedBefore)
     {
         await using var conn = await CreateConnection();
         _getSucceededFunctionsSql ??= @$"
@@ -304,14 +304,14 @@ public class PostgreSqlFunctionStore : IFunctionStore
         };
         
         await using var reader = await command.ExecuteReaderAsync();
-        var flowInstances = new List<StoredInstance>();
+        var ids = new List<StoredId>();
         while (await reader.ReadAsync())
         {
-            var flowInstance = reader.GetGuid(0).ToStoredInstance();
-            flowInstances.Add(flowInstance);
+            var flowInstance = reader.GetGuid(0).ToStoredInstance().ToStoredId();
+            ids.Add(flowInstance);
         }
 
-        return flowInstances;
+        return ids;
     }
 
     private string? _setFunctionStateSql;

@@ -253,7 +253,7 @@ public class MariaDbFunctionStore : IFunctionStore
     }
 
     private string? _getSucceededFunctionsSql;
-    public async Task<IReadOnlyList<StoredInstance>> GetSucceededFunctions(StoredType storedType, long completedBefore)
+    public async Task<IReadOnlyList<StoredId>> GetSucceededFunctions(StoredType storedType, long completedBefore)
     {
         await using var conn = await CreateOpenConnection(_connectionString);
         _getSucceededFunctionsSql ??= @$"
@@ -270,14 +270,14 @@ public class MariaDbFunctionStore : IFunctionStore
         };
         
         await using var reader = await command.ExecuteReaderAsync();
-        var instances = new List<StoredInstance>();
+        var ids = new List<StoredId>();
         while (await reader.ReadAsync())
         {
-            var instance = reader.GetString(0).ToGuid().ToStoredInstance();
-            instances.Add(instance);
+            var instance = reader.GetString(0).ToGuid().ToStoredInstance().ToStoredId();
+            ids.Add(instance);
         }
         
-        return instances;
+        return ids;
     }
 
     private string? _setFunctionStateSql;
