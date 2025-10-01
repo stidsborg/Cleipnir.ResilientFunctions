@@ -3,4 +3,4 @@ using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 
-public delegate Task Restart(StoredInstance instanceId);
+public delegate Task Restart(StoredId instanceId);

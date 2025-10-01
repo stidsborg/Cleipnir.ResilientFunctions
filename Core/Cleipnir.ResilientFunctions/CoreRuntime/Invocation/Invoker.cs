@@ -128,9 +128,8 @@ public class Invoker<TParam, TReturn>
         return _invocationHelper.CreateInnerScheduled([id], parent, detach);
     }
 
-    public async Task<TReturn> Restart(StoredInstance instanceId)
+    public async Task<TReturn> Restart(StoredId storedId)
     {
-        var storedId = new StoredId(instanceId);
         var (inner, param, humanInstanceId, workflow, disposables, parent) = await PrepareForReInvocation(storedId);
         CurrentFlow._workflow.Value = workflow;
         var flowId = new FlowId(_flowType, humanInstanceId);

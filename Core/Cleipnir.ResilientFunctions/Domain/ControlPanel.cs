@@ -326,7 +326,7 @@ public abstract class BaseControlPanel<TParam, TReturn>
 
         try
         {
-            return await _invoker.Restart(StoredId.Instance);
+            return await _invoker.Restart(StoredId);
         }
         finally
         {
