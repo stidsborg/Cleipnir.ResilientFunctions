@@ -29,9 +29,8 @@ public class MessageWriters
         return new MessageWriter(storedId, _functionStore, _serializer);
     }
     
-    internal MessageWriter For(StoredInstance instance)
+    internal MessageWriter For(StoredId storedId)
     {
-        var storedId = new StoredId(instance);
         return new MessageWriter(storedId, _functionStore, _serializer);
     }
 
