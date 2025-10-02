@@ -128,9 +128,8 @@ public class Invoker<TParam, TReturn>
         return _invocationHelper.CreateInnerScheduled([id], parent, detach);
     }
 
-    public async Task<TReturn> Restart(StoredInstance instanceId)
+    public async Task<TReturn> Restart(StoredId storedId)
     {
-        var storedId = new StoredId(instanceId);
         var (inner, param, humanInstanceId, workflow, disposables, parent) = await PrepareForReInvocation(storedId);
         CurrentFlow._workflow.Value = workflow;
         var flowId = new FlowId(_flowType, humanInstanceId);
@@ -149,9 +148,8 @@ public class Invoker<TParam, TReturn>
         return result.SucceedWithValue!;
     }
 
-    public async Task ScheduleRestart(StoredInstance instance)
+    public async Task ScheduleRestart(StoredId storedId)
     {
-        var storedId = new StoredId(instance);
         var (inner, param, humanInstanceId, workflow, disposables, parent) = await PrepareForReInvocation(storedId);
         var flowId = new FlowId(_flowType, humanInstanceId);
         
@@ -180,9 +178,8 @@ public class Invoker<TParam, TReturn>
     private async Task<TReturn> WaitForFunctionResult(FlowId flowId, StoredId storedId, TimeSpan? maxWait)
         => await _invocationHelper.WaitForFunctionResult(flowId, storedId, allowPostponedAndSuspended: false, maxWait);
 
-    internal async Task ScheduleRestart(StoredInstance instance, RestartedFunction rf, Action onCompletion)
+    internal async Task ScheduleRestart(StoredId storedId, RestartedFunction rf, Action onCompletion)
     {
-        var storedId = new StoredId(instance);
         var (inner, param, humanInstanceId, workflow, disposables, parent) = await PrepareForReInvocation(storedId, rf);
         var flowId = new FlowId(_flowType, humanInstanceId);
         
@@ -373,7 +370,7 @@ public class Invoker<TParam, TReturn>
     private (FlowId, StoredId) CreateIds(FlowInstance instanceId)
         => CreateIds(instanceId.Value);
     private (FlowId, StoredId) CreateIds(string instanceId)
-        => (new FlowId(_flowType, instanceId), new StoredId(instanceId.ToStoredInstance(_storedType)));
+        => (new FlowId(_flowType, instanceId), StoredId.Create(_storedType, instanceId));
 
     private Workflow? GetAndEnsureParent(bool? detach) => _invocationHelper.GetAndEnsureParent(detach);
 }

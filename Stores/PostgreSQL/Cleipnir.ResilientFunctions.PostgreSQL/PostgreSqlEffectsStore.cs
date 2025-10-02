@@ -58,7 +58,7 @@ public class PostgreSqlEffectsStore(string connectionString, SqlGenerator sqlGen
             Parameters =
             {
                 new() {Value = storedId.Type.Value.ToInt()},
-                new() {Value = storedId.Instance.Value},
+                new() {Value = storedId.AsGuid},
                 new() {Value = storedEffect.StoredEffectId.Value},
                 new() {Value = (int) storedEffect.WorkStatus},
                 new() {Value = storedEffect.Result ?? (object) DBNull.Value},
@@ -103,7 +103,7 @@ public class PostgreSqlEffectsStore(string connectionString, SqlGenerator sqlGen
             Parameters =
             {
                 new() {Value = storedId.Type.Value.ToInt() },
-                new() {Value = storedId.Instance.Value },
+                new() {Value = storedId.AsGuid },
                 new() {Value = effectId.Value },
             }
         };
@@ -117,7 +117,7 @@ public class PostgreSqlEffectsStore(string connectionString, SqlGenerator sqlGen
         var sql = @$"
             DELETE FROM {tablePrefix}_effects 
             WHERE type = {storedId.Type.Value.ToInt()} AND 
-                  instance = '{storedId.Instance.Value}' AND 
+                  instance = '{storedId.AsGuid}' AND 
                   id_hash IN ({effectIds.Select(id => $"'{id.Value}'").StringJoin(", ")})";
 
         await using var command = new NpgsqlCommand(sql, conn);
@@ -135,7 +135,7 @@ public class PostgreSqlEffectsStore(string connectionString, SqlGenerator sqlGen
             Parameters =
             {
                 new() {Value = storedId.Type.Value.ToInt() },
-                new() {Value = storedId.Instance.Value },
+                new() {Value = storedId.AsGuid },
             }
         };
 

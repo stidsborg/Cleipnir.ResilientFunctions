@@ -179,9 +179,11 @@ public class MariaDbFunctionStore : IFunctionStore
         var parentStr = parent == null ? "NULL" : $"'{parent}'"; 
      
         var rows = new List<string>();
-        foreach (var ((type, instance), humanInstanceId, param) in functionsWithParam)
+        foreach (var (storedId, humanInstanceId, param) in functionsWithParam)
         {
-            var row = $"({type.Value}, '{instance.Value:N}', {(param == null ? "NULL" : $"x'{Convert.ToHexString(param)}'")}, {(int) Status.Postponed}, 0, {now}, '{humanInstanceId.EscapeString()}', {parentStr}, NULL)"; 
+            var type = storedId.Type.Value.ToInt();
+            var instance = storedId.AsGuid;
+            var row = $"({type}, '{instance:N}', {(param == null ? "NULL" : $"x'{Convert.ToHexString(param)}'")}, {(int) Status.Postponed}, 0, {now}, '{humanInstanceId.EscapeString()}', {parentStr}, NULL)"; 
             rows.Add(row);
         }
         var rowsSql = string.Join(", " + Environment.NewLine, rows);
@@ -243,17 +245,16 @@ public class MariaDbFunctionStore : IFunctionStore
         var ids = new List<StoredId>();
         while (await reader.ReadAsync())
         {
-            var flowType = reader.GetInt32(0);
-            var flowInstance = reader.GetString(1).ToGuid().ToStoredInstance();
-            var flowId = new StoredId(flowInstance);
-            ids.Add(flowId);
+            var guid = reader.GetString(1).ToGuid();
+            var id = new StoredId(guid);
+            ids.Add(id);
         }
         
         return ids;
     }
 
     private string? _getSucceededFunctionsSql;
-    public async Task<IReadOnlyList<StoredInstance>> GetSucceededFunctions(StoredType storedType, long completedBefore)
+    public async Task<IReadOnlyList<StoredId>> GetSucceededFunctions(StoredType storedType, long completedBefore)
     {
         await using var conn = await CreateOpenConnection(_connectionString);
         _getSucceededFunctionsSql ??= @$"
@@ -270,14 +271,14 @@ public class MariaDbFunctionStore : IFunctionStore
         };
         
         await using var reader = await command.ExecuteReaderAsync();
-        var instances = new List<StoredInstance>();
+        var ids = new List<StoredId>();
         while (await reader.ReadAsync())
         {
-            var instance = reader.GetString(0).ToGuid().ToStoredInstance();
-            instances.Add(instance);
+            var instance = reader.GetString(0).ToGuid().ToStoredInstance().ToStoredId();
+            ids.Add(instance);
         }
         
-        return instances;
+        return ids;
     }
 
     private string? _setFunctionStateSql;
@@ -313,7 +314,7 @@ public class MariaDbFunctionStore : IFunctionStore
                 new() {Value = storedException != null ? JsonSerializer.Serialize(storedException) : DBNull.Value},
                 new() {Value = expires},
                 new() {Value = storedId.Type.Value},
-                new() {Value = storedId.Instance.Value.ToString("N")},
+                new() {Value = storedId.AsGuid.ToString("N")},
             }
         };
 
@@ -464,7 +465,7 @@ public class MariaDbFunctionStore : IFunctionStore
             Parameters =
             {
                 new() { Value = storedId.Type.Value },
-                new() { Value = storedId.Instance.Value.ToString("N") },
+                new() { Value = storedId.AsGuid.ToString("N") },
             }
         };
         
@@ -509,7 +510,7 @@ public class MariaDbFunctionStore : IFunctionStore
                 new() { Value = storedParameter ?? (object) DBNull.Value },
                 new() { Value = storedResult ?? (object) DBNull.Value },
                 new() { Value = storedId.Type.Value },
-                new() { Value = storedId.Instance.Value.ToString("N") }
+                new() { Value = storedId.AsGuid.ToString("N") }
             }
         };
             
@@ -532,7 +533,7 @@ public class MariaDbFunctionStore : IFunctionStore
             Parameters =
             {
                 new() { Value = storedId.Type.Value },
-                new() { Value = storedId.Instance.Value.ToString("N") },
+                new() { Value = storedId.AsGuid.ToString("N") },
             }
         };
         
@@ -551,7 +552,7 @@ public class MariaDbFunctionStore : IFunctionStore
         {
             Parameters = { 
                 new() {Value = storedId.Type.Value},
-                new() {Value = storedId.Instance.Value.ToString("N")}
+                new() {Value = storedId.AsGuid.ToString("N")}
             }
         };
         
@@ -568,7 +569,7 @@ public class MariaDbFunctionStore : IFunctionStore
     public async Task<IReadOnlyList<StatusAndId>> GetFunctionsStatus(IEnumerable<StoredId> storedIds)
     {
         var predicates = storedIds
-            .Select(s => new { Type = s.Type.Value, Instance = s.Instance.Value })
+            .Select(s => new { Type = s.Type.Value, Instance = s.AsGuid })
             .GroupBy(id => id.Type, id => id.Instance)
             .Select(g => $"(type = {g.Key} AND instance IN ({string.Join(",", g.Select(instance => $"'{instance:N}'"))}))")
             .StringJoin(" OR " + Environment.NewLine);
@@ -585,11 +586,11 @@ public class MariaDbFunctionStore : IFunctionStore
         await using var reader = await command.ExecuteReaderAsync();
         while (await reader.ReadAsync())
         {
-            var instance = reader.GetGuid(1).ToStoredInstance();
+            var guid = reader.GetGuid(1);
             var status = (Status) reader.GetInt32(2);
             var expires = reader.GetInt64(3);
 
-            var storedId = new StoredId(instance);
+            var storedId = new StoredId(guid);
             toReturn.Add(new StatusAndId(storedId, status, expires));
         }
 
@@ -618,7 +619,7 @@ public class MariaDbFunctionStore : IFunctionStore
         {
             Parameters = { 
                 new() {Value = storedId.Type.Value},
-                new() {Value = storedId.Instance.Value.ToString("N")}
+                new() {Value = storedId.AsGuid.ToString("N")}
             }
         };
         
@@ -627,7 +628,7 @@ public class MariaDbFunctionStore : IFunctionStore
     }
 
     private string? _getInstancesWithStatusSql;
-    public async Task<IReadOnlyList<StoredInstance>> GetInstances(StoredType storedType, Status status)
+    public async Task<IReadOnlyList<StoredId>> GetInstances(StoredType storedType, Status status)
     {
         await using var conn = await CreateOpenConnection(_connectionString);
         _getInstancesWithStatusSql ??= @$"
@@ -644,18 +645,18 @@ public class MariaDbFunctionStore : IFunctionStore
         };
         
         await using var reader = await command.ExecuteReaderAsync();
-        var instances = new List<StoredInstance>();
+        var ids = new List<StoredId>();
         while (await reader.ReadAsync())
         {
-            var flowInstance = reader.GetString(0).ToGuid().ToStoredInstance();
-            instances.Add(flowInstance);
+            var flowInstance = reader.GetString(0).ToGuid().ToStoredInstance().ToStoredId();
+            ids.Add(flowInstance);
         }
         
-        return instances;
+        return ids;
     }
 
     private string? _getInstancesSql;
-    public async Task<IReadOnlyList<StoredInstance>> GetInstances(StoredType storedType)
+    public async Task<IReadOnlyList<StoredId>> GetInstances(StoredType storedType)
     {
         await using var conn = await CreateOpenConnection(_connectionString);
         _getInstancesSql ??= @$"
@@ -671,14 +672,14 @@ public class MariaDbFunctionStore : IFunctionStore
         };
         
         await using var reader = await command.ExecuteReaderAsync();
-        var functions = new List<StoredInstance>();
+        var ids = new List<StoredId>();
         while (await reader.ReadAsync())
         {
-            var flowInstance = reader.GetString(0).ToGuid().ToStoredInstance();
-            functions.Add(flowInstance);
+            var id = reader.GetString(0).ToGuid().ToStoredInstance().ToStoredId();
+            ids.Add(id);
         }
         
-        return functions;
+        return ids;
     }
     
     private async Task<StoredFlow?> ReadToStoredFunction(StoredId storedId, MySqlDataReader reader)
@@ -749,7 +750,7 @@ public class MariaDbFunctionStore : IFunctionStore
             Parameters =
             {
                 new() {Value = storedId.Type.Value},
-                new() {Value = storedId.Instance.Value.ToString("N")}
+                new() {Value = storedId.AsGuid.ToString("N")}
             }
         };
 

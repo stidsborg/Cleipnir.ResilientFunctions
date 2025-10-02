@@ -38,7 +38,7 @@ public interface IFunctionStore
     Task<StoredFlowWithEffectsAndMessages?> RestartExecution(StoredId storedId, ReplicaId owner);
     
     Task<IReadOnlyList<StoredId>> GetExpiredFunctions(long expiresBefore);
-    Task<IReadOnlyList<StoredInstance>> GetSucceededFunctions(StoredType storedType, long completedBefore);
+    Task<IReadOnlyList<StoredId>> GetSucceededFunctions(StoredType storedType, long completedBefore);
     
     Task<bool> SetParameters(
         StoredId storedId,
@@ -107,8 +107,8 @@ public interface IFunctionStore
     Task<Status?> GetFunctionStatus(StoredId storedId);
     Task<IReadOnlyList<StatusAndId>> GetFunctionsStatus(IEnumerable<StoredId> storedIds);
     Task<StoredFlow?> GetFunction(StoredId storedId);
-    Task<IReadOnlyList<StoredInstance>> GetInstances(StoredType storedType, Status status);
-    Task<IReadOnlyList<StoredInstance>> GetInstances(StoredType storedType);
+    Task<IReadOnlyList<StoredId>> GetInstances(StoredType storedType, Status status);
+    Task<IReadOnlyList<StoredId>> GetInstances(StoredType storedType);
 
     Task<bool> DeleteFunction(StoredId storedId);
 

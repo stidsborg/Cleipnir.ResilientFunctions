@@ -338,8 +338,8 @@ public abstract class StoreTests
     {
         var store = await storeTask;
         var function1Id = TestStoredId.Create();
-        var function2Id = function1Id with { Instance = Guid.NewGuid().ToString("N").ToStoredInstance(function1Id.Type) };
-
+        var function2Id = StoredId.Create(function1Id.Type, Guid.NewGuid().ToString("N"));
+        
         await store.CreateFunction(
             function1Id, 
             "humanInstanceId",
@@ -1057,7 +1057,7 @@ public abstract class StoreTests
     protected async Task SucceededFunctionsCanBeFetchedSuccessfully(Task<IFunctionStore> storeTask)
     {
         var functionId1 = TestStoredId.Create();
-        var functionId2 = functionId1 with { Instance = Guid.NewGuid().ToString().ToStoredInstance(functionId1.Type) };
+        var functionId2 = StoredId.Create(functionId1.Type, Guid.NewGuid().ToString());
         var functionId3 = TestStoredId.Create();
         var store = await storeTask;
 
@@ -1091,7 +1091,7 @@ public abstract class StoreTests
 
         var succeededFunctions = await store.GetSucceededFunctions(functionId1.Type, completedBefore: 2);
         succeededFunctions.Count.ShouldBe(1);
-        succeededFunctions.Single().ShouldBe(functionId1.Instance);
+        succeededFunctions.Single().ShouldBe(functionId1);
     }
     
     public abstract Task BulkScheduleInsertsAllFunctionsSuccessfully();
@@ -1102,7 +1102,7 @@ public abstract class StoreTests
         var typeId = TestStoredId.Create().Type;
         var functionIds = Enumerable
             .Range(0, 500)
-            .Select(i => new StoredId(Instance: i.ToString().ToStoredInstance(typeId)))
+            .Select(i => StoredId.Create(typeId, i.ToString()))
             .ToList();
         
         await store.BulkScheduleFunctions(
@@ -1217,8 +1217,8 @@ public abstract class StoreTests
         
         var instances = await store.GetInstances(storedType1);
         instances.Count.ShouldBe(2);
-        instances.Any(i => i == flowId1.Instance).ShouldBeTrue();
-        instances.Any(i => i == flowId2.Instance).ShouldBeTrue();
+        instances.Any(i => i == flowId1).ShouldBeTrue();
+        instances.Any(i => i == flowId2).ShouldBeTrue();
 
         await store.SucceedFunction(
             flowId1,
@@ -1232,7 +1232,7 @@ public abstract class StoreTests
 
         instances = await store.GetInstances(storedType1, Status.Succeeded);
         instances.Count.ShouldBe(1);
-        instances.Single().ShouldBe(flowId1.Instance);
+        instances.Single().ShouldBe(flowId1);
 
         var flowTypes = await store.TypeStore.GetAllFlowTypes();
         flowTypes.Count.ShouldBe(2);
@@ -1313,7 +1313,7 @@ public abstract class StoreTests
     protected async Task MultipleFunctionsStatusCanBeFetched(Task<IFunctionStore> storeTask)
     {
         var functionId1 = TestStoredId.Create();
-        var functionId2 = functionId1 with { Instance = Guid.NewGuid().ToString().ToStoredInstance(functionId1.Type) };
+        var functionId2 = StoredId.Create(functionId1.Type, Guid.NewGuid().ToString());
         var functionId3 = TestStoredId.Create();
         var store = await storeTask;
 

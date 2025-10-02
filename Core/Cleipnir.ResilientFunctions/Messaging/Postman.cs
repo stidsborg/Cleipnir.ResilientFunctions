@@ -7,7 +7,7 @@ namespace Cleipnir.ResilientFunctions.Messaging;
 public class Postman(StoredType storedType, ICorrelationStore correlationStore, MessageWriters messageWriters)
 {
     public Task SendMessage<TMessage>(
-        StoredInstance instance, 
+        StoredId instance, 
         TMessage message, 
         string? idempotencyKey = null
     ) where TMessage : notnull => messageWriters.For(instance).AppendMessage(message, idempotencyKey);
@@ -18,7 +18,7 @@ public class Postman(StoredType storedType, ICorrelationStore correlationStore, 
     public async Task RouteMessage<TMessage>(TMessage message, string correlationId, string? idempotencyKey = null) where TMessage : notnull
     {
         var flowInstances = await correlationStore.GetCorrelations(storedType, correlationId);
-        foreach (var flowInstance in flowInstances)
-            await SendMessage(flowInstance, message, idempotencyKey);
+        foreach (var storedId in flowInstances)
+            await SendMessage(storedId, message, idempotencyKey);
     }
 }

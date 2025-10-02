@@ -53,7 +53,7 @@ public class DelayedStartUpTests
         var flowId = TestFlowId.Create();
 
         var storedType = await store.TypeStore.InsertOrGetStoredType(flowId.Type);
-        var storedId = new StoredId(flowId.Instance.Value.ToStoredInstance(storedType));
+        var storedId = StoredId.Create(storedType, flowId.Instance.Value);
         await store.CreateFunction(
             storedId, 
             "humanInstanceId",

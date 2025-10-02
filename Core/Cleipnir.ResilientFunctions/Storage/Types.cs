@@ -3,44 +3,63 @@ using System.Collections.Generic;
 using System.Security.Cryptography;
 using System.Text;
 using Cleipnir.ResilientFunctions.Domain;
-using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
 
 namespace Cleipnir.ResilientFunctions.Storage;
 
-public record StoredId(StoredInstance Instance)
+public record StoredId(Guid AsGuid)
 {
-    public override string ToString() => $"{Instance.Value}";
+    public override string ToString() => $"{AsGuid}";
 
-    public StoredType Type => Instance.StoredType;
-    
-    public static StoredId Deserialize(string s)
-    {
-        var storedInstance = s.ToGuid().ToStoredInstance();
-        return new StoredId(storedInstance);
-    }
+    public StoredType Type => ExtractStoredType();
+
+    public static StoredId Deserialize(string s) => new(Guid.Parse(s));
 
     public string Serialize() => ToString();
 
-    public Guid ToGuid()
+    public static Guid Create(StoredType type, Guid id)
     {
-        var instanceGuid = Instance.Value;
-        var instanceBytes = instanceGuid.ToByteArray();
-        var typeBytes = BitConverter.GetBytes(Type.Value);
+        var instanceBytes = id.ToByteArray();
+        var typeBytes = BitConverter.GetBytes(type.Value);
         if (!BitConverter.IsLittleEndian)
             Array.Reverse(typeBytes);
         
-        typeBytes.CopyTo(instanceBytes, index: 0); // overwrites first 4 bytes
-        var id = new Guid(instanceBytes);
-        return id;
+        typeBytes.CopyTo(instanceBytes, index: 0); // overwrites first 2 bytes
+        return new Guid(instanceBytes);
     }
     
-    public void Deconstruct(out StoredType type, out StoredInstance instance)
+    public static StoredId Create(StoredType type, string instance)
     {
-        type = Type;
-        instance = Instance;
+        // Convert the input string to a byte array and compute the hash.
+        using var sha256 = SHA256.Create();
+        var hash = sha256.ComputeHash(Encoding.UTF8.GetBytes(instance));
+    
+        var guidBytes = new byte[16];
+        for (int i = 0; i < 16; i++)
+        {
+            guidBytes[i] = (byte)(hash[i] ^ hash[i + 16]);
+        }
+   
+        var typeBytes = BitConverter.GetBytes(type.Value);
+        if (!BitConverter.IsLittleEndian)
+            Array.Reverse(typeBytes);
+
+        typeBytes.CopyTo(guidBytes, index: 0); // overwrites first 2 bytes
+        var id = new Guid(guidBytes);
+        return new StoredId(id);
+    }
+
+    private StoredType ExtractStoredType()
+    {
+        var bytes = AsGuid.ToByteArray();
+        if (!BitConverter.IsLittleEndian)
+            (bytes[0], bytes[1]) = (bytes[1], bytes[0]);
+
+        var type = BitConverter.ToUInt16(bytes, startIndex: 0);
+        return type.ToStoredType();
     }
 }
+
 public record StoredType(ushort Value);
 
 public record StoredInstance(Guid Value, StoredType StoredType)
@@ -70,7 +89,7 @@ public record StoredInstance(Guid Value, StoredType StoredType)
         return new StoredInstance(id);
     }
 
-    public StoredId ToStoredId() => new StoredId(this);
+    public StoredId ToStoredId() => new(Value);
 }
 
 public static class StoredInstanceExtensions

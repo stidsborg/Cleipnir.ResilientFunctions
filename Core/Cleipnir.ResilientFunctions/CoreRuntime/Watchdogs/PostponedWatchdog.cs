@@ -101,7 +101,7 @@ internal class PostponedWatchdog
                         }
 
                         await scheduleRestart(
-                            id.Instance,
+                            id,
                             restartedFunction,
                             onCompletion: () =>
                             {

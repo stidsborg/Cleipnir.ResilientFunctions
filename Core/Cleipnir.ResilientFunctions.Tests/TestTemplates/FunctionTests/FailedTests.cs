@@ -307,7 +307,7 @@ public abstract class FailedTests
         {
             var key = (await store.TypeStore.GetAllFlowTypes()).Values.First();
             await store
-                .GetFunction(new StoredId(functionId.Instance.ToStoredInstance(key)))
+                .GetFunction(StoredId.Create(key, functionId.Instance.Value))
                 .Map(f => f?.Exception)
                 .ShouldNotBeNullAsync();
         }

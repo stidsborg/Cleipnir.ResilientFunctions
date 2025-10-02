@@ -72,12 +72,12 @@ public class ParamlessRegistration : BaseRegistration
     {
         if (create)
         {
-            var sf = await _functionStore.GetFunction(new StoredId(flowInstance.ToStoredInstance(StoredType)));
+            var sf = await _functionStore.GetFunction(StoredId.Create(StoredType, flowInstance.Value));
             if (sf is null)
                 await Schedule(flowInstance);    
         }
         
-        await Postman.SendMessage(flowInstance.Value.ToStoredInstance(StoredType), message, idempotencyKey);
+        await Postman.SendMessage(flowInstance.Value.ToStoredInstance(StoredType).ToStoredId(), message, idempotencyKey);
     }
     
     public async Task SendMessages(IReadOnlyList<BatchedMessage> messages, bool interrupt = true)

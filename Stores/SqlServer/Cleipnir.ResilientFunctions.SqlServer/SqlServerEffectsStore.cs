@@ -64,7 +64,7 @@ public class SqlServerEffectsStore(string connectionString, SqlGenerator sqlGene
         
         await using var command = new SqlCommand(_setEffectResultSql, conn);
         command.Parameters.AddWithValue("@FlowType", storedId.Type.Value.ToInt());
-        command.Parameters.AddWithValue("@FlowInstance", storedId.Instance.Value);
+        command.Parameters.AddWithValue("@FlowInstance", storedId.AsGuid);
         command.Parameters.AddWithValue("@StoredId", storedEffect.StoredEffectId.Value);
         command.Parameters.AddWithValue("@EffectId", storedEffect.EffectId.Serialize());
         command.Parameters.AddWithValue("@Status", storedEffect.WorkStatus);
@@ -107,7 +107,7 @@ public class SqlServerEffectsStore(string connectionString, SqlGenerator sqlGene
         
         await using var command = new SqlCommand(_deleteEffectResultSql, conn);
         command.Parameters.AddWithValue("@FlowType", storedId.Type.Value.ToInt());
-        command.Parameters.AddWithValue("@FlowInstance", storedId.Instance.Value);
+        command.Parameters.AddWithValue("@FlowInstance", storedId.AsGuid);
         command.Parameters.AddWithValue("@StoredId", effectId.Value);
         
         await command.ExecuteNonQueryAsync();
@@ -119,7 +119,7 @@ public class SqlServerEffectsStore(string connectionString, SqlGenerator sqlGene
         var sql = @$"
             DELETE FROM {tablePrefix}_Effects 
             WHERE FlowType = {storedId.Type.Value.ToInt()} AND 
-                  FlowInstance = '{storedId.Instance.Value}' AND 
+                  FlowInstance = '{storedId.AsGuid}' AND 
                   StoredId IN ({effectIds.Select(id => $"'{id.Value}'").StringJoin(", ")}) ";
         
         await using var command = new SqlCommand(sql, conn);
@@ -136,7 +136,7 @@ public class SqlServerEffectsStore(string connectionString, SqlGenerator sqlGene
         
         await using var command = new SqlCommand(_removeSql, conn);
         command.Parameters.AddWithValue("@FlowType", storedId.Type.Value.ToInt());
-        command.Parameters.AddWithValue("@FlowInstance", storedId.Instance.Value);
+        command.Parameters.AddWithValue("@FlowInstance", storedId.AsGuid);
         
         await command.ExecuteNonQueryAsync();
     }

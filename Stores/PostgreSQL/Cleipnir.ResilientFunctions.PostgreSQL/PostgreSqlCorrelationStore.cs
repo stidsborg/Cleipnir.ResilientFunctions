@@ -39,8 +39,6 @@ public class PostgreSqlCorrelationStore(string connectionString, string tablePre
     private string? _setCorrelationSql;
     public async Task SetCorrelation(StoredId storedId, string correlationId)
     {
-        var (flowType, flowInstance) = storedId;
-        
         await using var conn = await CreateConnection();
         _setCorrelationSql ??= $@"
           INSERT INTO {tablePrefix}_correlations 
@@ -53,8 +51,8 @@ public class PostgreSqlCorrelationStore(string connectionString, string tablePre
         {
             Parameters =
             {
-                new() {Value = flowType.Value.ToInt()},
-                new() {Value = flowInstance.Value},
+                new() {Value = storedId.Type.Value.ToInt()},
+                new() {Value = storedId.AsGuid},
                 new() {Value = correlationId}
             }
         };
@@ -80,19 +78,18 @@ public class PostgreSqlCorrelationStore(string connectionString, string tablePre
 
         await using var reader = await command.ExecuteReaderAsync();
 
-        var functions = new List<StoredId>();
+        var ids = new List<StoredId>();
         while (await reader.ReadAsync())
         {
-            var instance = reader.GetGuid(1).ToStoredInstance();
-            
-            functions.Add(new StoredId(instance));
+            var id = new StoredId(reader.GetGuid(1));
+            ids.Add(id);
         }
 
-        return functions;
+        return ids;
     }
 
     private string? _getInstancesForFlowTypeAndCorrelation;
-    public async Task<IReadOnlyList<StoredInstance>> GetCorrelations(StoredType flowType, string correlationId)
+    public async Task<IReadOnlyList<StoredId>> GetCorrelations(StoredType flowType, string correlationId)
     {
         await using var conn = await CreateConnection();
         _getInstancesForFlowTypeAndCorrelation ??= @$"
@@ -110,20 +107,19 @@ public class PostgreSqlCorrelationStore(string connectionString, string tablePre
 
         await using var reader = await command.ExecuteReaderAsync();
 
-        var instances = new List<StoredInstance>();
+        var ids = new List<StoredId>();
         while (await reader.ReadAsync())
         {
-            var instance = reader.GetGuid(0).ToStoredInstance();
-            instances.Add(instance);
+            var id = reader.GetGuid(0).ToStoredInstance().ToStoredId();
+            ids.Add(id);
         }
 
-        return instances;
+        return ids;
     }
 
     private string? _getCorrelationsForFunction;
     public async Task<IReadOnlyList<string>> GetCorrelations(StoredId storedId)
     {
-        var (typeId, instanceId) = storedId;
         await using var conn = await CreateConnection();
         _getCorrelationsForFunction ??= @$"
             SELECT correlation
@@ -133,8 +129,8 @@ public class PostgreSqlCorrelationStore(string connectionString, string tablePre
         {
             Parameters =
             {
-                new() { Value = typeId.Value.ToInt() },
-                new() { Value = instanceId.Value }
+                new() { Value = storedId.Type.Value.ToInt() },
+                new() { Value = storedId.AsGuid }
             }
         };
 
@@ -153,8 +149,6 @@ public class PostgreSqlCorrelationStore(string connectionString, string tablePre
     private string? _removeCorrelationsSql;
     public async Task RemoveCorrelations(StoredId storedId)
     {
-        var (flowType, flowInstance) = storedId;
-        
         await using var conn = await CreateConnection();
         _removeCorrelationsSql ??= $@"
           DELETE FROM {tablePrefix}_correlations 
@@ -164,8 +158,8 @@ public class PostgreSqlCorrelationStore(string connectionString, string tablePre
         {
             Parameters =
             {
-                new() {Value = flowType.Value.ToInt()},
-                new() {Value = flowInstance.Value},
+                new() {Value = storedId.Type.Value.ToInt()},
+                new() {Value = storedId.AsGuid},
             }
         };
 
@@ -175,8 +169,6 @@ public class PostgreSqlCorrelationStore(string connectionString, string tablePre
     private string? _removeCorrelationSql;
     public async Task RemoveCorrelation(StoredId storedId, string correlationId)
     {
-        var (flowType, flowInstance) = storedId;
-        
         await using var conn = await CreateConnection();
         _removeCorrelationSql ??= $@"
           DELETE FROM {tablePrefix}_correlations 
@@ -186,8 +178,8 @@ public class PostgreSqlCorrelationStore(string connectionString, string tablePre
         {
             Parameters =
             {
-                new() {Value = flowType.Value.ToInt()},
-                new() {Value = flowInstance.Value},
+                new() {Value = storedId.Type.Value.ToInt()},
+                new() {Value = storedId.AsGuid},
                 new() {Value = correlationId},
             }
         };

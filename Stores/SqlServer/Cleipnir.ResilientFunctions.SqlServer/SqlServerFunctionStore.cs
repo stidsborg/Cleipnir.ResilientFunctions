@@ -241,7 +241,7 @@ public class SqlServerFunctionStore : IFunctionStore
             foreach (var idAndSql in idAndSqls)
             {
                 command.Parameters.AddWithValue($"@FlowType{idAndSql.Id}", idAndSql.FunctionId.Type.Value.ToInt());
-                command.Parameters.AddWithValue($"@FlowInstance{idAndSql.Id}", idAndSql.FunctionId.Instance.Value);
+                command.Parameters.AddWithValue($"@FlowInstance{idAndSql.Id}", idAndSql.FunctionId.AsGuid);
                 command.Parameters.AddWithValue($"@ParamJson{idAndSql.Id}", idAndSql.Param == null ? SqlBinary.Null : idAndSql.Param);
                 command.Parameters.AddWithValue($"@HumanInstanceId{idAndSql.Id}", idAndSql.HumanInstanceId);
             }
@@ -295,7 +295,7 @@ public class SqlServerFunctionStore : IFunctionStore
             {
                 var flowType = reader.GetInt32(0);
                 var flowInstance = reader.GetGuid(1);
-                var flowId = new StoredId(flowInstance.ToStoredInstance());
+                var flowId = new StoredId(flowInstance);
                 rows.Add(flowId);
             }
 
@@ -306,7 +306,7 @@ public class SqlServerFunctionStore : IFunctionStore
     }
 
     private string? _getSucceededFunctionsSql;
-    public async Task<IReadOnlyList<StoredInstance>> GetSucceededFunctions(StoredType storedType, long completedBefore)
+    public async Task<IReadOnlyList<StoredId>> GetSucceededFunctions(StoredType storedType, long completedBefore)
     {
         await using var conn = await _connFunc();
         _getSucceededFunctionsSql ??= @$"
@@ -321,19 +321,19 @@ public class SqlServerFunctionStore : IFunctionStore
         command.Parameters.AddWithValue("@CompletedBefore", completedBefore);
 
         await using var reader = await command.ExecuteReaderAsync();
-        var storedInstances = new List<StoredInstance>(); 
+        var ids = new List<StoredId>(); 
         while (reader.HasRows)
         {
             while (reader.Read())
             {
-                var storedInstance = reader.GetGuid(0).ToStoredInstance();
-                storedInstances.Add(storedInstance);    
+                var storedInstance = reader.GetGuid(0).ToStoredInstance().ToStoredId();
+                ids.Add(storedInstance);    
             }
 
             reader.NextResult();
         }
 
-        return storedInstances;
+        return ids;
     }
 
     private string? _setFunctionStateSql;
@@ -368,7 +368,7 @@ public class SqlServerFunctionStore : IFunctionStore
         var exceptionJson = storedException == null ? null : JsonSerializer.Serialize(storedException);
         command.Parameters.AddWithValue("@ExceptionJson", exceptionJson ?? (object) DBNull.Value);
         command.Parameters.AddWithValue("@Expires", expires);
-        command.Parameters.AddWithValue("@FlowInstance", storedId.Instance.Value);
+        command.Parameters.AddWithValue("@FlowInstance", storedId.AsGuid);
         command.Parameters.AddWithValue("@FlowType", storedId.Type.Value.ToInt());
 
         var affectedRows = await command.ExecuteNonQueryAsync();
@@ -527,7 +527,7 @@ public class SqlServerFunctionStore : IFunctionStore
         
         await using var command = new SqlCommand(_interruptSql, conn);
         command.Parameters.AddWithValue("@FlowType", storedId.Type.Value.ToInt());
-        command.Parameters.AddWithValue("@FlowInstance", storedId.Instance.Value);
+        command.Parameters.AddWithValue("@FlowInstance", storedId.AsGuid);
 
         var affectedRows = await command.ExecuteNonQueryAsync();
         return affectedRows == 1;
@@ -564,7 +564,7 @@ public class SqlServerFunctionStore : IFunctionStore
         await using var command = new SqlCommand(sql, conn);
         command.Parameters.AddWithValue("@ParamJson", param == null ? SqlBinary.Null : param);
         command.Parameters.AddWithValue("@ResultJson", result == null ? SqlBinary.Null : result);
-        command.Parameters.AddWithValue("@FlowInstance", storedId.Instance.Value);
+        command.Parameters.AddWithValue("@FlowInstance", storedId.AsGuid);
         command.Parameters.AddWithValue("@FlowType", storedId.Type.Value.ToInt());
 
         var affectedRows = await command.ExecuteNonQueryAsync();
@@ -582,7 +582,7 @@ public class SqlServerFunctionStore : IFunctionStore
 
         await using var command = new SqlCommand(_interruptedSql, conn);
         command.Parameters.AddWithValue("@FlowType", storedId.Type.Value.ToInt());
-        command.Parameters.AddWithValue("@FlowInstance", storedId.Instance.Value);
+        command.Parameters.AddWithValue("@FlowInstance", storedId.AsGuid);
 
         var interrupted = await command.ExecuteScalarAsync();
         return (bool?) interrupted;
@@ -599,7 +599,7 @@ public class SqlServerFunctionStore : IFunctionStore
         
         await using var command = new SqlCommand(_getFunctionStatusSql, conn);
         command.Parameters.AddWithValue("@FlowType", storedId.Type.Value.ToInt());
-        command.Parameters.AddWithValue("@FlowInstance", storedId.Instance.Value);
+        command.Parameters.AddWithValue("@FlowInstance", storedId.AsGuid);
         
         await using var reader = await command.ExecuteReaderAsync();
         while (reader.HasRows)
@@ -615,7 +615,7 @@ public class SqlServerFunctionStore : IFunctionStore
     public async Task<IReadOnlyList<StatusAndId>> GetFunctionsStatus(IEnumerable<StoredId> storedIds)
     {
         var predicates = storedIds
-            .Select(s => new { Type = s.Type.Value, Instance = s.Instance.Value })
+            .Select(s => new { Type = s.Type.Value, Instance = s.AsGuid })
             .GroupBy(id => id.Type, id => id.Instance)
             .Select(g => $"(FlowType = {g.Key} AND FlowInstance IN ({string.Join(",", g.Select(instance => $"'{instance}'"))}))")
             .StringJoin(" OR " + Environment.NewLine);
@@ -633,7 +633,7 @@ public class SqlServerFunctionStore : IFunctionStore
         
         while (reader.Read())
         {
-            var instance = reader.GetGuid(1).ToStoredInstance();
+            var instance = reader.GetGuid(1);
             var status = (Status) reader.GetInt32(2);
             var expires = reader.GetInt64(3);
 
@@ -665,14 +665,14 @@ public class SqlServerFunctionStore : IFunctionStore
         
         await using var command = new SqlCommand(_getFunctionSql, conn);
         command.Parameters.AddWithValue("@FlowType", storedId.Type.Value.ToInt());
-        command.Parameters.AddWithValue("@FlowInstance", storedId.Instance.Value);
+        command.Parameters.AddWithValue("@FlowInstance", storedId.AsGuid);
         
         await using var reader = await command.ExecuteReaderAsync();
         return ReadToStoredFlow(storedId, reader);
     }
 
     private string? _getInstancesWithStatusSql;
-    public async Task<IReadOnlyList<StoredInstance>> GetInstances(StoredType storedType, Status status)
+    public async Task<IReadOnlyList<StoredId>> GetInstances(StoredType storedType, Status status)
     {
         await using var conn = await _connFunc();
         _getInstancesWithStatusSql ??= @$"
@@ -685,18 +685,18 @@ public class SqlServerFunctionStore : IFunctionStore
         command.Parameters.AddWithValue("@Status", (int) status);
 
         await using var reader = await command.ExecuteReaderAsync();
-        var instances = new List<StoredInstance>(); 
+        var ids = new List<StoredId>(); 
         while (reader.Read())
         {
-            var flowInstance = reader.GetGuid(0).ToStoredInstance();
-            instances.Add(flowInstance);    
+            var id = reader.GetGuid(0).ToStoredInstance().ToStoredId();
+            ids.Add(id);    
         }
 
-        return instances;
+        return ids;
     }
 
     private string? _getInstancesSql;
-    public async Task<IReadOnlyList<StoredInstance>> GetInstances(StoredType storedType)
+    public async Task<IReadOnlyList<StoredId>> GetInstances(StoredType storedType)
     {
         await using var conn = await _connFunc();
         _getInstancesSql ??= @$"
@@ -708,14 +708,14 @@ public class SqlServerFunctionStore : IFunctionStore
         command.Parameters.AddWithValue("@FlowType", storedType.Value.ToInt());
 
         await using var reader = await command.ExecuteReaderAsync();
-        var instances = new List<StoredInstance>();
+        var ids = new List<StoredId>();
         while (reader.Read())
         {
             var flowInstance = reader.GetGuid(0);
-            instances.Add(flowInstance.ToStoredInstance());
+            ids.Add(flowInstance.ToStoredInstance().ToStoredId());
         }
 
-        return instances;
+        return ids;
     }
 
     private StoredFlow? ReadToStoredFlow(StoredId storedId, SqlDataReader reader)
@@ -780,7 +780,7 @@ public class SqlServerFunctionStore : IFunctionStore
             AND FlowInstance = @FlowInstance ";
         
         await using var command = new SqlCommand(_deleteFunctionSql, conn);
-        command.Parameters.AddWithValue("@FlowInstance", storedId.Instance.Value);
+        command.Parameters.AddWithValue("@FlowInstance", storedId.AsGuid);
         command.Parameters.AddWithValue("@FlowType", storedId.Type.Value.ToInt());
         
         return await command.ExecuteNonQueryAsync() == 1;

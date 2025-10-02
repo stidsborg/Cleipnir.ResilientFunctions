@@ -43,7 +43,6 @@ public class MariaDbCorrelationStore : ICorrelationStore
     private string? _setCorrelationSql;
     public async Task SetCorrelation(StoredId storedId, string correlationId)
     {
-        var (flowType, flowInstance) = storedId;
         await using var conn = await CreateConnection();
         _setCorrelationSql ??= $@"
           INSERT IGNORE INTO {_tablePrefix}_correlations 
@@ -55,8 +54,8 @@ public class MariaDbCorrelationStore : ICorrelationStore
         {
             Parameters =
             {
-                new() {Value = flowType.Value},
-                new() {Value = flowInstance.Value.ToString("N")},
+                new() {Value = storedId.Type.Value.ToInt()},
+                new() {Value = storedId.AsGuid.ToString("N")},
                 new() {Value = correlationId},
             }
         };
@@ -85,8 +84,7 @@ public class MariaDbCorrelationStore : ICorrelationStore
         var states = new List<StoredId>();
         while (await reader.ReadAsync())
         {
-            var type = reader.GetInt32(0);
-            var instance = reader.GetString(1).ToGuid().ToStoredInstance();
+            var instance = reader.GetString(1).ToGuid();
             states.Add(new StoredId(instance));
         }
 
@@ -94,7 +92,7 @@ public class MariaDbCorrelationStore : ICorrelationStore
     }
 
     private string? _getInstancesForFlowTypeAndCorrelation;
-    public async Task<IReadOnlyList<StoredInstance>> GetCorrelations(StoredType storedType, string correlationId)
+    public async Task<IReadOnlyList<StoredId>> GetCorrelations(StoredType storedType, string correlationId)
     {
         await using var conn = await CreateConnection();
         _getInstancesForFlowTypeAndCorrelation ??= @$"
@@ -112,20 +110,19 @@ public class MariaDbCorrelationStore : ICorrelationStore
 
         await using var reader = await command.ExecuteReaderAsync();
 
-        var instances = new List<StoredInstance>();
+        var ids = new List<StoredId>();
         while (await reader.ReadAsync())
         {
-            var instance = reader.GetString(0).ToGuid().ToStoredInstance();
-            instances.Add(instance);
+            var id = reader.GetString(0).ToGuid().ToStoredInstance().ToStoredId();
+            ids.Add(id);
         }
 
-        return instances;
+        return ids;
     }
 
     private string? _getCorrelationsForFunctionSql;
     public async Task<IReadOnlyList<string>> GetCorrelations(StoredId storedId)
     {
-        var (typeId, instanceId) = storedId;
         await using var conn = await CreateConnection();
         _getCorrelationsForFunctionSql ??= @$"
             SELECT correlation
@@ -135,8 +132,8 @@ public class MariaDbCorrelationStore : ICorrelationStore
         {
             Parameters =
             {
-                new() { Value = typeId.Value },
-                new() { Value = instanceId.Value.ToString("N") },
+                new() { Value = storedId.Type.Value.ToInt() },
+                new() { Value = storedId.AsGuid.ToString("N") },
             }
         };
 
@@ -155,15 +152,14 @@ public class MariaDbCorrelationStore : ICorrelationStore
     private string? _removeCorrelationsSql;
     public async Task RemoveCorrelations(StoredId storedId)
     {
-        var (typeId, instanceId) = storedId;
         await using var conn = await CreateConnection();
         _removeCorrelationsSql ??= $"DELETE FROM {_tablePrefix}_correlations WHERE type = ? AND instance = ?";
         await using var command = new MySqlCommand(_removeCorrelationsSql, conn)
         {
             Parameters =
             {
-                new() { Value =  typeId.Value },
-                new() { Value =  instanceId.Value.ToString("N") },
+                new() { Value = storedId.Type.Value.ToInt() },
+                new() { Value = storedId.AsGuid.ToString("N") },
             }
         };
 
@@ -173,15 +169,14 @@ public class MariaDbCorrelationStore : ICorrelationStore
     private string? _removeCorrelationSql;
     public async Task RemoveCorrelation(StoredId storedId, string correlationId)
     {
-        var (typeId, instanceId) = storedId;
         await using var conn = await CreateConnection();
         _removeCorrelationSql ??= $"DELETE FROM {_tablePrefix}_correlations WHERE type = ? AND instance = ? AND correlation = ?";
         await using var command = new MySqlCommand(_removeCorrelationSql, conn)
         {
             Parameters =
             {
-                new() { Value =  typeId.Value },
-                new() { Value =  instanceId.Value.ToString("N") },
+                new() { Value =  storedId.Type.Value.ToInt() },
+                new() { Value =  storedId.AsGuid.ToString("N") },
                 new() { Value =  correlationId },
             }
         };

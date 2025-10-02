@@ -71,7 +71,7 @@ public class PostgreSqlMessageStore(string connectionString, SqlGenerator sqlGen
                 Parameters =
                 {
                     new() {Value = storedId.Type.Value.ToInt()},
-                    new() {Value = storedId.Instance.Value},
+                    new() {Value = storedId.AsGuid},
                     new() {Value = messageJson},
                     new() {Value = messageType},
                     new() {Value = idempotencyKey ?? (object) DBNull.Value}
@@ -157,7 +157,7 @@ public class PostgreSqlMessageStore(string connectionString, SqlGenerator sqlGen
                 new() {Value = messageType},
                 new() {Value = idempotencyKey ?? (object) DBNull.Value},
                 new() {Value = storedId.Type.Value.ToInt()},
-                new() {Value = storedId.Instance.Value},
+                new() {Value = storedId.AsGuid},
                 new() {Value = position},
             }
         };
@@ -178,7 +178,7 @@ public class PostgreSqlMessageStore(string connectionString, SqlGenerator sqlGen
             Parameters =
             {
                 new() {Value = storedId.Type.Value.ToInt()},
-                new() {Value = storedId.Instance.Value}
+                new() {Value = storedId.AsGuid}
             }
         };
         await command.ExecuteNonQueryAsync();
@@ -200,7 +200,7 @@ public class PostgreSqlMessageStore(string connectionString, SqlGenerator sqlGen
             return new Dictionary<StoredId, int>();
         
         var predicates = storedIds
-            .GroupBy(id => id.Type.Value, id => id.Instance.Value)
+            .GroupBy(id => id.Type.Value, id => id.AsGuid)
             .Select(g => $"type = {g.Key} AND instance IN ({g.Select(instance => $"'{instance}'").StringJoin(", ")})")
             .StringJoin(" OR " + Environment.NewLine);
 
@@ -219,8 +219,8 @@ public class PostgreSqlMessageStore(string connectionString, SqlGenerator sqlGen
         await using var reader = await command.ExecuteReaderAsync();
         while (await reader.ReadAsync())
         {
-            var instance = reader.GetGuid(1).ToStoredInstance();
-            var storedId = new StoredId(instance);
+            var guid = reader.GetGuid(1);
+            var storedId = new StoredId(guid);
             var position = reader.GetInt32(2);
             positions[storedId] = position;
         }
@@ -240,7 +240,7 @@ public class PostgreSqlMessageStore(string connectionString, SqlGenerator sqlGen
         {
             Parameters = { 
                 new() {Value = storedId.Type.Value.ToInt()},
-                new() {Value = storedId.Instance.Value}
+                new() {Value = storedId.AsGuid}
             }
         };
 

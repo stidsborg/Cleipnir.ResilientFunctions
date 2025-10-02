@@ -543,7 +543,7 @@ public abstract class PostponedTests
 
         var storedParameter = "hello".ToJson();
         var storedType = await store.TypeStore.InsertOrGetStoredType(functionId.Type);
-        var storedId = new StoredId(functionId.Instance.Value.ToStoredInstance(storedType));
+        var storedId = StoredId.Create(storedType, functionId.Instance.Value);
         await store.CreateFunction(
             storedId, 
             "humanInstanceId",

@@ -52,7 +52,7 @@ public class MariaDbEffectsStore(string connectionString, SqlGenerator sqlGenera
             Parameters =
             {
                 new() {Value = storedId.Type.Value},
-                new() {Value = storedId.Instance.Value.ToString("N")},
+                new() {Value = storedId.AsGuid.ToString("N")},
                 new() {Value = storedEffect.StoredEffectId.Value.ToString("N")},
                 new() {Value = (int) storedEffect.WorkStatus},
                 new() {Value = storedEffect.Result ?? (object) DBNull.Value},
@@ -100,7 +100,7 @@ public class MariaDbEffectsStore(string connectionString, SqlGenerator sqlGenera
             Parameters =
             {
                 new() { Value = storedId.Type.Value },
-                new() { Value = storedId.Instance.Value.ToString("N") },
+                new() { Value = storedId.AsGuid.ToString("N") },
                 new() { Value = effectId.Value.ToString("N") },
             }
         };
@@ -114,7 +114,7 @@ public class MariaDbEffectsStore(string connectionString, SqlGenerator sqlGenera
         var sql = @$"
             DELETE FROM {tablePrefix}_effects 
             WHERE type = {storedId.Type.Value} AND 
-                  instance = '{storedId.Instance.Value:N}' AND 
+                  instance = '{storedId.AsGuid:N}' AND 
                   id_hash IN ({effectIds.Select(id => $"'{id.Value:N}'").StringJoin(", ")});";
         
         await using var command = new MySqlCommand(sql, conn);
@@ -131,7 +131,7 @@ public class MariaDbEffectsStore(string connectionString, SqlGenerator sqlGenera
             Parameters =
             {
                 new() { Value = storedId.Type.Value },
-                new() { Value = storedId.Instance.Value.ToString("N") },
+                new() { Value = storedId.AsGuid.ToString("N") },
             }
         };
 
