@@ -50,7 +50,7 @@ public static class TimeoutSuspensionTest
         Console.WriteLine($"{testName}: Waiting for instances to suspend");
         await BusyWait.Until(async () =>
             {
-                var suspended = await registration.GetInstances(Status.Postponed).SelectAsync(i => i.Count);
+                var suspended = await store.GetExpiredFunctions(DateTime.UtcNow.Ticks).SelectAsync(f => f.Count);
                 if (suspended == testSize)
                     return true;
 

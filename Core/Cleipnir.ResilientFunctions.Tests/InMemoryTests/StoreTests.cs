@@ -159,10 +159,6 @@ public class StoreTests : TestTemplates.StoreTests
         => DifferentTypesAreFetchedByGetExpiredFunctionsCall(FunctionStoreFactory.Create());
 
     [TestMethod]
-    public override Task MultipleInstancesCanBeFetchedForFlowType()
-        => MultipleInstancesCanBeFetchedForFlowType(FunctionStoreFactory.Create());
-
-    [TestMethod]
     public override Task TypeStoreSunshineScenarioTest()
         => TypeStoreSunshineScenarioTest(FunctionStoreFactory.Create());
 

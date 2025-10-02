@@ -27,15 +27,7 @@ public abstract class BaseRegistration
         => Postman.RouteMessage(message, correlationId, idempotencyKey);
     
     public StoredId MapToStoredId(FlowInstance instance) => StoredId.Create(StoredType, instance.Value);
-
-    public async Task<IReadOnlyList<StoredId>> GetInstances(Status? status = null)
-    {
-        return await (status == null
-                ? _functionStore.GetInstances(StoredType)
-                : _functionStore.GetInstances(StoredType, status.Value)
-            );
-    }
-
+    
     public Task Interrupt(IEnumerable<FlowInstance> instances)
         => Interrupt(instances.Select(i => StoredId.Create(StoredType, i.Value)));
     public async Task Interrupt(IEnumerable<StoredId> storedIds) 

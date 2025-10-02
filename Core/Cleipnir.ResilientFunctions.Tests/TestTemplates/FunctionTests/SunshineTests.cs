@@ -202,61 +202,6 @@ public abstract class SunshineTests
         unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
     
-    public abstract Task InstancesCanBeFetched();
-    protected async Task InstancesCanBeFetched(Task<IFunctionStore> storeTask)
-    {
-        var store = await storeTask;
-        var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        var flowType = TestFlowId.Create().Type;
-        
-        
-            using var functionsRegistry = new FunctionsRegistry(
-                store,
-                new Settings(
-                    unhandledExceptionCatcher.Catch,
-                    enableWatchdogs: false
-                )
-            );
-        
-            var registration = functionsRegistry.RegisterAction(
-                flowType,
-                inner: Task<Result<Unit>> (bool postpone) => 
-                    Task.FromResult(
-                        postpone 
-                        ? Postpone.Until(DateTime.UtcNow.AddHours(1)) 
-                        : Succeed.WithUnit
-                    )
-            );
-            
-            await registration.Schedule("true", true);
-            await registration.Schedule("false", false);
-
-            var trueFlowControlPanel = (await registration.ControlPanel("true")).ShouldNotBeNull();
-            await BusyWait.Until(async () =>
-            {
-                await trueFlowControlPanel.Refresh();
-                return trueFlowControlPanel.Status == Status.Postponed;
-            });
-            
-            var falseFlowControlPanel = (await registration.ControlPanel("false")).ShouldNotBeNull();
-            await falseFlowControlPanel.WaitForCompletion();
-
-            var allInstances = await registration.GetInstances();
-            allInstances.Count.ShouldBe(2);
-            allInstances.Any(i => i == "true".ToStoredId(registration.StoredType)).ShouldBeTrue();
-            allInstances.Any(i => i == "false".ToStoredId(registration.StoredType)).ShouldBeTrue();
-
-            var succeeds = await registration.GetInstances(Status.Succeeded);
-            succeeds.Count.ShouldBe(1);
-            succeeds.Single().ShouldBe("false".ToStoredId(registration.StoredType));
-            
-            var postponed = await registration.GetInstances(Status.Postponed);
-            postponed.Count.ShouldBe(1);
-            postponed.Single().ShouldBe("true".ToStoredId(registration.StoredType));
-        
-        unhandledExceptionCatcher.ShouldNotHaveExceptions();
-    }
-    
     public abstract Task EffectsAreNotFetchedOnFirstInvocation();
     protected async Task EffectsAreNotFetchedOnFirstInvocation(Task<IFunctionStore> storeTask)
     {

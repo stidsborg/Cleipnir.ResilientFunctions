@@ -178,16 +178,6 @@ public class CrashableFunctionStore : IFunctionStore
             ? Task.FromException<StoredFlow?>(new TimeoutException())
             : _inner.GetFunction(storedId);
 
-    public Task<IReadOnlyList<StoredId>> GetInstances(StoredType storedType, Status status)
-        => _crashed
-            ? Task.FromException<IReadOnlyList<StoredId>>(new TimeoutException())
-            : _inner.GetInstances(storedType, status);
-
-    public Task<IReadOnlyList<StoredId>> GetInstances(StoredType storedType)
-        => _crashed
-            ? Task.FromException<IReadOnlyList<StoredId>>(new TimeoutException())
-            : _inner.GetInstances(storedType);
-
     public Task<bool> DeleteFunction(StoredId storedId)
         => _crashed
             ? Task.FromException<bool>(new TimeoutException())

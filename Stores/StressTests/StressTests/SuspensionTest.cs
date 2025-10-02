@@ -4,6 +4,7 @@ using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Reactive.Extensions;
+using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.StressTests.Engines;
 using Cleipnir.ResilientFunctions.StressTests.StressTests.Utils;
 
@@ -40,10 +41,11 @@ public static class SuspensionTest
             instances: instances.Select(instance => new BulkWork<string>(instance, Param: instance))
         );
 
+        var storedIds = instances.Select(i => StoredId.Create(registration.StoredType, i.ToString())).ToList();
         Console.WriteLine("SUSPENSION_TEST: Waiting for instances to suspend");
         await BusyWait.Until(async () =>
             {
-                var suspended = await registration.GetInstances(Status.Suspended).SelectAsync(i => i.Count);
+                var suspended = (await store.GetFunctionsStatus(storedIds)).Count(s => s.Status == Status.Suspended);
                 if (suspended == testSize)
                     return true;
 

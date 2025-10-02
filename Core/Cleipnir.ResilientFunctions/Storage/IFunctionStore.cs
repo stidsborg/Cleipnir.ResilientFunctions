@@ -107,8 +107,6 @@ public interface IFunctionStore
     Task<Status?> GetFunctionStatus(StoredId storedId);
     Task<IReadOnlyList<StatusAndId>> GetFunctionsStatus(IEnumerable<StoredId> storedIds);
     Task<StoredFlow?> GetFunction(StoredId storedId);
-    Task<IReadOnlyList<StoredId>> GetInstances(StoredType storedType, Status status);
-    Task<IReadOnlyList<StoredId>> GetInstances(StoredType storedType);
 
     Task<bool> DeleteFunction(StoredId storedId);
 

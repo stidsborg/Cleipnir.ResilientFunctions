@@ -55,13 +55,6 @@ public static class LongRunningStressfulTest
 
             await actionRegistration.BulkSchedule(flowInstances);
             Console.WriteLine("LONGRUNNING_TEST: Flows scheduled");
-            
-            await BusyWait.Until(async () =>
-            {
-                var instances = await actionRegistration.GetInstances(status: Status.Executing);
-                return instances.Count == testSize;
-            }, maxWait: TimeSpan.FromSeconds(120), checkInterval: TimeSpan.FromSeconds(1));
-            
             Console.WriteLine("LONGRUNNING_TEST: Intiailization completed");
             Console.WriteLine();
             
