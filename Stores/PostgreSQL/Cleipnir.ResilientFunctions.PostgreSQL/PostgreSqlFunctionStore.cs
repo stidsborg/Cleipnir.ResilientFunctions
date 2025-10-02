@@ -287,18 +287,17 @@ public class PostgreSqlFunctionStore : IFunctionStore
     }
 
     private string? _getSucceededFunctionsSql;
-    public async Task<IReadOnlyList<StoredId>> GetSucceededFunctions(StoredType storedType, long completedBefore)
+    public async Task<IReadOnlyList<StoredId>> GetSucceededFunctions(long completedBefore)
     {
         await using var conn = await CreateConnection();
         _getSucceededFunctionsSql ??= @$"
             SELECT instance
             FROM {_tableName}
-            WHERE type = $1 AND status = {(int) Status.Succeeded} AND timestamp <= $2";
+            WHERE status = {(int) Status.Succeeded} AND timestamp <= $1";
         await using var command = new NpgsqlCommand(_getSucceededFunctionsSql, conn)
         {
             Parameters =
             {
-                new() {Value = storedType.Value.ToInt()},
                 new() {Value = completedBefore}
             }
         };

@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
@@ -54,9 +55,8 @@ internal class RetentionWatchdog
             {
                 var now = _utcNow();
                 var completedBefore = now - _retentionPeriod;
-                var eligibleFunctions = 
-                    await _functionStore.GetSucceededFunctions(_storedType, completedBefore.Ticks);
-
+                var eligibleFunctions = await _functionStore.GetSucceededFunctions(completedBefore.Ticks);
+                eligibleFunctions = eligibleFunctions.Where(id => id.Type == _storedType).ToList();
                 foreach (var eligibleId in eligibleFunctions.WithRandomOffset())
                 {
                     var alreadyDeleted = !await _functionStore.DeleteFunction(eligibleId);

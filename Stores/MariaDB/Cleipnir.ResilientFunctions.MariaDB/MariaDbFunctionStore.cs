@@ -254,18 +254,17 @@ public class MariaDbFunctionStore : IFunctionStore
     }
 
     private string? _getSucceededFunctionsSql;
-    public async Task<IReadOnlyList<StoredId>> GetSucceededFunctions(StoredType storedType, long completedBefore)
+    public async Task<IReadOnlyList<StoredId>> GetSucceededFunctions(long completedBefore)
     {
         await using var conn = await CreateOpenConnection(_connectionString);
         _getSucceededFunctionsSql ??= @$"
             SELECT instance
             FROM {_tablePrefix}
-            WHERE type = ? AND status = {(int) Status.Succeeded} AND timestamp <= ?";
+            WHERE status = {(int) Status.Succeeded} AND timestamp <= ?";
         await using var command = new MySqlCommand(_getSucceededFunctionsSql, conn)
         {
             Parameters =
             {
-                new() {Value = storedType.Value},
                 new() {Value = completedBefore}
             }
         };

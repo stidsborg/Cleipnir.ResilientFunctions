@@ -1089,9 +1089,10 @@ public abstract class StoreTests
         await CreateAndSucceedFunction(functionId2, timestamp: 3);
         await CreateAndSucceedFunction(functionId3, timestamp: 0);
 
-        var succeededFunctions = await store.GetSucceededFunctions(functionId1.Type, completedBefore: 2);
-        succeededFunctions.Count.ShouldBe(1);
-        succeededFunctions.Single().ShouldBe(functionId1);
+        var succeededFunctions = await store.GetSucceededFunctions(completedBefore: 2);
+        succeededFunctions.Count.ShouldBe(2);
+        succeededFunctions.Any(id => id == functionId1).ShouldBeTrue();
+        succeededFunctions.Any(id => id == functionId3).ShouldBeTrue();
     }
     
     public abstract Task BulkScheduleInsertsAllFunctionsSuccessfully();

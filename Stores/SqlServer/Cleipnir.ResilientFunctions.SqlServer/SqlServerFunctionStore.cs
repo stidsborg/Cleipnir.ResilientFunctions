@@ -306,18 +306,16 @@ public class SqlServerFunctionStore : IFunctionStore
     }
 
     private string? _getSucceededFunctionsSql;
-    public async Task<IReadOnlyList<StoredId>> GetSucceededFunctions(StoredType storedType, long completedBefore)
+    public async Task<IReadOnlyList<StoredId>> GetSucceededFunctions(long completedBefore)
     {
         await using var conn = await _connFunc();
         _getSucceededFunctionsSql ??= @$"
             SELECT FlowInstance
             FROM {_tableName} 
-            WHERE FlowType = @FlowType 
-              AND Status = {(int) Status.Succeeded} 
+            WHERE Status = {(int) Status.Succeeded} 
               AND Timestamp <= @CompletedBefore";
 
         await using var command = new SqlCommand(_getSucceededFunctionsSql, conn);
-        command.Parameters.AddWithValue("@FlowType", storedType.Value.ToInt());
         command.Parameters.AddWithValue("@CompletedBefore", completedBefore);
 
         await using var reader = await command.ExecuteReaderAsync();
