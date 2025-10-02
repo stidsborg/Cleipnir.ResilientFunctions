@@ -17,11 +17,6 @@ public class SqlGenerator(string tablePrefix)
 {
     public StoreCommand Interrupt(IEnumerable<StoredId> storedIds)
     {
-        var conditionals = storedIds
-            .GroupBy(id => id.Type.Value, id => id.AsGuid)
-            .Select(group => $"(FlowType = {group.Key} AND FlowInstance IN ({group.Select(i => $"'{i}'").StringJoin(", ")}))")
-            .StringJoin(" OR ");
-        
         var sql = @$"
                 UPDATE {tablePrefix}
                 SET 
@@ -37,7 +32,7 @@ public class SqlGenerator(string tablePrefix)
                             WHEN Status = {(int)Status.Suspended} THEN 0
                             ELSE Expires
                         END
-                WHERE {conditionals};";
+                WHERE Id IN ({storedIds.Select(id => $"'{id.AsGuid}'").StringJoin(", ")});";
 
         return StoreCommand.Create(sql);
     }
@@ -216,7 +211,7 @@ public class SqlGenerator(string tablePrefix)
     {
         _createFunctionSql ??= @$"
                 INSERT INTO {tablePrefix}(
-                    FlowType, FlowInstance, 
+                    Id, 
                     ParamJson, 
                     Status,
                     Expires,
@@ -227,7 +222,7 @@ public class SqlGenerator(string tablePrefix)
                 )
                 VALUES
                 (
-                    @FlowType, @flowInstance, 
+                    @Id, 
                     @ParamJson,   
                     @Status,
                     @Expires,
@@ -242,8 +237,7 @@ public class SqlGenerator(string tablePrefix)
             sql = sql.Replace("@", $"@{paramPrefix}");
 
         var command = StoreCommand.Create(sql);
-        command.AddParameter($"@{paramPrefix}FlowType", storedId.Type.Value.ToInt());
-        command.AddParameter($"@{paramPrefix}FlowInstance", storedId.AsGuid);
+        command.AddParameter($"@{paramPrefix}Id", storedId.AsGuid);
         command.AddParameter($"@{paramPrefix}Status", (int)(postponeUntil == null ? Status.Executing : Status.Postponed));
         command.AddParameter($"@{paramPrefix}ParamJson", param == null ? SqlBinary.Null : param);
         command.AddParameter($"@{paramPrefix}Expires", postponeUntil ?? leaseExpiration);
@@ -261,7 +255,7 @@ public class SqlGenerator(string tablePrefix)
         _succeedFunctionSql ??= @$"
             UPDATE {tablePrefix}
             SET Status = {(int) Status.Succeeded}, ResultJson = @ResultJson, Timestamp = @Timestamp, Owner = NULL
-            WHERE FlowType = @FlowType AND FlowInstance = @FlowInstance AND Owner = @ExpectedReplica";
+            WHERE Id = @Id AND Owner = @ExpectedReplica";
         
         var sql = paramPrefix == "" 
             ? _succeedFunctionSql
@@ -270,8 +264,7 @@ public class SqlGenerator(string tablePrefix)
         var command = StoreCommand.Create(sql);
         command.AddParameter($"@{paramPrefix}ResultJson", result ?? SqlBinary.Null);
         command.AddParameter($"@{paramPrefix}Timestamp", timestamp);
-        command.AddParameter($"@{paramPrefix}FlowInstance", storedId.AsGuid);
-        command.AddParameter($"@{paramPrefix}FlowType", storedId.Type.Value.ToInt());
+        command.AddParameter($"@{paramPrefix}Id", storedId.AsGuid);
         command.AddParameter($"@{paramPrefix}ExpectedReplica", expectedReplica.AsGuid);
 
         return command;
@@ -283,7 +276,7 @@ public class SqlGenerator(string tablePrefix)
         _postponedFunctionSql ??= @$"
             UPDATE {tablePrefix}
             SET Status = {(int) Status.Postponed}, Expires = @PostponedUntil, Timestamp = @Timestamp, Owner = NULL
-            WHERE FlowType = @FlowType AND FlowInstance = @FlowInstance AND Owner = @ExpectedReplica AND Interrupted = 0";
+            WHERE Id = @Id AND Owner = @ExpectedReplica AND Interrupted = 0";
         
         var sql = paramPrefix == "" 
             ? _postponedFunctionSql
@@ -295,8 +288,7 @@ public class SqlGenerator(string tablePrefix)
         var command = StoreCommand.Create(sql);
         command.AddParameter($"@{paramPrefix}PostponedUntil", postponeUntil);
         command.AddParameter($"@{paramPrefix}Timestamp", timestamp);
-        command.AddParameter($"@{paramPrefix}FlowInstance", storedId.AsGuid);
-        command.AddParameter($"@{paramPrefix}FlowType", storedId.Type.Value.ToInt());
+        command.AddParameter($"@{paramPrefix}Id", storedId.AsGuid);
         command.AddParameter($"@{paramPrefix}ExpectedReplica", expectedReplica.AsGuid);
 
         return command;
@@ -308,9 +300,7 @@ public class SqlGenerator(string tablePrefix)
         _failFunctionSql ??= @$"
             UPDATE {tablePrefix}
             SET Status = {(int) Status.Failed}, ExceptionJson = @ExceptionJson, Timestamp = @timestamp, Owner = NULL
-            WHERE FlowType = @FlowType
-            AND FlowInstance = @FlowInstance
-            AND Owner = @ExpectedReplica";
+            WHERE Id = @Id AND Owner = @ExpectedReplica";
 
         var sql = paramPrefix == "" 
             ? _failFunctionSql
@@ -319,8 +309,7 @@ public class SqlGenerator(string tablePrefix)
         var command = StoreCommand.Create(sql);
         command.AddParameter($"@{paramPrefix}ExceptionJson", JsonSerializer.Serialize(storedException));
         command.AddParameter($"@{paramPrefix}Timestamp", timestamp);
-        command.AddParameter($"@{paramPrefix}FlowInstance", storedId.AsGuid);
-        command.AddParameter($"@{paramPrefix}FlowType", storedId.Type.Value.ToInt());
+        command.AddParameter($"@{paramPrefix}Id", storedId.AsGuid);
         command.AddParameter($"@{paramPrefix}ExpectedReplica", expectedReplica.AsGuid);
 
         return command;
@@ -337,8 +326,7 @@ public class SqlGenerator(string tablePrefix)
         _suspendFunctionSql ??= @$"
                 UPDATE {tablePrefix}
                 SET Status = {(int)Status.Suspended}, Timestamp = @Timestamp, Owner = NULL
-                WHERE FlowType = @FlowType AND 
-                      FlowInstance = @FlowInstance AND                       
+                WHERE Id = @Id AND                       
                       Owner = @ExpectedReplica AND
                       Interrupted = 0;";
         
@@ -348,8 +336,7 @@ public class SqlGenerator(string tablePrefix)
         
         var command = StoreCommand.Create(sql);
         command.AddParameter($"@{paramPrefix}Timestamp", timestamp);
-        command.AddParameter($"@{paramPrefix}FlowType", storedId.Type.Value.ToInt());
-        command.AddParameter($"@{paramPrefix}FlowInstance", storedId.AsGuid);
+        command.AddParameter($"@{paramPrefix}Id", storedId.AsGuid);
         command.AddParameter($"@{paramPrefix}ExpectedReplica", expectedReplica.AsGuid);
 
         return command;
@@ -374,12 +361,11 @@ public class SqlGenerator(string tablePrefix)
                    inserted.HumanInstanceId,
                    inserted.Parent,
                    inserted.Owner
-            WHERE FlowType = @FlowType AND FlowInstance = @FlowInstance AND Owner IS NULL;";
+            WHERE Id = @Id AND Owner IS NULL;";
 
         var storeCommand = StoreCommand.Create(_restartExecutionSql);
         storeCommand.AddParameter("@Owner", replicaId.AsGuid);
-        storeCommand.AddParameter("@FlowType", storedId.Type.Value.ToInt());
-        storeCommand.AddParameter("@FlowInstance", storedId.AsGuid);
+        storeCommand.AddParameter("@Id", storedId.AsGuid);
 
         return storeCommand;
     }
@@ -421,7 +407,7 @@ public class SqlGenerator(string tablePrefix)
             }
         }
 
-        return default;
+        return null;
     }
     
     public StoreCommand? AppendMessages(IReadOnlyList<StoredIdAndMessageWithPosition> messages, bool interrupt, string prefix = "")
