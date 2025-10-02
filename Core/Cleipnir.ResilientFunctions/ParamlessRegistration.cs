@@ -77,7 +77,7 @@ public class ParamlessRegistration : BaseRegistration
                 await Schedule(flowInstance);    
         }
         
-        await Postman.SendMessage(flowInstance.Value.ToStoredInstance(StoredType).ToStoredId(), message, idempotencyKey);
+        await Postman.SendMessage(StoredId.Create(StoredType, flowInstance.Value), message, idempotencyKey);
     }
     
     public async Task SendMessages(IReadOnlyList<BatchedMessage> messages, bool interrupt = true)

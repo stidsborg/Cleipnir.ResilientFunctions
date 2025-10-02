@@ -80,7 +80,7 @@ public class FuncRegistration<TParam, TReturn> : BaseRegistration where TParam :
         FlowInstance flowInstance,
         T message,
         string? idempotencyKey = null
-    ) where T : notnull => await Postman.SendMessage(flowInstance.Value.ToStoredInstance(StoredType).ToStoredId(), message, idempotencyKey);
+    ) where T : notnull => await Postman.SendMessage(StoredId.Create(StoredType, flowInstance.Value), message, idempotencyKey);
     
     public async Task SendMessages(IReadOnlyList<BatchedMessage> messages, bool interrupt = true)
         => await Postman.SendMessages(messages, interrupt);

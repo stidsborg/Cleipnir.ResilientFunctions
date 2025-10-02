@@ -274,7 +274,7 @@ public class MariaDbFunctionStore : IFunctionStore
         var ids = new List<StoredId>();
         while (await reader.ReadAsync())
         {
-            var instance = reader.GetString(0).ToGuid().ToStoredInstance().ToStoredId();
+            var instance = reader.GetString(0).ToGuid().ToStoredId();
             ids.Add(instance);
         }
         
@@ -648,7 +648,7 @@ public class MariaDbFunctionStore : IFunctionStore
         var ids = new List<StoredId>();
         while (await reader.ReadAsync())
         {
-            var flowInstance = reader.GetString(0).ToGuid().ToStoredInstance().ToStoredId();
+            var flowInstance = reader.GetString(0).ToGuid().ToStoredId();
             ids.Add(flowInstance);
         }
         
@@ -675,7 +675,7 @@ public class MariaDbFunctionStore : IFunctionStore
         var ids = new List<StoredId>();
         while (await reader.ReadAsync())
         {
-            var id = reader.GetString(0).ToGuid().ToStoredInstance().ToStoredId();
+            var id = reader.GetString(0).ToGuid().ToStoredId();
             ids.Add(id);
         }
         

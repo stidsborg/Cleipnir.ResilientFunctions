@@ -113,7 +113,7 @@ public class MariaDbCorrelationStore : ICorrelationStore
         var ids = new List<StoredId>();
         while (await reader.ReadAsync())
         {
-            var id = reader.GetString(0).ToGuid().ToStoredInstance().ToStoredId();
+            var id = reader.GetString(0).ToGuid().ToStoredId();
             ids.Add(id);
         }
 

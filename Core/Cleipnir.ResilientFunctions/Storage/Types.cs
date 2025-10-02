@@ -60,57 +60,13 @@ public record StoredId(Guid AsGuid)
     }
 }
 
+public static class StoredIdExtensions
+{
+    internal static StoredId ToStoredId(this Guid id) => new StoredId(id);
+    internal static StoredId ToStoredId(this string instance, StoredType type) => StoredId.Create(type, instance);
+}
+
 public record StoredType(ushort Value);
-
-public record StoredInstance(Guid Value, StoredType StoredType)
-{
-    public static implicit operator StoredInstance(Guid id) => new(id.ToStoredInstance());
-
-    public static StoredInstance Create(Guid id) => id.ToStoredInstance(); 
-    
-    public static StoredInstance Create(string instanceId, StoredType storedType)
-    {
-        // Convert the input string to a byte array and compute the hash.
-        using var sha256 = SHA256.Create();
-        var hash = sha256.ComputeHash(Encoding.UTF8.GetBytes(instanceId));
-        
-        byte[] guidBytes = new byte[16];
-        for (int i = 0; i < 16; i++)
-        {
-            guidBytes[i] = (byte)(hash[i] ^ hash[i + 16]);
-        }
-       
-        var typeBytes = BitConverter.GetBytes(storedType.Value);
-        if (!BitConverter.IsLittleEndian)
-            Array.Reverse(typeBytes);
-    
-        typeBytes.CopyTo(guidBytes, index: 0); // overwrites first 4 bytes
-        var id = new Guid(guidBytes);
-        return new StoredInstance(id);
-    }
-
-    public StoredId ToStoredId() => new(Value);
-}
-
-public static class StoredInstanceExtensions
-{
-    public static StoredInstance ToStoredInstance(this string instanceId, StoredType storedType)
-        => StoredInstance.Create(instanceId, storedType);
-
-    public static StoredInstance ToStoredInstance(this FlowInstance instance, StoredType storedType)
-        => instance.Value.ToStoredInstance(storedType);
-
-    public static StoredInstance ToStoredInstance(this Guid instanceId)
-    {
-        var bytes = instanceId.ToByteArray();
-        if (!BitConverter.IsLittleEndian)
-            (bytes[0], bytes[1]) = (bytes[1], bytes[0]);
-
-        var value = BitConverter.ToUInt16(bytes, startIndex: 0);
-        var storedType = new StoredType(value);
-        return new StoredInstance(instanceId, storedType);
-    }
-}
 
 internal static class StoredTypeExtension
 {

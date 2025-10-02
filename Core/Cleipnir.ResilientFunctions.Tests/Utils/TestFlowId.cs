@@ -17,11 +17,9 @@ public static class TestFlowId
 
 public static class TestStoredId
 {
-    public static StoredId Create() => StoredInstance
-        .Create(Guid.NewGuid().ToString(), new StoredType(Random.Shared.Next(0, 10_000).ToUshort()))
-        .ToStoredId();
-    
-    public static StoredId Create(StoredType type) => StoredInstance
-        .Create(Guid.NewGuid().ToString(), type)
-        .ToStoredId();
+    public static StoredId Create() => StoredId
+        .Create(Random.Shared.Next(0, 10_000).ToUshort().ToStoredType(), Guid.NewGuid().ToString());
+
+    public static StoredId Create(StoredType type) => StoredId
+        .Create(type, Guid.NewGuid().ToString());
 }

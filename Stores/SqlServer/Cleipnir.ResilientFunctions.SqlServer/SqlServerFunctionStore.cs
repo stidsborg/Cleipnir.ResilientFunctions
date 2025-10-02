@@ -326,7 +326,7 @@ public class SqlServerFunctionStore : IFunctionStore
         {
             while (reader.Read())
             {
-                var storedInstance = reader.GetGuid(0).ToStoredInstance().ToStoredId();
+                var storedInstance = reader.GetGuid(0).ToStoredId();
                 ids.Add(storedInstance);    
             }
 
@@ -688,7 +688,7 @@ public class SqlServerFunctionStore : IFunctionStore
         var ids = new List<StoredId>(); 
         while (reader.Read())
         {
-            var id = reader.GetGuid(0).ToStoredInstance().ToStoredId();
+            var id = reader.GetGuid(0).ToStoredId();
             ids.Add(id);    
         }
 
@@ -712,7 +712,7 @@ public class SqlServerFunctionStore : IFunctionStore
         while (reader.Read())
         {
             var flowInstance = reader.GetGuid(0);
-            ids.Add(flowInstance.ToStoredInstance().ToStoredId());
+            ids.Add(flowInstance.ToStoredId());
         }
 
         return ids;

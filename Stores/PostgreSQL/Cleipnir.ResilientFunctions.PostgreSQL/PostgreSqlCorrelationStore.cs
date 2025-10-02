@@ -110,7 +110,7 @@ public class PostgreSqlCorrelationStore(string connectionString, string tablePre
         var ids = new List<StoredId>();
         while (await reader.ReadAsync())
         {
-            var id = reader.GetGuid(0).ToStoredInstance().ToStoredId();
+            var id = reader.GetGuid(0).ToStoredId();
             ids.Add(id);
         }
 

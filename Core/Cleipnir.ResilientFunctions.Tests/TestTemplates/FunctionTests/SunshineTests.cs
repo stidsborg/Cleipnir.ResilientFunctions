@@ -243,16 +243,16 @@ public abstract class SunshineTests
 
             var allInstances = await registration.GetInstances();
             allInstances.Count.ShouldBe(2);
-            allInstances.Any(i => i == "true".ToStoredInstance(registration.StoredType).ToStoredId()).ShouldBeTrue();
-            allInstances.Any(i => i == "false".ToStoredInstance(registration.StoredType).ToStoredId()).ShouldBeTrue();
+            allInstances.Any(i => i == "true".ToStoredId(registration.StoredType)).ShouldBeTrue();
+            allInstances.Any(i => i == "false".ToStoredId(registration.StoredType)).ShouldBeTrue();
 
             var succeeds = await registration.GetInstances(Status.Succeeded);
             succeeds.Count.ShouldBe(1);
-            succeeds.Single().ShouldBe("false".ToStoredInstance(registration.StoredType).ToStoredId());
+            succeeds.Single().ShouldBe("false".ToStoredId(registration.StoredType));
             
             var postponed = await registration.GetInstances(Status.Postponed);
             postponed.Count.ShouldBe(1);
-            postponed.Single().ShouldBe("true".ToStoredInstance(registration.StoredType).ToStoredId());
+            postponed.Single().ShouldBe("true".ToStoredId(registration.StoredType));
         
         unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }

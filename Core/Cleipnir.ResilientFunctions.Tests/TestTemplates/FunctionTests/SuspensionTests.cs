@@ -759,7 +759,7 @@ public abstract class SuspensionTests
         
         succeedFlag.Raise();
 
-        await registration.Interrupt(flows.Select(f => f.ToStoredInstance(registration.StoredType).ToStoredId()));
+        await registration.Interrupt(flows.Select(f => f.Value.ToStoredId(registration.StoredType)));
         
         foreach (var flow in flows)
             await (await registration.ControlPanel(flow))!.BusyWaitUntil(cp => cp.Status == Status.Succeeded);

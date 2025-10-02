@@ -105,7 +105,7 @@ public class SqlServerCorrelationsStore(string connectionString, string tablePre
         await using var reader = await command.ExecuteReaderAsync();
         while (reader.HasRows && reader.Read())
         {
-            var id = reader.GetGuid(0).ToStoredInstance().ToStoredId();
+            var id = reader.GetGuid(0).ToStoredId();
             ids.Add(id);
         }
 
