@@ -159,7 +159,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
             return _states
                 .Values
                 .Where(s => s.StoredId.Type == storedType && s.Timestamp < completedBefore)
-                .Select(s => s.StoredId.Instance.ToStoredId())
+                .Select(s => s.StoredId)
                 .ToList()
                 .CastTo<IReadOnlyList<StoredId>>()
                 .ToTask();
@@ -438,7 +438,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
             return _states
                 .Where(kv => kv.Key.Type == storedType)
                 .Where(kv => kv.Value.Status == status)
-                .Select(kv => kv.Key.Instance.ToStoredId())
+                .Select(kv => kv.Key)
                 .ToList()
                 .CastTo<IReadOnlyList<StoredId>>()
                 .ToTask();
@@ -449,7 +449,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         lock (_sync)
             return _states
                 .Where(kv => kv.Key.Type == storedType)
-                .Select(kv => kv.Key.Instance.ToStoredId())
+                .Select(kv => kv.Key)
                 .ToList()
                 .CastTo<IReadOnlyList<StoredId>>()
                 .ToTask();

@@ -80,7 +80,7 @@ public static class BulkInsertionTest
         var functions = Enumerable
             .Range(0, testSize)
             .Select(i => new IdWithParam(
-                new StoredId(i.ToString().ToStoredInstance(storedType)),
+                StoredId.Create(storedType, i.ToString()),
                 "humanInstanceId",
                 i.ToString().ToJson().ToUtf8Bytes())
             );

@@ -13,7 +13,7 @@ public class SqlGenerator(string tablePrefix)
     public StoreCommand Interrupt(IEnumerable<StoredId> storedIds)
     {
         var conditionals = storedIds
-            .GroupBy(id => id.Type.Value, id => id.Instance.Value)
+            .GroupBy(id => id.Type.Value, id => id.AsGuid)
             .Select(group => $"(type = {group.Key} AND instance IN ({group.Select(i => $"'{i:N}'").StringJoin(", ")}))")
             .StringJoin(" OR ");
 
@@ -50,7 +50,7 @@ public class SqlGenerator(string tablePrefix)
             values:
             [
                 storedId.Type.Value,
-                storedId.Instance.Value.ToString("N")
+                storedId.AsGuid.ToString("N")
             ]
         );
         return command;
@@ -92,7 +92,7 @@ public class SqlGenerator(string tablePrefix)
                 .Select(c => new
                 {
                     Type = c.StoredId.Type.Value, 
-                    Instance = c.StoredId.Instance.Value, 
+                    Instance = c.StoredId.AsGuid, 
                     IdHash = c.EffectId.Value,
                     WorkStatus = (int)c.StoredEffect!.WorkStatus, 
                     Result = c.StoredEffect!.Result,
@@ -127,7 +127,7 @@ public class SqlGenerator(string tablePrefix)
         {
             var removes = changes
                 .Where(c => c.Operation == CrudOperation.Delete)
-                .Select(c => new { Type = c.StoredId.Type.Value, Instance = c.StoredId.Instance.Value, IdHash = c.EffectId.Value })
+                .Select(c => new { Type = c.StoredId.Type.Value, Instance = c.StoredId.AsGuid, IdHash = c.EffectId.Value })
                 .GroupBy(a => new {a.Type, a.Instance }, a => a.IdHash)
                 .ToList();
             var predicates = removes
@@ -171,7 +171,7 @@ public class SqlGenerator(string tablePrefix)
             sql,
             values: [
                 storedId.Type.Value,
-                storedId.Instance.Value.ToString("N"),
+                storedId.AsGuid.ToString("N"),
                 param ?? (object)DBNull.Value,
                 (int)status,
                 postponeUntil ?? leaseExpiration,
@@ -204,7 +204,7 @@ public class SqlGenerator(string tablePrefix)
                 result ?? (object)DBNull.Value,
                 timestamp,
                 storedId.Type.Value,
-                storedId.Instance.Value.ToString("N"),
+                storedId.AsGuid.ToString("N"),
                 expectedReplica.ToString("N"),
             ]
         );
@@ -237,7 +237,7 @@ public class SqlGenerator(string tablePrefix)
                 postponeUntil,
                 timestamp,
                 storedId.Type.Value,
-                storedId.Instance.Value.ToString("N"),
+                storedId.AsGuid.ToString("N"),
                 expectedReplica.AsGuid.ToString("N"),
             ]
         );
@@ -264,7 +264,7 @@ public class SqlGenerator(string tablePrefix)
                 JsonSerializer.Serialize(storedException),
                 timestamp,
                 storedId.Type.Value,
-                storedId.Instance.Value.ToString("N"),
+                storedId.AsGuid.ToString("N"),
                 expectedReplica.AsGuid.ToString("N")
             ]
         );
@@ -286,7 +286,7 @@ public class SqlGenerator(string tablePrefix)
             values: [
                 timestamp,
                 storedId.Type.Value,
-                storedId.Instance.Value.ToString("N"),
+                storedId.AsGuid.ToString("N"),
                 expectedReplica.AsGuid.ToString("N")
             ]
         );
@@ -319,9 +319,9 @@ public class SqlGenerator(string tablePrefix)
             values: [
                 replicaId.AsGuid.ToString("N"),
                 storedId.Type.Value,
-                storedId.Instance.Value.ToString("N"),
+                storedId.AsGuid.ToString("N"),
                 storedId.Type.Value,
-                storedId.Instance.Value.ToString("N"),
+                storedId.AsGuid.ToString("N"),
             ]);
         return command;
     }
@@ -337,9 +337,8 @@ public class SqlGenerator(string tablePrefix)
         var command = StoreCommand.Create(sql);
         foreach (var (storedId, (messageContent, messageType, idempotencyKey), position) in messages)
         {
-            var (storedType, storedInstance) = storedId;
-            command.AddParameter(storedType.Value);
-            command.AddParameter(storedInstance.Value.ToString("N"));
+            command.AddParameter(storedId.Type.Value.ToInt());
+            command.AddParameter(storedId.AsGuid.ToString("N"));
             command.AddParameter(position);
             command.AddParameter(messageContent);
             command.AddParameter(messageType);
@@ -363,7 +362,7 @@ public class SqlGenerator(string tablePrefix)
             values:
             [
                 storedId.Type.Value,
-                storedId.Instance.Value.ToString("N"),
+                storedId.AsGuid.ToString("N"),
                 skip
             ]
         );

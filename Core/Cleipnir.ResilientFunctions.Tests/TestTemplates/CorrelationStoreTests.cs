@@ -13,16 +13,16 @@ public abstract class CorrelationStoreTests
     public async Task SunshineScenario(Task<IFunctionStore> storeTask)
     {
         var correlationStore = await storeTask.SelectAsync(s => s.CorrelationStore);
-        var functionId = TestStoredId.Create();
+        var storedId = TestStoredId.Create();
 
-        await correlationStore.SetCorrelation(functionId, "SomeCorrelationId");
+        await correlationStore.SetCorrelation(storedId, "SomeCorrelationId");
         await correlationStore
-            .GetCorrelations(functionId.Type, correlationId: "SomeCorrelationId")
+            .GetCorrelations(storedId.Type, correlationId: "SomeCorrelationId")
             .SelectAsync(c => c.Single())
-            .ShouldBeAsync(functionId.Instance.ToStoredId());
+            .ShouldBeAsync(storedId);
 
         await correlationStore
-            .GetCorrelations(functionId)
+            .GetCorrelations(storedId)
             .SelectAsync(c => c.Single())
             .ShouldBeAsync("SomeCorrelationId");
     }
@@ -31,21 +31,21 @@ public abstract class CorrelationStoreTests
     public async Task TwoDifferentFunctionsCanUseTheSameCorrelationId(Task<IFunctionStore> storeTask)
     {
         var correlationStore = await storeTask.SelectAsync(s => s.CorrelationStore);
-        var functionId1 = TestStoredId.Create();
-        var functionId2 = TestStoredId.Create();
+        var storedId1 = TestStoredId.Create();
+        var storedId2 = TestStoredId.Create();
 
-        await correlationStore.SetCorrelation(functionId1, correlationId: "TwoDifferentFunctionsCanUseTheSameCorrelationId");
-        await correlationStore.SetCorrelation(functionId2, correlationId: "TwoDifferentFunctionsCanUseTheSameCorrelationId");
+        await correlationStore.SetCorrelation(storedId1, correlationId: "TwoDifferentFunctionsCanUseTheSameCorrelationId");
+        await correlationStore.SetCorrelation(storedId2, correlationId: "TwoDifferentFunctionsCanUseTheSameCorrelationId");
 
         var instances = await correlationStore
-            .GetCorrelations(functionId1.Type, correlationId: "TwoDifferentFunctionsCanUseTheSameCorrelationId");
+            .GetCorrelations(storedId1.Type, correlationId: "TwoDifferentFunctionsCanUseTheSameCorrelationId");
         instances.Count.ShouldBe(1);
-        instances.Single().ShouldBe(functionId1.Instance.ToStoredId());
+        instances.Single().ShouldBe(storedId1);
         
         instances = await correlationStore
-            .GetCorrelations(functionId2.Type, correlationId: "TwoDifferentFunctionsCanUseTheSameCorrelationId");
+            .GetCorrelations(storedId2.Type, correlationId: "TwoDifferentFunctionsCanUseTheSameCorrelationId");
         instances.Count.ShouldBe(1);
-        instances.Single().ShouldBe(functionId2.Instance.ToStoredId());
+        instances.Single().ShouldBe(storedId2);
     }
     
     public abstract Task FunctionCorrelationsCanBeDeleted();
@@ -98,18 +98,18 @@ public abstract class CorrelationStoreTests
     public async Task FunctionInstancesCanBeFetchedForFunctionTypeAndCorrelation(Task<IFunctionStore> storeTask)
     {
         var correlationStore = await storeTask.SelectAsync(s => s.CorrelationStore);
-        var functionId1 = TestStoredId.Create();
-        var functionId2 = TestStoredId.Create(functionId1.Type);
-        var functionId3 = TestStoredId.Create();
+        var storedId1 = TestStoredId.Create();
+        var storedId2 = TestStoredId.Create(storedId1.Type);
+        var storedId3 = TestStoredId.Create();
 
-        await correlationStore.SetCorrelation(functionId1, "SomeCorrelationId1");
-        await correlationStore.SetCorrelation(functionId2, "SomeCorrelationId1");
-        await correlationStore.SetCorrelation(functionId3, "SomeCorrelationId1");
+        await correlationStore.SetCorrelation(storedId1, "SomeCorrelationId1");
+        await correlationStore.SetCorrelation(storedId2, "SomeCorrelationId1");
+        await correlationStore.SetCorrelation(storedId3, "SomeCorrelationId1");
 
-        var instances = await correlationStore.GetCorrelations(functionId1.Type, "SomeCorrelationId1");
+        var instances = await correlationStore.GetCorrelations(storedId1.Type, "SomeCorrelationId1");
         instances.Count.ShouldBe(2);
-        instances.Any(i => i == functionId1.Instance.ToStoredId()).ShouldBeTrue();
-        instances.Any(i => i == functionId2.Instance.ToStoredId()).ShouldBeTrue();
+        instances.Any(i => i == storedId1).ShouldBeTrue();
+        instances.Any(i => i == storedId2).ShouldBeTrue();
     }
 }
 

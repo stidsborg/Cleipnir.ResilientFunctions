@@ -12,14 +12,14 @@ public class StoredIdTests
     [TestMethod]
     public void ToGuidIsSameForTwoEqualStoredIds()
     {
-        var id1 = new StoredId("Instance#1".ToStoredInstance(1.ToUshort().ToStoredType()));
-        var id2 = new StoredId("Instance#1".ToStoredInstance(1.ToUshort().ToStoredType()));
-        var id3 = new StoredId("Instance#1".ToStoredInstance(3.ToUshort().ToStoredType()));
-        var id4 = new StoredId("Instance#2".ToStoredInstance(4.ToUshort().ToStoredType()));
+        var id1 = StoredId.Create(1.ToUshort().ToStoredType(), "Instance#1");
+        var id2 = StoredId.Create(1.ToUshort().ToStoredType(), "Instance#1");
+        var id3 = StoredId.Create(3.ToUshort().ToStoredType(), "Instance#1");
+        var id4 = StoredId.Create(4.ToUshort().ToStoredType(), "Instance#2");
 
-        id1.ToGuid().ShouldBe(id2.ToGuid());
-        id1.ToGuid().ShouldNotBe(id3.ToGuid());
-        id1.ToGuid().ShouldNotBe(id4.ToGuid());
+        id1.ShouldBe(id2);
+        id1.ShouldNotBe(id3);
+        id1.ShouldNotBe(id4);
     }
     
     [TestMethod]
@@ -79,13 +79,13 @@ public class StoredIdTests
     [TestMethod]
     public void TypeCanBeExtractedFromId()
     {
-        var id = StoredInstance.Create("SomeInstanceId", new StoredType(1));
-        id.StoredType.Value.ShouldBe(1.ToUshort());
+        var id = StoredId.Create(new StoredType(1), "SomeInstanceId");
+        id.Type.Value.ShouldBe(1.ToUshort());
         
-        var id2 = StoredInstance.Create("SomeInstanceId", new StoredType(2));
-        id2.StoredType.Value.ShouldBe(2.ToUshort());
+        var id2 = StoredId.Create(new StoredType(2), "SomeInstanceId");
+        id2.Type.Value.ShouldBe(2.ToUshort());
         
-        id2.Value.ShouldNotBe(id.Value);
+        id2.ShouldNotBe(id);
     }
     
     [TestMethod]
@@ -100,8 +100,8 @@ public class StoredIdTests
         var id2 = new Guid(bytes);
         id2.ToString().ShouldBe("ffff0019-ffff-ffff-ffff-ffffffffffff");
 
-        var storedId = new StoredId(StoredInstance.Create(id2));
+        var storedId = new StoredId(id2);
         storedId.Type.Value.ShouldBe(25.ToUshort());
-        storedId.Instance.Value.ShouldBe(id2);
+        storedId.AsGuid.ShouldBe(id2);
     }
 }

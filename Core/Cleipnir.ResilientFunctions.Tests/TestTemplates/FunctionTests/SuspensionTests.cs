@@ -376,7 +376,7 @@ public abstract class SuspensionTests
             var childrenStatus = await param
                 .Split(" ")
                 .Select((_, i) => store
-                    .GetFunction(new StoredId($"Child{i}".ToStoredInstance(child.StoredType)))
+                    .GetFunction(StoredId.Create(child.StoredType, $"Child{i}"))
                     .SelectAsync(sf => new { Name = $"Child{i}", Status = sf?.Status })
                 )
                 .AwaitAll();
@@ -573,7 +573,7 @@ public abstract class SuspensionTests
         result.ShouldBe("HELLO WORLD");
         
         var childStoredFunction = await store
-            .GetFunction(new StoredId(StoredInstance.Create("Child", child.StoredType)))
+            .GetFunction(StoredId.Create(child.StoredType, "Child"))
             .ShouldNotBeNullAsync();
 
         var parentStoredId = parentId.ToStoredId(parent.StoredType);

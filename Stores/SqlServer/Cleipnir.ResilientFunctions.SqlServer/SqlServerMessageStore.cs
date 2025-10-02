@@ -77,10 +77,9 @@ public class SqlServerMessageStore(string connectionString, SqlGenerator sqlGene
         for (var i = 0; i < messages.Count; i++)
         {
             var (storedId, (messageContent, messageType, idempotencyKey)) = messages[i];
-            var (storedType, storedInstance) = storedId;
             var position = ++maxPositions[storedId];
-            command.Parameters.AddWithValue($"@FlowType{i}", storedType.Value.ToInt());
-            command.Parameters.AddWithValue($"@FlowInstance{i}", storedInstance.Value);
+            command.Parameters.AddWithValue($"@FlowType{i}", storedId.Type.Value.ToInt());
+            command.Parameters.AddWithValue($"@FlowInstance{i}", storedId.AsGuid);
             command.Parameters.AddWithValue($"@Position{i}", position);
             command.Parameters.AddWithValue($"@MessageJson{i}", messageContent);
             command.Parameters.AddWithValue($"@MessageType{i}", messageType);
@@ -119,7 +118,7 @@ public class SqlServerMessageStore(string connectionString, SqlGenerator sqlGene
         
         await using var command = new SqlCommand(_appendMessageSql, conn);
         command.Parameters.AddWithValue("@FlowType", storedId.Type.Value.ToInt());
-        command.Parameters.AddWithValue("@FlowInstance", storedId.Instance.Value);
+        command.Parameters.AddWithValue("@FlowInstance", storedId.AsGuid);
         command.Parameters.AddWithValue("@MessageJson", storedMessage.MessageContent);
         command.Parameters.AddWithValue("@MessageType", storedMessage.MessageType);
         command.Parameters.AddWithValue("@IdempotencyKey", storedMessage.IdempotencyKey ?? (object)DBNull.Value);
@@ -151,7 +150,7 @@ public class SqlServerMessageStore(string connectionString, SqlGenerator sqlGene
         
         await using var command = new SqlCommand(_replaceMessageSql, conn);
         command.Parameters.AddWithValue("@FlowType", storedId.Type.Value.ToInt());
-        command.Parameters.AddWithValue("@FlowInstance", storedId.Instance.Value);
+        command.Parameters.AddWithValue("@FlowInstance", storedId.AsGuid);
         command.Parameters.AddWithValue("@Position", position);
         command.Parameters.AddWithValue("@MessageJson", storedMessage.MessageContent);
         command.Parameters.AddWithValue("@MessageType", storedMessage.MessageType);
@@ -172,7 +171,7 @@ public class SqlServerMessageStore(string connectionString, SqlGenerator sqlGene
         await using var command = new SqlCommand(_truncateSql, conn);
         
         command.Parameters.AddWithValue("@FlowType", storedId.Type.Value.ToInt());
-        command.Parameters.AddWithValue("@FlowInstance", storedId.Instance.Value);
+        command.Parameters.AddWithValue("@FlowInstance", storedId.AsGuid);
         await command.ExecuteNonQueryAsync();
     }
 
@@ -188,7 +187,7 @@ public class SqlServerMessageStore(string connectionString, SqlGenerator sqlGene
         
         await using var command = new SqlCommand(_getMessagesSql, conn);
         command.Parameters.AddWithValue("@FlowType", storedId.Type.Value.ToInt());
-        command.Parameters.AddWithValue("@FlowInstance", storedId.Instance.Value);
+        command.Parameters.AddWithValue("@FlowInstance", storedId.AsGuid);
         command.Parameters.AddWithValue("@Position", skip);
         
         var storedMessages = new List<StoredMessage>();
@@ -217,7 +216,7 @@ public class SqlServerMessageStore(string connectionString, SqlGenerator sqlGene
     public async Task<IDictionary<StoredId, int>> GetMaxPositions(IReadOnlyList<StoredId> storedIds)
     {
         var predicates = storedIds
-            .GroupBy(id => id.Type.Value, id => id.Instance.Value)
+            .GroupBy(id => id.Type.Value, id => id.AsGuid)
             .Select(g => $"FlowType = {g.Key} AND FlowInstance IN ({g.Select(instance => $"'{instance}'").StringJoin(", ")})")
             .StringJoin(" OR " + Environment.NewLine);
 
@@ -236,7 +235,7 @@ public class SqlServerMessageStore(string connectionString, SqlGenerator sqlGene
         await using var reader = await command.ExecuteReaderAsync();
         while (await reader.ReadAsync())
         {
-            var instance = reader.GetGuid(1).ToStoredInstance();
+            var instance = reader.GetGuid(1);
             var storedId = new StoredId(instance);
             var position = reader.GetInt32(2);
             positions[storedId] = position;
@@ -261,7 +260,7 @@ public class SqlServerMessageStore(string connectionString, SqlGenerator sqlGene
             WHERE FlowType = @FlowType AND FlowInstance = @FlowInstance";
         await using var command = new SqlCommand(_getSuspensionStatusSql, connection);
         command.Parameters.AddWithValue("@FlowType", storedId.Type.Value.ToInt());
-        command.Parameters.AddWithValue("@FlowInstance", storedId.Instance.Value);
+        command.Parameters.AddWithValue("@FlowInstance", storedId.AsGuid);
 
         await using var reader = await command.ExecuteReaderAsync();
         while (await reader.ReadAsync())

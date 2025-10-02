@@ -61,7 +61,7 @@ public class InMemoryCorrelationStore : ICorrelationStore
         {
             return _correlations
                 .Where(kv => kv.Key.Type == flowType && kv.Value.Contains(correlationId))
-                .Select(kv => kv.Key.Instance.ToStoredId())
+                .Select(kv => kv.Key)
                 .ToList()
                 .CastTo<IReadOnlyList<StoredId>>()
                 .ToTask();

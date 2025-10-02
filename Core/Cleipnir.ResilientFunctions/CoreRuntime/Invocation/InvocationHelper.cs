@@ -380,7 +380,7 @@ internal class InvocationHelper<TParam, TReturn>
         await _functionStore.BulkScheduleFunctions(
             work.Select(bw =>
                 new IdWithParam(
-                    new StoredId(bw.Instance.ToStoredInstance(_storedType)),
+                    StoredId.Create(_storedType, bw.Instance),
                     bw.Instance,
                     _isParamlessFunction ? null : Serializer.Serialize(bw.Param)
                 )
@@ -460,7 +460,7 @@ internal class InvocationHelper<TParam, TReturn>
     public DistributedSemaphores CreateSemaphores(StoredId storedId, Effect effect)
         => new(effect, _functionStore.SemaphoreStore, storedId, Interrupt);
     
-    public StoredId MapToStoredId(FlowId flowId) => new(flowId.Instance.ToStoredInstance(_storedType));
+    public StoredId MapToStoredId(FlowId flowId) => StoredId.Create(_storedType, flowId.Instance.Value);
     
     private byte[]? SerializeParameter(TParam param)
     {
