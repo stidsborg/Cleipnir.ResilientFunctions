@@ -47,8 +47,7 @@ public class SqlGenerator(string tablePrefix)
                 .Where(c => c.Operation == CrudOperation.Insert)
                 .Select(c => new
                 {
-                    Type = c.StoredId.Type.Value.ToInt(), 
-                    Instance = c.StoredId.AsGuid, 
+                    Id = c.StoredId.AsGuid, 
                     StoredEffectId = c.EffectId.Value,
                     WorkStatus = (int)c.StoredEffect!.WorkStatus, 
                     Result = c.StoredEffect!.Result,
@@ -58,15 +57,14 @@ public class SqlGenerator(string tablePrefix)
                 .ToList();
         
             var parameterValues = inserts
-                .Select((_, i) => $"(@{paramPrefix}InsertionFlowType{i}, @{paramPrefix}InsertionFlowInstance{i}, @{paramPrefix}InsertionStoredId{i}, @{paramPrefix}InsertionEffectId{i}, @{paramPrefix}InsertionStatus{i}, @{paramPrefix}InsertionResult{i}, @{paramPrefix}InsertionException{i})")
+                .Select((_, i) => $"(@{paramPrefix}InsertionFlowId{i}, @{paramPrefix}InsertionStoredId{i}, @{paramPrefix}InsertionEffectId{i}, @{paramPrefix}InsertionStatus{i}, @{paramPrefix}InsertionResult{i}, @{paramPrefix}InsertionException{i})")
                 .StringJoin(", ");
         
             var parameters = new List<ParameterValueAndName>();
             for (var i = 0; i < inserts.Count; i++)
             {
                 var upsert = inserts[i];
-                parameters.Add(new ParameterValueAndName($"@{paramPrefix}InsertionFlowType{i}", upsert.Type));
-                parameters.Add(new ParameterValueAndName($"@{paramPrefix}InsertionFlowInstance{i}", upsert.Instance));
+                parameters.Add(new ParameterValueAndName($"@{paramPrefix}InsertionFlowId{i}", upsert.Id));
                 parameters.Add(new ParameterValueAndName($"@{paramPrefix}InsertionStoredId{i}", upsert.StoredEffectId));
                 parameters.Add(new ParameterValueAndName($"@{paramPrefix}InsertionEffectId{i}", upsert.EffectId.Serialize()));
                 parameters.Add(new ParameterValueAndName($"@{paramPrefix}InsertionStatus{i}", upsert.WorkStatus));
@@ -90,8 +88,7 @@ public class SqlGenerator(string tablePrefix)
                 .Where(c => c.Operation == CrudOperation.Update)
                 .Select(c => new
                 {
-                    Type = c.StoredId.Type.Value.ToInt(),
-                    Instance = c.StoredId.AsGuid,
+                    Id = c.StoredId.AsGuid,
                     StoredEffectId = c.EffectId.Value,
                     WorkStatus = (int)c.StoredEffect!.WorkStatus,
                     Result = c.StoredEffect!.Result,
@@ -102,27 +99,26 @@ public class SqlGenerator(string tablePrefix)
 
             var parameterValues = upserts
                 .Select((_, i) =>
-                    $"(@{paramPrefix}FlowType{i}, @{paramPrefix}FlowInstance{i}, @{paramPrefix}StoredId{i}, @{paramPrefix}EffectId{i}, @{paramPrefix}Status{i}, @{paramPrefix}Result{i}, @{paramPrefix}Exception{i})")
+                    $"(@{paramPrefix}Id{i}, @{paramPrefix}StoredId{i}, @{paramPrefix}EffectId{i}, @{paramPrefix}Status{i}, @{paramPrefix}Result{i}, @{paramPrefix}Exception{i})")
                 .StringJoin(", ");
 
             var setSql = $@"
             MERGE INTO {tablePrefix}_Effects
                 USING (VALUES {parameterValues}) 
-                AS source (FlowType, FlowInstance, StoredId, EffectId, Status, Result, Exception)
-                ON {tablePrefix}_Effects.FlowType = source.FlowType AND {tablePrefix}_Effects.FlowInstance = source.FlowInstance AND {tablePrefix}_Effects.StoredId = source.StoredId
+                AS source (Id, StoredId, EffectId, Status, Result, Exception)
+                ON {tablePrefix}_Effects.Id = source.Id AND {tablePrefix}_Effects.StoredId = source.StoredId
                 WHEN MATCHED THEN
                     UPDATE SET Status = source.Status, Result = source.Result, Exception = source.Exception 
                 WHEN NOT MATCHED THEN
-                    INSERT (FlowType, FlowInstance, StoredId, EffectId, Status, Result, Exception)
-                    VALUES (source.FlowType, source.FlowInstance, source.StoredId, source.EffectId, source.Status, source.Result, source.Exception);";
+                    INSERT (Id, StoredId, EffectId, Status, Result, Exception)
+                    VALUES (source.Id, source.StoredId, source.EffectId, source.Status, source.Result, source.Exception);";
 
             var parameters = new List<ParameterValueAndName>();
 
             for (var i = 0; i < upserts.Count; i++)
             {
                 var upsert = upserts[i];
-                parameters.Add(new ParameterValueAndName($"@{paramPrefix}FlowType{i}", upsert.Type));
-                parameters.Add(new ParameterValueAndName($"@{paramPrefix}FlowInstance{i}", upsert.Instance));
+                parameters.Add(new ParameterValueAndName($"@{paramPrefix}Id{i}", upsert.Id));
                 parameters.Add(new ParameterValueAndName($"@{paramPrefix}StoredId{i}", upsert.StoredEffectId));
                 parameters.Add(new ParameterValueAndName($"@{paramPrefix}EffectId{i}", upsert.EffectId.Serialize()));
                 parameters.Add(new ParameterValueAndName($"@{paramPrefix}Status{i}", upsert.WorkStatus));
@@ -140,12 +136,12 @@ public class SqlGenerator(string tablePrefix)
         {
             var removes = changes
                 .Where(c => c.Operation == CrudOperation.Delete)
-                .Select(c => new { Type = c.StoredId.Type.Value.ToInt(), Instance = c.StoredId.AsGuid, IdHash = c.EffectId.Value })
-                .GroupBy(a => new {a.Type, a.Instance }, a => a.IdHash)
+                .Select(c => new { Id = c.StoredId.AsGuid, IdHash = c.EffectId.Value })
+                .GroupBy(c => c.Id)
                 .ToList();
             var predicates = removes
                 .Select(r =>
-                    $"(FlowType = {r.Key.Type} AND FlowInstance = '{r.Key.Instance}' AND StoredId IN ({r.Select(id => $"'{id}'").StringJoin(", ")}))")
+                    $"(Id = '{r.Key}' AND StoredId IN ({r.Select(t => $"'{t.IdHash}'").StringJoin(", ")}))")
                 .StringJoin($" OR {Environment.NewLine}");
         
             var removeSql = @$"
@@ -165,15 +161,14 @@ public class SqlGenerator(string tablePrefix)
         _getEffectsSql ??= @$"
             SELECT StoredId, EffectId, Status, Result, Exception           
             FROM {tablePrefix}_Effects
-            WHERE FlowType = @FlowType AND FlowInstance = @FlowInstance";
+            WHERE Id = @Id";
 
         var sql = _getEffectsSql;
         if (paramPrefix != "")
             sql = sql.Replace("@", $"@{paramPrefix}");
         
         var command = StoreCommand.Create(sql);
-        command.AddParameter($"@{paramPrefix}FlowType", storedId.Type.Value.ToInt());
-        command.AddParameter($"@{paramPrefix}FlowInstance", storedId.AsGuid);
+        command.AddParameter($"@{paramPrefix}Id", storedId.AsGuid);
         return command;
     }
     
@@ -421,16 +416,15 @@ public class SqlGenerator(string tablePrefix)
         
         var sql = @$"    
             INSERT INTO {tablePrefix}_Messages
-                (FlowType, FlowInstance, Position, MessageJson, MessageType, IdempotencyKey)
+                (Id, Position, MessageJson, MessageType, IdempotencyKey)
             VALUES 
-                 {messages.Select((_, i) => $"(@{prefix}FlowType{i}, @{prefix}FlowInstance{i}, @{prefix}Position{i}, @{prefix}MessageJson{i}, @{prefix}MessageType{i}, @{prefix}IdempotencyKey{i})").StringJoin($",{Environment.NewLine}")};";
+                 {messages.Select((_, i) => $"(@{prefix}Id{i}, @{prefix}Position{i}, @{prefix}MessageJson{i}, @{prefix}MessageType{i}, @{prefix}IdempotencyKey{i})").StringJoin($",{Environment.NewLine}")};";
 
         var appendCommand = StoreCommand.Create(sql);
         for (var i = 0; i < messages.Count; i++)
         {
             var (storedId, (messageContent, messageType, idempotencyKey), position) = messages[i];
-            appendCommand.AddParameter($"@{prefix}FlowType{i}", storedId.Type.Value.ToInt());
-            appendCommand.AddParameter($"@{prefix}FlowInstance{i}", storedId.AsGuid);
+            appendCommand.AddParameter($"@{prefix}Id{i}", storedId.AsGuid);
             appendCommand.AddParameter($"@{prefix}Position{i}", position);
             appendCommand.AddParameter($"@{prefix}MessageJson{i}", messageContent);
             appendCommand.AddParameter($"@{prefix}MessageType{i}", messageType);
@@ -446,15 +440,14 @@ public class SqlGenerator(string tablePrefix)
         _getMessagesSql ??= @$"    
             SELECT MessageJson, MessageType, IdempotencyKey
             FROM {tablePrefix}_Messages
-            WHERE FlowType = @FlowType AND FlowInstance = @FlowInstance AND Position >= @Position
+            WHERE Id = @Id AND Position >= @Position
             ORDER BY Position ASC;";
 
         var sql = _getMessagesSql;
         if (paramPrefix != "")
             sql = sql.Replace("@", $"@{paramPrefix}");
         var command = StoreCommand.Create(sql);
-        command.AddParameter($"@{paramPrefix}FlowType", storedId.Type.Value.ToInt());
-        command.AddParameter($"@{paramPrefix}FlowInstance", storedId.AsGuid);
+        command.AddParameter($"@{paramPrefix}Id", storedId.AsGuid);
         command.AddParameter($"@{paramPrefix}Position", skip);
 
         return command;

@@ -20,15 +20,14 @@ public class SqlServerEffectsStore(string connectionString, SqlGenerator sqlGene
         await using var conn = await CreateConnection();
         _initializeSql ??= @$"    
             CREATE TABLE {tablePrefix}_Effects (
-                FlowType INT,
-                FlowInstance UNIQUEIDENTIFIER,
+                Id UNIQUEIDENTIFIER,
                 StoredId UNIQUEIDENTIFIER,              
                 EffectId VARCHAR(MAX) NOT NULL,                
                 Status INT NOT NULL,
                 Result VARBINARY(MAX),
                 Exception NVARCHAR(MAX),
                 
-                PRIMARY KEY (FlowType, FlowInstance, StoredId)
+                PRIMARY KEY (Id, StoredId)
             );";
 
         await using var command = new SqlCommand(_initializeSql, conn);
@@ -53,18 +52,17 @@ public class SqlServerEffectsStore(string connectionString, SqlGenerator sqlGene
         await using var conn = await CreateConnection();
         _setEffectResultSql ??= $@"
             MERGE INTO {tablePrefix}_Effects
-                USING (VALUES (@FlowType, @FlowInstance, @StoredId, @EffectId, @Status, @Result, @Exception)) 
-                AS source (FlowType, FlowInstance, StoredId, EffectId, Status, Result, Exception)
-                ON {tablePrefix}_Effects.FlowType = source.FlowType AND {tablePrefix}_Effects.FlowInstance = source.FlowInstance AND {tablePrefix}_Effects.StoredId = source.StoredId
+                USING (VALUES (@Id, @StoredId, @EffectId, @Status, @Result, @Exception)) 
+                AS source (Id, StoredId, EffectId, Status, Result, Exception)
+                ON {tablePrefix}_Effects.Id = source.Id AND {tablePrefix}_Effects.StoredId = source.StoredId
                 WHEN MATCHED THEN
                     UPDATE SET Status = source.Status, Result = source.Result, Exception = source.Exception 
                 WHEN NOT MATCHED THEN
-                    INSERT (FlowType, FlowInstance, StoredId, EffectId, Status, Result, Exception)
-                    VALUES (source.FlowType, source.FlowInstance, source.StoredId, source.EffectId, source.Status, source.Result, source.Exception);";
+                    INSERT (Id, StoredId, EffectId, Status, Result, Exception)
+                    VALUES (source.Id, source.StoredId, source.EffectId, source.Status, source.Result, source.Exception);";
         
         await using var command = new SqlCommand(_setEffectResultSql, conn);
-        command.Parameters.AddWithValue("@FlowType", storedId.Type.Value.ToInt());
-        command.Parameters.AddWithValue("@FlowInstance", storedId.AsGuid);
+        command.Parameters.AddWithValue("@Id", storedId.AsGuid);
         command.Parameters.AddWithValue("@StoredId", storedEffect.StoredEffectId.Value);
         command.Parameters.AddWithValue("@EffectId", storedEffect.EffectId.Serialize());
         command.Parameters.AddWithValue("@Status", storedEffect.WorkStatus);
@@ -103,11 +101,10 @@ public class SqlServerEffectsStore(string connectionString, SqlGenerator sqlGene
         await using var conn = await CreateConnection();
         _deleteEffectResultSql ??= @$"
             DELETE FROM {tablePrefix}_Effects
-            WHERE FlowType = @FlowType AND FlowInstance = @FlowInstance AND StoredId = @StoredId";
+            WHERE Id = @Id AND StoredId = @StoredId";
         
         await using var command = new SqlCommand(_deleteEffectResultSql, conn);
-        command.Parameters.AddWithValue("@FlowType", storedId.Type.Value.ToInt());
-        command.Parameters.AddWithValue("@FlowInstance", storedId.AsGuid);
+        command.Parameters.AddWithValue("@Id", storedId.AsGuid);
         command.Parameters.AddWithValue("@StoredId", effectId.Value);
         
         await command.ExecuteNonQueryAsync();
@@ -118,8 +115,7 @@ public class SqlServerEffectsStore(string connectionString, SqlGenerator sqlGene
         await using var conn = await CreateConnection();
         var sql = @$"
             DELETE FROM {tablePrefix}_Effects 
-            WHERE FlowType = {storedId.Type.Value.ToInt()} AND 
-                  FlowInstance = '{storedId.AsGuid}' AND 
+            WHERE Id = '{storedId.AsGuid}' AND 
                   StoredId IN ({effectIds.Select(id => $"'{id.Value}'").StringJoin(", ")}) ";
         
         await using var command = new SqlCommand(sql, conn);
@@ -132,11 +128,10 @@ public class SqlServerEffectsStore(string connectionString, SqlGenerator sqlGene
         await using var conn = await CreateConnection();
         _removeSql ??= @$"
             DELETE FROM {tablePrefix}_Effects
-            WHERE FlowType = @FlowType AND FlowInstance = @FlowInstance";
+            WHERE Id = @Id";
         
         await using var command = new SqlCommand(_removeSql, conn);
-        command.Parameters.AddWithValue("@FlowType", storedId.Type.Value.ToInt());
-        command.Parameters.AddWithValue("@FlowInstance", storedId.AsGuid);
+        command.Parameters.AddWithValue("@Id", storedId.AsGuid);
         
         await command.ExecuteNonQueryAsync();
     }
