@@ -16,11 +16,6 @@ public class SqlGenerator(string tablePrefix)
 {
     public StoreCommand Interrupt(IEnumerable<StoredId> storedIds)
     {
-        var conditionals = storedIds
-            .GroupBy(id => id.Type.Value, id => id.AsGuid)
-            .Select(group => $"(type = {group.Key} AND instance IN ({group.Select(i => $"'{i}'").StringJoin(", ")}))")
-            .StringJoin(" OR ");
-        
         var sql = @$"
                 UPDATE {tablePrefix}
                 SET 
@@ -36,7 +31,7 @@ public class SqlGenerator(string tablePrefix)
                             WHEN status = {(int)Status.Suspended} THEN 0
                             ELSE expires
                         END
-                WHERE {conditionals}";
+                WHERE Id IN ({storedIds.Select(id => $"'{id}'").StringJoin(", ")})";
         
         return StoreCommand.Create(sql);
     }
@@ -158,9 +153,9 @@ public class SqlGenerator(string tablePrefix)
     {
         _createFunctionSql ??= @$"
             INSERT INTO {tablePrefix}
-                (type, instance, status, param_json, expires, timestamp, human_instance_id, parent, owner)
+                (id, status, param_json, expires, timestamp, human_instance_id, parent, owner)
             VALUES
-                ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+                ($1, $2, $3, $4, $5, $6, $7, $8)
             ON CONFLICT DO NOTHING;";
 
         var sql = _createFunctionSql;
@@ -171,7 +166,6 @@ public class SqlGenerator(string tablePrefix)
             sql,
             values:
             [
-                storedId.Type.Value.ToInt(),
                 storedId.AsGuid,
                 (int)(postponeUntil == null ? Status.Executing : Status.Postponed),
                 param == null ? DBNull.Value : param,
@@ -193,10 +187,7 @@ public class SqlGenerator(string tablePrefix)
         _succeedFunctionSql ??= $@"
             UPDATE {tablePrefix}
             SET status = {(int) Status.Succeeded}, result_json = $1, timestamp = $2, owner = NULL
-            WHERE 
-                type = $3 AND 
-                instance = $4 AND 
-                owner = $5";
+            WHERE id = $3 AND owner = $4";
 
         return StoreCommand.Create(
             _succeedFunctionSql,
@@ -204,7 +195,6 @@ public class SqlGenerator(string tablePrefix)
             [
                 result == null ? DBNull.Value : result,
                 timestamp,
-                storedId.Type.Value.ToInt(),
                 storedId.AsGuid,
                 expectedReplica.AsGuid,
             ]
@@ -223,9 +213,8 @@ public class SqlGenerator(string tablePrefix)
             UPDATE {tablePrefix}
             SET status = {(int) Status.Postponed}, expires = $1, timestamp = $2, owner = NULL
             WHERE 
-                type = $3 AND 
-                instance = $4 AND 
-                owner = $5 AND
+                id = $3 AND 
+                owner = $4 AND
                 NOT interrupted";
         
         var sql = _postponeFunctionSql;
@@ -237,7 +226,6 @@ public class SqlGenerator(string tablePrefix)
             values: [
                 postponeUntil,
                 timestamp,
-                storedId.Type.Value.ToInt(),
                 storedId.AsGuid,
                 expectedReplica.AsGuid,
             ]
@@ -254,17 +242,13 @@ public class SqlGenerator(string tablePrefix)
         _failFunctionSql ??= $@"
             UPDATE {tablePrefix}
             SET status = {(int) Status.Failed}, exception_json = $1, timestamp = $2, owner = NULL
-            WHERE 
-                type = $3 AND 
-                instance = $4 AND 
-                owner = $5";
+            WHERE id = $3 AND owner = $4";
         return StoreCommand.Create(
             _failFunctionSql,
             values:
             [
                 JsonSerializer.Serialize(storedException),
                 timestamp,
-                storedId.Type.Value.ToInt(),
                 storedId.AsGuid,
                 expectedReplica.AsGuid,
             ]
@@ -277,16 +261,14 @@ public class SqlGenerator(string tablePrefix)
         _suspendFunctionSql ??= $@"
             UPDATE {tablePrefix}
             SET status = {(int)Status.Suspended}, timestamp = $1, owner = NULL
-            WHERE type = $2 AND 
-                  instance = $3 AND 
-                  owner = $4 AND
+            WHERE id = $2 AND 
+                  owner = $3 AND
                   NOT interrupted;";
 
         return StoreCommand.Create(
             _suspendFunctionSql,
             values: [
                 timestamp,
-                storedId.Type.Value.ToInt(),
                 storedId.AsGuid,
                 expectedReplica.AsGuid,
             ]
@@ -299,7 +281,7 @@ public class SqlGenerator(string tablePrefix)
         _restartExecutionSql ??= @$"
             UPDATE {tablePrefix}
             SET status = {(int)Status.Executing}, expires = 0, interrupted = FALSE, owner = $1
-            WHERE type = $2 AND instance = $3 AND owner IS NULL
+            WHERE id = $2 AND owner IS NULL
             RETURNING               
                 param_json, 
                 status,
@@ -316,7 +298,6 @@ public class SqlGenerator(string tablePrefix)
             _restartExecutionSql,
             values: [
                 replicaId.AsGuid,
-                storedId.Type.Value.ToInt(),
                 storedId.AsGuid,
             ]);
 

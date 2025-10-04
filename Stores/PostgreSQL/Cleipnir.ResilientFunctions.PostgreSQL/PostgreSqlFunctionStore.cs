@@ -78,8 +78,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         await using var conn = await CreateConnection();
         _initializeSql ??= $@"
             CREATE TABLE IF NOT EXISTS {_tableName} (
-                type INT NOT NULL,
-                instance UUID NOT NULL,              
+                id UUID PRIMARY KEY,              
                 expires BIGINT NOT NULL,
                 interrupted BOOLEAN NOT NULL DEFAULT FALSE,
                 param_json BYTEA NULL,            
@@ -89,22 +88,16 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 timestamp BIGINT NOT NULL,
                 human_instance_id TEXT NOT NULL,
                 parent TEXT NULL,
-                owner UUID NULL,
-                PRIMARY KEY (type, instance)
+                owner UUID NULL
             );
             CREATE INDEX IF NOT EXISTS idx_{_tableName}_expires
-            ON {_tableName}(expires, type, instance)
+            ON {_tableName}(expires, id)
             INCLUDE (owner)
             WHERE status = {(int) Status.Executing} OR status = {(int) Status.Postponed};           
 
             CREATE INDEX IF NOT EXISTS idx_{_tableName}_succeeded
-            ON {_tableName}(type, instance)
-            WHERE status = {(int) Status.Succeeded};
-
-            CREATE INDEX IF NOT EXISTS idx_{_tableName}_owners
-            ON {_tableName}(owner, type, instance)
-            WHERE status = {(int) Status.Executing};
-            ";
+            ON {_tableName}(id)
+            WHERE status = {(int) Status.Succeeded};";
 
         await using var command = new NpgsqlCommand(_initializeSql, conn);
         await command.ExecuteNonQueryAsync();
@@ -205,9 +198,9 @@ public class PostgreSqlFunctionStore : IFunctionStore
     {
         _bulkScheduleFunctionsSql ??= @$"
             INSERT INTO {_tableName}
-                (type, instance, status, param_json, expires, timestamp, human_instance_id, parent)
+                (id, status, param_json, expires, timestamp, human_instance_id, parent)
             VALUES
-                ($1, $2, {(int) Status.Postponed}, $3, 0, 0, $4, $5)
+                ($1, {(int) Status.Postponed}, $2, 0, 0, $3, $4)
             ON CONFLICT DO NOTHING;";
 
         await using var conn = await CreateConnection();
@@ -221,7 +214,6 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 {
                     Parameters =
                     {
-                        new() { Value = idWithParam.StoredId.Type.Value.ToInt() },
                         new() { Value = idWithParam.StoredId.AsGuid },
                         new() { Value = idWithParam.Param == null ? DBNull.Value : idWithParam.Param },
                         new() { Value = idWithParam.HumanInstanceId },
@@ -264,7 +256,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
     {
         await using var conn = await CreateConnection();
         _getExpiredFunctionsSql ??= @$"
-            SELECT type, instance
+            SELECT id
             FROM {_tableName}
             WHERE expires <= $1 AND status = {(int) Status.Postponed}";
         await using var command = new NpgsqlCommand(_getExpiredFunctionsSql, conn)
@@ -279,7 +271,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         var ids = new List<StoredId>();
         while (await reader.ReadAsync())
         {
-            var instance = reader.GetGuid(1);
+            var instance = reader.GetGuid(0);
             ids.Add(new StoredId(instance));
         }
 
@@ -291,7 +283,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
     {
         await using var conn = await CreateConnection();
         _getSucceededFunctionsSql ??= @$"
-            SELECT instance
+            SELECT id
             FROM {_tableName}
             WHERE status = {(int) Status.Succeeded} AND timestamp <= $1";
         await using var command = new NpgsqlCommand(_getSucceededFunctionsSql, conn)
@@ -329,7 +321,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 param_json = $2, 
                 result_json = $3, 
                 exception_json = $4, expires = $5
-            WHERE type = $6 AND instance = $7";
+            WHERE id = $6";
 
         var sql = expectedReplica == null
             ? _setFunctionStateSql + " AND owner IS NULL;"
@@ -343,7 +335,6 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 new() {Value = result == null ? DBNull.Value : result},
                 new() {Value = storedException == null ? DBNull.Value : JsonSerializer.Serialize(storedException)},
                 new() {Value = expires },
-                new() {Value = storedId.Type.Value.ToInt()},
                 new() {Value = storedId.AsGuid}
             }
         };
@@ -488,7 +479,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
             UPDATE {_tableName}
             SET param_json = $1,             
                 result_json = $2
-            WHERE type = $3 AND instance = $4";
+            WHERE id = $3 ";
 
         var sql = expectedReplica == null
             ? _setParametersSql + " AND owner IS NULL;"
@@ -499,7 +490,6 @@ public class PostgreSqlFunctionStore : IFunctionStore
             {
                 new() { Value = param ?? (object) DBNull.Value },
                 new() { Value = result ?? (object) DBNull.Value },
-                new() { Value = storedId.Type.Value.ToInt() },
                 new() { Value = storedId.AsGuid },
             }
         };
@@ -528,13 +518,12 @@ public class PostgreSqlFunctionStore : IFunctionStore
                             WHEN status = {(int) Status.Suspended} THEN 0
                             ELSE expires
                         END
-                WHERE type = $1 AND instance = $2";
+                WHERE id = $1";
         
         await using var command = new NpgsqlCommand(_interruptSql, conn)
         {
             Parameters =
             {
-                new() { Value = storedId.Type.Value.ToInt() },
                 new() { Value = storedId.AsGuid },
             }
         };
@@ -560,12 +549,11 @@ public class PostgreSqlFunctionStore : IFunctionStore
         _interruptedSql ??= $@"
                 SELECT interrupted 
                 FROM {_tableName}
-                WHERE type = $1 AND instance = $2";
+                WHERE id = $1";
         await using var command = new NpgsqlCommand(_interruptedSql, conn)
         {
             Parameters =
             {
-                new() { Value = storedId.Type.Value.ToInt() },
                 new() { Value = storedId.AsGuid },
             }
         };
@@ -579,11 +567,10 @@ public class PostgreSqlFunctionStore : IFunctionStore
         _getFunctionStatusSql ??= $@"
             SELECT status
             FROM {_tableName}
-            WHERE type = $1 AND instance = $2;";
+            WHERE id = $1;";
         await using var command = new NpgsqlCommand(_getFunctionStatusSql, conn)
         {
             Parameters = { 
-                new() {Value = storedId.Type.Value.ToInt()},
                 new() {Value = storedId.AsGuid }
             }
         };
@@ -599,16 +586,10 @@ public class PostgreSqlFunctionStore : IFunctionStore
 
     public async Task<IReadOnlyList<StatusAndId>> GetFunctionsStatus(IEnumerable<StoredId> storedIds)
     {
-        var predicates = storedIds
-            .Select(s => new { Type = s.Type.Value, Instance = s.AsGuid })
-            .GroupBy(id => id.Type, id => id.Instance)
-            .Select(g => $"(type = {g.Key} AND instance IN ({string.Join(",", g.Select(instance => $"'{instance}'"))}))")
-            .StringJoin(" OR " + Environment.NewLine);
-
         var sql = @$"
-            SELECT type, instance, status, expires
+            SELECT id, status, expires
             FROM {_tableName}
-            WHERE {predicates}";
+            WHERE Id IN ({storedIds.Select(id => $"'{id}'").StringJoin(", ")})";
 
         await using var conn = await CreateConnection();
         await using var command = new NpgsqlCommand(sql, conn);
@@ -617,9 +598,9 @@ public class PostgreSqlFunctionStore : IFunctionStore
         await using var reader = await command.ExecuteReaderAsync();
         while (await reader.ReadAsync())
         {
-            var instance = reader.GetGuid(1);
-            var status = (Status) reader.GetInt32(2);
-            var expires = reader.GetInt64(3);
+            var instance = reader.GetGuid(0);
+            var status = (Status) reader.GetInt32(1);
+            var expires = reader.GetInt64(2);
 
             var storedId = new StoredId(instance);
             toReturn.Add(new StatusAndId(storedId, status, expires));
@@ -645,75 +626,16 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 parent,
                 owner
             FROM {_tableName}
-            WHERE type = $1 AND instance = $2;";
+            WHERE id = $1;";
         await using var command = new NpgsqlCommand(_getFunctionSql, conn)
         {
             Parameters = { 
-                new() {Value = storedId.Type.Value.ToInt()},
                 new() {Value = storedId.AsGuid}
             }
         };
         
         await using var reader = await command.ExecuteReaderAsync();
         return await ReadToStoredFunction(storedId, reader);
-    }
-
-    private string? _getInstancesWithStatusSql;
-    public async Task<IReadOnlyList<StoredId>> GetInstances(StoredType storedType, Status status)
-    {
-        await using var conn = await CreateConnection();
-        _getInstancesWithStatusSql ??= @$"
-            SELECT instance
-            FROM {_tableName}
-            WHERE type = $1 AND status = $2";
-        
-        await using var command = new NpgsqlCommand(_getInstancesWithStatusSql, conn)
-        {
-            Parameters =
-            {
-                new() {Value = storedType.Value.ToInt()},
-                new() {Value = (int) status},
-            }
-        };
-        
-        await using var reader = await command.ExecuteReaderAsync();
-        var ids = new List<StoredId>();
-        while (await reader.ReadAsync())
-        {
-            var id = reader.GetGuid(0).ToStoredId();
-            ids.Add(id);
-        }
-
-        return ids;
-    }
-
-    private string? _getInstancesSql;
-    public async Task<IReadOnlyList<StoredId>> GetInstances(StoredType storedType)
-    {
-        await using var conn = await CreateConnection();
-        
-        _getInstancesSql ??= @$"
-            SELECT instance
-            FROM {_tableName}
-            WHERE type = $1";
-        
-        await using var command = new NpgsqlCommand(_getInstancesSql, conn)
-        {
-            Parameters =
-            {
-                new() {Value = storedType.Value.ToInt()},
-            }
-        };
-        
-        await using var reader = await command.ExecuteReaderAsync();
-        var ids = new List<StoredId>();
-        while (await reader.ReadAsync())
-        {
-            var id = reader.GetGuid(0).ToStoredId();
-            ids.Add(id);
-        }
-
-        return ids;
     }
 
     private async Task<StoredFlow?> ReadToStoredFunction(StoredId storedId, NpgsqlDataReader reader)
@@ -778,14 +700,12 @@ public class PostgreSqlFunctionStore : IFunctionStore
         await using var conn = await CreateConnection();
         _deleteFunctionSql ??= @$"
             DELETE FROM {_tableName}
-            WHERE type = $1
-            AND instance = $2 ";
+            WHERE id = $1;";
 
         await using var command = new NpgsqlCommand(_deleteFunctionSql, conn)
         {
             Parameters =
             {
-                new() {Value = storedId.Type.Value.ToInt()},
                 new() {Value = storedId.AsGuid},
             }
         };
