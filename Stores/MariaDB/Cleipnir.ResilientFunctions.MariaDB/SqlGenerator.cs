@@ -310,14 +310,13 @@ public class SqlGenerator(string tablePrefix)
     {
         var sql = @$"    
             INSERT INTO {tablePrefix}_messages
-                (type, instance, position, message_json, message_type, idempotency_key)
+                (id, position, message_json, message_type, idempotency_key)
             VALUES 
-                 {"(?, ?, ?, ?, ?, ?)".Replicate(messages.Count).StringJoin($",{Environment.NewLine}")};";
+                 {"(?, ?, ?, ?, ?)".Replicate(messages.Count).StringJoin($",{Environment.NewLine}")};";
 
         var command = StoreCommand.Create(sql);
         foreach (var (storedId, (messageContent, messageType, idempotencyKey), position) in messages)
         {
-            command.AddParameter(storedId.Type.Value.ToInt());
             command.AddParameter(storedId.AsGuid.ToString("N"));
             command.AddParameter(position);
             command.AddParameter(messageContent);
@@ -334,14 +333,13 @@ public class SqlGenerator(string tablePrefix)
         _getMessagesSql ??= @$"    
             SELECT message_json, message_type, idempotency_key
             FROM {tablePrefix}_messages
-            WHERE type = ? AND instance = ? AND position >= ?
+            WHERE id = ? AND position >= ?
             ORDER BY position ASC;";
 
         var command = StoreCommand.Create(
             _getMessagesSql,
             values:
             [
-                storedId.Type.Value,
                 storedId.AsGuid.ToString("N"),
                 skip
             ]

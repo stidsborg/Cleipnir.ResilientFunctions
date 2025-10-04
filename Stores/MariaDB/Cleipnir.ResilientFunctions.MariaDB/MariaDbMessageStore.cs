@@ -25,13 +25,12 @@ public class MariaDbMessageStore : IMessageStore
         await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
         _initializeSql ??= @$"
             CREATE TABLE IF NOT EXISTS {_tablePrefix}_messages (
-                type INT,
-                instance CHAR(32),
+                id CHAR(32),
                 position INT NOT NULL,
                 message_json LONGBLOB NOT NULL,
                 message_type LONGBLOB NOT NULL,   
                 idempotency_key VARCHAR(255),          
-                PRIMARY KEY (type, instance, position)
+                PRIMARY KEY (id, position)
             );";
         var command = new MySqlCommand(_initializeSql, conn);
         await command.ExecuteNonQueryAsync();
@@ -59,10 +58,10 @@ public class MariaDbMessageStore : IMessageStore
                 _appendMessageSql ??= @$"    
                     SELECT GET_LOCK(?, 10);
                     INSERT INTO {_tablePrefix}_messages
-                        (type, instance, position, message_json, message_type, idempotency_key)
-                    SELECT ?, ?, COALESCE(MAX(position), -1) + 1, ?, ?, ? 
+                        (id, position, message_json, message_type, idempotency_key)
+                    SELECT ?, COALESCE(MAX(position), -1) + 1, ?, ?, ? 
                         FROM {_tablePrefix}_messages
-                        WHERE type = ? AND instance = ?;
+                        WHERE id = ?;
                     SELECT RELEASE_LOCK(?);";
 
                 await using var command = new MySqlCommand(_appendMessageSql, conn)
@@ -70,15 +69,12 @@ public class MariaDbMessageStore : IMessageStore
                     Parameters =
                     {
                         new() { Value = lockName },
-                        new() { Value = storedId.Type.Value },
                         new() { Value = storedId.AsGuid.ToString("N") },
                         new() { Value = messageJson },
                         new() { Value = messageType },
                         new() { Value = idempotencyKey ?? (object)DBNull.Value },
-                        new() { Value = storedId.Type.Value },
                         new() { Value = storedId.AsGuid.ToString("N") },
                         new() { Value = lockName },
-                        new() { Value = storedId.Type.Value },
                         new() { Value = storedId.AsGuid.ToString("N") },
                     }
                 };
@@ -152,7 +148,7 @@ public class MariaDbMessageStore : IMessageStore
         _replaceMessageSql ??= @$"    
                 UPDATE {_tablePrefix}_messages
                 SET message_json = ?, message_type = ?, idempotency_key = ?
-                WHERE type = ? AND instance = ? AND position = ?";
+                WHERE id = ? AND position = ?";
         await using var command = new MySqlCommand(_replaceMessageSql, conn)
         {
             Parameters =
@@ -160,7 +156,6 @@ public class MariaDbMessageStore : IMessageStore
                 new() {Value = messageJson},
                 new() {Value = messageType},
                 new() {Value = idempotencyKey ?? (object) DBNull.Value},
-                new() {Value = storedId.Type.Value},
                 new() {Value = storedId.AsGuid.ToString("N")},
                 new() {Value = position}
             }
@@ -175,10 +170,9 @@ public class MariaDbMessageStore : IMessageStore
         await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
         _truncateSql ??= @$"    
                 DELETE FROM {_tablePrefix}_messages
-                WHERE type = ? AND instance = ?";
+                WHERE id = ?";
         
         await using var command = new MySqlCommand(_truncateSql, conn);
-        command.Parameters.Add(new() { Value = storedId.Type.Value });
         command.Parameters.Add(new() { Value = storedId.AsGuid.ToString("N") });
         
         await command.ExecuteNonQueryAsync();
@@ -199,15 +193,11 @@ public class MariaDbMessageStore : IMessageStore
 
     public async Task<IDictionary<StoredId, int>> GetMaxPositions(IReadOnlyList<StoredId> storedIds)
     {
-        var predicates = storedIds
-            .GroupBy(id => id.Type.Value, id => id.AsGuid)
-            .Select(g => $"type = {g.Key} AND instance IN ({g.Select(instance => $"'{instance:N}'").StringJoin(", ")})")
-            .StringJoin(" OR " + Environment.NewLine);
-
         var sql = @$"    
-            SELECT type, instance, position
+            SELECT id, MAX(position)
             FROM {_tablePrefix}_messages
-            WHERE {predicates};";
+            WHERE Id IN ({storedIds.Select(id => $"'{id.AsGuid:N}'").StringJoin(", ")})
+            GROUP BY id;";
 
         await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
         await using var command = new MySqlCommand(sql, conn);
@@ -219,9 +209,8 @@ public class MariaDbMessageStore : IMessageStore
         await using var reader = await command.ExecuteReaderAsync();
         while (await reader.ReadAsync())
         {
-            var guid = reader.GetGuid(1);
-            var storedId = new StoredId(guid);
-            var position = reader.GetInt32(2);
+            var storedId = new StoredId(reader.GetString(0).ToGuid());
+            var position = reader.GetInt32(1);
             positions[storedId] = position;
         }
         
