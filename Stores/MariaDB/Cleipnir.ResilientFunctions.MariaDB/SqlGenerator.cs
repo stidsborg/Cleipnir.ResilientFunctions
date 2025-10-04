@@ -38,13 +38,12 @@ public class SqlGenerator(string tablePrefix)
         _getEffectResultsSql ??= @$"
             SELECT id_hash, status, result, exception, effect_id
             FROM {tablePrefix}_effects
-            WHERE type = ? AND instance = ?;";
+            WHERE id = ?;";
 
         var command = StoreCommand.Create(
             _getEffectResultsSql,
             values:
             [
-                storedId.Type.Value,
                 storedId.AsGuid.ToString("N")
             ]
         );
@@ -86,7 +85,6 @@ public class SqlGenerator(string tablePrefix)
                 .Where(c => c.Operation == CrudOperation.Update || c.Operation == CrudOperation.Insert)
                 .Select(c => new
                 {
-                    Type = c.StoredId.Type.Value, 
                     Instance = c.StoredId.AsGuid, 
                     IdHash = c.EffectId.Value,
                     WorkStatus = (int)c.StoredEffect!.WorkStatus, 
@@ -98,16 +96,15 @@ public class SqlGenerator(string tablePrefix)
         
             var setSql = $@"
                 INSERT INTO {tablePrefix}_effects 
-                    (type, instance, id_hash, status, result, exception, effect_id)
+                    (id, id_hash, status, result, exception, effect_id)
                 VALUES
-                    {"(?, ?, ?, ?, ?, ?, ?)".Replicate(upserts.Count).StringJoin(", ")}  
+                    {"(?, ?, ?, ?, ?, ?)".Replicate(upserts.Count).StringJoin(", ")}  
                 ON DUPLICATE KEY UPDATE
                     status = VALUES(status), result = VALUES(result), exception = VALUES(exception);";
 
             upsertCommand = StoreCommand.Create(setSql);
             foreach (var upsert in upserts)
             {
-                upsertCommand.AddParameter(upsert.Type);
                 upsertCommand.AddParameter(upsert.Instance.ToString("N"));
                 upsertCommand.AddParameter(upsert.IdHash.ToString("N"));
                 upsertCommand.AddParameter(upsert.WorkStatus);
@@ -122,12 +119,12 @@ public class SqlGenerator(string tablePrefix)
         {
             var removes = changes
                 .Where(c => c.Operation == CrudOperation.Delete)
-                .Select(c => new { Type = c.StoredId.Type.Value, Instance = c.StoredId.AsGuid, IdHash = c.EffectId.Value })
-                .GroupBy(a => new {a.Type, a.Instance }, a => a.IdHash)
+                .Select(c => new { Id = c.StoredId.AsGuid, IdHash = c.EffectId.Value })
+                .GroupBy(a => a.Id, a => a.IdHash)
                 .ToList();
             var predicates = removes
                 .Select(r =>
-                    $"(type = {r.Key.Type} AND instance = '{r.Key.Instance:N}' AND id_hash IN ({r.Select(id => $"'{id:N}'").StringJoin(", ")}))")
+                    $"(id = '{r.Key:N}' AND id_hash IN ({r.Select(id => $"'{id:N}'").StringJoin(", ")}))")
                 .StringJoin($" OR {Environment.NewLine}");
             var removeSql = @$"
             DELETE FROM {tablePrefix}_effects 

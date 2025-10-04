@@ -13,14 +13,13 @@ public class MariaDbEffectsStore(string connectionString, SqlGenerator sqlGenera
         await using var conn = await CreateConnection();
         _initializeSql ??= @$"
             CREATE TABLE IF NOT EXISTS {tablePrefix}_effects (
-                type INT,
-                instance CHAR(32),
+                id CHAR(32),
                 id_hash CHAR(32),               
                 status INT NOT NULL,
                 result LONGBLOB NULL,
                 exception TEXT NULL,
                 effect_id TEXT NOT NULL,
-                PRIMARY KEY(type, instance, id_hash)
+                PRIMARY KEY(id, id_hash)
             );";
         var command = new MySqlCommand(_initializeSql, conn);
         await command.ExecuteNonQueryAsync();
@@ -41,9 +40,9 @@ public class MariaDbEffectsStore(string connectionString, SqlGenerator sqlGenera
         await using var conn = await CreateConnection();
         _setEffectResultSql ??= $@"
           INSERT INTO {tablePrefix}_effects 
-              (type, instance, id_hash, status, result, exception, effect_id)
+              (id, id_hash, status, result, exception, effect_id)
           VALUES
-              (?, ?, ?, ?, ?, ?, ?)  
+              (?, ?, ?, ?, ?, ?)  
            ON DUPLICATE KEY UPDATE
                 status = VALUES(status), result = VALUES(result), exception = VALUES(exception)";
         
@@ -51,7 +50,6 @@ public class MariaDbEffectsStore(string connectionString, SqlGenerator sqlGenera
         {
             Parameters =
             {
-                new() {Value = storedId.Type.Value},
                 new() {Value = storedId.AsGuid.ToString("N")},
                 new() {Value = storedEffect.StoredEffectId.Value.ToString("N")},
                 new() {Value = (int) storedEffect.WorkStatus},
@@ -93,13 +91,12 @@ public class MariaDbEffectsStore(string connectionString, SqlGenerator sqlGenera
         await using var conn = await CreateConnection();
         _deleteEffectResultSql ??= @$"
             DELETE FROM {tablePrefix}_effects 
-            WHERE type = ? AND instance = ? AND id_hash = ?";
+            WHERE id = ? AND id_hash = ?";
         
         await using var command = new MySqlCommand(_deleteEffectResultSql, conn)
         {
             Parameters =
             {
-                new() { Value = storedId.Type.Value },
                 new() { Value = storedId.AsGuid.ToString("N") },
                 new() { Value = effectId.Value.ToString("N") },
             }
@@ -113,8 +110,7 @@ public class MariaDbEffectsStore(string connectionString, SqlGenerator sqlGenera
         await using var conn = await CreateConnection();
         var sql = @$"
             DELETE FROM {tablePrefix}_effects 
-            WHERE type = {storedId.Type.Value} AND 
-                  instance = '{storedId.AsGuid:N}' AND 
+            WHERE instance = '{storedId.AsGuid:N}' AND 
                   id_hash IN ({effectIds.Select(id => $"'{id.Value:N}'").StringJoin(", ")});";
         
         await using var command = new MySqlCommand(sql, conn);
@@ -125,12 +121,11 @@ public class MariaDbEffectsStore(string connectionString, SqlGenerator sqlGenera
     public async Task Remove(StoredId storedId)
     {
         await using var conn = await CreateConnection();
-        _removeSql ??= $"DELETE FROM {tablePrefix}_effects WHERE type = ? AND instance = ?";
+        _removeSql ??= $"DELETE FROM {tablePrefix}_effects WHERE id = ?";
         await using var command = new MySqlCommand(_removeSql, conn)
         {
             Parameters =
             {
-                new() { Value = storedId.Type.Value },
                 new() { Value = storedId.AsGuid.ToString("N") },
             }
         };
