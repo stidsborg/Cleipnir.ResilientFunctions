@@ -73,8 +73,7 @@ public class MariaDbFunctionStore : IFunctionStore
         await using var conn = await CreateOpenConnection(_connectionString);
         _initializeSql ??= $@"
             CREATE TABLE IF NOT EXISTS {_tablePrefix} (
-                type INT NOT NULL,
-                instance CHAR(32) NOT NULL,
+                id CHAR(32) PRIMARY KEY,
                 status INT NOT NULL,
                 expires BIGINT NOT NULL,
                 interrupted BOOLEAN NOT NULL,                
@@ -85,11 +84,8 @@ public class MariaDbFunctionStore : IFunctionStore
                 human_instance_id TEXT NOT NULL,
                 parent TEXT NULL,
                 owner CHAR(32) NULL,
-                PRIMARY KEY (type, instance),
-                INDEX (expires, type, instance, status)   
-            );
-
-            CREATE INDEX {_tablePrefix}FlowOwnersIdx ON {_tablePrefix}(owner, type, instance);";
+                INDEX (expires, id, status)   
+            );";
 
         await using var command = new MySqlCommand(_initializeSql, conn);
         await command.ExecuteNonQueryAsync();
@@ -171,7 +167,7 @@ public class MariaDbFunctionStore : IFunctionStore
     {
         var insertSql = @$"
             INSERT IGNORE INTO {_tablePrefix}
-              (type, instance, param_json, status, expires, timestamp, human_instance_id, parent, owner)
+              (id, param_json, status, expires, timestamp, human_instance_id, parent, owner)
             VALUES                      
                     ";
         
@@ -181,9 +177,8 @@ public class MariaDbFunctionStore : IFunctionStore
         var rows = new List<string>();
         foreach (var (storedId, humanInstanceId, param) in functionsWithParam)
         {
-            var type = storedId.Type.Value.ToInt();
-            var instance = storedId.AsGuid;
-            var row = $"({type}, '{instance:N}', {(param == null ? "NULL" : $"x'{Convert.ToHexString(param)}'")}, {(int) Status.Postponed}, 0, {now}, '{humanInstanceId.EscapeString()}', {parentStr}, NULL)"; 
+            var id = storedId.AsGuid;
+            var row = $"('{id:N}', {(param == null ? "NULL" : $"x'{Convert.ToHexString(param)}'")}, {(int) Status.Postponed}, 0, {now}, '{humanInstanceId.EscapeString()}', {parentStr}, NULL)"; 
             rows.Add(row);
         }
         var rowsSql = string.Join(", " + Environment.NewLine, rows);
@@ -230,7 +225,7 @@ public class MariaDbFunctionStore : IFunctionStore
     {
         await using var conn = await CreateOpenConnection(_connectionString);
         _getExpiredFunctionsSql ??= @$"
-            SELECT type, instance
+            SELECT id
             FROM {_tablePrefix}
             WHERE expires <= ? AND status = {(int) Status.Postponed}";
         await using var command = new MySqlCommand(_getExpiredFunctionsSql, conn)
@@ -245,7 +240,7 @@ public class MariaDbFunctionStore : IFunctionStore
         var ids = new List<StoredId>();
         while (await reader.ReadAsync())
         {
-            var guid = reader.GetString(1).ToGuid();
+            var guid = reader.GetString(0).ToGuid();
             var id = new StoredId(guid);
             ids.Add(id);
         }
@@ -258,7 +253,7 @@ public class MariaDbFunctionStore : IFunctionStore
     {
         await using var conn = await CreateOpenConnection(_connectionString);
         _getSucceededFunctionsSql ??= @$"
-            SELECT instance
+            SELECT id
             FROM {_tablePrefix}
             WHERE status = {(int) Status.Succeeded} AND timestamp <= ?";
         await using var command = new MySqlCommand(_getSucceededFunctionsSql, conn)
@@ -296,9 +291,7 @@ public class MariaDbFunctionStore : IFunctionStore
                 param_json = ?,  
                 result_json = ?,  
                 exception_json = ?, expires = ?
-            WHERE 
-                type = ? AND 
-                instance = ?";
+            WHERE id = ?";
         
         var sql = expectedReplica == null
              ? _setFunctionStateSql + " AND owner IS NULL" 
@@ -312,7 +305,6 @@ public class MariaDbFunctionStore : IFunctionStore
                 new() {Value = storedResult ?? (object) DBNull.Value},
                 new() {Value = storedException != null ? JsonSerializer.Serialize(storedException) : DBNull.Value},
                 new() {Value = expires},
-                new() {Value = storedId.Type.Value},
                 new() {Value = storedId.AsGuid.ToString("N")},
             }
         };
@@ -457,13 +449,12 @@ public class MariaDbFunctionStore : IFunctionStore
                         WHEN status = {(int) Status.Suspended} THEN 0
                         ELSE expires
                     END
-            WHERE type = ? AND instance = ?";
+            WHERE id = ?";
 
         await using var command = new MySqlCommand(_interruptSql, conn)
         {
             Parameters =
             {
-                new() { Value = storedId.Type.Value },
                 new() { Value = storedId.AsGuid.ToString("N") },
             }
         };
@@ -495,8 +486,7 @@ public class MariaDbFunctionStore : IFunctionStore
             SET param_json = ?,  
                 result_json = ?
             WHERE 
-                type = ? AND 
-                instance = ?";
+                id = ?";
 
         var sql = expectedReplica == null
             ? _setParametersSql + " AND owner IS NULL"
@@ -508,7 +498,6 @@ public class MariaDbFunctionStore : IFunctionStore
             {
                 new() { Value = storedParameter ?? (object) DBNull.Value },
                 new() { Value = storedResult ?? (object) DBNull.Value },
-                new() { Value = storedId.Type.Value },
                 new() { Value = storedId.AsGuid.ToString("N") }
             }
         };
@@ -525,13 +514,12 @@ public class MariaDbFunctionStore : IFunctionStore
         _getInterruptCountSql ??= $@"
             SELECT interrupted 
             FROM {_tablePrefix}
-            WHERE type = ? AND instance = ?;";
+            WHERE id = ?;";
 
         await using var command = new MySqlCommand(_getInterruptCountSql, conn)
         {
             Parameters =
             {
-                new() { Value = storedId.Type.Value },
                 new() { Value = storedId.AsGuid.ToString("N") },
             }
         };
@@ -546,11 +534,10 @@ public class MariaDbFunctionStore : IFunctionStore
         _getFunctionStatusSql ??= $@"
             SELECT status
             FROM {_tablePrefix}
-            WHERE type = ? AND instance = ?;";
+            WHERE id = ?;";
         await using var command = new MySqlCommand(_getFunctionStatusSql, conn)
         {
             Parameters = { 
-                new() {Value = storedId.Type.Value},
                 new() {Value = storedId.AsGuid.ToString("N")}
             }
         };
@@ -567,16 +554,10 @@ public class MariaDbFunctionStore : IFunctionStore
 
     public async Task<IReadOnlyList<StatusAndId>> GetFunctionsStatus(IEnumerable<StoredId> storedIds)
     {
-        var predicates = storedIds
-            .Select(s => new { Type = s.Type.Value, Instance = s.AsGuid })
-            .GroupBy(id => id.Type, id => id.Instance)
-            .Select(g => $"(type = {g.Key} AND instance IN ({string.Join(",", g.Select(instance => $"'{instance:N}'"))}))")
-            .StringJoin(" OR " + Environment.NewLine);
-
         var sql = @$"
-            SELECT type, instance, status, expires
+            SELECT id, status, expires
             FROM {_tablePrefix}
-            WHERE {predicates}";
+            WHERE Id in ({storedIds.Select(id => $"'{id.AsGuid:N}'").StringJoin(", ")})";
 
         await using var conn = await CreateOpenConnection(_connectionString);
         await using var command = new MySqlCommand(sql, conn);
@@ -585,9 +566,9 @@ public class MariaDbFunctionStore : IFunctionStore
         await using var reader = await command.ExecuteReaderAsync();
         while (await reader.ReadAsync())
         {
-            var guid = reader.GetGuid(1);
-            var status = (Status) reader.GetInt32(2);
-            var expires = reader.GetInt64(3);
+            var guid = reader.GetGuid(0);
+            var status = (Status) reader.GetInt32(1);
+            var expires = reader.GetInt64(2);
 
             var storedId = new StoredId(guid);
             toReturn.Add(new StatusAndId(storedId, status, expires));
@@ -613,11 +594,10 @@ public class MariaDbFunctionStore : IFunctionStore
                 parent,
                 owner
             FROM {_tablePrefix}
-            WHERE type = ? AND instance = ?;";
+            WHERE id = ?;";
         await using var command = new MySqlCommand(_getFunctionSql, conn)
         {
             Parameters = { 
-                new() {Value = storedId.Type.Value},
                 new() {Value = storedId.AsGuid.ToString("N")}
             }
         };
@@ -742,13 +722,12 @@ public class MariaDbFunctionStore : IFunctionStore
         
         _deleteFunctionSql ??= $@"            
             DELETE FROM {_tablePrefix}
-            WHERE type = ? AND instance = ?";
+            WHERE id = ?";
         
         await using var command = new MySqlCommand(_deleteFunctionSql, conn)
         {
             Parameters =
             {
-                new() {Value = storedId.Type.Value},
                 new() {Value = storedId.AsGuid.ToString("N")}
             }
         };
