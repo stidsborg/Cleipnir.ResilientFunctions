@@ -28,13 +28,12 @@ public class PostgreSqlMessageStore(string connectionString, SqlGenerator sqlGen
         await using var conn = await CreateConnection();
         _initializeSql ??= @$"
             CREATE TABLE IF NOT EXISTS {_tablePrefix}_messages (
-                type INT,
-                instance UUID,
+                id UUID,
                 position INT NOT NULL,
                 message_json BYTEA NOT NULL,
                 message_type BYTEA NOT NULL,   
                 idempotency_key VARCHAR(255),          
-                PRIMARY KEY (type, instance, position)
+                PRIMARY KEY (id, position)
             );";
         
         var command = new NpgsqlCommand(_initializeSql, conn);
@@ -60,17 +59,16 @@ public class PostgreSqlMessageStore(string connectionString, SqlGenerator sqlGen
         { //append Message to message stream sql
             _appendMessageSql ??= @$"    
                 INSERT INTO {_tablePrefix}_messages
-                    (type, instance, position, message_json, message_type, idempotency_key)
+                    (id, position, message_json, message_type, idempotency_key)
                 VALUES (
-                     $1, $2, 
-                     (SELECT COALESCE(MAX(position), -1) + 1 FROM {_tablePrefix}_messages WHERE type = $1 AND instance = $2), 
-                     $3, $4, $5
+                     $1, 
+                     (SELECT COALESCE(MAX(position), -1) + 1 FROM {_tablePrefix}_messages WHERE id = $1), 
+                     $2, $3, $4
                 );";
             var command = new NpgsqlBatchCommand(_appendMessageSql)
             {
                 Parameters =
                 {
-                    new() {Value = storedId.Type.Value.ToInt()},
                     new() {Value = storedId.AsGuid},
                     new() {Value = messageJson},
                     new() {Value = messageType},
@@ -146,7 +144,7 @@ public class PostgreSqlMessageStore(string connectionString, SqlGenerator sqlGen
         _replaceMessageSql ??= @$"    
                 UPDATE {_tablePrefix}_messages
                 SET message_json = $1, message_type = $2, idempotency_key = $3
-                WHERE type = $4 AND instance = $5 AND position = $6";
+                WHERE id = $4 AND position = $5";
 
         var (messageJson, messageType, idempotencyKey) = storedMessage;
         var command = new NpgsqlCommand(_replaceMessageSql, conn)
@@ -156,7 +154,6 @@ public class PostgreSqlMessageStore(string connectionString, SqlGenerator sqlGen
                 new() {Value = messageJson},
                 new() {Value = messageType},
                 new() {Value = idempotencyKey ?? (object) DBNull.Value},
-                new() {Value = storedId.Type.Value.ToInt()},
                 new() {Value = storedId.AsGuid},
                 new() {Value = position},
             }
@@ -172,12 +169,11 @@ public class PostgreSqlMessageStore(string connectionString, SqlGenerator sqlGen
         await using var conn = await CreateConnection();
         _truncateFunctionSql ??= @$"    
                 DELETE FROM {_tablePrefix}_messages
-                WHERE type = $1 AND instance = $2;";
+                WHERE id = $1;";
         await using var command = new NpgsqlCommand(_truncateFunctionSql, conn)
         {
             Parameters =
             {
-                new() {Value = storedId.Type.Value.ToInt()},
                 new() {Value = storedId.AsGuid}
             }
         };
@@ -199,15 +195,11 @@ public class PostgreSqlMessageStore(string connectionString, SqlGenerator sqlGen
         if (storedIds.Count == 0)
             return new Dictionary<StoredId, int>();
         
-        var predicates = storedIds
-            .GroupBy(id => id.Type.Value, id => id.AsGuid)
-            .Select(g => $"type = {g.Key} AND instance IN ({g.Select(instance => $"'{instance}'").StringJoin(", ")})")
-            .StringJoin(" OR " + Environment.NewLine);
-
         var sql = @$"    
-            SELECT type, instance, position
+            SELECT id, MAX(position)
             FROM {tablePrefix}_messages
-            WHERE {predicates};";
+            WHERE Id IN ({storedIds.Select(id => $"'{id}'").StringJoin(", ")})
+            GROUP BY id, position;";
 
         await using var conn = await CreateConnection();
         await using var command = new NpgsqlCommand(sql, conn);
@@ -219,38 +211,11 @@ public class PostgreSqlMessageStore(string connectionString, SqlGenerator sqlGen
         await using var reader = await command.ExecuteReaderAsync();
         while (await reader.ReadAsync())
         {
-            var guid = reader.GetGuid(1);
-            var storedId = new StoredId(guid);
-            var position = reader.GetInt32(2);
+            var storedId =  new StoredId(reader.GetGuid(0));
+            var position = reader.GetInt32(1);
             positions[storedId] = position;
         }
         
         return positions;
-    }
-
-    private string? _getSuspensionStatusSql;
-    private async Task<FunctionStatus> GetSuspensionStatus(StoredId storedId)
-    {
-        await using var conn = await CreateConnection();
-        _getSuspensionStatusSql ??= @$"    
-            SELECT status
-            FROM {_tablePrefix}
-            WHERE type = $1 AND instance = $2;";
-        await using var command = new NpgsqlCommand(_getSuspensionStatusSql, conn)
-        {
-            Parameters = { 
-                new() {Value = storedId.Type.Value.ToInt()},
-                new() {Value = storedId.AsGuid}
-            }
-        };
-
-        await using var reader = await command.ExecuteReaderAsync();
-        while (await reader.ReadAsync())
-        {
-            var status = (Status) reader.GetInt32(1);
-            return new FunctionStatus(status);
-        }
-
-        throw UnexpectedStateException.ConcurrentModification(storedId); //row must have been deleted concurrently
     }
 }

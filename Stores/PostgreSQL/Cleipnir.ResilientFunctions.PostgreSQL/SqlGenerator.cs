@@ -349,15 +349,14 @@ public class SqlGenerator(string tablePrefix)
     {
         var sql = @$"    
             INSERT INTO {tablePrefix}_messages
-                (type, instance, position, message_json, message_type, idempotency_key)
+                (id, position, message_json, message_type, idempotency_key)
             VALUES 
-                 {messages.Select((_, i) => $"(${i * 6 + 1}, ${i * 6 + 2}, ${i * 6 + 3}, ${i * 6 + 4}, ${i * 6 + 5}, ${i * 6 + 6})").StringJoin($",{Environment.NewLine}")};";
+                 {messages.Select((_, i) => $"(${i * 5 + 1}, ${i * 5 + 2}, ${i * 5 + 3}, ${i * 5 + 4}, ${i * 5 + 5})").StringJoin($",{Environment.NewLine}")};";
 
         var command = StoreCommand.Create(sql);
 
         foreach (var (storedId, (messageContent, messageType, idempotencyKey), position) in messages)
         {
-            command.AddParameter(storedId.Type.Value.ToInt());
             command.AddParameter(storedId.AsGuid);
             command.AddParameter(position);
             command.AddParameter(messageContent);
@@ -374,12 +373,12 @@ public class SqlGenerator(string tablePrefix)
         _getMessagesSql ??= @$"    
             SELECT message_json, message_type, idempotency_key
             FROM {tablePrefix}_messages
-            WHERE type = $1 AND instance = $2 AND position >= $3
+            WHERE id = $1 AND position >= $2
             ORDER BY position ASC;";
 
         var storeCommand = StoreCommand.Create(
             _getMessagesSql,
-            values: [storedId.Type.Value.ToInt(), storedId.AsGuid, skip]
+            values: [storedId.AsGuid, skip]
         );
         
         return storeCommand;
