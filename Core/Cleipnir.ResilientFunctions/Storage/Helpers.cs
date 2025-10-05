@@ -13,6 +13,6 @@ internal static class Helpers
     public static TEnum ToEnum<TEnum>(this int value) where TEnum : struct, Enum
         => (TEnum)(object) value;
 
-    public static string IdsSql(this IEnumerable<StoredId> storedIds)
+    public static string InClause(this IEnumerable<StoredId> storedIds)
         => storedIds.Select(id => $"'{id}'").StringJoin(", ");
 }

@@ -399,4 +399,34 @@ public class SqlGenerator(string tablePrefix)
 
         return storedMessages;
     }
+    
+    public StoreCommand GetMessages(IEnumerable<StoredId> storedIds)
+    {
+        var sql = @$"    
+            SELECT id, position, message_json, message_type, idempotency_key
+            FROM {tablePrefix}_messages
+            WHERE id IN ({storedIds.Select(id => $"'{id.AsGuid:N}'").StringJoin(", ")});";
+
+        var command = StoreCommand.Create(sql);
+        return command;
+    }
+    
+    public async Task<Dictionary<StoredId, List<StoredMessage>>> ReadStoredIdsMessages(MySqlDataReader reader)
+    {
+        var storedMessages = new Dictionary<StoredId, List<StoredMessageWithPosition>>();
+        while (await reader.ReadAsync())
+        {
+            var id = reader.GetString(0).ToGuid().ToStoredId();
+            var position = reader.GetInt32(1);
+            var messageJson = (byte[]) reader.GetValue(2);
+            var messageType = (byte[]) reader.GetValue(3);
+            var idempotencyKey = reader.IsDBNull(4) ? null : reader.GetString(4);
+            if (!storedMessages.ContainsKey(id))
+                storedMessages[id] = new List<StoredMessageWithPosition>();
+            
+            storedMessages[id].Add(new StoredMessageWithPosition(new StoredMessage(messageJson, messageType, idempotencyKey), position));
+        }
+
+        return storedMessages.ToDictionary(kv => kv.Key, kv => kv.Value.OrderBy(m => m.Position).Select(m => m.StoredMessage).ToList());
+    }
 }

@@ -421,4 +421,37 @@ public class SqlGenerator(string tablePrefix)
 
         return storedMessages;
     }
+    
+    public StoreCommand GetMessages(IEnumerable<StoredId> storedIds)
+    {
+        var sql = @$"    
+            SELECT id, position, message_json, message_type, idempotency_key
+            FROM {tablePrefix}_messages
+            WHERE id IN ({storedIds.InClause()});";
+
+        var storeCommand = StoreCommand.Create(sql);
+        return storeCommand;
+    }
+    
+    public async Task<Dictionary<StoredId, List<StoredMessage>>> ReadStoredIdsMessages(NpgsqlDataReader reader)
+    {
+        var messages = new Dictionary<StoredId, List<StoredMessageWithPosition>>();
+        
+        while (await reader.ReadAsync())
+        {
+            var id = reader.GetGuid(0).ToStoredId();
+            var position = reader.GetInt32(1);
+            var messageJson = (byte[]) reader.GetValue(2);
+            var messageType = (byte[]) reader.GetValue(3);
+            var idempotencyKey = reader.IsDBNull(4) ? null : reader.GetString(4);
+
+            if (!messages.ContainsKey(id))
+                messages[id] = new List<StoredMessageWithPosition>();
+
+            var storedMessage = new StoredMessage(messageJson, messageType, idempotencyKey);
+            messages[id].Add(new StoredMessageWithPosition(storedMessage, position));
+        }
+
+        return messages.ToDictionary(kv => kv.Key, kv => kv.Value.OrderBy(m => m.Position).Select(m => m.StoredMessage).ToList());
+    }
 }

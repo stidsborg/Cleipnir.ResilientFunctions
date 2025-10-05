@@ -206,6 +206,16 @@ public class SqlServerMessageStore(string connectionString, SqlGenerator sqlGene
         return storedMessages;
     }
 
+    public async Task<Dictionary<StoredId, List<StoredMessage>>> GetMessages(IEnumerable<StoredId> storedIds)
+    {
+        await using var conn = await CreateConnection();
+        await using var cmd = sqlGenerator.GetMessages(storedIds).ToSqlCommand(conn);
+        await using var reader = await cmd.ExecuteReaderAsync();
+
+        var messages = await sqlGenerator.ReadStoredIdsMessages(reader);
+        return messages;
+    }
+
     public async Task<IDictionary<StoredId, int>> GetMaxPositions(IReadOnlyList<StoredId> storedIds)
     {
         var sql = @$"    

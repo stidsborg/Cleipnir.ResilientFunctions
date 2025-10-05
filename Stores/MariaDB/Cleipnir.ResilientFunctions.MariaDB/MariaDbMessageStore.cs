@@ -191,6 +191,19 @@ public class MariaDbMessageStore : IMessageStore
         return messages;
     }
 
+    public async Task<Dictionary<StoredId, List<StoredMessage>>> GetMessages(IEnumerable<StoredId> storedIds)
+    {
+        await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
+        await using var command = _sqlGenerator
+            .GetMessages(storedIds)
+            .ToSqlCommand(conn);
+        
+        await using var reader = await command.ExecuteReaderAsync();
+        
+        var messages = await _sqlGenerator.ReadStoredIdsMessages(reader);
+        return messages;
+    }
+
     public async Task<IDictionary<StoredId, int>> GetMaxPositions(IReadOnlyList<StoredId> storedIds)
     {
         var sql = @$"    

@@ -813,4 +813,54 @@ public abstract class MessageStoreTests
         sf2.Interrupted.ShouldBeTrue();
         sf2.Expires.ShouldBe(0);
     }  
+    
+    public abstract Task MessagesForMultipleStoreIdsCanBeFetched();
+    protected async Task MessagesForMultipleStoreIdsCanBeFetched(Task<IFunctionStore> functionStoreTask)
+    {
+        var functionStore = await functionStoreTask;
+        var id1 = TestStoredId.Create();
+        var id2 = TestStoredId.Create();
+        
+        await functionStore.CreateFunction(
+            id1, 
+            "humanInstanceId",
+            Test.SimpleStoredParameter, 
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: long.MaxValue,
+            timestamp: DateTime.UtcNow.Ticks,
+            parent: null,
+            owner: null
+        ).ShouldBeTrueAsync();
+        await functionStore.CreateFunction(
+            id2, 
+            "humanInstanceId",
+            Test.SimpleStoredParameter, 
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: long.MaxValue,
+            timestamp: DateTime.UtcNow.Ticks,
+            parent: null,
+            owner: null
+        ).ShouldBeTrueAsync();
+
+        var messageStore = functionStore.MessageStore;
+        var msg1 = "Hello";
+        var msg2 = "World!";
+        var stringType = typeof(string).SimpleQualifiedName().ToUtf8Bytes();
+        await messageStore.AppendMessage(id1, new StoredMessage(msg1.ToJsonByteArray(), stringType));
+        await messageStore.AppendMessage(id1, new StoredMessage(msg2.ToJsonByteArray(), stringType));
+        await messageStore.AppendMessage(id2, new StoredMessage(msg1.ToJsonByteArray(), stringType));
+        await messageStore.AppendMessage(id2, new StoredMessage(msg2.ToJsonByteArray(), stringType));
+        
+        var messages = await messageStore.GetMessages([id1, id2]);
+        messages.Count.ShouldBe(2);
+        var messageId1 = messages[id1];
+        messageId1.Count.ShouldBe(2);
+        messageId1[0].MessageContent.ToStringFromUtf8Bytes().DeserializeFromJsonTo<string>().ShouldBe("Hello");
+        messageId1[1].MessageContent.ToStringFromUtf8Bytes().DeserializeFromJsonTo<string>().ShouldBe("World!");
+        
+        var messageId2 = messages[id2];
+        messageId2.Count.ShouldBe(2);
+        messageId2[0].MessageContent.ToStringFromUtf8Bytes().DeserializeFromJsonTo<string>().ShouldBe("Hello");
+        messageId2[1].MessageContent.ToStringFromUtf8Bytes().DeserializeFromJsonTo<string>().ShouldBe("World!");
+    }
 }

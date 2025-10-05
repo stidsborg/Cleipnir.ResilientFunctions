@@ -2,8 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Cleipnir.ResilientFunctions.Domain;
-using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Storage;
@@ -187,6 +185,16 @@ public class PostgreSqlMessageStore(string connectionString, SqlGenerator sqlGen
 
         await using var reader = await command.ExecuteReaderAsync();
         var messages = await sqlGenerator.ReadMessages(reader);
+        return messages;
+    }
+
+    public async Task<Dictionary<StoredId, List<StoredMessage>>> GetMessages(IEnumerable<StoredId> storedIds)
+    {
+        await using var conn = await CreateConnection();
+        await using var command = sqlGenerator.GetMessages(storedIds).ToNpgsqlCommand(conn);
+
+        await using var reader = await command.ExecuteReaderAsync();
+        var messages = await sqlGenerator.ReadStoredIdsMessages(reader);
         return messages;
     }
 

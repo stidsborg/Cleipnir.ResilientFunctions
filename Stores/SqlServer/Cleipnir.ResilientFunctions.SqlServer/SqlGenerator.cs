@@ -197,7 +197,7 @@ public class SqlGenerator(string tablePrefix)
         var sql = @$"
             SELECT Id, StoredId, EffectId, Status, Result, Exception           
             FROM {tablePrefix}_Effects
-            WHERE Id IN ({storedIds.IdsSql()})";
+            WHERE Id IN ({storedIds.InClause()})";
         
         var command = StoreCommand.Create(sql);
         return command;
@@ -501,5 +501,37 @@ public class SqlGenerator(string tablePrefix)
             storedMessages.Add(new StoredMessage(messageJson, messageType, idempotencyKey));
         }
         return storedMessages;
+    }
+    
+    public StoreCommand GetMessages(IEnumerable<StoredId> storedIds)
+    {
+        var sql = @$"    
+            SELECT Id, Position, MessageJson, MessageType, IdempotencyKey
+            FROM {tablePrefix}_Messages
+            WHERE Id IN ({storedIds.InClause()});";
+        
+        var command = StoreCommand.Create(sql);
+        return command;
+    }
+    
+    public async Task<Dictionary<StoredId, List<StoredMessage>>> ReadStoredIdsMessages(SqlDataReader reader)
+    {
+        var storedMessages = new Dictionary<StoredId, List<StoredMessageWithPosition>>();
+        while (await reader.ReadAsync())
+        {
+            var id = reader.GetGuid(0).ToStoredId();
+            var position = reader.GetInt32(1);
+            var messageJson = (byte[]) reader.GetValue(2);
+            var messageType = (byte[]) reader.GetValue(3);
+            var idempotencyKey = reader.IsDBNull(4) ? null : reader.GetString(4);
+
+            if (!storedMessages.ContainsKey(id))
+                storedMessages[id] = new List<StoredMessageWithPosition>();
+
+            var storedMessage = new StoredMessage(messageJson, messageType, idempotencyKey);
+            storedMessages[id].Add(new StoredMessageWithPosition(storedMessage, position));
+        }
+        
+        return storedMessages.ToDictionary(kv => kv.Key, kv => kv.Value.OrderBy(m => m.Position).Select(m => m.StoredMessage).ToList());
     }
 }

@@ -85,4 +85,8 @@ public class MessageStoreTests :  TestTemplates.MessageStoreTests
     [TestMethod]
     public override Task AppendedBatchedMessagesWithPositionCanBeFetchedAgain()
         => AppendedBatchedMessagesWithPositionCanBeFetchedAgain(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task MessagesForMultipleStoreIdsCanBeFetched()
+        => MessagesForMultipleStoreIdsCanBeFetched(FunctionStoreFactory.Create());
 }
