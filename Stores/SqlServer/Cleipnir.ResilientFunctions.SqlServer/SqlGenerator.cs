@@ -192,6 +192,43 @@ public class SqlGenerator(string tablePrefix)
         return storedEffects;
     }
     
+    public StoreCommand GetEffects(IEnumerable<StoredId> storedIds)
+    {
+        var sql = @$"
+            SELECT Id, StoredId, EffectId, Status, Result, Exception           
+            FROM {tablePrefix}_Effects
+            WHERE Id IN ({storedIds.IdsSql()})";
+        
+        var command = StoreCommand.Create(sql);
+        return command;
+    }
+    
+    public async Task<Dictionary<StoredId, List<StoredEffect>>> ReadEffectsForMultipleStoredIds(SqlDataReader reader)
+    {
+        var storedEffects = new Dictionary<StoredId, List<StoredEffect>>();
+        
+        while (reader.HasRows && await reader.ReadAsync())
+        {
+            var storedId = reader.GetGuid(0).ToStoredId();
+            var storedEffectId = reader.GetGuid(1);
+            var effectId = reader.GetString(2);
+            
+            var status = (WorkStatus) reader.GetInt32(3);
+            var result = reader.IsDBNull(4) ? null : (byte[]) reader.GetValue(4);
+            var exception = reader.IsDBNull(5) ? null : reader.GetString(5);
+
+            var storedException = exception == null ? null : JsonSerializer.Deserialize<StoredException>(exception);
+            var storedEffect = new StoredEffect(EffectId.Deserialize(effectId), new StoredEffectId(storedEffectId), status, result, storedException);
+
+            if (!storedEffects.ContainsKey(storedId))
+                storedEffects[storedId] = new List<StoredEffect>();
+            
+            storedEffects[storedId].Add(storedEffect);
+        }
+
+        return storedEffects;
+    }
+    
     private string? _createFunctionSql;
     public StoreCommand CreateFunction(
         StoredId storedId,

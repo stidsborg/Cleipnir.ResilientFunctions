@@ -95,9 +95,14 @@ public class SqlServerEffectsStore(string connectionString, SqlGenerator sqlGene
         return effects;
     }
 
-    public Task<Dictionary<StoredId, List<StoredEffect>>> GetEffectResults(IEnumerable<StoredId> storedIds)
+    public async Task<Dictionary<StoredId, List<StoredEffect>>> GetEffectResults(IEnumerable<StoredId> storedIds)
     {
-        throw new NotImplementedException();
+        await using var conn = await CreateConnection();
+        await using var command = sqlGenerator.GetEffects(storedIds).ToSqlCommand(conn);
+        
+        await using var reader = await command.ExecuteReaderAsync();
+        var effects = await sqlGenerator.ReadEffectsForMultipleStoredIds(reader);
+        return effects;
     }
 
     private string? _deleteEffectResultSql;

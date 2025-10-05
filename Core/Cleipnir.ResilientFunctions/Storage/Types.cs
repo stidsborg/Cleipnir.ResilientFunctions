@@ -62,7 +62,7 @@ public record StoredId(Guid AsGuid)
 
 public static class StoredIdExtensions
 {
-    internal static StoredId ToStoredId(this Guid id) => new StoredId(id);
+    internal static StoredId ToStoredId(this Guid id) => new(id);
     internal static StoredId ToStoredId(this string instance, StoredType type) => StoredId.Create(type, instance);
 }
 
