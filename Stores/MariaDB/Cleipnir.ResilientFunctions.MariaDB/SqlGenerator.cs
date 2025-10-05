@@ -321,7 +321,8 @@ public class SqlGenerator(string tablePrefix)
             SET status = {(int)Status.Executing}, expires = 0, interrupted = FALSE, owner = ?
             WHERE id = ? AND owner IS NULL;
             
-            SELECT               
+            SELECT
+                id,
                 param_json,            
                 status,
                 result_json, 
@@ -343,6 +344,50 @@ public class SqlGenerator(string tablePrefix)
                 storedId.AsGuid.ToString("N"),
             ]);
         return command;
+    }
+    
+    public async Task<StoredFlow?> ReadToStoredFunction(StoredId storedId, MySqlDataReader reader)
+    {
+        const int idIndex = 0;
+        const int paramIndex = 1;
+        const int statusIndex = 2;
+        const int resultIndex = 3;
+        const int exceptionIndex = 4;
+        const int expiresIndex = 5;
+        const int interruptedIndex = 6;
+        const int timestampIndex = 7;
+        const int humanInstanceIdIndex = 8;
+        const int parentIndex = 9;
+        const int ownerIndex = 10;
+        
+        while (await reader.ReadAsync())
+        {
+            var id = reader.GetString(idIndex).ToGuid().ToStoredId();
+            var hasParam = !await reader.IsDBNullAsync(paramIndex);
+            var hasResult = !await reader.IsDBNullAsync(resultIndex);
+            var hasError = !await reader.IsDBNullAsync(exceptionIndex);
+            var hasParent = !await reader.IsDBNullAsync(parentIndex);
+            var hasOwner = !await reader.IsDBNullAsync(ownerIndex);
+            var storedException = hasError
+                ? JsonSerializer.Deserialize<StoredException>(reader.GetString(exceptionIndex))
+                : null;
+            return new StoredFlow(
+                id,
+                HumanInstanceId: reader.GetString(humanInstanceIdIndex),
+                hasParam ? (byte[]) reader.GetValue(paramIndex) : null,
+                Status: (Status) reader.GetInt32(statusIndex),
+                Result: hasResult ? (byte[]) reader.GetValue(resultIndex) : null, 
+                storedException, 
+                Expires: reader.GetInt64(expiresIndex),
+                Interrupted: reader.GetBoolean(interruptedIndex),
+                Timestamp: reader.GetInt64(timestampIndex),
+                ParentId: hasParent ? StoredId.Deserialize(reader.GetString(parentIndex)) : null,
+                OwnerId: hasOwner ? reader.GetString(ownerIndex).ParseToReplicaId() : null,
+                StoredType: storedId.Type
+            );
+        }
+
+        return null;
     }
     
     public StoreCommand AppendMessages(IReadOnlyList<StoredIdAndMessageWithPosition> messages)

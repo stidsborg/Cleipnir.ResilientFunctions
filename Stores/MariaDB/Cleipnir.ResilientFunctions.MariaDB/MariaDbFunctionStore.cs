@@ -208,7 +208,7 @@ public class MariaDbFunctionStore : IFunctionStore
         if (reader.RecordsAffected != 1)
             return null;
         
-        var sf = await ReadToStoredFunction(storedId, reader);
+        var sf = await _sqlGenerator.ReadToStoredFunction(storedId, reader);
         if (sf?.OwnerId != replicaId)
             return null;
         await reader.NextResultAsync();

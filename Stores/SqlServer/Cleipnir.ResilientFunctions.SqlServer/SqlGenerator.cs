@@ -383,7 +383,8 @@ public class SqlGenerator(string tablePrefix)
                 Expires = 0,
                 Interrupted = 0,
                 Owner = @Owner
-            OUTPUT inserted.ParamJson,                
+            OUTPUT inserted.Id,
+                   inserted.ParamJson,                
                    inserted.Status,
                    inserted.ResultJson, 
                    inserted.ExceptionJson,                   
@@ -408,22 +409,23 @@ public class SqlGenerator(string tablePrefix)
         {
             while (reader.Read())
             {
-                var parameter = reader.IsDBNull(0) ? null : (byte[]) reader.GetValue(0);
-                var status = (Status) reader.GetInt32(1);
-                var result = reader.IsDBNull(2) ? null : (byte[]) reader.GetValue(2);
-                var exceptionJson = reader.IsDBNull(3) ? null : reader.GetString(3);
+                var id = reader.GetGuid(0).ToStoredId();
+                var parameter = reader.IsDBNull(1) ? null : (byte[]) reader.GetValue(1);
+                var status = (Status) reader.GetInt32(2);
+                var result = reader.IsDBNull(3) ? null : (byte[]) reader.GetValue(3);
+                var exceptionJson = reader.IsDBNull(4) ? null : reader.GetString(4);
                 var storedException = exceptionJson == null
                     ? null
                     : JsonSerializer.Deserialize<StoredException>(exceptionJson);
-                var expires = reader.GetInt64(4);
-                var interrupted = reader.GetBoolean(5);
-                var timestamp = reader.GetInt64(6);
-                var humanInstanceId = reader.GetString(7);
-                var parentId = reader.IsDBNull(8) ? null : StoredId.Deserialize(reader.GetString(8));
-                var ownerId = reader.IsDBNull(9) ? null : reader.GetGuid(9).ToReplicaId();
+                var expires = reader.GetInt64(5);
+                var interrupted = reader.GetBoolean(6);
+                var timestamp = reader.GetInt64(7);
+                var humanInstanceId = reader.GetString(8);
+                var parentId = reader.IsDBNull(9) ? null : StoredId.Deserialize(reader.GetString(9));
+                var ownerId = reader.IsDBNull(10) ? null : reader.GetGuid(10).ToReplicaId();
 
                 return new StoredFlow(
-                    storedId,
+                    id,
                     humanInstanceId,
                     parameter,
                     status,

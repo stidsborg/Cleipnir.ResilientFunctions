@@ -306,7 +306,8 @@ public class SqlGenerator(string tablePrefix)
             UPDATE {tablePrefix}
             SET status = {(int)Status.Executing}, expires = 0, interrupted = FALSE, owner = $1
             WHERE id = $2 AND owner IS NULL
-            RETURNING               
+            RETURNING         
+                id,      
                 param_json, 
                 status,
                 result_json, 
@@ -331,38 +332,51 @@ public class SqlGenerator(string tablePrefix)
     public async Task<StoredFlow?> ReadFunction(StoredId storedId, NpgsqlDataReader reader)
     {
         /*
-           0  param_json,
-           1  status,
-           2  result_json,
-           3  exception_json,
-           4  expires,
-           5 interrupted,
-           6 timestamp,
-           7 human_instance_id
-           8 parent,
-           9 owner
+           0  id
+           1  param_json,
+           2  status,
+           3  result_json,
+           4  exception_json,
+           5  expires,
+           6 interrupted,
+           7 timestamp,
+           8 human_instance_id
+           9 parent,
+           10 owner
          */
         while (await reader.ReadAsync())
         {
-            var hasParameter = !await reader.IsDBNullAsync(0);
-            var hasResult = !await reader.IsDBNullAsync(2);
-            var hasException = !await reader.IsDBNullAsync(3);
-            var hasParent = !await reader.IsDBNullAsync(8);
-            var hasOwner = !await reader.IsDBNullAsync(9);
+            var hasParameter = !await reader.IsDBNullAsync(1);
+            var hasResult = !await reader.IsDBNullAsync(3);
+            var hasException = !await reader.IsDBNullAsync(4);
+            var hasParent = !await reader.IsDBNullAsync(9);
+            var hasOwner = !await reader.IsDBNullAsync(10);
+            
+            var id = reader.GetGuid(0).ToStoredId();
+            var param = hasParameter ? (byte[]) reader.GetValue(1) : null;
+            var status = (Status) reader.GetInt32(2);
+            var result = hasResult ? (byte[]) reader.GetValue(3) : null;
+            var exception = hasException ? JsonSerializer.Deserialize<StoredException>(reader.GetString(4)) : null;
+            var expires = reader.GetInt64(5);
+            var interrupted = reader.GetBoolean(6);
+            var timestamp = reader.GetInt64(7);
+            var humanInstanceId = reader.GetString(8);
+            var parent = hasParent ? StoredId.Deserialize(reader.GetString(9)) : null;
+            var owner = hasOwner ? new ReplicaId(reader.GetGuid(10)) : null;
             
             return new StoredFlow(
-                storedId,
-                HumanInstanceId: reader.GetString(7),
-                hasParameter ? (byte[]) reader.GetValue(0) : null,
-                Status: (Status) reader.GetInt32(1),
-                Result: hasResult ? (byte[]) reader.GetValue(2) : null, 
-                Exception: !hasException ? null : JsonSerializer.Deserialize<StoredException>(reader.GetString(3)),
-                Expires: reader.GetInt64(4),
-                Interrupted: reader.GetBoolean(5),
-                Timestamp: reader.GetInt64(6),
-                ParentId: hasParent ? StoredId.Deserialize(reader.GetString(8)) : null,
-                OwnerId: hasOwner ? new ReplicaId(reader.GetGuid(9)) : null,
-                StoredType: storedId.Type
+                id,
+                humanInstanceId,
+                param,
+                status,
+                result, 
+                exception,
+                expires,
+                timestamp,
+                interrupted,
+                parent,
+                owner,
+                id.Type
             );
         }
 
