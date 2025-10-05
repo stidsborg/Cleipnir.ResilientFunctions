@@ -5,7 +5,7 @@
 <p align="center">
   <img src="https://github.com/stidsborg/Cleipnir.ResilientFunctions/blob/main/Docs/cleipnir.png" alt="logo" />
   <br>
-  Simply making crash-resilient code simple
+  Surviving crashes/restarts in plain C#-code 
   <br>
 </p>
 
