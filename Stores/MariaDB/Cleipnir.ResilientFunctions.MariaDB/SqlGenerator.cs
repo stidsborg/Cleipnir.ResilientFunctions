@@ -73,7 +73,46 @@ public class SqlGenerator(string tablePrefix)
 
         return functions;
     }
+    
+    public StoreCommand GetEffects(IEnumerable<StoredId> storedIds)
+    {
+        var sql = @$"
+            SELECT id, id_hash, status, result, exception, effect_id
+            FROM {tablePrefix}_effects
+            WHERE id IN ({storedIds.Select(id => $"'{id.AsGuid:N}'").StringJoin(", ")});";
 
+        var command = StoreCommand.Create(sql);
+        return command;
+    }
+    
+    public async Task<Dictionary<StoredId, List<StoredEffect>>> ReadEffectsForMultipleStoredIds(MySqlDataReader reader)
+    {
+        var storedEffects = new Dictionary<StoredId, List<StoredEffect>>();
+        while (await reader.ReadAsync())
+        {
+            var id = reader.GetString(0).ToGuid().ToStoredId();
+            var idHash = reader.GetString(1);
+            var status = (WorkStatus) reader.GetInt32(2);
+            var result = reader.IsDBNull(3) ? null : (byte[]) reader.GetValue(3);
+            var exception = reader.IsDBNull(4) ? null : reader.GetString(5);
+            var effectId = reader.GetString(5);
+
+            if (!storedEffects.ContainsKey(id))
+                storedEffects[id] = new List<StoredEffect>();
+
+            storedEffects[id].Add(
+                new StoredEffect(
+                    EffectId.Deserialize(effectId),
+                    new StoredEffectId(Guid.Parse(idHash)),
+                    status,
+                    result,
+                    StoredException: JsonHelper.FromJson<StoredException>(exception)
+                )
+            );
+        }
+
+        return storedEffects;
+    }
     
     public StoreCommand UpdateEffects(IReadOnlyList<StoredEffectChange> changes)
     {
