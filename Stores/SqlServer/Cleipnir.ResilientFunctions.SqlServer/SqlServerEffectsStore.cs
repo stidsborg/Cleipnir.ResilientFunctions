@@ -95,6 +95,11 @@ public class SqlServerEffectsStore(string connectionString, SqlGenerator sqlGene
         return effects;
     }
 
+    public Task<Dictionary<StoredId, List<StoredEffect>>> GetEffectResults(IEnumerable<StoredId> storedIds)
+    {
+        throw new NotImplementedException();
+    }
+
     private string? _deleteEffectResultSql;
     public async Task DeleteEffectResult(StoredId storedId, StoredEffectId effectId)
     {

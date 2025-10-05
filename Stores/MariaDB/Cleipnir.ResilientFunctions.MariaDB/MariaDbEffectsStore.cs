@@ -85,6 +85,11 @@ public class MariaDbEffectsStore(string connectionString, SqlGenerator sqlGenera
         return effects;
     }
 
+    public Task<Dictionary<StoredId, List<StoredEffect>>> GetEffectResults(IEnumerable<StoredId> storedIds)
+    {
+        throw new NotImplementedException();
+    }
+
     private string? _deleteEffectResultSql;
     public async Task DeleteEffectResult(StoredId storedId, StoredEffectId effectId)
     {
