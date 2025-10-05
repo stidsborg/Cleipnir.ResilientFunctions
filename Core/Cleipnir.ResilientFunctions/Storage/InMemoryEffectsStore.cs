@@ -51,6 +51,16 @@ public class InMemoryEffectsStore : IEffectsStore
                 : ((IReadOnlyList<StoredEffect>) _effects[storedId].Values.ToList()).ToTask();
     }
 
+    public async Task<Dictionary<StoredId, List<StoredEffect>>> GetEffectResults(IEnumerable<StoredId> storedIds)
+    {
+        var dict = new Dictionary<StoredId, List<StoredEffect>>();
+        foreach (var storedId in storedIds)
+        {
+            dict[storedId] = (await GetEffectResults(storedId)).ToList();
+        }
+        return dict;
+    }
+
     public Task DeleteEffectResult(StoredId storedId, StoredEffectId effectId)
     {
         lock (_sync)

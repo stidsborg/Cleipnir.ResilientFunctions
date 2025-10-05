@@ -48,6 +48,16 @@ public class SqlGenerator(string tablePrefix)
             _getEffectResultsSql,
             values: [ storedId.AsGuid ]);
     }
+    
+    public StoreCommand GetEffects(IEnumerable<StoredId> storedIds)
+    {
+        var sql = @$"
+            SELECT id, id_hash, status, result, exception, effect_id
+            FROM {tablePrefix}_effects
+            WHERE id IN ({storedIds.Select(id => $"'{id}'").StringJoin(", ")});";
+        
+        return StoreCommand.Create(sql);
+    }
 
     public async Task<IReadOnlyList<StoredEffect>> ReadEffects(NpgsqlDataReader reader)
     {
@@ -65,6 +75,26 @@ public class SqlGenerator(string tablePrefix)
         }
 
         return functions;
+    }
+    public async Task<Dictionary<StoredId, List<StoredEffect>>> ReadEffectsForIds(NpgsqlDataReader reader)
+    {
+        var effects = new Dictionary<StoredId, List<StoredEffect>>();
+        while (await reader.ReadAsync())
+        {
+            var id = new StoredId(reader.GetGuid(0));
+            var idHash = reader.GetGuid(1);
+            var status = (WorkStatus) reader.GetInt32(2);
+            var result = reader.IsDBNull(3) ? null : (byte[]) reader.GetValue(3);
+            var exception = reader.IsDBNull(4) ? null : reader.GetString(4);
+            var effectId = reader.GetString(5);
+            if (!effects.ContainsKey(id))
+                effects[id] = new List<StoredEffect>();
+
+            var se = new StoredEffect(EffectId.Deserialize(effectId), new StoredEffectId(idHash), status, result, JsonHelper.FromJson<StoredException>(exception));
+            effects[id].Add(se);
+        }
+
+        return effects;
     }
     
     public IEnumerable<StoreCommand> UpdateEffects(IReadOnlyList<StoredEffectChange> changes)

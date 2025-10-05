@@ -372,4 +372,43 @@ public abstract class EffectStoreTests
             changes: []
         );
     }
+    
+    public abstract Task EffectsForDifferentIdsCanBeFetched();
+    protected async Task EffectsForDifferentIdsCanBeFetched(Task<IEffectsStore> storeTask)
+    {
+        var store = await storeTask;
+        var id1 = TestStoredId.Create();
+        var id2 = TestStoredId.Create();
+        var storedEffect1 = new StoredEffect(
+            "EffectId1".ToEffectId(),
+            "EffectId1".ToStoredEffectId(EffectType.Effect),
+            WorkStatus.Started,
+            Result: null,
+            StoredException: null
+        );
+        var storedEffect2 = new StoredEffect(
+            "EffectId2".ToEffectId(),
+            "EffectId2".ToStoredEffectId(EffectType.Effect),
+            WorkStatus.Completed,
+            Result: null,
+            StoredException: null
+        );
+
+        await store.SetEffectResult(id1, storedEffect1);
+        await store.SetEffectResult(id1, storedEffect2);
+        await store.SetEffectResult(id2, storedEffect1);
+        await store.SetEffectResult(id2, storedEffect2);
+
+        var results = await store.GetEffectResults([id1, id2]);
+        results.Count.ShouldBe(2);
+        var resultsId1 = results[id1];
+        resultsId1.Count.ShouldBe(2);
+        resultsId1.Any(r => r.EffectId == storedEffect1.EffectId).ShouldBeTrue();
+        resultsId1.Any(r => r.EffectId == storedEffect2.EffectId).ShouldBeTrue();
+        
+        var resultsId2 = results[id2];
+        resultsId2.Count.ShouldBe(2);
+        resultsId2.Any(r => r.EffectId == storedEffect1.EffectId).ShouldBeTrue();
+        resultsId2.Any(r => r.EffectId == storedEffect2.EffectId).ShouldBeTrue();
+    }
 }
