@@ -314,19 +314,19 @@ public class MariaDbFunctionStore : IFunctionStore
     }
     
     public async Task<bool> SucceedFunction(
-        StoredId storedId, 
-        byte[]? result, 
+        StoredId storedId,
+        byte[]? result,
         long timestamp,
-        ReplicaId expectedReplica, 
+        ReplicaId expectedReplica,
         IReadOnlyList<StoredEffect>? effects,
         IReadOnlyList<StoredMessage>? messages,
-        ComplimentaryState complimentaryState)
+        IStorageSession? storageSession)
     {
         await using var conn = await CreateOpenConnection(_connectionString);
         await using var command = _sqlGenerator
             .SucceedFunction(storedId, result, timestamp, expectedReplica.AsGuid)
             .ToSqlCommand(conn);
-        
+
         var affectedRows = await command.ExecuteNonQueryAsync();
         return affectedRows == 1;
     }

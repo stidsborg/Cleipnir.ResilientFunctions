@@ -129,7 +129,7 @@ internal class InvocationHelper<TParam, TReturn>
                     _replicaId,
                     effects: null,
                     messages: null,
-                    complementaryState
+                    storageSession: null
                 ) ? PersistResultOutcome.Success : PersistResultOutcome.Failed;
             case Outcome.Postpone:
                 return await _functionStore.PostponeFunction(

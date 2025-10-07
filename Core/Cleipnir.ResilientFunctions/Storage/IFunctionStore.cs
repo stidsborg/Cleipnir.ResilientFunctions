@@ -58,13 +58,13 @@ public interface IFunctionStore
     );
 
     Task<bool> SucceedFunction(
-        StoredId storedId, 
-        byte[]? result, 
+        StoredId storedId,
+        byte[]? result,
         long timestamp,
         ReplicaId expectedReplica,
         IReadOnlyList<StoredEffect>? effects,
         IReadOnlyList<StoredMessage>? messages,
-        ComplimentaryState complimentaryState
+        IStorageSession? storageSession
     );
     
     Task<bool> PostponeFunction(

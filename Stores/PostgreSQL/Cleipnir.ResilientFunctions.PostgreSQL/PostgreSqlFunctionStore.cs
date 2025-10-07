@@ -344,13 +344,13 @@ public class PostgreSqlFunctionStore : IFunctionStore
     }
     
     public async Task<bool> SucceedFunction(
-        StoredId storedId, 
-        byte[]? result, 
+        StoredId storedId,
+        byte[]? result,
         long timestamp,
-        ReplicaId expectedReplica, 
+        ReplicaId expectedReplica,
         IReadOnlyList<StoredEffect>? effects,
         IReadOnlyList<StoredMessage>? messages,
-        ComplimentaryState complimentaryState)
+        IStorageSession? storageSession)
     {
         await using var conn = await CreateConnection();
         await using var command = _sqlGenerator.SucceedFunction(
@@ -359,7 +359,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
             timestamp,
             expectedReplica
         ).ToNpgsqlCommand(conn);
-        
+
         var affectedRows = await command.ExecuteNonQueryAsync();
         return affectedRows == 1;
     }

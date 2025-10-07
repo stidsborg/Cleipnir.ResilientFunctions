@@ -54,7 +54,7 @@ public abstract class StoreTests
             timestamp: DateTime.UtcNow.Ticks,
             effects: null,
             messages: null,
-            complimentaryState: new ComplimentaryState(() => storedParameter.ToUtf8Bytes(), LeaseLength: 0)
+            storageSession: null
         ).ShouldBeTrueAsync();
             
         storedFunction = await store.GetFunction(functionId);
@@ -773,7 +773,7 @@ public abstract class StoreTests
             expectedReplica: ReplicaId.Empty,
             effects: null,
             messages: null,
-            complimentaryState: new ComplimentaryState(Test.SimpleStoredParameter.ToFunc(), LeaseLength: 0)
+            storageSession: null
         );
         
         var storedFunction = await store.GetFunction(functionId);
@@ -1081,7 +1081,7 @@ public abstract class StoreTests
                 expectedReplica: ReplicaId.Empty,
                 effects: null,
                 messages: null,
-                new ComplimentaryState(() => Test.SimpleStoredParameter, LeaseLength: 0)
+                storageSession: null
             ).ShouldBeTrueAsync();
         }
 
@@ -1267,7 +1267,7 @@ public abstract class StoreTests
                 expectedReplica: ReplicaId.Empty,
                 effects: null,
                 messages: null,
-                new ComplimentaryState(() => Test.SimpleStoredParameter, LeaseLength: 0)
+                storageSession: null
             ).ShouldBeTrueAsync();
         }
 
@@ -1835,7 +1835,7 @@ public abstract class StoreTests
             expectedReplica: ReplicaId.Empty,
             effects: null,
             messages: null,
-            complimentaryState: new ComplimentaryState(Test.SimpleStoredParameter.ToFunc(), LeaseLength: 0)
+            storageSession: null
         ).ShouldBeTrueAsync();
         
         var storedFunction = await store.GetFunction(functionId);
