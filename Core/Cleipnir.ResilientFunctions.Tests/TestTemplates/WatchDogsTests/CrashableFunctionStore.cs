@@ -150,15 +150,15 @@ public class CrashableFunctionStore : IFunctionStore
         : _inner.FailFunction(storedId, storedException, timestamp, expectedReplica, effects, messages, storageSession);
 
     public Task<bool> SuspendFunction(
-        StoredId storedId, 
-        long timestamp, 
+        StoredId storedId,
+        long timestamp,
         ReplicaId expectedReplica,
         IReadOnlyList<StoredEffect>? effects,
         IReadOnlyList<StoredMessage>? messages,
-        ComplimentaryState complimentaryState)
+        IStorageSession? storageSession)
         => _crashed
             ? Task.FromException<bool>(new TimeoutException())
-            : _inner.SuspendFunction(storedId, timestamp, expectedReplica, effects, messages, complimentaryState);
+            : _inner.SuspendFunction(storedId, timestamp, expectedReplica, effects, messages, storageSession);
 
     public Task<IReadOnlyList<ReplicaId>> GetOwnerReplicas()
         => _crashed

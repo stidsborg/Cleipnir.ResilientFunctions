@@ -156,7 +156,7 @@ internal class InvocationHelper<TParam, TReturn>
                     _replicaId,
                     effects: null,
                     messages: null,
-                    complementaryState
+                    storageSession: null
                 ) ? PersistResultOutcome.Success : PersistResultOutcome.Reschedule;
             default:
                 throw new ArgumentOutOfRangeException();

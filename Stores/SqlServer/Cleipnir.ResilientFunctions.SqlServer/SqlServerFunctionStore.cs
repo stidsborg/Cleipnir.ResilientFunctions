@@ -435,12 +435,12 @@ public class SqlServerFunctionStore : IFunctionStore
     }
     
     public async Task<bool> SuspendFunction(
-        StoredId storedId, 
+        StoredId storedId,
         long timestamp,
         ReplicaId expectedReplica,
         IReadOnlyList<StoredEffect>? effects,
         IReadOnlyList<StoredMessage>? messages,
-        ComplimentaryState complimentaryState)
+        IStorageSession? storageSession)
     {
         await using var conn = await _connFunc();
         await using var command = _sqlGenerator
@@ -449,7 +449,7 @@ public class SqlServerFunctionStore : IFunctionStore
                 timestamp,
                 expectedReplica,
                 paramPrefix: ""
-            ).ToSqlCommand(conn); 
+            ).ToSqlCommand(conn);
 
         var affectedRows = await command.ExecuteNonQueryAsync();
         return affectedRows == 1;

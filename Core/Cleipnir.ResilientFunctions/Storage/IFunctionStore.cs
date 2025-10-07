@@ -89,12 +89,12 @@ public interface IFunctionStore
     );
     
     Task<bool> SuspendFunction(
-        StoredId storedId, 
+        StoredId storedId,
         long timestamp,
-        ReplicaId expectedReplica, 
+        ReplicaId expectedReplica,
         IReadOnlyList<StoredEffect>? effects,
         IReadOnlyList<StoredMessage>? messages,
-        ComplimentaryState complimentaryState
+        IStorageSession? storageSession
     );
 
     Task<IReadOnlyList<ReplicaId>> GetOwnerReplicas();

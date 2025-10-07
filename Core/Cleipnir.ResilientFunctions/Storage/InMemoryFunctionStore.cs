@@ -274,12 +274,12 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
     }
 
     public Task<bool> SuspendFunction(
-        StoredId storedId, 
+        StoredId storedId,
         long timestamp,
         ReplicaId? expectedReplica,
         IReadOnlyList<StoredEffect>? effects,
         IReadOnlyList<StoredMessage>? messages,
-        ComplimentaryState complimentaryState)
+        IStorageSession? storageSession)
     {
         lock (_sync)
         {
@@ -292,11 +292,11 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
 
             if (state.Interrupted)
                 return false.ToTask();
-                
+
             state.Status = Status.Suspended;
             state.Timestamp = timestamp;
             state.Owner = null;
-            
+
             return true.ToTask();
         }
     }

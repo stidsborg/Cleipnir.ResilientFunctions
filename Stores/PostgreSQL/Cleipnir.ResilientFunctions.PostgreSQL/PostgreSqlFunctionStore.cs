@@ -409,12 +409,12 @@ public class PostgreSqlFunctionStore : IFunctionStore
     }
     
     public async Task<bool> SuspendFunction(
-        StoredId storedId, 
+        StoredId storedId,
         long timestamp,
-        ReplicaId expectedReplica, 
+        ReplicaId expectedReplica,
         IReadOnlyList<StoredEffect>? effects,
         IReadOnlyList<StoredMessage>? messages,
-        ComplimentaryState complimentaryState)
+        IStorageSession? storageSession)
     {
         await using var conn = await CreateConnection();
 
