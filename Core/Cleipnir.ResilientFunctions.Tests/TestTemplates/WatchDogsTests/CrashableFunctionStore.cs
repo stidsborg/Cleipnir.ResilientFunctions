@@ -144,10 +144,10 @@ public class CrashableFunctionStore : IFunctionStore
         ReplicaId expectedReplica,
         IReadOnlyList<StoredEffect>? effects,
         IReadOnlyList<StoredMessage>? messages,
-        ComplimentaryState complimentaryState
+        IStorageSession? storageSession
     ) => _crashed
         ? Task.FromException<bool>(new TimeoutException())
-        : _inner.FailFunction(storedId, storedException, timestamp, expectedReplica, effects, messages, complimentaryState);
+        : _inner.FailFunction(storedId, storedException, timestamp, expectedReplica, effects, messages, storageSession);
 
     public Task<bool> SuspendFunction(
         StoredId storedId, 

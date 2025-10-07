@@ -476,7 +476,7 @@ public abstract class StoreTests
             expectedReplica: ReplicaId.Empty,
             effects: null,
             messages: null,
-            complimentaryState: new ComplimentaryState(Test.SimpleStoredParameter.ToFunc(), LeaseLength: 0)
+            storageSession: null
         );
 
         await BusyWait.Until(() => store.GetFunction(storedId).SelectAsync(sf => sf != null));
@@ -836,7 +836,7 @@ public abstract class StoreTests
             expectedReplica: ReplicaId.Empty,
             effects: null,
             messages: null,
-            complimentaryState: new ComplimentaryState(Test.SimpleStoredParameter.ToFunc(), LeaseLength: 0)
+            storageSession: null
         );
         
         var storedFunction = await store.GetFunction(functionId);
@@ -1770,7 +1770,7 @@ public abstract class StoreTests
             expectedReplica: ReplicaId.Empty,
             effects: null,
             messages: null,
-            complimentaryState: new ComplimentaryState(Test.SimpleStoredParameter.ToFunc(), LeaseLength: 0)
+            storageSession: null
         ).ShouldBeTrueAsync();
         
         var storedFunction = await store.GetFunction(functionId);

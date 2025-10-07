@@ -411,13 +411,13 @@ public class SqlServerFunctionStore : IFunctionStore
     }
     
     public async Task<bool> FailFunction(
-        StoredId storedId, 
-        StoredException storedException, 
+        StoredId storedId,
+        StoredException storedException,
         long timestamp,
-        ReplicaId expectedReplica, 
+        ReplicaId expectedReplica,
         IReadOnlyList<StoredEffect>? effects,
         IReadOnlyList<StoredMessage>? messages,
-        ComplimentaryState complimentaryState)
+        IStorageSession? storageSession)
     {
         await using var conn = await _connFunc();
         await using var command = _sqlGenerator
@@ -428,7 +428,7 @@ public class SqlServerFunctionStore : IFunctionStore
                 expectedReplica,
                 paramPrefix: ""
             ).ToSqlCommand(conn);
-        
+
 
         var affectedRows = await command.ExecuteNonQueryAsync();
         return affectedRows > 0;

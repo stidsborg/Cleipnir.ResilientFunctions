@@ -79,13 +79,13 @@ public interface IFunctionStore
     );
     
     Task<bool> FailFunction(
-        StoredId storedId, 
+        StoredId storedId,
         StoredException storedException,
         long timestamp,
-        ReplicaId expectedReplica, 
+        ReplicaId expectedReplica,
         IReadOnlyList<StoredEffect>? effects,
         IReadOnlyList<StoredMessage>? messages,
-        ComplimentaryState complimentaryState
+        IStorageSession? storageSession
     );
     
     Task<bool> SuspendFunction(

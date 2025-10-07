@@ -96,7 +96,7 @@ internal class InvocationHelper<TParam, TReturn>
     public async Task PersistFailure(StoredId storedId, FatalWorkflowException exception, TParam param)
     {
         var storedException = Serializer.SerializeException(exception);
-        
+
         var success = await _functionStore.FailFunction(
             storedId,
             storedException,
@@ -104,12 +104,9 @@ internal class InvocationHelper<TParam, TReturn>
             _replicaId,
             effects: null,
             messages: null,
-            complimentaryState: new ComplimentaryState(
-                () => SerializeParameter(param),
-                _settings.LeaseLength.Ticks
-            )
+            storageSession: null
         );
-        if (!success) 
+        if (!success)
             throw UnexpectedStateException.ConcurrentModification(storedId);
     }
 
@@ -150,7 +147,7 @@ internal class InvocationHelper<TParam, TReturn>
                     _replicaId,
                     effects: null,
                     messages: null,
-                    complementaryState
+                    storageSession: null
                 ) ? PersistResultOutcome.Success : PersistResultOutcome.Failed;
             case Outcome.Suspend:
                 return await _functionStore.SuspendFunction(
@@ -273,10 +270,7 @@ internal class InvocationHelper<TParam, TReturn>
                 _replicaId,
                 effects: null,
                 messages: null,
-                complimentaryState: new ComplimentaryState(
-                    () => sf.Parameter,
-                    _settings.LeaseLength.Ticks
-                )
+                storageSession: null
             );
             throw;
         }

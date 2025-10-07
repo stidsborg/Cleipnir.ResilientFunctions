@@ -249,13 +249,13 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
     }
 
     public Task<bool> FailFunction(
-        StoredId storedId, 
-        StoredException storedException, 
+        StoredId storedId,
+        StoredException storedException,
         long timestamp,
         ReplicaId? expectedReplica,
         IReadOnlyList<StoredEffect>? effects,
         IReadOnlyList<StoredMessage>? messages,
-        ComplimentaryState complimentaryState)
+        IStorageSession? storageSession)
     {
         lock (_sync)
         {
@@ -268,7 +268,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
             state.Exception = storedException;
             state.Timestamp = timestamp;
             state.Owner = null;
-            
+
             return true.ToTask();
         }
     }
