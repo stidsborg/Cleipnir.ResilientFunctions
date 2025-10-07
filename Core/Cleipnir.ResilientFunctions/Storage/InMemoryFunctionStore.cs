@@ -42,7 +42,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
     
     #region FunctionStore
 
-    public virtual Task<bool> CreateFunction(
+    public virtual Task<IStorageSession?> CreateFunction(
         StoredId storedId,
         FlowInstance humanInstanceId,
         byte[]? param,
@@ -51,13 +51,13 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         long timestamp,
         StoredId? parent,
         ReplicaId? owner,
-        IReadOnlyList<StoredEffect>? effects = null, 
+        IReadOnlyList<StoredEffect>? effects = null,
         IReadOnlyList<StoredMessage>? messages = null)
     {
         lock (_sync)
         {
             if (_states.ContainsKey(storedId))
-                return false.ToTask();
+                return Task.FromResult<IStorageSession?>(null);
 
             _states[storedId] = new InnerState
             {
@@ -74,7 +74,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
             };
             if (!_messages.ContainsKey(storedId)) //messages can already have been added - i.e. paramless started by received message
                 _messages[storedId] = new List<StoredMessage>();
-            
+
             _messages[storedId].AddRange(messages ?? []);
 
             if (effects?.Any() ?? false)
@@ -83,7 +83,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
                     .GetAwaiter()
                     .GetResult();
 
-            return true.ToTask();
+            return Task.FromResult<IStorageSession?>(new EmptyStorageSession());
         }
     }
 
@@ -136,7 +136,8 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
                 : new StoredFlowWithEffectsAndMessages(
                     sf,
                     effects,
-                    messages
+                    messages,
+                    new EmptyStorageSession()
                 );
     }
     

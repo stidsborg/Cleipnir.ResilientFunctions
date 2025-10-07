@@ -45,7 +45,7 @@ public class CrashableFunctionStore : IFunctionStore
 
     public Task Initialize() => Task.CompletedTask;
 
-    public Task<bool> CreateFunction(
+    public Task<IStorageSession?> CreateFunction(
         StoredId storedId,
         FlowInstance humanInstanceId,
         byte[]? param,
@@ -54,10 +54,10 @@ public class CrashableFunctionStore : IFunctionStore
         long timestamp,
         StoredId? parent,
         ReplicaId? owner,
-        IReadOnlyList<StoredEffect>? effects = null, 
+        IReadOnlyList<StoredEffect>? effects = null,
         IReadOnlyList<StoredMessage>? messages = null
     ) => _crashed
-        ? Task.FromException<bool>(new TimeoutException())
+        ? Task.FromException<IStorageSession?>(new TimeoutException())
         : _inner.CreateFunction(
             storedId,
             humanInstanceId,
@@ -66,7 +66,9 @@ public class CrashableFunctionStore : IFunctionStore
             postponeUntil,
             timestamp,
             parent,
-            owner
+            owner,
+            effects,
+            messages
         );
 
     public Task BulkScheduleFunctions(IEnumerable<IdWithParam> functionsWithParam, StoredId? parent)

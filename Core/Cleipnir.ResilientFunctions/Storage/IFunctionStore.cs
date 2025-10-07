@@ -17,7 +17,7 @@ public interface IFunctionStore
     public IReplicaStore ReplicaStore { get; }
     public Task Initialize();
     
-    Task<bool> CreateFunction(
+    Task<IStorageSession?> CreateFunction(
         StoredId storedId, 
         FlowInstance humanInstanceId,
         byte[]? param,

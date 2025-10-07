@@ -66,7 +66,7 @@ internal class InvocationHelper<TParam, TReturn>
                 ? null
                 : MapInitialMessages(initialState.Messages);
             
-            var created = await _functionStore.CreateFunction(
+            var storageState = await _functionStore.CreateFunction(
                 storedId,
                 humanInstanceId,
                 storedParameter,
@@ -79,6 +79,7 @@ internal class InvocationHelper<TParam, TReturn>
                 messages
             );
 
+            var created = storageState != null;
             if (!created) runningFunction.Dispose();
             return Tuple.Create(created, runningFunction);
         }

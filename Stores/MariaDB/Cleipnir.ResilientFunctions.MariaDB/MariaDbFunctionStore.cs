@@ -108,16 +108,16 @@ public class MariaDbFunctionStore : IFunctionStore
         await command.ExecuteNonQueryAsync();
     }
     
-    public async Task<bool> CreateFunction(
-        StoredId storedId, 
+    public async Task<IStorageSession?> CreateFunction(
+        StoredId storedId,
         FlowInstance humanInstanceId,
-        byte[]? param, 
+        byte[]? param,
         long leaseExpiration,
         long? postponeUntil,
         long timestamp,
         StoredId? parent,
         ReplicaId? owner,
-        IReadOnlyList<StoredEffect>? effects = null, 
+        IReadOnlyList<StoredEffect>? effects = null,
         IReadOnlyList<StoredMessage>? messages = null)
     {
         if (effects == null && messages == null)
@@ -127,7 +127,7 @@ public class MariaDbFunctionStore : IFunctionStore
                 .CreateFunction(storedId, humanInstanceId, param, leaseExpiration, postponeUntil, timestamp, parent, owner, ignoreDuplicate: true)
                 .ToSqlCommand(conn);
             var affectedRows = await command.ExecuteNonQueryAsync();
-            return affectedRows == 1;
+            return affectedRows == 1 ? new EmptyStorageSession() : null;
         }
         else
         {
@@ -147,18 +147,18 @@ public class MariaDbFunctionStore : IFunctionStore
                 );
                 storeCommand = storeCommand.Merge(effectsCommand);
             }
-            
+
             await using var conn = await CreateOpenConnection(_connectionString);
             await using var command = storeCommand.ToSqlCommand(conn);
 
             try
             {
                 await command.ExecuteNonQueryAsync();
-                return true;
+                return new EmptyStorageSession();
             }
             catch (MySqlException ex) when (ex.Number == 1062)
             {
-                return false;
+                return null;
             }
         }
     }
@@ -217,7 +217,7 @@ public class MariaDbFunctionStore : IFunctionStore
         await reader.NextResultAsync();
             
         var messages = await _sqlGenerator.ReadMessages(reader);
-        return new StoredFlowWithEffectsAndMessages(sf, effects, messages);
+        return new StoredFlowWithEffectsAndMessages(sf, effects, messages, new EmptyStorageSession());
     }
     
     private string? _getExpiredFunctionsSql;

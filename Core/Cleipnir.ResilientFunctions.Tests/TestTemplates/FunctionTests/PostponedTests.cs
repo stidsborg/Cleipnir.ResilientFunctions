@@ -210,7 +210,7 @@ public abstract class PostponedTests
                 timestamp: DateTime.UtcNow.Ticks,
                 parent: null,
                 owner: null
-            ).ShouldBeTrueAsync();
+            ).ShouldNotBeNullAsync();
             
             Should.Throw<InvocationPostponedException>(
                 () => rAction.ControlPanel(functionId.Instance.Value).Result!.Restart()
@@ -234,7 +234,7 @@ public abstract class PostponedTests
                 timestamp: DateTime.UtcNow.Ticks,
                 parent: null,
                 owner: null
-            ).ShouldBeTrueAsync();
+            ).ShouldNotBeNullAsync();
 
             await rAction.ControlPanel(functionId.Instance).Result!.ScheduleRestart();
             await BusyWait.Until(() => store.GetFunction(rAction.MapToStoredId(functionId.Instance)).Map(sf => sf?.Status == Status.Postponed));
@@ -299,7 +299,7 @@ public abstract class PostponedTests
                 timestamp: DateTime.UtcNow.Ticks,
                 parent: null,
                 owner: null
-            ).ShouldBeTrueAsync();
+            ).ShouldNotBeNullAsync();
             
             Should.Throw<InvocationPostponedException>(
                 () => rAction.ControlPanel(functionId.Instance).Result!.Restart()
@@ -323,7 +323,7 @@ public abstract class PostponedTests
                 timestamp: DateTime.UtcNow.Ticks,
                 parent: null,
                 owner: null
-            ).ShouldBeTrueAsync();
+            ).ShouldNotBeNullAsync();
 
             await rAction.ControlPanel(functionId.Instance).Result!.ScheduleRestart();
             await BusyWait.Until(() => store.GetFunction(rAction.MapToStoredId(functionId.Instance)).Map(sf => sf?.Status == Status.Postponed));
@@ -398,7 +398,7 @@ public abstract class PostponedTests
                 timestamp: DateTime.UtcNow.Ticks,
                 parent: null,
                 owner: null
-            ).ShouldBeTrueAsync();
+            ).ShouldNotBeNullAsync();
             var controlPanel = await rFunc.ControlPanel(functionId.Instance).ShouldNotBeNullAsync();
             Should.Throw<InvocationPostponedException>(() => controlPanel.Restart());
             
@@ -420,7 +420,7 @@ public abstract class PostponedTests
                 timestamp: DateTime.UtcNow.Ticks,
                 parent: null,
                 owner: null
-            ).ShouldBeTrueAsync();
+            ).ShouldNotBeNullAsync();
 
             var controlPanel = await rFunc.ControlPanel(functionId.Instance).ShouldNotBeNullAsync();
             await controlPanel.ScheduleRestart();
@@ -493,7 +493,7 @@ public abstract class PostponedTests
                 timestamp: DateTime.UtcNow.Ticks,
                 parent: null,
                 owner: null
-            ).ShouldBeTrueAsync();
+            ).ShouldNotBeNullAsync();
 
             var controlPanel = await rFunc.ControlPanel(functionId.Instance).ShouldNotBeNullAsync();
             Should.Throw<InvocationPostponedException>(() => controlPanel.Restart());
@@ -516,7 +516,7 @@ public abstract class PostponedTests
                 timestamp: DateTime.UtcNow.Ticks,
                 parent: null,
                 owner: null
-            ).ShouldBeTrueAsync();
+            ).ShouldNotBeNullAsync();
 
             var controlPanel = await rFunc.ControlPanel(functionId.Instance).ShouldNotBeNullAsync();
             await controlPanel.ScheduleRestart();
@@ -553,7 +553,7 @@ public abstract class PostponedTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: ReplicaId.Empty
-        ).ShouldBeTrueAsync();
+        ).ShouldNotBeNullAsync();
 
         await store.PostponeFunction(
             storedId,

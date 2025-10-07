@@ -157,7 +157,8 @@ public record IdWithParam(StoredId StoredId, string HumanInstanceId, byte[]? Par
 public record StoredFlowWithEffectsAndMessages(
     StoredFlow StoredFlow,
     IReadOnlyList<StoredEffect> Effects,
-    IReadOnlyList<StoredMessage> Messages
+    IReadOnlyList<StoredMessage> Messages,
+    IStorageSession StorageSession
 );
 
 public static class StoredEffectExtensions

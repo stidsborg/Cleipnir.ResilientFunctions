@@ -32,7 +32,7 @@ public abstract class StoreCrudTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: null
-        ).ShouldBeTrueAsync();
+        ).ShouldNotBeNullAsync();
 
         var stored = await store.GetFunction(StoredId);
         stored!.StoredId.ShouldBe(StoredId);
@@ -56,7 +56,7 @@ public abstract class StoreCrudTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: null
-        ).ShouldBeTrueAsync();
+        ).ShouldNotBeNullAsync();
 
         var stored = await store.GetFunction(StoredId);
         stored!.StoredId.ShouldBe(StoredId);
@@ -80,7 +80,7 @@ public abstract class StoreCrudTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: null
-        ).ShouldBeTrueAsync();
+        ).ShouldNotBeNullAsync();
 
         var stored = await store.GetFunction(StoredId);
         stored!.StoredId.ShouldBe(StoredId);
@@ -111,7 +111,7 @@ public abstract class StoreCrudTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: owner
-        ).ShouldBeTrueAsync();
+        ).ShouldNotBeNullAsync();
 
         var owners = await store.GetOwnerReplicas();
         owners.Single().ShouldBe(owner);
@@ -139,7 +139,7 @@ public abstract class StoreCrudTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner
-        ).ShouldBeTrueAsync();
+        ).ShouldNotBeNullAsync();
 
         var owners = await store.GetOwnerReplicas();
         owners.Single().ShouldBe(owner);
@@ -166,7 +166,7 @@ public abstract class StoreCrudTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: null
-        ).ShouldBeTrueAsync();
+        ).ShouldNotBeNullAsync();
 
         await store.EffectsStore.SetEffectResult(
             functionId,
@@ -207,7 +207,7 @@ public abstract class StoreCrudTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: null
-        ).ShouldBeTrueAsync();
+        ).ShouldNotBeNullAsync();
 
         var updatedStoredParameter = "hello world".ToJson();
 
@@ -238,7 +238,7 @@ public abstract class StoreCrudTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: null
-        ).ShouldBeTrueAsync();
+        ).ShouldNotBeNullAsync();
 
         var updatedStoredParameter = "hello world".ToJson();
 
@@ -268,7 +268,7 @@ public abstract class StoreCrudTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: null
-        ).ShouldBeTrueAsync();
+        ).ShouldNotBeNullAsync();
         
         await store.SetParameters(
             StoredId,
@@ -295,7 +295,7 @@ public abstract class StoreCrudTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: ReplicaId.NewId()
-        ).ShouldBeTrueAsync();
+        ).ShouldNotBeNullAsync();
 
         var updatedStoredParameter = "hello world".ToJson();
 

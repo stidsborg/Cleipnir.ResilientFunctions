@@ -132,21 +132,21 @@ public class SqlServerFunctionStore : IFunctionStore
         await command.ExecuteNonQueryAsync();
     }
     
-    public async Task<bool> CreateFunction(
-        StoredId storedId, 
+    public async Task<IStorageSession?> CreateFunction(
+        StoredId storedId,
         FlowInstance humanInstanceId,
-        byte[]? param, 
+        byte[]? param,
         long leaseExpiration,
         long? postponeUntil,
         long timestamp,
         StoredId? parent,
         ReplicaId? owner,
-        IReadOnlyList<StoredEffect>? effects = null, 
+        IReadOnlyList<StoredEffect>? effects = null,
         IReadOnlyList<StoredMessage>? messages = null
     )
     {
         await using var conn = await _connFunc();
-        
+
         try
         {
             var storeCommand = _sqlGenerator
@@ -186,10 +186,10 @@ public class SqlServerFunctionStore : IFunctionStore
         }
         catch (SqlException sqlException) when (sqlException.Number == SqlError.UNIQUENESS_VIOLATION)
         {
-            return false;
+            return null;
         }
 
-        return true;
+        return new EmptyStorageSession();
     }
 
     private string? _bulkScheduleFunctionsSql;
@@ -267,7 +267,7 @@ public class SqlServerFunctionStore : IFunctionStore
         await reader.NextResultAsync();
         var messages = await _sqlGenerator.ReadMessages(reader);
 
-        return new StoredFlowWithEffectsAndMessages(sf, effects, messages);
+        return new StoredFlowWithEffectsAndMessages(sf, effects, messages, new EmptyStorageSession());
     }
 
     private string? _getExpiredFunctionsSql;
