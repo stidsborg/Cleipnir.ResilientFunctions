@@ -136,11 +136,11 @@ internal class InvocationHelper<TParam, TReturn>
                     storedId,
                     postponeUntil: result.Postpone!.DateTime.Ticks,
                     timestamp: UtcNow().Ticks,
-                    ignoreInterrupted: false, 
+                    ignoreInterrupted: false,
                     _replicaId,
                     effects: null,
                     messages: null,
-                    complementaryState
+                    storageSession: null
                 ) ? PersistResultOutcome.Success : PersistResultOutcome.Reschedule;
             case Outcome.Fail:
                 return await _functionStore.FailFunction(
@@ -540,7 +540,7 @@ internal class InvocationHelper<TParam, TReturn>
             _replicaId,
             effects: null,
             messages: null,
-            complimentaryState: new ComplimentaryState(() => SerializeParameter(param), _settings.LeaseLength.Ticks)
+            storageSession: null
         );
     }
 }

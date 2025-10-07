@@ -238,7 +238,7 @@ public abstract class StoreTests
             expectedReplica: ReplicaId.Empty,
             effects: null,
             messages: null,
-            complimentaryState: new ComplimentaryState(storedParameter.ToUtf8Bytes().ToFunc(), LeaseLength: 0)
+            storageSession: null
         ).ShouldBeTrueAsync();
         
         var postponedFunctions = await store.GetExpiredFunctions(expiresBefore: nowTicks - 100);
@@ -276,7 +276,7 @@ public abstract class StoreTests
             expectedReplica: ReplicaId.Empty,
             effects: null,
             messages: null,
-            complimentaryState: new ComplimentaryState(storedParameter.ToUtf8Bytes().ToFunc(), LeaseLength: 0)
+            storageSession: null
         ).ShouldBeTrueAsync();
         
         var postponedFunctions = await store.GetExpiredFunctions(expiresBefore: nowTicks + 100);
@@ -314,7 +314,7 @@ public abstract class StoreTests
             expectedReplica: ReplicaId.NewId(),
             effects: null,
             messages: null,
-            complimentaryState: new ComplimentaryState(storedParameter.ToUtf8Bytes().ToFunc(), LeaseLength: 0)
+            storageSession: null
         ).ShouldBeFalseAsync();
 
         var sf = await store.GetFunction(functionId);
@@ -476,9 +476,9 @@ public abstract class StoreTests
             expectedReplica: ReplicaId.Empty,
             effects: null,
             messages: null,
-            complimentaryState: new ComplimentaryState(storedParameter.ToUtf8Bytes().ToFunc(), LeaseLength: 0)
+            complimentaryState: new ComplimentaryState(Test.SimpleStoredParameter.ToFunc(), LeaseLength: 0)
         );
-        
+
         await BusyWait.Until(() => store.GetFunction(storedId).SelectAsync(sf => sf != null));
 
         var sf = await store.GetFunction(storedId);
@@ -805,7 +805,7 @@ public abstract class StoreTests
             expectedReplica: ReplicaId.Empty,
             effects: null,
             messages: null,
-            complimentaryState: new ComplimentaryState(Test.SimpleStoredParameter.ToFunc(), LeaseLength: 0)
+            storageSession: null
         );
         
         var storedFunction = await store.GetFunction(functionId);
@@ -1003,7 +1003,7 @@ public abstract class StoreTests
             expectedReplica: ReplicaId.Empty,
             effects: null,
             messages: null,
-            new ComplimentaryState(() => Test.SimpleStoredParameter, LeaseLength: 0)
+            complimentaryState: new ComplimentaryState(Test.SimpleStoredParameter.ToFunc(), LeaseLength: 0)
         ).ShouldBeTrueAsync();
 
         var storedFunction = await store.GetFunction(functionId);
@@ -1310,7 +1310,7 @@ public abstract class StoreTests
             expectedReplica: ReplicaId.Empty,
             effects: null,
             messages: null,
-            new ComplimentaryState(() => Test.SimpleStoredParameter, LeaseLength: 0)
+            storageSession: null
         );
         success.ShouldBeFalse();
 
@@ -1352,7 +1352,7 @@ public abstract class StoreTests
             expectedReplica: ReplicaId.Empty,
             effects: null,
             messages: null,
-            new ComplimentaryState(() => Test.SimpleStoredParameter, LeaseLength: 0)
+            storageSession: null
         );
         success.ShouldBeTrue();
 
@@ -1765,11 +1765,11 @@ public abstract class StoreTests
 
         await store.FailFunction(
             functionId,
+            storedException: new StoredException("SomeMessage", ExceptionStackTrace: null, "SomeExceptionType"),
             timestamp: DateTime.UtcNow.Ticks,
             expectedReplica: ReplicaId.Empty,
             effects: null,
             messages: null,
-            storedException: new StoredException("SomeMessage", ExceptionStackTrace: null, "SomeExceptionType"),
             complimentaryState: new ComplimentaryState(Test.SimpleStoredParameter.ToFunc(), LeaseLength: 0)
         ).ShouldBeTrueAsync();
         
@@ -1803,7 +1803,7 @@ public abstract class StoreTests
             expectedReplica: ReplicaId.Empty,
             effects: null,
             messages: null,
-            complimentaryState: new ComplimentaryState(Test.SimpleStoredParameter.ToFunc(), LeaseLength: 0)
+            storageSession: null
         ).ShouldBeTrueAsync();
         
         var storedFunction = await store.GetFunction(functionId);

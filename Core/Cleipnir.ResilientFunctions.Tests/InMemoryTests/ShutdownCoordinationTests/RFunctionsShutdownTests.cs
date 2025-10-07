@@ -187,7 +187,7 @@ public class RFunctionsShutdownTests
             Guid.Empty.ToReplicaId(),
             effects: null,
             messages: null,
-            new ComplimentaryState(() => storedParameter.ToUtf8Bytes(), LeaseLength: 0)
+            storageSession: null
         ).ShouldBeTrueAsync();
 
 

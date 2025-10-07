@@ -365,14 +365,14 @@ public class PostgreSqlFunctionStore : IFunctionStore
     }
     
     public async Task<bool> PostponeFunction(
-        StoredId storedId, 
-        long postponeUntil, 
+        StoredId storedId,
+        long postponeUntil,
         long timestamp,
         bool ignoreInterrupted,
         ReplicaId expectedReplica,
         IReadOnlyList<StoredEffect>? effects,
         IReadOnlyList<StoredMessage>? messages,
-        ComplimentaryState complimentaryState)
+        IStorageSession? storageSession)
     {
         await using var conn = await CreateConnection();
         await using var command = _sqlGenerator.PostponeFunction(
@@ -382,7 +382,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
             ignoreInterrupted,
             expectedReplica
         ).ToNpgsqlCommand(conn);
-        
+
         var affectedRows = await command.ExecuteNonQueryAsync();
         return affectedRows == 1;
     }

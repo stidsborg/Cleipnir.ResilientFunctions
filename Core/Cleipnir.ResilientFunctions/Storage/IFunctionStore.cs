@@ -69,13 +69,13 @@ public interface IFunctionStore
     
     Task<bool> PostponeFunction(
         StoredId storedId,
-        long postponeUntil, 
+        long postponeUntil,
         long timestamp,
-        bool ignoreInterrupted, 
-        ReplicaId expectedReplica, 
+        bool ignoreInterrupted,
+        ReplicaId expectedReplica,
         IReadOnlyList<StoredEffect>? effects,
         IReadOnlyList<StoredMessage>? messages,
-        ComplimentaryState complimentaryState
+        IStorageSession? storageSession
     );
     
     Task<bool> FailFunction(

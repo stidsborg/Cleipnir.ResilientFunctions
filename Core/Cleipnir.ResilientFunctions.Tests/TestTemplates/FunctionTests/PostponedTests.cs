@@ -563,7 +563,7 @@ public abstract class PostponedTests
             expectedReplica: ReplicaId.Empty,
             effects: null,
             messages: null,
-            complimentaryState: new ComplimentaryState(storedParameter.ToUtf8Bytes().ToFunc(), LeaseLength: 0)
+            storageSession: null
         ).ShouldBeTrueAsync();
         
         using var functionsRegistry = new FunctionsRegistry(

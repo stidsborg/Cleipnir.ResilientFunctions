@@ -332,20 +332,20 @@ public class MariaDbFunctionStore : IFunctionStore
     }
     
     public async Task<bool> PostponeFunction(
-        StoredId storedId, 
-        long postponeUntil, 
+        StoredId storedId,
+        long postponeUntil,
         long timestamp,
         bool ignoreInterrupted,
-        ReplicaId expectedReplica, 
+        ReplicaId expectedReplica,
         IReadOnlyList<StoredEffect>? effects,
         IReadOnlyList<StoredMessage>? messages,
-        ComplimentaryState complimentaryState)
+        IStorageSession? storageSession)
     {
         await using var conn = await CreateOpenConnection(_connectionString);
         await using var command = _sqlGenerator
             .PostponeFunction(storedId, postponeUntil, timestamp, ignoreInterrupted, expectedReplica)
             .ToSqlCommand(conn);
-        
+
         var affectedRows = await command.ExecuteNonQueryAsync();
         return affectedRows == 1;
     }

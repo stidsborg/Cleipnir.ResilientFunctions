@@ -115,7 +115,7 @@ public class DelayedStartUpTests
             expectedReplica: ReplicaId.Empty,
             effects: null,
             messages: null,
-            complimentaryState: new ComplimentaryState(storedParameter.ToUtf8Bytes().ToFunc(), LeaseLength: 0)
+            storageSession: null
         ).ShouldBeTrueAsync();
         
         await BusyWait.Until(() => store.GetFunction(registration.MapToStoredId(functionId.Instance)).Map(sf => sf?.Status == Status.Succeeded));
@@ -156,7 +156,7 @@ public class DelayedStartUpTests
             expectedReplica: ReplicaId.Empty,
             effects: null,
             messages: null,
-            new ComplimentaryState(storedParameter.ToFunc(), LeaseLength: 0)
+            storageSession: null
         );
 
         await BusyWait.Until(() => store.GetFunction(registration.MapToStoredId(functionId.Instance)).Map(sf => sf?.Status == Status.Succeeded));

@@ -220,14 +220,14 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
     }
 
     public Task<bool> PostponeFunction(
-        StoredId storedId, 
-        long postponeUntil, 
+        StoredId storedId,
+        long postponeUntil,
         long timestamp,
         bool ignoreInterrupted,
         ReplicaId? expectedReplica,
         IReadOnlyList<StoredEffect>? effects,
         IReadOnlyList<StoredMessage>? messages,
-        ComplimentaryState complimentaryState)
+        IStorageSession? storageSession)
     {
         lock (_sync)
         {
@@ -238,12 +238,12 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
 
             if (!ignoreInterrupted && state.Interrupted)
                 return false.ToTask();
-            
+
             state.Status = Status.Postponed;
             state.Expires = postponeUntil;
             state.Timestamp = timestamp;
             state.Owner = null;
-            
+
             return true.ToTask();
         }
     }
