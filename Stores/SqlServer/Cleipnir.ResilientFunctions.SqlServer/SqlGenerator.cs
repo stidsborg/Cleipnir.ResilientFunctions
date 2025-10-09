@@ -185,7 +185,7 @@ public class SqlGenerator(string tablePrefix)
             var exception = reader.IsDBNull(4) ? null : reader.GetString(4);
 
             var storedException = exception == null ? null : JsonSerializer.Deserialize<StoredException>(exception);
-            var storedEffect = new StoredEffect(EffectId.Deserialize(effectId), new StoredEffectId(storedEffectId), status, result, storedException);
+            var storedEffect = new StoredEffect(EffectId.Deserialize(effectId), status, result, storedException);
             storedEffects.Add(storedEffect);
         }
 
@@ -218,11 +218,11 @@ public class SqlGenerator(string tablePrefix)
             var exception = reader.IsDBNull(5) ? null : reader.GetString(5);
 
             var storedException = exception == null ? null : JsonSerializer.Deserialize<StoredException>(exception);
-            var storedEffect = new StoredEffect(EffectId.Deserialize(effectId), new StoredEffectId(storedEffectId), status, result, storedException);
+            var storedEffect = new StoredEffect(EffectId.Deserialize(effectId), status, result, storedException);
 
             if (!storedEffects.ContainsKey(storedId))
                 storedEffects[storedId] = new List<StoredEffect>();
-            
+
             storedEffects[storedId].Add(storedEffect);
         }
 

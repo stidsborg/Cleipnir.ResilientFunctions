@@ -122,33 +122,33 @@ public enum CrudOperation
 
 public record StoredEffect(
     EffectId EffectId,
-    StoredEffectId StoredEffectId,
     WorkStatus WorkStatus,
     byte[]? Result,
     StoredException? StoredException
 )
 {
+    public StoredEffectId StoredEffectId => EffectId.ToStoredEffectId();
+
     public static StoredEffect CreateCompleted(EffectId effectId, byte[] result)
-        => new(effectId, effectId.ToStoredEffectId(), WorkStatus.Completed, result, StoredException: null);
+        => new(effectId, WorkStatus.Completed, result, StoredException: null);
     public static StoredEffect CreateCompleted(EffectId effectId)
-        => new(effectId, effectId.ToStoredEffectId(), WorkStatus.Completed, Result: null, StoredException: null);
+        => new(effectId, WorkStatus.Completed, Result: null, StoredException: null);
     public static StoredEffect CreateStarted(EffectId effectId)
-        => new(effectId, effectId.ToStoredEffectId(), WorkStatus.Started, Result: null, StoredException: null);
+        => new(effectId, WorkStatus.Started, Result: null, StoredException: null);
     public static StoredEffect CreateFailed(EffectId effectId, StoredException storedException)
-        => new(effectId, effectId.ToStoredEffectId(), WorkStatus.Failed, Result: null, storedException);
+        => new(effectId, WorkStatus.Failed, Result: null, storedException);
 
     public static StoredEffect CreateState(StoredState storedState)
     {
         var effectId = storedState.StateId.Value.ToEffectId(effectType: EffectType.State);
         return new StoredEffect(
             effectId,
-            effectId.ToStoredEffectId(),
             WorkStatus.Completed,
             storedState.StateJson,
             StoredException: null
         );
     }
-        
+
 };
 public record StoredState(StateId StateId, byte[] StateJson);
 

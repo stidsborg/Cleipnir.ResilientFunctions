@@ -1045,7 +1045,7 @@ public abstract class StoreTests
             owner: null
         ).ShouldNotBeNullAsync();
 
-        await effectsStore.SetEffectResult(functionId, new StoredEffect(EffectId: "".ToEffectId(EffectType.State), "".ToStoredEffectId(EffectType.State), WorkStatus.Completed, "some default state".ToUtf8Bytes(), StoredException: null), session: null);
+        await effectsStore.SetEffectResult(functionId, new StoredEffect("".ToEffectId(EffectType.State), WorkStatus.Completed, "some default state".ToUtf8Bytes(), StoredException: null), session: null);
 
         var storedEffects = await effectsStore.GetEffectResults(functionId);
         storedEffects.Count.ShouldBe(1);
@@ -1371,13 +1371,15 @@ public abstract class StoreTests
         var effectId1 = new EffectId("SomeEffect1", EffectType.State, Context: "");
         var effect1 = new StoredEffect(
             effectId1,
-            new StoredEffectId(Guid.NewGuid()), WorkStatus.Completed, Result: "hello world".ToUtf8Bytes(),
+            WorkStatus.Completed,
+            Result: "hello world".ToUtf8Bytes(),
             StoredException: null
         );
         var effectId2 = new EffectId("SomeEffect2", EffectType.State, Context: "");
         var effect2 = new StoredEffect(
             effectId2,
-            new StoredEffectId(Guid.NewGuid()), WorkStatus.Completed, Result: "hello universe".ToUtf8Bytes(),
+            WorkStatus.Completed,
+            Result: "hello universe".ToUtf8Bytes(),
             StoredException: null
         );
 
@@ -1514,13 +1516,15 @@ public abstract class StoreTests
         var effectId1 = new EffectId("SomeEffect1", EffectType.State, Context: "");
         var effect1 = new StoredEffect(
             effectId1,
-            new StoredEffectId(Guid.NewGuid()), WorkStatus.Completed, Result: "hello world".ToUtf8Bytes(),
+            WorkStatus.Completed,
+            Result: "hello world".ToUtf8Bytes(),
             StoredException: null
         );
         var effectId2 = new EffectId("SomeEffect2", EffectType.State, Context: "");
         var effect2 = new StoredEffect(
             effectId2,
-            new StoredEffectId(Guid.NewGuid()), WorkStatus.Completed, Result: "hello universe".ToUtf8Bytes(),
+            WorkStatus.Completed,
+            Result: "hello universe".ToUtf8Bytes(),
             StoredException: null
         );
         
@@ -1595,7 +1599,6 @@ public abstract class StoreTests
             functionId,
             new StoredEffect(
                 "Test".ToEffectId(),
-                "Test".ToEffectId().ToStoredEffectId(),
                 WorkStatus.Completed,
                 "hallo effect".ToUtf8Bytes(),
                 StoredException: null

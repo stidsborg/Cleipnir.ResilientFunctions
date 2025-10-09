@@ -504,13 +504,11 @@ internal class InvocationHelper<TParam, TReturn>
             e.Exception == null
                 ? new StoredEffect(
                     e.Id.ToEffectId(EffectType.Effect),
-                    e.Id.ToEffectId(EffectType.Effect).ToStoredEffectId(),
                     e.Status ?? WorkStatus.Completed,
                     Result: Serializer.Serialize(e.Value, e.Value?.GetType() ?? typeof(object)),
                     StoredException: null)
                 : new StoredEffect(
                     e.Id.ToEffectId(EffectType.Effect),
-                    e.Id.ToEffectId(EffectType.Effect).ToStoredEffectId(),
                     WorkStatus.Failed,
                     Result: null,
                     StoredException: Serializer.SerializeException(FatalWorkflowException.CreateNonGeneric(flowId, e.Exception))

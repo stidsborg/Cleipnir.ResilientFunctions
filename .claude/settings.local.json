@@ -8,7 +8,8 @@
       "Bash(then echo \"$file\" fi done)",
       "Bash(for file in Core/Cleipnir.ResilientFunctions.Tests/Messaging/TestTemplates/MessageStoreTests.cs Core/Cleipnir.ResilientFunctions.Tests/TestTemplates/FunctionTests/PostponedTests.cs)",
       "Bash(do)",
-      "Bash(done)"
+      "Bash(done)",
+      "Bash(git diff:*)"
     ],
     "deny": [],
     "ask": []

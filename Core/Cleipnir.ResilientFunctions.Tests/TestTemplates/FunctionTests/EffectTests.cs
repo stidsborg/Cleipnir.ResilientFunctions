@@ -602,7 +602,6 @@ public abstract class EffectTests
         var effectId1 = new EffectId("Id1", EffectType.Effect, Context: "");
         var storedEffect1 = new StoredEffect(
             effectId1,
-            effectId1.ToStoredEffectId(),
             WorkStatus.Completed,
             Result: "hello world".ToUtf8Bytes(),
             StoredException: null
@@ -616,7 +615,6 @@ public abstract class EffectTests
         var effectId2 = new EffectId("Id2", EffectType.Effect, Context: "");
         var storedEffect2 = new StoredEffect(
             effectId2,
-            effectId2.ToStoredEffectId(),
             WorkStatus.Completed,
             Result: "hello universe".ToUtf8Bytes(),
             StoredException: null

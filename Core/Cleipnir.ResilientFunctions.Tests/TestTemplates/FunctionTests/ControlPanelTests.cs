@@ -1074,7 +1074,6 @@ public abstract class ControlPanelTests
             rAction.MapToStoredId(functionId.Instance),
             new StoredEffect(
                 "SomeId".ToEffectId(),
-                "SomeId".ToStoredEffectId(EffectType.Effect),
                 WorkStatus.Completed,
                 Result: "SomeResult".ToJson().ToUtf8Bytes(),
                 StoredException: null
@@ -1112,7 +1111,6 @@ public abstract class ControlPanelTests
             rAction.MapToStoredId(functionId.Instance),
             new StoredEffect(
                 "SomeId".ToEffectId(),
-                "SomeId".ToStoredEffectId(EffectType.Effect),
                 WorkStatus.Completed,
                 Result: "SomeResult".ToJson().ToUtf8Bytes(),
                 StoredException: null
