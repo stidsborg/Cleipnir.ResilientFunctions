@@ -71,7 +71,7 @@ public class ExistingEffects(StoredId storedId, FlowId flowId, IEffectsStore eff
     private async Task Set(StoredEffect storedEffect)
     {
         var storedEffects = await GetStoredEffects();
-        await effectsStore.SetEffectResult(storedId, storedEffect);
+        await effectsStore.SetEffectResult(storedId, storedEffect, session: null);
         storedEffects[storedEffect.EffectId] = storedEffect;
     }
 

@@ -1078,7 +1078,8 @@ public abstract class ControlPanelTests
                 WorkStatus.Completed,
                 Result: "SomeResult".ToJson().ToUtf8Bytes(),
                 StoredException: null
-            )
+            ),
+            session: null
         );
 
         await controlPanel.Effects.HasValue("SomeId").ShouldBeFalseAsync();
@@ -1115,7 +1116,8 @@ public abstract class ControlPanelTests
                 WorkStatus.Completed,
                 Result: "SomeResult".ToJson().ToUtf8Bytes(),
                 StoredException: null
-            )
+            ),
+            session: null
         );
 
         await controlPanel.Effects.HasValue("SomeId").ShouldBeFalseAsync();

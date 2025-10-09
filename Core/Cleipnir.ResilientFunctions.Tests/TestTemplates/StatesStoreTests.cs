@@ -21,11 +21,13 @@ public abstract class StatesStoreTests
 
         await statesStore.SetEffectResult(
             flowId,
-            StoredEffect.CreateState(new StoredState("Id#1", "SomeJson#1".ToUtf8Bytes()))
+            StoredEffect.CreateState(new StoredState("Id#1", "SomeJson#1".ToUtf8Bytes())),
+            session: null
         );
         await statesStore.SetEffectResult(
             flowId,
-            StoredEffect.CreateState(new StoredState("Id#2", "SomeJson#2".ToUtf8Bytes()))
+            StoredEffect.CreateState(new StoredState("Id#2", "SomeJson#2".ToUtf8Bytes())),
+            session: null
         );
 
         var states = await statesStore.GetEffectResults(flowId);

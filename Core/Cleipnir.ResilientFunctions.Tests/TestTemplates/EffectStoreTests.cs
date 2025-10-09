@@ -35,7 +35,7 @@ public abstract class EffectStoreTests
             .SelectAsync(l => l.Any())
             .ShouldBeFalseAsync();
         
-        await store.SetEffectResult(functionId, storedEffect1);
+        await store.SetEffectResult(functionId, storedEffect1, session: null);
         
         var storedEffects = await store
             .GetEffectResults(functionId);
@@ -43,16 +43,16 @@ public abstract class EffectStoreTests
         var se = storedEffects[0];
         se.ShouldBe(storedEffect1);
         
-        await store.SetEffectResult(functionId, storedEffect2);
+        await store.SetEffectResult(functionId, storedEffect2, session: null);
         storedEffects = await store.GetEffectResults(functionId);
         storedEffects.Count.ShouldBe(2);
         storedEffects.Any(s => s == storedEffect1).ShouldBeTrue();
         storedEffects.Any(s => s == storedEffect2).ShouldBeTrue();
         
-        await store.SetEffectResult(functionId, storedEffect2);
+        await store.SetEffectResult(functionId, storedEffect2, session: null);
         await store.GetEffectResults(functionId);
         
-        await store.SetEffectResult(functionId, storedEffect2);
+        await store.SetEffectResult(functionId, storedEffect2, session: null);
         storedEffects = await store.GetEffectResults(functionId);
         storedEffects.Count.ShouldBe(2);
         storedEffects.Any(s => s == storedEffect1).ShouldBeTrue();
@@ -76,12 +76,12 @@ public abstract class EffectStoreTests
             .SelectAsync(r => r.Any())
             .ShouldBeFalseAsync();
         
-        await store.SetEffectResult(functionId, effect);
+        await store.SetEffectResult(functionId, effect, session: null);
         var storedEffect = await store.GetEffectResults(functionId).SelectAsync(r => r.Single());
         storedEffect.ShouldBe(effect);
 
         effect = effect with { WorkStatus = WorkStatus.Completed, Result = "Hello World".ToUtf8Bytes() };
-        await store.SetEffectResult(functionId, effect);
+        await store.SetEffectResult(functionId, effect, session: null);
         storedEffect = await store.GetEffectResults(functionId).SelectAsync(r => r.Single());
         
         storedEffect.EffectId.ShouldBe(effect.EffectId);
@@ -113,12 +113,12 @@ public abstract class EffectStoreTests
             .SelectAsync(r => r.Any())
             .ShouldBeFalseAsync();
         
-        await store.SetEffectResult(functionId, storedEffect);
+        await store.SetEffectResult(functionId, storedEffect, session: null);
         var effect = await store.GetEffectResults(functionId).SelectAsync(r => r.Single());
         effect.ShouldBe(storedEffect);
 
         storedEffect = storedEffect with { WorkStatus = WorkStatus.Completed, StoredException = storedException };
-        await store.SetEffectResult(functionId, storedEffect);
+        await store.SetEffectResult(functionId, storedEffect, session: null);
         effect = await store.GetEffectResults(functionId).SelectAsync(r => r.Single());
         effect.ShouldBe(storedEffect);
     }
@@ -142,8 +142,8 @@ public abstract class EffectStoreTests
             Result: null,
             StoredException: null
         );
-        await store.SetEffectResult(functionId, storedEffect1);
-        await store.SetEffectResult(functionId, storedEffect2);
+        await store.SetEffectResult(functionId, storedEffect1, session: null);
+        await store.SetEffectResult(functionId, storedEffect2, session: null);
 
         await store
             .GetEffectResults(functionId)
@@ -189,9 +189,9 @@ public abstract class EffectStoreTests
             StoredException: null
         );
         
-        await store.SetEffectResult(functionId, storedEffect1);
-        await store.SetEffectResult(functionId, storedEffect2);
-        await store.SetEffectResult(otherFunctionId, storedEffect1);
+        await store.SetEffectResult(functionId, storedEffect1, session: null);
+        await store.SetEffectResult(functionId, storedEffect2, session: null);
+        await store.SetEffectResult(otherFunctionId, storedEffect1, session: null);
 
         await store
             .GetEffectResults(functionId)
@@ -233,9 +233,9 @@ public abstract class EffectStoreTests
             StoredException: null
         );
         
-        await store.SetEffectResult(functionId, storedEffect1);
-        await store.SetEffectResult(functionId, storedEffect2);
-        await store.SetEffectResult(otherFunctionId, storedEffect1);
+        await store.SetEffectResult(functionId, storedEffect1, session: null);
+        await store.SetEffectResult(functionId, storedEffect2, session: null);
+        await store.SetEffectResult(otherFunctionId, storedEffect1, session: null);
 
         await store.Truncate();
         
@@ -394,10 +394,10 @@ public abstract class EffectStoreTests
             StoredException: null
         );
 
-        await store.SetEffectResult(id1, storedEffect1);
-        await store.SetEffectResult(id1, storedEffect2);
-        await store.SetEffectResult(id2, storedEffect1);
-        await store.SetEffectResult(id2, storedEffect2);
+        await store.SetEffectResult(id1, storedEffect1, session: null);
+        await store.SetEffectResult(id1, storedEffect2, session: null);
+        await store.SetEffectResult(id2, storedEffect1, session: null);
+        await store.SetEffectResult(id2, storedEffect2, session: null);
 
         var results = await store.GetEffectResults([id1, id2]);
         results.Count.ShouldBe(2);

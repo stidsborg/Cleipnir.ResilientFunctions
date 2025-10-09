@@ -1045,7 +1045,7 @@ public abstract class StoreTests
             owner: null
         ).ShouldNotBeNullAsync();
 
-        await effectsStore.SetEffectResult(functionId, new StoredEffect(EffectId: "".ToEffectId(EffectType.State), "".ToStoredEffectId(EffectType.State), WorkStatus.Completed, "some default state".ToUtf8Bytes(), StoredException: null));
+        await effectsStore.SetEffectResult(functionId, new StoredEffect(EffectId: "".ToEffectId(EffectType.State), "".ToStoredEffectId(EffectType.State), WorkStatus.Completed, "some default state".ToUtf8Bytes(), StoredException: null), session: null);
 
         var storedEffects = await effectsStore.GetEffectResults(functionId);
         storedEffects.Count.ShouldBe(1);
@@ -1599,7 +1599,8 @@ public abstract class StoreTests
                 WorkStatus.Completed,
                 "hallo effect".ToUtf8Bytes(),
                 StoredException: null
-                )
+                ),
+            session: null
         );
         
         var (sf, effects, messages, _) = await store

@@ -47,7 +47,7 @@ public class SqlServerEffectsStore(string connectionString, SqlGenerator sqlGene
     }
 
     private string? _setEffectResultSql;
-    public async Task SetEffectResult(StoredId storedId, StoredEffect storedEffect)
+    public async Task SetEffectResult(StoredId storedId, StoredEffect storedEffect, IStorageSession? session)
     {
         await using var conn = await CreateConnection();
         _setEffectResultSql ??= $@"
