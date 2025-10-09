@@ -594,7 +594,7 @@ public abstract class MessageStoreTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: null
-        ).ShouldBeTrueAsync();
+        ).ShouldNotBeNullAsync();
         await functionStore.CreateFunction(
             id2, 
             "humanInstanceId2",
@@ -604,7 +604,7 @@ public abstract class MessageStoreTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: null
-        ).ShouldBeTrueAsync();
+        ).ShouldNotBeNullAsync();
         var messageStore = functionStore.MessageStore;
 
         const string msg1 = "";
@@ -647,7 +647,7 @@ public abstract class MessageStoreTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: null
-        ).ShouldBeTrueAsync();
+        ).ShouldNotBeNullAsync();
         await functionStore.CreateFunction(
             id2, 
             "humanInstanceId2",
@@ -657,7 +657,7 @@ public abstract class MessageStoreTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: null
-        ).ShouldBeTrueAsync();
+        ).ShouldNotBeNullAsync();
         var messageStore = functionStore.MessageStore;
 
         var msg1 = "Hello";
@@ -708,7 +708,7 @@ public abstract class MessageStoreTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: null
-        ).ShouldBeTrueAsync();
+        ).ShouldNotBeNullAsync();
         var messageStore = functionStore.MessageStore;
 
         var msg = "Hello World!";
@@ -744,7 +744,7 @@ public abstract class MessageStoreTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: null
-        ).ShouldBeTrueAsync();
+        ).ShouldNotBeNullAsync();
         await functionStore.CreateFunction(
             id2, 
             "humanInstanceId",
@@ -754,7 +754,7 @@ public abstract class MessageStoreTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: null
-        ).ShouldBeTrueAsync();
+        ).ShouldNotBeNullAsync();
         var messageStore = functionStore.MessageStore;
 
         var stringType = typeof(string).SimpleQualifiedName().ToUtf8Bytes();
@@ -830,7 +830,7 @@ public abstract class MessageStoreTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: null
-        ).ShouldBeTrueAsync();
+        ).ShouldNotBeNullAsync();
         await functionStore.CreateFunction(
             id2, 
             "humanInstanceId",
@@ -840,7 +840,7 @@ public abstract class MessageStoreTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: null
-        ).ShouldBeTrueAsync();
+        ).ShouldNotBeNullAsync();
 
         var messageStore = functionStore.MessageStore;
         var msg1 = "Hello";

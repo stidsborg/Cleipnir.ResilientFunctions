@@ -17,7 +17,7 @@ public interface IFunctionStore
     public IReplicaStore ReplicaStore { get; }
     public Task Initialize();
     
-    Task<bool> CreateFunction(
+    Task<IStorageSession?> CreateFunction(
         StoredId storedId, 
         FlowInstance humanInstanceId,
         byte[]? param,
@@ -58,43 +58,43 @@ public interface IFunctionStore
     );
 
     Task<bool> SucceedFunction(
-        StoredId storedId, 
-        byte[]? result, 
+        StoredId storedId,
+        byte[]? result,
         long timestamp,
         ReplicaId expectedReplica,
         IReadOnlyList<StoredEffect>? effects,
         IReadOnlyList<StoredMessage>? messages,
-        ComplimentaryState complimentaryState
+        IStorageSession? storageSession
     );
     
     Task<bool> PostponeFunction(
         StoredId storedId,
-        long postponeUntil, 
+        long postponeUntil,
         long timestamp,
-        bool ignoreInterrupted, 
-        ReplicaId expectedReplica, 
+        bool ignoreInterrupted,
+        ReplicaId expectedReplica,
         IReadOnlyList<StoredEffect>? effects,
         IReadOnlyList<StoredMessage>? messages,
-        ComplimentaryState complimentaryState
+        IStorageSession? storageSession
     );
     
     Task<bool> FailFunction(
-        StoredId storedId, 
+        StoredId storedId,
         StoredException storedException,
         long timestamp,
-        ReplicaId expectedReplica, 
+        ReplicaId expectedReplica,
         IReadOnlyList<StoredEffect>? effects,
         IReadOnlyList<StoredMessage>? messages,
-        ComplimentaryState complimentaryState
+        IStorageSession? storageSession
     );
     
     Task<bool> SuspendFunction(
-        StoredId storedId, 
+        StoredId storedId,
         long timestamp,
-        ReplicaId expectedReplica, 
+        ReplicaId expectedReplica,
         IReadOnlyList<StoredEffect>? effects,
         IReadOnlyList<StoredMessage>? messages,
-        ComplimentaryState complimentaryState
+        IStorageSession? storageSession
     );
 
     Task<IReadOnlyList<ReplicaId>> GetOwnerReplicas();

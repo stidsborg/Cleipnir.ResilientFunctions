@@ -32,7 +32,7 @@ public abstract class StoreCrudTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: null
-        ).ShouldBeTrueAsync();
+        ).ShouldNotBeNullAsync();
 
         var stored = await store.GetFunction(StoredId);
         stored!.StoredId.ShouldBe(StoredId);
@@ -56,7 +56,7 @@ public abstract class StoreCrudTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: null
-        ).ShouldBeTrueAsync();
+        ).ShouldNotBeNullAsync();
 
         var stored = await store.GetFunction(StoredId);
         stored!.StoredId.ShouldBe(StoredId);
@@ -80,7 +80,7 @@ public abstract class StoreCrudTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: null
-        ).ShouldBeTrueAsync();
+        ).ShouldNotBeNullAsync();
 
         var stored = await store.GetFunction(StoredId);
         stored!.StoredId.ShouldBe(StoredId);
@@ -111,7 +111,7 @@ public abstract class StoreCrudTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: owner
-        ).ShouldBeTrueAsync();
+        ).ShouldNotBeNullAsync();
 
         var owners = await store.GetOwnerReplicas();
         owners.Single().ShouldBe(owner);
@@ -139,7 +139,7 @@ public abstract class StoreCrudTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner
-        ).ShouldBeTrueAsync();
+        ).ShouldNotBeNullAsync();
 
         var owners = await store.GetOwnerReplicas();
         owners.Single().ShouldBe(owner);
@@ -166,16 +166,18 @@ public abstract class StoreCrudTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: null
-        ).ShouldBeTrueAsync();
+        ).ShouldNotBeNullAsync();
 
         await store.EffectsStore.SetEffectResult(
             functionId,
-            StoredEffect.CreateState(new StoredState("SomeStateId", "SomeStateJson".ToUtf8Bytes()))
+            StoredEffect.CreateState(new StoredState("SomeStateId", "SomeStateJson".ToUtf8Bytes())),
+            session: null
         );
         await store.CorrelationStore.SetCorrelation(functionId, "SomeCorrelationId");
         await store.EffectsStore.SetEffectResult(
             functionId,
-            new StoredEffect("SomeEffectId".ToEffectId(), "SomeEffectId".ToStoredEffectId(EffectType.Effect), WorkStatus.Completed, Result: null, StoredException: null)
+            new StoredEffect("SomeEffectId".ToEffectId(), WorkStatus.Completed, Result: null, StoredException: null),
+            session: null
         );
         await store.MessageStore.AppendMessage(functionId, new StoredMessage("SomeJson".ToUtf8Bytes(), "SomeType".ToUtf8Bytes()));
         
@@ -207,7 +209,7 @@ public abstract class StoreCrudTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: null
-        ).ShouldBeTrueAsync();
+        ).ShouldNotBeNullAsync();
 
         var updatedStoredParameter = "hello world".ToJson();
 
@@ -238,7 +240,7 @@ public abstract class StoreCrudTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: null
-        ).ShouldBeTrueAsync();
+        ).ShouldNotBeNullAsync();
 
         var updatedStoredParameter = "hello world".ToJson();
 
@@ -268,7 +270,7 @@ public abstract class StoreCrudTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: null
-        ).ShouldBeTrueAsync();
+        ).ShouldNotBeNullAsync();
         
         await store.SetParameters(
             StoredId,
@@ -295,7 +297,7 @@ public abstract class StoreCrudTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: ReplicaId.NewId()
-        ).ShouldBeTrueAsync();
+        ).ShouldNotBeNullAsync();
 
         var updatedStoredParameter = "hello world".ToJson();
 

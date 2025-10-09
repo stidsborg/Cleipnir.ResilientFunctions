@@ -2,7 +2,14 @@
   "permissions": {
     "allow": [
       "Bash(find:*)",
-      "Bash(dotnet build:*)"
+      "Bash(dotnet build:*)",
+      "Bash(while read file)",
+      "Bash(do if grep -q \"CreateFunction\" \"$file\")",
+      "Bash(then echo \"$file\" fi done)",
+      "Bash(for file in Core/Cleipnir.ResilientFunctions.Tests/Messaging/TestTemplates/MessageStoreTests.cs Core/Cleipnir.ResilientFunctions.Tests/TestTemplates/FunctionTests/PostponedTests.cs)",
+      "Bash(do)",
+      "Bash(done)",
+      "Bash(git diff:*)"
     ],
     "deny": [],
     "ask": []

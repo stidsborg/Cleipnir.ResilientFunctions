@@ -21,23 +21,23 @@ public class InMemoryEffectsStore : IEffectsStore
         return Task.CompletedTask;
     }
 
-    public Task SetEffectResult(StoredId storedId, StoredEffect storedEffect)
+    public Task SetEffectResult(StoredId storedId, StoredEffect storedEffect, IStorageSession? session)
     {
         lock (_sync)
         {
             if (!_effects.ContainsKey(storedId))
                 _effects[storedId] = new Dictionary<StoredEffectId, StoredEffect>();
-                
+
             _effects[storedId][storedEffect.StoredEffectId] = storedEffect;
         }
-        
+
         return Task.CompletedTask;
     }
 
-    public async Task SetEffectResults(StoredId storedId, IReadOnlyList<StoredEffectChange> changes)
+    public async Task SetEffectResults(StoredId storedId, IReadOnlyList<StoredEffectChange> changes, IStorageSession? session)
     {
         foreach (var storedEffect in changes.Where(c => c.Operation != CrudOperation.Delete).Select(c => c.StoredEffect!))
-            await SetEffectResult(storedId, storedEffect);
+            await SetEffectResult(storedId, storedEffect, session);
 
         foreach (var effectId in changes.Where(c => c.Operation == CrudOperation.Delete).Select(c => c.EffectId))
             await DeleteEffectResult(storedId, effectId);

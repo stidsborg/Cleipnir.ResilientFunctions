@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Cleipnir.ResilientFunctions.Storage;
 using Shouldly;
 
 namespace Cleipnir.ResilientFunctions.Tests.Utils;
@@ -9,6 +10,12 @@ public static class ShoudlyTaskExtensions
 {
     public static async Task ShouldBeTrueAsync(this Task<bool> task) => (await task).ShouldBeTrue();
     public static async Task ShouldBeFalseAsync(this Task<bool> task) => (await task).ShouldBeFalse();
+
+    public static async Task ShouldNotBeNullAsync(this Task<IStorageSession?> task)
+        => (await task).ShouldNotBeNull();
+
+    public static async Task ShouldBeNullAsync(this Task<IStorageSession?> task)
+        => (await task).ShouldBeNull();
 
     public static async Task ShouldBeNullAsync<T>(this Task<T?> task) where T : class 
         => (await task).ShouldBeNull();

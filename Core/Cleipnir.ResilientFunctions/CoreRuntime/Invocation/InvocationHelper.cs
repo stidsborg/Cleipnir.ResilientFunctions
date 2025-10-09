@@ -66,7 +66,7 @@ internal class InvocationHelper<TParam, TReturn>
                 ? null
                 : MapInitialMessages(initialState.Messages);
             
-            var created = await _functionStore.CreateFunction(
+            var storageState = await _functionStore.CreateFunction(
                 storedId,
                 humanInstanceId,
                 storedParameter,
@@ -79,6 +79,7 @@ internal class InvocationHelper<TParam, TReturn>
                 messages
             );
 
+            var created = storageState != null;
             if (!created) runningFunction.Dispose();
             return Tuple.Create(created, runningFunction);
         }
@@ -95,7 +96,7 @@ internal class InvocationHelper<TParam, TReturn>
     public async Task PersistFailure(StoredId storedId, FatalWorkflowException exception, TParam param)
     {
         var storedException = Serializer.SerializeException(exception);
-        
+
         var success = await _functionStore.FailFunction(
             storedId,
             storedException,
@@ -103,12 +104,9 @@ internal class InvocationHelper<TParam, TReturn>
             _replicaId,
             effects: null,
             messages: null,
-            complimentaryState: new ComplimentaryState(
-                () => SerializeParameter(param),
-                _settings.LeaseLength.Ticks
-            )
+            storageSession: null
         );
-        if (!success) 
+        if (!success)
             throw UnexpectedStateException.ConcurrentModification(storedId);
     }
 
@@ -128,18 +126,18 @@ internal class InvocationHelper<TParam, TReturn>
                     _replicaId,
                     effects: null,
                     messages: null,
-                    complementaryState
+                    storageSession: null
                 ) ? PersistResultOutcome.Success : PersistResultOutcome.Failed;
             case Outcome.Postpone:
                 return await _functionStore.PostponeFunction(
                     storedId,
                     postponeUntil: result.Postpone!.DateTime.Ticks,
                     timestamp: UtcNow().Ticks,
-                    ignoreInterrupted: false, 
+                    ignoreInterrupted: false,
                     _replicaId,
                     effects: null,
                     messages: null,
-                    complementaryState
+                    storageSession: null
                 ) ? PersistResultOutcome.Success : PersistResultOutcome.Reschedule;
             case Outcome.Fail:
                 return await _functionStore.FailFunction(
@@ -149,7 +147,7 @@ internal class InvocationHelper<TParam, TReturn>
                     _replicaId,
                     effects: null,
                     messages: null,
-                    complementaryState
+                    storageSession: null
                 ) ? PersistResultOutcome.Success : PersistResultOutcome.Failed;
             case Outcome.Suspend:
                 return await _functionStore.SuspendFunction(
@@ -158,7 +156,7 @@ internal class InvocationHelper<TParam, TReturn>
                     _replicaId,
                     effects: null,
                     messages: null,
-                    complementaryState
+                    storageSession: null
                 ) ? PersistResultOutcome.Success : PersistResultOutcome.Reschedule;
             default:
                 throw new ArgumentOutOfRangeException();
@@ -272,10 +270,7 @@ internal class InvocationHelper<TParam, TReturn>
                 _replicaId,
                 effects: null,
                 messages: null,
-                complimentaryState: new ComplimentaryState(
-                    () => sf.Parameter,
-                    _settings.LeaseLength.Ticks
-                )
+                storageSession: null
             );
             throw;
         }
@@ -509,13 +504,11 @@ internal class InvocationHelper<TParam, TReturn>
             e.Exception == null
                 ? new StoredEffect(
                     e.Id.ToEffectId(EffectType.Effect),
-                    e.Id.ToEffectId(EffectType.Effect).ToStoredEffectId(),
                     e.Status ?? WorkStatus.Completed,
                     Result: Serializer.Serialize(e.Value, e.Value?.GetType() ?? typeof(object)),
                     StoredException: null)
                 : new StoredEffect(
                     e.Id.ToEffectId(EffectType.Effect),
-                    e.Id.ToEffectId(EffectType.Effect).ToStoredEffectId(),
                     WorkStatus.Failed,
                     Result: null,
                     StoredException: Serializer.SerializeException(FatalWorkflowException.CreateNonGeneric(flowId, e.Exception))
@@ -539,7 +532,7 @@ internal class InvocationHelper<TParam, TReturn>
             _replicaId,
             effects: null,
             messages: null,
-            complimentaryState: new ComplimentaryState(() => SerializeParameter(param), _settings.LeaseLength.Ticks)
+            storageSession: null
         );
     }
 }

@@ -286,7 +286,7 @@ public abstract class ReplicaWatchdogTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: toBeStrikedOut
-        ).ShouldBeTrueAsync();
+        ).ShouldNotBeNullAsync();
         
         var replicaStore = functionStore.ReplicaStore;
         

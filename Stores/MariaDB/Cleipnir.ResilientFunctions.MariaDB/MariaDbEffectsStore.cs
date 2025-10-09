@@ -35,7 +35,7 @@ public class MariaDbEffectsStore(string connectionString, SqlGenerator sqlGenera
     }
 
     private string? _setEffectResultSql;
-    public async Task SetEffectResult(StoredId storedId, StoredEffect storedEffect)
+    public async Task SetEffectResult(StoredId storedId, StoredEffect storedEffect, IStorageSession? session)
     {
         await using var conn = await CreateConnection();
         _setEffectResultSql ??= $@"
@@ -62,16 +62,16 @@ public class MariaDbEffectsStore(string connectionString, SqlGenerator sqlGenera
         await command.ExecuteNonQueryAsync();
     }
 
-    public async Task SetEffectResults(StoredId storedId, IReadOnlyList<StoredEffectChange> changes)
+    public async Task SetEffectResults(StoredId storedId, IReadOnlyList<StoredEffectChange> changes, IStorageSession? session)
     {
         if (changes.Count == 0)
             return;
-        
+
         await using var conn = await CreateConnection();
         await using var command = sqlGenerator
             .UpdateEffects(changes)!
             .ToSqlCommand(conn);
-        
+
         await command.ExecuteNonQueryAsync();
     }
 

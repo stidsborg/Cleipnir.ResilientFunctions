@@ -40,18 +40,18 @@ public class PostgreSqlEffectsStore(string connectionString, SqlGenerator sqlGen
     }
 
     private string? _setEffectResultSql;
-    public async Task SetEffectResult(StoredId storedId, StoredEffect storedEffect)
+    public async Task SetEffectResult(StoredId storedId, StoredEffect storedEffect, IStorageSession? session)
     {
         await using var conn = await CreateConnection();
         _setEffectResultSql ??= $@"
-          INSERT INTO {tablePrefix}_effects 
+          INSERT INTO {tablePrefix}_effects
               (id, id_hash, status, result, exception, effect_id)
           VALUES
-              ($1, $2, $3, $4, $5, $6) 
-          ON CONFLICT (id, id_hash) 
-          DO 
+              ($1, $2, $3, $4, $5, $6)
+          ON CONFLICT (id, id_hash)
+          DO
             UPDATE SET status = EXCLUDED.status, result = EXCLUDED.result, exception = EXCLUDED.exception";
-        
+
         await using var command = new NpgsqlCommand(_setEffectResultSql, conn)
         {
             Parameters =
@@ -68,15 +68,15 @@ public class PostgreSqlEffectsStore(string connectionString, SqlGenerator sqlGen
         await command.ExecuteNonQueryAsync();
     }
 
-    public async Task SetEffectResults(StoredId storedId, IReadOnlyList<StoredEffectChange> changes)
+    public async Task SetEffectResults(StoredId storedId, IReadOnlyList<StoredEffectChange> changes, IStorageSession? session)
     {
         if (changes.Count == 0)
             return;
-        
+
         await using var batch = sqlGenerator.UpdateEffects(changes).ToNpgsqlBatch();
         await using var conn = await CreateConnection();
         batch.WithConnection(conn);
-        
+
         await batch.ExecuteNonQueryAsync();
     }
 

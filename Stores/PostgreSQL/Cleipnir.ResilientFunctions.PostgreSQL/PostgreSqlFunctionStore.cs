@@ -120,16 +120,16 @@ public class PostgreSqlFunctionStore : IFunctionStore
         await command.ExecuteNonQueryAsync();
     }
     
-    public async Task<bool> CreateFunction(
+    public async Task<IStorageSession?> CreateFunction(
         StoredId storedId,
         FlowInstance humanInstanceId,
-        byte[]? param, 
+        byte[]? param,
         long leaseExpiration,
         long? postponeUntil,
         long timestamp,
         StoredId? parent,
         ReplicaId? owner,
-        IReadOnlyList<StoredEffect>? effects = null, 
+        IReadOnlyList<StoredEffect>? effects = null,
         IReadOnlyList<StoredMessage>? messages = null
         )
     {
@@ -149,7 +149,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
             ).ToNpgsqlCommand(conn);
 
             var affectedRows = await command.ExecuteNonQueryAsync();
-            return affectedRows == 1;    
+            return affectedRows == 1 ? new EmptyStorageSession() : null;    
         }
 
         try
@@ -185,11 +185,11 @@ public class PostgreSqlFunctionStore : IFunctionStore
             await using var conn = await CreateConnection();
             batch.WithConnection(conn);
             await batch.ExecuteNonQueryAsync();
-            return true;
+            return new EmptyStorageSession();
         }
         catch (PostgresException e) when (e.SqlState == "23505")
         {
-            return false;
+            return null;
         }
     }
 
@@ -248,7 +248,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         await reader.NextResultAsync();
         
         var messages = await _sqlGenerator.ReadMessages(reader);
-        return new StoredFlowWithEffectsAndMessages(sf, effects, messages);
+        return new StoredFlowWithEffectsAndMessages(sf, effects, messages, new EmptyStorageSession());
     }
 
     private string? _getExpiredFunctionsSql;
@@ -344,13 +344,13 @@ public class PostgreSqlFunctionStore : IFunctionStore
     }
     
     public async Task<bool> SucceedFunction(
-        StoredId storedId, 
-        byte[]? result, 
+        StoredId storedId,
+        byte[]? result,
         long timestamp,
-        ReplicaId expectedReplica, 
+        ReplicaId expectedReplica,
         IReadOnlyList<StoredEffect>? effects,
         IReadOnlyList<StoredMessage>? messages,
-        ComplimentaryState complimentaryState)
+        IStorageSession? storageSession)
     {
         await using var conn = await CreateConnection();
         await using var command = _sqlGenerator.SucceedFunction(
@@ -359,20 +359,20 @@ public class PostgreSqlFunctionStore : IFunctionStore
             timestamp,
             expectedReplica
         ).ToNpgsqlCommand(conn);
-        
+
         var affectedRows = await command.ExecuteNonQueryAsync();
         return affectedRows == 1;
     }
     
     public async Task<bool> PostponeFunction(
-        StoredId storedId, 
-        long postponeUntil, 
+        StoredId storedId,
+        long postponeUntil,
         long timestamp,
         bool ignoreInterrupted,
         ReplicaId expectedReplica,
         IReadOnlyList<StoredEffect>? effects,
         IReadOnlyList<StoredMessage>? messages,
-        ComplimentaryState complimentaryState)
+        IStorageSession? storageSession)
     {
         await using var conn = await CreateConnection();
         await using var command = _sqlGenerator.PostponeFunction(
@@ -382,19 +382,19 @@ public class PostgreSqlFunctionStore : IFunctionStore
             ignoreInterrupted,
             expectedReplica
         ).ToNpgsqlCommand(conn);
-        
+
         var affectedRows = await command.ExecuteNonQueryAsync();
         return affectedRows == 1;
     }
     
     public async Task<bool> FailFunction(
-        StoredId storedId, 
-        StoredException storedException, 
+        StoredId storedId,
+        StoredException storedException,
         long timestamp,
-        ReplicaId expectedReplica, 
+        ReplicaId expectedReplica,
         IReadOnlyList<StoredEffect>? effects,
         IReadOnlyList<StoredMessage>? messages,
-        ComplimentaryState complimentaryState)
+        IStorageSession? storageSession)
     {
         await using var conn = await CreateConnection();
         await using var command = _sqlGenerator.FailFunction(
@@ -403,18 +403,18 @@ public class PostgreSqlFunctionStore : IFunctionStore
             timestamp,
             expectedReplica
         ).ToNpgsqlCommand(conn);
-        
+
         var affectedRows = await command.ExecuteNonQueryAsync();
         return affectedRows == 1;
     }
     
     public async Task<bool> SuspendFunction(
-        StoredId storedId, 
+        StoredId storedId,
         long timestamp,
-        ReplicaId expectedReplica, 
+        ReplicaId expectedReplica,
         IReadOnlyList<StoredEffect>? effects,
         IReadOnlyList<StoredMessage>? messages,
-        ComplimentaryState complimentaryState)
+        IStorageSession? storageSession)
     {
         await using var conn = await CreateConnection();
 

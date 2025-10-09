@@ -132,21 +132,21 @@ public class SqlServerFunctionStore : IFunctionStore
         await command.ExecuteNonQueryAsync();
     }
     
-    public async Task<bool> CreateFunction(
-        StoredId storedId, 
+    public async Task<IStorageSession?> CreateFunction(
+        StoredId storedId,
         FlowInstance humanInstanceId,
-        byte[]? param, 
+        byte[]? param,
         long leaseExpiration,
         long? postponeUntil,
         long timestamp,
         StoredId? parent,
         ReplicaId? owner,
-        IReadOnlyList<StoredEffect>? effects = null, 
+        IReadOnlyList<StoredEffect>? effects = null,
         IReadOnlyList<StoredMessage>? messages = null
     )
     {
         await using var conn = await _connFunc();
-        
+
         try
         {
             var storeCommand = _sqlGenerator
@@ -186,10 +186,10 @@ public class SqlServerFunctionStore : IFunctionStore
         }
         catch (SqlException sqlException) when (sqlException.Number == SqlError.UNIQUENESS_VIOLATION)
         {
-            return false;
+            return null;
         }
 
-        return true;
+        return new EmptyStorageSession();
     }
 
     private string? _bulkScheduleFunctionsSql;
@@ -267,7 +267,7 @@ public class SqlServerFunctionStore : IFunctionStore
         await reader.NextResultAsync();
         var messages = await _sqlGenerator.ReadMessages(reader);
 
-        return new StoredFlowWithEffectsAndMessages(sf, effects, messages);
+        return new StoredFlowWithEffectsAndMessages(sf, effects, messages, new EmptyStorageSession());
     }
 
     private string? _getExpiredFunctionsSql;
@@ -364,13 +364,13 @@ public class SqlServerFunctionStore : IFunctionStore
     }
     
     public async Task<bool> SucceedFunction(
-        StoredId storedId, 
-        byte[]? result, 
+        StoredId storedId,
+        byte[]? result,
         long timestamp,
-        ReplicaId expectedReplica, 
+        ReplicaId expectedReplica,
         IReadOnlyList<StoredEffect>? effects,
         IReadOnlyList<StoredMessage>? messages,
-        ComplimentaryState complimentaryState)
+        IStorageSession? storageSession)
     {
         await using var conn = await _connFunc();
         await using var command = _sqlGenerator
@@ -381,20 +381,20 @@ public class SqlServerFunctionStore : IFunctionStore
                 expectedReplica,
                 paramPrefix: ""
             ).ToSqlCommand(conn);
-        
+
         var affectedRows = await command.ExecuteNonQueryAsync();
         return affectedRows > 0;
     }
     
     public async Task<bool> PostponeFunction(
-        StoredId storedId, 
-        long postponeUntil, 
+        StoredId storedId,
+        long postponeUntil,
         long timestamp,
         bool ignoreInterrupted,
-        ReplicaId expectedReplica, 
+        ReplicaId expectedReplica,
         IReadOnlyList<StoredEffect>? effects,
         IReadOnlyList<StoredMessage>? messages,
-        ComplimentaryState complimentaryState)
+        IStorageSession? storageSession)
     {
         await using var conn = await _connFunc();
         await using var command = _sqlGenerator.PostponeFunction(
@@ -411,13 +411,13 @@ public class SqlServerFunctionStore : IFunctionStore
     }
     
     public async Task<bool> FailFunction(
-        StoredId storedId, 
-        StoredException storedException, 
+        StoredId storedId,
+        StoredException storedException,
         long timestamp,
-        ReplicaId expectedReplica, 
+        ReplicaId expectedReplica,
         IReadOnlyList<StoredEffect>? effects,
         IReadOnlyList<StoredMessage>? messages,
-        ComplimentaryState complimentaryState)
+        IStorageSession? storageSession)
     {
         await using var conn = await _connFunc();
         await using var command = _sqlGenerator
@@ -428,19 +428,19 @@ public class SqlServerFunctionStore : IFunctionStore
                 expectedReplica,
                 paramPrefix: ""
             ).ToSqlCommand(conn);
-        
+
 
         var affectedRows = await command.ExecuteNonQueryAsync();
         return affectedRows > 0;
     }
     
     public async Task<bool> SuspendFunction(
-        StoredId storedId, 
+        StoredId storedId,
         long timestamp,
         ReplicaId expectedReplica,
         IReadOnlyList<StoredEffect>? effects,
         IReadOnlyList<StoredMessage>? messages,
-        ComplimentaryState complimentaryState)
+        IStorageSession? storageSession)
     {
         await using var conn = await _connFunc();
         await using var command = _sqlGenerator
@@ -449,7 +449,7 @@ public class SqlServerFunctionStore : IFunctionStore
                 timestamp,
                 expectedReplica,
                 paramPrefix: ""
-            ).ToSqlCommand(conn); 
+            ).ToSqlCommand(conn);
 
         var affectedRows = await command.ExecuteNonQueryAsync();
         return affectedRows == 1;

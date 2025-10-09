@@ -70,7 +70,7 @@ public class SqlGenerator(string tablePrefix)
             var exception = reader.IsDBNull(3) ? null : reader.GetString(3);
             var effectId = reader.GetString(4);
             functions.Add(
-                new StoredEffect(EffectId.Deserialize(effectId), new StoredEffectId(idHash), status, result, JsonHelper.FromJson<StoredException>(exception))
+                new StoredEffect(EffectId.Deserialize(effectId), status, result, JsonHelper.FromJson<StoredException>(exception))
             );
         }
 
@@ -90,7 +90,7 @@ public class SqlGenerator(string tablePrefix)
             if (!effects.ContainsKey(id))
                 effects[id] = new List<StoredEffect>();
 
-            var se = new StoredEffect(EffectId.Deserialize(effectId), new StoredEffectId(idHash), status, result, JsonHelper.FromJson<StoredException>(exception));
+            var se = new StoredEffect(EffectId.Deserialize(effectId), status, result, JsonHelper.FromJson<StoredException>(exception));
             effects[id].Add(se);
         }
 

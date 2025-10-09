@@ -42,7 +42,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
     
     #region FunctionStore
 
-    public virtual Task<bool> CreateFunction(
+    public virtual Task<IStorageSession?> CreateFunction(
         StoredId storedId,
         FlowInstance humanInstanceId,
         byte[]? param,
@@ -51,13 +51,13 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         long timestamp,
         StoredId? parent,
         ReplicaId? owner,
-        IReadOnlyList<StoredEffect>? effects = null, 
+        IReadOnlyList<StoredEffect>? effects = null,
         IReadOnlyList<StoredMessage>? messages = null)
     {
         lock (_sync)
         {
             if (_states.ContainsKey(storedId))
-                return false.ToTask();
+                return Task.FromResult<IStorageSession?>(null);
 
             _states[storedId] = new InnerState
             {
@@ -74,16 +74,16 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
             };
             if (!_messages.ContainsKey(storedId)) //messages can already have been added - i.e. paramless started by received message
                 _messages[storedId] = new List<StoredMessage>();
-            
+
             _messages[storedId].AddRange(messages ?? []);
 
             if (effects?.Any() ?? false)
                 _effectsStore
-                    .SetEffectResults(storedId, effects.Select(e => new StoredEffectChange(storedId, e.StoredEffectId, Operation: CrudOperation.Insert, e)).ToList())
+                    .SetEffectResults(storedId, effects.Select(e => new StoredEffectChange(storedId, e.StoredEffectId, Operation: CrudOperation.Insert, e)).ToList(), session: null)
                     .GetAwaiter()
                     .GetResult();
 
-            return true.ToTask();
+            return Task.FromResult<IStorageSession?>(new EmptyStorageSession());
         }
     }
 
@@ -136,7 +136,8 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
                 : new StoredFlowWithEffectsAndMessages(
                     sf,
                     effects,
-                    messages
+                    messages,
+                    new EmptyStorageSession()
                 );
     }
     
@@ -194,13 +195,13 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
     }
 
     public Task<bool> SucceedFunction(
-        StoredId storedId, 
-        byte[]? result, 
+        StoredId storedId,
+        byte[]? result,
         long timestamp,
         ReplicaId? expectedReplica,
         IReadOnlyList<StoredEffect>? effects,
         IReadOnlyList<StoredMessage>? messages,
-        ComplimentaryState complimentaryState)
+        IStorageSession? storageSession)
     {
         lock (_sync)
         {
@@ -219,14 +220,14 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
     }
 
     public Task<bool> PostponeFunction(
-        StoredId storedId, 
-        long postponeUntil, 
+        StoredId storedId,
+        long postponeUntil,
         long timestamp,
         bool ignoreInterrupted,
         ReplicaId? expectedReplica,
         IReadOnlyList<StoredEffect>? effects,
         IReadOnlyList<StoredMessage>? messages,
-        ComplimentaryState complimentaryState)
+        IStorageSession? storageSession)
     {
         lock (_sync)
         {
@@ -237,24 +238,24 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
 
             if (!ignoreInterrupted && state.Interrupted)
                 return false.ToTask();
-            
+
             state.Status = Status.Postponed;
             state.Expires = postponeUntil;
             state.Timestamp = timestamp;
             state.Owner = null;
-            
+
             return true.ToTask();
         }
     }
 
     public Task<bool> FailFunction(
-        StoredId storedId, 
-        StoredException storedException, 
+        StoredId storedId,
+        StoredException storedException,
         long timestamp,
         ReplicaId? expectedReplica,
         IReadOnlyList<StoredEffect>? effects,
         IReadOnlyList<StoredMessage>? messages,
-        ComplimentaryState complimentaryState)
+        IStorageSession? storageSession)
     {
         lock (_sync)
         {
@@ -267,18 +268,18 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
             state.Exception = storedException;
             state.Timestamp = timestamp;
             state.Owner = null;
-            
+
             return true.ToTask();
         }
     }
 
     public Task<bool> SuspendFunction(
-        StoredId storedId, 
+        StoredId storedId,
         long timestamp,
         ReplicaId? expectedReplica,
         IReadOnlyList<StoredEffect>? effects,
         IReadOnlyList<StoredMessage>? messages,
-        ComplimentaryState complimentaryState)
+        IStorageSession? storageSession)
     {
         lock (_sync)
         {
@@ -291,11 +292,11 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
 
             if (state.Interrupted)
                 return false.ToTask();
-                
+
             state.Status = Status.Suspended;
             state.Timestamp = timestamp;
             state.Owner = null;
-            
+
             return true.ToTask();
         }
     }

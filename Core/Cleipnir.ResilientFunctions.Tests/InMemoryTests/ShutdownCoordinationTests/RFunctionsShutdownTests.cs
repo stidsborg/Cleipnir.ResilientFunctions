@@ -124,7 +124,7 @@ public class RFunctionsShutdownTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: null
-        ).ShouldBeTrueAsync();
+        ).ShouldNotBeNullAsync();
 
         await insideRFuncFlag.WaitForRaised();
 
@@ -177,7 +177,7 @@ public class RFunctionsShutdownTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: Guid.Empty.ToReplicaId()
-        ).ShouldBeTrueAsync();
+        ).ShouldNotBeNullAsync();
 
         await store.PostponeFunction(
             registration.MapToStoredId(functionId.Instance),
@@ -187,7 +187,7 @@ public class RFunctionsShutdownTests
             Guid.Empty.ToReplicaId(),
             effects: null,
             messages: null,
-            new ComplimentaryState(() => storedParameter.ToUtf8Bytes(), LeaseLength: 0)
+            storageSession: null
         ).ShouldBeTrueAsync();
 
 

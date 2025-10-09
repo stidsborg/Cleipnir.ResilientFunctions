@@ -405,7 +405,7 @@ public class EffectResults
                     )
                 ).ToList();
             
-            await _effectsStore.SetEffectResults(_storedId, changes);
+            await _effectsStore.SetEffectResults(_storedId, changes, session: null);
             
             lock (_sync)
                 foreach (var (key, value) in _effectResults.ToList())

@@ -45,7 +45,7 @@ public static class PostponedTest
                 expectedReplica: ReplicaId.Empty,
                 effects: null,
                 messages: null,
-                complimentaryState: new ComplimentaryState(() => storedParameter.ToUtf8Bytes(), LeaseLength: 0)
+                storageSession: null
             );
         }
         stopWatch.Stop();

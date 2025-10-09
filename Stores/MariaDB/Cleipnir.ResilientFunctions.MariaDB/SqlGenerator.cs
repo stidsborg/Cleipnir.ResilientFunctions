@@ -63,10 +63,9 @@ public class SqlGenerator(string tablePrefix)
             functions.Add(
                 new StoredEffect(
                     EffectId.Deserialize(effectId),
-                    new StoredEffectId(Guid.Parse(idHash)),
                     status,
                     result,
-                    StoredException: JsonHelper.FromJson<StoredException>(exception)
+                    JsonHelper.FromJson<StoredException>(exception)
                 )
             );
         }
@@ -103,10 +102,9 @@ public class SqlGenerator(string tablePrefix)
             storedEffects[id].Add(
                 new StoredEffect(
                     EffectId.Deserialize(effectId),
-                    new StoredEffectId(Guid.Parse(idHash)),
                     status,
                     result,
-                    StoredException: JsonHelper.FromJson<StoredException>(exception)
+                    JsonHelper.FromJson<StoredException>(exception)
                 )
             );
         }

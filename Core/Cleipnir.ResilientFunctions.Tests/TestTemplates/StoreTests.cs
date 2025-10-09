@@ -36,7 +36,7 @@ public abstract class StoreTests
             timestamp,
             parent: null,
             owner: ReplicaId.Empty
-        ).ShouldBeTrueAsync();
+        ).ShouldNotBeNullAsync();
 
         var storedFunction = await store.GetFunction(functionId);
         storedFunction.ShouldNotBeNull();
@@ -54,7 +54,7 @@ public abstract class StoreTests
             timestamp: DateTime.UtcNow.Ticks,
             effects: null,
             messages: null,
-            complimentaryState: new ComplimentaryState(() => storedParameter.ToUtf8Bytes(), LeaseLength: 0)
+            storageSession: null
         ).ShouldBeTrueAsync();
             
         storedFunction = await store.GetFunction(functionId);
@@ -80,7 +80,7 @@ public abstract class StoreTests
             timestamp,
             parent: null,
             owner: null
-        ).ShouldBeTrueAsync();
+        ).ShouldNotBeNullAsync();
 
         var sf = await store.GetFunction(functionId);
         sf.ShouldNotBeNull();
@@ -105,7 +105,7 @@ public abstract class StoreTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: null
-        ).ShouldBeTrueAsync();
+        ).ShouldNotBeNullAsync();
 
         var leaseExpiration = DateTime.UtcNow.Ticks;
         await store
@@ -139,7 +139,7 @@ public abstract class StoreTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner
-        ).ShouldBeTrueAsync();
+        ).ShouldNotBeNullAsync();
         
         await store
             .RestartExecution(
@@ -170,7 +170,7 @@ public abstract class StoreTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: null
-        ).ShouldBeTrueAsync();
+        ).ShouldNotBeNullAsync();
 
         await store.CreateFunction(
             functionId, 
@@ -181,7 +181,7 @@ public abstract class StoreTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: null
-        ).ShouldBeFalseAsync();
+        ).ShouldBeNullAsync();
     }
     
     public abstract Task FunctionCreatedWithSendResultToReturnsSendResultToInStoredFunction();
@@ -202,7 +202,7 @@ public abstract class StoreTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: null
-        ).ShouldBeTrueAsync();
+        ).ShouldNotBeNullAsync();
 
         var sf = await store.GetFunction(functionId);
         sf.ShouldNotBeNull();
@@ -228,7 +228,7 @@ public abstract class StoreTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: ReplicaId.Empty
-        ).ShouldBeTrueAsync();
+        ).ShouldNotBeNullAsync();
 
         await store.PostponeFunction(
             functionId,
@@ -238,7 +238,7 @@ public abstract class StoreTests
             expectedReplica: ReplicaId.Empty,
             effects: null,
             messages: null,
-            complimentaryState: new ComplimentaryState(storedParameter.ToUtf8Bytes().ToFunc(), LeaseLength: 0)
+            storageSession: null
         ).ShouldBeTrueAsync();
         
         var postponedFunctions = await store.GetExpiredFunctions(expiresBefore: nowTicks - 100);
@@ -266,7 +266,7 @@ public abstract class StoreTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: ReplicaId.Empty
-        ).ShouldBeTrueAsync();
+        ).ShouldNotBeNullAsync();
 
         await store.PostponeFunction(
             functionId,
@@ -276,7 +276,7 @@ public abstract class StoreTests
             expectedReplica: ReplicaId.Empty,
             effects: null,
             messages: null,
-            complimentaryState: new ComplimentaryState(storedParameter.ToUtf8Bytes().ToFunc(), LeaseLength: 0)
+            storageSession: null
         ).ShouldBeTrueAsync();
         
         var postponedFunctions = await store.GetExpiredFunctions(expiresBefore: nowTicks + 100);
@@ -304,7 +304,7 @@ public abstract class StoreTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: ReplicaId.Empty
-        ).ShouldBeTrueAsync();
+        ).ShouldNotBeNullAsync();
 
         await store.PostponeFunction(
             functionId,
@@ -314,7 +314,7 @@ public abstract class StoreTests
             expectedReplica: ReplicaId.NewId(),
             effects: null,
             messages: null,
-            complimentaryState: new ComplimentaryState(storedParameter.ToUtf8Bytes().ToFunc(), LeaseLength: 0)
+            storageSession: null
         ).ShouldBeFalseAsync();
 
         var sf = await store.GetFunction(functionId);
@@ -383,7 +383,7 @@ public abstract class StoreTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: null
-        ).ShouldBeTrueAsync();
+        ).ShouldNotBeNullAsync();
 
         await store.RestartExecution(functionId, owner: ReplicaId.NewId()).ShouldNotBeNullAsync();
 
@@ -406,7 +406,7 @@ public abstract class StoreTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: Guid.NewGuid().ToReplicaId()
-        ).ShouldBeTrueAsync();
+        ).ShouldNotBeNullAsync();
 
         await store.RestartExecution(functionId, owner: ReplicaId.NewId()).ShouldBeNullAsync();
         
@@ -430,7 +430,7 @@ public abstract class StoreTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: null
-        ).ShouldBeTrueAsync();
+        ).ShouldNotBeNullAsync();
 
         await BusyWait.Until(() => store.GetFunction(functionId).SelectAsync(sf => sf != null));
         
@@ -461,7 +461,7 @@ public abstract class StoreTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: ReplicaId.Empty
-        ).ShouldBeTrueAsync();
+        ).ShouldNotBeNullAsync();
 
         var storedException = new StoredException(
             ExceptionMessage: "Something went wrong",
@@ -476,9 +476,9 @@ public abstract class StoreTests
             expectedReplica: ReplicaId.Empty,
             effects: null,
             messages: null,
-            complimentaryState: new ComplimentaryState(storedParameter.ToUtf8Bytes().ToFunc(), LeaseLength: 0)
+            storageSession: null
         );
-        
+
         await BusyWait.Until(() => store.GetFunction(storedId).SelectAsync(sf => sf != null));
 
         var sf = await store.GetFunction(storedId);
@@ -507,7 +507,7 @@ public abstract class StoreTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: null
-        ).ShouldBeTrueAsync();
+        ).ShouldNotBeNullAsync();
 
         await store.SetFunctionState(
             functionId,
@@ -544,7 +544,7 @@ public abstract class StoreTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: null
-        ).ShouldBeTrueAsync();
+        ).ShouldNotBeNullAsync();
 
         var message1 = new StoredMessage(
             "hello everyone".ToJson().ToUtf8Bytes(),
@@ -592,7 +592,7 @@ public abstract class StoreTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: ReplicaId.Empty
-        ).ShouldBeTrueAsync();
+        ).ShouldNotBeNullAsync();
 
         await store.SuspendFunction(
             functionId,
@@ -600,7 +600,7 @@ public abstract class StoreTests
             expectedReplica: ReplicaId.Empty,
             effects: null,
             messages: null,
-            complimentaryState: new ComplimentaryState(storedParameter.ToUtf8Bytes().ToFunc(), LeaseLength: 0)
+            storageSession: null
         ).ShouldBeAsync(true);
 
         var sf = await store.GetFunction(functionId);
@@ -647,7 +647,7 @@ public abstract class StoreTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: null
-        ).ShouldBeTrueAsync();
+        ).ShouldNotBeNullAsync();
 
         await store.RestartExecution(
             functionId, 
@@ -675,7 +675,7 @@ public abstract class StoreTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: null
-        ).ShouldBeTrueAsync();
+        ).ShouldNotBeNullAsync();
 
         await store.Interrupt(functionId).ShouldBeTrueAsync();
         await store.Interrupted(functionId).ShouldBeAsync(true);
@@ -704,7 +704,7 @@ public abstract class StoreTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: null
-        ).ShouldBeTrueAsync();
+        ).ShouldNotBeNullAsync();
 
         await store.MessageStore.AppendMessage(functionId, new StoredMessage("Hello".ToJson().ToUtf8Bytes(), MessageType: typeof(string).SimpleQualifiedName().ToUtf8Bytes()));
         await store.MessageStore.AppendMessage(functionId, new StoredMessage("World".ToJson().ToUtf8Bytes(), MessageType: typeof(string).SimpleQualifiedName().ToUtf8Bytes()));
@@ -731,7 +731,7 @@ public abstract class StoreTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: null
-        ).ShouldBeTrueAsync();
+        ).ShouldNotBeNullAsync();
 
         await store.SetFunctionState(
             functionId,
@@ -764,7 +764,7 @@ public abstract class StoreTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: ReplicaId.Empty
-        ).ShouldBeTrueAsync();
+        ).ShouldNotBeNullAsync();
 
         await store.SucceedFunction(
             functionId,
@@ -773,7 +773,7 @@ public abstract class StoreTests
             expectedReplica: ReplicaId.Empty,
             effects: null,
             messages: null,
-            complimentaryState: new ComplimentaryState(Test.SimpleStoredParameter.ToFunc(), LeaseLength: 0)
+            storageSession: null
         );
         
         var storedFunction = await store.GetFunction(functionId);
@@ -795,7 +795,7 @@ public abstract class StoreTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: ReplicaId.Empty
-        ).ShouldBeTrueAsync();
+        ).ShouldNotBeNullAsync();
 
         await store.PostponeFunction(
             functionId,
@@ -805,7 +805,7 @@ public abstract class StoreTests
             expectedReplica: ReplicaId.Empty,
             effects: null,
             messages: null,
-            complimentaryState: new ComplimentaryState(Test.SimpleStoredParameter.ToFunc(), LeaseLength: 0)
+            storageSession: null
         );
         
         var storedFunction = await store.GetFunction(functionId);
@@ -827,7 +827,7 @@ public abstract class StoreTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: ReplicaId.Empty
-        ).ShouldBeTrueAsync();
+        ).ShouldNotBeNullAsync();
 
         await store.FailFunction(
             functionId,
@@ -836,7 +836,7 @@ public abstract class StoreTests
             expectedReplica: ReplicaId.Empty,
             effects: null,
             messages: null,
-            complimentaryState: new ComplimentaryState(Test.SimpleStoredParameter.ToFunc(), LeaseLength: 0)
+            storageSession: null
         );
         
         var storedFunction = await store.GetFunction(functionId);
@@ -858,7 +858,7 @@ public abstract class StoreTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: ReplicaId.Empty
-        ).ShouldBeTrueAsync();
+        ).ShouldNotBeNullAsync();
 
         await store.SuspendFunction(
             functionId,
@@ -866,7 +866,7 @@ public abstract class StoreTests
             expectedReplica: ReplicaId.Empty,
             effects: null,
             messages: null,
-            complimentaryState: new ComplimentaryState(Test.SimpleStoredParameter.ToFunc(), LeaseLength: 0)
+            storageSession: null
         );
         
         var storedFunction = await store.GetFunction(functionId);
@@ -888,7 +888,7 @@ public abstract class StoreTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: ReplicaId.Empty
-        ).ShouldBeTrueAsync();
+        ).ShouldNotBeNullAsync();
 
         await store.MessageStore.AppendMessage(
             functionId,
@@ -903,7 +903,7 @@ public abstract class StoreTests
             expectedReplica: ReplicaId.Empty,
             effects: null,
             messages: null,
-            complimentaryState: new ComplimentaryState(Test.SimpleStoredParameter.ToFunc(), LeaseLength: 0)
+            storageSession: null
         ).ShouldBeFalseAsync();
         
         var storedFunction = await store.GetFunction(functionId);
@@ -926,7 +926,7 @@ public abstract class StoreTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: ReplicaId.Empty
-        ).ShouldBeTrueAsync();
+        ).ShouldNotBeNullAsync();
 
         await store.MessageStore.AppendMessage(
             functionId,
@@ -941,7 +941,7 @@ public abstract class StoreTests
             expectedReplica: ReplicaId.Empty,
             effects: null,
             messages: null,
-            complimentaryState: new ComplimentaryState(Test.SimpleStoredParameter.ToFunc(), LeaseLength: 0)
+            storageSession: null
         );
         
         success.ShouldBeFalse();
@@ -966,7 +966,7 @@ public abstract class StoreTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: null
-        ).ShouldBeTrueAsync();
+        ).ShouldNotBeNullAsync();
 
         var storedFunction = await store.GetFunction(functionId);
         storedFunction.ShouldNotBeNull();
@@ -995,7 +995,7 @@ public abstract class StoreTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: ReplicaId.Empty
-        ).ShouldBeTrueAsync();
+        ).ShouldNotBeNullAsync();
 
         await store.SuspendFunction(
             functionId,
@@ -1003,7 +1003,7 @@ public abstract class StoreTests
             expectedReplica: ReplicaId.Empty,
             effects: null,
             messages: null,
-            new ComplimentaryState(() => Test.SimpleStoredParameter, LeaseLength: 0)
+            storageSession: null
         ).ShouldBeTrueAsync();
 
         var storedFunction = await store.GetFunction(functionId);
@@ -1043,9 +1043,9 @@ public abstract class StoreTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: null
-        ).ShouldBeTrueAsync();
+        ).ShouldNotBeNullAsync();
 
-        await effectsStore.SetEffectResult(functionId, new StoredEffect(EffectId: "".ToEffectId(EffectType.State), "".ToStoredEffectId(EffectType.State), WorkStatus.Completed, "some default state".ToUtf8Bytes(), StoredException: null));
+        await effectsStore.SetEffectResult(functionId, new StoredEffect("".ToEffectId(EffectType.State), WorkStatus.Completed, "some default state".ToUtf8Bytes(), StoredException: null), session: null);
 
         var storedEffects = await effectsStore.GetEffectResults(functionId);
         storedEffects.Count.ShouldBe(1);
@@ -1072,7 +1072,7 @@ public abstract class StoreTests
                 timestamp: timestamp,
                 parent: null,
                 owner: ReplicaId.Empty
-            ).ShouldBeTrueAsync();
+            ).ShouldNotBeNullAsync();
 
             await store.SucceedFunction(
                 functionId,
@@ -1081,7 +1081,7 @@ public abstract class StoreTests
                 expectedReplica: ReplicaId.Empty,
                 effects: null,
                 messages: null,
-                new ComplimentaryState(() => Test.SimpleStoredParameter, LeaseLength: 0)
+                storageSession: null
             ).ShouldBeTrueAsync();
         }
 
@@ -1150,7 +1150,7 @@ public abstract class StoreTests
             timestamp,
             parent: null,
             owner: null
-        ).ShouldBeTrueAsync();
+        ).ShouldNotBeNullAsync();
         await store.CreateFunction(
             flowId2, 
             "humanInstanceId",
@@ -1160,7 +1160,7 @@ public abstract class StoreTests
             timestamp,
             parent: null,
             owner: null
-        ).ShouldBeTrueAsync();
+        ).ShouldNotBeNullAsync();
         
         var expires = await store.GetExpiredFunctions(expiresBefore: DateTime.UtcNow.Ticks);
         
@@ -1213,7 +1213,7 @@ public abstract class StoreTests
             timestamp: 0,
             parentId,
             owner: null
-        ).ShouldBeTrueAsync();
+        ).ShouldNotBeNullAsync();
 
         var sf = await store.GetFunction(id).ShouldNotBeNullAsync();
         sf.ParentId.ShouldBe(parentId);
@@ -1233,7 +1233,7 @@ public abstract class StoreTests
             timestamp: 0,
             parent: null,
             owner: null
-        ).ShouldBeTrueAsync();
+        ).ShouldNotBeNullAsync();
 
         var sf = await store.GetFunction(id).ShouldNotBeNullAsync();
         sf.ParentId.ShouldBeNull();
@@ -1258,7 +1258,7 @@ public abstract class StoreTests
                 timestamp: timestamp,
                 parent: null,
                 owner: ReplicaId.Empty
-            ).ShouldBeTrueAsync();
+            ).ShouldNotBeNullAsync();
 
             await store.SucceedFunction(
                 functionId,
@@ -1267,7 +1267,7 @@ public abstract class StoreTests
                 expectedReplica: ReplicaId.Empty,
                 effects: null,
                 messages: null,
-                new ComplimentaryState(() => Test.SimpleStoredParameter, LeaseLength: 0)
+                storageSession: null
             ).ShouldBeTrueAsync();
         }
 
@@ -1298,7 +1298,7 @@ public abstract class StoreTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: ReplicaId.Empty
-        ).ShouldBeTrueAsync();
+        ).ShouldNotBeNullAsync();
 
         await store.Interrupt([storedId]);
 
@@ -1310,7 +1310,7 @@ public abstract class StoreTests
             expectedReplica: ReplicaId.Empty,
             effects: null,
             messages: null,
-            new ComplimentaryState(() => Test.SimpleStoredParameter, LeaseLength: 0)
+            storageSession: null
         );
         success.ShouldBeFalse();
 
@@ -1340,7 +1340,7 @@ public abstract class StoreTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: ReplicaId.Empty
-        ).ShouldBeTrueAsync();
+        ).ShouldNotBeNullAsync();
 
         await store.Interrupt([storedId]);
 
@@ -1352,7 +1352,7 @@ public abstract class StoreTests
             expectedReplica: ReplicaId.Empty,
             effects: null,
             messages: null,
-            new ComplimentaryState(() => Test.SimpleStoredParameter, LeaseLength: 0)
+            storageSession: null
         );
         success.ShouldBeTrue();
 
@@ -1371,13 +1371,15 @@ public abstract class StoreTests
         var effectId1 = new EffectId("SomeEffect1", EffectType.State, Context: "");
         var effect1 = new StoredEffect(
             effectId1,
-            new StoredEffectId(Guid.NewGuid()), WorkStatus.Completed, Result: "hello world".ToUtf8Bytes(),
+            WorkStatus.Completed,
+            Result: "hello world".ToUtf8Bytes(),
             StoredException: null
         );
         var effectId2 = new EffectId("SomeEffect2", EffectType.State, Context: "");
         var effect2 = new StoredEffect(
             effectId2,
-            new StoredEffectId(Guid.NewGuid()), WorkStatus.Completed, Result: "hello universe".ToUtf8Bytes(),
+            WorkStatus.Completed,
+            Result: "hello universe".ToUtf8Bytes(),
             StoredException: null
         );
 
@@ -1403,7 +1405,7 @@ public abstract class StoreTests
             effects: [effect1, effect2],
             messages: [message1, message2],
             owner: null
-        ).ShouldBeTrueAsync();
+        ).ShouldNotBeNullAsync();
 
         var effectResults = await store.EffectsStore.GetEffectResults(storedId);
         effectResults.Count.ShouldBe(2);
@@ -1438,7 +1440,7 @@ public abstract class StoreTests
             effects: [effect1, effect2],
             messages: [message1, message2],
             owner: null
-        ).ShouldBeFalseAsync();
+        ).ShouldBeNullAsync();
     }
     
     public abstract Task FunctionCanBeCreatedWithMessagesOnly();
@@ -1471,7 +1473,7 @@ public abstract class StoreTests
             effects: null,
             messages: [message1, message2],
             owner: null
-        ).ShouldBeTrueAsync();
+        ).ShouldNotBeNullAsync();
 
         var effectResults = await store.EffectsStore.GetEffectResults(storedId);
         effectResults.Count.ShouldBe(0);
@@ -1500,7 +1502,7 @@ public abstract class StoreTests
             effects: null,
             messages: [message1, message2],
             owner: null
-        ).ShouldBeFalseAsync();
+        ).ShouldBeNullAsync();
     }
     
     public abstract Task FunctionCanBeCreatedWithEffectsOnly();
@@ -1514,13 +1516,15 @@ public abstract class StoreTests
         var effectId1 = new EffectId("SomeEffect1", EffectType.State, Context: "");
         var effect1 = new StoredEffect(
             effectId1,
-            new StoredEffectId(Guid.NewGuid()), WorkStatus.Completed, Result: "hello world".ToUtf8Bytes(),
+            WorkStatus.Completed,
+            Result: "hello world".ToUtf8Bytes(),
             StoredException: null
         );
         var effectId2 = new EffectId("SomeEffect2", EffectType.State, Context: "");
         var effect2 = new StoredEffect(
             effectId2,
-            new StoredEffectId(Guid.NewGuid()), WorkStatus.Completed, Result: "hello universe".ToUtf8Bytes(),
+            WorkStatus.Completed,
+            Result: "hello universe".ToUtf8Bytes(),
             StoredException: null
         );
         
@@ -1535,7 +1539,7 @@ public abstract class StoreTests
             effects: [effect1, effect2],
             messages: null,
             owner: null
-        ).ShouldBeTrueAsync();
+        ).ShouldNotBeNullAsync();
 
         var effectResults = await store.EffectsStore.GetEffectResults(storedId);
         effectResults.Count.ShouldBe(2);
@@ -1561,7 +1565,7 @@ public abstract class StoreTests
             effects: [effect1, effect2],
             messages: null,
             owner: null
-        ).ShouldBeFalseAsync();
+        ).ShouldBeNullAsync();
     }
     
     public abstract Task RestartExecutionReturnsEffectsAndMessages();
@@ -1581,7 +1585,7 @@ public abstract class StoreTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: null
-        ).ShouldBeTrueAsync();
+        ).ShouldNotBeNullAsync();
 
         await store.MessageStore.AppendMessage(
             functionId,
@@ -1595,14 +1599,14 @@ public abstract class StoreTests
             functionId,
             new StoredEffect(
                 "Test".ToEffectId(),
-                "Test".ToEffectId().ToStoredEffectId(),
                 WorkStatus.Completed,
                 "hallo effect".ToUtf8Bytes(),
                 StoredException: null
-                )
+                ),
+            session: null
         );
         
-        var (sf, effects, messages) = await store
+        var (sf, effects, messages, _) = await store
             .RestartExecution(
                 functionId,
                 owner: ReplicaId.NewId()
@@ -1634,10 +1638,10 @@ public abstract class StoreTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: null
-        ).ShouldBeTrueAsync();
+        ).ShouldNotBeNullAsync();
         
         var leaseExpiration = DateTime.UtcNow.Ticks;
-        var (sf, effects, messages) = await store
+        var (sf, effects, messages, _) = await store
             .RestartExecution(
                 functionId,
                 owner
@@ -1665,7 +1669,7 @@ public abstract class StoreTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: replicaId1
-        ).ShouldBeTrueAsync();
+        ).ShouldNotBeNullAsync();
         var storedId2 = TestStoredId.Create();
         await store.CreateFunction(
             storedId2,
@@ -1676,7 +1680,7 @@ public abstract class StoreTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: replicaId1
-        ).ShouldBeTrueAsync();
+        ).ShouldNotBeNullAsync();
         var storedId3 = TestStoredId.Create();
         await store.CreateFunction(
             storedId3,
@@ -1687,7 +1691,7 @@ public abstract class StoreTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: replicaId2
-        ).ShouldBeTrueAsync();
+        ).ShouldNotBeNullAsync();
 
         var replicas = await store.GetOwnerReplicas();
         replicas.Count.ShouldBe(2);
@@ -1730,7 +1734,7 @@ public abstract class StoreTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: ReplicaId.Empty
-        ).ShouldBeTrueAsync();
+        ).ShouldNotBeNullAsync();
 
         await store.SuspendFunction(
             functionId,
@@ -1738,7 +1742,7 @@ public abstract class StoreTests
             expectedReplica: ReplicaId.Empty,
             effects: null,
             messages: null,
-            complimentaryState: new ComplimentaryState(Test.SimpleStoredParameter.ToFunc(), LeaseLength: 0)
+            storageSession: null
         ).ShouldBeTrueAsync();
         
         var storedFunction = await store.GetFunction(functionId);
@@ -1761,16 +1765,16 @@ public abstract class StoreTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: ReplicaId.Empty
-        ).ShouldBeTrueAsync();
+        ).ShouldNotBeNullAsync();
 
         await store.FailFunction(
             functionId,
+            storedException: new StoredException("SomeMessage", ExceptionStackTrace: null, "SomeExceptionType"),
             timestamp: DateTime.UtcNow.Ticks,
             expectedReplica: ReplicaId.Empty,
             effects: null,
             messages: null,
-            storedException: new StoredException("SomeMessage", ExceptionStackTrace: null, "SomeExceptionType"),
-            complimentaryState: new ComplimentaryState(Test.SimpleStoredParameter.ToFunc(), LeaseLength: 0)
+            storageSession: null
         ).ShouldBeTrueAsync();
         
         var storedFunction = await store.GetFunction(functionId);
@@ -1793,7 +1797,7 @@ public abstract class StoreTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: ReplicaId.Empty
-        ).ShouldBeTrueAsync();
+        ).ShouldNotBeNullAsync();
 
         await store.PostponeFunction(
             functionId,
@@ -1803,7 +1807,7 @@ public abstract class StoreTests
             expectedReplica: ReplicaId.Empty,
             effects: null,
             messages: null,
-            complimentaryState: new ComplimentaryState(Test.SimpleStoredParameter.ToFunc(), LeaseLength: 0)
+            storageSession: null
         ).ShouldBeTrueAsync();
         
         var storedFunction = await store.GetFunction(functionId);
@@ -1826,7 +1830,7 @@ public abstract class StoreTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: ReplicaId.Empty
-        ).ShouldBeTrueAsync();
+        ).ShouldNotBeNullAsync();
 
         await store.SucceedFunction(
             functionId,
@@ -1835,7 +1839,7 @@ public abstract class StoreTests
             expectedReplica: ReplicaId.Empty,
             effects: null,
             messages: null,
-            complimentaryState: new ComplimentaryState(Test.SimpleStoredParameter.ToFunc(), LeaseLength: 0)
+            storageSession: null
         ).ShouldBeTrueAsync();
         
         var storedFunction = await store.GetFunction(functionId);
