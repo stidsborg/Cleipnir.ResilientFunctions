@@ -79,7 +79,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
 
             if (effects?.Any() ?? false)
                 _effectsStore
-                    .SetEffectResults(storedId, effects.Select(e => new StoredEffectChange(storedId, e.StoredEffectId, Operation: CrudOperation.Insert, e)).ToList())
+                    .SetEffectResults(storedId, effects.Select(e => new StoredEffectChange(storedId, e.StoredEffectId, Operation: CrudOperation.Insert, e)).ToList(), session: null)
                     .GetAwaiter()
                     .GetResult();
 

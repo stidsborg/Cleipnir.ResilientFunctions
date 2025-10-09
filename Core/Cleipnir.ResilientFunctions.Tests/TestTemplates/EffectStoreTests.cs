@@ -272,7 +272,8 @@ public abstract class EffectStoreTests
 
         await store.SetEffectResults(
             storedId,
-            [storedEffect1.ToStoredChange(storedId, Insert), storedEffect2.ToStoredChange(storedId, Insert)]
+            [storedEffect1.ToStoredChange(storedId, Insert), storedEffect2.ToStoredChange(storedId, Insert)],
+            session: null
         );
 
         var effects = await store.GetEffectResults(storedId);
@@ -310,14 +311,15 @@ public abstract class EffectStoreTests
             StoredException: null
         );
         
-        await store.SetEffectResults(storedId, [storedEffect1.ToStoredChange(storedId, Insert), storedEffect2.ToStoredChange(storedId, Insert)]);
+        await store.SetEffectResults(storedId, [storedEffect1.ToStoredChange(storedId, Insert), storedEffect2.ToStoredChange(storedId, Insert)], session: null);
         await store.SetEffectResults(
             storedId,
             changes: [
-                storedEffect3.ToStoredChange(storedId, Insert), 
-                StoredEffectChange.CreateDelete(storedId, storedEffect1.StoredEffectId), 
+                storedEffect3.ToStoredChange(storedId, Insert),
+                StoredEffectChange.CreateDelete(storedId, storedEffect1.StoredEffectId),
                 StoredEffectChange.CreateDelete(storedId, storedEffect2.StoredEffectId)
-            ]
+            ],
+            session: null
         );
         
         var effects = await store.GetEffectResults(storedId);
@@ -348,14 +350,16 @@ public abstract class EffectStoreTests
 
         await store.SetEffectResults(
             storedId,
-            changes: [storedEffect1.ToStoredChange(storedId, Insert), storedEffect2.ToStoredChange(storedId, Insert)]
+            changes: [storedEffect1.ToStoredChange(storedId, Insert), storedEffect2.ToStoredChange(storedId, Insert)],
+            session: null
         );
         await store.SetEffectResults(
             storedId,
             changes: [
-                StoredEffectChange.CreateDelete(storedId, storedEffect1.StoredEffectId), 
+                StoredEffectChange.CreateDelete(storedId, storedEffect1.StoredEffectId),
                 StoredEffectChange.CreateDelete(storedId, storedEffect2.StoredEffectId)
-            ]
+            ],
+            session: null
         );
         
         var effects = await store.GetEffectResults(storedId);
@@ -369,7 +373,8 @@ public abstract class EffectStoreTests
         var storedId = TestStoredId.Create();
         await store.SetEffectResults(
             storedId,
-            changes: []
+            changes: [],
+            session: null
         );
     }
     

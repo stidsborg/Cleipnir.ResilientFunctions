@@ -34,10 +34,10 @@ public class InMemoryEffectsStore : IEffectsStore
         return Task.CompletedTask;
     }
 
-    public async Task SetEffectResults(StoredId storedId, IReadOnlyList<StoredEffectChange> changes)
+    public async Task SetEffectResults(StoredId storedId, IReadOnlyList<StoredEffectChange> changes, IStorageSession? session)
     {
         foreach (var storedEffect in changes.Where(c => c.Operation != CrudOperation.Delete).Select(c => c.StoredEffect!))
-            await SetEffectResult(storedId, storedEffect, session: null);
+            await SetEffectResult(storedId, storedEffect, session);
 
         foreach (var effectId in changes.Where(c => c.Operation == CrudOperation.Delete).Select(c => c.EffectId))
             await DeleteEffectResult(storedId, effectId);

@@ -72,16 +72,16 @@ public class SqlServerEffectsStore(string connectionString, SqlGenerator sqlGene
         await command.ExecuteNonQueryAsync();
     }
 
-    public async Task SetEffectResults(StoredId storedId, IReadOnlyList<StoredEffectChange> changes)
+    public async Task SetEffectResults(StoredId storedId, IReadOnlyList<StoredEffectChange> changes, IStorageSession? session)
     {
         if (changes.Count == 0)
             return;
-        
+
         await using var conn = await CreateConnection();
         await using var command = sqlGenerator
             .UpdateEffects(changes, paramPrefix: "")
             .ToSqlCommand(conn);
-        
+
         await command.ExecuteNonQueryAsync();
     }
     
