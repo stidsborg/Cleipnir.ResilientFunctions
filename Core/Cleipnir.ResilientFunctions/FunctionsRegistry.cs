@@ -458,7 +458,7 @@ public class FunctionsRegistry : IDisposable
         }
     }
     
-    public void Dispose() => _ = ShutdownGracefully();
+    public void Dispose() => ShutdownGracefully().GetAwaiter().GetResult();
 
     public Task ShutdownGracefully(TimeSpan? maxWait = null)
     {
@@ -467,8 +467,12 @@ public class FunctionsRegistry : IDisposable
         // ReSharper disable once InconsistentlySynchronizedField
         var shutdownTask = _shutdownCoordinator.PerformShutdown();
         if (maxWait == null)
-            return shutdownTask;
-
+            return shutdownTask.ContinueWith(t =>
+            {
+                _replicaWatchdog.Dispose();
+                return t;
+            });
+        
         var tcs = new TaskCompletionSource();
         shutdownTask.ContinueWith(_ => tcs.TrySetResult());
             

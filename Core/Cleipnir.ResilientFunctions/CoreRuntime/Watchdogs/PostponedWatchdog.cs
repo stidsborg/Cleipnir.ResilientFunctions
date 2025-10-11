@@ -84,19 +84,11 @@ internal class PostponedWatchdog
                     if (!asyncSemaphore.TryTake(out var takenLock))
                         continue;
                     
-                    var runningFunction = _shutdownCoordinator.TryRegisterRunningFunction();
-                    if (runningFunction == null)
-                    {
-                        takenLock.Dispose();
-                        return;
-                    }
-
                     try
                     {
                         var restartedFunction = await restartFunction(id);
                         if (restartedFunction == null)
                         {
-                            runningFunction.Dispose();
                             takenLock.Dispose();
                             break;
                         }
@@ -107,13 +99,11 @@ internal class PostponedWatchdog
                             onCompletion: () =>
                             {
                                 takenLock.Dispose();
-                                runningFunction.Dispose();
                             }
                         );
                     }
                     catch
                     {
-                        runningFunction.Dispose();
                         takenLock.Dispose();
                         throw;
                     }

@@ -210,36 +210,26 @@ internal class InvocationHelper<TParam, TReturn>
 
     public async Task<RestartedFunction?> RestartFunction(StoredId flowId)
     {
-        var runningFunction = _shutdownCoordinator.RegisterRunningFunction();
+        var restarted = await _functionStore.RestartExecution(
+            flowId,
+            _replicaId
+        );
 
-        try
-        {
-            var restarted = await _functionStore.RestartExecution(
-                flowId,
-                _replicaId
-            );
-
-            return restarted != null
-                ? new RestartedFunction(
-                    restarted.StoredFlow, 
-                    restarted.Effects,
-                    restarted.Messages,
-                    runningFunction
-                ) 
-                : null;
-        }
-        catch
-        {
-            runningFunction.Dispose();
-            throw;
-        }
+        return restarted != null
+            ? new RestartedFunction(
+                restarted.StoredFlow, 
+                restarted.Effects,
+                restarted.Messages
+            ) 
+            : null;
     }
-    
     
     public async Task<PreparedReInvocation> PrepareForReInvocation(StoredId storedId, RestartedFunction restartedFunction)
     {
-        var (sf, effects, messages, runningFunction) = restartedFunction;
+        var (sf, effects, messages) = restartedFunction;
         var flowId = new FlowId(_flowType, sf.HumanInstanceId);
+
+        var runningFunction = _shutdownCoordinator.RegisterRunningFunction();
         
         try
         {
