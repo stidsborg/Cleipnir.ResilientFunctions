@@ -32,7 +32,7 @@ public static class CrashedTest
                 humanInstanceId: "humanInstanceId",
                 param: JsonSerializer.Serialize("hello world").ToUtf8Bytes(),
                 leaseExpiration,
-                postponeUntil: null,
+                postponeUntil: 0,
                 timestamp: DateTime.UtcNow.Ticks,
                 parent: null,
                 owner: null
