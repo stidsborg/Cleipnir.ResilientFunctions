@@ -6,9 +6,9 @@ using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.Domain;
 
-public class ClusterInfo
+public class ClusterInfo(ReplicaId replicaId)
 {
-    public ReplicaId ReplicaId { get; }
+    public ReplicaId ReplicaId { get; } = replicaId;
 
     private ulong _offset;
     public ulong Offset
@@ -41,8 +41,6 @@ public class ClusterInfo
     }
 
     private readonly Lock _sync = new();
-
-    public ClusterInfo(ReplicaId replicaId) => ReplicaId = replicaId;
 
     public bool OwnedByThisReplica(StoredId storedId)
     {
