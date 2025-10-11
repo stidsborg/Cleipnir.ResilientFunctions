@@ -2,6 +2,7 @@
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
+using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Tests.Utils;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -41,7 +42,7 @@ namespace Cleipnir.ResilientFunctions.PostgreSQL.Tests
 
         private static async Task<PostgreSqlFunctionStore> CreateAndInitializeStore(string testClass, string testMethod)
         {
-            var store = new PostgreSqlFunctionStore(ConnectionString, tablePrefix: testClass); 
+            var store = new PostgreSqlFunctionStore(ConnectionString, tablePrefix: "t"+(testClass + testMethod).GenerateSHA256Hash()[..32]); 
             await store.Initialize();
             await store.TruncateTables();
             return store;
