@@ -24,11 +24,7 @@ public static class BulkInsertionTest
         
         using var functionsRegistry1 = new FunctionsRegistry(
             store,
-            new Settings(
-                unhandledExceptionHandler: Console.WriteLine,
-                leaseLength: TimeSpan.FromSeconds(10),
-                watchdogCheckFrequency: TimeSpan.FromMilliseconds(1000)
-            )
+            new Settings(unhandledExceptionHandler: Console.WriteLine)
         );
         functionsRegistry1.RegisterAction(
             flowType,
@@ -41,11 +37,7 @@ public static class BulkInsertionTest
         
         using var functionsRegistry2 = new FunctionsRegistry(
             store,
-            new Settings(
-                unhandledExceptionHandler: Console.WriteLine,
-                leaseLength: TimeSpan.FromSeconds(10),
-                watchdogCheckFrequency: TimeSpan.FromMilliseconds(1000)
-            )
+            new Settings(unhandledExceptionHandler: Console.WriteLine)
         );
         functionsRegistry2.RegisterAction(
             flowType,
@@ -58,11 +50,7 @@ public static class BulkInsertionTest
         
         using var functionsRegistry3 = new FunctionsRegistry(
             store,
-            new Settings(
-                unhandledExceptionHandler: Console.WriteLine,
-                leaseLength: TimeSpan.FromSeconds(10),
-                watchdogCheckFrequency: TimeSpan.FromMilliseconds(1000)
-            )
+            new Settings(unhandledExceptionHandler: Console.WriteLine)
         );
         functionsRegistry3.RegisterAction(
             flowType,
@@ -75,6 +63,9 @@ public static class BulkInsertionTest
         
         var stopWatch = new Stopwatch();
         stopWatch.Start();
+        
+        Console.WriteLine("BULK_INSERTION_TEST: Waiting for replica count to settle...");
+        await BusyWait.Until(() => functionsRegistry1.ClusterInfo.ReplicaCount == 3 && functionsRegistry2.ClusterInfo.ReplicaCount == 3 && functionsRegistry3.ClusterInfo.ReplicaCount == 3);
         
         Console.WriteLine("BULK_INSERTION_TEST: Initializing");
         var functions = Enumerable
