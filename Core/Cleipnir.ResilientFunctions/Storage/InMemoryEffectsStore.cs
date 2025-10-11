@@ -40,7 +40,7 @@ public class InMemoryEffectsStore : IEffectsStore
             await SetEffectResult(storedId, storedEffect, session);
 
         foreach (var effectId in changes.Where(c => c.Operation == CrudOperation.Delete).Select(c => c.EffectId))
-            await DeleteEffectResult(storedId, effectId);
+            await DeleteEffectResult(storedId, effectId.ToStoredEffectId());
     }
 
     public Task<IReadOnlyList<StoredEffect>> GetEffectResults(StoredId storedId)

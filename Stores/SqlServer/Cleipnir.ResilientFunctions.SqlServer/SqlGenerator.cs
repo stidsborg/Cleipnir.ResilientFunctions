@@ -47,11 +47,11 @@ public class SqlGenerator(string tablePrefix)
                 .Where(c => c.Operation == CrudOperation.Insert)
                 .Select(c => new
                 {
-                    Id = c.StoredId.AsGuid, 
-                    StoredEffectId = c.EffectId.Value,
-                    WorkStatus = (int)c.StoredEffect!.WorkStatus, 
+                    Id = c.StoredId.AsGuid,
+                    StoredEffectId = c.EffectId.ToStoredEffectId().Value,
+                    WorkStatus = (int)c.StoredEffect!.WorkStatus,
                     Result = c.StoredEffect!.Result,
-                    Exception = c.StoredEffect!.StoredException, 
+                    Exception = c.StoredEffect!.StoredException,
                     EffectId = c.StoredEffect!.EffectId
                 })
                 .ToList();
@@ -89,7 +89,7 @@ public class SqlGenerator(string tablePrefix)
                 .Select(c => new
                 {
                     Id = c.StoredId.AsGuid,
-                    StoredEffectId = c.EffectId.Value,
+                    StoredEffectId = c.EffectId.ToStoredEffectId().Value,
                     WorkStatus = (int)c.StoredEffect!.WorkStatus,
                     Result = c.StoredEffect!.Result,
                     Exception = c.StoredEffect!.StoredException,
@@ -136,7 +136,7 @@ public class SqlGenerator(string tablePrefix)
         {
             var removes = changes
                 .Where(c => c.Operation == CrudOperation.Delete)
-                .Select(c => new { Id = c.StoredId.AsGuid, IdHash = c.EffectId.Value })
+                .Select(c => new { Id = c.StoredId.AsGuid, IdHash = c.EffectId.ToStoredEffectId().Value })
                 .GroupBy(c => c.Id)
                 .ToList();
             var predicates = removes

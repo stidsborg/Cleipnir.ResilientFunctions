@@ -105,11 +105,11 @@ public static class StoredEffectIdExtensions
 
 public record StoredEffectChange(
     StoredId StoredId,
-    StoredEffectId EffectId,
+    EffectId EffectId,
     CrudOperation Operation,
     StoredEffect? StoredEffect)
 {
-    public static StoredEffectChange CreateDelete(StoredId storedId, StoredEffectId effectId)
+    public static StoredEffectChange CreateDelete(StoredId storedId, EffectId effectId)
         => new(storedId, effectId, CrudOperation.Delete, StoredEffect: null);
 }
 
@@ -163,8 +163,8 @@ public record StoredFlowWithEffectsAndMessages(
 
 public static class StoredEffectExtensions
 {
-    public static StoredEffectChange ToStoredChange(this StoredEffect effect, StoredId storedId, CrudOperation operation) 
-        => new(storedId, effect.StoredEffectId, operation, effect);
+    public static StoredEffectChange ToStoredChange(this StoredEffect effect, StoredId storedId, CrudOperation operation)
+        => new(storedId, effect.EffectId, operation, effect);
 }
 
 public record StoredReplica(ReplicaId ReplicaId, long LatestHeartbeat);

@@ -122,11 +122,11 @@ public class SqlGenerator(string tablePrefix)
                 .Where(c => c.Operation == CrudOperation.Update || c.Operation == CrudOperation.Insert)
                 .Select(c => new
                 {
-                    Instance = c.StoredId.AsGuid, 
-                    IdHash = c.EffectId.Value,
-                    WorkStatus = (int)c.StoredEffect!.WorkStatus, 
+                    Instance = c.StoredId.AsGuid,
+                    IdHash = c.EffectId.ToStoredEffectId().Value,
+                    WorkStatus = (int)c.StoredEffect!.WorkStatus,
                     Result = c.StoredEffect!.Result,
-                    Exception = c.StoredEffect!.StoredException, 
+                    Exception = c.StoredEffect!.StoredException,
                     EffectId = c.StoredEffect!.EffectId
                 })
                 .ToList();
@@ -156,7 +156,7 @@ public class SqlGenerator(string tablePrefix)
         {
             var removes = changes
                 .Where(c => c.Operation == CrudOperation.Delete)
-                .Select(c => new { Id = c.StoredId.AsGuid, IdHash = c.EffectId.Value })
+                .Select(c => new { Id = c.StoredId.AsGuid, IdHash = c.EffectId.ToStoredEffectId().Value })
                 .GroupBy(a => a.Id, a => a.IdHash)
                 .ToList();
             var predicates = removes

@@ -147,7 +147,7 @@ public class SqlGenerator(string tablePrefix)
        var removedEffects = changes
            .Where(s => s.Operation == CrudOperation.Delete)
            .Select(s => new { Id = s.StoredId, s.EffectId })
-           .GroupBy(s => s.Id, s => s.EffectId.Value);
+           .GroupBy(s => s.Id, s => s.EffectId.ToStoredEffectId().Value);
 
        foreach (var removedEffectGroup in removedEffects)
        {

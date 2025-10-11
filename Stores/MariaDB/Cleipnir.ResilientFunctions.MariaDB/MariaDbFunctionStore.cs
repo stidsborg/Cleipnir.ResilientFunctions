@@ -143,7 +143,7 @@ public class MariaDbFunctionStore : IFunctionStore
             if (effects?.Any() ?? false)
             {
                 var effectsCommand = _sqlGenerator.UpdateEffects(
-                    effects.Select(e => new StoredEffectChange(storedId, e.StoredEffectId, CrudOperation.Insert, e)).ToList()
+                    effects.Select(e => new StoredEffectChange(storedId, e.EffectId, CrudOperation.Insert, e)).ToList()
                 );
                 storeCommand = storeCommand.Merge(effectsCommand);
             }

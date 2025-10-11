@@ -52,7 +52,7 @@ public class EffectResults
             foreach (var existingEffect in existingEffects)
                 _effectResults[existingEffect.EffectId] =
                     new PendingEffectChange(
-                        existingEffect.StoredEffectId,
+                        existingEffect.EffectId,
                         existingEffect,
                         Operation: null,
                         Existing: true
@@ -81,7 +81,6 @@ public class EffectResults
         await InitializeIfRequired();
         await FlushOrAddToPending(
             storedEffect.EffectId,
-            storedEffect.StoredEffectId,
             storedEffect,
             flush,
             delete: false
@@ -103,7 +102,6 @@ public class EffectResults
         var storedEffect = StoredEffect.CreateCompleted(effectId, _serializer.Serialize(value));
         await FlushOrAddToPending(
             storedEffect.EffectId,
-            storedEffect.StoredEffectId,
             storedEffect,
             flush,
             delete: false
@@ -119,7 +117,6 @@ public class EffectResults
         var storedEffect = StoredEffect.CreateCompleted(effectId, _serializer.Serialize(value));
         await FlushOrAddToPending(
             storedEffect.EffectId,
-            storedEffect.StoredEffectId,
             storedEffect,
             flush,
             delete: false
@@ -186,7 +183,7 @@ public class EffectResults
         if (resiliency == ResiliencyLevel.AtMostOnce)
         {
             var storedEffect = StoredEffect.CreateStarted(effectId);
-            await FlushOrAddToPending(effectId, storedEffect.StoredEffectId, storedEffect, flush: true, delete: false);
+            await FlushOrAddToPending(effectId, storedEffect, flush: true, delete: false);
         }
 
         try
@@ -203,7 +200,6 @@ public class EffectResults
             var storedEffect = StoredEffect.CreateFailed(effectId, storedException);
             await FlushOrAddToPending(
                 storedEffect.EffectId,
-                storedEffect.StoredEffectId,
                 storedEffect,
                 flush: true,
                 delete: false
@@ -219,7 +215,6 @@ public class EffectResults
             var storedEffect = StoredEffect.CreateFailed(effectId, storedException);
             await FlushOrAddToPending(
                 storedEffect.EffectId,
-                storedEffect.StoredEffectId,
                 storedEffect,
                 flush: true,
                 delete: false
@@ -232,7 +227,6 @@ public class EffectResults
             var storedEffect = StoredEffect.CreateCompleted(effectId);
             await FlushOrAddToPending(
                 storedEffect.EffectId,
-                storedEffect.StoredEffectId,
                 storedEffect,
                 flush: resiliency != ResiliencyLevel.AtLeastOnceDelayFlush,
                 delete: false
@@ -263,7 +257,6 @@ public class EffectResults
             var storedEffect = StoredEffect.CreateStarted(effectId);
             await FlushOrAddToPending(
                 effectId,
-                storedEffect.StoredEffectId,
                 storedEffect,
                 flush: true,
                 delete: false
@@ -285,7 +278,6 @@ public class EffectResults
             var storedEffect = StoredEffect.CreateFailed(effectId, storedException);
             await FlushOrAddToPending(
                 storedEffect.EffectId,
-                storedEffect.StoredEffectId,
                 storedEffect,
                 flush: true,
                 delete: false
@@ -302,7 +294,6 @@ public class EffectResults
 
             await FlushOrAddToPending(
                 storedEffect.EffectId,
-                storedEffect.StoredEffectId,
                 storedEffect,
                 flush: true,
                 delete: false
@@ -314,7 +305,6 @@ public class EffectResults
             var storedEffect = StoredEffect.CreateCompleted(effectId, _serializer.Serialize(result)); 
             await FlushOrAddToPending(
                 storedEffect.EffectId,
-                storedEffect.StoredEffectId,
                 storedEffect,
                 flush: resiliency != ResiliencyLevel.AtLeastOnceDelayFlush,
                 delete: false
@@ -334,7 +324,6 @@ public class EffectResults
         
         await FlushOrAddToPending(
             effectId,
-            effectId.ToStoredEffectId(),
             storedEffect: null,
             flush,
             delete: true
@@ -345,10 +334,10 @@ public class EffectResults
     {
         lock (_sync)
             foreach (var storedEffect in storedEffects)
-                AddToPending(storedEffect.EffectId, storedEffect.StoredEffectId, storedEffect, delete: false);
+                AddToPending(storedEffect.EffectId, storedEffect, delete: false);
     }
 
-    private void AddToPending(EffectId effectId, StoredEffectId storedEffectId, StoredEffect? storedEffect, bool delete)
+    private void AddToPending(EffectId effectId, StoredEffect? storedEffect, bool delete)
     {
         lock (_sync)
             if (_effectResults.ContainsKey(effectId))
@@ -365,7 +354,7 @@ public class EffectResults
             else
             {
                 _effectResults[effectId] = new PendingEffectChange(
-                    storedEffectId,
+                    effectId,
                     storedEffect,
                     CrudOperation.Insert,
                     Existing: false
@@ -373,9 +362,9 @@ public class EffectResults
             }
     }
     
-    private async Task FlushOrAddToPending(EffectId effectId, StoredEffectId storedEffectId, StoredEffect? storedEffect, bool flush, bool delete)
+    private async Task FlushOrAddToPending(EffectId effectId, StoredEffect? storedEffect, bool flush, bool delete)
     {
-        AddToPending(effectId, storedEffectId, storedEffect, delete);
+        AddToPending(effectId, storedEffect, delete);
 
         if (flush)
             await Flush();   
@@ -391,17 +380,17 @@ public class EffectResults
             IReadOnlyList<PendingEffectChange> pendingChanges;
             lock (_sync)
                 pendingChanges = _effectResults.Values.Where(r => r.Operation != null).ToList();
-            
+
             if (pendingChanges.Count == 0)
                 return;
 
             var changes = pendingChanges
-                .Select(pc =>
+                .Select(p =>
                     new StoredEffectChange(
                         _storedId,
-                        pc.Id,
-                        pc.Operation!.Value,
-                        pc.StoredEffect
+                        p.Id,
+                        p.Operation!.Value,
+                        p.StoredEffect
                     )
                 ).ToList();
             
