@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Immutable;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
@@ -74,7 +75,7 @@ internal class PostponedWatchdog
                 var eligibleFunctions = await _functionStore.GetExpiredFunctions(expiresBefore: now.Ticks);
                 
                 var flowsDictionary = _flowsDictionary;     
-                foreach (var id in eligibleFunctions.WithRandomOffset())
+                foreach (var id in eligibleFunctions.Where(s => s.AsULong % _clusterInfo.ReplicaCount == _clusterInfo.Offset))
                 {
                     if (!flowsDictionary.TryGetValue(id.Type, out var tuple))
                         continue;
