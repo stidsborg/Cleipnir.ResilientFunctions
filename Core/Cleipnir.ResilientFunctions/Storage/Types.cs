@@ -58,6 +58,19 @@ public record StoredId(Guid AsGuid)
         var type = BitConverter.ToUInt16(bytes, startIndex: 0);
         return type.ToStoredType();
     }
+
+    public ulong AsULong
+    {
+        get
+        {
+            var bytes = AsGuid.ToByteArray();
+
+            for (var i = 0; i < 8; i++)
+                bytes[i] = (byte)(bytes[i] ^ bytes[i + 8]);
+
+            return BitConverter.ToUInt64(bytes, startIndex: 0);            
+        }
+    }
 }
 
 public static class StoredIdExtensions
