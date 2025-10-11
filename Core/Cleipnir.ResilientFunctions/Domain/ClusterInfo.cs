@@ -51,4 +51,6 @@ public class ClusterInfo(ReplicaId replicaId)
         var owner = number % ReplicaCount;
         return Offset == owner;
     }
+
+    public override string ToString() => $"{ReplicaId.AsGuid} ({Offset}/{ReplicaCount} count)";
 }
