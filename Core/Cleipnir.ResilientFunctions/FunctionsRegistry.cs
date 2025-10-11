@@ -229,12 +229,10 @@ public class FunctionsRegistry : IDisposable
                 storedType,
                 _functionStore,
                 _postponedWatchdog,
-                invoker.Restart,
                 invocationHelper.RestartFunction,
                 invoker.ScheduleRestart,
                 settingsWithDefaults,
                 _shutdownCoordinator,
-                serializer,
                 _settings.UtcNow
             );
 
@@ -323,12 +321,10 @@ public class FunctionsRegistry : IDisposable
                 storedType,
                 _functionStore,
                 _postponedWatchdog,
-                invoker.Restart,
                 invocationHelper.RestartFunction,
                 invoker.ScheduleRestart,
                 settingsWithDefaults,
                 _shutdownCoordinator,
-                serializer,
                 _settings.UtcNow
             );
 
@@ -417,12 +413,10 @@ public class FunctionsRegistry : IDisposable
                 storedType,
                 _functionStore,
                 _postponedWatchdog,
-                rActionInvoker.Restart,
                 invocationHelper.RestartFunction,
                 rActionInvoker.ScheduleRestart,
                 settingsWithDefaults,
                 _shutdownCoordinator,
-                serializer,
                 _settings.UtcNow
             );
 
