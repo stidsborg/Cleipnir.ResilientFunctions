@@ -1,7 +1,7 @@
-using System.Security.Cryptography;
+﻿using System.Security.Cryptography;
 using System.Text;
 
-namespace Cleipnir.ResilientFunctions.MariaDb;
+namespace Cleipnir.ResilientFunctions.Helpers;
 
 internal static class Hashing
 {
