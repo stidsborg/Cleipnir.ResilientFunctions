@@ -8,7 +8,8 @@ public interface IEffectsStore
 {
     Task Initialize();
     Task Truncate();
-    Task SetEffectResult(StoredId storedId, StoredEffect storedEffect, IStorageSession? session);
+    Task SetEffectResult(StoredId storedId, StoredEffectChange storedEffectChange, IStorageSession? session)
+        => SetEffectResults(storedId, changes: [storedEffectChange], session);
     Task SetEffectResults(StoredId storedId, IReadOnlyList<StoredEffectChange> changes, IStorageSession? session);
     async Task<IReadOnlyList<StoredEffect>> GetEffectResults(StoredId storedId) 
         => (await GetEffectResults([storedId]))[storedId];

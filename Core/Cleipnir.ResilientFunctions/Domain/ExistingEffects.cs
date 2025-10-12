@@ -71,7 +71,11 @@ public class ExistingEffects(StoredId storedId, FlowId flowId, IEffectsStore eff
     private async Task Set(StoredEffect storedEffect)
     {
         var storedEffects = await GetStoredEffects();
-        await effectsStore.SetEffectResult(storedId, storedEffect, session: null);
+        var crudOperation = storedEffects.ContainsKey(storedEffect.EffectId)
+            ? CrudOperation.Update
+            : CrudOperation.Insert;
+        var change = new StoredEffectChange(storedId, storedEffect.EffectId, crudOperation, storedEffect);
+        await effectsStore.SetEffectResult(storedId, change, session: null);
         storedEffects[storedEffect.EffectId] = storedEffect;
     }
 

@@ -5,6 +5,7 @@ using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Tests.Utils;
 using Shouldly;
+using static Cleipnir.ResilientFunctions.Storage.CrudOperation;
 
 namespace Cleipnir.ResilientFunctions.Tests.TestTemplates;
 
@@ -21,12 +22,12 @@ public abstract class StatesStoreTests
 
         await statesStore.SetEffectResult(
             flowId,
-            StoredEffect.CreateState(new StoredState("Id#1", "SomeJson#1".ToUtf8Bytes())),
+            StoredEffect.CreateState(new StoredState("Id#1", "SomeJson#1".ToUtf8Bytes())).ToStoredChange(flowId, Insert),
             session: null
         );
         await statesStore.SetEffectResult(
             flowId,
-            StoredEffect.CreateState(new StoredState("Id#2", "SomeJson#2".ToUtf8Bytes())),
+            StoredEffect.CreateState(new StoredState("Id#2", "SomeJson#2".ToUtf8Bytes())).ToStoredChange(flowId, Insert),
             session: null
         );
 

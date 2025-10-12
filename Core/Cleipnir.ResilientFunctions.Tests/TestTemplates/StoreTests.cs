@@ -9,6 +9,7 @@ using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Tests.Utils;
 using Microsoft.VisualStudio.TestPlatform.CommunicationUtilities.Serialization;
 using Shouldly;
+using static Cleipnir.ResilientFunctions.Storage.CrudOperation;
 
 namespace Cleipnir.ResilientFunctions.Tests.TestTemplates;
 
@@ -1045,7 +1046,7 @@ public abstract class StoreTests
             owner: null
         ).ShouldNotBeNullAsync();
 
-        await effectsStore.SetEffectResult(functionId, new StoredEffect("".ToEffectId(EffectType.State), WorkStatus.Completed, "some default state".ToUtf8Bytes(), StoredException: null), session: null);
+        await effectsStore.SetEffectResult(functionId, new StoredEffect("".ToEffectId(EffectType.State), WorkStatus.Completed, "some default state".ToUtf8Bytes(), StoredException: null).ToStoredChange(functionId, Insert), session: null);
 
         var storedEffects = await effectsStore.GetEffectResults(functionId);
         storedEffects.Count.ShouldBe(1);
@@ -1602,7 +1603,7 @@ public abstract class StoreTests
                 WorkStatus.Completed,
                 "hallo effect".ToUtf8Bytes(),
                 StoredException: null
-                ),
+                ).ToStoredChange(functionId, Insert),
             session: null
         );
         

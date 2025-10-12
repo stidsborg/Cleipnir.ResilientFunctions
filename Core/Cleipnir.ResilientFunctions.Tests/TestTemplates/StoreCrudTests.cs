@@ -7,6 +7,7 @@ using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Tests.Utils;
 using Shouldly;
+using static Cleipnir.ResilientFunctions.Storage.CrudOperation;
 
 namespace Cleipnir.ResilientFunctions.Tests.TestTemplates;
 
@@ -170,13 +171,13 @@ public abstract class StoreCrudTests
 
         await store.EffectsStore.SetEffectResult(
             functionId,
-            StoredEffect.CreateState(new StoredState("SomeStateId", "SomeStateJson".ToUtf8Bytes())),
+            StoredEffect.CreateState(new StoredState("SomeStateId", "SomeStateJson".ToUtf8Bytes())).ToStoredChange(functionId, Insert),
             session: null
         );
         await store.CorrelationStore.SetCorrelation(functionId, "SomeCorrelationId");
         await store.EffectsStore.SetEffectResult(
             functionId,
-            new StoredEffect("SomeEffectId".ToEffectId(), WorkStatus.Completed, Result: null, StoredException: null),
+            new StoredEffect("SomeEffectId".ToEffectId(), WorkStatus.Completed, Result: null, StoredException: null).ToStoredChange(functionId, Insert),
             session: null
         );
         await store.MessageStore.AppendMessage(functionId, new StoredMessage("SomeJson".ToUtf8Bytes(), "SomeType".ToUtf8Bytes()));

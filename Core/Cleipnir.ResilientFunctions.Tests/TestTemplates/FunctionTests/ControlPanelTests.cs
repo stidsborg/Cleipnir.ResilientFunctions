@@ -6,13 +6,13 @@ using Cleipnir.ResilientFunctions.CoreRuntime.Serialization;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Events;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
-using Cleipnir.ResilientFunctions.Domain.Exceptions.Commands;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Reactive.Extensions;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Tests.Utils;
 using Shouldly;
+using static Cleipnir.ResilientFunctions.Storage.CrudOperation;
 
 namespace Cleipnir.ResilientFunctions.Tests.TestTemplates.FunctionTests;
 
@@ -1069,7 +1069,7 @@ public abstract class ControlPanelTests
         controlPanel.ShouldNotBeNull();
 
         await controlPanel.Effects.AllIds;
-        
+
         await store.EffectsStore.SetEffectResult(
             rAction.MapToStoredId(functionId.Instance),
             new StoredEffect(
@@ -1077,15 +1077,15 @@ public abstract class ControlPanelTests
                 WorkStatus.Completed,
                 Result: "SomeResult".ToJson().ToUtf8Bytes(),
                 StoredException: null
-            ),
+            ).ToStoredChange(rAction.MapToStoredId(functionId.Instance), Insert),
             session: null
         );
 
         await controlPanel.Effects.HasValue("SomeId").ShouldBeFalseAsync();
-        
+
         unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
-    
+
     public abstract Task EffectsAreCachedAfterInitialFetch();
     protected async Task EffectsAreCachedAfterInitialFetch(Task<IFunctionStore> storeTask)
     {
@@ -1106,7 +1106,7 @@ public abstract class ControlPanelTests
         controlPanel.ShouldNotBeNull();
 
         await controlPanel.Effects.AllIds;
-        
+
         await store.EffectsStore.SetEffectResult(
             rAction.MapToStoredId(functionId.Instance),
             new StoredEffect(
@@ -1114,15 +1114,15 @@ public abstract class ControlPanelTests
                 WorkStatus.Completed,
                 Result: "SomeResult".ToJson().ToUtf8Bytes(),
                 StoredException: null
-            ),
+            ).ToStoredChange(rAction.MapToStoredId(functionId.Instance), Insert),
             session: null
         );
 
         await controlPanel.Effects.HasValue("SomeId").ShouldBeFalseAsync();
-        
+
         unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
-    
+
     public abstract Task EffectsAreUpdatedAfterRefresh();
     protected async Task EffectsAreUpdatedAfterRefresh(Task<IFunctionStore> storeTask)
     {
