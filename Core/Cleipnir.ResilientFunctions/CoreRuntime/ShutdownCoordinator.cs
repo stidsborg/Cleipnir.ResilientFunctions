@@ -20,6 +20,8 @@ internal class ShutdownCoordinator
             () => Interlocked.Read(ref _candidates) == 0
         );
     }
+    
+    public void SignalShutdown() => _shutDownInitiated = true;
 
     public IDisposable RegisterRunningFunction()
     {

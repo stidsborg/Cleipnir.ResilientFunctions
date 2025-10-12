@@ -457,8 +457,13 @@ public class FunctionsRegistry : IDisposable
             return registration;
         }
     }
-    
-    public void Dispose() => ShutdownGracefully().GetAwaiter().GetResult();
+
+    public void Dispose()
+    {
+        _disposed = true;
+        _shutdownCoordinator.SignalShutdown();
+        _replicaWatchdog.Dispose();
+    }
 
     public Task ShutdownGracefully(TimeSpan? maxWait = null)
     {
