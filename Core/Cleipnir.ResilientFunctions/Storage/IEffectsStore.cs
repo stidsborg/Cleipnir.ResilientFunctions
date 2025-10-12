@@ -12,6 +12,5 @@ public interface IEffectsStore
     Task<IReadOnlyList<StoredEffect>> GetEffectResults(StoredId storedId);
     Task<Dictionary<StoredId, List<StoredEffect>>> GetEffectResults(IEnumerable<StoredId> storedIds);
     Task DeleteEffectResult(StoredId storedId, StoredEffectId effectId);
-    Task DeleteEffectResults(StoredId storedId, IReadOnlyList<StoredEffectId> effectIds);
     Task Remove(StoredId storedId);
 }

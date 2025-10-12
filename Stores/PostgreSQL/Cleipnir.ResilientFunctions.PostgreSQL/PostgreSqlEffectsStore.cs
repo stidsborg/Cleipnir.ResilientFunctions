@@ -105,7 +105,7 @@ public class PostgreSqlEffectsStore(string connectionString, SqlGenerator sqlGen
     {
         await using var conn = await CreateConnection();
         _deleteEffectResultSql ??= $"DELETE FROM {tablePrefix}_effects WHERE id = $1 AND id_hash = $2";
-        
+
         await using var command = new NpgsqlCommand(_deleteEffectResultSql, conn)
         {
             Parameters =
@@ -115,18 +115,6 @@ public class PostgreSqlEffectsStore(string connectionString, SqlGenerator sqlGen
             }
         };
 
-        await command.ExecuteNonQueryAsync();
-    }
-
-    public async Task DeleteEffectResults(StoredId storedId, IReadOnlyList<StoredEffectId> effectIds)
-    {
-        await using var conn = await CreateConnection();
-        var sql = @$"
-            DELETE FROM {tablePrefix}_effects 
-            WHERE id = '{storedId.AsGuid}' AND 
-                  id_hash IN ({effectIds.Select(id => $"'{id.Value}'").StringJoin(", ")})";
-
-        await using var command = new NpgsqlCommand(sql, conn);
         await command.ExecuteNonQueryAsync();
     }
 

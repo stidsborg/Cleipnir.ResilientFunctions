@@ -100,9 +100,9 @@ public class MariaDbEffectsStore(string connectionString, SqlGenerator sqlGenera
     {
         await using var conn = await CreateConnection();
         _deleteEffectResultSql ??= @$"
-            DELETE FROM {tablePrefix}_effects 
+            DELETE FROM {tablePrefix}_effects
             WHERE id = ? AND id_hash = ?";
-        
+
         await using var command = new MySqlCommand(_deleteEffectResultSql, conn)
         {
             Parameters =
@@ -112,18 +112,6 @@ public class MariaDbEffectsStore(string connectionString, SqlGenerator sqlGenera
             }
         };
 
-        await command.ExecuteNonQueryAsync();
-    }
-
-    public async Task DeleteEffectResults(StoredId storedId, IReadOnlyList<StoredEffectId> effectIds)
-    {
-        await using var conn = await CreateConnection();
-        var sql = @$"
-            DELETE FROM {tablePrefix}_effects 
-            WHERE instance = '{storedId.AsGuid:N}' AND 
-                  id_hash IN ({effectIds.Select(id => $"'{id.Value:N}'").StringJoin(", ")});";
-        
-        await using var command = new MySqlCommand(sql, conn);
         await command.ExecuteNonQueryAsync();
     }
 

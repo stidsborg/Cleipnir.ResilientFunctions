@@ -112,23 +112,11 @@ public class SqlServerEffectsStore(string connectionString, SqlGenerator sqlGene
         _deleteEffectResultSql ??= @$"
             DELETE FROM {tablePrefix}_Effects
             WHERE Id = @Id AND StoredId = @StoredId";
-        
+
         await using var command = new SqlCommand(_deleteEffectResultSql, conn);
         command.Parameters.AddWithValue("@Id", storedId.AsGuid);
         command.Parameters.AddWithValue("@StoredId", effectId.Value);
-        
-        await command.ExecuteNonQueryAsync();
-    }
 
-    public async Task DeleteEffectResults(StoredId storedId, IReadOnlyList<StoredEffectId> effectIds)
-    {
-        await using var conn = await CreateConnection();
-        var sql = @$"
-            DELETE FROM {tablePrefix}_Effects 
-            WHERE Id = '{storedId.AsGuid}' AND 
-                  StoredId IN ({effectIds.Select(id => $"'{id.Value}'").StringJoin(", ")}) ";
-        
-        await using var command = new SqlCommand(sql, conn);
         await command.ExecuteNonQueryAsync();
     }
 
