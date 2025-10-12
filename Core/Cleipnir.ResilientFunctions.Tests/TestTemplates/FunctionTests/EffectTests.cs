@@ -336,7 +336,8 @@ public abstract class EffectTests
             storedId,
             lazyExistingEffects: new Lazy<Task<IReadOnlyList<StoredEffect>>>(() => store.EffectsStore.GetEffectResults(storedId)),
             store.EffectsStore,
-            DefaultSerializer.Instance
+            DefaultSerializer.Instance, 
+            storageSession: null
         );
         var effect = new Effect(effectResults, utcNow: () => DateTime.UtcNow, new FlowMinimumTimeout());
         
@@ -382,7 +383,8 @@ public abstract class EffectTests
                 })
             ,
             store.EffectsStore,
-            DefaultSerializer.Instance
+            DefaultSerializer.Instance, 
+            storageSession: null
         );
         var effect = new Effect(effectResults, utcNow: () => DateTime.UtcNow, new FlowMinimumTimeout());
         
@@ -596,7 +598,8 @@ public abstract class EffectTests
                 () => new List<StoredEffect>().CastTo<IReadOnlyList<StoredEffect>>().ToTask()
             ),
             effectStore,
-            DefaultSerializer.Instance
+            DefaultSerializer.Instance, 
+            storageSession: null
         );
         
         var effectId1 = new EffectId("Id1", EffectType.Effect, Context: "");
@@ -649,7 +652,8 @@ public abstract class EffectTests
                 () => new List<StoredEffect>().CastTo<IReadOnlyList<StoredEffect>>().ToTask()
             ),
             effectStore,
-            DefaultSerializer.Instance
+            DefaultSerializer.Instance, 
+            storageSession: null
         );
         var effect = new Effect(effectResults, utcNow: () => DateTime.UtcNow, new FlowMinimumTimeout());
 
@@ -722,7 +726,8 @@ public abstract class EffectTests
                 () => new List<StoredEffect>().CastTo<IReadOnlyList<StoredEffect>>().ToTask()
             ),
             effectStore,
-            DefaultSerializer.Instance
+            DefaultSerializer.Instance, 
+            storageSession: null
         );
         var effect = new Effect(effectResults, utcNow: () => DateTime.UtcNow, new FlowMinimumTimeout());
 

@@ -5,6 +5,7 @@ using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.Helpers.Disposables;
 using Cleipnir.ResilientFunctions.Storage;
+using Cleipnir.ResilientFunctions.Storage.Session;
 
 namespace Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 
@@ -40,7 +41,7 @@ public class Invoker<TParam, TReturn>
     public async Task<TReturn> Invoke(FlowInstance instance, TParam param, InitialState? initialState = null)
     {
         var (flowId, storedId) = CreateIds(instance);
-        var (created, workflow, disposables) = await PrepareForInvocation(flowId, storedId, param, parent: null, initialState);
+        var (created, workflow, disposables, storageSession) = await PrepareForInvocation(flowId, storedId, param, parent: null, initialState);
         CurrentFlow._workflow.Value = workflow;
         if (!created) return await WaitForFunctionResult(flowId, storedId, maxWait: null);
 
@@ -58,7 +59,7 @@ public class Invoker<TParam, TReturn>
         }
         finally{ disposables.Dispose(); }
 
-        await PersistResultAndEnsureSuccess(storedId, flowId, result, param, parent: null, workflow);
+        await PersistResultAndEnsureSuccess(storedId, flowId, result, param, parent: null, workflow, storageSession);
         return result.SucceedWithValue!;
     }
 
@@ -74,7 +75,7 @@ public class Invoker<TParam, TReturn>
                 return _invocationHelper.CreateInnerScheduled([flowId], parent, detach);    
         }
         
-        var (created, workflow, disposables) = await PrepareForInvocation(flowId, storedId, param, parent?.StoredId, initialState);
+        var (created, workflow, disposables, storageSession) = await PrepareForInvocation(flowId, storedId, param, parent?.StoredId, initialState);
         CurrentFlow._workflow.Value = workflow;
         if (!created) 
             return _invocationHelper.CreateInnerScheduled([flowId], parent, detach);
@@ -93,7 +94,7 @@ public class Invoker<TParam, TReturn>
                 catch (Exception exception) { var fwe = FatalWorkflowException.CreateNonGeneric(flowId, exception); await PersistFailure(storedId, flowId, fwe, param, parent?.StoredId); throw fwe; }
                 finally{ disposables.Dispose(); }
 
-                await PersistResultAndEnsureSuccess(storedId, flowId, result, param, parent?.StoredId, workflow, allowPostponedOrSuspended: true);
+                await PersistResultAndEnsureSuccess(storedId, flowId, result, param, parent?.StoredId, workflow, storageSession, allowPostponedOrSuspended: true);
             }
             catch (Exception exception) { _unhandledExceptionHandler.Invoke(_flowType, exception); }
         });
@@ -112,7 +113,7 @@ public class Invoker<TParam, TReturn>
                 return _invocationHelper.CreateInnerScheduled([id], parent, detach);
         }
 
-        var (_, disposable) = await _invocationHelper.PersistFunctionInStore(
+        var (_, disposable, _) = await _invocationHelper.PersistFunctionInStore(
             id,
             id.ToStoredId(_storedType),
             instanceId,
@@ -130,7 +131,7 @@ public class Invoker<TParam, TReturn>
 
     public async Task<TReturn> Restart(StoredId storedId)
     {
-        var (inner, param, humanInstanceId, workflow, disposables, parent) = await PrepareForReInvocation(storedId);
+        var (inner, param, humanInstanceId, workflow, disposables, parent, storageSession) = await PrepareForReInvocation(storedId);
         CurrentFlow._workflow.Value = workflow;
         var flowId = new FlowId(_flowType, humanInstanceId);
         
@@ -144,13 +145,13 @@ public class Invoker<TParam, TReturn>
         catch (Exception exception) { var fwe = FatalWorkflowException.CreateNonGeneric(flowId, exception); await PersistFailure(storedId, flowId, fwe, param, parent); throw fwe; }
         finally{ disposables.Dispose(); }
         
-        await PersistResultAndEnsureSuccess(storedId, flowId, result, param, parent, workflow);
+        await PersistResultAndEnsureSuccess(storedId, flowId, result, param, parent, workflow, storageSession);
         return result.SucceedWithValue!;
     }
 
     public async Task ScheduleRestart(StoredId storedId)
     {
-        var (inner, param, humanInstanceId, workflow, disposables, parent) = await PrepareForReInvocation(storedId);
+        var (inner, param, humanInstanceId, workflow, disposables, parent, storageSession) = await PrepareForReInvocation(storedId);
         var flowId = new FlowId(_flowType, humanInstanceId);
         
         _ = Task.Run(async () =>
@@ -169,7 +170,7 @@ public class Invoker<TParam, TReturn>
                 catch (Exception exception) { var fwe = FatalWorkflowException.CreateNonGeneric(flowId, exception); await PersistFailure(storedId, flowId, fwe, param, parent); throw fwe; }
                 finally{ disposables.Dispose(); }
                 
-                await PersistResultAndEnsureSuccess(storedId, flowId, result, param, parent, workflow, allowPostponedOrSuspended: true);
+                await PersistResultAndEnsureSuccess(storedId, flowId, result, param, parent, workflow, storageSession, allowPostponedOrSuspended: true);
             }
             catch (Exception exception) { _unhandledExceptionHandler.Invoke(_flowType, exception); }
         });
@@ -180,7 +181,7 @@ public class Invoker<TParam, TReturn>
 
     internal async Task ScheduleRestart(StoredId storedId, RestartedFunction rf, Action onCompletion)
     {
-        var (inner, param, humanInstanceId, workflow, disposables, parent) = await PrepareForReInvocation(storedId, rf);
+        var (inner, param, humanInstanceId, workflow, disposables, parent, storageSession) = await PrepareForReInvocation(storedId, rf);
         var flowId = new FlowId(_flowType, humanInstanceId);
         
         _ = Task.Run(async () =>
@@ -199,7 +200,7 @@ public class Invoker<TParam, TReturn>
                 catch (Exception exception) { var fwe = FatalWorkflowException.CreateNonGeneric(flowId, exception); await PersistFailure(storedId, flowId, fwe, param, parent); throw fwe; }
                 finally { disposables.Dispose(); }
                 
-                await PersistResultAndEnsureSuccess(storedId, flowId, result, param, parent, workflow, allowPostponedOrSuspended: true);
+                await PersistResultAndEnsureSuccess(storedId, flowId, result, param, parent, workflow, storageSession, allowPostponedOrSuspended: true);
             }
             catch (Exception exception) { _unhandledExceptionHandler.Invoke(_flowType, exception); }
             finally{ onCompletion(); }
@@ -212,7 +213,7 @@ public class Invoker<TParam, TReturn>
         var success = false;
         try
         {
-            var (persisted, runningFunction) =
+            var (persisted, runningFunction, storageSession) =
                 await _invocationHelper.PersistFunctionInStore(
                     flowId,
                     storedId,
@@ -233,7 +234,8 @@ public class Invoker<TParam, TReturn>
                 storedId,
                 flowId,
                 initialState == null ? [] : _invocationHelper.MapInitialEffects(initialState.Effects, flowId),
-                minimumTimeout
+                minimumTimeout,
+                storageSession
             );
             var messages = _invocationHelper.CreateMessages(
                 flowId,
@@ -266,7 +268,7 @@ public class Invoker<TParam, TReturn>
             if (!success) Disposable.Combine(disposables).Dispose();
         }
     }
-    private record PreparedInvocation(bool Persisted, Workflow Workflow, IDisposable Disposables);
+    private record PreparedInvocation(bool Persisted, Workflow Workflow, IDisposable Disposables, IStorageSession? StorageSession = null);
 
     private async Task<PreparedReInvocation> PrepareForReInvocation(StoredId storedId)
     {
@@ -282,14 +284,14 @@ public class Invoker<TParam, TReturn>
         var disposables = new List<IDisposable>(capacity: 3);
         try
         {
-            var (flowId, param, effects, storedMessages, runningFunction, parent) = 
+            var (flowId, param, effects, storedMessages, runningFunction, parent, storageSession) = 
                 await _invocationHelper.PrepareForReInvocation(storedId, restartedFunction);
             disposables.Add(runningFunction);
             var isWorkflowRunningDisposable = new PropertyDisposable();
             disposables.Add(isWorkflowRunningDisposable);
             
             var minimumTimeout = new FlowMinimumTimeout();
-            var effect = _invocationHelper.CreateEffect(storedId, flowId, effects, minimumTimeout);
+            var effect = _invocationHelper.CreateEffect(storedId, flowId, effects, minimumTimeout, storageSession);
             var messages = _invocationHelper.CreateMessages(
                 flowId,
                 storedId,
@@ -321,7 +323,8 @@ public class Invoker<TParam, TReturn>
                 flowId.Instance.Value,
                 workflow,
                 Disposable.Combine(disposables),
-                parent
+                parent,
+                storageSession
             );
         }
         catch(Exception)
@@ -337,7 +340,8 @@ public class Invoker<TParam, TReturn>
         string HumanInstanceId,
         Workflow Workflow,
         IDisposable Disposables,
-        StoredId? Parent
+        StoredId? Parent,
+        IStorageSession? StorageSession
     );
 
     private async Task PersistFailure(StoredId storedId, FlowId flowId, FatalWorkflowException exception, TParam param, StoredId? parent)
@@ -346,12 +350,12 @@ public class Invoker<TParam, TReturn>
         await _invocationHelper.PersistFailure(storedId, exception, param);
     }
 
-    private async Task PersistResultAndEnsureSuccess(StoredId storedId, FlowId flowId, Result<TReturn> result, TParam param, StoredId? parent, Workflow workflow, bool allowPostponedOrSuspended = false)
+    private async Task PersistResultAndEnsureSuccess(StoredId storedId, FlowId flowId, Result<TReturn> result, TParam param, StoredId? parent, Workflow workflow, IStorageSession? storageSession, bool allowPostponedOrSuspended = false)
     {
         await workflow.Effect.Flush();
         await _invocationHelper.PublishCompletionMessageToParent(parent, childId: flowId, result);
         
-        var outcome = await _invocationHelper.PersistResult(storedId, result, param);
+        var outcome = await _invocationHelper.PersistResult(storedId, result, param, storageSession);
         switch (outcome)
         {
             case PersistResultOutcome.Failed:

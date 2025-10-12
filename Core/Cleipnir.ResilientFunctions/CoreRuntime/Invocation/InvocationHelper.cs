@@ -9,6 +9,7 @@ using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Storage;
+using Cleipnir.ResilientFunctions.Storage.Session;
 
 namespace Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 
@@ -41,7 +42,8 @@ internal class InvocationHelper<TParam, TReturn>
         _resultBusyWaiter = new ResultBusyWaiter<TReturn>(_functionStore, Serializer);
     }
 
-    public async Task<Tuple<bool, IDisposable>> PersistFunctionInStore(
+    public record PersistedInStoreResult(bool Created, IDisposable RunningFunction, IStorageSession? StorageSession);
+    public async Task<PersistedInStoreResult> PersistFunctionInStore(
         FlowId flowId,
         StoredId storedId, 
         FlowInstance humanInstanceId, 
@@ -81,7 +83,7 @@ internal class InvocationHelper<TParam, TReturn>
 
             var created = storageState != null;
             if (!created) runningFunction.Dispose();
-            return Tuple.Create(created, runningFunction);
+            return new PersistedInStoreResult(created, runningFunction, storageState);
         }
         catch (Exception)
         {
@@ -110,12 +112,8 @@ internal class InvocationHelper<TParam, TReturn>
             throw UnexpectedStateException.ConcurrentModification(storedId);
     }
 
-    public async Task<PersistResultOutcome> PersistResult(StoredId storedId, Result<TReturn> result, TParam param)
+    public async Task<PersistResultOutcome> PersistResult(StoredId storedId, Result<TReturn> result, TParam param, IStorageSession? storageSession)
     {
-        var complementaryState = new ComplimentaryState(
-            () => SerializeParameter(param),
-            _settings.LeaseLength.Ticks
-        );
         switch (result.Outcome)
         {
             case Outcome.Succeed:
@@ -126,7 +124,7 @@ internal class InvocationHelper<TParam, TReturn>
                     _replicaId,
                     effects: null,
                     messages: null,
-                    storageSession: null
+                    storageSession
                 ) ? PersistResultOutcome.Success : PersistResultOutcome.Failed;
             case Outcome.Postpone:
                 return await _functionStore.PostponeFunction(
@@ -137,7 +135,7 @@ internal class InvocationHelper<TParam, TReturn>
                     _replicaId,
                     effects: null,
                     messages: null,
-                    storageSession: null
+                    storageSession
                 ) ? PersistResultOutcome.Success : PersistResultOutcome.Reschedule;
             case Outcome.Fail:
                 return await _functionStore.FailFunction(
@@ -147,7 +145,7 @@ internal class InvocationHelper<TParam, TReturn>
                     _replicaId,
                     effects: null,
                     messages: null,
-                    storageSession: null
+                    storageSession
                 ) ? PersistResultOutcome.Success : PersistResultOutcome.Failed;
             case Outcome.Suspend:
                 return await _functionStore.SuspendFunction(
@@ -156,7 +154,7 @@ internal class InvocationHelper<TParam, TReturn>
                     _replicaId,
                     effects: null,
                     messages: null,
-                    storageSession: null
+                    storageSession
                 ) ? PersistResultOutcome.Success : PersistResultOutcome.Reschedule;
             default:
                 throw new ArgumentOutOfRangeException();
@@ -219,14 +217,15 @@ internal class InvocationHelper<TParam, TReturn>
             ? new RestartedFunction(
                 restarted.StoredFlow, 
                 restarted.Effects,
-                restarted.Messages
+                restarted.Messages,
+                restarted.StorageSession
             ) 
             : null;
     }
     
     public async Task<PreparedReInvocation> PrepareForReInvocation(StoredId storedId, RestartedFunction restartedFunction)
     {
-        var (sf, effects, messages) = restartedFunction;
+        var (sf, effects, messages, storageSession) = restartedFunction;
         var flowId = new FlowId(_flowType, sf.HumanInstanceId);
 
         var runningFunction = _shutdownCoordinator.RegisterRunningFunction();
@@ -243,7 +242,8 @@ internal class InvocationHelper<TParam, TReturn>
                 effects, 
                 messages,
                 runningFunction,
-                sf.ParentId
+                sf.ParentId,
+                storageSession
             );
         }
         catch (DeserializationException e)
@@ -277,7 +277,8 @@ internal class InvocationHelper<TParam, TReturn>
         IReadOnlyList<StoredEffect> Effects,
         IReadOnlyList<StoredMessage> Messages,
         IDisposable RunningFunction, 
-        StoredId? Parent
+        StoredId? Parent,
+        IStorageSession? StorageSession
     );
     
     public async Task<bool> SetFunctionState(
@@ -413,7 +414,7 @@ internal class InvocationHelper<TParam, TReturn>
         return new Messages(messageWriter, registeredTimeouts, messagesPullerAndEmitter, UtcNow);
     }
     
-    public Effect CreateEffect(StoredId storedId, FlowId flowId, IReadOnlyList<StoredEffect> storedEffects, FlowMinimumTimeout flowMinimumTimeout)
+    public Effect CreateEffect(StoredId storedId, FlowId flowId, IReadOnlyList<StoredEffect> storedEffects, FlowMinimumTimeout flowMinimumTimeout, IStorageSession? storageSession)
     {
         var effectsStore = _functionStore.EffectsStore;
         
@@ -424,7 +425,8 @@ internal class InvocationHelper<TParam, TReturn>
             storedId,
             lazyEffects,
             effectsStore,
-            Serializer
+            Serializer,
+            storageSession
         );
         
        var effect = new Effect(effectResults, UtcNow, flowMinimumTimeout);
