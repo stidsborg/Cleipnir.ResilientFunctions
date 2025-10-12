@@ -10,7 +10,8 @@ public interface IEffectsStore
     Task Truncate();
     Task SetEffectResult(StoredId storedId, StoredEffect storedEffect, IStorageSession? session);
     Task SetEffectResults(StoredId storedId, IReadOnlyList<StoredEffectChange> changes, IStorageSession? session);
-    Task<IReadOnlyList<StoredEffect>> GetEffectResults(StoredId storedId);
+    async Task<IReadOnlyList<StoredEffect>> GetEffectResults(StoredId storedId) 
+        => (await GetEffectResults([storedId]))[storedId];
     Task<Dictionary<StoredId, List<StoredEffect>>> GetEffectResults(IEnumerable<StoredId> storedIds);
     Task DeleteEffectResult(StoredId storedId, EffectId effectId, IStorageSession? storageSession)
         => SetEffectResults(

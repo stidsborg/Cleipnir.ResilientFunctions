@@ -84,20 +84,20 @@ public class SqlGenerator(string tablePrefix)
         return command;
     }
     
-    public async Task<Dictionary<StoredId, List<StoredEffect>>> ReadEffectsForMultipleStoredIds(MySqlDataReader reader)
+    public async Task<Dictionary<StoredId, List<StoredEffect>>> ReadEffectsForMultipleStoredIds(MySqlDataReader reader, IEnumerable<StoredId> storedIds)
     {
         var storedEffects = new Dictionary<StoredId, List<StoredEffect>>();
+        foreach (var storedId in storedIds)
+            storedEffects[storedId] = new List<StoredEffect>();
+            
         while (await reader.ReadAsync())
         {
             var id = reader.GetString(0).ToGuid().ToStoredId();
             var idHash = reader.GetString(1);
             var status = (WorkStatus) reader.GetInt32(2);
             var result = reader.IsDBNull(3) ? null : (byte[]) reader.GetValue(3);
-            var exception = reader.IsDBNull(4) ? null : reader.GetString(5);
+            var exception = reader.IsDBNull(4) ? null : reader.GetString(4);
             var effectId = reader.GetString(5);
-
-            if (!storedEffects.ContainsKey(id))
-                storedEffects[id] = new List<StoredEffect>();
 
             storedEffects[id].Add(
                 new StoredEffect(

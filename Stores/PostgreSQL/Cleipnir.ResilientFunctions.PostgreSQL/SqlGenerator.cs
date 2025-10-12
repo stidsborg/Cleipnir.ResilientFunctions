@@ -76,9 +76,12 @@ public class SqlGenerator(string tablePrefix)
 
         return functions;
     }
-    public async Task<Dictionary<StoredId, List<StoredEffect>>> ReadEffectsForIds(NpgsqlDataReader reader)
+    public async Task<Dictionary<StoredId, List<StoredEffect>>> ReadEffectsForIds(NpgsqlDataReader reader, IEnumerable<StoredId> storedIds)
     {
         var effects = new Dictionary<StoredId, List<StoredEffect>>();
+        foreach (var storedId in storedIds)
+            effects[storedId] = new List<StoredEffect>();
+        
         while (await reader.ReadAsync())
         {
             var id = new StoredId(reader.GetGuid(0));
@@ -87,8 +90,6 @@ public class SqlGenerator(string tablePrefix)
             var result = reader.IsDBNull(3) ? null : (byte[]) reader.GetValue(3);
             var exception = reader.IsDBNull(4) ? null : reader.GetString(4);
             var effectId = reader.GetString(5);
-            if (!effects.ContainsKey(id))
-                effects[id] = new List<StoredEffect>();
 
             var se = new StoredEffect(EffectId.Deserialize(effectId), status, result, JsonHelper.FromJson<StoredException>(exception));
             effects[id].Add(se);

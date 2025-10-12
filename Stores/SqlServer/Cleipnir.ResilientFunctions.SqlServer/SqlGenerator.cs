@@ -203,9 +203,11 @@ public class SqlGenerator(string tablePrefix)
         return command;
     }
     
-    public async Task<Dictionary<StoredId, List<StoredEffect>>> ReadEffectsForMultipleStoredIds(SqlDataReader reader)
+    public async Task<Dictionary<StoredId, List<StoredEffect>>> ReadEffectsForMultipleStoredIds(SqlDataReader reader, IEnumerable<StoredId> storedIds)
     {
         var storedEffects = new Dictionary<StoredId, List<StoredEffect>>();
+        foreach (var storedId in storedIds)
+            storedEffects[storedId] = new List<StoredEffect>();
         
         while (reader.HasRows && await reader.ReadAsync())
         {
@@ -219,10 +221,7 @@ public class SqlGenerator(string tablePrefix)
 
             var storedException = exception == null ? null : JsonSerializer.Deserialize<StoredException>(exception);
             var storedEffect = new StoredEffect(EffectId.Deserialize(effectId), status, result, storedException);
-
-            if (!storedEffects.ContainsKey(storedId))
-                storedEffects[storedId] = new List<StoredEffect>();
-
+            
             storedEffects[storedId].Add(storedEffect);
         }
 

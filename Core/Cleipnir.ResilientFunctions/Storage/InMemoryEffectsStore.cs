@@ -43,22 +43,16 @@ public class InMemoryEffectsStore : IEffectsStore
             await DeleteEffectResult(storedId, effectId.ToStoredEffectId());
     }
 
-    public Task<IReadOnlyList<StoredEffect>> GetEffectResults(StoredId storedId)
-    {
-        lock (_sync)
-            return !_effects.ContainsKey(storedId)
-                ? ((IReadOnlyList<StoredEffect>) new List<StoredEffect>()).ToTask()
-                : ((IReadOnlyList<StoredEffect>) _effects[storedId].Values.ToList()).ToTask();
-    }
-
-    public async Task<Dictionary<StoredId, List<StoredEffect>>> GetEffectResults(IEnumerable<StoredId> storedIds)
+    public Task<Dictionary<StoredId, List<StoredEffect>>> GetEffectResults(IEnumerable<StoredId> storedIds)
     {
         var dict = new Dictionary<StoredId, List<StoredEffect>>();
         foreach (var storedId in storedIds)
-        {
-            dict[storedId] = (await GetEffectResults(storedId)).ToList();
-        }
-        return dict;
+            lock (_sync)
+                dict[storedId] = _effects.ContainsKey(storedId)
+                    ? _effects[storedId].Values.ToList()
+                    : new List<StoredEffect>();    
+        
+        return dict.ToTask();
     }
 
     public Task DeleteEffectResult(StoredId storedId, StoredEffectId effectId)

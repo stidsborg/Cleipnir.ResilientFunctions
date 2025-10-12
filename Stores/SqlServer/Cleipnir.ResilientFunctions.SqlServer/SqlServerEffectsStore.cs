@@ -84,16 +84,6 @@ public class SqlServerEffectsStore(string connectionString, SqlGenerator sqlGene
 
         await command.ExecuteNonQueryAsync();
     }
-    
-    public async Task<IReadOnlyList<StoredEffect>> GetEffectResults(StoredId storedId)
-    {
-        await using var conn = await CreateConnection();
-        await using var command = sqlGenerator.GetEffects(storedId).ToSqlCommand(conn);
-
-        await using var reader = await command.ExecuteReaderAsync();
-        var effects = await sqlGenerator.ReadEffects(reader);
-        return effects;
-    }
 
     public async Task<Dictionary<StoredId, List<StoredEffect>>> GetEffectResults(IEnumerable<StoredId> storedIds)
     {
@@ -101,7 +91,7 @@ public class SqlServerEffectsStore(string connectionString, SqlGenerator sqlGene
         await using var command = sqlGenerator.GetEffects(storedIds).ToSqlCommand(conn);
         
         await using var reader = await command.ExecuteReaderAsync();
-        var effects = await sqlGenerator.ReadEffectsForMultipleStoredIds(reader);
+        var effects = await sqlGenerator.ReadEffectsForMultipleStoredIds(reader, storedIds);
         return effects;
     }
     

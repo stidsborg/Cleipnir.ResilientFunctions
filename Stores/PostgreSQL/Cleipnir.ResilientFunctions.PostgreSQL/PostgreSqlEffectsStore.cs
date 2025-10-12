@@ -80,23 +80,13 @@ public class PostgreSqlEffectsStore(string connectionString, SqlGenerator sqlGen
         await batch.ExecuteNonQueryAsync();
     }
 
-    public async Task<IReadOnlyList<StoredEffect>> GetEffectResults(StoredId storedId)
-    {
-        await using var conn = await CreateConnection();
-        await using var command = sqlGenerator.GetEffects(storedId).ToNpgsqlCommand(conn);
-
-        await using var reader = await command.ExecuteReaderAsync();
-        var effects = await sqlGenerator.ReadEffects(reader);
-        return effects;
-    }
-
     public async Task<Dictionary<StoredId, List<StoredEffect>>> GetEffectResults(IEnumerable<StoredId> storedIds)
     {
         await using var conn = await CreateConnection();
         await using var command = sqlGenerator.GetEffects(storedIds).ToNpgsqlCommand(conn);
 
         await using var reader = await command.ExecuteReaderAsync();
-        var effects = await sqlGenerator.ReadEffectsForIds(reader);
+        var effects = await sqlGenerator.ReadEffectsForIds(reader, storedIds);
         return effects;
     }
     

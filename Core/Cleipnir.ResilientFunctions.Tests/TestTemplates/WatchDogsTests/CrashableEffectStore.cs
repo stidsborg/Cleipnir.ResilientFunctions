@@ -35,11 +35,6 @@ public class CrashableEffectStore : IEffectsStore
             ? Task.FromException(new TimeoutException())
             : _inner.SetEffectResults(storedId, changes, session);
 
-    public Task<IReadOnlyList<StoredEffect>> GetEffectResults(StoredId storedId)
-        => _crashed
-            ? Task.FromException<IReadOnlyList<StoredEffect>>(new TimeoutException())
-            : _inner.GetEffectResults(storedId);
-
     public Task<Dictionary<StoredId, List<StoredEffect>>> GetEffectResults(IEnumerable<StoredId> storedIds)
         => _crashed
             ? Task.FromException<Dictionary<StoredId, List<StoredEffect>>>(new TimeoutException())
