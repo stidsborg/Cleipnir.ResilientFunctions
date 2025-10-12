@@ -99,25 +99,7 @@ public class PostgreSqlEffectsStore(string connectionString, SqlGenerator sqlGen
         var effects = await sqlGenerator.ReadEffectsForIds(reader);
         return effects;
     }
-
-    private string? _deleteEffectResultSql;
-    public async Task DeleteEffectResult(StoredId storedId, StoredEffectId effectId)
-    {
-        await using var conn = await CreateConnection();
-        _deleteEffectResultSql ??= $"DELETE FROM {tablePrefix}_effects WHERE id = $1 AND id_hash = $2";
-
-        await using var command = new NpgsqlCommand(_deleteEffectResultSql, conn)
-        {
-            Parameters =
-            {
-                new() {Value = storedId.AsGuid },
-                new() {Value = effectId.Value },
-            }
-        };
-
-        await command.ExecuteNonQueryAsync();
-    }
-
+    
     private string? _removeSql;
     public async Task Remove(StoredId storedId)
     {

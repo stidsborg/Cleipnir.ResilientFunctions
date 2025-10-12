@@ -94,27 +94,7 @@ public class MariaDbEffectsStore(string connectionString, SqlGenerator sqlGenera
         var effects = await sqlGenerator.ReadEffectsForMultipleStoredIds(reader);
         return effects;
     }
-
-    private string? _deleteEffectResultSql;
-    public async Task DeleteEffectResult(StoredId storedId, StoredEffectId effectId)
-    {
-        await using var conn = await CreateConnection();
-        _deleteEffectResultSql ??= @$"
-            DELETE FROM {tablePrefix}_effects
-            WHERE id = ? AND id_hash = ?";
-
-        await using var command = new MySqlCommand(_deleteEffectResultSql, conn)
-        {
-            Parameters =
-            {
-                new() { Value = storedId.AsGuid.ToString("N") },
-                new() { Value = effectId.Value.ToString("N") },
-            }
-        };
-
-        await command.ExecuteNonQueryAsync();
-    }
-
+    
     private string? _removeSql;
     public async Task Remove(StoredId storedId)
     {

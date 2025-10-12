@@ -144,17 +144,17 @@ public abstract class EffectStoreTests
             .SelectAsync(sas => sas.Count() == 2)
             .ShouldBeTrueAsync();
 
-        await store.DeleteEffectResult(functionId, storedEffect2.EffectId.ToStoredEffectId());
+        await store.DeleteEffectResult(functionId, storedEffect2.EffectId, storageSession: null);
         var storedEffects = await store.GetEffectResults(functionId);
         storedEffects.Count.ShouldBe(1);
         storedEffects[0].EffectId.ShouldBe(storedEffect1.EffectId);
 
-        await store.DeleteEffectResult(functionId, storedEffect2.EffectId.ToStoredEffectId());
+        await store.DeleteEffectResult(functionId, storedEffect2.EffectId, storageSession: null);
         storedEffects = await store.GetEffectResults(functionId);
         storedEffects.Count.ShouldBe(1);
         storedEffects[0].EffectId.ShouldBe(storedEffect1.EffectId);
         
-        await store.DeleteEffectResult(functionId, storedEffect1.EffectId.ToStoredEffectId());
+        await store.DeleteEffectResult(functionId, storedEffect1.EffectId, storageSession: null);
         await store
             .GetEffectResults(functionId)
             .SelectAsync(sas => sas.Any())

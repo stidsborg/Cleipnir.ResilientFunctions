@@ -45,11 +45,6 @@ public class CrashableEffectStore : IEffectsStore
             ? Task.FromException<Dictionary<StoredId, List<StoredEffect>>>(new TimeoutException())
             : _inner.GetEffectResults(storedIds);
 
-    public Task DeleteEffectResult(StoredId storedId, StoredEffectId effectId)
-        => _crashed
-            ? Task.FromException(new TimeoutException())
-            : _inner.DeleteEffectResult(storedId, effectId);
-
     public Task Remove(StoredId storedId)
         => _crashed
             ? Task.FromException(new TimeoutException())

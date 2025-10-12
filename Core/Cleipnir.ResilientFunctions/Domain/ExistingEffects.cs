@@ -64,7 +64,7 @@ public class ExistingEffects(StoredId storedId, FlowId flowId, IEffectsStore eff
     public async Task Remove(EffectId effectId)
     {
         var storedEffects = await GetStoredEffects();
-        await effectsStore.DeleteEffectResult(storedId, effectId.ToStoredEffectId());
+        await effectsStore.DeleteEffectResult(storedId, effectId, storageSession: null);
         storedEffects.Remove(effectId);
     }
 

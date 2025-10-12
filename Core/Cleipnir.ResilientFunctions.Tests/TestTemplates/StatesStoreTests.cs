@@ -39,7 +39,7 @@ public abstract class StatesStoreTests
         var state2 = states.Single(s => s.EffectId == "Id#2".ToEffectId(EffectType.State));
         state2.Result.ShouldBe("SomeJson#2".ToUtf8Bytes());
 
-        await statesStore.DeleteEffectResult(flowId, state1.EffectId.ToStoredEffectId());
+        await statesStore.DeleteEffectResult(flowId, state1.EffectId, storageSession: null);
         
         states = await statesStore.GetEffectResults(flowId);
         states.Count.ShouldBe(1);
