@@ -46,32 +46,6 @@ public class SqlServerEffectsStore(string connectionString, SqlGenerator sqlGene
         await command.ExecuteNonQueryAsync();
     }
 
-    private string? _setEffectResultSql;
-    public async Task SetEffectResult(StoredId storedId, StoredEffect storedEffect, IStorageSession? session)
-    {
-        await using var conn = await CreateConnection();
-        _setEffectResultSql ??= $@"
-            MERGE INTO {tablePrefix}_Effects
-                USING (VALUES (@Id, @StoredId, @EffectId, @Status, @Result, @Exception)) 
-                AS source (Id, StoredId, EffectId, Status, Result, Exception)
-                ON {tablePrefix}_Effects.Id = source.Id AND {tablePrefix}_Effects.StoredId = source.StoredId
-                WHEN MATCHED THEN
-                    UPDATE SET Status = source.Status, Result = source.Result, Exception = source.Exception 
-                WHEN NOT MATCHED THEN
-                    INSERT (Id, StoredId, EffectId, Status, Result, Exception)
-                    VALUES (source.Id, source.StoredId, source.EffectId, source.Status, source.Result, source.Exception);";
-        
-        await using var command = new SqlCommand(_setEffectResultSql, conn);
-        command.Parameters.AddWithValue("@Id", storedId.AsGuid);
-        command.Parameters.AddWithValue("@StoredId", storedEffect.StoredEffectId.Value);
-        command.Parameters.AddWithValue("@EffectId", storedEffect.EffectId.Serialize());
-        command.Parameters.AddWithValue("@Status", storedEffect.WorkStatus);
-        command.Parameters.AddWithValue("@Result", storedEffect.Result ?? (object) SqlBinary.Null);
-        command.Parameters.AddWithValue("@Exception", JsonHelper.ToJson(storedEffect.StoredException) ?? (object) DBNull.Value);
-
-        await command.ExecuteNonQueryAsync();
-    }
-
     public async Task SetEffectResults(StoredId storedId, IReadOnlyList<StoredEffectChange> changes, IStorageSession? session)
     {
         if (changes.Count == 0)

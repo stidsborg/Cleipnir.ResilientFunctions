@@ -39,35 +39,6 @@ public class PostgreSqlEffectsStore(string connectionString, SqlGenerator sqlGen
         await command.ExecuteNonQueryAsync();
     }
 
-    private string? _setEffectResultSql;
-    public async Task SetEffectResult(StoredId storedId, StoredEffect storedEffect, IStorageSession? session)
-    {
-        await using var conn = await CreateConnection();
-        _setEffectResultSql ??= $@"
-          INSERT INTO {tablePrefix}_effects
-              (id, id_hash, status, result, exception, effect_id)
-          VALUES
-              ($1, $2, $3, $4, $5, $6)
-          ON CONFLICT (id, id_hash)
-          DO
-            UPDATE SET status = EXCLUDED.status, result = EXCLUDED.result, exception = EXCLUDED.exception";
-
-        await using var command = new NpgsqlCommand(_setEffectResultSql, conn)
-        {
-            Parameters =
-            {
-                new() {Value = storedId.AsGuid},
-                new() {Value = storedEffect.StoredEffectId.Value},
-                new() {Value = (int) storedEffect.WorkStatus},
-                new() {Value = storedEffect.Result ?? (object) DBNull.Value},
-                new() {Value = JsonHelper.ToJson(storedEffect.StoredException) ?? (object) DBNull.Value},
-                new() {Value = storedEffect.EffectId.Serialize()},
-            }
-        };
-
-        await command.ExecuteNonQueryAsync();
-    }
-
     public async Task SetEffectResults(StoredId storedId, IReadOnlyList<StoredEffectChange> changes, IStorageSession? session)
     {
         if (changes.Count == 0)

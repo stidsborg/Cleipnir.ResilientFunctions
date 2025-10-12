@@ -25,11 +25,6 @@ public class CrashableEffectStore : IEffectsStore
             ? Task.FromException(new TimeoutException())
             : _inner.Truncate();
 
-    public Task SetEffectResult(StoredId storedId, StoredEffectChange storedEffectChange, IStorageSession? session)
-        => _crashed
-            ? Task.FromException(new TimeoutException())
-            : _inner.SetEffectResult(storedId, storedEffectChange, session);
-
     public Task SetEffectResults(StoredId storedId, IReadOnlyList<StoredEffectChange> changes, IStorageSession? session)
         => _crashed
             ? Task.FromException(new TimeoutException())

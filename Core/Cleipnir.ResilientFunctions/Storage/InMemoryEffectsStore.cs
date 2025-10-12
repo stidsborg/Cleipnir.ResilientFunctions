@@ -21,26 +21,24 @@ public class InMemoryEffectsStore : IEffectsStore
         return Task.CompletedTask;
     }
 
-    public Task SetEffectResult(StoredId storedId, StoredEffect storedEffect, IStorageSession? session)
+    public Task SetEffectResults(StoredId storedId, IReadOnlyList<StoredEffectChange> changes, IStorageSession? session)
     {
         lock (_sync)
         {
-            if (!_effects.ContainsKey(storedId))
-                _effects[storedId] = new Dictionary<StoredEffectId, StoredEffect>();
+            foreach (var storedEffect in changes.Where(c => c.Operation != CrudOperation.Delete).Select(c => c.StoredEffect!))
+            {
+                if (!_effects.ContainsKey(storedId))
+                    _effects[storedId] = new Dictionary<StoredEffectId, StoredEffect>();
 
-            _effects[storedId][storedEffect.StoredEffectId] = storedEffect;
+                _effects[storedId][storedEffect.StoredEffectId] = storedEffect;
+            }
+
+            foreach (var effectId in changes.Where(c => c.Operation == CrudOperation.Delete).Select(c => c.EffectId))
+                if (_effects.ContainsKey(storedId))
+                    _effects[storedId].Remove(effectId.ToStoredEffectId());
         }
 
         return Task.CompletedTask;
-    }
-
-    public async Task SetEffectResults(StoredId storedId, IReadOnlyList<StoredEffectChange> changes, IStorageSession? session)
-    {
-        foreach (var storedEffect in changes.Where(c => c.Operation != CrudOperation.Delete).Select(c => c.StoredEffect!))
-            await SetEffectResult(storedId, storedEffect, session);
-
-        foreach (var effectId in changes.Where(c => c.Operation == CrudOperation.Delete).Select(c => c.EffectId))
-            await DeleteEffectResult(storedId, effectId.ToStoredEffectId());
     }
 
     public Task<Dictionary<StoredId, List<StoredEffect>>> GetEffectResults(IEnumerable<StoredId> storedIds)
