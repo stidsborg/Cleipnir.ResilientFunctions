@@ -2,6 +2,7 @@
 using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Storage;
+using Cleipnir.ResilientFunctions.Storage.Session;
 using Shouldly;
 
 namespace Cleipnir.ResilientFunctions.Tests.Utils;

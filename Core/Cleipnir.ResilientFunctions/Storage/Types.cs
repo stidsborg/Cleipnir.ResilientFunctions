@@ -4,6 +4,7 @@ using System.Security.Cryptography;
 using System.Text;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Messaging;
+using Cleipnir.ResilientFunctions.Storage.Session;
 
 namespace Cleipnir.ResilientFunctions.Storage;
 

@@ -5,6 +5,7 @@ using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Storage;
+using Cleipnir.ResilientFunctions.Storage.Session;
 using MySqlConnector;
 using static Cleipnir.ResilientFunctions.MariaDb.DatabaseHelper;
 

@@ -7,6 +7,7 @@ using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
+using Cleipnir.ResilientFunctions.Storage.Session;
 using Cleipnir.ResilientFunctions.Utils;
 using Cleipnir.ResilientFunctions.Utils.Arbitrator;
 using Cleipnir.ResilientFunctions.Utils.Register;
