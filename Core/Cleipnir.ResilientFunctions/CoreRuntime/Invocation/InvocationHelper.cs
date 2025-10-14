@@ -131,12 +131,12 @@ internal class InvocationHelper<TParam, TReturn>
                     storedId,
                     postponeUntil: result.Postpone!.DateTime.Ticks,
                     timestamp: UtcNow().Ticks,
-                    ignoreInterrupted: false,
+                    ignoreInterrupted: true,
                     _replicaId,
                     effects: null,
                     messages: null,
                     storageSession
-                ) ? PersistResultOutcome.Success : PersistResultOutcome.Reschedule;
+                ) ? PersistResultOutcome.Success : PersistResultOutcome.Success;
             case Outcome.Fail:
                 return await _functionStore.FailFunction(
                     storedId,

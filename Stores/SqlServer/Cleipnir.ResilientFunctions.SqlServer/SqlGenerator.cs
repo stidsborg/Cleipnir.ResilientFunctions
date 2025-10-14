@@ -306,15 +306,19 @@ public class SqlGenerator(string tablePrefix)
     {
         _postponedFunctionSql ??= @$"
             UPDATE {tablePrefix}
-            SET Status = {(int) Status.Postponed}, Expires = @PostponedUntil, Timestamp = @Timestamp, Owner = NULL
-            WHERE Id = @Id AND Owner = @ExpectedReplica AND Interrupted = 0";
-        
-        var sql = paramPrefix == "" 
+            SET Status = {(int) Status.Postponed},
+                Expires = CASE WHEN Interrupted = 1 THEN 0 ELSE @PostponedUntil END,
+                Timestamp = @Timestamp,
+                Owner = NULL,
+                Interrupted = 0
+            WHERE Id = @Id AND Owner = @ExpectedReplica AND Interrupted=0";
+
+        var sql = paramPrefix == ""
             ? _postponedFunctionSql
             : _postponedFunctionSql.Replace("@", $"@{paramPrefix}");
-        
+
         if (ignoreInterrupted)
-            sql = sql.Replace("Interrupted = 0", "1 = 1");
+            sql = sql.Replace("Interrupted=0", "1 = 1");
 
         var command = StoreCommand.Create(sql);
         command.AddParameter($"@{paramPrefix}PostponedUntil", postponeUntil);

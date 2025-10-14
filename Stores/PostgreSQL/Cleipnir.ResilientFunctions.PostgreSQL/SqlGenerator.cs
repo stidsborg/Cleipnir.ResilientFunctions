@@ -228,20 +228,24 @@ public class SqlGenerator(string tablePrefix)
     
     private string? _postponeFunctionSql;
     public StoreCommand PostponeFunction(
-        StoredId storedId, 
-        long postponeUntil, 
+        StoredId storedId,
+        long postponeUntil,
         long timestamp,
         bool ignoreInterrupted,
         ReplicaId expectedReplica)
     {
         _postponeFunctionSql ??= $@"
             UPDATE {tablePrefix}
-            SET status = {(int) Status.Postponed}, expires = $1, timestamp = $2, owner = NULL
-            WHERE 
-                id = $3 AND 
+            SET status = {(int) Status.Postponed},
+                expires = CASE WHEN interrupted THEN 0 ELSE $1 END,
+                timestamp = $2,
+                owner = NULL,
+                interrupted = FALSE
+            WHERE
+                id = $3 AND
                 owner = $4 AND
                 NOT interrupted";
-        
+
         var sql = _postponeFunctionSql;
         if (ignoreInterrupted)
             sql = sql.Replace("NOT interrupted", "1 = 1");

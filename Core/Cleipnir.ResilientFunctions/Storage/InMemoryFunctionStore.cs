@@ -297,7 +297,8 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
                 return false.ToTask();
 
             state.Status = Status.Postponed;
-            state.Expires = postponeUntil;
+            state.Expires = state.Interrupted ? 0 : postponeUntil;
+            state.Interrupted = false;
             state.Timestamp = timestamp;
             state.Owner = null;
 
