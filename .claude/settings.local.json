@@ -9,7 +9,10 @@
       "Bash(for file in Core/Cleipnir.ResilientFunctions.Tests/Messaging/TestTemplates/MessageStoreTests.cs Core/Cleipnir.ResilientFunctions.Tests/TestTemplates/FunctionTests/PostponedTests.cs)",
       "Bash(do)",
       "Bash(done)",
-      "Bash(git diff:*)"
+      "Bash(git diff:*)",
+      "Bash(dotnet test:*)",
+      "Bash(docker compose:*)",
+      "Bash(dotnet run:*)"
     ],
     "deny": [],
     "ask": []

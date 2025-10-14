@@ -58,6 +58,19 @@ public interface IFunctionStore
         ReplicaId? expectedReplica
     );
 
+    Task<bool> SetFunction(
+        StoredId storedId,
+        byte[]? result,
+        FunctionStatus status,
+        long? postponeUntil,
+        StoredException? storedException,
+        long timestamp,
+        ReplicaId expectedReplica,
+        IReadOnlyList<StoredEffect>? effects,
+        IReadOnlyList<StoredMessage>? messages,
+        IStorageSession? storageSession
+    );
+
     Task<bool> SucceedFunction(
         StoredId storedId,
         byte[]? result,

@@ -1847,4 +1847,273 @@ public abstract class StoreTests
         storedFunction.ShouldNotBeNull();
         storedFunction.OwnerId.ShouldBeNull();
     }
+
+    public abstract Task SetFunctionSucceedsWithSucceededStatus();
+    protected async Task SetFunctionSucceedsWithSucceededStatus(Task<IFunctionStore> storeTask)
+    {
+        var functionId = TestStoredId.Create();
+
+        var store = await storeTask;
+        await store.CreateFunction(
+            functionId,
+            "humanInstanceId",
+            param: "test".ToJson().ToUtf8Bytes(),
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks,
+            parent: null,
+            owner: ReplicaId.Empty
+        ).ShouldNotBeNullAsync();
+
+        var result = "success".ToJson().ToUtf8Bytes();
+        var timestamp = DateTime.UtcNow.Ticks;
+
+        await store.SetFunction(
+            functionId,
+            result: result,
+            status: new FunctionStatus(Status.Succeeded),
+            postponeUntil: null,
+            storedException: null,
+            timestamp: timestamp,
+            expectedReplica: ReplicaId.Empty,
+            effects: null,
+            messages: null,
+            storageSession: null
+        ).ShouldBeTrueAsync();
+
+        var storedFunction = await store.GetFunction(functionId);
+        storedFunction.ShouldNotBeNull();
+        storedFunction.Status.ShouldBe(Status.Succeeded);
+        storedFunction.Result.ShouldBe(result);
+        storedFunction.Timestamp.ShouldBe(timestamp);
+        storedFunction.OwnerId.ShouldBeNull();
+    }
+
+    public abstract Task SetFunctionSucceedsWithFailedStatus();
+    protected async Task SetFunctionSucceedsWithFailedStatus(Task<IFunctionStore> storeTask)
+    {
+        var functionId = TestStoredId.Create();
+
+        var store = await storeTask;
+        await store.CreateFunction(
+            functionId,
+            "humanInstanceId",
+            param: "test".ToJson().ToUtf8Bytes(),
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks,
+            parent: null,
+            owner: ReplicaId.Empty
+        ).ShouldNotBeNullAsync();
+
+        var storedException = new StoredException(
+            ExceptionMessage: "Test exception",
+            ExceptionStackTrace: "Test stack trace",
+            ExceptionType: typeof(InvalidOperationException).SimpleQualifiedName()
+        );
+        var timestamp = DateTime.UtcNow.Ticks;
+
+        await store.SetFunction(
+            functionId,
+            result: null,
+            status: new FunctionStatus(Status.Failed),
+            postponeUntil: null,
+            storedException: storedException,
+            timestamp: timestamp,
+            expectedReplica: ReplicaId.Empty,
+            effects: null,
+            messages: null,
+            storageSession: null
+        ).ShouldBeTrueAsync();
+
+        var storedFunction = await store.GetFunction(functionId);
+        storedFunction.ShouldNotBeNull();
+        storedFunction.Status.ShouldBe(Status.Failed);
+        storedFunction.Exception.ShouldNotBeNull();
+        storedFunction.Exception.ExceptionMessage.ShouldBe(storedException.ExceptionMessage);
+        storedFunction.Timestamp.ShouldBe(timestamp);
+        storedFunction.OwnerId.ShouldBeNull();
+    }
+
+    public abstract Task SetFunctionSucceedsWithPostponedStatus();
+    protected async Task SetFunctionSucceedsWithPostponedStatus(Task<IFunctionStore> storeTask)
+    {
+        var functionId = TestStoredId.Create();
+
+        var store = await storeTask;
+        await store.CreateFunction(
+            functionId,
+            "humanInstanceId",
+            param: "test".ToJson().ToUtf8Bytes(),
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks,
+            parent: null,
+            owner: ReplicaId.Empty
+        ).ShouldNotBeNullAsync();
+
+        var postponeUntil = DateTime.UtcNow.AddHours(1).Ticks;
+        var timestamp = DateTime.UtcNow.Ticks;
+
+        await store.SetFunction(
+            functionId,
+            result: null,
+            status: new FunctionStatus(Status.Postponed),
+            postponeUntil: postponeUntil,
+            storedException: null,
+            timestamp: timestamp,
+            expectedReplica: ReplicaId.Empty,
+            effects: null,
+            messages: null,
+            storageSession: null
+        ).ShouldBeTrueAsync();
+
+        var storedFunction = await store.GetFunction(functionId);
+        storedFunction.ShouldNotBeNull();
+        storedFunction.Status.ShouldBe(Status.Postponed);
+        storedFunction.Expires.ShouldBe(postponeUntil);
+        storedFunction.Timestamp.ShouldBe(timestamp);
+        storedFunction.OwnerId.ShouldBeNull();
+    }
+
+    public abstract Task SetFunctionSucceedsWithSuspendedStatus();
+    protected async Task SetFunctionSucceedsWithSuspendedStatus(Task<IFunctionStore> storeTask)
+    {
+        var functionId = TestStoredId.Create();
+
+        var store = await storeTask;
+        await store.CreateFunction(
+            functionId,
+            "humanInstanceId",
+            param: "test".ToJson().ToUtf8Bytes(),
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks,
+            parent: null,
+            owner: ReplicaId.Empty
+        ).ShouldNotBeNullAsync();
+
+        var timestamp = DateTime.UtcNow.Ticks;
+
+        await store.SetFunction(
+            functionId,
+            result: null,
+            status: new FunctionStatus(Status.Suspended),
+            postponeUntil: null,
+            storedException: null,
+            timestamp: timestamp,
+            expectedReplica: ReplicaId.Empty,
+            effects: null,
+            messages: null,
+            storageSession: null
+        ).ShouldBeTrueAsync();
+
+        var storedFunction = await store.GetFunction(functionId);
+        storedFunction.ShouldNotBeNull();
+        storedFunction.Status.ShouldBe(Status.Suspended);
+        storedFunction.Timestamp.ShouldBe(timestamp);
+        storedFunction.OwnerId.ShouldBeNull();
+    }
+
+    public abstract Task SetFunctionFailsWhenInterruptedForPostponedAndSuspended();
+    protected async Task SetFunctionFailsWhenInterruptedForPostponedAndSuspended(Task<IFunctionStore> storeTask)
+    {
+        var functionId = TestStoredId.Create();
+
+        var store = await storeTask;
+        await store.CreateFunction(
+            functionId,
+            "humanInstanceId",
+            param: "test".ToJson().ToUtf8Bytes(),
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks,
+            parent: null,
+            owner: ReplicaId.Empty
+        ).ShouldNotBeNullAsync();
+
+        // Interrupt the function
+        await store.Interrupt(functionId).ShouldBeTrueAsync();
+
+        var timestamp = DateTime.UtcNow.Ticks;
+
+        // SetFunction should fail for Postponed when interrupted
+        await store.SetFunction(
+            functionId,
+            result: null,
+            status: new FunctionStatus(Status.Postponed),
+            postponeUntil: DateTime.UtcNow.AddHours(1).Ticks,
+            storedException: null,
+            timestamp: timestamp,
+            expectedReplica: ReplicaId.Empty,
+            effects: null,
+            messages: null,
+            storageSession: null
+        ).ShouldBeFalseAsync();
+
+        var storedFunction = await store.GetFunction(functionId);
+        storedFunction.ShouldNotBeNull();
+        storedFunction.Status.ShouldBe(Status.Executing); // Stays Executing when interrupted from Executing
+        storedFunction.Interrupted.ShouldBeTrue();
+
+        // SetFunction should also fail for Suspended when interrupted
+        await store.SetFunction(
+            functionId,
+            result: null,
+            status: new FunctionStatus(Status.Suspended),
+            postponeUntil: null,
+            storedException: null,
+            timestamp: timestamp,
+            expectedReplica: ReplicaId.Empty,
+            effects: null,
+            messages: null,
+            storageSession: null
+        ).ShouldBeFalseAsync();
+
+        storedFunction = await store.GetFunction(functionId);
+        storedFunction.ShouldNotBeNull();
+        storedFunction.Status.ShouldBe(Status.Executing); // Still in original status
+        storedFunction.Interrupted.ShouldBeTrue();
+    }
+
+    public abstract Task SetFunctionFailsWhenEpochIsNotAsExpected();
+    protected async Task SetFunctionFailsWhenEpochIsNotAsExpected(Task<IFunctionStore> storeTask)
+    {
+        var functionId = TestStoredId.Create();
+
+        var store = await storeTask;
+        var owner = ReplicaId.NewId();
+        await store.CreateFunction(
+            functionId,
+            "humanInstanceId",
+            param: "test".ToJson().ToUtf8Bytes(),
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks,
+            parent: null,
+            owner: owner
+        ).ShouldNotBeNullAsync();
+
+        var timestamp = DateTime.UtcNow.Ticks;
+        var wrongOwner = ReplicaId.NewId();
+
+        // SetFunction should fail because the expected replica is wrong
+        await store.SetFunction(
+            functionId,
+            result: "success".ToJson().ToUtf8Bytes(),
+            status: new FunctionStatus(Status.Succeeded),
+            postponeUntil: null,
+            storedException: null,
+            timestamp: timestamp,
+            expectedReplica: wrongOwner,
+            effects: null,
+            messages: null,
+            storageSession: null
+        ).ShouldBeFalseAsync();
+
+        var storedFunction = await store.GetFunction(functionId);
+        storedFunction.ShouldNotBeNull();
+        storedFunction.Status.ShouldBe(Status.Executing); // Still in original status
+        storedFunction.OwnerId.ShouldBe(owner); // Owner unchanged
+    }
 }

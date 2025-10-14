@@ -344,6 +344,27 @@ public class PostgreSqlFunctionStore : IFunctionStore
         return affectedRows == 1;
     }
     
+    public async Task<bool> SetFunction(
+        StoredId storedId,
+        byte[]? result,
+        FunctionStatus status,
+        long? postponeUntil,
+        StoredException? storedException,
+        long timestamp,
+        ReplicaId expectedReplica,
+        IReadOnlyList<StoredEffect>? effects,
+        IReadOnlyList<StoredMessage>? messages,
+        IStorageSession? storageSession)
+    {
+        await using var conn = await CreateConnection();
+        await using var command = _sqlGenerator
+            .SetFunction(storedId, result, status, postponeUntil, storedException, timestamp, expectedReplica)
+            .ToNpgsqlCommand(conn);
+
+        var affectedRows = await command.ExecuteNonQueryAsync();
+        return affectedRows == 1;
+    }
+
     public async Task<bool> SucceedFunction(
         StoredId storedId,
         byte[]? result,

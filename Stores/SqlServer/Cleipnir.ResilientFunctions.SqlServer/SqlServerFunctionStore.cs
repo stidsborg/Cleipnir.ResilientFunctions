@@ -364,6 +364,27 @@ public class SqlServerFunctionStore : IFunctionStore
         return affectedRows > 0;
     }
     
+    public async Task<bool> SetFunction(
+        StoredId storedId,
+        byte[]? result,
+        FunctionStatus status,
+        long? postponeUntil,
+        StoredException? storedException,
+        long timestamp,
+        ReplicaId expectedReplica,
+        IReadOnlyList<StoredEffect>? effects,
+        IReadOnlyList<StoredMessage>? messages,
+        IStorageSession? storageSession)
+    {
+        await using var conn = await _connFunc();
+        await using var command = _sqlGenerator
+            .SetFunction(storedId, result, status, postponeUntil, storedException, timestamp, expectedReplica, paramPrefix: "")
+            .ToSqlCommand(conn);
+
+        var affectedRows = await command.ExecuteNonQueryAsync();
+        return affectedRows > 0;
+    }
+
     public async Task<bool> SucceedFunction(
         StoredId storedId,
         byte[]? result,

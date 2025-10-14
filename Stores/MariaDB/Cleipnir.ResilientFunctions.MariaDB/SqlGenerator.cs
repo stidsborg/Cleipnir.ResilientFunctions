@@ -310,7 +310,42 @@ public class SqlGenerator(string tablePrefix)
             ]
         );
     }
-    
+
+    public StoreCommand SetFunction(
+        StoredId storedId,
+        byte[]? result,
+        FunctionStatus status,
+        long? postponeUntil,
+        StoredException? storedException,
+        long timestamp,
+        ReplicaId expectedReplica)
+    {
+        var sql = $@"
+            UPDATE {tablePrefix}
+            SET status = ?,
+                result_json = ?,
+                exception_json = ?,
+                expires = ?,
+                timestamp = ?,
+                owner = NULL
+            WHERE id = ?
+                AND owner = ?
+                AND NOT interrupted";
+
+        return StoreCommand.Create(
+            sql,
+            values: [
+                (int)status.Status,
+                result ?? (object) DBNull.Value,
+                storedException == null ? DBNull.Value : JsonSerializer.Serialize(storedException),
+                postponeUntil ?? 0,
+                timestamp,
+                storedId.AsGuid.ToString("N"),
+                expectedReplica.AsGuid.ToString("N")
+            ]
+        );
+    }
+
     private string? _restartExecutionSql;
     public StoreCommand RestartExecution(StoredId storedId, ReplicaId replicaId)
     {
