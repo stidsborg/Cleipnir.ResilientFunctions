@@ -283,10 +283,12 @@ public class SqlGenerator(string tablePrefix)
     {
         _suspendFunctionSql ??= $@"
             UPDATE {tablePrefix}
-            SET status = {(int)Status.Suspended}, timestamp = $1, owner = NULL
-            WHERE id = $2 AND 
-                  owner = $3 AND
-                  NOT interrupted;";
+            SET status = CASE WHEN interrupted THEN {(int) Status.Postponed} ELSE {(int) Status.Suspended} END,
+                expires = 0,
+                timestamp = $1,
+                owner = NULL,
+                interrupted = FALSE
+            WHERE id = $2 AND owner = $3";
 
         return StoreCommand.Create(
             _suspendFunctionSql,

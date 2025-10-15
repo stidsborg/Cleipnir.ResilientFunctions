@@ -901,11 +901,12 @@ public abstract class StoreTests
             effects: null,
             messages: null,
             storageSession: null
-        ).ShouldBeFalseAsync();
+        ).ShouldBeTrueAsync();
         
         var storedFunction = await store.GetFunction(functionId);
         storedFunction.ShouldNotBeNull();
-        (storedFunction.Status is Status.Executing).ShouldBeTrue();
+        storedFunction.Status.ShouldBe(Status.Postponed);
+        storedFunction.Expires.ShouldBe(0);
     }
     
     public abstract Task FunctionIsStillExecutingOnSuspensionAndInterruptCountMismatch();
@@ -941,11 +942,12 @@ public abstract class StoreTests
             storageSession: null
         );
         
-        success.ShouldBeFalse();
+        success.ShouldBeTrue();
         
         var storedFunction = await store.GetFunction(functionId);
         storedFunction.ShouldNotBeNull();
-        storedFunction.Status.ShouldBe(Status.Executing);
+        storedFunction.Status.ShouldBe(Status.Postponed);
+        storedFunction.Expires.ShouldBe(0);
     }
     
     public abstract Task InterruptCountCanBeIncrementedForExecutingFunction();

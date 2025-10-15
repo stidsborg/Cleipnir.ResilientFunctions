@@ -344,12 +344,11 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
             if (state.Owner != expectedReplica)
                 return false.ToTask();
 
-            if (state.Interrupted)
-                return false.ToTask();
-
-            state.Status = Status.Suspended;
+            state.Status = state.Interrupted ? Status.Postponed : Status.Suspended;
+            state.Expires = 0;
             state.Timestamp = timestamp;
             state.Owner = null;
+            state.Interrupted = false;
 
             return true.ToTask();
         }
