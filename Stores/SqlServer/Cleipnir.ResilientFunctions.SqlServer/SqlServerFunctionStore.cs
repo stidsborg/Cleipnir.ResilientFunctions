@@ -412,7 +412,6 @@ public class SqlServerFunctionStore : IFunctionStore
         StoredId storedId,
         long postponeUntil,
         long timestamp,
-        bool ignoreInterrupted,
         ReplicaId expectedReplica,
         IReadOnlyList<StoredEffect>? effects,
         IReadOnlyList<StoredMessage>? messages,
@@ -423,7 +422,6 @@ public class SqlServerFunctionStore : IFunctionStore
             storedId,
             postponeUntil,
             timestamp,
-            ignoreInterrupted,
             expectedReplica,
             paramPrefix: ""
         ).ToSqlCommand(conn);

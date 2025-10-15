@@ -239,7 +239,6 @@ public class SqlGenerator(string tablePrefix)
         StoredId storedId,
         long postponeUntil,
         long timestamp,
-        bool ignoreInterrupted,
         ReplicaId expectedReplica)
     {
         _postponedFunctionSql ??= $@"
@@ -251,15 +250,10 @@ public class SqlGenerator(string tablePrefix)
                 interrupted = 0
             WHERE
                 id = ? AND
-                owner = ? AND
-                interrupted=0";
-
-        var sql = _postponedFunctionSql;
-        if (ignoreInterrupted)
-            sql = sql.Replace("interrupted=0", "1 = 1");
+                owner = ?";
 
         return StoreCommand.Create(
-            sql,
+            _postponedFunctionSql,
             values: [
                 postponeUntil,
                 timestamp,

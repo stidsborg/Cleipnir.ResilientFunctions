@@ -41,7 +41,6 @@ public static class PostponedTest
                 StoredId.Create(storedType, i.ToString()),
                 postponeUntil: start.Ticks,
                 timestamp: DateTime.UtcNow.Ticks,
-                ignoreInterrupted: true,
                 expectedReplica: ReplicaId.Empty,
                 effects: null,
                 messages: null,

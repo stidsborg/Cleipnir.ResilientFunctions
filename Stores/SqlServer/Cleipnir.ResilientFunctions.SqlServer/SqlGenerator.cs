@@ -302,7 +302,7 @@ public class SqlGenerator(string tablePrefix)
     }
     
     private string? _postponedFunctionSql;
-    public StoreCommand PostponeFunction(StoredId storedId, long postponeUntil, long timestamp, bool ignoreInterrupted, ReplicaId expectedReplica, string paramPrefix)
+    public StoreCommand PostponeFunction(StoredId storedId, long postponeUntil, long timestamp, ReplicaId expectedReplica, string paramPrefix)
     {
         _postponedFunctionSql ??= @$"
             UPDATE {tablePrefix}
@@ -311,14 +311,11 @@ public class SqlGenerator(string tablePrefix)
                 Timestamp = @Timestamp,
                 Owner = NULL,
                 Interrupted = 0
-            WHERE Id = @Id AND Owner = @ExpectedReplica AND Interrupted=0";
+            WHERE Id = @Id AND Owner = @ExpectedReplica";
 
         var sql = paramPrefix == ""
             ? _postponedFunctionSql
             : _postponedFunctionSql.Replace("@", $"@{paramPrefix}");
-
-        if (ignoreInterrupted)
-            sql = sql.Replace("Interrupted=0", "1 = 1");
 
         var command = StoreCommand.Create(sql);
         command.AddParameter($"@{paramPrefix}PostponedUntil", postponeUntil);

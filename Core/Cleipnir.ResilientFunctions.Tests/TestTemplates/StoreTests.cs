@@ -235,7 +235,6 @@ public abstract class StoreTests
             functionId,
             postponeUntil: nowTicks,
             timestamp: DateTime.UtcNow.Ticks,
-            ignoreInterrupted: false,
             expectedReplica: ReplicaId.Empty,
             effects: null,
             messages: null,
@@ -273,7 +272,6 @@ public abstract class StoreTests
             functionId,
             postponeUntil: nowTicks,
             timestamp: DateTime.UtcNow.Ticks,
-            ignoreInterrupted: false,
             expectedReplica: ReplicaId.Empty,
             effects: null,
             messages: null,
@@ -311,7 +309,6 @@ public abstract class StoreTests
             functionId,
             postponeUntil: nowTicks,
             timestamp: DateTime.UtcNow.Ticks,
-            ignoreInterrupted: false,
             expectedReplica: ReplicaId.NewId(),
             effects: null,
             messages: null,
@@ -802,7 +799,6 @@ public abstract class StoreTests
             functionId,
             postponeUntil: DateTime.UtcNow.Ticks,
             timestamp: DateTime.UtcNow.Ticks,
-            ignoreInterrupted: false,
             expectedReplica: ReplicaId.Empty,
             effects: null,
             messages: null,
@@ -1284,8 +1280,8 @@ public abstract class StoreTests
         statusAndEpoch2.Status.ShouldBe(Status.Succeeded);
     }
     
-    public abstract Task InterruptedFunctionIsNotPostponedWhenFlagIsSet();
-    protected async Task InterruptedFunctionIsNotPostponedWhenFlagIsSet(Task<IFunctionStore> storeTask)
+    public abstract Task InterruptedFunctionIsNotPostponedToZeroWhenInterrupted();
+    protected async Task InterruptedFunctionIsNotPostponedToZeroWhenInterrupted(Task<IFunctionStore> storeTask)
     {
         var storedId = TestStoredId.Create();
         var store = await storeTask;
@@ -1306,17 +1302,17 @@ public abstract class StoreTests
         var success = await store.PostponeFunction(
             storedId,
             postponeUntil: 0,
-            timestamp: 0,
-            ignoreInterrupted: false,
+            timestamp: 100,
             expectedReplica: ReplicaId.Empty,
             effects: null,
             messages: null,
             storageSession: null
         );
-        success.ShouldBeFalse();
+        success.ShouldBeTrue();
 
         var sf = await store.GetFunction(storedId).ShouldNotBeNullAsync();
-        sf.Status.ShouldBe(Status.Executing);
+        sf.Status.ShouldBe(Status.Postponed);
+        sf.Expires.ShouldBe(0);
     }
 
     public abstract Task InterruptNothingWorks();
@@ -1349,7 +1345,6 @@ public abstract class StoreTests
             storedId,
             postponeUntil: 0,
             timestamp: 0,
-            ignoreInterrupted: true,
             expectedReplica: ReplicaId.Empty,
             effects: null,
             messages: null,
@@ -1803,7 +1798,6 @@ public abstract class StoreTests
         await store.PostponeFunction(
             functionId,
             postponeUntil: DateTime.UtcNow.Ticks,
-            ignoreInterrupted: false,
             timestamp: DateTime.UtcNow.Ticks,
             expectedReplica: ReplicaId.Empty,
             effects: null,

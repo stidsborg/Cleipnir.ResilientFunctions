@@ -124,14 +124,13 @@ public class CrashableFunctionStore : IFunctionStore
         StoredId storedId,
         long postponeUntil,
         long timestamp,
-        bool ignoreInterrupted,
         ReplicaId expectedReplica,
         IReadOnlyList<StoredEffect>? effects,
         IReadOnlyList<StoredMessage>? messages,
         IStorageSession? storageSession
     ) => _crashed
         ? Task.FromException<bool>(new TimeoutException())
-        : _inner.PostponeFunction(storedId, postponeUntil, timestamp, ignoreInterrupted, expectedReplica, effects, messages, storageSession); 
+        : _inner.PostponeFunction(storedId, postponeUntil, timestamp, expectedReplica, effects, messages, storageSession); 
 
     public Task<bool> FailFunction(
         StoredId storedId,
