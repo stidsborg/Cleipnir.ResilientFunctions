@@ -276,6 +276,31 @@ public class MariaDbFunctionStore : IFunctionStore
         return ids;
     }
 
+    public async Task<IReadOnlyList<StoredId>> GetInterruptedFunctions(IEnumerable<StoredId> ids)
+    {
+        var inSql = ids.Select(id => $"'{id.AsGuid:N}'").StringJoin(", ");
+        if (string.IsNullOrEmpty(inSql))
+            return [];
+        
+        var sql = @$"
+            SELECT id
+            FROM {_tablePrefix}
+            WHERE interrupted = TRUE AND id IN ({inSql})";
+
+        await using var conn = await CreateOpenConnection(_connectionString);
+        await using var command = new MySqlCommand(sql, conn);
+
+        await using var reader = await command.ExecuteReaderAsync();
+        var interruptedIds = new List<StoredId>();
+        while (await reader.ReadAsync())
+        {
+            var storedId = reader.GetString(0).ToGuid().ToStoredId();
+            interruptedIds.Add(storedId);
+        }
+
+        return interruptedIds;
+    }
+
     private string? _setFunctionStateSql;
     public async Task<bool> SetFunctionState(
         StoredId storedId, Status status, 

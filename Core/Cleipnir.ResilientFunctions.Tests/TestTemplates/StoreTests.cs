@@ -2112,4 +2112,228 @@ public abstract class StoreTests
         storedFunction.Status.ShouldBe(Status.Executing); // Still in original status
         storedFunction.OwnerId.ShouldBe(owner); // Owner unchanged
     }
+
+    public abstract Task GetInterruptedFunctionsReturnsOnlyInterruptedFunctions();
+    protected async Task GetInterruptedFunctionsReturnsOnlyInterruptedFunctions(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var functionId1 = TestStoredId.Create();
+        var functionId2 = StoredId.Create(functionId1.Type, Guid.NewGuid().ToString());
+        var functionId3 = StoredId.Create(functionId1.Type, Guid.NewGuid().ToString());
+        var functionId4 = StoredId.Create(functionId1.Type, Guid.NewGuid().ToString());
+
+        // Create 4 functions
+        await store.CreateFunction(
+            functionId1,
+            "humanInstanceId1",
+            param: Test.SimpleStoredParameter,
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks,
+            parent: null,
+            owner: null
+        ).ShouldNotBeNullAsync();
+
+        await store.CreateFunction(
+            functionId2,
+            "humanInstanceId2",
+            param: Test.SimpleStoredParameter,
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks,
+            parent: null,
+            owner: null
+        ).ShouldNotBeNullAsync();
+
+        await store.CreateFunction(
+            functionId3,
+            "humanInstanceId3",
+            param: Test.SimpleStoredParameter,
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks,
+            parent: null,
+            owner: null
+        ).ShouldNotBeNullAsync();
+
+        await store.CreateFunction(
+            functionId4,
+            "humanInstanceId4",
+            param: Test.SimpleStoredParameter,
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks,
+            parent: null,
+            owner: null
+        ).ShouldNotBeNullAsync();
+
+        // Interrupt functions 1 and 3
+        await store.Interrupt(functionId1).ShouldBeTrueAsync();
+        await store.Interrupt(functionId3).ShouldBeTrueAsync();
+
+        // Get interrupted functions from the set of all 4 functions
+        var interruptedFunctions = await store.GetInterruptedFunctions([functionId1, functionId2, functionId3, functionId4]);
+
+        // Should return only the 2 interrupted functions
+        interruptedFunctions.Count.ShouldBe(2);
+        interruptedFunctions.Any(id => id == functionId1).ShouldBeTrue();
+        interruptedFunctions.Any(id => id == functionId3).ShouldBeTrue();
+        interruptedFunctions.Any(id => id == functionId2).ShouldBeFalse();
+        interruptedFunctions.Any(id => id == functionId4).ShouldBeFalse();
+    }
+
+    public abstract Task GetInterruptedFunctionsReturnsEmptyListWhenNoIdsProvided();
+    protected async Task GetInterruptedFunctionsReturnsEmptyListWhenNoIdsProvided(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+
+        var interruptedFunctions = await store.GetInterruptedFunctions([]);
+        interruptedFunctions.Count.ShouldBe(0);
+    }
+
+    public abstract Task GetInterruptedFunctionsReturnsEmptyListWhenNoneFunctionsAreInterrupted();
+    protected async Task GetInterruptedFunctionsReturnsEmptyListWhenNoneFunctionsAreInterrupted(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var functionId1 = TestStoredId.Create();
+        var functionId2 = StoredId.Create(functionId1.Type, Guid.NewGuid().ToString());
+
+        await store.CreateFunction(
+            functionId1,
+            "humanInstanceId1",
+            param: Test.SimpleStoredParameter,
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks,
+            parent: null,
+            owner: null
+        ).ShouldNotBeNullAsync();
+
+        await store.CreateFunction(
+            functionId2,
+            "humanInstanceId2",
+            param: Test.SimpleStoredParameter,
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks,
+            parent: null,
+            owner: null
+        ).ShouldNotBeNullAsync();
+
+        // Don't interrupt any functions
+        var interruptedFunctions = await store.GetInterruptedFunctions([functionId1, functionId2]);
+
+        interruptedFunctions.Count.ShouldBe(0);
+    }
+
+    public abstract Task GetInterruptedFunctionsReturnsEmptyListWhenQueriedIdsDoNotExist();
+    protected async Task GetInterruptedFunctionsReturnsEmptyListWhenQueriedIdsDoNotExist(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var functionId1 = TestStoredId.Create();
+        var functionId2 = StoredId.Create(functionId1.Type, Guid.NewGuid().ToString());
+        var nonExistentId1 = StoredId.Create(functionId1.Type, Guid.NewGuid().ToString());
+        var nonExistentId2 = StoredId.Create(functionId1.Type, Guid.NewGuid().ToString());
+
+        await store.CreateFunction(
+            functionId1,
+            "humanInstanceId1",
+            param: Test.SimpleStoredParameter,
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks,
+            parent: null,
+            owner: null
+        ).ShouldNotBeNullAsync();
+
+        await store.CreateFunction(
+            functionId2,
+            "humanInstanceId2",
+            param: Test.SimpleStoredParameter,
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks,
+            parent: null,
+            owner: null
+        ).ShouldNotBeNullAsync();
+
+        await store.Interrupt(functionId1).ShouldBeTrueAsync();
+        await store.Interrupt(functionId2).ShouldBeTrueAsync();
+
+        // Query for non-existent IDs
+        var interruptedFunctions = await store.GetInterruptedFunctions([nonExistentId1, nonExistentId2]);
+
+        interruptedFunctions.Count.ShouldBe(0);
+    }
+
+    public abstract Task GetInterruptedFunctionsOnlyReturnsMatchingInterruptedFunctions();
+    protected async Task GetInterruptedFunctionsOnlyReturnsMatchingInterruptedFunctions(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var functionId1 = TestStoredId.Create();
+        var functionId2 = StoredId.Create(functionId1.Type, Guid.NewGuid().ToString());
+        var functionId3 = StoredId.Create(functionId1.Type, Guid.NewGuid().ToString());
+        var functionId4 = StoredId.Create(functionId1.Type, Guid.NewGuid().ToString());
+
+        // Create 4 functions
+        await store.CreateFunction(
+            functionId1,
+            "humanInstanceId1",
+            param: Test.SimpleStoredParameter,
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks,
+            parent: null,
+            owner: null
+        ).ShouldNotBeNullAsync();
+
+        await store.CreateFunction(
+            functionId2,
+            "humanInstanceId2",
+            param: Test.SimpleStoredParameter,
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks,
+            parent: null,
+            owner: null
+        ).ShouldNotBeNullAsync();
+
+        await store.CreateFunction(
+            functionId3,
+            "humanInstanceId3",
+            param: Test.SimpleStoredParameter,
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks,
+            parent: null,
+            owner: null
+        ).ShouldNotBeNullAsync();
+
+        await store.CreateFunction(
+            functionId4,
+            "humanInstanceId4",
+            param: Test.SimpleStoredParameter,
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks,
+            parent: null,
+            owner: null
+        ).ShouldNotBeNullAsync();
+
+        // Interrupt all 4 functions
+        await store.Interrupt(functionId1).ShouldBeTrueAsync();
+        await store.Interrupt(functionId2).ShouldBeTrueAsync();
+        await store.Interrupt(functionId3).ShouldBeTrueAsync();
+        await store.Interrupt(functionId4).ShouldBeTrueAsync();
+
+        // Query for only functions 2 and 4
+        var interruptedFunctions = await store.GetInterruptedFunctions([functionId2, functionId4]);
+
+        // Should return only the 2 queried interrupted functions
+        interruptedFunctions.Count.ShouldBe(2);
+        interruptedFunctions.Any(id => id == functionId2).ShouldBeTrue();
+        interruptedFunctions.Any(id => id == functionId4).ShouldBeTrue();
+        interruptedFunctions.Any(id => id == functionId1).ShouldBeFalse();
+        interruptedFunctions.Any(id => id == functionId3).ShouldBeFalse();
+    }
 }
