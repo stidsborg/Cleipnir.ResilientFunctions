@@ -327,6 +327,36 @@ public class SqlServerFunctionStore : IFunctionStore
         return ids;
     }
 
+    public async Task<IReadOnlyList<StoredId>> GetInterruptedFunctions(IEnumerable<StoredId> ids)
+    {
+        var inSql = ids.Select(id => $"'{id.AsGuid}'").StringJoin(", ");
+        if (string.IsNullOrEmpty(inSql))
+            return [];
+
+        var sql = @$"
+            SELECT Id
+            FROM {_tableName} WITH (NOLOCK)
+            WHERE Interrupted = 1 AND Id IN ({inSql})";
+
+        await using var conn = await _connFunc();
+        await using var command = new SqlCommand(sql, conn);
+
+        await using var reader = await command.ExecuteReaderAsync();
+        var interruptedIds = new List<StoredId>();
+        while (reader.HasRows)
+        {
+            while (reader.Read())
+            {
+                var storedId = reader.GetGuid(0).ToStoredId();
+                interruptedIds.Add(storedId);
+            }
+
+            reader.NextResult();
+        }
+
+        return interruptedIds;
+    }
+
     private string? _setFunctionStateSql;
     public async Task<bool> SetFunctionState(
         StoredId storedId, Status status, 

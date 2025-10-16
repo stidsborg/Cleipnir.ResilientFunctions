@@ -294,7 +294,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 new() {Value = completedBefore}
             }
         };
-        
+
         await using var reader = await command.ExecuteReaderAsync();
         var ids = new List<StoredId>();
         while (await reader.ReadAsync())
@@ -304,6 +304,31 @@ public class PostgreSqlFunctionStore : IFunctionStore
         }
 
         return ids;
+    }
+
+    public async Task<IReadOnlyList<StoredId>> GetInterruptedFunctions(IEnumerable<StoredId> ids)
+    {
+        var inSql = ids.Select(id => $"'{id.AsGuid}'").StringJoin(", ");
+        if (string.IsNullOrEmpty(inSql))
+            return [];
+
+        var sql = @$"
+            SELECT id
+            FROM {_tableName}
+            WHERE interrupted = TRUE AND id IN ({inSql})";
+
+        await using var conn = await CreateConnection();
+        await using var command = new NpgsqlCommand(sql, conn);
+
+        await using var reader = await command.ExecuteReaderAsync();
+        var interruptedIds = new List<StoredId>();
+        while (await reader.ReadAsync())
+        {
+            var storedId = reader.GetGuid(0).ToStoredId();
+            interruptedIds.Add(storedId);
+        }
+
+        return interruptedIds;
     }
 
     private string? _setFunctionStateSql;

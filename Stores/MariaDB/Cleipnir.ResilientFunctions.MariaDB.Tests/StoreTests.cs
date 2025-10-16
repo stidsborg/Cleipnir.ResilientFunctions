@@ -238,4 +238,24 @@ public class StoreTests : ResilientFunctions.Tests.TestTemplates.StoreTests
     [TestMethod]
     public override Task SetFunctionFailsWhenEpochIsNotAsExpected()
         => SetFunctionFailsWhenEpochIsNotAsExpected(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task GetInterruptedFunctionsReturnsOnlyInterruptedFunctions()
+        => GetInterruptedFunctionsReturnsOnlyInterruptedFunctions(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task GetInterruptedFunctionsReturnsEmptyListWhenNoIdsProvided()
+        => GetInterruptedFunctionsReturnsEmptyListWhenNoIdsProvided(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task GetInterruptedFunctionsReturnsEmptyListWhenNoneFunctionsAreInterrupted()
+        => GetInterruptedFunctionsReturnsEmptyListWhenNoneFunctionsAreInterrupted(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task GetInterruptedFunctionsReturnsEmptyListWhenQueriedIdsDoNotExist()
+        => GetInterruptedFunctionsReturnsEmptyListWhenQueriedIdsDoNotExist(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task GetInterruptedFunctionsOnlyReturnsMatchingInterruptedFunctions()
+        => GetInterruptedFunctionsOnlyReturnsMatchingInterruptedFunctions(FunctionStoreFactory.Create());
 }
