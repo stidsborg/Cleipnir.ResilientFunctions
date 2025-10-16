@@ -111,21 +111,6 @@ public class CrashableFunctionStore : IFunctionStore
                 expectedReplica
             );
 
-    public Task<bool> SetFunction(
-        StoredId storedId,
-        byte[]? result,
-        FunctionStatus status,
-        long? postponeUntil,
-        StoredException? storedException,
-        long timestamp,
-        ReplicaId expectedReplica,
-        IReadOnlyList<StoredEffect>? effects,
-        IReadOnlyList<StoredMessage>? messages,
-        IStorageSession? storageSession
-    ) => _crashed
-        ? Task.FromException<bool>(new TimeoutException())
-        : _inner.SetFunction(storedId, result, status, postponeUntil, storedException, timestamp, expectedReplica, effects, messages, storageSession);
-
     public Task<bool> SucceedFunction(
         StoredId storedId,
         byte[]? result,

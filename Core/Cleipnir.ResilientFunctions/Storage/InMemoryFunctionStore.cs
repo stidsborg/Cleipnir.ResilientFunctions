@@ -210,62 +210,6 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         }
     }
 
-    public Task<bool> SetFunction(
-        StoredId storedId,
-        byte[]? result,
-        FunctionStatus status,
-        long? postponeUntil,
-        StoredException? storedException,
-        long timestamp,
-        ReplicaId expectedReplica,
-        IReadOnlyList<StoredEffect>? effects,
-        IReadOnlyList<StoredMessage>? messages,
-        IStorageSession? storageSession)
-    {
-        lock (_sync)
-        {
-            if (!_states.ContainsKey(storedId)) return false.ToTask();
-
-            var state = _states[storedId];
-            if (state.Owner != expectedReplica) return false.ToTask();
-
-            switch (status.Status)
-            {
-                case Status.Succeeded:
-                    state.Status = Status.Succeeded;
-                    state.Result = result;
-                    state.Timestamp = timestamp;
-                    state.Owner = null;
-                    break;
-                case Status.Postponed:
-                    if (state.Interrupted)
-                        return false.ToTask();
-                    state.Status = Status.Postponed;
-                    state.Expires = postponeUntil!.Value;
-                    state.Timestamp = timestamp;
-                    state.Owner = null;
-                    break;
-                case Status.Failed:
-                    state.Status = Status.Failed;
-                    state.Exception = storedException;
-                    state.Timestamp = timestamp;
-                    state.Owner = null;
-                    break;
-                case Status.Suspended:
-                    if (state.Interrupted)
-                        return false.ToTask();
-                    state.Status = Status.Suspended;
-                    state.Timestamp = timestamp;
-                    state.Owner = null;
-                    break;
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(status), status, "Unsupported status");
-            }
-
-            return true.ToTask();
-        }
-    }
-
     public Task<bool> SucceedFunction(
         StoredId storedId,
         byte[]? result,

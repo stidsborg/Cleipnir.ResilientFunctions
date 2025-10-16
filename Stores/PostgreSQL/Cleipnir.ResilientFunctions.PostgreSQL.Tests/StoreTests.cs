@@ -219,30 +219,6 @@ public class StoreTests : ResilientFunctions.Tests.TestTemplates.StoreTests
         => SucceedSetsOwnerToNull(FunctionStoreFactory.Create());
 
     [TestMethod]
-    public override Task SetFunctionSucceedsWithSucceededStatus()
-        => SetFunctionSucceedsWithSucceededStatus(FunctionStoreFactory.Create());
-
-    [TestMethod]
-    public override Task SetFunctionSucceedsWithFailedStatus()
-        => SetFunctionSucceedsWithFailedStatus(FunctionStoreFactory.Create());
-
-    [TestMethod]
-    public override Task SetFunctionSucceedsWithPostponedStatus()
-        => SetFunctionSucceedsWithPostponedStatus(FunctionStoreFactory.Create());
-
-    [TestMethod]
-    public override Task SetFunctionSucceedsWithSuspendedStatus()
-        => SetFunctionSucceedsWithSuspendedStatus(FunctionStoreFactory.Create());
-
-    [TestMethod]
-    public override Task SetFunctionFailsWhenInterruptedForPostponedAndSuspended()
-        => SetFunctionFailsWhenInterruptedForPostponedAndSuspended(FunctionStoreFactory.Create());
-
-    [TestMethod]
-    public override Task SetFunctionFailsWhenEpochIsNotAsExpected()
-        => SetFunctionFailsWhenEpochIsNotAsExpected(FunctionStoreFactory.Create());
-
-    [TestMethod]
     public override Task GetInterruptedFunctionsReturnsOnlyInterruptedFunctions()
         => GetInterruptedFunctionsReturnsOnlyInterruptedFunctions(FunctionStoreFactory.Create());
 

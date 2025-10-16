@@ -376,43 +376,6 @@ public class SqlGenerator(string tablePrefix)
         return command;
     }
 
-    public StoreCommand SetFunction(
-        StoredId storedId,
-        byte[]? result,
-        FunctionStatus status,
-        long? postponeUntil,
-        StoredException? storedException,
-        long timestamp,
-        ReplicaId expectedReplica,
-        string paramPrefix)
-    {
-        var sql = $@"
-            UPDATE {tablePrefix}
-            SET Status = @Status,
-                ResultJson = @ResultJson,
-                ExceptionJson = @ExceptionJson,
-                Expires = @Expires,
-                Timestamp = @Timestamp,
-                Owner = NULL
-            WHERE Id = @Id
-                AND Owner = @ExpectedReplica
-                AND Interrupted = 0";
-
-        if (paramPrefix != "")
-            sql = sql.Replace("@", $"@{paramPrefix}");
-
-        var command = StoreCommand.Create(sql);
-        command.AddParameter($"@{paramPrefix}Status", (int)status.Status);
-        command.AddParameter($"@{paramPrefix}ResultJson", result ?? (object)SqlBinary.Null);
-        command.AddParameter($"@{paramPrefix}ExceptionJson", storedException == null ? (object)DBNull.Value : JsonSerializer.Serialize(storedException));
-        command.AddParameter($"@{paramPrefix}Expires", postponeUntil ?? 0);
-        command.AddParameter($"@{paramPrefix}Timestamp", timestamp);
-        command.AddParameter($"@{paramPrefix}Id", storedId.AsGuid);
-        command.AddParameter($"@{paramPrefix}ExpectedReplica", expectedReplica.AsGuid);
-
-        return command;
-    }
-    
     private string? _restartExecutionSql;
     public StoreCommand RestartExecution(StoredId storedId, ReplicaId replicaId)
     {
