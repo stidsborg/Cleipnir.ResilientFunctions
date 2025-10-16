@@ -31,17 +31,20 @@ jobs:
       - name: Start containers
         run: docker compose -f "docker-compose.yml" up -d --build
 
-      - run: dotnet build Cleipnir.ResilientFunctions.sln  
+      - run: dotnet build Cleipnir.ResilientFunctions.sln
 
       - run: dotnet run --project ./Stores/EnsureDatabaseConnections/EnsureDatabaseConnections.csproj --no-build
 
-      - run: dotnet test ./Core/Cleipnir.ResilientFunctions.Tests --no-build --logger "console;verbosity=detailed"
-
-      - run: dotnet test ./Stores/MariaDB/Cleipnir.ResilientFunctions.MariaDB.Tests --no-build --logger "console;verbosity=detailed"
-      
-      - run: dotnet test ./Stores/PostgreSQL/Cleipnir.ResilientFunctions.PostgreSQL.Tests --no-build --logger "console;verbosity=detailed"
-      
-      - run: dotnet test ./Stores/SqlServer/Cleipnir.ResilientFunctions.SqlServer.Tests --no-build --logger "console;verbosity=detailed"
+      # Run all tests in parallel using a single command
+      - run: |
+          dotnet test \
+            ./Core/Cleipnir.ResilientFunctions.Tests \
+            ./Stores/MariaDB/Cleipnir.ResilientFunctions.MariaDB.Tests \
+            ./Stores/PostgreSQL/Cleipnir.ResilientFunctions.PostgreSQL.Tests \
+            ./Stores/SqlServer/Cleipnir.ResilientFunctions.SqlServer.Tests \
+            --no-build \
+            --logger "console;verbosity=detailed" \
+            --parallel
 
       - name: Stop containers
         if: always()
