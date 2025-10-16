@@ -390,7 +390,6 @@ public class PostgreSqlFunctionStore : IFunctionStore
         StoredId storedId,
         long postponeUntil,
         long timestamp,
-        bool ignoreInterrupted,
         ReplicaId expectedReplica,
         IReadOnlyList<StoredEffect>? effects,
         IReadOnlyList<StoredMessage>? messages,
@@ -401,7 +400,6 @@ public class PostgreSqlFunctionStore : IFunctionStore
             storedId,
             postponeUntil,
             timestamp,
-            ignoreInterrupted,
             expectedReplica
         ).ToNpgsqlCommand(conn);
 

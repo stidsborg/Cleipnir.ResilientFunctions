@@ -183,7 +183,6 @@ public class RFunctionsShutdownTests
             registration.MapToStoredId(functionId.Instance),
             postponeUntil: DateTime.UtcNow.AddDays(-1).Ticks,
             timestamp: DateTime.UtcNow.Ticks,
-            ignoreInterrupted: true,
             Guid.Empty.ToReplicaId(),
             effects: null,
             messages: null,

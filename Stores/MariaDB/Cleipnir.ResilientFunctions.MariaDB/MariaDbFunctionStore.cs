@@ -357,7 +357,6 @@ public class MariaDbFunctionStore : IFunctionStore
         StoredId storedId,
         long postponeUntil,
         long timestamp,
-        bool ignoreInterrupted,
         ReplicaId expectedReplica,
         IReadOnlyList<StoredEffect>? effects,
         IReadOnlyList<StoredMessage>? messages,
@@ -365,7 +364,7 @@ public class MariaDbFunctionStore : IFunctionStore
     {
         await using var conn = await CreateOpenConnection(_connectionString);
         await using var command = _sqlGenerator
-            .PostponeFunction(storedId, postponeUntil, timestamp, ignoreInterrupted, expectedReplica)
+            .PostponeFunction(storedId, postponeUntil, timestamp, expectedReplica)
             .ToSqlCommand(conn);
 
         var affectedRows = await command.ExecuteNonQueryAsync();

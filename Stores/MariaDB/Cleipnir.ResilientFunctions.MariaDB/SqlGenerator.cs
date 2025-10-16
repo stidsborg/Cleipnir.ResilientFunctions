@@ -239,7 +239,6 @@ public class SqlGenerator(string tablePrefix)
         StoredId storedId,
         long postponeUntil,
         long timestamp,
-        bool ignoreInterrupted,
         ReplicaId expectedReplica)
     {
         _postponedFunctionSql ??= $@"
@@ -251,15 +250,10 @@ public class SqlGenerator(string tablePrefix)
                 interrupted = 0
             WHERE
                 id = ? AND
-                owner = ? AND
-                interrupted=0";
-
-        var sql = _postponedFunctionSql;
-        if (ignoreInterrupted)
-            sql = sql.Replace("interrupted=0", "1 = 1");
+                owner = ?";
 
         return StoreCommand.Create(
-            sql,
+            _postponedFunctionSql,
             values: [
                 postponeUntil,
                 timestamp,
@@ -299,11 +293,12 @@ public class SqlGenerator(string tablePrefix)
     {
         _suspendFunctionSql ??= $@"
             UPDATE {tablePrefix}
-            SET status = {(int) Status.Suspended}, timestamp = ?, owner = NULL
-            WHERE 
-                  id = ? AND 
-                  owner = ? AND
-                  NOT interrupted";
+            SET status = CASE WHEN interrupted = 1 THEN {(int) Status.Postponed} ELSE {(int) Status.Suspended} END,
+                expires = 0,
+                timestamp = ?,
+                owner = NULL,
+                interrupted = 0
+            WHERE id = ? AND owner = ?";
 
         return StoreCommand.Create(
             _suspendFunctionSql,

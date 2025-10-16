@@ -280,7 +280,6 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         StoredId storedId,
         long postponeUntil,
         long timestamp,
-        bool ignoreInterrupted,
         ReplicaId? expectedReplica,
         IReadOnlyList<StoredEffect>? effects,
         IReadOnlyList<StoredMessage>? messages,
@@ -292,9 +291,6 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
 
             var state = _states[storedId];
             if (state.Owner != expectedReplica) return false.ToTask();
-
-            if (!ignoreInterrupted && state.Interrupted)
-                return false.ToTask();
 
             state.Status = Status.Postponed;
             state.Expires = state.Interrupted ? 0 : postponeUntil;
@@ -348,12 +344,11 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
             if (state.Owner != expectedReplica)
                 return false.ToTask();
 
-            if (state.Interrupted)
-                return false.ToTask();
-
-            state.Status = Status.Suspended;
+            state.Status = state.Interrupted ? Status.Postponed : Status.Suspended;
+            state.Expires = 0;
             state.Timestamp = timestamp;
             state.Owner = null;
+            state.Interrupted = false;
 
             return true.ToTask();
         }
