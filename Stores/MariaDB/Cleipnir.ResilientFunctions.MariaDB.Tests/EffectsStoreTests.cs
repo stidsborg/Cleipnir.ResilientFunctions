@@ -49,4 +49,8 @@ public class EffectsStoreTests : Cleipnir.ResilientFunctions.Tests.TestTemplates
     [TestMethod]
     public override Task EffectsForDifferentIdsCanBeFetched()
         => EffectsForDifferentIdsCanBeFetched(FunctionStoreFactory.Create().SelectAsync(fs => fs.EffectsStore));
+    
+    [TestMethod]
+    public override Task OverwriteExistingEffectWorks()
+        => OverwriteExistingEffectWorks(FunctionStoreFactory.Create());
 }

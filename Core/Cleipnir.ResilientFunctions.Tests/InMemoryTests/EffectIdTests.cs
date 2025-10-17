@@ -22,7 +22,7 @@ public class EffectIdTests
     public void EffectIdWithContextCanBeDeserialized()
     {
         var parentEffect = new EffectId("SomeParentId", EffectType.Effect, Context: "ESomeParentContext");
-        var effectId = new EffectId("SomeValue", EffectType.State, Context: parentEffect.Serialize());
+        var effectId = new EffectId("SomeValue", EffectType.State, Context: parentEffect.Serialize().Value);
         var serializedId = effectId.Serialize();
         var deserializedId = EffectId.Deserialize(serializedId);
         
@@ -33,7 +33,7 @@ public class EffectIdTests
     public void EffectIdWithContextAndEscapedCharactersCanBeDeserialized()
     {
         var parentEffect = new EffectId("SomeParentId", EffectType.Effect, Context: "");
-        var effectId = new EffectId("Some.Value\\WithBackSlash", EffectType.State, Context: parentEffect.Serialize());
+        var effectId = new EffectId("Some.Value\\WithBackSlash", EffectType.State, Context: parentEffect.Serialize().Value);
         var serializedId = effectId.Serialize();
         var deserializedId = EffectId.Deserialize(serializedId);
         
@@ -45,7 +45,7 @@ public class EffectIdTests
     {
         var effectId = new EffectId("\\", EffectType.State, Context: "");
         var serializedId = effectId.Serialize();
-        serializedId.ShouldBe("S\\\\");
+        serializedId.Value.ShouldBe("S\\\\");
         var deserializedId = EffectId.Deserialize(serializedId);
         deserializedId.ShouldBe(effectId);
     }
@@ -55,7 +55,7 @@ public class EffectIdTests
     {
         var effectId = new EffectId(".", EffectType.State, Context: "");
         var serializedId = effectId.Serialize();
-        serializedId.ShouldBe("S\\.");
+        serializedId.Value.ShouldBe("S\\.");
         var deserializedId = EffectId.Deserialize(serializedId);
         deserializedId.ShouldBe(effectId);
     }
@@ -73,11 +73,11 @@ public class EffectIdTests
     [TestMethod]
     public void StoredEffectIdIsBasedOnSerializedEffectIdValue()
     {
-        var effectId = new EffectId("SomeId", EffectType.Effect, Context: new EffectId("SomeParentId", EffectType.Effect, Context: "ESomeParentContext").Serialize());
+        var effectId = new EffectId("SomeId", EffectType.Effect, Context: new EffectId("SomeParentId", EffectType.Effect, Context: "ESomeParentContext").Serialize().Value);
         var serializedEffectId = effectId.Serialize();
 
         var storedEffectId = effectId.ToStoredEffectId();
-        storedEffectId.Value.ShouldBe(StoredIdFactory.FromString(serializedEffectId));
+        storedEffectId.Value.ShouldBe(StoredIdFactory.FromString(serializedEffectId.Value));
     }
     
     [TestMethod]

@@ -397,4 +397,43 @@ public abstract class EffectStoreTests
         resultsId2.Any(r => r.EffectId == storedEffect1.EffectId).ShouldBeTrue();
         resultsId2.Any(r => r.EffectId == storedEffect2.EffectId).ShouldBeTrue();
     }
+    
+    public abstract Task OverwriteExistingEffectWorks();
+    protected async Task OverwriteExistingEffectWorks(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var effectStore = store.EffectsStore;
+        var storedId = TestStoredId.Create();
+        var storageSession = await store.CreateFunction(
+            storedId,
+            "SomeInstanceId",
+            param: null,
+            leaseExpiration: 0,
+            postponeUntil: null,
+            timestamp: 0,
+            parent: null,
+            owner: null
+        );
+        
+        var storedEffect1 = new StoredEffect(
+            "EffectId1".ToEffectId(),
+            WorkStatus.Started,
+            Result: null,
+            StoredException: null
+        );
+        var storedEffect2 = new StoredEffect(
+            "EffectId1".ToEffectId(),
+            WorkStatus.Completed,
+            Result: null,
+            StoredException: null
+        );
+
+        await effectStore.SetEffectResult(storedId, storedEffect1.ToStoredChange(storedId, Insert), storageSession);
+        await effectStore.SetEffectResult(storedId, storedEffect2.ToStoredChange(storedId, Update), storageSession);
+
+        var storedEffects = await effectStore.GetEffectResults(storedId);
+        var storedEffect = storedEffects.Single();
+        storedEffect.EffectId.ShouldBe("EffectId1".ToEffectId());
+        storedEffect.WorkStatus.ShouldBe(WorkStatus.Completed);
+    }
 }

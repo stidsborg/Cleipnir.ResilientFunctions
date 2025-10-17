@@ -45,22 +45,27 @@ public class PostgreSqlEffectsStore(string connectionString, SqlGenerator sqlGen
         if (changes.Count == 0)
             return;
 
-        var positionsSession = session as PositionsStorageSession;
-        await using var batch = sqlGenerator.UpdateEffects(changes, positionsSession).ToNpgsqlBatch();
+        var positionsSession = session as PositionsStorageSession ?? await CreateSession(storedId);
+        await using var batch = sqlGenerator.UpdateEffects(storedId, changes, positionsSession).ToNpgsqlBatch();
         await using var conn = await CreateConnection();
         batch.WithConnection(conn);
 
         await batch.ExecuteNonQueryAsync();
     }
 
-    public async Task<Dictionary<StoredId, List<StoredEffect>>> GetEffectResults(IEnumerable<StoredId> storedIds)
+    public async Task<Dictionary<StoredId, List<StoredEffect>>> GetEffectResults(IEnumerable<StoredId> storedIds) 
+        => (await GetEffectResultsWithPositions(storedIds))
+            .ToDictionary(kv => kv.Key, kv => kv.Value.Select(s => s.Effect).ToList());
+
+    private async Task<Dictionary<StoredId, List<StoredEffectWithPosition>>> GetEffectResultsWithPositions(IEnumerable<StoredId> storedIds)
     {
+        storedIds = storedIds.ToList();
         await using var conn = await CreateConnection();
         await using var command = sqlGenerator.GetEffects(storedIds).ToNpgsqlCommand(conn);
 
         await using var reader = await command.ExecuteReaderAsync();
         var effects = await sqlGenerator.ReadEffectsForIds(reader, storedIds);
-        return effects.ToDictionary(kv => kv.Key, kv => kv.Value.Select(s => s.Effect).ToList());
+        return effects;
     }
     
     private string? _removeSql;
@@ -89,11 +94,8 @@ public class PostgreSqlEffectsStore(string connectionString, SqlGenerator sqlGen
     
     private async Task<PositionsStorageSession> CreateSession(StoredId storedId)
         => await CreateSessions([storedId]).SelectAsync(d => d[storedId]);
-    private async Task<Dictionary<StoredId, PositionsStorageSession>> CreateSessions(IEnumerable<StoredId> storedIds)
-    {
-        sqlGenerator.GetEffects(storedIds);
-        
-    }
+    private async Task<Dictionary<StoredId, PositionsStorageSession>> CreateSessions(IEnumerable<StoredId> storedIds) 
+        => CreateSessions(await GetEffectResultsWithPositions(storedIds));
 
     private Dictionary<StoredId, PositionsStorageSession> CreateSessions(Dictionary<StoredId, List<StoredEffectWithPosition>> effects)
     {

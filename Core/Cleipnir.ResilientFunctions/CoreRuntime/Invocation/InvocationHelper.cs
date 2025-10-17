@@ -394,7 +394,7 @@ internal class InvocationHelper<TParam, TReturn>
             effect,
             UtcNow,
             flowMinimumTimeout,
-            publishTimeoutEvent: timeoutEvent => messageWriter.AppendMessage(timeoutEvent, idempotencyKey: timeoutEvent.TimeoutId.Serialize()),
+            publishTimeoutEvent: timeoutEvent => messageWriter.AppendMessage(timeoutEvent, idempotencyKey: timeoutEvent.TimeoutId.Serialize().Value),
             unhandledExceptionHandler,
             flowId
         );

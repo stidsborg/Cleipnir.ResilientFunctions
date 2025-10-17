@@ -147,7 +147,7 @@ public class SqlGenerator(string tablePrefix)
                 upsertCommand.AddParameter(upsert.WorkStatus);
                 upsertCommand.AddParameter(upsert.Result ?? (object) DBNull.Value);
                 upsertCommand.AddParameter(JsonHelper.ToJson(upsert.Exception) ?? (object) DBNull.Value);
-                upsertCommand.AddParameter(upsert.EffectId.Serialize());
+                upsertCommand.AddParameter(upsert.EffectId.Serialize().Value);
             }    
         }
 

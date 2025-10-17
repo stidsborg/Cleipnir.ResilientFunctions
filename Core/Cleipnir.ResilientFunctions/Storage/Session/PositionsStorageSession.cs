@@ -5,17 +5,13 @@ namespace Cleipnir.ResilientFunctions.Storage.Session;
 
 public class PositionsStorageSession : IStorageSession
 {
-    public Dictionary<string, long> Positions { get; } = new();
-    public long MaxPosition { get; set; }
+    public Dictionary<SerializedEffectId, long> Positions { get; } = new();
+    public long MaxPosition { get; set; } = -1;
 
-    public void Add(EffectId effectId)
+    public long Add(SerializedEffectId id)
     {
-        var serializedEffectId = effectId.Serialize();
-        if (Positions.ContainsKey(serializedEffectId))
-            return;
-        
-        var maxPosition = MaxPosition;
-        MaxPosition++;
-        Positions[serializedEffectId] = maxPosition;
+        var position = ++MaxPosition;
+        Positions[id] = position;
+        return position;
     }
 }

@@ -108,7 +108,7 @@ public record StatusAndId(StoredId StoredId, Status Status, long Expiry);
 public record StoredEffectId(Guid Value)
 {
     public static StoredEffectId Create(EffectId effectId) 
-        => new(StoredIdFactory.FromString(effectId.Serialize()));
+        => new(StoredIdFactory.FromString(effectId.Serialize().Value));
 }
 
 public static class StoredEffectIdExtensions

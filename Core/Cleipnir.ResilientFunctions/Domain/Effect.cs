@@ -150,7 +150,7 @@ public class Effect(EffectResults effectResults, UtcNow utcNow, FlowMinimumTimeo
     internal string TakeNextImplicitId() => EffectContext.CurrentContext.NextImplicitId();
 
     internal EffectId CreateEffectId(string id, EffectType? type = null) 
-        => id.ToEffectId(type, context: EffectContext.CurrentContext.Parent?.Serialize());
+        => id.ToEffectId(type, context: EffectContext.CurrentContext.Parent?.Serialize().Value);
 
     public Task Flush() => effectResults.Flush();
 }

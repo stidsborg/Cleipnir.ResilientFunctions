@@ -153,7 +153,7 @@ public class EffectResults(
     {
         await InitializeIfRequired();
         
-        var effectId = id.ToEffectId(effectType, context: effectContext.Parent?.Serialize());
+        var effectId = id.ToEffectId(effectType, context: effectContext.Parent?.Serialize().Value);
         EffectContext.SetParent(effectId);
         
         lock (_sync)
@@ -226,7 +226,7 @@ public class EffectResults(
     {
         await InitializeIfRequired();
         
-        var effectId = id.ToEffectId(effectType, context: effectContext.Parent?.Serialize());
+        var effectId = id.ToEffectId(effectType, context: effectContext.Parent?.Serialize().Value);
         EffectContext.SetParent(effectId);
         
         lock (_sync)
