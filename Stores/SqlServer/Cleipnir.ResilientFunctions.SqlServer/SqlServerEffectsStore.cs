@@ -22,13 +22,13 @@ public class SqlServerEffectsStore(string connectionString, SqlGenerator sqlGene
         _initializeSql ??= @$"    
             CREATE TABLE {tablePrefix}_Effects (
                 Id UNIQUEIDENTIFIER,
-                StoredId UNIQUEIDENTIFIER,              
+                Position BIGINT,              
                 EffectId VARCHAR(MAX) NOT NULL,                
                 Status INT NOT NULL,
                 Result VARBINARY(MAX),
                 Exception NVARCHAR(MAX),
                 
-                PRIMARY KEY (Id, StoredId)
+                PRIMARY KEY (Id, Position)
             );";
 
         await using var command = new SqlCommand(_initializeSql, conn);

@@ -48,7 +48,7 @@ public class SqlGenerator(string tablePrefix)
                 .Select(c => new
                 {
                     Id = c.StoredId.AsGuid,
-                    StoredEffectId = c.EffectId.ToStoredEffectId().Value,
+                    Position = c.EffectId.ToStoredEffectId().Value.ToLong(),
                     WorkStatus = (int)c.StoredEffect!.WorkStatus,
                     Result = c.StoredEffect!.Result,
                     Exception = c.StoredEffect!.StoredException,
@@ -57,7 +57,7 @@ public class SqlGenerator(string tablePrefix)
                 .ToList();
         
             var parameterValues = inserts
-                .Select((_, i) => $"(@{paramPrefix}InsertionFlowId{i}, @{paramPrefix}InsertionStoredId{i}, @{paramPrefix}InsertionEffectId{i}, @{paramPrefix}InsertionStatus{i}, @{paramPrefix}InsertionResult{i}, @{paramPrefix}InsertionException{i})")
+                .Select((_, i) => $"(@{paramPrefix}InsertionFlowId{i}, @{paramPrefix}InsertionPosition{i}, @{paramPrefix}InsertionEffectId{i}, @{paramPrefix}InsertionStatus{i}, @{paramPrefix}InsertionResult{i}, @{paramPrefix}InsertionException{i})")
                 .StringJoin(", ");
         
             var parameters = new List<ParameterValueAndName>();
@@ -65,7 +65,7 @@ public class SqlGenerator(string tablePrefix)
             {
                 var upsert = inserts[i];
                 parameters.Add(new ParameterValueAndName($"@{paramPrefix}InsertionFlowId{i}", upsert.Id));
-                parameters.Add(new ParameterValueAndName($"@{paramPrefix}InsertionStoredId{i}", upsert.StoredEffectId));
+                parameters.Add(new ParameterValueAndName($"@{paramPrefix}InsertionPosition{i}", upsert.Position));
                 parameters.Add(new ParameterValueAndName($"@{paramPrefix}InsertionEffectId{i}", upsert.EffectId.Serialize()));
                 parameters.Add(new ParameterValueAndName($"@{paramPrefix}InsertionStatus{i}", upsert.WorkStatus));
                 parameters.Add(new ParameterValueAndName($"@{paramPrefix}InsertionResult{i}",
@@ -89,7 +89,7 @@ public class SqlGenerator(string tablePrefix)
                 .Select(c => new
                 {
                     Id = c.StoredId.AsGuid,
-                    StoredEffectId = c.EffectId.ToStoredEffectId().Value,
+                    Position = c.EffectId.ToStoredEffectId().Value.ToLong(),
                     WorkStatus = (int)c.StoredEffect!.WorkStatus,
                     Result = c.StoredEffect!.Result,
                     Exception = c.StoredEffect!.StoredException,
@@ -99,19 +99,19 @@ public class SqlGenerator(string tablePrefix)
 
             var parameterValues = upserts
                 .Select((_, i) =>
-                    $"(@{paramPrefix}Id{i}, @{paramPrefix}StoredId{i}, @{paramPrefix}EffectId{i}, @{paramPrefix}Status{i}, @{paramPrefix}Result{i}, @{paramPrefix}Exception{i})")
+                    $"(@{paramPrefix}Id{i}, @{paramPrefix}Position{i}, @{paramPrefix}EffectId{i}, @{paramPrefix}Status{i}, @{paramPrefix}Result{i}, @{paramPrefix}Exception{i})")
                 .StringJoin(", ");
 
             var setSql = $@"
             MERGE INTO {tablePrefix}_Effects
                 USING (VALUES {parameterValues}) 
-                AS source (Id, StoredId, EffectId, Status, Result, Exception)
-                ON {tablePrefix}_Effects.Id = source.Id AND {tablePrefix}_Effects.StoredId = source.StoredId
+                AS source (Id, Position, EffectId, Status, Result, Exception)
+                ON {tablePrefix}_Effects.Id = source.Id AND {tablePrefix}_Effects.Position = source.Position
                 WHEN MATCHED THEN
                     UPDATE SET Status = source.Status, Result = source.Result, Exception = source.Exception 
                 WHEN NOT MATCHED THEN
-                    INSERT (Id, StoredId, EffectId, Status, Result, Exception)
-                    VALUES (source.Id, source.StoredId, source.EffectId, source.Status, source.Result, source.Exception);";
+                    INSERT (Id, Position, EffectId, Status, Result, Exception)
+                    VALUES (source.Id, source.Position, source.EffectId, source.Status, source.Result, source.Exception);";
 
             var parameters = new List<ParameterValueAndName>();
 
@@ -119,7 +119,7 @@ public class SqlGenerator(string tablePrefix)
             {
                 var upsert = upserts[i];
                 parameters.Add(new ParameterValueAndName($"@{paramPrefix}Id{i}", upsert.Id));
-                parameters.Add(new ParameterValueAndName($"@{paramPrefix}StoredId{i}", upsert.StoredEffectId));
+                parameters.Add(new ParameterValueAndName($"@{paramPrefix}Position{i}", upsert.Position));
                 parameters.Add(new ParameterValueAndName($"@{paramPrefix}EffectId{i}", upsert.EffectId.Serialize()));
                 parameters.Add(new ParameterValueAndName($"@{paramPrefix}Status{i}", upsert.WorkStatus));
                 parameters.Add(new ParameterValueAndName($"@{paramPrefix}Result{i}",
@@ -136,12 +136,12 @@ public class SqlGenerator(string tablePrefix)
         {
             var removes = changes
                 .Where(c => c.Operation == CrudOperation.Delete)
-                .Select(c => new { Id = c.StoredId.AsGuid, IdHash = c.EffectId.ToStoredEffectId().Value })
+                .Select(c => new { Id = c.StoredId.AsGuid, Position = c.EffectId.ToStoredEffectId().Value.ToLong() })
                 .GroupBy(c => c.Id)
                 .ToList();
             var predicates = removes
                 .Select(r =>
-                    $"(Id = '{r.Key}' AND StoredId IN ({r.Select(t => $"'{t.IdHash}'").StringJoin(", ")}))")
+                    $"(Id = '{r.Key}' AND Position IN ({r.Select(t => $"{t.Position}").StringJoin(", ")}))")
                 .StringJoin($" OR {Environment.NewLine}");
         
             var removeSql = @$"
@@ -159,7 +159,7 @@ public class SqlGenerator(string tablePrefix)
     public StoreCommand GetEffects(StoredId storedId, string paramPrefix = "")
     {
         _getEffectsSql ??= @$"
-            SELECT StoredId, EffectId, Status, Result, Exception           
+            SELECT Position, EffectId, Status, Result, Exception           
             FROM {tablePrefix}_Effects
             WHERE Id = @Id";
 
@@ -177,7 +177,7 @@ public class SqlGenerator(string tablePrefix)
         var storedEffects = new List<StoredEffect>();
         while (reader.HasRows && await reader.ReadAsync())
         {
-            var storedEffectId = reader.GetGuid(0);
+            var position = reader.GetInt64(0);
             var effectId = reader.GetString(1);
             
             var status = (WorkStatus) reader.GetInt32(2);
@@ -195,7 +195,7 @@ public class SqlGenerator(string tablePrefix)
     public StoreCommand GetEffects(IEnumerable<StoredId> storedIds)
     {
         var sql = @$"
-            SELECT Id, StoredId, EffectId, Status, Result, Exception           
+            SELECT Id, Position, EffectId, Status, Result, Exception           
             FROM {tablePrefix}_Effects
             WHERE Id IN ({storedIds.InClause()})";
         
@@ -212,7 +212,7 @@ public class SqlGenerator(string tablePrefix)
         while (reader.HasRows && await reader.ReadAsync())
         {
             var storedId = reader.GetGuid(0).ToStoredId();
-            var storedEffectId = reader.GetGuid(1);
+            var position = reader.GetInt64(1);
             var effectId = reader.GetString(2);
             
             var status = (WorkStatus) reader.GetInt32(3);
