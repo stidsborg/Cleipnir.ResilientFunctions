@@ -36,7 +36,7 @@ public class SqlGenerator(string tablePrefix)
     public StoreCommand GetEffects(StoredId storedId)
     {
         _getEffectResultsSql ??= @$"
-            SELECT id_hash, status, result, exception, effect_id
+            SELECT position, status, result, exception, effect_id
             FROM {tablePrefix}_effects
             WHERE id = ?;";
 
@@ -55,7 +55,7 @@ public class SqlGenerator(string tablePrefix)
         var functions = new List<StoredEffect>();
         while (await reader.ReadAsync())
         {
-            var idHash = reader.GetString(0);
+            var position = reader.GetInt64(0);
             var status = (WorkStatus) reader.GetInt32(1);
             var result = reader.IsDBNull(2) ? null : (byte[]) reader.GetValue(2);
             var exception = reader.IsDBNull(3) ? null : reader.GetString(3);
@@ -76,7 +76,7 @@ public class SqlGenerator(string tablePrefix)
     public StoreCommand GetEffects(IEnumerable<StoredId> storedIds)
     {
         var sql = @$"
-            SELECT id, id_hash, status, result, exception, effect_id
+            SELECT id, position, status, result, exception, effect_id
             FROM {tablePrefix}_effects
             WHERE id IN ({storedIds.Select(id => $"'{id.AsGuid:N}'").StringJoin(", ")});";
 
@@ -93,7 +93,7 @@ public class SqlGenerator(string tablePrefix)
         while (await reader.ReadAsync())
         {
             var id = reader.GetString(0).ToGuid().ToStoredId();
-            var idHash = reader.GetString(1);
+            var position = reader.GetInt64(1);
             var status = (WorkStatus) reader.GetInt32(2);
             var result = reader.IsDBNull(3) ? null : (byte[]) reader.GetValue(3);
             var exception = reader.IsDBNull(4) ? null : reader.GetString(4);
@@ -123,7 +123,7 @@ public class SqlGenerator(string tablePrefix)
                 .Select(c => new
                 {
                     Instance = c.StoredId.AsGuid,
-                    IdHash = c.EffectId.ToStoredEffectId().Value,
+                    Position = c.EffectId.ToStoredEffectId().Value.ToLong(),
                     WorkStatus = (int)c.StoredEffect!.WorkStatus,
                     Result = c.StoredEffect!.Result,
                     Exception = c.StoredEffect!.StoredException,
@@ -133,7 +133,7 @@ public class SqlGenerator(string tablePrefix)
         
             var setSql = $@"
                 INSERT INTO {tablePrefix}_effects 
-                    (id, id_hash, status, result, exception, effect_id)
+                    (id, position, status, result, exception, effect_id)
                 VALUES
                     {"(?, ?, ?, ?, ?, ?)".Replicate(upserts.Count).StringJoin(", ")}  
                 ON DUPLICATE KEY UPDATE
@@ -143,7 +143,7 @@ public class SqlGenerator(string tablePrefix)
             foreach (var upsert in upserts)
             {
                 upsertCommand.AddParameter(upsert.Instance.ToString("N"));
-                upsertCommand.AddParameter(upsert.IdHash.ToString("N"));
+                upsertCommand.AddParameter(upsert.Position);
                 upsertCommand.AddParameter(upsert.WorkStatus);
                 upsertCommand.AddParameter(upsert.Result ?? (object) DBNull.Value);
                 upsertCommand.AddParameter(JsonHelper.ToJson(upsert.Exception) ?? (object) DBNull.Value);
@@ -156,12 +156,12 @@ public class SqlGenerator(string tablePrefix)
         {
             var removes = changes
                 .Where(c => c.Operation == CrudOperation.Delete)
-                .Select(c => new { Id = c.StoredId.AsGuid, IdHash = c.EffectId.ToStoredEffectId().Value })
-                .GroupBy(a => a.Id, a => a.IdHash)
+                .Select(c => new { Id = c.StoredId.AsGuid, Position = c.EffectId.ToStoredEffectId().Value.ToLong() })
+                .GroupBy(a => a.Id, a => a.Position)
                 .ToList();
             var predicates = removes
                 .Select(r =>
-                    $"(id = '{r.Key:N}' AND id_hash IN ({r.Select(id => $"'{id:N}'").StringJoin(", ")}))")
+                    $"(id = '{r.Key:N}' AND position IN ({r.Select(id => $"{id}").StringJoin(", ")}))")
                 .StringJoin($" OR {Environment.NewLine}");
             var removeSql = @$"
             DELETE FROM {tablePrefix}_effects 
