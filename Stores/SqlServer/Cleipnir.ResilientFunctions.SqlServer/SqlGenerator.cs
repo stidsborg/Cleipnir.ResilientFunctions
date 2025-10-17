@@ -66,7 +66,7 @@ public class SqlGenerator(string tablePrefix)
                 var upsert = inserts[i];
                 parameters.Add(new ParameterValueAndName($"@{paramPrefix}InsertionFlowId{i}", upsert.Id));
                 parameters.Add(new ParameterValueAndName($"@{paramPrefix}InsertionPosition{i}", upsert.Position));
-                parameters.Add(new ParameterValueAndName($"@{paramPrefix}InsertionEffectId{i}", upsert.EffectId.Serialize()));
+                parameters.Add(new ParameterValueAndName($"@{paramPrefix}InsertionEffectId{i}", upsert.EffectId.Serialize().Value));
                 parameters.Add(new ParameterValueAndName($"@{paramPrefix}InsertionStatus{i}", upsert.WorkStatus));
                 parameters.Add(new ParameterValueAndName($"@{paramPrefix}InsertionResult{i}",
                     upsert.Result ?? (object)SqlBinary.Null));
@@ -120,7 +120,7 @@ public class SqlGenerator(string tablePrefix)
                 var upsert = upserts[i];
                 parameters.Add(new ParameterValueAndName($"@{paramPrefix}Id{i}", upsert.Id));
                 parameters.Add(new ParameterValueAndName($"@{paramPrefix}Position{i}", upsert.Position));
-                parameters.Add(new ParameterValueAndName($"@{paramPrefix}EffectId{i}", upsert.EffectId.Serialize()));
+                parameters.Add(new ParameterValueAndName($"@{paramPrefix}EffectId{i}", upsert.EffectId.Serialize().Value));
                 parameters.Add(new ParameterValueAndName($"@{paramPrefix}Status{i}", upsert.WorkStatus));
                 parameters.Add(new ParameterValueAndName($"@{paramPrefix}Result{i}",
                     upsert.Result ?? (object)SqlBinary.Null));

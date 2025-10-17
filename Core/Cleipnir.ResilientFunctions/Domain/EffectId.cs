@@ -5,13 +5,15 @@ namespace Cleipnir.ResilientFunctions.Domain;
 
 public record EffectId(string Id, EffectType Type, string Context)
 {
-    public string Serialize()
+    public SerializedEffectId Serialize()
     {
         var (id, type, context) = this;
         if (id.All(c => c != '.' && c != '\\'))
-            return context == ""
-                ? $"{(char)type}{id}"
-                : $"{context}.{(char)type}{id}";
+            return new SerializedEffectId(
+                context == ""
+                    ? $"{(char)type}{id}"
+                    : $"{context}.{(char)type}{id}"
+                );
         
         var escapedIdList = new List<char>(id.Length * 2);
         foreach (var idChar in id)
@@ -31,11 +33,14 @@ public record EffectId(string Id, EffectType Type, string Context)
             }
         
         var escapedId = new string(escapedIdList.ToArray());
-        return context == ""
-            ? $"{(char)type}{escapedId}"
-            : $"{context}.{(char)type}{escapedId}"; 
+        return new SerializedEffectId(
+            context == ""
+                ? $"{(char)type}{escapedId}"
+                : $"{context}.{(char)type}{escapedId}"
+            );
     }
 
+    public static EffectId Deserialize(SerializedEffectId serialized) => Deserialize(serialized.Value);
     public static EffectId Deserialize(string serialized)
     {
         int pos;
@@ -61,8 +66,10 @@ public record EffectId(string Id, EffectType Type, string Context)
         => new(id, effectType, Context: "");
     
     public static EffectId CreateWithCurrentContext(string id, EffectType effectType)
-        => new(id, effectType, EffectContext.CurrentContext.Parent?.Serialize() ?? "");
+        => new(id, effectType, EffectContext.CurrentContext.Parent?.Serialize().Value ?? "");
 }
+
+public record SerializedEffectId(string Value);
 
 public static class EffectIdExtensions
 {

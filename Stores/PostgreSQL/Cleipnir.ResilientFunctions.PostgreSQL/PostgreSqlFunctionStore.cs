@@ -150,7 +150,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
             ).ToNpgsqlCommand(conn);
 
             var affectedRows = await command.ExecuteNonQueryAsync();
-            return affectedRows == 1 ? new EmptyStorageSession() : null;    
+            return affectedRows == 1 ? new PositionsStorageSession() : null;    
         }
 
         try
@@ -168,11 +168,13 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 ignoreConflict: false
             );
             commands.Add(createCommand);
-
+            var session = new PositionsStorageSession();
             if (effects?.Any() ?? false)
                 commands.AddRange(
                     _sqlGenerator.UpdateEffects(
-                        effects.Select(e => new StoredEffectChange(storedId, e.EffectId, CrudOperation.Insert, e)).ToList()
+                        storedId,
+                        changes: effects.Select(e => new StoredEffectChange(storedId, e.EffectId, CrudOperation.Insert, e)).ToList(),
+                        session
                     )
                 );
 
@@ -186,7 +188,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
             await using var conn = await CreateConnection();
             batch.WithConnection(conn);
             await batch.ExecuteNonQueryAsync();
-            return new EmptyStorageSession();
+            return session;
         }
         catch (PostgresException e) when (e.SqlState == "23505")
         {

@@ -7,6 +7,7 @@ using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Storage;
+using Cleipnir.ResilientFunctions.Storage.Session;
 using Cleipnir.ResilientFunctions.Storage.Utils;
 using Npgsql;
 
@@ -76,11 +77,11 @@ public class SqlGenerator(string tablePrefix)
 
         return functions;
     }
-    public async Task<Dictionary<StoredId, List<StoredEffect>>> ReadEffectsForIds(NpgsqlDataReader reader, IEnumerable<StoredId> storedIds)
+    public async Task<Dictionary<StoredId, List<StoredEffectWithPosition>>> ReadEffectsForIds(NpgsqlDataReader reader, IEnumerable<StoredId> storedIds)
     {
-        var effects = new Dictionary<StoredId, List<StoredEffect>>();
+        var effects = new Dictionary<StoredId, List<StoredEffectWithPosition>>();
         foreach (var storedId in storedIds)
-            effects[storedId] = new List<StoredEffect>();
+            effects[storedId] = new List<StoredEffectWithPosition>();
         
         while (await reader.ReadAsync())
         {
@@ -92,77 +93,60 @@ public class SqlGenerator(string tablePrefix)
             var effectId = reader.GetString(5);
 
             var se = new StoredEffect(EffectId.Deserialize(effectId), status, result, JsonHelper.FromJson<StoredException>(exception));
-            effects[id].Add(se);
+            effects[id].Add(new StoredEffectWithPosition(se, position));
         }
 
         return effects;
     }
     
-    public IEnumerable<StoreCommand> UpdateEffects(IReadOnlyList<StoredEffectChange> changes)
-   {
-       var commands = new List<StoreCommand>(changes.Count);
+    public IEnumerable<StoreCommand> UpdateEffects(StoredId storedId, IReadOnlyList<StoredEffectChange> changes, PositionsStorageSession session)
+    {
+        var commands = new List<StoreCommand>(changes.Count);
+       
+        // DELETES
+        {
+            var positionsToDelete = changes
+                .Select(c =>
+                    session.Positions.ContainsKey(c.EffectId.Serialize())
+                        ? session.Positions[c.EffectId.Serialize()]
+                        : -1)
+                .Where(p => p != -1)
+                .ToList();
 
-       // INSERT
-       {
-           var sql= $@"
+            if (positionsToDelete.Any())
+            {
+                var removeSql = @$"
+                DELETE FROM {tablePrefix}_effects
+                WHERE id = '{storedId.AsGuid}' AND position IN ({positionsToDelete.Select(p => p.ToString()).StringJoin(separator: ", ")});";
+                commands.Add(StoreCommand.Create(removeSql));              
+            }
+        }
+       
+        // INSERT and UPDATES
+        {
+            var sql= $@"
                 INSERT INTO {tablePrefix}_effects
                     (id, position, status, result, exception, effect_id)
                 VALUES
                     ($1, $2, $3, $4, $5, $6);";
       
-           foreach (var (storedId, _, _, storedEffect) in changes.Where(s => s.Operation == CrudOperation.Insert))
-           {
-               var command = StoreCommand.Create(sql);
-               command.AddParameter(storedId.AsGuid);
-               command.AddParameter(storedEffect!.StoredEffectId.Value.ToLong());
-               command.AddParameter((int) storedEffect.WorkStatus);
-               command.AddParameter(storedEffect.Result ?? (object) DBNull.Value);
-               command.AddParameter(JsonHelper.ToJson(storedEffect.StoredException) ?? (object) DBNull.Value);
-               command.AddParameter(storedEffect.EffectId.Serialize());
+            foreach (var (_, effectId, _, storedEffect) in changes.Where(s => s.Operation == CrudOperation.Insert || s.Operation == CrudOperation.Update))
+            {
+                var position = session.Add(effectId.Serialize());
+                var command = StoreCommand.Create(sql);
+                command.AddParameter(storedId.AsGuid);
+                command.AddParameter(position);
+                command.AddParameter((int) storedEffect!.WorkStatus);
+                command.AddParameter(storedEffect.Result ?? (object) DBNull.Value);
+                command.AddParameter(JsonHelper.ToJson(storedEffect.StoredException) ?? (object) DBNull.Value);
+                command.AddParameter(storedEffect.EffectId.Serialize().Value);
            
-               commands.Add(command);
-           }   
-       }
+                commands.Add(command);
+            }   
+        }
        
-       // UPDATE
-       {
-            var sql= $@"
-                UPDATE {tablePrefix}_effects
-                SET status = $1, result = $2, exception = $3
-                WHERE id = $4 AND position = $5;";
-      
-           foreach (var (storedId, _, _, storedEffect) in changes.Where(s => s.Operation == CrudOperation.Update))
-           {
-               var command = StoreCommand.Create(sql);
-               command.AddParameter((int) storedEffect!.WorkStatus);
-               command.AddParameter(storedEffect.Result ?? (object) DBNull.Value);
-               command.AddParameter(JsonHelper.ToJson(storedEffect.StoredException) ?? (object) DBNull.Value);
-               command.AddParameter(storedId.AsGuid);
-               command.AddParameter(storedEffect.StoredEffectId.Value.ToLong());
-           
-               commands.Add(command);
-           }   
-       }
-
-       // DELETE
-       var removedEffects = changes
-           .Where(s => s.Operation == CrudOperation.Delete)
-           .Select(s => new { Id = s.StoredId, s.EffectId })
-           .GroupBy(s => s.Id, s => s.EffectId.ToStoredEffectId().Value.ToLong());
-
-       foreach (var removedEffectGroup in removedEffects)
-       {
-           var storedId = removedEffectGroup.Key;
-           var removeSql = @$"
-                DELETE FROM {tablePrefix}_effects
-                WHERE id = '{storedId.AsGuid}' AND
-                      position IN ({removedEffectGroup.Select(id => $"'{id}'").StringJoin(", ")});";
-           var command = StoreCommand.Create(removeSql);
-           commands.Add(command);
-       }
-
-       return commands;
-   }
+        return commands;
+    }
     
     private string? _createFunctionSql;
     public StoreCommand CreateFunction(
