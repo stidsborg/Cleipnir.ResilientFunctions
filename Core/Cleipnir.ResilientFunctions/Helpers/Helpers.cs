@@ -22,6 +22,17 @@ internal static class Helpers
         var randomLong = BitConverter.ToInt64(randomLongBytes, 0);
         return randomLong;
     }
+
+    public static long ToLong(this Guid guid)
+    {
+        var guidBytes = guid.ToByteArray();
+        var longBytes = new byte[8];
+
+        for (var i = 0; i < 8; i++)
+            longBytes[i] = (byte)(guidBytes[i] ^ guidBytes[i + 8]);
+
+        return BitConverter.ToInt64(longBytes, 0);
+    }
         
     public static int GenerateRandomInt()
     {

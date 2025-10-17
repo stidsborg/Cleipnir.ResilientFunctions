@@ -40,7 +40,7 @@ public class SqlGenerator(string tablePrefix)
     public StoreCommand GetEffects(StoredId storedId)
     {
         _getEffectResultsSql ??= @$"
-            SELECT id_hash, status, result, exception, effect_id
+            SELECT position, status, result, exception, effect_id
             FROM {tablePrefix}_effects
             WHERE id = $1;";
         
@@ -52,7 +52,7 @@ public class SqlGenerator(string tablePrefix)
     public StoreCommand GetEffects(IEnumerable<StoredId> storedIds)
     {
         var sql = @$"
-            SELECT id, id_hash, status, result, exception, effect_id
+            SELECT id, position, status, result, exception, effect_id
             FROM {tablePrefix}_effects
             WHERE id IN ({storedIds.Select(id => $"'{id}'").StringJoin(", ")});";
         
@@ -64,7 +64,7 @@ public class SqlGenerator(string tablePrefix)
         var functions = new List<StoredEffect>();
         while (await reader.ReadAsync())
         {
-            var idHash = reader.GetGuid(0);
+            var position = reader.GetInt64(0);
             var status = (WorkStatus) reader.GetInt32(1);
             var result = reader.IsDBNull(2) ? null : (byte[]) reader.GetValue(2);
             var exception = reader.IsDBNull(3) ? null : reader.GetString(3);
@@ -85,7 +85,7 @@ public class SqlGenerator(string tablePrefix)
         while (await reader.ReadAsync())
         {
             var id = new StoredId(reader.GetGuid(0));
-            var idHash = reader.GetGuid(1);
+            var position = reader.GetInt64(1);
             var status = (WorkStatus) reader.GetInt32(2);
             var result = reader.IsDBNull(3) ? null : (byte[]) reader.GetValue(3);
             var exception = reader.IsDBNull(4) ? null : reader.GetString(4);
@@ -106,7 +106,7 @@ public class SqlGenerator(string tablePrefix)
        {
            var sql= $@"
                 INSERT INTO {tablePrefix}_effects
-                    (id, id_hash, status, result, exception, effect_id)
+                    (id, position, status, result, exception, effect_id)
                 VALUES
                     ($1, $2, $3, $4, $5, $6);";
       
@@ -114,7 +114,7 @@ public class SqlGenerator(string tablePrefix)
            {
                var command = StoreCommand.Create(sql);
                command.AddParameter(storedId.AsGuid);
-               command.AddParameter(storedEffect!.StoredEffectId.Value);
+               command.AddParameter(storedEffect!.StoredEffectId.Value.ToLong());
                command.AddParameter((int) storedEffect.WorkStatus);
                command.AddParameter(storedEffect.Result ?? (object) DBNull.Value);
                command.AddParameter(JsonHelper.ToJson(storedEffect.StoredException) ?? (object) DBNull.Value);
@@ -129,7 +129,7 @@ public class SqlGenerator(string tablePrefix)
             var sql= $@"
                 UPDATE {tablePrefix}_effects
                 SET status = $1, result = $2, exception = $3
-                WHERE id = $4 AND id_hash = $5;";
+                WHERE id = $4 AND position = $5;";
       
            foreach (var (storedId, _, _, storedEffect) in changes.Where(s => s.Operation == CrudOperation.Update))
            {
@@ -138,7 +138,7 @@ public class SqlGenerator(string tablePrefix)
                command.AddParameter(storedEffect.Result ?? (object) DBNull.Value);
                command.AddParameter(JsonHelper.ToJson(storedEffect.StoredException) ?? (object) DBNull.Value);
                command.AddParameter(storedId.AsGuid);
-               command.AddParameter(storedEffect.StoredEffectId.Value);
+               command.AddParameter(storedEffect.StoredEffectId.Value.ToLong());
            
                commands.Add(command);
            }   
@@ -148,7 +148,7 @@ public class SqlGenerator(string tablePrefix)
        var removedEffects = changes
            .Where(s => s.Operation == CrudOperation.Delete)
            .Select(s => new { Id = s.StoredId, s.EffectId })
-           .GroupBy(s => s.Id, s => s.EffectId.ToStoredEffectId().Value);
+           .GroupBy(s => s.Id, s => s.EffectId.ToStoredEffectId().Value.ToLong());
 
        foreach (var removedEffectGroup in removedEffects)
        {
@@ -156,7 +156,7 @@ public class SqlGenerator(string tablePrefix)
            var removeSql = @$"
                 DELETE FROM {tablePrefix}_effects
                 WHERE id = '{storedId.AsGuid}' AND
-                      id_hash IN ({removedEffectGroup.Select(id => $"'{id}'").StringJoin(", ")});";
+                      position IN ({removedEffectGroup.Select(id => $"'{id}'").StringJoin(", ")});";
            var command = StoreCommand.Create(removeSql);
            commands.Add(command);
        }
