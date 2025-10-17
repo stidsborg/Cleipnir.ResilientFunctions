@@ -162,8 +162,9 @@ public record StoredEffect(
             StoredException: null
         );
     }
-
 };
+public record StoredEffectWithPosition(StoredEffect Effect, long Position);
+
 public record StoredState(StateId StateId, byte[] StateJson);
 
 public record IdWithParam(StoredId StoredId, string HumanInstanceId, byte[]? Param);

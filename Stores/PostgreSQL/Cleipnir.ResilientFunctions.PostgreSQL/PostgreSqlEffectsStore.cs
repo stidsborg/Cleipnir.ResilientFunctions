@@ -45,7 +45,8 @@ public class PostgreSqlEffectsStore(string connectionString, SqlGenerator sqlGen
         if (changes.Count == 0)
             return;
 
-        await using var batch = sqlGenerator.UpdateEffects(changes).ToNpgsqlBatch();
+        var positionsSession = session as PositionsStorageSession;
+        await using var batch = sqlGenerator.UpdateEffects(changes, positionsSession).ToNpgsqlBatch();
         await using var conn = await CreateConnection();
         batch.WithConnection(conn);
 
@@ -59,7 +60,7 @@ public class PostgreSqlEffectsStore(string connectionString, SqlGenerator sqlGen
 
         await using var reader = await command.ExecuteReaderAsync();
         var effects = await sqlGenerator.ReadEffectsForIds(reader, storedIds);
-        return effects;
+        return effects.ToDictionary(kv => kv.Key, kv => kv.Value.Select(s => s.Effect).ToList());
     }
     
     private string? _removeSql;
@@ -84,5 +85,30 @@ public class PostgreSqlEffectsStore(string connectionString, SqlGenerator sqlGen
         var conn = new NpgsqlConnection(connectionString);
         await conn.OpenAsync();
         return conn;
+    }
+    
+    private async Task<PositionsStorageSession> CreateSession(StoredId storedId)
+        => await CreateSessions([storedId]).SelectAsync(d => d[storedId]);
+    private async Task<Dictionary<StoredId, PositionsStorageSession>> CreateSessions(IEnumerable<StoredId> storedIds)
+    {
+        sqlGenerator.GetEffects(storedIds);
+        
+    }
+
+    private Dictionary<StoredId, PositionsStorageSession> CreateSessions(Dictionary<StoredId, List<StoredEffectWithPosition>> effects)
+    {
+        var dictionary = new Dictionary<StoredId, PositionsStorageSession>();
+        foreach (var storedId in effects.Keys)
+        {
+            var session = new PositionsStorageSession();
+            dictionary[storedId] = session;
+            foreach (var (effect, position) in effects[storedId].OrderBy(e => e.Position))
+            {
+                session.MaxPosition = position;
+                session.Positions[effect.EffectId.Serialize()] = position;
+            }
+        }
+
+        return dictionary;
     }
 }

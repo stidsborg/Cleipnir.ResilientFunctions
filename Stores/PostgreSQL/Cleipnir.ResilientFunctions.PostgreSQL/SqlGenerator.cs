@@ -7,6 +7,7 @@ using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Storage;
+using Cleipnir.ResilientFunctions.Storage.Session;
 using Cleipnir.ResilientFunctions.Storage.Utils;
 using Npgsql;
 
@@ -76,11 +77,11 @@ public class SqlGenerator(string tablePrefix)
 
         return functions;
     }
-    public async Task<Dictionary<StoredId, List<StoredEffect>>> ReadEffectsForIds(NpgsqlDataReader reader, IEnumerable<StoredId> storedIds)
+    public async Task<Dictionary<StoredId, List<StoredEffectWithPosition>>> ReadEffectsForIds(NpgsqlDataReader reader, IEnumerable<StoredId> storedIds)
     {
-        var effects = new Dictionary<StoredId, List<StoredEffect>>();
+        var effects = new Dictionary<StoredId, List<StoredEffectWithPosition>>();
         foreach (var storedId in storedIds)
-            effects[storedId] = new List<StoredEffect>();
+            effects[storedId] = new List<StoredEffectWithPosition>();
         
         while (await reader.ReadAsync())
         {
@@ -92,16 +93,16 @@ public class SqlGenerator(string tablePrefix)
             var effectId = reader.GetString(5);
 
             var se = new StoredEffect(EffectId.Deserialize(effectId), status, result, JsonHelper.FromJson<StoredException>(exception));
-            effects[id].Add(se);
+            effects[id].Add(new StoredEffectWithPosition(se, position));
         }
 
         return effects;
     }
     
-    public IEnumerable<StoreCommand> UpdateEffects(IReadOnlyList<StoredEffectChange> changes)
+    public IEnumerable<StoreCommand> UpdateEffects(IReadOnlyList<StoredEffectChange> changes, PositionsStorageSession session)
    {
        var commands = new List<StoreCommand>(changes.Count);
-
+        
        // INSERT
        {
            var sql= $@"
@@ -112,6 +113,7 @@ public class SqlGenerator(string tablePrefix)
       
            foreach (var (storedId, _, _, storedEffect) in changes.Where(s => s.Operation == CrudOperation.Insert))
            {
+               
                var command = StoreCommand.Create(sql);
                command.AddParameter(storedId.AsGuid);
                command.AddParameter(storedEffect!.StoredEffectId.Value.ToLong());
