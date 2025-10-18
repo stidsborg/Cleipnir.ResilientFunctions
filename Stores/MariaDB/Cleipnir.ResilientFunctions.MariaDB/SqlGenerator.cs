@@ -3,6 +3,7 @@ using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Storage;
+using Cleipnir.ResilientFunctions.Storage.Session;
 using Cleipnir.ResilientFunctions.Storage.Utils;
 using MySqlConnector;
 
@@ -51,8 +52,11 @@ public class SqlGenerator(string tablePrefix)
     }
     
     public async Task<IReadOnlyList<StoredEffect>> ReadEffects(MySqlDataReader reader)
+        => (await ReadEffectsWithPositions(reader)).Select(e => e.Effect).ToList();
+
+    public async Task<IReadOnlyList<StoredEffectWithPosition>> ReadEffectsWithPositions(MySqlDataReader reader)
     {
-        var functions = new List<StoredEffect>();
+        var functions = new List<StoredEffectWithPosition>();
         while (await reader.ReadAsync())
         {
             var position = reader.GetInt64(0);
@@ -61,11 +65,14 @@ public class SqlGenerator(string tablePrefix)
             var exception = reader.IsDBNull(3) ? null : reader.GetString(3);
             var effectId = reader.GetString(4);
             functions.Add(
-                new StoredEffect(
-                    EffectId.Deserialize(effectId),
-                    status,
-                    result,
-                    JsonHelper.FromJson<StoredException>(exception)
+                new StoredEffectWithPosition(
+                    new StoredEffect(
+                        EffectId.Deserialize(effectId),
+                        status,
+                        result,
+                        JsonHelper.FromJson<StoredException>(exception)
+                    ),
+                    position
                 )
             );
         }
@@ -84,12 +91,12 @@ public class SqlGenerator(string tablePrefix)
         return command;
     }
     
-    public async Task<Dictionary<StoredId, List<StoredEffect>>> ReadEffectsForMultipleStoredIds(MySqlDataReader reader, IEnumerable<StoredId> storedIds)
+    public async Task<Dictionary<StoredId, List<StoredEffectWithPosition>>> ReadEffectsForMultipleStoredIds(MySqlDataReader reader, IEnumerable<StoredId> storedIds)
     {
-        var storedEffects = new Dictionary<StoredId, List<StoredEffect>>();
+        var storedEffects = new Dictionary<StoredId, List<StoredEffectWithPosition>>();
         foreach (var storedId in storedIds)
-            storedEffects[storedId] = new List<StoredEffect>();
-            
+            storedEffects[storedId] = new List<StoredEffectWithPosition>();
+
         while (await reader.ReadAsync())
         {
             var id = reader.GetString(0).ToGuid().ToStoredId();
@@ -100,11 +107,14 @@ public class SqlGenerator(string tablePrefix)
             var effectId = reader.GetString(5);
 
             storedEffects[id].Add(
-                new StoredEffect(
-                    EffectId.Deserialize(effectId),
-                    status,
-                    result,
-                    JsonHelper.FromJson<StoredException>(exception)
+                new StoredEffectWithPosition(
+                    new StoredEffect(
+                        EffectId.Deserialize(effectId),
+                        status,
+                        result,
+                        JsonHelper.FromJson<StoredException>(exception)
+                    ),
+                    position
                 )
             );
         }
@@ -112,65 +122,60 @@ public class SqlGenerator(string tablePrefix)
         return storedEffects;
     }
     
-    public StoreCommand UpdateEffects(IReadOnlyList<StoredEffectChange> changes)
+    public StoreCommand? UpdateEffects(StoredId storedId, IReadOnlyList<StoredEffectChange> changes, PositionsStorageSession session)
     {
-        var upsertCommand = default(StoreCommand);
-        
-        if (changes.Any(c => c.Operation == CrudOperation.Update || c.Operation == CrudOperation.Insert))
+        var storeCommands = new List<StoreCommand>(2);
+
+        // DELETES
         {
-            var upserts = changes
-                .Where(c => c.Operation == CrudOperation.Update || c.Operation == CrudOperation.Insert)
-                .Select(c => new
-                {
-                    Instance = c.StoredId.AsGuid,
-                    Position = c.EffectId.ToStoredEffectId().Value.ToLong(),
-                    WorkStatus = (int)c.StoredEffect!.WorkStatus,
-                    Result = c.StoredEffect!.Result,
-                    Exception = c.StoredEffect!.StoredException,
-                    EffectId = c.StoredEffect!.EffectId
-                })
+            var positionsToDelete = changes
+                .Select(c =>
+                    session.Positions.ContainsKey(c.EffectId.Serialize())
+                        ? session.Positions[c.EffectId.Serialize()]
+                        : -1)
+                .Where(p => p != -1)
                 .ToList();
-        
-            var setSql = $@"
-                INSERT INTO {tablePrefix}_effects 
+
+            if (positionsToDelete.Any())
+            {
+                var removeSql = @$"
+                DELETE FROM {tablePrefix}_effects
+                WHERE id = '{storedId.AsGuid:N}' AND position IN ({positionsToDelete.Select(p => p.ToString()).StringJoin(separator: ", ")});";
+                storeCommands.Add(StoreCommand.Create(removeSql));
+            }
+        }
+
+        // INSERT and UPDATES
+        {
+            var insertsAndUpdates = changes
+                .Where(c => c.Operation == CrudOperation.Insert || c.Operation == CrudOperation.Update)
+                .ToList();
+
+            foreach (var (_, effectId, _, storedEffect) in insertsAndUpdates)
+            {
+                var position = session.Add(effectId.Serialize());
+
+                var sql = $@"
+                INSERT INTO {tablePrefix}_effects
                     (id, position, status, result, exception, effect_id)
                 VALUES
-                    {"(?, ?, ?, ?, ?, ?)".Replicate(upserts.Count).StringJoin(", ")}  
-                ON DUPLICATE KEY UPDATE
-                    status = VALUES(status), result = VALUES(result), exception = VALUES(exception);";
+                    (?, ?, ?, ?, ?, ?);";
 
-            upsertCommand = StoreCommand.Create(setSql);
-            foreach (var upsert in upserts)
-            {
-                upsertCommand.AddParameter(upsert.Instance.ToString("N"));
-                upsertCommand.AddParameter(upsert.Position);
-                upsertCommand.AddParameter(upsert.WorkStatus);
-                upsertCommand.AddParameter(upsert.Result ?? (object) DBNull.Value);
-                upsertCommand.AddParameter(JsonHelper.ToJson(upsert.Exception) ?? (object) DBNull.Value);
-                upsertCommand.AddParameter(upsert.EffectId.Serialize().Value);
-            }    
+                var command = StoreCommand.Create(sql);
+                command.AddParameter(storedId.AsGuid.ToString("N"));
+                command.AddParameter(position);
+                command.AddParameter((int)storedEffect!.WorkStatus);
+                command.AddParameter(storedEffect.Result ?? (object)DBNull.Value);
+                command.AddParameter(JsonHelper.ToJson(storedEffect.StoredException) ?? (object)DBNull.Value);
+                command.AddParameter(storedEffect.EffectId.Serialize().Value);
+
+                storeCommands.Add(command);
+            }
         }
 
-        var removeCommand = default(StoreCommand);
-        if (changes.Any(c => c.Operation == CrudOperation.Delete))
-        {
-            var removes = changes
-                .Where(c => c.Operation == CrudOperation.Delete)
-                .Select(c => new { Id = c.StoredId.AsGuid, Position = c.EffectId.ToStoredEffectId().Value.ToLong() })
-                .GroupBy(a => a.Id, a => a.Position)
-                .ToList();
-            var predicates = removes
-                .Select(r =>
-                    $"(id = '{r.Key:N}' AND position IN ({r.Select(id => $"{id}").StringJoin(", ")}))")
-                .StringJoin($" OR {Environment.NewLine}");
-            var removeSql = @$"
-            DELETE FROM {tablePrefix}_effects 
-            WHERE {predicates}";
-            
-            removeCommand = StoreCommand.Create(removeSql);
-        }
-        
-        return StoreCommand.Merge([upsertCommand, removeCommand])!;
+        return storeCommands.Count == 0
+            ? null
+            : StoreCommand.Merge(storeCommands)!;
     }
     
     private string? _createFunctionSql;

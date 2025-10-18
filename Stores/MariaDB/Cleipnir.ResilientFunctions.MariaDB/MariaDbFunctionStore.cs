@@ -128,7 +128,7 @@ public class MariaDbFunctionStore : IFunctionStore
                 .CreateFunction(storedId, humanInstanceId, param, leaseExpiration, postponeUntil, timestamp, parent, owner, ignoreDuplicate: true)
                 .ToSqlCommand(conn);
             var affectedRows = await command.ExecuteNonQueryAsync();
-            return affectedRows == 1 ? new EmptyStorageSession() : null;
+            return affectedRows == 1 ? new PositionsStorageSession() : null;
         }
         else
         {
@@ -141,10 +141,13 @@ public class MariaDbFunctionStore : IFunctionStore
                 storeCommand = storeCommand.Merge(messagesCommand);
             }
 
+            var session = new PositionsStorageSession();
             if (effects?.Any() ?? false)
             {
                 var effectsCommand = _sqlGenerator.UpdateEffects(
-                    effects.Select(e => new StoredEffectChange(storedId, e.EffectId, CrudOperation.Insert, e)).ToList()
+                    storedId,
+                    changes: effects.Select(e => new StoredEffectChange(storedId, e.EffectId, CrudOperation.Insert, e)).ToList(),
+                    session
                 );
                 storeCommand = storeCommand.Merge(effectsCommand);
             }
@@ -155,7 +158,7 @@ public class MariaDbFunctionStore : IFunctionStore
             try
             {
                 await command.ExecuteNonQueryAsync();
-                return new EmptyStorageSession();
+                return session;
             }
             catch (MySqlException ex) when (ex.Number == 1062)
             {
@@ -199,26 +202,35 @@ public class MariaDbFunctionStore : IFunctionStore
         var restartCommand = _sqlGenerator.RestartExecution(storedId, replicaId);
         var effectsCommand = _sqlGenerator.GetEffects(storedId);
         var messagesCommand = _sqlGenerator.GetMessages(storedId, skip: 0);
-        
+
         await using var conn = await CreateOpenConnection(_connectionString);
         await using var command = StoreCommand
             .Merge(restartCommand, effectsCommand, messagesCommand)
             .ToSqlCommand(conn);
-        
+
         var reader = await command.ExecuteReaderAsync();
         if (reader.RecordsAffected != 1)
             return null;
-        
+
         var sf = await _sqlGenerator.ReadToStoredFunction(storedId, reader);
         if (sf?.OwnerId != replicaId)
             return null;
         await reader.NextResultAsync();
-        
-        var effects = await _sqlGenerator.ReadEffects(reader);
+
+        var effectsWithPositions = await _sqlGenerator.ReadEffectsWithPositions(reader);
+        var effects = effectsWithPositions.Select(e => e.Effect).ToList();
         await reader.NextResultAsync();
-            
+
         var messages = await _sqlGenerator.ReadMessages(reader);
-        return new StoredFlowWithEffectsAndMessages(sf, effects, messages, new EmptyStorageSession());
+
+        var session = new PositionsStorageSession();
+        foreach (var (effect, position) in effectsWithPositions.OrderBy(e => e.Position))
+        {
+            session.MaxPosition = position;
+            session.Positions[effect.EffectId.Serialize()] = position;
+        }
+
+        return new StoredFlowWithEffectsAndMessages(sf, effects, messages, session);
     }
     
     private string? _getExpiredFunctionsSql;

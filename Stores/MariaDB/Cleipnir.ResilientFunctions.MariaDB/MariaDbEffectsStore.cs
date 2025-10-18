@@ -40,16 +40,23 @@ public class MariaDbEffectsStore(string connectionString, SqlGenerator sqlGenera
         if (changes.Count == 0)
             return;
 
+        var positionsSession = session as PositionsStorageSession ?? await CreateSession(storedId);
         await using var conn = await CreateConnection();
         await using var command = sqlGenerator
-            .UpdateEffects(changes)!
-            .ToSqlCommand(conn);
+            .UpdateEffects(storedId, changes, positionsSession)
+            ?.ToSqlCommand(conn);
 
-        await command.ExecuteNonQueryAsync();
+        if (command != null)
+            await command.ExecuteNonQueryAsync();
     }
 
     public async Task<Dictionary<StoredId, List<StoredEffect>>> GetEffectResults(IEnumerable<StoredId> storedIds)
+        => (await GetEffectResultsWithPositions(storedIds))
+            .ToDictionary(kv => kv.Key, kv => kv.Value.Select(s => s.Effect).ToList());
+
+    private async Task<Dictionary<StoredId, List<StoredEffectWithPosition>>> GetEffectResultsWithPositions(IEnumerable<StoredId> storedIds)
     {
+        storedIds = storedIds.ToList();
         await using var conn = await CreateConnection();
         await using var command = sqlGenerator.GetEffects(storedIds).ToSqlCommand(conn);
         await using var reader = await command.ExecuteReaderAsync();
@@ -79,5 +86,27 @@ public class MariaDbEffectsStore(string connectionString, SqlGenerator sqlGenera
         var conn = new MySqlConnection(connectionString);
         await conn.OpenAsync();
         return conn;
+    }
+
+    private async Task<PositionsStorageSession> CreateSession(StoredId storedId)
+        => await CreateSessions([storedId]).SelectAsync(d => d[storedId]);
+    private async Task<Dictionary<StoredId, PositionsStorageSession>> CreateSessions(IEnumerable<StoredId> storedIds)
+        => CreateSessions(await GetEffectResultsWithPositions(storedIds));
+
+    private Dictionary<StoredId, PositionsStorageSession> CreateSessions(Dictionary<StoredId, List<StoredEffectWithPosition>> effects)
+    {
+        var dictionary = new Dictionary<StoredId, PositionsStorageSession>();
+        foreach (var storedId in effects.Keys)
+        {
+            var session = new PositionsStorageSession();
+            dictionary[storedId] = session;
+            foreach (var (effect, position) in effects[storedId].OrderBy(e => e.Position))
+            {
+                session.MaxPosition = position;
+                session.Positions[effect.EffectId.Serialize()] = position;
+            }
+        }
+
+        return dictionary;
     }
 }
