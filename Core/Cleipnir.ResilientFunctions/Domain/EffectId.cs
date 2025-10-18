@@ -74,4 +74,5 @@ public record SerializedEffectId(string Value);
 public static class EffectIdExtensions
 {
     public static EffectId ToEffectId(this string value, EffectType? effectType = null, string? context = null) => new(value, effectType ?? EffectType.Effect, context ?? "");
+    public static SerializedEffectId ToSerializedEffectId(this string value) => new(value);
 }

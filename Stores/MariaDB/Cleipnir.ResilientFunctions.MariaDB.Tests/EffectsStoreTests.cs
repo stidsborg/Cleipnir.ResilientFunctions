@@ -53,4 +53,8 @@ public class EffectsStoreTests : Cleipnir.ResilientFunctions.Tests.TestTemplates
     [TestMethod]
     public override Task OverwriteExistingEffectWorks()
         => OverwriteExistingEffectWorks(FunctionStoreFactory.Create());
+    
+    [TestMethod]
+    public override Task StoreCanHandleMultipleEffectsWithSameIdOnDifferentSessions()
+        => StoreCanHandleMultipleEffectsWithSameIdOnDifferentSessions(FunctionStoreFactory.Create());
 }

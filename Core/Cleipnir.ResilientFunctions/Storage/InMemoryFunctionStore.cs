@@ -84,7 +84,9 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
                     .GetAwaiter()
                     .GetResult();
 
-            return Task.FromResult<IStorageSession?>(new EmptyStorageSession());
+            var session = _effectsStore.CreateStorageSession(storedId);
+
+            return Task.FromResult<IStorageSession?>(session);
         }
     }
 
@@ -138,7 +140,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
                     sf,
                     effects,
                     messages,
-                    new EmptyStorageSession()
+                    _effectsStore.CreateStorageSession(storedId)
                 );
     }
     

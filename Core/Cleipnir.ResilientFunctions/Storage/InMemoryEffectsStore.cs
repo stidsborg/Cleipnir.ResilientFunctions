@@ -9,7 +9,7 @@ namespace Cleipnir.ResilientFunctions.Storage;
 
 public class InMemoryEffectsStore : IEffectsStore
 {
-    private readonly Dictionary<StoredId, Dictionary<StoredEffectId, StoredEffect>> _effects = new();
+    private readonly Dictionary<StoredId, Dictionary<long, StoredEffect>> _effects = new();
     private readonly Lock _sync = new();
 
     public Task Initialize() => Task.CompletedTask;
@@ -24,19 +24,28 @@ public class InMemoryEffectsStore : IEffectsStore
 
     public Task SetEffectResults(StoredId storedId, IReadOnlyList<StoredEffectChange> changes, IStorageSession? session)
     {
+        var positionsSession = session as PositionsStorageSession ?? CreateStorageSession(storedId);
+        
         lock (_sync)
         {
-            foreach (var storedEffect in changes.Where(c => c.Operation != CrudOperation.Delete).Select(c => c.StoredEffect!))
+            if (!_effects.ContainsKey(storedId))
+                _effects[storedId] = new Dictionary<long, StoredEffect>();
+            
+            foreach (var change in changes)
             {
-                if (!_effects.ContainsKey(storedId))
-                    _effects[storedId] = new Dictionary<StoredEffectId, StoredEffect>();
-
-                _effects[storedId][storedEffect.StoredEffectId] = storedEffect;
+                var position = positionsSession.Get(change.EffectId.Serialize());
+                if (position != null)
+                {
+                    positionsSession.Remove(change.EffectId.Serialize());
+                    _effects[storedId].Remove(position.Value);
+                }
             }
 
-            foreach (var effectId in changes.Where(c => c.Operation == CrudOperation.Delete).Select(c => c.EffectId))
-                if (_effects.ContainsKey(storedId))
-                    _effects[storedId].Remove(effectId.ToStoredEffectId());
+            foreach (var change in changes.Where(c => c.Operation != CrudOperation.Delete))
+            {
+                var position = positionsSession.Add(change.EffectId.Serialize());
+                _effects[storedId].Add(position, change.StoredEffect!);
+            }
         }
 
         return Task.CompletedTask;
@@ -54,20 +63,26 @@ public class InMemoryEffectsStore : IEffectsStore
         return dict.ToTask();
     }
 
-    public Task DeleteEffectResult(StoredId storedId, StoredEffectId effectId)
-    {
-        lock (_sync)
-            if (_effects.ContainsKey(storedId))
-                _effects[storedId].Remove(effectId);
-
-        return Task.CompletedTask;
-    }
-
     public Task Remove(StoredId storedId)
     {
         lock (_sync)
             _effects.Remove(storedId);
 
         return Task.CompletedTask;
+    }
+
+    internal PositionsStorageSession CreateStorageSession(StoredId storedId)
+    {
+        var session = new PositionsStorageSession();
+        lock (_sync)
+        {
+            if (!_effects.ContainsKey(storedId))
+                return session;
+            
+            foreach(var (position, effect) in _effects[storedId])
+                session.Set(effect.EffectId.Serialize(), position);
+        }
+
+        return session;
     }
 }

@@ -60,22 +60,40 @@ public class SqlGenerator(string tablePrefix)
         return StoreCommand.Create(sql);
     }
 
-    public async Task<IReadOnlyList<StoredEffect>> ReadEffects(NpgsqlDataReader reader)
+    public record StoredEffectsWithSession(IReadOnlyList<StoredEffect> Effects, PositionsStorageSession Session);
+    public async Task<StoredEffectsWithSession> ReadEffects(NpgsqlDataReader reader)
     {
-        var functions = new List<StoredEffect>();
+        var effects = new List<StoredEffect>();
+        var session = new PositionsStorageSession();
+        
+        var collision = new HashSet<SerializedEffectId>();
+        var collisionDetected = false;
+        
         while (await reader.ReadAsync())
         {
             var position = reader.GetInt64(0);
             var status = (WorkStatus) reader.GetInt32(1);
             var result = reader.IsDBNull(2) ? null : (byte[]) reader.GetValue(2);
             var exception = reader.IsDBNull(3) ? null : reader.GetString(3);
-            var effectId = reader.GetString(4);
-            functions.Add(
-                new StoredEffect(EffectId.Deserialize(effectId), status, result, JsonHelper.FromJson<StoredException>(exception))
+            var effectId = reader.GetString(4).ToSerializedEffectId();
+            var storedEffect = new StoredEffect(
+                EffectId.Deserialize(effectId),
+                status,
+                result,
+                StoredException: JsonHelper.FromJson<StoredException>(exception)
             );
+            
+            effects.Add(storedEffect);
+            collisionDetected = collisionDetected || !collision.Add(effectId);
+            session.Set(effectId, position);
         }
 
-        return functions;
+        if (collisionDetected)
+        {
+            throw new NotImplementedException("collision resolution has not been implemented yet");
+        }
+        
+        return new StoredEffectsWithSession(effects, session);
     }
     public async Task<Dictionary<StoredId, List<StoredEffectWithPosition>>> ReadEffectsForIds(NpgsqlDataReader reader, IEnumerable<StoredId> storedIds)
     {

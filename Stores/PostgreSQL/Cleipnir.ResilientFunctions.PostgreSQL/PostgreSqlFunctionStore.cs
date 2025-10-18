@@ -247,11 +247,12 @@ public class PostgreSqlFunctionStore : IFunctionStore
         if (sf?.OwnerId != replicaId)
             return null;
         await reader.NextResultAsync();
-        var effects = await _sqlGenerator.ReadEffects(reader);
-        await reader.NextResultAsync();
+        var (effects, session) = await _sqlGenerator.ReadEffects(reader);
         
+        await reader.NextResultAsync();
         var messages = await _sqlGenerator.ReadMessages(reader);
-        return new StoredFlowWithEffectsAndMessages(sf, effects, messages, new EmptyStorageSession());
+        
+        return new StoredFlowWithEffectsAndMessages(sf, effects, messages, session);
     }
 
     private string? _getExpiredFunctionsSql;

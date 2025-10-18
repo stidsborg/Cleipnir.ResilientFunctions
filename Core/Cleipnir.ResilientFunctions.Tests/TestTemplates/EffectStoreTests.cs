@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
@@ -435,5 +436,56 @@ public abstract class EffectStoreTests
         var storedEffect = storedEffects.Single();
         storedEffect.EffectId.ShouldBe("EffectId1".ToEffectId());
         storedEffect.WorkStatus.ShouldBe(WorkStatus.Completed);
+    }
+    
+    public abstract Task StoreCanHandleMultipleEffectsWithSameIdOnDifferentSessions();
+    protected async Task StoreCanHandleMultipleEffectsWithSameIdOnDifferentSessions(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var effectStore = store.EffectsStore;
+        var storedId = TestStoredId.Create();
+        var storageSession1 = await store.CreateFunction(
+            storedId,
+            "SomeInstanceId",
+            param: null,
+            leaseExpiration: 0,
+            postponeUntil: null,
+            timestamp: 0,
+            parent: null,
+            owner: null
+        );
+        
+        var storageSession2 = await store.RestartExecution(
+            storedId,
+            owner: ReplicaId.Empty
+        ).SelectAsync(s => s!.StorageSession);
+        
+        var storedEffect1 = new StoredEffect(
+            "EffectId1".ToEffectId(),
+            WorkStatus.Started,
+            Result: null,
+            StoredException: null
+        );
+        var storedEffect2 = new StoredEffect(
+            "EffectId1".ToEffectId(),
+            WorkStatus.Completed,
+            Result: null,
+            StoredException: null
+        );
+
+        await effectStore.SetEffectResult(storedId, storedEffect1.ToStoredChange(storedId, Insert), storageSession1);
+        try
+        {
+            await effectStore.SetEffectResult(storedId, storedEffect2.ToStoredChange(storedId, Update), storageSession2);            
+        }
+        catch (Exception)
+        {
+            // ignored
+        }
+        
+        var storedEffects = await effectStore.GetEffectResults(storedId);
+        var storedEffect = storedEffects.Single();
+        storedEffect.EffectId.ShouldBe("EffectId1".ToEffectId());
+        storedEffect.WorkStatus.ShouldBe(WorkStatus.Started);
     }
 }
