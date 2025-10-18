@@ -8,6 +8,7 @@ using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Storage;
+using Cleipnir.ResilientFunctions.Storage.Session;
 using Cleipnir.ResilientFunctions.Storage.Utils;
 using Microsoft.Data.SqlClient;
 
@@ -37,122 +38,61 @@ public class SqlGenerator(string tablePrefix)
         return StoreCommand.Create(sql);
     }
     
-    public StoreCommand UpdateEffects(IReadOnlyList<StoredEffectChange> changes, string paramPrefix)
+    public StoreCommand? UpdateEffects(StoredId storedId, IReadOnlyList<StoredEffectChange> changes, PositionsStorageSession session, string paramPrefix)
     {
-        var storeCommands = new List<StoreCommand>(3);
-        
-        //INSERTION
+        var storeCommands = new List<StoreCommand>(2);
+
+        // DELETES
         {
-            var inserts = changes
-                .Where(c => c.Operation == CrudOperation.Insert)
-                .Select(c => new
-                {
-                    Id = c.StoredId.AsGuid,
-                    Position = c.EffectId.ToStoredEffectId().Value.ToLong(),
-                    WorkStatus = (int)c.StoredEffect!.WorkStatus,
-                    Result = c.StoredEffect!.Result,
-                    Exception = c.StoredEffect!.StoredException,
-                    EffectId = c.StoredEffect!.EffectId
-                })
+            var positionsToDelete = changes
+                .Select(c =>
+                    session.Positions.ContainsKey(c.EffectId.Serialize())
+                        ? session.Positions[c.EffectId.Serialize()]
+                        : -1)
+                .Where(p => p != -1)
                 .ToList();
-        
-            var parameterValues = inserts
-                .Select((_, i) => $"(@{paramPrefix}InsertionFlowId{i}, @{paramPrefix}InsertionPosition{i}, @{paramPrefix}InsertionEffectId{i}, @{paramPrefix}InsertionStatus{i}, @{paramPrefix}InsertionResult{i}, @{paramPrefix}InsertionException{i})")
-                .StringJoin(", ");
-        
-            var parameters = new List<ParameterValueAndName>();
-            for (var i = 0; i < inserts.Count; i++)
+
+            if (positionsToDelete.Any())
             {
-                var upsert = inserts[i];
-                parameters.Add(new ParameterValueAndName($"@{paramPrefix}InsertionFlowId{i}", upsert.Id));
-                parameters.Add(new ParameterValueAndName($"@{paramPrefix}InsertionPosition{i}", upsert.Position));
-                parameters.Add(new ParameterValueAndName($"@{paramPrefix}InsertionEffectId{i}", upsert.EffectId.Serialize().Value));
-                parameters.Add(new ParameterValueAndName($"@{paramPrefix}InsertionStatus{i}", upsert.WorkStatus));
-                parameters.Add(new ParameterValueAndName($"@{paramPrefix}InsertionResult{i}",
-                    upsert.Result ?? (object)SqlBinary.Null));
-                parameters.Add(new ParameterValueAndName($"@{paramPrefix}InsertionException{i}",
-                    JsonHelper.ToJson(upsert.Exception) ?? (object)DBNull.Value));
-            }
-            
-            var insertSql = $@"
-            INSERT INTO {tablePrefix}_Effects
-            VALUES {parameterValues} ";
-            
-            if (inserts.Any())
-                storeCommands.Add(StoreCommand.Create(insertSql, parameters));
-        }
-
-        //UPDATE
-        {
-            var upserts = changes
-                .Where(c => c.Operation == CrudOperation.Update)
-                .Select(c => new
-                {
-                    Id = c.StoredId.AsGuid,
-                    Position = c.EffectId.ToStoredEffectId().Value.ToLong(),
-                    WorkStatus = (int)c.StoredEffect!.WorkStatus,
-                    Result = c.StoredEffect!.Result,
-                    Exception = c.StoredEffect!.StoredException,
-                    EffectId = c.StoredEffect!.EffectId
-                })
-                .ToList();
-
-            var parameterValues = upserts
-                .Select((_, i) =>
-                    $"(@{paramPrefix}Id{i}, @{paramPrefix}Position{i}, @{paramPrefix}EffectId{i}, @{paramPrefix}Status{i}, @{paramPrefix}Result{i}, @{paramPrefix}Exception{i})")
-                .StringJoin(", ");
-
-            var setSql = $@"
-            MERGE INTO {tablePrefix}_Effects
-                USING (VALUES {parameterValues}) 
-                AS source (Id, Position, EffectId, Status, Result, Exception)
-                ON {tablePrefix}_Effects.Id = source.Id AND {tablePrefix}_Effects.Position = source.Position
-                WHEN MATCHED THEN
-                    UPDATE SET Status = source.Status, Result = source.Result, Exception = source.Exception 
-                WHEN NOT MATCHED THEN
-                    INSERT (Id, Position, EffectId, Status, Result, Exception)
-                    VALUES (source.Id, source.Position, source.EffectId, source.Status, source.Result, source.Exception);";
-
-            var parameters = new List<ParameterValueAndName>();
-
-            for (var i = 0; i < upserts.Count; i++)
-            {
-                var upsert = upserts[i];
-                parameters.Add(new ParameterValueAndName($"@{paramPrefix}Id{i}", upsert.Id));
-                parameters.Add(new ParameterValueAndName($"@{paramPrefix}Position{i}", upsert.Position));
-                parameters.Add(new ParameterValueAndName($"@{paramPrefix}EffectId{i}", upsert.EffectId.Serialize().Value));
-                parameters.Add(new ParameterValueAndName($"@{paramPrefix}Status{i}", upsert.WorkStatus));
-                parameters.Add(new ParameterValueAndName($"@{paramPrefix}Result{i}",
-                    upsert.Result ?? (object)SqlBinary.Null));
-                parameters.Add(new ParameterValueAndName($"@{paramPrefix}Exception{i}",
-                    JsonHelper.ToJson(upsert.Exception) ?? (object)DBNull.Value));
-            }
-            
-            if (upserts.Any())
-                storeCommands.Add(StoreCommand.Create(setSql, parameters));
-        }
-        
-        //DELETE
-        {
-            var removes = changes
-                .Where(c => c.Operation == CrudOperation.Delete)
-                .Select(c => new { Id = c.StoredId.AsGuid, Position = c.EffectId.ToStoredEffectId().Value.ToLong() })
-                .GroupBy(c => c.Id)
-                .ToList();
-            var predicates = removes
-                .Select(r =>
-                    $"(Id = '{r.Key}' AND Position IN ({r.Select(t => $"{t.Position}").StringJoin(", ")}))")
-                .StringJoin($" OR {Environment.NewLine}");
-        
-            var removeSql = @$"
-            DELETE FROM {tablePrefix}_effects 
-            WHERE {predicates}";
-            if (removes.Any())
+                var removeSql = @$"
+                DELETE FROM {tablePrefix}_Effects
+                WHERE Id = '{storedId.AsGuid}' AND Position IN ({positionsToDelete.Select(p => p.ToString()).StringJoin(separator: ", ")});";
                 storeCommands.Add(StoreCommand.Create(removeSql));
-            
+            }
         }
 
-        return StoreCommand.Merge(storeCommands)!;
+        // INSERT and UPDATES
+        {
+            var insertsAndUpdates = changes
+                .Where(c => c.Operation == CrudOperation.Insert || c.Operation == CrudOperation.Update)
+                .ToList();
+
+            for (var i = 0; i < insertsAndUpdates.Count; i++)
+            {
+                var (_, effectId, _, storedEffect) = insertsAndUpdates[i];
+                var position = session.Add(effectId.Serialize());
+
+                var sql = $@"
+                INSERT INTO {tablePrefix}_Effects
+                    (Id, Position, EffectId, Status, Result, Exception)
+                VALUES
+                    (@{paramPrefix}Id{i}, @{paramPrefix}Position{i}, @{paramPrefix}EffectId{i}, @{paramPrefix}Status{i}, @{paramPrefix}Result{i}, @{paramPrefix}Exception{i});";
+
+                var command = StoreCommand.Create(sql);
+                command.AddParameter($"@{paramPrefix}Id{i}", storedId.AsGuid);
+                command.AddParameter($"@{paramPrefix}Position{i}", position);
+                command.AddParameter($"@{paramPrefix}EffectId{i}", storedEffect!.EffectId.Serialize().Value);
+                command.AddParameter($"@{paramPrefix}Status{i}", (int)storedEffect.WorkStatus);
+                command.AddParameter($"@{paramPrefix}Result{i}", storedEffect.Result ?? (object)SqlBinary.Null);
+                command.AddParameter($"@{paramPrefix}Exception{i}", JsonHelper.ToJson(storedEffect.StoredException) ?? (object)DBNull.Value);
+
+                storeCommands.Add(command);
+            }
+        }
+
+        return storeCommands.Count == 0
+            ? null
+            : StoreCommand.Merge(storeCommands)!;
     }
     
     private string? _getEffectsSql;
@@ -173,20 +113,23 @@ public class SqlGenerator(string tablePrefix)
     }
     
     public async Task<IReadOnlyList<StoredEffect>> ReadEffects(SqlDataReader reader)
+        => (await ReadEffectsWithPositions(reader)).Select(e => e.Effect).ToList();
+
+    public async Task<IReadOnlyList<StoredEffectWithPosition>> ReadEffectsWithPositions(SqlDataReader reader)
     {
-        var storedEffects = new List<StoredEffect>();
+        var storedEffects = new List<StoredEffectWithPosition>();
         while (reader.HasRows && await reader.ReadAsync())
         {
             var position = reader.GetInt64(0);
             var effectId = reader.GetString(1);
-            
-            var status = (WorkStatus) reader.GetInt32(2);
-            var result = reader.IsDBNull(3) ? null : (byte[]) reader.GetValue(3);
+
+            var status = (WorkStatus)reader.GetInt32(2);
+            var result = reader.IsDBNull(3) ? null : (byte[])reader.GetValue(3);
             var exception = reader.IsDBNull(4) ? null : reader.GetString(4);
 
             var storedException = exception == null ? null : JsonSerializer.Deserialize<StoredException>(exception);
             var storedEffect = new StoredEffect(EffectId.Deserialize(effectId), status, result, storedException);
-            storedEffects.Add(storedEffect);
+            storedEffects.Add(new StoredEffectWithPosition(storedEffect, position));
         }
 
         return storedEffects;
@@ -203,26 +146,26 @@ public class SqlGenerator(string tablePrefix)
         return command;
     }
     
-    public async Task<Dictionary<StoredId, List<StoredEffect>>> ReadEffectsForMultipleStoredIds(SqlDataReader reader, IEnumerable<StoredId> storedIds)
+    public async Task<Dictionary<StoredId, List<StoredEffectWithPosition>>> ReadEffectsForMultipleStoredIds(SqlDataReader reader, IEnumerable<StoredId> storedIds)
     {
-        var storedEffects = new Dictionary<StoredId, List<StoredEffect>>();
+        var storedEffects = new Dictionary<StoredId, List<StoredEffectWithPosition>>();
         foreach (var storedId in storedIds)
-            storedEffects[storedId] = new List<StoredEffect>();
-        
+            storedEffects[storedId] = new List<StoredEffectWithPosition>();
+
         while (reader.HasRows && await reader.ReadAsync())
         {
             var storedId = reader.GetGuid(0).ToStoredId();
             var position = reader.GetInt64(1);
             var effectId = reader.GetString(2);
-            
-            var status = (WorkStatus) reader.GetInt32(3);
-            var result = reader.IsDBNull(4) ? null : (byte[]) reader.GetValue(4);
+
+            var status = (WorkStatus)reader.GetInt32(3);
+            var result = reader.IsDBNull(4) ? null : (byte[])reader.GetValue(4);
             var exception = reader.IsDBNull(5) ? null : reader.GetString(5);
 
             var storedException = exception == null ? null : JsonSerializer.Deserialize<StoredException>(exception);
             var storedEffect = new StoredEffect(EffectId.Deserialize(effectId), status, result, storedException);
-            
-            storedEffects[storedId].Add(storedEffect);
+
+            storedEffects[storedId].Add(new StoredEffectWithPosition(storedEffect, position));
         }
 
         return storedEffects;

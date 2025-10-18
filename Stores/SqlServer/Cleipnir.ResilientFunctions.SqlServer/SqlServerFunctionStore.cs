@@ -173,24 +173,26 @@ public class SqlServerFunctionStore : IFunctionStore
                 storeCommand = storeCommand.Merge(messagesCommand);
             }
 
+            var session = new PositionsStorageSession();
             if (effects?.Any() ?? false)
             {
                 var effectsCommand = _sqlGenerator.UpdateEffects(
-                    effects.Select(e => new StoredEffectChange(storedId, e.EffectId, CrudOperation.Insert, e)).ToList(),
+                    storedId,
+                    changes: effects.Select(e => new StoredEffectChange(storedId, e.EffectId, CrudOperation.Insert, e)).ToList(),
+                    session,
                     paramPrefix: "Effect"
                 );
                 storeCommand = storeCommand.Merge(effectsCommand);
             }
-            
+
             await using var command = storeCommand.ToSqlCommand(conn);
             await command.ExecuteNonQueryAsync();
+            return session;
         }
         catch (SqlException sqlException) when (sqlException.Number == SqlError.UNIQUENESS_VIOLATION)
         {
             return null;
         }
-
-        return new EmptyStorageSession();
     }
 
     private string? _bulkScheduleFunctionsSql;
@@ -256,19 +258,27 @@ public class SqlServerFunctionStore : IFunctionStore
         await using var command = StoreCommand
             .Merge(restartCommand, effectsCommand, messagesCommand)
             .ToSqlCommand(conn);
-        
+
         await using var reader = await command.ExecuteReaderAsync();
         var sf = _sqlGenerator.ReadToStoredFlow(storedId, reader);
         if (sf?.OwnerId != replicaId)
             return null;
-    
+
         await reader.NextResultAsync();
-        var effects = await _sqlGenerator.ReadEffects(reader);
+        var effectsWithPositions = await _sqlGenerator.ReadEffectsWithPositions(reader);
+        var effects = effectsWithPositions.Select(e => e.Effect).ToList();
 
         await reader.NextResultAsync();
         var messages = await _sqlGenerator.ReadMessages(reader);
 
-        return new StoredFlowWithEffectsAndMessages(sf, effects, messages, new EmptyStorageSession());
+        var session = new PositionsStorageSession();
+        foreach (var (effect, position) in effectsWithPositions.OrderBy(e => e.Position))
+        {
+            session.MaxPosition = position;
+            session.Positions[effect.EffectId.Serialize()] = position;
+        }
+
+        return new StoredFlowWithEffectsAndMessages(sf, effects, messages, session);
     }
 
     private string? _getExpiredFunctionsSql;
