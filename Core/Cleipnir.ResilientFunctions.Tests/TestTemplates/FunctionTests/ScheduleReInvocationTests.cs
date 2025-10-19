@@ -99,14 +99,17 @@ public abstract class ScheduleReInvocationTests
         var controlPanel = await rFunc.ControlPanel(flowInstance).ShouldNotBeNullAsync();
         await controlPanel.ScheduleRestart();
 
+        var storedId = rFunc.MapToStoredId(functionId.Instance);
         await BusyWait.Until(
-            () => store.GetFunction(rFunc.MapToStoredId(functionId.Instance)).Map(sf => sf?.Status == Status.Succeeded)
+            () => store.GetFunction(storedId).Map(sf => sf?.Status == Status.Succeeded)
         );
 
-        var function = await store.GetFunction(rFunc.MapToStoredId(functionId.Instance));
+        var function = await store.GetFunction(storedId);
         function.ShouldNotBeNull();
         function.Status.ShouldBe(Status.Succeeded);
-        function.Result!.ToStringFromUtf8Bytes().DeserializeFromJsonTo<string>().ShouldBe("something");
+        var results = await store.GetResults([storedId]);
+        var resultBytes = results[storedId];
+        resultBytes!.ToStringFromUtf8Bytes().DeserializeFromJsonTo<string>().ShouldBe("something");
         
         unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }

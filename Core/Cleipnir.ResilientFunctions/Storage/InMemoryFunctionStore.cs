@@ -433,7 +433,6 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
                     state.HumanInstanceId,
                     state.Param,
                     state.Status,
-                    state.Result,
                     state.Exception,
                     state.Expires,
                     state.Timestamp,

@@ -193,10 +193,13 @@ public abstract class ReInvocationTests
         var controlPanel = await rFunc.ControlPanel(flowInstance).ShouldNotBeNullAsync();
         await controlPanel.Restart();
 
-        var function = await store.GetFunction(rFunc.MapToStoredId(functionId.Instance));
+        var storedId = rFunc.MapToStoredId(functionId.Instance);
+        var function = await store.GetFunction(storedId);
         function.ShouldNotBeNull();
         function.Status.ShouldBe(Status.Succeeded);
-        function.Result!.ToStringFromUtf8Bytes().DeserializeFromJsonTo<string>().ShouldBe("something");
+        var results = await store.GetResults([storedId]);
+        var resultBytes = results[storedId];
+        resultBytes!.ToStringFromUtf8Bytes().DeserializeFromJsonTo<string>().ShouldBe("something");
         
         unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }

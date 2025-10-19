@@ -726,11 +726,10 @@ public class MariaDbFunctionStore : IFunctionStore
                 InstanceId: reader.GetString(humanInstanceIdIndex),
                 hasParam ? (byte[]) reader.GetValue(paramIndex) : null,
                 Status: (Status) reader.GetInt32(statusIndex),
-                Result: hasResult ? (byte[]) reader.GetValue(resultIndex) : null, 
-                storedException, 
+                storedException,
                 Expires: reader.GetInt64(expiresIndex),
-                Interrupted: reader.GetBoolean(interruptedIndex),
                 Timestamp: reader.GetInt64(timestampIndex),
+                Interrupted: reader.GetBoolean(interruptedIndex),
                 ParentId: hasParent ? StoredId.Deserialize(reader.GetString(parentIndex)) : null,
                 OwnerId: hasOwner ? reader.GetString(ownerIndex).ParseToReplicaId() : null,
                 StoredType: storedId.Type

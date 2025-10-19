@@ -92,7 +92,6 @@ public record StoredFlow(
     string InstanceId,
     byte[]? Parameter,
     Status Status,
-    byte[]? Result,
     StoredException? Exception,
     long Expires,
     long Timestamp,

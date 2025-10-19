@@ -118,12 +118,15 @@ public abstract class WatchdogCompoundTests
                 (Param p) => $"{p.Id}-{p.Value}".ToTask()
             );
 
+            var storedId = registration.MapToStoredId(functionId.Instance);
             await BusyWait.Until(async () =>
-                await store.GetFunction(registration.MapToStoredId(functionId.Instance)).Map(sf => sf!.Status) == Status.Succeeded
+                await store.GetFunction(storedId).Map(sf => sf!.Status) == Status.Succeeded
             );
-            
-            var storedFunction = await store.GetFunction(registration.MapToStoredId(functionId.Instance));
-            storedFunction!.Result!.ToStringFromUtf8Bytes().DeserializeFromJsonTo<string>().CastTo<string>().ShouldBe($"{param.Id}-{param.Value}");
+
+            var storedFunction = await store.GetFunction(storedId);
+            var results = await store.GetResults([storedId]);
+            var resultBytes = results[storedId];
+            resultBytes!.ToStringFromUtf8Bytes().DeserializeFromJsonTo<string>().CastTo<string>().ShouldBe($"{param.Id}-{param.Value}");
         }
     }
 

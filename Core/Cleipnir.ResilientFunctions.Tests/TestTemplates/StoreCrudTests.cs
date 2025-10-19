@@ -38,7 +38,9 @@ public abstract class StoreCrudTests
         var stored = await store.GetFunction(StoredId);
         stored!.StoredId.ShouldBe(StoredId);
         stored.Parameter.ShouldBe(Param.ToUtf8Bytes());
-        stored.Result.ShouldBeNull();
+        var results = await store.GetResults([StoredId]);
+        var resultBytes = results.TryGetValue(StoredId, out var rb) ? rb : null;
+        resultBytes.ShouldBeNull();
         stored.Status.ShouldBe(Status.Executing);
         stored.Expires.ShouldBe(leaseExpiration);
     }
@@ -62,11 +64,13 @@ public abstract class StoreCrudTests
         var stored = await store.GetFunction(StoredId);
         stored!.StoredId.ShouldBe(StoredId);
         stored.Parameter.ShouldBe(Param.ToUtf8Bytes());
-        stored.Result.ShouldBeNull();
+        var results = await store.GetResults([StoredId]);
+        var resultBytes = results.TryGetValue(StoredId, out var rb) ? rb : null;
+        resultBytes.ShouldBeNull();
         stored.Status.ShouldBe(Status.Executing);
         stored.Expires.ShouldBe(leaseExpiration);
     }
-        
+
     public abstract Task FunctionCanBeCreatedWithTwoParametersAndStateSuccessfully();
     protected async Task FunctionCanBeCreatedWithTwoParametersAndStateSuccessfully(Task<IFunctionStore> storeTask)
     {
@@ -86,7 +90,9 @@ public abstract class StoreCrudTests
         var stored = await store.GetFunction(StoredId);
         stored!.StoredId.ShouldBe(StoredId);
         stored.Parameter.ShouldBe(Param.ToUtf8Bytes());
-        stored.Result.ShouldBeNull();
+        var results = await store.GetResults([StoredId]);
+        var resultBytes = results.TryGetValue(StoredId, out var rb) ? rb : null;
+        resultBytes.ShouldBeNull();
         stored.Status.ShouldBe(Status.Executing);
         stored.Expires.ShouldBe(leaseExpiration);
     }

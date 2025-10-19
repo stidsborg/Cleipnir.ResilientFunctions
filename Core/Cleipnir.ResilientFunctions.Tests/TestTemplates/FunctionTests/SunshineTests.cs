@@ -43,13 +43,14 @@ public abstract class SunshineTests
         var result = await rFunc("hello", "hello");
         result.ShouldBe("HELLO");
             
-        var storedFunction = await store.GetFunction(
-            reg.MapToStoredId("hello".ToFlowInstance())
-        );
+        var storedId = reg.MapToStoredId("hello".ToFlowInstance());
+        var storedFunction = await store.GetFunction(storedId);
         storedFunction.ShouldNotBeNull();
         storedFunction.Status.ShouldBe(Status.Succeeded);
-        storedFunction.Result.ShouldNotBeNull();
-        var storedResult = storedFunction.Result.ToStringFromUtf8Bytes().DeserializeFromJsonTo<string>();
+        var results = await store.GetResults([storedId]);
+        var resultBytes = results[storedId];
+        resultBytes.ShouldNotBeNull();
+        var storedResult = resultBytes.ToStringFromUtf8Bytes().DeserializeFromJsonTo<string>();
         storedResult.ShouldBe("HELLO");
             
         unhandledExceptionHandler.ShouldNotHaveExceptions();
@@ -75,16 +76,19 @@ public abstract class SunshineTests
 
         await invoke("SomeInstanceId");
         flag.Position.ShouldBe(FlagPosition.Raised);
-            
-        var storedFunction = await store.GetFunction(reg.MapToStoredId("SomeInstanceId"));
+
+        var storedId = reg.MapToStoredId("SomeInstanceId");
+        var storedFunction = await store.GetFunction(storedId);
         storedFunction.ShouldNotBeNull();
         storedFunction.Status.ShouldBe(Status.Succeeded);
-        storedFunction.Result.ShouldBeNull();
+        var results = await store.GetResults([storedId]);
+        var resultBytes = results.TryGetValue(storedId, out var rb) ? rb : null;
+        resultBytes.ShouldBeNull();
         storedFunction.Parameter.ShouldBeNull();
-            
+
         unhandledExceptionHandler.ShouldNotHaveExceptions();
     }
-    
+
     public abstract Task SunshineScenarioParamlessWithResultReturnType();
     public async Task SunshineScenarioParamlessWithResultReturnType(Task<IFunctionStore> storeTask)
     {
@@ -106,16 +110,19 @@ public abstract class SunshineTests
 
         await invoke("SomeInstanceId");
         flag.Position.ShouldBe(FlagPosition.Raised);
-            
-        var storedFunction = await store.GetFunction(reg.MapToStoredId("SomeInstanceId"));
+
+        var storedId = reg.MapToStoredId("SomeInstanceId");
+        var storedFunction = await store.GetFunction(storedId);
         storedFunction.ShouldNotBeNull();
         storedFunction.Status.ShouldBe(Status.Succeeded);
-        storedFunction.Result.ShouldBeNull();
+        var results = await store.GetResults([storedId]);
+        var resultBytes = results.TryGetValue(storedId, out var rb) ? rb : null;
+        resultBytes.ShouldBeNull();
         storedFunction.Parameter.ShouldBeNull();
-            
+
         unhandledExceptionHandler.ShouldNotHaveExceptions();
     }
-    
+
     public abstract Task SunshineScenarioAction();
     public async Task SunshineScenarioAction(Task<IFunctionStore> storeTask)
     {

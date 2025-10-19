@@ -692,11 +692,10 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 InstanceId: reader.GetString(7),
                 hasParameter ? (byte[]) reader.GetValue(0) : null,
                 Status: (Status) reader.GetInt32(1),
-                Result: hasResult ? (byte[]) reader.GetValue(2) : null, 
                 Exception: !hasException ? null : JsonSerializer.Deserialize<StoredException>(reader.GetString(3)),
                 Expires: reader.GetInt64(4),
-                Interrupted: reader.GetBoolean(5),
                 Timestamp: reader.GetInt64(6),
+                Interrupted: reader.GetBoolean(5),
                 ParentId: hasParent ? StoredId.Deserialize(reader.GetString(8)) : null,
                 OwnerId: hasOwner ? reader.GetGuid(9).ToReplicaId() : null,
                 StoredType: storedId.Type

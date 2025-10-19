@@ -37,10 +37,13 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates
             result.ShouldBe("HELLO");
 
             var functionId = new FlowId(flowType, "hello".ToFlowInstance());
-            var storedFunction = await store.GetFunction(registration.MapToStoredId(functionId.Instance));
+            var storedId = registration.MapToStoredId(functionId.Instance);
+            var storedFunction = await store.GetFunction(storedId);
             storedFunction.ShouldNotBeNull();
-            storedFunction.Result.ShouldNotBeNull();
-            var storedResult = storedFunction.Result.ToStringFromUtf8Bytes().DeserializeFromJsonTo<string>();
+            var results = await store.GetResults([storedId]);
+            var resultBytes = results[storedId];
+            resultBytes.ShouldNotBeNull();
+            var storedResult = resultBytes.ToStringFromUtf8Bytes().DeserializeFromJsonTo<string>();
             storedResult.ShouldBe("HELLO");
             var effects = await store.EffectsStore.GetEffectResults(registration.MapToStoredId(functionId.Instance));
             effects

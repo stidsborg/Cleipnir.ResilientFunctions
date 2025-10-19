@@ -374,7 +374,6 @@ public class SqlGenerator(string tablePrefix)
                     humanInstanceId,
                     parameter,
                     status,
-                    result,
                     storedException,
                     expires,
                     timestamp,

@@ -60,8 +60,10 @@ public abstract class StoreTests
             
         storedFunction = await store.GetFunction(functionId);
         storedFunction.ShouldNotBeNull();
-        storedFunction.Result.ShouldNotBeNull();
-        storedFunction.Result.ToStringFromUtf8Bytes().DeserializeFromJsonTo<string>().ShouldBe(result);
+        var results = await store.GetResults([functionId]);
+        var resultBytes = results[functionId];
+        resultBytes.ShouldNotBeNull();
+        resultBytes.ToStringFromUtf8Bytes().DeserializeFromJsonTo<string>().ShouldBe(result);
     }
     
     public abstract Task NullParamScenarioTest();

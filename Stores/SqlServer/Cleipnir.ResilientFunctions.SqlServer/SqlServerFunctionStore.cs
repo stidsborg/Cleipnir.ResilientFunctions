@@ -758,7 +758,6 @@ public class SqlServerFunctionStore : IFunctionStore
                     humanInstanceId,
                     parameter,
                     status,
-                    result,
                     storedException,
                     expires,
                     timestamp,

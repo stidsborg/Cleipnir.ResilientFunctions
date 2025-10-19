@@ -328,22 +328,25 @@ internal class InvocationHelper<TParam, TReturn>
     public async Task<FunctionState<TParam, TReturn>?> GetFunction(StoredId storedId, FlowId flowId)
     {
         var sf = await _functionStore.GetFunction(storedId);
-        if (sf == null) 
+        if (sf == null)
             return null;
+
+        var results = await _functionStore.GetResults([storedId]);
+        var resultBytes = results.TryGetValue(storedId, out var rb) ? rb : null;
 
         return new FunctionState<TParam, TReturn>(
             sf.Status,
             sf.Expires,
             sf.OwnerId,
             Param:
-                sf.Parameter == null 
+                sf.Parameter == null
                 ? default
                 : Serializer.Deserialize<TParam>(sf.Parameter),
-            Result: sf.Result == null 
-                ? default 
-                : Serializer.Deserialize<TReturn>(sf.Result),
-            FatalWorkflowException: sf.Exception == null 
-                ? null 
+            Result: resultBytes == null
+                ? default
+                : Serializer.Deserialize<TReturn>(resultBytes),
+            FatalWorkflowException: sf.Exception == null
+                ? null
                 : Serializer.DeserializeException(flowId, sf.Exception)
         );
     }

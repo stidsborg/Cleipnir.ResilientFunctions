@@ -10,14 +10,14 @@ namespace Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 
 public class ResultBusyWaiter<TResult>(IFunctionStore functionStore, ISerializer serializer)
 {
-    public async Task<TResult> WaitForFunctionResult(FlowId flowId, StoredId storedId, bool allowPostponedAndSuspended, TimeSpan? maxWait) 
+    public async Task<TResult> WaitForFunctionResult(FlowId flowId, StoredId storedId, bool allowPostponedAndSuspended, TimeSpan? maxWait)
     {
         var stopWatch = Stopwatch.StartNew();
         while (true)
         {
             if (maxWait.HasValue && stopWatch.Elapsed > maxWait.Value)
                 throw new TimeoutException();
-            
+
             var storedFunction = await functionStore.GetFunction(storedId);
             if (storedFunction == null)
                 throw UnexpectedStateException.NotFound(storedId);
@@ -28,10 +28,12 @@ public class ResultBusyWaiter<TResult>(IFunctionStore functionStore, ISerializer
                     await Task.Delay(250);
                     continue;
                 case Status.Succeeded:
-                    return 
-                        storedFunction.Result == null 
+                    var results = await functionStore.GetResults([storedId]);
+                    var result = results.TryGetValue(storedId, out var resultBytes) ? resultBytes : null;
+                    return
+                        result == null
                             ? default!
-                            : serializer.Deserialize<TResult>(storedFunction.Result);
+                            : serializer.Deserialize<TResult>(result);
                 case Status.Failed:
                     throw serializer.DeserializeException(flowId, storedFunction.Exception!);
                 case Status.Postponed:
@@ -44,7 +46,7 @@ public class ResultBusyWaiter<TResult>(IFunctionStore functionStore, ISerializer
                     if (allowPostponedAndSuspended) { await Task.Delay(250); continue; }
                     throw new InvocationSuspendedException(flowId);
                 default:
-                    throw new ArgumentOutOfRangeException(); 
+                    throw new ArgumentOutOfRangeException();
             }
         }
     }
