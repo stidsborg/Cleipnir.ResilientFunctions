@@ -721,6 +721,33 @@ public class PostgreSqlFunctionStore : IFunctionStore
             prefix
         );
 
+    public async Task<IReadOnlyDictionary<StoredId, byte[]?>> GetResults(IEnumerable<StoredId> storedIds)
+    {
+        var idsClause = storedIds.Select(id => $"'{id.AsGuid}'").StringJoin(", ");
+        if (idsClause == "")
+            return new Dictionary<StoredId, byte[]?>();
+        
+        var sql = @$"
+            SELECT id, result_json
+            FROM {_tableName}
+            WHERE id IN ({idsClause})";
+        
+        await using var conn = await CreateConnection();
+        await using var command = new NpgsqlCommand(sql, conn);
+
+        await using var reader = await command.ExecuteReaderAsync();
+        var results = new Dictionary<StoredId, byte[]?>();
+        while (await reader.ReadAsync())
+        {
+            var storedId = new StoredId(reader.GetGuid(0));
+            var hasResult = !await reader.IsDBNullAsync(1);
+            var result = hasResult ? (byte[])reader.GetValue(1) : null;
+            results[storedId] = result;
+        }
+
+        return results;
+    }
+
     private string? _deleteFunctionSql;
     private async Task<bool> DeleteStoredFunction(StoredId storedId)
     {

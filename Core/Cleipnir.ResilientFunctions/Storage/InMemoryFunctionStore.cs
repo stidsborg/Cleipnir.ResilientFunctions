@@ -495,6 +495,21 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
 
     public IFunctionStore WithPrefix(string prefix) => new InMemoryFunctionStore();
 
+    public Task<IReadOnlyDictionary<StoredId, byte[]?>> GetResults(IEnumerable<StoredId> storedIds)
+    {
+        lock (_sync)
+        {
+            var results = new Dictionary<StoredId, byte[]?>();
+            foreach (var storedId in storedIds)
+            {
+                if (_states.TryGetValue(storedId, out var state))
+                    results[storedId] = state.Result;
+            }
+
+            return results.CastTo<IReadOnlyDictionary<StoredId, byte[]?>>().ToTask();
+        }
+    }
+
     private class InnerState
     {
         public StoredId StoredId { get; init; } = null!;

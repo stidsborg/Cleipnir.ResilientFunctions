@@ -112,4 +112,5 @@ public interface IFunctionStore
     Task<bool> DeleteFunction(StoredId storedId);
 
     IFunctionStore WithPrefix(string prefix);
+    Task<IReadOnlyDictionary<StoredId, byte[]?>> GetResults(IEnumerable<StoredId> storedIds);
 }

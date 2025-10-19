@@ -190,6 +190,11 @@ public class CrashableFunctionStore : IFunctionStore
             ? Task.FromException<bool>(new TimeoutException())
             : _inner.DeleteFunction(storedId);
 
+    public Task<IReadOnlyDictionary<StoredId, byte[]?>> GetResults(IEnumerable<StoredId> storedIds)
+        => _crashed
+            ? Task.FromException<IReadOnlyDictionary<StoredId, byte[]?>>(new TimeoutException())
+            : _inner.GetResults(storedIds);
+
     public IFunctionStore WithPrefix(string prefix)
         => _inner.WithPrefix(prefix);
 }

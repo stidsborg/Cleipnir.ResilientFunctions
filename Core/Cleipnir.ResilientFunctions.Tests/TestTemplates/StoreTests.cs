@@ -2067,4 +2067,133 @@ public abstract class StoreTests
         interruptedFunctions.Any(id => id == functionId1).ShouldBeFalse();
         interruptedFunctions.Any(id => id == functionId3).ShouldBeFalse();
     }
+
+    public abstract Task GetResultsReturnsResultsForExistingFunctions();
+    protected async Task GetResultsReturnsResultsForExistingFunctions(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var functionId1 = TestStoredId.Create();
+        var functionId2 = StoredId.Create(functionId1.Type, Guid.NewGuid().ToString());
+        var functionId3 = StoredId.Create(functionId1.Type, Guid.NewGuid().ToString());
+
+        var result1 = "result1".ToJson().ToUtf8Bytes();
+        var result2 = "result2".ToJson().ToUtf8Bytes();
+
+        // Create function 1 and succeed with result1
+        await store.CreateFunction(
+            functionId1,
+            "humanInstanceId1",
+            param: Test.SimpleStoredParameter,
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks,
+            parent: null,
+            owner: ReplicaId.Empty
+        ).ShouldNotBeNullAsync();
+
+        await store.SucceedFunction(
+            functionId1,
+            result: result1,
+            timestamp: DateTime.UtcNow.Ticks,
+            expectedReplica: ReplicaId.Empty,
+            effects: null,
+            messages: null,
+            storageSession: null
+        ).ShouldBeTrueAsync();
+
+        // Create function 2 and succeed with result2
+        await store.CreateFunction(
+            functionId2,
+            "humanInstanceId2",
+            param: Test.SimpleStoredParameter,
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks,
+            parent: null,
+            owner: ReplicaId.Empty
+        ).ShouldNotBeNullAsync();
+
+        await store.SucceedFunction(
+            functionId2,
+            result: result2,
+            timestamp: DateTime.UtcNow.Ticks,
+            expectedReplica: ReplicaId.Empty,
+            effects: null,
+            messages: null,
+            storageSession: null
+        ).ShouldBeTrueAsync();
+
+        // Create function 3 with no result (just created, not completed)
+        await store.CreateFunction(
+            functionId3,
+            "humanInstanceId3",
+            param: Test.SimpleStoredParameter,
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks,
+            parent: null,
+            owner: null
+        ).ShouldNotBeNullAsync();
+
+        // Get results for all three functions
+        var results = await store.GetResults([functionId1, functionId2, functionId3]);
+
+        // Verify results
+        results.Count.ShouldBe(3);
+        results[functionId1].ShouldBe(result1);
+        results[functionId2].ShouldBe(result2);
+        results[functionId3].ShouldBeNull();
+    }
+
+    public abstract Task GetResultsReturnsEmptyDictionaryForEmptyInput();
+    protected async Task GetResultsReturnsEmptyDictionaryForEmptyInput(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+
+        var results = await store.GetResults([]);
+
+        results.ShouldNotBeNull();
+        results.Count.ShouldBe(0);
+    }
+
+    public abstract Task GetResultsReturnsOnlyExistingFunctionResults();
+    protected async Task GetResultsReturnsOnlyExistingFunctionResults(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var existingFunctionId = TestStoredId.Create();
+        var nonExistentFunctionId = StoredId.Create(existingFunctionId.Type, Guid.NewGuid().ToString());
+
+        var result = "my result".ToJson().ToUtf8Bytes();
+
+        // Create and succeed one function
+        await store.CreateFunction(
+            existingFunctionId,
+            "humanInstanceId",
+            param: Test.SimpleStoredParameter,
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks,
+            parent: null,
+            owner: ReplicaId.Empty
+        ).ShouldNotBeNullAsync();
+
+        await store.SucceedFunction(
+            existingFunctionId,
+            result: result,
+            timestamp: DateTime.UtcNow.Ticks,
+            expectedReplica: ReplicaId.Empty,
+            effects: null,
+            messages: null,
+            storageSession: null
+        ).ShouldBeTrueAsync();
+
+        // Query for both existing and non-existent function
+        var results = await store.GetResults([existingFunctionId, nonExistentFunctionId]);
+
+        // Should only return the existing function
+        results.Count.ShouldBe(1);
+        results.ContainsKey(existingFunctionId).ShouldBeTrue();
+        results[existingFunctionId].ShouldBe(result);
+        results.ContainsKey(nonExistentFunctionId).ShouldBeFalse();
+    }
 }

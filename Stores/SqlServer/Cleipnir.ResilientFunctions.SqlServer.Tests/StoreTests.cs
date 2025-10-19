@@ -237,4 +237,16 @@ public class StoreTests : ResilientFunctions.Tests.TestTemplates.StoreTests
     [TestMethod]
     public override Task GetInterruptedFunctionsOnlyReturnsMatchingInterruptedFunctions()
         => GetInterruptedFunctionsOnlyReturnsMatchingInterruptedFunctions(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task GetResultsReturnsResultsForExistingFunctions()
+        => GetResultsReturnsResultsForExistingFunctions(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task GetResultsReturnsEmptyDictionaryForEmptyInput()
+        => GetResultsReturnsEmptyDictionaryForEmptyInput(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task GetResultsReturnsOnlyExistingFunctionResults()
+        => GetResultsReturnsOnlyExistingFunctionResults(FunctionStoreFactory.Create());
 }

@@ -785,6 +785,32 @@ public class SqlServerFunctionStore : IFunctionStore
     public IFunctionStore WithPrefix(string prefix)
         => new SqlServerFunctionStore(_connectionString, prefix);
 
+    public async Task<IReadOnlyDictionary<StoredId, byte[]?>> GetResults(IEnumerable<StoredId> storedIds)
+    {
+        var inSql = storedIds.Select(id => $"'{id.AsGuid}'").StringJoin(", ");
+        if (inSql == "")
+            return new Dictionary<StoredId, byte[]?>();
+        
+        var sql = @$"
+            SELECT Id, ResultJson
+            FROM {_tableName}
+            WHERE Id IN ({inSql})";
+
+        await using var conn = await _connFunc();
+        await using var command = new SqlCommand(sql, conn);
+
+        await using var reader = await command.ExecuteReaderAsync();
+        var results = new Dictionary<StoredId, byte[]?>();
+        while (reader.Read())
+        {
+            var storedId = new StoredId(reader.GetGuid(0));
+            var result = reader.IsDBNull(1) ? null : (byte[])reader.GetValue(1);
+            results[storedId] = result;
+        }
+
+        return results;
+    }
+
     private string? _deleteFunctionSql;
     private async Task<bool> DeleteStoredFunction(StoredId storedId)
     {

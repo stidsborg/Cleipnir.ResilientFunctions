@@ -752,6 +752,34 @@ public class MariaDbFunctionStore : IFunctionStore
     public IFunctionStore WithPrefix(string prefix)
         => new MariaDbFunctionStore(_connectionString, prefix);
 
+    public async Task<IReadOnlyDictionary<StoredId, byte[]?>> GetResults(IEnumerable<StoredId> storedIds)
+    {
+        var inSql = storedIds.Select(id => $"'{id.AsGuid:N}'").StringJoin(", ");
+        if (inSql == "")
+            return new Dictionary<StoredId, byte[]?>();
+
+        var sql = @$"
+            SELECT id, result_json
+            FROM {_tablePrefix}
+            WHERE id IN ({inSql})";
+
+        await using var conn = await CreateOpenConnection(_connectionString);
+        await using var command = new MySqlCommand(sql, conn);
+
+        await using var reader = await command.ExecuteReaderAsync();
+        var results = new Dictionary<StoredId, byte[]?>();
+        while (await reader.ReadAsync())
+        {
+            var guid = reader.GetString(0).ToGuid();
+            var storedId = new StoredId(guid);
+            var hasResult = !await reader.IsDBNullAsync(1);
+            var result = hasResult ? (byte[])reader.GetValue(1) : null;
+            results[storedId] = result;
+        }
+
+        return results;
+    }
+
     private string? _deleteFunctionSql;
     private async Task<bool> DeleteStoredFunction(StoredId storedId)
     {
