@@ -375,7 +375,7 @@ public class SqlGenerator(string tablePrefix)
                 : null;
             return new StoredFlow(
                 id,
-                HumanInstanceId: reader.GetString(humanInstanceIdIndex),
+                InstanceId: reader.GetString(humanInstanceIdIndex),
                 hasParam ? (byte[]) reader.GetValue(paramIndex) : null,
                 Status: (Status) reader.GetInt32(statusIndex),
                 Result: hasResult ? (byte[]) reader.GetValue(resultIndex) : null, 

@@ -89,7 +89,7 @@ internal static class StoredTypeExtension
 
 public record StoredFlow(
     StoredId StoredId,
-    string HumanInstanceId,
+    string InstanceId,
     byte[]? Parameter,
     Status Status,
     byte[]? Result,

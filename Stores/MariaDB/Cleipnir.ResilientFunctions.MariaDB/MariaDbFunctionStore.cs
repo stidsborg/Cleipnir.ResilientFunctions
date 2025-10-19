@@ -723,7 +723,7 @@ public class MariaDbFunctionStore : IFunctionStore
                 : null;
             return new StoredFlow(
                 storedId,
-                HumanInstanceId: reader.GetString(humanInstanceIdIndex),
+                InstanceId: reader.GetString(humanInstanceIdIndex),
                 hasParam ? (byte[]) reader.GetValue(paramIndex) : null,
                 Status: (Status) reader.GetInt32(statusIndex),
                 Result: hasResult ? (byte[]) reader.GetValue(resultIndex) : null, 

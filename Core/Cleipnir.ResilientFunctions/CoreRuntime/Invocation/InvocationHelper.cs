@@ -225,7 +225,7 @@ internal class InvocationHelper<TParam, TReturn>
     public async Task<PreparedReInvocation> PrepareForReInvocation(StoredId storedId, RestartedFunction restartedFunction)
     {
         var (sf, effects, messages, storageSession) = restartedFunction;
-        var flowId = new FlowId(_flowType, sf.HumanInstanceId);
+        var flowId = new FlowId(_flowType, sf.InstanceId);
 
         var runningFunction = _shutdownCoordinator.RegisterRunningFunction();
         

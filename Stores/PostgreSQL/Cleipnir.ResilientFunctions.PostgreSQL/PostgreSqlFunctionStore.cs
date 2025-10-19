@@ -689,7 +689,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
             
             return new StoredFlow(
                 storedId,
-                HumanInstanceId: reader.GetString(7),
+                InstanceId: reader.GetString(7),
                 hasParameter ? (byte[]) reader.GetValue(0) : null,
                 Status: (Status) reader.GetInt32(1),
                 Result: hasResult ? (byte[]) reader.GetValue(2) : null, 
