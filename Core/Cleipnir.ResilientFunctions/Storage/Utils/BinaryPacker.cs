@@ -32,9 +32,9 @@ public static class BinaryPacker
         return combinedArr;
     }
 
-    public static IReadOnlyList<byte[]?> Split(byte[] array, int pieces = 1)
+    public static IReadOnlyList<byte[]?> Split(byte[] array, int expectedPieces = 1)
     {
-        var arrays = new List<byte[]?>(pieces);
+        var arrays = new List<byte[]?>(expectedPieces);
         var source = array;
         for (var i = 0; i < source.Length;)
         {
