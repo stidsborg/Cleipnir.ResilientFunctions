@@ -28,7 +28,7 @@ internal static class StoreCommandExtensions
     
 }
 
-internal static class StoreCommands
+internal static class StoreCommandsHelper
 {
     public static NpgsqlBatch CreateBatch(params StoreCommand[] commands) => CreateBatch((IEnumerable<StoreCommand>) commands);
     public static NpgsqlBatch CreateBatch(this IEnumerable<StoreCommand> commands)

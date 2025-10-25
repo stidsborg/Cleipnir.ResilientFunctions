@@ -4,6 +4,11 @@ using System.Linq;
 
 namespace Cleipnir.ResilientFunctions.Storage;
 
+public record StoreCommands(List<StoreCommand> Commands)
+{
+    public static StoreCommands Create(params List<StoreCommand> commands) => new(commands);
+};
+
 public record StoreCommand(string Sql, List<ParameterValueAndName> Parameters)
 {
     public void AddParameter(string name, object value) => Parameters.Add(new ParameterValueAndName(name, value));

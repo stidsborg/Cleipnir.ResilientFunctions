@@ -32,9 +32,9 @@ public static class BinaryPacker
         return combinedArr;
     }
 
-    public static IReadOnlyList<byte[]?> Split(byte[] array, int pieces = 1)
+    public static IReadOnlyList<byte[]?> Split(byte[] array, int expectedPieces = 1)
     {
-        var arrays = new List<byte[]?>(pieces);
+        var arrays = new List<byte[]?>(expectedPieces);
         var source = array;
         for (var i = 0; i < source.Length;)
         {
@@ -56,4 +56,33 @@ public static class BinaryPacker
         
         return arrays.ToArray();
     }
+    
+    public static byte[] Append(byte[] source, params byte[]?[] arrays)
+    {
+        var combinedArrSize = arrays.Sum(arr => arr?.Length ?? 0) + sizeof(int) * arrays.Length;
+        var combinedArr = new byte[source.Length + combinedArrSize];
+        
+        Array.Copy(source, combinedArr, source.Length);
+        
+        var outer = source.Length;
+        foreach(var array in arrays)
+        {
+            var length = array?.Length ?? -1;
+            var lengthBytes = BitConverter.GetBytes(IPAddress.HostToNetworkOrder(length));
+            combinedArr[outer] = lengthBytes[0];
+            combinedArr[++outer] = lengthBytes[1]; 
+            combinedArr[++outer] = lengthBytes[2]; 
+            combinedArr[++outer] = lengthBytes[3];
+            outer++;
+            
+            if (array == null)
+                continue;
+            
+            Array.Copy(array, sourceIndex: 0, combinedArr, destinationIndex: outer, length: array.Length);
+            outer += array.Length;
+        }
+
+        return combinedArr;
+    }
+
 }
