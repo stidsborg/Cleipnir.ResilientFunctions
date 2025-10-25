@@ -237,8 +237,8 @@ public class PostgreSqlFunctionStore : IFunctionStore
         var messagesCommand = _sqlGenerator.GetMessages(storedId, skip: 0);
         
         await using var conn = await CreateConnection();
-        await using var command = StoreCommands
-            .CreateBatch(restartCommand, effectsCommand, messagesCommand)
+        await using var command = StoreCommandExtensions
+            .ToNpgsqlBatch([restartCommand, effectsCommand, messagesCommand])
             .WithConnection(conn);
         
         await using var reader = await command.ExecuteReaderAsync();

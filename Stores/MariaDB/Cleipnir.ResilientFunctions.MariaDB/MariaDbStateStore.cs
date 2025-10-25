@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Storage;
 using MySqlConnector;
@@ -16,99 +12,130 @@ public class MariaDbStateStore(string connectionString, string tablePrefix)
         await using var conn = await CreateConnection();
         _initializeSql ??= @$"
             CREATE TABLE IF NOT EXISTS {tablePrefix}_state (
-                id CHAR(36),
+                id CHAR(32),
                 position BIGINT,
                 content LONGBLOB,
+                version INT,
                 PRIMARY KEY (id, position)
             );";
         var command = new MySqlCommand(_initializeSql, conn);
         await command.ExecuteNonQueryAsync();
     }
 
-    public async Task<Dictionary<StoredId, Dictionary<long, StoredState>>> GetAndRead(IReadOnlyList<StoredId> ids)
-    {
-        await using var conn = await CreateConnection();
-        var cmd = Get(ids).ToSqlCommand(conn);
-        await using var reader = await cmd.ExecuteReaderAsync();
-        return await Read(reader);
-    }
-
     public StoreCommand Get(IReadOnlyList<StoredId> ids)
     {
-        var idsClause = ids.Select(id => $"'{id}'").StringJoin(", ");
+        var idsClause = ids.Select(id => $"'{id.AsGuid:N}'").StringJoin(", ");
         var sql = $@"
-            SELECT id, position, content
+            SELECT id, position, content, version
             FROM {tablePrefix}_state
             WHERE id IN ({idsClause})";
 
-        return new StoreCommand(sql, []);
+        return StoreCommand.Create(sql);
     }
 
-    public async Task<Dictionary<StoredId, Dictionary<long, StoredState>>> Read(MySqlDataReader reader)
+    public async Task<Dictionary<StoredId, Dictionary<long, StoredState>>> Read(IStoreCommandReader reader)
     {
         var result = new Dictionary<StoredId, Dictionary<long, StoredState>>();
 
         while (await reader.ReadAsync())
         {
-            var idValue = reader.GetValue(0);
-            var id = idValue is Guid guid
-                ? new StoredId(guid)
-                : new StoredId(Guid.Parse(idValue.ToString()!));
+            var id = new StoredId(reader.GetGuid(0));
             var position = reader.GetInt64(1);
-            var content = reader.IsDBNull(2) ? null : (byte[])reader[2];
+            var content = reader.IsDbNull(2) ? null : (byte[])reader.GetValue(2);
+            var version = reader.GetInt32(3);
 
             if (!result.ContainsKey(id))
                 result[id] = new Dictionary<long, StoredState>();
 
-            result[id][position] = new StoredState(id, position, content);
+            result[id][position] = new StoredState(id, position, content, version);
         }
 
-        await reader.NextResultAsync();
+        await reader.MoveToNextResults();
         return result;
     }
 
-    public IEnumerable<StoreCommand> Set(Dictionary<StoredId, Dictionary<long, StoredState>> values)
+    public StoreCommand Delete(StoredId id, IReadOnlyList<long> positions)
     {
-        if (values.Count == 0)
-            return [];
-
-        var commands = new List<StoreCommand>();
+        if (positions.Count == 0)
+            return StoreCommand.Create("SELECT;");
 
         var sql = $@"
-            INSERT INTO {tablePrefix}_state (id, position, content)
-            VALUES (?, ?, ?)
-            ON DUPLICATE KEY UPDATE content = VALUES(content)";
+            DELETE FROM {tablePrefix}_state
+            WHERE id = '{id.AsGuid:N}' AND position IN ({positions.Select(p => p.ToString()).StringJoin(",")});";
 
-        foreach (var (storedId, positions) in values)
-        {
-            foreach (var (position, state) in positions)
-            {
-                commands.Add(StoreCommand.Create(
-                    sql,
-                    new List<object>
-                    {
-                        storedId.AsGuid.ToString(),
-                        position,
-                        (object?)state.Content ?? DBNull.Value
-                    }
-                ));
-            }
-        }
-
-        return commands;
+        return StoreCommand.Create(sql);
     }
 
-    public async Task SetAndExecute(Dictionary<StoredId, Dictionary<long, StoredState>> values)
+    public StoreCommand Update(StoredId id, StoredState state)
     {
-        if (values.Count == 0)
-            return;
+        var sql = $@"
+            UPDATE {tablePrefix}_state
+            SET content = ?, version = version + 1
+            WHERE id = ? AND position = ? AND version = ?;";
 
-        await using var conn = await CreateConnection();
-        foreach (var command in Set(values))
-        {
-            await using var cmd = command.ToSqlCommand(conn);
-            await cmd.ExecuteNonQueryAsync();
-        }
+        return StoreCommand.Create(
+            sql,
+            [
+                state.Content!,
+                id.AsGuid.ToString("N"),
+                state.Position,
+                state.Version
+            ]
+        );
+    }
+
+    public StoreCommand Insert(StoredId id, StoredState state)
+    {
+        var sql = $@"
+            INSERT INTO {tablePrefix}_state
+                (id, position, content, version)
+            VALUES
+                (?, ?, ?, ?);";
+
+        return StoreCommand.Create(
+            sql,
+            [
+                id.AsGuid.ToString("N"),
+                state.Position,
+                state.Content!,
+                state.Version
+            ]
+        );
+    }
+
+    public StoreCommand AddTo0(StoredId id, StoredState state)
+    {
+        var sql = $@"
+            UPDATE {tablePrefix}_state
+            SET content = CONCAT(content, ?), version = version + 1
+            WHERE id = ? AND position = 0 AND version = ?;";
+
+        return StoreCommand.Create(
+            sql,
+            [
+                state.Content!,
+                id.AsGuid.ToString("N"),
+                state.Version
+            ]
+        );
+    }
+
+    public StoreCommand Append(StoredId id, StoredState state)
+    {
+        var sql = $@"
+            INSERT INTO {tablePrefix}_state
+                (id, position, content, version)
+            VALUES
+                (?, (SELECT COALESCE(MAX(position), -1) + 3 FROM {tablePrefix}_state WHERE id = ?), ?, 0);";
+
+        return StoreCommand.Create(
+            sql,
+            [
+                id.AsGuid.ToString("N"),
+                id.AsGuid.ToString("N"),
+                state.Content!
+            ]
+        );
     }
 
     private async Task<MySqlConnection> CreateConnection()
@@ -118,5 +145,5 @@ public class MariaDbStateStore(string connectionString, string tablePrefix)
         return conn;
     }
 
-    public record StoredState(StoredId Id, long Position, byte[]? Content);
+    public record StoredState(StoredId Id, long Position, byte[]? Content, int Version);
 }

@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -15,39 +14,32 @@ public class SqlServerStateStore(string connectionString, string tablePrefix)
     {
         await using var conn = await CreateConnection();
         _initializeSql ??= @$"
-            IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'{tablePrefix}_state') AND type in (N'U'))
-            BEGIN
-                CREATE TABLE {tablePrefix}_state (
+             CREATE TABLE {tablePrefix}_state (
                     id UNIQUEIDENTIFIER,
                     position BIGINT,
                     content VARBINARY(MAX),
+                    version INT,
                     PRIMARY KEY (id, position)
-                );
-            END";
-        var command = new SqlCommand(_initializeSql, conn);
-        await command.ExecuteNonQueryAsync();
-    }
-
-    public async Task<Dictionary<StoredId, Dictionary<long, StoredState>>> GetAndRead(IReadOnlyList<StoredId> ids)
-    {
-        await using var conn = await CreateConnection();
-        var cmd = Get(ids).ToSqlCommand(conn);
-        await using var reader = await cmd.ExecuteReaderAsync();
-        return await Read(reader);
+             );";
+        await using var command = new SqlCommand(_initializeSql, conn);
+        try
+        {
+            await command.ExecuteNonQueryAsync();    
+        } catch (SqlException exception) when (exception.Number == 2714) {}
     }
 
     public StoreCommand Get(IReadOnlyList<StoredId> ids)
     {
         var idsClause = ids.Select(id => $"'{id}'").StringJoin(", ");
         var sql = $@"
-            SELECT id, position, content
+            SELECT id, position, content, version
             FROM {tablePrefix}_state
             WHERE id IN ({idsClause})";
 
-        return new StoreCommand(sql, []);
+        return StoreCommand.Create(sql);
     }
 
-    public async Task<Dictionary<StoredId, Dictionary<long, StoredState>>> Read(SqlDataReader reader)
+    public async Task<Dictionary<StoredId, Dictionary<long, StoredState>>> Read(IStoreCommandReader reader)
     {
         var result = new Dictionary<StoredId, Dictionary<long, StoredState>>();
 
@@ -55,65 +47,100 @@ public class SqlServerStateStore(string connectionString, string tablePrefix)
         {
             var id = new StoredId(reader.GetGuid(0));
             var position = reader.GetInt64(1);
-            var content = reader.IsDBNull(2) ? null : (byte[])reader[2];
+            var content = reader.IsDbNull(2) ? null : (byte[])reader.GetValue(2);
+            var version = reader.GetInt32(3);
 
             if (!result.ContainsKey(id))
                 result[id] = new Dictionary<long, StoredState>();
 
-            result[id][position] = new StoredState(id, position, content);
+            result[id][position] = new StoredState(id, position, content, version);
         }
 
-        await reader.NextResultAsync();
+        await reader.MoveToNextResults();
         return result;
     }
 
-    public IEnumerable<StoreCommand> Set(Dictionary<StoredId, Dictionary<long, StoredState>> values)
+    public StoreCommand Delete(StoredId id, IReadOnlyList<long> positions)
     {
-        if (values.Count == 0)
-            return [];
-
-        var commands = new List<StoreCommand>();
+        if (positions.Count == 0)
+            return StoreCommand.Create("SELECT;");
 
         var sql = $@"
-            MERGE {tablePrefix}_state AS target
-            USING (SELECT @id AS id, @position AS position, CAST(@content AS VARBINARY(MAX)) AS content) AS source
-            ON target.id = source.id AND target.position = source.position
-            WHEN MATCHED THEN
-                UPDATE SET content = source.content
-            WHEN NOT MATCHED THEN
-                INSERT (id, position, content)
-                VALUES (source.id, source.position, source.content);";
+            DELETE FROM {tablePrefix}_state
+            WHERE id = '{id}' AND position IN ({positions.Select(p => p.ToString()).StringJoin(",")});";
 
-        foreach (var (storedId, positions) in values)
-        {
-            foreach (var (position, state) in positions)
-            {
-                commands.Add(StoreCommand.Create(
-                    sql,
-                    new List<ParameterValueAndName>
-                    {
-                        new("@id", storedId.AsGuid),
-                        new("@position", position),
-                        new("@content", (object?)state.Content ?? DBNull.Value)
-                    }
-                ));
-            }
-        }
-
-        return commands;
+        return StoreCommand.Create(sql);
     }
 
-    public async Task SetAndExecute(Dictionary<StoredId, Dictionary<long, StoredState>> values)
+    public StoreCommand Update(StoredId id, StoredState state)
     {
-        if (values.Count == 0)
-            return;
+        var sql = $@"
+            UPDATE {tablePrefix}_state
+            SET content = @content, version = version + 1
+            WHERE id = @id AND position = @position AND version = @version;";
 
-        await using var conn = await CreateConnection();
-        foreach (var command in Set(values))
-        {
-            await using var cmd = command.ToSqlCommand(conn);
-            await cmd.ExecuteNonQueryAsync();
-        }
+        return StoreCommand.Create(
+            sql,
+            [
+                new ParameterValueAndName("@content", state.Content!),
+                new ParameterValueAndName("@id", id.AsGuid),
+                new ParameterValueAndName("@position", state.Position),
+                new ParameterValueAndName("@version", state.Version)
+            ]
+        );
+    }
+
+    public StoreCommand Insert(StoredId id, StoredState state)
+    {
+        var sql = $@"
+            INSERT INTO {tablePrefix}_state
+                (id, position, content, version)
+            VALUES
+                (@id, @position, @content, @version);";
+
+        return StoreCommand.Create(
+            sql,
+            [
+                new ParameterValueAndName("@id", id.AsGuid),
+                new ParameterValueAndName("@position", state.Position),
+                new ParameterValueAndName("@content", state.Content!),
+                new ParameterValueAndName("@version", state.Version)
+            ]
+        );
+    }
+
+    public StoreCommand AddTo0(StoredId id, StoredState state)
+    {
+        var sql = $@"
+            UPDATE {tablePrefix}_state
+            SET content = content + @content, version = version + 1
+            WHERE id = @id AND position = 0 AND version = @version;";
+
+        return StoreCommand.Create(
+            sql,
+            [
+                new ParameterValueAndName("@content", state.Content!),
+                new ParameterValueAndName("@id", id.AsGuid),
+                new ParameterValueAndName("@version", state.Version)
+            ]
+        );
+    }
+
+    public StoreCommand Append(StoredId id, StoredState state)
+    {
+        var sql = $@"
+            INSERT INTO {tablePrefix}_state
+                (id, position, content, version)
+            VALUES
+                (@id, (SELECT COALESCE(MAX(position), -1) + 3 FROM {tablePrefix}_state WHERE id = @id), @content, 0);";
+
+        return StoreCommand.Create(
+            sql,
+            [
+                new ParameterValueAndName("@id", id.AsGuid),
+                new ParameterValueAndName("@content", state.Content!)
+            ]
+        );
     }
 
     private async Task<SqlConnection> CreateConnection()
@@ -123,5 +150,5 @@ public class SqlServerStateStore(string connectionString, string tablePrefix)
         return conn;
     }
 
-    public record StoredState(StoredId Id, long Position, byte[]? Content);
+    public record StoredState(StoredId Id, long Position, byte[]? Content, int Version);
 }

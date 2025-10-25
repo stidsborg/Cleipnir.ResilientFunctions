@@ -122,8 +122,8 @@ public class PostgreSqlMessageStore(string connectionString, SqlGenerator sqlGen
         await using var conn = await CreateConnection();
         if (interrupt)
         {
-            await using var command = StoreCommands
-                .CreateBatch(appendMessagesCommand, interruptCommand!)
+            await using var command = StoreCommandExtensions
+                .ToNpgsqlBatch([appendMessagesCommand, interruptCommand!])
                 .WithConnection(conn);
             
             await command.ExecuteNonQueryAsync();

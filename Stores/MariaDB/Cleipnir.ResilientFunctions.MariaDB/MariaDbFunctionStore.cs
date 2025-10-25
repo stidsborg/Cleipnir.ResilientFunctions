@@ -3,6 +3,7 @@ using System.Text.Json;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
+using Cleipnir.ResilientFunctions.MariaDB.StoreCommand;
 using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Storage.Session;

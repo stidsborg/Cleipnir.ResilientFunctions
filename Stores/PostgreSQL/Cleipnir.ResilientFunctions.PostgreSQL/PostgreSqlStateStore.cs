@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -19,32 +18,25 @@ public class PostgreSqlStateStore(string connectionString, string tablePrefix)
                 id UUID,
                 position BIGINT,
                 content BYTEA,
+                version INT,
                 PRIMARY KEY (id, position)
             );";
         var command = new NpgsqlCommand(_initializeSql, conn);
         await command.ExecuteNonQueryAsync();
     }
 
-    public async Task<Dictionary<StoredId, Dictionary<long, StoredState>>> GetAndRead(IReadOnlyList<StoredId> ids)
-    {
-        await using var conn = await CreateConnection();
-        var cmd = Get(ids).ToNpgsqlCommand(conn);
-        await using var reader = await cmd.ExecuteReaderAsync();
-        return await Read(reader);
-    }
-
     public StoreCommand Get(IReadOnlyList<StoredId> ids)
     {
         var idsClause = ids.Select(id => $"'{id}'").StringJoin(", ");
         var sql = $@"
-            SELECT id, position, content
+            SELECT id, position, content, version
             FROM {tablePrefix}_state
             WHERE id IN ({idsClause})";
 
-        return new StoreCommand(sql, []);
+        return StoreCommand.Create(sql);
     }
 
-    public async Task<Dictionary<StoredId, Dictionary<long, StoredState>>> Read(NpgsqlDataReader reader)
+    public async Task<Dictionary<StoredId, Dictionary<long, StoredState>>> Read(IStoreCommandReader reader)
     {
         var result = new Dictionary<StoredId, Dictionary<long, StoredState>>();
         
@@ -52,55 +44,100 @@ public class PostgreSqlStateStore(string connectionString, string tablePrefix)
         {
             var id = new StoredId(reader.GetGuid(0));
             var position = reader.GetInt64(1);
-            var content = reader.IsDBNull(2) ? null : (byte[])reader[2];
+            var content = reader.IsDbNull(2) ? null : (byte[])reader.GetValue(2);
+            var version = reader.GetInt32(3);
 
             if (!result.ContainsKey(id))
                 result[id] = new Dictionary<long, StoredState>();
 
-            result[id][position] = new StoredState(id, position, content);
+            result[id][position] = new StoredState(id, position, content, version);
         }
 
-        await reader.NextResultAsync();
+        await reader.MoveToNextResults();
         return result;
     }
 
-    public IEnumerable<StoreCommand> Set(Dictionary<StoredId, Dictionary<long, StoredState>> values)
+    public StoreCommand Delete(StoredId id, IReadOnlyList<long> positions)
     {
-        if (values.Count == 0)
-            return [];
-
-        var commands = new List<StoreCommand>();
+        if (positions.Count == 0)
+            return StoreCommand.Create("SELECT");
 
         var sql = $@"
-            INSERT INTO {tablePrefix}_state (id, position, content)
-            VALUES ($1, $2, $3)
-            ON CONFLICT (id, position)
-            DO UPDATE SET content = EXCLUDED.content";
+            DELETE FROM {tablePrefix}_state
+            WHERE id = '{id}' AND position in ({positions.Select(p => p.ToString()).StringJoin(",")});";
 
-        foreach (var (storedId, positions) in values)
-        {
-            foreach (var (position, state) in positions)
-            {
-                commands.Add(StoreCommand.Create(
-                    sql,
-                    new List<ParameterValueAndName>
-                    {
-                        new(storedId.AsGuid),
-                        new(position),
-                        new((object?)state.Content ?? DBNull.Value)
-                    }
-                ));
-            }
-        }
-
-        return commands;
+        return StoreCommand.Create(sql);
     }
 
-    public async Task SetAndExecute(Dictionary<StoredId, Dictionary<long, StoredState>> values)
+    public StoreCommand Update(StoredId id, StoredState state)
     {
-        await using var conn = await CreateConnection();
-        var batch = Set(values).CreateBatch().WithConnection(conn);
-        await batch.ExecuteNonQueryAsync();
+        var sql = $@"
+            UPDATE {tablePrefix}_state
+            SET content = $1, version = version + 1
+            WHERE id = $2 AND position = $3 AND version = $4;";
+
+        return StoreCommand.Create(
+            sql,
+            [
+                new(state.Content!),
+                new(id.AsGuid),
+                new(state.Position),
+                new(state.Version)
+            ]
+        );
+    }
+    
+    public StoreCommand Insert(StoredId id, StoredState state)
+    {
+        var sql = $@"
+            INSERT INTO {tablePrefix}_state 
+                (id, position, content, version)
+            VALUES
+                ($1, $2, $3, $4);";
+        
+        return StoreCommand.Create(
+            sql,
+            [
+                new(id.AsGuid),
+                new(state.Position),
+                new(state.Content!),
+                new(state.Version)
+            ]
+        );
+    }
+    
+    public StoreCommand AddTo0(StoredId id, StoredState state)
+    {
+        var sql = $@"
+            UPDATE {tablePrefix}_state
+            SET content = content || $1, version = version + 1
+            WHERE id = $2 AND position = 0 AND version = $3;";
+
+        return StoreCommand.Create(
+            sql,
+            [
+                new(state.Content!),
+                new(id.AsGuid),
+                new(state.Version)
+            ]
+        );
+    }
+    
+    public StoreCommand Append(StoredId id, StoredState state)
+    {
+        var sql = $@"
+            INSERT INTO {tablePrefix}_state
+                (id, position, content, version)
+            VALUES
+                ($1, (SELECT COALESCE(MAX(position), 1) + 1 FROM {tablePrefix}_state WHERE id = $1), $2, 0);";
+
+        return StoreCommand.Create(
+            sql,
+            [
+                new(id.AsGuid),
+                new(state.Content!)
+            ]
+        );
     }
     
     private async Task<NpgsqlConnection> CreateConnection()
@@ -110,5 +147,5 @@ public class PostgreSqlStateStore(string connectionString, string tablePrefix)
         return conn;
     }
     
-    public record StoredState(StoredId Id, long Position, byte[]? Content);
+    public record StoredState(StoredId Id, long Position, byte[]? Content, int Version);
 }
