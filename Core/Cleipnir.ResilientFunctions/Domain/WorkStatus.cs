@@ -1,6 +1,6 @@
 ﻿namespace Cleipnir.ResilientFunctions.Domain;
 
-public enum WorkStatus
+public enum WorkStatus : byte
 {
     NotStarted = 0,
     Started = 1,

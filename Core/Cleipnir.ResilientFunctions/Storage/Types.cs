@@ -2,9 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Storage.Session;
+using Cleipnir.ResilientFunctions.Storage.Utils;
 
 namespace Cleipnir.ResilientFunctions.Storage;
 
@@ -101,7 +104,12 @@ public record StoredFlow(
     StoredType StoredType
 );
 
-public record StoredException(string ExceptionMessage, string? ExceptionStackTrace, string ExceptionType);
+public record StoredException(string ExceptionMessage, string? ExceptionStackTrace, string ExceptionType)
+{
+    public byte[] Serialize() => JsonSerializer.Serialize(this).ToUtf8Bytes();
+    public static StoredException Deserialize(byte[] bytes) => JsonSerializer.Deserialize<StoredException>(bytes.ToStringFromUtf8Bytes())!;
+};
+
 public record StatusAndId(StoredId StoredId, Status Status, long Expiry);
 
 public record StoredEffectId(Guid Value)
@@ -151,6 +159,27 @@ public record StoredEffect(
     public static StoredEffect CreateFailed(EffectId effectId, StoredException storedException)
         => new(effectId, WorkStatus.Failed, Result: null, storedException);
 
+    public byte[] Serialize()
+    {
+        var effect = EffectId.Serialize().Value.ToUtf8Bytes();
+        var status = (byte)WorkStatus;
+        var result = Result;
+        var exception = StoredException?.Serialize();
+        
+        return BinaryPacker.Pack(effect, [status], result, exception);
+    }
+
+    public static StoredEffect Deserialize(byte[] bytes)
+    {
+        var parts = BinaryPacker.Split(bytes, expectedPieces: 4);
+        var effect = Domain.EffectId.Deserialize(parts[0]!.ToStringFromUtf8Bytes());
+        var status = (WorkStatus)parts[1]![0];
+        var result = parts[2];
+        var exception = parts[3] == null ? null : StoredException.Deserialize(parts[3]!);
+
+        return new StoredEffect(effect, status, result, exception);
+    }
+    
     public static StoredEffect CreateState(StoredState storedState)
     {
         var effectId = storedState.StateId.Value.ToEffectId(effectType: EffectType.State);
