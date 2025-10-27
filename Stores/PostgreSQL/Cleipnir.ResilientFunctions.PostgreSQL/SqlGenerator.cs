@@ -93,14 +93,12 @@ public class SqlGenerator(string tablePrefix)
         while (await reader.ReadAsync())
         {
             var id = new StoredId(reader.GetGuid(0));
-            var position = reader.GetInt64(1);
-            var status = (WorkStatus) reader.GetInt32(2);
-            var result = reader.IsDBNull(3) ? null : (byte[]) reader.GetValue(3);
-            var exception = reader.IsDBNull(4) ? null : reader.GetString(4);
-            var effectId = reader.GetString(5);
+            var content = (byte[])reader.GetValue(1);
+            
+            var effectsBytes = BinaryPacker.Split(content);
+            var storedEffects = effectsBytes.Select(effectBytes => StoredEffect.Deserialize(effectBytes!)).ToList();
 
-            var se = new StoredEffect(EffectId.Deserialize(effectId), status, result, JsonHelper.FromJson<StoredException>(exception));
-            effects[id].Add(se);
+            effects[id] = storedEffects;
         }
 
         return effects;
