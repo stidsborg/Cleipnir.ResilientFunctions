@@ -1,18 +1,17 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Storage.Session;
-using Cleipnir.ResilientFunctions.Storage.Utils;
 using Npgsql;
 
 namespace Cleipnir.ResilientFunctions.PostgreSQL;
 
 public class PostgreSqlEffectsStore(string connectionString, SqlGenerator sqlGenerator, string tablePrefix = "") : IEffectsStore
 {
+    private readonly PostgreSqlStateStore _stateStore = new PostgreSqlStateStore(connectionString, tablePrefix);
+    
     private string? _initializeSql;
     public async Task Initialize()
     {
@@ -20,15 +19,13 @@ public class PostgreSqlEffectsStore(string connectionString, SqlGenerator sqlGen
         _initializeSql ??= @$"
             CREATE TABLE IF NOT EXISTS {tablePrefix}_effects (
                 id UUID,
-                position BIGINT,
-                status INT NOT NULL,
-                result BYTEA NULL,
-                exception TEXT NULL,
-                effect_id TEXT NOT NULL,
-                PRIMARY KEY (id, position)
+                content BYTEA
+                PRIMARY KEY (id)
             );";
         var command = new NpgsqlCommand(_initializeSql, conn);
         await command.ExecuteNonQueryAsync();
+
+        await _stateStore.Initialize();
     }
 
     private string? _truncateSql;
@@ -45,19 +42,17 @@ public class PostgreSqlEffectsStore(string connectionString, SqlGenerator sqlGen
         if (changes.Count == 0)
             return;
 
-        var positionsSession = session as PositionsStorageSession ?? await CreateSession(storedId);
-        await using var batch = sqlGenerator.UpdateEffects(storedId, changes, positionsSession).ToNpgsqlBatch();
+        var positionsSession = session as SnapshotStorageSession ?? await CreateSession(storedId);
         await using var conn = await CreateConnection();
-        batch.WithConnection(conn);
-
-        await batch.ExecuteNonQueryAsync();
+        await using var cmd = sqlGenerator.UpdateEffects(storedId, changes, positionsSession).ToNpgsqlCommand(conn);
+        
+        await cmd.ExecuteNonQueryAsync();
     }
 
     public async Task<Dictionary<StoredId, List<StoredEffect>>> GetEffectResults(IEnumerable<StoredId> storedIds) 
-        => (await GetEffectResultsWithPositions(storedIds))
-            .ToDictionary(kv => kv.Key, kv => kv.Value.Select(s => s.Effect).ToList());
+        => (await GetEffectResultsWithPositions(storedIds)).ToDictionary(kv => kv.Key, kv => kv.Value);
 
-    private async Task<Dictionary<StoredId, List<StoredEffectWithPosition>>> GetEffectResultsWithPositions(IEnumerable<StoredId> storedIds)
+    private async Task<Dictionary<StoredId, List<StoredEffect>>> GetEffectResultsWithPositions(IEnumerable<StoredId> storedIds)
     {
         storedIds = storedIds.ToList();
         await using var conn = await CreateConnection();
@@ -92,23 +87,20 @@ public class PostgreSqlEffectsStore(string connectionString, SqlGenerator sqlGen
         return conn;
     }
     
-    private async Task<PositionsStorageSession> CreateSession(StoredId storedId)
+    private async Task<SnapshotStorageSession> CreateSession(StoredId storedId)
         => await CreateSessions([storedId]).SelectAsync(d => d[storedId]);
-    private async Task<Dictionary<StoredId, PositionsStorageSession>> CreateSessions(IEnumerable<StoredId> storedIds) 
+    private async Task<Dictionary<StoredId, SnapshotStorageSession>> CreateSessions(IEnumerable<StoredId> storedIds) 
         => CreateSessions(await GetEffectResultsWithPositions(storedIds));
 
-    private Dictionary<StoredId, PositionsStorageSession> CreateSessions(Dictionary<StoredId, List<StoredEffectWithPosition>> effects)
+    private Dictionary<StoredId, SnapshotStorageSession> CreateSessions(Dictionary<StoredId, List<StoredEffect>> effects)
     {
-        var dictionary = new Dictionary<StoredId, PositionsStorageSession>();
+        var dictionary = new Dictionary<StoredId, SnapshotStorageSession>();
         foreach (var storedId in effects.Keys)
         {
-            var session = new PositionsStorageSession();
+            var session = new SnapshotStorageSession();
             dictionary[storedId] = session;
-            foreach (var (effect, position) in effects[storedId].OrderBy(e => e.Position))
-            {
-                session.MaxPosition = position;
-                session.Positions[effect.EffectId.Serialize()] = position;
-            }
+            foreach (var effect in effects[storedId])
+                session.Effects[effect.EffectId] = effect;
         }
 
         return dictionary;

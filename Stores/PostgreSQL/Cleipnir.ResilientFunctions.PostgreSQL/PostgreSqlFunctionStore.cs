@@ -150,7 +150,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
             ).ToNpgsqlCommand(conn);
 
             var affectedRows = await command.ExecuteNonQueryAsync();
-            return affectedRows == 1 ? new PositionsStorageSession() : null;    
+            return affectedRows == 1 ? new SnapshotStorageSession() : null;    
         }
 
         try
@@ -168,7 +168,10 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 ignoreConflict: false
             );
             commands.Add(createCommand);
-            var session = new PositionsStorageSession();
+            var session = new SnapshotStorageSession();
+            foreach (var effect in effects ?? [])
+                session.Effects[effect.EffectId] = effect;
+                
             if (effects?.Any() ?? false)
                 commands.AddRange(
                     _sqlGenerator.UpdateEffects(
