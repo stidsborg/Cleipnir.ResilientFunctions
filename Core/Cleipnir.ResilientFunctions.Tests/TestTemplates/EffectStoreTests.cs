@@ -488,4 +488,215 @@ public abstract class EffectStoreTests
         storedEffect.EffectId.ShouldBe("EffectId1".ToEffectId());
         storedEffect.WorkStatus.ShouldBe(WorkStatus.Started);
     }
+
+    public abstract Task MultipleSequentialUpdatesWithoutRefresh();
+    protected async Task MultipleSequentialUpdatesWithoutRefresh(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var effectStore = store.EffectsStore;
+        var storedId = TestStoredId.Create();
+
+        // Create initial session
+        var session = await store.CreateFunction(storedId, "instance", null, 0, null, 0, null, null);
+
+        // Sequential updates - each should increment version properly
+        var effect1 = new StoredEffect("Effect1".ToEffectId(), WorkStatus.Completed, "result1".ToUtf8Bytes(), null);
+        await effectStore.SetEffectResult(storedId, effect1.ToStoredChange(storedId, Insert), session);
+
+        var effect2 = new StoredEffect("Effect2".ToEffectId(), WorkStatus.Completed, "result2".ToUtf8Bytes(), null);
+        await effectStore.SetEffectResult(storedId, effect2.ToStoredChange(storedId, Insert), session);
+
+        var effect3 = new StoredEffect("Effect3".ToEffectId(), WorkStatus.Completed, "result3".ToUtf8Bytes(), null);
+        await effectStore.SetEffectResult(storedId, effect3.ToStoredChange(storedId, Insert), session);
+
+        // Verify all three effects were persisted
+        var effects = await effectStore.GetEffectResults(storedId);
+        effects.Count.ShouldBe(3);
+        effects.Any(e => e.EffectId == effect1.EffectId).ShouldBeTrue();
+        effects.Any(e => e.EffectId == effect2.EffectId).ShouldBeTrue();
+        effects.Any(e => e.EffectId == effect3.EffectId).ShouldBeTrue();
+    }
+
+    public abstract Task StoreHandlesLargeNumberOfEffects();
+    protected async Task StoreHandlesLargeNumberOfEffects(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var effectStore = store.EffectsStore;
+        var storedId = TestStoredId.Create();
+
+        // Create initial session
+        var session = await store.CreateFunction(storedId, "instance", null, 0, null, 0, null, null);
+
+        // Insert 100 effects
+        const int effectCount = 100;
+        for (int i = 0; i < effectCount; i++)
+        {
+            var effect = new StoredEffect(
+                $"Effect{i}".ToEffectId(),
+                WorkStatus.Completed,
+                $"result{i}".ToUtf8Bytes(),
+                null
+            );
+            await effectStore.SetEffectResult(storedId, effect.ToStoredChange(storedId, Insert), session);
+        }
+
+        // Verify all effects were persisted
+        var effects = await effectStore.GetEffectResults(storedId);
+        effects.Count.ShouldBe(effectCount);
+
+        // Verify a few specific effects
+        effects.Any(e => e.EffectId == "Effect0".ToEffectId()).ShouldBeTrue();
+        effects.Any(e => e.EffectId == "Effect50".ToEffectId()).ShouldBeTrue();
+        effects.Any(e => e.EffectId == "Effect99".ToEffectId()).ShouldBeTrue();
+    }
+
+    public abstract Task SessionVersionIncrementsProperly();
+    protected async Task SessionVersionIncrementsProperly(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var effectStore = store.EffectsStore;
+        var storedId = TestStoredId.Create();
+
+        // Create initial session
+        var session = await store.CreateFunction(storedId, "instance", null, 0, null, 0, null, null);
+
+        // Insert first effect
+        var effect1 = new StoredEffect("Effect1".ToEffectId(), WorkStatus.Completed, null, null);
+        await effectStore.SetEffectResult(storedId, effect1.ToStoredChange(storedId, Insert), session);
+
+        // Insert second effect
+        var effect2 = new StoredEffect("Effect2".ToEffectId(), WorkStatus.Completed, null, null);
+        await effectStore.SetEffectResult(storedId, effect2.ToStoredChange(storedId, Insert), session);
+
+        // Insert third effect
+        var effect3 = new StoredEffect("Effect3".ToEffectId(), WorkStatus.Completed, null, null);
+        await effectStore.SetEffectResult(storedId, effect3.ToStoredChange(storedId, Insert), session);
+
+        // Get fresh session and verify all effects are present
+        var freshSession = await store.RestartExecution(storedId, ReplicaId.Empty)
+            .SelectAsync(s => s!.StorageSession);
+
+        var effects = await effectStore.GetEffectResults(storedId);
+        effects.Count.ShouldBe(3);
+
+        // Add one more effect with fresh session - should work
+        var effect4 = new StoredEffect("Effect4".ToEffectId(), WorkStatus.Completed, null, null);
+        await effectStore.SetEffectResult(storedId, effect4.ToStoredChange(storedId, Insert), freshSession);
+
+        effects = await effectStore.GetEffectResults(storedId);
+        effects.Count.ShouldBe(4);
+    }
+
+    public abstract Task EffectsSerializeAndDeserializeCorrectly();
+    protected async Task EffectsSerializeAndDeserializeCorrectly(Task<IEffectsStore> storeTask)
+    {
+        var store = await storeTask;
+        var storedId = TestStoredId.Create();
+
+        // Create effects with various edge cases
+        var effectWithNullResult = new StoredEffect(
+            "NullResult".ToEffectId(),
+            WorkStatus.Started,
+            Result: null,
+            StoredException: null
+        );
+
+        var effectWithLargeResult = new StoredEffect(
+            "LargeResult".ToEffectId(),
+            WorkStatus.Completed,
+            Result: new byte[10000], // 10KB
+            StoredException: null
+        );
+
+        var effectWithException = new StoredEffect(
+            "WithException".ToEffectId(),
+            WorkStatus.Failed,
+            Result: null,
+            StoredException: new StoredException(
+                "Message with special chars: \n\t\r\"'\\",
+                "Stack trace with\nmultiple\nlines",
+                "System.InvalidOperationException"
+            )
+        );
+
+        var effectWithSpecialChars = new StoredEffect(
+            "SpecialCharsInResult".ToEffectId(),
+            WorkStatus.Completed,
+            Result: "Special chars: 🚀 \n\t\r\"'\\".ToUtf8Bytes(),
+            StoredException: null
+        );
+
+        // Insert all effects
+        await store.SetEffectResult(storedId, effectWithNullResult.ToStoredChange(storedId, Insert), null);
+        await store.SetEffectResult(storedId, effectWithLargeResult.ToStoredChange(storedId, Insert), null);
+        await store.SetEffectResult(storedId, effectWithException.ToStoredChange(storedId, Insert), null);
+        await store.SetEffectResult(storedId, effectWithSpecialChars.ToStoredChange(storedId, Insert), null);
+
+        // Retrieve and verify
+        var effects = await store.GetEffectResults(storedId);
+        effects.Count.ShouldBe(4);
+
+        var retrievedNull = effects.Single(e => e.EffectId == "NullResult".ToEffectId());
+        retrievedNull.Result.ShouldBeNull();
+        retrievedNull.StoredException.ShouldBeNull();
+
+        var retrievedLarge = effects.Single(e => e.EffectId == "LargeResult".ToEffectId());
+        retrievedLarge.Result.ShouldNotBeNull();
+        retrievedLarge.Result!.Length.ShouldBe(10000);
+
+        var retrievedException = effects.Single(e => e.EffectId == "WithException".ToEffectId());
+        retrievedException.StoredException.ShouldNotBeNull();
+        retrievedException.StoredException!.ExceptionMessage.ShouldBe("Message with special chars: \n\t\r\"'\\");
+
+        var retrievedSpecial = effects.Single(e => e.EffectId == "SpecialCharsInResult".ToEffectId());
+        retrievedSpecial.Result!.ToStringFromUtf8Bytes().ShouldBe("Special chars: 🚀 \n\t\r\"'\\");
+    }
+
+    public abstract Task MixedInsertUpdateDeleteInSequence();
+    protected async Task MixedInsertUpdateDeleteInSequence(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var effectStore = store.EffectsStore;
+        var storedId = TestStoredId.Create();
+
+        // Create initial session
+        var session = await store.CreateFunction(storedId, "instance", null, 0, null, 0, null, null);
+
+        // INSERT effect1
+        var effect1 = new StoredEffect("Effect1".ToEffectId(), WorkStatus.Started, null, null);
+        await effectStore.SetEffectResult(storedId, effect1.ToStoredChange(storedId, Insert), session);
+
+        // UPDATE effect1
+        effect1 = effect1 with { WorkStatus = WorkStatus.Completed, Result = "done".ToUtf8Bytes() };
+        await effectStore.SetEffectResult(storedId, effect1.ToStoredChange(storedId, Update), session);
+
+        // DELETE effect2 (doesn't exist - should be no-op)
+        await effectStore.DeleteEffectResult(storedId, "Effect2".ToEffectId(), session);
+
+        // INSERT effect3
+        var effect3 = new StoredEffect("Effect3".ToEffectId(), WorkStatus.Completed, null, null);
+        await effectStore.SetEffectResult(storedId, effect3.ToStoredChange(storedId, Insert), session);
+
+        // UPDATE effect1 again
+        effect1 = effect1 with { Result = "done2".ToUtf8Bytes() };
+        await effectStore.SetEffectResult(storedId, effect1.ToStoredChange(storedId, Update), session);
+
+        // INSERT effect2
+        var effect2 = new StoredEffect("Effect2".ToEffectId(), WorkStatus.Started, null, null);
+        await effectStore.SetEffectResult(storedId, effect2.ToStoredChange(storedId, Insert), session);
+
+        // DELETE effect3
+        await effectStore.DeleteEffectResult(storedId, effect3.EffectId, session);
+
+        // Verify final state: effect1 (updated) and effect2 should exist, effect3 should be deleted
+        var effects = await effectStore.GetEffectResults(storedId);
+        effects.Count.ShouldBe(2);
+
+        var finalEffect1 = effects.Single(e => e.EffectId == "Effect1".ToEffectId());
+        finalEffect1.WorkStatus.ShouldBe(WorkStatus.Completed);
+        finalEffect1.Result!.ToStringFromUtf8Bytes().ShouldBe("done2");
+
+        effects.Any(e => e.EffectId == "Effect2".ToEffectId()).ShouldBeTrue();
+        effects.Any(e => e.EffectId == "Effect3".ToEffectId()).ShouldBeFalse();
+    }
 }
