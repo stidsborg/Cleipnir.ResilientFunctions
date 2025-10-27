@@ -137,7 +137,7 @@ public class SqlGenerator(string tablePrefix)
         
         var sql = $@"
             UPDATE {tablePrefix}_effects
-            SET content = $1
+            SET content = $1, version = version + 1
             WHERE id = $2 AND version = $3;";
         
         return StoreCommand.Create(sql, [content, storedId.AsGuid, session.Version++]);
