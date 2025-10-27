@@ -169,9 +169,6 @@ public class PostgreSqlFunctionStore : IFunctionStore
             );
             commands.Add(createCommand);
             var session = new SnapshotStorageSession();
-            foreach (var effect in effects ?? [])
-                session.Effects[effect.EffectId] = effect;
-                
             if (effects?.Any() ?? false)
                 commands.AddRange(
                     _sqlGenerator.UpdateEffects(
@@ -189,8 +186,11 @@ public class PostgreSqlFunctionStore : IFunctionStore
 
             await using var batch = commands.ToNpgsqlBatch();
             await using var conn = await CreateConnection();
-            batch.WithConnection(conn);
+            await using var transaction = await conn.BeginTransactionAsync();
+            batch.WithConnection(conn, transaction);
             await batch.ExecuteNonQueryAsync();
+            await transaction.CommitAsync();
+            
             return session;
         }
         catch (PostgresException e) when (e.SqlState == "23505")

@@ -40,9 +40,12 @@ internal static class StoreCommandsHelper
         return batch;
     }
     
-    public static NpgsqlBatch WithConnection(this NpgsqlBatch batch, NpgsqlConnection conn)
+    public static NpgsqlBatch WithConnection(this NpgsqlBatch batch, NpgsqlConnection conn, NpgsqlTransaction? transaction = null)
     {
         batch.Connection = conn;
+        if (transaction != null)
+            batch.Transaction = transaction;
+        
         return batch;
     }
 }
