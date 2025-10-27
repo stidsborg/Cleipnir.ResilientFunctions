@@ -84,18 +84,27 @@ public class SqlGenerator(string tablePrefix)
         
         return new StoredEffectsWithSession(effects, session);
     }
-    public async Task<Dictionary<StoredId, List<StoredEffect>>> ReadEffectsForIds(NpgsqlDataReader reader, IEnumerable<StoredId> storedIds)
+    public async Task<Dictionary<StoredId, SnapshotStorageSession>> ReadEffectsForIds(NpgsqlDataReader reader, IEnumerable<StoredId> storedIds)
     {
-        var effects = new Dictionary<StoredId, List<StoredEffect>>();
+        var effects = new Dictionary<StoredId, SnapshotStorageSession>();
+        foreach (var storedId in storedIds)
+            effects[storedId] = new SnapshotStorageSession();
+        
         while (await reader.ReadAsync())
         {
             var id = new StoredId(reader.GetGuid(0));
             var content = (byte[])reader.GetValue(1);
+            var version = reader.GetInt32(2);
             
             var effectsBytes = BinaryPacker.Split(content);
             var storedEffects = effectsBytes.Select(effectBytes => StoredEffect.Deserialize(effectBytes!)).ToList();
 
-            effects[id] = storedEffects;
+            var session = effects[id];
+            foreach (var storedEffect in storedEffects)
+                session.Effects[storedEffect.EffectId] = storedEffect;
+
+            session.RowExists = true;
+            session.Version = version;
         }
 
         return effects;

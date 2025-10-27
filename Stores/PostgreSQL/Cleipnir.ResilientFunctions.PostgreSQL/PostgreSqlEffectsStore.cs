@@ -45,8 +45,11 @@ public class PostgreSqlEffectsStore(string connectionString, SqlGenerator sqlGen
         
         await cmd.ExecuteNonQueryAsync();
     }
-    
+
     public async Task<Dictionary<StoredId, List<StoredEffect>>> GetEffectResults(IEnumerable<StoredId> storedIds)
+        => (await GetEffectResultsWithSession(storedIds)).ToDictionary(kv => kv.Key, kv => kv.Value.Effects.Values.ToList());
+    
+    public async Task<Dictionary<StoredId, SnapshotStorageSession>> GetEffectResultsWithSession(IEnumerable<StoredId> storedIds)
     {
         storedIds = storedIds.ToList();
         await using var conn = await CreateConnection();
@@ -83,6 +86,7 @@ public class PostgreSqlEffectsStore(string connectionString, SqlGenerator sqlGen
     
     private async Task<SnapshotStorageSession> CreateSession(StoredId storedId)
         => await CreateSessions([storedId]).SelectAsync(d => d[storedId]);
+
     private async Task<Dictionary<StoredId, SnapshotStorageSession>> CreateSessions(IEnumerable<StoredId> storedIds) 
         => CreateSessions(await GetEffectResults(storedIds));
 
