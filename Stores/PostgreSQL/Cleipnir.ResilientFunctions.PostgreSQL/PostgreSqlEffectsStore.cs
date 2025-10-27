@@ -17,7 +17,7 @@ public class PostgreSqlEffectsStore(string connectionString, SqlGenerator sqlGen
         _initializeSql ??= @$"
             CREATE TABLE IF NOT EXISTS {tablePrefix}_effects (
                 id UUID,
-                content BYTEA
+                content BYTEA,
                 PRIMARY KEY (id)
             );";
         var command = new NpgsqlCommand(_initializeSql, conn);
