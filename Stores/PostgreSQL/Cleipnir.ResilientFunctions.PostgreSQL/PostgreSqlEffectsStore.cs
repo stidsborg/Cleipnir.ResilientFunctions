@@ -18,6 +18,7 @@ public class PostgreSqlEffectsStore(string connectionString, SqlGenerator sqlGen
             CREATE TABLE IF NOT EXISTS {tablePrefix}_effects (
                 id UUID,
                 content BYTEA,
+                version INT,
                 PRIMARY KEY (id)
             );";
         var command = new NpgsqlCommand(_initializeSql, conn);
@@ -85,7 +86,7 @@ public class PostgreSqlEffectsStore(string connectionString, SqlGenerator sqlGen
     private async Task<Dictionary<StoredId, SnapshotStorageSession>> CreateSessions(IEnumerable<StoredId> storedIds) 
         => CreateSessions(await GetEffectResults(storedIds));
 
-    private Dictionary<StoredId, SnapshotStorageSession> CreateSessions(Dictionary<StoredId, List<StoredEffect>> effects)
+    private Dictionary<StoredId, SnapshotStorageSession> CreateSessions(Dictionary<StoredId, List<StoredEffect>>? effects)
     {
         var dictionary = new Dictionary<StoredId, SnapshotStorageSession>();
         foreach (var storedId in effects.Keys)

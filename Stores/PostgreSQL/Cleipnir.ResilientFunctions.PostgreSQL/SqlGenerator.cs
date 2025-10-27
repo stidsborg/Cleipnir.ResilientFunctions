@@ -87,9 +87,6 @@ public class SqlGenerator(string tablePrefix)
     public async Task<Dictionary<StoredId, List<StoredEffect>>> ReadEffectsForIds(NpgsqlDataReader reader, IEnumerable<StoredId> storedIds)
     {
         var effects = new Dictionary<StoredId, List<StoredEffect>>();
-        foreach (var storedId in storedIds)
-            effects[storedId] = new List<StoredEffect>();
-        
         while (await reader.ReadAsync())
         {
             var id = new StoredId(reader.GetGuid(0));
