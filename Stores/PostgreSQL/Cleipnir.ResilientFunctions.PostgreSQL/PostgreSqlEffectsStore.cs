@@ -88,19 +88,5 @@ public class PostgreSqlEffectsStore(string connectionString, SqlGenerator sqlGen
         => await CreateSessions([storedId]).SelectAsync(d => d[storedId]);
 
     private async Task<Dictionary<StoredId, SnapshotStorageSession>> CreateSessions(IEnumerable<StoredId> storedIds) 
-        => CreateSessions(await GetEffectResults(storedIds));
-
-    private Dictionary<StoredId, SnapshotStorageSession> CreateSessions(Dictionary<StoredId, List<StoredEffect>> effects)
-    {
-        var dictionary = new Dictionary<StoredId, SnapshotStorageSession>();
-        foreach (var storedId in effects.Keys)
-        {
-            var session = new SnapshotStorageSession();
-            dictionary[storedId] = session;
-            foreach (var effect in effects[storedId])
-                session.Effects[effect.EffectId] = effect;
-        }
-
-        return dictionary;
-    }
+        => await GetEffectResultsWithSession(storedIds);
 }

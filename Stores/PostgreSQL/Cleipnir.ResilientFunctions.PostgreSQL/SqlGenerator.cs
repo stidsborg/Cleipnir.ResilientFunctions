@@ -42,10 +42,10 @@ public class SqlGenerator(string tablePrefix)
     public StoreCommand GetEffects(StoredId storedId)
     {
         _getEffectResultsSql ??= @$"
-            SELECT content
+            SELECT content, version
             FROM {tablePrefix}_effects
             WHERE id = $1;";
-        
+
         return StoreCommand.Create(
             _getEffectResultsSql,
             values: [ storedId.AsGuid ]);
@@ -54,7 +54,7 @@ public class SqlGenerator(string tablePrefix)
     public StoreCommand GetEffects(IEnumerable<StoredId> storedIds)
     {
         var sql = @$"
-            SELECT id, content
+            SELECT id, content, version
             FROM {tablePrefix}_effects
             WHERE id IN ({storedIds.Select(id => $"'{id}'").StringJoin(", ")});";
         
@@ -70,16 +70,20 @@ public class SqlGenerator(string tablePrefix)
         while (await reader.ReadAsync())
         {
             var content = (byte[])reader.GetValue(0);
+            var version = reader.GetInt32(1);
             var effectsBytes = BinaryPacker.Split(content);
             foreach (var effectBytes in effectsBytes)
             {
                 if (effectBytes == null)
                     throw new SerializationException("Unable to deserialize effect");
-                
+
                 var storedEffect = StoredEffect.Deserialize(effectBytes);
                 effects.Add(storedEffect);
                 session.Effects[storedEffect.EffectId] = storedEffect;
             }
+
+            session.RowExists = true;
+            session.Version = version;
         }
         
         return new StoredEffectsWithSession(effects, session);
