@@ -109,13 +109,25 @@ public class SqlGenerator(string tablePrefix)
             else
                 session.Effects[change.EffectId] = change.StoredEffect!;
 
+        var content = session.Serialize();
+        if (!session.RowExists)
+        {
+            session.RowExists = true;
+            return StoreCommand.Create(
+                $@"INSERT INTO {tablePrefix}_effects 
+                            (id, content, version)
+                       VALUES
+                            ($1, $2, 0);", 
+                [storedId.AsGuid, content]
+            );
+        }
+        
         var sql = $@"
             UPDATE {tablePrefix}_effects
             SET content = $1
-            WHERE id = $2;";
-
-        var content = session.Serialize();
-        return StoreCommand.Create(sql, [content, storedId.AsGuid]);
+            WHERE id = $2 AND version = $3;";
+        
+        return StoreCommand.Create(sql, [content, storedId.AsGuid, session.Version++]);
     }
     
     private string? _createFunctionSql;
