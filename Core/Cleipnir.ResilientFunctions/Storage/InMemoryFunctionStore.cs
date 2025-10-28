@@ -84,9 +84,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
                     .GetAwaiter()
                     .GetResult();
 
-            var session = _effectsStore.CreateStorageSession(storedId);
-
-            return Task.FromResult<IStorageSession?>(session);
+            return Task.FromResult<IStorageSession?>(null);
         }
     }
 
@@ -133,6 +131,11 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         var sf = await GetFunction(storedId);
         var effects = await EffectsStore.GetEffectResults(storedId);
         var messages = await MessageStore.GetMessages(storedId, skip: 0);
+
+        var session = new SnapshotStorageSession();
+        foreach (var effect in effects)
+            session.Effects[effect.EffectId] = effect;
+
         return
             sf == null
                 ? null
@@ -140,7 +143,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
                     sf,
                     effects,
                     messages,
-                    _effectsStore.CreateStorageSession(storedId)
+                    session
                 );
     }
     
