@@ -78,13 +78,15 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
 
             _messages[storedId].AddRange(messages ?? []);
 
+            var session = new SnapshotStorageSession();
+
             if (effects?.Any() ?? false)
                 _effectsStore
-                    .SetEffectResults(storedId, effects.Select(e => new StoredEffectChange(storedId, e.EffectId, Operation: CrudOperation.Insert, e)).ToList(), session: null)
+                    .SetEffectResults(storedId, effects.Select(e => new StoredEffectChange(storedId, e.EffectId, Operation: CrudOperation.Insert, e)).ToList(), session: session)
                     .GetAwaiter()
                     .GetResult();
 
-            return Task.FromResult<IStorageSession?>(null);
+            return Task.FromResult<IStorageSession?>(session);
         }
     }
 
@@ -135,6 +137,9 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         var session = new SnapshotStorageSession();
         foreach (var effect in effects)
             session.Effects[effect.EffectId] = effect;
+
+        session.Version = _effectsStore.GetVersion(storedId);
+        session.RowExists = effects.Any();
 
         return
             sf == null
