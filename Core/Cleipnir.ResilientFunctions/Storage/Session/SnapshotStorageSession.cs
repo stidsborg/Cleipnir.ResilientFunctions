@@ -7,7 +7,7 @@ namespace Cleipnir.ResilientFunctions.Storage.Session;
 
 public class SnapshotStorageSession : IStorageSession
 {
-    public Dictionary<EffectId, StoredEffect>  Effects { get; } = new();
+    public Dictionary<EffectId, StoredEffect> Effects { get; } = new();
     public int Version { get; set; }
     public bool RowExists { get; set; }
 
