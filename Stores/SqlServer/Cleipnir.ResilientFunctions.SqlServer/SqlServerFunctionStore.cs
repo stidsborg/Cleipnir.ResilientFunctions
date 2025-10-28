@@ -173,7 +173,7 @@ public class SqlServerFunctionStore : IFunctionStore
                 storeCommand = storeCommand.Merge(messagesCommand);
             }
 
-            var session = new PositionsStorageSession();
+            var session = new SnapshotStorageSession();
             if (effects?.Any() ?? false)
             {
                 var effectsCommand = _sqlGenerator.UpdateEffects(
@@ -186,7 +186,16 @@ public class SqlServerFunctionStore : IFunctionStore
             }
 
             await using var command = storeCommand.ToSqlCommand(conn);
+            if (messages?.Any() != true && effects?.Any() != true)
+            {
+                await command.ExecuteNonQueryAsync();
+                return session;
+            }
+            
+            await using var transaction = conn.BeginTransaction();
+            command.Transaction = transaction;
             await command.ExecuteNonQueryAsync();
+            await transaction.CommitAsync();
             return session;
         }
         catch (SqlException sqlException) when (sqlException.Number == SqlError.UNIQUENESS_VIOLATION)
@@ -265,18 +274,12 @@ public class SqlServerFunctionStore : IFunctionStore
             return null;
 
         await reader.NextResultAsync();
-        var effectsWithPositions = await _sqlGenerator.ReadEffectsWithPositions(reader);
-        var effects = effectsWithPositions.Select(e => e.Effect).ToList();
+        var effectsWithSession = await _sqlGenerator.ReadEffects(reader);
+        var effects = effectsWithSession.Effects;
+        var session = effectsWithSession.Session;
 
         await reader.NextResultAsync();
         var messages = await _sqlGenerator.ReadMessages(reader);
-
-        var session = new PositionsStorageSession();
-        foreach (var (effect, position) in effectsWithPositions.OrderBy(e => e.Position))
-        {
-            session.MaxPosition = position;
-            session.Positions[effect.EffectId.Serialize()] = position;
-        }
 
         return new StoredFlowWithEffectsAndMessages(sf, effects, messages, session);
     }
