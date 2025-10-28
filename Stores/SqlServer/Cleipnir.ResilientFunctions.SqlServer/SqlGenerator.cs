@@ -51,13 +51,14 @@ public class SqlGenerator(string tablePrefix)
         if (!session.RowExists)
         {
             session.RowExists = true;
-            return StoreCommand.Create(
-                $@"INSERT INTO {tablePrefix}_Effects
+            var insertSql = $@"INSERT INTO {tablePrefix}_Effects
                             (Id, Content, Version)
                        VALUES
-                            (@{paramPrefix}Id, @{paramPrefix}Content, 0);",
-                [$"@{paramPrefix}Id", storedId.AsGuid, $"@{paramPrefix}Content", content]
-            );
+                            (@{paramPrefix}Id, @{paramPrefix}Content, 0);";
+            var insertCommand = StoreCommand.Create(insertSql);
+            insertCommand.AddParameter($"@{paramPrefix}Id", storedId.AsGuid);
+            insertCommand.AddParameter($"@{paramPrefix}Content", content);
+            return insertCommand;
         }
 
         var sql = $@"
