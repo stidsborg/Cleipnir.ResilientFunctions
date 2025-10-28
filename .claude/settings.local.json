@@ -13,7 +13,8 @@
       "Bash(dotnet test:*)",
       "Bash(docker compose:*)",
       "Bash(dotnet run:*)",
-      "Bash(pg_isready -h localhost -p 5432)"
+      "Bash(pg_isready -h localhost -p 5432)",
+      "Bash(git log:*)"
     ],
     "deny": [],
     "ask": []

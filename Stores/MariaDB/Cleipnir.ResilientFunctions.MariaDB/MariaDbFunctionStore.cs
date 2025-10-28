@@ -129,7 +129,7 @@ public class MariaDbFunctionStore : IFunctionStore
                 .CreateFunction(storedId, humanInstanceId, param, leaseExpiration, postponeUntil, timestamp, parent, owner, ignoreDuplicate: true)
                 .ToSqlCommand(conn);
             var affectedRows = await command.ExecuteNonQueryAsync();
-            return affectedRows == 1 ? new PositionsStorageSession() : null;
+            return affectedRows == 1 ? new SnapshotStorageSession() : null;
         }
         else
         {
@@ -142,7 +142,7 @@ public class MariaDbFunctionStore : IFunctionStore
                 storeCommand = storeCommand.Merge(messagesCommand);
             }
 
-            var session = new PositionsStorageSession();
+            var session = new SnapshotStorageSession();
             if (effects?.Any() ?? false)
             {
                 var effectsCommand = _sqlGenerator.UpdateEffects(
@@ -218,18 +218,12 @@ public class MariaDbFunctionStore : IFunctionStore
             return null;
         await reader.NextResultAsync();
 
-        var effectsWithPositions = await _sqlGenerator.ReadEffectsWithPositions(reader);
-        var effects = effectsWithPositions.Select(e => e.Effect).ToList();
+        var effectsWithSession = await _sqlGenerator.ReadEffects(reader);
+        var effects = effectsWithSession.Effects;
+        var session = effectsWithSession.Session;
         await reader.NextResultAsync();
 
         var messages = await _sqlGenerator.ReadMessages(reader);
-
-        var session = new PositionsStorageSession();
-        foreach (var (effect, position) in effectsWithPositions.OrderBy(e => e.Position))
-        {
-            session.MaxPosition = position;
-            session.Positions[effect.EffectId.Serialize()] = position;
-        }
 
         return new StoredFlowWithEffectsAndMessages(sf, effects, messages, session);
     }
