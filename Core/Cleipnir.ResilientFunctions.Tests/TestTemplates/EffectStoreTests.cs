@@ -476,7 +476,7 @@ public abstract class EffectStoreTests
         await effectStore.SetEffectResult(storedId, storedEffect1.ToStoredChange(storedId, Insert), storageSession1);
         try
         {
-            await effectStore.SetEffectResult(storedId, storedEffect2.ToStoredChange(storedId, Update), storageSession2);            
+            await effectStore.SetEffectResult(storedId, storedEffect2.ToStoredChange(storedId, Insert), storageSession2);            
         }
         catch (Exception)
         {
