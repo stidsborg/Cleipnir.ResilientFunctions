@@ -17,10 +17,11 @@ public class SqlServerEffectsStore(string connectionString, SqlGenerator sqlGene
         _initializeSql ??= @$"
             CREATE TABLE {tablePrefix}_Effects (
                 Id UNIQUEIDENTIFIER,
+                Position INT,
                 Content VARBINARY(MAX),
                 Version INT,
 
-                PRIMARY KEY (Id)
+                PRIMARY KEY (Id, Position)
             );";
 
         await using var command = new SqlCommand(_initializeSql, conn);
