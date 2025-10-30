@@ -66,12 +66,12 @@ public class PostgreSqlEffectsStore : IEffectsStore
         storedIds = storedIds.ToList();
         var command = _postgreSqlStateStore.Get(storedIds.ToList());
         await using var reader = await _commandExecutor.Execute(command);
-        var stuff = await _postgreSqlStateStore.Read(reader);
+        var storedStates = await _postgreSqlStateStore.Read(reader);
         var toReturn = new Dictionary<StoredId, SnapshotStorageSession>();
         foreach (var storedId in storedIds)
             toReturn[storedId] = new SnapshotStorageSession();
         
-        foreach (var (id, states) in stuff)
+        foreach (var (id, states) in storedStates)
         {
             var storedState = states[0];
             
