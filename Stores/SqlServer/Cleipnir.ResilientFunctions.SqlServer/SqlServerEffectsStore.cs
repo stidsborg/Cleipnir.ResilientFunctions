@@ -4,54 +4,58 @@ using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Storage.Session;
-using Microsoft.Data.SqlClient;
+using Cleipnir.ResilientFunctions.Storage.Utils;
 
 namespace Cleipnir.ResilientFunctions.SqlServer;
 
-public class SqlServerEffectsStore(string connectionString, SqlGenerator sqlGenerator, string tablePrefix = "") : IEffectsStore
+public class SqlServerEffectsStore : IEffectsStore
 {
-    private string? _initializeSql;
-    public async Task Initialize()
+    private readonly SqlServerStateStore _sqlServerStateStore;
+    private readonly SqlServerCommandExecutor _commandExecutor;
+
+    public SqlServerEffectsStore(string connectionString, SqlGenerator sqlGenerator, string tablePrefix = "")
     {
-        await using var conn = await CreateConnection();
-        _initializeSql ??= @$"
-            CREATE TABLE {tablePrefix}_Effects (
-                Id UNIQUEIDENTIFIER,
-                Position INT,
-                Content VARBINARY(MAX),
-                Version INT,
-
-                PRIMARY KEY (Id, Position)
-            );";
-
-        await using var command = new SqlCommand(_initializeSql, conn);
-        try
-        {
-            await command.ExecuteNonQueryAsync();
-        } catch (SqlException exception) when (exception.Number == 2714) {}
+        _sqlServerStateStore = new SqlServerStateStore(connectionString, tablePrefix);
+        _commandExecutor = new SqlServerCommandExecutor(connectionString);
     }
 
-    private string? _truncateSql;
-    public async Task Truncate()
-    {
-        await using var conn = await CreateConnection();
-        _truncateSql ??= $"TRUNCATE TABLE {tablePrefix}_Effects";
-        await using var command = new SqlCommand(_truncateSql, conn);
-        await command.ExecuteNonQueryAsync();
-    }
+    public async Task Initialize() => await _sqlServerStateStore.Initialize();
+    public async Task Truncate() => await _sqlServerStateStore.Truncate();
 
     public async Task SetEffectResults(StoredId storedId, IReadOnlyList<StoredEffectChange> changes, IStorageSession? session)
     {
         if (changes.Count == 0)
             return;
 
-        var storageSession = session as SnapshotStorageSession ?? await CreateSession(storedId);
-        await using var conn = await CreateConnection();
-        await using var command = sqlGenerator
-            .UpdateEffects(storedId, changes, storageSession, paramPrefix: "")
-            .ToSqlCommand(conn);
+        var snapshotSession = session as SnapshotStorageSession;
+        if (snapshotSession == null)
+            snapshotSession = await CreateSession(storedId);
 
-        await command.ExecuteNonQueryAsync();
+        foreach (var change in changes)
+            if (change.Operation == CrudOperation.Delete)
+                snapshotSession.Effects.Remove(change.EffectId);
+            else
+                snapshotSession.Effects[change.EffectId] = change.StoredEffect!;
+
+        var content = snapshotSession.Serialize();
+
+        var storedState = new SqlServerStateStore.StoredState(
+            storedId,
+            Position: 0,
+            content,
+            snapshotSession.Version
+        );
+
+        if (snapshotSession.RowExists)
+        {
+            snapshotSession.Version++;
+            await _commandExecutor.ExecuteNonQuery(_sqlServerStateStore.Update(storedId, storedState));
+        }
+        else
+        {
+            snapshotSession.RowExists = true;
+            await _commandExecutor.ExecuteNonQuery(_sqlServerStateStore.Insert(storedId, storedState));
+        }
     }
 
     public async Task<Dictionary<StoredId, List<StoredEffect>>> GetEffectResults(IEnumerable<StoredId> storedIds)
@@ -60,33 +64,34 @@ public class SqlServerEffectsStore(string connectionString, SqlGenerator sqlGene
     public async Task<Dictionary<StoredId, SnapshotStorageSession>> GetEffectResultsWithSession(IEnumerable<StoredId> storedIds)
     {
         storedIds = storedIds.ToList();
-        await using var conn = await CreateConnection();
-        await using var command = sqlGenerator.GetEffects(storedIds).ToSqlCommand(conn);
+        var command = _sqlServerStateStore.Get(storedIds.ToList());
+        await using var reader = await _commandExecutor.Execute(command);
+        var storedStates = await _sqlServerStateStore.Read(reader);
+        var toReturn = new Dictionary<StoredId, SnapshotStorageSession>();
+        foreach (var storedId in storedIds)
+            toReturn[storedId] = new SnapshotStorageSession();
 
-        await using var reader = await command.ExecuteReaderAsync();
-        var effects = await sqlGenerator.ReadEffectsForMultipleStoredIds(reader, storedIds);
-        return effects;
+        foreach (var (id, states) in storedStates)
+        {
+            var storedState = states[0];
+
+            var session = toReturn[id];
+            session.RowExists = true;
+            session.Version = storedState.Version;
+
+            var effectsBytes = BinaryPacker.Split(storedState.Content!);
+            var storedEffects = effectsBytes.Select(effectBytes => StoredEffect.Deserialize(effectBytes!)).ToList();
+            foreach (var storedEffect in storedEffects)
+                session.Effects[storedEffect.EffectId] = storedEffect;
+        }
+
+        return toReturn;
     }
     
-    private string? _removeSql;
     public async Task Remove(StoredId storedId)
     {
-        await using var conn = await CreateConnection();
-        _removeSql ??= @$"
-            DELETE FROM {tablePrefix}_Effects
-            WHERE Id = @Id";
-        
-        await using var command = new SqlCommand(_removeSql, conn);
-        command.Parameters.AddWithValue("@Id", storedId.AsGuid);
-        
-        await command.ExecuteNonQueryAsync();
-    }
-
-    private async Task<SqlConnection> CreateConnection()
-    {
-        var connection = new SqlConnection(connectionString);
-        await connection.OpenAsync();
-        return connection;
+        var cmd = _sqlServerStateStore.Delete(storedId);
+        await _commandExecutor.ExecuteNonQuery(cmd);
     }
 
     private async Task<SnapshotStorageSession> CreateSession(StoredId storedId)

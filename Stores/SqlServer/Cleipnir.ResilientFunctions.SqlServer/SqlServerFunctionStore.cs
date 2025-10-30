@@ -176,7 +176,7 @@ public class SqlServerFunctionStore : IFunctionStore
             var session = new SnapshotStorageSession();
             if (effects?.Any() ?? false)
             {
-                var effectsCommand = _sqlGenerator.UpdateEffects(
+                var effectsCommand = _sqlGenerator.InsertEffects(
                     storedId,
                     changes: effects.Select(e => new StoredEffectChange(storedId, e.EffectId, CrudOperation.Insert, e)).ToList(),
                     session,

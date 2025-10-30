@@ -72,6 +72,22 @@ public class SqlServerStateStore(string connectionString, string tablePrefix)
         return StoreCommand.Create(sql);
     }
 
+    public StoreCommand Delete(StoredId id)
+    {
+        var sql = $@"
+            DELETE FROM {tablePrefix}_state
+            WHERE id = '{id}';";
+
+        return StoreCommand.Create(sql);
+    }
+
+    public async Task Truncate()
+    {
+        await using var conn = await CreateConnection();
+        await using var cmd = new SqlCommand($"TRUNCATE TABLE {tablePrefix}_state", conn);
+        await cmd.ExecuteNonQueryAsync();
+    }
+
     public StoreCommand Update(StoredId id, StoredState state)
     {
         var sql = $@"

@@ -39,7 +39,7 @@ public class SqlGenerator(string tablePrefix)
         return StoreCommand.Create(sql);
     }
     
-    public StoreCommand UpdateEffects(StoredId storedId, IReadOnlyList<StoredEffectChange> changes, SnapshotStorageSession session, string paramPrefix)
+    public StoreCommand InsertEffects(StoredId storedId, IReadOnlyList<StoredEffectChange> changes, SnapshotStorageSession session, string paramPrefix)
     {
         foreach (var change in changes)
             if (change.Operation == CrudOperation.Delete)
@@ -48,30 +48,15 @@ public class SqlGenerator(string tablePrefix)
                 session.Effects[change.EffectId] = change.StoredEffect!;
 
         var content = session.Serialize();
-        if (!session.RowExists)
-        {
-            session.RowExists = true;
-            var insertSql = $@"INSERT INTO {tablePrefix}_Effects
-                            (Id, Position, Content, Version)
-                       VALUES
-                            (@{paramPrefix}Id, 0, @{paramPrefix}Content, 0);";
-            var insertCommand = StoreCommand.Create(insertSql);
-            insertCommand.AddParameter($"@{paramPrefix}Id", storedId.AsGuid);
-            insertCommand.AddParameter($"@{paramPrefix}Content", content);
-            return insertCommand;
-        }
-
-        var sql = $@"
-            UPDATE {tablePrefix}_Effects
-            SET Content = @{paramPrefix}Content, Version = Version + 1
-            WHERE Id = @{paramPrefix}Id AND Position = 0 AND Version = @{paramPrefix}Version;";
-
-        var command = StoreCommand.Create(sql);
-        command.AddParameter($"@{paramPrefix}Content", content);
-        command.AddParameter($"@{paramPrefix}Id", storedId.AsGuid);
-        command.AddParameter($"@{paramPrefix}Version", session.Version++);
-
-        return command;
+        session.RowExists = true;
+        var insertSql = $@"INSERT INTO {tablePrefix}_state
+                        (Id, Position, Content, Version)
+                   VALUES
+                        (@{paramPrefix}Id, 0, @{paramPrefix}Content, 0);";
+        var insertCommand = StoreCommand.Create(insertSql);
+        insertCommand.AddParameter($"@{paramPrefix}Id", storedId.AsGuid);
+        insertCommand.AddParameter($"@{paramPrefix}Content", content);
+        return insertCommand;
     }
     
     private string? _getEffectsSql;
@@ -79,8 +64,8 @@ public class SqlGenerator(string tablePrefix)
     {
         _getEffectsSql ??= @$"
             SELECT Id, Position, Content, Version
-            FROM {tablePrefix}_Effects
-            WHERE Id = @Id";
+            FROM {tablePrefix}_state
+            WHERE Id = @Id AND Position = 0";
 
         var sql = _getEffectsSql;
         if (paramPrefix != "")
@@ -100,7 +85,7 @@ public class SqlGenerator(string tablePrefix)
         while (reader.HasRows && await reader.ReadAsync())
         {
             var id = reader.GetGuid(0);
-            var position = reader.GetInt32(1);
+            var position = reader.GetInt64(1);
             var content = (byte[])reader.GetValue(2);
             var version = reader.GetInt32(3);
             var effectsBytes = BinaryPacker.Split(content);
@@ -125,8 +110,8 @@ public class SqlGenerator(string tablePrefix)
     {
         var sql = @$"
             SELECT Id, Position, Content, Version
-            FROM {tablePrefix}_Effects
-            WHERE Id IN ({storedIds.InClause()})";
+            FROM {tablePrefix}_state
+            WHERE Id IN ({storedIds.InClause()}) AND Position = 0";
 
         var command = StoreCommand.Create(sql);
         return command;
@@ -141,7 +126,7 @@ public class SqlGenerator(string tablePrefix)
         while (reader.HasRows && await reader.ReadAsync())
         {
             var id = reader.GetGuid(0).ToStoredId();
-            var position = reader.GetInt32(1);
+            var position = reader.GetInt64(1);
             var content = (byte[])reader.GetValue(2);
             var version = reader.GetInt32(3);
 
