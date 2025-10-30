@@ -171,7 +171,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
             var session = new SnapshotStorageSession();
             if (effects?.Any() ?? false)
                 commands.AddRange(
-                    _sqlGenerator.UpdateEffects(
+                    _sqlGenerator.InsertEffects(
                         storedId,
                         changes: effects.Select(e => new StoredEffectChange(storedId, e.EffectId, CrudOperation.Insert, e)).ToList(),
                         session

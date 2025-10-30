@@ -47,9 +47,15 @@ public class PostgreSqlEffectsStore : IEffectsStore
         );
 
         if (snapshotSession.RowExists)
-            _postgreSqlStateStore.AddTo0(storedId, storedState);
+        {
+            snapshotSession.Version++;
+            await _commandExecutor.ExecuteNonQuery(_postgreSqlStateStore.Update(storedId, storedState));            
+        }
         else
-            _postgreSqlStateStore.Insert(storedId, storedState);
+        {
+            snapshotSession.RowExists = true;            
+            await _commandExecutor.ExecuteNonQuery(_postgreSqlStateStore.Insert(storedId, storedState));
+        }
     }
 
     public async Task<Dictionary<StoredId, List<StoredEffect>>> GetEffectResults(IEnumerable<StoredId> storedIds)
