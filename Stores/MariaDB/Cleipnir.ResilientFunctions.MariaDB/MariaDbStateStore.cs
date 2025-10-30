@@ -66,6 +66,22 @@ public class MariaDbStateStore(string connectionString, string tablePrefix)
         return StoreCommand.Create(sql);
     }
 
+    public StoreCommand Delete(StoredId id)
+    {
+        var sql = $@"
+            DELETE FROM {tablePrefix}_state
+            WHERE id = '{id.AsGuid:N}';";
+
+        return StoreCommand.Create(sql);
+    }
+
+    public async Task Truncate()
+    {
+        await using var conn = await CreateConnection();
+        await using var cmd = new MySqlCommand($"TRUNCATE TABLE {tablePrefix}_state", conn);
+        await cmd.ExecuteNonQueryAsync();
+    }
+
     public StoreCommand Update(StoredId id, StoredState state)
     {
         var sql = $@"

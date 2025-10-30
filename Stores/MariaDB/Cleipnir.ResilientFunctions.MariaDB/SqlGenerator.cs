@@ -39,8 +39,8 @@ public class SqlGenerator(string tablePrefix)
     {
         _getEffectResultsSql ??= @$"
             SELECT id, position, content, version
-            FROM {tablePrefix}_effects
-            WHERE id = ?;";
+            FROM {tablePrefix}_state
+            WHERE id = ? AND position = 0;";
 
         var command = StoreCommand.Create(
             _getEffectResultsSql,
@@ -86,8 +86,8 @@ public class SqlGenerator(string tablePrefix)
     {
         var sql = @$"
             SELECT id, position, content, version
-            FROM {tablePrefix}_effects
-            WHERE id IN ({storedIds.Select(id => $"'{id.AsGuid:N}'").StringJoin(", ")});";
+            FROM {tablePrefix}_state
+            WHERE id IN ({storedIds.Select(id => $"'{id.AsGuid:N}'").StringJoin(", ")}) AND position = 0;";
 
         var command = StoreCommand.Create(sql);
         return command;
@@ -120,7 +120,7 @@ public class SqlGenerator(string tablePrefix)
         return effects;
     }
     
-    public StoreCommand UpdateEffects(StoredId storedId, IReadOnlyList<StoredEffectChange> changes, SnapshotStorageSession session)
+    public StoreCommand InsertEffects(StoredId storedId, IReadOnlyList<StoredEffectChange> changes, SnapshotStorageSession session)
     {
         foreach (var change in changes)
             if (change.Operation == CrudOperation.Delete)
@@ -129,24 +129,14 @@ public class SqlGenerator(string tablePrefix)
                 session.Effects[change.EffectId] = change.StoredEffect!;
 
         var content = session.Serialize();
-        if (!session.RowExists)
-        {
-            session.RowExists = true;
-            return StoreCommand.Create(
-                $@"INSERT INTO {tablePrefix}_effects
+        session.RowExists = true;
+        return StoreCommand.Create(
+            $@"INSERT INTO {tablePrefix}_state
                             (id, position, content, version)
                        VALUES
                             (?, 0, ?, 0);",
-                [storedId.AsGuid.ToString("N"), content]
-            );
-        }
-
-        var sql = $@"
-            UPDATE {tablePrefix}_effects
-            SET content = ?, version = version + 1
-            WHERE id = ? AND position = 0 AND version = ?;";
-
-        return StoreCommand.Create(sql, [content, storedId.AsGuid.ToString("N"), session.Version++]);
+            [storedId.AsGuid.ToString("N"), content]
+        );
     }
     
     private string? _createFunctionSql;

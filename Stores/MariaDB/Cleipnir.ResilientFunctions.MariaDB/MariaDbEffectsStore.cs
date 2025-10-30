@@ -2,49 +2,58 @@
 using Cleipnir.ResilientFunctions.MariaDB.StoreCommand;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Storage.Session;
-using MySqlConnector;
+using Cleipnir.ResilientFunctions.Storage.Utils;
 
 namespace Cleipnir.ResilientFunctions.MariaDb;
 
-public class MariaDbEffectsStore(string connectionString, SqlGenerator sqlGenerator, string tablePrefix = "") : IEffectsStore
+public class MariaDbEffectsStore : IEffectsStore
 {
-    private string? _initializeSql;
-    public async Task Initialize()
+    private readonly MariaDbStateStore _mariaDbStateStore;
+    private readonly MariaDbCommandExecutor _commandExecutor;
+
+    public MariaDbEffectsStore(string connectionString, SqlGenerator sqlGenerator, string tablePrefix = "")
     {
-        await using var conn = await CreateConnection();
-        _initializeSql ??= @$"
-            CREATE TABLE IF NOT EXISTS {tablePrefix}_effects (
-                id CHAR(32),
-                position INT,
-                content LONGBLOB,
-                version INT,
-                PRIMARY KEY (id, position)
-            );";
-        var command = new MySqlCommand(_initializeSql, conn);
-        await command.ExecuteNonQueryAsync();
+        _mariaDbStateStore = new MariaDbStateStore(connectionString, tablePrefix);
+        _commandExecutor = new MariaDbCommandExecutor(connectionString);
     }
 
-    private string? _truncateSql;
-    public async Task Truncate()
-    {
-        await using var conn = await CreateConnection();
-        _truncateSql ??= $"TRUNCATE TABLE {tablePrefix}_effects";
-        var command = new MySqlCommand(_truncateSql, conn);
-        await command.ExecuteNonQueryAsync();
-    }
+    public async Task Initialize() => await _mariaDbStateStore.Initialize();
+    public async Task Truncate() => await _mariaDbStateStore.Truncate();
 
     public async Task SetEffectResults(StoredId storedId, IReadOnlyList<StoredEffectChange> changes, IStorageSession? session)
     {
         if (changes.Count == 0)
             return;
 
-        var storageSession = session as SnapshotStorageSession ?? await CreateSession(storedId);
-        await using var conn = await CreateConnection();
-        await using var command = sqlGenerator
-            .UpdateEffects(storedId, changes, storageSession)
-            .ToSqlCommand(conn);
+        var snapshotSession = session as SnapshotStorageSession;
+        if (snapshotSession == null)
+            snapshotSession = await CreateSession(storedId);
 
-        await command.ExecuteNonQueryAsync();
+        foreach (var change in changes)
+            if (change.Operation == CrudOperation.Delete)
+                snapshotSession.Effects.Remove(change.EffectId);
+            else
+                snapshotSession.Effects[change.EffectId] = change.StoredEffect!;
+
+        var content = snapshotSession.Serialize();
+
+        var storedState = new MariaDbStateStore.StoredState(
+            storedId,
+            Position: 0,
+            content,
+            snapshotSession.Version
+        );
+
+        if (snapshotSession.RowExists)
+        {
+            snapshotSession.Version++;
+            await _commandExecutor.ExecuteNonQuery(_mariaDbStateStore.Update(storedId, storedState));
+        }
+        else
+        {
+            snapshotSession.RowExists = true;
+            await _commandExecutor.ExecuteNonQuery(_mariaDbStateStore.Insert(storedId, storedState));
+        }
     }
 
     public async Task<Dictionary<StoredId, List<StoredEffect>>> GetEffectResults(IEnumerable<StoredId> storedIds)
@@ -53,35 +62,34 @@ public class MariaDbEffectsStore(string connectionString, SqlGenerator sqlGenera
     public async Task<Dictionary<StoredId, SnapshotStorageSession>> GetEffectResultsWithSession(IEnumerable<StoredId> storedIds)
     {
         storedIds = storedIds.ToList();
-        await using var conn = await CreateConnection();
-        await using var command = sqlGenerator.GetEffects(storedIds).ToSqlCommand(conn);
-        await using var reader = await command.ExecuteReaderAsync();
+        var command = _mariaDbStateStore.Get(storedIds.ToList());
+        await using var reader = await _commandExecutor.Execute(command);
+        var storedStates = await _mariaDbStateStore.Read(reader);
+        var toReturn = new Dictionary<StoredId, SnapshotStorageSession>();
+        foreach (var storedId in storedIds)
+            toReturn[storedId] = new SnapshotStorageSession();
 
-        var effects = await sqlGenerator.ReadEffectsForMultipleStoredIds(reader, storedIds);
-        return effects;
+        foreach (var (id, states) in storedStates)
+        {
+            var storedState = states[0];
+
+            var session = toReturn[id];
+            session.RowExists = true;
+            session.Version = storedState.Version;
+
+            var effectsBytes = BinaryPacker.Split(storedState.Content!);
+            var storedEffects = effectsBytes.Select(effectBytes => StoredEffect.Deserialize(effectBytes!)).ToList();
+            foreach (var storedEffect in storedEffects)
+                session.Effects[storedEffect.EffectId] = storedEffect;
+        }
+
+        return toReturn;
     }
     
-    private string? _removeSql;
     public async Task Remove(StoredId storedId)
     {
-        await using var conn = await CreateConnection();
-        _removeSql ??= $"DELETE FROM {tablePrefix}_effects WHERE id = ?";
-        await using var command = new MySqlCommand(_removeSql, conn)
-        {
-            Parameters =
-            {
-                new() { Value = storedId.AsGuid.ToString("N") },
-            }
-        };
-
-        await command.ExecuteNonQueryAsync();
-    }
-
-    private async Task<MySqlConnection> CreateConnection()
-    {
-        var conn = new MySqlConnection(connectionString);
-        await conn.OpenAsync();
-        return conn;
+        var cmd = _mariaDbStateStore.Delete(storedId);
+        await _commandExecutor.ExecuteNonQuery(cmd);
     }
 
     private async Task<SnapshotStorageSession> CreateSession(StoredId storedId)
