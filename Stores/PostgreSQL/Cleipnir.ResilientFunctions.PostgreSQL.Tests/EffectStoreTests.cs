@@ -58,4 +58,24 @@ public class EffectStoreTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.
     [TestMethod]
     public override Task StoreCanHandleMultipleEffectsWithSameIdOnDifferentSessions()
         => StoreCanHandleMultipleEffectsWithSameIdOnDifferentSessions(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task MultipleSequentialUpdatesWithoutRefresh()
+        => MultipleSequentialUpdatesWithoutRefresh(FunctionStoreFactory.Create());
+    
+    [TestMethod]
+    public override Task StoreHandlesLargeNumberOfEffects()
+        => StoreHandlesLargeNumberOfEffects(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task SessionVersionIncrementsProperly()
+        => SessionVersionIncrementsProperly(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task EffectsSerializeAndDeserializeCorrectly()
+        => EffectsSerializeAndDeserializeCorrectly(FunctionStoreFactory.Create().SelectAsync(fs => fs.EffectsStore));
+
+    [TestMethod]
+    public override Task MixedInsertUpdateDeleteInSequence()
+        => MixedInsertUpdateDeleteInSequence(FunctionStoreFactory.Create());
 }

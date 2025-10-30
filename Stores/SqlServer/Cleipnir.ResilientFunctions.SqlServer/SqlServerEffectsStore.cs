@@ -1,14 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Data.SqlTypes;
+﻿using System.Collections.Generic;
 using System.Linq;
-using System.Text.Json;
 using System.Threading.Tasks;
-using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Storage.Session;
-using Cleipnir.ResilientFunctions.Storage.Utils;
 using Microsoft.Data.SqlClient;
 
 namespace Cleipnir.ResilientFunctions.SqlServer;
@@ -19,22 +14,19 @@ public class SqlServerEffectsStore(string connectionString, SqlGenerator sqlGene
     public async Task Initialize()
     {
         await using var conn = await CreateConnection();
-        _initializeSql ??= @$"    
+        _initializeSql ??= @$"
             CREATE TABLE {tablePrefix}_Effects (
                 Id UNIQUEIDENTIFIER,
-                Position BIGINT,              
-                EffectId VARCHAR(MAX) NOT NULL,                
-                Status INT NOT NULL,
-                Result VARBINARY(MAX),
-                Exception NVARCHAR(MAX),
-                
-                PRIMARY KEY (Id, Position)
+                Content VARBINARY(MAX),
+                Version INT,
+
+                PRIMARY KEY (Id)
             );";
 
         await using var command = new SqlCommand(_initializeSql, conn);
         try
         {
-            await command.ExecuteNonQueryAsync();    
+            await command.ExecuteNonQueryAsync();
         } catch (SqlException exception) when (exception.Number == 2714) {}
     }
 
@@ -52,21 +44,19 @@ public class SqlServerEffectsStore(string connectionString, SqlGenerator sqlGene
         if (changes.Count == 0)
             return;
 
-        var positionsSession = session as PositionsStorageSession ?? await CreateSession(storedId);
+        var storageSession = session as SnapshotStorageSession ?? await CreateSession(storedId);
         await using var conn = await CreateConnection();
         await using var command = sqlGenerator
-            .UpdateEffects(storedId, changes, positionsSession, paramPrefix: "")
-            ?.ToSqlCommand(conn);
+            .UpdateEffects(storedId, changes, storageSession, paramPrefix: "")
+            .ToSqlCommand(conn);
 
-        if (command != null)
-            await command.ExecuteNonQueryAsync();
+        await command.ExecuteNonQueryAsync();
     }
 
     public async Task<Dictionary<StoredId, List<StoredEffect>>> GetEffectResults(IEnumerable<StoredId> storedIds)
-        => (await GetEffectResultsWithPositions(storedIds))
-            .ToDictionary(kv => kv.Key, kv => kv.Value.Select(s => s.Effect).ToList());
+        => (await GetEffectResultsWithSession(storedIds)).ToDictionary(kv => kv.Key, kv => kv.Value.Effects.Values.ToList());
 
-    private async Task<Dictionary<StoredId, List<StoredEffectWithPosition>>> GetEffectResultsWithPositions(IEnumerable<StoredId> storedIds)
+    public async Task<Dictionary<StoredId, SnapshotStorageSession>> GetEffectResultsWithSession(IEnumerable<StoredId> storedIds)
     {
         storedIds = storedIds.ToList();
         await using var conn = await CreateConnection();
@@ -98,25 +88,9 @@ public class SqlServerEffectsStore(string connectionString, SqlGenerator sqlGene
         return connection;
     }
 
-    private async Task<PositionsStorageSession> CreateSession(StoredId storedId)
+    private async Task<SnapshotStorageSession> CreateSession(StoredId storedId)
         => await CreateSessions([storedId]).SelectAsync(d => d[storedId]);
-    private async Task<Dictionary<StoredId, PositionsStorageSession>> CreateSessions(IEnumerable<StoredId> storedIds)
-        => CreateSessions(await GetEffectResultsWithPositions(storedIds));
 
-    private Dictionary<StoredId, PositionsStorageSession> CreateSessions(Dictionary<StoredId, List<StoredEffectWithPosition>> effects)
-    {
-        var dictionary = new Dictionary<StoredId, PositionsStorageSession>();
-        foreach (var storedId in effects.Keys)
-        {
-            var session = new PositionsStorageSession();
-            dictionary[storedId] = session;
-            foreach (var (effect, position) in effects[storedId].OrderBy(e => e.Position))
-            {
-                session.MaxPosition = position;
-                session.Positions[effect.EffectId.Serialize()] = position;
-            }
-        }
-
-        return dictionary;
-    }
+    private async Task<Dictionary<StoredId, SnapshotStorageSession>> CreateSessions(IEnumerable<StoredId> storedIds)
+        => await GetEffectResultsWithSession(storedIds);
 }

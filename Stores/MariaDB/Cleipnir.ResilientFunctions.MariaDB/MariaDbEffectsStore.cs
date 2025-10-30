@@ -15,12 +15,9 @@ public class MariaDbEffectsStore(string connectionString, SqlGenerator sqlGenera
         _initializeSql ??= @$"
             CREATE TABLE IF NOT EXISTS {tablePrefix}_effects (
                 id CHAR(32),
-                position BIGINT,               
-                status INT NOT NULL,
-                result LONGBLOB NULL,
-                exception TEXT NULL,
-                effect_id TEXT NOT NULL,
-                PRIMARY KEY(id, position)
+                content LONGBLOB,
+                version INT,
+                PRIMARY KEY (id)
             );";
         var command = new MySqlCommand(_initializeSql, conn);
         await command.ExecuteNonQueryAsync();
@@ -40,21 +37,19 @@ public class MariaDbEffectsStore(string connectionString, SqlGenerator sqlGenera
         if (changes.Count == 0)
             return;
 
-        var positionsSession = session as PositionsStorageSession ?? await CreateSession(storedId);
+        var storageSession = session as SnapshotStorageSession ?? await CreateSession(storedId);
         await using var conn = await CreateConnection();
         await using var command = sqlGenerator
-            .UpdateEffects(storedId, changes, positionsSession)
-            ?.ToSqlCommand(conn);
+            .UpdateEffects(storedId, changes, storageSession)
+            .ToSqlCommand(conn);
 
-        if (command != null)
-            await command.ExecuteNonQueryAsync();
+        await command.ExecuteNonQueryAsync();
     }
 
     public async Task<Dictionary<StoredId, List<StoredEffect>>> GetEffectResults(IEnumerable<StoredId> storedIds)
-        => (await GetEffectResultsWithPositions(storedIds))
-            .ToDictionary(kv => kv.Key, kv => kv.Value.Select(s => s.Effect).ToList());
+        => (await GetEffectResultsWithSession(storedIds)).ToDictionary(kv => kv.Key, kv => kv.Value.Effects.Values.ToList());
 
-    private async Task<Dictionary<StoredId, List<StoredEffectWithPosition>>> GetEffectResultsWithPositions(IEnumerable<StoredId> storedIds)
+    public async Task<Dictionary<StoredId, SnapshotStorageSession>> GetEffectResultsWithSession(IEnumerable<StoredId> storedIds)
     {
         storedIds = storedIds.ToList();
         await using var conn = await CreateConnection();
@@ -88,25 +83,9 @@ public class MariaDbEffectsStore(string connectionString, SqlGenerator sqlGenera
         return conn;
     }
 
-    private async Task<PositionsStorageSession> CreateSession(StoredId storedId)
+    private async Task<SnapshotStorageSession> CreateSession(StoredId storedId)
         => await CreateSessions([storedId]).SelectAsync(d => d[storedId]);
-    private async Task<Dictionary<StoredId, PositionsStorageSession>> CreateSessions(IEnumerable<StoredId> storedIds)
-        => CreateSessions(await GetEffectResultsWithPositions(storedIds));
 
-    private Dictionary<StoredId, PositionsStorageSession> CreateSessions(Dictionary<StoredId, List<StoredEffectWithPosition>> effects)
-    {
-        var dictionary = new Dictionary<StoredId, PositionsStorageSession>();
-        foreach (var storedId in effects.Keys)
-        {
-            var session = new PositionsStorageSession();
-            dictionary[storedId] = session;
-            foreach (var (effect, position) in effects[storedId].OrderBy(e => e.Position))
-            {
-                session.MaxPosition = position;
-                session.Positions[effect.EffectId.Serialize()] = position;
-            }
-        }
-
-        return dictionary;
-    }
+    private async Task<Dictionary<StoredId, SnapshotStorageSession>> CreateSessions(IEnumerable<StoredId> storedIds)
+        => await GetEffectResultsWithSession(storedIds);
 }

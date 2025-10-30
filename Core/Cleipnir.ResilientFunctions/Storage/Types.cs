@@ -172,7 +172,7 @@ public record StoredEffect(
     public static StoredEffect Deserialize(byte[] bytes)
     {
         var parts = BinaryPacker.Split(bytes, expectedPieces: 4);
-        var effect = Domain.EffectId.Deserialize(parts[0]!.ToStringFromUtf8Bytes());
+        var effect = EffectId.Deserialize(parts[0]!.ToStringFromUtf8Bytes());
         var status = (WorkStatus)parts[1]![0];
         var result = parts[2];
         var exception = parts[3] == null ? null : StoredException.Deserialize(parts[3]!);

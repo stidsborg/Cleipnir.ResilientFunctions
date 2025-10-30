@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Data.SqlTypes;
 using System.Linq;
+using System.Runtime.Serialization;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
@@ -38,137 +39,121 @@ public class SqlGenerator(string tablePrefix)
         return StoreCommand.Create(sql);
     }
     
-    public StoreCommand? UpdateEffects(StoredId storedId, IReadOnlyList<StoredEffectChange> changes, PositionsStorageSession session, string paramPrefix)
+    public StoreCommand UpdateEffects(StoredId storedId, IReadOnlyList<StoredEffectChange> changes, SnapshotStorageSession session, string paramPrefix)
     {
-        var storeCommands = new List<StoreCommand>(2);
+        foreach (var change in changes)
+            if (change.Operation == CrudOperation.Delete)
+                session.Effects.Remove(change.EffectId);
+            else
+                session.Effects[change.EffectId] = change.StoredEffect!;
 
-        // DELETES
+        var content = session.Serialize();
+        if (!session.RowExists)
         {
-            var positionsToDelete = changes
-                .Select(c =>
-                    session.Positions.ContainsKey(c.EffectId.Serialize())
-                        ? session.Positions[c.EffectId.Serialize()]
-                        : -1)
-                .Where(p => p != -1)
-                .ToList();
-
-            if (positionsToDelete.Any())
-            {
-                var removeSql = @$"
-                DELETE FROM {tablePrefix}_Effects
-                WHERE Id = '{storedId.AsGuid}' AND Position IN ({positionsToDelete.Select(p => p.ToString()).StringJoin(separator: ", ")});";
-                storeCommands.Add(StoreCommand.Create(removeSql));
-            }
+            session.RowExists = true;
+            var insertSql = $@"INSERT INTO {tablePrefix}_Effects
+                            (Id, Content, Version)
+                       VALUES
+                            (@{paramPrefix}Id, @{paramPrefix}Content, 0);";
+            var insertCommand = StoreCommand.Create(insertSql);
+            insertCommand.AddParameter($"@{paramPrefix}Id", storedId.AsGuid);
+            insertCommand.AddParameter($"@{paramPrefix}Content", content);
+            return insertCommand;
         }
 
-        // INSERT and UPDATES
-        {
-            var insertsAndUpdates = changes
-                .Where(c => c.Operation == CrudOperation.Insert || c.Operation == CrudOperation.Update)
-                .ToList();
+        var sql = $@"
+            UPDATE {tablePrefix}_Effects
+            SET Content = @{paramPrefix}Content, Version = Version + 1
+            WHERE Id = @{paramPrefix}Id AND Version = @{paramPrefix}Version;";
 
-            for (var i = 0; i < insertsAndUpdates.Count; i++)
-            {
-                var (_, effectId, _, storedEffect) = insertsAndUpdates[i];
-                var position = session.Add(effectId.Serialize());
+        var command = StoreCommand.Create(sql);
+        command.AddParameter($"@{paramPrefix}Content", content);
+        command.AddParameter($"@{paramPrefix}Id", storedId.AsGuid);
+        command.AddParameter($"@{paramPrefix}Version", session.Version++);
 
-                var sql = $@"
-                INSERT INTO {tablePrefix}_Effects
-                    (Id, Position, EffectId, Status, Result, Exception)
-                VALUES
-                    (@{paramPrefix}Id{i}, @{paramPrefix}Position{i}, @{paramPrefix}EffectId{i}, @{paramPrefix}Status{i}, @{paramPrefix}Result{i}, @{paramPrefix}Exception{i});";
-
-                var command = StoreCommand.Create(sql);
-                command.AddParameter($"@{paramPrefix}Id{i}", storedId.AsGuid);
-                command.AddParameter($"@{paramPrefix}Position{i}", position);
-                command.AddParameter($"@{paramPrefix}EffectId{i}", storedEffect!.EffectId.Serialize().Value);
-                command.AddParameter($"@{paramPrefix}Status{i}", (int)storedEffect.WorkStatus);
-                command.AddParameter($"@{paramPrefix}Result{i}", storedEffect.Result ?? (object)SqlBinary.Null);
-                command.AddParameter($"@{paramPrefix}Exception{i}", JsonHelper.ToJson(storedEffect.StoredException) ?? (object)DBNull.Value);
-
-                storeCommands.Add(command);
-            }
-        }
-
-        return storeCommands.Count == 0
-            ? null
-            : StoreCommand.Merge(storeCommands)!;
+        return command;
     }
     
     private string? _getEffectsSql;
     public StoreCommand GetEffects(StoredId storedId, string paramPrefix = "")
     {
         _getEffectsSql ??= @$"
-            SELECT Position, EffectId, Status, Result, Exception           
+            SELECT Content, Version
             FROM {tablePrefix}_Effects
             WHERE Id = @Id";
 
         var sql = _getEffectsSql;
         if (paramPrefix != "")
             sql = sql.Replace("@", $"@{paramPrefix}");
-        
+
         var command = StoreCommand.Create(sql);
         command.AddParameter($"@{paramPrefix}Id", storedId.AsGuid);
         return command;
     }
-    
-    public async Task<IReadOnlyList<StoredEffect>> ReadEffects(SqlDataReader reader)
-        => (await ReadEffectsWithPositions(reader)).Select(e => e.Effect).ToList();
 
-    public async Task<IReadOnlyList<StoredEffectWithPosition>> ReadEffectsWithPositions(SqlDataReader reader)
+    public record StoredEffectsWithSession(IReadOnlyList<StoredEffect> Effects, SnapshotStorageSession Session);
+    public async Task<StoredEffectsWithSession> ReadEffects(SqlDataReader reader)
     {
-        var storedEffects = new List<StoredEffectWithPosition>();
+        var effects = new List<StoredEffect>();
+        var session = new SnapshotStorageSession();
+
         while (reader.HasRows && await reader.ReadAsync())
         {
-            var position = reader.GetInt64(0);
-            var effectId = reader.GetString(1);
+            var content = (byte[])reader.GetValue(0);
+            var version = reader.GetInt32(1);
+            var effectsBytes = BinaryPacker.Split(content);
+            foreach (var effectBytes in effectsBytes)
+            {
+                if (effectBytes == null)
+                    throw new SerializationException("Unable to deserialize effect");
 
-            var status = (WorkStatus)reader.GetInt32(2);
-            var result = reader.IsDBNull(3) ? null : (byte[])reader.GetValue(3);
-            var exception = reader.IsDBNull(4) ? null : reader.GetString(4);
+                var storedEffect = StoredEffect.Deserialize(effectBytes);
+                effects.Add(storedEffect);
+                session.Effects[storedEffect.EffectId] = storedEffect;
+            }
 
-            var storedException = exception == null ? null : JsonSerializer.Deserialize<StoredException>(exception);
-            var storedEffect = new StoredEffect(EffectId.Deserialize(effectId), status, result, storedException);
-            storedEffects.Add(new StoredEffectWithPosition(storedEffect, position));
+            session.RowExists = true;
+            session.Version = version;
         }
 
-        return storedEffects;
+        return new StoredEffectsWithSession(effects, session);
     }
     
     public StoreCommand GetEffects(IEnumerable<StoredId> storedIds)
     {
         var sql = @$"
-            SELECT Id, Position, EffectId, Status, Result, Exception           
+            SELECT Id, Content, Version
             FROM {tablePrefix}_Effects
             WHERE Id IN ({storedIds.InClause()})";
-        
+
         var command = StoreCommand.Create(sql);
         return command;
     }
-    
-    public async Task<Dictionary<StoredId, List<StoredEffectWithPosition>>> ReadEffectsForMultipleStoredIds(SqlDataReader reader, IEnumerable<StoredId> storedIds)
+
+    public async Task<Dictionary<StoredId, SnapshotStorageSession>> ReadEffectsForMultipleStoredIds(SqlDataReader reader, IEnumerable<StoredId> storedIds)
     {
-        var storedEffects = new Dictionary<StoredId, List<StoredEffectWithPosition>>();
+        var effects = new Dictionary<StoredId, SnapshotStorageSession>();
         foreach (var storedId in storedIds)
-            storedEffects[storedId] = new List<StoredEffectWithPosition>();
+            effects[storedId] = new SnapshotStorageSession();
 
         while (reader.HasRows && await reader.ReadAsync())
         {
-            var storedId = reader.GetGuid(0).ToStoredId();
-            var position = reader.GetInt64(1);
-            var effectId = reader.GetString(2);
+            var id = reader.GetGuid(0).ToStoredId();
+            var content = (byte[])reader.GetValue(1);
+            var version = reader.GetInt32(2);
 
-            var status = (WorkStatus)reader.GetInt32(3);
-            var result = reader.IsDBNull(4) ? null : (byte[])reader.GetValue(4);
-            var exception = reader.IsDBNull(5) ? null : reader.GetString(5);
+            var effectsBytes = BinaryPacker.Split(content);
+            var storedEffects = effectsBytes.Select(effectBytes => StoredEffect.Deserialize(effectBytes!)).ToList();
 
-            var storedException = exception == null ? null : JsonSerializer.Deserialize<StoredException>(exception);
-            var storedEffect = new StoredEffect(EffectId.Deserialize(effectId), status, result, storedException);
+            var session = effects[id];
+            foreach (var storedEffect in storedEffects)
+                session.Effects[storedEffect.EffectId] = storedEffect;
 
-            storedEffects[storedId].Add(new StoredEffectWithPosition(storedEffect, position));
+            session.RowExists = true;
+            session.Version = version;
         }
 
-        return storedEffects;
+        return effects;
     }
     
     private string? _createFunctionSql;
