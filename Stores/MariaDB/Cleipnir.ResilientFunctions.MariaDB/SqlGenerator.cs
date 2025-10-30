@@ -38,7 +38,7 @@ public class SqlGenerator(string tablePrefix)
     public StoreCommand GetEffects(StoredId storedId)
     {
         _getEffectResultsSql ??= @$"
-            SELECT content, version
+            SELECT id, position, content, version
             FROM {tablePrefix}_effects
             WHERE id = ?;";
 
@@ -60,8 +60,10 @@ public class SqlGenerator(string tablePrefix)
 
         while (await reader.ReadAsync())
         {
-            var content = (byte[])reader.GetValue(0);
-            var version = reader.GetInt32(1);
+            var id = reader.GetString(0);
+            var position = reader.GetInt32(1);
+            var content = (byte[])reader.GetValue(2);
+            var version = reader.GetInt32(3);
             var effectsBytes = BinaryPacker.Split(content);
             foreach (var effectBytes in effectsBytes)
             {
@@ -83,7 +85,7 @@ public class SqlGenerator(string tablePrefix)
     public StoreCommand GetEffects(IEnumerable<StoredId> storedIds)
     {
         var sql = @$"
-            SELECT id, content, version
+            SELECT id, position, content, version
             FROM {tablePrefix}_effects
             WHERE id IN ({storedIds.Select(id => $"'{id.AsGuid:N}'").StringJoin(", ")});";
 
@@ -100,8 +102,9 @@ public class SqlGenerator(string tablePrefix)
         while (await reader.ReadAsync())
         {
             var id = reader.GetString(0).ToGuid().ToStoredId();
-            var content = (byte[])reader.GetValue(1);
-            var version = reader.GetInt32(2);
+            var position = reader.GetInt32(1);
+            var content = (byte[])reader.GetValue(2);
+            var version = reader.GetInt32(3);
 
             var effectsBytes = BinaryPacker.Split(content);
             var storedEffects = effectsBytes.Select(effectBytes => StoredEffect.Deserialize(effectBytes!)).ToList();
@@ -131,9 +134,9 @@ public class SqlGenerator(string tablePrefix)
             session.RowExists = true;
             return StoreCommand.Create(
                 $@"INSERT INTO {tablePrefix}_effects
-                            (id, content, version)
+                            (id, position, content, version)
                        VALUES
-                            (?, ?, 0);",
+                            (?, 0, ?, 0);",
                 [storedId.AsGuid.ToString("N"), content]
             );
         }
@@ -141,7 +144,7 @@ public class SqlGenerator(string tablePrefix)
         var sql = $@"
             UPDATE {tablePrefix}_effects
             SET content = ?, version = version + 1
-            WHERE id = ? AND version = ?;";
+            WHERE id = ? AND position = 0 AND version = ?;";
 
         return StoreCommand.Create(sql, [content, storedId.AsGuid.ToString("N"), session.Version++]);
     }

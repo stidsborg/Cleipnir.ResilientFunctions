@@ -15,9 +15,10 @@ public class MariaDbEffectsStore(string connectionString, SqlGenerator sqlGenera
         _initializeSql ??= @$"
             CREATE TABLE IF NOT EXISTS {tablePrefix}_effects (
                 id CHAR(32),
+                position INT,
                 content LONGBLOB,
                 version INT,
-                PRIMARY KEY (id)
+                PRIMARY KEY (id, position)
             );";
         var command = new MySqlCommand(_initializeSql, conn);
         await command.ExecuteNonQueryAsync();
