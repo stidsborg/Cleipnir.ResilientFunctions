@@ -163,35 +163,26 @@ public static async Task RegisterAndInvoke(IDbConnection connection, IFunctionSt
 ### Sending customer emails
 Consider a travel agency which wants to send a promotional email to its customers:
 ```csharp
-public static class EmailSenderSaga
+public static async Task Start(MailAndRecipients mailAndRecipients, Workflow workflow)
 {
-  public static async Task Start(MailAndRecipients mailAndRecipients, Workflow workflow)
-  {
-    var state = workflow.States.CreateOrGet<State>();  
-    var (recipients, subject, content) = mailAndRecipients;
+  var atRecipient = await workflow.Effect.CreateOrGet("AtRecipient", value: 0);
+  var (recipients, subject, content) = mailAndRecipients;
 
-    using var client = new SmtpClient();
-    await client.ConnectAsync("mail.smtpbucket.com", 8025);
+  using var client = new SmtpClient();
+  await client.ConnectAsync("mail.smtpbucket.com", 8025);
         
-    for (var atRecipient = state.AtRecipient; atRecipient < mailAndRecipients.Recipients.Count; atRecipient++)
-    {
-      var recipient = recipients[atRecipient];
-      var message = new MimeMessage();
-      message.To.Add(new MailboxAddress(recipient.Name, recipient.Address));
-      message.From.Add(new MailboxAddress("The Travel Agency", "offers@thetravelagency.co.uk"));
-
-      message.Subject = subject;
-      message.Body = new TextPart(TextFormat.Html) { Text = content };
-      await client.SendAsync(message);
-
-      state.AtRecipient = atRecipient;
-      await state.Save();
-    }
-  }
-
-  public class State : FlowState
+  for (; atRecipient < mailAndRecipients.Recipients.Count; atRecipient++)
   {
-    public int AtRecipient { get; set; }
+    var recipient = recipients[atRecipient];
+    var message = new MimeMessage();
+    message.To.Add(new MailboxAddress(recipient.Name, recipient.Address));
+    message.From.Add(new MailboxAddress("The Travel Agency", "offers@thetravelagency.co.uk"));
+
+    message.Subject = subject;
+    message.Body = new TextPart(TextFormat.Html) { Text = content };
+    await client.SendAsync(message);
+
+    await workflow.Effect.Upsert("AtRecipient", atRecipient);
   }
 }
 ```
