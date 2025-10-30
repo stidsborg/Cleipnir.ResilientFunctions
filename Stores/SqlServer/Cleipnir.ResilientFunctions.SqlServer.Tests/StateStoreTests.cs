@@ -86,7 +86,7 @@ public class StateStoreTests
         var result = await store.Read(commandReader);
 
         result.ShouldContainKey(id);
-        result[id].ShouldContainKey(0L);
+        result[id].ShouldContainKey(0);
         result[id][0].Content.ShouldBe(Encoding.UTF8.GetBytes("test content"));
         result[id][0].Version.ShouldBe(0);
     }
@@ -232,7 +232,7 @@ public class StateStoreTests
         await ExecuteNonQuery(store.Insert(id, state10));
 
         // Delete positions 0 and 10
-        await ExecuteNonQuery(store.Delete(id, [0L, 10L]));
+        await ExecuteNonQuery(store.Delete(id, [0, 10]));
 
         // Read remaining states
         var getCommand = store.Get([id]);
@@ -241,7 +241,7 @@ public class StateStoreTests
         var result = await store.Read(commandReader);
 
         result[id].Count.ShouldBe(1);
-        result[id].ShouldContainKey(5L);
+        result[id].ShouldContainKey(5);
         result[id][5].Content.ShouldBe(Encoding.UTF8.GetBytes("content at 5"));
     }
 
@@ -266,7 +266,7 @@ public class StateStoreTests
         var commandReader = new SqlServerStoreCommandReader(reader);
         var result = await store.Read(commandReader);
 
-        result[id].ShouldContainKey(0L);
+        result[id].ShouldContainKey(0);
     }
 
     [TestMethod]
@@ -386,7 +386,7 @@ public class StateStoreTests
         await ExecuteNonQuery(store.Insert(id2, state2));
 
         // Delete from id1
-        await ExecuteNonQuery(store.Delete(id1, [0L]));
+        await ExecuteNonQuery(store.Delete(id1, [0]));
 
         // Read both - id2 should still exist
         var getCommand = store.Get([id1, id2]);
@@ -544,9 +544,9 @@ public class StateStoreTests
         result[id].Count.ShouldBe(2);
         result[id][0].Content.ShouldBe(Encoding.UTF8.GetBytes("updated 0"));
         result[id][0].Version.ShouldBe(1); // Version incremented by update
-        result[id].ShouldContainKey(2L);
+        result[id].ShouldContainKey(2);
         result[id][2].Content.ShouldBe(Encoding.UTF8.GetBytes("new state"));
-        result[id].ShouldNotContainKey(1L); // Deleted
+        result[id].ShouldNotContainKey(1); // Deleted
     }
 
     [TestMethod]

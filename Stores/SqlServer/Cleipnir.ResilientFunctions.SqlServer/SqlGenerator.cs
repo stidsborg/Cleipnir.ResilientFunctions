@@ -85,7 +85,7 @@ public class SqlGenerator(string tablePrefix)
         while (reader.HasRows && await reader.ReadAsync())
         {
             var id = reader.GetGuid(0);
-            var position = reader.GetInt64(1);
+            var position = reader.GetInt32(1);
             var content = (byte[])reader.GetValue(2);
             var version = reader.GetInt32(3);
             var effectsBytes = BinaryPacker.Split(content);
@@ -126,7 +126,7 @@ public class SqlGenerator(string tablePrefix)
         while (reader.HasRows && await reader.ReadAsync())
         {
             var id = reader.GetGuid(0).ToStoredId();
-            var position = reader.GetInt64(1);
+            var position = reader.GetInt32(1);
             var content = (byte[])reader.GetValue(2);
             var version = reader.GetInt32(3);
 

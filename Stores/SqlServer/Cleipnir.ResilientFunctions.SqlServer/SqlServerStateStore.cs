@@ -16,7 +16,7 @@ public class SqlServerStateStore(string connectionString, string tablePrefix)
         _initializeSql ??= @$"
              CREATE TABLE {tablePrefix}_state (
                     id UNIQUEIDENTIFIER,
-                    position BIGINT,
+                    position INT,
                     content VARBINARY(MAX),
                     version INT,
                     PRIMARY KEY (id, position)
@@ -24,7 +24,7 @@ public class SqlServerStateStore(string connectionString, string tablePrefix)
         await using var command = new SqlCommand(_initializeSql, conn);
         try
         {
-            await command.ExecuteNonQueryAsync();    
+            await command.ExecuteNonQueryAsync();
         } catch (SqlException exception) when (exception.Number == 2714) {}
     }
 
@@ -39,19 +39,19 @@ public class SqlServerStateStore(string connectionString, string tablePrefix)
         return StoreCommand.Create(sql);
     }
 
-    public async Task<Dictionary<StoredId, Dictionary<long, StoredState>>> Read(IStoreCommandReader reader)
+    public async Task<Dictionary<StoredId, Dictionary<int, StoredState>>> Read(IStoreCommandReader reader)
     {
-        var result = new Dictionary<StoredId, Dictionary<long, StoredState>>();
+        var result = new Dictionary<StoredId, Dictionary<int, StoredState>>();
 
         while (await reader.ReadAsync())
         {
             var id = new StoredId(reader.GetGuid(0));
-            var position = reader.GetInt64(1);
+            var position = reader.GetInt32(1);
             var content = reader.IsDbNull(2) ? null : (byte[])reader.GetValue(2);
             var version = reader.GetInt32(3);
 
             if (!result.ContainsKey(id))
-                result[id] = new Dictionary<long, StoredState>();
+                result[id] = new Dictionary<int, StoredState>();
 
             result[id][position] = new StoredState(id, position, content, version);
         }
@@ -60,7 +60,7 @@ public class SqlServerStateStore(string connectionString, string tablePrefix)
         return result;
     }
 
-    public StoreCommand Delete(StoredId id, IReadOnlyList<long> positions)
+    public StoreCommand Delete(StoredId id, IReadOnlyList<int> positions)
     {
         if (positions.Count == 0)
             return StoreCommand.Create("SELECT;");
@@ -166,5 +166,5 @@ public class SqlServerStateStore(string connectionString, string tablePrefix)
         return conn;
     }
 
-    public record StoredState(StoredId Id, long Position, byte[]? Content, int Version);
+    public record StoredState(StoredId Id, int Position, byte[]? Content, int Version);
 }
