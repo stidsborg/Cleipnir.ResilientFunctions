@@ -15,10 +15,27 @@ public class PostgresCommandExecutor(string connectionString) : IStoreCommandExe
         return new PostgresStoreCommandReader(conn, reader);
     }
 
-    public async Task<int> ExecuteNonQuery(StoreCommands commands)
+    public async Task<IStoreCommandReader> Execute(StoreCommand command)
     {
         var conn = await CreateConnection();
+        var cmd = command.ToNpgsqlCommand(conn);
+
+        var reader = await cmd.ExecuteReaderAsync();
+        return new PostgresStoreCommandReader(conn, reader);
+    }
+
+    public async Task<int> ExecuteNonQuery(StoreCommands commands)
+    {
+        await using var conn = await CreateConnection();
         await using var batch = commands.Commands.ToNpgsqlBatch().WithConnection(conn);
+
+        return await batch.ExecuteNonQueryAsync();
+    }
+    
+    public async Task<int> ExecuteNonQuery(StoreCommand command)
+    {
+        await using var conn = await CreateConnection();
+        await using var batch = command.ToNpgsqlCommand(conn);
 
         return await batch.ExecuteNonQueryAsync();
     }
