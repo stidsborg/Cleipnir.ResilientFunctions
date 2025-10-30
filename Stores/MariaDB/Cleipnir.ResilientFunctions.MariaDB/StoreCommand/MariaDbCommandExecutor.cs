@@ -14,12 +14,29 @@ public class MariaDbCommandExecutor(string connectionString) : IStoreCommandExec
         return new MariaDbStoreCommandReader(conn, reader);
     }
 
+    public async Task<IStoreCommandReader> Execute(Storage.StoreCommand command)
+    {
+        var conn = await CreateConnection();
+        var cmd = command.ToSqlCommand(conn);
+
+        var reader = await cmd.ExecuteReaderAsync();
+        return new MariaDbStoreCommandReader(conn, reader);
+    }
+
     public async Task<int> ExecuteNonQuery(StoreCommands commands)
     {
         await using var conn = await CreateConnection();
         await using var batch = commands.Commands.ToMySqlBatch().WithConnection(conn);
 
         return await batch.ExecuteNonQueryAsync();
+    }
+
+    public async Task<int> ExecuteNonQuery(Storage.StoreCommand command)
+    {
+        await using var conn = await CreateConnection();
+        await using var cmd = command.ToSqlCommand(conn);
+
+        return await cmd.ExecuteNonQueryAsync();
     }
 
     private async Task<MySqlConnection> CreateConnection()

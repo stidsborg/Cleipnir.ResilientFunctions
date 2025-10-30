@@ -5,7 +5,7 @@ using Microsoft.Data.SqlClient;
 
 namespace Cleipnir.ResilientFunctions.SqlServer;
 
-public class SqlServerStoreCommandReader(SqlConnection connection, SqlDataReader reader) : IStoreCommandReader
+public class SqlServerStoreCommandReader(SqlConnection connection, IAsyncDisposable command, SqlDataReader reader) : IStoreCommandReader
 {
     public int AffectedRows => reader.RecordsAffected;
     public Task<bool> MoveToNextResults() => reader.NextResultAsync();
@@ -24,6 +24,7 @@ public class SqlServerStoreCommandReader(SqlConnection connection, SqlDataReader
     public async ValueTask DisposeAsync()
     {
         await reader.DisposeAsync();
+        await command.DisposeAsync();
         await connection.DisposeAsync();
     }
 }

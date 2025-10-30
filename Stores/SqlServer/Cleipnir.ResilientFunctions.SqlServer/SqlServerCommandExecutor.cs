@@ -12,13 +12,30 @@ public class SqlServerCommandExecutor(string connectionString) : IStoreCommandEx
         var batch = commands.Commands.ToSqlBatch().WithConnection(conn);
 
         var reader = await batch.ExecuteReaderAsync();
-        return new SqlServerStoreCommandReader(conn, reader);
+        return new SqlServerStoreCommandReader(conn, batch, reader);
+    }
+
+    public async Task<IStoreCommandReader> Execute(StoreCommand command)
+    {
+        var conn = await CreateConnection();
+        var cmd = command.ToSqlCommand(conn);
+
+        var reader = await cmd.ExecuteReaderAsync();
+        return new SqlServerStoreCommandReader(conn, cmd, reader);
     }
 
     public async Task<int> ExecuteNonQuery(StoreCommands commands)
     {
         await using var conn = await CreateConnection();
         await using var batch = commands.Commands.ToSqlBatch().WithConnection(conn);
+
+        return await batch.ExecuteNonQueryAsync();
+    }
+
+    public async Task<int> ExecuteNonQuery(StoreCommand command)
+    {
+        await using var conn = await CreateConnection();
+        await using var batch = command.ToSqlCommand(conn);
 
         return await batch.ExecuteNonQueryAsync();
     }

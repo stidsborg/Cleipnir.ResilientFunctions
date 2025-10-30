@@ -8,7 +8,7 @@ using Cleipnir.ResilientFunctions.Storage.Utils;
 
 namespace Cleipnir.ResilientFunctions.PostgreSQL;
 
-public class PostgreSqlEffectsStore
+public class PostgreSqlEffectsStore : IEffectsStore
 {
     private readonly PostgreSqlStateStore _postgreSqlStateStore;
     private PostgresCommandExecutor _commandExecutor;
