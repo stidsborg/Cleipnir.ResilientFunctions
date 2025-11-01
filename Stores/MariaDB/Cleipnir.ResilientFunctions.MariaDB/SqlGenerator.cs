@@ -354,20 +354,23 @@ public class SqlGenerator(string tablePrefix)
     
     public StoreCommand AppendMessages(IReadOnlyList<StoredIdAndMessageWithPosition> messages)
     {
-        var sql = @$"    
+        var sql = @$"
             INSERT INTO {tablePrefix}_messages
-                (id, position, message_json, message_type, idempotency_key)
-            VALUES 
-                 {"(?, ?, ?, ?, ?)".Replicate(messages.Count).StringJoin($",{Environment.NewLine}")};";
+                (id, position, content)
+            VALUES
+                 {"(?, ?, ?)".Replicate(messages.Count).StringJoin($",{Environment.NewLine}")};";
 
         var command = StoreCommand.Create(sql);
         foreach (var (storedId, (messageContent, messageType, idempotencyKey), position) in messages)
         {
             command.AddParameter(storedId.AsGuid.ToString("N"));
             command.AddParameter(position);
-            command.AddParameter(messageContent);
-            command.AddParameter(messageType);
-            command.AddParameter(idempotencyKey ?? (object)DBNull.Value);
+            var content = BinaryPacker.Pack(
+                messageContent,
+                messageType,
+                idempotencyKey?.ToUtf8Bytes()
+            );
+            command.AddParameter(content);
         }
 
         return command;
@@ -376,8 +379,8 @@ public class SqlGenerator(string tablePrefix)
     private string? _getMessagesSql;
     public StoreCommand GetMessages(StoredId storedId, int skip)
     {
-        _getMessagesSql ??= @$"    
-            SELECT message_json, message_type, idempotency_key
+        _getMessagesSql ??= @$"
+            SELECT content
             FROM {tablePrefix}_messages
             WHERE id = ? AND position >= ?
             ORDER BY position ASC;";
@@ -393,24 +396,22 @@ public class SqlGenerator(string tablePrefix)
         return command;
     }
     
-    public async Task<IReadOnlyList<StoredMessage>> ReadMessages(MySqlDataReader reader)
+    public async Task<IReadOnlyList<byte[]>> ReadMessages(MySqlDataReader reader)
     {
-        var storedMessages = new List<StoredMessage>();
+        var messages = new List<byte[]>();
         while (await reader.ReadAsync())
         {
-            var messageJson = (byte[]) reader.GetValue(0);
-            var messageType = (byte[]) reader.GetValue(1);
-            var idempotencyKey = reader.IsDBNull(2) ? null : reader.GetString(2);
-            storedMessages.Add(new StoredMessage(messageJson, messageType, idempotencyKey));
+            var content = (byte[]) reader.GetValue(0);
+            messages.Add(content);
         }
 
-        return storedMessages;
+        return messages;
     }
     
     public StoreCommand GetMessages(IEnumerable<StoredId> storedIds)
     {
-        var sql = @$"    
-            SELECT id, position, message_json, message_type, idempotency_key
+        var sql = @$"
+            SELECT id, position, content
             FROM {tablePrefix}_messages
             WHERE id IN ({storedIds.Select(id => $"'{id.AsGuid:N}'").StringJoin(", ")});";
 
@@ -418,22 +419,27 @@ public class SqlGenerator(string tablePrefix)
         return command;
     }
     
-    public async Task<Dictionary<StoredId, List<StoredMessage>>> ReadStoredIdsMessages(MySqlDataReader reader)
+    public async Task<Dictionary<StoredId, List<byte[]>>> ReadStoredIdsMessages(MySqlDataReader reader)
     {
-        var storedMessages = new Dictionary<StoredId, List<StoredMessageWithPosition>>();
+        var messages = new Dictionary<StoredId, List<Tuple<int, byte[]>>>();
+
         while (await reader.ReadAsync())
         {
             var id = reader.GetString(0).ToGuid().ToStoredId();
             var position = reader.GetInt32(1);
-            var messageJson = (byte[]) reader.GetValue(2);
-            var messageType = (byte[]) reader.GetValue(3);
-            var idempotencyKey = reader.IsDBNull(4) ? null : reader.GetString(4);
-            if (!storedMessages.ContainsKey(id))
-                storedMessages[id] = new List<StoredMessageWithPosition>();
-            
-            storedMessages[id].Add(new StoredMessageWithPosition(new StoredMessage(messageJson, messageType, idempotencyKey), position));
+            var content = (byte[]) reader.GetValue(2);
+
+            if (!messages.ContainsKey(id))
+                messages[id] = new List<Tuple<int, byte[]>>();
+
+            messages[id].Add(Tuple.Create(position, content));
         }
 
-        return storedMessages.ToDictionary(kv => kv.Key, kv => kv.Value.OrderBy(m => m.Position).Select(m => m.StoredMessage).ToList());
+        return messages.ToDictionary(
+            kv => kv.Key,
+            kv => kv.Value
+                .OrderBy(m => m.Item1)
+                .Select(m => m.Item2)
+                .ToList());
     }
 }

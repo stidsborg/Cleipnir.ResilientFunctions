@@ -2,6 +2,7 @@
 using Cleipnir.ResilientFunctions.MariaDB.StoreCommand;
 using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Storage;
+using Cleipnir.ResilientFunctions.Storage.Utils;
 using MySqlConnector;
 
 namespace Cleipnir.ResilientFunctions.MariaDb;
@@ -26,10 +27,8 @@ public class MariaDbMessageStore : IMessageStore
         _initializeSql ??= @$"
             CREATE TABLE IF NOT EXISTS {_tablePrefix}_messages (
                 id CHAR(32),
-                position INT NOT NULL,
-                message_json LONGBLOB NOT NULL,
-                message_type LONGBLOB NOT NULL,   
-                idempotency_key VARCHAR(255),          
+                position INT,
+                content LONGBLOB,
                 PRIMARY KEY (id, position)
             );";
         var command = new MySqlCommand(_initializeSql, conn);
@@ -55,30 +54,29 @@ public class MariaDbMessageStore : IMessageStore
                 var (messageJson, messageType, idempotencyKey) = storedMessage;
                 //https://dev.mysql.com/doc/refman/8.0/en/locking-functions.html#function_get-lock
                 var lockName = storedId.ToString().GenerateSHA256Hash();
-                _appendMessageSql ??= @$"    
+                _appendMessageSql ??= @$"
                     SELECT GET_LOCK(?, 10);
                     INSERT INTO {_tablePrefix}_messages
-                        (id, position, message_json, message_type, idempotency_key)
-                    SELECT ?, COALESCE(MAX(position), -1) + 1, ?, ?, ? 
+                        (id, position, content)
+                    SELECT ?, COALESCE(MAX(position), -1) + 1, ?
                         FROM {_tablePrefix}_messages
                         WHERE id = ?;
                     SELECT RELEASE_LOCK(?);";
 
+                var content = BinaryPacker.Pack(messageJson, messageType, idempotencyKey?.ToUtf8Bytes());
                 await using var command = new MySqlCommand(_appendMessageSql, conn)
                 {
                     Parameters =
                     {
                         new() { Value = lockName },
                         new() { Value = storedId.AsGuid.ToString("N") },
-                        new() { Value = messageJson },
-                        new() { Value = messageType },
-                        new() { Value = idempotencyKey ?? (object)DBNull.Value },
+                        new() { Value = content },
                         new() { Value = storedId.AsGuid.ToString("N") },
                         new() { Value = lockName },
                         new() { Value = storedId.AsGuid.ToString("N") },
                     }
                 };
-                
+
                 await command.ExecuteNonQueryAsync();
                 return;
             }
@@ -144,18 +142,21 @@ public class MariaDbMessageStore : IMessageStore
     {
         await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
         var (messageJson, messageType, idempotencyKey) = storedMessage;
-        
-        _replaceMessageSql ??= @$"    
+
+        _replaceMessageSql ??= @$"
                 UPDATE {_tablePrefix}_messages
-                SET message_json = ?, message_type = ?, idempotency_key = ?
+                SET content = ?
                 WHERE id = ? AND position = ?";
+        var content = BinaryPacker.Pack(
+            messageJson,
+            messageType,
+            idempotencyKey?.ToUtf8Bytes()
+        );
         await using var command = new MySqlCommand(_replaceMessageSql, conn)
         {
             Parameters =
             {
-                new() {Value = messageJson},
-                new() {Value = messageType},
-                new() {Value = idempotencyKey ?? (object) DBNull.Value},
+                new() {Value = content},
                 new() {Value = storedId.AsGuid.ToString("N")},
                 new() {Value = position}
             }
@@ -184,11 +185,11 @@ public class MariaDbMessageStore : IMessageStore
         await using var command = _sqlGenerator
             .GetMessages(storedId, skip)
             .ToSqlCommand(conn);
-        
+
         await using var reader = await command.ExecuteReaderAsync();
 
         var messages = await _sqlGenerator.ReadMessages(reader);
-        return messages;
+        return messages.Select(ConvertToStoredMessage).ToList();
     }
 
     public async Task<Dictionary<StoredId, List<StoredMessage>>> GetMessages(IEnumerable<StoredId> storedIds)
@@ -197,16 +198,24 @@ public class MariaDbMessageStore : IMessageStore
         await using var command = _sqlGenerator
             .GetMessages(storedIds)
             .ToSqlCommand(conn);
-        
+
         await using var reader = await command.ExecuteReaderAsync();
-        
+
         var messages = await _sqlGenerator.ReadStoredIdsMessages(reader);
-        return messages;
+        var storedMessages = new Dictionary<StoredId, List<StoredMessage>>();
+        foreach (var id in messages.Keys)
+        {
+            storedMessages[id] = new();
+            foreach (var content in messages[id])
+                storedMessages[id].Add(ConvertToStoredMessage(content));
+        }
+
+        return storedMessages;
     }
 
     public async Task<IDictionary<StoredId, int>> GetMaxPositions(IReadOnlyList<StoredId> storedIds)
     {
-        var sql = @$"    
+        var sql = @$"
             SELECT id, MAX(position)
             FROM {_tablePrefix}_messages
             WHERE Id IN ({storedIds.Select(id => $"'{id.AsGuid:N}'").StringJoin(", ")})
@@ -218,7 +227,7 @@ public class MariaDbMessageStore : IMessageStore
         var positions = new Dictionary<StoredId, int>(capacity: storedIds.Count);
         foreach (var storedId in storedIds)
             positions[storedId] = -1;
-        
+
         await using var reader = await command.ExecuteReaderAsync();
         while (await reader.ReadAsync())
         {
@@ -226,7 +235,21 @@ public class MariaDbMessageStore : IMessageStore
             var position = reader.GetInt32(1);
             positions[storedId] = position;
         }
-        
+
         return positions;
+    }
+
+    public static StoredMessage ConvertToStoredMessage(byte[] content)
+    {
+        var arrs = BinaryPacker.Split(content, expectedPieces: 3);
+        var message = arrs[0]!;
+        var type = arrs[1]!;
+        var idempotencyKey = arrs[2];
+        var storedMessage = new StoredMessage(
+            message,
+            type,
+            idempotencyKey?.ToStringFromUtf8Bytes()
+        );
+        return storedMessage;
     }
 }

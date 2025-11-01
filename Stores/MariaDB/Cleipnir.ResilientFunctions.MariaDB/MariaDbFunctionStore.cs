@@ -224,8 +224,9 @@ public class MariaDbFunctionStore : IFunctionStore
         await reader.NextResultAsync();
 
         var messages = await _sqlGenerator.ReadMessages(reader);
+        var storedMessages = messages.Select(MariaDbMessageStore.ConvertToStoredMessage).ToList();
 
-        return new StoredFlowWithEffectsAndMessages(sf, effects, messages, session);
+        return new StoredFlowWithEffectsAndMessages(sf, effects, storedMessages, session);
     }
     
     private string? _getExpiredFunctionsSql;
