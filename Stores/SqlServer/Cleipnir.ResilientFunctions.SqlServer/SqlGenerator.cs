@@ -365,26 +365,29 @@ public class SqlGenerator(string tablePrefix)
     {
         if (messages.Count == 0)
             return null;
-        
-        var interruptCommand = interrupt 
-            ? Interrupt(messages.Select(m => m.StoredId).Distinct().ToList()) 
+
+        var interruptCommand = interrupt
+            ? Interrupt(messages.Select(m => m.StoredId).Distinct().ToList())
             : null;
-        
-        var sql = @$"    
+
+        var sql = @$"
             INSERT INTO {tablePrefix}_Messages
-                (Id, Position, MessageJson, MessageType, IdempotencyKey)
-            VALUES 
-                 {messages.Select((_, i) => $"(@{prefix}Id{i}, @{prefix}Position{i}, @{prefix}MessageJson{i}, @{prefix}MessageType{i}, @{prefix}IdempotencyKey{i})").StringJoin($",{Environment.NewLine}")};";
+                (Id, Position, Content)
+            VALUES
+                 {messages.Select((_, i) => $"(@{prefix}Id{i}, @{prefix}Position{i}, @{prefix}Content{i})").StringJoin($",{Environment.NewLine}")};";
 
         var appendCommand = StoreCommand.Create(sql);
         for (var i = 0; i < messages.Count; i++)
         {
             var (storedId, (messageContent, messageType, idempotencyKey), position) = messages[i];
+            var content = BinaryPacker.Pack(
+                messageContent,
+                messageType,
+                idempotencyKey?.ToUtf8Bytes()
+            );
             appendCommand.AddParameter($"@{prefix}Id{i}", storedId.AsGuid);
             appendCommand.AddParameter($"@{prefix}Position{i}", position);
-            appendCommand.AddParameter($"@{prefix}MessageJson{i}", messageContent);
-            appendCommand.AddParameter($"@{prefix}MessageType{i}", messageType);
-            appendCommand.AddParameter($"@{prefix}IdempotencyKey{i}", idempotencyKey ?? (object)DBNull.Value);
+            appendCommand.AddParameter($"@{prefix}Content{i}", content);
         }
 
         return StoreCommand.Merge(appendCommand, interruptCommand);
@@ -393,8 +396,8 @@ public class SqlGenerator(string tablePrefix)
     private string? _getMessagesSql;
     public StoreCommand GetMessages(StoredId storedId, int skip, string paramPrefix = "")
     {
-        _getMessagesSql ??= @$"    
-            SELECT MessageJson, MessageType, IdempotencyKey
+        _getMessagesSql ??= @$"
+            SELECT Content
             FROM {tablePrefix}_Messages
             WHERE Id = @Id AND Position >= @Position
             ORDER BY Position ASC;";
@@ -409,48 +412,49 @@ public class SqlGenerator(string tablePrefix)
         return command;
     }
     
-    public async Task<IReadOnlyList<StoredMessage>> ReadMessages(SqlDataReader reader)
+    public async Task<IReadOnlyList<byte[]>> ReadMessages(SqlDataReader reader)
     {
-        var storedMessages = new List<StoredMessage>();
+        var messages = new List<byte[]>();
         while (await reader.ReadAsync())
         {
-            var messageJson = (byte[]) reader.GetValue(0);
-            var messageType = (byte[]) reader.GetValue(1);
-            var idempotencyKey = reader.IsDBNull(2) ? null : reader.GetString(2);
-            storedMessages.Add(new StoredMessage(messageJson, messageType, idempotencyKey));
+            var content = (byte[]) reader.GetValue(0);
+            messages.Add(content);
         }
-        return storedMessages;
+        return messages;
     }
     
     public StoreCommand GetMessages(IEnumerable<StoredId> storedIds)
     {
-        var sql = @$"    
-            SELECT Id, Position, MessageJson, MessageType, IdempotencyKey
+        var sql = @$"
+            SELECT Id, Position, Content
             FROM {tablePrefix}_Messages
             WHERE Id IN ({storedIds.InClause()});";
-        
+
         var command = StoreCommand.Create(sql);
         return command;
     }
     
-    public async Task<Dictionary<StoredId, List<StoredMessage>>> ReadStoredIdsMessages(SqlDataReader reader)
+    public async Task<Dictionary<StoredId, List<byte[]>>> ReadStoredIdsMessages(SqlDataReader reader)
     {
-        var storedMessages = new Dictionary<StoredId, List<StoredMessageWithPosition>>();
+        var messages = new Dictionary<StoredId, List<Tuple<int, byte[]>>>();
+
         while (await reader.ReadAsync())
         {
             var id = reader.GetGuid(0).ToStoredId();
             var position = reader.GetInt32(1);
-            var messageJson = (byte[]) reader.GetValue(2);
-            var messageType = (byte[]) reader.GetValue(3);
-            var idempotencyKey = reader.IsDBNull(4) ? null : reader.GetString(4);
+            var content = (byte[]) reader.GetValue(2);
 
-            if (!storedMessages.ContainsKey(id))
-                storedMessages[id] = new List<StoredMessageWithPosition>();
+            if (!messages.ContainsKey(id))
+                messages[id] = new List<Tuple<int, byte[]>>();
 
-            var storedMessage = new StoredMessage(messageJson, messageType, idempotencyKey);
-            storedMessages[id].Add(new StoredMessageWithPosition(storedMessage, position));
+            messages[id].Add(Tuple.Create(position, content));
         }
-        
-        return storedMessages.ToDictionary(kv => kv.Key, kv => kv.Value.OrderBy(m => m.Position).Select(m => m.StoredMessage).ToList());
+
+        return messages.ToDictionary(
+            kv => kv.Key,
+            kv => kv.Value
+                .OrderBy(m => m.Item1)
+                .Select(m => m.Item2)
+                .ToList());
     }
 }
