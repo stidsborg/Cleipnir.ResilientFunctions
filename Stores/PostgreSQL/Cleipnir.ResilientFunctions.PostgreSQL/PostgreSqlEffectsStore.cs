@@ -8,19 +8,13 @@ using Cleipnir.ResilientFunctions.Storage.Utils;
 
 namespace Cleipnir.ResilientFunctions.PostgreSQL;
 
-public class PostgreSqlEffectsStore : IEffectsStore
+public class PostgreSqlEffectsStore(string connectionString, string tablePrefix = "") : IEffectsStore
 {
-    private readonly PostgreSqlStateStore _postgreSqlStateStore;
-    private PostgresCommandExecutor _commandExecutor;
+    private readonly PostgreSqlStateStore _stateStore = new(connectionString, tablePrefix);
+    private readonly PostgresCommandExecutor _commandExecutor = new(connectionString);
 
-    public PostgreSqlEffectsStore(string connectionString, SqlGenerator sqlGenerator, string tablePrefix = "")
-    {
-        _postgreSqlStateStore = new PostgreSqlStateStore(connectionString, tablePrefix);
-        _commandExecutor = new PostgresCommandExecutor(connectionString);
-    }
-    
-    public async Task Initialize() => await _postgreSqlStateStore.Initialize();
-    public async Task Truncate() => await _postgreSqlStateStore.Truncate();
+    public async Task Initialize() => await _stateStore.Initialize();
+    public async Task Truncate() => await _stateStore.Truncate();
 
     public async Task SetEffectResults(StoredId storedId, IReadOnlyList<StoredEffectChange> changes, IStorageSession? session)
     {
@@ -49,12 +43,12 @@ public class PostgreSqlEffectsStore : IEffectsStore
         if (snapshotSession.RowExists)
         {
             snapshotSession.Version++;
-            await _commandExecutor.ExecuteNonQuery(_postgreSqlStateStore.Update(storedId, storedState));            
+            await _commandExecutor.ExecuteNonQuery(_stateStore.Update(storedId, storedState));            
         }
         else
         {
             snapshotSession.RowExists = true;            
-            await _commandExecutor.ExecuteNonQuery(_postgreSqlStateStore.Insert(storedId, storedState));
+            await _commandExecutor.ExecuteNonQuery(_stateStore.Insert(storedId, storedState));
         }
     }
 
@@ -64,9 +58,9 @@ public class PostgreSqlEffectsStore : IEffectsStore
     public async Task<Dictionary<StoredId, SnapshotStorageSession>> GetEffectResultsWithSession(IEnumerable<StoredId> storedIds)
     {
         storedIds = storedIds.ToList();
-        var command = _postgreSqlStateStore.Get(storedIds.ToList());
+        var command = _stateStore.Get(storedIds.ToList());
         await using var reader = await _commandExecutor.Execute(command);
-        var storedStates = await _postgreSqlStateStore.Read(reader);
+        var storedStates = await _stateStore.Read(reader);
         var toReturn = new Dictionary<StoredId, SnapshotStorageSession>();
         foreach (var storedId in storedIds)
             toReturn[storedId] = new SnapshotStorageSession();
@@ -90,7 +84,7 @@ public class PostgreSqlEffectsStore : IEffectsStore
     
     public async Task Remove(StoredId storedId)
     {
-        var cmd = _postgreSqlStateStore.Delete(storedId);
+        var cmd = _stateStore.Delete(storedId);
         await _commandExecutor.ExecuteNonQuery(cmd);
     }
     

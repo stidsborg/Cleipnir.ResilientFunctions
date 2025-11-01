@@ -44,7 +44,7 @@ public class PostgreSqlStateStore(string connectionString, string tablePrefix)
         {
             var id = new StoredId(reader.GetGuid(0));
             var position = reader.GetInt64(1);
-            var content = reader.IsDbNull(2) ? null : (byte[])reader.GetValue(2);
+            var content = await reader.IsDbNullAsync(2) ? null : (byte[])reader.GetValue(2);
             var version = reader.GetInt32(3);
 
             if (!result.ContainsKey(id))

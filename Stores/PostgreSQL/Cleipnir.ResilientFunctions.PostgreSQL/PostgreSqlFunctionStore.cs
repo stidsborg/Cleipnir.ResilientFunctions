@@ -47,7 +47,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         _sqlGenerator = new SqlGenerator(_tableName);
         
         _messageStore = new PostgreSqlMessageStore(connectionString, _sqlGenerator, _tableName);
-        _effectsStore = new PostgreSqlEffectsStore(connectionString, _sqlGenerator, _tableName);
+        _effectsStore = new PostgreSqlEffectsStore(connectionString, _tableName);
         _correlationStore = new PostgreSqlCorrelationStore(connectionString, _tableName);
         _semaphoreStore = new PostgreSqlSemaphoreStore(connectionString, _tableName);
         _typeStore = new PostgreSqlTypeStore(connectionString, _tableName);
