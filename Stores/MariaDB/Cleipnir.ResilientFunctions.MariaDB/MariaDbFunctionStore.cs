@@ -49,7 +49,7 @@ public class MariaDbFunctionStore : IFunctionStore
         _sqlGenerator = new SqlGenerator(tablePrefix);
         
         _messageStore = new MariaDbMessageStore(connectionString, _sqlGenerator, tablePrefix);
-        _effectsStore = new MariaDbEffectsStore(connectionString, _sqlGenerator, tablePrefix);
+        _effectsStore = new MariaDbEffectsStore(connectionString, tablePrefix);
         _correlationStore = new MariaDbCorrelationStore(connectionString, tablePrefix);
         _semaphoreStore = new MariaDbSemaphoreStore(connectionString, tablePrefix);
         _mariaDbUnderlyingRegister = new MariaDbUnderlyingRegister(connectionString, tablePrefix);

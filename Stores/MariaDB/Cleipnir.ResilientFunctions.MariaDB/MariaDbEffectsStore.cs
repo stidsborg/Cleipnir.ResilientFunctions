@@ -11,7 +11,7 @@ public class MariaDbEffectsStore : IEffectsStore
     private readonly MariaDbStateStore _mariaDbStateStore;
     private readonly MariaDbCommandExecutor _commandExecutor;
 
-    public MariaDbEffectsStore(string connectionString, SqlGenerator sqlGenerator, string tablePrefix = "")
+    public MariaDbEffectsStore(string connectionString, string tablePrefix = "")
     {
         _mariaDbStateStore = new MariaDbStateStore(connectionString, tablePrefix);
         _commandExecutor = new MariaDbCommandExecutor(connectionString);
@@ -86,11 +86,8 @@ public class MariaDbEffectsStore : IEffectsStore
         return toReturn;
     }
     
-    public async Task Remove(StoredId storedId)
-    {
-        var cmd = _mariaDbStateStore.Delete(storedId);
-        await _commandExecutor.ExecuteNonQuery(cmd);
-    }
+    public async Task Remove(StoredId storedId) 
+        => await _commandExecutor.ExecuteNonQuery(_mariaDbStateStore.Delete(storedId));
 
     private async Task<SnapshotStorageSession> CreateSession(StoredId storedId)
         => await CreateSessions([storedId]).SelectAsync(d => d[storedId]);
