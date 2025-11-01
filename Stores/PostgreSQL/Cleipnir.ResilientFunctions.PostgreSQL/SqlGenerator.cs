@@ -359,9 +359,9 @@ public class SqlGenerator(string tablePrefix)
     {
         var sql = @$"    
             INSERT INTO {tablePrefix}_messages
-                (id, position, message_json, message_type, idempotency_key)
+                (id, position, content)
             VALUES 
-                 {messages.Select((_, i) => $"(${i * 5 + 1}, ${i * 5 + 2}, ${i * 5 + 3}, ${i * 5 + 4}, ${i * 5 + 5})").StringJoin($",{Environment.NewLine}")};";
+                 {messages.Select((_, i) => $"(${i * 3 + 1}, ${i * 3 + 2}, ${i * 3 + 3})").StringJoin($",{Environment.NewLine}")};";
 
         var command = StoreCommand.Create(sql);
 
@@ -369,9 +369,12 @@ public class SqlGenerator(string tablePrefix)
         {
             command.AddParameter(storedId.AsGuid);
             command.AddParameter(position);
-            command.AddParameter(messageContent);
-            command.AddParameter(messageType);
-            command.AddParameter(idempotencyKey ?? (object)DBNull.Value);
+            var content = BinaryPacker.Pack(
+                messageContent,
+                messageType,
+                idempotencyKey?.ToUtf8Bytes()
+            );
+            command.AddParameter(content);
         }
 
         return command;
@@ -381,7 +384,7 @@ public class SqlGenerator(string tablePrefix)
     public StoreCommand GetMessages(StoredId storedId, int skip)
     {
         _getMessagesSql ??= @$"    
-            SELECT message_json, message_type, idempotency_key
+            SELECT content
             FROM {tablePrefix}_messages
             WHERE id = $1 AND position >= $2
             ORDER BY position ASC;";
@@ -393,25 +396,23 @@ public class SqlGenerator(string tablePrefix)
         
         return storeCommand;
     }
-
-    public async Task<IReadOnlyList<StoredMessage>> ReadMessages(NpgsqlDataReader reader)
+    
+    public async Task<IReadOnlyList<byte[]>> ReadMessages(NpgsqlDataReader reader)
     {
-        var storedMessages = new List<StoredMessage>();
+        var messages = new List<byte[]>();
         while (await reader.ReadAsync())
         {
-            var messageJson = (byte[]) reader.GetValue(0);
-            var messageType = (byte[]) reader.GetValue(1);
-            var idempotencyKey = reader.IsDBNull(2) ? null : reader.GetString(2);
-            storedMessages.Add(new StoredMessage(messageJson, messageType, idempotencyKey));
+            var content = (byte[]) reader.GetValue(0);
+            messages.Add(content);
         }
 
-        return storedMessages;
+        return messages;
     }
     
     public StoreCommand GetMessages(IEnumerable<StoredId> storedIds)
     {
         var sql = @$"    
-            SELECT id, position, message_json, message_type, idempotency_key
+            SELECT id, position, content
             FROM {tablePrefix}_messages
             WHERE id IN ({storedIds.InClause()});";
 
@@ -419,25 +420,27 @@ public class SqlGenerator(string tablePrefix)
         return storeCommand;
     }
     
-    public async Task<Dictionary<StoredId, List<StoredMessage>>> ReadStoredIdsMessages(NpgsqlDataReader reader)
+    public async Task<Dictionary<StoredId, List<byte[]>>> ReadStoredIdsMessages(NpgsqlDataReader reader)
     {
-        var messages = new Dictionary<StoredId, List<StoredMessageWithPosition>>();
+        var messages = new Dictionary<StoredId, List<Tuple<int, byte[]>>>();
         
         while (await reader.ReadAsync())
         {
             var id = reader.GetGuid(0).ToStoredId();
             var position = reader.GetInt32(1);
-            var messageJson = (byte[]) reader.GetValue(2);
-            var messageType = (byte[]) reader.GetValue(3);
-            var idempotencyKey = reader.IsDBNull(4) ? null : reader.GetString(4);
+            var content = (byte[]) reader.GetValue(2);
 
             if (!messages.ContainsKey(id))
-                messages[id] = new List<StoredMessageWithPosition>();
-
-            var storedMessage = new StoredMessage(messageJson, messageType, idempotencyKey);
-            messages[id].Add(new StoredMessageWithPosition(storedMessage, position));
+                messages[id] = new List<Tuple<int, byte[]>>();
+            
+            messages[id].Add(Tuple.Create(position, content));
         }
 
-        return messages.ToDictionary(kv => kv.Key, kv => kv.Value.OrderBy(m => m.Position).Select(m => m.StoredMessage).ToList());
+        return messages.ToDictionary(
+            kv => kv.Key, 
+            kv => kv.Value
+                .OrderBy(m => m.Item1)
+                .Select(m => m.Item2)
+                .ToList());
     }
 }

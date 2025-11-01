@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Storage;
+using Cleipnir.ResilientFunctions.Storage.Utils;
 using Npgsql;
 
 namespace Cleipnir.ResilientFunctions.PostgreSQL;
@@ -27,10 +28,8 @@ public class PostgreSqlMessageStore(string connectionString, SqlGenerator sqlGen
         _initializeSql ??= @$"
             CREATE TABLE IF NOT EXISTS {_tablePrefix}_messages (
                 id UUID,
-                position INT NOT NULL,
-                message_json BYTEA NOT NULL,
-                message_type BYTEA NOT NULL,   
-                idempotency_key VARCHAR(255),          
+                position INT,
+                content BYTEA,         
                 PRIMARY KEY (id, position)
             );";
         
@@ -53,24 +52,23 @@ public class PostgreSqlMessageStore(string connectionString, SqlGenerator sqlGen
         await using var conn = await CreateConnection();
         await using var batch = new NpgsqlBatch(conn);
         var (messageJson, messageType, idempotencyKey) = storedMessage;
-       
-        { //append Message to message stream sql
+        
+        { 
             _appendMessageSql ??= @$"    
                 INSERT INTO {_tablePrefix}_messages
-                    (id, position, message_json, message_type, idempotency_key)
+                    (id, position, content)
                 VALUES (
                      $1, 
                      (SELECT COALESCE(MAX(position), -1) + 1 FROM {_tablePrefix}_messages WHERE id = $1), 
-                     $2, $3, $4
+                     $2
                 );";
+            var content = BinaryPacker.Pack(messageJson, messageType, idempotencyKey?.ToUtf8Bytes());
             var command = new NpgsqlBatchCommand(_appendMessageSql)
             {
                 Parameters =
                 {
                     new() {Value = storedId.AsGuid},
-                    new() {Value = messageJson},
-                    new() {Value = messageType},
-                    new() {Value = idempotencyKey ?? (object) DBNull.Value}
+                    new() {Value = content}
                 }
             };
             batch.BatchCommands.Add(command);            
@@ -141,17 +139,20 @@ public class PostgreSqlMessageStore(string connectionString, SqlGenerator sqlGen
         await using var conn = await CreateConnection();
         _replaceMessageSql ??= @$"    
                 UPDATE {_tablePrefix}_messages
-                SET message_json = $1, message_type = $2, idempotency_key = $3
-                WHERE id = $4 AND position = $5";
+                SET content = $1
+                WHERE id = $2 AND position = $3";
 
         var (messageJson, messageType, idempotencyKey) = storedMessage;
+        var content = BinaryPacker.Pack(
+            messageJson,
+            messageType,
+            idempotencyKey?.ToUtf8Bytes()
+        );
         var command = new NpgsqlCommand(_replaceMessageSql, conn)
         {
             Parameters =
             {
-                new() {Value = messageJson},
-                new() {Value = messageType},
-                new() {Value = idempotencyKey ?? (object) DBNull.Value},
+                new() {Value = content},
                 new() {Value = storedId.AsGuid},
                 new() {Value = position},
             }
@@ -185,7 +186,7 @@ public class PostgreSqlMessageStore(string connectionString, SqlGenerator sqlGen
 
         await using var reader = await command.ExecuteReaderAsync();
         var messages = await sqlGenerator.ReadMessages(reader);
-        return messages;
+        return messages.Select(ConvertToStoredMessage).ToList();
     }
 
     public async Task<Dictionary<StoredId, List<StoredMessage>>> GetMessages(IEnumerable<StoredId> storedIds)
@@ -195,7 +196,29 @@ public class PostgreSqlMessageStore(string connectionString, SqlGenerator sqlGen
 
         await using var reader = await command.ExecuteReaderAsync();
         var messages = await sqlGenerator.ReadStoredIdsMessages(reader);
-        return messages;
+        var storedMessages = new Dictionary<StoredId, List<StoredMessage>>();
+        foreach (var id in messages.Keys)
+        {
+            storedMessages[id] = new();
+            foreach (var content in messages[id])
+                storedMessages[id].Add(ConvertToStoredMessage(content));
+        }
+        
+        return storedMessages;
+    }
+
+    public static StoredMessage ConvertToStoredMessage(byte[] content)
+    {
+        var arrs = BinaryPacker.Split(content, expectedPieces: 3);
+        var message = arrs[0]!;
+        var type = arrs[1]!;
+        var idempotencyKey = arrs[2];
+        var storedMessage = new StoredMessage(
+            message,
+            type,
+            idempotencyKey?.ToStringFromUtf8Bytes()
+        );
+        return storedMessage;
     }
 
     public async Task<IDictionary<StoredId, int>> GetMaxPositions(IReadOnlyList<StoredId> storedIds)
@@ -203,11 +226,11 @@ public class PostgreSqlMessageStore(string connectionString, SqlGenerator sqlGen
         if (storedIds.Count == 0)
             return new Dictionary<StoredId, int>();
         
-        var sql = @$"    
+        var sql = @$"
             SELECT id, MAX(position)
             FROM {tablePrefix}_messages
             WHERE Id IN ({storedIds.Select(id => $"'{id}'").StringJoin(", ")})
-            GROUP BY id, position;";
+            GROUP BY id;";
 
         await using var conn = await CreateConnection();
         await using var command = new NpgsqlCommand(sql, conn);

@@ -218,10 +218,11 @@ public class SqlServerMessageStore(string connectionString, SqlGenerator sqlGene
 
     public async Task<IDictionary<StoredId, int>> GetMaxPositions(IReadOnlyList<StoredId> storedIds)
     {
-        var sql = @$"    
-            SELECT Id, Position
+        var sql = @$"
+            SELECT Id, MAX(Position)
             FROM {tablePrefix}_Messages
-            WHERE Id IN ({storedIds.Select(id => $"'{id}'").StringJoin(", ")});";
+            WHERE Id IN ({storedIds.Select(id => $"'{id}'").StringJoin(", ")})
+            GROUP BY Id;";
 
         await using var conn = await CreateConnection();
         await using var command = new SqlCommand(sql, conn);
