@@ -8,16 +8,10 @@ using Cleipnir.ResilientFunctions.Storage.Utils;
 
 namespace Cleipnir.ResilientFunctions.SqlServer;
 
-public class SqlServerEffectsStore : IEffectsStore
+public class SqlServerEffectsStore(string connectionString, string tablePrefix = "") : IEffectsStore
 {
-    private readonly SqlServerStateStore _sqlServerStateStore;
-    private readonly SqlServerCommandExecutor _commandExecutor;
-
-    public SqlServerEffectsStore(string connectionString, SqlGenerator sqlGenerator, string tablePrefix = "")
-    {
-        _sqlServerStateStore = new SqlServerStateStore(connectionString, tablePrefix);
-        _commandExecutor = new SqlServerCommandExecutor(connectionString);
-    }
+    private readonly SqlServerStateStore _sqlServerStateStore = new(connectionString, tablePrefix);
+    private readonly SqlServerCommandExecutor _commandExecutor = new(connectionString);
 
     public async Task Initialize() => await _sqlServerStateStore.Initialize();
     public async Task Truncate() => await _sqlServerStateStore.Truncate();
@@ -89,10 +83,7 @@ public class SqlServerEffectsStore : IEffectsStore
     }
     
     public async Task Remove(StoredId storedId)
-    {
-        var cmd = _sqlServerStateStore.Delete(storedId);
-        await _commandExecutor.ExecuteNonQuery(cmd);
-    }
+        => await _commandExecutor.ExecuteNonQuery(_sqlServerStateStore.Delete(storedId));
 
     private async Task<SnapshotStorageSession> CreateSession(StoredId storedId)
         => await CreateSessions([storedId]).SelectAsync(d => d[storedId]);

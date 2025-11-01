@@ -48,7 +48,7 @@ public class SqlServerFunctionStore : IFunctionStore
         _connFunc = CreateConnection(connectionString);
         _messageStore = new SqlServerMessageStore(connectionString, _sqlGenerator, _tableName);
         _underlyingRegister = new SqlServerUnderlyingRegister(connectionString, _tableName);
-        _effectsStore = new SqlServerEffectsStore(connectionString, _sqlGenerator, _tableName);
+        _effectsStore = new SqlServerEffectsStore(connectionString, _tableName);
         _correlationStore = new SqlServerCorrelationsStore(connectionString, _tableName);
         _semaphoreStore = new SqlServerSemaphoreStore(connectionString, _tableName);
         _typeStore = new SqlServerTypeStore(connectionString, _tableName);
