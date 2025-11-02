@@ -224,7 +224,7 @@ public class MariaDbFunctionStore : IFunctionStore
         await reader.NextResultAsync();
 
         var messages = await _sqlGenerator.ReadMessages(reader);
-        var storedMessages = messages.Select(MariaDbMessageStore.ConvertToStoredMessage).ToList();
+        var storedMessages = messages.Select(m => new StoredMessageWithPosition(MariaDbMessageStore.ConvertToStoredMessage(m.content), m.position)).ToList();
 
         return new StoredFlowWithEffectsAndMessages(sf, effects, storedMessages, session);
     }

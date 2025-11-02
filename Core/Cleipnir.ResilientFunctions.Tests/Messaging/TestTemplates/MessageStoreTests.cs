@@ -46,10 +46,10 @@ public abstract class MessageStoreTests
 
         var events = (await messageStore.GetMessages(functionId, skip: 0)).ToList();
         events.Count.ShouldBe(2);
-        events[0].DefaultDeserialize().ShouldBe(msg1);
-        events[0].IdempotencyKey.ShouldBeNull();
-        events[1].DefaultDeserialize().ShouldBe(msg2);
-        events[1].IdempotencyKey.ShouldBeNull();
+        events[0].StoredMessage.DefaultDeserialize().ShouldBe(msg1);
+        events[0].StoredMessage.IdempotencyKey.ShouldBeNull();
+        events[1].StoredMessage.DefaultDeserialize().ShouldBe(msg2);
+        events[1].StoredMessage.IdempotencyKey.ShouldBeNull();
     }
 
     public abstract Task AppendedMessagesUsingBulkMethodCanBeFetchedAgain();
@@ -86,14 +86,14 @@ public abstract class MessageStoreTests
         
         var events = (await messageStore.GetMessages(functionId, skip: 0)).ToList();
         events.Count.ShouldBe(4);
-        events[0].DefaultDeserialize().ShouldBe(msg1);
-        events[0].IdempotencyKey.ShouldBe("1");
-        events[1].DefaultDeserialize().ShouldBe(msg2);
-        events[1].IdempotencyKey.ShouldBe("2");
-        events[2].DefaultDeserialize().ShouldBe(msg3);
-        events[2].IdempotencyKey.ShouldBe("3");
-        events[3].DefaultDeserialize().ShouldBe(msg4);
-        events[3].IdempotencyKey.ShouldBeNull();
+        events[0].StoredMessage.DefaultDeserialize().ShouldBe(msg1);
+        events[0].StoredMessage.IdempotencyKey.ShouldBe("1");
+        events[1].StoredMessage.DefaultDeserialize().ShouldBe(msg2);
+        events[1].StoredMessage.IdempotencyKey.ShouldBe("2");
+        events[2].StoredMessage.DefaultDeserialize().ShouldBe(msg3);
+        events[2].StoredMessage.IdempotencyKey.ShouldBe("3");
+        events[3].StoredMessage.DefaultDeserialize().ShouldBe(msg4);
+        events[3].StoredMessage.IdempotencyKey.ShouldBeNull();
     }
     
     public abstract Task EventsCanBeReplaced();
@@ -135,10 +135,10 @@ public abstract class MessageStoreTests
         
         var events = (await messageStore.GetMessages(functionId, skip: 0)).ToList();
         events.Count.ShouldBe(2);
-        events[0].DefaultDeserialize().ShouldBe(msg3);
-        events[0].IdempotencyKey.ShouldBe("3");
-        events[1].DefaultDeserialize().ShouldBe(msg4);
-        events[1].IdempotencyKey.ShouldBeNull();
+        events[0].StoredMessage.DefaultDeserialize().ShouldBe(msg3);
+        events[0].StoredMessage.IdempotencyKey.ShouldBe("3");
+        events[1].StoredMessage.DefaultDeserialize().ShouldBe(msg4);
+        events[1].StoredMessage.IdempotencyKey.ShouldBeNull();
     }
     
     public abstract Task EventsAreReplacedWhenCountIsAsExpected();
@@ -180,10 +180,10 @@ public abstract class MessageStoreTests
         
         var events = (await messageStore.GetMessages(functionId, skip: 0)).ToList();
         events.Count.ShouldBe(2);
-        events[0].DefaultDeserialize().ShouldBe(msg3);
-        events[0].IdempotencyKey.ShouldBe("3");
-        events[1].DefaultDeserialize().ShouldBe(msg4);
-        events[1].IdempotencyKey.ShouldBeNull();
+        events[0].StoredMessage.DefaultDeserialize().ShouldBe(msg3);
+        events[0].StoredMessage.IdempotencyKey.ShouldBe("3");
+        events[1].StoredMessage.DefaultDeserialize().ShouldBe(msg4);
+        events[1].StoredMessage.IdempotencyKey.ShouldBeNull();
     }
     
     public abstract Task EventsAreNotReplacedWhenPositionIsNotAsExpected();
@@ -222,10 +222,10 @@ public abstract class MessageStoreTests
         
         var events = (await messageStore.GetMessages(functionId, skip: 0)).ToList();
         events.Count.ShouldBe(2);
-        events[0].DefaultDeserialize().ShouldBe(msg1);
-        events[0].IdempotencyKey.ShouldBe("1");
-        events[1].DefaultDeserialize().ShouldBe(msg2);
-        events[1].IdempotencyKey.ShouldBe("2");
+        events[0].StoredMessage.DefaultDeserialize().ShouldBe(msg1);
+        events[0].StoredMessage.IdempotencyKey.ShouldBe("1");
+        events[1].StoredMessage.DefaultDeserialize().ShouldBe(msg2);
+        events[1].StoredMessage.IdempotencyKey.ShouldBe("2");
     }
     
     public abstract Task SkippedMessagesAreNotFetched();
@@ -253,8 +253,8 @@ public abstract class MessageStoreTests
 
         var events = (await messageStore.GetMessages(functionId, skip: 0)).Skip(1).ToList();
         events.Count.ShouldBe(1);
-        events[0].DefaultDeserialize().ShouldBe(msg2);
-        events[0].IdempotencyKey.ShouldBeNull();
+        events[0].StoredMessage.DefaultDeserialize().ShouldBe(msg2);
+        events[0].StoredMessage.IdempotencyKey.ShouldBeNull();
     }
     
     public abstract Task TruncatedMessagesContainsNoEvents();
@@ -342,8 +342,8 @@ public abstract class MessageStoreTests
 
         var events = (await messageStore.GetMessages(functionId, skip: 0)).ToList();
         events.Count.ShouldBe(2);
-        var event1 = (string) JsonSerializer.Deserialize(events[0].MessageContent, Type.GetType(events[0].MessageType.ToStringFromUtf8Bytes(), throwOnError: true)!)!;
-        var event2 = (string) JsonSerializer.Deserialize(events[1].MessageContent, Type.GetType(events[1].MessageType.ToStringFromUtf8Bytes(), throwOnError: true)!)!;
+        var event1 = (string) JsonSerializer.Deserialize(events[0].StoredMessage.MessageContent, Type.GetType(events[0].StoredMessage.MessageType.ToStringFromUtf8Bytes(), throwOnError: true)!)!;
+        var event2 = (string) JsonSerializer.Deserialize(events[1].StoredMessage.MessageContent, Type.GetType(events[1].StoredMessage.MessageType.ToStringFromUtf8Bytes(), throwOnError: true)!)!;
         
         event1.ShouldBe("hello to you");
         event2.ShouldBe("hello from me");
@@ -372,8 +372,8 @@ public abstract class MessageStoreTests
 
         var events = (await messageStore.GetMessages(functionId, skip: 0)).ToList();
         events.Count.ShouldBe(2);
-        var event1 = (string) JsonSerializer.Deserialize(events[0].MessageContent, Type.GetType(events[0].MessageType.ToStringFromUtf8Bytes(), throwOnError: true)!)!;
-        var event2 = (string) JsonSerializer.Deserialize(events[1].MessageContent, Type.GetType(events[1].MessageType.ToStringFromUtf8Bytes(), throwOnError: true)!)!;
+        var event1 = (string) JsonSerializer.Deserialize(events[0].StoredMessage.MessageContent, Type.GetType(events[0].StoredMessage.MessageType.ToStringFromUtf8Bytes(), throwOnError: true)!)!;
+        var event2 = (string) JsonSerializer.Deserialize(events[1].StoredMessage.MessageContent, Type.GetType(events[1].StoredMessage.MessageType.ToStringFromUtf8Bytes(), throwOnError: true)!)!;
         
         event1.ShouldBe("hello to you");
         event2.ShouldBe("hello from me");
@@ -412,10 +412,10 @@ public abstract class MessageStoreTests
 
         var events = await messageStore.GetMessages(functionId, skip: 0);
         events.Count.ShouldBe(2);
-        events[0].IdempotencyKey.ShouldBe("idempotency_key");
-        events[0].DefaultDeserialize().ShouldBe("hello world");
-        events[1].IdempotencyKey.ShouldBe("idempotency_key");
-        events[1].DefaultDeserialize().ShouldBe("hello universe");
+        events[0].StoredMessage.IdempotencyKey.ShouldBe("idempotency_key");
+        events[0].StoredMessage.DefaultDeserialize().ShouldBe("hello world");
+        events[1].StoredMessage.IdempotencyKey.ShouldBe("idempotency_key");
+        events[1].StoredMessage.DefaultDeserialize().ShouldBe("hello universe");
     }
     
     public abstract Task EventWithExistingIdempotencyKeyIsNotInsertedIntoMessagesUsingBulkInsertion();
@@ -451,10 +451,10 @@ public abstract class MessageStoreTests
 
         var events = await messageStore.GetMessages(functionId, skip: 0);
         events.Count.ShouldBe(2);
-        events[0].IdempotencyKey.ShouldBe("idempotency_key");
-        events[0].DefaultDeserialize().ShouldBe("hello world");
-        events[1].IdempotencyKey.ShouldBe("idempotency_key");
-        events[1].DefaultDeserialize().ShouldBe("hello universe");
+        events[0].StoredMessage.IdempotencyKey.ShouldBe("idempotency_key");
+        events[0].StoredMessage.DefaultDeserialize().ShouldBe("hello world");
+        events[1].StoredMessage.IdempotencyKey.ShouldBe("idempotency_key");
+        events[1].StoredMessage.DefaultDeserialize().ShouldBe("hello universe");
     }
 
     public abstract Task FetchNonExistingEventsSucceeds();
@@ -505,9 +505,9 @@ public abstract class MessageStoreTests
         var newEvents = await messageStore.GetMessages(functionId, skip);
         newEvents.Count.ShouldBe(1);
         var storedEvent = newEvents[0];
-        var @event = DefaultSerializer.Instance.DeserializeMessage(storedEvent.MessageContent, storedEvent.MessageType);
+        var @event = DefaultSerializer.Instance.DeserializeMessage(storedEvent.StoredMessage.MessageContent, storedEvent.StoredMessage.MessageType);
         @event.ShouldBe("hello world");
-        storedEvent.IdempotencyKey.ShouldBe("idempotency_key_1");
+        storedEvent.StoredMessage.IdempotencyKey.ShouldBe("idempotency_key_1");
         skip += newEvents.Count;
         
         var event2 = new StoredMessage(
@@ -520,9 +520,9 @@ public abstract class MessageStoreTests
         newEvents = await messageStore.GetMessages(functionId, skip);
         newEvents.Count.ShouldBe(1);
         storedEvent = newEvents[0];
-        @event = DefaultSerializer.Instance.DeserializeMessage(storedEvent.MessageContent, storedEvent.MessageType);
+        @event = DefaultSerializer.Instance.DeserializeMessage(storedEvent.StoredMessage.MessageContent, storedEvent.StoredMessage.MessageType);
         @event.ShouldBe("hello universe");
-        storedEvent.IdempotencyKey.ShouldBe("idempotency_key_2");
+        storedEvent.StoredMessage.IdempotencyKey.ShouldBe("idempotency_key_2");
         skip += newEvents.Count;
         
         await messageStore.GetMessages(functionId, skip).SelectAsync(l => l.Count).ShouldBeAsync(0);
@@ -556,9 +556,9 @@ public abstract class MessageStoreTests
         var newEvents = await messageStore.GetMessages(functionId, skip);
         newEvents.Count.ShouldBe(1);
         var storedEvent = newEvents[0];
-        var @event = DefaultSerializer.Instance.DeserializeMessage(storedEvent.MessageContent, storedEvent.MessageType);
+        var @event = DefaultSerializer.Instance.DeserializeMessage(storedEvent.StoredMessage.MessageContent, storedEvent.StoredMessage.MessageType);
         @event.ShouldBe("hello world");
-        storedEvent.IdempotencyKey.ShouldBe("idempotency_key_1");
+        storedEvent.StoredMessage.IdempotencyKey.ShouldBe("idempotency_key_1");
         skip += newEvents.Count;
         
         var event2 = new StoredMessage(
@@ -570,7 +570,7 @@ public abstract class MessageStoreTests
 
         newEvents = await messageStore.GetMessages(functionId, skip);
         newEvents.Count.ShouldBe(1);
-        newEvents.Single().IdempotencyKey.ShouldBe("idempotency_key_1");
+        newEvents.Single().StoredMessage.IdempotencyKey.ShouldBe("idempotency_key_1");
         skip += newEvents.Count;
 
         newEvents = await messageStore.GetMessages(functionId, skip);
@@ -671,18 +671,18 @@ public abstract class MessageStoreTests
 
         var id1Msgs = await messageStore.GetMessages(id1, skip: 0);
         id1Msgs.Count.ShouldBe(3);
-        id1Msgs[1].IdempotencyKey.ShouldBe("1");
-        id1Msgs[1].MessageType.ShouldBe(stringType);
-        id1Msgs[1].MessageContent.ShouldBe(msg1.ToJsonByteArray());
-        id1Msgs[2].IdempotencyKey.ShouldBe("2");
-        id1Msgs[2].MessageType.ShouldBe(stringType);
-        id1Msgs[2].MessageContent.ShouldBe(msg2.ToJsonByteArray());
+        id1Msgs[1].StoredMessage.IdempotencyKey.ShouldBe("1");
+        id1Msgs[1].StoredMessage.MessageType.ShouldBe(stringType);
+        id1Msgs[1].StoredMessage.MessageContent.ShouldBe(msg1.ToJsonByteArray());
+        id1Msgs[2].StoredMessage.IdempotencyKey.ShouldBe("2");
+        id1Msgs[2].StoredMessage.MessageType.ShouldBe(stringType);
+        id1Msgs[2].StoredMessage.MessageContent.ShouldBe(msg2.ToJsonByteArray());
 
         var id2Msgs = await messageStore.GetMessages(id2, skip: 0);
         id2Msgs.Count.ShouldBe(1);
-        id2Msgs[0].IdempotencyKey.ShouldBe("3");
-        id2Msgs[0].MessageType.ShouldBe(stringType);
-        id2Msgs[0].MessageContent.ShouldBe(msg1.ToJsonByteArray());
+        id2Msgs[0].StoredMessage.IdempotencyKey.ShouldBe("3");
+        id2Msgs[0].StoredMessage.MessageType.ShouldBe(stringType);
+        id2Msgs[0].StoredMessage.MessageContent.ShouldBe(msg1.ToJsonByteArray());
 
         var sf1 = await functionStore.GetFunction(id1).ShouldNotBeNullAsync();
         sf1.Interrupted.ShouldBeTrue();
@@ -719,9 +719,9 @@ public abstract class MessageStoreTests
         
         var messages = await messageStore.GetMessages(id, skip: 0);
         messages.Count.ShouldBe(1);
-        messages[0].IdempotencyKey.ShouldBe("1");
-        messages[0].MessageType.ShouldBe(stringType);
-        messages[0].MessageContent.ShouldBe(msg.ToJsonByteArray());
+        messages[0].StoredMessage.IdempotencyKey.ShouldBe("1");
+        messages[0].StoredMessage.MessageType.ShouldBe(stringType);
+        messages[0].StoredMessage.MessageContent.ShouldBe(msg.ToJsonByteArray());
 
         var sf = await functionStore.GetFunction(id).ShouldNotBeNullAsync();
         sf.Interrupted.ShouldBeTrue();
@@ -774,18 +774,18 @@ public abstract class MessageStoreTests
         
         var messagesId1 = await messageStore.GetMessages(id1, skip: 0);
         messagesId1.Count.ShouldBe(2);
-        messagesId1[0].IdempotencyKey.ShouldBe("1");
-        messagesId1[0].MessageType.ShouldBe(stringType);
-        messagesId1[0].MessageContent.ToStringFromUtf8Bytes().ShouldBe(msg1String);
-        messagesId1[1].IdempotencyKey.ShouldBeNull();
-        messagesId1[1].MessageType.ShouldBe(stringType);
-        messagesId1[1].MessageContent.ToStringFromUtf8Bytes().ShouldBe(msg2String);
+        messagesId1[0].StoredMessage.IdempotencyKey.ShouldBe("1");
+        messagesId1[0].StoredMessage.MessageType.ShouldBe(stringType);
+        messagesId1[0].StoredMessage.MessageContent.ToStringFromUtf8Bytes().ShouldBe(msg1String);
+        messagesId1[1].StoredMessage.IdempotencyKey.ShouldBeNull();
+        messagesId1[1].StoredMessage.MessageType.ShouldBe(stringType);
+        messagesId1[1].StoredMessage.MessageContent.ToStringFromUtf8Bytes().ShouldBe(msg2String);
         
         var messagesId2 = await messageStore.GetMessages(id2, skip: 0);
         messagesId2.Count.ShouldBe(1);
-        messagesId2[0].IdempotencyKey.ShouldBe("1");
-        messagesId2[0].MessageType.ShouldBe(stringType);
-        messagesId2[0].MessageContent.ToStringFromUtf8Bytes().ShouldBe(msg1String);
+        messagesId2[0].StoredMessage.IdempotencyKey.ShouldBe("1");
+        messagesId2[0].StoredMessage.MessageType.ShouldBe(stringType);
+        messagesId2[0].StoredMessage.MessageContent.ToStringFromUtf8Bytes().ShouldBe(msg1String);
 
         var sf1 = await functionStore.GetFunction(id1).ShouldNotBeNullAsync();
         sf1.Interrupted.ShouldBeFalse();
@@ -802,12 +802,12 @@ public abstract class MessageStoreTests
         
         messagesId2 = await messageStore.GetMessages(id1, skip: 0);
         messagesId2.Count.ShouldBe(2);
-        messagesId2[0].IdempotencyKey.ShouldBe("1");
-        messagesId2[0].MessageType.ShouldBe(stringType);
-        messagesId2[0].MessageContent.ToStringFromUtf8Bytes().ShouldBe(msg1String);
-        messagesId2[1].IdempotencyKey.ShouldBeNull();
-        messagesId2[1].MessageType.ShouldBe(stringType);
-        messagesId2[1].MessageContent.ToStringFromUtf8Bytes().ShouldBe(msg2String);
+        messagesId2[0].StoredMessage.IdempotencyKey.ShouldBe("1");
+        messagesId2[0].StoredMessage.MessageType.ShouldBe(stringType);
+        messagesId2[0].StoredMessage.MessageContent.ToStringFromUtf8Bytes().ShouldBe(msg1String);
+        messagesId2[1].StoredMessage.IdempotencyKey.ShouldBeNull();
+        messagesId2[1].StoredMessage.MessageType.ShouldBe(stringType);
+        messagesId2[1].StoredMessage.MessageContent.ToStringFromUtf8Bytes().ShouldBe(msg2String);
         
         sf2 = await functionStore.GetFunction(id2).ShouldNotBeNullAsync();
         sf2.Interrupted.ShouldBeTrue();
@@ -855,12 +855,12 @@ public abstract class MessageStoreTests
         messages.Count.ShouldBe(2);
         var messageId1 = messages[id1];
         messageId1.Count.ShouldBe(2);
-        messageId1[0].MessageContent.ToStringFromUtf8Bytes().DeserializeFromJsonTo<string>().ShouldBe("Hello");
-        messageId1[1].MessageContent.ToStringFromUtf8Bytes().DeserializeFromJsonTo<string>().ShouldBe("World!");
+        messageId1[0].StoredMessage.MessageContent.ToStringFromUtf8Bytes().DeserializeFromJsonTo<string>().ShouldBe("Hello");
+        messageId1[1].StoredMessage.MessageContent.ToStringFromUtf8Bytes().DeserializeFromJsonTo<string>().ShouldBe("World!");
         
         var messageId2 = messages[id2];
         messageId2.Count.ShouldBe(2);
-        messageId2[0].MessageContent.ToStringFromUtf8Bytes().DeserializeFromJsonTo<string>().ShouldBe("Hello");
-        messageId2[1].MessageContent.ToStringFromUtf8Bytes().DeserializeFromJsonTo<string>().ShouldBe("World!");
+        messageId2[0].StoredMessage.MessageContent.ToStringFromUtf8Bytes().DeserializeFromJsonTo<string>().ShouldBe("Hello");
+        messageId2[1].StoredMessage.MessageContent.ToStringFromUtf8Bytes().DeserializeFromJsonTo<string>().ShouldBe("World!");
     }
 }

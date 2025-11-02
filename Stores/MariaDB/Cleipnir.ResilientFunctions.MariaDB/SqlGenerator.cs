@@ -380,7 +380,7 @@ public class SqlGenerator(string tablePrefix)
     public StoreCommand GetMessages(StoredId storedId, long skip)
     {
         _getMessagesSql ??= @$"
-            SELECT content
+            SELECT content, position
             FROM {tablePrefix}_messages
             WHERE id = ? AND position >= ?
             ORDER BY position ASC;";
@@ -395,14 +395,15 @@ public class SqlGenerator(string tablePrefix)
         );
         return command;
     }
-    
-    public async Task<IReadOnlyList<byte[]>> ReadMessages(MySqlDataReader reader)
+
+    public async Task<IReadOnlyList<(byte[] content, long position)>> ReadMessages(MySqlDataReader reader)
     {
-        var messages = new List<byte[]>();
+        var messages = new List<(byte[], long)>();
         while (await reader.ReadAsync())
         {
             var content = (byte[]) reader.GetValue(0);
-            messages.Add(content);
+            var position = reader.GetInt64(1);
+            messages.Add((content, position));
         }
 
         return messages;
@@ -419,9 +420,9 @@ public class SqlGenerator(string tablePrefix)
         return command;
     }
     
-    public async Task<Dictionary<StoredId, List<byte[]>>> ReadStoredIdsMessages(MySqlDataReader reader)
+    public async Task<Dictionary<StoredId, List<(byte[] content, long position)>>> ReadStoredIdsMessages(MySqlDataReader reader)
     {
-        var messages = new Dictionary<StoredId, List<Tuple<long, byte[]>>>();
+        var messages = new Dictionary<StoredId, List<(byte[] content, long position)>>();
 
         while (await reader.ReadAsync())
         {
@@ -430,16 +431,15 @@ public class SqlGenerator(string tablePrefix)
             var content = (byte[]) reader.GetValue(2);
 
             if (!messages.ContainsKey(id))
-                messages[id] = new List<Tuple<long, byte[]>>();
+                messages[id] = new List<(byte[], long)>();
 
-            messages[id].Add(Tuple.Create(position, content));
+            messages[id].Add((content, position));
         }
 
         return messages.ToDictionary(
             kv => kv.Key,
             kv => kv.Value
-                .OrderBy(m => m.Item1)
-                .Select(m => m.Item2)
+                .OrderBy(m => m.position)
                 .ToList());
     }
 }

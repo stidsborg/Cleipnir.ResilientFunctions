@@ -24,7 +24,7 @@ public class MessagesPullerAndEmitter
 
     private Exception? _thrownException;
 
-    private IReadOnlyList<StoredMessage>? _initialMessages;
+    private IReadOnlyList<StoredMessageWithPosition>? _initialMessages;
     private readonly HashSet<string> _idempotencyKeys = new();
     private int _skip;
 
@@ -47,7 +47,7 @@ public class MessagesPullerAndEmitter
         TimeSpan defaultMaxWait,
         Func<bool> isWorkflowRunning,
         IFunctionStore functionStore, ISerializer serializer, IRegisteredTimeouts registeredTimeouts,
-        IReadOnlyList<StoredMessage>? initialMessages,
+        IReadOnlyList<StoredMessageWithPosition>? initialMessages,
         UtcNow utcNow)
     {
         _storedId = storedId;
@@ -93,21 +93,21 @@ public class MessagesPullerAndEmitter
 
             if (storedMessages.Count == 0)
                 return;
-            
-            var filterStoredMessages = new List<StoredMessage>(storedMessages.Count);
+
+            var filterStoredMessages = new List<StoredMessageWithPosition>(storedMessages.Count);
             foreach (var storedMessage in storedMessages)
-                if (storedMessage.IdempotencyKey == null || !_idempotencyKeys.Contains(storedMessage.IdempotencyKey))
+                if (storedMessage.StoredMessage.IdempotencyKey == null || !_idempotencyKeys.Contains(storedMessage.StoredMessage.IdempotencyKey))
                 {
                     filterStoredMessages.Add(storedMessage);
-                    if (storedMessage.IdempotencyKey != null)
-                        _idempotencyKeys.Add(storedMessage.IdempotencyKey);
+                    if (storedMessage.StoredMessage.IdempotencyKey != null)
+                        _idempotencyKeys.Add(storedMessage.StoredMessage.IdempotencyKey);
                 }
 
             storedMessages = filterStoredMessages;
 
             var events = storedMessages
                 .Select(
-                    storedEvent => _serializer.DeserializeMessage(storedEvent.MessageContent, storedEvent.MessageType)
+                    storedEvent => _serializer.DeserializeMessage(storedEvent.StoredMessage.MessageContent, storedEvent.StoredMessage.MessageType)
                 )
                 .Where(@event => @event is not NoOp);
 

@@ -572,7 +572,7 @@ public abstract class StoreTests
 
         var storedMessages = await store.MessageStore.GetMessages(functionId, skip: 0);
         storedMessages.Count.ShouldBe(1);
-        var deserializedMessage = (string) DefaultSerializer.Instance.DeserializeMessage(storedMessages[0].MessageContent, storedMessages[0].MessageType);
+        var deserializedMessage = (string) DefaultSerializer.Instance.DeserializeMessage(storedMessages[0].StoredMessage.MessageContent, storedMessages[0].StoredMessage.MessageType);
         deserializedMessage.ShouldBe("hello everyone");
     }
     
@@ -711,8 +711,8 @@ public abstract class StoreTests
         
         var messages = await store.MessageStore.GetMessages(functionId, skip: 0);
         messages.Count.ShouldBe(2);
-        messages[0].DefaultDeserialize().ShouldBe("Hello");
-        messages[1].DefaultDeserialize().ShouldBe("World");
+        messages[0].StoredMessage.DefaultDeserialize().ShouldBe("Hello");
+        messages[1].StoredMessage.DefaultDeserialize().ShouldBe("World");
     }
     
     public abstract Task FunctionStatusAndEpochCanBeSuccessfullyFetched();
@@ -1419,14 +1419,14 @@ public abstract class StoreTests
         var messages = await store.MessageStore.GetMessages(storedId, skip: 0);
         messages.Count.ShouldBe(2);
         var fetchedMessage1 = messages[0];
-        fetchedMessage1.MessageType.ToStringFromUtf8Bytes().ShouldBe("some type");
-        fetchedMessage1.MessageContent.ToStringFromUtf8Bytes().ShouldBe("hallo world");
-        fetchedMessage1.IdempotencyKey.ShouldBe("some idempotency key");
-        
+        fetchedMessage1.StoredMessage.MessageType.ToStringFromUtf8Bytes().ShouldBe("some type");
+        fetchedMessage1.StoredMessage.MessageContent.ToStringFromUtf8Bytes().ShouldBe("hallo world");
+        fetchedMessage1.StoredMessage.IdempotencyKey.ShouldBe("some idempotency key");
+
         var fetchedMessage2 = messages[1];
-        fetchedMessage2.MessageType.ToStringFromUtf8Bytes().ShouldBe("some type");
-        fetchedMessage2.MessageContent.ToStringFromUtf8Bytes().ShouldBe("hallo universe");
-        fetchedMessage2.IdempotencyKey.ShouldBe("some idempotency key");
+        fetchedMessage2.StoredMessage.MessageType.ToStringFromUtf8Bytes().ShouldBe("some type");
+        fetchedMessage2.StoredMessage.MessageContent.ToStringFromUtf8Bytes().ShouldBe("hallo universe");
+        fetchedMessage2.StoredMessage.IdempotencyKey.ShouldBe("some idempotency key");
         
         //idempotency check
         await store.CreateFunction(
@@ -1481,14 +1481,14 @@ public abstract class StoreTests
         var messages = await store.MessageStore.GetMessages(storedId, skip: 0);
         messages.Count.ShouldBe(2);
         var fetchedMessage1 = messages[0];
-        fetchedMessage1.MessageType.ToStringFromUtf8Bytes().ShouldBe("some type");
-        fetchedMessage1.MessageContent.ToStringFromUtf8Bytes().ShouldBe("hallo world");
-        fetchedMessage1.IdempotencyKey.ShouldBe("some idempotency key");
-        
+        fetchedMessage1.StoredMessage.MessageType.ToStringFromUtf8Bytes().ShouldBe("some type");
+        fetchedMessage1.StoredMessage.MessageContent.ToStringFromUtf8Bytes().ShouldBe("hallo world");
+        fetchedMessage1.StoredMessage.IdempotencyKey.ShouldBe("some idempotency key");
+
         var fetchedMessage2 = messages[1];
-        fetchedMessage2.MessageType.ToStringFromUtf8Bytes().ShouldBe("some type");
-        fetchedMessage2.MessageContent.ToStringFromUtf8Bytes().ShouldBe("hallo universe");
-        fetchedMessage2.IdempotencyKey.ShouldBe("some idempotency key");
+        fetchedMessage2.StoredMessage.MessageType.ToStringFromUtf8Bytes().ShouldBe("some type");
+        fetchedMessage2.StoredMessage.MessageContent.ToStringFromUtf8Bytes().ShouldBe("hallo universe");
+        fetchedMessage2.StoredMessage.IdempotencyKey.ShouldBe("some idempotency key");
         
         //idempotency check
         await store.CreateFunction(
@@ -1617,7 +1617,7 @@ public abstract class StoreTests
         effects.Single().EffectId.Id.ShouldBe("Test");
         effects.Single().Result!.ToStringFromUtf8Bytes().ShouldBe("hallo effect");
         messages.Count.ShouldBe(1);
-        messages.Single().MessageContent.ToStringFromUtf8Bytes().ShouldBe("hallo message");
+        messages.Single().StoredMessage.MessageContent.ToStringFromUtf8Bytes().ShouldBe("hallo message");
     }
     
     public abstract Task RestartExecutionWorksWithEmptyEffectsAndMessages();

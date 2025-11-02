@@ -280,7 +280,7 @@ public class SqlServerFunctionStore : IFunctionStore
 
         await reader.NextResultAsync();
         var messages = await _sqlGenerator.ReadMessages(reader);
-        var storedMessages = messages.Select(SqlServerMessageStore.ConvertToStoredMessage).ToList();
+        var storedMessages = messages.Select(m => new StoredMessageWithPosition(SqlServerMessageStore.ConvertToStoredMessage(m.content), m.position)).ToList();
 
         return new StoredFlowWithEffectsAndMessages(sf, effects, storedMessages, session);
     }

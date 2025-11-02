@@ -48,7 +48,7 @@ public abstract class MessagesSubscriptionTests
         events.Count.ShouldBe(1);
         DefaultSerializer
             .Instance
-            .DeserializeMessage(events[0].MessageContent, events[0].MessageType)
+            .DeserializeMessage(events[0].StoredMessage.MessageContent, events[0].StoredMessage.MessageType)
             .ShouldBe("hello world");
         
         events = await messageStore.GetMessages(functionId, skip: 1);
@@ -61,10 +61,10 @@ public abstract class MessagesSubscriptionTests
         
         events = await messageStore.GetMessages(functionId, skip: 1);
         events.Count.ShouldBe(1);
-        
+
         DefaultSerializer
             .Instance
-            .DeserializeMessage(events[0].MessageContent, events[0].MessageType)
+            .DeserializeMessage(events[0].StoredMessage.MessageContent, events[0].StoredMessage.MessageType)
             .ShouldBe("hello universe");
     }
 }

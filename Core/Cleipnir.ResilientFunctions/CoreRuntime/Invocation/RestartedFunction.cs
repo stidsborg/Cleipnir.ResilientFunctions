@@ -6,8 +6,8 @@ using Cleipnir.ResilientFunctions.Storage.Session;
 namespace Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 
 internal record RestartedFunction(
-    StoredFlow StoredFlow, 
+    StoredFlow StoredFlow,
     IReadOnlyList<StoredEffect> StoredEffects,
-    IReadOnlyList<StoredMessage> StoredMessages,
+    IReadOnlyList<StoredMessageWithPosition> StoredMessages,
     IStorageSession? StorageSession
 );

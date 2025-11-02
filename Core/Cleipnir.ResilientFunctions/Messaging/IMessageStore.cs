@@ -16,7 +16,7 @@ public interface IMessageStore
 
     Task Truncate(StoredId storedId);
 
-    Task<IReadOnlyList<StoredMessage>> GetMessages(StoredId storedId, long skip);
-    Task<Dictionary<StoredId, List<StoredMessage>>> GetMessages(IEnumerable<StoredId> storedIds);
+    Task<IReadOnlyList<StoredMessageWithPosition>> GetMessages(StoredId storedId, long skip);
+    Task<Dictionary<StoredId, List<StoredMessageWithPosition>>> GetMessages(IEnumerable<StoredId> storedIds);
     Task<IDictionary<StoredId, long>> GetMaxPositions(IReadOnlyList<StoredId> storedIds);
 }

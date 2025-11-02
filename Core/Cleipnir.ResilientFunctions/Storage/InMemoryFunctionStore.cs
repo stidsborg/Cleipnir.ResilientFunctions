@@ -598,20 +598,20 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         return Task.CompletedTask;
     }
 
-    private IEnumerable<StoredMessage> GetMessages(StoredId storedId)
+    private IEnumerable<StoredMessageWithPosition> GetMessages(StoredId storedId)
     {
         lock (_sync)
-            return !_messages.ContainsKey(storedId) 
-                ? Enumerable.Empty<StoredMessage>() 
-                : _messages[storedId].OrderBy(kv => kv.Key).Select(kv => kv.Value).ToList();
+            return !_messages.ContainsKey(storedId)
+                ? Enumerable.Empty<StoredMessageWithPosition>()
+                : _messages[storedId].OrderBy(kv => kv.Key).Select(kv => new StoredMessageWithPosition(kv.Value, kv.Key)).ToList();
     }
 
-    public virtual Task<IReadOnlyList<StoredMessage>> GetMessages(StoredId storedId, long skip)
-        => ((IReadOnlyList<StoredMessage>)GetMessages(storedId).Skip((int)skip).ToList()).ToTask();
+    public virtual Task<IReadOnlyList<StoredMessageWithPosition>> GetMessages(StoredId storedId, long skip)
+        => ((IReadOnlyList<StoredMessageWithPosition>)GetMessages(storedId).Skip((int)skip).ToList()).ToTask();
 
-    public async Task<Dictionary<StoredId, List<StoredMessage>>> GetMessages(IEnumerable<StoredId> storedIds)
+    public async Task<Dictionary<StoredId, List<StoredMessageWithPosition>>> GetMessages(IEnumerable<StoredId> storedIds)
     {
-        var dict = new Dictionary<StoredId, List<StoredMessage>>();
+        var dict = new Dictionary<StoredId, List<StoredMessageWithPosition>>();
         foreach (var storedId in storedIds)
         {
             dict[storedId] = (await GetMessages(storedId, skip: 0)).ToList();

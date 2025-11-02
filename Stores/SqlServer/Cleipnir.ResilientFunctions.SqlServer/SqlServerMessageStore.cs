@@ -170,54 +170,29 @@ public class SqlServerMessageStore(string connectionString, SqlGenerator sqlGene
         await command.ExecuteNonQueryAsync();
     }
 
-    private string? _getMessagesSql;
-    public async Task<IReadOnlyList<StoredMessage>> GetMessages(StoredId storedId, long skip)
+    public async Task<IReadOnlyList<StoredMessageWithPosition>> GetMessages(StoredId storedId, long skip)
     {
         await using var conn = await CreateConnection();
-        _getMessagesSql ??= @$"
-            SELECT Content
-            FROM {tablePrefix}_Messages
-            WHERE Id = @Id AND Position >= @Position
-            ORDER BY Position ASC;";
+        await using var command = sqlGenerator.GetMessages(storedId, skip).ToSqlCommand(conn);
 
-        await using var command = new SqlCommand(_getMessagesSql, conn);
-        command.Parameters.AddWithValue("@Id", storedId.AsGuid);
-        command.Parameters.AddWithValue("@Position", skip);
-
-        var messages = new List<byte[]>();
-        try
-        {
-            await using var reader = await command.ExecuteReaderAsync();
-            while (await reader.ReadAsync())
-            {
-                var content = (byte[]) reader.GetValue(0);
-                messages.Add(content);
-            }
-        }
-        catch (SqlException exception)
-        {
-            if (exception.Number != SqlError.UNIQUENESS_VIOLATION && exception.Number != SqlError.DEADLOCK_VICTIM) throw;
-
-            conn.Dispose();
-            return await GetMessages(storedId, skip);
-        }
-
-        return messages.Select(ConvertToStoredMessage).ToList();
+        await using var reader = await command.ExecuteReaderAsync();
+        var messages = await sqlGenerator.ReadMessages(reader);
+        return messages.Select(m => new StoredMessageWithPosition(ConvertToStoredMessage(m.content), m.position)).ToList();
     }
 
-    public async Task<Dictionary<StoredId, List<StoredMessage>>> GetMessages(IEnumerable<StoredId> storedIds)
+    public async Task<Dictionary<StoredId, List<StoredMessageWithPosition>>> GetMessages(IEnumerable<StoredId> storedIds)
     {
         await using var conn = await CreateConnection();
         await using var cmd = sqlGenerator.GetMessages(storedIds).ToSqlCommand(conn);
         await using var reader = await cmd.ExecuteReaderAsync();
 
         var messages = await sqlGenerator.ReadStoredIdsMessages(reader);
-        var storedMessages = new Dictionary<StoredId, List<StoredMessage>>();
+        var storedMessages = new Dictionary<StoredId, List<StoredMessageWithPosition>>();
         foreach (var id in messages.Keys)
         {
             storedMessages[id] = new();
-            foreach (var content in messages[id])
-                storedMessages[id].Add(ConvertToStoredMessage(content));
+            foreach (var (content, position) in messages[id])
+                storedMessages[id].Add(new StoredMessageWithPosition(ConvertToStoredMessage(content), position));
         }
 
         return storedMessages;

@@ -271,11 +271,11 @@ internal class InvocationHelper<TParam, TReturn>
     }
 
     internal record PreparedReInvocation(
-        FlowId FlowId, 
-        TParam? Param, 
+        FlowId FlowId,
+        TParam? Param,
         IReadOnlyList<StoredEffect> Effects,
-        IReadOnlyList<StoredMessage> Messages,
-        IDisposable RunningFunction, 
+        IReadOnlyList<StoredMessageWithPosition> Messages,
+        IDisposable RunningFunction,
         StoredId? Parent,
         IStorageSession? StorageSession
     );
@@ -384,11 +384,11 @@ internal class InvocationHelper<TParam, TReturn>
 
     public Messages CreateMessages(
         FlowId flowId,
-        StoredId storedId, 
-        ScheduleReInvocation scheduleReInvocation, 
-        Func<bool> isWorkflowRunning, 
+        StoredId storedId,
+        ScheduleReInvocation scheduleReInvocation,
+        Func<bool> isWorkflowRunning,
         Effect effect,
-        IReadOnlyList<StoredMessage> initialMessages,
+        IReadOnlyList<StoredMessageWithPosition> initialMessages,
         FlowMinimumTimeout flowMinimumTimeout,
         UnhandledExceptionHandler unhandledExceptionHandler)
     {
@@ -515,6 +515,12 @@ internal class InvocationHelper<TParam, TReturn>
             var (content, type) = Serializer.SerializeMessage(m.Message, m.Message.GetType());
             return new StoredMessage(content, type, m.IdempotencyKey);
         }).ToList();
+
+    internal IReadOnlyList<StoredMessageWithPosition> AddPositionsToMessages(IReadOnlyList<StoredMessage> messages)
+    {
+        var position = 0L;
+        return messages.Select(m => new StoredMessageWithPosition(m, position++)).ToList();
+    }
 
     public async Task<bool> Reschedule(StoredId id, TParam param)
     {

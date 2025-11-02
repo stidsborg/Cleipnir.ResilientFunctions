@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.Helpers.Disposables;
+using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Storage.Session;
 
@@ -237,13 +238,16 @@ public class Invoker<TParam, TReturn>
                 minimumTimeout,
                 storageSession
             );
+            var initialMessages = initialState == null
+                ? (IReadOnlyList<StoredMessageWithPosition>) []
+                : _invocationHelper.AddPositionsToMessages(_invocationHelper.MapInitialMessages(initialState.Messages));
             var messages = _invocationHelper.CreateMessages(
                 flowId,
                 storedId,
-                ScheduleRestart, 
+                ScheduleRestart,
                 isWorkflowRunning: () => !isWorkflowRunningDisposable.Disposed,
                 effect,
-                initialState == null ? [] : _invocationHelper.MapInitialMessages(initialState.Messages),
+                initialMessages,
                 minimumTimeout,
                 _unhandledExceptionHandler
             );

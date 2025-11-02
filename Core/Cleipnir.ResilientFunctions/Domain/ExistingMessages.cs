@@ -37,10 +37,10 @@ public class ExistingMessages
         
         var storedMessages = await _messageStore.GetMessages(_storedId, skip: 0);
         return _receivedMessages = storedMessages
-            .Select(m => 
+            .Select(m =>
                 new MessageAndIdempotencyKey(
-                    _serializer.DeserializeMessage(m.MessageContent, m.MessageType),
-                    m.IdempotencyKey
+                    _serializer.DeserializeMessage(m.StoredMessage.MessageContent, m.StoredMessage.MessageType),
+                    m.StoredMessage.IdempotencyKey
                 )
             ).ToList();
     }

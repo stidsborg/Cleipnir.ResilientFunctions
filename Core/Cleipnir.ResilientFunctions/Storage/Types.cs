@@ -200,7 +200,7 @@ public record IdWithParam(StoredId StoredId, string HumanInstanceId, byte[]? Par
 public record StoredFlowWithEffectsAndMessages(
     StoredFlow StoredFlow,
     IReadOnlyList<StoredEffect> Effects,
-    IReadOnlyList<StoredMessage> Messages,
+    IReadOnlyList<StoredMessageWithPosition> Messages,
     IStorageSession StorageSession
 );
 
