@@ -379,7 +379,7 @@ public class SqlGenerator(string tablePrefix)
         var appendCommand = StoreCommand.Create(sql);
         for (var i = 0; i < messages.Count; i++)
         {
-            var (storedId, (messageContent, messageType, idempotencyKey), position) = messages[i];
+            var (storedId, (messageContent, messageType, _, idempotencyKey), position) = messages[i];
             var content = BinaryPacker.Pack(
                 messageContent,
                 messageType,

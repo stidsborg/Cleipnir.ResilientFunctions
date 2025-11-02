@@ -186,7 +186,7 @@ public abstract class StoreCrudTests
             new StoredEffect("SomeEffectId".ToEffectId(), WorkStatus.Completed, Result: null, StoredException: null).ToStoredChange(functionId, Insert),
             session: null
         );
-        await store.MessageStore.AppendMessage(functionId, new StoredMessage("SomeJson".ToUtf8Bytes(), "SomeType".ToUtf8Bytes()));
+        await store.MessageStore.AppendMessage(functionId, new StoredMessage("SomeJson".ToUtf8Bytes(), "SomeType".ToUtf8Bytes(), Position: 0));
         
         await store.DeleteFunction(functionId);
 

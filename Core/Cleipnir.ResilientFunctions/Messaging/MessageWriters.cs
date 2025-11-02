@@ -41,7 +41,7 @@ public class MessageWriters
         {
             var storedId = StoredId.Create(_storedType, instance.Value);
             var (content, type) = _serializer.SerializeMessage(message, message.GetType());
-            var storedMessage = new StoredMessage(content, type, idempotencyKey);
+            var storedMessage = new StoredMessage(content, type, Position: 0, idempotencyKey);
             storedIdAndMessages.Add(new StoredIdAndMessage(storedId,storedMessage));
         }
 

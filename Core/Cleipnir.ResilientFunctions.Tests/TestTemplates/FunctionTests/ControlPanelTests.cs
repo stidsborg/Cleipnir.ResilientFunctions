@@ -715,7 +715,7 @@ public abstract class ControlPanelTests
         await rAction.Invoke(flowInstance.Value, param: "param");
         await store.MessageStore.AppendMessage(
             rAction.MapToStoredId(functionId.Instance),
-            new StoredMessage("hello world".ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes())
+            new StoredMessage("hello world".ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Position: 0)
         );
 
         var controlPanel = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
@@ -724,7 +724,7 @@ public abstract class ControlPanelTests
 
         await store.MessageStore.AppendMessage(
             rAction.MapToStoredId(functionId.Instance),
-            new StoredMessage("hello universe".ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes())
+            new StoredMessage("hello universe".ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Position: 0)
         );
         
         await existingMessages.Clear();
@@ -752,14 +752,14 @@ public abstract class ControlPanelTests
         await rAction.Invoke(flowInstance.Value, param: "param");
         await store.MessageStore.AppendMessage(
             rAction.MapToStoredId(functionId.Instance),
-            new StoredMessage("hello world".ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes())
+            new StoredMessage("hello world".ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Position: 0)
         );
 
         var controlPanel = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
 
         await store.MessageStore.AppendMessage(
             rAction.MapToStoredId(functionId.Instance),
-            new StoredMessage("hello universe".ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes())
+            new StoredMessage("hello universe".ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Position: 0)
         );
 
         controlPanel.Param = "PARAM";
@@ -794,7 +794,7 @@ public abstract class ControlPanelTests
         await rAction.Invoke(flowInstance.Value, param: "param");
         await store.MessageStore.AppendMessage(
             rAction.MapToStoredId(functionId.Instance),
-            new StoredMessage("hello world".ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes())
+            new StoredMessage("hello world".ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Position: 0)
         );
 
         var controlPanel = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
@@ -803,7 +803,7 @@ public abstract class ControlPanelTests
 
         await store.MessageStore.AppendMessage(
             rAction.MapToStoredId(functionId.Instance),
-            new StoredMessage("hello universe".ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes())
+            new StoredMessage("hello universe".ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Position: 0)
         );
         
         await existingMessages.Clear();
@@ -831,14 +831,14 @@ public abstract class ControlPanelTests
         await rAction.Invoke(flowInstance.Value, param: "param");
         await store.MessageStore.AppendMessage(
             rAction.MapToStoredId(functionId.Instance),
-            new StoredMessage("hello world".ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes())
+            new StoredMessage("hello world".ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Position: 0)
         );
 
         var controlPanel = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
 
         await store.MessageStore.AppendMessage(
             rAction.MapToStoredId(functionId.Instance),
-            new StoredMessage("hello universe".ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes())
+            new StoredMessage("hello universe".ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Position: 0)
         );
 
         controlPanel.Param = "PARAM";

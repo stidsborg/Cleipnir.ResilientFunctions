@@ -51,7 +51,7 @@ public class PostgreSqlMessageStore(string connectionString, SqlGenerator sqlGen
     {
         await using var conn = await CreateConnection();
         await using var batch = new NpgsqlBatch(conn);
-        var (messageJson, messageType, idempotencyKey) = storedMessage;
+        var (messageJson, messageType, _, idempotencyKey) = storedMessage;
         
         { 
             _appendMessageSql ??= @$"    
@@ -142,7 +142,7 @@ public class PostgreSqlMessageStore(string connectionString, SqlGenerator sqlGen
                 SET content = $1
                 WHERE id = $2 AND position = $3";
 
-        var (messageJson, messageType, idempotencyKey) = storedMessage;
+        var (messageJson, messageType, _, idempotencyKey) = storedMessage;
         var content = BinaryPacker.Pack(
             messageJson,
             messageType,
@@ -179,29 +179,29 @@ public class PostgreSqlMessageStore(string connectionString, SqlGenerator sqlGen
         await command.ExecuteNonQueryAsync();
     }
 
-    public async Task<IReadOnlyList<StoredMessageWithPosition>> GetMessages(StoredId storedId, long skip)
+    public async Task<IReadOnlyList<StoredMessage>> GetMessages(StoredId storedId, long skip)
     {
         await using var conn = await CreateConnection();
         await using var command = sqlGenerator.GetMessages(storedId, skip).ToNpgsqlCommand(conn);
 
         await using var reader = await command.ExecuteReaderAsync();
         var messages = await sqlGenerator.ReadMessages(reader);
-        return messages.Select(m => new StoredMessageWithPosition(ConvertToStoredMessage(m.content), m.position)).ToList();
+        return messages.Select(m => ConvertToStoredMessage(m.content) with { Position = m.position }).ToList();
     }
 
-    public async Task<Dictionary<StoredId, List<StoredMessageWithPosition>>> GetMessages(IEnumerable<StoredId> storedIds)
+    public async Task<Dictionary<StoredId, List<StoredMessage>>> GetMessages(IEnumerable<StoredId> storedIds)
     {
         await using var conn = await CreateConnection();
         await using var command = sqlGenerator.GetMessages(storedIds).ToNpgsqlCommand(conn);
 
         await using var reader = await command.ExecuteReaderAsync();
         var messages = await sqlGenerator.ReadStoredIdsMessages(reader);
-        var storedMessages = new Dictionary<StoredId, List<StoredMessageWithPosition>>();
+        var storedMessages = new Dictionary<StoredId, List<StoredMessage>>();
         foreach (var id in messages.Keys)
         {
             storedMessages[id] = new();
             foreach (var (content, position) in messages[id])
-                storedMessages[id].Add(new StoredMessageWithPosition(ConvertToStoredMessage(content), position));
+                storedMessages[id].Add(ConvertToStoredMessage(content) with { Position = position });
         }
 
         return storedMessages;
@@ -216,6 +216,7 @@ public class PostgreSqlMessageStore(string connectionString, SqlGenerator sqlGen
         var storedMessage = new StoredMessage(
             message,
             type,
+            Position: 0,
             idempotencyKey?.ToStringFromUtf8Bytes()
         );
         return storedMessage;
