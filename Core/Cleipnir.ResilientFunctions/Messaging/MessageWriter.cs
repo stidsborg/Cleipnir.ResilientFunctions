@@ -28,7 +28,7 @@ public class MessageWriter
         
          await _messageStore.AppendMessage(
             _storedId,
-            new StoredMessage(eventJson, eventType, idempotencyKey)
+            new StoredMessage(eventJson, eventType, Position: 0, idempotencyKey)
         );
         await _functionStore.Interrupt(_storedId);
     }

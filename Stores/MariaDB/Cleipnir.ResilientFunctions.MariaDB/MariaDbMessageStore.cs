@@ -51,7 +51,7 @@ public class MariaDbMessageStore : IMessageStore
             try
             {
                 await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
-                var (messageJson, messageType, idempotencyKey) = storedMessage;
+                var (messageJson, messageType, _, idempotencyKey) = storedMessage;
                 //https://dev.mysql.com/doc/refman/8.0/en/locking-functions.html#function_get-lock
                 var lockName = storedId.ToString().GenerateSHA256Hash();
                 _appendMessageSql ??= @$"
@@ -141,7 +141,7 @@ public class MariaDbMessageStore : IMessageStore
     public async Task<bool> ReplaceMessage(StoredId storedId, long position, StoredMessage storedMessage)
     {
         await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
-        var (messageJson, messageType, idempotencyKey) = storedMessage;
+        var (messageJson, messageType, _, idempotencyKey) = storedMessage;
 
         _replaceMessageSql ??= @$"
                 UPDATE {_tablePrefix}_messages
@@ -179,7 +179,7 @@ public class MariaDbMessageStore : IMessageStore
         await command.ExecuteNonQueryAsync();
     }
 
-    public async Task<IReadOnlyList<StoredMessageWithPosition>> GetMessages(StoredId storedId, long skip)
+    public async Task<IReadOnlyList<StoredMessage>> GetMessages(StoredId storedId, long skip)
     {
         await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
         await using var command = _sqlGenerator
@@ -189,10 +189,10 @@ public class MariaDbMessageStore : IMessageStore
         await using var reader = await command.ExecuteReaderAsync();
 
         var messages = await _sqlGenerator.ReadMessages(reader);
-        return messages.Select(m => new StoredMessageWithPosition(ConvertToStoredMessage(m.content), m.position)).ToList();
+        return messages.Select(m => ConvertToStoredMessage(m.content) with { Position = m.position }).ToList();
     }
 
-    public async Task<Dictionary<StoredId, List<StoredMessageWithPosition>>> GetMessages(IEnumerable<StoredId> storedIds)
+    public async Task<Dictionary<StoredId, List<StoredMessage>>> GetMessages(IEnumerable<StoredId> storedIds)
     {
         await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
         await using var command = _sqlGenerator
@@ -202,12 +202,12 @@ public class MariaDbMessageStore : IMessageStore
         await using var reader = await command.ExecuteReaderAsync();
 
         var messages = await _sqlGenerator.ReadStoredIdsMessages(reader);
-        var storedMessages = new Dictionary<StoredId, List<StoredMessageWithPosition>>();
+        var storedMessages = new Dictionary<StoredId, List<StoredMessage>>();
         foreach (var id in messages.Keys)
         {
             storedMessages[id] = new();
             foreach (var (content, position) in messages[id])
-                storedMessages[id].Add(new StoredMessageWithPosition(ConvertToStoredMessage(content), position));
+                storedMessages[id].Add(ConvertToStoredMessage(content) with { Position = position });
         }
 
         return storedMessages;
@@ -248,6 +248,7 @@ public class MariaDbMessageStore : IMessageStore
         var storedMessage = new StoredMessage(
             message,
             type,
+            Position: 0,
             idempotencyKey?.ToStringFromUtf8Bytes()
         );
         return storedMessage;

@@ -73,7 +73,7 @@ public class SqlServerMessageStore(string connectionString, SqlGenerator sqlGene
         await using var command = new SqlCommand(sql, conn);
         for (var i = 0; i < messages.Count; i++)
         {
-            var (storedId, (messageContent, messageType, idempotencyKey)) = messages[i];
+            var (storedId, (messageContent, messageType, _, idempotencyKey)) = messages[i];
             var position = ++maxPositions[storedId];
             var content = BinaryPacker.Pack(messageContent, messageType, idempotencyKey?.ToUtf8Bytes());
             command.Parameters.AddWithValue($"@Id{i}", storedId.AsGuid);
@@ -110,7 +110,7 @@ public class SqlServerMessageStore(string connectionString, SqlGenerator sqlGene
                 @Content
             );";
 
-        var (messageJson, messageType, idempotencyKey) = storedMessage;
+        var (messageJson, messageType, _, idempotencyKey) = storedMessage;
         var content = BinaryPacker.Pack(messageJson, messageType, idempotencyKey?.ToUtf8Bytes());
         await using var command = new SqlCommand(_appendMessageSql, conn);
         command.Parameters.AddWithValue("@Id", storedId.AsGuid);
@@ -141,7 +141,7 @@ public class SqlServerMessageStore(string connectionString, SqlGenerator sqlGene
             SET Content = @Content
             WHERE Id = @Id AND Position = @Position";
 
-        var (messageJson, messageType, idempotencyKey) = storedMessage;
+        var (messageJson, messageType, _, idempotencyKey) = storedMessage;
         var content = BinaryPacker.Pack(
             messageJson,
             messageType,
@@ -170,29 +170,29 @@ public class SqlServerMessageStore(string connectionString, SqlGenerator sqlGene
         await command.ExecuteNonQueryAsync();
     }
 
-    public async Task<IReadOnlyList<StoredMessageWithPosition>> GetMessages(StoredId storedId, long skip)
+    public async Task<IReadOnlyList<StoredMessage>> GetMessages(StoredId storedId, long skip)
     {
         await using var conn = await CreateConnection();
         await using var command = sqlGenerator.GetMessages(storedId, skip).ToSqlCommand(conn);
 
         await using var reader = await command.ExecuteReaderAsync();
         var messages = await sqlGenerator.ReadMessages(reader);
-        return messages.Select(m => new StoredMessageWithPosition(ConvertToStoredMessage(m.content), m.position)).ToList();
+        return messages.Select(m => ConvertToStoredMessage(m.content) with { Position = m.position }).ToList();
     }
 
-    public async Task<Dictionary<StoredId, List<StoredMessageWithPosition>>> GetMessages(IEnumerable<StoredId> storedIds)
+    public async Task<Dictionary<StoredId, List<StoredMessage>>> GetMessages(IEnumerable<StoredId> storedIds)
     {
         await using var conn = await CreateConnection();
         await using var cmd = sqlGenerator.GetMessages(storedIds).ToSqlCommand(conn);
         await using var reader = await cmd.ExecuteReaderAsync();
 
         var messages = await sqlGenerator.ReadStoredIdsMessages(reader);
-        var storedMessages = new Dictionary<StoredId, List<StoredMessageWithPosition>>();
+        var storedMessages = new Dictionary<StoredId, List<StoredMessage>>();
         foreach (var id in messages.Keys)
         {
             storedMessages[id] = new();
             foreach (var (content, position) in messages[id])
-                storedMessages[id].Add(new StoredMessageWithPosition(ConvertToStoredMessage(content), position));
+                storedMessages[id].Add(ConvertToStoredMessage(content) with { Position = position });
         }
 
         return storedMessages;
@@ -237,6 +237,7 @@ public class SqlServerMessageStore(string connectionString, SqlGenerator sqlGene
         var storedMessage = new StoredMessage(
             message,
             type,
+            Position: 0,
             idempotencyKey?.ToStringFromUtf8Bytes()
         );
         return storedMessage;

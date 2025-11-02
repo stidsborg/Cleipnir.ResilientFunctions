@@ -239,7 +239,7 @@ public class Invoker<TParam, TReturn>
                 storageSession
             );
             var initialMessages = initialState == null
-                ? (IReadOnlyList<StoredMessageWithPosition>) []
+                ? (IReadOnlyList<StoredMessage>) []
                 : _invocationHelper.AddPositionsToMessages(_invocationHelper.MapInitialMessages(initialState.Messages));
             var messages = _invocationHelper.CreateMessages(
                 flowId,

@@ -41,14 +41,14 @@ public abstract class MessagesSubscriptionTests
         
         await messageStore.AppendMessage(
             functionId,
-            new StoredMessage("hello world". ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes())
+            new StoredMessage("hello world". ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Position: 0)
         );
-        
+
         events = await messageStore.GetMessages(functionId, skip: 0);
         events.Count.ShouldBe(1);
         DefaultSerializer
             .Instance
-            .DeserializeMessage(events[0].StoredMessage.MessageContent, events[0].StoredMessage.MessageType)
+            .DeserializeMessage(events[0].MessageContent, events[0].MessageType)
             .ShouldBe("hello world");
         
         events = await messageStore.GetMessages(functionId, skip: 1);
@@ -56,7 +56,7 @@ public abstract class MessagesSubscriptionTests
         
         await messageStore.AppendMessage(
             functionId,
-            new StoredMessage("hello universe".ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes())
+            new StoredMessage("hello universe".ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Position: 0)
         );
         
         events = await messageStore.GetMessages(functionId, skip: 1);
@@ -64,7 +64,7 @@ public abstract class MessagesSubscriptionTests
 
         DefaultSerializer
             .Instance
-            .DeserializeMessage(events[0].StoredMessage.MessageContent, events[0].StoredMessage.MessageType)
+            .DeserializeMessage(events[0].MessageContent, events[0].MessageType)
             .ShouldBe("hello universe");
     }
 }

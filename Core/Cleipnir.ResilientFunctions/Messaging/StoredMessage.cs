@@ -5,12 +5,11 @@ using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.Messaging;
 
-public record StoredMessage(byte[] MessageContent, byte[] MessageType, string? IdempotencyKey = null)
+public record StoredMessage(byte[] MessageContent, byte[] MessageType, long Position, string? IdempotencyKey = null)
 {
     public object DefaultDeserialize() => JsonSerializer.Deserialize(MessageContent, Type.GetType(MessageType.ToStringFromUtf8Bytes(), throwOnError: true)!)!; //todo remove
 }
 
-public record StoredMessageWithPosition(StoredMessage StoredMessage, long Position);
 public record StoredIdAndMessageWithPosition(StoredId StoredId, StoredMessage StoredMessage, long Position);
 public record StoredIdAndMessage(StoredId StoredId, StoredMessage StoredMessage);
 public static class StoredIdAndMessageExtensions

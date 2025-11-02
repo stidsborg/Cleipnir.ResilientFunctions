@@ -200,7 +200,7 @@ internal class InvocationHelper<TParam, TReturn>
             return;
         
         var (content, type) = Serializer.SerializeMessage(msg, msg.GetType());
-        var storedMessage = new StoredMessage(content, type, IdempotencyKey: $"FlowCompleted:{childId}");
+        var storedMessage = new StoredMessage(content, type, Position: 0, IdempotencyKey: $"FlowCompleted:{childId}");
         await _functionStore.MessageStore.AppendMessage(parent, storedMessage);
         await _functionStore.Interrupt(parent);
     }
@@ -274,7 +274,7 @@ internal class InvocationHelper<TParam, TReturn>
         FlowId FlowId,
         TParam? Param,
         IReadOnlyList<StoredEffect> Effects,
-        IReadOnlyList<StoredMessageWithPosition> Messages,
+        IReadOnlyList<StoredMessage> Messages,
         IDisposable RunningFunction,
         StoredId? Parent,
         IStorageSession? StorageSession
@@ -388,7 +388,7 @@ internal class InvocationHelper<TParam, TReturn>
         ScheduleReInvocation scheduleReInvocation,
         Func<bool> isWorkflowRunning,
         Effect effect,
-        IReadOnlyList<StoredMessageWithPosition> initialMessages,
+        IReadOnlyList<StoredMessage> initialMessages,
         FlowMinimumTimeout flowMinimumTimeout,
         UnhandledExceptionHandler unhandledExceptionHandler)
     {
@@ -513,13 +513,13 @@ internal class InvocationHelper<TParam, TReturn>
         => initialMessages.Select(m =>
         {
             var (content, type) = Serializer.SerializeMessage(m.Message, m.Message.GetType());
-            return new StoredMessage(content, type, m.IdempotencyKey);
+            return new StoredMessage(content, type, Position: 0, m.IdempotencyKey);
         }).ToList();
 
-    internal IReadOnlyList<StoredMessageWithPosition> AddPositionsToMessages(IReadOnlyList<StoredMessage> messages)
+    internal IReadOnlyList<StoredMessage> AddPositionsToMessages(IReadOnlyList<StoredMessage> messages)
     {
         var position = 0L;
-        return messages.Select(m => new StoredMessageWithPosition(m, position++)).ToList();
+        return messages.Select(m => m with { Position = position++ }).ToList();
     }
 
     public async Task<bool> Reschedule(StoredId id, TParam param)

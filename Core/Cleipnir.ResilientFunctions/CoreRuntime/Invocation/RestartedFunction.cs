@@ -8,6 +8,6 @@ namespace Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 internal record RestartedFunction(
     StoredFlow StoredFlow,
     IReadOnlyList<StoredEffect> StoredEffects,
-    IReadOnlyList<StoredMessageWithPosition> StoredMessages,
+    IReadOnlyList<StoredMessage> StoredMessages,
     IStorageSession? StorageSession
 );

@@ -365,7 +365,7 @@ public class SqlGenerator(string tablePrefix)
 
         var command = StoreCommand.Create(sql);
 
-        foreach (var (storedId, (messageContent, messageType, idempotencyKey), position) in messages)
+        foreach (var (storedId, (messageContent, messageType, _, idempotencyKey), position) in messages)
         {
             command.AddParameter(storedId.AsGuid);
             command.AddParameter(position);
