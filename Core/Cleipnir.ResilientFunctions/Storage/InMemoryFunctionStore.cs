@@ -17,7 +17,7 @@ namespace Cleipnir.ResilientFunctions.Storage;
 public class InMemoryFunctionStore : IFunctionStore, IMessageStore
 {
     private readonly Dictionary<StoredId, InnerState> _states = new();
-    private readonly Dictionary<StoredId, List<StoredMessage>> _messages = new();
+    private readonly Dictionary<StoredId, Dictionary<long, StoredMessage>> _messages = new();
     private readonly Lock _sync = new();
 
     public ITypeStore TypeStore { get; } = new InMemoryTypeStore();
@@ -74,9 +74,11 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
                 Owner = owner
             };
             if (!_messages.ContainsKey(storedId)) //messages can already have been added - i.e. paramless started by received message
-                _messages[storedId] = new List<StoredMessage>();
+                _messages[storedId] = new Dictionary<long, StoredMessage>();
 
-            _messages[storedId].AddRange(messages ?? []);
+            if (messages != null)
+                for (var i = 0; i < messages.Count; i++)
+                    _messages[storedId][i] = messages[i];                
 
             var session = new SnapshotStorageSession();
 
@@ -540,10 +542,10 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         lock (_sync)
         {
             if (!_messages.ContainsKey(storedId))
-                _messages[storedId] = new List<StoredMessage>();
+                _messages[storedId] = new Dictionary<long, StoredMessage>();
 
             var messages = _messages[storedId];
-            messages.Add(storedMessage);
+            messages[messages.Count] = storedMessage;
 
             return Task.CompletedTask;
         }
@@ -566,10 +568,9 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
             lock (_sync)
             {
                 if (!_messages.ContainsKey(storedId))
-                    _messages[storedId] = new List<StoredMessage>();
+                    _messages[storedId] = new Dictionary<long, StoredMessage>();
 
-                var flowMessages = _messages[storedId];
-                flowMessages.Insert(position, storedMessage);
+                _messages[storedId].Add(position, storedMessage);
             }
             
             if (interrupt)
@@ -577,14 +578,14 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         }
     }
 
-    public Task<bool> ReplaceMessage(StoredId storedId, int position, StoredMessage storedMessage)
+    public Task<bool> ReplaceMessage(StoredId storedId, long position, StoredMessage storedMessage)
     {
         lock (_sync)
         {
             if (!_messages.ContainsKey(storedId) || _messages[storedId].Count <= position)
                 return false.ToTask();
-            
-            _messages[storedId][position] = storedMessage;
+
+            _messages[storedId][(int)position] = storedMessage;
             return true.ToTask();
         }
     }
@@ -592,7 +593,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
     public virtual Task Truncate(StoredId storedId)
     {
         lock (_sync)
-            _messages[storedId] = new List<StoredMessage>();
+            _messages[storedId] = new Dictionary<long, StoredMessage>();
 
         return Task.CompletedTask;
     }
@@ -602,11 +603,11 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         lock (_sync)
             return !_messages.ContainsKey(storedId) 
                 ? Enumerable.Empty<StoredMessage>() 
-                : _messages[storedId].ToList();
+                : _messages[storedId].OrderBy(kv => kv.Key).Select(kv => kv.Value).ToList();
     }
 
-    public virtual Task<IReadOnlyList<StoredMessage>> GetMessages(StoredId storedId, int skip)
-        => ((IReadOnlyList<StoredMessage>)GetMessages(storedId).Skip(skip).ToList()).ToTask();
+    public virtual Task<IReadOnlyList<StoredMessage>> GetMessages(StoredId storedId, long skip)
+        => ((IReadOnlyList<StoredMessage>)GetMessages(storedId).Skip((int)skip).ToList()).ToTask();
 
     public async Task<Dictionary<StoredId, List<StoredMessage>>> GetMessages(IEnumerable<StoredId> storedIds)
     {
@@ -619,12 +620,12 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         return dict;
     }
 
-    public Task<IDictionary<StoredId, int>> GetMaxPositions(IReadOnlyList<StoredId> storedIds)
+    public Task<IDictionary<StoredId, long>> GetMaxPositions(IReadOnlyList<StoredId> storedIds)
     {
-        IDictionary<StoredId, int> positions = new Dictionary<StoredId, int>();
+        IDictionary<StoredId, long> positions = new Dictionary<StoredId, long>();
         foreach (var storedId in storedIds)
             positions[storedId] = GetMessages(storedId).Count() - 1;
-        
+
         return positions.ToTask();
     }
 

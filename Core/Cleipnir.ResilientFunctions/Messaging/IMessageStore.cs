@@ -12,11 +12,11 @@ public interface IMessageStore
     Task AppendMessages(IReadOnlyList<StoredIdAndMessage> messages, bool interrupt = true);
     Task AppendMessages(IReadOnlyList<StoredIdAndMessageWithPosition> messages, bool interrupt);
 
-    Task<bool> ReplaceMessage(StoredId storedId, int position, StoredMessage storedMessage);
-    
+    Task<bool> ReplaceMessage(StoredId storedId, long position, StoredMessage storedMessage);
+
     Task Truncate(StoredId storedId);
-    
-    Task<IReadOnlyList<StoredMessage>> GetMessages(StoredId storedId, int skip);
+
+    Task<IReadOnlyList<StoredMessage>> GetMessages(StoredId storedId, long skip);
     Task<Dictionary<StoredId, List<StoredMessage>>> GetMessages(IEnumerable<StoredId> storedIds);
-    Task<IDictionary<StoredId, int>> GetMaxPositions(IReadOnlyList<StoredId> storedIds);
+    Task<IDictionary<StoredId, long>> GetMaxPositions(IReadOnlyList<StoredId> storedIds);
 }

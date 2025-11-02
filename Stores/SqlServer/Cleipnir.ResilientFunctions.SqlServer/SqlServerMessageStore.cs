@@ -20,7 +20,7 @@ public class SqlServerMessageStore(string connectionString, SqlGenerator sqlGene
         _initializeSql ??= @$"
         CREATE TABLE {tablePrefix}_Messages (
             Id UNIQUEIDENTIFIER,
-            Position INT,
+            Position BIGINT,
             Content VARBINARY(MAX),
             PRIMARY KEY (Id, Position)
         );";
@@ -132,7 +132,7 @@ public class SqlServerMessageStore(string connectionString, SqlGenerator sqlGene
     }
 
     private string? _replaceMessageSql;
-    public async Task<bool> ReplaceMessage(StoredId storedId, int position, StoredMessage storedMessage)
+    public async Task<bool> ReplaceMessage(StoredId storedId, long position, StoredMessage storedMessage)
     {
         await using var conn = await CreateConnection();
         
@@ -171,7 +171,7 @@ public class SqlServerMessageStore(string connectionString, SqlGenerator sqlGene
     }
 
     private string? _getMessagesSql;
-    public async Task<IReadOnlyList<StoredMessage>> GetMessages(StoredId storedId, int skip)
+    public async Task<IReadOnlyList<StoredMessage>> GetMessages(StoredId storedId, long skip)
     {
         await using var conn = await CreateConnection();
         _getMessagesSql ??= @$"
@@ -223,10 +223,10 @@ public class SqlServerMessageStore(string connectionString, SqlGenerator sqlGene
         return storedMessages;
     }
 
-    public async Task<IDictionary<StoredId, int>> GetMaxPositions(IReadOnlyList<StoredId> storedIds)
+    public async Task<IDictionary<StoredId, long>> GetMaxPositions(IReadOnlyList<StoredId> storedIds)
     {
         if (storedIds.Count == 0)
-            return new Dictionary<StoredId, int>();
+            return new Dictionary<StoredId, long>();
 
         var sql = @$"
             SELECT Id, MAX(Position)
@@ -237,7 +237,7 @@ public class SqlServerMessageStore(string connectionString, SqlGenerator sqlGene
         await using var conn = await CreateConnection();
         await using var command = new SqlCommand(sql, conn);
 
-        var positions = new Dictionary<StoredId, int>(capacity: storedIds.Count);
+        var positions = new Dictionary<StoredId, long>(capacity: storedIds.Count);
         foreach (var storedId in storedIds)
             positions[storedId] = -1;
 
@@ -246,7 +246,7 @@ public class SqlServerMessageStore(string connectionString, SqlGenerator sqlGene
         {
             var id = reader.GetGuid(0);
             var storedId = new StoredId(id);
-            var position = reader.GetInt32(1);
+            var position = reader.GetInt64(1);
             positions[storedId] = position;
         }
 

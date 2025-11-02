@@ -381,7 +381,7 @@ public class SqlGenerator(string tablePrefix)
     }
     
     private string? _getMessagesSql;
-    public StoreCommand GetMessages(StoredId storedId, int skip)
+    public StoreCommand GetMessages(StoredId storedId, long skip)
     {
         _getMessagesSql ??= @$"    
             SELECT content
@@ -422,17 +422,17 @@ public class SqlGenerator(string tablePrefix)
     
     public async Task<Dictionary<StoredId, List<byte[]>>> ReadStoredIdsMessages(NpgsqlDataReader reader)
     {
-        var messages = new Dictionary<StoredId, List<Tuple<int, byte[]>>>();
-        
+        var messages = new Dictionary<StoredId, List<Tuple<long, byte[]>>>();
+
         while (await reader.ReadAsync())
         {
             var id = reader.GetGuid(0).ToStoredId();
-            var position = reader.GetInt32(1);
+            var position = reader.GetInt64(1);
             var content = (byte[]) reader.GetValue(2);
 
             if (!messages.ContainsKey(id))
-                messages[id] = new List<Tuple<int, byte[]>>();
-            
+                messages[id] = new List<Tuple<long, byte[]>>();
+
             messages[id].Add(Tuple.Create(position, content));
         }
 

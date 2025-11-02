@@ -27,7 +27,7 @@ public class MariaDbMessageStore : IMessageStore
         _initializeSql ??= @$"
             CREATE TABLE IF NOT EXISTS {_tablePrefix}_messages (
                 id CHAR(32),
-                position INT,
+                position BIGINT,
                 content LONGBLOB,
                 PRIMARY KEY (id, position)
             );";
@@ -138,7 +138,7 @@ public class MariaDbMessageStore : IMessageStore
     }
 
     private string? _replaceMessageSql;
-    public async Task<bool> ReplaceMessage(StoredId storedId, int position, StoredMessage storedMessage)
+    public async Task<bool> ReplaceMessage(StoredId storedId, long position, StoredMessage storedMessage)
     {
         await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
         var (messageJson, messageType, idempotencyKey) = storedMessage;
@@ -179,7 +179,7 @@ public class MariaDbMessageStore : IMessageStore
         await command.ExecuteNonQueryAsync();
     }
 
-    public async Task<IReadOnlyList<StoredMessage>> GetMessages(StoredId storedId, int skip)
+    public async Task<IReadOnlyList<StoredMessage>> GetMessages(StoredId storedId, long skip)
     {
         await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
         await using var command = _sqlGenerator
@@ -213,7 +213,7 @@ public class MariaDbMessageStore : IMessageStore
         return storedMessages;
     }
 
-    public async Task<IDictionary<StoredId, int>> GetMaxPositions(IReadOnlyList<StoredId> storedIds)
+    public async Task<IDictionary<StoredId, long>> GetMaxPositions(IReadOnlyList<StoredId> storedIds)
     {
         var sql = @$"
             SELECT id, MAX(position)
@@ -224,7 +224,7 @@ public class MariaDbMessageStore : IMessageStore
         await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
         await using var command = new MySqlCommand(sql, conn);
 
-        var positions = new Dictionary<StoredId, int>(capacity: storedIds.Count);
+        var positions = new Dictionary<StoredId, long>(capacity: storedIds.Count);
         foreach (var storedId in storedIds)
             positions[storedId] = -1;
 
@@ -232,7 +232,7 @@ public class MariaDbMessageStore : IMessageStore
         while (await reader.ReadAsync())
         {
             var storedId = new StoredId(reader.GetString(0).ToGuid());
-            var position = reader.GetInt32(1);
+            var position = reader.GetInt64(1);
             positions[storedId] = position;
         }
 
