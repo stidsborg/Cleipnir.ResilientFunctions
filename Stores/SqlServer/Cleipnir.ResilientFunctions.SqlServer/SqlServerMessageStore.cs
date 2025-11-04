@@ -50,7 +50,7 @@ public class SqlServerMessageStore(string connectionString, SqlGenerator sqlGene
                 (Id, Position, Content)
             VALUES (
                 @Id,
-                (SELECT COALESCE(MAX(position), -1) + 2147483647 + @Tiebreaker FROM {tablePrefix}_Messages WHERE Id = @Id),
+                (SELECT COALESCE(MAX(position), 0) + 2147483647 + @Tiebreaker FROM {tablePrefix}_Messages WHERE Id = @Id),
                 @Content
             );";
 
