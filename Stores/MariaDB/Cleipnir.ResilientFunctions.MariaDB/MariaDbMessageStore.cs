@@ -47,46 +47,33 @@ public class MariaDbMessageStore : IMessageStore
     private string? _appendMessageSql;
     public async Task AppendMessage(StoredId storedId, StoredMessage storedMessage)
     {
-        for (var i = 0; i < 10; i++) //retry if deadlock occurs
-            try
-            {
-                await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
-                var (messageJson, messageType, _, idempotencyKey) = storedMessage;
-                //https://dev.mysql.com/doc/refman/8.0/en/locking-functions.html#function_get-lock
-                var lockName = storedId.ToString().GenerateSHA256Hash();
-                _appendMessageSql ??= @$"
+        await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
+        var (messageJson, messageType, _, idempotencyKey) = storedMessage;
+
+        //https://dev.mysql.com/doc/refman/8.0/en/locking-functions.html#function_get-lock
+        var lockName = storedId.ToString().GenerateSHA256Hash();
+        _appendMessageSql ??= @$"
                     SELECT GET_LOCK(?, 10);
                     INSERT INTO {_tablePrefix}_messages
                         (id, position, content)
-                    SELECT ?, COALESCE(MAX(position), -1) + 1, ?
-                        FROM {_tablePrefix}_messages
-                        WHERE id = ?;
+                    VALUES (?, (SELECT COALESCE(MAX(position), 0) + 2147483647 + ? FROM {_tablePrefix}_messages WHERE id = ?), ?);
                     SELECT RELEASE_LOCK(?);";
 
-                var content = BinaryPacker.Pack(messageJson, messageType, idempotencyKey?.ToUtf8Bytes());
-                await using var command = new MySqlCommand(_appendMessageSql, conn)
-                {
-                    Parameters =
-                    {
-                        new() { Value = lockName },
-                        new() { Value = storedId.AsGuid.ToString("N") },
-                        new() { Value = content },
-                        new() { Value = storedId.AsGuid.ToString("N") },
-                        new() { Value = lockName },
-                        new() { Value = storedId.AsGuid.ToString("N") },
-                    }
-                };
-
-                await command.ExecuteNonQueryAsync();
-                return;
-            }
-            catch (MySqlException e) when (e.Number == 1213) //deadlock found when trying to get lock; try restarting transaction
+        var content = BinaryPacker.Pack(messageJson, messageType, idempotencyKey?.ToUtf8Bytes());
+        await using var command = new MySqlCommand(_appendMessageSql, conn)
+        {
+            Parameters =
             {
-                if (i == 9)
-                    throw;
-
-                await Task.Delay(Random.Shared.Next(10, 250));
+                new() { Value = lockName },
+                new() { Value = storedId.AsGuid.ToString("N") },
+                new() { Value = (long) Random.Shared.Next() },
+                new() { Value = storedId.AsGuid.ToString("N") },
+                new() { Value = content },
+                new() { Value = lockName },
             }
+        };
+        
+        await command.ExecuteNonQueryAsync();
     }
 
     public async Task AppendMessages(IReadOnlyList<StoredIdAndMessage> messages, bool interrupt = true)
