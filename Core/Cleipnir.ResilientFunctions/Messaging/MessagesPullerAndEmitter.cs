@@ -26,7 +26,7 @@ public class MessagesPullerAndEmitter
 
     private IReadOnlyList<StoredMessage>? _initialMessages;
     private readonly HashSet<string> _idempotencyKeys = new();
-    private int _skip;
+    private long _skip;
 
     private readonly AsyncSemaphore _semaphore = new(maxParallelism: 1);
     private readonly Lock _sync = new();
@@ -89,10 +89,11 @@ public class MessagesPullerAndEmitter
             
             _initialMessages = null;
             _lastSynced = _utcNow();
-            _skip += storedMessages.Count;
 
             if (storedMessages.Count == 0)
                 return;
+
+            _skip = storedMessages[^1].Position + 1;
 
             var filterStoredMessages = new List<StoredMessage>(storedMessages.Count);
             foreach (var storedMessage in storedMessages)

@@ -53,14 +53,14 @@ public class PostgreSqlMessageStore(string connectionString, SqlGenerator sqlGen
         await using var batch = new NpgsqlBatch(conn);
         var (messageJson, messageType, _, idempotencyKey) = storedMessage;
         
-        { 
-            _appendMessageSql ??= @$"    
+        {
+            _appendMessageSql ??= @$"
                 INSERT INTO {_tablePrefix}_messages
                     (id, position, content)
                 VALUES (
-                     $1, 
-                     (SELECT COALESCE(MAX(position), -1) + 1 FROM {_tablePrefix}_messages WHERE id = $1), 
-                     $2
+                     $1,
+                     (SELECT COALESCE(MAX(position), 0) + 2147483647 + $2 FROM {_tablePrefix}_messages WHERE id = $1),
+                     $3
                 );";
             var content = BinaryPacker.Pack(messageJson, messageType, idempotencyKey?.ToUtf8Bytes());
             var command = new NpgsqlBatchCommand(_appendMessageSql)
@@ -68,25 +68,14 @@ public class PostgreSqlMessageStore(string connectionString, SqlGenerator sqlGen
                 Parameters =
                 {
                     new() {Value = storedId.AsGuid},
+                    new() {Value = Random.Shared.Next()},
                     new() {Value = content}
                 }
             };
-            batch.BatchCommands.Add(command);            
+            batch.BatchCommands.Add(command);
         }
-        
-        try
-        {
-            await batch.ExecuteNonQueryAsync();
-        }
-        catch (PostgresException e) when (e.SqlState == "23505")
-        {
-            if (e.ConstraintName?.EndsWith("_pkey") == true)
-            {
-                await Task.Delay(Random.Shared.Next(10, 250));
-                conn.Dispose();
-                await AppendMessage(storedId, storedMessage);
-            }
-        } //ignore entry already exist error
+
+        await batch.ExecuteNonQueryAsync();
     }
 
     public async Task AppendMessages(IReadOnlyList<StoredIdAndMessage> messages, bool interrupt = true)

@@ -40,8 +40,28 @@ public class SqlServerMessageStore(string connectionString, SqlGenerator sqlGene
         await command.ExecuteNonQueryAsync();
     }
 
+    private string? _appendMessageSql;
     public async Task AppendMessage(StoredId storedId, StoredMessage storedMessage)
-        => await AppendMessage(storedId, storedMessage, depth: 0);
+    {
+        await using var conn = await CreateConnection();
+
+        _appendMessageSql ??= @$"
+            INSERT INTO {tablePrefix}_Messages
+                (Id, Position, Content)
+            VALUES (
+                @Id,
+                (SELECT COALESCE(MAX(position), 0) + 2147483647 + @Tiebreaker FROM {tablePrefix}_Messages WHERE Id = @Id),
+                @Content
+            );";
+
+        var (messageJson, messageType, _, idempotencyKey) = storedMessage;
+        var content = BinaryPacker.Pack(messageJson, messageType, idempotencyKey?.ToUtf8Bytes());
+        await using var command = new SqlCommand(_appendMessageSql, conn);
+        command.Parameters.AddWithValue("@Id", storedId.AsGuid);
+        command.Parameters.AddWithValue("@Tiebreaker", (long)Random.Shared.Next());
+        command.Parameters.AddWithValue("@Content", content);
+        await command.ExecuteNonQueryAsync();
+    }
 
     public async Task AppendMessages(IReadOnlyList<StoredIdAndMessage> messages, bool interrupt = true)
     {
@@ -94,41 +114,6 @@ public class SqlServerMessageStore(string connectionString, SqlGenerator sqlGene
             .AppendMessages(messages, interrupt)!
             .ToSqlCommand(conn);
         await command.ExecuteNonQueryAsync();
-    }
-
-    private string? _appendMessageSql;
-    private async Task AppendMessage(StoredId storedId, StoredMessage storedMessage, int depth)
-    {
-        await using var conn = await CreateConnection();
-        
-        _appendMessageSql ??= @$"
-            INSERT INTO {tablePrefix}_Messages
-                (Id, Position, Content)
-            VALUES (
-                @Id,
-                (SELECT COALESCE(MAX(position), -1) + 1 FROM {tablePrefix}_Messages WHERE Id = @Id),
-                @Content
-            );";
-
-        var (messageJson, messageType, _, idempotencyKey) = storedMessage;
-        var content = BinaryPacker.Pack(messageJson, messageType, idempotencyKey?.ToUtf8Bytes());
-        await using var command = new SqlCommand(_appendMessageSql, conn);
-        command.Parameters.AddWithValue("@Id", storedId.AsGuid);
-        command.Parameters.AddWithValue("@Content", content);
-        try
-        {
-            await command.ExecuteNonQueryAsync();
-        }
-        catch (SqlException e)
-        {
-            if (depth == 10 || (e.Number != SqlError.DEADLOCK_VICTIM && e.Number != SqlError.UNIQUENESS_VIOLATION)) 
-                throw;
-            
-            // ReSharper disable once DisposeOnUsingVariable
-            await conn.DisposeAsync();
-            await Task.Delay(Random.Shared.Next(50, 250));
-            await AppendMessage(storedId, storedMessage, depth + 1);
-        }
     }
 
     private string? _replaceMessageSql;

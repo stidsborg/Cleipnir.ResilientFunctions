@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics.Contracts;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace Cleipnir.ResilientFunctions.Helpers;
@@ -28,4 +30,10 @@ internal static class TaskExtensions
     
     public static async Task AfterDo<TIn>(this Task<TIn> task, Action<TIn> work)
         => work(await task);
+
+    public static async Task<List<T>> ToListAsync<T>(this Task<IEnumerable<T>> task)
+        => (await task).ToList();
+    
+    public static async Task<List<T>> ToListAsync<T>(this Task<IReadOnlyList<T>> task)
+        => (await task).ToList();
 }
