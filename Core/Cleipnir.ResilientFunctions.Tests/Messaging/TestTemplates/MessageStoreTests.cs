@@ -123,7 +123,7 @@ public abstract class MessageStoreTests
         await messageStore.AppendMessage(functionId, storedEvent1);
         await messageStore.AppendMessage(functionId, storedEvent2);
 
-        var existingMessages = (await messageStore.GetMessages(functionId, skip: 0)).ToList();
+        var existingMessages = await messageStore.GetMessages(functionId, skip: 0).ToListAsync();
         existingMessages.Count.ShouldBe(2);
 
         var storedEvent3 = new StoredMessage(msg3.ToJson().ToUtf8Bytes(), msg3.GetType().SimpleQualifiedName().ToUtf8Bytes(), existingMessages[0].Position, IdempotencyKey: "3");
@@ -131,7 +131,7 @@ public abstract class MessageStoreTests
         await messageStore.ReplaceMessage(functionId, existingMessages[0].Position, storedEvent3).ShouldBeTrueAsync();
         await messageStore.ReplaceMessage(functionId, existingMessages[1].Position, storedEvent4).ShouldBeTrueAsync();
 
-        var events = (await messageStore.GetMessages(functionId, skip: 0)).ToList();
+        var events = await messageStore.GetMessages(functionId, skip: 0).ToListAsync();
         events.Count.ShouldBe(2);
         events[0].DefaultDeserialize().ShouldBe(msg3);
         events[0].IdempotencyKey.ShouldBe("3");
@@ -166,7 +166,7 @@ public abstract class MessageStoreTests
         await messageStore.AppendMessage(functionId, storedEvent1);
         await messageStore.AppendMessage(functionId, storedEvent2);
 
-        var existingMessages = (await messageStore.GetMessages(functionId, skip: 0)).ToList();
+        var existingMessages = await messageStore.GetMessages(functionId, skip: 0).ToListAsync();
         existingMessages.Count.ShouldBe(2);
 
         var storedEvent3 = new StoredMessage(msg3.ToJson().ToUtf8Bytes(), msg3.GetType().SimpleQualifiedName().ToUtf8Bytes(), existingMessages[0].Position, IdempotencyKey: "3");
@@ -174,7 +174,7 @@ public abstract class MessageStoreTests
         await messageStore.ReplaceMessage(functionId, existingMessages[0].Position, storedEvent3).ShouldBeTrueAsync();
         await messageStore.ReplaceMessage(functionId, existingMessages[1].Position, storedEvent4).ShouldBeTrueAsync();
 
-        var events = (await messageStore.GetMessages(functionId, skip: 0)).ToList();
+        var events = await messageStore.GetMessages(functionId, skip: 0).ToListAsync();
         events.Count.ShouldBe(2);
         events[0].DefaultDeserialize().ShouldBe(msg3);
         events[0].IdempotencyKey.ShouldBe("3");
