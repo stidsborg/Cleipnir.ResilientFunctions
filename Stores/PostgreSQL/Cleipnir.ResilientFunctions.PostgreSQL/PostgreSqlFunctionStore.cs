@@ -79,22 +79,27 @@ public class PostgreSqlFunctionStore : IFunctionStore
         await using var conn = await CreateConnection();
         _initializeSql ??= $@"
             CREATE TABLE IF NOT EXISTS {_tableName} (
-                id UUID PRIMARY KEY,              
+                id UUID PRIMARY KEY,
                 expires BIGINT NOT NULL,
                 interrupted BOOLEAN NOT NULL DEFAULT FALSE,
-                param_json BYTEA NULL,            
                 status INT NOT NULL DEFAULT {(int) Status.Executing},
-                result_json BYTEA NULL,
-                exception_json TEXT NULL,                                
-                timestamp BIGINT NOT NULL,
-                human_instance_id TEXT NOT NULL,
-                parent TEXT NULL,
                 owner UUID NULL
             );
+
+            CREATE TABLE IF NOT EXISTS {_tableName}_inputoutput (
+                id UUID PRIMARY KEY,
+                param_json BYTEA NULL,
+                result_json BYTEA NULL,
+                exception_json TEXT NULL,
+                timestamp BIGINT NOT NULL,
+                human_instance_id TEXT NOT NULL,
+                parent TEXT NULL
+            );
+
             CREATE INDEX IF NOT EXISTS idx_{_tableName}_expires
             ON {_tableName}(expires, id)
             INCLUDE (owner)
-            WHERE status = {(int) Status.Executing} OR status = {(int) Status.Postponed};           
+            WHERE status = {(int) Status.Executing} OR status = {(int) Status.Postponed};
 
             CREATE INDEX IF NOT EXISTS idx_{_tableName}_succeeded
             ON {_tableName}(id)
@@ -114,9 +119,9 @@ public class PostgreSqlFunctionStore : IFunctionStore
         await _typeStore.Truncate();
         await _semaphoreStore.Truncate();
         await _replicaStore.Truncate();
-        
+
         await using var conn = await CreateConnection();
-        _truncateTableSql ??= $"TRUNCATE TABLE {_tableName}";
+        _truncateTableSql ??= $"TRUNCATE TABLE {_tableName}_inputoutput; TRUNCATE TABLE {_tableName}";
         await using var command = new NpgsqlCommand(_truncateTableSql, conn);
         await command.ExecuteNonQueryAsync();
     }
@@ -204,9 +209,15 @@ public class PostgreSqlFunctionStore : IFunctionStore
     {
         _bulkScheduleFunctionsSql ??= @$"
             INSERT INTO {_tableName}
-                (id, status, param_json, expires, timestamp, human_instance_id, parent)
+                (id, status, expires)
             VALUES
-                ($1, {(int) Status.Postponed}, $2, 0, 0, $3, $4)
+                ($1, {(int) Status.Postponed}, 0)
+            ON CONFLICT DO NOTHING;
+
+            INSERT INTO {_tableName}_inputoutput
+                (id, param_json, result_json, exception_json, timestamp, human_instance_id, parent)
+            VALUES
+                ($1, $2, NULL, NULL, 0, $3, $4)
             ON CONFLICT DO NOTHING;";
 
         await using var conn = await CreateConnection();
@@ -291,9 +302,10 @@ public class PostgreSqlFunctionStore : IFunctionStore
     {
         await using var conn = await CreateConnection();
         _getSucceededFunctionsSql ??= @$"
-            SELECT id
-            FROM {_tableName}
-            WHERE status = {(int) Status.Succeeded} AND timestamp <= $1";
+            SELECT f.id
+            FROM {_tableName} f
+            INNER JOIN {_tableName}_inputoutput io ON f.id = io.id
+            WHERE f.status = {(int) Status.Succeeded} AND io.timestamp <= $1";
         await using var command = new NpgsqlCommand(_getSucceededFunctionsSql, conn)
         {
             Parameters =
@@ -339,41 +351,71 @@ public class PostgreSqlFunctionStore : IFunctionStore
     }
 
     private string? _setFunctionStateSql;
+    private string? _setFunctionStateSqlWithoutReplica;
     public async Task<bool> SetFunctionState(
-        StoredId storedId, Status status, 
-        byte[]? param, byte[]? result, 
-        StoredException? storedException, 
+        StoredId storedId, Status status,
+        byte[]? param, byte[]? result,
+        StoredException? storedException,
         long expires,
         ReplicaId? expectedReplica)
     {
         await using var conn = await CreateConnection();
-       
-        _setFunctionStateSql ??= $@"
-            UPDATE {_tableName}
-            SET status = $1,
-                param_json = $2, 
-                result_json = $3, 
-                exception_json = $4, expires = $5
-            WHERE id = $6";
 
-        var sql = expectedReplica == null
-            ? _setFunctionStateSql + " AND owner IS NULL;"
-            : _setFunctionStateSql + $" AND owner = '{expectedReplica.AsGuid}'";
-        await using var command = new NpgsqlCommand(sql, conn)
+        if (expectedReplica == null)
         {
-            Parameters =
-            {
-                new() {Value = (int) status},
-                new() {Value = param == null ? DBNull.Value : param},
-                new() {Value = result == null ? DBNull.Value : result},
-                new() {Value = storedException == null ? DBNull.Value : JsonSerializer.Serialize(storedException)},
-                new() {Value = expires },
-                new() {Value = storedId.AsGuid}
-            }
-        };
+            _setFunctionStateSqlWithoutReplica ??= $@"
+                UPDATE {_tableName}
+                SET status = $1, expires = $2
+                WHERE id = $3 AND owner IS NULL;
 
-        var affectedRows = await command.ExecuteNonQueryAsync();
-        return affectedRows == 1;
+                UPDATE {_tableName}_inputoutput
+                SET param_json = $4, result_json = $5, exception_json = $6
+                WHERE id = $3;";
+
+            await using var command = new NpgsqlCommand(_setFunctionStateSqlWithoutReplica, conn)
+            {
+                Parameters =
+                {
+                    new() {Value = (int) status},
+                    new() {Value = expires },
+                    new() {Value = storedId.AsGuid},
+                    new() {Value = param == null ? DBNull.Value : param},
+                    new() {Value = result == null ? DBNull.Value : result},
+                    new() {Value = storedException == null ? DBNull.Value : JsonSerializer.Serialize(storedException)},
+                }
+            };
+
+            var affectedRows = await command.ExecuteNonQueryAsync();
+            return affectedRows >= 1;
+        }
+        else
+        {
+            _setFunctionStateSql ??= $@"
+                UPDATE {_tableName}
+                SET status = $1, expires = $2
+                WHERE id = $3 AND owner = $4;
+
+                UPDATE {_tableName}_inputoutput
+                SET param_json = $5, result_json = $6, exception_json = $7
+                WHERE id = $3;";
+
+            await using var command = new NpgsqlCommand(_setFunctionStateSql, conn)
+            {
+                Parameters =
+                {
+                    new() {Value = (int) status},
+                    new() {Value = expires },
+                    new() {Value = storedId.AsGuid},
+                    new() {Value = expectedReplica.AsGuid},
+                    new() {Value = param == null ? DBNull.Value : param},
+                    new() {Value = result == null ? DBNull.Value : result},
+                    new() {Value = storedException == null ? DBNull.Value : JsonSerializer.Serialize(storedException)},
+                }
+            };
+
+            var affectedRows = await command.ExecuteNonQueryAsync();
+            return affectedRows >= 1;
+        }
     }
 
     public async Task<bool> SucceedFunction(
@@ -499,34 +541,59 @@ public class PostgreSqlFunctionStore : IFunctionStore
     }
 
     private string? _setParametersSql;
+    private string? _setParametersSqlWithoutReplica;
     public async Task<bool> SetParameters(
         StoredId storedId,
         byte[]? param, byte[]? result,
         ReplicaId? expectedReplica)
     {
         await using var conn = await CreateConnection();
-        
-        _setParametersSql ??= $@"
-            UPDATE {_tableName}
-            SET param_json = $1,             
-                result_json = $2
-            WHERE id = $3 ";
 
-        var sql = expectedReplica == null
-            ? _setParametersSql + " AND owner IS NULL;"
-            : _setParametersSql + $" AND owner = '{expectedReplica.AsGuid:N}'";
-        await using var command = new NpgsqlCommand(sql, conn)
+        if (expectedReplica == null)
         {
-            Parameters =
+            _setParametersSqlWithoutReplica ??= $@"
+                UPDATE {_tableName}_inputoutput
+                SET param_json = $1, result_json = $2
+                WHERE id = $3 AND EXISTS (
+                    SELECT 1 FROM {_tableName} WHERE id = $3 AND owner IS NULL
+                );";
+
+            await using var command = new NpgsqlCommand(_setParametersSqlWithoutReplica, conn)
             {
-                new() { Value = param ?? (object) DBNull.Value },
-                new() { Value = result ?? (object) DBNull.Value },
-                new() { Value = storedId.AsGuid },
-            }
-        };
-        
-        var affectedRows = await command.ExecuteNonQueryAsync();
-        return affectedRows == 1;
+                Parameters =
+                {
+                    new() { Value = param ?? (object) DBNull.Value },
+                    new() { Value = result ?? (object) DBNull.Value },
+                    new() { Value = storedId.AsGuid },
+                }
+            };
+
+            var affectedRows = await command.ExecuteNonQueryAsync();
+            return affectedRows == 1;
+        }
+        else
+        {
+            _setParametersSql ??= $@"
+                UPDATE {_tableName}_inputoutput
+                SET param_json = $1, result_json = $2
+                WHERE id = $3 AND EXISTS (
+                    SELECT 1 FROM {_tableName} WHERE id = $3 AND owner = $4
+                );";
+
+            await using var command = new NpgsqlCommand(_setParametersSql, conn)
+            {
+                Parameters =
+                {
+                    new() { Value = param ?? (object) DBNull.Value },
+                    new() { Value = result ?? (object) DBNull.Value },
+                    new() { Value = storedId.AsGuid },
+                    new() { Value = expectedReplica.AsGuid },
+                }
+            };
+
+            var affectedRows = await command.ExecuteNonQueryAsync();
+            return affectedRows == 1;
+        }
     }
 
     private string? _interruptSql;
@@ -645,26 +712,27 @@ public class PostgreSqlFunctionStore : IFunctionStore
     {
         await using var conn = await CreateConnection();
         _getFunctionSql ??= $@"
-            SELECT               
-                param_json,             
-                status,
-                result_json,         
-                exception_json,
-                expires,
-                interrupted,
-                timestamp,
-                human_instance_id,
-                parent,
-                owner
-            FROM {_tableName}
-            WHERE id = $1;";
+            SELECT
+                io.param_json,
+                f.status,
+                io.result_json,
+                io.exception_json,
+                f.expires,
+                f.interrupted,
+                io.timestamp,
+                io.human_instance_id,
+                io.parent,
+                f.owner
+            FROM {_tableName} f
+            INNER JOIN {_tableName}_inputoutput io ON f.id = io.id
+            WHERE f.id = $1;";
         await using var command = new NpgsqlCommand(_getFunctionSql, conn)
         {
-            Parameters = { 
+            Parameters = {
                 new() {Value = storedId.AsGuid}
             }
         };
-        
+
         await using var reader = await command.ExecuteReaderAsync();
         return await ReadToStoredFunction(storedId, reader);
     }
@@ -729,12 +797,12 @@ public class PostgreSqlFunctionStore : IFunctionStore
         var idsClause = storedIds.Select(id => $"'{id.AsGuid}'").StringJoin(", ");
         if (idsClause == "")
             return new Dictionary<StoredId, byte[]?>();
-        
+
         var sql = @$"
             SELECT id, result_json
-            FROM {_tableName}
+            FROM {_tableName}_inputoutput
             WHERE id IN ({idsClause})";
-        
+
         await using var conn = await CreateConnection();
         await using var command = new NpgsqlCommand(sql, conn);
 
@@ -756,6 +824,9 @@ public class PostgreSqlFunctionStore : IFunctionStore
     {
         await using var conn = await CreateConnection();
         _deleteFunctionSql ??= @$"
+            DELETE FROM {_tableName}_inputoutput
+            WHERE id = $1;
+
             DELETE FROM {_tableName}
             WHERE id = $1;";
 
@@ -766,8 +837,8 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 new() {Value = storedId.AsGuid},
             }
         };
-       
-        return await command.ExecuteNonQueryAsync() == 1;
+
+        return await command.ExecuteNonQueryAsync() >= 1;
     }
     
     private async Task<bool> DoTablesAlreadyExist()

@@ -90,3 +90,4 @@ Functions are registered using `FunctionsRegistry` and can be:
 - **Parameterless**: `RegisterParamless()` for functions without input parameters
 
 The framework supports both direct function invocation and message-based workflows using `workflow.Messages` for event-driven scenarios.
+- never run docker compose assume it is running in the background
