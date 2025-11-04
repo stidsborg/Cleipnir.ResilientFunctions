@@ -100,13 +100,13 @@ public class SqlServerMessageStore(string connectionString, SqlGenerator sqlGene
     private async Task AppendMessage(StoredId storedId, StoredMessage storedMessage, int depth)
     {
         await using var conn = await CreateConnection();
-        
+
         _appendMessageSql ??= @$"
             INSERT INTO {tablePrefix}_Messages
                 (Id, Position, Content)
             VALUES (
                 @Id,
-                (SELECT COALESCE(MAX(position), -1) + 1 FROM {tablePrefix}_Messages WHERE Id = @Id),
+                (SELECT COALESCE(MAX(position), -1) + 2147483647 + @Tiebreaker FROM {tablePrefix}_Messages WHERE Id = @Id),
                 @Content
             );";
 
@@ -114,6 +114,7 @@ public class SqlServerMessageStore(string connectionString, SqlGenerator sqlGene
         var content = BinaryPacker.Pack(messageJson, messageType, idempotencyKey?.ToUtf8Bytes());
         await using var command = new SqlCommand(_appendMessageSql, conn);
         command.Parameters.AddWithValue("@Id", storedId.AsGuid);
+        command.Parameters.AddWithValue("@Tiebreaker", (long)Random.Shared.Next());
         command.Parameters.AddWithValue("@Content", content);
         try
         {
@@ -121,9 +122,9 @@ public class SqlServerMessageStore(string connectionString, SqlGenerator sqlGene
         }
         catch (SqlException e)
         {
-            if (depth == 10 || (e.Number != SqlError.DEADLOCK_VICTIM && e.Number != SqlError.UNIQUENESS_VIOLATION)) 
+            if (depth == 10 || (e.Number != SqlError.DEADLOCK_VICTIM && e.Number != SqlError.UNIQUENESS_VIOLATION))
                 throw;
-            
+
             // ReSharper disable once DisposeOnUsingVariable
             await conn.DisposeAsync();
             await Task.Delay(Random.Shared.Next(50, 250));
