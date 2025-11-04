@@ -13,7 +13,7 @@ namespace Cleipnir.ResilientFunctions.Domain;
 public class ExistingMessages 
 {
     private readonly StoredId _storedId;
-    private List<MessageAndIdempotencyKey>? _receivedMessages;
+    private List<StoredMessage>? _receivedMessages;
     private readonly IMessageStore _messageStore;
     private readonly ISerializer _serializer;
 
@@ -33,16 +33,16 @@ public class ExistingMessages
     private async Task<List<MessageAndIdempotencyKey>> GetReceivedMessages()
     {
         if (_receivedMessages is not null)
-            return _receivedMessages;
-        
-        var storedMessages = await _messageStore.GetMessages(_storedId, skip: 0);
-        return _receivedMessages = storedMessages
-            .Select(m =>
+            return _receivedMessages.Select(m => 
                 new MessageAndIdempotencyKey(
                     _serializer.DeserializeMessage(m.MessageContent, m.MessageType),
                     m.IdempotencyKey
                 )
             ).ToList();
+
+        var storedMessages = await _messageStore.GetMessages(_storedId, skip: 0);
+        _receivedMessages = storedMessages.ToList();
+        return await GetReceivedMessages();
     }
     
     public async Task Clear()
@@ -54,25 +54,29 @@ public class ExistingMessages
 
     public async Task Append<T>(T message, string? idempotencyKey = null) where T : notnull
     {
-        var receivedMessages = await GetReceivedMessages();
         var (json, type) = _serializer.SerializeMessage(message, typeof(T));
         await _messageStore.AppendMessage(
             _storedId, new StoredMessage(json, type, Position: 0, idempotencyKey)
         );
-        
-        receivedMessages.Add(new MessageAndIdempotencyKey(message, idempotencyKey));  
+
+        // Invalidate cache so it will be re-fetched with correct positions
+        _receivedMessages = null;
     } 
     
     public async Task Replace<T>(int position, T message, string? idempotencyKey = null) where T : notnull
     {
-        var receivedMessages = await GetReceivedMessages();
-        if (position >= receivedMessages.Count)
-            throw new ArgumentException($"Cannot replace non-existing message. Position '{position}' is larger than or equal to length '{receivedMessages.Count}'", nameof(position));
+        if (_receivedMessages is null)
+            await GetReceivedMessages();
+        
+        var storedMessage = _receivedMessages!.OrderBy(m => m.Position).Skip(position).FirstOrDefault();
+        if (storedMessage == null)
+            throw new ArgumentException($"Cannot replace non-existing message. Position '{position}' is larger than or equal to length '{_receivedMessages!.Count}'", nameof(position));
         
         var (json, type) = _serializer.SerializeMessage(message, typeof(T));
-        await _messageStore.ReplaceMessage(_storedId, position, new StoredMessage(json, type, Position: position, idempotencyKey));
-        
-        receivedMessages[position] = new MessageAndIdempotencyKey(message, idempotencyKey);  
+        await _messageStore.ReplaceMessage(_storedId, storedMessage.Position, new StoredMessage(json, type, Position: storedMessage.Position, idempotencyKey));
+
+        // Invalidate cache so it will be re-fetched with correct data
+        _receivedMessages = null;
     }
 
     /// <summary>

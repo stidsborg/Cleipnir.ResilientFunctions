@@ -50,16 +50,17 @@ public abstract class MessagesSubscriptionTests
             .Instance
             .DeserializeMessage(events[0].MessageContent, events[0].MessageType)
             .ShouldBe("hello world");
-        
-        events = await messageStore.GetMessages(functionId, skip: 1);
+
+        var skipPosition = events[0].Position + 1;
+        events = await messageStore.GetMessages(functionId, skip: skipPosition);
         events.ShouldBeEmpty();
-        
+
         await messageStore.AppendMessage(
             functionId,
             new StoredMessage("hello universe".ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Position: 0)
         );
-        
-        events = await messageStore.GetMessages(functionId, skip: 1);
+
+        events = await messageStore.GetMessages(functionId, skip: skipPosition);
         events.Count.ShouldBe(1);
 
         DefaultSerializer
