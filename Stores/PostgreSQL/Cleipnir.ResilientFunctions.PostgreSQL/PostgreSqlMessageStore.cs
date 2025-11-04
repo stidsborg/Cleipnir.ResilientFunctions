@@ -72,22 +72,10 @@ public class PostgreSqlMessageStore(string connectionString, SqlGenerator sqlGen
                     new() {Value = content}
                 }
             };
-            batch.BatchCommands.Add(command);            
+            batch.BatchCommands.Add(command);
         }
-        
-        try
-        {
-            await batch.ExecuteNonQueryAsync();
-        }
-        catch (PostgresException e) when (e.SqlState == "23505")
-        {
-            if (e.ConstraintName?.EndsWith("_pkey") == true)
-            {
-                await Task.Delay(Random.Shared.Next(10, 250));
-                conn.Dispose();
-                await AppendMessage(storedId, storedMessage);
-            }
-        } //ignore entry already exist error
+
+        await batch.ExecuteNonQueryAsync();
     }
 
     public async Task AppendMessages(IReadOnlyList<StoredIdAndMessage> messages, bool interrupt = true)
