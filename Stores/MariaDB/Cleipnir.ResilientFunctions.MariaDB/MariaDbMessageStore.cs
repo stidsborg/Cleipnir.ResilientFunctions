@@ -47,81 +47,126 @@ public class MariaDbMessageStore : IMessageStore
     private string? _appendMessageSql;
     public async Task AppendMessage(StoredId storedId, StoredMessage storedMessage)
     {
-        await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
-        var (messageJson, messageType, _, idempotencyKey) = storedMessage;
+        const int maxRetries = 5;
+        const int baseDelayMs = 10;
 
-        //https://dev.mysql.com/doc/refman/8.0/en/locking-functions.html#function_get-lock
-        var lockName = storedId.ToString().GenerateSHA256Hash();
-        _appendMessageSql ??= @$"
-                    SELECT GET_LOCK(?, 10);
+        for (var attempt = 0; attempt <= maxRetries; attempt++)
+        {
+            try
+            {
+                await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
+                var (messageJson, messageType, _, idempotencyKey) = storedMessage;
+
+                _appendMessageSql ??= @$"
                     INSERT INTO {_tablePrefix}_messages
                         (id, position, content)
-                    VALUES (?, (SELECT COALESCE(MAX(position), 0) + 2147483647 + ? FROM {_tablePrefix}_messages WHERE id = ?), ?);
-                    SELECT RELEASE_LOCK(?);";
+                    VALUES (?, (SELECT COALESCE(MAX(position), 0) + 2147483647 + ? FROM {_tablePrefix}_messages WHERE id = ?), ?)";
 
-        var content = BinaryPacker.Pack(messageJson, messageType, idempotencyKey?.ToUtf8Bytes());
-        await using var command = new MySqlCommand(_appendMessageSql, conn)
-        {
-            Parameters =
-            {
-                new() { Value = lockName },
-                new() { Value = storedId.AsGuid.ToString("N") },
-                new() { Value = (long) Random.Shared.Next() },
-                new() { Value = storedId.AsGuid.ToString("N") },
-                new() { Value = content },
-                new() { Value = lockName },
+                var content = BinaryPacker.Pack(messageJson, messageType, idempotencyKey?.ToUtf8Bytes());
+                await using var command = new MySqlCommand(_appendMessageSql, conn)
+                {
+                    Parameters =
+                    {
+                        new() { Value = storedId.AsGuid.ToString("N") },
+                        new() { Value = (long) Random.Shared.Next() },
+                        new() { Value = storedId.AsGuid.ToString("N") },
+                        new() { Value = content },
+                    }
+                };
+
+                await command.ExecuteNonQueryAsync();
+                return; // Success - exit retry loop
             }
-        };
-        
-        await command.ExecuteNonQueryAsync();
+            catch (MySqlException ex) when (ex.ErrorCode == MySqlErrorCode.LockDeadlock && attempt < maxRetries)
+            {
+                // Deadlock detected - retry with exponential backoff
+                var delayMs = baseDelayMs * (1 << attempt) + Random.Shared.Next(0, baseDelayMs);
+                await Task.Delay(delayMs);
+                // Loop will retry
+            }
+        }
     }
 
     public async Task AppendMessages(IReadOnlyList<StoredIdAndMessage> messages, bool interrupt = true)
     {
         if (messages.Count == 0)
             return;
-        
-        var storedIds = messages.Select(m => m.StoredId).Distinct().ToList();
-        var maxPositions = await GetMaxPositions(storedIds);
-        
-        var messagesWithPosition = messages.Select(msg =>
-            new StoredIdAndMessageWithPosition(
-                msg.StoredId,
-                msg.StoredMessage,
-                ++maxPositions[msg.StoredId]
-            )
-        ).ToList();
 
-        var appendMessagesCommand = _sqlGenerator.AppendMessages(messagesWithPosition);
-        var interruptsCommand = _sqlGenerator.Interrupt(storedIds);
+        const int maxRetries = 5;
+        const int baseDelayMs = 10;
 
-        var command =
-            interrupt
-                ? StoreCommand.Merge(appendMessagesCommand, interruptsCommand)
-                : appendMessagesCommand;
-        
-        await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
-        await using var sqlCommand = command.ToSqlCommand(conn);        
-        
-        await sqlCommand.ExecuteNonQueryAsync();
+        for (var attempt = 0; attempt <= maxRetries; attempt++)
+        {
+            try
+            {
+                var storedIds = messages.Select(m => m.StoredId).Distinct().ToList();
+                var maxPositions = await GetMaxPositions(storedIds);
+
+                var messagesWithPosition = messages.Select(msg =>
+                    new StoredIdAndMessageWithPosition(
+                        msg.StoredId,
+                        msg.StoredMessage,
+                        ++maxPositions[msg.StoredId]
+                    )
+                ).ToList();
+
+                var appendMessagesCommand = _sqlGenerator.AppendMessages(messagesWithPosition);
+                var interruptsCommand = _sqlGenerator.Interrupt(storedIds);
+
+                var command =
+                    interrupt
+                        ? StoreCommand.Merge(appendMessagesCommand, interruptsCommand)
+                        : appendMessagesCommand;
+
+                await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
+                await using var sqlCommand = command.ToSqlCommand(conn);
+
+                await sqlCommand.ExecuteNonQueryAsync();
+                return; // Success - exit retry loop
+            }
+            catch (MySqlException ex) when (ex.ErrorCode == MySqlErrorCode.LockDeadlock && attempt < maxRetries)
+            {
+                // Deadlock detected - retry with exponential backoff
+                var delayMs = baseDelayMs * (1 << attempt) + Random.Shared.Next(0, baseDelayMs);
+                await Task.Delay(delayMs);
+                // Loop will retry
+            }
+        }
     }
 
     public async Task AppendMessages(IReadOnlyList<StoredIdAndMessageWithPosition> messages, bool interrupt)
     {
         if (messages.Count == 0)
             return;
-        
-        var appendCommand = _sqlGenerator.AppendMessages(messages);
-        var interruptCommand = interrupt
-            ? _sqlGenerator.Interrupt(messages.Select(m => m.StoredId).Distinct())
-            : null;
-        
-        await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
-        await using var command = StoreCommand
-            .Merge(appendCommand, interruptCommand)
-            .ToSqlCommand(conn);
 
-        await command.ExecuteNonQueryAsync();
+        const int maxRetries = 5;
+        const int baseDelayMs = 10;
+
+        for (var attempt = 0; attempt <= maxRetries; attempt++)
+        {
+            try
+            {
+                var appendCommand = _sqlGenerator.AppendMessages(messages);
+                var interruptCommand = interrupt
+                    ? _sqlGenerator.Interrupt(messages.Select(m => m.StoredId).Distinct())
+                    : null;
+
+                await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
+                await using var command = StoreCommand
+                    .Merge(appendCommand, interruptCommand)
+                    .ToSqlCommand(conn);
+
+                await command.ExecuteNonQueryAsync();
+                return; // Success - exit retry loop
+            }
+            catch (MySqlException ex) when (ex.ErrorCode == MySqlErrorCode.LockDeadlock && attempt < maxRetries)
+            {
+                // Deadlock detected - retry with exponential backoff
+                var delayMs = baseDelayMs * (1 << attempt) + Random.Shared.Next(0, baseDelayMs);
+                await Task.Delay(delayMs);
+                // Loop will retry
+            }
+        }
     }
 
     private string? _replaceMessageSql;
