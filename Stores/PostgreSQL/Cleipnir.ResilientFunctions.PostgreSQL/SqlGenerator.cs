@@ -359,13 +359,13 @@ public class SqlGenerator(string tablePrefix)
     {
         _failFunctionSql ??= $@"
             UPDATE {tablePrefix}
-            SET status = {(int) Status.Failed}, owner = NULL, timestamp = $4
+            SET status = {(int) Status.Failed}, owner = NULL, timestamp = $3
             WHERE id = $1 AND owner = $2";
 
         _failFunctionInputOutputSql ??= $@"
             UPDATE {tablePrefix}_inputoutput
-            SET exception_json = $3
-            WHERE id = $1";
+            SET exception_json = $1
+            WHERE id = $2";
 
         yield return StoreCommand.Create(
             _failFunctionSql,
@@ -373,8 +373,7 @@ public class SqlGenerator(string tablePrefix)
             [
                 storedId.AsGuid,
                 expectedReplica.AsGuid,
-                JsonSerializer.Serialize(storedException),
-                timestamp,
+                timestamp
             ]
         );
 
@@ -382,10 +381,8 @@ public class SqlGenerator(string tablePrefix)
             _failFunctionInputOutputSql,
             values:
             [
-                storedId.AsGuid,
-                expectedReplica.AsGuid,
                 JsonSerializer.Serialize(storedException),
-                timestamp,
+                storedId.AsGuid
             ]
         );
     }
