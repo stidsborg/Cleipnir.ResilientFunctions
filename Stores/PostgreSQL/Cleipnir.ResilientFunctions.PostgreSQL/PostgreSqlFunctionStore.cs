@@ -233,17 +233,12 @@ public class PostgreSqlFunctionStore : IFunctionStore
         await using var reader = await command.ExecuteReaderAsync();
         if (reader.RecordsAffected == 0)
             return null;
-
-        // Skip first result set (UPDATE RETURNING)
-        await reader.NextResultAsync();
-
-        // Read second result set (inputoutput)
+        
         var inputOutput = await _sqlGenerator.ReadInputOutput(reader);
         if (inputOutput == null)
             return null;
         var sf = inputOutput.ToStoredFlow(Status.Executing, expires: 0, timestamp: DateTime.UtcNow.Ticks, interrupted: false, replicaId);
-
-        // Read third result set (effects)
+        
         await reader.NextResultAsync();
         var (effects, session) = await _sqlGenerator.ReadEffects(reader);
         

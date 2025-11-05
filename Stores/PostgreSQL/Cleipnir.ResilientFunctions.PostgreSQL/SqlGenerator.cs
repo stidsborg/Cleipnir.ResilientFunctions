@@ -405,14 +405,7 @@ public class SqlGenerator(string tablePrefix)
         _restartExecutionSql ??= @$"
             UPDATE {tablePrefix}
             SET status = {(int)Status.Executing}, expires = 0, interrupted = FALSE, owner = $1
-            WHERE id = $2 AND owner IS NULL
-            RETURNING
-                id,
-                status,
-                expires,
-                interrupted,
-                timestamp,
-                owner";
+            WHERE id = $2 AND owner IS NULL;";
 
         var command = StoreCommand.Create(
             _restartExecutionSql,
