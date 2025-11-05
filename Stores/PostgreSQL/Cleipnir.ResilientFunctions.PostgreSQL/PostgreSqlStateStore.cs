@@ -27,13 +27,12 @@ public class PostgreSqlStateStore(string connectionString, string tablePrefix)
 
     public StoreCommand Get(IReadOnlyList<StoredId> ids)
     {
-        var idsClause = ids.Select(id => $"'{id}'").StringJoin(", ");
         var sql = $@"
             SELECT id, position, content, version
             FROM {tablePrefix}_state
-            WHERE id IN ({idsClause})";
+            WHERE id = ANY($1)";
 
-        return StoreCommand.Create(sql);
+        return StoreCommand.Create(sql, values: [ ids.Select(id => id.AsGuid).ToArray() ]);
     }
 
     public async Task<Dictionary<StoredId, Dictionary<long, StoredState>>> Read(IStoreCommandReader reader)

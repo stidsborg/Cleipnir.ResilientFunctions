@@ -540,12 +540,12 @@ public class SqlGenerator(string tablePrefix)
     
     public StoreCommand GetMessages(IEnumerable<StoredId> storedIds)
     {
-        var sql = @$"    
+        var sql = @$"
             SELECT id, position, content
             FROM {tablePrefix}_messages
-            WHERE id IN ({storedIds.InClause()});";
+            WHERE id = ANY($1);";
 
-        var storeCommand = StoreCommand.Create(sql);
+        var storeCommand = StoreCommand.Create(sql, values: [ storedIds.Select(id => id.AsGuid).ToArray() ]);
         return storeCommand;
     }
     

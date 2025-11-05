@@ -219,11 +219,12 @@ public class PostgreSqlMessageStore(string connectionString, SqlGenerator sqlGen
         var sql = @$"
             SELECT id, MAX(position)
             FROM {tablePrefix}_messages
-            WHERE Id IN ({storedIds.Select(id => $"'{id}'").StringJoin(", ")})
+            WHERE Id = ANY($1)
             GROUP BY id;";
 
         await using var conn = await CreateConnection();
         await using var command = new NpgsqlCommand(sql, conn);
+        command.Parameters.Add(new NpgsqlParameter { Value = storedIds.Select(id => id.AsGuid).ToArray() });
 
         var positions = new Dictionary<StoredId, long>(capacity: storedIds.Count);
         foreach (var storedId in storedIds)

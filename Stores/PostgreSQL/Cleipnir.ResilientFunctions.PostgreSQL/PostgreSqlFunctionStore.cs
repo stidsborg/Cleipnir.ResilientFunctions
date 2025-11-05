@@ -305,17 +305,18 @@ public class PostgreSqlFunctionStore : IFunctionStore
 
     public async Task<IReadOnlyList<StoredId>> GetInterruptedFunctions(IEnumerable<StoredId> ids)
     {
-        var inSql = ids.Select(id => $"'{id.AsGuid}'").StringJoin(", ");
-        if (string.IsNullOrEmpty(inSql))
+        var idsArray = ids.Select(id => id.AsGuid).ToArray();
+        if (idsArray.Length == 0)
             return [];
 
         var sql = @$"
             SELECT id
             FROM {_tableName}
-            WHERE interrupted = TRUE AND id IN ({inSql})";
+            WHERE interrupted = TRUE AND id = ANY($1)";
 
         await using var conn = await CreateConnection();
         await using var command = new NpgsqlCommand(sql, conn);
+        command.Parameters.Add(new NpgsqlParameter { Value = idsArray });
 
         await using var reader = await command.ExecuteReaderAsync();
         var interruptedIds = new List<StoredId>();
@@ -651,14 +652,19 @@ public class PostgreSqlFunctionStore : IFunctionStore
 
     public async Task<IReadOnlyList<StatusAndId>> GetFunctionsStatus(IEnumerable<StoredId> storedIds)
     {
+        var ids = storedIds.Select(id => id.AsGuid).ToArray();
+        if (!ids.Any())
+            return [];
+            
         var sql = @$"
             SELECT id, status, expires
             FROM {_tableName}
-            WHERE Id IN ({storedIds.Select(id => $"'{id}'").StringJoin(", ")})";
+            WHERE Id = ANY($1)";
 
         await using var conn = await CreateConnection();
         await using var command = new NpgsqlCommand(sql, conn);
-        
+        command.Parameters.Add(new NpgsqlParameter { Value = ids });
+
         var toReturn = new List<StatusAndId>();
         await using var reader = await command.ExecuteReaderAsync();
         while (await reader.ReadAsync())
@@ -670,7 +676,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
             var storedId = new StoredId(instance);
             toReturn.Add(new StatusAndId(storedId, status, expires));
         }
-        
+
         return toReturn;
     }
 
@@ -761,17 +767,18 @@ public class PostgreSqlFunctionStore : IFunctionStore
 
     public async Task<IReadOnlyDictionary<StoredId, byte[]?>> GetResults(IEnumerable<StoredId> storedIds)
     {
-        var idsClause = storedIds.Select(id => $"'{id.AsGuid}'").StringJoin(", ");
-        if (idsClause == "")
+        var idsArray = storedIds.Select(id => id.AsGuid).ToArray();
+        if (idsArray.Length == 0)
             return new Dictionary<StoredId, byte[]?>();
 
         var sql = @$"
             SELECT id, result_json
             FROM {_tableName}_inputoutput
-            WHERE id IN ({idsClause})";
+            WHERE id = ANY($1)";
 
         await using var conn = await CreateConnection();
         await using var command = new NpgsqlCommand(sql, conn);
+        command.Parameters.Add(new NpgsqlParameter { Value = idsArray });
 
         await using var reader = await command.ExecuteReaderAsync();
         var results = new Dictionary<StoredId, byte[]?>();
