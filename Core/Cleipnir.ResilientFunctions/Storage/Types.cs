@@ -107,7 +107,8 @@ public record StoredFlow(
 public record StoredException(string ExceptionMessage, string? ExceptionStackTrace, string ExceptionType)
 {
     public byte[] Serialize() => JsonSerializer.Serialize(this).ToUtf8Bytes();
-    public static StoredException Deserialize(byte[] bytes) => JsonSerializer.Deserialize<StoredException>(bytes.ToStringFromUtf8Bytes())!;
+    public static StoredException Deserialize(byte[] bytes) => Deserialize(bytes.ToStringFromUtf8Bytes());
+    public static StoredException Deserialize(string json) => JsonSerializer.Deserialize<StoredException>(json)!;
 };
 
 public record StatusAndId(StoredId StoredId, Status Status, long Expiry);
@@ -211,3 +212,30 @@ public static class StoredEffectExtensions
 }
 
 public record StoredReplica(ReplicaId ReplicaId, long LatestHeartbeat);
+
+public record StoredInputOutput(
+    StoredId Id,
+    byte[]? ParamJson,
+    byte[]? ResultJson,
+    string? ExceptionJson,
+    string HumanInstanceId,
+    StoredId? Parent
+)
+{
+    public StoredFlow ToStoredFlow(Status status, long expires, long timestamp, bool interrupted, ReplicaId owner)
+    {
+        return new StoredFlow(
+            Id,
+            HumanInstanceId,
+            ParamJson,
+            status,
+            ExceptionJson != null ? StoredException.Deserialize(ExceptionJson) : null,
+            expires,
+            timestamp,
+            interrupted,
+            Parent,
+            owner,
+            Id.Type
+        );
+    }
+};
