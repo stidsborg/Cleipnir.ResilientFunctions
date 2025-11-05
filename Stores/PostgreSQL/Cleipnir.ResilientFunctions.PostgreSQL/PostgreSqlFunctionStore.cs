@@ -581,60 +581,17 @@ public class PostgreSqlFunctionStore : IFunctionStore
         await command.ExecuteNonQueryAsync();
     }
 
-    private string? _setParametersSql;
-    private string? _setParametersSqlWithoutReplica;
     public async Task<bool> SetParameters(
         StoredId storedId,
         byte[]? param, byte[]? result,
         ReplicaId? expectedReplica)
     {
         await using var conn = await CreateConnection();
+        var storeCommand = _sqlGenerator.SetParameters(storedId, param, result, expectedReplica);
+        await using var command = storeCommand.ToNpgsqlCommand(conn);
 
-        if (expectedReplica == null)
-        {
-            _setParametersSqlWithoutReplica ??= $@"
-                UPDATE {_tableName}_inputoutput
-                SET param_json = $1, result_json = $2
-                WHERE id = $3 AND EXISTS (
-                    SELECT 1 FROM {_tableName} WHERE id = $3 AND owner IS NULL
-                );";
-
-            await using var command = new NpgsqlCommand(_setParametersSqlWithoutReplica, conn)
-            {
-                Parameters =
-                {
-                    new() { Value = param ?? (object) DBNull.Value },
-                    new() { Value = result ?? (object) DBNull.Value },
-                    new() { Value = storedId.AsGuid },
-                }
-            };
-
-            var affectedRows = await command.ExecuteNonQueryAsync();
-            return affectedRows == 1;
-        }
-        else
-        {
-            _setParametersSql ??= $@"
-                UPDATE {_tableName}_inputoutput
-                SET param_json = $1, result_json = $2
-                WHERE id = $3 AND EXISTS (
-                    SELECT 1 FROM {_tableName} WHERE id = $3 AND owner = $4
-                );";
-
-            await using var command = new NpgsqlCommand(_setParametersSql, conn)
-            {
-                Parameters =
-                {
-                    new() { Value = param ?? (object) DBNull.Value },
-                    new() { Value = result ?? (object) DBNull.Value },
-                    new() { Value = storedId.AsGuid },
-                    new() { Value = expectedReplica.AsGuid },
-                }
-            };
-
-            var affectedRows = await command.ExecuteNonQueryAsync();
-            return affectedRows == 1;
-        }
+        var affectedRows = await command.ExecuteNonQueryAsync();
+        return affectedRows == 1;
     }
 
     private string? _interruptSql;

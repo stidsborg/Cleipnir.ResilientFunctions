@@ -528,4 +528,51 @@ public class SqlGenerator(string tablePrefix)
                 .OrderBy(m => m.position)
                 .ToList());
     }
+
+    private string? _setParametersSql;
+    private string? _setParametersSqlWithoutReplica;
+    public StoreCommand SetParameters(
+        StoredId storedId,
+        byte[]? param,
+        byte[]? result,
+        ReplicaId? expectedReplica)
+    {
+        if (expectedReplica == null)
+        {
+            _setParametersSqlWithoutReplica ??= $@"
+                UPDATE {tablePrefix}_inputoutput
+                SET param_json = $1, result_json = $2
+                WHERE id = $3 AND EXISTS (
+                    SELECT 1 FROM {tablePrefix} WHERE id = $3 AND owner IS NULL
+                );";
+
+            return StoreCommand.Create(
+                _setParametersSqlWithoutReplica,
+                values:
+                [
+                    param ?? (object)DBNull.Value,
+                    result ?? (object)DBNull.Value,
+                    storedId.AsGuid,
+                ]);
+        }
+        else
+        {
+            _setParametersSql ??= $@"
+                UPDATE {tablePrefix}_inputoutput
+                SET param_json = $1, result_json = $2
+                WHERE id = $3 AND EXISTS (
+                    SELECT 1 FROM {tablePrefix} WHERE id = $3 AND owner = $4
+                );";
+
+            return StoreCommand.Create(
+                _setParametersSql,
+                values:
+                [
+                    param ?? (object)DBNull.Value,
+                    result ?? (object)DBNull.Value,
+                    storedId.AsGuid,
+                    expectedReplica.AsGuid,
+                ]);
+        }
+    }
 }
