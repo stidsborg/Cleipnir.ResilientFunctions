@@ -64,14 +64,27 @@ public class SqlGenerator(string tablePrefix)
             values: [ storedId.AsGuid ]);
     }
     
+    private string? _getInputOutputsSql;
+    public StoreCommand GetInputOutput(IEnumerable<StoredId> storedId)
+    {
+        _getInputOutputsSql ??= @$"
+            SELECT id, param_json, result_json, exception_json, human_instance_id, parent
+            FROM {tablePrefix}_inputoutput
+            WHERE id = ANY($1);";
+
+        return StoreCommand.Create(
+            _getInputOutputsSql,
+            values: [ storedId.Select(id => id.AsGuid).ToArray() ]);
+    }
+    
     public StoreCommand GetEffects(IEnumerable<StoredId> storedIds)
     {
         var sql = @$"
             SELECT id, position, content, version
             FROM {tablePrefix}_effects
-            WHERE id IN ({storedIds.Select(id => $"'{id}'").StringJoin(", ")});";
-        
-        return StoreCommand.Create(sql);
+            WHERE id = ANY($1);";
+
+        return StoreCommand.Create(sql, values: [ storedIds.Select(id => id.AsGuid).ToArray() ]);
     }
 
     public record StoredEffectsWithSession(IReadOnlyList<StoredEffect> Effects, SnapshotStorageSession Session);
