@@ -20,22 +20,22 @@ public class SqlGenerator(string tablePrefix)
     {
         var sql = @$"
                 UPDATE {tablePrefix}
-                SET 
+                SET
                     interrupted = TRUE,
-                    status = 
-                        CASE 
+                    status =
+                        CASE
                             WHEN status = {(int)Status.Suspended} THEN {(int)Status.Postponed}
                             ELSE status
                         END,
-                    expires = 
+                    expires =
                         CASE
                             WHEN status = {(int)Status.Postponed} THEN 0
                             WHEN status = {(int)Status.Suspended} THEN 0
                             ELSE expires
                         END
-                WHERE Id IN ({storedIds.Select(id => $"'{id}'").StringJoin(", ")})";
-        
-        return StoreCommand.Create(sql);
+                WHERE Id = ANY($1)";
+
+        return StoreCommand.Create(sql, values: [ storedIds.Select(id => id.AsGuid).ToArray() ]);
     }
     
     private string? _getEffectResultsSql;
