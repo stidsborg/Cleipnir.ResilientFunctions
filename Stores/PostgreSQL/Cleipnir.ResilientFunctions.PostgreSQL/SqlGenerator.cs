@@ -50,6 +50,19 @@ public class SqlGenerator(string tablePrefix)
             _getEffectResultsSql,
             values: [ storedId.AsGuid ]);
     }
+
+    private string? _getInputOutputSql;
+    public StoreCommand GetInputOutput(StoredId storedId)
+    {
+        _getInputOutputSql ??= @$"
+            SELECT id, param_json, result_json, exception_json, human_instance_id, parent
+            FROM {tablePrefix}_inputoutput
+            WHERE id = $1;";
+
+        return StoreCommand.Create(
+            _getInputOutputSql,
+            values: [ storedId.AsGuid ]);
+    }
     
     public StoreCommand GetEffects(IEnumerable<StoredId> storedIds)
     {
@@ -66,7 +79,7 @@ public class SqlGenerator(string tablePrefix)
     {
         var effects = new List<StoredEffect>();
         var session = new SnapshotStorageSession();
-        
+
         while (await reader.ReadAsync())
         {
             var id = reader.GetGuid(0);
@@ -87,8 +100,38 @@ public class SqlGenerator(string tablePrefix)
             session.RowExists = true;
             session.Version = version;
         }
-        
+
         return new StoredEffectsWithSession(effects, session);
+    }
+
+    public async Task<StoredInputOutput?> ReadInputOutput(NpgsqlDataReader reader)
+    {
+        /*
+           0  id
+           1  param_json
+           2  result_json
+           3  exception_json
+           4  human_instance_id
+           5  parent
+         */
+        while (await reader.ReadAsync())
+        {
+            var id = reader.GetGuid(0).ToStoredId();
+            var hasParam = !await reader.IsDBNullAsync(1);
+            var hasResult = !await reader.IsDBNullAsync(2);
+            var hasException = !await reader.IsDBNullAsync(3);
+            var hasParent = !await reader.IsDBNullAsync(5);
+
+            var paramJson = hasParam ? (byte[])reader.GetValue(1) : null;
+            var resultJson = hasResult ? (byte[])reader.GetValue(2) : null;
+            var exceptionJson = hasException ? reader.GetString(3) : null;
+            var humanInstanceId = reader.GetString(4);
+            var parent = hasParent ? StoredId.Deserialize(reader.GetString(5)) : null;
+
+            return new StoredInputOutput(id, paramJson, resultJson, exceptionJson, humanInstanceId, parent);
+        }
+
+        return null;
     }
     public async Task<Dictionary<StoredId, SnapshotStorageSession>> ReadEffectsForIds(NpgsqlDataReader reader, IEnumerable<StoredId> storedIds)
     {
@@ -360,22 +403,16 @@ public class SqlGenerator(string tablePrefix)
     public StoreCommand RestartExecution(StoredId storedId, ReplicaId replicaId)
     {
         _restartExecutionSql ??= @$"
-            UPDATE {tablePrefix} AS f
+            UPDATE {tablePrefix}
             SET status = {(int)Status.Executing}, expires = 0, interrupted = FALSE, owner = $1
-            FROM {tablePrefix}_inputoutput AS io
-            WHERE f.id = $2 AND f.owner IS NULL AND f.id = io.id
+            WHERE id = $2 AND owner IS NULL
             RETURNING
-                f.id,
-                io.param_json,
-                f.status,
-                io.result_json,
-                io.exception_json,
-                f.expires,
-                f.interrupted,
-                f.timestamp,
-                io.human_instance_id,
-                io.parent,
-                f.owner";
+                id,
+                status,
+                expires,
+                interrupted,
+                timestamp,
+                owner";
 
         var command = StoreCommand.Create(
             _restartExecutionSql,

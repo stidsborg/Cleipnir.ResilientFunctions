@@ -221,19 +221,29 @@ public class PostgreSqlFunctionStore : IFunctionStore
     public async Task<StoredFlowWithEffectsAndMessages?> RestartExecution(StoredId storedId, ReplicaId replicaId)
     {
         var restartCommand = _sqlGenerator.RestartExecution(storedId, replicaId);
+        var inputoutput = _sqlGenerator.GetInputOutput(storedId);
         var effectsCommand = _sqlGenerator.GetEffects(storedId);
         var messagesCommand = _sqlGenerator.GetMessages(storedId, skip: 0);
         
         await using var conn = await CreateConnection();
         await using var command = StoreCommandExtensions
-            .ToNpgsqlBatch([restartCommand, effectsCommand, messagesCommand])
+            .ToNpgsqlBatch([restartCommand, inputoutput, effectsCommand, messagesCommand])
             .WithConnection(conn);
         
         await using var reader = await command.ExecuteReaderAsync();
-        
-        var sf = await _sqlGenerator.ReadFunction(storedId, reader);
-        if (sf?.OwnerId != replicaId)
+        if (reader.RecordsAffected == 0)
             return null;
+
+        // Skip first result set (UPDATE RETURNING)
+        await reader.NextResultAsync();
+
+        // Read second result set (inputoutput)
+        var inputOutput = await _sqlGenerator.ReadInputOutput(reader);
+        if (inputOutput == null)
+            return null;
+        var sf = inputOutput.ToStoredFlow(Status.Executing, expires: 0, timestamp: DateTime.UtcNow.Ticks, interrupted: false, replicaId);
+
+        // Read third result set (effects)
         await reader.NextResultAsync();
         var (effects, session) = await _sqlGenerator.ReadEffects(reader);
         
