@@ -203,53 +203,17 @@ public class PostgreSqlFunctionStore : IFunctionStore
         }
     }
 
-    private string? _bulkScheduleFunctionsSql;
-    private string? _bulkScheduleFunctionsInputOutputSql;
     public async Task BulkScheduleFunctions(IEnumerable<IdWithParam> functionsWithParam, StoredId? parent)
     {
-        _bulkScheduleFunctionsSql ??= @$"
-            INSERT INTO {_tableName}
-                (id, status, expires, timestamp)
-            VALUES
-                ($1, {(int) Status.Postponed}, 0, 0)
-            ON CONFLICT DO NOTHING";
-
-        _bulkScheduleFunctionsInputOutputSql ??= @$"
-            INSERT INTO {_tableName}_inputoutput
-                (id, param_json, result_json, exception_json, human_instance_id, parent)
-            VALUES
-                ($1, $2, NULL, NULL, $3, $4)
-            ON CONFLICT DO NOTHING";
-
         await using var conn = await CreateConnection();
         var chunks = functionsWithParam.Chunk(100);
         foreach (var chunk in chunks)
         {
-            await using var batch = new NpgsqlBatch(conn);
+            var commands = new List<StoreCommand>();
             foreach (var idWithParam in chunk)
-            {
-                var mainTableCommand = new NpgsqlBatchCommand(_bulkScheduleFunctionsSql)
-                {
-                    Parameters =
-                    {
-                        new() { Value = idWithParam.StoredId.AsGuid },
-                    }
-                };
-                batch.BatchCommands.Add(mainTableCommand);
+                commands.AddRange(_sqlGenerator.BulkScheduleFunctions(idWithParam, parent));
 
-                var inputOutputCommand = new NpgsqlBatchCommand(_bulkScheduleFunctionsInputOutputSql)
-                {
-                    Parameters =
-                    {
-                        new() { Value = idWithParam.StoredId.AsGuid },
-                        new() { Value = idWithParam.Param == null ? DBNull.Value : idWithParam.Param },
-                        new() { Value = idWithParam.HumanInstanceId },
-                        new() { Value = parent?.Serialize() ?? (object) DBNull.Value },
-                    }
-                };
-                batch.BatchCommands.Add(inputOutputCommand);
-            }
-
+            await using var batch = commands.ToNpgsqlBatch().WithConnection(conn);
             await batch.ExecuteNonQueryAsync();
         }
     }

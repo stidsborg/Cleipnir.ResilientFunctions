@@ -575,4 +575,42 @@ public class SqlGenerator(string tablePrefix)
                 ]);
         }
     }
+
+    private string? _bulkScheduleFunctionsSql;
+    private string? _bulkScheduleFunctionsInputOutputSql;
+    public IEnumerable<StoreCommand> BulkScheduleFunctions(IdWithParam idWithParam, StoredId? parent)
+    {
+        _bulkScheduleFunctionsSql ??= @$"
+            INSERT INTO {tablePrefix}
+                (id, status, expires, timestamp)
+            VALUES
+                ($1, {(int) Status.Postponed}, 0, 0)
+            ON CONFLICT DO NOTHING";
+
+        _bulkScheduleFunctionsInputOutputSql ??= @$"
+            INSERT INTO {tablePrefix}_inputoutput
+                (id, param_json, result_json, exception_json, human_instance_id, parent)
+            VALUES
+                ($1, $2, NULL, NULL, $3, $4)
+            ON CONFLICT DO NOTHING";
+
+        yield return StoreCommand.Create(
+            _bulkScheduleFunctionsSql,
+            values:
+            [
+                idWithParam.StoredId.AsGuid,
+            ]
+        );
+
+        yield return StoreCommand.Create(
+            _bulkScheduleFunctionsInputOutputSql,
+            values:
+            [
+                idWithParam.StoredId.AsGuid,
+                idWithParam.Param ?? (object)DBNull.Value,
+                idWithParam.HumanInstanceId,
+                parent?.Serialize() ?? (object)DBNull.Value,
+            ]
+        );
+    }
 }
