@@ -138,7 +138,10 @@ public class SqlGenerator(string tablePrefix)
     
     private string? _createFunctionSql;
     private string? _createFunctionWithConflictSql;
-    public StoreCommand CreateFunction(
+    private string? _createFunctionInputOutputSql;
+    private string? _createFunctionInputOutputWithConflictSql;
+
+    public IEnumerable<StoreCommand> CreateFunction(
         StoredId storedId,
         FlowInstance humanInstanceId,
         byte[]? param,
@@ -153,18 +156,19 @@ public class SqlGenerator(string tablePrefix)
         {
             _createFunctionWithConflictSql ??= @$"
                 INSERT INTO {tablePrefix}
-                    (id, status, expires, owner)
+                    (id, status, expires, owner, timestamp)
                 VALUES
-                    ($1, $2, $3, $4)
-                ON CONFLICT DO NOTHING;
+                    ($1, $2, $3, $4, $5)
+                ON CONFLICT DO NOTHING";
 
+            _createFunctionInputOutputWithConflictSql ??= @$"
                 INSERT INTO {tablePrefix}_inputoutput
-                    (id, param_json, result_json, exception_json, timestamp, human_instance_id, parent)
+                    (id, param_json, result_json, exception_json, human_instance_id, parent)
                 VALUES
-                    ($1, $5, NULL, NULL, $6, $7, $8)
-                ON CONFLICT DO NOTHING;";
+                    ($1, $2, NULL, NULL, $3, $4)
+                ON CONFLICT DO NOTHING";
 
-            return StoreCommand.Create(
+            yield return StoreCommand.Create(
                 _createFunctionWithConflictSql,
                 values:
                 [
@@ -172,8 +176,15 @@ public class SqlGenerator(string tablePrefix)
                     (int)(postponeUntil == null ? Status.Executing : Status.Postponed),
                     postponeUntil ?? leaseExpiration,
                     owner?.AsGuid ?? (object)DBNull.Value,
-                    param == null ? DBNull.Value : param,
                     timestamp,
+                ]);
+
+            yield return StoreCommand.Create(
+                _createFunctionInputOutputWithConflictSql,
+                values:
+                [
+                    storedId.AsGuid,
+                    param == null ? DBNull.Value : param,
                     humanInstanceId.Value,
                     parent?.Serialize() ?? (object)DBNull.Value,
                 ]);
@@ -182,16 +193,17 @@ public class SqlGenerator(string tablePrefix)
         {
             _createFunctionSql ??= @$"
                 INSERT INTO {tablePrefix}
-                    (id, status, expires, owner)
+                    (id, status, expires, owner, timestamp)
                 VALUES
-                    ($1, $2, $3, $4);
+                    ($1, $2, $3, $4, $5)";
 
+            _createFunctionInputOutputSql ??= @$"
                 INSERT INTO {tablePrefix}_inputoutput
-                    (id, param_json, result_json, exception_json, timestamp, human_instance_id, parent)
+                    (id, param_json, result_json, exception_json, human_instance_id, parent)
                 VALUES
-                    ($1, $5, NULL, NULL, $6, $7, $8);";
+                    ($1, $2, NULL, NULL, $3, $4)";
 
-            return StoreCommand.Create(
+            yield return StoreCommand.Create(
                 _createFunctionSql,
                 values:
                 [
@@ -199,8 +211,15 @@ public class SqlGenerator(string tablePrefix)
                     (int)(postponeUntil == null ? Status.Executing : Status.Postponed),
                     postponeUntil ?? leaseExpiration,
                     owner?.AsGuid ?? (object)DBNull.Value,
-                    param == null ? DBNull.Value : param,
                     timestamp,
+                ]);
+
+            yield return StoreCommand.Create(
+                _createFunctionInputOutputSql,
+                values:
+                [
+                    storedId.AsGuid,
+                    param == null ? DBNull.Value : param,
                     humanInstanceId.Value,
                     parent?.Serialize() ?? (object)DBNull.Value,
                 ]);
@@ -208,7 +227,8 @@ public class SqlGenerator(string tablePrefix)
     }
     
     private string? _succeedFunctionSql;
-    public StoreCommand SucceedFunction(
+    private string? _succeedFunctionInputOutputSql;
+    public IEnumerable<StoreCommand> SucceedFunction(
         StoredId storedId,
         byte[]? result,
         long timestamp,
@@ -216,21 +236,30 @@ public class SqlGenerator(string tablePrefix)
     {
         _succeedFunctionSql ??= $@"
             UPDATE {tablePrefix}
-            SET status = {(int) Status.Succeeded}, owner = NULL
-            WHERE id = $1 AND owner = $2;
+            SET status = {(int) Status.Succeeded}, owner = NULL, timestamp = $3
+            WHERE id = $1 AND owner = $2";
 
+        _succeedFunctionInputOutputSql ??= $@"
             UPDATE {tablePrefix}_inputoutput
-            SET result_json = $3, timestamp = $4
-            WHERE id = $1;";
+            SET result_json = $2
+            WHERE id = $1";
 
-        return StoreCommand.Create(
+        yield return StoreCommand.Create(
             _succeedFunctionSql,
             values:
             [
                 storedId.AsGuid,
                 expectedReplica.AsGuid,
-                result == null ? DBNull.Value : result,
                 timestamp,
+            ]
+        );
+
+        yield return StoreCommand.Create(
+            _succeedFunctionInputOutputSql,
+            values:
+            [
+                storedId.AsGuid,
+                result == null ? DBNull.Value : result,
             ]
         );
     }
@@ -247,14 +276,11 @@ public class SqlGenerator(string tablePrefix)
             SET status = {(int) Status.Postponed},
                 expires = CASE WHEN interrupted THEN 0 ELSE $1 END,
                 owner = NULL,
-                interrupted = FALSE
+                interrupted = FALSE,
+                timestamp = $4
             WHERE
                 id = $2 AND
-                owner = $3;
-
-            UPDATE {tablePrefix}_inputoutput
-            SET timestamp = $4
-            WHERE id = $2;";
+                owner = $3;";
 
         return StoreCommand.Create(
             _postponeFunctionSql,
@@ -268,7 +294,8 @@ public class SqlGenerator(string tablePrefix)
     }
     
     private string? _failFunctionSql;
-    public StoreCommand FailFunction(
+    private string? _failFunctionInputOutputSql;
+    public IEnumerable<StoreCommand> FailFunction(
         StoredId storedId,
         StoredException storedException,
         long timestamp,
@@ -276,14 +303,27 @@ public class SqlGenerator(string tablePrefix)
     {
         _failFunctionSql ??= $@"
             UPDATE {tablePrefix}
-            SET status = {(int) Status.Failed}, owner = NULL
-            WHERE id = $1 AND owner = $2;
+            SET status = {(int) Status.Failed}, owner = NULL, timestamp = $4
+            WHERE id = $1 AND owner = $2";
 
+        _failFunctionInputOutputSql ??= $@"
             UPDATE {tablePrefix}_inputoutput
-            SET exception_json = $3, timestamp = $4
-            WHERE id = $1;";
-        return StoreCommand.Create(
+            SET exception_json = $3
+            WHERE id = $1";
+
+        yield return StoreCommand.Create(
             _failFunctionSql,
+            values:
+            [
+                storedId.AsGuid,
+                expectedReplica.AsGuid,
+                JsonSerializer.Serialize(storedException),
+                timestamp,
+            ]
+        );
+
+        yield return StoreCommand.Create(
+            _failFunctionInputOutputSql,
             values:
             [
                 storedId.AsGuid,
@@ -302,12 +342,9 @@ public class SqlGenerator(string tablePrefix)
             SET status = CASE WHEN interrupted THEN {(int) Status.Postponed} ELSE {(int) Status.Suspended} END,
                 expires = 0,
                 owner = NULL,
-                interrupted = FALSE
-            WHERE id = $1 AND owner = $2;
-
-            UPDATE {tablePrefix}_inputoutput
-            SET timestamp = $3
-            WHERE id = $1;";
+                interrupted = FALSE,
+                timestamp = $3
+            WHERE id = $1 AND owner = $2;";
 
         return StoreCommand.Create(
             _suspendFunctionSql,
@@ -335,7 +372,7 @@ public class SqlGenerator(string tablePrefix)
                 io.exception_json,
                 f.expires,
                 f.interrupted,
-                io.timestamp,
+                f.timestamp,
                 io.human_instance_id,
                 io.parent,
                 f.owner";

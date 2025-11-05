@@ -83,7 +83,8 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 expires BIGINT NOT NULL,
                 interrupted BOOLEAN NOT NULL DEFAULT FALSE,
                 status INT NOT NULL DEFAULT {(int) Status.Executing},
-                owner UUID NULL
+                owner UUID NULL,
+                timestamp BIGINT NOT NULL
             );
 
             CREATE TABLE IF NOT EXISTS {_tableName}_inputoutput (
@@ -91,7 +92,6 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 param_json BYTEA NULL,
                 result_json BYTEA NULL,
                 exception_json TEXT NULL,
-                timestamp BIGINT NOT NULL,
                 human_instance_id TEXT NOT NULL,
                 parent TEXT NULL
             );
@@ -142,7 +142,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         if (effects == null && messages == null)
         {
             await using var conn = await CreateConnection();
-            await using var command = _sqlGenerator.CreateFunction(
+            await using var batch = _sqlGenerator.CreateFunction(
                 storedId,
                 humanInstanceId,
                 param,
@@ -152,16 +152,16 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 parent,
                 owner,
                 ignoreConflict: true
-            ).ToNpgsqlCommand(conn);
+            ).CreateBatch().WithConnection(conn);
 
-            var affectedRows = await command.ExecuteNonQueryAsync();
-            return affectedRows == 1 ? new SnapshotStorageSession() : null;    
+            var affectedRows = await batch.ExecuteNonQueryAsync();
+            return affectedRows == 2 ? new SnapshotStorageSession() : null;
         }
 
         try
         {
             var commands = new List<StoreCommand>();
-            var createCommand = _sqlGenerator.CreateFunction(
+            commands.AddRange(_sqlGenerator.CreateFunction(
                 storedId,
                 humanInstanceId,
                 param,
@@ -171,8 +171,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 parent,
                 owner,
                 ignoreConflict: false
-            );
-            commands.Add(createCommand);
+            ));
             var session = new SnapshotStorageSession();
             if (effects?.Any() ?? false)
                 commands.AddRange(
@@ -205,20 +204,22 @@ public class PostgreSqlFunctionStore : IFunctionStore
     }
 
     private string? _bulkScheduleFunctionsSql;
+    private string? _bulkScheduleFunctionsInputOutputSql;
     public async Task BulkScheduleFunctions(IEnumerable<IdWithParam> functionsWithParam, StoredId? parent)
     {
         _bulkScheduleFunctionsSql ??= @$"
             INSERT INTO {_tableName}
-                (id, status, expires)
+                (id, status, expires, timestamp)
             VALUES
-                ($1, {(int) Status.Postponed}, 0)
-            ON CONFLICT DO NOTHING;
+                ($1, {(int) Status.Postponed}, 0, 0)
+            ON CONFLICT DO NOTHING";
 
+        _bulkScheduleFunctionsInputOutputSql ??= @$"
             INSERT INTO {_tableName}_inputoutput
-                (id, param_json, result_json, exception_json, timestamp, human_instance_id, parent)
+                (id, param_json, result_json, exception_json, human_instance_id, parent)
             VALUES
-                ($1, $2, NULL, NULL, 0, $3, $4)
-            ON CONFLICT DO NOTHING;";
+                ($1, $2, NULL, NULL, $3, $4)
+            ON CONFLICT DO NOTHING";
 
         await using var conn = await CreateConnection();
         var chunks = functionsWithParam.Chunk(100);
@@ -227,7 +228,16 @@ public class PostgreSqlFunctionStore : IFunctionStore
             await using var batch = new NpgsqlBatch(conn);
             foreach (var idWithParam in chunk)
             {
-                var batchCommand = new NpgsqlBatchCommand(_bulkScheduleFunctionsSql)
+                var mainTableCommand = new NpgsqlBatchCommand(_bulkScheduleFunctionsSql)
+                {
+                    Parameters =
+                    {
+                        new() { Value = idWithParam.StoredId.AsGuid },
+                    }
+                };
+                batch.BatchCommands.Add(mainTableCommand);
+
+                var inputOutputCommand = new NpgsqlBatchCommand(_bulkScheduleFunctionsInputOutputSql)
                 {
                     Parameters =
                     {
@@ -237,7 +247,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
                         new() { Value = parent?.Serialize() ?? (object) DBNull.Value },
                     }
                 };
-                batch.BatchCommands.Add(batchCommand);
+                batch.BatchCommands.Add(inputOutputCommand);
             }
 
             await batch.ExecuteNonQueryAsync();
@@ -302,10 +312,9 @@ public class PostgreSqlFunctionStore : IFunctionStore
     {
         await using var conn = await CreateConnection();
         _getSucceededFunctionsSql ??= @$"
-            SELECT f.id
-            FROM {_tableName} f
-            INNER JOIN {_tableName}_inputoutput io ON f.id = io.id
-            WHERE f.status = {(int) Status.Succeeded} AND io.timestamp <= $1";
+            SELECT id
+            FROM {_tableName}
+            WHERE status = {(int) Status.Succeeded} AND timestamp <= $1";
         await using var command = new NpgsqlCommand(_getSucceededFunctionsSql, conn)
         {
             Parameters =
@@ -352,6 +361,10 @@ public class PostgreSqlFunctionStore : IFunctionStore
 
     private string? _setFunctionStateSql;
     private string? _setFunctionStateSqlWithoutReplica;
+    private string? _setFunctionStateInputOutputSql;
+    private string? _setFunctionStateSqlMain;
+    private string? _setFunctionStateSqlMainWithoutReplica;
+
     public async Task<bool> SetFunctionState(
         StoredId storedId, Status status,
         byte[]? param, byte[]? result,
@@ -363,57 +376,85 @@ public class PostgreSqlFunctionStore : IFunctionStore
 
         if (expectedReplica == null)
         {
-            _setFunctionStateSqlWithoutReplica ??= $@"
+            _setFunctionStateSqlMainWithoutReplica ??= $@"
                 UPDATE {_tableName}
                 SET status = $1, expires = $2
-                WHERE id = $3 AND owner IS NULL;
+                WHERE id = $3 AND owner IS NULL";
 
+            _setFunctionStateInputOutputSql ??= $@"
                 UPDATE {_tableName}_inputoutput
-                SET param_json = $4, result_json = $5, exception_json = $6
-                WHERE id = $3;";
+                SET param_json = $2, result_json = $3, exception_json = $4
+                WHERE id = $1";
 
-            await using var command = new NpgsqlCommand(_setFunctionStateSqlWithoutReplica, conn)
+            await using var batch = new NpgsqlBatch(conn)
             {
-                Parameters =
+                BatchCommands =
                 {
-                    new() {Value = (int) status},
-                    new() {Value = expires },
-                    new() {Value = storedId.AsGuid},
-                    new() {Value = param == null ? DBNull.Value : param},
-                    new() {Value = result == null ? DBNull.Value : result},
-                    new() {Value = storedException == null ? DBNull.Value : JsonSerializer.Serialize(storedException)},
+                    new NpgsqlBatchCommand(_setFunctionStateSqlMainWithoutReplica)
+                    {
+                        Parameters =
+                        {
+                            new() {Value = (int) status},
+                            new() {Value = expires },
+                            new() {Value = storedId.AsGuid},
+                        }
+                    },
+                    new NpgsqlBatchCommand(_setFunctionStateInputOutputSql)
+                    {
+                        Parameters =
+                        {
+                            new() {Value = storedId.AsGuid},
+                            new() {Value = param == null ? DBNull.Value : param},
+                            new() {Value = result == null ? DBNull.Value : result},
+                            new() {Value = storedException == null ? DBNull.Value : JsonSerializer.Serialize(storedException)},
+                        }
+                    }
                 }
             };
 
-            var affectedRows = await command.ExecuteNonQueryAsync();
+            var affectedRows = await batch.ExecuteNonQueryAsync();
             return affectedRows >= 1;
         }
         else
         {
-            _setFunctionStateSql ??= $@"
+            _setFunctionStateSqlMain ??= $@"
                 UPDATE {_tableName}
                 SET status = $1, expires = $2
-                WHERE id = $3 AND owner = $4;
+                WHERE id = $3 AND owner = $4";
 
+            _setFunctionStateInputOutputSql ??= $@"
                 UPDATE {_tableName}_inputoutput
-                SET param_json = $5, result_json = $6, exception_json = $7
-                WHERE id = $3;";
+                SET param_json = $2, result_json = $3, exception_json = $4
+                WHERE id = $1";
 
-            await using var command = new NpgsqlCommand(_setFunctionStateSql, conn)
+            await using var batch = new NpgsqlBatch(conn)
             {
-                Parameters =
+                BatchCommands =
                 {
-                    new() {Value = (int) status},
-                    new() {Value = expires },
-                    new() {Value = storedId.AsGuid},
-                    new() {Value = expectedReplica.AsGuid},
-                    new() {Value = param == null ? DBNull.Value : param},
-                    new() {Value = result == null ? DBNull.Value : result},
-                    new() {Value = storedException == null ? DBNull.Value : JsonSerializer.Serialize(storedException)},
+                    new NpgsqlBatchCommand(_setFunctionStateSqlMain)
+                    {
+                        Parameters =
+                        {
+                            new() {Value = (int) status},
+                            new() {Value = expires },
+                            new() {Value = storedId.AsGuid},
+                            new() {Value = expectedReplica.AsGuid},
+                        }
+                    },
+                    new NpgsqlBatchCommand(_setFunctionStateInputOutputSql)
+                    {
+                        Parameters =
+                        {
+                            new() {Value = storedId.AsGuid},
+                            new() {Value = param == null ? DBNull.Value : param},
+                            new() {Value = result == null ? DBNull.Value : result},
+                            new() {Value = storedException == null ? DBNull.Value : JsonSerializer.Serialize(storedException)},
+                        }
+                    }
                 }
             };
 
-            var affectedRows = await command.ExecuteNonQueryAsync();
+            var affectedRows = await batch.ExecuteNonQueryAsync();
             return affectedRows >= 1;
         }
     }
@@ -428,15 +469,15 @@ public class PostgreSqlFunctionStore : IFunctionStore
         IStorageSession? storageSession)
     {
         await using var conn = await CreateConnection();
-        await using var command = _sqlGenerator.SucceedFunction(
+        await using var batch = _sqlGenerator.SucceedFunction(
             storedId,
             result,
             timestamp,
             expectedReplica
-        ).ToNpgsqlCommand(conn);
+        ).CreateBatch().WithConnection(conn);
 
-        var affectedRows = await command.ExecuteNonQueryAsync();
-        return affectedRows == 1;
+        var affectedRows = await batch.ExecuteNonQueryAsync();
+        return affectedRows >= 1;
     }
     
     public async Task<bool> PostponeFunction(
@@ -470,15 +511,15 @@ public class PostgreSqlFunctionStore : IFunctionStore
         IStorageSession? storageSession)
     {
         await using var conn = await CreateConnection();
-        await using var command = _sqlGenerator.FailFunction(
+        await using var batch = _sqlGenerator.FailFunction(
             storedId,
             storedException,
             timestamp,
             expectedReplica
-        ).ToNpgsqlCommand(conn);
+        ).CreateBatch().WithConnection(conn);
 
-        var affectedRows = await command.ExecuteNonQueryAsync();
-        return affectedRows == 1;
+        var affectedRows = await batch.ExecuteNonQueryAsync();
+        return affectedRows >= 1;
     }
     
     public async Task<bool> SuspendFunction(
@@ -719,7 +760,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 io.exception_json,
                 f.expires,
                 f.interrupted,
-                io.timestamp,
+                f.timestamp,
                 io.human_instance_id,
                 io.parent,
                 f.owner
@@ -819,26 +860,31 @@ public class PostgreSqlFunctionStore : IFunctionStore
         return results;
     }
 
+    private string? _deleteInputOutputSql;
     private string? _deleteFunctionSql;
     private async Task<bool> DeleteStoredFunction(StoredId storedId)
     {
         await using var conn = await CreateConnection();
-        _deleteFunctionSql ??= @$"
-            DELETE FROM {_tableName}_inputoutput
-            WHERE id = $1;
+        _deleteInputOutputSql ??= @$"DELETE FROM {_tableName}_inputoutput WHERE id = $1";
+        _deleteFunctionSql ??= @$"DELETE FROM {_tableName} WHERE id = $1";
 
-            DELETE FROM {_tableName}
-            WHERE id = $1;";
-
-        await using var command = new NpgsqlCommand(_deleteFunctionSql, conn)
+        await using var batch = new NpgsqlBatch(conn)
         {
-            Parameters =
+            BatchCommands =
             {
-                new() {Value = storedId.AsGuid},
+                new NpgsqlBatchCommand(_deleteInputOutputSql)
+                {
+                    Parameters = { new() { Value = storedId.AsGuid } }
+                },
+                new NpgsqlBatchCommand(_deleteFunctionSql)
+                {
+                    Parameters = { new() { Value = storedId.AsGuid } }
+                }
             }
         };
 
-        return await command.ExecuteNonQueryAsync() >= 1;
+        var affectedRows = await batch.ExecuteNonQueryAsync();
+        return affectedRows >= 1;
     }
     
     private async Task<bool> DoTablesAlreadyExist()
