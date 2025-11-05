@@ -329,8 +329,6 @@ public class PostgreSqlFunctionStore : IFunctionStore
         return interruptedIds;
     }
 
-    private string? _setFunctionStateSql;
-    private string? _setFunctionStateSqlWithoutReplica;
     private string? _setFunctionStateInputOutputSql;
     private string? _setFunctionStateSqlMain;
     private string? _setFunctionStateSqlMainWithoutReplica;
