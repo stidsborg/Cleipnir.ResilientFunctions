@@ -1,5 +1,4 @@
-﻿using System.Text;
-using System.Text.Json;
+﻿using System.Text.Json;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
@@ -78,15 +77,19 @@ public class MariaDbFunctionStore : IFunctionStore
                 id CHAR(32) PRIMARY KEY,
                 status INT NOT NULL,
                 expires BIGINT NOT NULL,
-                interrupted BOOLEAN NOT NULL,                
-                param_json LONGBLOB NULL,                                    
-                result_json LONGBLOB NULL,
-                exception_json TEXT NULL,                
+                interrupted BOOLEAN NOT NULL,
                 timestamp BIGINT NOT NULL,
-                human_instance_id TEXT NOT NULL,
-                parent TEXT NULL,
                 owner CHAR(32) NULL,
-                INDEX (expires, id, status)   
+                INDEX (expires, id, status)
+            );
+
+            CREATE TABLE IF NOT EXISTS {_tablePrefix}_inputoutput (
+                id CHAR(32) PRIMARY KEY,
+                param_json LONGBLOB NULL,
+                result_json LONGBLOB NULL,
+                exception_json TEXT NULL,
+                human_instance_id TEXT NOT NULL,
+                parent TEXT NULL
             );";
 
         await using var command = new MySqlCommand(_initializeSql, conn);
@@ -105,7 +108,7 @@ public class MariaDbFunctionStore : IFunctionStore
         await _replicaStore.Truncate();
         
         await using var conn = await CreateOpenConnection(_connectionString);
-        _truncateTablesSql ??= $"TRUNCATE TABLE {_tablePrefix}";
+        _truncateTablesSql ??= $"TRUNCATE TABLE {_tablePrefix}_inputoutput; TRUNCATE TABLE {_tablePrefix}";
         await using var command = new MySqlCommand(_truncateTablesSql, conn);
         await command.ExecuteNonQueryAsync();
     }
@@ -122,80 +125,70 @@ public class MariaDbFunctionStore : IFunctionStore
         IReadOnlyList<StoredEffect>? effects = null,
         IReadOnlyList<StoredMessage>? messages = null)
     {
-        if (effects == null && messages == null)
+        try
         {
             await using var conn = await CreateOpenConnection(_connectionString);
-            await using var command = _sqlGenerator
-                .CreateFunction(storedId, humanInstanceId, param, leaseExpiration, postponeUntil, timestamp, parent, owner, ignoreDuplicate: true)
-                .ToSqlCommand(conn);
-            var affectedRows = await command.ExecuteNonQueryAsync();
-            return affectedRows == 1 ? new SnapshotStorageSession() : null;
+            var commands = _sqlGenerator.CreateFunction(
+                storedId,
+                humanInstanceId,
+                param,
+                leaseExpiration,
+                postponeUntil,
+                timestamp,
+                parent,
+                owner,
+                ignoreDuplicate: true
+            );
+            var session = new SnapshotStorageSession
+            {
+                RowExists = effects != null
+            };
+            
+            if (effects != null)
+                commands = commands.Append(
+                    _sqlGenerator.InsertEffects(
+                        storedId,
+                        changes: effects.Select(e => new StoredEffectChange(storedId, e.EffectId, CrudOperation.Insert, e))
+                            .ToList(),
+                        session
+                    )
+                );
+        
+            if (messages != null && messages.Any())
+                commands = commands.Append(
+                    _sqlGenerator.AppendMessages(
+                        messages.Select((msg, position) => new StoredIdAndMessageWithPosition(storedId, msg, position)).ToList()
+                    )
+                );
+        
+            var storeCommand = StoreCommand.Merge(commands)!
+                .PrependSql("START TRANSACTION;")
+                .AppendSql("COMMIT;");
+            await using var sqlCommand = storeCommand.ToSqlCommand(conn);
+            var affectedRows = await sqlCommand.ExecuteNonQueryAsync();
+            
+            return affectedRows > 0 ? session : null;             
         }
-        else
+        catch (MySqlException ex) when (ex.Number == 1062)
         {
-            var storeCommand = _sqlGenerator.CreateFunction(storedId, humanInstanceId, param, leaseExpiration, postponeUntil, timestamp, parent, owner, ignoreDuplicate: false);
-            if (messages?.Any() ?? false)
-            {
-                var messagesCommand = _sqlGenerator.AppendMessages(
-                    messages.Select((msg, position) => new StoredIdAndMessageWithPosition(storedId, msg, position)).ToList()
-                );
-                storeCommand = storeCommand.Merge(messagesCommand);
-            }
-
-            var session = new SnapshotStorageSession();
-            if (effects?.Any() ?? false)
-            {
-                var effectsCommand = _sqlGenerator.InsertEffects(
-                    storedId,
-                    changes: effects.Select(e => new StoredEffectChange(storedId, e.EffectId, CrudOperation.Insert, e)).ToList(),
-                    session
-                );
-                storeCommand = storeCommand.Merge(effectsCommand);
-            }
-
-            await using var conn = await CreateOpenConnection(_connectionString);
-            await using var command = storeCommand.ToSqlCommand(conn);
-
-            try
-            {
-                await command.ExecuteNonQueryAsync();
-                return session;
-            }
-            catch (MySqlException ex) when (ex.Number == 1062)
-            {
-                return null;
-            }
+            return null;
         }
     }
 
     public async Task BulkScheduleFunctions(IEnumerable<IdWithParam> functionsWithParam, StoredId? parent)
     {
-        var insertSql = @$"
-            INSERT IGNORE INTO {_tablePrefix}
-              (id, param_json, status, expires, timestamp, human_instance_id, parent, owner)
-            VALUES                      
-                    ";
-        
-        var now = DateTime.UtcNow.Ticks;
-        var parentStr = parent == null ? "NULL" : $"'{parent}'"; 
-     
-        var rows = new List<string>();
-        foreach (var (storedId, humanInstanceId, param) in functionsWithParam)
-        {
-            var id = storedId.AsGuid;
-            var row = $"('{id:N}', {(param == null ? "NULL" : $"x'{Convert.ToHexString(param)}'")}, {(int) Status.Postponed}, 0, {now}, '{humanInstanceId.EscapeString()}', {parentStr}, NULL)"; 
-            rows.Add(row);
-        }
-        var rowsSql = string.Join(", " + Environment.NewLine, rows);
-        var strBuilder = new StringBuilder(rowsSql.Length + 2);
-        strBuilder.Append(insertSql);
-        strBuilder.Append(rowsSql);
-        strBuilder.Append(";");
-        var sql = strBuilder.ToString();
-
         await using var conn = await CreateOpenConnection(_connectionString);
-        await using var cmd = new MySqlCommand(sql, conn);
-        cmd.ExecuteNonQuery();
+        var chunks = functionsWithParam.Chunk(100);
+        foreach (var chunk in chunks)
+        {
+            var commands = new List<StoreCommand>();
+            foreach (var idWithParam in chunk)
+                commands.Add(_sqlGenerator.BulkScheduleFunctions(idWithParam, parent));
+
+            var merged = StoreCommand.Merge(commands.ToArray())!;
+            await using var command = merged.ToSqlCommand(conn);
+            await command.ExecuteNonQueryAsync();
+        }
     }
     
     public async Task<StoredFlowWithEffectsAndMessages?> RestartExecution(StoredId storedId, ReplicaId replicaId)
@@ -213,9 +206,32 @@ public class MariaDbFunctionStore : IFunctionStore
         if (reader.RecordsAffected != 1)
             return null;
 
-        var sf = await _sqlGenerator.ReadToStoredFunction(storedId, reader);
-        if (sf?.OwnerId != replicaId)
+        // Read main table data (id, expires, interrupted, timestamp, owner, status)
+        StoredFlow? sf = null;
+        while (await reader.ReadAsync())
+        {
+            var expires = reader.GetInt64(1);
+            var interrupted = reader.GetBoolean(2);
+            var timestamp = reader.GetInt64(3);
+            var hasOwner = !await reader.IsDBNullAsync(4);
+            var owner = hasOwner ? reader.GetString(4).ParseToReplicaId() : null;
+
+            if (owner != replicaId)
+                return null;
+
+            // Move to next result set to read inputoutput table
+            await reader.NextResultAsync();
+
+            var inputOutput = await _sqlGenerator.ReadInputOutput(reader);
+            if (inputOutput == null)
+                return null;
+
+            sf = inputOutput.ToStoredFlow(Status.Executing, expires, timestamp, interrupted, replicaId);
+        }
+
+        if (sf == null)
             return null;
+
         await reader.NextResultAsync();
 
         var effectsWithSession = await _sqlGenerator.ReadEffects(reader);
@@ -310,41 +326,57 @@ public class MariaDbFunctionStore : IFunctionStore
     }
 
     private string? _setFunctionStateSql;
+    private string? _setFunctionStateInputOutputSql;
     public async Task<bool> SetFunctionState(
-        StoredId storedId, Status status, 
-        byte[]? storedParameter, byte[]? storedResult, 
-        StoredException? storedException, 
+        StoredId storedId, Status status,
+        byte[]? storedParameter, byte[]? storedResult,
+        StoredException? storedException,
         long expires,
         ReplicaId? expectedReplica)
     {
         await using var conn = await CreateOpenConnection(_connectionString);
+        await using var transaction = await conn.BeginTransactionAsync();
+
+        var cmd = new MySqlCommand(
+            $"SELECT owner FROM {_tablePrefix} WHERE id = '{storedId.AsGuid:N}'",
+            conn,
+            transaction
+        );
+        var owner = await cmd.ExecuteScalarAsync();
+        if (owner == DBNull.Value)
+            owner = null;
+
+        var actualOwner = (owner as string)?.ToGuid();
+        if (expectedReplica?.AsGuid != actualOwner)
+            return false;
 
         _setFunctionStateSql ??= $@"
             UPDATE {_tablePrefix}
-            SET status = ?, 
-                param_json = ?,  
-                result_json = ?,  
-                exception_json = ?, expires = ?
-            WHERE id = ?";
-        
-        var sql = expectedReplica == null
-             ? _setFunctionStateSql + " AND owner IS NULL" 
-             :  _setFunctionStateSql + $" AND owner = {expectedReplica}";
-        await using var command = new MySqlCommand(sql, conn)
-        {
-            Parameters =
-            {
-                new() {Value = (int) status},
-                new() {Value = storedParameter ?? (object) DBNull.Value},
-                new() {Value = storedResult ?? (object) DBNull.Value},
-                new() {Value = storedException != null ? JsonSerializer.Serialize(storedException) : DBNull.Value},
-                new() {Value = expires},
-                new() {Value = storedId.AsGuid.ToString("N")},
-            }
-        };
+            SET status = ?, expires = ?
+            WHERE id = ?;";
+
+        _setFunctionStateInputOutputSql ??= $@"
+            UPDATE {_tablePrefix}_inputoutput
+            SET param_json = ?, result_json = ?, exception_json = ?
+            WHERE id = ?;";
+
+        var sql = _setFunctionStateSql + Environment.NewLine + _setFunctionStateInputOutputSql;
+
+        await using var command = new MySqlCommand(sql, conn, transaction);
+        // First UPDATE parameters: status, expires, id
+        command.Parameters.Add(new() { Value = (int)status });
+        command.Parameters.Add(new() { Value = expires });
+        command.Parameters.Add(new() { Value = storedId.AsGuid.ToString("N") });
+        // Second UPDATE parameters: param_json, result_json, exception_json, id
+        command.Parameters.Add(new() { Value = storedParameter ?? (object)DBNull.Value });
+        command.Parameters.Add(new() { Value = storedResult ?? (object)DBNull.Value });
+        command.Parameters.Add(new() { Value = storedException != null ? JsonSerializer.Serialize(storedException) : DBNull.Value });
+        command.Parameters.Add(new() { Value = storedId.AsGuid.ToString("N") });
 
         var affectedRows = await command.ExecuteNonQueryAsync();
-        return affectedRows == 1;
+        await transaction.CommitAsync();
+
+        return affectedRows >= 1;
     }
 
     public async Task<bool> SucceedFunction(
@@ -362,7 +394,7 @@ public class MariaDbFunctionStore : IFunctionStore
             .ToSqlCommand(conn);
 
         var affectedRows = await command.ExecuteNonQueryAsync();
-        return affectedRows == 1;
+        return affectedRows >= 1;
     }
     
     public async Task<bool> PostponeFunction(
@@ -398,7 +430,7 @@ public class MariaDbFunctionStore : IFunctionStore
             .ToSqlCommand(conn);
 
         var affectedRows = await command.ExecuteNonQueryAsync();
-        return affectedRows == 1;
+        return affectedRows >= 1;
     }
     
     public async Task<bool> SuspendFunction(
@@ -505,37 +537,45 @@ public class MariaDbFunctionStore : IFunctionStore
         await using var cmd = _sqlGenerator.Interrupt(storedIds).ToSqlCommand(conn);
         await cmd.ExecuteNonQueryAsync();
     }
+    
+    private string? _updateParametersSql;
 
-    private string? _setParametersSql;
     public async Task<bool> SetParameters(
         StoredId storedId,
         byte[]? storedParameter, byte[]? storedResult,
         ReplicaId? expectedReplica)
     {
         await using var conn = await CreateOpenConnection(_connectionString);
+        await using var transaction = await conn.BeginTransactionAsync();
 
-        _setParametersSql ??= $@"
-            UPDATE {_tablePrefix}
-            SET param_json = ?,  
-                result_json = ?
-            WHERE 
-                id = ?";
+        var sql = $"SELECT owner FROM {_tablePrefix} WHERE id = '{storedId.AsGuid:N}' FOR UPDATE";
+        await using var cmd = new MySqlCommand(sql, conn, transaction);
+        var dbValue = await cmd.ExecuteScalarAsync();
+        if (dbValue == DBNull.Value)
+            dbValue = null;
+        var owner = dbValue?.ToString()?.ToGuid();
+        if (owner != expectedReplica?.AsGuid)
+            return false;
 
-        var sql = expectedReplica == null
-            ? _setParametersSql + " AND owner IS NULL"
-            : _setParametersSql + $" AND owner = '{expectedReplica.AsGuid:N}'";
+        _updateParametersSql ??= $@"
+                UPDATE {_tablePrefix}_inputoutput
+                SET param_json = ?,
+                    result_json = ?
+                WHERE id = ?";
 
-        await using var command = new MySqlCommand(sql, conn)
+        await using var updateCommand = new MySqlCommand(_updateParametersSql, conn, transaction)
         {
             Parameters =
             {
-                new() { Value = storedParameter ?? (object) DBNull.Value },
-                new() { Value = storedResult ?? (object) DBNull.Value },
+                new() { Value = storedParameter ?? (object)DBNull.Value },
+                new() { Value = storedResult ?? (object)DBNull.Value },
                 new() { Value = storedId.AsGuid.ToString("N") }
             }
         };
-            
-        var affectedRows = await command.ExecuteNonQueryAsync();
+
+        var affectedRows = await updateCommand.ExecuteNonQueryAsync();
+        await transaction.CommitAsync();
+
         return affectedRows == 1;
     }
 
@@ -615,26 +655,27 @@ public class MariaDbFunctionStore : IFunctionStore
     {
         await using var conn = await CreateOpenConnection(_connectionString);
         _getFunctionSql ??= $@"
-            SELECT               
-                param_json,             
-                status,
-                result_json,             
-                exception_json,               
-                expires,
-                interrupted,
-                timestamp,
-                human_instance_id,
-                parent,
-                owner
-            FROM {_tablePrefix}
-            WHERE id = ?;";
+            SELECT
+                io.param_json,
+                f.status,
+                io.result_json,
+                io.exception_json,
+                f.expires,
+                f.interrupted,
+                f.timestamp,
+                io.human_instance_id,
+                io.parent,
+                f.owner
+            FROM {_tablePrefix} f
+            INNER JOIN {_tablePrefix}_inputoutput io ON f.id = io.id
+            WHERE f.id = ?;";
         await using var command = new MySqlCommand(_getFunctionSql, conn)
         {
-            Parameters = { 
+            Parameters = {
                 new() {Value = storedId.AsGuid.ToString("N")}
             }
         };
-        
+
         await using var reader = await command.ExecuteReaderAsync();
         return await ReadToStoredFunction(storedId, reader);
     }
@@ -755,7 +796,7 @@ public class MariaDbFunctionStore : IFunctionStore
 
         var sql = @$"
             SELECT id, result_json
-            FROM {_tablePrefix}
+            FROM {_tablePrefix}_inputoutput
             WHERE id IN ({inSql})";
 
         await using var conn = await CreateOpenConnection(_connectionString);
@@ -775,24 +816,28 @@ public class MariaDbFunctionStore : IFunctionStore
         return results;
     }
 
+    private string? _deleteInputOutputSql;
     private string? _deleteFunctionSql;
     private async Task<bool> DeleteStoredFunction(StoredId storedId)
     {
         await using var conn = await CreateOpenConnection(_connectionString);
-        
-        _deleteFunctionSql ??= $@"            
-            DELETE FROM {_tablePrefix}
-            WHERE id = ?";
-        
-        await using var command = new MySqlCommand(_deleteFunctionSql, conn)
+
+        _deleteInputOutputSql ??= $@"DELETE FROM {_tablePrefix}_inputoutput WHERE id = ?";
+        _deleteFunctionSql ??= $@"DELETE FROM {_tablePrefix} WHERE id = ?";
+
+        var sql = _deleteInputOutputSql + ";" + Environment.NewLine + _deleteFunctionSql;
+
+        await using var command = new MySqlCommand(sql, conn)
         {
             Parameters =
             {
+                new() {Value = storedId.AsGuid.ToString("N")},
                 new() {Value = storedId.AsGuid.ToString("N")}
             }
         };
 
-        return await command.ExecuteNonQueryAsync() == 1;
+        var affectedRows = await command.ExecuteNonQueryAsync();
+        return affectedRows >= 1;
     }
     
     private async Task<bool> DoTablesAlreadyExist()

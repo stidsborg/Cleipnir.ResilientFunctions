@@ -54,6 +54,7 @@ public record StoreCommand(string Sql, List<ParameterValueAndName> Parameters)
     public static StoreCommand? Merge(params StoreCommand?[] commands) => Merge(commands.AsEnumerable());
     
     public StoreCommand AppendSql(string sql) => new(Sql + Environment.NewLine + sql, Parameters);
+    public StoreCommand PrependSql(string sql) => new(sql + Environment.NewLine + Sql, Parameters);
     public static StoreCommand Create(string sql) => new StoreCommand(sql, new List<ParameterValueAndName>());
     public static StoreCommand Create(string sql, IEnumerable<object> values) => new(sql, values.Select(v => new ParameterValueAndName(v)).ToList());
     public static StoreCommand Create(string sql, List<ParameterValueAndName> parameters) => new(sql, parameters);
