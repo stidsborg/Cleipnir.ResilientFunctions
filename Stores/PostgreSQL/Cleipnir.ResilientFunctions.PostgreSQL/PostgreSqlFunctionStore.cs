@@ -89,17 +89,12 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 result_json BYTEA NULL,
                 exception_json TEXT NULL,
                 human_instance_id TEXT NOT NULL,
-                parent TEXT NULL
+                parent UUID NULL
             );
 
             CREATE INDEX IF NOT EXISTS idx_{_tableName}_expires
             ON {_tableName}(expires, id)
-            INCLUDE (owner)
-            WHERE status = {(int) Status.Executing} OR status = {(int) Status.Postponed};
-
-            CREATE INDEX IF NOT EXISTS idx_{_tableName}_succeeded
-            ON {_tableName}(id)
-            WHERE status = {(int) Status.Succeeded};";
+            WHERE status = {(int) Status.Postponed};";
 
         await using var command = new NpgsqlCommand(_initializeSql, conn);
         await command.ExecuteNonQueryAsync();
@@ -695,7 +690,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 Expires: reader.GetInt64(4),
                 Timestamp: reader.GetInt64(6),
                 Interrupted: reader.GetBoolean(5),
-                ParentId: hasParent ? StoredId.Deserialize(reader.GetString(8)) : null,
+                ParentId: hasParent ? reader.GetGuid(8).ToStoredId() : null,
                 OwnerId: hasOwner ? reader.GetGuid(9).ToReplicaId() : null,
                 StoredType: storedId.Type
             );
