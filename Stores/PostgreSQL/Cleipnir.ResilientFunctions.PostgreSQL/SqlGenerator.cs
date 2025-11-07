@@ -113,7 +113,7 @@ public class SqlGenerator(string tablePrefix)
             var resultJson = hasResult ? (byte[])reader.GetValue(2) : null;
             var exceptionJson = hasException ? reader.GetString(3) : null;
             var humanInstanceId = reader.GetString(4);
-            var parent = hasParent ? StoredId.Deserialize(reader.GetString(5)) : null;
+            var parent = hasParent ? reader.GetGuid(5).ToStoredId() : null;
 
             return new StoredInputOutput(id, paramJson, resultJson, exceptionJson, humanInstanceId, parent);
         }
@@ -200,7 +200,7 @@ public class SqlGenerator(string tablePrefix)
                     timestamp,
                     param == null ? DBNull.Value : param,
                     humanInstanceId.Value,
-                    parent?.Serialize() ?? (object)DBNull.Value,
+                    parent?.AsGuid ?? (object)DBNull.Value,
                 ]);
         }
         else
@@ -222,7 +222,7 @@ public class SqlGenerator(string tablePrefix)
                     timestamp,
                     param == null ? DBNull.Value : param,
                     humanInstanceId.Value,
-                    parent?.Serialize() ?? (object)DBNull.Value,
+                    parent?.AsGuid ?? (object)DBNull.Value,
                 ]);
         }
     }
@@ -395,7 +395,7 @@ public class SqlGenerator(string tablePrefix)
             var interrupted = reader.GetBoolean(6);
             var timestamp = reader.GetInt64(7);
             var humanInstanceId = reader.GetString(8);
-            var parent = hasParent ? StoredId.Deserialize(reader.GetString(9)) : null;
+            var parent = hasParent ? reader.GetGuid(9).ToStoredId() : null;
             var owner = hasOwner ? new ReplicaId(reader.GetGuid(10)) : null;
             
             return new StoredFlow(
@@ -565,7 +565,7 @@ public class SqlGenerator(string tablePrefix)
                 idWithParam.StoredId.AsGuid,
                 idWithParam.Param ?? (object)DBNull.Value,
                 idWithParam.HumanInstanceId,
-                parent?.Serialize() ?? (object)DBNull.Value,
+                parent?.AsGuid ?? (object)DBNull.Value,
             ]
         );
     }
