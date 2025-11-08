@@ -82,7 +82,7 @@ public class PostgreSqlEffectsStore(string connectionString, string tablePrefix 
             var storedState = states[0];
             var effectsBytes = BinaryPacker.Split(storedState.Content!);
             var storedEffects = effectsBytes.Select(effectBytes => StoredEffect.Deserialize(effectBytes!)).ToList();
-            toReturn[id] =  storedEffects;
+            toReturn[id] = storedEffects;
         }
 
         return toReturn;
