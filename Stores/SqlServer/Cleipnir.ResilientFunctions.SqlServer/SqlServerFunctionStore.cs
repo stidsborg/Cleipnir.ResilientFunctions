@@ -173,7 +173,7 @@ public class SqlServerFunctionStore : IFunctionStore
                 storeCommand = storeCommand.Merge(messagesCommand);
             }
 
-            var session = new SnapshotStorageSession();
+            var session = new SnapshotStorageSession(owner ?? ReplicaId.Empty);
             if (effects?.Any() ?? false)
             {
                 var effectsCommand = _sqlGenerator.InsertEffects(
@@ -196,7 +196,7 @@ public class SqlServerFunctionStore : IFunctionStore
             command.Transaction = transaction;
             await command.ExecuteNonQueryAsync();
             await transaction.CommitAsync();
-            return session;
+            return owner == null ? null : session;
         }
         catch (SqlException sqlException) when (sqlException.Number == SqlError.UNIQUENESS_VIOLATION)
         {
@@ -274,7 +274,7 @@ public class SqlServerFunctionStore : IFunctionStore
             return null;
 
         await reader.NextResultAsync();
-        var effectsWithSession = await _sqlGenerator.ReadEffects(reader);
+        var effectsWithSession = await _sqlGenerator.ReadEffects(reader, replicaId);
         var effects = effectsWithSession.Effects;
         var session = effectsWithSession.Session;
 

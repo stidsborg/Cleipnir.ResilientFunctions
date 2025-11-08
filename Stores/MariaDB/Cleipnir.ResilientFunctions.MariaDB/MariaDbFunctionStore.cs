@@ -129,7 +129,10 @@ public class MariaDbFunctionStore : IFunctionStore
                 .CreateFunction(storedId, humanInstanceId, param, leaseExpiration, postponeUntil, timestamp, parent, owner, ignoreDuplicate: true)
                 .ToSqlCommand(conn);
             var affectedRows = await command.ExecuteNonQueryAsync();
-            return affectedRows == 1 ? new SnapshotStorageSession() : null;
+            if (affectedRows != 1 || owner == null) 
+                return null;
+            
+            return new SnapshotStorageSession(owner);
         }
         else
         {
@@ -141,8 +144,9 @@ public class MariaDbFunctionStore : IFunctionStore
                 );
                 storeCommand = storeCommand.Merge(messagesCommand);
             }
-
-            var session = new SnapshotStorageSession();
+            
+            var session = new SnapshotStorageSession(owner ?? ReplicaId.Empty);
+            
             if (effects?.Any() ?? false)
             {
                 var effectsCommand = _sqlGenerator.InsertEffects(
@@ -159,12 +163,13 @@ public class MariaDbFunctionStore : IFunctionStore
             try
             {
                 await command.ExecuteNonQueryAsync();
-                return session;
             }
             catch (MySqlException ex) when (ex.Number == 1062)
             {
                 return null;
             }
+
+            return owner == null ? null : session;
         }
     }
 
@@ -218,7 +223,7 @@ public class MariaDbFunctionStore : IFunctionStore
             return null;
         await reader.NextResultAsync();
 
-        var effectsWithSession = await _sqlGenerator.ReadEffects(reader);
+        var effectsWithSession = await _sqlGenerator.ReadEffects(reader, replicaId);
         var effects = effectsWithSession.Effects;
         var session = effectsWithSession.Session;
         await reader.NextResultAsync();
