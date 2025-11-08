@@ -91,7 +91,7 @@ public class SqlServerFunctionStore : IFunctionStore
                 ExceptionJson NVARCHAR(MAX) NULL,
                 HumanInstanceId NVARCHAR(MAX) NOT NULL,                                                                        
                 Timestamp BIGINT NOT NULL,
-                Parent NVARCHAR(MAX) NULL,
+                Parent UNIQUEIDENTIFIER NULL,
                 Owner UNIQUEIDENTIFIER NULL
             );
             CREATE INDEX {_tableName}_idx_Executing
@@ -225,7 +225,7 @@ public class SqlServerFunctionStore : IFunctionStore
               INSERT (Id, ParamJson, Status, Owner, Expires, Timestamp, HumanInstanceId, Parent)
               VALUES (source.Id, source.ParamJson, source.Status, source.Owner, source.Expires, source.Timestamp, source.HumanInstanceId, source.Parent);";
 
-        var parentStr = parent == null ? "NULL" : $"'{parent}'";
+        var parentStr = parent == null ? "NULL" : $"'{parent.AsGuid}'";
         var valueSql = $"(@Id, @ParamJson, {(int)Status.Postponed}, NULL, 0, 0, @HumanInstanceId, {parentStr})";
         var chunk = functionsWithParam
             .Select(
@@ -754,7 +754,7 @@ public class SqlServerFunctionStore : IFunctionStore
                 var interrupted = reader.GetBoolean(5);
                 var timestamp = reader.GetInt64(6);
                 var humanInstanceId = reader.GetString(7);
-                var parentId = reader.IsDBNull(8) ? null : StoredId.Deserialize(reader.GetString(8));
+                var parentId = reader.IsDBNull(8) ? null : reader.GetGuid(8).ToStoredId();
                 var ownerId = reader.IsDBNull(9) ? null : reader.GetGuid(9).ToReplicaId();
 
                 return new StoredFlow(

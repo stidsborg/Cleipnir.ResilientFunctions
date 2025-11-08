@@ -190,7 +190,7 @@ public class SqlGenerator(string tablePrefix)
         command.AddParameter($"@{paramPrefix}Expires", postponeUntil ?? leaseExpiration);
         command.AddParameter($"@{paramPrefix}HumanInstanceId", humanInstanceId.Value);
         command.AddParameter($"@{paramPrefix}Timestamp", timestamp);
-        command.AddParameter($"@{paramPrefix}Parent", parent?.Serialize() ?? (object)DBNull.Value);
+        command.AddParameter($"@{paramPrefix}Parent", parent?.AsGuid ?? (object)DBNull.Value);
         command.AddParameter($"@{paramPrefix}Owner", owner?.AsGuid ?? (object)DBNull.Value);
 
         return command;
@@ -339,7 +339,7 @@ public class SqlGenerator(string tablePrefix)
                 var interrupted = reader.GetBoolean(6);
                 var timestamp = reader.GetInt64(7);
                 var humanInstanceId = reader.GetString(8);
-                var parentId = reader.IsDBNull(9) ? null : StoredId.Deserialize(reader.GetString(9));
+                var parentId = reader.IsDBNull(9) ? null : reader.GetGuid(9).ToStoredId();
                 var ownerId = reader.IsDBNull(10) ? null : reader.GetGuid(10).ToReplicaId();
 
                 return new StoredFlow(
