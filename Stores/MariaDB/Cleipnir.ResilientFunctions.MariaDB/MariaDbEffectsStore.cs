@@ -33,6 +33,16 @@ public class MariaDbEffectsStore : IEffectsStore
             snapshotSession = new SnapshotStorageSession(ReplicaId.Empty);
             foreach (var e in effects)
                 snapshotSession.Effects[e.EffectId] = e;
+
+            // Load version and RowExists from database
+            var command = _mariaDbStateStore.Get([storedId]);
+            await using var reader = await _commandExecutor.Execute(command);
+            var storedStates = await _mariaDbStateStore.Read(reader);
+            if (storedStates.TryGetValue(storedId, out var states) && states.ContainsKey(0))
+            {
+                snapshotSession.RowExists = true;
+                snapshotSession.Version = states[0].Version;
+            }
         }
         
         foreach (var change in changes)

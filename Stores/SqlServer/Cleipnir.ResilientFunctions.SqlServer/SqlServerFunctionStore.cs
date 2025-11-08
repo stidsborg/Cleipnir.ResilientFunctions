@@ -189,7 +189,7 @@ public class SqlServerFunctionStore : IFunctionStore
             if (messages?.Any() != true && effects?.Any() != true)
             {
                 await command.ExecuteNonQueryAsync();
-                return session;
+                return owner == null ? null : session;
             }
             
             await using var transaction = conn.BeginTransaction();
