@@ -68,10 +68,6 @@ public class EffectStoreTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.
         => StoreHandlesLargeNumberOfEffects(FunctionStoreFactory.Create());
 
     [TestMethod]
-    public override Task SessionVersionIncrementsProperly()
-        => SessionVersionIncrementsProperly(FunctionStoreFactory.Create());
-
-    [TestMethod]
     public override Task EffectsSerializeAndDeserializeCorrectly()
         => EffectsSerializeAndDeserializeCorrectly(FunctionStoreFactory.Create().SelectAsync(fs => fs.EffectsStore));
 

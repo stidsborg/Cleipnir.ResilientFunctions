@@ -86,6 +86,7 @@ public class MariaDbFunctionStore : IFunctionStore
                 human_instance_id TEXT NOT NULL,
                 parent CHAR(32) NULL,
                 owner CHAR(32) NULL,
+                effects LONGBLOB NULL,
                 INDEX (expires, id, status)   
             );";
 
@@ -223,7 +224,9 @@ public class MariaDbFunctionStore : IFunctionStore
             return null;
         await reader.NextResultAsync();
 
-        var effectsWithSession = await _sqlGenerator.ReadEffects(reader, replicaId);
+        var effectsWithSession = await _sqlGenerator.ReadEffects(reader, replicaId, [storedId])
+            .SelectAsync(d => d[storedId]);
+        
         var effects = effectsWithSession.Effects;
         var session = effectsWithSession.Session;
         await reader.NextResultAsync();

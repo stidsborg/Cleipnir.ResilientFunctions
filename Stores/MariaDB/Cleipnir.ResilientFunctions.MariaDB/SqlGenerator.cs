@@ -38,7 +38,7 @@ public class SqlGenerator(string tablePrefix)
     public StoreCommand GetEffects(StoredId storedId)
     {
         _getEffectResultsSql ??= @$"
-            SELECT id, position, content, version
+            SELECT id, content
             FROM {tablePrefix}_state
             WHERE id = ? AND position = 0;";
 
@@ -52,45 +52,49 @@ public class SqlGenerator(string tablePrefix)
         return command;
     }
     
-    public record StoredEffectsWithSession(IReadOnlyList<StoredEffect> Effects, SnapshotStorageSession Session);
-    public async Task<StoredEffectsWithSession> ReadEffects(MySqlDataReader reader, ReplicaId replicaId)
+    public StoreCommand GetEffects(IEnumerable<StoredId> storedIds)
     {
-        var effects = new List<StoredEffect>();
+        var sql = @$"
+            SELECT id, effects
+            FROM {tablePrefix}_state
+            WHERE id IN ({storedIds.Select(id => $"'{id.AsGuid:N}'").StringJoin(", ")});";
+
+        var command = StoreCommand.Create(sql);
+        return command;
+    }
+    
+    public record StoredEffectsWithSession(IReadOnlyList<StoredEffect> Effects, SnapshotStorageSession Session);
+    public async Task<Dictionary<StoredId, StoredEffectsWithSession>> ReadEffects(MySqlDataReader reader, ReplicaId replicaId, IEnumerable<StoredId> storedIds)
+    {
         var session = new SnapshotStorageSession(replicaId);
 
+        var toReturn = new Dictionary<StoredId, StoredEffectsWithSession>();
+        
         while (await reader.ReadAsync())
         {
-            var id = reader.GetString(0);
-            var position = reader.GetInt32(1);
-            var content = (byte[])reader.GetValue(2);
-            var version = reader.GetInt32(3);
-            var effectsBytes = BinaryPacker.Split(content);
+            var id = reader.GetString(0).ToGuid().ToStoredId();
+            var content = reader.GetValue(1) as byte[];
+            var effectsBytes = content == null ? [] : BinaryPacker.Split(content);
+            
             foreach (var effectBytes in effectsBytes)
             {
                 if (effectBytes == null)
                     throw new SerializationException("Unable to deserialize effect");
 
                 var storedEffect = StoredEffect.Deserialize(effectBytes);
-                effects.Add(storedEffect);
                 session.Effects[storedEffect.EffectId] = storedEffect;
             }
 
             session.RowExists = true;
-            session.Version = version;
+            session.Version = 0;
+            toReturn[id] = new StoredEffectsWithSession(session.Effects.Values.ToList(), session);
         }
 
-        return new StoredEffectsWithSession(effects, session);
-    }
-    
-    public StoreCommand GetEffects(IEnumerable<StoredId> storedIds)
-    {
-        var sql = @$"
-            SELECT id, position, content, version
-            FROM {tablePrefix}_state
-            WHERE id IN ({storedIds.Select(id => $"'{id.AsGuid:N}'").StringJoin(", ")}) AND position = 0;";
+        foreach (var storedId in storedIds)
+            if (!toReturn.ContainsKey(storedId))
+                toReturn[storedId] = new StoredEffectsWithSession(Effects: [], new SnapshotStorageSession(replicaId));
 
-        var command = StoreCommand.Create(sql);
-        return command;
+        return toReturn;
     }
     
     public async Task<Dictionary<StoredId, SnapshotStorageSession>> ReadEffectsForMultipleStoredIds(MySqlDataReader reader, IEnumerable<StoredId> storedIds, ReplicaId owner)

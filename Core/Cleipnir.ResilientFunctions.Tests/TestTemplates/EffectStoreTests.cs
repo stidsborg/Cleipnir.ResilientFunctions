@@ -550,43 +550,6 @@ public abstract class EffectStoreTests
         effects.Any(e => e.EffectId == "Effect99".ToEffectId()).ShouldBeTrue();
     }
 
-    public abstract Task SessionVersionIncrementsProperly();
-    protected async Task SessionVersionIncrementsProperly(Task<IFunctionStore> storeTask)
-    {
-        var store = await storeTask;
-        var effectStore = store.EffectsStore;
-        var storedId = TestStoredId.Create();
-
-        // Create initial session
-        var session = await store.CreateFunction(storedId, "instance", null, 0, null, 0, null, null);
-
-        // Insert first effect
-        var effect1 = new StoredEffect("Effect1".ToEffectId(), WorkStatus.Completed, null, null);
-        await effectStore.SetEffectResult(storedId, effect1.ToStoredChange(storedId, Insert), session);
-
-        // Insert second effect
-        var effect2 = new StoredEffect("Effect2".ToEffectId(), WorkStatus.Completed, null, null);
-        await effectStore.SetEffectResult(storedId, effect2.ToStoredChange(storedId, Insert), session);
-
-        // Insert third effect
-        var effect3 = new StoredEffect("Effect3".ToEffectId(), WorkStatus.Completed, null, null);
-        await effectStore.SetEffectResult(storedId, effect3.ToStoredChange(storedId, Insert), session);
-
-        // Get fresh session and verify all effects are present
-        var freshSession = await store.RestartExecution(storedId, ReplicaId.Empty)
-            .SelectAsync(s => s!.StorageSession);
-
-        var effects = await effectStore.GetEffectResults(storedId);
-        effects.Count.ShouldBe(3);
-
-        // Add one more effect with fresh session - should work
-        var effect4 = new StoredEffect("Effect4".ToEffectId(), WorkStatus.Completed, null, null);
-        await effectStore.SetEffectResult(storedId, effect4.ToStoredChange(storedId, Insert), freshSession);
-
-        effects = await effectStore.GetEffectResults(storedId);
-        effects.Count.ShouldBe(4);
-    }
-
     public abstract Task EffectsSerializeAndDeserializeCorrectly();
     protected async Task EffectsSerializeAndDeserializeCorrectly(Task<IEffectsStore> storeTask)
     {

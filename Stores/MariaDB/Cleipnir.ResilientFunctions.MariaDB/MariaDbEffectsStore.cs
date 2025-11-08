@@ -26,25 +26,9 @@ public class MariaDbEffectsStore : IEffectsStore
         if (changes.Count == 0)
             return;
 
-        var snapshotSession = session as SnapshotStorageSession;
-        if (snapshotSession == null)
-        {
-            var effects = (await GetEffectResults([storedId]))[storedId];
-            snapshotSession = new SnapshotStorageSession(ReplicaId.Empty);
-            foreach (var e in effects)
-                snapshotSession.Effects[e.EffectId] = e;
+        var snapshotSession = session as SnapshotStorageSession 
+                              ?? await CreateSnapshotStorageSession(storedId, ReplicaId.Empty);
 
-            // Load version and RowExists from database
-            var command = _mariaDbStateStore.Get([storedId]);
-            await using var reader = await _commandExecutor.Execute(command);
-            var storedStates = await _mariaDbStateStore.Read(reader);
-            if (storedStates.TryGetValue(storedId, out var states) && states.ContainsKey(0))
-            {
-                snapshotSession.RowExists = true;
-                snapshotSession.Version = states[0].Version;
-            }
-        }
-        
         foreach (var change in changes)
             if (change.Operation == CrudOperation.Delete)
                 snapshotSession.Effects.Remove(change.EffectId);
@@ -95,4 +79,24 @@ public class MariaDbEffectsStore : IEffectsStore
     
     public async Task Remove(StoredId storedId)
         => await _commandExecutor.ExecuteNonQuery(_mariaDbStateStore.Delete(storedId));
+
+    private async Task<SnapshotStorageSession> CreateSnapshotStorageSession(StoredId storedId, ReplicaId owner)
+    {
+        var effects = (await GetEffectResults([storedId]))[storedId];
+        var snapshotSession = new SnapshotStorageSession(owner);
+        foreach (var e in effects)
+            snapshotSession.Effects[e.EffectId] = e;
+
+        // Load version and RowExists from database
+        var command = _mariaDbStateStore.Get([storedId]);
+        await using var reader = await _commandExecutor.Execute(command);
+        var storedStates = await _mariaDbStateStore.Read(reader);
+        if (storedStates.TryGetValue(storedId, out var states) && states.ContainsKey(0))
+        {
+            snapshotSession.RowExists = true;
+            snapshotSession.Version = states[0].Version;
+        }
+
+        return snapshotSession;
+    }
 }
