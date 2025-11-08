@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Cleipnir.ResilientFunctions.Helpers;
+using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Storage.Session;
 using Cleipnir.ResilientFunctions.Storage.Utils;
@@ -23,7 +23,22 @@ public class SqlServerEffectsStore(string connectionString, string tablePrefix =
 
         var snapshotSession = session as SnapshotStorageSession;
         if (snapshotSession == null)
-            snapshotSession = await CreateSession(storedId);
+        {
+            var effects = (await GetEffectResults([storedId]))[storedId];
+            snapshotSession = new SnapshotStorageSession(ReplicaId.Empty);
+            foreach (var e in effects)
+                snapshotSession.Effects[e.EffectId] = e;
+
+            // Load version and RowExists from database
+            var command = _sqlServerStateStore.Get([storedId]);
+            await using var reader = await _commandExecutor.Execute(command);
+            var storedStates = await _sqlServerStateStore.Read(reader);
+            if (storedStates.TryGetValue(storedId, out var states) && states.ContainsKey(0))
+            {
+                snapshotSession.RowExists = true;
+                snapshotSession.Version = states[0].Version;
+            }
+        }
 
         foreach (var change in changes)
             if (change.Operation == CrudOperation.Delete)
@@ -53,30 +68,21 @@ public class SqlServerEffectsStore(string connectionString, string tablePrefix =
     }
 
     public async Task<Dictionary<StoredId, List<StoredEffect>>> GetEffectResults(IEnumerable<StoredId> storedIds)
-        => (await GetEffectResultsWithSession(storedIds)).ToDictionary(kv => kv.Key, kv => kv.Value.Effects.Values.ToList());
-
-    public async Task<Dictionary<StoredId, SnapshotStorageSession>> GetEffectResultsWithSession(IEnumerable<StoredId> storedIds)
     {
         storedIds = storedIds.ToList();
         var command = _sqlServerStateStore.Get(storedIds.ToList());
         await using var reader = await _commandExecutor.Execute(command);
         var storedStates = await _sqlServerStateStore.Read(reader);
-        var toReturn = new Dictionary<StoredId, SnapshotStorageSession>();
+        var toReturn = new Dictionary<StoredId, List<StoredEffect>>();
         foreach (var storedId in storedIds)
-            toReturn[storedId] = new SnapshotStorageSession();
+            toReturn[storedId] = new List<StoredEffect>();
 
         foreach (var (id, states) in storedStates)
         {
             var storedState = states[0];
-
-            var session = toReturn[id];
-            session.RowExists = true;
-            session.Version = storedState.Version;
-
             var effectsBytes = BinaryPacker.Split(storedState.Content!);
             var storedEffects = effectsBytes.Select(effectBytes => StoredEffect.Deserialize(effectBytes!)).ToList();
-            foreach (var storedEffect in storedEffects)
-                session.Effects[storedEffect.EffectId] = storedEffect;
+            toReturn[id] = storedEffects;
         }
 
         return toReturn;
@@ -84,10 +90,4 @@ public class SqlServerEffectsStore(string connectionString, string tablePrefix =
     
     public async Task Remove(StoredId storedId)
         => await _commandExecutor.ExecuteNonQuery(_sqlServerStateStore.Delete(storedId));
-
-    private async Task<SnapshotStorageSession> CreateSession(StoredId storedId)
-        => await CreateSessions([storedId]).SelectAsync(d => d[storedId]);
-
-    private async Task<Dictionary<StoredId, SnapshotStorageSession>> CreateSessions(IEnumerable<StoredId> storedIds)
-        => await GetEffectResultsWithSession(storedIds);
 }

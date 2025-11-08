@@ -1,4 +1,5 @@
-﻿using Cleipnir.ResilientFunctions.Helpers;
+﻿using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.MariaDB.StoreCommand;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Storage.Session;
@@ -27,8 +28,23 @@ public class MariaDbEffectsStore : IEffectsStore
 
         var snapshotSession = session as SnapshotStorageSession;
         if (snapshotSession == null)
-            snapshotSession = await CreateSession(storedId);
+        {
+            var effects = (await GetEffectResults([storedId]))[storedId];
+            snapshotSession = new SnapshotStorageSession(ReplicaId.Empty);
+            foreach (var e in effects)
+                snapshotSession.Effects[e.EffectId] = e;
 
+            // Load version and RowExists from database
+            var command = _mariaDbStateStore.Get([storedId]);
+            await using var reader = await _commandExecutor.Execute(command);
+            var storedStates = await _mariaDbStateStore.Read(reader);
+            if (storedStates.TryGetValue(storedId, out var states) && states.ContainsKey(0))
+            {
+                snapshotSession.RowExists = true;
+                snapshotSession.Version = states[0].Version;
+            }
+        }
+        
         foreach (var change in changes)
             if (change.Operation == CrudOperation.Delete)
                 snapshotSession.Effects.Remove(change.EffectId);
@@ -57,41 +73,26 @@ public class MariaDbEffectsStore : IEffectsStore
     }
 
     public async Task<Dictionary<StoredId, List<StoredEffect>>> GetEffectResults(IEnumerable<StoredId> storedIds)
-        => (await GetEffectResultsWithSession(storedIds)).ToDictionary(kv => kv.Key, kv => kv.Value.Effects.Values.ToList());
-
-    public async Task<Dictionary<StoredId, SnapshotStorageSession>> GetEffectResultsWithSession(IEnumerable<StoredId> storedIds)
     {
         storedIds = storedIds.ToList();
         var command = _mariaDbStateStore.Get(storedIds.ToList());
         await using var reader = await _commandExecutor.Execute(command);
         var storedStates = await _mariaDbStateStore.Read(reader);
-        var toReturn = new Dictionary<StoredId, SnapshotStorageSession>();
+        var toReturn = new Dictionary<StoredId, List<StoredEffect>>();
         foreach (var storedId in storedIds)
-            toReturn[storedId] = new SnapshotStorageSession();
+            toReturn[storedId] = new List<StoredEffect>();
 
         foreach (var (id, states) in storedStates)
         {
             var storedState = states[0];
-
-            var session = toReturn[id];
-            session.RowExists = true;
-            session.Version = storedState.Version;
-
             var effectsBytes = BinaryPacker.Split(storedState.Content!);
             var storedEffects = effectsBytes.Select(effectBytes => StoredEffect.Deserialize(effectBytes!)).ToList();
-            foreach (var storedEffect in storedEffects)
-                session.Effects[storedEffect.EffectId] = storedEffect;
+            toReturn[id] = storedEffects;
         }
 
         return toReturn;
     }
     
-    public async Task Remove(StoredId storedId) 
+    public async Task Remove(StoredId storedId)
         => await _commandExecutor.ExecuteNonQuery(_mariaDbStateStore.Delete(storedId));
-
-    private async Task<SnapshotStorageSession> CreateSession(StoredId storedId)
-        => await CreateSessions([storedId]).SelectAsync(d => d[storedId]);
-
-    private async Task<Dictionary<StoredId, SnapshotStorageSession>> CreateSessions(IEnumerable<StoredId> storedIds)
-        => await GetEffectResultsWithSession(storedIds);
 }

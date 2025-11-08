@@ -146,7 +146,10 @@ public class PostgreSqlFunctionStore : IFunctionStore
             ).CreateBatch().WithConnection(conn);
 
             var affectedRows = await batch.ExecuteNonQueryAsync();
-            return affectedRows == 1 ? new SnapshotStorageSession() : null;
+            if (affectedRows != 1 || owner == null) 
+                return null;
+            
+            return new SnapshotStorageSession(owner);
         }
 
         try
@@ -163,7 +166,8 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 owner,
                 ignoreConflict: false
             ));
-            var session = new SnapshotStorageSession();
+            
+            var session = new SnapshotStorageSession(owner ?? ReplicaId.Empty);
             if (effects?.Any() ?? false)
                 commands.AddRange(
                     _sqlGenerator.InsertEffects(
@@ -186,7 +190,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
             await batch.ExecuteNonQueryAsync();
             await transaction.CommitAsync();
             
-            return session;
+            return owner == null ? null : session;
         }
         catch (PostgresException e) when (e.SqlState == "23505")
         {
@@ -229,7 +233,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
             return null;
         
         await reader.NextResultAsync();
-        var (effects, session) = await _sqlGenerator.ReadEffects(reader);
+        var (effects, session) = await _sqlGenerator.ReadEffects(reader, replicaId);
         
         await reader.NextResultAsync();
         var messages = await _sqlGenerator.ReadMessages(reader);

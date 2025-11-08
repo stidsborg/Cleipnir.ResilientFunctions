@@ -62,10 +62,10 @@ public class SqlGenerator(string tablePrefix)
     }
 
     public record StoredEffectsWithSession(IReadOnlyList<StoredEffect> Effects, SnapshotStorageSession Session);
-    public async Task<StoredEffectsWithSession> ReadEffects(NpgsqlDataReader reader)
+    public async Task<StoredEffectsWithSession> ReadEffects(NpgsqlDataReader reader, ReplicaId replicaId)
     {
         var effects = new List<StoredEffect>();
-        var session = new SnapshotStorageSession();
+        var session = new SnapshotStorageSession(replicaId);
 
         while (await reader.ReadAsync())
         {
@@ -120,11 +120,11 @@ public class SqlGenerator(string tablePrefix)
 
         return null;
     }
-    public async Task<Dictionary<StoredId, SnapshotStorageSession>> ReadEffectsForIds(NpgsqlDataReader reader, IEnumerable<StoredId> storedIds)
+    public async Task<Dictionary<StoredId, SnapshotStorageSession>> ReadEffectsForIds(NpgsqlDataReader reader, IEnumerable<StoredId> storedIds, ReplicaId owner)
     {
         var effects = new Dictionary<StoredId, SnapshotStorageSession>();
         foreach (var storedId in storedIds)
-            effects[storedId] = new SnapshotStorageSession();
+            effects[storedId] = new SnapshotStorageSession(owner);
         
         while (await reader.ReadAsync())
         {

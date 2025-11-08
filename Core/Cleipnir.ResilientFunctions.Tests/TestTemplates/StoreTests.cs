@@ -74,8 +74,8 @@ public abstract class StoreTests
         var store = await storeTask;
         var leaseExpiration = DateTime.UtcNow.Ticks;
         var timestamp = leaseExpiration + 1;
-        await store.CreateFunction(
-            functionId, 
+        var session = await store.CreateFunction(
+            functionId,
             "humanInstanceId",
             param: null,
             leaseExpiration,
@@ -83,7 +83,8 @@ public abstract class StoreTests
             timestamp,
             parent: null,
             owner: null
-        ).ShouldNotBeNullAsync();
+        );
+        session.ShouldBeNull();
 
         var sf = await store.GetFunction(functionId);
         sf.ShouldNotBeNull();
@@ -99,16 +100,17 @@ public abstract class StoreTests
         var paramJson = PARAM.ToJson();
         var owner = ReplicaId.NewId();
 
-        await store.CreateFunction(
-            functionId, 
+        var session = await store.CreateFunction(
+            functionId,
             "humanInstanceId",
-            paramJson.ToUtf8Bytes(), 
+            paramJson.ToUtf8Bytes(),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: 0,
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: null
-        ).ShouldNotBeNullAsync();
+        );
+        session.ShouldBeNull();
 
         var leaseExpiration = DateTime.UtcNow.Ticks;
         await store
@@ -164,16 +166,17 @@ public abstract class StoreTests
         var store = await storeTask;
         var paramJson = PARAM.ToJson();
 
-        await store.CreateFunction(
-            functionId, 
+        var session = await store.CreateFunction(
+            functionId,
             "humanInstanceId",
-            paramJson.ToUtf8Bytes(), 
+            paramJson.ToUtf8Bytes(),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: null
-        ).ShouldNotBeNullAsync();
+        );
+        session.ShouldBeNull();
 
         await store.CreateFunction(
             functionId, 
@@ -196,16 +199,17 @@ public abstract class StoreTests
         var store = await storeTask;
         var paramJson = PARAM.ToJson();
 
-        await store.CreateFunction(
-            functionId, 
+        var session = await store.CreateFunction(
+            functionId,
             "humanInstanceId",
-            paramJson.ToUtf8Bytes(), 
+            paramJson.ToUtf8Bytes(),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: null
-        ).ShouldNotBeNullAsync();
+        );
+        session.ShouldBeNull();
 
         var sf = await store.GetFunction(functionId);
         sf.ShouldNotBeNull();
@@ -374,8 +378,8 @@ public abstract class StoreTests
         var store = await storeTask;
         var functionId = TestStoredId.Create();
 
-        await store.CreateFunction(
-            functionId, 
+        var session = await store.CreateFunction(
+            functionId,
             "humanInstanceId",
             "hello world".ToJson().ToUtf8Bytes(),
             leaseExpiration: DateTime.UtcNow.Ticks,
@@ -383,7 +387,8 @@ public abstract class StoreTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: null
-        ).ShouldNotBeNullAsync();
+        );
+        session.ShouldBeNull();
 
         await store.RestartExecution(functionId, owner: ReplicaId.NewId()).ShouldNotBeNullAsync();
 
@@ -421,8 +426,8 @@ public abstract class StoreTests
         var functionId = TestStoredId.Create();
 
         var storedParameter = "hello world".ToJson();
-        await store.CreateFunction(
-            functionId, 
+        var session = await store.CreateFunction(
+            functionId,
             "humanInstanceId",
             storedParameter.ToUtf8Bytes(),
             leaseExpiration: DateTime.UtcNow.Ticks,
@@ -430,7 +435,8 @@ public abstract class StoreTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: null
-        ).ShouldNotBeNullAsync();
+        );
+        session.ShouldBeNull();
 
         await BusyWait.Until(() => store.GetFunction(functionId).SelectAsync(sf => sf != null));
         
@@ -498,8 +504,8 @@ public abstract class StoreTests
         var functionId = TestStoredId.Create();
 
         var storedParameter = "hello world".ToJson().ToUtf8Bytes();
-        await store.CreateFunction(
-            functionId, 
+        var session = await store.CreateFunction(
+            functionId,
             "humanInstanceId",
             storedParameter,
             leaseExpiration: DateTime.UtcNow.Ticks,
@@ -507,7 +513,8 @@ public abstract class StoreTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: null
-        ).ShouldNotBeNullAsync();
+        );
+        session.ShouldBeNull();
 
         await store.SetFunctionState(
             functionId,
@@ -535,8 +542,8 @@ public abstract class StoreTests
         var functionId = TestStoredId.Create();
 
         var storedParameter = "hello world".ToJson();
-        await store.CreateFunction(
-            functionId, 
+        var session = await store.CreateFunction(
+            functionId,
             "humanInstanceId",
             storedParameter.ToUtf8Bytes(),
             leaseExpiration: DateTime.UtcNow.Ticks,
@@ -544,7 +551,8 @@ public abstract class StoreTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: null
-        ).ShouldNotBeNullAsync();
+        );
+        session.ShouldBeNull();
 
         var message1 = new StoredMessage(
             "hello everyone".ToJson().ToUtf8Bytes(),
@@ -639,8 +647,8 @@ public abstract class StoreTests
         var functionId = TestStoredId.Create();
 
         var storedParameter = "hello world".ToJson();
-        await store.CreateFunction(
-            functionId, 
+        var session = await store.CreateFunction(
+            functionId,
             "humanInstanceId",
             storedParameter.ToUtf8Bytes(),
             leaseExpiration: DateTime.UtcNow.Ticks,
@@ -648,10 +656,11 @@ public abstract class StoreTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: null
-        ).ShouldNotBeNullAsync();
+        );
+        session.ShouldBeNull();
 
         await store.RestartExecution(
-            functionId, 
+            functionId,
             owner: ReplicaId.NewId()
         ).ShouldNotBeNullAsync();
         await store.RestartExecution(
@@ -667,8 +676,8 @@ public abstract class StoreTests
         var functionId = TestStoredId.Create();
 
         var storedParameter = "hello world".ToJson();
-        await store.CreateFunction(
-            functionId, 
+        var session = await store.CreateFunction(
+            functionId,
             "humanInstanceId",
             storedParameter.ToUtf8Bytes(),
             leaseExpiration: DateTime.UtcNow.Ticks,
@@ -676,7 +685,8 @@ public abstract class StoreTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: null
-        ).ShouldNotBeNullAsync();
+        );
+        session.ShouldBeNull();
 
         await store.Interrupt(functionId).ShouldBeTrueAsync();
         await store.Interrupted(functionId).ShouldBeAsync(true);
@@ -696,8 +706,8 @@ public abstract class StoreTests
         var functionId = TestStoredId.Create();
 
         var storedParameter = "hello world".ToJson();
-        await store.CreateFunction(
-            functionId, 
+        var session = await store.CreateFunction(
+            functionId,
             "humanInstanceId",
             storedParameter.ToUtf8Bytes(),
             leaseExpiration: DateTime.UtcNow.Ticks,
@@ -705,7 +715,8 @@ public abstract class StoreTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: null
-        ).ShouldNotBeNullAsync();
+        );
+        session.ShouldBeNull();
 
         await store.MessageStore.AppendMessage(functionId, new StoredMessage("Hello".ToJson().ToUtf8Bytes(), MessageType: typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Position: 0));
         await store.MessageStore.AppendMessage(functionId, new StoredMessage("World".ToJson().ToUtf8Bytes(), MessageType: typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Position: 0));
@@ -723,8 +734,8 @@ public abstract class StoreTests
         var functionId = TestStoredId.Create();
 
         var storedParameter = "hello world".ToJson();
-        await store.CreateFunction(
-            functionId, 
+        var session = await store.CreateFunction(
+            functionId,
             "humanInstanceId",
             storedParameter.ToUtf8Bytes(),
             leaseExpiration: DateTime.UtcNow.Ticks,
@@ -732,7 +743,8 @@ public abstract class StoreTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: null
-        ).ShouldNotBeNullAsync();
+        );
+        session.ShouldBeNull();
 
         await store.SetFunctionState(
             functionId,
@@ -959,8 +971,8 @@ public abstract class StoreTests
         var functionId = TestStoredId.Create();
         
         var store = await storeTask;
-        await store.CreateFunction(
-            functionId, 
+        var session = await store.CreateFunction(
+            functionId,
             "humanInstanceId",
             param: Test.SimpleStoredParameter,
             leaseExpiration: DateTime.UtcNow.Ticks,
@@ -968,7 +980,8 @@ public abstract class StoreTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: null
-        ).ShouldNotBeNullAsync();
+        );
+        session.ShouldBeNull();
 
         var storedFunction = await store.GetFunction(functionId);
         storedFunction.ShouldNotBeNull();
@@ -1036,8 +1049,8 @@ public abstract class StoreTests
         
         var store = await storeTask;
         var effectsStore = store.EffectsStore;
-        await store.CreateFunction(
-            functionId, 
+        var session = await store.CreateFunction(
+            functionId,
             "humanInstanceId",
             param: Test.SimpleStoredParameter,
             leaseExpiration: DateTime.UtcNow.Ticks,
@@ -1045,7 +1058,8 @@ public abstract class StoreTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: null
-        ).ShouldNotBeNullAsync();
+        );
+        session.ShouldBeNull();
 
         await effectsStore.SetEffectResult(functionId, new StoredEffect("".ToEffectId(EffectType.State), WorkStatus.Completed, "some default state".ToUtf8Bytes(), StoredException: null).ToStoredChange(functionId, Insert), session: null);
 
@@ -1143,8 +1157,8 @@ public abstract class StoreTests
 
         var leaseExpiration = DateTime.UtcNow.Ticks;
         var timestamp = leaseExpiration + 1;
-        await store.CreateFunction(
-            flowId1, 
+        var session = await store.CreateFunction(
+            flowId1,
             "humanInstanceId",
             storedParameter.ToUtf8Bytes(),
             leaseExpiration,
@@ -1152,9 +1166,10 @@ public abstract class StoreTests
             timestamp,
             parent: null,
             owner: null
-        ).ShouldNotBeNullAsync();
-        await store.CreateFunction(
-            flowId2, 
+        );
+        session.ShouldBeNull();
+        session = await store.CreateFunction(
+            flowId2,
             "humanInstanceId",
             storedParameter.ToUtf8Bytes(),
             leaseExpiration,
@@ -1162,7 +1177,8 @@ public abstract class StoreTests
             timestamp,
             parent: null,
             owner: null
-        ).ShouldNotBeNullAsync();
+        );
+        session.ShouldBeNull();
         
         var expires = await store.GetExpiredFunctions(expiresBefore: DateTime.UtcNow.Ticks);
         
@@ -1206,7 +1222,7 @@ public abstract class StoreTests
         var id = TestStoredId.Create();
         var parentId = TestStoredId.Create();
         var store = await storeTask;
-        await store.CreateFunction(
+        var session = await store.CreateFunction(
             id,
             humanInstanceId: "SomeInstanceId",
             param: null,
@@ -1215,7 +1231,8 @@ public abstract class StoreTests
             timestamp: 0,
             parentId,
             owner: null
-        ).ShouldNotBeNullAsync();
+        );
+        session.ShouldBeNull();
 
         var sf = await store.GetFunction(id).ShouldNotBeNullAsync();
         sf.ParentId.ShouldBe(parentId);
@@ -1226,7 +1243,7 @@ public abstract class StoreTests
     {
         var id = TestStoredId.Create();
         var store = await storeTask;
-        await store.CreateFunction(
+        var session = await store.CreateFunction(
             id,
             humanInstanceId: "SomeInstanceId",
             param: null,
@@ -1235,7 +1252,8 @@ public abstract class StoreTests
             timestamp: 0,
             parent: null,
             owner: null
-        ).ShouldNotBeNullAsync();
+        );
+        session.ShouldBeNull();
 
         var sf = await store.GetFunction(id).ShouldNotBeNullAsync();
         sf.ParentId.ShouldBeNull();
@@ -1396,11 +1414,11 @@ public abstract class StoreTests
             Position: 0,
             IdempotencyKey: "some idempotency key"
         );
-        
-        await store.CreateFunction(
-            storedId, 
+
+        var session = await store.CreateFunction(
+            storedId,
             "humanInstanceId",
-            paramJson.ToUtf8Bytes(), 
+            paramJson.ToUtf8Bytes(),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
@@ -1408,7 +1426,8 @@ public abstract class StoreTests
             effects: [effect1, effect2],
             messages: [message1, message2],
             owner: null
-        ).ShouldNotBeNullAsync();
+        );
+        session.ShouldBeNull();
 
         var effectResults = await store.EffectsStore.GetEffectResults(storedId);
         effectResults.Count.ShouldBe(2);
@@ -1466,11 +1485,11 @@ public abstract class StoreTests
             Position: 0,
             IdempotencyKey: "some idempotency key"
         );
-        
-        await store.CreateFunction(
-            storedId, 
+
+        var session = await store.CreateFunction(
+            storedId,
             "humanInstanceId",
-            paramJson.ToUtf8Bytes(), 
+            paramJson.ToUtf8Bytes(),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
@@ -1478,7 +1497,8 @@ public abstract class StoreTests
             effects: null,
             messages: [message1, message2],
             owner: null
-        ).ShouldNotBeNullAsync();
+        );
+        session.ShouldBeNull();
 
         var effectResults = await store.EffectsStore.GetEffectResults(storedId);
         effectResults.Count.ShouldBe(0);
@@ -1532,11 +1552,11 @@ public abstract class StoreTests
             Result: "hello universe".ToUtf8Bytes(),
             StoredException: null
         );
-        
-        await store.CreateFunction(
-            storedId, 
+
+        var session = await store.CreateFunction(
+            storedId,
             "humanInstanceId",
-            paramJson.ToUtf8Bytes(), 
+            paramJson.ToUtf8Bytes(),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
@@ -1544,7 +1564,8 @@ public abstract class StoreTests
             effects: [effect1, effect2],
             messages: null,
             owner: null
-        ).ShouldNotBeNullAsync();
+        );
+        session.ShouldBeNull();
 
         var effectResults = await store.EffectsStore.GetEffectResults(storedId);
         effectResults.Count.ShouldBe(2);
@@ -1581,16 +1602,17 @@ public abstract class StoreTests
         var store = await storeTask;
         var paramJson = PARAM.ToJson();
 
-        await store.CreateFunction(
-            functionId, 
+        var session = await store.CreateFunction(
+            functionId,
             "humanInstanceId",
-            paramJson.ToUtf8Bytes(), 
+            paramJson.ToUtf8Bytes(),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: null
-        ).ShouldNotBeNullAsync();
+        );
+        session.ShouldBeNull();
 
         await store.MessageStore.AppendMessage(
             functionId,
@@ -1635,17 +1657,18 @@ public abstract class StoreTests
         var paramJson = PARAM.ToJson();
         var owner = ReplicaId.NewId();
 
-        await store.CreateFunction(
-            functionId, 
+        var session = await store.CreateFunction(
+            functionId,
             "humanInstanceId",
-            paramJson.ToUtf8Bytes(), 
+            paramJson.ToUtf8Bytes(),
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: null
-        ).ShouldNotBeNullAsync();
-        
+        );
+        session.ShouldBeNull();
+
         var leaseExpiration = DateTime.UtcNow.Ticks;
         var (sf, effects, messages, _) = await store
             .RestartExecution(
@@ -1862,7 +1885,7 @@ public abstract class StoreTests
         var functionId4 = StoredId.Create(functionId1.Type, Guid.NewGuid().ToString());
 
         // Create 4 functions
-        await store.CreateFunction(
+        var session = await store.CreateFunction(
             functionId1,
             "humanInstanceId1",
             param: Test.SimpleStoredParameter,
@@ -1871,9 +1894,10 @@ public abstract class StoreTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: null
-        ).ShouldNotBeNullAsync();
+        );
+        session.ShouldBeNull();
 
-        await store.CreateFunction(
+        session = await store.CreateFunction(
             functionId2,
             "humanInstanceId2",
             param: Test.SimpleStoredParameter,
@@ -1882,9 +1906,10 @@ public abstract class StoreTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: null
-        ).ShouldNotBeNullAsync();
+        );
+        session.ShouldBeNull();
 
-        await store.CreateFunction(
+        session = await store.CreateFunction(
             functionId3,
             "humanInstanceId3",
             param: Test.SimpleStoredParameter,
@@ -1893,9 +1918,10 @@ public abstract class StoreTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: null
-        ).ShouldNotBeNullAsync();
+        );
+        session.ShouldBeNull();
 
-        await store.CreateFunction(
+        session = await store.CreateFunction(
             functionId4,
             "humanInstanceId4",
             param: Test.SimpleStoredParameter,
@@ -1904,7 +1930,8 @@ public abstract class StoreTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: null
-        ).ShouldNotBeNullAsync();
+        );
+        session.ShouldBeNull();
 
         // Interrupt functions 1 and 3
         await store.Interrupt(functionId1).ShouldBeTrueAsync();
@@ -1937,7 +1964,7 @@ public abstract class StoreTests
         var functionId1 = TestStoredId.Create();
         var functionId2 = StoredId.Create(functionId1.Type, Guid.NewGuid().ToString());
 
-        await store.CreateFunction(
+        var session = await store.CreateFunction(
             functionId1,
             "humanInstanceId1",
             param: Test.SimpleStoredParameter,
@@ -1946,9 +1973,10 @@ public abstract class StoreTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: null
-        ).ShouldNotBeNullAsync();
+        );
+        session.ShouldBeNull();
 
-        await store.CreateFunction(
+        session = await store.CreateFunction(
             functionId2,
             "humanInstanceId2",
             param: Test.SimpleStoredParameter,
@@ -1957,7 +1985,8 @@ public abstract class StoreTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: null
-        ).ShouldNotBeNullAsync();
+        );
+        session.ShouldBeNull();
 
         // Don't interrupt any functions
         var interruptedFunctions = await store.GetInterruptedFunctions([functionId1, functionId2]);
@@ -1974,7 +2003,7 @@ public abstract class StoreTests
         var nonExistentId1 = StoredId.Create(functionId1.Type, Guid.NewGuid().ToString());
         var nonExistentId2 = StoredId.Create(functionId1.Type, Guid.NewGuid().ToString());
 
-        await store.CreateFunction(
+        var session = await store.CreateFunction(
             functionId1,
             "humanInstanceId1",
             param: Test.SimpleStoredParameter,
@@ -1983,9 +2012,10 @@ public abstract class StoreTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: null
-        ).ShouldNotBeNullAsync();
+        );
+        session.ShouldBeNull();
 
-        await store.CreateFunction(
+        session = await store.CreateFunction(
             functionId2,
             "humanInstanceId2",
             param: Test.SimpleStoredParameter,
@@ -1994,7 +2024,8 @@ public abstract class StoreTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: null
-        ).ShouldNotBeNullAsync();
+        );
+        session.ShouldBeNull();
 
         await store.Interrupt(functionId1).ShouldBeTrueAsync();
         await store.Interrupt(functionId2).ShouldBeTrueAsync();
@@ -2015,7 +2046,7 @@ public abstract class StoreTests
         var functionId4 = StoredId.Create(functionId1.Type, Guid.NewGuid().ToString());
 
         // Create 4 functions
-        await store.CreateFunction(
+        var session = await store.CreateFunction(
             functionId1,
             "humanInstanceId1",
             param: Test.SimpleStoredParameter,
@@ -2024,9 +2055,10 @@ public abstract class StoreTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: null
-        ).ShouldNotBeNullAsync();
+        );
+        session.ShouldBeNull();
 
-        await store.CreateFunction(
+        session = await store.CreateFunction(
             functionId2,
             "humanInstanceId2",
             param: Test.SimpleStoredParameter,
@@ -2035,9 +2067,10 @@ public abstract class StoreTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: null
-        ).ShouldNotBeNullAsync();
+        );
+        session.ShouldBeNull();
 
-        await store.CreateFunction(
+        session = await store.CreateFunction(
             functionId3,
             "humanInstanceId3",
             param: Test.SimpleStoredParameter,
@@ -2046,9 +2079,10 @@ public abstract class StoreTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: null
-        ).ShouldNotBeNullAsync();
+        );
+        session.ShouldBeNull();
 
-        await store.CreateFunction(
+        session = await store.CreateFunction(
             functionId4,
             "humanInstanceId4",
             param: Test.SimpleStoredParameter,
@@ -2057,7 +2091,8 @@ public abstract class StoreTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: null
-        ).ShouldNotBeNullAsync();
+        );
+        session.ShouldBeNull();
 
         // Interrupt all 4 functions
         await store.Interrupt(functionId1).ShouldBeTrueAsync();
@@ -2132,7 +2167,7 @@ public abstract class StoreTests
         ).ShouldBeTrueAsync();
 
         // Create function 3 with no result (just created, not completed)
-        await store.CreateFunction(
+        var session = await store.CreateFunction(
             functionId3,
             "humanInstanceId3",
             param: Test.SimpleStoredParameter,
@@ -2141,7 +2176,8 @@ public abstract class StoreTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: null
-        ).ShouldNotBeNullAsync();
+        );
+        session.ShouldBeNull();
 
         // Get results for all three functions
         var results = await store.GetResults([functionId1, functionId2, functionId3]);

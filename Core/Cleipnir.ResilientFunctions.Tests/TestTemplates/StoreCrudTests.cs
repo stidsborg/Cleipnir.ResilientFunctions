@@ -24,7 +24,7 @@ public abstract class StoreCrudTests
         var store = await storeTask;
         
         var leaseExpiration = DateTime.UtcNow.Ticks;
-        await store.CreateFunction(
+        var session = await store.CreateFunction(
             StoredId,
             "humanInstanceId",
             Param.ToUtf8Bytes(),
@@ -33,7 +33,8 @@ public abstract class StoreCrudTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: null
-        ).ShouldNotBeNullAsync();
+        );
+        session.ShouldBeNull();
 
         var stored = await store.GetFunction(StoredId);
         stored!.StoredId.ShouldBe(StoredId);
@@ -50,8 +51,8 @@ public abstract class StoreCrudTests
     {
         var store = await storeTask;
         var leaseExpiration = DateTime.UtcNow.Ticks;
-        await store.CreateFunction(
-            StoredId, 
+        var session = await store.CreateFunction(
+            StoredId,
             "humanInstanceId",
             Param.ToUtf8Bytes(),
             leaseExpiration,
@@ -59,7 +60,8 @@ public abstract class StoreCrudTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: null
-        ).ShouldNotBeNullAsync();
+        );
+        session.ShouldBeNull();
 
         var stored = await store.GetFunction(StoredId);
         stored!.StoredId.ShouldBe(StoredId);
@@ -76,8 +78,8 @@ public abstract class StoreCrudTests
     {
         var store = await storeTask;
         var leaseExpiration = DateTime.UtcNow.Ticks;
-        await store.CreateFunction(
-            StoredId, 
+        var session = await store.CreateFunction(
+            StoredId,
             "humanInstanceId",
             Param.ToUtf8Bytes(),
             leaseExpiration,
@@ -85,7 +87,8 @@ public abstract class StoreCrudTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: null
-        ).ShouldNotBeNullAsync();
+        );
+        session.ShouldBeNull();
 
         var stored = await store.GetFunction(StoredId);
         stored!.StoredId.ShouldBe(StoredId);
@@ -164,8 +167,8 @@ public abstract class StoreCrudTests
     {
         var store = await storeTask;
         var functionId = TestStoredId.Create();
-        await store.CreateFunction(
-            StoredId, 
+        var session = await store.CreateFunction(
+            StoredId,
             "humanInstanceId",
             Param.ToUtf8Bytes(),
             leaseExpiration: DateTime.UtcNow.Ticks,
@@ -173,7 +176,8 @@ public abstract class StoreCrudTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: null
-        ).ShouldNotBeNullAsync();
+        );
+        session.ShouldBeNull();
 
         await store.EffectsStore.SetEffectResult(
             functionId,
@@ -207,8 +211,8 @@ public abstract class StoreCrudTests
     public async Task ParameterAndStateCanBeUpdatedOnExistingFunction(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        await store.CreateFunction(
-            StoredId, 
+        var session = await store.CreateFunction(
+            StoredId,
             "humanInstanceId",
             Param.ToUtf8Bytes(),
             leaseExpiration: DateTime.UtcNow.Ticks,
@@ -216,7 +220,8 @@ public abstract class StoreCrudTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: null
-        ).ShouldNotBeNullAsync();
+        );
+        session.ShouldBeNull();
 
         var updatedStoredParameter = "hello world".ToJson();
 
@@ -238,8 +243,8 @@ public abstract class StoreCrudTests
     public async Task ParameterCanBeUpdatedOnExistingFunction(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        await store.CreateFunction(
-            StoredId, 
+        var session = await store.CreateFunction(
+            StoredId,
             "humanInstanceId",
             Param.ToUtf8Bytes(),
             leaseExpiration: DateTime.UtcNow.Ticks,
@@ -247,7 +252,8 @@ public abstract class StoreCrudTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: null
-        ).ShouldNotBeNullAsync();
+        );
+        session.ShouldBeNull();
 
         var updatedStoredParameter = "hello world".ToJson();
 
@@ -268,8 +274,8 @@ public abstract class StoreCrudTests
     public async Task StateCanBeUpdatedOnExistingFunction(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        await store.CreateFunction(
-            StoredId, 
+        var session = await store.CreateFunction(
+            StoredId,
             "humanInstanceId",
             Param.ToUtf8Bytes(),
             leaseExpiration: DateTime.UtcNow.Ticks,
@@ -277,7 +283,8 @@ public abstract class StoreCrudTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: null
-        ).ShouldNotBeNullAsync();
+        );
+        session.ShouldBeNull();
         
         await store.SetParameters(
             StoredId,

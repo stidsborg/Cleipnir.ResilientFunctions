@@ -80,7 +80,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
                 for (var i = 0; i < messages.Count; i++)
                     _messages[storedId][i] = messages[i];                
 
-            var session = new SnapshotStorageSession();
+            var session = owner == null ? null : new SnapshotStorageSession(owner);
 
             if (effects?.Any() ?? false)
                 _effectsStore
@@ -136,7 +136,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         var effects = await EffectsStore.GetEffectResults(storedId);
         var messages = await MessageStore.GetMessages(storedId, skip: 0);
 
-        var session = new SnapshotStorageSession();
+        var session = new SnapshotStorageSession(owner);
         foreach (var effect in effects)
             session.Effects[effect.EffectId] = effect;
 

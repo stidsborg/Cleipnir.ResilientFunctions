@@ -589,26 +589,28 @@ public abstract class MessageStoreTests
         var id3 = TestStoredId.Create();
         
         var functionStore = await functionStoreTask;
-        await functionStore.CreateFunction(
-            id1, 
+        var session = await functionStore.CreateFunction(
+            id1,
             "humanInstanceId",
-            Test.SimpleStoredParameter, 
+            Test.SimpleStoredParameter,
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: null
-        ).ShouldNotBeNullAsync();
-        await functionStore.CreateFunction(
-            id2, 
+        );
+        session.ShouldBeNull();
+        session = await functionStore.CreateFunction(
+            id2,
             "humanInstanceId2",
-            Test.SimpleStoredParameter, 
+            Test.SimpleStoredParameter,
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: null
-        ).ShouldNotBeNullAsync();
+        );
+        session.ShouldBeNull();
         var messageStore = functionStore.MessageStore;
 
         const string msg1 = "";
@@ -653,26 +655,28 @@ public abstract class MessageStoreTests
         var id2 = TestStoredId.Create(id1.Type);
         
         var functionStore = await functionStoreTask;
-        await functionStore.CreateFunction(
-            id1, 
+        var session = await functionStore.CreateFunction(
+            id1,
             "humanInstanceId",
-            Test.SimpleStoredParameter, 
+            Test.SimpleStoredParameter,
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: long.MaxValue,
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: null
-        ).ShouldNotBeNullAsync();
-        await functionStore.CreateFunction(
-            id2, 
+        );
+        session.ShouldBeNull();
+        session = await functionStore.CreateFunction(
+            id2,
             "humanInstanceId2",
-            Test.SimpleStoredParameter, 
+            Test.SimpleStoredParameter,
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: long.MaxValue,
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: null
-        ).ShouldNotBeNullAsync();
+        );
+        session.ShouldBeNull();
         var messageStore = functionStore.MessageStore;
 
         var msg1 = "Hello";
@@ -714,16 +718,17 @@ public abstract class MessageStoreTests
         var id = TestStoredId.Create();
         
         var functionStore = await functionStoreTask;
-        await functionStore.CreateFunction(
-            id, 
+        var session = await functionStore.CreateFunction(
+            id,
             "humanInstanceId",
-            Test.SimpleStoredParameter, 
+            Test.SimpleStoredParameter,
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: long.MaxValue,
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: null
-        ).ShouldNotBeNullAsync();
+        );
+        session.ShouldBeNull();
         var messageStore = functionStore.MessageStore;
 
         var msg = "Hello World!";
@@ -750,26 +755,28 @@ public abstract class MessageStoreTests
         var id2 = TestStoredId.Create();
         
         var functionStore = await functionStoreTask;
-        await functionStore.CreateFunction(
-            id1, 
+        var session = await functionStore.CreateFunction(
+            id1,
             "humanInstanceId",
-            Test.SimpleStoredParameter, 
+            Test.SimpleStoredParameter,
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: long.MaxValue,
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: null
-        ).ShouldNotBeNullAsync();
-        await functionStore.CreateFunction(
-            id2, 
+        );
+        session.ShouldBeNull();
+        session = await functionStore.CreateFunction(
+            id2,
             "humanInstanceId",
-            Test.SimpleStoredParameter, 
+            Test.SimpleStoredParameter,
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: long.MaxValue,
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: null
-        ).ShouldNotBeNullAsync();
+        );
+        session.ShouldBeNull();
         var messageStore = functionStore.MessageStore;
 
         var stringType = typeof(string).SimpleQualifiedName().ToUtf8Bytes();
@@ -835,27 +842,29 @@ public abstract class MessageStoreTests
         var functionStore = await functionStoreTask;
         var id1 = TestStoredId.Create();
         var id2 = TestStoredId.Create();
-        
-        await functionStore.CreateFunction(
-            id1, 
+
+        var session = await functionStore.CreateFunction(
+            id1,
             "humanInstanceId",
-            Test.SimpleStoredParameter, 
+            Test.SimpleStoredParameter,
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: long.MaxValue,
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: null
-        ).ShouldNotBeNullAsync();
-        await functionStore.CreateFunction(
-            id2, 
+        );
+        session.ShouldBeNull();
+        session = await functionStore.CreateFunction(
+            id2,
             "humanInstanceId",
-            Test.SimpleStoredParameter, 
+            Test.SimpleStoredParameter,
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: long.MaxValue,
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: null
-        ).ShouldNotBeNullAsync();
+        );
+        session.ShouldBeNull();
 
         var messageStore = functionStore.MessageStore;
         var msg1 = "Hello";

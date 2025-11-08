@@ -201,8 +201,8 @@ public abstract class PostponedTests
         //re-invoke
         {
             var functionId = new FlowId(flowType, "re-invoke");
-            await store.CreateFunction(
-                rAction.MapToStoredId(functionId.Instance), 
+            var session = await store.CreateFunction(
+                rAction.MapToStoredId(functionId.Instance),
                 "humanInstanceId",
                 param: "hello".ToJson().ToUtf8Bytes(),
                 leaseExpiration: DateTime.UtcNow.Ticks,
@@ -210,8 +210,9 @@ public abstract class PostponedTests
                 timestamp: DateTime.UtcNow.Ticks,
                 parent: null,
                 owner: null
-            ).ShouldNotBeNullAsync();
-            
+            );
+            session.ShouldBeNull();
+
             Should.Throw<InvocationPostponedException>(
                 () => rAction.ControlPanel(functionId.Instance.Value).Result!.Restart()
             );
@@ -225,8 +226,8 @@ public abstract class PostponedTests
         //schedule re-invoke
         {
             var functionId = new FlowId(flowType, "schedule_re-invoke");
-            await store.CreateFunction(
-                rAction.MapToStoredId(functionId.Instance), 
+            var session = await store.CreateFunction(
+                rAction.MapToStoredId(functionId.Instance),
                 "humanInstanceId",
                 param: "hello".ToJson().ToUtf8Bytes(),
                 leaseExpiration: DateTime.UtcNow.Ticks,
@@ -234,7 +235,8 @@ public abstract class PostponedTests
                 timestamp: DateTime.UtcNow.Ticks,
                 parent: null,
                 owner: null
-            ).ShouldNotBeNullAsync();
+            );
+            session.ShouldBeNull();
 
             await rAction.ControlPanel(functionId.Instance).Result!.ScheduleRestart();
             await BusyWait.Until(() => store.GetFunction(rAction.MapToStoredId(functionId.Instance)).Map(sf => sf?.Status == Status.Postponed));
@@ -290,17 +292,18 @@ public abstract class PostponedTests
         //re-invoke
         {
             var functionId = new FlowId(flowType, "re-invoke");
-            await store.CreateFunction(
-                rAction.MapToStoredId(functionId.Instance), 
+            var session = await store.CreateFunction(
+                rAction.MapToStoredId(functionId.Instance),
                 "humanInstanceId",
-                param: "hello".ToJson().ToUtf8Bytes(), 
+                param: "hello".ToJson().ToUtf8Bytes(),
                 leaseExpiration: DateTime.UtcNow.Ticks,
                 postponeUntil: null,
                 timestamp: DateTime.UtcNow.Ticks,
                 parent: null,
                 owner: null
-            ).ShouldNotBeNullAsync();
-            
+            );
+            session.ShouldBeNull();
+
             Should.Throw<InvocationPostponedException>(
                 () => rAction.ControlPanel(functionId.Instance).Result!.Restart()
             );
@@ -314,8 +317,8 @@ public abstract class PostponedTests
         //schedule re-invoke
         {
             var functionId = new FlowId(flowType, "schedule_re-invoke");
-            await store.CreateFunction(
-                rAction.MapToStoredId(functionId.Instance), 
+            var session = await store.CreateFunction(
+                rAction.MapToStoredId(functionId.Instance),
                 "humanInstanceId",
                 param: "hello".ToJson().ToUtf8Bytes(),
                 leaseExpiration: DateTime.UtcNow.Ticks,
@@ -323,11 +326,12 @@ public abstract class PostponedTests
                 timestamp: DateTime.UtcNow.Ticks,
                 parent: null,
                 owner: null
-            ).ShouldNotBeNullAsync();
+            );
+            session.ShouldBeNull();
 
             await rAction.ControlPanel(functionId.Instance).Result!.ScheduleRestart();
             await BusyWait.Until(() => store.GetFunction(rAction.MapToStoredId(functionId.Instance)).Map(sf => sf?.Status == Status.Postponed));
-            
+
             var (status, postponedUntil) = await store.GetFunction(rAction.MapToStoredId(functionId.Instance)).Map(sf => Tuple.Create(sf?.Status, sf?.Expires));
             status.ShouldBe(Status.Postponed);
             postponedUntil.HasValue.ShouldBeTrue();
@@ -389,8 +393,8 @@ public abstract class PostponedTests
         //re-invoke
         {
             var functionId = new FlowId(flowType, "re-invoke");
-            await store.CreateFunction(
-                rFunc.MapToStoredId(functionId.Instance), 
+            var session = await store.CreateFunction(
+                rFunc.MapToStoredId(functionId.Instance),
                 "humanInstanceId",
                 param: "hello".ToJson().ToUtf8Bytes(),
                 leaseExpiration: DateTime.UtcNow.Ticks,
@@ -398,7 +402,8 @@ public abstract class PostponedTests
                 timestamp: DateTime.UtcNow.Ticks,
                 parent: null,
                 owner: null
-            ).ShouldNotBeNullAsync();
+            );
+            session.ShouldBeNull();
             var controlPanel = await rFunc.ControlPanel(functionId.Instance).ShouldNotBeNullAsync();
             Should.Throw<InvocationPostponedException>(() => controlPanel.Restart());
             
@@ -411,8 +416,8 @@ public abstract class PostponedTests
         //schedule re-invoke
         {
             var functionId = new FlowId(flowType, "schedule_re-invoke");
-            await store.CreateFunction(
-                rFunc.MapToStoredId(functionId.Instance), 
+            var session = await store.CreateFunction(
+                rFunc.MapToStoredId(functionId.Instance),
                 "humanInstanceId",
                 param: "hello".ToJson().ToUtf8Bytes(),
                 leaseExpiration: DateTime.UtcNow.Ticks,
@@ -420,13 +425,14 @@ public abstract class PostponedTests
                 timestamp: DateTime.UtcNow.Ticks,
                 parent: null,
                 owner: null
-            ).ShouldNotBeNullAsync();
+            );
+            session.ShouldBeNull();
 
             var controlPanel = await rFunc.ControlPanel(functionId.Instance).ShouldNotBeNullAsync();
             await controlPanel.ScheduleRestart();
 
             await BusyWait.Until(() => store.GetFunction(rFunc.MapToStoredId(functionId.Instance)).Map(sf => sf?.Status == Status.Postponed));
-            
+
             var (status, postponedUntil) = await store.GetFunction(rFunc.MapToStoredId(functionId.Instance)).Map(sf => Tuple.Create(sf?.Status, sf?.Expires));
             status.ShouldBe(Status.Postponed);
             postponedUntil.HasValue.ShouldBeTrue();
@@ -435,7 +441,7 @@ public abstract class PostponedTests
         }
         unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
-    
+
     public abstract Task ThrownPostponeExceptionResultsInPostponedFuncWithState();
     protected async Task ThrownPostponeExceptionResultsInPostponedFuncWithState(Task<IFunctionStore> storeTask)
     {
@@ -484,8 +490,8 @@ public abstract class PostponedTests
         //re-invoke
         {
             var functionId = new FlowId(flowType, "re-invoke");
-            await store.CreateFunction(
-                rFunc.MapToStoredId(functionId.Instance), 
+            var session = await store.CreateFunction(
+                rFunc.MapToStoredId(functionId.Instance),
                 "humanInstanceId",
                 "hello".ToJson().ToUtf8Bytes(),
                 leaseExpiration: DateTime.UtcNow.Ticks,
@@ -493,7 +499,8 @@ public abstract class PostponedTests
                 timestamp: DateTime.UtcNow.Ticks,
                 parent: null,
                 owner: null
-            ).ShouldNotBeNullAsync();
+            );
+            session.ShouldBeNull();
 
             var controlPanel = await rFunc.ControlPanel(functionId.Instance).ShouldNotBeNullAsync();
             Should.Throw<InvocationPostponedException>(() => controlPanel.Restart());
@@ -507,8 +514,8 @@ public abstract class PostponedTests
         //schedule re-invoke
         {
             var functionId = new FlowId(flowType, "schedule_re-invoke");
-            await store.CreateFunction(
-                rFunc.MapToStoredId(functionId.Instance), 
+            var session = await store.CreateFunction(
+                rFunc.MapToStoredId(functionId.Instance),
                 "humanInstanceId",
                 param: "hello".ToJson().ToUtf8Bytes(),
                 leaseExpiration: DateTime.UtcNow.Ticks,
@@ -516,13 +523,14 @@ public abstract class PostponedTests
                 timestamp: DateTime.UtcNow.Ticks,
                 parent: null,
                 owner: null
-            ).ShouldNotBeNullAsync();
+            );
+            session.ShouldBeNull();
 
             var controlPanel = await rFunc.ControlPanel(functionId.Instance).ShouldNotBeNullAsync();
             await controlPanel.ScheduleRestart();
 
             await BusyWait.Until(() => store.GetFunction(rFunc.MapToStoredId(functionId.Instance)).Map(sf => sf?.Status == Status.Postponed));
-            
+
             var (status, postponedUntil) = await store.GetFunction(rFunc.MapToStoredId(functionId.Instance)).Map(sf => Tuple.Create(sf?.Status, sf?.Expires));
             status.ShouldBe(Status.Postponed);
             postponedUntil.HasValue.ShouldBeTrue();
@@ -531,7 +539,7 @@ public abstract class PostponedTests
         }
         unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
-    
+
     public abstract Task ExistingEligiblePostponedFunctionWillBeReInvokedImmediatelyAfterStartUp();
     protected async Task ExistingEligiblePostponedFunctionWillBeReInvokedImmediatelyAfterStartUp(Task<IFunctionStore> storeTask)
     {

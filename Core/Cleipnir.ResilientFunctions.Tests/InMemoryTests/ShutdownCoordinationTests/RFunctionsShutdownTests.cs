@@ -115,8 +115,8 @@ public class RFunctionsShutdownTests
             }
         );
         
-        await store.CreateFunction(
-            registration.MapToStoredId(functionId.Instance), 
+        var session = await store.CreateFunction(
+            registration.MapToStoredId(functionId.Instance),
             "humanInstanceId",
             param: "".ToJson().ToUtf8Bytes(),
             leaseExpiration: DateTime.UtcNow.Ticks,
@@ -124,7 +124,8 @@ public class RFunctionsShutdownTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: null
-        ).ShouldNotBeNullAsync();
+        );
+        session.ShouldBeNull();
 
         await insideRFuncFlag.WaitForRaised();
 
