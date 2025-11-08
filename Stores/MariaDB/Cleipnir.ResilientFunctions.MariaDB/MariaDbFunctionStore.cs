@@ -84,7 +84,7 @@ public class MariaDbFunctionStore : IFunctionStore
                 exception_json TEXT NULL,                
                 timestamp BIGINT NOT NULL,
                 human_instance_id TEXT NOT NULL,
-                parent TEXT NULL,
+                parent CHAR(32) NULL,
                 owner CHAR(32) NULL,
                 INDEX (expires, id, status)   
             );";
@@ -177,13 +177,13 @@ public class MariaDbFunctionStore : IFunctionStore
                     ";
         
         var now = DateTime.UtcNow.Ticks;
-        var parentStr = parent == null ? "NULL" : $"'{parent}'"; 
-     
+        var parentStr = parent == null ? "NULL" : $"'{parent.AsGuid:N}'";
+
         var rows = new List<string>();
         foreach (var (storedId, humanInstanceId, param) in functionsWithParam)
         {
             var id = storedId.AsGuid;
-            var row = $"('{id:N}', {(param == null ? "NULL" : $"x'{Convert.ToHexString(param)}'")}, {(int) Status.Postponed}, 0, {now}, '{humanInstanceId.EscapeString()}', {parentStr}, NULL)"; 
+            var row = $"('{id:N}', {(param == null ? "NULL" : $"x'{Convert.ToHexString(param)}'")}, {(int) Status.Postponed}, 0, {now}, '{humanInstanceId.EscapeString()}', {parentStr}, NULL)";
             rows.Add(row);
         }
         var rowsSql = string.Join(", " + Environment.NewLine, rows);
@@ -726,7 +726,7 @@ public class MariaDbFunctionStore : IFunctionStore
                 Expires: reader.GetInt64(expiresIndex),
                 Timestamp: reader.GetInt64(timestampIndex),
                 Interrupted: reader.GetBoolean(interruptedIndex),
-                ParentId: hasParent ? StoredId.Deserialize(reader.GetString(parentIndex)) : null,
+                ParentId: hasParent ? reader.GetString(parentIndex).ToGuid().ToStoredId() : null,
                 OwnerId: hasOwner ? reader.GetString(ownerIndex).ParseToReplicaId() : null,
                 StoredType: storedId.Type
             );

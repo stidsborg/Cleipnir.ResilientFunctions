@@ -171,7 +171,7 @@ public class SqlGenerator(string tablePrefix)
                 postponeUntil ?? leaseExpiration,
                 timestamp,
                 humanInstanceId.Value,
-                parent?.Serialize() ?? (object)DBNull.Value,
+                parent?.AsGuid.ToString("N") ?? (object)DBNull.Value,
                 owner?.AsGuid.ToString("N") ?? (object)DBNull.Value,
             ]
         );
@@ -343,7 +343,7 @@ public class SqlGenerator(string tablePrefix)
                 Expires: reader.GetInt64(expiresIndex),
                 Timestamp: reader.GetInt64(timestampIndex),
                 Interrupted: reader.GetBoolean(interruptedIndex),
-                ParentId: hasParent ? StoredId.Deserialize(reader.GetString(parentIndex)) : null,
+                ParentId: hasParent ? reader.GetString(parentIndex).ToGuid().ToStoredId() : null,
                 OwnerId: hasOwner ? reader.GetString(ownerIndex).ParseToReplicaId() : null,
                 StoredType: storedId.Type
             );
