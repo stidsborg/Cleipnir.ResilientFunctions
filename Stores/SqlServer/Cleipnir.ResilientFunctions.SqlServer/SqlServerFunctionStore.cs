@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Data.SqlTypes;
 using System.Linq;
+using System.Runtime.Serialization;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
@@ -10,6 +11,7 @@ using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Storage.Session;
+using Cleipnir.ResilientFunctions.Storage.Utils;
 using Microsoft.Data.SqlClient;
 
 namespace Cleipnir.ResilientFunctions.SqlServer;
@@ -80,19 +82,20 @@ public class SqlServerFunctionStore : IFunctionStore
         await _semaphoreStore.Initialize();
         await _replicaStore.Initialize();
         await using var conn = await _connFunc();
-        _initializeSql ??= @$"    
+        _initializeSql ??= @$"
             CREATE TABLE {_tableName} (
                 Id UNIQUEIDENTIFIER PRIMARY KEY,
-                Status INT NOT NULL,             
+                Status INT NOT NULL,
                 Expires BIGINT NOT NULL,
                 Interrupted BIT NOT NULL DEFAULT 0,
-                ParamJson VARBINARY(MAX) NULL,                                        
+                ParamJson VARBINARY(MAX) NULL,
                 ResultJson VARBINARY(MAX) NULL,
                 ExceptionJson NVARCHAR(MAX) NULL,
-                HumanInstanceId NVARCHAR(MAX) NOT NULL,                                                                        
+                HumanInstanceId NVARCHAR(MAX) NOT NULL,
                 Timestamp BIGINT NOT NULL,
                 Parent UNIQUEIDENTIFIER NULL,
-                Owner UNIQUEIDENTIFIER NULL
+                Owner UNIQUEIDENTIFIER NULL,
+                Effects VARBINARY(MAX) NULL
             );
             CREATE INDEX {_tableName}_idx_Executing
                 ON {_tableName} (Expires, Id)
@@ -150,6 +153,17 @@ public class SqlServerFunctionStore : IFunctionStore
 
         try
         {
+            var session = new SnapshotStorageSession(owner ?? ReplicaId.Empty) { RowExists = true };
+
+            // Serialize effects if present
+            byte[]? effectsBytes = null;
+            if (effects?.Any() ?? false)
+            {
+                foreach (var effect in effects)
+                    session.Effects[effect.EffectId] = effect;
+                effectsBytes = session.Serialize();
+            }
+
             var storeCommand = _sqlGenerator
                 .CreateFunction(
                     storedId,
@@ -160,7 +174,8 @@ public class SqlServerFunctionStore : IFunctionStore
                     timestamp,
                     parent,
                     owner,
-                    paramPrefix: null
+                    paramPrefix: null,
+                    effects: effectsBytes
                 );
 
             if (messages?.Any() ?? false)
@@ -173,25 +188,13 @@ public class SqlServerFunctionStore : IFunctionStore
                 storeCommand = storeCommand.Merge(messagesCommand);
             }
 
-            var session = new SnapshotStorageSession(owner ?? ReplicaId.Empty);
-            if (effects?.Any() ?? false)
-            {
-                var effectsCommand = _sqlGenerator.InsertEffects(
-                    storedId,
-                    changes: effects.Select(e => new StoredEffectChange(storedId, e.EffectId, CrudOperation.Insert, e)).ToList(),
-                    session,
-                    paramPrefix: "Effect"
-                );
-                storeCommand = storeCommand.Merge(effectsCommand);
-            }
-
             await using var command = storeCommand.ToSqlCommand(conn);
-            if (messages?.Any() != true && effects?.Any() != true)
+            if (messages?.Any() != true)
             {
                 await command.ExecuteNonQueryAsync();
                 return owner == null ? null : session;
             }
-            
+
             await using var transaction = conn.BeginTransaction();
             command.Transaction = transaction;
             await command.ExecuteNonQueryAsync();
@@ -260,23 +263,36 @@ public class SqlServerFunctionStore : IFunctionStore
     public async Task<StoredFlowWithEffectsAndMessages?> RestartExecution(StoredId storedId, ReplicaId replicaId)
     {
         var restartCommand = _sqlGenerator.RestartExecution(storedId, replicaId);
-        var effectsCommand = _sqlGenerator.GetEffects(storedId, paramPrefix: "Effect");
         var messagesCommand = _sqlGenerator.GetMessages(storedId, skip: 0, paramPrefix: "Message");
 
         await using var conn = await _connFunc();
         await using var command = StoreCommand
-            .Merge(restartCommand, effectsCommand, messagesCommand)
+            .Merge(restartCommand, messagesCommand)
             .ToSqlCommand(conn);
 
         await using var reader = await command.ExecuteReaderAsync();
-        var sf = _sqlGenerator.ReadToStoredFlow(storedId, reader);
+        var (sf, effectsBytes) = _sqlGenerator.ReadToStoredFlowWithEffects(storedId, reader);
         if (sf?.OwnerId != replicaId)
             return null;
 
-        await reader.NextResultAsync();
-        var effectsWithSession = await _sqlGenerator.ReadEffects(reader, replicaId);
-        var effects = effectsWithSession.Effects;
-        var session = effectsWithSession.Session;
+        var session = new SnapshotStorageSession(replicaId);
+        var effects = new List<StoredEffect>();
+        if (effectsBytes != null)
+        {
+            var effectsBytesArray = BinaryPacker.Split(effectsBytes);
+            foreach (var effectBytes in effectsBytesArray)
+            {
+                if (effectBytes == null)
+                    throw new SerializationException("Unable to deserialize effect");
+
+                var storedEffect = StoredEffect.Deserialize(effectBytes);
+                effects.Add(storedEffect);
+                session.Effects[storedEffect.EffectId] = storedEffect;
+            }
+
+            session.RowExists = true;
+            session.Version = 0;
+        }
 
         await reader.NextResultAsync();
         var messages = await _sqlGenerator.ReadMessages(reader);
@@ -417,6 +433,10 @@ public class SqlServerFunctionStore : IFunctionStore
         IReadOnlyList<StoredMessage>? messages,
         IStorageSession? storageSession)
     {
+        byte[]? effectsBytes = null;
+        if (storageSession is SnapshotStorageSession session && session.Effects.Count > 0)
+            effectsBytes = session.Serialize();
+
         await using var conn = await _connFunc();
         await using var command = _sqlGenerator
             .SucceedFunction(
@@ -424,7 +444,8 @@ public class SqlServerFunctionStore : IFunctionStore
                 result,
                 timestamp,
                 expectedReplica,
-                paramPrefix: ""
+                paramPrefix: "",
+                effects: effectsBytes
             ).ToSqlCommand(conn);
 
         var affectedRows = await command.ExecuteNonQueryAsync();
@@ -440,13 +461,18 @@ public class SqlServerFunctionStore : IFunctionStore
         IReadOnlyList<StoredMessage>? messages,
         IStorageSession? storageSession)
     {
+        byte[]? effectsBytes = null;
+        if (storageSession is SnapshotStorageSession session && session.Effects.Count > 0)
+            effectsBytes = session.Serialize();
+
         await using var conn = await _connFunc();
         await using var command = _sqlGenerator.PostponeFunction(
             storedId,
             postponeUntil,
             timestamp,
             expectedReplica,
-            paramPrefix: ""
+            paramPrefix: "",
+            effects: effectsBytes
         ).ToSqlCommand(conn);
 
         var affectedRows = await command.ExecuteNonQueryAsync();
@@ -462,6 +488,10 @@ public class SqlServerFunctionStore : IFunctionStore
         IReadOnlyList<StoredMessage>? messages,
         IStorageSession? storageSession)
     {
+        byte[]? effectsBytes = null;
+        if (storageSession is SnapshotStorageSession session && session.Effects.Count > 0)
+            effectsBytes = session.Serialize();
+
         await using var conn = await _connFunc();
         await using var command = _sqlGenerator
             .FailFunction(
@@ -469,7 +499,8 @@ public class SqlServerFunctionStore : IFunctionStore
                 storedException,
                 timestamp,
                 expectedReplica,
-                paramPrefix: ""
+                paramPrefix: "",
+                effects: effectsBytes
             ).ToSqlCommand(conn);
 
 
@@ -485,13 +516,18 @@ public class SqlServerFunctionStore : IFunctionStore
         IReadOnlyList<StoredMessage>? messages,
         IStorageSession? storageSession)
     {
+        byte[]? effectsBytes = null;
+        if (storageSession is SnapshotStorageSession session && session.Effects.Count > 0)
+            effectsBytes = session.Serialize();
+
         await using var conn = await _connFunc();
         await using var command = _sqlGenerator
             .SuspendFunction(
                 storedId,
                 timestamp,
                 expectedReplica,
-                paramPrefix: ""
+                paramPrefix: "",
+                effects: effectsBytes
             ).ToSqlCommand(conn);
 
         var affectedRows = await command.ExecuteNonQueryAsync();
