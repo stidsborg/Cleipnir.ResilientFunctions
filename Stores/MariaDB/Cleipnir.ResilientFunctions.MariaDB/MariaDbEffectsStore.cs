@@ -10,18 +10,16 @@ namespace Cleipnir.ResilientFunctions.MariaDb;
 
 public class MariaDbEffectsStore : IEffectsStore
 {
-    private readonly MariaDbStateStore _mariaDbStateStore;
     private readonly MariaDbCommandExecutor _commandExecutor;
     private readonly string _tablePrefix;
 
     public MariaDbEffectsStore(string connectionString, string tablePrefix = "")
     {
         _tablePrefix = tablePrefix == "" ? "rfunctions" : tablePrefix;
-        _mariaDbStateStore = new MariaDbStateStore(connectionString, _tablePrefix);
         _commandExecutor = new MariaDbCommandExecutor(connectionString);
     }
 
-    public async Task Initialize() => await _mariaDbStateStore.Initialize();
+    public Task Initialize() => Task.CompletedTask;
     public async Task Truncate()
     {
         var command = StoreCommand.Create($"UPDATE {_tablePrefix} SET effects = NULL");
@@ -125,25 +123,5 @@ public class MariaDbEffectsStore : IEffectsStore
         var sql = $@"UPDATE {_tablePrefix} SET effects = NULL WHERE id = ?";
         var command = StoreCommand.Create(sql, [storedId.AsGuid.ToString("N")]);
         await _commandExecutor.ExecuteNonQuery(command);
-    }
-
-    private async Task<SnapshotStorageSession> CreateSnapshotStorageSession(StoredId storedId, ReplicaId owner)
-    {
-        var effects = (await GetEffectResults([storedId]))[storedId];
-        var snapshotSession = new SnapshotStorageSession(owner);
-        foreach (var e in effects)
-            snapshotSession.Effects[e.EffectId] = e;
-
-        // Load version and RowExists from database
-        var command = _mariaDbStateStore.Get([storedId]);
-        await using var reader = await _commandExecutor.Execute(command);
-        var storedStates = await _mariaDbStateStore.Read(reader);
-        if (storedStates.TryGetValue(storedId, out var states) && states.ContainsKey(0))
-        {
-            snapshotSession.RowExists = true;
-            snapshotSession.Version = states[0].Version;
-        }
-
-        return snapshotSession;
     }
 }
