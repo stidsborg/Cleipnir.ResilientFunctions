@@ -166,9 +166,9 @@ public abstract class StoreCrudTests
     public async Task ExistingFunctionCanBeDeleted(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var functionId = TestStoredId.Create();
+        var storedId = TestStoredId.Create();
         var session = await store.CreateFunction(
-            StoredId,
+            storedId,
             "humanInstanceId",
             Param.ToUtf8Bytes(),
             leaseExpiration: DateTime.UtcNow.Ticks,
@@ -180,24 +180,24 @@ public abstract class StoreCrudTests
         session.ShouldBeNull();
 
         await store.EffectsStore.SetEffectResult(
-            functionId,
-            StoredEffect.CreateState(new StoredState("SomeStateId", "SomeStateJson".ToUtf8Bytes())).ToStoredChange(functionId, Insert),
+            storedId,
+            StoredEffect.CreateState(new StoredState("SomeStateId", "SomeStateJson".ToUtf8Bytes())).ToStoredChange(storedId, Insert),
             session: null
         );
-        await store.CorrelationStore.SetCorrelation(functionId, "SomeCorrelationId");
+        await store.CorrelationStore.SetCorrelation(storedId, "SomeCorrelationId");
         await store.EffectsStore.SetEffectResult(
-            functionId,
-            new StoredEffect("SomeEffectId".ToEffectId(), WorkStatus.Completed, Result: null, StoredException: null).ToStoredChange(functionId, Insert),
+            storedId,
+            new StoredEffect("SomeEffectId".ToEffectId(), WorkStatus.Completed, Result: null, StoredException: null).ToStoredChange(storedId, Insert),
             session: null
         );
-        await store.MessageStore.AppendMessage(functionId, new StoredMessage("SomeJson".ToUtf8Bytes(), "SomeType".ToUtf8Bytes(), Position: 0));
+        await store.MessageStore.AppendMessage(storedId, new StoredMessage("SomeJson".ToUtf8Bytes(), "SomeType".ToUtf8Bytes(), Position: 0));
         
-        await store.DeleteFunction(functionId);
+        await store.DeleteFunction(storedId);
 
-        await store.GetFunction(functionId).ShouldBeNullAsync();
-        await store.CorrelationStore.GetCorrelations(functionId).ShouldBeEmptyAsync();
-        await store.EffectsStore.GetEffectResults(functionId).ShouldBeEmptyAsync();
-        await store.MessageStore.GetMessages(functionId, skip: 0).ShouldBeEmptyAsync();
+        await store.GetFunction(storedId).ShouldBeNullAsync();
+        await store.CorrelationStore.GetCorrelations(storedId).ShouldBeEmptyAsync();
+        await store.EffectsStore.GetEffectResults(storedId).ShouldBeEmptyAsync();
+        await store.MessageStore.GetMessages(storedId, skip: 0).ShouldBeEmptyAsync();
     }
     
     public abstract Task NonExistingFunctionCanBeDeleted();
