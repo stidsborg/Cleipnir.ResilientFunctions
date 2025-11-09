@@ -14,10 +14,10 @@ namespace Cleipnir.ResilientFunctions.SqlServer;
 public class SqlServerEffectsStore(string connectionString, string tablePrefix = "") : IEffectsStore
 {
     private readonly string _tableName = tablePrefix == "" ? "RFunctions" : tablePrefix;
-    private readonly SqlServerStateStore _sqlServerStateStore = new(connectionString, tablePrefix);
     private readonly SqlServerCommandExecutor _commandExecutor = new(connectionString);
 
-    public async Task Initialize() => await _sqlServerStateStore.Initialize();
+    public Task Initialize() => Task.CompletedTask;
+
     public async Task Truncate()
     {
         var command = StoreCommand.Create($"UPDATE {_tableName} SET Effects = NULL");
