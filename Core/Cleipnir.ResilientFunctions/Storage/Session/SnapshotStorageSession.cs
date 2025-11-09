@@ -13,9 +13,11 @@ public class SnapshotStorageSession(ReplicaId replicaId) : IStorageSession
     public int Version { get; set; }
     public bool RowExists { get; set; }
 
-    public byte[] Serialize()
+    public byte[] Serialize() => Serialize(Effects);
+    
+    public static byte[] Serialize(Dictionary<EffectId, StoredEffect> effects)
     {
-        var parts = Effects
+        var parts = effects
             .Values
             .Select(e => e.Serialize())
             .ToArray();

@@ -38,9 +38,9 @@ public class SqlGenerator(string tablePrefix)
     public StoreCommand GetEffects(StoredId storedId)
     {
         _getEffectResultsSql ??= @$"
-            SELECT id, content
-            FROM {tablePrefix}_state
-            WHERE id = ? AND position = 0;";
+            SELECT id, effects
+            FROM {tablePrefix}
+            WHERE id = ?;";
 
         var command = StoreCommand.Create(
             _getEffectResultsSql,
@@ -51,12 +51,12 @@ public class SqlGenerator(string tablePrefix)
         );
         return command;
     }
-    
+
     public StoreCommand GetEffects(IEnumerable<StoredId> storedIds)
     {
         var sql = @$"
             SELECT id, effects
-            FROM {tablePrefix}_state
+            FROM {tablePrefix}
             WHERE id IN ({storedIds.Select(id => $"'{id.AsGuid:N}'").StringJoin(", ")});";
 
         var command = StoreCommand.Create(sql);
@@ -135,40 +135,44 @@ public class SqlGenerator(string tablePrefix)
         var content = session.Serialize();
         session.RowExists = true;
         return StoreCommand.Create(
-            $@"INSERT INTO {tablePrefix}_state
-                            (id, position, content, version)
-                       VALUES
-                            (?, 0, ?, 0);",
-            [storedId.AsGuid.ToString("N"), content]
+            $@"UPDATE {tablePrefix}
+               SET effects = ?
+               WHERE id = ?;",
+            [content, storedId.AsGuid.ToString("N")]
         );
     }
     
     private string? _createFunctionSql;
+    private string? _createFunctionWithEffectsSql;
     public StoreCommand CreateFunction(
-        StoredId storedId, 
+        StoredId storedId,
         FlowInstance humanInstanceId,
-        byte[]? param, 
+        byte[]? param,
         long leaseExpiration,
         long? postponeUntil,
         long timestamp,
         StoredId? parent,
         ReplicaId? owner,
-        bool ignoreDuplicate)
+        bool ignoreDuplicate,
+        byte[]? effects = null)
     {
-        _createFunctionSql ??= @$"
-            INSERT IGNORE INTO {tablePrefix}
-                (id, param_json, status, expires, timestamp, human_instance_id, parent, interrupted, owner)
-            VALUES
-                (?, ?, ?, ?, ?, ?, ?, 0, ?);";
         var status = postponeUntil == null ? Status.Executing : Status.Postponed;
 
-        var sql = _createFunctionSql;
-        if (!ignoreDuplicate)
-            sql = sql.Replace("IGNORE ", "");
-        
-        return StoreCommand.Create(
-            sql,
-            values: [
+        string sql;
+        object[] values;
+
+        if (effects == null)
+        {
+            _createFunctionSql ??= @$"
+                INSERT IGNORE INTO {tablePrefix}
+                    (id, param_json, status, expires, timestamp, human_instance_id, parent, interrupted, owner)
+                VALUES
+                    (?, ?, ?, ?, ?, ?, ?, 0, ?);";
+            sql = _createFunctionSql;
+            if (!ignoreDuplicate)
+                sql = sql.Replace("IGNORE ", "");
+
+            values = [
                 storedId.AsGuid.ToString("N"),
                 param ?? (object)DBNull.Value,
                 (int)status,
@@ -177,107 +181,236 @@ public class SqlGenerator(string tablePrefix)
                 humanInstanceId.Value,
                 parent?.AsGuid.ToString("N") ?? (object)DBNull.Value,
                 owner?.AsGuid.ToString("N") ?? (object)DBNull.Value,
-            ]
-        );
+            ];
+        }
+        else
+        {
+            _createFunctionWithEffectsSql ??= @$"
+                INSERT IGNORE INTO {tablePrefix}
+                    (id, param_json, status, expires, timestamp, human_instance_id, parent, interrupted, owner, effects)
+                VALUES
+                    (?, ?, ?, ?, ?, ?, ?, 0, ?, ?);";
+            sql = _createFunctionWithEffectsSql;
+            if (!ignoreDuplicate)
+                sql = sql.Replace("IGNORE ", "");
+
+            values = [
+                storedId.AsGuid.ToString("N"),
+                param ?? (object)DBNull.Value,
+                (int)status,
+                postponeUntil ?? leaseExpiration,
+                timestamp,
+                humanInstanceId.Value,
+                parent?.AsGuid.ToString("N") ?? (object)DBNull.Value,
+                owner?.AsGuid.ToString("N") ?? (object)DBNull.Value,
+                effects,
+            ];
+        }
+
+        return StoreCommand.Create(sql, values);
     }
     
     private string? _succeedFunctionSql;
+    private string? _succeedFunctionWithEffectsSql;
     public StoreCommand SucceedFunction(
-        StoredId storedId, 
-        byte[]? result, 
+        StoredId storedId,
+        byte[]? result,
         long timestamp,
-        Guid expectedReplica)
+        Guid expectedReplica,
+        byte[]? effects = null)
     {
-        _succeedFunctionSql ??= $@"
-            UPDATE {tablePrefix}
-            SET status = {(int) Status.Succeeded}, result_json = ?, timestamp = ?, owner = NULL
-            WHERE id = ?";
+        if (effects == null)
+        {
+            _succeedFunctionSql ??= $@"
+                UPDATE {tablePrefix}
+                SET status = {(int)Status.Succeeded}, result_json = ?, timestamp = ?, owner = NULL
+                WHERE id = ?";
 
-        return StoreCommand.Create(
-            _succeedFunctionSql,
-            values: [
-                result ?? (object)DBNull.Value,
-                timestamp,
-                storedId.AsGuid.ToString("N"),
-                expectedReplica.ToString("N"),
-            ]
-        );
+            return StoreCommand.Create(
+                _succeedFunctionSql,
+                values: [
+                    result ?? (object)DBNull.Value,
+                    timestamp,
+                    storedId.AsGuid.ToString("N"),
+                    expectedReplica.ToString("N"),
+                ]
+            );
+        }
+        else
+        {
+            _succeedFunctionWithEffectsSql ??= $@"
+                UPDATE {tablePrefix}
+                SET status = {(int)Status.Succeeded}, result_json = ?, timestamp = ?, owner = NULL, effects = ?
+                WHERE id = ?";
+
+            return StoreCommand.Create(
+                _succeedFunctionWithEffectsSql,
+                values: [
+                    result ?? (object)DBNull.Value,
+                    timestamp,
+                    effects,
+                    storedId.AsGuid.ToString("N"),
+                    expectedReplica.ToString("N"),
+                ]
+            );
+        }
     }
     
     private string? _postponedFunctionSql;
+    private string? _postponedFunctionWithEffectsSql;
     public StoreCommand PostponeFunction(
         StoredId storedId,
         long postponeUntil,
         long timestamp,
-        ReplicaId expectedReplica)
+        ReplicaId expectedReplica,
+        byte[]? effects = null)
     {
-        _postponedFunctionSql ??= $@"
-            UPDATE {tablePrefix}
-            SET status = {(int) Status.Postponed},
-                expires = CASE WHEN interrupted = 1 THEN 0 ELSE ? END,
-                timestamp = ?,
-                owner = NULL,
-                interrupted = 0
-            WHERE
-                id = ? AND
-                owner = ?";
+        if (effects == null)
+        {
+            _postponedFunctionSql ??= $@"
+                UPDATE {tablePrefix}
+                SET status = {(int)Status.Postponed},
+                    expires = CASE WHEN interrupted = 1 THEN 0 ELSE ? END,
+                    timestamp = ?,
+                    owner = NULL,
+                    interrupted = 0
+                WHERE
+                    id = ? AND
+                    owner = ?";
 
-        return StoreCommand.Create(
-            _postponedFunctionSql,
-            values: [
-                postponeUntil,
-                timestamp,
-                storedId.AsGuid.ToString("N"),
-                expectedReplica.AsGuid.ToString("N"),
-            ]
-        );
+            return StoreCommand.Create(
+                _postponedFunctionSql,
+                values: [
+                    postponeUntil,
+                    timestamp,
+                    storedId.AsGuid.ToString("N"),
+                    expectedReplica.AsGuid.ToString("N"),
+                ]
+            );
+        }
+        else
+        {
+            _postponedFunctionWithEffectsSql ??= $@"
+                UPDATE {tablePrefix}
+                SET status = {(int)Status.Postponed},
+                    expires = CASE WHEN interrupted = 1 THEN 0 ELSE ? END,
+                    timestamp = ?,
+                    owner = NULL,
+                    interrupted = 0,
+                    effects = ?
+                WHERE
+                    id = ? AND
+                    owner = ?";
+
+            return StoreCommand.Create(
+                _postponedFunctionWithEffectsSql,
+                values: [
+                    postponeUntil,
+                    timestamp,
+                    effects,
+                    storedId.AsGuid.ToString("N"),
+                    expectedReplica.AsGuid.ToString("N"),
+                ]
+            );
+        }
     }
     
     private string? _failFunctionSql;
+    private string? _failFunctionWithEffectsSql;
     public StoreCommand FailFunction(
-        StoredId storedId, 
-        StoredException storedException, 
+        StoredId storedId,
+        StoredException storedException,
         long timestamp,
-        ReplicaId expectedReplica)
+        ReplicaId expectedReplica,
+        byte[]? effects = null)
     {
-        _failFunctionSql ??= $@"
-            UPDATE {tablePrefix}
-            SET status = {(int) Status.Failed}, exception_json = ?, timestamp = ?, owner = NULL
-            WHERE 
-                id = ? AND 
-                owner = ?";
+        if (effects == null)
+        {
+            _failFunctionSql ??= $@"
+                UPDATE {tablePrefix}
+                SET status = {(int)Status.Failed}, exception_json = ?, timestamp = ?, owner = NULL
+                WHERE
+                    id = ? AND
+                    owner = ?";
 
-        return StoreCommand.Create(
-            _failFunctionSql,
-            values: [
-                JsonSerializer.Serialize(storedException),
-                timestamp,
-                storedId.AsGuid.ToString("N"),
-                expectedReplica.AsGuid.ToString("N")
-            ]
-        );
+            return StoreCommand.Create(
+                _failFunctionSql,
+                values: [
+                    JsonSerializer.Serialize(storedException),
+                    timestamp,
+                    storedId.AsGuid.ToString("N"),
+                    expectedReplica.AsGuid.ToString("N")
+                ]
+            );
+        }
+        else
+        {
+            _failFunctionWithEffectsSql ??= $@"
+                UPDATE {tablePrefix}
+                SET status = {(int)Status.Failed}, exception_json = ?, timestamp = ?, owner = NULL, effects = ?
+                WHERE
+                    id = ? AND
+                    owner = ?";
+
+            return StoreCommand.Create(
+                _failFunctionWithEffectsSql,
+                values: [
+                    JsonSerializer.Serialize(storedException),
+                    timestamp,
+                    effects,
+                    storedId.AsGuid.ToString("N"),
+                    expectedReplica.AsGuid.ToString("N")
+                ]
+            );
+        }
     }
     
     private string? _suspendFunctionSql;
-    public StoreCommand SuspendFunction(StoredId storedId, long timestamp, ReplicaId expectedReplica)
+    private string? _suspendFunctionWithEffectsSql;
+    public StoreCommand SuspendFunction(StoredId storedId, long timestamp, ReplicaId expectedReplica, byte[]? effects = null)
     {
-        _suspendFunctionSql ??= $@"
-            UPDATE {tablePrefix}
-            SET status = CASE WHEN interrupted = 1 THEN {(int) Status.Postponed} ELSE {(int) Status.Suspended} END,
-                expires = 0,
-                timestamp = ?,
-                owner = NULL,
-                interrupted = 0
-            WHERE id = ? AND owner = ?";
+        if (effects == null)
+        {
+            _suspendFunctionSql ??= $@"
+                UPDATE {tablePrefix}
+                SET status = CASE WHEN interrupted = 1 THEN {(int)Status.Postponed} ELSE {(int)Status.Suspended} END,
+                    expires = 0,
+                    timestamp = ?,
+                    owner = NULL,
+                    interrupted = 0
+                WHERE id = ? AND owner = ?";
 
-        return StoreCommand.Create(
-            _suspendFunctionSql,
-            values: [
-                timestamp,
-                storedId.AsGuid.ToString("N"),
-                expectedReplica.AsGuid.ToString("N")
-            ]
-        );
+            return StoreCommand.Create(
+                _suspendFunctionSql,
+                values: [
+                    timestamp,
+                    storedId.AsGuid.ToString("N"),
+                    expectedReplica.AsGuid.ToString("N")
+                ]
+            );
+        }
+        else
+        {
+            _suspendFunctionWithEffectsSql ??= $@"
+                UPDATE {tablePrefix}
+                SET status = CASE WHEN interrupted = 1 THEN {(int)Status.Postponed} ELSE {(int)Status.Suspended} END,
+                    expires = 0,
+                    timestamp = ?,
+                    owner = NULL,
+                    interrupted = 0,
+                    effects = ?
+                WHERE id = ? AND owner = ?";
+
+            return StoreCommand.Create(
+                _suspendFunctionWithEffectsSql,
+                values: [
+                    timestamp,
+                    effects,
+                    storedId.AsGuid.ToString("N"),
+                    expectedReplica.AsGuid.ToString("N")
+                ]
+            );
+        }
     }
 
     private string? _restartExecutionSql;
@@ -287,19 +420,20 @@ public class SqlGenerator(string tablePrefix)
             UPDATE {tablePrefix}
             SET status = {(int)Status.Executing}, expires = 0, interrupted = FALSE, owner = ?
             WHERE id = ? AND owner IS NULL;
-            
+
             SELECT
                 id,
-                param_json,            
+                param_json,
                 status,
-                result_json, 
+                result_json,
                 exception_json,
                 expires,
                 interrupted,
                 timestamp,
                 human_instance_id,
                 parent,
-                owner
+                owner,
+                effects
             FROM {tablePrefix}
             WHERE id = ?;";
 
@@ -326,7 +460,7 @@ public class SqlGenerator(string tablePrefix)
         const int humanInstanceIdIndex = 8;
         const int parentIndex = 9;
         const int ownerIndex = 10;
-        
+
         while (await reader.ReadAsync())
         {
             var id = reader.GetString(idIndex).ToGuid().ToStoredId();
@@ -354,6 +488,56 @@ public class SqlGenerator(string tablePrefix)
         }
 
         return null;
+    }
+
+    public async Task<(StoredFlow?, byte[]?)> ReadToStoredFunctionWithEffects(StoredId storedId, MySqlDataReader reader)
+    {
+        const int idIndex = 0;
+        const int paramIndex = 1;
+        const int statusIndex = 2;
+        const int resultIndex = 3;
+        const int exceptionIndex = 4;
+        const int expiresIndex = 5;
+        const int interruptedIndex = 6;
+        const int timestampIndex = 7;
+        const int humanInstanceIdIndex = 8;
+        const int parentIndex = 9;
+        const int ownerIndex = 10;
+        const int effectsIndex = 11;
+
+        while (await reader.ReadAsync())
+        {
+            var id = reader.GetString(idIndex).ToGuid().ToStoredId();
+            var hasParam = !await reader.IsDBNullAsync(paramIndex);
+            var hasResult = !await reader.IsDBNullAsync(resultIndex);
+            var hasError = !await reader.IsDBNullAsync(exceptionIndex);
+            var hasParent = !await reader.IsDBNullAsync(parentIndex);
+            var hasOwner = !await reader.IsDBNullAsync(ownerIndex);
+            var hasEffects = !await reader.IsDBNullAsync(effectsIndex);
+            var storedException = hasError
+                ? JsonSerializer.Deserialize<StoredException>(reader.GetString(exceptionIndex))
+                : null;
+
+            var effectsBytes = hasEffects ? (byte[])reader.GetValue(effectsIndex) : null;
+
+            var storedFlow = new StoredFlow(
+                id,
+                InstanceId: reader.GetString(humanInstanceIdIndex),
+                hasParam ? (byte[])reader.GetValue(paramIndex) : null,
+                Status: (Status)reader.GetInt32(statusIndex),
+                storedException,
+                Expires: reader.GetInt64(expiresIndex),
+                Timestamp: reader.GetInt64(timestampIndex),
+                Interrupted: reader.GetBoolean(interruptedIndex),
+                ParentId: hasParent ? reader.GetString(parentIndex).ToGuid().ToStoredId() : null,
+                OwnerId: hasOwner ? reader.GetString(ownerIndex).ParseToReplicaId() : null,
+                StoredType: storedId.Type
+            );
+
+            return (storedFlow, effectsBytes);
+        }
+
+        return (null, null);
     }
     
     public StoreCommand AppendMessages(IReadOnlyList<StoredIdAndMessageWithPosition> messages)

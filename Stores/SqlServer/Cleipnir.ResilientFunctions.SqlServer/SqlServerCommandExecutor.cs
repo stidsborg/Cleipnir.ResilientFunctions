@@ -40,6 +40,14 @@ public class SqlServerCommandExecutor(string connectionString) : IStoreCommandEx
         return await batch.ExecuteNonQueryAsync();
     }
 
+    public async Task<object?> ExecuteScalar(StoreCommand command)
+    {
+        await using var conn = await CreateConnection();
+        await using var cmd = command.ToSqlCommand(conn);
+
+        return await cmd.ExecuteScalarAsync();
+    }
+
     private async Task<SqlConnection> CreateConnection()
     {
         var conn = new SqlConnection(connectionString);

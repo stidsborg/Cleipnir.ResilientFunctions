@@ -9,47 +9,47 @@ public class EffectStoreTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.
 {
     [TestMethod]
     public override Task SunshineScenarioTest()
-        => SunshineScenarioTest(FunctionStoreFactory.CreateEffectStore());
+        => SunshineScenarioTest(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task SingleEffectWithResultLifeCycle()
-        => SingleEffectWithResultLifeCycle(FunctionStoreFactory.CreateEffectStore());
+        => SingleEffectWithResultLifeCycle(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task SingleFailingEffectLifeCycle()
-        => SingleFailingEffectLifeCycle(FunctionStoreFactory.CreateEffectStore());
+        => SingleFailingEffectLifeCycle(FunctionStoreFactory.Create());
     
     [TestMethod]
     public override Task EffectCanBeDeleted()
-        => EffectCanBeDeleted(FunctionStoreFactory.CreateEffectStore());
+        => EffectCanBeDeleted(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task DeleteFunctionIdDeletesAllRelatedEffects()
-        => DeleteFunctionIdDeletesAllRelatedEffects(FunctionStoreFactory.CreateEffectStore());
+        => DeleteFunctionIdDeletesAllRelatedEffects(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task TruncateDeletesAllEffects()
-        => TruncateDeletesAllEffects(FunctionStoreFactory.CreateEffectStore());
+        => TruncateDeletesAllEffects(FunctionStoreFactory.Create());
     
     [TestMethod]
     public override Task BulkInsertTest()
-        => BulkInsertTest(FunctionStoreFactory.Create().SelectAsync(fs => fs.EffectsStore));
+        => BulkInsertTest(FunctionStoreFactory.Create());
     
     [TestMethod]
     public override Task BulkInsertAndDeleteTest()
-        => BulkInsertAndDeleteTest(FunctionStoreFactory.Create().SelectAsync(fs => fs.EffectsStore));
+        => BulkInsertAndDeleteTest(FunctionStoreFactory.Create());
     
     [TestMethod]
     public override Task BulkDeleteTest()
-        => BulkDeleteTest(FunctionStoreFactory.Create().SelectAsync(fs => fs.EffectsStore));
+        => BulkDeleteTest(FunctionStoreFactory.Create());
     
     [TestMethod]
     public override Task UpsertEmptyCollectionOfEffectsDoesNotThrowException()
-        => UpsertEmptyCollectionOfEffectsDoesNotThrowException(FunctionStoreFactory.Create().SelectAsync(fs => fs.EffectsStore));
+        => UpsertEmptyCollectionOfEffectsDoesNotThrowException(FunctionStoreFactory.Create());
     
     [TestMethod]
     public override Task EffectsForDifferentIdsCanBeFetched()
-        => EffectsForDifferentIdsCanBeFetched(FunctionStoreFactory.Create().SelectAsync(fs => fs.EffectsStore));
+        => EffectsForDifferentIdsCanBeFetched(FunctionStoreFactory.Create());
     
     [TestMethod]
     public override Task OverwriteExistingEffectWorks()
@@ -69,7 +69,7 @@ public class EffectStoreTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.
 
     [TestMethod]
     public override Task EffectsSerializeAndDeserializeCorrectly()
-        => EffectsSerializeAndDeserializeCorrectly(FunctionStoreFactory.Create().SelectAsync(fs => fs.EffectsStore));
+        => EffectsSerializeAndDeserializeCorrectly(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task MixedInsertUpdateDeleteInSequence()

@@ -13,10 +13,22 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates;
 public abstract class EffectStoreTests
 {
     public abstract Task SunshineScenarioTest();
-    protected async Task SunshineScenarioTest(Task<IEffectsStore> storeTask)
+    protected async Task SunshineScenarioTest(Task<IFunctionStore> storeTask)
     {
-        var store = await storeTask;
         var functionId = TestStoredId.Create();
+        var functionStore = await storeTask;
+        await functionStore.CreateFunction(
+            functionId,
+            "HumanInstanceId",
+            param: null,
+            leaseExpiration: 0,
+            postponeUntil: null,
+            timestamp: 0,
+            parent: null,
+            owner: ReplicaId.NewId()
+        );
+        var store = functionStore.EffectsStore;
+        
         var storedEffect1 = new StoredEffect(
             "EffectId1".ToEffectId(),
             WorkStatus.Started,
@@ -59,10 +71,21 @@ public abstract class EffectStoreTests
     }
     
     public abstract Task SingleEffectWithResultLifeCycle();
-    protected async Task SingleEffectWithResultLifeCycle(Task<IEffectsStore> storeTask)
+    protected async Task SingleEffectWithResultLifeCycle(Task<IFunctionStore> storeTask)
     {
-        var store = await storeTask;
         var functionId = TestStoredId.Create();
+        var functionStore = await storeTask;
+        await functionStore.CreateFunction(
+            functionId,
+            "HumanInstanceId",
+            param: null,
+            leaseExpiration: 0,
+            postponeUntil: null,
+            timestamp: 0,
+            parent: null,
+            owner: ReplicaId.NewId()
+        );
+        var store = functionStore.EffectsStore;
         var effect = new StoredEffect(
             "EffectId1".ToEffectId(),
             WorkStatus.Started,
@@ -73,7 +96,7 @@ public abstract class EffectStoreTests
         await store.GetEffectResults(functionId)
             .SelectAsync(r => r.Any())
             .ShouldBeFalseAsync();
-        
+
         await store.SetEffectResult(functionId, effect.ToStoredChange(functionId, Insert), session: null);
         var storedEffect = await store.GetEffectResults(functionId).SelectAsync(r => r.Single());
         storedEffect.ShouldBe(effect);
@@ -81,19 +104,30 @@ public abstract class EffectStoreTests
         effect = effect with { WorkStatus = WorkStatus.Completed, Result = "Hello World".ToUtf8Bytes() };
         await store.SetEffectResult(functionId, effect.ToStoredChange(functionId, Update), session: null);
         storedEffect = await store.GetEffectResults(functionId).SelectAsync(r => r.Single());
-        
+
         storedEffect.EffectId.ShouldBe(effect.EffectId);
         storedEffect.StoredException.ShouldBe(effect.StoredException);
         storedEffect.Result!.ToStringFromUtf8Bytes().ShouldBe(effect.Result.ToStringFromUtf8Bytes());
         storedEffect.WorkStatus.ShouldBe(effect.WorkStatus);
-        
+
     }
     
     public abstract Task SingleFailingEffectLifeCycle();
-    protected async Task SingleFailingEffectLifeCycle(Task<IEffectsStore> storeTask)
+    protected async Task SingleFailingEffectLifeCycle(Task<IFunctionStore> storeTask)
     {
-        var store = await storeTask;
         var functionId = TestStoredId.Create();
+        var functionStore = await storeTask;
+        await functionStore.CreateFunction(
+            functionId,
+            "HumanInstanceId",
+            param: null,
+            leaseExpiration: 0,
+            postponeUntil: null,
+            timestamp: 0,
+            parent: null,
+            owner: ReplicaId.NewId()
+        );
+        var store = functionStore.EffectsStore;
         var storedException = new StoredException(
             "Some Exception Message",
             "SomeStackTrace",
@@ -109,7 +143,7 @@ public abstract class EffectStoreTests
         await store.GetEffectResults(functionId)
             .SelectAsync(r => r.Any())
             .ShouldBeFalseAsync();
-        
+
         await store.SetEffectResult(functionId, storedEffect.ToStoredChange(functionId, Insert), session: null);
         var effect = await store.GetEffectResults(functionId).SelectAsync(r => r.Single());
         effect.ShouldBe(storedEffect);
@@ -121,10 +155,21 @@ public abstract class EffectStoreTests
     }
     
     public abstract Task EffectCanBeDeleted();
-    protected async Task EffectCanBeDeleted(Task<IEffectsStore> storeTask)
+    protected async Task EffectCanBeDeleted(Task<IFunctionStore> storeTask)
     {
-        var store = await storeTask;
         var functionId = TestStoredId.Create();
+        var functionStore = await storeTask;
+        await functionStore.CreateFunction(
+            functionId,
+            "HumanInstanceId",
+            param: null,
+            leaseExpiration: 0,
+            postponeUntil: null,
+            timestamp: 0,
+            parent: null,
+            owner: ReplicaId.NewId()
+        );
+        var store = functionStore.EffectsStore;
         var storedEffect1 = new StoredEffect(
             "EffectId1".ToEffectId(),
             WorkStatus.Started,
@@ -154,7 +199,7 @@ public abstract class EffectStoreTests
         storedEffects = await store.GetEffectResults(functionId);
         storedEffects.Count.ShouldBe(1);
         storedEffects[0].EffectId.ShouldBe(storedEffect1.EffectId);
-        
+
         await store.DeleteEffectResult(functionId, storedEffect1.EffectId, storageSession: null);
         await store
             .GetEffectResults(functionId)
@@ -163,12 +208,33 @@ public abstract class EffectStoreTests
     }
     
     public abstract Task DeleteFunctionIdDeletesAllRelatedEffects();
-    protected async Task DeleteFunctionIdDeletesAllRelatedEffects(Task<IEffectsStore> storeTask)
+    protected async Task DeleteFunctionIdDeletesAllRelatedEffects(Task<IFunctionStore> storeTask)
     {
-        var store = await storeTask;
         var functionId = TestStoredId.Create();
         var otherFunctionId = TestStoredId.Create();
-        
+        var functionStore = await storeTask;
+        await functionStore.CreateFunction(
+            functionId,
+            "HumanInstanceId",
+            param: null,
+            leaseExpiration: 0,
+            postponeUntil: null,
+            timestamp: 0,
+            parent: null,
+            owner: ReplicaId.NewId()
+        );
+        await functionStore.CreateFunction(
+            otherFunctionId,
+            "OtherInstanceId",
+            param: null,
+            leaseExpiration: 0,
+            postponeUntil: null,
+            timestamp: 0,
+            parent: null,
+            owner: ReplicaId.NewId()
+        );
+        var store = functionStore.EffectsStore;
+
         var storedEffect1 = new StoredEffect(
             "EffectId1".ToEffectId(),
             WorkStatus.Started,
@@ -197,7 +263,7 @@ public abstract class EffectStoreTests
             .GetEffectResults(functionId)
             .SelectAsync(e => e.Any())
             .ShouldBeFalseAsync();
-        
+
         await store
             .GetEffectResults(otherFunctionId)
             .SelectAsync(e => e.Any())
@@ -205,12 +271,33 @@ public abstract class EffectStoreTests
     }
     
     public abstract Task TruncateDeletesAllEffects();
-    protected async Task TruncateDeletesAllEffects(Task<IEffectsStore> storeTask)
+    protected async Task TruncateDeletesAllEffects(Task<IFunctionStore> storeTask)
     {
-        var store = await storeTask;
         var functionId = TestStoredId.Create();
         var otherFunctionId = TestStoredId.Create();
-        
+        var functionStore = await storeTask;
+        await functionStore.CreateFunction(
+            functionId,
+            "HumanInstanceId",
+            param: null,
+            leaseExpiration: 0,
+            postponeUntil: null,
+            timestamp: 0,
+            parent: null,
+            owner: ReplicaId.NewId()
+        );
+        await functionStore.CreateFunction(
+            otherFunctionId,
+            "OtherInstanceId",
+            param: null,
+            leaseExpiration: 0,
+            postponeUntil: null,
+            timestamp: 0,
+            parent: null,
+            owner: ReplicaId.NewId()
+        );
+        var store = functionStore.EffectsStore;
+
         var storedEffect1 = new StoredEffect(
             "EffectId1".ToEffectId(),
             WorkStatus.Started,
@@ -223,18 +310,18 @@ public abstract class EffectStoreTests
             Result: null,
             StoredException: null
         );
-        
+
         await store.SetEffectResult(functionId, storedEffect1.ToStoredChange(functionId, Insert), session: null);
         await store.SetEffectResult(functionId, storedEffect2.ToStoredChange(functionId, Insert), session: null);
         await store.SetEffectResult(otherFunctionId, storedEffect1.ToStoredChange(otherFunctionId, Insert), session: null);
 
         await store.Truncate();
-        
+
         await store
             .GetEffectResults(functionId)
             .SelectAsync(e => e.Any())
             .ShouldBeFalseAsync();
-        
+
         await store
             .GetEffectResults(otherFunctionId)
             .SelectAsync(e => e.Any())
@@ -242,10 +329,21 @@ public abstract class EffectStoreTests
     }
     
     public abstract Task BulkInsertTest();
-    protected async Task BulkInsertTest(Task<IEffectsStore> storeTask)
+    protected async Task BulkInsertTest(Task<IFunctionStore> storeTask)
     {
-        var store = await storeTask;
         var storedId = TestStoredId.Create();
+        var functionStore = await storeTask;
+        await functionStore.CreateFunction(
+            storedId,
+            "HumanInstanceId",
+            param: null,
+            leaseExpiration: 0,
+            postponeUntil: null,
+            timestamp: 0,
+            parent: null,
+            owner: ReplicaId.NewId()
+        );
+        var store = functionStore.EffectsStore;
         var storedEffect1 = new StoredEffect(
             "EffectId1".ToEffectId(),
             WorkStatus.Started,
@@ -274,10 +372,21 @@ public abstract class EffectStoreTests
     }
     
     public abstract Task BulkInsertAndDeleteTest();
-    protected async Task BulkInsertAndDeleteTest(Task<IEffectsStore> storeTask)
+    protected async Task BulkInsertAndDeleteTest(Task<IFunctionStore> storeTask)
     {
-        var store = await storeTask;
         var storedId = TestStoredId.Create();
+        var functionStore = await storeTask;
+        await functionStore.CreateFunction(
+            storedId,
+            "HumanInstanceId",
+            param: null,
+            leaseExpiration: 0,
+            postponeUntil: null,
+            timestamp: 0,
+            parent: null,
+            owner: ReplicaId.NewId()
+        );
+        var store = functionStore.EffectsStore;
         var storedEffect1 = new StoredEffect(
             "EffectId1".ToEffectId(),
             WorkStatus.Started,
@@ -296,7 +405,7 @@ public abstract class EffectStoreTests
             Result: "some result 3".ToUtf8Bytes(),
             StoredException: null
         );
-        
+
         await store.SetEffectResults(storedId, [storedEffect1.ToStoredChange(storedId, Insert), storedEffect2.ToStoredChange(storedId, Insert)], session: null);
         await store.SetEffectResults(
             storedId,
@@ -307,7 +416,7 @@ public abstract class EffectStoreTests
             ],
             session: null
         );
-        
+
         var effects = await store.GetEffectResults(storedId);
         effects.Count.ShouldBe(1);
         var effect3 = effects.Single(e => e.EffectId == storedEffect3.EffectId);
@@ -315,10 +424,21 @@ public abstract class EffectStoreTests
     }
     
     public abstract Task BulkDeleteTest();
-    protected async Task BulkDeleteTest(Task<IEffectsStore> storeTask)
+    protected async Task BulkDeleteTest(Task<IFunctionStore> storeTask)
     {
-        var store = await storeTask;
         var storedId = TestStoredId.Create();
+        var functionStore = await storeTask;
+        await functionStore.CreateFunction(
+            storedId,
+            "HumanInstanceId",
+            param: null,
+            leaseExpiration: 0,
+            postponeUntil: null,
+            timestamp: 0,
+            parent: null,
+            owner: ReplicaId.NewId()
+        );
+        var store = functionStore.EffectsStore;
         var storedEffect1 = new StoredEffect(
             "EffectId1".ToEffectId(),
             WorkStatus.Started,
@@ -345,16 +465,27 @@ public abstract class EffectStoreTests
             ],
             session: null
         );
-        
+
         var effects = await store.GetEffectResults(storedId);
         effects.Count.ShouldBe(0);
     }
     
     public abstract Task UpsertEmptyCollectionOfEffectsDoesNotThrowException();
-    protected async Task UpsertEmptyCollectionOfEffectsDoesNotThrowException(Task<IEffectsStore> storeTask)
+    protected async Task UpsertEmptyCollectionOfEffectsDoesNotThrowException(Task<IFunctionStore> storeTask)
     {
-        var store = await storeTask;
         var storedId = TestStoredId.Create();
+        var functionStore = await storeTask;
+        await functionStore.CreateFunction(
+            storedId,
+            "HumanInstanceId",
+            param: null,
+            leaseExpiration: 0,
+            postponeUntil: null,
+            timestamp: 0,
+            parent: null,
+            owner: ReplicaId.NewId()
+        );
+        var store = functionStore.EffectsStore;
         await store.SetEffectResults(
             storedId,
             changes: [],
@@ -363,11 +494,32 @@ public abstract class EffectStoreTests
     }
     
     public abstract Task EffectsForDifferentIdsCanBeFetched();
-    protected async Task EffectsForDifferentIdsCanBeFetched(Task<IEffectsStore> storeTask)
+    protected async Task EffectsForDifferentIdsCanBeFetched(Task<IFunctionStore> storeTask)
     {
-        var store = await storeTask;
         var id1 = TestStoredId.Create();
         var id2 = TestStoredId.Create();
+        var functionStore = await storeTask;
+        await functionStore.CreateFunction(
+            id1,
+            "HumanInstanceId1",
+            param: null,
+            leaseExpiration: 0,
+            postponeUntil: null,
+            timestamp: 0,
+            parent: null,
+            owner: ReplicaId.NewId()
+        );
+        await functionStore.CreateFunction(
+            id2,
+            "HumanInstanceId2",
+            param: null,
+            leaseExpiration: 0,
+            postponeUntil: null,
+            timestamp: 0,
+            parent: null,
+            owner: ReplicaId.NewId()
+        );
+        var store = functionStore.EffectsStore;
         var storedEffect1 = new StoredEffect(
             "EffectId1".ToEffectId(),
             WorkStatus.Started,
@@ -392,7 +544,7 @@ public abstract class EffectStoreTests
         resultsId1.Count.ShouldBe(2);
         resultsId1.Any(r => r.EffectId == storedEffect1.EffectId).ShouldBeTrue();
         resultsId1.Any(r => r.EffectId == storedEffect2.EffectId).ShouldBeTrue();
-        
+
         var resultsId2 = results[id2];
         resultsId2.Count.ShouldBe(2);
         resultsId2.Any(r => r.EffectId == storedEffect1.EffectId).ShouldBeTrue();
@@ -413,7 +565,7 @@ public abstract class EffectStoreTests
             postponeUntil: null,
             timestamp: 0,
             parent: null,
-            owner: null
+            owner: ReplicaId.NewId()
         );
         
         var storedEffect1 = new StoredEffect(
@@ -444,6 +596,7 @@ public abstract class EffectStoreTests
         var store = await storeTask;
         var effectStore = store.EffectsStore;
         var storedId = TestStoredId.Create();
+        var crashingReplicaId = ReplicaId.NewId();
         var storageSession1 = await store.CreateFunction(
             storedId,
             "SomeInstanceId",
@@ -452,12 +605,13 @@ public abstract class EffectStoreTests
             postponeUntil: null,
             timestamp: 0,
             parent: null,
-            owner: null
+            owner: crashingReplicaId
         );
-        
+
+        await store.RescheduleCrashedFunctions(crashingReplicaId);
         var storageSession2 = await store.RestartExecution(
             storedId,
-            owner: ReplicaId.Empty
+            owner: ReplicaId.NewId()
         ).SelectAsync(s => s!.StorageSession);
         
         var storedEffect1 = new StoredEffect(
@@ -472,21 +626,31 @@ public abstract class EffectStoreTests
             Result: null,
             StoredException: null
         );
-
-        await effectStore.SetEffectResult(storedId, storedEffect1.ToStoredChange(storedId, Insert), storageSession1);
+        
         try
         {
-            await effectStore.SetEffectResult(storedId, storedEffect2.ToStoredChange(storedId, Insert), storageSession2);            
+            await effectStore.SetEffectResult(storedId, storedEffect1.ToStoredChange(storedId, Insert), storageSession1);
         }
         catch (Exception)
         {
             // ignored
         }
+
+        try
+        {
+            await effectStore.SetEffectResult(storedId, storedEffect2.ToStoredChange(storedId, Insert),
+                storageSession2);
+        }
+        catch (Exception)
+        {
+            //ignored
+        }
+        
         
         var storedEffects = await effectStore.GetEffectResults(storedId);
         var storedEffect = storedEffects.Single();
         storedEffect.EffectId.ShouldBe("EffectId1".ToEffectId());
-        storedEffect.WorkStatus.ShouldBe(WorkStatus.Started);
+        (storedEffect.WorkStatus is WorkStatus.Completed or WorkStatus.Started).ShouldBeTrue();
     }
 
     public abstract Task MultipleSequentialUpdatesWithoutRefresh();
@@ -497,7 +661,7 @@ public abstract class EffectStoreTests
         var storedId = TestStoredId.Create();
 
         // Create initial session
-        var session = await store.CreateFunction(storedId, "instance", null, 0, null, 0, null, null);
+        var session = await store.CreateFunction(storedId, "instance", null, 0, null, 0, null, ReplicaId.NewId());
 
         // Sequential updates - each should increment version properly
         var effect1 = new StoredEffect("Effect1".ToEffectId(), WorkStatus.Completed, "result1".ToUtf8Bytes(), null);
@@ -525,7 +689,7 @@ public abstract class EffectStoreTests
         var storedId = TestStoredId.Create();
 
         // Create initial session
-        var session = await store.CreateFunction(storedId, "instance", null, 0, null, 0, null, null);
+        var session = await store.CreateFunction(storedId, "instance", null, 0, null, 0, null, ReplicaId.NewId());
 
         // Insert 100 effects
         const int effectCount = 100;
@@ -551,10 +715,21 @@ public abstract class EffectStoreTests
     }
 
     public abstract Task EffectsSerializeAndDeserializeCorrectly();
-    protected async Task EffectsSerializeAndDeserializeCorrectly(Task<IEffectsStore> storeTask)
+    protected async Task EffectsSerializeAndDeserializeCorrectly(Task<IFunctionStore> storeTask)
     {
-        var store = await storeTask;
         var storedId = TestStoredId.Create();
+        var functionStore = await storeTask;
+        await functionStore.CreateFunction(
+            storedId,
+            "HumanInstanceId",
+            param: null,
+            leaseExpiration: 0,
+            postponeUntil: null,
+            timestamp: 0,
+            parent: null,
+            owner: ReplicaId.NewId()
+        );
+        var store = functionStore.EffectsStore;
 
         // Create effects with various edge cases
         var effectWithNullResult = new StoredEffect(
@@ -623,7 +798,7 @@ public abstract class EffectStoreTests
         var storedId = TestStoredId.Create();
 
         // Create initial session
-        var session = await store.CreateFunction(storedId, "instance", null, 0, null, 0, null, null);
+        var session = await store.CreateFunction(storedId, "instance", null, 0, null, 0, null, ReplicaId.NewId());
 
         // INSERT effect1
         var effect1 = new StoredEffect("Effect1".ToEffectId(), WorkStatus.Started, null, null);

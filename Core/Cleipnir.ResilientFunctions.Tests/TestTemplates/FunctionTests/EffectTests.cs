@@ -331,13 +331,23 @@ public abstract class EffectTests
     {  
         var store = await storeTask;
         var storedId = TestStoredId.Create();
+        var session = await store.CreateFunction(
+            storedId,
+            "SomeInstance",
+            param: null,
+            leaseExpiration: 0,
+            postponeUntil: null,
+            timestamp: 0,
+            parent: null,
+            owner: ReplicaId.NewId()
+        );
         var effectResults = new EffectResults(
             TestFlowId.Create(),
             storedId,
             lazyExistingEffects: new Lazy<Task<IReadOnlyList<StoredEffect>>>(() => store.EffectsStore.GetEffectResults(storedId)),
             store.EffectsStore,
             DefaultSerializer.Instance, 
-            storageSession: null
+            session
         );
         var effect = new Effect(effectResults, utcNow: () => DateTime.UtcNow, new FlowMinimumTimeout());
         
@@ -589,7 +599,16 @@ public abstract class EffectTests
     {  
         var store = await storeTask;
         var storedId = TestStoredId.Create();
-
+        var session = await store.CreateFunction(
+            storedId,
+            "SomeInstance",
+            param: null,
+            leaseExpiration: 0,
+            postponeUntil: null,
+            timestamp: 0,
+            parent: null,
+            owner: ReplicaId.NewId()
+        );
         var effectStore = store.EffectsStore;
         var effectResults = new EffectResults(
             TestFlowId.Create(),
@@ -599,7 +618,7 @@ public abstract class EffectTests
             ),
             effectStore,
             DefaultSerializer.Instance, 
-            storageSession: null
+            session
         );
         
         var effectId1 = new EffectId("Id1", EffectType.Effect, Context: "");
@@ -643,6 +662,16 @@ public abstract class EffectTests
     {  
         var store = await storeTask;
         var storedId = TestStoredId.Create();
+        var session = await store.CreateFunction(
+            storedId,
+            "SomeInstance",
+            param: null,
+            leaseExpiration: 0,
+            postponeUntil: null,
+            timestamp: 0,
+            parent: null,
+            owner: ReplicaId.NewId()
+        );
 
         var effectStore = store.EffectsStore;
         var effectResults = new EffectResults(
@@ -653,7 +682,7 @@ public abstract class EffectTests
             ),
             effectStore,
             DefaultSerializer.Instance, 
-            storageSession: null
+            session
         );
         var effect = new Effect(effectResults, utcNow: () => DateTime.UtcNow, new FlowMinimumTimeout());
 
@@ -717,7 +746,16 @@ public abstract class EffectTests
     {  
         var store = await storeTask;
         var storedId = TestStoredId.Create();
-
+        var session = await store.CreateFunction(
+            storedId,
+            "SomeInstance",
+            param: null,
+            leaseExpiration: 0,
+            postponeUntil: null,
+            timestamp: 0,
+            parent: null,
+            owner: ReplicaId.NewId()
+        );
         var effectStore = store.EffectsStore;
         var effectResults = new EffectResults(
             TestFlowId.Create(),
@@ -727,7 +765,7 @@ public abstract class EffectTests
             ),
             effectStore,
             DefaultSerializer.Instance, 
-            storageSession: null
+            session
         );
         var effect = new Effect(effectResults, utcNow: () => DateTime.UtcNow, new FlowMinimumTimeout());
 

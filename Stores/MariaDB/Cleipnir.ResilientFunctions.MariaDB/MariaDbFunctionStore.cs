@@ -7,6 +7,7 @@ using Cleipnir.ResilientFunctions.MariaDB.StoreCommand;
 using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Storage.Session;
+using Cleipnir.ResilientFunctions.Storage.Utils;
 using MySqlConnector;
 using static Cleipnir.ResilientFunctions.MariaDb.DatabaseHelper;
 
@@ -123,40 +124,38 @@ public class MariaDbFunctionStore : IFunctionStore
         IReadOnlyList<StoredEffect>? effects = null,
         IReadOnlyList<StoredMessage>? messages = null)
     {
-        if (effects == null && messages == null)
+        var session = new SnapshotStorageSession(owner ?? ReplicaId.Empty) 
+            { RowExists = true };
+
+        // Serialize effects if present
+        byte[]? effectsBytes = null;
+        if (effects?.Any() ?? false)
+        {
+            foreach (var effect in effects)
+                session.Effects[effect.EffectId] = effect;
+            effectsBytes = session.Serialize();
+        }
+
+        if (messages == null || !messages.Any())
         {
             await using var conn = await CreateOpenConnection(_connectionString);
             await using var command = _sqlGenerator
-                .CreateFunction(storedId, humanInstanceId, param, leaseExpiration, postponeUntil, timestamp, parent, owner, ignoreDuplicate: true)
+                .CreateFunction(storedId, humanInstanceId, param, leaseExpiration, postponeUntil, timestamp, parent, owner, ignoreDuplicate: true, effects: effectsBytes)
                 .ToSqlCommand(conn);
             var affectedRows = await command.ExecuteNonQueryAsync();
-            if (affectedRows != 1 || owner == null) 
+            if (affectedRows != 1 || owner == null)
                 return null;
-            
-            return new SnapshotStorageSession(owner);
+
+            return session;
         }
         else
         {
-            var storeCommand = _sqlGenerator.CreateFunction(storedId, humanInstanceId, param, leaseExpiration, postponeUntil, timestamp, parent, owner, ignoreDuplicate: false);
-            if (messages?.Any() ?? false)
-            {
-                var messagesCommand = _sqlGenerator.AppendMessages(
-                    messages.Select((msg, position) => new StoredIdAndMessageWithPosition(storedId, msg, position)).ToList()
-                );
-                storeCommand = storeCommand.Merge(messagesCommand);
-            }
-            
-            var session = new SnapshotStorageSession(owner ?? ReplicaId.Empty);
-            
-            if (effects?.Any() ?? false)
-            {
-                var effectsCommand = _sqlGenerator.InsertEffects(
-                    storedId,
-                    changes: effects.Select(e => new StoredEffectChange(storedId, e.EffectId, CrudOperation.Insert, e)).ToList(),
-                    session
-                );
-                storeCommand = storeCommand.Merge(effectsCommand);
-            }
+            var storeCommand = _sqlGenerator.CreateFunction(storedId, humanInstanceId, param, leaseExpiration, postponeUntil, timestamp, parent, owner, ignoreDuplicate: false, effects: effectsBytes);
+
+            var messagesCommand = _sqlGenerator.AppendMessages(
+                messages.Select((msg, position) => new StoredIdAndMessageWithPosition(storedId, msg, position)).ToList()
+            );
+            storeCommand = storeCommand.Merge(messagesCommand);
 
             await using var conn = await CreateOpenConnection(_connectionString);
             await using var command = storeCommand.ToSqlCommand(conn);
@@ -207,28 +206,41 @@ public class MariaDbFunctionStore : IFunctionStore
     public async Task<StoredFlowWithEffectsAndMessages?> RestartExecution(StoredId storedId, ReplicaId replicaId)
     {
         var restartCommand = _sqlGenerator.RestartExecution(storedId, replicaId);
-        var effectsCommand = _sqlGenerator.GetEffects(storedId);
         var messagesCommand = _sqlGenerator.GetMessages(storedId, skip: 0);
 
         await using var conn = await CreateOpenConnection(_connectionString);
         await using var command = StoreCommand
-            .Merge(restartCommand, effectsCommand, messagesCommand)
+            .Merge(restartCommand, messagesCommand)
             .ToSqlCommand(conn);
 
         var reader = await command.ExecuteReaderAsync();
         if (reader.RecordsAffected != 1)
             return null;
 
-        var sf = await _sqlGenerator.ReadToStoredFunction(storedId, reader);
+        var (sf, effectsBytes) = await _sqlGenerator.ReadToStoredFunctionWithEffects(storedId, reader);
         if (sf?.OwnerId != replicaId)
             return null;
-        await reader.NextResultAsync();
 
-        var effectsWithSession = await _sqlGenerator.ReadEffects(reader, replicaId, [storedId])
-            .SelectAsync(d => d[storedId]);
-        
-        var effects = effectsWithSession.Effects;
-        var session = effectsWithSession.Session;
+        // Deserialize effects
+        var session = new SnapshotStorageSession(replicaId)
+        {
+            RowExists = true
+        };
+        var effects = new List<StoredEffect>();
+        if (effectsBytes != null)
+        {
+            var effectsBytesArray = BinaryPacker.Split(effectsBytes);
+            foreach (var effectBytes in effectsBytesArray)
+            {
+                if (effectBytes != null)
+                {
+                    var effect = StoredEffect.Deserialize(effectBytes);
+                    effects.Add(effect);
+                    session.Effects[effect.EffectId] = effect;
+                }
+            }
+        }
+
         await reader.NextResultAsync();
 
         var messages = await _sqlGenerator.ReadMessages(reader);
@@ -364,9 +376,13 @@ public class MariaDbFunctionStore : IFunctionStore
         IReadOnlyList<StoredMessage>? messages,
         IStorageSession? storageSession)
     {
+        byte[]? effectsBytes = null;
+        if (storageSession is SnapshotStorageSession session && session.Effects.Count > 0)
+            effectsBytes = session.Serialize();
+
         await using var conn = await CreateOpenConnection(_connectionString);
         await using var command = _sqlGenerator
-            .SucceedFunction(storedId, result, timestamp, expectedReplica.AsGuid)
+            .SucceedFunction(storedId, result, timestamp, expectedReplica.AsGuid, effectsBytes)
             .ToSqlCommand(conn);
 
         var affectedRows = await command.ExecuteNonQueryAsync();
@@ -382,9 +398,13 @@ public class MariaDbFunctionStore : IFunctionStore
         IReadOnlyList<StoredMessage>? messages,
         IStorageSession? storageSession)
     {
+        byte[]? effectsBytes = null;
+        if (storageSession is SnapshotStorageSession session && session.Effects.Count > 0)
+            effectsBytes = session.Serialize();
+
         await using var conn = await CreateOpenConnection(_connectionString);
         await using var command = _sqlGenerator
-            .PostponeFunction(storedId, postponeUntil, timestamp, expectedReplica)
+            .PostponeFunction(storedId, postponeUntil, timestamp, expectedReplica, effectsBytes)
             .ToSqlCommand(conn);
 
         var affectedRows = await command.ExecuteNonQueryAsync();
@@ -400,15 +420,19 @@ public class MariaDbFunctionStore : IFunctionStore
         IReadOnlyList<StoredMessage>? messages,
         IStorageSession? storageSession)
     {
+        byte[]? effectsBytes = null;
+        if (storageSession is SnapshotStorageSession session && session.Effects.Count > 0)
+            effectsBytes = session.Serialize();
+
         await using var conn = await CreateOpenConnection(_connectionString);
         await using var command = _sqlGenerator
-            .FailFunction(storedId, storedException, timestamp, expectedReplica)
+            .FailFunction(storedId, storedException, timestamp, expectedReplica, effectsBytes)
             .ToSqlCommand(conn);
 
         var affectedRows = await command.ExecuteNonQueryAsync();
         return affectedRows == 1;
     }
-    
+
     public async Task<bool> SuspendFunction(
         StoredId storedId,
         long timestamp,
@@ -417,9 +441,13 @@ public class MariaDbFunctionStore : IFunctionStore
         IReadOnlyList<StoredMessage>? messages,
         IStorageSession? storageSession)
     {
+        byte[]? effectsBytes = null;
+        if (storageSession is SnapshotStorageSession session && session.Effects.Count > 0)
+            effectsBytes = session.Serialize();
+
         await using var conn = await CreateOpenConnection(_connectionString);
         await using var command = _sqlGenerator
-            .SuspendFunction(storedId, timestamp, expectedReplica)
+            .SuspendFunction(storedId, timestamp, expectedReplica, effectsBytes)
             .ToSqlCommand(conn);
 
         var affectedRows = await command.ExecuteNonQueryAsync();

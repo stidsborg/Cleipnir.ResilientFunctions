@@ -8,4 +8,6 @@ public interface IStoreCommandExecutor
     public Task<IStoreCommandReader> Execute(StoreCommand command);
     Task<int> ExecuteNonQuery(StoreCommands commands);
     Task<int> ExecuteNonQuery(StoreCommand commands);
+
+    Task<object?> ExecuteScalar(StoreCommand command);
 }

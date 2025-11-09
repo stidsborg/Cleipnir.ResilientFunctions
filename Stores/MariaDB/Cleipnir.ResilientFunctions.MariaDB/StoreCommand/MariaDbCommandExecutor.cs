@@ -38,6 +38,14 @@ public class MariaDbCommandExecutor(string connectionString) : IStoreCommandExec
 
         return await cmd.ExecuteNonQueryAsync();
     }
+    
+    public async Task<object?> ExecuteScalar(Storage.StoreCommand command)
+    {
+        await using var conn = await CreateConnection();
+        await using var cmd = command.ToSqlCommand(conn);
+
+        return await cmd.ExecuteScalarAsync();
+    }
 
     private async Task<MySqlConnection> CreateConnection()
     {

@@ -39,7 +39,14 @@ public class PostgresCommandExecutor(string connectionString) : IStoreCommandExe
 
         return await batch.ExecuteNonQueryAsync();
     }
-    
+
+    public async Task<object?> ExecuteScalar(StoreCommand command)
+    {
+        await using var conn = await CreateConnection();
+        await using var cmd = command.ToNpgsqlCommand(conn);
+        return await cmd.ExecuteScalarAsync();
+    }
+
     private async Task<NpgsqlConnection> CreateConnection()
     {
         var conn = new NpgsqlConnection(connectionString);
