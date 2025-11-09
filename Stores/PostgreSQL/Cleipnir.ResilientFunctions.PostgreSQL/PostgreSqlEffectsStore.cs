@@ -5,16 +5,34 @@ using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Storage.Session;
 using Cleipnir.ResilientFunctions.Storage.Utils;
+using Npgsql;
 
 namespace Cleipnir.ResilientFunctions.PostgreSQL;
 
 public class PostgreSqlEffectsStore(string connectionString, string tablePrefix = "") : IEffectsStore
 {
-    private readonly PostgreSqlStateStore _stateStore = new(connectionString, tablePrefix);
     private readonly PostgresCommandExecutor _commandExecutor = new(connectionString);
 
-    public async Task Initialize() => await _stateStore.Initialize();
-    public async Task Truncate() => await _stateStore.Truncate();
+    private string? _initializeSql;
+    public async Task Initialize()
+    {
+        await using var conn = await CreateConnection();
+        _initializeSql ??= @$"
+            CREATE TABLE IF NOT EXISTS {tablePrefix}_effects (
+                id UUID,
+                content BYTEA,
+                version INT,
+                PRIMARY KEY (id)
+            );";
+        var command = new NpgsqlCommand(_initializeSql, conn);
+        await command.ExecuteNonQueryAsync();
+    }
+    public async Task Truncate()
+    {
+        await using var conn = await CreateConnection();
+        await using var cmd = new NpgsqlCommand($"TRUNCATE TABLE {tablePrefix}_effects", conn);
+        await cmd.ExecuteNonQueryAsync();
+    }
 
     public async Task SetEffectResults(StoredId storedId, IReadOnlyList<StoredEffectChange> changes, IStorageSession? session)
     {
@@ -29,15 +47,11 @@ public class PostgreSqlEffectsStore(string connectionString, string tablePrefix 
             foreach (var e in effects)
                 snapshotSession.Effects[e.EffectId] = e;
 
-            // Load version and RowExists from database
-            var command = _stateStore.Get([storedId]);
-            await using var reader = await _commandExecutor.Execute(command);
-            var storedStates = await _stateStore.Read(reader);
-            if (storedStates.TryGetValue(storedId, out var states) && states.ContainsKey(0))
-            {
-                snapshotSession.RowExists = true;
-                snapshotSession.Version = states[0].Version;
-            }
+            // Load version from database
+            var command = StoreCommand.Create($"SELECT version FROM {tablePrefix}_effects WHERE id = $1", [storedId.AsGuid]);
+            var version = (await _commandExecutor.ExecuteScalar(command)) as int?;
+            snapshotSession.RowExists = version.HasValue;
+            snapshotSession.Version = version ?? 0;
         }
         
         foreach (var change in changes)
@@ -48,49 +62,60 @@ public class PostgreSqlEffectsStore(string connectionString, string tablePrefix 
 
         var content = snapshotSession.Serialize();
         
-        var storedState = new PostgreSqlStateStore.StoredState(
-            storedId,
-            Position: 0,
-            content,
-            snapshotSession.Version
-        );
-
         if (snapshotSession.RowExists)
         {
             snapshotSession.Version++;
-            await _commandExecutor.ExecuteNonQuery(_stateStore.Update(storedId, storedState));            
+            await _commandExecutor.ExecuteNonQuery(
+                StoreCommand.Create($"UPDATE {tablePrefix}_effects SET content = $1 WHERE id = $2", [content, storedId.AsGuid])
+            );
         }
         else
         {
-            snapshotSession.RowExists = true;            
-            await _commandExecutor.ExecuteNonQuery(_stateStore.Insert(storedId, storedState));
+            snapshotSession.RowExists = true;
+            await _commandExecutor.ExecuteNonQuery(
+                StoreCommand.Create($"INSERT INTO {tablePrefix}_effects (id, content, version) VALUES ($1, $2, 0)", [storedId.AsGuid, content])
+            );
         }
     }
 
     public async Task<Dictionary<StoredId, List<StoredEffect>>> GetEffectResults(IEnumerable<StoredId> storedIds)
     {
         storedIds = storedIds.ToList();
-        var command = _stateStore.Get(storedIds.ToList());
-        await using var reader = await _commandExecutor.Execute(command);
-        var storedStates = await _stateStore.Read(reader);
+        var sql = $@"
+            SELECT id, content
+            FROM {tablePrefix}_effects
+            WHERE id = ANY($1)";
+
+        var cmd = StoreCommand.Create(sql, [storedIds.Select(s => s.AsGuid).ToList()]);
+        await using var reader = await _commandExecutor.Execute(cmd);
+
         var toReturn = new Dictionary<StoredId, List<StoredEffect>>();
         foreach (var storedId in storedIds)
             toReturn[storedId] = new List<StoredEffect>();
         
-        foreach (var (id, states) in storedStates)
+        while (await reader.ReadAsync())
         {
-            var storedState = states[0];
-            var effectsBytes = BinaryPacker.Split(storedState.Content!);
-            var storedEffects = effectsBytes.Select(effectBytes => StoredEffect.Deserialize(effectBytes!)).ToList();
-            toReturn[id] = storedEffects;
+            var id = reader.GetGuid(0).ToStoredId();
+            var content = (byte[])reader.GetValue(1);
+            var effectsBytes = BinaryPacker.Split(content);
+            foreach (var effectsByte in effectsBytes)
+                toReturn[id].Add(StoredEffect.Deserialize(effectsByte!));
         }
-
+        
         return toReturn;
     }
     
     public async Task Remove(StoredId storedId)
     {
-        var cmd = _stateStore.Delete(storedId);
-        await _commandExecutor.ExecuteNonQuery(cmd);
+        await _commandExecutor.ExecuteNonQuery(
+            StoreCommand.Create($"DELETE FROM {tablePrefix}_effects WHERE id = $1", [storedId.AsGuid])
+        );
+    }
+    
+    private async Task<NpgsqlConnection> CreateConnection()
+    {
+        var conn = new NpgsqlConnection(connectionString);
+        await conn.OpenAsync();
+        return conn;
     }
 }

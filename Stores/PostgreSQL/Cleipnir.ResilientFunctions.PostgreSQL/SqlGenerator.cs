@@ -42,9 +42,9 @@ public class SqlGenerator(string tablePrefix)
     public StoreCommand GetEffects(StoredId storedId)
     {
         _getEffectResultsSql ??= @$"
-            SELECT id, content, position, version
-            FROM {tablePrefix}_state
-            WHERE id = $1 AND position = 0;";
+            SELECT id, content, 0 as position, version
+            FROM {tablePrefix}_effects
+            WHERE id = $1;";
 
         return StoreCommand.Create(
             _getEffectResultsSql,
@@ -158,10 +158,10 @@ public class SqlGenerator(string tablePrefix)
         var content = session.Serialize();
         session.RowExists = true;
         return StoreCommand.Create(
-            $@"INSERT INTO {tablePrefix}_state 
-                            (id, position, content, version)
+            $@"INSERT INTO {tablePrefix}_effects
+                            (id, content, version)
                        VALUES
-                            ($1, 0, $2, 0);", 
+                            ($1, $2, 0);",
             [storedId.AsGuid, content]
         );
     }
