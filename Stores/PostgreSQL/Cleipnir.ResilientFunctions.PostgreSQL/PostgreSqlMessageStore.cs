@@ -146,9 +146,27 @@ public class PostgreSqlMessageStore(string connectionString, SqlGenerator sqlGen
                 new() {Value = position},
             }
         };
-        
+
         var affectedRows = await command.ExecuteNonQueryAsync();
         return affectedRows == 1;
+    }
+
+    public async Task DeleteMessages(StoredId storedId, IEnumerable<long> positions)
+    {
+        var positionsArray = positions.ToArray();
+        if (positionsArray.Length == 0)
+            return;
+
+        await using var conn = await CreateConnection();
+        var sql = @$"
+                DELETE FROM {_tablePrefix}_messages
+                WHERE id = $1 AND position = ANY($2)";
+
+        await using var command = new NpgsqlCommand(sql, conn);
+        command.Parameters.Add(new NpgsqlParameter { Value = storedId.AsGuid });
+        command.Parameters.Add(new NpgsqlParameter { Value = positionsArray });
+
+        await command.ExecuteNonQueryAsync();
     }
 
     private string? _truncateFunctionSql;

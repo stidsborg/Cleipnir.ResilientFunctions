@@ -85,4 +85,24 @@ public class MessageStoreTests :  Cleipnir.ResilientFunctions.Tests.Messaging.Te
     [TestMethod]
     public override Task MessagesForMultipleStoreIdsCanBeFetched()
         => MessagesForMultipleStoreIdsCanBeFetched(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task DeleteMessagesRemovesMessagesAtSpecifiedPositions()
+        => DeleteMessagesRemovesMessagesAtSpecifiedPositions(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task DeleteMessagesDeletesSpecifiedMessages()
+        => DeleteMessagesDeletesSpecifiedMessages(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task DeleteMessagesWithNonExistentPositionsDoesNotThrow()
+        => DeleteMessagesWithNonExistentPositionsDoesNotThrow(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task DeleteMessagesWithEmptyPositionsDoesNotThrow()
+        => DeleteMessagesWithEmptyPositionsDoesNotThrow(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task DeleteMessagesOnlyAffectsSpecifiedStoredId()
+        => DeleteMessagesOnlyAffectsSpecifiedStoredId(FunctionStoreFactory.Create());
 }

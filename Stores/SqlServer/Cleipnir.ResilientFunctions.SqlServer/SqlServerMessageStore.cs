@@ -141,6 +141,25 @@ public class SqlServerMessageStore(string connectionString, SqlGenerator sqlGene
         return affectedRows == 1;
     }
 
+    public async Task DeleteMessages(StoredId storedId, IEnumerable<long> positions)
+    {
+        var positionsList = positions.ToList();
+        if (positionsList.Count == 0)
+            return;
+
+        await using var conn = await CreateConnection();
+        var sql = @$"
+            DELETE FROM {tablePrefix}_Messages
+            WHERE Id = @Id AND Position IN ({positionsList.Select((_, i) => $"@Position{i}").StringJoin(", ")})";
+
+        await using var command = new SqlCommand(sql, conn);
+        command.Parameters.AddWithValue("@Id", storedId.AsGuid);
+        for (var i = 0; i < positionsList.Count; i++)
+            command.Parameters.AddWithValue($"@Position{i}", positionsList[i]);
+
+        await command.ExecuteNonQueryAsync();
+    }
+
     private string? _truncateSql;
     public async Task Truncate(StoredId storedId)
     {

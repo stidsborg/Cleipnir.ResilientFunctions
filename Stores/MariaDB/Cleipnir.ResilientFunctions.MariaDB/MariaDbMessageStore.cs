@@ -197,6 +197,25 @@ public class MariaDbMessageStore : IMessageStore
         return affectedRows == 1;
     }
 
+    public async Task DeleteMessages(StoredId storedId, IEnumerable<long> positions)
+    {
+        var positionsList = positions.ToList();
+        if (positionsList.Count == 0)
+            return;
+
+        await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
+        var sql = @$"
+                DELETE FROM {_tablePrefix}_messages
+                WHERE id = ? AND position IN ({string.Join(", ", positionsList.Select(_ => "?"))})";
+
+        await using var command = new MySqlCommand(sql, conn);
+        command.Parameters.Add(new MySqlParameter { Value = storedId.AsGuid.ToString("N") });
+        foreach (var position in positionsList)
+            command.Parameters.Add(new MySqlParameter { Value = position });
+
+        await command.ExecuteNonQueryAsync();
+    }
+
     private string? _truncateSql;
     public async Task Truncate(StoredId storedId)
     {
