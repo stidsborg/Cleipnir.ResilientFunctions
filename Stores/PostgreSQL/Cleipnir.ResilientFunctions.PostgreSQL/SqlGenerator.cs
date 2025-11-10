@@ -158,16 +158,17 @@ public class SqlGenerator(string tablePrefix)
         var content = session.Serialize();
         session.RowExists = true;
         return StoreCommand.Create(
-            $@"INSERT INTO {tablePrefix}_effects
-                            (id, content, version)
-                       VALUES
-                            ($1, $2, 0);",
-            [storedId.AsGuid, content]
+            $@"UPDATE {tablePrefix}
+               SET effects = $1
+               WHERE id = $2;",
+            [content, storedId.AsGuid]
         );
     }
     
     private string? _createFunctionSql;
     private string? _createFunctionWithConflictSql;
+    private string? _createFunctionWithEffectsSql;
+    private string? _createFunctionWithEffectsAndConflictSql;
 
     public IEnumerable<StoreCommand> CreateFunction(
         StoredId storedId,
@@ -178,52 +179,109 @@ public class SqlGenerator(string tablePrefix)
         long timestamp,
         StoredId? parent,
         ReplicaId? owner,
-        bool ignoreConflict)
+        bool ignoreConflict,
+        byte[]? effects = null)
     {
-        if (ignoreConflict)
-        {
-            _createFunctionWithConflictSql ??= @$"
-                INSERT INTO {tablePrefix}
-                    (id, status, expires, owner, timestamp, param_json, result_json, exception_json, human_instance_id, parent)
-                VALUES
-                    ($1, $2, $3, $4, $5, $6, NULL, NULL, $7, $8)
-                ON CONFLICT DO NOTHING";
+        var status = (int)(postponeUntil == null ? Status.Executing : Status.Postponed);
+        var expires = postponeUntil ?? leaseExpiration;
 
-            yield return StoreCommand.Create(
-                _createFunctionWithConflictSql,
-                values:
-                [
-                    storedId.AsGuid,
-                    (int)(postponeUntil == null ? Status.Executing : Status.Postponed),
-                    postponeUntil ?? leaseExpiration,
-                    owner?.AsGuid ?? (object)DBNull.Value,
-                    timestamp,
-                    param == null ? DBNull.Value : param,
-                    humanInstanceId.Value,
-                    parent?.AsGuid ?? (object)DBNull.Value,
-                ]);
+        if (effects == null)
+        {
+            if (ignoreConflict)
+            {
+                _createFunctionWithConflictSql ??= @$"
+                    INSERT INTO {tablePrefix}
+                        (id, status, expires, owner, timestamp, param_json, result_json, exception_json, human_instance_id, parent, interrupted)
+                    VALUES
+                        ($1, $2, $3, $4, $5, $6, NULL, NULL, $7, $8, FALSE)
+                    ON CONFLICT DO NOTHING";
+
+                yield return StoreCommand.Create(
+                    _createFunctionWithConflictSql,
+                    values:
+                    [
+                        storedId.AsGuid,
+                        status,
+                        expires,
+                        owner?.AsGuid ?? (object)DBNull.Value,
+                        timestamp,
+                        param == null ? DBNull.Value : param,
+                        humanInstanceId.Value,
+                        parent?.AsGuid ?? (object)DBNull.Value,
+                    ]);
+            }
+            else
+            {
+                _createFunctionSql ??= @$"
+                    INSERT INTO {tablePrefix}
+                        (id, status, expires, owner, timestamp, param_json, result_json, exception_json, human_instance_id, parent, interrupted)
+                    VALUES
+                        ($1, $2, $3, $4, $5, $6, NULL, NULL, $7, $8, FALSE)";
+
+                yield return StoreCommand.Create(
+                    _createFunctionSql,
+                    values:
+                    [
+                        storedId.AsGuid,
+                        status,
+                        expires,
+                        owner?.AsGuid ?? (object)DBNull.Value,
+                        timestamp,
+                        param == null ? DBNull.Value : param,
+                        humanInstanceId.Value,
+                        parent?.AsGuid ?? (object)DBNull.Value,
+                    ]);
+            }
         }
         else
         {
-            _createFunctionSql ??= @$"
-                INSERT INTO {tablePrefix}
-                    (id, status, expires, owner, timestamp, param_json, result_json, exception_json, human_instance_id, parent)
-                VALUES
-                    ($1, $2, $3, $4, $5, $6, NULL, NULL, $7, $8)";
+            if (ignoreConflict)
+            {
+                _createFunctionWithEffectsAndConflictSql ??= @$"
+                    INSERT INTO {tablePrefix}
+                        (id, status, expires, owner, timestamp, param_json, result_json, exception_json, human_instance_id, parent, interrupted, effects)
+                    VALUES
+                        ($1, $2, $3, $4, $5, $6, NULL, NULL, $7, $8, FALSE, $9)
+                    ON CONFLICT DO NOTHING";
 
-            yield return StoreCommand.Create(
-                _createFunctionSql,
-                values:
-                [
-                    storedId.AsGuid,
-                    (int)(postponeUntil == null ? Status.Executing : Status.Postponed),
-                    postponeUntil ?? leaseExpiration,
-                    owner?.AsGuid ?? (object)DBNull.Value,
-                    timestamp,
-                    param == null ? DBNull.Value : param,
-                    humanInstanceId.Value,
-                    parent?.AsGuid ?? (object)DBNull.Value,
-                ]);
+                yield return StoreCommand.Create(
+                    _createFunctionWithEffectsAndConflictSql,
+                    values:
+                    [
+                        storedId.AsGuid,
+                        status,
+                        expires,
+                        owner?.AsGuid ?? (object)DBNull.Value,
+                        timestamp,
+                        param == null ? DBNull.Value : param,
+                        humanInstanceId.Value,
+                        parent?.AsGuid ?? (object)DBNull.Value,
+                        effects,
+                    ]);
+            }
+            else
+            {
+                _createFunctionWithEffectsSql ??= @$"
+                    INSERT INTO {tablePrefix}
+                        (id, status, expires, owner, timestamp, param_json, result_json, exception_json, human_instance_id, parent, interrupted, effects)
+                    VALUES
+                        ($1, $2, $3, $4, $5, $6, NULL, NULL, $7, $8, FALSE, $9)";
+
+                yield return StoreCommand.Create(
+                    _createFunctionWithEffectsSql,
+                    values:
+                    [
+                        storedId.AsGuid,
+                        status,
+                        expires,
+                        owner?.AsGuid ?? (object)DBNull.Value,
+                        timestamp,
+                        param == null ? DBNull.Value : param,
+                        humanInstanceId.Value,
+                        parent?.AsGuid ?? (object)DBNull.Value,
+                        effects,
+                    ]);
+            }
         }
     }
     
@@ -333,26 +391,20 @@ public class SqlGenerator(string tablePrefix)
             UPDATE {tablePrefix}
             SET status = {(int)Status.Executing}, expires = 0, interrupted = FALSE, owner = $1
             WHERE id = $2 AND owner IS NULL
-            RETURNING         
-                id,      
-                param_json, 
+            RETURNING
+                id,
+                param_json,
                 status,
-                result_json, 
+                result_json,
                 exception_json,
                 expires,
                 interrupted,
                 timestamp,
                 human_instance_id,
                 parent,
-                owner;";
-/*
- *  0  id
-    1  param_json
-    2  result_json
-    3  exception_json
-    4  human_instance_id
-    5  parent
- */
+                owner,
+                effects;";
+
         var command = StoreCommand.Create(
             _restartExecutionSql,
             values: [
@@ -385,7 +437,7 @@ public class SqlGenerator(string tablePrefix)
             var hasException = !await reader.IsDBNullAsync(4);
             var hasParent = !await reader.IsDBNullAsync(9);
             var hasOwner = !await reader.IsDBNullAsync(10);
-            
+
             var id = reader.GetGuid(0).ToStoredId();
             var param = hasParameter ? (byte[]) reader.GetValue(1) : null;
             var status = (Status) reader.GetInt32(2);
@@ -397,7 +449,7 @@ public class SqlGenerator(string tablePrefix)
             var humanInstanceId = reader.GetString(8);
             var parent = hasParent ? reader.GetGuid(9).ToStoredId() : null;
             var owner = hasOwner ? new ReplicaId(reader.GetGuid(10)) : null;
-            
+
             return new StoredFlow(
                 id,
                 humanInstanceId,
@@ -414,6 +466,64 @@ public class SqlGenerator(string tablePrefix)
         }
 
         return null;
+    }
+
+    public async Task<(StoredFlow?, byte[]?)> ReadFunctionWithEffects(StoredId storedId, NpgsqlDataReader reader)
+    {
+        /*
+           0  id
+           1  param_json,
+           2  status,
+           3  result_json,
+           4  exception_json,
+           5  expires,
+           6  interrupted,
+           7  timestamp,
+           8  human_instance_id
+           9  parent,
+           10 owner
+           11 effects
+         */
+        while (await reader.ReadAsync())
+        {
+            var hasParameter = !await reader.IsDBNullAsync(1);
+            var hasResult = !await reader.IsDBNullAsync(3);
+            var hasException = !await reader.IsDBNullAsync(4);
+            var hasParent = !await reader.IsDBNullAsync(9);
+            var hasOwner = !await reader.IsDBNullAsync(10);
+            var hasEffects = !await reader.IsDBNullAsync(11);
+
+            var id = reader.GetGuid(0).ToStoredId();
+            var param = hasParameter ? (byte[]) reader.GetValue(1) : null;
+            var status = (Status) reader.GetInt32(2);
+            var result = hasResult ? (byte[]) reader.GetValue(3) : null;
+            var exception = hasException ? JsonSerializer.Deserialize<StoredException>(reader.GetString(4)) : null;
+            var expires = reader.GetInt64(5);
+            var interrupted = reader.GetBoolean(6);
+            var timestamp = reader.GetInt64(7);
+            var humanInstanceId = reader.GetString(8);
+            var parent = hasParent ? reader.GetGuid(9).ToStoredId() : null;
+            var owner = hasOwner ? new ReplicaId(reader.GetGuid(10)) : null;
+            var effectsBytes = hasEffects ? (byte[])reader.GetValue(11) : null;
+
+            var storedFlow = new StoredFlow(
+                id,
+                humanInstanceId,
+                param,
+                status,
+                exception,
+                expires,
+                timestamp,
+                interrupted,
+                parent,
+                owner,
+                id.Type
+            );
+
+            return (storedFlow, effectsBytes);
+        }
+
+        return (null, null);
     } 
 
     public StoreCommand AppendMessages(IReadOnlyList<StoredIdAndMessageWithPosition> messages)

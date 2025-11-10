@@ -9,6 +9,7 @@ using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Storage.Session;
+using Cleipnir.ResilientFunctions.Storage.Utils;
 using Npgsql;
 
 namespace Cleipnir.ResilientFunctions.PostgreSQL;
@@ -89,7 +90,8 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 result_json BYTEA NULL,
                 exception_json TEXT NULL,
                 human_instance_id TEXT NOT NULL,
-                parent UUID NULL
+                parent UUID NULL,
+                effects BYTEA NULL
             );
 
             CREATE INDEX IF NOT EXISTS idx_{_tableName}_expires
@@ -130,6 +132,18 @@ public class PostgreSqlFunctionStore : IFunctionStore
         IReadOnlyList<StoredMessage>? messages = null
         )
     {
+        var session = new SnapshotStorageSession(owner ?? ReplicaId.Empty)
+            { RowExists = true };
+
+        // Serialize effects if present
+        byte[]? effectsBytes = null;
+        if (effects?.Any() ?? false)
+        {
+            foreach (var effect in effects)
+                session.Effects[effect.EffectId] = effect;
+            effectsBytes = session.Serialize();
+        }
+
         if (effects == null && messages == null)
         {
             await using var conn = await CreateConnection();
@@ -142,14 +156,15 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 timestamp,
                 parent,
                 owner,
-                ignoreConflict: true
+                ignoreConflict: true,
+                effects: effectsBytes
             ).CreateBatch().WithConnection(conn);
 
             var affectedRows = await batch.ExecuteNonQueryAsync();
-            if (affectedRows != 1 || owner == null) 
+            if (affectedRows != 1 || owner == null)
                 return null;
-            
-            return new SnapshotStorageSession(owner);
+
+            return session;
         }
 
         try
@@ -164,18 +179,9 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 timestamp,
                 parent,
                 owner,
-                ignoreConflict: false
+                ignoreConflict: false,
+                effects: effectsBytes
             ));
-            
-            var session = new SnapshotStorageSession(owner ?? ReplicaId.Empty);
-            if (effects?.Any() ?? false)
-                commands.AddRange(
-                    _sqlGenerator.InsertEffects(
-                        storedId,
-                        changes: effects.Select(e => new StoredEffectChange(storedId, e.EffectId, CrudOperation.Insert, e)).ToList(),
-                        session
-                    )
-                );
 
             if (messages?.Any() ?? false)
                 commands.AddRange(_sqlGenerator.AppendMessages(
@@ -189,7 +195,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
             batch.WithConnection(conn, transaction);
             await batch.ExecuteNonQueryAsync();
             await transaction.CommitAsync();
-            
+
             return owner == null ? null : session;
         }
         catch (PostgresException e) when (e.SqlState == "23505")
@@ -216,25 +222,41 @@ public class PostgreSqlFunctionStore : IFunctionStore
     public async Task<StoredFlowWithEffectsAndMessages?> RestartExecution(StoredId storedId, ReplicaId replicaId)
     {
         var restartCommand = _sqlGenerator.RestartExecution(storedId, replicaId);
-        var effectsCommand = _sqlGenerator.GetEffects(storedId);
         var messagesCommand = _sqlGenerator.GetMessages(storedId, skip: 0);
-        
+
         await using var conn = await CreateConnection();
         await using var command = StoreCommandExtensions
-            .ToNpgsqlBatch([restartCommand, effectsCommand, messagesCommand])
+            .ToNpgsqlBatch([restartCommand, messagesCommand])
             .WithConnection(conn);
-        
+
         await using var reader = await command.ExecuteReaderAsync();
         if (reader.RecordsAffected == 0)
             return null;
-        
-        var sf = await _sqlGenerator.ReadFunction(storedId, reader);
+
+        var (sf, effectsBytes) = await _sqlGenerator.ReadFunctionWithEffects(storedId, reader);
         if (sf == null)
             return null;
-        
-        await reader.NextResultAsync();
-        var (effects, session) = await _sqlGenerator.ReadEffects(reader, replicaId);
-        
+
+        // Deserialize effects
+        var session = new SnapshotStorageSession(replicaId)
+        {
+            RowExists = true
+        };
+        var effects = new List<StoredEffect>();
+        if (effectsBytes != null)
+        {
+            var effectsBytesArray = BinaryPacker.Split(effectsBytes);
+            foreach (var effectBytes in effectsBytesArray)
+            {
+                if (effectBytes != null)
+                {
+                    var effect = StoredEffect.Deserialize(effectBytes);
+                    effects.Add(effect);
+                    session.Effects[effect.EffectId] = effect;
+                }
+            }
+        }
+
         await reader.NextResultAsync();
         var messages = await _sqlGenerator.ReadMessages(reader);
         var storedMessages = messages.Select(m => PostgreSqlMessageStore.ConvertToStoredMessage(m.content) with { Position = m.position }).ToList();
