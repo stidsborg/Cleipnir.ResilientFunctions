@@ -505,6 +505,16 @@ public class SqlGenerator(string tablePrefix)
                 .ToList());
     }
 
+    public StoreCommand DeleteMessages(StoredId storedId, IEnumerable<long> positions)
+    {
+        var positionsArray = positions.ToArray();
+        var sql = @$"
+                DELETE FROM {tablePrefix}_messages
+                WHERE id = $1 AND position = ANY($2)";
+
+        return StoreCommand.Create(sql, values: [ storedId.AsGuid, positionsArray ]);
+    }
+
     private string? _setParametersSql;
     private string? _setParametersSqlWithoutReplica;
     public StoreCommand SetParameters(

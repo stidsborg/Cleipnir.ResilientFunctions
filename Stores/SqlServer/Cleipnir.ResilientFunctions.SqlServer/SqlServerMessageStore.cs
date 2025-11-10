@@ -148,15 +148,7 @@ public class SqlServerMessageStore(string connectionString, SqlGenerator sqlGene
             return;
 
         await using var conn = await CreateConnection();
-        var sql = @$"
-            DELETE FROM {tablePrefix}_Messages
-            WHERE Id = @Id AND Position IN ({positionsList.Select((_, i) => $"@Position{i}").StringJoin(", ")})";
-
-        await using var command = new SqlCommand(sql, conn);
-        command.Parameters.AddWithValue("@Id", storedId.AsGuid);
-        for (var i = 0; i < positionsList.Count; i++)
-            command.Parameters.AddWithValue($"@Position{i}", positionsList[i]);
-
+        await using var command = sqlGenerator.DeleteMessages(storedId, positionsList).ToSqlCommand(conn);
         await command.ExecuteNonQueryAsync();
     }
 

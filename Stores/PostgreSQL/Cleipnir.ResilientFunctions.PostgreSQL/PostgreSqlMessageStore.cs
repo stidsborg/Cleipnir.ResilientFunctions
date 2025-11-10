@@ -158,14 +158,7 @@ public class PostgreSqlMessageStore(string connectionString, SqlGenerator sqlGen
             return;
 
         await using var conn = await CreateConnection();
-        var sql = @$"
-                DELETE FROM {_tablePrefix}_messages
-                WHERE id = $1 AND position = ANY($2)";
-
-        await using var command = new NpgsqlCommand(sql, conn);
-        command.Parameters.Add(new NpgsqlParameter { Value = storedId.AsGuid });
-        command.Parameters.Add(new NpgsqlParameter { Value = positionsArray });
-
+        await using var command = sqlGenerator.DeleteMessages(storedId, positionsArray).ToNpgsqlCommand(conn);
         await command.ExecuteNonQueryAsync();
     }
 

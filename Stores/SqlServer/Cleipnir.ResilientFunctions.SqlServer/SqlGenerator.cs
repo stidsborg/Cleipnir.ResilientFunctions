@@ -616,4 +616,19 @@ public class SqlGenerator(string tablePrefix)
                 .OrderBy(m => m.position)
                 .ToList());
     }
+
+    public StoreCommand DeleteMessages(StoredId storedId, IEnumerable<long> positions)
+    {
+        var positionsList = positions.ToList();
+        var sql = @$"
+            DELETE FROM {tablePrefix}_Messages
+            WHERE Id = @Id AND Position IN ({positionsList.Select((_, i) => $"@Position{i}").StringJoin(", ")})";
+
+        var command = StoreCommand.Create(sql);
+        command.AddParameter("@Id", storedId.AsGuid);
+        for (var i = 0; i < positionsList.Count; i++)
+            command.AddParameter($"@Position{i}", positionsList[i]);
+
+        return command;
+    }
 }
