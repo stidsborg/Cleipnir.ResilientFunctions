@@ -13,6 +13,7 @@ public interface IMessageStore
     Task AppendMessages(IReadOnlyList<StoredIdAndMessageWithPosition> messages, bool interrupt);
 
     Task<bool> ReplaceMessage(StoredId storedId, long position, StoredMessage storedMessage);
+    Task DeleteMessages(StoredId storedId, IEnumerable<long> positions);
 
     Task Truncate(StoredId storedId);
 

@@ -887,4 +887,184 @@ public abstract class MessageStoreTests
         messageId2[0].MessageContent.ToStringFromUtf8Bytes().DeserializeFromJsonTo<string>().ShouldBe("Hello");
         messageId2[1].MessageContent.ToStringFromUtf8Bytes().DeserializeFromJsonTo<string>().ShouldBe("World!");
     }
+
+    public abstract Task DeleteMessagesRemovesMessagesAtSpecifiedPositions();
+    protected async Task DeleteMessagesRemovesMessagesAtSpecifiedPositions(Task<IFunctionStore> functionStoreTask)
+    {
+        var functionId = TestStoredId.Create();
+        var functionStore = await functionStoreTask;
+        await functionStore.CreateFunction(
+            functionId,
+            "humanInstanceId",
+            Test.SimpleStoredParameter,
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks,
+            parent: null,
+            owner: null
+        );
+        var messageStore = functionStore.MessageStore;
+
+        const string msg1 = "message1";
+        const string msg2 = "message2";
+        const string msg3 = "message3";
+        const string msg4 = "message4";
+
+        await messageStore.AppendMessage(functionId, new StoredMessage(msg1.ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Position: 0));
+        await messageStore.AppendMessage(functionId, new StoredMessage(msg2.ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Position: 0));
+        await messageStore.AppendMessage(functionId, new StoredMessage(msg3.ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Position: 0));
+        await messageStore.AppendMessage(functionId, new StoredMessage(msg4.ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Position: 0));
+
+        var messages = (await messageStore.GetMessages(functionId, skip: 0)).ToList();
+        messages.Count.ShouldBe(4);
+
+        // Delete the first and third messages
+        await messageStore.DeleteMessages(functionId, new[] { messages[0].Position, messages[2].Position });
+
+        var remainingMessages = (await messageStore.GetMessages(functionId, skip: 0)).ToList();
+        remainingMessages.Count.ShouldBe(2);
+        remainingMessages[0].DefaultDeserialize().ShouldBe(msg2);
+        remainingMessages[1].DefaultDeserialize().ShouldBe(msg4);
+    }
+
+    public abstract Task DeleteMessagesDeletesSpecifiedMessages();
+    protected async Task DeleteMessagesDeletesSpecifiedMessages(Task<IFunctionStore> functionStoreTask)
+    {
+        var functionId = TestStoredId.Create();
+        var functionStore = await functionStoreTask;
+        await functionStore.CreateFunction(
+            functionId,
+            "humanInstanceId",
+            Test.SimpleStoredParameter,
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks,
+            parent: null,
+            owner: null
+        );
+        var messageStore = functionStore.MessageStore;
+
+        const string msg1 = "message1";
+        const string msg2 = "message2";
+
+        await messageStore.AppendMessage(functionId, new StoredMessage(msg1.ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Position: 0));
+        await messageStore.AppendMessage(functionId, new StoredMessage(msg2.ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Position: 0));
+
+        var messages = (await messageStore.GetMessages(functionId, skip: 0)).ToList();
+        messages.Count.ShouldBe(2);
+
+        await messageStore.DeleteMessages(functionId, new[] { messages[0].Position });
+
+        var remainingMessages = (await messageStore.GetMessages(functionId, skip: 0)).ToList();
+        remainingMessages.Count.ShouldBe(1);
+        remainingMessages[0].DefaultDeserialize().ShouldBe(msg2);
+    }
+
+    public abstract Task DeleteMessagesWithNonExistentPositionsDoesNotThrow();
+    protected async Task DeleteMessagesWithNonExistentPositionsDoesNotThrow(Task<IFunctionStore> functionStoreTask)
+    {
+        var functionId = TestStoredId.Create();
+        var functionStore = await functionStoreTask;
+        await functionStore.CreateFunction(
+            functionId,
+            "humanInstanceId",
+            Test.SimpleStoredParameter,
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks,
+            parent: null,
+            owner: null
+        );
+        var messageStore = functionStore.MessageStore;
+
+        const string msg1 = "message1";
+
+        await messageStore.AppendMessage(functionId, new StoredMessage(msg1.ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Position: 0));
+
+        var messages = (await messageStore.GetMessages(functionId, skip: 0)).ToList();
+        messages.Count.ShouldBe(1);
+
+        // Try to delete messages at non-existent positions (should not throw)
+        await messageStore.DeleteMessages(functionId, new[] { 999L, 1000L });
+
+        var remainingMessages = (await messageStore.GetMessages(functionId, skip: 0)).ToList();
+        remainingMessages.Count.ShouldBe(1);
+    }
+
+    public abstract Task DeleteMessagesWithEmptyPositionsDoesNotThrow();
+    protected async Task DeleteMessagesWithEmptyPositionsDoesNotThrow(Task<IFunctionStore> functionStoreTask)
+    {
+        var functionId = TestStoredId.Create();
+        var functionStore = await functionStoreTask;
+        await functionStore.CreateFunction(
+            functionId,
+            "humanInstanceId",
+            Test.SimpleStoredParameter,
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks,
+            parent: null,
+            owner: null
+        );
+        var messageStore = functionStore.MessageStore;
+
+        // Should not throw when deleting with empty positions list
+        await messageStore.DeleteMessages(functionId, Array.Empty<long>());
+    }
+
+    public abstract Task DeleteMessagesOnlyAffectsSpecifiedStoredId();
+    protected async Task DeleteMessagesOnlyAffectsSpecifiedStoredId(Task<IFunctionStore> functionStoreTask)
+    {
+        var id1 = TestStoredId.Create();
+        var id2 = TestStoredId.Create();
+
+        var functionStore = await functionStoreTask;
+        await functionStore.CreateFunction(
+            id1,
+            "humanInstanceId1",
+            Test.SimpleStoredParameter,
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks,
+            parent: null,
+            owner: null
+        );
+        await functionStore.CreateFunction(
+            id2,
+            "humanInstanceId2",
+            Test.SimpleStoredParameter,
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks,
+            parent: null,
+            owner: null
+        );
+        var messageStore = functionStore.MessageStore;
+
+        const string msg1 = "message1";
+        const string msg2 = "message2";
+
+        // Add messages to both functions
+        await messageStore.AppendMessage(id1, new StoredMessage(msg1.ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Position: 0));
+        await messageStore.AppendMessage(id1, new StoredMessage(msg2.ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Position: 0));
+        await messageStore.AppendMessage(id2, new StoredMessage(msg1.ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Position: 0));
+        await messageStore.AppendMessage(id2, new StoredMessage(msg2.ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Position: 0));
+
+        var messages1 = (await messageStore.GetMessages(id1, skip: 0)).ToList();
+        messages1.Count.ShouldBe(2);
+
+        // Delete first message from id1 only
+        await messageStore.DeleteMessages(id1, new[] { messages1[0].Position });
+
+        // Verify id1 has only one message left
+        var remainingMessages1 = (await messageStore.GetMessages(id1, skip: 0)).ToList();
+        remainingMessages1.Count.ShouldBe(1);
+        remainingMessages1[0].DefaultDeserialize().ShouldBe(msg2);
+
+        // Verify id2 still has all messages
+        var messages2 = (await messageStore.GetMessages(id2, skip: 0)).ToList();
+        messages2.Count.ShouldBe(2);
+        messages2[0].DefaultDeserialize().ShouldBe(msg1);
+        messages2[1].DefaultDeserialize().ShouldBe(msg2);
+    }
 }
