@@ -129,8 +129,8 @@ public class SqlGenerator(string tablePrefix)
         while (await reader.ReadAsync())
         {
             var id = new StoredId(reader.GetGuid(0));
-            var position = reader.GetInt32(1);
-            var content = (byte[])reader.GetValue(2);
+            var content = (byte[])reader.GetValue(1);
+            var position = reader.GetInt32(2);
             var version = reader.GetInt32(3);
             
             var effectsBytes = BinaryPacker.Split(content);

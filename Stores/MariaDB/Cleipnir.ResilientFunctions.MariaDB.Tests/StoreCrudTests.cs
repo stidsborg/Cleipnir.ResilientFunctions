@@ -68,4 +68,8 @@ public class StoreCrudTests : ResilientFunctions.Tests.TestTemplates.StoreCrudTe
     [TestMethod]
     public override Task RestartExecutionsReturnsEmptyDictionaryForEmptyInput()
         => RestartExecutionsReturnsEmptyDictionaryForEmptyInput(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task RestartExecutionsIncludesExistingEffectsAndMessages()
+        => RestartExecutionsIncludesExistingEffectsAndMessages(FunctionStoreFactory.Create());
 }

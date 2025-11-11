@@ -71,4 +71,8 @@ public class StoreCrudTests : TestTemplates.StoreCrudTests
     [TestMethod]
     public override Task RestartExecutionsReturnsEmptyDictionaryForEmptyInput()
         => RestartExecutionsReturnsEmptyDictionaryForEmptyInput(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task RestartExecutionsIncludesExistingEffectsAndMessages()
+        => RestartExecutionsIncludesExistingEffectsAndMessages(FunctionStoreFactory.Create());
 }

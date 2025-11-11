@@ -486,4 +486,94 @@ public abstract class StoreCrudTests
 
         result.Count.ShouldBe(0);
     }
+
+    public abstract Task RestartExecutionsIncludesExistingEffectsAndMessages();
+    public async Task RestartExecutionsIncludesExistingEffectsAndMessages(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var storedId1 = TestStoredId.Create();
+        var storedId2 = TestStoredId.Create();
+        var owner = ReplicaId.NewId();
+
+        // Create effects
+        var effect1 = new StoredEffect(
+            EffectId: "effect1".ToEffectId(),
+            WorkStatus: WorkStatus.Completed,
+            Result: "result1".ToUtf8Bytes(),
+            StoredException: null
+        );
+        var effect2 = new StoredEffect(
+            EffectId: "effect2".ToEffectId(),
+            WorkStatus: WorkStatus.Completed,
+            Result: "result2".ToUtf8Bytes(),
+            StoredException: null
+        );
+
+        // Create messages
+        var message1 = new StoredMessage(
+            MessageContent: "message1".ToUtf8Bytes(),
+            MessageType: "Type1".ToUtf8Bytes(),
+            Position: 0,
+            IdempotencyKey: null
+        );
+        var message2 = new StoredMessage(
+            MessageContent: "message2".ToUtf8Bytes(),
+            MessageType: "Type2".ToUtf8Bytes(),
+            Position: 1,
+            IdempotencyKey: null
+        );
+
+        // Create 2 functions with effects and messages
+        await store.CreateFunction(
+            storedId1,
+            "instance1",
+            Param.ToUtf8Bytes(),
+            leaseExpiration: 0,
+            postponeUntil: DateTime.UtcNow.Ticks,
+            timestamp: DateTime.UtcNow.Ticks,
+            parent: null,
+            owner: null,
+            effects: [effect1],
+            messages: [message1]
+        );
+        await store.CreateFunction(
+            storedId2,
+            "instance2",
+            Param.ToUtf8Bytes(),
+            leaseExpiration: 0,
+            postponeUntil: DateTime.UtcNow.Ticks,
+            timestamp: DateTime.UtcNow.Ticks,
+            parent: null,
+            owner: null,
+            effects: [effect2],
+            messages: [message2]
+        );
+
+        // Restart both
+        var result = await store.RestartExecutions([storedId1, storedId2], owner);
+
+        // Verify both flows returned with their effects and messages
+        result.Count.ShouldBe(2);
+
+        result.ContainsKey(storedId1).ShouldBeTrue();
+        result.ContainsKey(storedId2).ShouldBeTrue();
+
+        // Verify flow 1 has correct effects and messages
+        var flow1 = result[storedId1];
+        flow1.Effects.Count.ShouldBe(1);
+        flow1.Effects[0].EffectId.ShouldBe("effect1".ToEffectId());
+        flow1.Effects[0].Result.ShouldBe("result1".ToUtf8Bytes());
+        flow1.Messages.Count.ShouldBe(1);
+        flow1.Messages[0].MessageContent.ShouldBe("message1".ToUtf8Bytes());
+        flow1.Messages[0].MessageType.ShouldBe("Type1".ToUtf8Bytes());
+
+        // Verify flow 2 has correct effects and messages
+        var flow2 = result[storedId2];
+        flow2.Effects.Count.ShouldBe(1);
+        flow2.Effects[0].EffectId.ShouldBe("effect2".ToEffectId());
+        flow2.Effects[0].Result.ShouldBe("result2".ToUtf8Bytes());
+        flow2.Messages.Count.ShouldBe(1);
+        flow2.Messages[0].MessageContent.ShouldBe("message2".ToUtf8Bytes());
+        flow2.Messages[0].MessageType.ShouldBe("Type2".ToUtf8Bytes());
+    }
 }
