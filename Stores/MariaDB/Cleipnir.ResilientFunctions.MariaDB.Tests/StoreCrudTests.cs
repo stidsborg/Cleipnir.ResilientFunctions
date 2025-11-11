@@ -52,4 +52,20 @@ public class StoreCrudTests : ResilientFunctions.Tests.TestTemplates.StoreCrudTe
     [TestMethod]
     public override Task ParameterAndStateAreNotUpdatedWhenEpochDoesNotMatch()
         => ParameterAndStateAreNotUpdatedWhenEpochDoesNotMatch(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task RestartExecutionsRestartsMultipleUnownedFlows()
+        => RestartExecutionsRestartsMultipleUnownedFlows(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task RestartExecutionsReturnsEmptyDictionaryWhenNoFlowsAreEligible()
+        => RestartExecutionsReturnsEmptyDictionaryWhenNoFlowsAreEligible(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task RestartExecutionsRestartsOnlyUnownedFlows()
+        => RestartExecutionsRestartsOnlyUnownedFlows(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task RestartExecutionsReturnsEmptyDictionaryForEmptyInput()
+        => RestartExecutionsReturnsEmptyDictionaryForEmptyInput(FunctionStoreFactory.Create());
 }

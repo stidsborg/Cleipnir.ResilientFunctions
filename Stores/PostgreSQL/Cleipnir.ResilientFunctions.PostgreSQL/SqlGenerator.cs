@@ -54,7 +54,7 @@ public class SqlGenerator(string tablePrefix)
     public StoreCommand GetEffects(IEnumerable<StoredId> storedIds)
     {
         var sql = @$"
-            SELECT id, position, content, version
+            SELECT id, content, 0 as position, version
             FROM {tablePrefix}_effects
             WHERE id = ANY($1);";
 
@@ -333,11 +333,11 @@ public class SqlGenerator(string tablePrefix)
             UPDATE {tablePrefix}
             SET status = {(int)Status.Executing}, expires = 0, interrupted = FALSE, owner = $1
             WHERE id = $2 AND owner IS NULL
-            RETURNING         
-                id,      
-                param_json, 
+            RETURNING
+                id,
+                param_json,
                 status,
-                result_json, 
+                result_json,
                 exception_json,
                 expires,
                 interrupted,
@@ -361,6 +361,34 @@ public class SqlGenerator(string tablePrefix)
             ]);
 
         return command;
+    }
+
+    private string? _restartExecutionsSql;
+    public StoreCommand RestartExecutions(IReadOnlyList<StoredId> storedIds, ReplicaId replicaId)
+    {
+        _restartExecutionsSql ??= @$"
+            UPDATE {tablePrefix}
+            SET status = {(int)Status.Executing}, expires = 0, interrupted = FALSE, owner = $1
+            WHERE id = ANY($2) AND owner IS NULL
+            RETURNING
+                id,
+                param_json,
+                status,
+                result_json,
+                exception_json,
+                expires,
+                interrupted,
+                timestamp,
+                human_instance_id,
+                parent,
+                owner;";
+
+        return StoreCommand.Create(
+            _restartExecutionsSql,
+            values: [
+                replicaId.AsGuid,
+                storedIds.Select(id => id.AsGuid).ToArray()
+            ]);
     }
     
     public async Task<StoredFlow?> ReadFunction(StoredId storedId, NpgsqlDataReader reader)

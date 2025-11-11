@@ -126,7 +126,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
             var state = _states[storedId];
             if (state.Owner != null)
                 return null;
-            
+
             state.Status = Status.Executing;
             state.Expires = 0;
             state.Interrupted = false;
@@ -152,6 +152,77 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
                     messages,
                     session
                 );
+    }
+
+    public virtual async Task<Dictionary<StoredId, StoredFlowWithEffectsAndMessages>> RestartExecutions(
+        IReadOnlyList<StoredId> storedIds,
+        ReplicaId owner)
+    {
+        if (storedIds.Count == 0)
+            return new Dictionary<StoredId, StoredFlowWithEffectsAndMessages>();
+
+        var restartedIds = new List<StoredId>();
+
+        // Restart eligible flows
+        lock (_sync)
+        {
+            foreach (var storedId in storedIds)
+            {
+                if (!_states.ContainsKey(storedId))
+                    continue;
+
+                var state = _states[storedId];
+                if (state.Owner != null)
+                    continue; // Skip already owned flows
+
+                // Restart this flow
+                state.Status = Status.Executing;
+                state.Expires = 0;
+                state.Interrupted = false;
+                state.Owner = owner;
+
+                restartedIds.Add(storedId);
+            }
+        }
+
+        // Fetch effects and messages for all input IDs in parallel
+        var effectsTasks = storedIds.Select(id =>
+            EffectsStore.GetEffectResults(id).ContinueWith(t => (id, effects: t.Result))
+        ).ToArray();
+        var messagesTasks = storedIds.Select(id =>
+            MessageStore.GetMessages(id, skip: 0).ContinueWith(t => (id, messages: t.Result))
+        ).ToArray();
+
+        await Task.WhenAll(effectsTasks.Cast<Task>().Concat(messagesTasks.Cast<Task>()));
+
+        var effectsMap = effectsTasks.ToDictionary(t => t.Result.id, t => t.Result.effects);
+        var messagesMap = messagesTasks.ToDictionary(t => t.Result.id, t => t.Result.messages);
+
+        // Build result dictionary - only for restarted flows
+        var result = new Dictionary<StoredId, StoredFlowWithEffectsAndMessages>();
+        foreach (var storedId in restartedIds)
+        {
+            var sf = await GetFunction(storedId);
+            if (sf == null) continue;
+
+            var effects = effectsMap.TryGetValue(storedId, out var effs)
+                ? effs
+                : new List<StoredEffect>();
+            var messages = messagesMap.TryGetValue(storedId, out var msgs)
+                ? msgs
+                : new List<StoredMessage>();
+
+            var session = new SnapshotStorageSession(owner);
+            foreach (var effect in effects)
+                session.Effects[effect.EffectId] = effect;
+
+            session.Version = _effectsStore.GetVersion(storedId);
+            session.RowExists = effects.Any();
+
+            result[storedId] = new StoredFlowWithEffectsAndMessages(sf, effects, messages, session);
+        }
+
+        return result;
     }
     
     public virtual Task<IReadOnlyList<StoredId>> GetExpiredFunctions(long expiresBefore)

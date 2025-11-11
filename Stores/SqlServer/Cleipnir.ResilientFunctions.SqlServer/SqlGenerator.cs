@@ -435,6 +435,36 @@ public class SqlGenerator(string tablePrefix)
 
         return storeCommand;
     }
+
+    private string? _restartExecutionsSql;
+    public StoreCommand RestartExecutions(IReadOnlyList<StoredId> storedIds, ReplicaId replicaId)
+    {
+        _restartExecutionsSql ??= @$"
+            UPDATE {tablePrefix}
+            SET Status = {(int)Status.Executing},
+                Expires = 0,
+                Interrupted = 0,
+                Owner = @Owner
+            OUTPUT inserted.Id,
+                   inserted.ParamJson,
+                   inserted.Status,
+                   inserted.ResultJson,
+                   inserted.ExceptionJson,
+                   inserted.Expires,
+                   inserted.Interrupted,
+                   inserted.Timestamp,
+                   inserted.HumanInstanceId,
+                   inserted.Parent,
+                   inserted.Owner,
+                   inserted.Effects
+            WHERE Id IN ({{0}}) AND Owner IS NULL;";
+
+        var sql = string.Format(_restartExecutionsSql, storedIds.InClause());
+        var storeCommand = StoreCommand.Create(sql);
+        storeCommand.AddParameter("@Owner", replicaId.AsGuid);
+
+        return storeCommand;
+    }
     
     public StoredFlow? ReadToStoredFlow(StoredId storedId, SqlDataReader reader)
     {

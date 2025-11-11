@@ -326,4 +326,164 @@ public abstract class StoreCrudTests
         sf.ShouldNotBeNull();
         sf.Parameter.ShouldNotBeNull();
     }
+
+    public abstract Task RestartExecutionsRestartsMultipleUnownedFlows();
+    public async Task RestartExecutionsRestartsMultipleUnownedFlows(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var storedId1 = TestStoredId.Create();
+        var storedId2 = TestStoredId.Create();
+        var storedId3 = TestStoredId.Create();
+        var owner = ReplicaId.NewId();
+
+        // Create 3 functions without owners (postponed)
+        await store.CreateFunction(
+            storedId1,
+            "instance1",
+            Param.ToUtf8Bytes(),
+            leaseExpiration: 0,
+            postponeUntil: DateTime.UtcNow.Ticks,
+            timestamp: DateTime.UtcNow.Ticks,
+            parent: null,
+            owner: null
+        );
+        await store.CreateFunction(
+            storedId2,
+            "instance2",
+            Param.ToUtf8Bytes(),
+            leaseExpiration: 0,
+            postponeUntil: DateTime.UtcNow.Ticks,
+            timestamp: DateTime.UtcNow.Ticks,
+            parent: null,
+            owner: null
+        );
+        await store.CreateFunction(
+            storedId3,
+            "instance3",
+            Param.ToUtf8Bytes(),
+            leaseExpiration: 0,
+            postponeUntil: DateTime.UtcNow.Ticks,
+            timestamp: DateTime.UtcNow.Ticks,
+            parent: null,
+            owner: null
+        );
+
+        // Restart all three
+        var result = await store.RestartExecutions([storedId1, storedId2, storedId3], owner);
+
+        // All three should be restarted
+        result.Count.ShouldBe(3);
+        result.ContainsKey(storedId1).ShouldBeTrue();
+        result.ContainsKey(storedId2).ShouldBeTrue();
+        result.ContainsKey(storedId3).ShouldBeTrue();
+
+        result[storedId1].StoredFlow.OwnerId.ShouldBe(owner);
+        result[storedId1].StoredFlow.Status.ShouldBe(Status.Executing);
+        result[storedId2].StoredFlow.OwnerId.ShouldBe(owner);
+        result[storedId2].StoredFlow.Status.ShouldBe(Status.Executing);
+        result[storedId3].StoredFlow.OwnerId.ShouldBe(owner);
+        result[storedId3].StoredFlow.Status.ShouldBe(Status.Executing);
+    }
+
+    public abstract Task RestartExecutionsReturnsEmptyDictionaryWhenNoFlowsAreEligible();
+    public async Task RestartExecutionsReturnsEmptyDictionaryWhenNoFlowsAreEligible(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var storedId1 = TestStoredId.Create();
+        var storedId2 = TestStoredId.Create();
+        var existingOwner = ReplicaId.NewId();
+        var newOwner = ReplicaId.NewId();
+
+        // Create 2 functions with existing owners
+        await store.CreateFunction(
+            storedId1,
+            "instance1",
+            Param.ToUtf8Bytes(),
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks,
+            parent: null,
+            owner: existingOwner
+        );
+        await store.CreateFunction(
+            storedId2,
+            "instance2",
+            Param.ToUtf8Bytes(),
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks,
+            parent: null,
+            owner: existingOwner
+        );
+
+        // Try to restart - should return empty dictionary
+        var result = await store.RestartExecutions([storedId1, storedId2], newOwner);
+
+        result.Count.ShouldBe(0);
+    }
+
+    public abstract Task RestartExecutionsRestartsOnlyUnownedFlows();
+    public async Task RestartExecutionsRestartsOnlyUnownedFlows(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var storedId1 = TestStoredId.Create();
+        var storedId2 = TestStoredId.Create();
+        var storedId3 = TestStoredId.Create();
+        var existingOwner = ReplicaId.NewId();
+        var newOwner = ReplicaId.NewId();
+
+        // Create 2 functions without owners and 1 with owner
+        await store.CreateFunction(
+            storedId1,
+            "instance1",
+            Param.ToUtf8Bytes(),
+            leaseExpiration: 0,
+            postponeUntil: DateTime.UtcNow.Ticks,
+            timestamp: DateTime.UtcNow.Ticks,
+            parent: null,
+            owner: null
+        );
+        await store.CreateFunction(
+            storedId2,
+            "instance2",
+            Param.ToUtf8Bytes(),
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks,
+            parent: null,
+            owner: existingOwner
+        );
+        await store.CreateFunction(
+            storedId3,
+            "instance3",
+            Param.ToUtf8Bytes(),
+            leaseExpiration: 0,
+            postponeUntil: DateTime.UtcNow.Ticks,
+            timestamp: DateTime.UtcNow.Ticks,
+            parent: null,
+            owner: null
+        );
+
+        // Restart all three - only 1 and 3 should succeed
+        var result = await store.RestartExecutions([storedId1, storedId2, storedId3], newOwner);
+
+        result.Count.ShouldBe(2);
+        result.ContainsKey(storedId1).ShouldBeTrue();
+        result.ContainsKey(storedId2).ShouldBeFalse();
+        result.ContainsKey(storedId3).ShouldBeTrue();
+
+        result[storedId1].StoredFlow.OwnerId.ShouldBe(newOwner);
+        result[storedId3].StoredFlow.OwnerId.ShouldBe(newOwner);
+    }
+
+    public abstract Task RestartExecutionsReturnsEmptyDictionaryForEmptyInput();
+    public async Task RestartExecutionsReturnsEmptyDictionaryForEmptyInput(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var owner = ReplicaId.NewId();
+
+        var result = await store.RestartExecutions([], owner);
+
+        result.Count.ShouldBe(0);
+    }
 }
