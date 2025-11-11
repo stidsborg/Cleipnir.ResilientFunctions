@@ -334,8 +334,6 @@ public class SqlServerFunctionStore : IFunctionStore
                         session.Effects[storedEffect.EffectId] = storedEffect;
                     }
                 }
-                session.RowExists = true;
-                session.Version = 0;
             }
 
             var messages = messagesMap.TryGetValue(flow.StoredId, out var msgs)
@@ -364,10 +362,40 @@ public class SqlServerFunctionStore : IFunctionStore
         while (await reader.ReadAsync())
         {
             var storedId = reader.GetGuid(0).ToStoredId();
-            var (flow, effectsBytes) = _sqlGenerator.ReadToStoredFlowWithEffects(storedId, reader);
-            if (flow != null && flow.OwnerId == owner)
+            var id = reader.GetGuid(0).ToStoredId();
+            var parameter = reader.IsDBNull(1) ? null : (byte[])reader.GetValue(1);
+            var status = (Status)reader.GetInt32(2);
+            var result = reader.IsDBNull(3) ? null : (byte[])reader.GetValue(3);
+            var exceptionJson = reader.IsDBNull(4) ? null : reader.GetString(4);
+            var storedException = exceptionJson == null
+                ? null
+                : JsonSerializer.Deserialize<StoredException>(exceptionJson);
+            var expires = reader.GetInt64(5);
+            var interrupted = reader.GetBoolean(6);
+            var timestamp = reader.GetInt64(7);
+            var humanInstanceId = reader.GetString(8);
+            var parentId = reader.IsDBNull(9) ? null : reader.GetGuid(9).ToStoredId();
+            var ownerId = reader.IsDBNull(10) ? null : reader.GetGuid(10).ToReplicaId();
+            var hasEffects = !reader.IsDBNull(11);
+            var effectsBytes = hasEffects ? (byte[])reader.GetValue(11) : null;
+
+            var flow = new StoredFlow(
+                id,
+                humanInstanceId,
+                parameter,
+                status,
+                storedException,
+                expires,
+                timestamp,
+                interrupted,
+                parentId,
+                ownerId,
+                storedId.Type
+            );
+
+            if (flow.OwnerId == owner)
             {
-                var session = new SnapshotStorageSession(owner);
+                var session = new SnapshotStorageSession(owner) { RowExists = true };
                 flows.Add((flow, effectsBytes, session));
             }
         }
