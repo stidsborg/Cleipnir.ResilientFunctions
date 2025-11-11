@@ -344,26 +344,13 @@ public class PostgreSqlFunctionStore : IFunctionStore
         return await _sqlGenerator.ReadEffectsForIds(reader, storedIds, owner);
     }
 
-    private async Task<Dictionary<StoredId, List<StoredMessage>>> FetchMessagesAsync(
-        IReadOnlyList<StoredId> storedIds)
+    private async Task<Dictionary<StoredId, IReadOnlyList<StoredMessage>>> FetchMessagesAsync(IReadOnlyList<StoredId> storedIds)
     {
-        var result = new Dictionary<StoredId, List<StoredMessage>>();
-
-        foreach (var storedId in storedIds)
-        {
-            await using var conn = await CreateConnection();
-            var storeCommand = _sqlGenerator.GetMessages(storedId, skip: 0);
-
-            await using var command = storeCommand.ToNpgsqlCommand(conn);
-            await using var reader = await command.ExecuteReaderAsync();
-
-            var messages = await _sqlGenerator.ReadMessages(reader);
-            result[storedId] = messages
-                .Select(m => PostgreSqlMessageStore.ConvertToStoredMessage(m.content) with { Position = m.position })
-                .ToList();
-        }
-
-        return result;
+        await using var conn = await CreateConnection();
+        await using var command = _sqlGenerator.GetMessages(storedIds).ToNpgsqlCommand(conn);
+        await using var reader = await command.ExecuteReaderAsync();
+        var messages = await _sqlGenerator.ReadMessagesForMultipleStores(reader);
+        return messages;
     }
 
     private string? _getExpiredFunctionsSql;

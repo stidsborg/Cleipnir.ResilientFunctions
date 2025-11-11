@@ -510,6 +510,39 @@ public class SqlGenerator(string tablePrefix)
         return storeCommand;
     }
     
+    public async Task<Dictionary<StoredId, IReadOnlyList<StoredMessage>>> ReadMessagesForMultipleStores(NpgsqlDataReader reader)
+    {
+        var dict = new Dictionary<StoredId, List<StoredMessage>>();
+        while (await reader.ReadAsync())
+        {
+            var id = reader.GetGuid(0).ToStoredId();
+            var position = reader.GetInt64(1);
+            var content = (byte[]) reader.GetValue(2);
+            var splitted = BinaryPacker.Split(content, expectedPieces: 3);
+            
+            var contentBytes = splitted[0]!;
+            var typeBytes = splitted[1]!;
+            var idempotencyKeyBytes = splitted[2];
+            
+            if (!dict.ContainsKey(id))
+                dict[id] = new List<StoredMessage>();
+
+            dict[id].Add(
+                new StoredMessage(
+                    contentBytes,
+                    typeBytes,
+                    position,
+                    idempotencyKeyBytes?.ToStringFromUtf8Bytes()
+                )
+            );
+        }
+
+        return dict.ToDictionary(
+            kv => kv.Key,
+            kv => (IReadOnlyList<StoredMessage>) kv.Value.OrderBy(b => b.Position).ToList()
+        );
+    }
+    
     public async Task<Dictionary<StoredId, List<(byte[] content, long position)>>> ReadStoredIdsMessages(NpgsqlDataReader reader)
     {
         var messages = new Dictionary<StoredId, List<(byte[] content, long position)>>();
