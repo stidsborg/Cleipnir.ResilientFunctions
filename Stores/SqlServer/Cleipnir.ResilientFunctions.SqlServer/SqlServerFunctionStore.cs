@@ -362,7 +362,6 @@ public class SqlServerFunctionStore : IFunctionStore
         while (await reader.ReadAsync())
         {
             var storedId = reader.GetGuid(0).ToStoredId();
-            var id = reader.GetGuid(0).ToStoredId();
             var parameter = reader.IsDBNull(1) ? null : (byte[])reader.GetValue(1);
             var status = (Status)reader.GetInt32(2);
             var result = reader.IsDBNull(3) ? null : (byte[])reader.GetValue(3);
@@ -380,7 +379,7 @@ public class SqlServerFunctionStore : IFunctionStore
             var effectsBytes = hasEffects ? (byte[])reader.GetValue(11) : null;
 
             var flow = new StoredFlow(
-                id,
+                storedId,
                 humanInstanceId,
                 parameter,
                 status,
