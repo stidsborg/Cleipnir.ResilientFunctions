@@ -184,20 +184,10 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
                 restartedIds.Add(storedId);
             }
         }
-
-        // Fetch effects and messages for all input IDs in parallel
-        var effectsTasks = storedIds.Select(id =>
-            EffectsStore.GetEffectResults(id).ContinueWith(t => (id, effects: t.Result))
-        ).ToArray();
-        var messagesTasks = storedIds.Select(id =>
-            MessageStore.GetMessages(id, skip: 0).ContinueWith(t => (id, messages: t.Result))
-        ).ToArray();
-
-        await Task.WhenAll(effectsTasks.Cast<Task>().Concat(messagesTasks.Cast<Task>()));
-
-        var effectsMap = effectsTasks.ToDictionary(t => t.Result.id, t => t.Result.effects);
-        var messagesMap = messagesTasks.ToDictionary(t => t.Result.id, t => t.Result.messages);
-
+        
+        var effectsDict = await EffectsStore.GetEffectResults(storedIds);
+        var messagesDict = await MessageStore.GetMessages(storedIds);
+        
         // Build result dictionary - only for restarted flows
         var result = new Dictionary<StoredId, StoredFlowWithEffectsAndMessages>();
         foreach (var storedId in restartedIds)
@@ -205,10 +195,10 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
             var sf = await GetFunction(storedId);
             if (sf == null) continue;
 
-            var effects = effectsMap.TryGetValue(storedId, out var effs)
+            var effects = effectsDict.TryGetValue(storedId, out var effs)
                 ? effs
                 : new List<StoredEffect>();
-            var messages = messagesMap.TryGetValue(storedId, out var msgs)
+            var messages = messagesDict.TryGetValue(storedId, out var msgs)
                 ? msgs
                 : new List<StoredMessage>();
 
