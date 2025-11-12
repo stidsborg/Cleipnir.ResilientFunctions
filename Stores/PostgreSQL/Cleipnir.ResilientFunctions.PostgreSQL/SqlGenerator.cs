@@ -42,7 +42,7 @@ public class SqlGenerator(string tablePrefix)
     public StoreCommand GetEffects(StoredId storedId)
     {
         _getEffectResultsSql ??= @$"
-            SELECT id, content, 0 as position, version
+            SELECT id, content, version
             FROM {tablePrefix}_effects
             WHERE id = $1;";
 
@@ -54,7 +54,7 @@ public class SqlGenerator(string tablePrefix)
     public StoreCommand GetEffects(IEnumerable<StoredId> storedIds)
     {
         var sql = @$"
-            SELECT id, content, 0 as position, version
+            SELECT id, content, version
             FROM {tablePrefix}_effects
             WHERE id = ANY($1);";
 
@@ -71,8 +71,7 @@ public class SqlGenerator(string tablePrefix)
         {
             var id = reader.GetGuid(0);
             var content = (byte[])reader.GetValue(1);
-            var position = reader.GetInt32(2);
-            var version = reader.GetInt32(3);
+            var version = reader.GetInt32(2);
             var effectsBytes = BinaryPacker.Split(content);
             foreach (var effectBytes in effectsBytes)
             {
@@ -130,8 +129,7 @@ public class SqlGenerator(string tablePrefix)
         {
             var id = new StoredId(reader.GetGuid(0));
             var content = (byte[])reader.GetValue(1);
-            var position = reader.GetInt32(2);
-            var version = reader.GetInt32(3);
+            var version = reader.GetInt32(2);
             
             var effectsBytes = BinaryPacker.Split(content);
             var storedEffects = effectsBytes.Select(effectBytes => StoredEffect.Deserialize(effectBytes!)).ToList();
