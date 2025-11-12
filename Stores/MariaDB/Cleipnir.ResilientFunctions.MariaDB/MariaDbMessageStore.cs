@@ -47,8 +47,9 @@ public class MariaDbMessageStore : IMessageStore
     private string? _appendMessageSql;
     public async Task AppendMessage(StoredId storedId, StoredMessage storedMessage)
     {
-        const int maxRetries = 5;
+        const int maxRetries = 100;
         const int baseDelayMs = 10;
+        MySqlException? lastException = null;
 
         for (var attempt = 0; attempt <= maxRetries; attempt++)
         {
@@ -79,12 +80,19 @@ public class MariaDbMessageStore : IMessageStore
             }
             catch (MySqlException ex) when (ex.ErrorCode == MySqlErrorCode.LockDeadlock && attempt < maxRetries)
             {
+                lastException = ex;
                 // Deadlock detected - retry with exponential backoff
                 var delayMs = baseDelayMs * (1 << attempt) + Random.Shared.Next(0, baseDelayMs);
                 await Task.Delay(delayMs);
                 // Loop will retry
             }
         }
+
+        // All retries exhausted - throw the last exception
+        throw new InvalidOperationException(
+            $"Failed to append message after {maxRetries} retries due to deadlocks",
+            lastException
+        );
     }
 
     public async Task AppendMessages(IReadOnlyList<StoredIdAndMessage> messages, bool interrupt = true)
@@ -94,6 +102,7 @@ public class MariaDbMessageStore : IMessageStore
 
         const int maxRetries = 5;
         const int baseDelayMs = 10;
+        MySqlException? lastException = null;
 
         for (var attempt = 0; attempt <= maxRetries; attempt++)
         {
@@ -126,12 +135,19 @@ public class MariaDbMessageStore : IMessageStore
             }
             catch (MySqlException ex) when (ex.ErrorCode == MySqlErrorCode.LockDeadlock && attempt < maxRetries)
             {
+                lastException = ex;
                 // Deadlock detected - retry with exponential backoff
                 var delayMs = baseDelayMs * (1 << attempt) + Random.Shared.Next(0, baseDelayMs);
                 await Task.Delay(delayMs);
                 // Loop will retry
             }
         }
+
+        // All retries exhausted - throw the last exception
+        throw new InvalidOperationException(
+            $"Failed to append {messages.Count} message(s) after {maxRetries} retries due to deadlocks",
+            lastException
+        );
     }
 
     public async Task AppendMessages(IReadOnlyList<StoredIdAndMessageWithPosition> messages, bool interrupt)
@@ -141,6 +157,7 @@ public class MariaDbMessageStore : IMessageStore
 
         const int maxRetries = 5;
         const int baseDelayMs = 10;
+        MySqlException? lastException = null;
 
         for (var attempt = 0; attempt <= maxRetries; attempt++)
         {
@@ -161,12 +178,19 @@ public class MariaDbMessageStore : IMessageStore
             }
             catch (MySqlException ex) when (ex.ErrorCode == MySqlErrorCode.LockDeadlock && attempt < maxRetries)
             {
+                lastException = ex;
                 // Deadlock detected - retry with exponential backoff
                 var delayMs = baseDelayMs * (1 << attempt) + Random.Shared.Next(0, baseDelayMs);
                 await Task.Delay(delayMs);
                 // Loop will retry
             }
         }
+
+        // All retries exhausted - throw the last exception
+        throw new InvalidOperationException(
+            $"Failed to append {messages.Count} message(s) after {maxRetries} retries due to deadlocks",
+            lastException
+        );
     }
 
     private string? _replaceMessageSql;

@@ -73,38 +73,35 @@ internal class PostponedWatchdog
                 var now = _utcNow();
 
                 var eligibleFunctions = await _functionStore.GetExpiredFunctions(expiresBefore: now.Ticks);
-                
                 var flowsDictionary = _flowsDictionary;     
-                foreach (var id in eligibleFunctions.Where(s => s.AsULong % _clusterInfo.ReplicaCount == _clusterInfo.Offset))
+                var ownedFunctions = eligibleFunctions
+                    .Where(id => flowsDictionary.ContainsKey(id.Type))
+                    .Where(s => s.AsULong % _clusterInfo.ReplicaCount == _clusterInfo.Offset)
+                    .ToList();
+                
+                var restarts = await _functionStore
+                    .RestartExecutions(ownedFunctions, _clusterInfo.ReplicaId);
+                
+                foreach (var id in restarts.Keys)
                 {
-                    if (!flowsDictionary.TryGetValue(id.Type, out var tuple))
-                        continue;
-                    
-                    var (restartFunction, scheduleRestart, asyncSemaphore) = tuple;
-                    if (!asyncSemaphore.TryTake(out var takenLock))
-                        continue;
+                    var (_, scheduleRestart, asyncSemaphore) = flowsDictionary[id.Type];
+                    var tuple = restarts[id];
+                    var (storedFlow, effects, messages, session) = tuple;
                     
                     try
                     {
-                        var restartedFunction = await restartFunction(id);
-                        if (restartedFunction == null)
-                        {
-                            takenLock.Dispose();
-                            break;
-                        }
-
                         await scheduleRestart(
                             id,
-                            restartedFunction,
+                            new RestartedFunction(storedFlow, effects, messages, session),
                             onCompletion: () =>
                             {
-                                takenLock.Dispose();
+                                //takenLock.Dispose();
                             }
                         );
                     }
                     catch
                     {
-                        takenLock.Dispose();
+                        //takenLock.Dispose();
                         throw;
                     }
                 }
