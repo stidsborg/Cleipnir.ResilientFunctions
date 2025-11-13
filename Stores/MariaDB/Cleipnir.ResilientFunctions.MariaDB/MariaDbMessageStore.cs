@@ -55,7 +55,7 @@ public class MariaDbMessageStore : IMessageStore
         if (messages.Count == 0)
             return;
 
-        const int maxRetries = 100;
+        const int maxRetries = 20;
         const int baseDelayMs = 10;
         MySqlException? lastException = null;
 
