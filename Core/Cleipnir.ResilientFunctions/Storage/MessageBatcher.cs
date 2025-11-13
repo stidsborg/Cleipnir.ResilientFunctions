@@ -3,84 +3,97 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Cleipnir.ResilientFunctions.Messaging;
 
 namespace Cleipnir.ResilientFunctions.Storage;
 
-public class MessageBatcher
+public class MessageBatcher<TEntity>(Func<StoredId, List<TEntity>, Task> handleBatchFunc)
 {
-    public StoredType StoredType { get; }
+    private readonly Dictionary<StoredId, Tuple<TaskCompletionSource, List<TEntity>>> _batchesDict = new();
+    private readonly Lock _lock = new();
 
-    public TaskCompletionSource? _current;
-    private List<StoredMessage> _batch = new List<StoredMessage>();
-    private readonly Lock _lock = new Lock();
-
-    private Func<StoredId, IEnumerable<StoredMessage>, Task> _appendMessages;
-
-    public MessageBatcher(StoredType storedType, Func<StoredId, IEnumerable<StoredMessage>, Task> appendMessages)
+    public async Task Handle(StoredId storedId, IReadOnlyList<TEntity> storedMessages)
     {
-        StoredType = storedType;
-        _appendMessages = appendMessages;
-    }
+        if (storedMessages.Count == 0)
+            return;
+        
+        TaskCompletionSource? nextTcs;
+        List<TEntity> nextBatch = [];
+        bool firstExecution = false;
 
-    public async Task AppendMessage(StoredId storedId, IEnumerable<StoredMessage> storedMessages)
-    {
-        TaskCompletionSource? tcs = null;
         lock (_lock)
         {
-            if (_current != null)
+            var success = _batchesDict.TryGetValue(storedId, out var tuple);
+            if (success)
             {
-                _batch.AddRange(storedMessages);
-                tcs = _current;
+                //already executing handling function for stored id
+                nextTcs = tuple.Item1;
+                tuple.Item2.AddRange(storedMessages);
             }
             else
             {
-                _current = new TaskCompletionSource();
-                _batch = storedMessages.ToList();
+                //first execution
+                nextTcs = new TaskCompletionSource();
+                nextBatch = new List<TEntity>();
+                
+                _batchesDict[storedId] = Tuple.Create(nextTcs, nextBatch);
+                firstExecution = true;
             }
         }
 
-        if (tcs != null)
-            await tcs.Task;
-        else
+        if (!firstExecution)
         {
-            while (true)
+            await nextTcs.Task;
+            return;
+        }
+
+        try
+        {
+            await handleBatchFunc(storedId, storedMessages.ToList());
+            lock (_lock)
             {
-                List<StoredMessage> batch;
-                TaskCompletionSource? current;
-            
-                lock (_lock)
+                var tuple = _batchesDict[storedId];
+                if (tuple.Item2.Count == 0)
+                    _batchesDict.Remove(storedId);
+                else
+                    _ = Task.Run(() => HandleNext(storedId));
+            }
+        }
+        catch (Exception)
+        {
+            _ = Task.Run(() => HandleNext(storedId));
+            throw;
+        }
+    }
+
+    private async Task HandleNext(StoredId storedId)
+    {
+        while (true)
+        {
+            TaskCompletionSource tcs;
+            List<TEntity> batch;
+
+            lock (_lock)
+            {
+                var tuple = _batchesDict[storedId];
+                tcs = tuple.Item1;
+                batch = tuple.Item2;
+                if (batch.Count == 0)
                 {
-                    batch = _batch;
-                    _batch = new List<StoredMessage>();
-                    current = _current;
-                    if (batch.Count == 0)
-                    {
-                        _current = null;
-                        return;
-                    } 
-                    
-                    _current = new TaskCompletionSource();
+                    _batchesDict.Remove(storedId);
+                    return;
                 }
 
-                try
-                {
-                    await _appendMessages(storedId, batch);
-                }
-                catch (Exception e)
-                {
-                    current?.SetException(e);
-                    lock (_lock)
-                    {
-                        _current?.SetException(e);
-                        _current = null;
-                        _batch.Clear();
-                    }
-                    
-                    throw;
-                }
-                
-                current.SetResult();
+                _batchesDict[storedId] = Tuple.Create(new TaskCompletionSource(), new List<TEntity>());
+            }
+
+            try
+            {
+                await handleBatchFunc(storedId, batch);
+                tcs.SetResult();
+            }
+            catch (Exception e)
+            {
+                tcs.SetException(e);
             }
         }
     }
