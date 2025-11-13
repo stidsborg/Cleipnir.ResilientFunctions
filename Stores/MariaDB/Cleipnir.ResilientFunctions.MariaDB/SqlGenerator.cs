@@ -446,6 +446,39 @@ public class SqlGenerator(string tablePrefix)
             ]);
         return command;
     }
+
+    private string? _restartExecutionsSql;
+    public StoreCommand RestartExecutions(IReadOnlyList<StoredId> storedIds, ReplicaId replicaId)
+    {
+        _restartExecutionsSql ??= @$"
+            UPDATE {tablePrefix}
+            SET status = {(int)Status.Executing}, expires = 0, interrupted = FALSE, owner = ?
+            WHERE id IN ({{0}}) AND owner IS NULL;
+
+            SELECT
+                id,
+                param_json,
+                status,
+                result_json,
+                exception_json,
+                expires,
+                interrupted,
+                timestamp,
+                human_instance_id,
+                parent,
+                owner,
+                effects
+            FROM {tablePrefix}
+            WHERE id IN ({{0}});";
+
+        var idList = storedIds.Select(id => $"'{id.AsGuid:N}'").StringJoin(", ");
+        var sql = string.Format(_restartExecutionsSql, idList);
+
+        var command = StoreCommand.Create(
+            sql,
+            values: [ replicaId.AsGuid.ToString("N") ]);
+        return command;
+    }
     
     public async Task<StoredFlow?> ReadToStoredFunction(StoredId storedId, MySqlDataReader reader)
     {

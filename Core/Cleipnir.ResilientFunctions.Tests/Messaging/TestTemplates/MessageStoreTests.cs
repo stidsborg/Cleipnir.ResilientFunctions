@@ -1067,4 +1067,68 @@ public abstract class MessageStoreTests
         messages2[0].DefaultDeserialize().ShouldBe(msg1);
         messages2[1].DefaultDeserialize().ShouldBe(msg2);
     }
+
+    public abstract Task ConcurrentBatchedMessagesToSameStoredIdAreAllAdded();
+    protected async Task ConcurrentBatchedMessagesToSameStoredIdAreAllAdded(Task<IFunctionStore> functionStoreTask)
+    {
+        var functionId = TestStoredId.Create();
+        var functionStore = await functionStoreTask;
+        await functionStore.CreateFunction(
+            functionId,
+            "humanInstanceId",
+            Test.SimpleStoredParameter,
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: long.MaxValue,
+            timestamp: DateTime.UtcNow.Ticks,
+            parent: null,
+            owner: null
+        );
+        var messageStore = functionStore.MessageStore;
+
+        const int batchCount = 10;
+        const int messagesPerBatch = 5;
+        var stringType = typeof(string).SimpleQualifiedName().ToUtf8Bytes();
+
+        // Append messages from multiple concurrent batches
+        var tasks = Enumerable.Range(0, batchCount).Select(batchIndex =>
+            Task.Run(async () =>
+            {
+                var messages = Enumerable.Range(0, messagesPerBatch)
+                    .Select(msgIndex => new StoredMessage(
+                        $"batch{batchIndex}_msg{msgIndex}".ToJsonByteArray(),
+                        stringType,
+                        Position: 0,
+                        IdempotencyKey: $"batch{batchIndex}_msg{msgIndex}"
+                    ))
+                    .ToList();
+
+                foreach (var message in messages)
+                    await messageStore.AppendMessage(functionId, message);
+            })
+        ).ToArray();
+
+        await Task.WhenAll(tasks);
+
+        // Verify all messages were added
+        var allMessages = (await messageStore.GetMessages(functionId, skip: 0)).ToList();
+        allMessages.Count.ShouldBe(batchCount * messagesPerBatch);
+
+        // Verify all messages have unique positions
+        var positions = allMessages.Select(m => m.Position).ToList();
+        positions.Distinct().Count().ShouldBe(positions.Count);
+
+        // Verify all messages are present
+        var messageContents = allMessages
+            .Select(m => m.MessageContent.ToStringFromUtf8Bytes().DeserializeFromJsonTo<string>())
+            .OrderBy(s => s)
+            .ToList();
+
+        var expectedContents = Enumerable.Range(0, batchCount)
+            .SelectMany(batchIndex => Enumerable.Range(0, messagesPerBatch)
+                .Select(msgIndex => $"batch{batchIndex}_msg{msgIndex}"))
+            .OrderBy(s => s)
+            .ToList();
+
+        messageContents.ShouldBe(expectedContents);
+    }
 }

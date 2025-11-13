@@ -10,15 +10,28 @@ using Microsoft.Data.SqlClient;
 
 namespace Cleipnir.ResilientFunctions.SqlServer;
 
-public class SqlServerMessageStore(string connectionString, SqlGenerator sqlGenerator, string tablePrefix = "") : IMessageStore
+public class SqlServerMessageStore : IMessageStore
 {
+    private readonly string _connectionString;
+    private readonly SqlGenerator _sqlGenerator;
+    private readonly string _tablePrefix;
+    private readonly MessageBatcher<StoredMessage> _messageBatcher;
+
+    public SqlServerMessageStore(string connectionString, SqlGenerator sqlGenerator, string tablePrefix = "")
+    {
+        _connectionString = connectionString;
+        _sqlGenerator = sqlGenerator;
+        _tablePrefix = tablePrefix;
+        _messageBatcher = new MessageBatcher<StoredMessage>(AppendMessages);
+    }
+
     private string? _initializeSql;
     public async Task Initialize()
     {
         await using var conn = await CreateConnection();
 
         _initializeSql ??= @$"
-        CREATE TABLE {tablePrefix}_Messages (
+        CREATE TABLE {_tablePrefix}_Messages (
             Id UNIQUEIDENTIFIER,
             Position BIGINT,
             Content VARBINARY(MAX),
@@ -27,7 +40,7 @@ public class SqlServerMessageStore(string connectionString, SqlGenerator sqlGene
         var command = new SqlCommand(_initializeSql, conn);
         try
         {
-            await command.ExecuteNonQueryAsync();    
+            await command.ExecuteNonQueryAsync();
         } catch (SqlException exception) when (exception.Number == 2714) {}
     }
 
@@ -35,32 +48,50 @@ public class SqlServerMessageStore(string connectionString, SqlGenerator sqlGene
     public async Task TruncateTable()
     {
         await using var conn = await CreateConnection();
-        _truncateTableSql ??= $"TRUNCATE TABLE {tablePrefix}_Messages;";
+        _truncateTableSql ??= $"TRUNCATE TABLE {_tablePrefix}_Messages;";
         var command = new SqlCommand(_truncateTableSql, conn);
         await command.ExecuteNonQueryAsync();
     }
 
-    private string? _appendMessageSql;
     public async Task AppendMessage(StoredId storedId, StoredMessage storedMessage)
+        => await _messageBatcher.Handle(storedId, [storedMessage]);
+
+    private async Task AppendMessages(StoredId storedId, IReadOnlyList<StoredMessage> messages)
     {
+        if (messages.Count == 0)
+            return;
+
+        var randomOffset = Random.Shared.Next();
+        var values = messages.Select((_, i) => $"(@Id, @MaxPos + {i + 1}, @Content{i})").StringJoin(", ");
+
+        var sql = @$"
+            DECLARE @MaxPos BIGINT;
+            SELECT @MaxPos = COALESCE(MAX(Position), -1) + 2147483647 + @RandomOffset
+            FROM {_tablePrefix}_Messages
+            WHERE Id = @Id;
+
+            INSERT INTO {_tablePrefix}_Messages (Id, Position, Content)
+            VALUES {values};";
+
         await using var conn = await CreateConnection();
+        await using var command = new SqlCommand(sql, conn);
 
-        _appendMessageSql ??= @$"
-            INSERT INTO {tablePrefix}_Messages
-                (Id, Position, Content)
-            VALUES (
-                @Id,
-                (SELECT COALESCE(MAX(position), 0) + 2147483647 + @Tiebreaker FROM {tablePrefix}_Messages WHERE Id = @Id),
-                @Content
-            );";
-
-        var (messageJson, messageType, _, idempotencyKey) = storedMessage;
-        var content = BinaryPacker.Pack(messageJson, messageType, idempotencyKey?.ToUtf8Bytes());
-        await using var command = new SqlCommand(_appendMessageSql, conn);
         command.Parameters.AddWithValue("@Id", storedId.AsGuid);
-        command.Parameters.AddWithValue("@Tiebreaker", (long)Random.Shared.Next());
-        command.Parameters.AddWithValue("@Content", content);
+        command.Parameters.AddWithValue("@RandomOffset", (long)randomOffset);
+
+        for (var i = 0; i < messages.Count; i++)
+        {
+            var (messageContent, messageType, _, idempotencyKey) = messages[i];
+            var content = BinaryPacker.Pack(messageContent, messageType, idempotencyKey?.ToUtf8Bytes());
+            command.Parameters.AddWithValue($"@Content{i}", content);
+        }
+
         await command.ExecuteNonQueryAsync();
+
+        // Execute interrupt command
+        var interruptCommand = _sqlGenerator.Interrupt([storedId]);
+        await using var interruptCmd = interruptCommand.ToSqlCommand(conn);
+        await interruptCmd.ExecuteNonQueryAsync();
     }
 
     public async Task AppendMessages(IReadOnlyList<StoredIdAndMessage> messages, bool interrupt = true)
@@ -75,15 +106,15 @@ public class SqlServerMessageStore(string connectionString, SqlGenerator sqlGene
 
             return;
         }
-            
+
         var storedIds = messages.Select(m => m.StoredId).Distinct().ToList();
         var maxPositions = await GetMaxPositions(storedIds);
-        
-        var interuptsSql = sqlGenerator.Interrupt(storedIds)!;
+
+        var interuptsSql = _sqlGenerator.Interrupt(storedIds)!;
 
         await using var conn = await CreateConnection();
         var sql = @$"
-            INSERT INTO {tablePrefix}_Messages
+            INSERT INTO {_tablePrefix}_Messages
                 (Id, Position, Content)
             VALUES
                  {messages.Select((_, i) => $"(@Id{i}, @Position{i}, @Content{i})").StringJoin($",{Environment.NewLine}")};
@@ -110,7 +141,7 @@ public class SqlServerMessageStore(string connectionString, SqlGenerator sqlGene
             return;
 
         await using var conn = await CreateConnection();
-        await using var command = sqlGenerator
+        await using var command = _sqlGenerator
             .AppendMessages(messages, interrupt)!
             .ToSqlCommand(conn);
         await command.ExecuteNonQueryAsync();
@@ -120,9 +151,9 @@ public class SqlServerMessageStore(string connectionString, SqlGenerator sqlGene
     public async Task<bool> ReplaceMessage(StoredId storedId, long position, StoredMessage storedMessage)
     {
         await using var conn = await CreateConnection();
-        
+
         _replaceMessageSql ??= @$"
-            UPDATE {tablePrefix}_Messages
+            UPDATE {_tablePrefix}_Messages
             SET Content = @Content
             WHERE Id = @Id AND Position = @Position";
 
@@ -148,7 +179,7 @@ public class SqlServerMessageStore(string connectionString, SqlGenerator sqlGene
             return;
 
         await using var conn = await CreateConnection();
-        await using var command = sqlGenerator.DeleteMessages(storedId, positionsList).ToSqlCommand(conn);
+        await using var command = _sqlGenerator.DeleteMessages(storedId, positionsList).ToSqlCommand(conn);
         await command.ExecuteNonQueryAsync();
     }
 
@@ -156,8 +187,8 @@ public class SqlServerMessageStore(string connectionString, SqlGenerator sqlGene
     public async Task Truncate(StoredId storedId)
     {
         await using var conn = await CreateConnection();
-        _truncateSql ??= @$"    
-            DELETE FROM {tablePrefix}_Messages
+        _truncateSql ??= @$"
+            DELETE FROM {_tablePrefix}_Messages
             WHERE Id = @Id;";
 
         await using var command = new SqlCommand(_truncateSql, conn);
@@ -169,20 +200,20 @@ public class SqlServerMessageStore(string connectionString, SqlGenerator sqlGene
     public async Task<IReadOnlyList<StoredMessage>> GetMessages(StoredId storedId, long skip)
     {
         await using var conn = await CreateConnection();
-        await using var command = sqlGenerator.GetMessages(storedId, skip).ToSqlCommand(conn);
+        await using var command = _sqlGenerator.GetMessages(storedId, skip).ToSqlCommand(conn);
 
         await using var reader = await command.ExecuteReaderAsync();
-        var messages = await sqlGenerator.ReadMessages(reader);
+        var messages = await _sqlGenerator.ReadMessages(reader);
         return messages.Select(m => ConvertToStoredMessage(m.content) with { Position = m.position }).ToList();
     }
 
     public async Task<Dictionary<StoredId, List<StoredMessage>>> GetMessages(IEnumerable<StoredId> storedIds)
     {
         await using var conn = await CreateConnection();
-        await using var cmd = sqlGenerator.GetMessages(storedIds).ToSqlCommand(conn);
+        await using var cmd = _sqlGenerator.GetMessages(storedIds).ToSqlCommand(conn);
         await using var reader = await cmd.ExecuteReaderAsync();
 
-        var messages = await sqlGenerator.ReadStoredIdsMessages(reader);
+        var messages = await _sqlGenerator.ReadStoredIdsMessages(reader);
         var storedMessages = new Dictionary<StoredId, List<StoredMessage>>();
         foreach (var id in messages.Keys)
         {
@@ -201,7 +232,7 @@ public class SqlServerMessageStore(string connectionString, SqlGenerator sqlGene
 
         var sql = @$"
             SELECT Id, MAX(Position)
-            FROM {tablePrefix}_Messages
+            FROM {_tablePrefix}_Messages
             WHERE Id IN ({storedIds.Select(id => $"'{id}'").StringJoin(", ")})
             GROUP BY Id;";
 
@@ -241,7 +272,7 @@ public class SqlServerMessageStore(string connectionString, SqlGenerator sqlGene
 
     private async Task<SqlConnection> CreateConnection()
     {
-        var conn = new SqlConnection(connectionString);
+        var conn = new SqlConnection(_connectionString);
         await conn.OpenAsync();
         return conn;
     }

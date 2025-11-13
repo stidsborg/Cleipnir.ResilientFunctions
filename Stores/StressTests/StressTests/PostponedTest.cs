@@ -19,7 +19,7 @@ public static class PostponedTest
         var flowType = new FlowType(nameof(PostponedTest));
         var storedType = await store.TypeStore.InsertOrGetStoredType(flowType);
         
-        var start = DateTime.UtcNow.AddSeconds(30);
+        var start = DateTime.UtcNow.AddSeconds(8);
         Console.WriteLine("POSTPONED_TEST: Expected start: " + start);
         var stopWatch = new Stopwatch();
         stopWatch.Start();

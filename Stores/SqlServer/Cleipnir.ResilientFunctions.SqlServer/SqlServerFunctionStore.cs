@@ -301,6 +301,122 @@ public class SqlServerFunctionStore : IFunctionStore
         return new StoredFlowWithEffectsAndMessages(sf, effects, storedMessages, session);
     }
 
+    public async Task<Dictionary<StoredId, StoredFlowWithEffectsAndMessages>> RestartExecutions(
+        IReadOnlyList<StoredId> storedIds,
+        ReplicaId owner)
+    {
+        if (storedIds.Count == 0)
+            return new Dictionary<StoredId, StoredFlowWithEffectsAndMessages>();
+
+        // Execute 2 queries in parallel (restart includes effects inline)
+        var restartTask = RestartFlowsAsync(storedIds, owner);
+        var messagesTask = FetchMessagesAsync(storedIds);
+
+        await Task.WhenAll(restartTask, messagesTask);
+
+        var restartedFlows = await restartTask;
+        var messagesMap = await messagesTask;
+
+        // Build result dictionary - only for successfully restarted flows
+        var result = new Dictionary<StoredId, StoredFlowWithEffectsAndMessages>();
+        foreach (var (flow, effectsBytes, session) in restartedFlows)
+        {
+            var effects = new List<StoredEffect>();
+            if (effectsBytes != null)
+            {
+                var effectsBytesArray = BinaryPacker.Split(effectsBytes);
+                foreach (var effectBytes in effectsBytesArray)
+                {
+                    if (effectBytes != null)
+                    {
+                        var storedEffect = StoredEffect.Deserialize(effectBytes);
+                        effects.Add(storedEffect);
+                        session.Effects[storedEffect.EffectId] = storedEffect;
+                    }
+                }
+            }
+
+            var messages = messagesMap.TryGetValue(flow.StoredId, out var msgs)
+                ? msgs
+                : new List<StoredMessage>();
+
+            result[flow.StoredId] = new StoredFlowWithEffectsAndMessages(
+                flow, effects, messages, session
+            );
+        }
+
+        return result;
+    }
+
+    private async Task<List<(StoredFlow flow, byte[]? effectsBytes, SnapshotStorageSession session)>> RestartFlowsAsync(
+        IReadOnlyList<StoredId> storedIds,
+        ReplicaId owner)
+    {
+        await using var conn = await _connFunc();
+        var storeCommand = _sqlGenerator.RestartExecutions(storedIds, owner);
+
+        await using var command = storeCommand.ToSqlCommand(conn);
+        await using var reader = await command.ExecuteReaderAsync();
+
+        var flows = new List<(StoredFlow flow, byte[]? effectsBytes, SnapshotStorageSession session)>();
+        while (await reader.ReadAsync())
+        {
+            var storedId = reader.GetGuid(0).ToStoredId();
+            var parameter = reader.IsDBNull(1) ? null : (byte[])reader.GetValue(1);
+            var status = (Status)reader.GetInt32(2);
+            var result = reader.IsDBNull(3) ? null : (byte[])reader.GetValue(3);
+            var exceptionJson = reader.IsDBNull(4) ? null : reader.GetString(4);
+            var storedException = exceptionJson == null
+                ? null
+                : JsonSerializer.Deserialize<StoredException>(exceptionJson);
+            var expires = reader.GetInt64(5);
+            var interrupted = reader.GetBoolean(6);
+            var timestamp = reader.GetInt64(7);
+            var humanInstanceId = reader.GetString(8);
+            var parentId = reader.IsDBNull(9) ? null : reader.GetGuid(9).ToStoredId();
+            var ownerId = reader.IsDBNull(10) ? null : reader.GetGuid(10).ToReplicaId();
+            var hasEffects = !reader.IsDBNull(11);
+            var effectsBytes = hasEffects ? (byte[])reader.GetValue(11) : null;
+
+            var flow = new StoredFlow(
+                storedId,
+                humanInstanceId,
+                parameter,
+                status,
+                storedException,
+                expires,
+                timestamp,
+                interrupted,
+                parentId,
+                ownerId,
+                storedId.Type
+            );
+
+            if (flow.OwnerId == owner)
+            {
+                var session = new SnapshotStorageSession(owner) { RowExists = true };
+                flows.Add((flow, effectsBytes, session));
+            }
+        }
+        return flows;
+    }
+
+    private async Task<Dictionary<StoredId, List<StoredMessage>>> FetchMessagesAsync(
+        IReadOnlyList<StoredId> storedIds)
+    {
+        await using var conn = await _connFunc();
+        var storeCommand = _sqlGenerator.GetMessages(storedIds);
+
+        await using var command = storeCommand.ToSqlCommand(conn);
+        await using var reader = await command.ExecuteReaderAsync();
+
+        var messagesDict = await _sqlGenerator.ReadStoredIdsMessages(reader);
+        return messagesDict.ToDictionary(
+            kv => kv.Key,
+            kv => kv.Value.Select(m => SqlServerMessageStore.ConvertToStoredMessage(m.content) with { Position = m.position }).ToList()
+        );
+    }
+
     private string? _getExpiredFunctionsSql;
     public async Task<IReadOnlyList<StoredId>> GetExpiredFunctions(long expiresBefore)
     {

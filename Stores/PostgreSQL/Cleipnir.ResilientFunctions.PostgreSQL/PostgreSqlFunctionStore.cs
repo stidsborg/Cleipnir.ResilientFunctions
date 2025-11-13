@@ -218,28 +218,139 @@ public class PostgreSqlFunctionStore : IFunctionStore
         var restartCommand = _sqlGenerator.RestartExecution(storedId, replicaId);
         var effectsCommand = _sqlGenerator.GetEffects(storedId);
         var messagesCommand = _sqlGenerator.GetMessages(storedId, skip: 0);
-        
+
         await using var conn = await CreateConnection();
         await using var command = StoreCommandExtensions
             .ToNpgsqlBatch([restartCommand, effectsCommand, messagesCommand])
             .WithConnection(conn);
-        
+
         await using var reader = await command.ExecuteReaderAsync();
         if (reader.RecordsAffected == 0)
             return null;
-        
+
         var sf = await _sqlGenerator.ReadFunction(storedId, reader);
         if (sf == null)
             return null;
-        
+
         await reader.NextResultAsync();
         var (effects, session) = await _sqlGenerator.ReadEffects(reader, replicaId);
-        
+
         await reader.NextResultAsync();
         var messages = await _sqlGenerator.ReadMessages(reader);
         var storedMessages = messages.Select(m => PostgreSqlMessageStore.ConvertToStoredMessage(m.content) with { Position = m.position }).ToList();
 
         return new StoredFlowWithEffectsAndMessages(sf, effects, storedMessages, session);
+    }
+
+    public async Task<Dictionary<StoredId, StoredFlowWithEffectsAndMessages>> RestartExecutions(
+        IReadOnlyList<StoredId> storedIds,
+        ReplicaId owner)
+    {
+        if (storedIds.Count == 0)
+            return new Dictionary<StoredId, StoredFlowWithEffectsAndMessages>();
+
+        // Execute 3 queries in parallel
+        var restartTask = RestartFlowsAsync(storedIds, owner);
+        var effectsTask = FetchEffectsAsync(storedIds, owner);
+        var messagesTask = FetchMessagesAsync(storedIds);
+
+        await Task.WhenAll(restartTask, effectsTask, messagesTask);
+
+        var restartedFlows = await restartTask;
+        var effectsMap = await effectsTask;
+        var messagesMap = await messagesTask;
+
+        // Build result dictionary - only for successfully restarted flows
+        var result = new Dictionary<StoredId, StoredFlowWithEffectsAndMessages>();
+        foreach (var flow in restartedFlows)
+        {
+            var effects = effectsMap.TryGetValue(flow.StoredId, out var session)
+                ? session.Effects.Values.ToList()
+                : new List<StoredEffect>();
+            var messages = messagesMap.TryGetValue(flow.StoredId, out var msgs)
+                ? msgs
+                : new List<StoredMessage>();
+            var storageSession = effectsMap.TryGetValue(flow.StoredId, out var s)
+                ? s
+                : new SnapshotStorageSession(owner);
+
+            result[flow.StoredId] = new StoredFlowWithEffectsAndMessages(
+                flow, effects, messages, storageSession
+            );
+        }
+
+        return result;
+    }
+
+    private async Task<List<StoredFlow>> RestartFlowsAsync(
+        IReadOnlyList<StoredId> storedIds,
+        ReplicaId owner)
+    {
+        await using var conn = await CreateConnection();
+        var storeCommand = _sqlGenerator.RestartExecutions(storedIds, owner);
+
+        await using var command = storeCommand.ToNpgsqlCommand(conn);
+        await using var reader = await command.ExecuteReaderAsync();
+
+        var flows = new List<StoredFlow>();
+        var storedId = new StoredId(Guid.Empty);
+        while (await reader.ReadAsync())
+        {
+            storedId = reader.GetGuid(0).ToStoredId();
+            var hasParameter = !await reader.IsDBNullAsync(1);
+            var hasResult = !await reader.IsDBNullAsync(3);
+            var hasException = !await reader.IsDBNullAsync(4);
+            var hasParent = !await reader.IsDBNullAsync(9);
+            var hasOwner = !await reader.IsDBNullAsync(10);
+
+            var param = hasParameter ? (byte[])reader.GetValue(1) : null;
+            var status = (Status)reader.GetInt32(2);
+            var result = hasResult ? (byte[])reader.GetValue(3) : null;
+            var exception = hasException ? JsonSerializer.Deserialize<StoredException>(reader.GetString(4)) : null;
+            var expires = reader.GetInt64(5);
+            var interrupted = reader.GetBoolean(6);
+            var timestamp = reader.GetInt64(7);
+            var humanInstanceId = reader.GetString(8);
+            var parent = hasParent ? reader.GetGuid(9).ToStoredId() : null;
+            var ownerId = hasOwner ? new ReplicaId(reader.GetGuid(10)) : null;
+
+            flows.Add(new StoredFlow(
+                storedId,
+                humanInstanceId,
+                param,
+                status,
+                exception,
+                expires,
+                timestamp,
+                interrupted,
+                parent,
+                ownerId,
+                storedId.Type
+            ));
+        }
+        return flows;
+    }
+
+    private async Task<Dictionary<StoredId, SnapshotStorageSession>> FetchEffectsAsync(
+        IReadOnlyList<StoredId> storedIds,
+        ReplicaId owner)
+    {
+        await using var conn = await CreateConnection();
+        var storeCommand = _sqlGenerator.GetEffects(storedIds);
+
+        await using var command = storeCommand.ToNpgsqlCommand(conn);
+        await using var reader = await command.ExecuteReaderAsync();
+
+        return await _sqlGenerator.ReadEffectsForIds(reader, storedIds, owner);
+    }
+
+    private async Task<Dictionary<StoredId, IReadOnlyList<StoredMessage>>> FetchMessagesAsync(IReadOnlyList<StoredId> storedIds)
+    {
+        await using var conn = await CreateConnection();
+        await using var command = _sqlGenerator.GetMessages(storedIds).ToNpgsqlCommand(conn);
+        await using var reader = await command.ExecuteReaderAsync();
+        var messages = await _sqlGenerator.ReadMessagesForMultipleStores(reader);
+        return messages;
     }
 
     private string? _getExpiredFunctionsSql;

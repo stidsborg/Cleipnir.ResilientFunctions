@@ -12,12 +12,14 @@ public class MariaDbMessageStore : IMessageStore
     private readonly string _connectionString;
     private readonly string _tablePrefix;
     private readonly SqlGenerator _sqlGenerator;
+    private readonly MessageBatcher<StoredMessage> _messageBatcher;
     
     public MariaDbMessageStore(string connectionString, SqlGenerator sqlGenerator, string tablePrefix = "")
     {
         _connectionString = connectionString;
         _tablePrefix = tablePrefix;
         _sqlGenerator = sqlGenerator;
+        _messageBatcher = new MessageBatcher<StoredMessage>(AppendMessages);
     }
 
     private string? _initializeSql;
@@ -44,47 +46,70 @@ public class MariaDbMessageStore : IMessageStore
         await command.ExecuteNonQueryAsync();
     }
 
-    private string? _appendMessageSql;
-    public async Task AppendMessage(StoredId storedId, StoredMessage storedMessage)
+
+    public async Task AppendMessage(StoredId storedId, StoredMessage storedMessage) 
+        => await _messageBatcher.Handle(storedId, [storedMessage]);
+    
+    private async Task AppendMessages(StoredId storedId, IReadOnlyList<StoredMessage> messages)
     {
-        const int maxRetries = 5;
+        if (messages.Count == 0)
+            return;
+
+        const int maxRetries = 20;
         const int baseDelayMs = 10;
+        MySqlException? lastException = null;
 
         for (var attempt = 0; attempt <= maxRetries; attempt++)
         {
             try
             {
-                await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
-                var (messageJson, messageType, _, idempotencyKey) = storedMessage;
+                var randomOffset = Random.Shared.Next();
+                var values = messages.Select(_ => "(?, @max_pos := @max_pos + 1, ?)").StringJoin(", ");
 
-                _appendMessageSql ??= @$"
+                var sql = @$"
+                    SET @max_pos = (SELECT COALESCE(MAX(position), -1) FROM {_tablePrefix}_messages WHERE id = ?) + 2147483647 + ?;
                     INSERT INTO {_tablePrefix}_messages
                         (id, position, content)
-                    VALUES (?, (SELECT COALESCE(MAX(position), 0) + 2147483647 + ? FROM {_tablePrefix}_messages WHERE id = ?), ?)";
+                    VALUES
+                        {values};";
 
-                var content = BinaryPacker.Pack(messageJson, messageType, idempotencyKey?.ToUtf8Bytes());
-                await using var command = new MySqlCommand(_appendMessageSql, conn)
+                await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
+                await using var command = new MySqlCommand(sql, conn);
+
+                command.Parameters.Add(new() { Value = storedId.AsGuid.ToString("N") });
+                command.Parameters.Add(new() { Value = randomOffset });
+
+                foreach (var (messageContent, messageType, _, idempotencyKey) in messages)
                 {
-                    Parameters =
-                    {
-                        new() { Value = storedId.AsGuid.ToString("N") },
-                        new() { Value = (long) Random.Shared.Next() },
-                        new() { Value = storedId.AsGuid.ToString("N") },
-                        new() { Value = content },
-                    }
-                };
+                    command.Parameters.Add(new() { Value = storedId.AsGuid.ToString("N") });
+                    var content = BinaryPacker.Pack(messageContent, messageType, idempotencyKey?.ToUtf8Bytes());
+                    command.Parameters.Add(new() { Value = content });
+                }
 
                 await command.ExecuteNonQueryAsync();
+
+                // Execute interrupt command
+                var interruptCommand = _sqlGenerator.Interrupt([storedId]);
+                await using var interruptCmd = interruptCommand.ToSqlCommand(conn);
+                await interruptCmd.ExecuteNonQueryAsync();
+
                 return; // Success - exit retry loop
             }
             catch (MySqlException ex) when (ex.ErrorCode == MySqlErrorCode.LockDeadlock && attempt < maxRetries)
             {
+                lastException = ex;
                 // Deadlock detected - retry with exponential backoff
                 var delayMs = baseDelayMs * (1 << attempt) + Random.Shared.Next(0, baseDelayMs);
                 await Task.Delay(delayMs);
                 // Loop will retry
             }
         }
+
+        // All retries exhausted - throw the last exception
+        throw new InvalidOperationException(
+            $"Failed to append message after {maxRetries} retries due to deadlocks",
+            lastException
+        );
     }
 
     public async Task AppendMessages(IReadOnlyList<StoredIdAndMessage> messages, bool interrupt = true)
@@ -94,6 +119,7 @@ public class MariaDbMessageStore : IMessageStore
 
         const int maxRetries = 5;
         const int baseDelayMs = 10;
+        MySqlException? lastException = null;
 
         for (var attempt = 0; attempt <= maxRetries; attempt++)
         {
@@ -126,12 +152,19 @@ public class MariaDbMessageStore : IMessageStore
             }
             catch (MySqlException ex) when (ex.ErrorCode == MySqlErrorCode.LockDeadlock && attempt < maxRetries)
             {
+                lastException = ex;
                 // Deadlock detected - retry with exponential backoff
                 var delayMs = baseDelayMs * (1 << attempt) + Random.Shared.Next(0, baseDelayMs);
                 await Task.Delay(delayMs);
                 // Loop will retry
             }
         }
+
+        // All retries exhausted - throw the last exception
+        throw new InvalidOperationException(
+            $"Failed to append {messages.Count} message(s) after {maxRetries} retries due to deadlocks",
+            lastException
+        );
     }
 
     public async Task AppendMessages(IReadOnlyList<StoredIdAndMessageWithPosition> messages, bool interrupt)
@@ -141,6 +174,7 @@ public class MariaDbMessageStore : IMessageStore
 
         const int maxRetries = 5;
         const int baseDelayMs = 10;
+        MySqlException? lastException = null;
 
         for (var attempt = 0; attempt <= maxRetries; attempt++)
         {
@@ -161,12 +195,19 @@ public class MariaDbMessageStore : IMessageStore
             }
             catch (MySqlException ex) when (ex.ErrorCode == MySqlErrorCode.LockDeadlock && attempt < maxRetries)
             {
+                lastException = ex;
                 // Deadlock detected - retry with exponential backoff
                 var delayMs = baseDelayMs * (1 << attempt) + Random.Shared.Next(0, baseDelayMs);
                 await Task.Delay(delayMs);
                 // Loop will retry
             }
         }
+
+        // All retries exhausted - throw the last exception
+        throw new InvalidOperationException(
+            $"Failed to append {messages.Count} message(s) after {maxRetries} retries due to deadlocks",
+            lastException
+        );
     }
 
     private string? _replaceMessageSql;

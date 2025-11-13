@@ -105,4 +105,8 @@ public class MessageStoreTests :  Cleipnir.ResilientFunctions.Tests.Messaging.Te
     [TestMethod]
     public override Task DeleteMessagesOnlyAffectsSpecifiedStoredId()
         => DeleteMessagesOnlyAffectsSpecifiedStoredId(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task ConcurrentBatchedMessagesToSameStoredIdAreAllAdded()
+        => ConcurrentBatchedMessagesToSameStoredIdAreAllAdded(FunctionStoreFactory.Create());
 }

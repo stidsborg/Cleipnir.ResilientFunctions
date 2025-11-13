@@ -10,10 +10,21 @@ using Npgsql;
 
 namespace Cleipnir.ResilientFunctions.PostgreSQL;
 
-public class PostgreSqlMessageStore(string connectionString, SqlGenerator sqlGenerator, string tablePrefix = "") : IMessageStore
+public class PostgreSqlMessageStore : IMessageStore
 {
-    private readonly string _tablePrefix = tablePrefix.ToLower();
+    private readonly string tablePrefix;
+    private readonly MessageBatcher<StoredMessage> messageBatcher;
+    private readonly string connectionString;
+    private readonly SqlGenerator sqlGenerator;
 
+    public PostgreSqlMessageStore(string connectionString, SqlGenerator sqlGenerator, string tablePrefix = "")
+    {
+        this.tablePrefix = tablePrefix.ToLower();
+        messageBatcher = new(AppendMessages);
+        this.connectionString = connectionString;
+        this.sqlGenerator = sqlGenerator;
+    }
+    
     private async Task<NpgsqlConnection> CreateConnection()
     {
         var conn = new NpgsqlConnection(connectionString);
@@ -26,56 +37,65 @@ public class PostgreSqlMessageStore(string connectionString, SqlGenerator sqlGen
     {
         await using var conn = await CreateConnection();
         _initializeSql ??= @$"
-            CREATE TABLE IF NOT EXISTS {_tablePrefix}_messages (
+            CREATE TABLE IF NOT EXISTS {tablePrefix}_messages (
                 id UUID,
                 position BIGINT,
                 content BYTEA,
                 PRIMARY KEY (id, position)
             );";
-        
+
         var command = new NpgsqlCommand(_initializeSql, conn);
         await command.ExecuteNonQueryAsync();
     }
-    
+
     private string? _truncateTableSql;
     public async Task TruncateTable()
     {
         await using var conn = await CreateConnection();
-        _truncateTableSql ??= $"TRUNCATE TABLE {_tablePrefix}_messages;";
+        _truncateTableSql ??= $"TRUNCATE TABLE {tablePrefix}_messages;";
         var command = new NpgsqlCommand(_truncateTableSql, conn);
         await command.ExecuteNonQueryAsync();
     }
 
-    private string? _appendMessageSql;
     public async Task AppendMessage(StoredId storedId, StoredMessage storedMessage)
+        => await messageBatcher.Handle(storedId, [storedMessage]);
+
+    private async Task AppendMessages(StoredId storedId, IReadOnlyList<StoredMessage> messages)
     {
+        if (messages.Count == 0)
+            return;
+
+        var randomOffset = Random.Shared.Next();
+        var values = messages.Select((_, i) => $"($1, (SELECT pos FROM max_pos) + {i + 1}, ${i + 3})").StringJoin(", ");
+
+        var sql = @$"
+            WITH max_pos AS (
+                SELECT COALESCE(MAX(position), -1) + 2147483647 + $2 AS pos
+                FROM {tablePrefix}_messages
+                WHERE id = $1
+            )
+            INSERT INTO {tablePrefix}_messages (id, position, content)
+            VALUES {values};";
+
         await using var conn = await CreateConnection();
-        await using var batch = new NpgsqlBatch(conn);
-        var (messageJson, messageType, _, idempotencyKey) = storedMessage;
-        
+        await using var command = new NpgsqlCommand(sql, conn);
+
+        command.Parameters.Add(new() { Value = storedId.AsGuid });
+        command.Parameters.Add(new() { Value = (long)randomOffset });
+
+        for (var i = 0; i < messages.Count; i++)
         {
-            _appendMessageSql ??= @$"
-                INSERT INTO {_tablePrefix}_messages
-                    (id, position, content)
-                VALUES (
-                     $1,
-                     (SELECT COALESCE(MAX(position), 0) + 2147483647 + $2 FROM {_tablePrefix}_messages WHERE id = $1),
-                     $3
-                );";
-            var content = BinaryPacker.Pack(messageJson, messageType, idempotencyKey?.ToUtf8Bytes());
-            var command = new NpgsqlBatchCommand(_appendMessageSql)
-            {
-                Parameters =
-                {
-                    new() {Value = storedId.AsGuid},
-                    new() {Value = Random.Shared.Next()},
-                    new() {Value = content}
-                }
-            };
-            batch.BatchCommands.Add(command);
+            var (messageContent, messageType, _, idempotencyKey) = messages[i];
+            var content = BinaryPacker.Pack(messageContent, messageType, idempotencyKey?.ToUtf8Bytes());
+            command.Parameters.Add(new() { Value = content });
         }
 
-        await batch.ExecuteNonQueryAsync();
+        await command.ExecuteNonQueryAsync();
+
+        // Execute interrupt command
+        var interruptCommand = sqlGenerator.Interrupt([storedId]);
+        await using var interruptCmd = interruptCommand.ToNpgsqlCommand(conn);
+        await interruptCmd.ExecuteNonQueryAsync();
     }
 
     public async Task AppendMessages(IReadOnlyList<StoredIdAndMessage> messages, bool interrupt = true)
@@ -100,19 +120,19 @@ public class PostgreSqlMessageStore(string connectionString, SqlGenerator sqlGen
     {
         if (messages.Count == 0)
             return;
-        
+
         var appendMessagesCommand = sqlGenerator.AppendMessages(messages);
         var interruptCommand = interrupt
             ? sqlGenerator.Interrupt(messages.Select(m => m.StoredId).Distinct())
             : null;
-        
+
         await using var conn = await CreateConnection();
         if (interrupt)
         {
             await using var command = StoreCommandExtensions
                 .ToNpgsqlBatch([appendMessagesCommand, interruptCommand!])
                 .WithConnection(conn);
-            
+
             await command.ExecuteNonQueryAsync();
         }
         else
@@ -126,8 +146,8 @@ public class PostgreSqlMessageStore(string connectionString, SqlGenerator sqlGen
     public async Task<bool> ReplaceMessage(StoredId storedId, long position, StoredMessage storedMessage)
     {
         await using var conn = await CreateConnection();
-        _replaceMessageSql ??= @$"    
-                UPDATE {_tablePrefix}_messages
+        _replaceMessageSql ??= @$"
+                UPDATE {tablePrefix}_messages
                 SET content = $1
                 WHERE id = $2 AND position = $3";
 
@@ -166,8 +186,8 @@ public class PostgreSqlMessageStore(string connectionString, SqlGenerator sqlGen
     public async Task Truncate(StoredId storedId)
     {
         await using var conn = await CreateConnection();
-        _truncateFunctionSql ??= @$"    
-                DELETE FROM {_tablePrefix}_messages
+        _truncateFunctionSql ??= @$"
+                DELETE FROM {tablePrefix}_messages
                 WHERE id = $1;";
         await using var command = new NpgsqlCommand(_truncateFunctionSql, conn)
         {

@@ -42,7 +42,7 @@ public class SqlGenerator(string tablePrefix)
     public StoreCommand GetEffects(StoredId storedId)
     {
         _getEffectResultsSql ??= @$"
-            SELECT id, content, 0 as position, version
+            SELECT id, content, version
             FROM {tablePrefix}_effects
             WHERE id = $1;";
 
@@ -54,7 +54,7 @@ public class SqlGenerator(string tablePrefix)
     public StoreCommand GetEffects(IEnumerable<StoredId> storedIds)
     {
         var sql = @$"
-            SELECT id, position, content, version
+            SELECT id, content, version
             FROM {tablePrefix}_effects
             WHERE id = ANY($1);";
 
@@ -71,8 +71,7 @@ public class SqlGenerator(string tablePrefix)
         {
             var id = reader.GetGuid(0);
             var content = (byte[])reader.GetValue(1);
-            var position = reader.GetInt32(2);
-            var version = reader.GetInt32(3);
+            var version = reader.GetInt32(2);
             var effectsBytes = BinaryPacker.Split(content);
             foreach (var effectBytes in effectsBytes)
             {
@@ -129,9 +128,8 @@ public class SqlGenerator(string tablePrefix)
         while (await reader.ReadAsync())
         {
             var id = new StoredId(reader.GetGuid(0));
-            var position = reader.GetInt32(1);
-            var content = (byte[])reader.GetValue(2);
-            var version = reader.GetInt32(3);
+            var content = (byte[])reader.GetValue(1);
+            var version = reader.GetInt32(2);
             
             var effectsBytes = BinaryPacker.Split(content);
             var storedEffects = effectsBytes.Select(effectBytes => StoredEffect.Deserialize(effectBytes!)).ToList();
@@ -333,11 +331,11 @@ public class SqlGenerator(string tablePrefix)
             UPDATE {tablePrefix}
             SET status = {(int)Status.Executing}, expires = 0, interrupted = FALSE, owner = $1
             WHERE id = $2 AND owner IS NULL
-            RETURNING         
-                id,      
-                param_json, 
+            RETURNING
+                id,
+                param_json,
                 status,
-                result_json, 
+                result_json,
                 exception_json,
                 expires,
                 interrupted,
@@ -361,6 +359,34 @@ public class SqlGenerator(string tablePrefix)
             ]);
 
         return command;
+    }
+
+    private string? _restartExecutionsSql;
+    public StoreCommand RestartExecutions(IReadOnlyList<StoredId> storedIds, ReplicaId replicaId)
+    {
+        _restartExecutionsSql ??= @$"
+            UPDATE {tablePrefix}
+            SET status = {(int)Status.Executing}, expires = 0, interrupted = FALSE, owner = $1
+            WHERE id = ANY($2) AND owner IS NULL
+            RETURNING
+                id,
+                param_json,
+                status,
+                result_json,
+                exception_json,
+                expires,
+                interrupted,
+                timestamp,
+                human_instance_id,
+                parent,
+                owner;";
+
+        return StoreCommand.Create(
+            _restartExecutionsSql,
+            values: [
+                replicaId.AsGuid,
+                storedIds.Select(id => id.AsGuid).ToArray()
+            ]);
     }
     
     public async Task<StoredFlow?> ReadFunction(StoredId storedId, NpgsqlDataReader reader)
@@ -480,6 +506,39 @@ public class SqlGenerator(string tablePrefix)
 
         var storeCommand = StoreCommand.Create(sql, values: [ storedIds.Select(id => id.AsGuid).ToArray() ]);
         return storeCommand;
+    }
+    
+    public async Task<Dictionary<StoredId, IReadOnlyList<StoredMessage>>> ReadMessagesForMultipleStores(NpgsqlDataReader reader)
+    {
+        var dict = new Dictionary<StoredId, List<StoredMessage>>();
+        while (await reader.ReadAsync())
+        {
+            var id = reader.GetGuid(0).ToStoredId();
+            var position = reader.GetInt64(1);
+            var content = (byte[]) reader.GetValue(2);
+            var splitted = BinaryPacker.Split(content, expectedPieces: 3);
+            
+            var contentBytes = splitted[0]!;
+            var typeBytes = splitted[1]!;
+            var idempotencyKeyBytes = splitted[2];
+            
+            if (!dict.ContainsKey(id))
+                dict[id] = new List<StoredMessage>();
+
+            dict[id].Add(
+                new StoredMessage(
+                    contentBytes,
+                    typeBytes,
+                    position,
+                    idempotencyKeyBytes?.ToStringFromUtf8Bytes()
+                )
+            );
+        }
+
+        return dict.ToDictionary(
+            kv => kv.Key,
+            kv => (IReadOnlyList<StoredMessage>) kv.Value.OrderBy(b => b.Position).ToList()
+        );
     }
     
     public async Task<Dictionary<StoredId, List<(byte[] content, long position)>>> ReadStoredIdsMessages(NpgsqlDataReader reader)
