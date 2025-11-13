@@ -15,7 +15,8 @@
       "Bash(dotnet run:*)",
       "Bash(pg_isready -h localhost -p 5432)",
       "Bash(git log:*)",
-      "Bash(wait)"
+      "Bash(wait)",
+      "WebSearch"
     ],
     "deny": [],
     "ask": []
