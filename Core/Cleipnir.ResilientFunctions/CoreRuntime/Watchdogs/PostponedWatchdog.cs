@@ -87,7 +87,8 @@ internal class PostponedWatchdog
                     var (_, scheduleRestart, asyncSemaphore) = flowsDictionary[id.Type];
                     var tuple = restarts[id];
                     var (storedFlow, effects, messages, session) = tuple;
-                    
+
+                    var takenLock = await asyncSemaphore.Take();
                     try
                     {
                         await scheduleRestart(
@@ -95,13 +96,13 @@ internal class PostponedWatchdog
                             new RestartedFunction(storedFlow, effects, messages, session),
                             onCompletion: () =>
                             {
-                                //takenLock.Dispose();
+                                takenLock.Dispose();
                             }
                         );
                     }
                     catch
                     {
-                        //takenLock.Dispose();
+                        takenLock.Dispose();
                         throw;
                     }
                 }
