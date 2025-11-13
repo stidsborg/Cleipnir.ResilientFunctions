@@ -109,7 +109,7 @@ public record SettingsWithDefaults(
             MessagesPullFrequency: TimeSpan.FromMilliseconds(250),
             MessagesDefaultMaxWaitForCompletion: TimeSpan.Zero, 
             DelayStartup: TimeSpan.FromSeconds(0),
-            MaxParallelRetryInvocations: 100,
+            MaxParallelRetryInvocations: 1000,
             Serializer: DefaultSerializer.Instance,
             UtcNow: () => DateTime.UtcNow
         );
