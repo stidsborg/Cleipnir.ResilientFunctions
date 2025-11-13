@@ -1,7 +1,6 @@
 ﻿using System.Runtime.CompilerServices;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Tests.Utils;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using MySqlConnector;
 
 namespace Cleipnir.ResilientFunctions.MariaDb.Tests
@@ -14,9 +13,9 @@ namespace Cleipnir.ResilientFunctions.MariaDb.Tests
         
         static Sql()
         {
-            ConnectionString = 
+            ConnectionString =
                 Environment.GetEnvironmentVariable("Cleipnir.RFunctions.MySQL.Tests.ConnectionString")
-                ?? "server=localhost;userid=root;password=Pa55word!;AllowPublicKeyRetrieval=True;;database=rfunctions_tests;";
+                ?? "server=localhost;userid=root;password=Pa55word!;AllowPublicKeyRetrieval=True;Allow User Variables=true;database=rfunctions_tests;";
             ConnFunc = async () =>
             {
                 var conn = new MySqlConnection(ConnectionString);

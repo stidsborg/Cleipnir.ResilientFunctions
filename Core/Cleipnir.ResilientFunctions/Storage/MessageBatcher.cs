@@ -22,8 +22,7 @@ public class MessageBatcher<TEntity>(Func<StoredId, List<TEntity>, Task> handleB
 
         lock (_lock)
         {
-            var success = _batchesDict.TryGetValue(storedId, out var tuple);
-            if (success)
+            if (_batchesDict.TryGetValue(storedId, out var tuple))
             {
                 //already executing handling function for stored id
                 nextTcs = tuple.Item1;

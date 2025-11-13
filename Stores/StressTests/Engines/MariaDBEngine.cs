@@ -9,7 +9,7 @@ namespace Cleipnir.ResilientFunctions.StressTests.Engines;
 public class MariaDBEngine : IEngine
 {
     private const string ConnectionString 
-        = "server=localhost;userid=root;password=Pa55word!;AllowPublicKeyRetrieval=True;database=rfunctions_tests;";
+        = "server=localhost;userid=root;password=Pa55word!;AllowPublicKeyRetrieval=True;database=rfunctions_tests;Allow User Variables=true;";
 
     public async Task RecreateDatabase()
     {
