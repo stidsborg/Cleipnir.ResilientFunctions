@@ -42,6 +42,8 @@ public class QueueManager(StoredId storedId, IMessageStore messageStore, ISerial
         }
     }
 
+    public int Subscribe();
+
     private record MessageWithPosition(object Message, long Position, string? IdempotencyKey);
 
     private record Subscriber(int Id, MessagePredicate Predicate, MessageHandler Handler);
