@@ -182,7 +182,6 @@ public class SqlServerFunctionStore : IFunctionStore
             {
                 var messagesCommand = _sqlGenerator.AppendMessages(
                     messages.Select((msg, position) => new StoredIdAndMessageWithPosition(storedId, msg, position)).ToList(),
-                    interrupt: false,
                     prefix: "Message"
                 );
                 storeCommand = storeCommand.Merge(messagesCommand);

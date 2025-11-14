@@ -34,7 +34,7 @@ public class MessageWriters
         return new MessageWriter(storedId, _functionStore, _serializer);
     }
 
-    public async Task AppendMessages(IReadOnlyList<BatchedMessage> messages, bool interrupt = true)
+    public async Task AppendMessages(IReadOnlyList<BatchedMessage> messages)
     {
         var storedIdAndMessages = new List<StoredIdAndMessage>(messages.Count);
         foreach (var (instance, message, idempotencyKey) in messages)
@@ -45,6 +45,6 @@ public class MessageWriters
             storedIdAndMessages.Add(new StoredIdAndMessage(storedId,storedMessage));
         }
 
-        await _functionStore.MessageStore.AppendMessages(storedIdAndMessages, interrupt);
+        await _functionStore.MessageStore.AppendMessages(storedIdAndMessages);
     } 
 }

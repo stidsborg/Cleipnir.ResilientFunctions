@@ -94,7 +94,7 @@ public class SqlServerMessageStore : IMessageStore
         await interruptCmd.ExecuteNonQueryAsync();
     }
 
-    public async Task AppendMessages(IReadOnlyList<StoredIdAndMessage> messages, bool interrupt = true)
+    public async Task AppendMessages(IReadOnlyList<StoredIdAndMessage> messages)
     {
         if (messages.Count == 0)
             return;
@@ -102,7 +102,7 @@ public class SqlServerMessageStore : IMessageStore
         if (messages.Count > 300)
         {
             foreach (var chunk in messages.Chunk(300))
-                await AppendMessages(chunk, interrupt);
+                await AppendMessages(chunk);
 
             return;
         }
@@ -119,7 +119,7 @@ public class SqlServerMessageStore : IMessageStore
             VALUES
                  {messages.Select((_, i) => $"(@Id{i}, @Position{i}, @Content{i})").StringJoin($",{Environment.NewLine}")};
 
-            {(interrupt ? interuptsSql.Sql : string.Empty)}";
+            {interuptsSql.Sql}";
 
         await using var command = new SqlCommand(sql, conn);
         for (var i = 0; i < messages.Count; i++)
@@ -135,14 +135,14 @@ public class SqlServerMessageStore : IMessageStore
         await command.ExecuteNonQueryAsync();
     }
 
-    public async Task AppendMessages(IReadOnlyList<StoredIdAndMessageWithPosition> messages, bool interrupt)
+    public async Task AppendMessages(IReadOnlyList<StoredIdAndMessageWithPosition> messages)
     {
         if (messages.Count == 0)
             return;
 
         await using var conn = await CreateConnection();
         await using var command = _sqlGenerator
-            .AppendMessages(messages, interrupt)!
+            .AppendMessages(messages)!
             .ToSqlCommand(conn);
         await command.ExecuteNonQueryAsync();
     }
