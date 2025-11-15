@@ -6,40 +6,33 @@ namespace Cleipnir.ResilientFunctions.Queuing;
 public class QueueFlag
 {
     private readonly Lock _sync = new();
-    private TaskCompletionSource? _waiter = null;
-    private bool _signaled;
+    private TaskCompletionSource _waiter = new();
     
-    public Task WaitForRaised()
+    public async Task WaitForRaised()
     {
         TaskCompletionSource waiter;
         lock (_sync)
-            if (_signaled)
+        {
+            waiter = _waiter;
+            if (waiter.Task.IsCompleted)
             {
-                _signaled = false;
-                return Task.CompletedTask;
+                _waiter = new TaskCompletionSource();
+                return;
             }
-            else
-            {
-                waiter = _waiter = new();
-            } 
+        }
         
-        return waiter.Task;
+        await waiter.Task;
+        
+        lock (_sync)
+            _waiter = new();
     }
 
     public void Raise()
     {
-        TaskCompletionSource? waiter = null;
+        TaskCompletionSource waiter;
         lock (_sync)
-            if (_signaled)
-                return;
-            else if (_waiter == null) 
-                _signaled = true;
-            else
-            {
-                waiter = _waiter;
-                _waiter = null;
-            }
+            waiter = _waiter;
         
-        waiter?.SetResult();
+        waiter.TrySetResult();
     }
 }
