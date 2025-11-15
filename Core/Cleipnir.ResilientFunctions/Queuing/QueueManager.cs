@@ -1,6 +1,6 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Serialization;
 using Cleipnir.ResilientFunctions.Messaging;
@@ -9,11 +9,12 @@ using Cleipnir.ResilientFunctions.Storage;
 namespace Cleipnir.ResilientFunctions.Queuing;
 
 public delegate bool MessagePredicate(object message);
-public delegate Task MessageHandler(object message, long position, string? idempotencyKey);
 
 public class QueueManager(StoredId storedId, IMessageStore messageStore, ISerializer serializer)
 {
-    private Dictionary<int, Subscriber> _subscribers = new();
+    private readonly Dictionary<int, Subscription> _subscribers = new();
+    private readonly Lock _lock = new();
+    private int _nextId;
     
     public async Task Run()
     {
@@ -28,23 +29,36 @@ public class QueueManager(StoredId storedId, IMessageStore messageStore, ISerial
                 toDeliver[max++] = new MessageWithPosition(msg, position, idempotencyKey);
             }
 
-            foreach (var (key, (message, position, idempotencyKey)) in toDeliver.ToList())
+            foreach (var (key, messageWithPosition) in toDeliver.ToList())
             {
-                foreach (var subscriber in _subscribers.Values)
+                var (message, position, idempotencyKey) = messageWithPosition;
+                foreach (var kv in _subscribers.ToList())
                 {
+                    var subscriberId = kv.Key;
+                    var subscriber = kv.Value;
                     if (subscriber.Predicate(message))
                     {
-                        await subscriber.Handler(messages, position, idempotencyKey);
+                        _subscribers.Remove(subscriberId);
+                        subscriber.Tcs.SetResult(messageWithPosition);
                         toDeliver.Remove(key);
                     }
                 }
             }
         }
     }
+    
+    public Task<MessageWithPosition> Subscribe(MessagePredicate predicate)
+    {
+        var tcs = new TaskCompletionSource<MessageWithPosition>();
+        lock (_lock)
+        {
+            var id = _nextId++;
+            _subscribers[id] = new Subscription(predicate, tcs);
+        }
+        
+        return tcs.Task;
+    }
 
-    public int Subscribe();
-
-    private record MessageWithPosition(object Message, long Position, string? IdempotencyKey);
-
-    private record Subscriber(int Id, MessagePredicate Predicate, MessageHandler Handler);
+    public record MessageWithPosition(object Message, long Position, string? IdempotencyKey);
+    private record Subscription(MessagePredicate Predicate, TaskCompletionSource<MessageWithPosition> Tcs);
 }

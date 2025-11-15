@@ -5,11 +5,6 @@ using System.Threading.Tasks;
 
 namespace Cleipnir.ResilientFunctions.Queuing;
 
-public interface IQueue
-{
-    Task<T> Next<T>() where T : notnull;
-}
-
 public class QueueBuilder<T>(IEnumerable<Func<object, bool>> predicates, QueueManager manager)
 {
     internal bool CanHandle(object msg)
@@ -29,13 +24,8 @@ public class QueueBuilder<T>(IEnumerable<Func<object, bool>> predicates, QueueMa
     public QueueBuilder<TChild> OfType<TChild>() where TChild : T
         => new QueueBuilder<TChild>(predicates, manager);
 
-    public async Task<T> Next() 
+    public async Task<T> Next()
     {
-        
+        throw new NotImplementedException();
     }
-}
-
-public class QueueSubscription<T>(IEnumerable<Func<object, bool>> predicates, QueueManager queueManager)
-{
-    
 }
