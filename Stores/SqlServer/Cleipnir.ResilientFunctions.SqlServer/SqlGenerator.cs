@@ -599,6 +599,20 @@ public class SqlGenerator(string tablePrefix)
         return command;
     }
 
+    public StoreCommand GetMessages(StoredId storedId, IReadOnlyList<long> skipPositions)
+    {
+        var positionsClause = skipPositions.Select(p => p.ToString()).StringJoin(", ");
+        var sql = @$"
+            SELECT Content, Position
+            FROM {tablePrefix}_Messages
+            WHERE Id = @Id AND Position NOT IN ({positionsClause});";
+
+        var command = StoreCommand.Create(sql);
+        command.AddParameter("@Id", storedId.AsGuid);
+
+        return command;
+    }
+
     public async Task<IReadOnlyList<(byte[] content, long position)>> ReadMessages(SqlDataReader reader)
     {
         var messages = new List<(byte[], long)>();
