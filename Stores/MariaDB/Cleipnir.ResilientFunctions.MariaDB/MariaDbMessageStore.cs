@@ -112,7 +112,7 @@ public class MariaDbMessageStore : IMessageStore
         );
     }
 
-    public async Task AppendMessages(IReadOnlyList<StoredIdAndMessage> messages, bool interrupt = true)
+    public async Task AppendMessages(IReadOnlyList<StoredIdAndMessage> messages)
     {
         if (messages.Count == 0)
             return;
@@ -139,10 +139,7 @@ public class MariaDbMessageStore : IMessageStore
                 var appendMessagesCommand = _sqlGenerator.AppendMessages(messagesWithPosition);
                 var interruptsCommand = _sqlGenerator.Interrupt(storedIds);
 
-                var command =
-                    interrupt
-                        ? StoreCommand.Merge(appendMessagesCommand, interruptsCommand)
-                        : appendMessagesCommand;
+                var command = StoreCommand.Merge(appendMessagesCommand, interruptsCommand);
 
                 await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
                 await using var sqlCommand = command.ToSqlCommand(conn);
@@ -167,7 +164,7 @@ public class MariaDbMessageStore : IMessageStore
         );
     }
 
-    public async Task AppendMessages(IReadOnlyList<StoredIdAndMessageWithPosition> messages, bool interrupt)
+    public async Task AppendMessages(IReadOnlyList<StoredIdAndMessageWithPosition> messages)
     {
         if (messages.Count == 0)
             return;
@@ -181,9 +178,7 @@ public class MariaDbMessageStore : IMessageStore
             try
             {
                 var appendCommand = _sqlGenerator.AppendMessages(messages);
-                var interruptCommand = interrupt
-                    ? _sqlGenerator.Interrupt(messages.Select(m => m.StoredId).Distinct())
-                    : null;
+                var interruptCommand = _sqlGenerator.Interrupt(messages.Select(m => m.StoredId).Distinct());
 
                 await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
                 await using var command = StoreCommand

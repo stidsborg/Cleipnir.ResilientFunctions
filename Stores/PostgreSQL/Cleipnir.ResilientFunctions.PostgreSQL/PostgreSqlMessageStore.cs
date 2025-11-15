@@ -98,7 +98,7 @@ public class PostgreSqlMessageStore : IMessageStore
         await interruptCmd.ExecuteNonQueryAsync();
     }
 
-    public async Task AppendMessages(IReadOnlyList<StoredIdAndMessage> messages, bool interrupt = true)
+    public async Task AppendMessages(IReadOnlyList<StoredIdAndMessage> messages)
     {
         var maxPositions = await GetMaxPositions(
             storedIds: messages.Select(msg => msg.StoredId).Distinct().ToList()
@@ -113,33 +113,23 @@ public class PostgreSqlMessageStore : IMessageStore
                 )
             ).ToList();
 
-        await AppendMessages(messageWithPositions, interrupt);
+        await AppendMessages(messageWithPositions);
     }
 
-    public async Task AppendMessages(IReadOnlyList<StoredIdAndMessageWithPosition> messages, bool interrupt)
+    public async Task AppendMessages(IReadOnlyList<StoredIdAndMessageWithPosition> messages)
     {
         if (messages.Count == 0)
             return;
 
         var appendMessagesCommand = sqlGenerator.AppendMessages(messages);
-        var interruptCommand = interrupt
-            ? sqlGenerator.Interrupt(messages.Select(m => m.StoredId).Distinct())
-            : null;
+        var interruptCommand = sqlGenerator.Interrupt(messages.Select(m => m.StoredId).Distinct());
 
         await using var conn = await CreateConnection();
-        if (interrupt)
-        {
-            await using var command = StoreCommandExtensions
-                .ToNpgsqlBatch([appendMessagesCommand, interruptCommand!])
-                .WithConnection(conn);
+        await using var command = StoreCommandExtensions
+            .ToNpgsqlBatch([appendMessagesCommand, interruptCommand])
+            .WithConnection(conn);
 
-            await command.ExecuteNonQueryAsync();
-        }
-        else
-        {
-            await using var command = appendMessagesCommand.ToNpgsqlCommand(conn);
-            await command.ExecuteNonQueryAsync();
-        }
+        await command.ExecuteNonQueryAsync();
     }
 
     private string? _replaceMessageSql;

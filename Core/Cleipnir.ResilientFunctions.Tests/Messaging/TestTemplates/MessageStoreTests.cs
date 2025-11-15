@@ -790,10 +790,9 @@ public abstract class MessageStoreTests
                 new StoredIdAndMessageWithPosition(id1, msg1, Position: 0),
                 new StoredIdAndMessageWithPosition(id2, msg1, Position: 0),
                 new StoredIdAndMessageWithPosition(id1, msg2, Position: 1),
-            ],
-            interrupt: false
+            ]
         );
-        
+
         var messagesId1 = await messageStore.GetMessages(id1, skip: 0);
         messagesId1.Count.ShouldBe(2);
         messagesId1[0].IdempotencyKey.ShouldBe("1");
@@ -810,16 +809,15 @@ public abstract class MessageStoreTests
         messagesId2[0].MessageContent.ToStringFromUtf8Bytes().ShouldBe(msg1String);
 
         var sf1 = await functionStore.GetFunction(id1).ShouldNotBeNullAsync();
-        sf1.Interrupted.ShouldBeFalse();
-        
+        sf1.Interrupted.ShouldBeTrue();
+
         var sf2 = await functionStore.GetFunction(id2).ShouldNotBeNullAsync();
-        sf2.Interrupted.ShouldBeFalse();
-        
+        sf2.Interrupted.ShouldBeTrue();
+
         await messageStore.AppendMessages(
             [
                 new StoredIdAndMessageWithPosition(id2, msg2, Position: 1)
-            ],
-            interrupt: true
+            ]
         );
         
         messagesId2 = await messageStore.GetMessages(id1, skip: 0);

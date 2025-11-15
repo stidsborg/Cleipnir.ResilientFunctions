@@ -550,14 +550,12 @@ public class SqlGenerator(string tablePrefix)
         return (null, null);
     }
     
-    public StoreCommand? AppendMessages(IReadOnlyList<StoredIdAndMessageWithPosition> messages, bool interrupt, string prefix = "")
+    public StoreCommand? AppendMessages(IReadOnlyList<StoredIdAndMessageWithPosition> messages, string prefix = "")
     {
         if (messages.Count == 0)
             return null;
 
-        var interruptCommand = interrupt
-            ? Interrupt(messages.Select(m => m.StoredId).Distinct().ToList())
-            : null;
+        var interruptCommand = Interrupt(messages.Select(m => m.StoredId).Distinct().ToList());
 
         var sql = @$"
             INSERT INTO {tablePrefix}_Messages

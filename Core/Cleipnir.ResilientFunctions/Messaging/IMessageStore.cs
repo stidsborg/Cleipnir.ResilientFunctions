@@ -9,8 +9,8 @@ public interface IMessageStore
     Task Initialize();
 
     Task AppendMessage(StoredId storedId, StoredMessage storedMessage);
-    Task AppendMessages(IReadOnlyList<StoredIdAndMessage> messages, bool interrupt = true);
-    Task AppendMessages(IReadOnlyList<StoredIdAndMessageWithPosition> messages, bool interrupt);
+    Task AppendMessages(IReadOnlyList<StoredIdAndMessage> messages);
+    Task AppendMessages(IReadOnlyList<StoredIdAndMessageWithPosition> messages);
 
     Task<bool> ReplaceMessage(StoredId storedId, long position, StoredMessage storedMessage);
     Task DeleteMessages(StoredId storedId, IEnumerable<long> positions);
