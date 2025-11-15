@@ -480,10 +480,25 @@ public class SqlGenerator(string tablePrefix)
             _getMessagesSql,
             values: [storedId.AsGuid, skip]
         );
-        
+
         return storeCommand;
     }
-    
+
+    public StoreCommand GetMessages(StoredId storedId, IReadOnlyList<long> skipPositions)
+    {
+        var sql = @$"
+            SELECT content, position
+            FROM {tablePrefix}_messages
+            WHERE id = $1 AND position != ALL($2);";
+
+        var storeCommand = StoreCommand.Create(
+            sql,
+            values: [storedId.AsGuid, skipPositions.ToArray()]
+        );
+
+        return storeCommand;
+    }
+
     public async Task<IReadOnlyList<(byte[] content, long position)>> ReadMessages(NpgsqlDataReader reader)
     {
         var messages = new List<(byte[], long)>();

@@ -683,6 +683,9 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
     public virtual Task<IReadOnlyList<StoredMessage>> GetMessages(StoredId storedId, long skip)
         => ((IReadOnlyList<StoredMessage>)GetMessages(storedId).Skip((int)skip).ToList()).ToTask();
 
+    public virtual Task<IReadOnlyList<StoredMessage>> GetMessages(StoredId storedId, IReadOnlyList<long> skipPositions)
+        => ((IReadOnlyList<StoredMessage>)GetMessages(storedId).Where(m => !skipPositions.Contains(m.Position)).ToList()).ToTask();
+
     public async Task<Dictionary<StoredId, List<StoredMessage>>> GetMessages(IEnumerable<StoredId> storedIds)
     {
         var dict = new Dictionary<StoredId, List<StoredMessage>>();
