@@ -66,22 +66,92 @@ public class Effect(EffectResults effectResults, UtcNow utcNow, FlowMinimumTimeo
     #region Implicit ids
 
     public Task Capture(Action work, ResiliencyLevel resiliency = ResiliencyLevel.AtLeastOnce)
-        => Capture(id: EffectContext.CurrentContext.NextImplicitId(), work, resiliency);
+        => InnerCapture(
+            id: EffectContext.CurrentContext.NextImplicitId(),
+            EffectType.Effect,
+            work: () =>
+            {
+                work();
+                return Task.CompletedTask;
+            },
+            resiliency,
+            EffectContext.CurrentContext,
+            retryPolicy: null
+        );
+
     public Task<T> Capture<T>(Func<T> work, ResiliencyLevel resiliency = ResiliencyLevel.AtLeastOnce)
-        => Capture(id: EffectContext.CurrentContext.NextImplicitId(), work: () => work().ToTask(), resiliency);
+        => InnerCapture(
+            id: EffectContext.CurrentContext.NextImplicitId(),
+            EffectType.Effect,
+            work: () => work().ToTask(),
+            resiliency,
+            EffectContext.CurrentContext,
+            retryPolicy: null
+        );
+
     public Task Capture(Func<Task> work, ResiliencyLevel resiliency = ResiliencyLevel.AtLeastOnce)
-        => Capture(id: EffectContext.CurrentContext.NextImplicitId(), work, resiliency);
+        => InnerCapture(
+            id: EffectContext.CurrentContext.NextImplicitId(),
+            EffectType.Effect,
+            work,
+            resiliency,
+            EffectContext.CurrentContext,
+            retryPolicy: null
+        );
+
     public Task<T> Capture<T>(Func<Task<T>> work, ResiliencyLevel resiliency = ResiliencyLevel.AtLeastOnce)
-        => Capture(id: EffectContext.CurrentContext.NextImplicitId(), work, resiliency);
+        => InnerCapture(
+            id: EffectContext.CurrentContext.NextImplicitId(),
+            EffectType.Effect,
+            work,
+            resiliency,
+            EffectContext.CurrentContext,
+            retryPolicy: null
+        );
 
     public Task Capture(Action work, RetryPolicy retryPolicy, bool flush = true)
-        => Capture(id: EffectContext.CurrentContext.NextImplicitId(), work, retryPolicy, flush);
+        => InnerCapture(
+            id: EffectContext.CurrentContext.NextImplicitId(),
+            EffectType.Effect,
+            work: () =>
+            {
+                work();
+                return Task.CompletedTask;
+            },
+            flush ? ResiliencyLevel.AtLeastOnce : ResiliencyLevel.AtLeastOnceDelayFlush,
+            EffectContext.CurrentContext,
+            retryPolicy
+        );
+
     public Task<T> Capture<T>(Func<T> work, RetryPolicy retryPolicy, bool flush = true)
-        => Capture(id: EffectContext.CurrentContext.NextImplicitId(), work: () => work().ToTask(), retryPolicy, flush);
+        => InnerCapture(
+            id: EffectContext.CurrentContext.NextImplicitId(),
+            EffectType.Effect,
+            work: () => work().ToTask(),
+            flush ? ResiliencyLevel.AtLeastOnce : ResiliencyLevel.AtLeastOnceDelayFlush,
+            EffectContext.CurrentContext,
+            retryPolicy
+        );
+
     public Task Capture(Func<Task> work, RetryPolicy retryPolicy, bool flush = true)
-        => Capture(id: EffectContext.CurrentContext.NextImplicitId(), work, retryPolicy, flush);
+        => InnerCapture(
+            id: EffectContext.CurrentContext.NextImplicitId(),
+            EffectType.Effect,
+            work,
+            flush ? ResiliencyLevel.AtLeastOnce : ResiliencyLevel.AtLeastOnceDelayFlush,
+            EffectContext.CurrentContext,
+            retryPolicy
+        );
+
     public Task<T> Capture<T>(Func<Task<T>> work, RetryPolicy retryPolicy, bool flush = true)
-        => Capture(id: EffectContext.CurrentContext.NextImplicitId(), work, retryPolicy, flush);
+        => InnerCapture(
+            id: EffectContext.CurrentContext.NextImplicitId(),
+            EffectType.Effect,
+            work,
+            flush ? ResiliencyLevel.AtLeastOnce : ResiliencyLevel.AtLeastOnceDelayFlush,
+            EffectContext.CurrentContext,
+            retryPolicy
+        );
     
     #endregion
     
