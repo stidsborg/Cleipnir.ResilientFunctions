@@ -141,18 +141,19 @@ public abstract class ControlPanelTests
         var controlPanel = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
         controlPanel.Status.ShouldBe(Status.Failed);
         controlPanel.FatalWorkflowException.ShouldNotBeNull();
-        
-        await controlPanel.Postpone(new DateTime(1_000_000));
+
+        var postponeUntil = DateTime.UtcNow.AddDays(1);
+        await controlPanel.Postpone(postponeUntil);
 
         await controlPanel.Refresh();
         controlPanel.Status.ShouldBe(Status.Postponed);
         controlPanel.PostponedUntil.ShouldNotBeNull();
-        controlPanel.PostponedUntil.Value.Ticks.ShouldBe(1_000_000);
+        controlPanel.PostponedUntil.ShouldBe(postponeUntil);
         
         var sf = await store.GetFunction(rAction.MapToStoredId(functionId.Instance));
         sf.ShouldNotBeNull();
         sf.Status.ShouldBe(Status.Postponed);
-        sf.Expires.ShouldBe(1_000_000);
+        sf.Expires.ShouldBe(postponeUntil.Ticks);
         
         unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
