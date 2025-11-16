@@ -837,4 +837,44 @@ public abstract class EffectStoreTests
         effects.Any(e => e.EffectId == "Effect2".ToEffectId()).ShouldBeTrue();
         effects.Any(e => e.EffectId == "Effect3".ToEffectId()).ShouldBeFalse();
     }
+
+    public abstract Task EffectWithAliasCanBePersistedAndFetched();
+    protected async Task EffectWithAliasCanBePersistedAndFetched(Task<IFunctionStore> storeTask)
+    {
+        var functionId = TestStoredId.Create();
+        var functionStore = await storeTask;
+        await functionStore.CreateFunction(
+            functionId,
+            "HumanInstanceId",
+            param: null,
+            leaseExpiration: 0,
+            postponeUntil: null,
+            timestamp: 0,
+            parent: null,
+            owner: ReplicaId.NewId()
+        );
+        var store = functionStore.EffectsStore;
+
+        // Create effect with alias
+        var effectWithAlias = new StoredEffect(
+            "EffectId1".ToEffectId(),
+            WorkStatus.Completed,
+            Result: "Hello World".ToUtf8Bytes(),
+            StoredException: null,
+            Alias: "MyAlias"
+        );
+
+        // Persist effect
+        await store.SetEffectResult(functionId, effectWithAlias.ToStoredChange(functionId, Insert), session: null);
+
+        // Fetch effect
+        var storedEffects = await store.GetEffectResults(functionId);
+        storedEffects.Count.ShouldBe(1);
+
+        var retrievedEffect = storedEffects[0];
+        retrievedEffect.EffectId.ShouldBe(effectWithAlias.EffectId);
+        retrievedEffect.WorkStatus.ShouldBe(effectWithAlias.WorkStatus);
+        retrievedEffect.Result!.ToStringFromUtf8Bytes().ShouldBe("Hello World");
+        retrievedEffect.Alias.ShouldBe("MyAlias");
+    }
 }

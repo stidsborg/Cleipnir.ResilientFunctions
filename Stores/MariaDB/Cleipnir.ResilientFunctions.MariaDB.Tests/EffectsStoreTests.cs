@@ -73,4 +73,8 @@ public class EffectsStoreTests : Cleipnir.ResilientFunctions.Tests.TestTemplates
     [TestMethod]
     public override Task MixedInsertUpdateDeleteInSequence()
         => MixedInsertUpdateDeleteInSequence(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task EffectWithAliasCanBePersistedAndFetched()
+        => EffectWithAliasCanBePersistedAndFetched(FunctionStoreFactory.Create());
 }

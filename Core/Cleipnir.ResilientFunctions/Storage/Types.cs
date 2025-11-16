@@ -146,7 +146,8 @@ public record StoredEffect(
     EffectId EffectId,
     WorkStatus WorkStatus,
     byte[]? Result,
-    StoredException? StoredException
+    StoredException? StoredException,
+    string? Alias = null
 )
 {
     public StoredEffectId StoredEffectId => EffectId.ToStoredEffectId();
@@ -166,19 +167,23 @@ public record StoredEffect(
         var status = (byte)WorkStatus;
         var result = Result;
         var exception = StoredException?.Serialize();
-        
-        return BinaryPacker.Pack(effect, [status], result, exception);
+        var alias = Alias?.ToUtf8Bytes();
+
+        return BinaryPacker.Pack(effect, [status], result, exception, alias);
     }
 
     public static StoredEffect Deserialize(byte[] bytes)
     {
-        var parts = BinaryPacker.Split(bytes, expectedPieces: 4);
+        var parts = BinaryPacker.Split(bytes);
         var effect = EffectId.Deserialize(parts[0]!.ToStringFromUtf8Bytes());
         var status = (WorkStatus)parts[1]![0];
         var result = parts[2];
-        var exception = parts[3] == null ? null : StoredException.Deserialize(parts[3]!);
+        var exception = parts.Count > 3
+            ? parts[3] == null ? null : StoredException.Deserialize(parts[3]!)
+            : null;
+        var alias = parts.Count > 3 ? parts[4]?.ToStringFromUtf8Bytes() : null;
 
-        return new StoredEffect(effect, status, result, exception);
+        return new StoredEffect(effect, status, result, exception, alias);
     }
     
     public static StoredEffect CreateState(StoredState storedState)
