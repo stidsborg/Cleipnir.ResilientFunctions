@@ -182,7 +182,6 @@ public class SqlServerFunctionStore : IFunctionStore
             {
                 var messagesCommand = _sqlGenerator.AppendMessages(
                     messages.Select((msg, position) => new StoredIdAndMessageWithPosition(storedId, msg, position)).ToList(),
-                    interrupt: false,
                     prefix: "Message"
                 );
                 storeCommand = storeCommand.Merge(messagesCommand);
@@ -296,7 +295,7 @@ public class SqlServerFunctionStore : IFunctionStore
 
         await reader.NextResultAsync();
         var messages = await _sqlGenerator.ReadMessages(reader);
-        var storedMessages = messages.Select(m => SqlServerMessageStore.ConvertToStoredMessage(m.content) with { Position = m.position }).ToList();
+        var storedMessages = messages.Select(m => SqlServerMessageStore.ConvertToStoredMessage(m.content, m.position)).ToList();
 
         return new StoredFlowWithEffectsAndMessages(sf, effects, storedMessages, session);
     }
@@ -413,7 +412,7 @@ public class SqlServerFunctionStore : IFunctionStore
         var messagesDict = await _sqlGenerator.ReadStoredIdsMessages(reader);
         return messagesDict.ToDictionary(
             kv => kv.Key,
-            kv => kv.Value.Select(m => SqlServerMessageStore.ConvertToStoredMessage(m.content) with { Position = m.position }).ToList()
+            kv => kv.Value.Select(m => SqlServerMessageStore.ConvertToStoredMessage(m.content, m.position)).ToList()
         );
     }
 

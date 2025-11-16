@@ -98,7 +98,7 @@ public class PostgreSqlMessageStore : IMessageStore
         await interruptCmd.ExecuteNonQueryAsync();
     }
 
-    public async Task AppendMessages(IReadOnlyList<StoredIdAndMessage> messages, bool interrupt = true)
+    public async Task AppendMessages(IReadOnlyList<StoredIdAndMessage> messages)
     {
         var maxPositions = await GetMaxPositions(
             storedIds: messages.Select(msg => msg.StoredId).Distinct().ToList()
@@ -113,33 +113,23 @@ public class PostgreSqlMessageStore : IMessageStore
                 )
             ).ToList();
 
-        await AppendMessages(messageWithPositions, interrupt);
+        await AppendMessages(messageWithPositions);
     }
 
-    public async Task AppendMessages(IReadOnlyList<StoredIdAndMessageWithPosition> messages, bool interrupt)
+    public async Task AppendMessages(IReadOnlyList<StoredIdAndMessageWithPosition> messages)
     {
         if (messages.Count == 0)
             return;
 
         var appendMessagesCommand = sqlGenerator.AppendMessages(messages);
-        var interruptCommand = interrupt
-            ? sqlGenerator.Interrupt(messages.Select(m => m.StoredId).Distinct())
-            : null;
+        var interruptCommand = sqlGenerator.Interrupt(messages.Select(m => m.StoredId).Distinct());
 
         await using var conn = await CreateConnection();
-        if (interrupt)
-        {
-            await using var command = StoreCommandExtensions
-                .ToNpgsqlBatch([appendMessagesCommand, interruptCommand!])
-                .WithConnection(conn);
+        await using var command = StoreCommandExtensions
+            .ToNpgsqlBatch([appendMessagesCommand, interruptCommand])
+            .WithConnection(conn);
 
-            await command.ExecuteNonQueryAsync();
-        }
-        else
-        {
-            await using var command = appendMessagesCommand.ToNpgsqlCommand(conn);
-            await command.ExecuteNonQueryAsync();
-        }
+        await command.ExecuteNonQueryAsync();
     }
 
     private string? _replaceMessageSql;
@@ -206,7 +196,17 @@ public class PostgreSqlMessageStore : IMessageStore
 
         await using var reader = await command.ExecuteReaderAsync();
         var messages = await sqlGenerator.ReadMessages(reader);
-        return messages.Select(m => ConvertToStoredMessage(m.content) with { Position = m.position }).ToList();
+        return messages.Select(m => ConvertToStoredMessage(m.content, m.position)).ToList();
+    }
+
+    public async Task<IReadOnlyList<StoredMessage>> GetMessages(StoredId storedId, IReadOnlyList<long> skipPositions)
+    {
+        await using var conn = await CreateConnection();
+        await using var command = sqlGenerator.GetMessages(storedId, skipPositions).ToNpgsqlCommand(conn);
+
+        await using var reader = await command.ExecuteReaderAsync();
+        var messages = await sqlGenerator.ReadMessages(reader);
+        return messages.Select(m => ConvertToStoredMessage(m.content, m.position)).ToList();
     }
 
     public async Task<Dictionary<StoredId, List<StoredMessage>>> GetMessages(IEnumerable<StoredId> storedIds)
@@ -221,13 +221,13 @@ public class PostgreSqlMessageStore : IMessageStore
         {
             storedMessages[id] = new();
             foreach (var (content, position) in messages[id])
-                storedMessages[id].Add(ConvertToStoredMessage(content) with { Position = position });
+                storedMessages[id].Add(ConvertToStoredMessage(content, position));
         }
 
         return storedMessages;
     }
 
-    public static StoredMessage ConvertToStoredMessage(byte[] content)
+    public static StoredMessage ConvertToStoredMessage(byte[] content, long position)
     {
         var arrs = BinaryPacker.Split(content, expectedPieces: 3);
         var message = arrs[0]!;
@@ -236,7 +236,7 @@ public class PostgreSqlMessageStore : IMessageStore
         var storedMessage = new StoredMessage(
             message,
             type,
-            Position: 0,
+            Position: position,
             idempotencyKey?.ToStringFromUtf8Bytes()
         );
         return storedMessage;

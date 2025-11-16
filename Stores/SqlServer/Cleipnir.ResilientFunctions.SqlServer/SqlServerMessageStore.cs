@@ -94,7 +94,7 @@ public class SqlServerMessageStore : IMessageStore
         await interruptCmd.ExecuteNonQueryAsync();
     }
 
-    public async Task AppendMessages(IReadOnlyList<StoredIdAndMessage> messages, bool interrupt = true)
+    public async Task AppendMessages(IReadOnlyList<StoredIdAndMessage> messages)
     {
         if (messages.Count == 0)
             return;
@@ -102,7 +102,7 @@ public class SqlServerMessageStore : IMessageStore
         if (messages.Count > 300)
         {
             foreach (var chunk in messages.Chunk(300))
-                await AppendMessages(chunk, interrupt);
+                await AppendMessages(chunk);
 
             return;
         }
@@ -119,7 +119,7 @@ public class SqlServerMessageStore : IMessageStore
             VALUES
                  {messages.Select((_, i) => $"(@Id{i}, @Position{i}, @Content{i})").StringJoin($",{Environment.NewLine}")};
 
-            {(interrupt ? interuptsSql.Sql : string.Empty)}";
+            {interuptsSql.Sql}";
 
         await using var command = new SqlCommand(sql, conn);
         for (var i = 0; i < messages.Count; i++)
@@ -135,14 +135,14 @@ public class SqlServerMessageStore : IMessageStore
         await command.ExecuteNonQueryAsync();
     }
 
-    public async Task AppendMessages(IReadOnlyList<StoredIdAndMessageWithPosition> messages, bool interrupt)
+    public async Task AppendMessages(IReadOnlyList<StoredIdAndMessageWithPosition> messages)
     {
         if (messages.Count == 0)
             return;
 
         await using var conn = await CreateConnection();
         await using var command = _sqlGenerator
-            .AppendMessages(messages, interrupt)!
+            .AppendMessages(messages)!
             .ToSqlCommand(conn);
         await command.ExecuteNonQueryAsync();
     }
@@ -204,7 +204,17 @@ public class SqlServerMessageStore : IMessageStore
 
         await using var reader = await command.ExecuteReaderAsync();
         var messages = await _sqlGenerator.ReadMessages(reader);
-        return messages.Select(m => ConvertToStoredMessage(m.content) with { Position = m.position }).ToList();
+        return messages.Select(m => ConvertToStoredMessage(m.content, m.position)).ToList();
+    }
+
+    public async Task<IReadOnlyList<StoredMessage>> GetMessages(StoredId storedId, IReadOnlyList<long> skipPositions)
+    {
+        await using var conn = await CreateConnection();
+        await using var command = _sqlGenerator.GetMessages(storedId, skipPositions).ToSqlCommand(conn);
+
+        await using var reader = await command.ExecuteReaderAsync();
+        var messages = await _sqlGenerator.ReadMessages(reader);
+        return messages.Select(m => ConvertToStoredMessage(m.content, m.position)).ToList();
     }
 
     public async Task<Dictionary<StoredId, List<StoredMessage>>> GetMessages(IEnumerable<StoredId> storedIds)
@@ -219,7 +229,7 @@ public class SqlServerMessageStore : IMessageStore
         {
             storedMessages[id] = new();
             foreach (var (content, position) in messages[id])
-                storedMessages[id].Add(ConvertToStoredMessage(content) with { Position = position });
+                storedMessages[id].Add(ConvertToStoredMessage(content, position));
         }
 
         return storedMessages;
@@ -255,7 +265,7 @@ public class SqlServerMessageStore : IMessageStore
         return positions;
     }
 
-    public static StoredMessage ConvertToStoredMessage(byte[] content)
+    public static StoredMessage ConvertToStoredMessage(byte[] content, long position)
     {
         var arrs = BinaryPacker.Split(content, expectedPieces: 3);
         var message = arrs[0]!;
@@ -264,7 +274,7 @@ public class SqlServerMessageStore : IMessageStore
         var storedMessage = new StoredMessage(
             message,
             type,
-            Position: 0,
+            Position: position,
             idempotencyKey?.ToStringFromUtf8Bytes()
         );
         return storedMessage;

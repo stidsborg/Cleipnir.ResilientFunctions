@@ -12,8 +12,8 @@ public class Postman(StoredType storedType, ICorrelationStore correlationStore, 
         string? idempotencyKey = null
     ) where TMessage : notnull => messageWriters.For(instance).AppendMessage(message, idempotencyKey);
     
-    public async Task SendMessages(IReadOnlyList<BatchedMessage> messages, bool interrupt = true) 
-        => await messageWriters.AppendMessages(messages, interrupt);
+    public async Task SendMessages(IReadOnlyList<BatchedMessage> messages)
+        => await messageWriters.AppendMessages(messages);
 
     public async Task RouteMessage<TMessage>(TMessage message, string correlationId, string? idempotencyKey = null) where TMessage : notnull
     {

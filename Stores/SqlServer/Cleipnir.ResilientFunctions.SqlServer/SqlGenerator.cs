@@ -550,14 +550,12 @@ public class SqlGenerator(string tablePrefix)
         return (null, null);
     }
     
-    public StoreCommand? AppendMessages(IReadOnlyList<StoredIdAndMessageWithPosition> messages, bool interrupt, string prefix = "")
+    public StoreCommand? AppendMessages(IReadOnlyList<StoredIdAndMessageWithPosition> messages, string prefix = "")
     {
         if (messages.Count == 0)
             return null;
 
-        var interruptCommand = interrupt
-            ? Interrupt(messages.Select(m => m.StoredId).Distinct().ToList())
-            : null;
+        var interruptCommand = Interrupt(messages.Select(m => m.StoredId).Distinct().ToList());
 
         var sql = @$"
             INSERT INTO {tablePrefix}_Messages
@@ -597,6 +595,20 @@ public class SqlGenerator(string tablePrefix)
         var command = StoreCommand.Create(sql);
         command.AddParameter($"@{paramPrefix}Id", storedId.AsGuid);
         command.AddParameter($"@{paramPrefix}Position", skip);
+
+        return command;
+    }
+
+    public StoreCommand GetMessages(StoredId storedId, IReadOnlyList<long> skipPositions)
+    {
+        var positionsClause = skipPositions.Select(p => p.ToString()).StringJoin(", ");
+        var sql = @$"
+            SELECT Content, Position
+            FROM {tablePrefix}_Messages
+            WHERE Id = @Id AND Position NOT IN ({positionsClause});";
+
+        var command = StoreCommand.Create(sql);
+        command.AddParameter("@Id", storedId.AsGuid);
 
         return command;
     }
