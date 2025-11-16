@@ -340,7 +340,7 @@ public class MariaDbMessageStore : IMessageStore
         var storedMessage = new StoredMessage(
             message,
             type,
-            Position: 0,
+            Position: position,
             idempotencyKey?.ToStringFromUtf8Bytes()
         );
         return storedMessage;
