@@ -178,29 +178,33 @@ public class MariaDbFunctionStore : IFunctionStore
         var insertSql = @$"
             INSERT IGNORE INTO {_tablePrefix}
               (id, param_json, status, expires, timestamp, human_instance_id, parent, owner)
-            VALUES                      
+            VALUES
                     ";
-        
+
         var now = DateTime.UtcNow.Ticks;
         var parentStr = parent == null ? "NULL" : $"'{parent.AsGuid:N}'";
 
-        var rows = new List<string>();
-        foreach (var (storedId, humanInstanceId, param) in functionsWithParam)
+        var chunks = functionsWithParam.Chunk(500);
+        foreach (var chunk in chunks)
         {
-            var id = storedId.AsGuid;
-            var row = $"('{id:N}', {(param == null ? "NULL" : $"x'{Convert.ToHexString(param)}'")}, {(int) Status.Postponed}, 0, {now}, '{humanInstanceId.EscapeString()}', {parentStr}, NULL)";
-            rows.Add(row);
-        }
-        var rowsSql = string.Join(", " + Environment.NewLine, rows);
-        var strBuilder = new StringBuilder(rowsSql.Length + 2);
-        strBuilder.Append(insertSql);
-        strBuilder.Append(rowsSql);
-        strBuilder.Append(";");
-        var sql = strBuilder.ToString();
+            var rows = new List<string>();
+            foreach (var (storedId, humanInstanceId, param) in chunk)
+            {
+                var id = storedId.AsGuid;
+                var row = $"('{id:N}', {(param == null ? "NULL" : $"x'{Convert.ToHexString(param)}'")}, {(int) Status.Postponed}, 0, {now}, '{humanInstanceId.EscapeString()}', {parentStr}, NULL)";
+                rows.Add(row);
+            }
+            var rowsSql = string.Join(", " + Environment.NewLine, rows);
+            var strBuilder = new StringBuilder(rowsSql.Length + 2);
+            strBuilder.Append(insertSql);
+            strBuilder.Append(rowsSql);
+            strBuilder.Append(";");
+            var sql = strBuilder.ToString();
 
-        await using var conn = await CreateOpenConnection(_connectionString);
-        await using var cmd = new MySqlCommand(sql, conn);
-        cmd.ExecuteNonQuery();
+            await using var conn = await CreateOpenConnection(_connectionString);
+            await using var cmd = new MySqlCommand(sql, conn);
+            await cmd.ExecuteNonQueryAsync();
+        }
     }
     
     public async Task<StoredFlowWithEffectsAndMessages?> RestartExecution(StoredId storedId, ReplicaId replicaId)
