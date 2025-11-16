@@ -268,7 +268,20 @@ public class MariaDbMessageStore : IMessageStore
         await using var reader = await command.ExecuteReaderAsync();
 
         var messages = await _sqlGenerator.ReadMessages(reader);
-        return messages.Select(m => ConvertToStoredMessage(m.content) with { Position = m.position }).ToList();
+        return messages.Select(m => ConvertToStoredMessage(m.content, m.position)).ToList();
+    }
+
+    public async Task<IReadOnlyList<StoredMessage>> GetMessages(StoredId storedId, IReadOnlyList<long> skipPositions)
+    {
+        await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
+        await using var command = _sqlGenerator
+            .GetMessages(storedId, skipPositions)
+            .ToSqlCommand(conn);
+
+        await using var reader = await command.ExecuteReaderAsync();
+
+        var messages = await _sqlGenerator.ReadMessages(reader);
+        return messages.Select(m => ConvertToStoredMessage(m.content, m.position)).ToList();
     }
 
     public async Task<Dictionary<StoredId, List<StoredMessage>>> GetMessages(IEnumerable<StoredId> storedIds)
@@ -286,7 +299,7 @@ public class MariaDbMessageStore : IMessageStore
         {
             storedMessages[id] = new();
             foreach (var (content, position) in messages[id])
-                storedMessages[id].Add(ConvertToStoredMessage(content) with { Position = position });
+                storedMessages[id].Add(ConvertToStoredMessage(content, position));
         }
 
         return storedMessages;
@@ -318,7 +331,7 @@ public class MariaDbMessageStore : IMessageStore
         return positions;
     }
 
-    public static StoredMessage ConvertToStoredMessage(byte[] content)
+    public static StoredMessage ConvertToStoredMessage(byte[] content, long position)
     {
         var arrs = BinaryPacker.Split(content, expectedPieces: 3);
         var message = arrs[0]!;
@@ -327,7 +340,7 @@ public class MariaDbMessageStore : IMessageStore
         var storedMessage = new StoredMessage(
             message,
             type,
-            Position: 0,
+            Position: position,
             idempotencyKey?.ToStringFromUtf8Bytes()
         );
         return storedMessage;
