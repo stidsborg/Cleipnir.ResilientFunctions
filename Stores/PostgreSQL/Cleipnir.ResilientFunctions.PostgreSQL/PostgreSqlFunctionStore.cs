@@ -201,7 +201,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
     public async Task BulkScheduleFunctions(IEnumerable<IdWithParam> functionsWithParam, StoredId? parent)
     {
         await using var conn = await CreateConnection();
-        var chunks = functionsWithParam.Chunk(100);
+        var chunks = functionsWithParam.Chunk(1000);
         foreach (var chunk in chunks)
         {
             var commands = new List<StoreCommand>();
