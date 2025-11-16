@@ -152,14 +152,14 @@ public record StoredEffect(
 {
     public StoredEffectId StoredEffectId => EffectId.ToStoredEffectId();
 
-    public static StoredEffect CreateCompleted(EffectId effectId, byte[] result)
-        => new(effectId, WorkStatus.Completed, result, StoredException: null);
-    public static StoredEffect CreateCompleted(EffectId effectId)
-        => new(effectId, WorkStatus.Completed, Result: null, StoredException: null);
-    public static StoredEffect CreateStarted(EffectId effectId)
-        => new(effectId, WorkStatus.Started, Result: null, StoredException: null);
-    public static StoredEffect CreateFailed(EffectId effectId, StoredException storedException)
-        => new(effectId, WorkStatus.Failed, Result: null, storedException);
+    public static StoredEffect CreateCompleted(EffectId effectId, byte[] result, string? alias)
+        => new(effectId, WorkStatus.Completed, result, StoredException: null, alias);
+    public static StoredEffect CreateCompleted(EffectId effectId, string? alias)
+        => new(effectId, WorkStatus.Completed, Result: null, StoredException: null, alias);
+    public static StoredEffect CreateStarted(EffectId effectId, string? alias)
+        => new(effectId, WorkStatus.Started, Result: null, StoredException: null, alias);
+    public static StoredEffect CreateFailed(EffectId effectId, StoredException storedException, string? alias)
+        => new(effectId, WorkStatus.Failed, Result: null, storedException, alias);
 
     public byte[] Serialize()
     {
