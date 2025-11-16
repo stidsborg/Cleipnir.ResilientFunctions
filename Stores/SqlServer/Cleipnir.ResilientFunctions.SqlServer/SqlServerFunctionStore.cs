@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Data.SqlTypes;
 using System.Linq;
 using System.Runtime.Serialization;
@@ -206,56 +207,79 @@ public class SqlServerFunctionStore : IFunctionStore
         }
     }
 
-    private string? _bulkScheduleFunctionsSql;
     public async Task BulkScheduleFunctions(IEnumerable<IdWithParam> functionsWithParam, StoredId? parent)
     {
-        _bulkScheduleFunctionsSql ??= @$"
-            MERGE INTO {_tableName}
-            USING (VALUES @VALUES) 
-            AS source (
-                Id, 
-                ParamJson, 
-                Status,
-                Owner,
-                Expires,
-                Timestamp,
-                HumanInstanceId,
-                Parent
-            )
-            ON {_tableName}.Id = source.Id         
-            WHEN NOT MATCHED THEN
-              INSERT (Id, ParamJson, Status, Owner, Expires, Timestamp, HumanInstanceId, Parent)
-              VALUES (source.Id, source.ParamJson, source.Status, source.Owner, source.Expires, source.Timestamp, source.HumanInstanceId, source.Parent);";
-
         var parentStr = parent == null ? "NULL" : $"'{parent.AsGuid}'";
-        var valueSql = $"(@Id, @ParamJson, {(int)Status.Postponed}, NULL, 0, 0, @HumanInstanceId, {parentStr})";
-        var chunk = functionsWithParam
-            .Select(
-                (fp, i) =>
-                {
-                    var sql = valueSql
-                        .Replace("@Id", $"@Id{i}")
-                        .Replace("@ParamJson", $"@ParamJson{i}")
-                        .Replace("@HumanInstanceId", $"@HumanInstanceId{i}");
-
-                    return new { Id = i, Sql = sql, StoredId = fp.StoredId, Param = fp.Param, HumanInstanceId = fp.HumanInstanceId };
-                }).Chunk(100);
+        var chunks = functionsWithParam.Chunk(300);
 
         await using var conn = await _connFunc();
-        foreach (var idAndSqls in chunk)
+
+        foreach (var chunk in chunks)
         {
-            var valuesSql = string.Join($",{Environment.NewLine}", idAndSqls.Select(a => a.Sql));
-            var sql = _bulkScheduleFunctionsSql.Replace("@VALUES", valuesSql);
-            
-            await using var command = new SqlCommand(sql, conn);
-            foreach (var idAndSql in idAndSqls)
+            var remainingFunctions = chunk.ToList();
+
+            while (remainingFunctions.Count > 0)
             {
-                command.Parameters.AddWithValue($"@Id{idAndSql.Id}", idAndSql.StoredId.AsGuid);
-                command.Parameters.AddWithValue($"@ParamJson{idAndSql.Id}", idAndSql.Param ?? SqlBinary.Null);
-                command.Parameters.AddWithValue($"@HumanInstanceId{idAndSql.Id}", idAndSql.HumanInstanceId);
+                try
+                {
+                    // Build simple INSERT statement
+                    var valueSql = string.Join($",{Environment.NewLine}",
+                        Enumerable.Range(0, remainingFunctions.Count).Select(i =>
+                            $"(@Id{i}, @ParamJson{i}, {(int)Status.Postponed}, NULL, 0, 0, @HumanInstanceId{i}, {parentStr})"
+                        )
+                    );
+
+                    var insertSql = $@"
+                        INSERT INTO {_tableName} (Id, ParamJson, Status, Owner, Expires, Timestamp, HumanInstanceId, Parent)
+                        VALUES {valueSql}";
+
+                    await using var command = new SqlCommand(insertSql, conn);
+
+                    for (int i = 0; i < remainingFunctions.Count; i++)
+                    {
+                        var fp = remainingFunctions[i];
+                        command.Parameters.Add(new SqlParameter($"@Id{i}", SqlDbType.UniqueIdentifier) { Value = fp.StoredId.AsGuid });
+                        command.Parameters.Add(new SqlParameter($"@ParamJson{i}", SqlDbType.VarBinary, -1) { Value = fp.Param ?? (object)DBNull.Value });
+                        command.Parameters.Add(new SqlParameter($"@HumanInstanceId{i}", SqlDbType.NVarChar) { Value = fp.HumanInstanceId });
+                    }
+
+                    await command.ExecuteNonQueryAsync();
+                    break; // Success! Exit while loop
+                }
+                catch (SqlException ex) when (ex.Number == 2627 || ex.Number == 2601) // PK or unique constraint violation
+                {
+                    // Fetch which IDs already exist
+                    var idsToCheck = remainingFunctions.Select(f => f.StoredId.AsGuid).ToList();
+                    var existingIds = new HashSet<Guid>();
+
+                    var checkSql = $@"
+                        SELECT Id FROM {_tableName}
+                        WHERE Id IN ({string.Join(", ", Enumerable.Range(0, idsToCheck.Count).Select(i => $"@CheckId{i}"))})";
+
+                    await using var checkCommand = new SqlCommand(checkSql, conn);
+                    for (int i = 0; i < idsToCheck.Count; i++)
+                    {
+                        checkCommand.Parameters.Add(new SqlParameter($"@CheckId{i}", SqlDbType.UniqueIdentifier) { Value = idsToCheck[i] });
+                    }
+
+                    await using var reader = await checkCommand.ExecuteReaderAsync();
+                    while (await reader.ReadAsync())
+                    {
+                        existingIds.Add(reader.GetGuid(0));
+                    }
+
+                    // Filter out existing IDs and retry with remaining
+                    remainingFunctions = remainingFunctions
+                        .Where(f => !existingIds.Contains(f.StoredId.AsGuid))
+                        .ToList();
+
+                    // If all were duplicates, we're done
+                    if (remainingFunctions.Count == 0)
+                        break;
+
+                    // Otherwise loop continues and retries with remainingFunctions
+                }
             }
-            
-            await command.ExecuteNonQueryAsync();
         }
     }
     
