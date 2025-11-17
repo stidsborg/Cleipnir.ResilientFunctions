@@ -176,12 +176,24 @@ public class EffectResults(
         {
             var success = _effectResults.TryGetValue(effectId, out var pendingChange);
             var storedEffect = pendingChange?.StoredEffect;
+
+            // If not found by ID but alias is provided, check by alias
+            if (!success && alias != null)
+            {
+                var effectByAlias = _effectResults.FirstOrDefault(e => e.Value.StoredEffect?.Alias == alias);
+                if (effectByAlias.Value != null)
+                {
+                    success = true;
+                    storedEffect = effectByAlias.Value.StoredEffect;
+                }
+            }
+
             if (success && storedEffect?.WorkStatus == WorkStatus.Completed)
                 return;
             if (success && storedEffect?.WorkStatus == WorkStatus.Failed)
                 throw serializer.DeserializeException(flowId, storedEffect.StoredException!);
             if (success && resiliency == ResiliencyLevel.AtMostOnce)
-                throw new InvalidOperationException($"Effect '{id}' started but did not complete previously");
+                throw new InvalidOperationException($"Effect '{alias ?? id}' started but did not complete previously");
         }
 
         if (resiliency == ResiliencyLevel.AtMostOnce)
@@ -241,19 +253,31 @@ public class EffectResults(
     public async Task<T> InnerCapture<T>(string id, string? alias, EffectType effectType, Func<Task<T>> work, ResiliencyLevel resiliency, EffectContext effectContext)
     {
         await InitializeIfRequired();
-        
+
         var effectId = id.ToEffectId(effectType, context: effectContext.Parent?.Serialize().Value);
         EffectContext.SetParent(effectId);
-        
+
         lock (_sync)
         {
             var success = _effectResults.TryGetValue(effectId, out var storedEffect);
+
+            // If not found by ID but alias is provided, check by alias
+            if (!success && alias != null)
+            {
+                var effectByAlias = _effectResults.FirstOrDefault(e => e.Value.StoredEffect?.Alias == alias);
+                if (effectByAlias.Value != null)
+                {
+                    success = true;
+                    storedEffect = effectByAlias.Value;
+                }
+            }
+
             if (success && storedEffect!.StoredEffect?.WorkStatus == WorkStatus.Completed)
                 return (storedEffect.StoredEffect?.Result == null ? default : serializer.Deserialize<T>(storedEffect.StoredEffect?.Result!))!;
             if (success && storedEffect!.StoredEffect?.WorkStatus == WorkStatus.Failed)
                 throw FatalWorkflowException.Create(flowId, storedEffect.StoredEffect?.StoredException!);
             if (success && resiliency == ResiliencyLevel.AtMostOnce)
-                throw new InvalidOperationException($"Effect '{id}' started but did not complete previously");
+                throw new InvalidOperationException($"Effect '{alias ?? id}' started but did not complete previously");
         }
 
         if (resiliency == ResiliencyLevel.AtMostOnce)

@@ -143,16 +143,34 @@ public class ExistingEffects(StoredId storedId, FlowId flowId, IEffectsStore eff
 
     public async Task SetValue<TValue>(string effectId, TValue value)
     {
-        var effectIdObj = await GetEffectIdByIdOrAlias(effectId);
-        await SetValue(effectIdObj, value);
+        var existingEffectId = await TryGetEffectIdByIdOrAlias(effectId);
+        if (existingEffectId != null)
+        {
+            await SetValue(existingEffectId, value);
+        }
+        else
+        {
+            // Create new effect with effectId as both the ID and alias
+            var effectIdObj = effectId.ToEffectId();
+            await Set(new StoredEffect(effectIdObj, WorkStatus.Completed, Result: serializer.Serialize(value), StoredException: null, Alias: effectId));
+        }
     }
 
     public Task SetValue<TValue>(EffectId effectId, TValue value) => SetSucceeded(effectId, value);
 
     public async Task SetStarted(string effectId)
     {
-        var effectIdObj = await GetEffectIdByIdOrAlias(effectId);
-        await SetStarted(effectIdObj);
+        var existingEffectId = await TryGetEffectIdByIdOrAlias(effectId);
+        if (existingEffectId != null)
+        {
+            await SetStarted(existingEffectId);
+        }
+        else
+        {
+            // Create new effect with effectId as both the ID and alias
+            var effectIdObj = effectId.ToEffectId();
+            await Set(new StoredEffect(effectIdObj, WorkStatus.Started, Result: null, StoredException: null, Alias: effectId));
+        }
     }
 
     public Task SetStarted(EffectId effectId)
@@ -160,8 +178,17 @@ public class ExistingEffects(StoredId storedId, FlowId flowId, IEffectsStore eff
 
     public async Task SetSucceeded(string effectId)
     {
-        var effectIdObj = await GetEffectIdByIdOrAlias(effectId);
-        await SetSucceeded(effectIdObj);
+        var existingEffectId = await TryGetEffectIdByIdOrAlias(effectId);
+        if (existingEffectId != null)
+        {
+            await SetSucceeded(existingEffectId);
+        }
+        else
+        {
+            // Create new effect with effectId as both the ID and alias
+            var effectIdObj = effectId.ToEffectId();
+            await Set(new StoredEffect(effectIdObj, WorkStatus.Completed, Result: null, StoredException: null, Alias: effectId));
+        }
     }
 
     public Task SetSucceeded(EffectId effectId)
@@ -169,8 +196,17 @@ public class ExistingEffects(StoredId storedId, FlowId flowId, IEffectsStore eff
 
     public async Task SetSucceeded<TResult>(string effectId, TResult result)
     {
-        var effectIdObj = await GetEffectIdByIdOrAlias(effectId);
-        await SetSucceeded(effectIdObj, result);
+        var existingEffectId = await TryGetEffectIdByIdOrAlias(effectId);
+        if (existingEffectId != null)
+        {
+            await SetSucceeded(existingEffectId, result);
+        }
+        else
+        {
+            // Create new effect with effectId as both the ID and alias
+            var effectIdObj = effectId.ToEffectId();
+            await Set(new StoredEffect(effectIdObj, WorkStatus.Completed, Result: serializer.Serialize(result), StoredException: null, Alias: effectId));
+        }
     }
 
     public Task SetSucceeded<TResult>(EffectId effectId, TResult result)
@@ -178,14 +214,23 @@ public class ExistingEffects(StoredId storedId, FlowId flowId, IEffectsStore eff
 
     public async Task SetFailed(string effectId, Exception exception)
     {
-        var effectIdObj = await GetEffectIdByIdOrAlias(effectId);
-        await SetFailed(effectIdObj, exception);
+        var existingEffectId = await TryGetEffectIdByIdOrAlias(effectId);
+        if (existingEffectId != null)
+        {
+            await SetFailed(existingEffectId, exception);
+        }
+        else
+        {
+            // Create new effect with effectId as both the ID and alias
+            var effectIdObj = effectId.ToEffectId();
+            await Set(new StoredEffect(effectIdObj, WorkStatus.Failed, Result: null, StoredException: serializer.SerializeException(FatalWorkflowException.CreateNonGeneric(flowId, exception)), Alias: effectId));
+        }
     }
 
     public Task SetFailed(EffectId effectId, Exception exception)
         => Set(new StoredEffect(effectId, WorkStatus.Failed, Result: null, StoredException: serializer.SerializeException(FatalWorkflowException.CreateNonGeneric(flowId, exception)), Alias: null));
 
-    private async Task<EffectId> GetEffectIdByIdOrAlias(string effectId)
+    private async Task<EffectId?> TryGetEffectIdByIdOrAlias(string effectId)
     {
         var storedEffects = await GetStoredEffects();
         // First try to find by ID
@@ -196,7 +241,7 @@ public class ExistingEffects(StoredId storedId, FlowId flowId, IEffectsStore eff
         // Then try to find by alias
         var storedEffect = storedEffects.FirstOrDefault(e => e.Value.Alias == effectId);
         if (storedEffect.Value == null)
-            throw new KeyNotFoundException($"Effect with ID or alias '{effectId}' was not found");
+            return null;
 
         return storedEffect.Key;
     }
