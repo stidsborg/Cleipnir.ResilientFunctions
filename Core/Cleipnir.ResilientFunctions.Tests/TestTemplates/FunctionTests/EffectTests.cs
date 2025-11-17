@@ -662,43 +662,23 @@ public abstract class EffectTests
     public async Task CaptureUsingAtLeastOnceWithoutFlushResiliencyDelaysFlush(Task<IFunctionStore> storeTask)
     {  
         var store = await storeTask;
-        var storedId = TestStoredId.Create();
-        var session = await store.CreateFunction(
-            storedId,
-            "SomeInstance",
-            param: null,
-            leaseExpiration: 0,
-            postponeUntil: null,
-            timestamp: 0,
-            parent: null,
-            owner: ReplicaId.NewId()
-        );
+        var id = TestFlowId.Create();
 
-        var effectStore = store.EffectsStore;
-        var effectResults = new EffectResults(
-            TestFlowId.Create(),
-            storedId,
-            lazyExistingEffects: new Lazy<Task<IReadOnlyList<StoredEffect>>>(
-                () => new List<StoredEffect>().CastTo<IReadOnlyList<StoredEffect>>().ToTask()
-            ),
-            effectStore,
-            DefaultSerializer.Instance, 
-            session
-        );
-        var effect = new Effect(effectResults, utcNow: () => DateTime.UtcNow, new FlowMinimumTimeout());
-
-        var result = await effect.Capture("1", () => "hello world", ResiliencyLevel.AtLeastOnceDelayFlush);
-        result.ShouldBe("hello world");
-
-        await effectStore.GetEffectResults(storedId).ShouldBeEmptyAsync();
+        using var registry = new FunctionsRegistry(store);
+        var afterCaptureFlag = new SyncedFlag();
+        var completeFunction = new SyncedFlag();
+        var registration = registry.RegisterParamless(
+            id.Type,
+            inner: async workflow =>
+            {
+                await workflow.Effect.Capture("Alias", () => "hello world", ResiliencyLevel.AtLeastOnceDelayFlush);
+                afterCaptureFlag.Raise();
+                await completeFunction.WaitForRaised();
+            });
         
-        await effect.Capture("2", () => "hello universe");
-
-        var storedEffects = await effectStore.GetEffectResults(storedId);
-        storedEffects.Count.ShouldBe(2);
-        // "1" and "2" are now aliases
-        storedEffects.Single(se => se.Alias == "1").Result!.ToStringFromUtf8Bytes().DeserializeFromJsonTo<string>().ShouldBe("hello world");
-        storedEffects.Single(se => se.Alias == "2").Result!.ToStringFromUtf8Bytes().DeserializeFromJsonTo<string>().ShouldBe("hello universe");
+        registration.Schedule(storedId.)
+        registration.ControlPanel()
+        
     }
 
     public abstract Task CaptureUsingAtLeastOnceWithoutFlushResiliencyDelaysFlushInFlow();
