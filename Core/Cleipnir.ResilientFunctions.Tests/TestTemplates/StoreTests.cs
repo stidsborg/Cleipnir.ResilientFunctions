@@ -1061,11 +1061,11 @@ public abstract class StoreTests
         );
         session.ShouldBeNull();
 
-        await effectsStore.SetEffectResult(functionId, new StoredEffect("".ToEffectId(EffectType.State), WorkStatus.Completed, "some default state".ToUtf8Bytes(), StoredException: null).ToStoredChange(functionId, Insert), session: null);
+        await effectsStore.SetEffectResult(functionId, StoredEffect.CreateCompleted("".ToEffectId(), "some default state".ToUtf8Bytes()).ToStoredChange(functionId, Insert), session: null);
 
         var storedEffects = await effectsStore.GetEffectResults(functionId);
         storedEffects.Count.ShouldBe(1);
-        storedEffects.Single().EffectId.ShouldBe("".ToEffectId(EffectType.State));
+        storedEffects.Single().EffectId.ShouldBe("".ToEffectId());
         storedEffects.Single().Result.ShouldBe("some default state".ToUtf8Bytes());
     }
     
@@ -1387,19 +1387,15 @@ public abstract class StoreTests
         var store = await storeTask;
         var paramJson = PARAM.ToJson();
 
-        var effectId1 = new EffectId("SomeEffect1", EffectType.State, Context: "");
-        var effect1 = new StoredEffect(
+        var effectId1 = new EffectId("SomeEffect1", "");
+        var effect1 = StoredEffect.CreateCompleted(
             effectId1,
-            WorkStatus.Completed,
-            Result: "hello world".ToUtf8Bytes(),
-            StoredException: null
+            "hello world".ToUtf8Bytes()
         );
-        var effectId2 = new EffectId("SomeEffect2", EffectType.State, Context: "");
-        var effect2 = new StoredEffect(
+        var effectId2 = new EffectId("SomeEffect2", "");
+        var effect2 = StoredEffect.CreateCompleted(
             effectId2,
-            WorkStatus.Completed,
-            Result: "hello universe".ToUtf8Bytes(),
-            StoredException: null
+            "hello universe".ToUtf8Bytes()
         );
 
         var message1 = new StoredMessage(
@@ -1432,10 +1428,10 @@ public abstract class StoreTests
         var effectResults = await store.EffectsStore.GetEffectResults(storedId);
         effectResults.Count.ShouldBe(2);
         var effectResult1 = effectResults.Single(r => r.EffectId.Id == "SomeEffect1");
-        effectResult1.EffectId.ShouldBe(new EffectId("SomeEffect1", EffectType.State, Context: ""));
+        effectResult1.EffectId.ShouldBe(new EffectId("SomeEffect1", ""));
         effectResult1.Result!.ToStringFromUtf8Bytes().ShouldBe("hello world");
         var effectResult2 = effectResults.Single(r => r.EffectId.Id == "SomeEffect2");
-        effectResult2.EffectId.ShouldBe(new EffectId("SomeEffect2", EffectType.State, Context: ""));
+        effectResult2.EffectId.ShouldBe(new EffectId("SomeEffect2", ""));
         effectResult2.Result!.ToStringFromUtf8Bytes().ShouldBe("hello universe");
 
         var messages = await store.MessageStore.GetMessages(storedId, skip: 0);
@@ -1538,19 +1534,15 @@ public abstract class StoreTests
         var store = await storeTask;
         var paramJson = PARAM.ToJson();
 
-        var effectId1 = new EffectId("SomeEffect1", EffectType.State, Context: "");
-        var effect1 = new StoredEffect(
+        var effectId1 = new EffectId("SomeEffect1", "");
+        var effect1 = StoredEffect.CreateCompleted(
             effectId1,
-            WorkStatus.Completed,
-            Result: "hello world".ToUtf8Bytes(),
-            StoredException: null
+            "hello world".ToUtf8Bytes()
         );
-        var effectId2 = new EffectId("SomeEffect2", EffectType.State, Context: "");
-        var effect2 = new StoredEffect(
+        var effectId2 = new EffectId("SomeEffect2", "");
+        var effect2 = StoredEffect.CreateCompleted(
             effectId2,
-            WorkStatus.Completed,
-            Result: "hello universe".ToUtf8Bytes(),
-            StoredException: null
+            "hello universe".ToUtf8Bytes()
         );
 
         var session = await store.CreateFunction(
@@ -1570,10 +1562,10 @@ public abstract class StoreTests
         var effectResults = await store.EffectsStore.GetEffectResults(storedId);
         effectResults.Count.ShouldBe(2);
         var effectResult1 = effectResults.Single(r => r.EffectId.Id == "SomeEffect1");
-        effectResult1.EffectId.ShouldBe(new EffectId("SomeEffect1", EffectType.State, Context: ""));
+        effectResult1.EffectId.ShouldBe(new EffectId("SomeEffect1", ""));
         effectResult1.Result!.ToStringFromUtf8Bytes().ShouldBe("hello world");
         var effectResult2 = effectResults.Single(r => r.EffectId.Id == "SomeEffect2");
-        effectResult2.EffectId.ShouldBe(new EffectId("SomeEffect2", EffectType.State, Context: ""));
+        effectResult2.EffectId.ShouldBe(new EffectId("SomeEffect2", ""));
         effectResult2.Result!.ToStringFromUtf8Bytes().ShouldBe("hello universe");
 
         var messages = await store.MessageStore.GetMessages(storedId, skip: 0);

@@ -11,7 +11,7 @@ public class ExistingEffects(StoredId storedId, FlowId flowId, IEffectsStore eff
 {
     private Dictionary<EffectId, StoredEffect>? _storedEffects;
 
-    private async Task<Dictionary<EffectId, StoredEffect>> GetStoredEffects()
+    internal async Task<Dictionary<EffectId, StoredEffect>> GetStoredEffects()
     {
         if (_storedEffects is not null)
             return _storedEffects;
@@ -55,9 +55,11 @@ public class ExistingEffects(StoredId storedId, FlowId flowId, IEffectsStore eff
 
     public async Task RemoveFailed()
     {
-        foreach (var effectId in await AllIds)
-            if (await GetStatus(effectId) == WorkStatus.Failed || effectId.Type == EffectType.Retry)
-                await Remove(effectId);
+        // Remove all effects - this clears failed effects and any retry-tracking state
+        // Since we no longer distinguish effect types, we remove everything to ensure
+        // a clean slate for restart
+        foreach (var effectId in (await AllIds).ToList())
+            await Remove(effectId);
     }
 
     public Task Remove(string effectId) => Remove(effectId.ToEffectId());
@@ -84,17 +86,17 @@ public class ExistingEffects(StoredId storedId, FlowId flowId, IEffectsStore eff
 
     public Task SetStarted(string effectId) => SetStarted(effectId.ToEffectId());
     public Task SetStarted(EffectId effectId)
-        => Set(new StoredEffect(effectId, WorkStatus.Started, Result: null, StoredException: null));
+        => Set(StoredEffect.CreateStarted(effectId));
 
     public Task SetSucceeded(string effectId) => SetSucceeded(effectId.ToEffectId());
     public Task SetSucceeded(EffectId effectId)
-        => Set(new StoredEffect(effectId, WorkStatus.Completed, Result: null, StoredException: null));
+        => Set(StoredEffect.CreateCompleted(effectId));
 
     public Task SetSucceeded<TResult>(string effectId, TResult result) => SetSucceeded(effectId.ToEffectId(), result);
     public Task SetSucceeded<TResult>(EffectId effectId, TResult result)
-        => Set(new StoredEffect(effectId, WorkStatus.Completed, Result: serializer.Serialize(result), StoredException: null));
+        => Set(StoredEffect.CreateCompleted(effectId, serializer.Serialize(result)));
 
     public Task SetFailed(string effectId, Exception exception) => SetFailed(effectId.ToEffectId(), exception);
     public Task SetFailed(EffectId effectId, Exception exception)
-        => Set(new StoredEffect(effectId, WorkStatus.Failed, Result: null, StoredException: serializer.SerializeException(FatalWorkflowException.CreateNonGeneric(flowId, exception))));
+        => Set(StoredEffect.CreateFailed(effectId, serializer.SerializeException(FatalWorkflowException.CreateNonGeneric(flowId, exception))));
 }

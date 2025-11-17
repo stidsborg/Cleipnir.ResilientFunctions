@@ -1154,7 +1154,7 @@ public abstract class ControlPanelTests
         
         await secondControlPanel.Refresh();
         await secondControlPanel.Effects.GetValue<string>("Id").ShouldBeAsync("SomeResult");
-        await secondControlPanel.Effects.GetStatus("Id".ToEffectId(EffectType.Effect)).ShouldBeAsync(WorkStatus.Completed);
+        await secondControlPanel.Effects.GetStatus("Id".ToEffectId()).ShouldBeAsync(WorkStatus.Completed);
         
         unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
@@ -1429,7 +1429,7 @@ public abstract class ControlPanelTests
 
         try
         {
-            var timeoutEvent = new TimeoutEvent(EffectId.CreateWithRootContext("SomeTimeout", EffectType.Timeout), DateTime.UtcNow)
+            var timeoutEvent = new TimeoutEvent(EffectId.CreateWithRootContext("SomeTimeout"), DateTime.UtcNow)
                 .ToMessageAndIdempotencyKey();
 
             await registration.Invoke(

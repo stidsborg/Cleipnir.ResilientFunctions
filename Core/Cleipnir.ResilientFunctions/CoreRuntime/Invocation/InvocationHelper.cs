@@ -495,19 +495,25 @@ internal class InvocationHelper<TParam, TReturn>
     public IReadOnlyList<StoredEffect> MapInitialEffects(IEnumerable<InitialEffect> initialEffects, FlowId flowId)
     => initialEffects
         .Select(e =>
-            e.Exception == null
+        {
+            var effectId = e.Id.ToEffectId();
+            var serializedEffectId = effectId.Serialize();
+            return e.Exception == null
                 ? new StoredEffect(
-                    e.Id.ToEffectId(EffectType.Effect),
+                    effectId,
                     e.Status ?? WorkStatus.Completed,
                     Result: Serializer.Serialize(e.Value, e.Value?.GetType() ?? typeof(object)),
-                    StoredException: null)
+                    StoredException: null,
+                    Alias: null,
+                    SerializedEffectId: serializedEffectId)
                 : new StoredEffect(
-                    e.Id.ToEffectId(EffectType.Effect),
+                    effectId,
                     WorkStatus.Failed,
                     Result: null,
-                    StoredException: Serializer.SerializeException(FatalWorkflowException.CreateNonGeneric(flowId, e.Exception))
-                )
-        ).ToList();
+                    StoredException: Serializer.SerializeException(FatalWorkflowException.CreateNonGeneric(flowId, e.Exception)),
+                    Alias: null,
+                    SerializedEffectId: serializedEffectId);
+        }).ToList();
 
     public IReadOnlyList<StoredMessage> MapInitialMessages(IEnumerable<MessageAndIdempotencyKey> initialMessages)
         => initialMessages.Select(m =>

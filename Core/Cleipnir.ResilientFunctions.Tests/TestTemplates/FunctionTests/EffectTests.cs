@@ -621,12 +621,10 @@ public abstract class EffectTests
             session
         );
         
-        var effectId1 = new EffectId("Id1", EffectType.Effect, Context: "");
-        var storedEffect1 = new StoredEffect(
+        var effectId1 = new EffectId("Id1", "");
+        var storedEffect1 = StoredEffect.CreateCompleted(
             effectId1,
-            WorkStatus.Completed,
-            Result: "hello world".ToUtf8Bytes(),
-            StoredException: null
+            "hello world".ToUtf8Bytes()
         );
         await effectResults.Set(storedEffect1, flush: false);
         await effectStore
@@ -634,12 +632,10 @@ public abstract class EffectTests
             .SelectAsync(r => r.Count == 0)
             .ShouldBeTrueAsync();
         
-        var effectId2 = new EffectId("Id2", EffectType.Effect, Context: "");
-        var storedEffect2 = new StoredEffect(
+        var effectId2 = new EffectId("Id2", "");
+        var storedEffect2 = StoredEffect.CreateCompleted(
             effectId2,
-            WorkStatus.Completed,
-            Result: "hello universe".ToUtf8Bytes(),
-            StoredException: null
+            "hello universe".ToUtf8Bytes()
         );
         await effectResults.Set(storedEffect2, flush: true);
         

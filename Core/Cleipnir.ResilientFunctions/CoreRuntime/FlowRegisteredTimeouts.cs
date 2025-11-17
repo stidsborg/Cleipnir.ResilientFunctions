@@ -67,9 +67,9 @@ public class FlowRegisteredTimeouts(Effect effect, UtcNow utcNow, FlowMinimumTim
     }
     
     public Task<Tuple<TimeoutStatus, DateTime>> RegisterTimeout(string timeoutId, TimeSpan expiresIn, bool publishMessage)
-        => RegisterTimeout(EffectId.CreateWithCurrentContext(timeoutId, EffectType.Timeout), expiresAt: utcNow().Add(expiresIn), publishMessage);
+        => RegisterTimeout(EffectId.CreateWithCurrentContext(timeoutId), expiresAt: utcNow().Add(expiresIn), publishMessage);
     public Task<Tuple<TimeoutStatus, DateTime>> RegisterTimeout(string timeoutId, DateTime expiresAt, bool publishMessage)
-        => RegisterTimeout(EffectId.CreateWithCurrentContext(timeoutId, EffectType.Timeout), expiresAt, publishMessage);
+        => RegisterTimeout(EffectId.CreateWithCurrentContext(timeoutId), expiresAt, publishMessage);
     public Task<Tuple<TimeoutStatus, DateTime>> RegisterTimeout(EffectId timeoutId, TimeSpan expiresIn, bool publishMessage)
         => RegisterTimeout(timeoutId, expiresAt: utcNow().Add(expiresIn), publishMessage);
     
@@ -111,18 +111,31 @@ public class FlowRegisteredTimeouts(Effect effect, UtcNow utcNow, FlowMinimumTim
 
     public static async Task<IReadOnlyList<RegisteredTimeout>> PendingTimeouts(Effect effect)
     {
-        var timeoutIds = effect.EffectIds.Where(id => id.Type == EffectType.Timeout);
+        var timeoutIds = effect.EffectIds;
         var timeouts = new List<RegisteredTimeout>();
         foreach (var timeoutId in timeoutIds)
         {
-            var value = await effect.Get<string>(timeoutId);
+            var valueOption = await effect.TryGet<string>(timeoutId);
+            if (!valueOption.HasValue)
+                continue;
+
+            var value = valueOption.Value;
+            if (!value.Contains('_'))
+                continue; // Not a timeout effect
+
             var values = value.Split("_");
-            var status = values[0].ToInt().ToEnum<TimeoutStatus>();
+            if (values.Length != 2)
+                continue; // Not a timeout effect
+
+            if (!int.TryParse(values[0], out var statusInt) || !long.TryParse(values[1], out var ticks))
+                continue; // Not a timeout effect
+
+            var status = statusInt.ToEnum<TimeoutStatus>();
             if (status is TimeoutStatus.Cancelled or TimeoutStatus.Completed)
                 continue;
-            
-            var expiresAt = values[1].ToLong().ToUtc();
-            timeouts.Add(new RegisteredTimeout(timeoutId, expiresAt, TimeoutStatus.Registered)); 
+
+            var expiresAt = ticks.ToUtc();
+            timeouts.Add(new RegisteredTimeout(timeoutId, expiresAt, TimeoutStatus.Registered));
         }
 
         return timeouts;
