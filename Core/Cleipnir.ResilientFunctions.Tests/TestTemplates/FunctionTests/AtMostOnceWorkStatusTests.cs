@@ -95,7 +95,7 @@ public abstract class AtMostOnceWorkStatusTests
             {
                 await workflow.Effect
                     .Capture(
-                        id: "id",
+                        "id",
                         work: () =>
                         {
                             counter.Increment();

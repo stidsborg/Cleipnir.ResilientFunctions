@@ -50,6 +50,22 @@ public class EffectResults(
         }
     }
 
+    internal async Task<EffectId?> ResolveEffectIdOrAlias(string idOrAlias)
+    {
+        await InitializeIfRequired();
+        lock (_sync)
+        {
+            // First try to find by ID
+            var effectId = idOrAlias.ToEffectId();
+            if (_effectResults.ContainsKey(effectId))
+                return effectId;
+
+            // Then try to find by alias
+            var effect = _effectResults.FirstOrDefault(e => e.Value.StoredEffect?.Alias == idOrAlias);
+            return effect.Value?.StoredEffect?.EffectId;
+        }
+    }
+
     public async Task<bool> Contains(EffectId effectId)
     {
         await InitializeIfRequired();

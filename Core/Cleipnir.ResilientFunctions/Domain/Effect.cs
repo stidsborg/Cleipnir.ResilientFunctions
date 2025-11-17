@@ -45,7 +45,21 @@ public class Effect(EffectResults effectResults, UtcNow utcNow, FlowMinimumTimeo
     public Task<T> CreateOrGet<T>(string id, T value, bool flush = true) => CreateOrGet(CreateEffectId(id), value, flush);
     internal Task<T> CreateOrGet<T>(EffectId effectId, T value, bool flush) => effectResults.CreateOrGet(effectId, value, flush);
 
-    public async Task Upsert<T>(string id, T value, bool flush = true) => await Upsert(CreateEffectId(id, EffectType.Effect), value, flush);
+    public async Task Upsert<T>(string id, T value, bool flush = true)
+    {
+        // Try to resolve the id as either an effect ID or alias
+        var resolvedEffectId = await effectResults.ResolveEffectIdOrAlias(id);
+        if (resolvedEffectId != null)
+        {
+            await Upsert(resolvedEffectId, value, flush);
+        }
+        else
+        {
+            // If not found, create a new effect with the given ID
+            await Upsert(CreateEffectId(id, EffectType.Effect), value, flush);
+        }
+    }
+
     internal Task Upsert<T>(EffectId effectId, T value, bool flush) => effectResults.Upsert(effectId, value, flush);
 
     internal Task Upserts(IEnumerable<Tuple<EffectId, object>> values, bool flush)
@@ -218,7 +232,20 @@ public class Effect(EffectResults effectResults, UtcNow utcNow, FlowMinimumTimeo
         );
     }
 
-    public Task Clear(string id) => effectResults.Clear(CreateEffectId(id), flush: true);
+    public async Task Clear(string id)
+    {
+        // Try to resolve the id as either an effect ID or alias
+        var resolvedEffectId = await effectResults.ResolveEffectIdOrAlias(id);
+        if (resolvedEffectId != null)
+        {
+            await effectResults.Clear(resolvedEffectId, flush: true);
+        }
+        else
+        {
+            // If not found, try to clear using the given ID directly
+            await effectResults.Clear(CreateEffectId(id), flush: true);
+        }
+    }
     
     public Task<T> WhenAny<T>(string id, params Task<T>[] tasks)
         => Capture(id, work: async () => await await Task.WhenAny(tasks));
