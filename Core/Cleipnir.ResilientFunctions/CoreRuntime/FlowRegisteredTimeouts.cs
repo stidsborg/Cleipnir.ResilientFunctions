@@ -16,7 +16,6 @@ public interface IRegisteredTimeouts : IDisposable
     Task<Tuple<TimeoutStatus, DateTime>> RegisterTimeout(EffectId timeoutId, TimeSpan expiresIn, bool publishMessage);
     Task CancelTimeout(EffectId timeoutId);
     Task CompleteTimeout(EffectId timeoutId);
-    Task<IReadOnlyList<RegisteredTimeout>> PendingTimeouts();
 }
 
 public enum TimeoutStatus
@@ -105,27 +104,6 @@ public class FlowRegisteredTimeouts(Effect effect, UtcNow utcNow, FlowMinimumTim
         var value = $"{(int)TimeoutStatus.Completed}_{expiresAt}";
         await effect.Upsert(timeoutId, value, flush: false);
         flowMinimumTimeout.RemoveTimeout(timeoutId);
-    }
-
-    public Task<IReadOnlyList<RegisteredTimeout>> PendingTimeouts() => PendingTimeouts(effect);
-
-    public static async Task<IReadOnlyList<RegisteredTimeout>> PendingTimeouts(Effect effect)
-    {
-        var timeoutIds = effect.EffectIds.Where(id => id.Type == EffectType.Timeout);
-        var timeouts = new List<RegisteredTimeout>();
-        foreach (var timeoutId in timeoutIds)
-        {
-            var value = await effect.Get<string>(timeoutId);
-            var values = value.Split("_");
-            var status = values[0].ToInt().ToEnum<TimeoutStatus>();
-            if (status is TimeoutStatus.Cancelled or TimeoutStatus.Completed)
-                continue;
-            
-            var expiresAt = values[1].ToLong().ToUtc();
-            timeouts.Add(new RegisteredTimeout(timeoutId, expiresAt, TimeoutStatus.Registered)); 
-        }
-
-        return timeouts;
     }
 
     public void Dispose() => _disposed = true;
