@@ -247,15 +247,15 @@ public class Effect(EffectResults effectResults, UtcNow utcNow, FlowMinimumTimeo
         }
     }
     
-    public Task<T> WhenAny<T>(string id, params Task<T>[] tasks)
-        => Capture(id, work: async () => await await Task.WhenAny(tasks));
-    public Task<T[]> WhenAll<T>(string id, params Task<T>[] tasks)
-        => Capture(id, work: () => Task.WhenAll(tasks));
+    public Task<T> WhenAny<T>(string alias, params Task<T>[] tasks)
+        => Capture(alias, work: async () => await await Task.WhenAny(tasks));
+    public Task<T[]> WhenAll<T>(string alias, params Task<T>[] tasks)
+        => Capture(alias, work: () => Task.WhenAll(tasks));
 
     public Task<T> WhenAny<T>(params Task<T>[] tasks)
-        => WhenAny(EffectContext.CurrentContext.NextImplicitId(), tasks);
+        => Capture(work: async () => await await Task.WhenAny(tasks));
     public Task<T[]> WhenAll<T>(params Task<T>[] tasks)
-        => WhenAll(EffectContext.CurrentContext.NextImplicitId(), tasks);
+        => Capture(work: async () => await Task.WhenAll(tasks));
 
     internal string TakeNextImplicitId() => EffectContext.CurrentContext.NextImplicitId();
 
