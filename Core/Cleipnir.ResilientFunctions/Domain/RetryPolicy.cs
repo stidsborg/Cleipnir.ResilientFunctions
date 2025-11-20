@@ -105,7 +105,7 @@ public class RetryPolicy(TimeSpan initialInterval, double backoffCoefficient, Ti
 
     public async Task<T> Invoke<T>(Func<Task<T>> work, Effect effect, UtcNow utcNow, FlowMinimumTimeout flowMinimumTimeout)
     {
-        var delayUntilId = effect.CreateEffectId("DelayUntil", EffectType.Retry);
+        var delayUntilId = effect.CreateEffectId("0", EffectType.Retry);
         var delayUntilOption = await effect.TryGet<long>(delayUntilId);
         var delayUntil = delayUntilOption.HasValue ? delayUntilOption.Value.ToDateTime() : DateTime.MinValue;
         if (delayUntilOption.HasValue && delayUntil > utcNow())
@@ -114,7 +114,7 @@ public class RetryPolicy(TimeSpan initialInterval, double backoffCoefficient, Ti
             throw new SuspendInvocationException();
         }
 
-        var iterationId = effect.CreateEffectId("Iteration", EffectType.Retry);
+        var iterationId = effect.CreateEffectId("1", EffectType.Retry);
         var iteration = await effect.CreateOrGet(iterationId, 0, alias: null, flush: false);
         if (iteration >= maximumAttempts)
             throw new InvalidOperationException($"Retry attempts exceeded maximum attempts value '{maximumAttempts}'");

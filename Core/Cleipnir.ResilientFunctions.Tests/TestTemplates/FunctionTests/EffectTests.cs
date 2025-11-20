@@ -346,26 +346,26 @@ public abstract class EffectTests
         );
         var effect = new Effect(effectResults, utcNow: () => DateTime.UtcNow, new FlowMinimumTimeout());
         
-        var option = await effect.TryGet<int>("Id1");
+        var option = await effect.TryGet<int>("1");
         option.HasValue.ShouldBeFalse();
                 
-        Should.Throw<InvalidOperationException>(() => effect.Get<int>("Id1"));
+        Should.Throw<InvalidOperationException>(() => effect.Get<int>("1"));
 
-        var result = await effect.CreateOrGet("Id1", 32);
+        var result = await effect.CreateOrGet("1", 32);
         result.ShouldBe(32);
-        result = await effect.CreateOrGet("Id1", 100);
+        result = await effect.CreateOrGet("1", 100);
         result.ShouldBe(32);
                 
-        option = await effect.TryGet<int>("Id1");
+        option = await effect.TryGet<int>("1");
         option.HasValue.ShouldBeTrue();
         var value2 = option.Value;
         value2.ShouldBe(32);
-        (await effect.Get<int>("Id1")).ShouldBe(32);
+        (await effect.Get<int>("1")).ShouldBe(32);
                 
-        await effect.Upsert("Id1", 100);
-        (await effect.Get<int>("Id1")).ShouldBe(100);
-        await effect.GetStatus("Id1").ShouldBeAsync(WorkStatus.Completed);
-        await effect.Contains("Id1").ShouldBeTrueAsync();
+        await effect.Upsert("1", 100);
+        (await effect.Get<int>("1")).ShouldBe(100);
+        await effect.GetStatus("1").ShouldBeAsync(WorkStatus.Completed);
+        await effect.Contains("1").ShouldBeTrueAsync();
     }
     
     public abstract Task ExistingEffectsFuncIsOnlyInvokedAfterGettingValue();
@@ -395,10 +395,10 @@ public abstract class EffectTests
         
         syncedCounter.Current.ShouldBe(0);
         
-        await effect.TryGet<int>("Id1");
+        await effect.TryGet<int>("1");
         syncedCounter.Current.ShouldBe(1);
         
-        await effect.TryGet<int>("Id1");
+        await effect.TryGet<int>("1");
         syncedCounter.Current.ShouldBe(1);
     }
     
@@ -615,7 +615,7 @@ public abstract class EffectTests
             session
         );
         
-        var effectId1 = new EffectId("Id1", EffectType.Effect, Context: "");
+        var effectId1 = new EffectId("1", EffectType.Effect, Context: "");
         var storedEffect1 = new StoredEffect(
             effectId1,
             WorkStatus.Completed,
@@ -629,7 +629,7 @@ public abstract class EffectTests
             .SelectAsync(r => r.Count == 0)
             .ShouldBeTrueAsync();
         
-        var effectId2 = new EffectId("Id2", EffectType.Effect, Context: "");
+        var effectId2 = new EffectId("2", EffectType.Effect, Context: "");
         var storedEffect2 = new StoredEffect(
             effectId2,
             WorkStatus.Completed,
