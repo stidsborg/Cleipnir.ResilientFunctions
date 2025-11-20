@@ -115,7 +115,7 @@ public class RetryPolicy(TimeSpan initialInterval, double backoffCoefficient, Ti
         }
 
         var iterationId = effect.CreateEffectId("Iteration", EffectType.Retry);
-        var iteration = await effect.CreateOrGet(iterationId, 0, flush: false);
+        var iteration = await effect.CreateOrGet(iterationId, 0, alias: null, flush: false);
         if (iteration >= maximumAttempts)
             throw new InvalidOperationException($"Retry attempts exceeded maximum attempts value '{maximumAttempts}'");
         
@@ -139,8 +139,8 @@ public class RetryPolicy(TimeSpan initialInterval, double backoffCoefficient, Ti
                 {
                     await effect.Upserts(
                         [
-                            Tuple.Create(delayUntilId, (object) delayUntil.Ticks),
-                            Tuple.Create(iterationId, (object) iteration)
+                            Tuple.Create(delayUntilId, (object) delayUntil.Ticks, (string?) null),
+                            Tuple.Create(iterationId, (object) iteration, (string?) null)
                         ],
                         flush: false
                     );

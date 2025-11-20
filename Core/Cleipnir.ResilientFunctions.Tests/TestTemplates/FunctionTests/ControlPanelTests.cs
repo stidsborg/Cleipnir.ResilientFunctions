@@ -1080,7 +1080,8 @@ public abstract class ControlPanelTests
                 "SomeId".ToEffectId(),
                 WorkStatus.Completed,
                 Result: "SomeResult".ToJson().ToUtf8Bytes(),
-                StoredException: null
+                StoredException: null,
+                Alias: null
             ).ToStoredChange(rAction.MapToStoredId(functionId.Instance), Insert),
             session: null
         );
@@ -1117,7 +1118,8 @@ public abstract class ControlPanelTests
                 "SomeId".ToEffectId(),
                 WorkStatus.Completed,
                 Result: "SomeResult".ToJson().ToUtf8Bytes(),
-                StoredException: null
+                StoredException: null,
+                Alias: null
             ).ToStoredChange(rAction.MapToStoredId(functionId.Instance), Insert),
             session: null
         );

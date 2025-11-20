@@ -40,7 +40,7 @@ public class FlowRegisteredTimeouts(Effect effect, UtcNow utcNow, FlowMinimumTim
         if (!await effect.Contains(timeoutId))
         {
             var value = $"{(int)TimeoutStatus.Registered}_{expiresAt.Ticks}";
-            await effect.Upsert(timeoutId, value, flush: false); 
+            await effect.Upsert(timeoutId, value, alias: null, flush: false); 
             
             flowMinimumTimeout.AddTimeout(timeoutId, expiresAt);
             if (publishMessage)
@@ -86,7 +86,7 @@ public class FlowRegisteredTimeouts(Effect effect, UtcNow utcNow, FlowMinimumTim
             return;
 
         var value = $"{(int)TimeoutStatus.Cancelled}_{expiresAt}";
-        await effect.Upsert(timeoutId, value, flush: false);
+        await effect.Upsert(timeoutId, value, alias: null, flush: false);
         flowMinimumTimeout.RemoveTimeout(timeoutId);
     }
     
@@ -103,7 +103,7 @@ public class FlowRegisteredTimeouts(Effect effect, UtcNow utcNow, FlowMinimumTim
             return;
 
         var value = $"{(int)TimeoutStatus.Completed}_{expiresAt}";
-        await effect.Upsert(timeoutId, value, flush: false);
+        await effect.Upsert(timeoutId, value, alias: null, flush: false);
         flowMinimumTimeout.RemoveTimeout(timeoutId);
     }
 
