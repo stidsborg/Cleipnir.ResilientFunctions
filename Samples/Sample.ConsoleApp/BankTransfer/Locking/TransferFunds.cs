@@ -14,19 +14,17 @@ public static class TransferFunds
         await using var toAccountLock = await workflow.Synchronization.AcquireLock("Account", transfer.ToAccount);
         
         var deductTask = workflow.Effect.Capture(
-            "DeductAmount",
             () => BankCentralClient
                 .PostTransaction(
-                    transfer.FromAccountTransactionId, 
+                    transfer.FromAccountTransactionId,
                     transfer.FromAccount,
                     -transfer.Amount
                 )
         );
 
         var addTask = workflow.Effect.Capture(
-            "AddAmount",
             () => BankCentralClient.PostTransaction(
-                transfer.ToAccountTransactionId, 
+                transfer.ToAccountTransactionId,
                 transfer.ToAccount,
                 transfer.Amount
             )

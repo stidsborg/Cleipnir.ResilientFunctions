@@ -908,7 +908,7 @@ public abstract class ControlPanelTests
         var rFunc = functionsRegistry.RegisterFunc(
             flowType,
             Task<string> (string param, Workflow workflow) 
-                => workflow.Effect.Capture("Test", () => "EffectResult")
+                => workflow.Effect.Capture(() => "EffectResult")
         );
 
         var result = await rFunc.Invoke(flowInstance.Value, param: "param");
@@ -916,7 +916,7 @@ public abstract class ControlPanelTests
         
         var controlPanel = await rFunc.ControlPanel(flowInstance).ShouldNotBeNullAsync();
         var effects = controlPanel.Effects;
-        await effects.SetSucceeded(effectId: "Test", result: "ReplacedResult");
+        await effects.SetSucceeded(effectId: "0", result: "ReplacedResult");
 
         result = await controlPanel.Restart();
         result.ShouldBe("ReplacedResult");
@@ -939,7 +939,7 @@ public abstract class ControlPanelTests
             flowType,
             Task (string param, Workflow workflow) 
                 => runEffect 
-                    ? workflow.Effect.Capture("Test", () => {}, ResiliencyLevel.AtMostOnce)
+                    ? workflow.Effect.Capture(() => {}, ResiliencyLevel.AtMostOnce)
                     : Task.CompletedTask
         );
 
@@ -947,7 +947,7 @@ public abstract class ControlPanelTests
         
         var controlPanel = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
         var effects = controlPanel.Effects;
-        await effects.SetStarted(effectId: "Test");
+        await effects.SetStarted(effectId: "0");
         
         runEffect = true;
         await Should.ThrowAsync<Exception>(controlPanel.Restart());
@@ -967,14 +967,14 @@ public abstract class ControlPanelTests
 
         var rAction = functionsRegistry.RegisterParamless(
             flowType,
-            Task (workflow) => workflow.Effect.Capture("Test", () => 123)
+            Task (workflow) => workflow.Effect.Capture(() => 123)
         );
 
         await rAction.Invoke(flowInstance.Value);
         
         var controlPanel = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
         var effects = controlPanel.Effects;
-        var bytes = await effects.GetResultBytes("Test");
+        var bytes = await effects.GetResultBytes("0");
         bytes.ShouldNotBeNull();
         var result = bytes.ToStringFromUtf8Bytes();
         result.ShouldBe("123");
@@ -995,14 +995,14 @@ public abstract class ControlPanelTests
         var rFunc = functionsRegistry.RegisterAction(
             flowType,
             Task (string param, Workflow workflow) 
-                => workflow.Effect.Capture("Test", () => throw new InvalidOperationException("oh no"))
+                => workflow.Effect.Capture(() => throw new InvalidOperationException("oh no"))
         );
 
         await Should.ThrowAsync<Exception>(rFunc.Invoke(flowInstance.Value, param: "param"));
         
         var controlPanel = await rFunc.ControlPanel(flowInstance).ShouldNotBeNullAsync();
         var activities = controlPanel.Effects;
-        await activities.SetSucceeded(effectId: "Test");
+        await activities.SetSucceeded(effectId: "0");
         
         await controlPanel.Restart();
         
@@ -1023,7 +1023,7 @@ public abstract class ControlPanelTests
         var rFunc = functionsRegistry.RegisterFunc(
             flowType,
             Task<string> (string param, Workflow workflow) =>
-                workflow.Effect.Capture("Test", () =>
+                workflow.Effect.Capture(() =>
                 {
                     syncedCounter++;
                     return "EffectResult";
@@ -1042,7 +1042,7 @@ public abstract class ControlPanelTests
         
         await controlPanel.Refresh();
         var activities = controlPanel.Effects;
-        await activities.Remove("Test");
+        await activities.Remove("0");
 
         await controlPanel.Restart();
 
@@ -1173,7 +1173,7 @@ public abstract class ControlPanelTests
         var rFunc = functionsRegistry.RegisterFunc(
             flowType,
             Task<string> (string param, Workflow workflow) =>
-                workflow.Effect.Capture("Test", () =>
+                workflow.Effect.Capture(() =>
                 {
                     syncedCounter++;
                     return "EffectResult";
@@ -1187,7 +1187,7 @@ public abstract class ControlPanelTests
         var controlPanel = await rFunc.ControlPanel(flowInstance.Value);
         controlPanel.ShouldNotBeNull();
         var effects = controlPanel.Effects;
-        await effects.SetFailed(effectId: "Test", new InvalidOperationException("oh no"));
+        await effects.SetFailed(effectId: "0", new InvalidOperationException("oh no"));
 
         await Should.ThrowAsync<FatalWorkflowException>(() => 
             controlPanel.Restart()
@@ -1419,7 +1419,7 @@ public abstract class ControlPanelTests
             flowType,
             inner: async workflow =>
             {
-                await workflow.Effect.Capture("AlwaysFail", () =>
+                await workflow.Effect.Capture(() =>
                 {
                     if (shouldFail)
                         throw new TimeoutException("Timeout!");

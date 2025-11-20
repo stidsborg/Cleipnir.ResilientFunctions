@@ -36,12 +36,10 @@ public sealed class TransferSagaV2
             if (!success) throw new InvalidOperationException("Other version was selected for execution");
             
             var deductTask = effect.Capture(
-                "DeductAmount",
                 () => BankCentralClient.PostTransaction(transfer.FromAccountTransactionId, transfer.FromAccount, -transfer.Amount)
             );
-            
+
             var addTask = effect.Capture(
-                "AddAmount",
                 () => BankCentralClient.PostTransaction(transfer.ToAccountTransactionId, transfer.ToAccount, transfer.Amount)
             );
 
