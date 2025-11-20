@@ -12,7 +12,7 @@ public class EffectContextTests
     {
         var context = EffectContext.Empty;
         context.Parent.ShouldBeNull();
-        context.NextImplicitId().ShouldBe("0");
+        context.NextImplicitId().ShouldBe(0);
     }
     
     [TestMethod]
@@ -21,6 +21,6 @@ public class EffectContextTests
         var context = EffectContext.Empty;
         context.NextImplicitId();
         context.Parent.ShouldBeNull();
-        context.NextImplicitId().ShouldBe("1");
+        context.NextImplicitId().ShouldBe(1);
     }
 }

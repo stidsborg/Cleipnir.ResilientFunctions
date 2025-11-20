@@ -66,22 +66,22 @@ public class Effect(EffectResults effectResults, UtcNow utcNow, FlowMinimumTimeo
     #region Implicit ids
 
     public Task Capture(Action work, ResiliencyLevel resiliency = ResiliencyLevel.AtLeastOnce)
-        => Capture(id: EffectContext.CurrentContext.NextImplicitId(), work, resiliency);
+        => Capture(id: EffectContext.CurrentContext.NextImplicitId().ToString(), work, resiliency);
     public Task<T> Capture<T>(Func<T> work, ResiliencyLevel resiliency = ResiliencyLevel.AtLeastOnce)
-        => Capture(id: EffectContext.CurrentContext.NextImplicitId(), work: () => work().ToTask(), resiliency);
+        => Capture(id: EffectContext.CurrentContext.NextImplicitId().ToString(), work: () => work().ToTask(), resiliency);
     public Task Capture(Func<Task> work, ResiliencyLevel resiliency = ResiliencyLevel.AtLeastOnce)
-        => Capture(id: EffectContext.CurrentContext.NextImplicitId(), work, resiliency);
+        => Capture(id: EffectContext.CurrentContext.NextImplicitId().ToString(), work, resiliency);
     public Task<T> Capture<T>(Func<Task<T>> work, ResiliencyLevel resiliency = ResiliencyLevel.AtLeastOnce)
-        => Capture(id: EffectContext.CurrentContext.NextImplicitId(), work, resiliency);
+        => Capture(id: EffectContext.CurrentContext.NextImplicitId().ToString(), work, resiliency);
 
     public Task Capture(Action work, RetryPolicy retryPolicy, bool flush = true)
-        => Capture(id: EffectContext.CurrentContext.NextImplicitId(), work, retryPolicy, flush);
+        => Capture(id: EffectContext.CurrentContext.NextImplicitId().ToString(), work, retryPolicy, flush);
     public Task<T> Capture<T>(Func<T> work, RetryPolicy retryPolicy, bool flush = true)
-        => Capture(id: EffectContext.CurrentContext.NextImplicitId(), work: () => work().ToTask(), retryPolicy, flush);
+        => Capture(id: EffectContext.CurrentContext.NextImplicitId().ToString(), work: () => work().ToTask(), retryPolicy, flush);
     public Task Capture(Func<Task> work, RetryPolicy retryPolicy, bool flush = true)
-        => Capture(id: EffectContext.CurrentContext.NextImplicitId(), work, retryPolicy, flush);
+        => Capture(id: EffectContext.CurrentContext.NextImplicitId().ToString(), work, retryPolicy, flush);
     public Task<T> Capture<T>(Func<Task<T>> work, RetryPolicy retryPolicy, bool flush = true)
-        => Capture(id: EffectContext.CurrentContext.NextImplicitId(), work, retryPolicy, flush);
+        => Capture(id: EffectContext.CurrentContext.NextImplicitId().ToString(), work, retryPolicy, flush);
     
     #endregion
     
@@ -143,11 +143,11 @@ public class Effect(EffectResults effectResults, UtcNow utcNow, FlowMinimumTimeo
         => Capture(id, work: () => Task.WhenAll(tasks));
 
     public Task<T> WhenAny<T>(params Task<T>[] tasks)
-        => WhenAny(EffectContext.CurrentContext.NextImplicitId(), tasks);
+        => WhenAny(EffectContext.CurrentContext.NextImplicitId().ToString(), tasks);
     public Task<T[]> WhenAll<T>(params Task<T>[] tasks)
-        => WhenAll(EffectContext.CurrentContext.NextImplicitId(), tasks);
+        => WhenAll(EffectContext.CurrentContext.NextImplicitId().ToString(), tasks);
 
-    internal string TakeNextImplicitId() => EffectContext.CurrentContext.NextImplicitId();
+    internal string TakeNextImplicitId() => EffectContext.CurrentContext.NextImplicitId().ToString();
 
     internal EffectId CreateEffectId(string id, EffectType? type = null) 
         => id.ToEffectId(type, context: EffectContext.CurrentContext.Parent?.Serialize().Value);

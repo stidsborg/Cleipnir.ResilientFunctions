@@ -30,7 +30,7 @@ public enum TimeoutStatus
 public class FlowRegisteredTimeouts(Effect effect, UtcNow utcNow, FlowMinimumTimeout flowMinimumTimeout, PublishTimeoutEvent publishTimeoutEvent, UnhandledExceptionHandler unhandledExceptionHandler, FlowId flowId) : IRegisteredTimeouts
 {
     private volatile bool _disposed;
-    public string GetNextImplicitId() => EffectContext.CurrentContext.NextImplicitId();
+    public string GetNextImplicitId() => EffectContext.CurrentContext.NextImplicitId().ToString();
     
     
     public async Task<Tuple<TimeoutStatus, DateTime>> RegisterTimeout(EffectId timeoutId, DateTime expiresAt, bool publishMessage)

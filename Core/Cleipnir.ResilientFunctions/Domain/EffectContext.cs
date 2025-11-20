@@ -40,5 +40,5 @@ public class EffectContext
     
     public static void SetParent(EffectId parentId) => Context.Value = new EffectContext(parentId);
 
-    public string NextImplicitId() => (++ImplicitId).ToString();
+    public int NextImplicitId() => ++ImplicitId;
 }
