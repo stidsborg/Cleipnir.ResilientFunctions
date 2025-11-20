@@ -620,7 +620,8 @@ public abstract class EffectTests
             effectId1,
             WorkStatus.Completed,
             Result: "hello world".ToUtf8Bytes(),
-            StoredException: null
+            StoredException: null,
+            Alias: null
         );
         await effectResults.Set(storedEffect1, flush: false);
         await effectStore
@@ -633,7 +634,8 @@ public abstract class EffectTests
             effectId2,
             WorkStatus.Completed,
             Result: "hello universe".ToUtf8Bytes(),
-            StoredException: null
+            StoredException: null,
+            Alias: null
         );
         await effectResults.Set(storedEffect2, flush: true);
         

@@ -181,13 +181,13 @@ public abstract class StoreCrudTests
 
         await store.EffectsStore.SetEffectResult(
             storedId,
-            StoredEffect.CreateState(new StoredState("SomeStateId", "SomeStateJson".ToUtf8Bytes())).ToStoredChange(storedId, Insert),
+            StoredEffect.CreateCompleted("SomeStateId".ToEffectId(EffectType.State), "SomeStateJson".ToUtf8Bytes(), alias: null).ToStoredChange(storedId, Insert),
             session: null
         );
         await store.CorrelationStore.SetCorrelation(storedId, "SomeCorrelationId");
         await store.EffectsStore.SetEffectResult(
             storedId,
-            new StoredEffect("SomeEffectId".ToEffectId(), WorkStatus.Completed, Result: null, StoredException: null).ToStoredChange(storedId, Insert),
+            new StoredEffect("SomeEffectId".ToEffectId(), WorkStatus.Completed, Result: null, StoredException: null, Alias: null).ToStoredChange(storedId, Insert),
             session: null
         );
         await store.MessageStore.AppendMessage(storedId, new StoredMessage("SomeJson".ToUtf8Bytes(), "SomeType".ToUtf8Bytes(), Position: 0));
@@ -500,13 +500,15 @@ public abstract class StoreCrudTests
             EffectId: "effect1".ToEffectId(),
             WorkStatus: WorkStatus.Completed,
             Result: "result1".ToUtf8Bytes(),
-            StoredException: null
+            StoredException: null,
+            Alias: null
         );
         var effect2 = new StoredEffect(
             EffectId: "effect2".ToEffectId(),
             WorkStatus: WorkStatus.Completed,
             Result: "result2".ToUtf8Bytes(),
-            StoredException: null
+            StoredException: null,
+            Alias: null
         );
 
         // Create messages

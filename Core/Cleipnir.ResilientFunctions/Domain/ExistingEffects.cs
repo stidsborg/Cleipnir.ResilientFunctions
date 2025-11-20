@@ -84,17 +84,17 @@ public class ExistingEffects(StoredId storedId, FlowId flowId, IEffectsStore eff
 
     public Task SetStarted(string effectId) => SetStarted(effectId.ToEffectId());
     public Task SetStarted(EffectId effectId)
-        => Set(new StoredEffect(effectId, WorkStatus.Started, Result: null, StoredException: null));
+        => Set(new StoredEffect(effectId, WorkStatus.Started, Result: null, StoredException: null, Alias: null));
 
     public Task SetSucceeded(string effectId) => SetSucceeded(effectId.ToEffectId());
     public Task SetSucceeded(EffectId effectId)
-        => Set(new StoredEffect(effectId, WorkStatus.Completed, Result: null, StoredException: null));
+        => Set(new StoredEffect(effectId, WorkStatus.Completed, Result: null, StoredException: null, Alias: null));
 
     public Task SetSucceeded<TResult>(string effectId, TResult result) => SetSucceeded(effectId.ToEffectId(), result);
     public Task SetSucceeded<TResult>(EffectId effectId, TResult result)
-        => Set(new StoredEffect(effectId, WorkStatus.Completed, Result: serializer.Serialize(result), StoredException: null));
+        => Set(new StoredEffect(effectId, WorkStatus.Completed, Result: serializer.Serialize(result), StoredException: null, Alias: null));
 
     public Task SetFailed(string effectId, Exception exception) => SetFailed(effectId.ToEffectId(), exception);
     public Task SetFailed(EffectId effectId, Exception exception)
-        => Set(new StoredEffect(effectId, WorkStatus.Failed, Result: null, StoredException: serializer.SerializeException(FatalWorkflowException.CreateNonGeneric(flowId, exception))));
+        => Set(new StoredEffect(effectId, WorkStatus.Failed, Result: null, StoredException: serializer.SerializeException(FatalWorkflowException.CreateNonGeneric(flowId, exception)), Alias: null));
 }

@@ -33,13 +33,15 @@ public abstract class EffectStoreTests
             "EffectId1".ToEffectId(),
             WorkStatus.Started,
             Result: null,
-            StoredException: null
+            StoredException: null,
+            Alias: null
         );
         var storedEffect2 = new StoredEffect(
             "EffectId2".ToEffectId(),
             WorkStatus.Completed,
             Result: null,
-            StoredException: null
+            StoredException: null,
+            Alias: null
         );
         await store
             .GetEffectResults(functionId)
@@ -90,7 +92,8 @@ public abstract class EffectStoreTests
             "EffectId1".ToEffectId(),
             WorkStatus.Started,
             Result: null,
-            StoredException: null
+            StoredException: null,
+            Alias: null
         );
 
         await store.GetEffectResults(functionId)
@@ -137,7 +140,8 @@ public abstract class EffectStoreTests
             "EffectId1".ToEffectId(),
             WorkStatus.Started,
             Result: null,
-            StoredException: null
+            StoredException: null,
+            Alias: null
         );
 
         await store.GetEffectResults(functionId)
@@ -174,13 +178,15 @@ public abstract class EffectStoreTests
             "EffectId1".ToEffectId(),
             WorkStatus.Started,
             Result: null,
-            StoredException: null
+            StoredException: null,
+            Alias: null
         );
         var storedEffect2 = new StoredEffect(
             "EffectId2".ToEffectId(),
             WorkStatus.Completed,
             Result: null,
-            StoredException: null
+            StoredException: null,
+            Alias: null
         );
         await store.SetEffectResult(functionId, storedEffect1.ToStoredChange(functionId, Insert), session: null);
         await store.SetEffectResult(functionId, storedEffect2.ToStoredChange(functionId, Insert), session: null);
@@ -239,13 +245,15 @@ public abstract class EffectStoreTests
             "EffectId1".ToEffectId(),
             WorkStatus.Started,
             Result: null,
-            StoredException: null
+            StoredException: null,
+            Alias: null
         );
         var storedEffect2 = new StoredEffect(
             "EffectId2".ToEffectId(),
             WorkStatus.Completed,
             Result: null,
-            StoredException: null
+            StoredException: null,
+            Alias: null
         );
 
         await store.SetEffectResult(functionId, storedEffect1.ToStoredChange(functionId, Insert), session: null);
@@ -302,13 +310,15 @@ public abstract class EffectStoreTests
             "EffectId1".ToEffectId(),
             WorkStatus.Started,
             Result: null,
-            StoredException: null
+            StoredException: null,
+            Alias: null
         );
         var storedEffect2 = new StoredEffect(
             "EffectId2".ToEffectId(),
             WorkStatus.Completed,
             Result: null,
-            StoredException: null
+            StoredException: null,
+            Alias: null
         );
 
         await store.SetEffectResult(functionId, storedEffect1.ToStoredChange(functionId, Insert), session: null);
@@ -348,13 +358,15 @@ public abstract class EffectStoreTests
             "EffectId1".ToEffectId(),
             WorkStatus.Started,
             Result: "some result 1".ToUtf8Bytes(),
-            StoredException: null
+            StoredException: null,
+            Alias: null
         );
         var storedEffect2 = new StoredEffect(
             "EffectId2".ToEffectId(),
             WorkStatus.Completed,
             Result: "some result 2".ToUtf8Bytes(),
-            StoredException: null
+            StoredException: null,
+            Alias: null
         );
 
         await store.SetEffectResults(
@@ -391,19 +403,22 @@ public abstract class EffectStoreTests
             "EffectId1".ToEffectId(),
             WorkStatus.Started,
             Result: "some result 1".ToUtf8Bytes(),
-            StoredException: null
+            StoredException: null,
+            Alias: null
         );
         var storedEffect2 = new StoredEffect(
             "EffectId2".ToEffectId(),
             WorkStatus.Completed,
             Result: "some result 2".ToUtf8Bytes(),
-            StoredException: null
+            StoredException: null,
+            Alias: null
         );
         var storedEffect3 = new StoredEffect(
             "EffectId3".ToEffectId(),
             WorkStatus.Completed,
             Result: "some result 3".ToUtf8Bytes(),
-            StoredException: null
+            StoredException: null,
+            Alias: null
         );
 
         await store.SetEffectResults(storedId, [storedEffect1.ToStoredChange(storedId, Insert), storedEffect2.ToStoredChange(storedId, Insert)], session: null);
@@ -443,13 +458,15 @@ public abstract class EffectStoreTests
             "EffectId1".ToEffectId(),
             WorkStatus.Started,
             Result: "some result 1".ToUtf8Bytes(),
-            StoredException: null
+            StoredException: null,
+            Alias: null
         );
         var storedEffect2 = new StoredEffect(
             "EffectId2".ToEffectId(),
             WorkStatus.Completed,
             Result: "some result 2".ToUtf8Bytes(),
-            StoredException: null
+            StoredException: null,
+            Alias: null
         );
 
         await store.SetEffectResults(
@@ -524,13 +541,15 @@ public abstract class EffectStoreTests
             "EffectId1".ToEffectId(),
             WorkStatus.Started,
             Result: null,
-            StoredException: null
+            StoredException: null,
+            Alias: null
         );
         var storedEffect2 = new StoredEffect(
             "EffectId2".ToEffectId(),
             WorkStatus.Completed,
             Result: null,
-            StoredException: null
+            StoredException: null,
+            Alias: null
         );
 
         await store.SetEffectResult(id1, storedEffect1.ToStoredChange(id1, Insert), session: null);
@@ -572,13 +591,15 @@ public abstract class EffectStoreTests
             "EffectId1".ToEffectId(),
             WorkStatus.Started,
             Result: null,
-            StoredException: null
+            StoredException: null,
+            Alias: null
         );
         var storedEffect2 = new StoredEffect(
             "EffectId1".ToEffectId(),
             WorkStatus.Completed,
             Result: null,
-            StoredException: null
+            StoredException: null,
+            Alias: null
         );
 
         await effectStore.SetEffectResult(storedId, storedEffect1.ToStoredChange(storedId, Insert), storageSession);
@@ -618,13 +639,15 @@ public abstract class EffectStoreTests
             "EffectId1".ToEffectId(),
             WorkStatus.Started,
             Result: null,
-            StoredException: null
+            StoredException: null,
+            Alias: null
         );
         var storedEffect2 = new StoredEffect(
             "EffectId1".ToEffectId(),
             WorkStatus.Completed,
             Result: null,
-            StoredException: null
+            StoredException: null,
+            Alias: null
         );
         
         try
@@ -664,13 +687,13 @@ public abstract class EffectStoreTests
         var session = await store.CreateFunction(storedId, "instance", null, 0, null, 0, null, ReplicaId.NewId());
 
         // Sequential updates - each should increment version properly
-        var effect1 = new StoredEffect("Effect1".ToEffectId(), WorkStatus.Completed, "result1".ToUtf8Bytes(), null);
+        var effect1 = new StoredEffect("Effect1".ToEffectId(), WorkStatus.Completed, "result1".ToUtf8Bytes(), null, Alias: null);
         await effectStore.SetEffectResult(storedId, effect1.ToStoredChange(storedId, Insert), session);
 
-        var effect2 = new StoredEffect("Effect2".ToEffectId(), WorkStatus.Completed, "result2".ToUtf8Bytes(), null);
+        var effect2 = new StoredEffect("Effect2".ToEffectId(), WorkStatus.Completed, "result2".ToUtf8Bytes(), null, Alias: null);
         await effectStore.SetEffectResult(storedId, effect2.ToStoredChange(storedId, Insert), session);
 
-        var effect3 = new StoredEffect("Effect3".ToEffectId(), WorkStatus.Completed, "result3".ToUtf8Bytes(), null);
+        var effect3 = new StoredEffect("Effect3".ToEffectId(), WorkStatus.Completed, "result3".ToUtf8Bytes(), null, Alias: null);
         await effectStore.SetEffectResult(storedId, effect3.ToStoredChange(storedId, Insert), session);
 
         // Verify all three effects were persisted
@@ -699,7 +722,8 @@ public abstract class EffectStoreTests
                 $"Effect{i}".ToEffectId(),
                 WorkStatus.Completed,
                 $"result{i}".ToUtf8Bytes(),
-                null
+                null,
+                Alias: null
             );
             await effectStore.SetEffectResult(storedId, effect.ToStoredChange(storedId, Insert), session);
         }
@@ -736,14 +760,16 @@ public abstract class EffectStoreTests
             "NullResult".ToEffectId(),
             WorkStatus.Started,
             Result: null,
-            StoredException: null
+            StoredException: null,
+            Alias: null
         );
 
         var effectWithLargeResult = new StoredEffect(
             "LargeResult".ToEffectId(),
             WorkStatus.Completed,
             Result: new byte[10000], // 10KB
-            StoredException: null
+            StoredException: null,
+            Alias: null
         );
 
         var effectWithException = new StoredEffect(
@@ -754,14 +780,16 @@ public abstract class EffectStoreTests
                 "Message with special chars: \n\t\r\"'\\",
                 "Stack trace with\nmultiple\nlines",
                 "System.InvalidOperationException"
-            )
+            ),
+            Alias: null
         );
 
         var effectWithSpecialChars = new StoredEffect(
             "SpecialCharsInResult".ToEffectId(),
             WorkStatus.Completed,
             Result: "Special chars: 🚀 \n\t\r\"'\\".ToUtf8Bytes(),
-            StoredException: null
+            StoredException: null,
+            Alias: null
         );
 
         // Insert all effects
@@ -801,7 +829,7 @@ public abstract class EffectStoreTests
         var session = await store.CreateFunction(storedId, "instance", null, 0, null, 0, null, ReplicaId.NewId());
 
         // INSERT effect1
-        var effect1 = new StoredEffect("Effect1".ToEffectId(), WorkStatus.Started, null, null);
+        var effect1 = new StoredEffect("Effect1".ToEffectId(), WorkStatus.Started, null, null, Alias: null);
         await effectStore.SetEffectResult(storedId, effect1.ToStoredChange(storedId, Insert), session);
 
         // UPDATE effect1
@@ -812,7 +840,7 @@ public abstract class EffectStoreTests
         await effectStore.DeleteEffectResult(storedId, "Effect2".ToEffectId(), session);
 
         // INSERT effect3
-        var effect3 = new StoredEffect("Effect3".ToEffectId(), WorkStatus.Completed, null, null);
+        var effect3 = new StoredEffect("Effect3".ToEffectId(), WorkStatus.Completed, null, null, Alias: null);
         await effectStore.SetEffectResult(storedId, effect3.ToStoredChange(storedId, Insert), session);
 
         // UPDATE effect1 again
@@ -820,7 +848,7 @@ public abstract class EffectStoreTests
         await effectStore.SetEffectResult(storedId, effect1.ToStoredChange(storedId, Update), session);
 
         // INSERT effect2
-        var effect2 = new StoredEffect("Effect2".ToEffectId(), WorkStatus.Started, null, null);
+        var effect2 = new StoredEffect("Effect2".ToEffectId(), WorkStatus.Started, null, null, Alias: null);
         await effectStore.SetEffectResult(storedId, effect2.ToStoredChange(storedId, Insert), session);
 
         // DELETE effect3

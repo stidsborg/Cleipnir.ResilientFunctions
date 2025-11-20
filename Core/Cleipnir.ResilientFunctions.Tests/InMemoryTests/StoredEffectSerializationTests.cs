@@ -13,7 +13,7 @@ public class StoredEffectSerializationTests
     {
         var effectId = new EffectId("SomeEffect", EffectType.Effect, Context: "");
         var result = "SomeResult"u8.ToArray();
-        var storedEffect = StoredEffect.CreateCompleted(effectId, result);
+        var storedEffect = StoredEffect.CreateCompleted(effectId, result, alias: null);
 
         var serialized = storedEffect.Serialize();
         var deserialized = StoredEffect.Deserialize(serialized);
@@ -28,7 +28,7 @@ public class StoredEffectSerializationTests
     public void CompletedStoredEffectWithoutResultCanBeSerializedAndDeserialized()
     {
         var effectId = new EffectId("SomeEffect", EffectType.Effect, Context: "");
-        var storedEffect = StoredEffect.CreateCompleted(effectId);
+        var storedEffect = StoredEffect.CreateCompleted(effectId, alias: null);
 
         var serialized = storedEffect.Serialize();
         var deserialized = StoredEffect.Deserialize(serialized);
@@ -43,7 +43,7 @@ public class StoredEffectSerializationTests
     public void StartedStoredEffectCanBeSerializedAndDeserialized()
     {
         var effectId = new EffectId("SomeEffect", EffectType.Effect, Context: "");
-        var storedEffect = StoredEffect.CreateStarted(effectId);
+        var storedEffect = StoredEffect.CreateStarted(effectId, alias: null);
 
         var serialized = storedEffect.Serialize();
         var deserialized = StoredEffect.Deserialize(serialized);
@@ -63,7 +63,7 @@ public class StoredEffectSerializationTests
             ExceptionStackTrace: "at SomeMethod() in SomeFile.cs:line 42",
             ExceptionType: "System.InvalidOperationException"
         );
-        var storedEffect = StoredEffect.CreateFailed(effectId, storedException);
+        var storedEffect = StoredEffect.CreateFailed(effectId, storedException, alias: null);
 
         var serialized = storedEffect.Serialize();
         var deserialized = StoredEffect.Deserialize(serialized);
@@ -82,7 +82,7 @@ public class StoredEffectSerializationTests
     {
         var effectId = new EffectId("SomeState", EffectType.State, Context: "");
         var result = "{\"key\":\"value\"}"u8.ToArray();
-        var storedEffect = StoredEffect.CreateCompleted(effectId, result);
+        var storedEffect = StoredEffect.CreateCompleted(effectId, result, alias: null);
 
         var serialized = storedEffect.Serialize();
         var deserialized = StoredEffect.Deserialize(serialized);
@@ -99,7 +99,7 @@ public class StoredEffectSerializationTests
         var parentEffect = new EffectId("ParentEffect", EffectType.Effect, Context: "");
         var effectId = new EffectId("ChildEffect", EffectType.Effect, Context: parentEffect.Serialize().Value);
         var result = "SomeData"u8.ToArray();
-        var storedEffect = StoredEffect.CreateCompleted(effectId, result);
+        var storedEffect = StoredEffect.CreateCompleted(effectId, result, alias: null);
 
         var serialized = storedEffect.Serialize();
         var deserialized = StoredEffect.Deserialize(serialized);
@@ -114,7 +114,7 @@ public class StoredEffectSerializationTests
     public void StoredEffectWithTimeoutTypeCanBeSerializedAndDeserialized()
     {
         var effectId = new EffectId("SomeTimeout", EffectType.Timeout, Context: "");
-        var storedEffect = StoredEffect.CreateStarted(effectId);
+        var storedEffect = StoredEffect.CreateStarted(effectId, alias: null);
 
         var serialized = storedEffect.Serialize();
         var deserialized = StoredEffect.Deserialize(serialized);
@@ -128,7 +128,7 @@ public class StoredEffectSerializationTests
     public void StoredEffectWithRetryTypeCanBeSerializedAndDeserialized()
     {
         var effectId = new EffectId("SomeRetry", EffectType.Retry, Context: "");
-        var storedEffect = StoredEffect.CreateCompleted(effectId);
+        var storedEffect = StoredEffect.CreateCompleted(effectId, alias: null);
 
         var serialized = storedEffect.Serialize();
         var deserialized = StoredEffect.Deserialize(serialized);
@@ -142,7 +142,7 @@ public class StoredEffectSerializationTests
     public void StoredEffectWithSystemTypeCanBeSerializedAndDeserialized()
     {
         var effectId = new EffectId("SomeSystem", EffectType.System, Context: "");
-        var storedEffect = StoredEffect.CreateCompleted(effectId);
+        var storedEffect = StoredEffect.CreateCompleted(effectId, alias: null);
 
         var serialized = storedEffect.Serialize();
         var deserialized = StoredEffect.Deserialize(serialized);
@@ -160,7 +160,7 @@ public class StoredEffectSerializationTests
         for (int i = 0; i < largeResult.Length; i++)
             largeResult[i] = (byte)(i % 256);
 
-        var storedEffect = StoredEffect.CreateCompleted(effectId, largeResult);
+        var storedEffect = StoredEffect.CreateCompleted(effectId, largeResult, alias: null);
 
         var serialized = storedEffect.Serialize();
         var deserialized = StoredEffect.Deserialize(serialized);
@@ -175,7 +175,7 @@ public class StoredEffectSerializationTests
     {
         var effectId = new EffectId("Effect.With\\Special.Characters", EffectType.Effect, Context: "");
         var result = "Data"u8.ToArray();
-        var storedEffect = StoredEffect.CreateCompleted(effectId, result);
+        var storedEffect = StoredEffect.CreateCompleted(effectId, result, alias: null);
 
         var serialized = storedEffect.Serialize();
         var deserialized = StoredEffect.Deserialize(serialized);
@@ -190,7 +190,7 @@ public class StoredEffectSerializationTests
     public void StoredEffectWithEmptyIdCanBeSerializedAndDeserialized()
     {
         var effectId = new EffectId("", EffectType.Effect, Context: "");
-        var storedEffect = StoredEffect.CreateCompleted(effectId);
+        var storedEffect = StoredEffect.CreateCompleted(effectId, alias: null);
 
         var serialized = storedEffect.Serialize();
         var deserialized = StoredEffect.Deserialize(serialized);
@@ -209,7 +209,7 @@ public class StoredEffectSerializationTests
             ExceptionStackTrace: null,
             ExceptionType: "System.Exception"
         );
-        var storedEffect = StoredEffect.CreateFailed(effectId, storedException);
+        var storedEffect = StoredEffect.CreateFailed(effectId, storedException, alias: null);
 
         var serialized = storedEffect.Serialize();
         var deserialized = StoredEffect.Deserialize(serialized);

@@ -1061,7 +1061,7 @@ public abstract class StoreTests
         );
         session.ShouldBeNull();
 
-        await effectsStore.SetEffectResult(functionId, new StoredEffect("".ToEffectId(EffectType.State), WorkStatus.Completed, "some default state".ToUtf8Bytes(), StoredException: null).ToStoredChange(functionId, Insert), session: null);
+        await effectsStore.SetEffectResult(functionId, new StoredEffect("".ToEffectId(EffectType.State), WorkStatus.Completed, "some default state".ToUtf8Bytes(), StoredException: null, Alias: null).ToStoredChange(functionId, Insert), session: null);
 
         var storedEffects = await effectsStore.GetEffectResults(functionId);
         storedEffects.Count.ShouldBe(1);
@@ -1392,14 +1392,16 @@ public abstract class StoreTests
             effectId1,
             WorkStatus.Completed,
             Result: "hello world".ToUtf8Bytes(),
-            StoredException: null
+            StoredException: null,
+            Alias: null
         );
         var effectId2 = new EffectId("SomeEffect2", EffectType.State, Context: "");
         var effect2 = new StoredEffect(
             effectId2,
             WorkStatus.Completed,
             Result: "hello universe".ToUtf8Bytes(),
-            StoredException: null
+            StoredException: null,
+            Alias: null
         );
 
         var message1 = new StoredMessage(
@@ -1543,14 +1545,16 @@ public abstract class StoreTests
             effectId1,
             WorkStatus.Completed,
             Result: "hello world".ToUtf8Bytes(),
-            StoredException: null
+            StoredException: null,
+            Alias: null
         );
         var effectId2 = new EffectId("SomeEffect2", EffectType.State, Context: "");
         var effect2 = new StoredEffect(
             effectId2,
             WorkStatus.Completed,
             Result: "hello universe".ToUtf8Bytes(),
-            StoredException: null
+            StoredException: null,
+            Alias: null
         );
 
         var session = await store.CreateFunction(
@@ -1629,7 +1633,8 @@ public abstract class StoreTests
                 "Test".ToEffectId(),
                 WorkStatus.Completed,
                 "hallo effect".ToUtf8Bytes(),
-                StoredException: null
+                StoredException: null,
+                Alias: null
                 ).ToStoredChange(functionId, Insert),
             session: null
         );
