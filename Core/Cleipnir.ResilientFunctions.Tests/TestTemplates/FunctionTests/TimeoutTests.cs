@@ -296,15 +296,15 @@ public abstract class TimeoutTests
             inner: async Task<Tuple<bool, bool>> (string _, Workflow workflow) =>
             {
                 var (effect, messages) = workflow;
-                var didFirstTimeout = await effect.Capture("First", () => 
+                var didFirstTimeout = await effect.Capture(() =>
                     messages.TakeUntilTimeout("TimeoutId", TimeSpan.FromMilliseconds(10))
                         .FirstOrNone()
                         .SelectAsync(o => !o.HasValue)
                     );
 
                 await messages.AppendMessage("SomeMessage");
-                
-                var didSecondTimeout = await effect.Capture("Second", () => 
+
+                var didSecondTimeout = await effect.Capture(() =>
                     messages.TakeUntilTimeout("TimeoutId", TimeSpan.FromSeconds(30))
                         .FirstOrNone()
                         .SelectAsync(o => !o.HasValue)

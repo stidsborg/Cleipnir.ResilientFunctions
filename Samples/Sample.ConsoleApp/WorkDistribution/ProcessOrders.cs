@@ -16,7 +16,6 @@ public static class ProcessOrders
     {
         var (effect, _) = workflow;
         await effect.Capture(
-            "Log_ProcessingStarted",
             () => Console.WriteLine($"Processing of orders started ({orderIds.Count})")
         );
 
@@ -25,7 +24,6 @@ public static class ProcessOrders
             .Completion();
         
         await effect.Capture(
-            "Log_ProcessingFinished",
             () => Console.WriteLine($"Processing of orders completed ({orderIds.Count})")
         );
     }

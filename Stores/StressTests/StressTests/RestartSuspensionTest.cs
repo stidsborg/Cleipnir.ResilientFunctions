@@ -30,7 +30,7 @@ public static class RestartSuspensionTest
             async Task (workflow) =>
             {
                 await workflow.Messages.First(maxWait: TimeSpan.Zero);
-                await workflow.Effect.Capture("Effect#1", () => Guid.NewGuid());
+                await workflow.Effect.Capture(() => Guid.NewGuid());
             }
         );
         
@@ -41,7 +41,7 @@ public static class RestartSuspensionTest
                 instance,
                 new InitialState(
                     [new MessageAndIdempotencyKey("Hello")],
-                    [new InitialEffect("Effect#1", Guid.NewGuid())]
+                    [new InitialEffect("0", Guid.NewGuid())]
                 )
             );
         

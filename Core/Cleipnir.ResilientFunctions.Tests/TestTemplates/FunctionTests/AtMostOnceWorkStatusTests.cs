@@ -26,9 +26,7 @@ public abstract class AtMostOnceWorkStatusTests
             async Task(string param, Workflow workflow) =>
             {
                 await workflow.Effect
-                    .Capture(
-                        "Id",
-                        work: async () =>
+                    .Capture(async () =>
                         {
                             counter.Increment();
                             await workflow.Delay(TimeSpan.FromMilliseconds(100));
@@ -60,9 +58,7 @@ public abstract class AtMostOnceWorkStatusTests
             async Task(string param, Workflow workflow) =>
             {
                 await workflow.Effect
-                    .Capture(
-                        "someId",
-                        work: async () =>
+                    .Capture(async () =>
                         {
                             counter.Increment();
                             await workflow.Delay(TimeSpan.FromMilliseconds(10));
@@ -94,9 +90,7 @@ public abstract class AtMostOnceWorkStatusTests
             async Task(string param, Workflow workflow) =>
             {
                 await workflow.Effect
-                    .Capture(
-                        id: "id",
-                        work: () =>
+                    .Capture(() =>
                         {
                             counter.Increment();
                             return Task.CompletedTask;

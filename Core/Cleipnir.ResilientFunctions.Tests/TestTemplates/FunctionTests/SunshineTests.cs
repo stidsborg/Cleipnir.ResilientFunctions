@@ -492,7 +492,7 @@ public abstract class SunshineTests
                 flowId.Type,
                 async workflow =>
                 {
-                    await workflow.Effect.Capture("InitialEffectId", () => Task.CompletedTask);
+                    await workflow.Effect.Capture(() => {});
                 }
             );
 
@@ -503,7 +503,7 @@ public abstract class SunshineTests
                 flowInstance: "hello",
                 initialState: new InitialState(
                     Messages: [],
-                    Effects: [new InitialEffect(Id: "InitialEffectId", Exception: new TimeoutException())]
+                    Effects: [new InitialEffect(Id: "0", Exception: new TimeoutException())]
                 )
             );
             Assert.Fail("Expected TimeoutException");

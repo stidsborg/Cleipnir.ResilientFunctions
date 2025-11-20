@@ -22,7 +22,6 @@ public static class Saga
         var approved = results.Count >= 2 && results.All(result => result.Approved);
 
         await workflow.Effect.Capture(
-            "PublishTransactionApproval",
             () => MessageBroker.Send(approved
                 ? new TransactionApproved(transaction)
                 : new TransactionDeclined(transaction))
