@@ -615,7 +615,7 @@ public abstract class EffectTests
             session
         );
         
-        var effectId1 = new EffectId("1", EffectType.Effect, Context: "");
+        var effectId1 = new EffectId("1", Context: "");
         var storedEffect1 = new StoredEffect(
             effectId1,
             WorkStatus.Completed,
@@ -629,7 +629,7 @@ public abstract class EffectTests
             .SelectAsync(r => r.Count == 0)
             .ShouldBeTrueAsync();
         
-        var effectId2 = new EffectId("2", EffectType.Effect, Context: "");
+        var effectId2 = new EffectId("2", Context: "");
         var storedEffect2 = new StoredEffect(
             effectId2,
             WorkStatus.Completed,

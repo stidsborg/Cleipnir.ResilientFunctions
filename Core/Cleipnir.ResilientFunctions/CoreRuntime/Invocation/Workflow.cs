@@ -44,7 +44,7 @@ public class Workflow
     public async Task Delay(DateTime until, bool suspend = true, string? effectId = null)
     {
         effectId ??= $"Delay#{Effect.TakeNextImplicitId()}";
-        var timeoutId = EffectId.CreateWithCurrentContext(effectId, EffectType.Timeout);
+        var timeoutId = EffectId.CreateWithCurrentContext(effectId);
 
         var (status, expiry) = await Messages.FlowRegisteredTimeouts.RegisterTimeout(
             timeoutId,

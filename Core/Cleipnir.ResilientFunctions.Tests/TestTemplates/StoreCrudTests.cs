@@ -181,7 +181,7 @@ public abstract class StoreCrudTests
 
         await store.EffectsStore.SetEffectResult(
             storedId,
-            StoredEffect.CreateCompleted("SomeStateId".ToEffectId(EffectType.State), "SomeStateJson".ToUtf8Bytes(), alias: null).ToStoredChange(storedId, Insert),
+            StoredEffect.CreateCompleted("SomeStateId".ToEffectId(), "SomeStateJson".ToUtf8Bytes(), alias: null).ToStoredChange(storedId, Insert),
             session: null
         );
         await store.CorrelationStore.SetCorrelation(storedId, "SomeCorrelationId");

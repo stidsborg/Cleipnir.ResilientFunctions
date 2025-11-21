@@ -56,7 +56,7 @@ public class ExistingEffects(StoredId storedId, FlowId flowId, IEffectsStore eff
     public async Task RemoveFailed()
     {
         foreach (var effectId in await AllIds)
-            if (await GetStatus(effectId) == WorkStatus.Failed || effectId.Type == EffectType.Retry)
+            if (await GetStatus(effectId) == WorkStatus.Failed)
                 await Remove(effectId);
     }
 

@@ -162,7 +162,6 @@ public abstract class TimeoutTests
 
         var id = registeredTimeout.TimeoutId;
         id.Id.ShouldBe("TimeoutId4321");
-        id.Type.ShouldBe(EffectType.Timeout);
 
         await controlPanel.RegisteredTimeouts.Remove(id);
         
@@ -208,7 +207,6 @@ public abstract class TimeoutTests
 
         var id = registeredTimeout.TimeoutId;
         id.Id.ShouldBe("TimeoutId4321");
-        id.Type.ShouldBe(EffectType.Timeout);
 
         await controlPanel.RegisteredTimeouts.Upsert(id, new DateTime(2100, 1, 1, 0, 0, 0, DateTimeKind.Utc));
         

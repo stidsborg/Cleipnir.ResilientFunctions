@@ -121,7 +121,7 @@ public record StoredEffectId(Guid Value)
 
 public static class StoredEffectIdExtensions
 {
-    public static StoredEffectId ToStoredEffectId(this string effectId, EffectType effectType) => ToStoredEffectId(effectId.ToEffectId(effectType));
+    public static StoredEffectId ToStoredEffectId(this string effectId) => ToStoredEffectId(effectId.ToEffectId());
     public static StoredEffectId ToStoredEffectId(this EffectId effectId) => StoredEffectId.Create(effectId);
 }
 

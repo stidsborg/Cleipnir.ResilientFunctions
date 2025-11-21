@@ -11,41 +11,41 @@ public class EffectIdTests
     [TestMethod]
     public void EffectIdWithStateCanBeDeserialized()
     {
-        var effectId = new EffectId("SomeValue", EffectType.State, Context: "");
+        var effectId = new EffectId("SomeValue", Context: "");
         var serializedId = effectId.Serialize();
         var deserializedId = EffectId.Deserialize(serializedId);
-        
+
         deserializedId.ShouldBe(effectId);
     }
     
     [TestMethod]
     public void EffectIdWithContextCanBeDeserialized()
     {
-        var parentEffect = new EffectId("SomeParentId", EffectType.Effect, Context: "ESomeParentContext");
-        var effectId = new EffectId("SomeValue", EffectType.State, Context: parentEffect.Serialize().Value);
+        var parentEffect = new EffectId("SomeParentId", Context: "ESomeParentContext");
+        var effectId = new EffectId("SomeValue", Context: parentEffect.Serialize().Value);
         var serializedId = effectId.Serialize();
         var deserializedId = EffectId.Deserialize(serializedId);
-        
+
         deserializedId.ShouldBe(effectId);
     }
     
     [TestMethod]
     public void EffectIdWithContextAndEscapedCharactersCanBeDeserialized()
     {
-        var parentEffect = new EffectId("SomeParentId", EffectType.Effect, Context: "");
-        var effectId = new EffectId("Some.Value\\WithBackSlash", EffectType.State, Context: parentEffect.Serialize().Value);
+        var parentEffect = new EffectId("SomeParentId", Context: "");
+        var effectId = new EffectId("Some.Value\\WithBackSlash", Context: parentEffect.Serialize().Value);
         var serializedId = effectId.Serialize();
         var deserializedId = EffectId.Deserialize(serializedId);
-        
+
         deserializedId.ShouldBe(effectId);
     }
     
     [TestMethod]
     public void EffectIdWithBackslashIsSerializedCorrectly()
     {
-        var effectId = new EffectId("\\", EffectType.State, Context: "");
+        var effectId = new EffectId("\\", Context: "");
         var serializedId = effectId.Serialize();
-        serializedId.Value.ShouldBe("S\\\\");
+        serializedId.Value.ShouldBe("\\\\");
         var deserializedId = EffectId.Deserialize(serializedId);
         deserializedId.ShouldBe(effectId);
     }
@@ -53,9 +53,9 @@ public class EffectIdTests
     [TestMethod]
     public void EffectIdWithDotIsSerializedCorrectly()
     {
-        var effectId = new EffectId(".", EffectType.State, Context: "");
+        var effectId = new EffectId(".", Context: "");
         var serializedId = effectId.Serialize();
-        serializedId.Value.ShouldBe("S\\.");
+        serializedId.Value.ShouldBe("\\.");
         var deserializedId = EffectId.Deserialize(serializedId);
         deserializedId.ShouldBe(effectId);
     }
@@ -63,30 +63,30 @@ public class EffectIdTests
     [TestMethod]
     public void EffectIdWithoutStateCanBeDeserialized()
     {
-        var effectId = new EffectId("SomeValue", EffectType.Effect, Context: "");
+        var effectId = new EffectId("SomeValue", Context: "");
         var serializedId = effectId.Serialize();
         var deserializedId = EffectId.Deserialize(serializedId);
-        
+
         deserializedId.ShouldBe(effectId);
     }
 
     [TestMethod]
     public void StoredEffectIdIsBasedOnSerializedEffectIdValue()
     {
-        var effectId = new EffectId("SomeId", EffectType.Effect, Context: new EffectId("SomeParentId", EffectType.Effect, Context: "ESomeParentContext").Serialize().Value);
+        var effectId = new EffectId("SomeId", Context: new EffectId("SomeParentId", Context: "ESomeParentContext").Serialize().Value);
         var serializedEffectId = effectId.Serialize();
 
         var storedEffectId = effectId.ToStoredEffectId();
         storedEffectId.Value.ShouldBe(StoredIdFactory.FromString(serializedEffectId.Value));
     }
-    
+
     [TestMethod]
     public void EffectIdWithEmptyIdAndContextCanBeDeserialized()
     {
-        var effectId = new EffectId("", EffectType.State, Context: "");
+        var effectId = new EffectId("", Context: "");
         var serializedId = effectId.Serialize();
         var deserializedId = EffectId.Deserialize(serializedId);
-        
+
         deserializedId.ShouldBe(effectId);
     }
 }
