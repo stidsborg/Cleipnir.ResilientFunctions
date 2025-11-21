@@ -439,10 +439,10 @@ public abstract class EffectTests
         var effectResults = await store.EffectsStore.GetEffectResults(storedId);
 
         var subEffectValue1Id = effectResults.Single(se => se.EffectId.Id == "SubEffectValue1").EffectId;
-        subEffectValue1Id.Context.ShouldBe("E0.E0");
-        
+        subEffectValue1Id.Context.ShouldBe("0.0");
+
         var subEffectValue2Id = effectResults.Single(se => se.EffectId.Id == "SubEffectValue2").EffectId;
-        subEffectValue2Id.Context.ShouldBe("E0.E1");
+        subEffectValue2Id.Context.ShouldBe("0.1");
     }
     
     public abstract Task SubEffectHasExplicitContext();
@@ -482,12 +482,12 @@ public abstract class EffectTests
         var effectResults = await store.EffectsStore.GetEffectResults(storedId);
 
         var subEffectValue1Id = effectResults.Single(se => se.EffectId.Id == "SubEffectValue1").EffectId;
-        subEffectValue1Id.Context.ShouldBe("E0.E0");
+        subEffectValue1Id.Context.ShouldBe("0.0");
 
         var subEffectValue2Id = effectResults.Single(se => se.EffectId.Id == "SubEffectValue2").EffectId;
-        subEffectValue2Id.Context.ShouldBe("E0.E1");
+        subEffectValue2Id.Context.ShouldBe("0.1");
     }
-    
+
     public abstract Task ExceptionThrownInsideEffectBecomesFatalWorkflowException();
     public async Task ExceptionThrownInsideEffectBecomesFatalWorkflowException(Task<IFunctionStore> storeTask)
     {

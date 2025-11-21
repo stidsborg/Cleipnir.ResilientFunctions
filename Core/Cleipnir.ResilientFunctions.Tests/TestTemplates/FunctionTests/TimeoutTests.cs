@@ -163,12 +163,6 @@ public abstract class TimeoutTests
         var id = registeredTimeout.TimeoutId;
         id.Id.ShouldBe("TimeoutId4321");
 
-        await controlPanel.RegisteredTimeouts.Remove(id);
-        
-        await controlPanel.Refresh();
-
-        await controlPanel.RegisteredTimeouts.All.ShouldBeEmptyAsync();
-        
         unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
     }
     

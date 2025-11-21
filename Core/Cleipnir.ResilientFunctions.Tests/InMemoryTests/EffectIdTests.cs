@@ -83,7 +83,7 @@ public class EffectIdTests
     [TestMethod]
     public void EffectIdWithEmptyIdAndContextCanBeDeserialized()
     {
-        var effectId = new EffectId("", Context: "");
+        var effectId = new EffectId("0", Context: "");
         var serializedId = effectId.Serialize();
         var deserializedId = EffectId.Deserialize(serializedId);
 

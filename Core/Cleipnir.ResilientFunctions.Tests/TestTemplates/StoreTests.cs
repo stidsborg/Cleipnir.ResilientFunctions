@@ -1061,11 +1061,11 @@ public abstract class StoreTests
         );
         session.ShouldBeNull();
 
-        await effectsStore.SetEffectResult(functionId, new StoredEffect("".ToEffectId(), WorkStatus.Completed, "some default state".ToUtf8Bytes(), StoredException: null, Alias: null).ToStoredChange(functionId, Insert), session: null);
+        await effectsStore.SetEffectResult(functionId, new StoredEffect("0".ToEffectId(), WorkStatus.Completed, "some default state".ToUtf8Bytes(), StoredException: null, Alias: null).ToStoredChange(functionId, Insert), session: null);
 
         var storedEffects = await effectsStore.GetEffectResults(functionId);
         storedEffects.Count.ShouldBe(1);
-        storedEffects.Single().EffectId.ShouldBe("".ToEffectId());
+        storedEffects.Single().EffectId.ShouldBe("0".ToEffectId());
         storedEffects.Single().Result.ShouldBe("some default state".ToUtf8Bytes());
     }
     

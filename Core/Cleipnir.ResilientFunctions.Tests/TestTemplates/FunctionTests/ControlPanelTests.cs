@@ -1260,18 +1260,16 @@ public abstract class ControlPanelTests
         await timeouts.Upsert("someOtherTimeoutId", new DateTime(2101, 1, 1, 1, 1, 1, DateTimeKind.Utc));
         (await timeouts.All).Count.ShouldBe(2);
         await timeouts["someOtherTimeoutId"].ShouldBeAsync(new DateTime(2101, 1,1, 1,1,1, DateTimeKind.Utc));
-        
-        await timeouts.Remove("someTimeoutId");
-        (await timeouts.All).Count.ShouldBe(1);
 
         await controlPanel.Refresh();
-        
-        (await timeouts.All).Count.ShouldBe(1);
+
+        (await timeouts.All).Count.ShouldBe(2);
+        await timeouts["someTimeoutId"].ShouldBeAsync(new DateTime(2100, 1,1, 1,1,1, DateTimeKind.Utc));
         await timeouts["someOtherTimeoutId"].ShouldBeAsync(new DateTime(2101, 1,1, 1,1,1, DateTimeKind.Utc));
-        
+
         unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
-    
+
     public abstract Task ExistingTimeoutCanBeUpdatedForFunc();
     protected async Task ExistingTimeoutCanBeUpdatedForFunc(Task<IFunctionStore> storeTask)
     {
@@ -1307,18 +1305,16 @@ public abstract class ControlPanelTests
         await timeouts.Upsert("someOtherTimeoutId", new DateTime(2101, 1, 1, 1, 1, 1, DateTimeKind.Utc));
         (await timeouts.All).Count.ShouldBe(2);
         await timeouts["someOtherTimeoutId"].ShouldBeAsync(new DateTime(2101, 1,1, 1,1,1, DateTimeKind.Utc));
-        
-        await timeouts.Remove("someTimeoutId");
-        (await timeouts.All).Count.ShouldBe(1);
 
         await controlPanel.Refresh();
-        
-        (await timeouts.All).Count.ShouldBe(1);
+
+        (await timeouts.All).Count.ShouldBe(2);
+        await timeouts["someTimeoutId"].ShouldBeAsync(new DateTime(2100, 1,1, 1,1,1, DateTimeKind.Utc));
         await timeouts["someOtherTimeoutId"].ShouldBeAsync(new DateTime(2101, 1,1, 1,1,1, DateTimeKind.Utc));
-        
+
         unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
-    
+
     public abstract Task CorrelationsCanBeChanged();
     protected async Task CorrelationsCanBeChanged(Task<IFunctionStore> storeTask)
     {

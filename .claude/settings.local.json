@@ -16,7 +16,8 @@
       "Bash(pg_isready -h localhost -p 5432)",
       "Bash(git log:*)",
       "Bash(wait)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(cat:*)"
     ],
     "deny": [],
     "ask": []

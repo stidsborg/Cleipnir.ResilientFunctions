@@ -60,8 +60,18 @@ public class ExistingRegisteredTimeouts(ExistingEffects effects, UtcNow utcNow)
         await effects.SetValue(timeoutId, $"{(int)TimeoutStatus.Registered}_{expiresAt.Ticks}");
         timeouts[timeoutId] = new Tuple<DateTime, TimeoutStatus>(expiresAt, TimeoutStatus.Registered);
     }
-    public Task Upsert(TimeoutId timeoutId, TimeSpan expiresIn) 
+    public Task Upsert(TimeoutId timeoutId, TimeSpan expiresIn)
         => Upsert(timeoutId, expiresAt: utcNow().Add(expiresIn));
-    public Task Upsert(EffectId timeoutId, TimeSpan expiresIn) 
+    public Task Upsert(EffectId timeoutId, TimeSpan expiresIn)
         => Upsert(timeoutId, expiresAt: utcNow().Add(expiresIn));
+
+    public async Task RemoveAll()
+    {
+        var timeouts = await GetTimeouts();
+        foreach (var timeoutId in timeouts.Keys.ToList())
+        {
+            await effects.Remove(timeoutId);
+            timeouts.Remove(timeoutId);
+        }
+    }
 }

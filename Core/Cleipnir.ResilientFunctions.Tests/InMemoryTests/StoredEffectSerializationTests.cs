@@ -185,14 +185,14 @@ public class StoredEffectSerializationTests
     [TestMethod]
     public void StoredEffectWithEmptyIdCanBeSerializedAndDeserialized()
     {
-        var effectId = new EffectId("", Context: "");
+        var effectId = new EffectId("0", Context: "");
         var storedEffect = StoredEffect.CreateCompleted(effectId, alias: null);
 
         var serialized = storedEffect.Serialize();
         var deserialized = StoredEffect.Deserialize(serialized);
 
         deserialized.EffectId.ShouldBe(effectId);
-        deserialized.EffectId.Id.ShouldBe("");
+        deserialized.EffectId.Id.ShouldBe("0");
         deserialized.WorkStatus.ShouldBe(WorkStatus.Completed);
     }
 
