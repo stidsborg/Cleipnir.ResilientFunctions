@@ -113,18 +113,6 @@ public record StoredException(string ExceptionMessage, string? ExceptionStackTra
 
 public record StatusAndId(StoredId StoredId, Status Status, long Expiry);
 
-public record StoredEffectId(Guid Value)
-{
-    public static StoredEffectId Create(EffectId effectId)
-        => new(StoredIdFactory.FromIntArray(effectId.Serialize().Value));
-}
-
-public static class StoredEffectIdExtensions
-{
-    public static StoredEffectId ToStoredEffectId(this int effectId) => ToStoredEffectId(effectId.ToEffectId());
-    public static StoredEffectId ToStoredEffectId(this EffectId effectId) => StoredEffectId.Create(effectId);
-}
-
 public record StoredEffectChange(
     StoredId StoredId,
     EffectId EffectId,
@@ -150,8 +138,6 @@ public record StoredEffect(
     string? Alias
 )
 {
-    public StoredEffectId StoredEffectId => EffectId.ToStoredEffectId();
-
     public static StoredEffect CreateCompleted(EffectId effectId, byte[] result, string? alias)
         => new(effectId, WorkStatus.Completed, result, StoredException: null, alias);
     public static StoredEffect CreateCompleted(EffectId effectId, string? alias)

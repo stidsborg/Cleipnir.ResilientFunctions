@@ -72,16 +72,6 @@ public class EffectIdTests
     }
 
     [TestMethod]
-    public void StoredEffectIdIsBasedOnSerializedEffectIdValue()
-    {
-        var effectId = new EffectId(1, Context: [2, 3]);
-        var serializedEffectId = effectId.Serialize();
-
-        var storedEffectId = effectId.ToStoredEffectId();
-        storedEffectId.Value.ShouldBe(StoredIdFactory.FromIntArray(serializedEffectId.Value));
-    }
-
-    [TestMethod]
     public void EffectIdWithEmptyIdAndContextCanBeDeserialized()
     {
         var effectId = new EffectId(0, Context: Array.Empty<int>());
