@@ -156,9 +156,9 @@ public class EffectResults(
         var parent = effectContext.Parent;
         var effectId = parent == null
             ? id.ToEffectId()
-            : id.ToEffectId(CreateContextFromParent(parent));
+            : new EffectId([..parent.Value, id]);
         EffectContext.SetParent(effectId);
-        
+
         lock (_sync)
         {
             var success = _effectResults.TryGetValue(effectId, out var pendingChange);
@@ -232,9 +232,9 @@ public class EffectResults(
         var parent = effectContext.Parent;
         var effectId = parent == null
             ? id.ToEffectId()
-            : id.ToEffectId(CreateContextFromParent(parent));
+            : new EffectId([..parent.Value, id]);
         EffectContext.SetParent(effectId);
-        
+
         lock (_sync)
         {
             var success = _effectResults.TryGetValue(effectId, out var storedEffect);
@@ -410,12 +410,4 @@ public class EffectResults(
         }
     }
 
-    private static int[] CreateContextFromParent(EffectId parent)
-    {
-        var parentContext = parent.Context;
-        var newContext = new int[parentContext.Length + 1];
-        Array.Copy(parentContext, newContext, parentContext.Length);
-        newContext[^1] = parent.Id;
-        return newContext;
-    }
 }

@@ -157,11 +157,7 @@ public class Effect(EffectResults effectResults, UtcNow utcNow, FlowMinimumTimeo
         if (parent == null)
             return id.ToEffectId();
 
-        var parentContext = parent.Context;
-        var newContext = new int[parentContext.Length + 1];
-        System.Array.Copy(parentContext, newContext, parentContext.Length);
-        newContext[^1] = parent.Id;
-        return id.ToEffectId(newContext);
+        return new EffectId([..parent.Value, id]);
     }
 
     public Task Flush() => effectResults.Flush();

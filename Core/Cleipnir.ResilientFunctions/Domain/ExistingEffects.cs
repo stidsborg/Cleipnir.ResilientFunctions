@@ -68,7 +68,7 @@ public class ExistingEffects(StoredId storedId, FlowId flowId, IEffectsStore eff
         {
             var isFailedEffect = failedEffectIds.Contains(effectId.Serialize());
             var parentSerializedId = effectId.Context.Length > 0
-                ? new EffectId(effectId.Context[^1], effectId.Context[..^1]).Serialize()
+                ? new EffectId(effectId.Context).Serialize()
                 : null;
             var isChildOfFailedEffect = parentSerializedId != null && failedEffectIds.Contains(parentSerializedId);
 
