@@ -56,19 +56,19 @@ public class ExistingEffects(StoredId storedId, FlowId flowId, IEffectsStore eff
     public async Task RemoveFailed()
     {
         var allIds = (await AllIds).ToList();
-        var failedEffectIds = new HashSet<string>();
+        var failedEffectIds = new HashSet<SerializedEffectId>();
 
         // First pass: identify failed effects and their serialized IDs
         foreach (var effectId in allIds)
             if (await GetStatus(effectId) == WorkStatus.Failed)
-                failedEffectIds.Add(effectId.Serialize().Value);
+                failedEffectIds.Add(effectId.Serialize());
 
         // Second pass: remove failed effects and their children
         foreach (var effectId in allIds)
         {
-            var isFailedEffect = failedEffectIds.Contains(effectId.Serialize().Value);
+            var isFailedEffect = failedEffectIds.Contains(effectId.Serialize());
             var parentSerializedId = effectId.Context.Length > 0
-                ? new EffectId(effectId.Context[^1], effectId.Context[..^1]).Serialize().Value
+                ? new EffectId(effectId.Context[^1], effectId.Context[..^1]).Serialize()
                 : null;
             var isChildOfFailedEffect = parentSerializedId != null && failedEffectIds.Contains(parentSerializedId);
 

@@ -24,21 +24,20 @@ public record EffectId(int Id, int[] Context)
     public SerializedEffectId Serialize()
     {
         if (Context.Length == 0)
-            return new SerializedEffectId(Id.ToString());
+            return new SerializedEffectId([Id]);
 
-        return new SerializedEffectId(string.Join(".", Context.Select(c => c.ToString())) + "." + Id);
+        return new SerializedEffectId([..Context, Id]);
     }
 
     public static EffectId Deserialize(SerializedEffectId serialized) => Deserialize(serialized.Value);
-    public static EffectId Deserialize(string serialized)
+    public static EffectId Deserialize(int[] serialized)
     {
-        var parts = serialized.Split('.');
-        if (parts.Length == 0)
+        if (serialized.Length == 0)
             throw new ArgumentException("Serialized EffectId cannot be empty", nameof(serialized));
 
-        var id = int.Parse(parts[^1]);
-        var context = parts.Length > 1
-            ? parts[..^1].Select(int.Parse).ToArray()
+        var id = serialized[^1];
+        var context = serialized.Length > 1
+            ? serialized[..^1]
             : Array.Empty<int>();
 
         return new EffectId(id, context);
@@ -61,10 +60,28 @@ public record EffectId(int Id, int[] Context)
     }
 }
 
-public record SerializedEffectId(string Value);
+public record SerializedEffectId(int[] Value)
+{
+    public virtual bool Equals(SerializedEffectId? other)
+    {
+        if (other is null) return false;
+        if (ReferenceEquals(this, other)) return true;
+        return Value.SequenceEqual(other.Value);
+    }
+
+    public override int GetHashCode()
+    {
+        var hash = new HashCode();
+        foreach (var v in Value)
+            hash.Add(v);
+        return hash.ToHashCode();
+    }
+
+    public string ToStringValue() => string.Join(".", Value);
+}
 
 public static class EffectIdExtensions
 {
     public static EffectId ToEffectId(this int value, int[]? context = null) => new(value, context ?? Array.Empty<int>());
-    public static SerializedEffectId ToSerializedEffectId(this string value) => new(value);
+    public static SerializedEffectId ToSerializedEffectId(this int[] value) => new(value);
 }

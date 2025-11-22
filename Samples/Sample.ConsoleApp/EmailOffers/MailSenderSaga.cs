@@ -11,7 +11,7 @@ public static class EmailSenderSaga
 {
     public static async Task Start(MailAndRecipients mailAndRecipients, Workflow workflow)
     {
-        var atRecipient = await workflow.Effect.CreateOrGet("0", value: 0);
+        var atRecipient = await workflow.Effect.CreateOrGet(0, value: 0);
         var (recipients, subject, content) = mailAndRecipients;
 
         using var client = new SmtpClient();
@@ -28,7 +28,7 @@ public static class EmailSenderSaga
             message.Body = new TextPart(TextFormat.Html) { Text = content };
             await client.SendAsync(message);
 
-            await workflow.Effect.Upsert("0", atRecipient);
+            await workflow.Effect.Upsert(0, atRecipient);
         }
     }
 }

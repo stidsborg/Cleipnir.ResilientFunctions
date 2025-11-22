@@ -46,7 +46,7 @@ public class EffectIdTests
     {
         var effectId = new EffectId(1, Context: Array.Empty<int>());
         var serializedId = effectId.Serialize();
-        serializedId.Value.ShouldBe("1");
+        serializedId.Value.ShouldBe([1]);
         var deserializedId = EffectId.Deserialize(serializedId);
         deserializedId.ShouldBe(effectId);
     }
@@ -56,7 +56,7 @@ public class EffectIdTests
     {
         var effectId = new EffectId(2, Context: Array.Empty<int>());
         var serializedId = effectId.Serialize();
-        serializedId.Value.ShouldBe("2");
+        serializedId.Value.ShouldBe([2]);
         var deserializedId = EffectId.Deserialize(serializedId);
         deserializedId.ShouldBe(effectId);
     }
@@ -78,7 +78,7 @@ public class EffectIdTests
         var serializedEffectId = effectId.Serialize();
 
         var storedEffectId = effectId.ToStoredEffectId();
-        storedEffectId.Value.ShouldBe(StoredIdFactory.FromString(serializedEffectId.Value));
+        storedEffectId.Value.ShouldBe(StoredIdFactory.FromIntArray(serializedEffectId.Value));
     }
 
     [TestMethod]

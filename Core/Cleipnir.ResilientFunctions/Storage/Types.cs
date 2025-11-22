@@ -115,8 +115,8 @@ public record StatusAndId(StoredId StoredId, Status Status, long Expiry);
 
 public record StoredEffectId(Guid Value)
 {
-    public static StoredEffectId Create(EffectId effectId) 
-        => new(StoredIdFactory.FromString(effectId.Serialize().Value));
+    public static StoredEffectId Create(EffectId effectId)
+        => new(StoredIdFactory.FromIntArray(effectId.Serialize().Value));
 }
 
 public static class StoredEffectIdExtensions
@@ -163,7 +163,9 @@ public record StoredEffect(
 
     public byte[] Serialize()
     {
-        var effect = EffectId.Serialize().Value.ToUtf8Bytes();
+        var serializedValue = EffectId.Serialize().Value;
+        var effect = new byte[serializedValue.Length * sizeof(int)];
+        Buffer.BlockCopy(serializedValue, 0, effect, 0, effect.Length);
         var status = (byte)WorkStatus;
         var result = Result;
         var exception = StoredException?.Serialize();
@@ -175,7 +177,10 @@ public record StoredEffect(
     public static StoredEffect Deserialize(byte[] bytes)
     {
         var parts = BinaryPacker.Split(bytes);
-        var effect = EffectId.Deserialize(parts[0]!.ToStringFromUtf8Bytes());
+        var effectBytes = parts[0]!;
+        var effectInts = new int[effectBytes.Length / sizeof(int)];
+        Buffer.BlockCopy(effectBytes, 0, effectInts, 0, effectBytes.Length);
+        var effect = EffectId.Deserialize(effectInts);
         var status = (WorkStatus)parts[1]![0];
         var result = parts[2];
         var exception = parts.Count > 3

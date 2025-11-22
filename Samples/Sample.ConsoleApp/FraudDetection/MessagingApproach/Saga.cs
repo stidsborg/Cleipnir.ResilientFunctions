@@ -14,7 +14,7 @@ public static class Saga
         await MessageBroker.Send(new ApproveTransaction(transaction));
         
         var results = await messages
-            .TakeUntilTimeout("Timeout", TimeSpan.FromSeconds(2))
+            .TakeUntilTimeout(0, TimeSpan.FromSeconds(2))
             .OfType<FraudDetectorResult>()
             .Take(3)
             .Completion();
