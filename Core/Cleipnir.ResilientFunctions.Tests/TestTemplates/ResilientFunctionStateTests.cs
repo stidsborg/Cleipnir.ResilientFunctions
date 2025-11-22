@@ -18,7 +18,7 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates
             async Task<string> ToUpper(string s, Workflow workflow)
             {
                 var toReturn = s.ToUpper();
-                await workflow.Effect.CreateOrGet("Scrap", toReturn);
+                await workflow.Effect.CreateOrGet(0, toReturn);
                 return s.ToUpper();
             }
 
@@ -47,7 +47,7 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates
             storedResult.ShouldBe("HELLO");
             var effects = await store.EffectsStore.GetEffectResults(registration.MapToStoredId(functionId.Instance));
             effects
-                .Single(e => e.EffectId == "Scrap".ToEffectId())
+                .Single(e => e.EffectId == 0.ToEffectId())
                 .Result!
                 .ToStringFromUtf8Bytes()
                 .DeserializeFromJsonTo<string>()

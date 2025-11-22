@@ -30,9 +30,9 @@ public enum TimeoutStatus
 public class FlowRegisteredTimeouts(Effect effect, UtcNow utcNow, FlowMinimumTimeout flowMinimumTimeout, PublishTimeoutEvent publishTimeoutEvent, UnhandledExceptionHandler unhandledExceptionHandler, FlowId flowId) : IRegisteredTimeouts
 {
     private volatile bool _disposed;
-    public string GetNextImplicitId() => EffectContext.CurrentContext.NextImplicitId().ToString();
-    
-    
+    public int GetNextImplicitId() => EffectContext.CurrentContext.NextImplicitId();
+
+
     public async Task<Tuple<TimeoutStatus, DateTime>> RegisterTimeout(EffectId timeoutId, DateTime expiresAt, bool publishMessage)
     {
         expiresAt = expiresAt.ToUniversalTime();
@@ -66,10 +66,10 @@ public class FlowRegisteredTimeouts(Effect effect, UtcNow utcNow, FlowMinimumTim
         }
     }
     
-    public Task<Tuple<TimeoutStatus, DateTime>> RegisterTimeout(string timeoutId, TimeSpan expiresIn, bool publishMessage)
-        => RegisterTimeout(EffectId.CreateWithCurrentContext(timeoutId, EffectType.Timeout), expiresAt: utcNow().Add(expiresIn), publishMessage);
-    public Task<Tuple<TimeoutStatus, DateTime>> RegisterTimeout(string timeoutId, DateTime expiresAt, bool publishMessage)
-        => RegisterTimeout(EffectId.CreateWithCurrentContext(timeoutId, EffectType.Timeout), expiresAt, publishMessage);
+    public Task<Tuple<TimeoutStatus, DateTime>> RegisterTimeout(int timeoutId, TimeSpan expiresIn, bool publishMessage)
+        => RegisterTimeout(EffectId.CreateWithCurrentContext(timeoutId), expiresAt: utcNow().Add(expiresIn), publishMessage);
+    public Task<Tuple<TimeoutStatus, DateTime>> RegisterTimeout(int timeoutId, DateTime expiresAt, bool publishMessage)
+        => RegisterTimeout(EffectId.CreateWithCurrentContext(timeoutId), expiresAt, publishMessage);
     public Task<Tuple<TimeoutStatus, DateTime>> RegisterTimeout(EffectId timeoutId, TimeSpan expiresIn, bool publishMessage)
         => RegisterTimeout(timeoutId, expiresAt: utcNow().Add(expiresIn), publishMessage);
     
@@ -111,18 +111,26 @@ public class FlowRegisteredTimeouts(Effect effect, UtcNow utcNow, FlowMinimumTim
 
     public static async Task<IReadOnlyList<RegisteredTimeout>> PendingTimeouts(Effect effect)
     {
-        var timeoutIds = effect.EffectIds.Where(id => id.Type == EffectType.Timeout);
+        var effectIds = effect.EffectIds;
         var timeouts = new List<RegisteredTimeout>();
-        foreach (var timeoutId in timeoutIds)
+        foreach (var effectId in effectIds)
         {
-            var value = await effect.Get<string>(timeoutId);
-            var values = value.Split("_");
-            var status = values[0].ToInt().ToEnum<TimeoutStatus>();
-            if (status is TimeoutStatus.Cancelled or TimeoutStatus.Completed)
-                continue;
-            
-            var expiresAt = values[1].ToLong().ToUtc();
-            timeouts.Add(new RegisteredTimeout(timeoutId, expiresAt, TimeoutStatus.Registered)); 
+            try
+            {
+                var value = await effect.Get<string>(effectId);
+                var values = value.Split("_");
+                if (values.Length != 2) continue;
+                var status = values[0].ToInt().ToEnum<TimeoutStatus>();
+                if (status is TimeoutStatus.Cancelled or TimeoutStatus.Completed)
+                    continue;
+
+                var expiresAt = values[1].ToLong().ToUtc();
+                timeouts.Add(new RegisteredTimeout(effectId, expiresAt, TimeoutStatus.Registered));
+            }
+            catch
+            {
+                // Skip non-timeout effects
+            }
         }
 
         return timeouts;

@@ -71,9 +71,9 @@ public class Invoker<TParam, TReturn>
 
         if (parent != null)
         {
-            var marked = await parent.Effect.Mark($"{flowId}_Scheduled");
+            var marked = await parent.Effect.Mark($"{flowId}_Scheduled".GetHashCode());
             if (!marked)
-                return _invocationHelper.CreateInnerScheduled([flowId], parent, detach);    
+                return _invocationHelper.CreateInnerScheduled([flowId], parent, detach);
         }
         
         var (created, workflow, disposables, storageSession) = await PrepareForInvocation(flowId, storedId, param, parent?.StoredId, initialState);
@@ -109,7 +109,7 @@ public class Invoker<TParam, TReturn>
         var id = new FlowId(_flowType, instanceId);
         if (parent != null)
         {
-            var marked = await parent.Effect.Mark($"{id}_Scheduled");
+            var marked = await parent.Effect.Mark($"{id}_Scheduled".GetHashCode());
             if (!marked)
                 return _invocationHelper.CreateInnerScheduled([id], parent, detach);
         }

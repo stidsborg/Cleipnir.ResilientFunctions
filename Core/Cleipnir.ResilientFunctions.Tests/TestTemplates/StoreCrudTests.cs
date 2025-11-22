@@ -181,13 +181,13 @@ public abstract class StoreCrudTests
 
         await store.EffectsStore.SetEffectResult(
             storedId,
-            StoredEffect.CreateCompleted("SomeStateId".ToEffectId(EffectType.State), "SomeStateJson".ToUtf8Bytes(), alias: null).ToStoredChange(storedId, Insert),
+            StoredEffect.CreateCompleted(1.ToEffectId(), "SomeStateJson".ToUtf8Bytes(), alias: null).ToStoredChange(storedId, Insert),
             session: null
         );
         await store.CorrelationStore.SetCorrelation(storedId, "SomeCorrelationId");
         await store.EffectsStore.SetEffectResult(
             storedId,
-            new StoredEffect("SomeEffectId".ToEffectId(), WorkStatus.Completed, Result: null, StoredException: null, Alias: null).ToStoredChange(storedId, Insert),
+            new StoredEffect(2.ToEffectId(), WorkStatus.Completed, Result: null, StoredException: null, Alias: null).ToStoredChange(storedId, Insert),
             session: null
         );
         await store.MessageStore.AppendMessage(storedId, new StoredMessage("SomeJson".ToUtf8Bytes(), "SomeType".ToUtf8Bytes(), Position: 0));
@@ -497,14 +497,14 @@ public abstract class StoreCrudTests
 
         // Create effects
         var effect1 = new StoredEffect(
-            EffectId: "effect1".ToEffectId(),
+            EffectId: "effect1".GetHashCode().ToEffectId(),
             WorkStatus: WorkStatus.Completed,
             Result: "result1".ToUtf8Bytes(),
             StoredException: null,
             Alias: null
         );
         var effect2 = new StoredEffect(
-            EffectId: "effect2".ToEffectId(),
+            EffectId: "effect2".GetHashCode().ToEffectId(),
             WorkStatus: WorkStatus.Completed,
             Result: "result2".ToUtf8Bytes(),
             StoredException: null,
@@ -563,7 +563,7 @@ public abstract class StoreCrudTests
         // Verify flow 1 has correct effects and messages
         var flow1 = result[storedId1];
         flow1.Effects.Count.ShouldBe(1);
-        flow1.Effects[0].EffectId.ShouldBe("effect1".ToEffectId());
+        flow1.Effects[0].EffectId.ShouldBe("effect1".GetHashCode().ToEffectId());
         flow1.Effects[0].Result.ShouldBe("result1".ToUtf8Bytes());
         flow1.Messages.Count.ShouldBe(1);
         flow1.Messages[0].MessageContent.ShouldBe("message1".ToUtf8Bytes());
@@ -572,7 +572,7 @@ public abstract class StoreCrudTests
         // Verify flow 2 has correct effects and messages
         var flow2 = result[storedId2];
         flow2.Effects.Count.ShouldBe(1);
-        flow2.Effects[0].EffectId.ShouldBe("effect2".ToEffectId());
+        flow2.Effects[0].EffectId.ShouldBe("effect2".GetHashCode().ToEffectId());
         flow2.Effects[0].Result.ShouldBe("result2".ToUtf8Bytes());
         flow2.Messages.Count.ShouldBe(1);
         flow2.Messages[0].MessageContent.ShouldBe("message2".ToUtf8Bytes());

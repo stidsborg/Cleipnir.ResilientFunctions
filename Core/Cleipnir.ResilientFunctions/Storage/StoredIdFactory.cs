@@ -31,4 +31,18 @@ public static class StoredIdFactory
         longBytes.CopyTo(bytes, 0);
         return new Guid(bytes);
     }
+
+    public static Guid FromIntArray(int[] values)
+    {
+        var bytes = new byte[values.Length * sizeof(int)];
+        for (var i = 0; i < values.Length; i++)
+        {
+            var intBytes = BitConverter.GetBytes(IPAddress.HostToNetworkOrder(values[i]));
+            intBytes.CopyTo(bytes, i * sizeof(int));
+        }
+        using SHA256 sha256 = SHA256.Create();
+        var hashedBytes = sha256.ComputeHash(bytes);
+        var guid = new Guid(hashedBytes[..16]);
+        return guid;
+    }
 }

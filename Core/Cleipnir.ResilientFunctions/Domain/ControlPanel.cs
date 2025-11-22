@@ -306,6 +306,7 @@ public abstract class BaseControlPanel<TParam, TReturn>
     {
         await Effects.RemoveFailed();
         await Messages.RemoveTimeouts();
+        await RegisteredTimeouts.RemoveAll();
 
         await Refresh();
     }

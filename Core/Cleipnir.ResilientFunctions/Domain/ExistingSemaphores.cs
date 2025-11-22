@@ -19,26 +19,36 @@ public class ExistingSemaphores(StoredId storedId, IFunctionStore store, Existin
             ?.EffectId;
 
         if (effectId != null)
-            await effect.Remove(effectId);
+            await effect.Remove(effectId.Value);
 
         var enqueued = await store.SemaphoreStore.Release(existingSemaphore.Group, existingSemaphore.Instance, storedId, maximumCount);
         if (enqueued.Any())
             await store.Interrupt(enqueued);
     }
 
-    private record ExistingSemaphoreAndEffectId(ExistingSemaphore ExistingSemaphore, string EffectId);
+    private record ExistingSemaphoreAndEffectId(ExistingSemaphore ExistingSemaphore, int EffectId);
     private async Task<IReadOnlyList<ExistingSemaphoreAndEffectId>> GetExistingSemaphoreAndEffectIds()
     {
         var effectIds = await effect.AllIds;
-        var semaphoreEffectIds = effectIds.Select(id => id.Id).Where(id => id.StartsWith("Semaphore#"));
-        
-        var existingSemaphoreAndEffectIds = new List<ExistingSemaphoreAndEffectId>(); 
-        foreach (var semaphoreEffectId in semaphoreEffectIds)
+
+        var existingSemaphoreAndEffectIds = new List<ExistingSemaphoreAndEffectId>();
+        foreach (var effectId in effectIds)
         {
-            var (group, instance, _) = (await effect.GetValue<SemaphoreIdAndStatus>(semaphoreEffectId))!;
-            var existingSemaphore = new ExistingSemaphore(group, instance);
-            var existingSemaphoreAndEffectId = new ExistingSemaphoreAndEffectId(existingSemaphore, semaphoreEffectId);
-            existingSemaphoreAndEffectIds.Add(existingSemaphoreAndEffectId);
+            try
+            {
+                var semaphoreData = await effect.GetValue<SemaphoreIdAndStatus>(effectId);
+                if (semaphoreData != null)
+                {
+                    var (group, instance, _) = semaphoreData;
+                    var existingSemaphore = new ExistingSemaphore(group, instance);
+                    var existingSemaphoreAndEffectId = new ExistingSemaphoreAndEffectId(existingSemaphore, effectId.Id);
+                    existingSemaphoreAndEffectIds.Add(existingSemaphoreAndEffectId);
+                }
+            }
+            catch
+            {
+                // Effect is not a semaphore, skip it
+            }
         }
 
         return existingSemaphoreAndEffectIds;
