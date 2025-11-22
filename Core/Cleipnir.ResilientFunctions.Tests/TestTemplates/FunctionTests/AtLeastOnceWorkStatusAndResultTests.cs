@@ -41,7 +41,7 @@ public abstract class AtLeastOnceWorkStatusAndResultTests
         controlPanel.ShouldNotBeNull();
         await controlPanel.WaitForCompletion(allowPostponeAndSuspended: true);
         
-        await controlPanel.Effects.GetValue<int>("0").ShouldBeAsync(1);
+        await controlPanel.Effects.GetValue<int>(0).ShouldBeAsync(1);
         counter.Current.ShouldBe(2);
     }
 
@@ -180,7 +180,7 @@ public abstract class AtLeastOnceWorkStatusAndResultTests
         await controlPanel.Restart();
         await controlPanel.Refresh();
 
-        var value = controlPanel.Effects.GetValue<string>("0");
+        var value = controlPanel.Effects.GetValue<string>(0);
         await value.ShouldBeAsync("hello world");
         counter.Current.ShouldBe(1);
     }

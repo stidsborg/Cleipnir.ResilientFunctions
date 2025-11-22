@@ -149,11 +149,14 @@ public class EffectResults(
         return Option<T>.NoValue;
     }
     
-    public async Task InnerCapture(string id, string? alias, Func<Task> work, ResiliencyLevel resiliency, EffectContext effectContext)
+    public async Task InnerCapture(int id, string? alias, Func<Task> work, ResiliencyLevel resiliency, EffectContext effectContext)
     {
         await InitializeIfRequired();
 
-        var effectId = id.ToEffectId(context: effectContext.Parent?.Serialize().Value);
+        var parent = effectContext.Parent;
+        var effectId = parent == null
+            ? id.ToEffectId()
+            : id.ToEffectId(CreateContextFromParent(parent));
         EffectContext.SetParent(effectId);
         
         lock (_sync)
@@ -222,11 +225,14 @@ public class EffectResults(
         }
     }
     
-    public async Task<T> InnerCapture<T>(string id, string? alias, Func<Task<T>> work, ResiliencyLevel resiliency, EffectContext effectContext)
+    public async Task<T> InnerCapture<T>(int id, string? alias, Func<Task<T>> work, ResiliencyLevel resiliency, EffectContext effectContext)
     {
         await InitializeIfRequired();
 
-        var effectId = id.ToEffectId(context: effectContext.Parent?.Serialize().Value);
+        var parent = effectContext.Parent;
+        var effectId = parent == null
+            ? id.ToEffectId()
+            : id.ToEffectId(CreateContextFromParent(parent));
         EffectContext.SetParent(effectId);
         
         lock (_sync)
@@ -402,5 +408,14 @@ public class EffectResults(
         {
             _flushSync.Release();
         }
+    }
+
+    private static int[] CreateContextFromParent(EffectId parent)
+    {
+        var parentContext = parent.Context;
+        var newContext = new int[parentContext.Length + 1];
+        Array.Copy(parentContext, newContext, parentContext.Length);
+        newContext[^1] = parent.Id;
+        return newContext;
     }
 }

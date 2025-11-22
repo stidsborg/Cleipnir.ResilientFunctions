@@ -30,9 +30,9 @@ public enum TimeoutStatus
 public class FlowRegisteredTimeouts(Effect effect, UtcNow utcNow, FlowMinimumTimeout flowMinimumTimeout, PublishTimeoutEvent publishTimeoutEvent, UnhandledExceptionHandler unhandledExceptionHandler, FlowId flowId) : IRegisteredTimeouts
 {
     private volatile bool _disposed;
-    public string GetNextImplicitId() => EffectContext.CurrentContext.NextImplicitId().ToString();
-    
-    
+    public int GetNextImplicitId() => EffectContext.CurrentContext.NextImplicitId();
+
+
     public async Task<Tuple<TimeoutStatus, DateTime>> RegisterTimeout(EffectId timeoutId, DateTime expiresAt, bool publishMessage)
     {
         expiresAt = expiresAt.ToUniversalTime();
@@ -66,9 +66,9 @@ public class FlowRegisteredTimeouts(Effect effect, UtcNow utcNow, FlowMinimumTim
         }
     }
     
-    public Task<Tuple<TimeoutStatus, DateTime>> RegisterTimeout(string timeoutId, TimeSpan expiresIn, bool publishMessage)
+    public Task<Tuple<TimeoutStatus, DateTime>> RegisterTimeout(int timeoutId, TimeSpan expiresIn, bool publishMessage)
         => RegisterTimeout(EffectId.CreateWithCurrentContext(timeoutId), expiresAt: utcNow().Add(expiresIn), publishMessage);
-    public Task<Tuple<TimeoutStatus, DateTime>> RegisterTimeout(string timeoutId, DateTime expiresAt, bool publishMessage)
+    public Task<Tuple<TimeoutStatus, DateTime>> RegisterTimeout(int timeoutId, DateTime expiresAt, bool publishMessage)
         => RegisterTimeout(EffectId.CreateWithCurrentContext(timeoutId), expiresAt, publishMessage);
     public Task<Tuple<TimeoutStatus, DateTime>> RegisterTimeout(EffectId timeoutId, TimeSpan expiresIn, bool publishMessage)
         => RegisterTimeout(timeoutId, expiresAt: utcNow().Add(expiresIn), publishMessage);

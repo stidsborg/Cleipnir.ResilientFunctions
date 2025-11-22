@@ -32,9 +32,9 @@ public abstract class ControlPanelTests
             async (string _, Workflow workflow) =>
             {
                 var (effect, messages) = workflow;
-                await effect.CreateOrGet("0", 123);
+                await effect.CreateOrGet(0, 123);
                 await messages.AppendMessage("Message");
-                await workflow.Messages.FlowRegisteredTimeouts.RegisterTimeout("Timeout", TimeSpan.FromDays(1), publishMessage: true);
+                await workflow.Messages.FlowRegisteredTimeouts.RegisterTimeout(1, expiresAt: DateTime.UtcNow.AddDays(1), publishMessage: true);
             }
         );
         
@@ -84,9 +84,9 @@ public abstract class ControlPanelTests
             async Task<string>(string _, Workflow workflow) =>
             {
                 var (effect, messages) = workflow;
-                await effect.CreateOrGet("0", 123);
+                await effect.CreateOrGet(0, 123);
                 await messages.AppendMessage("Message");
-                await workflow.Messages.FlowRegisteredTimeouts.RegisterTimeout("Timeout", TimeSpan.FromDays(1), publishMessage: true);
+                await workflow.Messages.FlowRegisteredTimeouts.RegisterTimeout(1, expiresAt: DateTime.UtcNow.AddDays(1), publishMessage: true);
                 return "hello";
             });
         
@@ -916,7 +916,7 @@ public abstract class ControlPanelTests
         
         var controlPanel = await rFunc.ControlPanel(flowInstance).ShouldNotBeNullAsync();
         var effects = controlPanel.Effects;
-        await effects.SetSucceeded(effectId: "0", result: "ReplacedResult");
+        await effects.SetSucceeded(effectId: 0, result: "ReplacedResult");
 
         result = await controlPanel.Restart();
         result.ShouldBe("ReplacedResult");
@@ -947,7 +947,7 @@ public abstract class ControlPanelTests
         
         var controlPanel = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
         var effects = controlPanel.Effects;
-        await effects.SetStarted(effectId: "0");
+        await effects.SetStarted(effectId: 0);
         
         runEffect = true;
         await Should.ThrowAsync<Exception>(controlPanel.Restart());
@@ -974,7 +974,7 @@ public abstract class ControlPanelTests
         
         var controlPanel = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
         var effects = controlPanel.Effects;
-        var bytes = await effects.GetResultBytes("0");
+        var bytes = await effects.GetResultBytes(0);
         bytes.ShouldNotBeNull();
         var result = bytes.ToStringFromUtf8Bytes();
         result.ShouldBe("123");
@@ -1002,7 +1002,7 @@ public abstract class ControlPanelTests
         
         var controlPanel = await rFunc.ControlPanel(flowInstance).ShouldNotBeNullAsync();
         var activities = controlPanel.Effects;
-        await activities.SetSucceeded(effectId: "0");
+        await activities.SetSucceeded(effectId: 0);
         
         await controlPanel.Restart();
         
@@ -1042,7 +1042,7 @@ public abstract class ControlPanelTests
         
         await controlPanel.Refresh();
         var activities = controlPanel.Effects;
-        await activities.Remove("0");
+        await activities.Remove(0);
 
         await controlPanel.Restart();
 
@@ -1077,7 +1077,7 @@ public abstract class ControlPanelTests
         await store.EffectsStore.SetEffectResult(
             rAction.MapToStoredId(functionId.Instance),
             new StoredEffect(
-                "SomeId".ToEffectId(),
+                "SomeId".GetHashCode().ToEffectId(),
                 WorkStatus.Completed,
                 Result: "SomeResult".ToJson().ToUtf8Bytes(),
                 StoredException: null,
@@ -1086,7 +1086,7 @@ public abstract class ControlPanelTests
             session: null
         );
 
-        await controlPanel.Effects.HasValue("SomeId").ShouldBeFalseAsync();
+        await controlPanel.Effects.HasValue("SomeId".GetHashCode()).ShouldBeFalseAsync();
 
         unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
@@ -1115,7 +1115,7 @@ public abstract class ControlPanelTests
         await store.EffectsStore.SetEffectResult(
             rAction.MapToStoredId(functionId.Instance),
             new StoredEffect(
-                "SomeId".ToEffectId(),
+                "SomeId".GetHashCode().ToEffectId(),
                 WorkStatus.Completed,
                 Result: "SomeResult".ToJson().ToUtf8Bytes(),
                 StoredException: null,
@@ -1124,7 +1124,7 @@ public abstract class ControlPanelTests
             session: null
         );
 
-        await controlPanel.Effects.HasValue("SomeId").ShouldBeFalseAsync();
+        await controlPanel.Effects.HasValue("SomeId".GetHashCode()).ShouldBeFalseAsync();
 
         unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
@@ -1150,13 +1150,13 @@ public abstract class ControlPanelTests
         
         var secondControlPanel = await rAction.ControlPanel(flowInstance.Value);
         secondControlPanel.ShouldNotBeNull();
-        await secondControlPanel.Effects.HasValue("Id").ShouldBeAsync(false);
-        
-        await firstControlPanel.Effects.SetSucceeded("Id", "SomeResult");
-        
+        await secondControlPanel.Effects.HasValue("Id".GetHashCode()).ShouldBeAsync(false);
+
+        await firstControlPanel.Effects.SetSucceeded("Id".GetHashCode(), "SomeResult");
+
         await secondControlPanel.Refresh();
-        await secondControlPanel.Effects.GetValue<string>("Id").ShouldBeAsync("SomeResult");
-        await secondControlPanel.Effects.GetStatus("Id".ToEffectId()).ShouldBeAsync(WorkStatus.Completed);
+        await secondControlPanel.Effects.GetValue<string>("Id".GetHashCode()).ShouldBeAsync("SomeResult");
+        await secondControlPanel.Effects.GetStatus("Id".GetHashCode().ToEffectId()).ShouldBeAsync(WorkStatus.Completed);
         
         unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
@@ -1189,7 +1189,7 @@ public abstract class ControlPanelTests
         var controlPanel = await rFunc.ControlPanel(flowInstance.Value);
         controlPanel.ShouldNotBeNull();
         var effects = controlPanel.Effects;
-        await effects.SetFailed(effectId: "0", new InvalidOperationException("oh no"));
+        await effects.SetFailed(effectId: 0, new InvalidOperationException("oh no"));
 
         await Should.ThrowAsync<FatalWorkflowException>(() => 
             controlPanel.Restart()
@@ -1243,7 +1243,7 @@ public abstract class ControlPanelTests
             flowType,
             Task (string param, Workflow workflow) =>
                 workflow.Messages.FlowRegisteredTimeouts.RegisterTimeout(
-                    "someTimeoutId", 
+                    "someTimeoutId".GetHashCode(),
                     expiresAt: new DateTime(2100, 1,1, 1,1,1, DateTimeKind.Utc),
                     publishMessage: true
                 )
@@ -1255,17 +1255,17 @@ public abstract class ControlPanelTests
         controlPanel.ShouldNotBeNull();
         var timeouts = controlPanel.RegisteredTimeouts;
         (await timeouts.All).Count.ShouldBe(1);
-        await timeouts["someTimeoutId"].ShouldBeAsync(new DateTime(2100, 1,1, 1,1,1, DateTimeKind.Utc));
+        await timeouts["someTimeoutId".GetHashCode()].ShouldBeAsync(new DateTime(2100, 1,1, 1,1,1, DateTimeKind.Utc));
 
-        await timeouts.Upsert("someOtherTimeoutId", new DateTime(2101, 1, 1, 1, 1, 1, DateTimeKind.Utc));
+        await timeouts.Upsert("someOtherTimeoutId".GetHashCode(), new DateTime(2101, 1, 1, 1, 1, 1, DateTimeKind.Utc));
         (await timeouts.All).Count.ShouldBe(2);
-        await timeouts["someOtherTimeoutId"].ShouldBeAsync(new DateTime(2101, 1,1, 1,1,1, DateTimeKind.Utc));
+        await timeouts["someOtherTimeoutId".GetHashCode()].ShouldBeAsync(new DateTime(2101, 1,1, 1,1,1, DateTimeKind.Utc));
 
         await controlPanel.Refresh();
 
         (await timeouts.All).Count.ShouldBe(2);
-        await timeouts["someTimeoutId"].ShouldBeAsync(new DateTime(2100, 1,1, 1,1,1, DateTimeKind.Utc));
-        await timeouts["someOtherTimeoutId"].ShouldBeAsync(new DateTime(2101, 1,1, 1,1,1, DateTimeKind.Utc));
+        await timeouts["someTimeoutId".GetHashCode()].ShouldBeAsync(new DateTime(2100, 1,1, 1,1,1, DateTimeKind.Utc));
+        await timeouts["someOtherTimeoutId".GetHashCode()].ShouldBeAsync(new DateTime(2101, 1,1, 1,1,1, DateTimeKind.Utc));
 
         unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
@@ -1285,8 +1285,8 @@ public abstract class ControlPanelTests
             async Task<string> (string param, Workflow workflow) =>
             {
                 await workflow.Messages.FlowRegisteredTimeouts.RegisterTimeout(
-                    "someTimeoutId", 
-                    expiresAt: new DateTime(2100, 1, 1, 1, 1, 1, DateTimeKind.Utc), 
+                    "someTimeoutId".GetHashCode(),
+                    expiresAt: new DateTime(2100, 1, 1, 1, 1, 1, DateTimeKind.Utc),
                     publishMessage: true
                 );
 
@@ -1300,17 +1300,17 @@ public abstract class ControlPanelTests
         controlPanel.ShouldNotBeNull();
         var timeouts = controlPanel.RegisteredTimeouts;
         (await timeouts.All).Count.ShouldBe(1);
-        await timeouts["someTimeoutId"].ShouldBeAsync(new DateTime(2100, 1,1, 1,1,1, DateTimeKind.Utc));
+        await timeouts["someTimeoutId".GetHashCode()].ShouldBeAsync(new DateTime(2100, 1,1, 1,1,1, DateTimeKind.Utc));
 
-        await timeouts.Upsert("someOtherTimeoutId", new DateTime(2101, 1, 1, 1, 1, 1, DateTimeKind.Utc));
+        await timeouts.Upsert("someOtherTimeoutId".GetHashCode(), new DateTime(2101, 1, 1, 1, 1, 1, DateTimeKind.Utc));
         (await timeouts.All).Count.ShouldBe(2);
-        await timeouts["someOtherTimeoutId"].ShouldBeAsync(new DateTime(2101, 1,1, 1,1,1, DateTimeKind.Utc));
+        await timeouts["someOtherTimeoutId".GetHashCode()].ShouldBeAsync(new DateTime(2101, 1,1, 1,1,1, DateTimeKind.Utc));
 
         await controlPanel.Refresh();
 
         (await timeouts.All).Count.ShouldBe(2);
-        await timeouts["someTimeoutId"].ShouldBeAsync(new DateTime(2100, 1,1, 1,1,1, DateTimeKind.Utc));
-        await timeouts["someOtherTimeoutId"].ShouldBeAsync(new DateTime(2101, 1,1, 1,1,1, DateTimeKind.Utc));
+        await timeouts["someTimeoutId".GetHashCode()].ShouldBeAsync(new DateTime(2100, 1,1, 1,1,1, DateTimeKind.Utc));
+        await timeouts["someOtherTimeoutId".GetHashCode()].ShouldBeAsync(new DateTime(2101, 1,1, 1,1,1, DateTimeKind.Utc));
 
         unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
@@ -1372,9 +1372,9 @@ public abstract class ControlPanelTests
         controlPanel.ShouldNotBeNull();
 
         await controlPanel.Correlations.Register("SomeCorrelation");
-        await controlPanel.Effects.SetSucceeded("SomeEffect");
+        await controlPanel.Effects.SetSucceeded("SomeEffect".GetHashCode());
         await controlPanel.Messages.Append("Some Message");
-        await controlPanel.RegisteredTimeouts.Upsert("SomeTimeout", expiresAt: DateTime.UtcNow.Add(TimeSpan.FromDays(1)));
+        await controlPanel.RegisteredTimeouts.Upsert("SomeTimeout".GetHashCode(), expiresAt: DateTime.UtcNow.Add(TimeSpan.FromDays(1)));
         
         await controlPanel.Delete();
 
@@ -1427,7 +1427,7 @@ public abstract class ControlPanelTests
 
         try
         {
-            var timeoutEvent = new TimeoutEvent(EffectId.CreateWithRootContext("SomeTimeout"), DateTime.UtcNow)
+            var timeoutEvent = new TimeoutEvent(EffectId.CreateWithRootContext("SomeTimeout".GetHashCode()), DateTime.UtcNow)
                 .ToMessageAndIdempotencyKey();
 
             await registration.Invoke(

@@ -23,9 +23,9 @@ public class ExistingEffects(StoredId storedId, FlowId flowId, IEffectsStore eff
     public Task<IEnumerable<EffectId>> AllIds 
         => GetStoredEffects().ContinueWith(t => (IEnumerable<EffectId>) t.Result.Keys);
 
-    public async Task<bool> HasValue(string effectId) => (await GetStoredEffects()).ContainsKey(effectId.ToEffectId());
+    public async Task<bool> HasValue(int effectId) => (await GetStoredEffects()).ContainsKey(effectId.ToEffectId());
 
-    public async Task<TResult?> GetValue<TResult>(string effectId) => await GetValue<TResult>(effectId.ToEffectId());
+    public async Task<TResult?> GetValue<TResult>(int effectId) => await GetValue<TResult>(effectId.ToEffectId());
     public async Task<TResult?> GetValue<TResult>(EffectId effectId)
     {
         var storedEffects = await GetStoredEffects();
@@ -40,7 +40,7 @@ public class ExistingEffects(StoredId storedId, FlowId flowId, IEffectsStore eff
             : serializer.Deserialize<TResult>(storedEffects[effectId].Result!);
     }
 
-    public async Task<byte[]?> GetResultBytes(string effectId) => await GetResultBytes(effectId.ToEffectId());
+    public async Task<byte[]?> GetResultBytes(int effectId) => await GetResultBytes(effectId.ToEffectId());
     public async Task<byte[]?> GetResultBytes(EffectId effectId)
     {
         var storedEffects = await GetStoredEffects();
@@ -67,15 +67,17 @@ public class ExistingEffects(StoredId storedId, FlowId flowId, IEffectsStore eff
         foreach (var effectId in allIds)
         {
             var isFailedEffect = failedEffectIds.Contains(effectId.Serialize().Value);
-            var isChildOfFailedEffect = !string.IsNullOrEmpty(effectId.Context) &&
-                                        failedEffectIds.Contains(effectId.Context);
+            var parentSerializedId = effectId.Context.Length > 0
+                ? new EffectId(effectId.Context[^1], effectId.Context[..^1]).Serialize().Value
+                : null;
+            var isChildOfFailedEffect = parentSerializedId != null && failedEffectIds.Contains(parentSerializedId);
 
             if (isFailedEffect || isChildOfFailedEffect)
                 await Remove(effectId);
         }
     }
 
-    public Task Remove(string effectId) => Remove(effectId.ToEffectId());
+    public Task Remove(int effectId) => Remove(effectId.ToEffectId());
     public async Task Remove(EffectId effectId)
     {
         var storedEffects = await GetStoredEffects();
@@ -94,22 +96,22 @@ public class ExistingEffects(StoredId storedId, FlowId flowId, IEffectsStore eff
         storedEffects[storedEffect.EffectId] = storedEffect;
     }
 
-    public Task SetValue<TValue>(string effectId, TValue value) => SetValue(effectId.ToEffectId(), value);
+    public Task SetValue<TValue>(int effectId, TValue value) => SetValue(effectId.ToEffectId(), value);
     public Task SetValue<TValue>(EffectId effectId, TValue value) => SetSucceeded(effectId, value);
 
-    public Task SetStarted(string effectId) => SetStarted(effectId.ToEffectId());
+    public Task SetStarted(int effectId) => SetStarted(effectId.ToEffectId());
     public Task SetStarted(EffectId effectId)
         => Set(new StoredEffect(effectId, WorkStatus.Started, Result: null, StoredException: null, Alias: null));
 
-    public Task SetSucceeded(string effectId) => SetSucceeded(effectId.ToEffectId());
+    public Task SetSucceeded(int effectId) => SetSucceeded(effectId.ToEffectId());
     public Task SetSucceeded(EffectId effectId)
         => Set(new StoredEffect(effectId, WorkStatus.Completed, Result: null, StoredException: null, Alias: null));
 
-    public Task SetSucceeded<TResult>(string effectId, TResult result) => SetSucceeded(effectId.ToEffectId(), result);
+    public Task SetSucceeded<TResult>(int effectId, TResult result) => SetSucceeded(effectId.ToEffectId(), result);
     public Task SetSucceeded<TResult>(EffectId effectId, TResult result)
         => Set(new StoredEffect(effectId, WorkStatus.Completed, Result: serializer.Serialize(result), StoredException: null, Alias: null));
 
-    public Task SetFailed(string effectId, Exception exception) => SetFailed(effectId.ToEffectId(), exception);
+    public Task SetFailed(int effectId, Exception exception) => SetFailed(effectId.ToEffectId(), exception);
     public Task SetFailed(EffectId effectId, Exception exception)
         => Set(new StoredEffect(effectId, WorkStatus.Failed, Result: null, StoredException: serializer.SerializeException(FatalWorkflowException.CreateNonGeneric(flowId, exception)), Alias: null));
 }

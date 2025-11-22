@@ -40,7 +40,7 @@ public class ExistingRegisteredTimeouts(ExistingEffects effects, UtcNow utcNow)
         return _timeouts = timeouts;
     }
 
-    public Task<DateTime> this[TimeoutId timeoutId] => this[new EffectId(timeoutId.Value, Context: "")];
+    public Task<DateTime> this[TimeoutId timeoutId] => this[new EffectId(timeoutId.Value, Array.Empty<int>())];
     public Task<DateTime> this[EffectId timeoutId] => GetTimeouts().ContinueWith(t => t.Result[timeoutId].Item1);
 
     public Task<IReadOnlyList<RegisteredTimeout>> All
@@ -50,9 +50,9 @@ public class ExistingRegisteredTimeouts(ExistingEffects effects, UtcNow utcNow)
                 .ToList()
                 .CastTo<IReadOnlyList<RegisteredTimeout>>()
         );
-    
+
     public Task Upsert(TimeoutId timeoutId, DateTime expiresAt)
-        => Upsert(new EffectId(timeoutId.Value, Context: ""), expiresAt);
+        => Upsert(new EffectId(timeoutId.Value, Array.Empty<int>()), expiresAt);
     public async Task Upsert(EffectId timeoutId, DateTime expiresAt)
     {
         expiresAt = expiresAt.ToUniversalTime();

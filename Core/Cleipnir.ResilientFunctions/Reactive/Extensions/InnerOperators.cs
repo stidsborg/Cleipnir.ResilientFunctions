@@ -102,9 +102,9 @@ public static class InnerOperators
             });
     }
 
-    public static IReactiveChain<object> TakeUntilTimeout(this Messages s, string timeoutEventId, TimeSpan expiresIn)
+    public static IReactiveChain<object> TakeUntilTimeout(this Messages s, int timeoutEventId, TimeSpan expiresIn)
         => new TimeoutOperator<object>(s.Source, EffectId.CreateWithCurrentContext(timeoutEventId), expiresAt: s.UtcNow().Add(expiresIn));
-    public static IReactiveChain<object> TakeUntilTimeout(this Messages s, string timeoutEventId, DateTime expiresAt)
+    public static IReactiveChain<object> TakeUntilTimeout(this Messages s, int timeoutEventId, DateTime expiresAt)
         => new TimeoutOperator<object>(s.Source, EffectId.CreateWithCurrentContext(timeoutEventId), expiresAt);
     public static IReactiveChain<object> TakeUntilTimeout(this Messages s, TimeSpan expiresIn)
         => s.TakeUntilTimeout(s.FlowRegisteredTimeouts.GetNextImplicitId(), expiresIn);

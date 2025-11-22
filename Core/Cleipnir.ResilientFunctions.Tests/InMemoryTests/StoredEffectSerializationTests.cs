@@ -1,3 +1,4 @@
+using System;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Storage;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -11,7 +12,7 @@ public class StoredEffectSerializationTests
     [TestMethod]
     public void CompletedStoredEffectWithResultCanBeSerializedAndDeserialized()
     {
-        var effectId = new EffectId("SomeEffect", Context: "");
+        var effectId = new EffectId(1, Context: Array.Empty<int>());
         var result = "SomeResult"u8.ToArray();
         var storedEffect = StoredEffect.CreateCompleted(effectId, result, alias: null);
 
@@ -27,7 +28,7 @@ public class StoredEffectSerializationTests
     [TestMethod]
     public void CompletedStoredEffectWithoutResultCanBeSerializedAndDeserialized()
     {
-        var effectId = new EffectId("SomeEffect", Context: "");
+        var effectId = new EffectId(1, Context: Array.Empty<int>());
         var storedEffect = StoredEffect.CreateCompleted(effectId, alias: null);
 
         var serialized = storedEffect.Serialize();
@@ -42,7 +43,7 @@ public class StoredEffectSerializationTests
     [TestMethod]
     public void StartedStoredEffectCanBeSerializedAndDeserialized()
     {
-        var effectId = new EffectId("SomeEffect", Context: "");
+        var effectId = new EffectId(1, Context: Array.Empty<int>());
         var storedEffect = StoredEffect.CreateStarted(effectId, alias: null);
 
         var serialized = storedEffect.Serialize();
@@ -57,7 +58,7 @@ public class StoredEffectSerializationTests
     [TestMethod]
     public void FailedStoredEffectWithExceptionCanBeSerializedAndDeserialized()
     {
-        var effectId = new EffectId("SomeEffect", Context: "");
+        var effectId = new EffectId(1, Context: Array.Empty<int>());
         var storedException = new StoredException(
             ExceptionMessage: "Something went wrong",
             ExceptionStackTrace: "at SomeMethod() in SomeFile.cs:line 42",
@@ -80,7 +81,7 @@ public class StoredEffectSerializationTests
     [TestMethod]
     public void StoredEffectWithStateTypeCanBeSerializedAndDeserialized()
     {
-        var effectId = new EffectId("SomeState", Context: "");
+        var effectId = new EffectId(1, Context: Array.Empty<int>());
         var result = "{\"key\":\"value\"}"u8.ToArray();
         var storedEffect = StoredEffect.CreateCompleted(effectId, result, alias: null);
 
@@ -95,8 +96,8 @@ public class StoredEffectSerializationTests
     [TestMethod]
     public void StoredEffectWithContextCanBeSerializedAndDeserialized()
     {
-        var parentEffect = new EffectId("ParentEffect", Context: "");
-        var effectId = new EffectId("ChildEffect", Context: parentEffect.Serialize().Value);
+        var parentEffect = new EffectId(1, Context: Array.Empty<int>());
+        var effectId = new EffectId(2, Context: [parentEffect.Id]);
         var result = "SomeData"u8.ToArray();
         var storedEffect = StoredEffect.CreateCompleted(effectId, result, alias: null);
 
@@ -104,7 +105,7 @@ public class StoredEffectSerializationTests
         var deserialized = StoredEffect.Deserialize(serialized);
 
         deserialized.EffectId.ShouldBe(effectId);
-        deserialized.EffectId.Context.ShouldBe(parentEffect.Serialize().Value);
+        deserialized.EffectId.Context.ShouldBe([parentEffect.Id]);
         deserialized.WorkStatus.ShouldBe(WorkStatus.Completed);
         deserialized.Result.ShouldBe(result);
     }
@@ -112,7 +113,7 @@ public class StoredEffectSerializationTests
     [TestMethod]
     public void StoredEffectWithTimeoutTypeCanBeSerializedAndDeserialized()
     {
-        var effectId = new EffectId("SomeTimeout", Context: "");
+        var effectId = new EffectId(1, Context: Array.Empty<int>());
         var storedEffect = StoredEffect.CreateStarted(effectId, alias: null);
 
         var serialized = storedEffect.Serialize();
@@ -125,7 +126,7 @@ public class StoredEffectSerializationTests
     [TestMethod]
     public void StoredEffectWithRetryTypeCanBeSerializedAndDeserialized()
     {
-        var effectId = new EffectId("SomeRetry", Context: "");
+        var effectId = new EffectId(1, Context: Array.Empty<int>());
         var storedEffect = StoredEffect.CreateCompleted(effectId, alias: null);
 
         var serialized = storedEffect.Serialize();
@@ -138,7 +139,7 @@ public class StoredEffectSerializationTests
     [TestMethod]
     public void StoredEffectWithSystemTypeCanBeSerializedAndDeserialized()
     {
-        var effectId = new EffectId("SomeSystem", Context: "");
+        var effectId = new EffectId(1, Context: Array.Empty<int>());
         var storedEffect = StoredEffect.CreateCompleted(effectId, alias: null);
 
         var serialized = storedEffect.Serialize();
@@ -151,7 +152,7 @@ public class StoredEffectSerializationTests
     [TestMethod]
     public void StoredEffectWithLargeResultCanBeSerializedAndDeserialized()
     {
-        var effectId = new EffectId("LargeEffect", Context: "");
+        var effectId = new EffectId(1, Context: Array.Empty<int>());
         var largeResult = new byte[10000];
         for (int i = 0; i < largeResult.Length; i++)
             largeResult[i] = (byte)(i % 256);
@@ -169,7 +170,7 @@ public class StoredEffectSerializationTests
     [TestMethod]
     public void StoredEffectWithSpecialCharactersInIdCanBeSerializedAndDeserialized()
     {
-        var effectId = new EffectId("Effect.With\\Special.Characters", Context: "");
+        var effectId = new EffectId(12345, Context: Array.Empty<int>());
         var result = "Data"u8.ToArray();
         var storedEffect = StoredEffect.CreateCompleted(effectId, result, alias: null);
 
@@ -177,7 +178,7 @@ public class StoredEffectSerializationTests
         var deserialized = StoredEffect.Deserialize(serialized);
 
         deserialized.EffectId.ShouldBe(effectId);
-        deserialized.EffectId.Id.ShouldBe("Effect.With\\Special.Characters");
+        deserialized.EffectId.Id.ShouldBe(12345);
         deserialized.WorkStatus.ShouldBe(WorkStatus.Completed);
         deserialized.Result.ShouldBe(result);
     }
@@ -185,21 +186,21 @@ public class StoredEffectSerializationTests
     [TestMethod]
     public void StoredEffectWithEmptyIdCanBeSerializedAndDeserialized()
     {
-        var effectId = new EffectId("0", Context: "");
+        var effectId = new EffectId(0, Context: Array.Empty<int>());
         var storedEffect = StoredEffect.CreateCompleted(effectId, alias: null);
 
         var serialized = storedEffect.Serialize();
         var deserialized = StoredEffect.Deserialize(serialized);
 
         deserialized.EffectId.ShouldBe(effectId);
-        deserialized.EffectId.Id.ShouldBe("0");
+        deserialized.EffectId.Id.ShouldBe(0);
         deserialized.WorkStatus.ShouldBe(WorkStatus.Completed);
     }
 
     [TestMethod]
     public void StoredEffectWithNullStackTraceCanBeSerializedAndDeserialized()
     {
-        var effectId = new EffectId("FailedEffect", Context: "");
+        var effectId = new EffectId(1, Context: Array.Empty<int>());
         var storedException = new StoredException(
             ExceptionMessage: "Error occurred",
             ExceptionStackTrace: null,

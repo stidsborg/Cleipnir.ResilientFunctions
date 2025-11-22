@@ -1061,11 +1061,11 @@ public abstract class StoreTests
         );
         session.ShouldBeNull();
 
-        await effectsStore.SetEffectResult(functionId, new StoredEffect("0".ToEffectId(), WorkStatus.Completed, "some default state".ToUtf8Bytes(), StoredException: null, Alias: null).ToStoredChange(functionId, Insert), session: null);
+        await effectsStore.SetEffectResult(functionId, new StoredEffect(0.ToEffectId(), WorkStatus.Completed, "some default state".ToUtf8Bytes(), StoredException: null, Alias: null).ToStoredChange(functionId, Insert), session: null);
 
         var storedEffects = await effectsStore.GetEffectResults(functionId);
         storedEffects.Count.ShouldBe(1);
-        storedEffects.Single().EffectId.ShouldBe("0".ToEffectId());
+        storedEffects.Single().EffectId.ShouldBe(0.ToEffectId());
         storedEffects.Single().Result.ShouldBe("some default state".ToUtf8Bytes());
     }
     
@@ -1387,7 +1387,7 @@ public abstract class StoreTests
         var store = await storeTask;
         var paramJson = PARAM.ToJson();
 
-        var effectId1 = new EffectId("SomeEffect1", Context: "");
+        var effectId1 = new EffectId("SomeEffect1".GetHashCode(), Context: Array.Empty<int>());
         var effect1 = new StoredEffect(
             effectId1,
             WorkStatus.Completed,
@@ -1395,7 +1395,7 @@ public abstract class StoreTests
             StoredException: null,
             Alias: null
         );
-        var effectId2 = new EffectId("SomeEffect2", Context: "");
+        var effectId2 = new EffectId("SomeEffect2".GetHashCode(), Context: Array.Empty<int>());
         var effect2 = new StoredEffect(
             effectId2,
             WorkStatus.Completed,
@@ -1433,11 +1433,11 @@ public abstract class StoreTests
 
         var effectResults = await store.EffectsStore.GetEffectResults(storedId);
         effectResults.Count.ShouldBe(2);
-        var effectResult1 = effectResults.Single(r => r.EffectId.Id == "SomeEffect1");
-        effectResult1.EffectId.ShouldBe(new EffectId("SomeEffect1", Context: ""));
+        var effectResult1 = effectResults.Single(r => r.EffectId.Id == "SomeEffect1".GetHashCode());
+        effectResult1.EffectId.ShouldBe(new EffectId("SomeEffect1".GetHashCode(), Context: Array.Empty<int>()));
         effectResult1.Result!.ToStringFromUtf8Bytes().ShouldBe("hello world");
-        var effectResult2 = effectResults.Single(r => r.EffectId.Id == "SomeEffect2");
-        effectResult2.EffectId.ShouldBe(new EffectId("SomeEffect2", Context: ""));
+        var effectResult2 = effectResults.Single(r => r.EffectId.Id == "SomeEffect2".GetHashCode());
+        effectResult2.EffectId.ShouldBe(new EffectId("SomeEffect2".GetHashCode(), Context: Array.Empty<int>()));
         effectResult2.Result!.ToStringFromUtf8Bytes().ShouldBe("hello universe");
 
         var messages = await store.MessageStore.GetMessages(storedId, skip: 0);
@@ -1540,7 +1540,7 @@ public abstract class StoreTests
         var store = await storeTask;
         var paramJson = PARAM.ToJson();
 
-        var effectId1 = new EffectId("SomeEffect1", Context: "");
+        var effectId1 = new EffectId("SomeEffect1".GetHashCode(), Context: Array.Empty<int>());
         var effect1 = new StoredEffect(
             effectId1,
             WorkStatus.Completed,
@@ -1548,7 +1548,7 @@ public abstract class StoreTests
             StoredException: null,
             Alias: null
         );
-        var effectId2 = new EffectId("SomeEffect2", Context: "");
+        var effectId2 = new EffectId("SomeEffect2".GetHashCode(), Context: Array.Empty<int>());
         var effect2 = new StoredEffect(
             effectId2,
             WorkStatus.Completed,
@@ -1573,11 +1573,11 @@ public abstract class StoreTests
 
         var effectResults = await store.EffectsStore.GetEffectResults(storedId);
         effectResults.Count.ShouldBe(2);
-        var effectResult1 = effectResults.Single(r => r.EffectId.Id == "SomeEffect1");
-        effectResult1.EffectId.ShouldBe(new EffectId("SomeEffect1", Context: ""));
+        var effectResult1 = effectResults.Single(r => r.EffectId.Id == "SomeEffect1".GetHashCode());
+        effectResult1.EffectId.ShouldBe(new EffectId("SomeEffect1".GetHashCode(), Context: Array.Empty<int>()));
         effectResult1.Result!.ToStringFromUtf8Bytes().ShouldBe("hello world");
-        var effectResult2 = effectResults.Single(r => r.EffectId.Id == "SomeEffect2");
-        effectResult2.EffectId.ShouldBe(new EffectId("SomeEffect2", Context: ""));
+        var effectResult2 = effectResults.Single(r => r.EffectId.Id == "SomeEffect2".GetHashCode());
+        effectResult2.EffectId.ShouldBe(new EffectId("SomeEffect2".GetHashCode(), Context: Array.Empty<int>()));
         effectResult2.Result!.ToStringFromUtf8Bytes().ShouldBe("hello universe");
 
         var messages = await store.MessageStore.GetMessages(storedId, skip: 0);
@@ -1630,7 +1630,7 @@ public abstract class StoreTests
         await store.EffectsStore.SetEffectResult(
             functionId,
             new StoredEffect(
-                "Test".ToEffectId(),
+                "Test".GetHashCode().ToEffectId(),
                 WorkStatus.Completed,
                 "hallo effect".ToUtf8Bytes(),
                 StoredException: null,
@@ -1638,7 +1638,7 @@ public abstract class StoreTests
                 ).ToStoredChange(functionId, Insert),
             session: null
         );
-        
+
         var (sf, effects, messages, _) = await store
             .RestartExecution(
                 functionId,
@@ -1647,7 +1647,7 @@ public abstract class StoreTests
 
         sf.StoredId.ShouldBe(functionId);
         effects.Count.ShouldBe(1);
-        effects.Single().EffectId.Id.ShouldBe("Test");
+        effects.Single().EffectId.Id.ShouldBe("Test".GetHashCode());
         effects.Single().Result!.ToStringFromUtf8Bytes().ShouldBe("hallo effect");
         messages.Count.ShouldBe(1);
         messages.Single().MessageContent.ToStringFromUtf8Bytes().ShouldBe("hallo message");

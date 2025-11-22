@@ -356,7 +356,7 @@ internal class InvocationHelper<TParam, TReturn>
         var parent = GetAndEnsureParent(detach);
         if (parent != null)
         {
-            var marked = await parent.Effect.Mark($"BulkScheduled#{parent.Effect.TakeNextImplicitId()}");
+            var marked = await parent.Effect.Mark($"BulkScheduled#{parent.Effect.TakeNextImplicitId()}".GetHashCode());
             if (!marked)
                 return CreateInnerScheduled(
                     work.Select(w => new FlowId(_flowType, w.Instance)).ToList(),
@@ -501,7 +501,7 @@ internal class InvocationHelper<TParam, TReturn>
                     e.Status ?? WorkStatus.Completed,
                     Result: Serializer.Serialize(e.Value, e.Value?.GetType() ?? typeof(object)),
                     StoredException: null,
-                    Alias: e.Id)
+                    Alias: e.Id.ToString())
                 : new StoredEffect(
                     e.Id.ToEffectId(),
                     WorkStatus.Failed,

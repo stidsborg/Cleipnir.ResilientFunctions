@@ -92,16 +92,16 @@ public abstract class MessagingTests
                 var messages = workflow.Messages;
 
                 var timeoutOption = await messages
-                    .TakeUntilTimeout("timeoutId1", expiresIn: TimeSpan.FromMilliseconds(250))
+                    .TakeUntilTimeout("timeoutId1".GetHashCode(), expiresIn: TimeSpan.FromMilliseconds(250))
                     .OfType<string>()
                     .FirstOrNone(TimeSpan.Zero);
-                
+
                 var timeoutEvent = messages
                     .OfType<TimeoutEvent>()
                     .Existing(out var __)
                     .SingleOrDefault();
-                
-                return Tuple.Create(timeoutEvent != null && !timeoutOption.HasValue, timeoutEvent?.TimeoutId.Id ?? "");
+
+                return Tuple.Create(timeoutEvent != null && !timeoutOption.HasValue, timeoutEvent?.TimeoutId.Id.ToString() ?? "");
             }
         );
 
@@ -120,9 +120,9 @@ public abstract class MessagingTests
 
 
         controlPanel.Result.ShouldNotBeNull();
-        var (success, timeoutId) = controlPanel.Result;
+        var (success, timeoutId) = (Tuple<bool, string>) controlPanel.Result;
         success.ShouldBeTrue();
-        timeoutId.ShouldBe("timeoutId1");
+        timeoutId.ShouldBe("timeoutId1".GetHashCode().ToString());
         
         unhandledExceptionHandler.ShouldNotHaveExceptions();
     }
