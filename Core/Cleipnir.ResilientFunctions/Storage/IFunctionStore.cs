@@ -114,4 +114,5 @@ public interface IFunctionStore
 
     IFunctionStore WithPrefix(string prefix);
     Task<IReadOnlyDictionary<StoredId, byte[]?>> GetResults(IEnumerable<StoredId> storedIds);
+    Task SetResult(StoredId storedId, byte[] result, ReplicaId expectedReplica);
 }

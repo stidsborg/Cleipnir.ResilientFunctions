@@ -989,6 +989,23 @@ public class SqlServerFunctionStore : IFunctionStore
         return results;
     }
 
+    private string? _setResultSql;
+    public async Task SetResult(StoredId storedId, byte[] result, ReplicaId expectedReplica)
+    {
+        await using var conn = await _connFunc();
+        _setResultSql ??= @$"
+            UPDATE {_tableName}
+            SET ResultJson = @ResultJson
+            WHERE Id = @Id AND Owner = @Owner";
+
+        await using var command = new SqlCommand(_setResultSql, conn);
+        command.Parameters.AddWithValue("@ResultJson", result);
+        command.Parameters.AddWithValue("@Id", storedId.AsGuid);
+        command.Parameters.AddWithValue("@Owner", expectedReplica.AsGuid);
+
+        await command.ExecuteNonQueryAsync();
+    }
+
     private string? _deleteFunctionSql;
     private async Task<bool> DeleteStoredFunction(StoredId storedId)
     {
