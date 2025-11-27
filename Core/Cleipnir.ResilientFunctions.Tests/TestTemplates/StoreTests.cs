@@ -1061,11 +1061,11 @@ public abstract class StoreTests
         );
         session.ShouldBeNull();
 
-        await effectsStore.SetEffectResult(functionId, new StoredEffect("".ToEffectId(EffectType.State), WorkStatus.Completed, "some default state".ToUtf8Bytes(), StoredException: null, Alias: null).ToStoredChange(functionId, Insert), session: null);
+        await effectsStore.SetEffectResult(functionId, new StoredEffect(0.ToEffectId(), WorkStatus.Completed, "some default state".ToUtf8Bytes(), StoredException: null, Alias: null).ToStoredChange(functionId, Insert), session: null);
 
         var storedEffects = await effectsStore.GetEffectResults(functionId);
         storedEffects.Count.ShouldBe(1);
-        storedEffects.Single().EffectId.ShouldBe("".ToEffectId(EffectType.State));
+        storedEffects.Single().EffectId.ShouldBe(0.ToEffectId());
         storedEffects.Single().Result.ShouldBe("some default state".ToUtf8Bytes());
     }
     
@@ -1387,7 +1387,7 @@ public abstract class StoreTests
         var store = await storeTask;
         var paramJson = PARAM.ToJson();
 
-        var effectId1 = new EffectId("SomeEffect1", EffectType.State, Context: "");
+        var effectId1 = new EffectId(["SomeEffect1".GetHashCode()]);
         var effect1 = new StoredEffect(
             effectId1,
             WorkStatus.Completed,
@@ -1395,7 +1395,7 @@ public abstract class StoreTests
             StoredException: null,
             Alias: null
         );
-        var effectId2 = new EffectId("SomeEffect2", EffectType.State, Context: "");
+        var effectId2 = new EffectId(["SomeEffect2".GetHashCode()]);
         var effect2 = new StoredEffect(
             effectId2,
             WorkStatus.Completed,
@@ -1433,11 +1433,11 @@ public abstract class StoreTests
 
         var effectResults = await store.EffectsStore.GetEffectResults(storedId);
         effectResults.Count.ShouldBe(2);
-        var effectResult1 = effectResults.Single(r => r.EffectId.Id == "SomeEffect1");
-        effectResult1.EffectId.ShouldBe(new EffectId("SomeEffect1", EffectType.State, Context: ""));
+        var effectResult1 = effectResults.Single(r => r.EffectId.Id == "SomeEffect1".GetHashCode());
+        effectResult1.EffectId.ShouldBe(new EffectId(["SomeEffect1".GetHashCode()]));
         effectResult1.Result!.ToStringFromUtf8Bytes().ShouldBe("hello world");
-        var effectResult2 = effectResults.Single(r => r.EffectId.Id == "SomeEffect2");
-        effectResult2.EffectId.ShouldBe(new EffectId("SomeEffect2", EffectType.State, Context: ""));
+        var effectResult2 = effectResults.Single(r => r.EffectId.Id == "SomeEffect2".GetHashCode());
+        effectResult2.EffectId.ShouldBe(new EffectId(["SomeEffect2".GetHashCode()]));
         effectResult2.Result!.ToStringFromUtf8Bytes().ShouldBe("hello universe");
 
         var messages = await store.MessageStore.GetMessages(storedId, skip: 0);
@@ -1540,7 +1540,7 @@ public abstract class StoreTests
         var store = await storeTask;
         var paramJson = PARAM.ToJson();
 
-        var effectId1 = new EffectId("SomeEffect1", EffectType.State, Context: "");
+        var effectId1 = new EffectId(["SomeEffect1".GetHashCode()]);
         var effect1 = new StoredEffect(
             effectId1,
             WorkStatus.Completed,
@@ -1548,7 +1548,7 @@ public abstract class StoreTests
             StoredException: null,
             Alias: null
         );
-        var effectId2 = new EffectId("SomeEffect2", EffectType.State, Context: "");
+        var effectId2 = new EffectId(["SomeEffect2".GetHashCode()]);
         var effect2 = new StoredEffect(
             effectId2,
             WorkStatus.Completed,
@@ -1573,11 +1573,11 @@ public abstract class StoreTests
 
         var effectResults = await store.EffectsStore.GetEffectResults(storedId);
         effectResults.Count.ShouldBe(2);
-        var effectResult1 = effectResults.Single(r => r.EffectId.Id == "SomeEffect1");
-        effectResult1.EffectId.ShouldBe(new EffectId("SomeEffect1", EffectType.State, Context: ""));
+        var effectResult1 = effectResults.Single(r => r.EffectId.Id == "SomeEffect1".GetHashCode());
+        effectResult1.EffectId.ShouldBe(new EffectId(["SomeEffect1".GetHashCode()]));
         effectResult1.Result!.ToStringFromUtf8Bytes().ShouldBe("hello world");
-        var effectResult2 = effectResults.Single(r => r.EffectId.Id == "SomeEffect2");
-        effectResult2.EffectId.ShouldBe(new EffectId("SomeEffect2", EffectType.State, Context: ""));
+        var effectResult2 = effectResults.Single(r => r.EffectId.Id == "SomeEffect2".GetHashCode());
+        effectResult2.EffectId.ShouldBe(new EffectId(["SomeEffect2".GetHashCode()]));
         effectResult2.Result!.ToStringFromUtf8Bytes().ShouldBe("hello universe");
 
         var messages = await store.MessageStore.GetMessages(storedId, skip: 0);
@@ -1630,7 +1630,7 @@ public abstract class StoreTests
         await store.EffectsStore.SetEffectResult(
             functionId,
             new StoredEffect(
-                "Test".ToEffectId(),
+                "Test".GetHashCode().ToEffectId(),
                 WorkStatus.Completed,
                 "hallo effect".ToUtf8Bytes(),
                 StoredException: null,
@@ -1638,7 +1638,7 @@ public abstract class StoreTests
                 ).ToStoredChange(functionId, Insert),
             session: null
         );
-        
+
         var (sf, effects, messages, _) = await store
             .RestartExecution(
                 functionId,
@@ -1647,7 +1647,7 @@ public abstract class StoreTests
 
         sf.StoredId.ShouldBe(functionId);
         effects.Count.ShouldBe(1);
-        effects.Single().EffectId.Id.ShouldBe("Test");
+        effects.Single().EffectId.Id.ShouldBe("Test".GetHashCode());
         effects.Single().Result!.ToStringFromUtf8Bytes().ShouldBe("hallo effect");
         messages.Count.ShouldBe(1);
         messages.Single().MessageContent.ToStringFromUtf8Bytes().ShouldBe("hallo message");
@@ -2244,5 +2244,74 @@ public abstract class StoreTests
         results.ContainsKey(existingFunctionId).ShouldBeTrue();
         results[existingFunctionId].ShouldBe(result);
         results.ContainsKey(nonExistentFunctionId).ShouldBeFalse();
+    }
+
+    public abstract Task SetResultSucceedsWhenOwnerMatches();
+    protected async Task SetResultSucceedsWhenOwnerMatches(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var functionId = TestStoredId.Create();
+        var owner = ReplicaId.NewId();
+        var result = "test result".ToJson().ToUtf8Bytes();
+
+        // Create function with owner
+        await store.CreateFunction(
+            functionId,
+            "humanInstanceId",
+            param: Test.SimpleStoredParameter,
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks,
+            parent: null,
+            owner: owner
+        ).ShouldNotBeNullAsync();
+
+        // Set result
+        await store.SetResult(functionId, result, owner);
+
+        // Verify result was set
+        var results = await store.GetResults([functionId]);
+        results[functionId].ShouldBe(result);
+    }
+
+    public abstract Task SetResultDoesNothingWhenOwnerDoesNotMatch();
+    protected async Task SetResultDoesNothingWhenOwnerDoesNotMatch(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var functionId = TestStoredId.Create();
+        var owner = ReplicaId.NewId();
+        var wrongOwner = ReplicaId.NewId();
+        var result = "test result".ToJson().ToUtf8Bytes();
+
+        // Create function with owner
+        await store.CreateFunction(
+            functionId,
+            "humanInstanceId",
+            param: Test.SimpleStoredParameter,
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks,
+            parent: null,
+            owner: owner
+        ).ShouldNotBeNullAsync();
+
+        // Try to set result with wrong owner
+        await store.SetResult(functionId, result, wrongOwner);
+
+        // Verify result was not set
+        var results = await store.GetResults([functionId]);
+        results[functionId].ShouldBeNull();
+    }
+
+    public abstract Task SetResultDoesNothingWhenFunctionDoesNotExist();
+    protected async Task SetResultDoesNothingWhenFunctionDoesNotExist(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var nonExistentFunctionId = TestStoredId.Create();
+        var owner = ReplicaId.NewId();
+        var result = "test result".ToJson().ToUtf8Bytes();
+
+        // Try to set result for non-existent function (should not throw)
+        await store.SetResult(nonExistentFunctionId, result, owner);
     }
 }

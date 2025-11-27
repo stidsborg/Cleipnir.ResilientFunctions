@@ -149,13 +149,16 @@ public class EffectResults(
         return Option<T>.NoValue;
     }
     
-    public async Task InnerCapture(string id, string? alias, EffectType effectType, Func<Task> work, ResiliencyLevel resiliency, EffectContext effectContext)
+    public async Task InnerCapture(int id, string? alias, Func<Task> work, ResiliencyLevel resiliency, EffectContext effectContext)
     {
         await InitializeIfRequired();
-        
-        var effectId = id.ToEffectId(effectType, context: effectContext.Parent?.Serialize().Value);
+
+        var parent = effectContext.Parent;
+        var effectId = parent == null
+            ? id.ToEffectId()
+            : new EffectId([..parent.Value, id]);
         EffectContext.SetParent(effectId);
-        
+
         lock (_sync)
         {
             var success = _effectResults.TryGetValue(effectId, out var pendingChange);
@@ -222,13 +225,16 @@ public class EffectResults(
         }
     }
     
-    public async Task<T> InnerCapture<T>(string id, string? alias, EffectType effectType, Func<Task<T>> work, ResiliencyLevel resiliency, EffectContext effectContext)
+    public async Task<T> InnerCapture<T>(int id, string? alias, Func<Task<T>> work, ResiliencyLevel resiliency, EffectContext effectContext)
     {
         await InitializeIfRequired();
-        
-        var effectId = id.ToEffectId(effectType, context: effectContext.Parent?.Serialize().Value);
+
+        var parent = effectContext.Parent;
+        var effectId = parent == null
+            ? id.ToEffectId()
+            : new EffectId([..parent.Value, id]);
         EffectContext.SetParent(effectId);
-        
+
         lock (_sync)
         {
             var success = _effectResults.TryGetValue(effectId, out var storedEffect);
@@ -403,4 +409,5 @@ public class EffectResults(
             _flushSync.Release();
         }
     }
+
 }

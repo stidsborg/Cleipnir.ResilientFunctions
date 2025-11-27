@@ -20,7 +20,7 @@ public class TimeoutTests
     [TestMethod]
     public async Task StreamCompletesAndThrowsNoResultExceptionAfterFiredTimeoutEvent()
     {
-        var timeoutId = "TimeoutId".ToEffectId();
+        var timeoutId = 1.ToEffectId();
         var expiresAt = DateTime.UtcNow.Add(TimeSpan.FromMinutes(15));
         
         var registeredTimeoutsStub = new RegisteredTimeoutsStub();
@@ -45,7 +45,7 @@ public class TimeoutTests
     [TestMethod]
     public async Task StreamCompletesAndReturnsNothingAfterFiredTimeoutEvent()
     {
-        var timeoutId = "TimeoutId".ToEffectId();
+        var timeoutId = 1.ToEffectId();
         var expiresAt = DateTime.UtcNow.Add(TimeSpan.FromMinutes(15));
         
         var registeredTimeoutsStub = new RegisteredTimeoutsStub();
@@ -71,7 +71,7 @@ public class TimeoutTests
     [TestMethod]
     public async Task StreamCompletesSuccessfullyWhenEventSupersedesTimeout()
     {
-        var timeoutId = "TimeoutId".ToEffectId();
+        var timeoutId = 1.ToEffectId();
         var expiresAt = DateTime.UtcNow.Add(TimeSpan.FromMinutes(15));
         
         var registeredTimeoutsStub = new RegisteredTimeoutsStub();
@@ -89,7 +89,7 @@ public class TimeoutTests
     [TestMethod]
     public async Task StreamCompletesSuccessfullyWithValuedOptionWhenEventSupersedesTimeout()
     {
-        var timeoutId = "TimeoutId".ToEffectId();
+        var timeoutId = 1.ToEffectId();
         var expiresAt = DateTime.UtcNow.Add(TimeSpan.FromMinutes(15));
         
         var registeredTimeoutsStub = new RegisteredTimeoutsStub();
@@ -111,7 +111,7 @@ public class TimeoutTests
     [TestMethod]
     public async Task ExistingTimeoutEventInMessagesAvoidRegisteredTimeoutsCancellation()
     {
-        var timeoutId = "TimeoutId".ToEffectId();
+        var timeoutId = 1.ToEffectId();
         var expiresAt = DateTime.UtcNow.Add(TimeSpan.FromMinutes(15));
         
         var registeredTimeoutsStub = new RegisteredTimeoutsStub();

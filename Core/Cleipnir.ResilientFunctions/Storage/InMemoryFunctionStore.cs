@@ -580,6 +580,22 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         }
     }
 
+    public Task SetResult(StoredId storedId, byte[] result, ReplicaId expectedReplica)
+    {
+        lock (_sync)
+        {
+            if (!_states.ContainsKey(storedId))
+                return Task.CompletedTask;
+
+            var state = _states[storedId];
+            if (state.Owner != expectedReplica)
+                return Task.CompletedTask;
+
+            state.Result = result;
+            return Task.CompletedTask;
+        }
+    }
+
     private class InnerState
     {
         public StoredId StoredId { get; init; } = null!;

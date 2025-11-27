@@ -113,18 +113,6 @@ public record StoredException(string ExceptionMessage, string? ExceptionStackTra
 
 public record StatusAndId(StoredId StoredId, Status Status, long Expiry);
 
-public record StoredEffectId(Guid Value)
-{
-    public static StoredEffectId Create(EffectId effectId) 
-        => new(StoredIdFactory.FromString(effectId.Serialize().Value));
-}
-
-public static class StoredEffectIdExtensions
-{
-    public static StoredEffectId ToStoredEffectId(this string effectId, EffectType effectType) => ToStoredEffectId(effectId.ToEffectId(effectType));
-    public static StoredEffectId ToStoredEffectId(this EffectId effectId) => StoredEffectId.Create(effectId);
-}
-
 public record StoredEffectChange(
     StoredId StoredId,
     EffectId EffectId,
@@ -150,8 +138,6 @@ public record StoredEffect(
     string? Alias
 )
 {
-    public StoredEffectId StoredEffectId => EffectId.ToStoredEffectId();
-
     public static StoredEffect CreateCompleted(EffectId effectId, byte[] result, string? alias)
         => new(effectId, WorkStatus.Completed, result, StoredException: null, alias);
     public static StoredEffect CreateCompleted(EffectId effectId, string? alias)
@@ -163,7 +149,9 @@ public record StoredEffect(
 
     public byte[] Serialize()
     {
-        var effect = EffectId.Serialize().Value.ToUtf8Bytes();
+        var serializedValue = EffectId.Serialize().Value;
+        var effect = new byte[serializedValue.Length * sizeof(int)];
+        Buffer.BlockCopy(serializedValue, 0, effect, 0, effect.Length);
         var status = (byte)WorkStatus;
         var result = Result;
         var exception = StoredException?.Serialize();
@@ -175,7 +163,10 @@ public record StoredEffect(
     public static StoredEffect Deserialize(byte[] bytes)
     {
         var parts = BinaryPacker.Split(bytes);
-        var effect = EffectId.Deserialize(parts[0]!.ToStringFromUtf8Bytes());
+        var effectBytes = parts[0]!;
+        var effectInts = new int[effectBytes.Length / sizeof(int)];
+        Buffer.BlockCopy(effectBytes, 0, effectInts, 0, effectBytes.Length);
+        var effect = EffectId.Deserialize(effectInts);
         var status = (WorkStatus)parts[1]![0];
         var result = parts[2];
         var exception = parts.Count > 3

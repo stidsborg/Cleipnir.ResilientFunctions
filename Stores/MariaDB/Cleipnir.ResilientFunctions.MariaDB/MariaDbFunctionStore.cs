@@ -945,6 +945,28 @@ public class MariaDbFunctionStore : IFunctionStore
         return results;
     }
 
+    private string? _setResultSql;
+    public async Task SetResult(StoredId storedId, byte[] result, ReplicaId expectedReplica)
+    {
+        await using var conn = await CreateOpenConnection(_connectionString);
+        _setResultSql ??= $@"
+            UPDATE {_tablePrefix}
+            SET result_json = ?
+            WHERE id = ? AND owner = ?";
+
+        await using var command = new MySqlCommand(_setResultSql, conn)
+        {
+            Parameters =
+            {
+                new() { Value = result },
+                new() { Value = storedId.AsGuid.ToString("N") },
+                new() { Value = expectedReplica.AsGuid.ToString("N") }
+            }
+        };
+
+        await command.ExecuteNonQueryAsync();
+    }
+
     private string? _deleteFunctionSql;
     private async Task<bool> DeleteStoredFunction(StoredId storedId)
     {

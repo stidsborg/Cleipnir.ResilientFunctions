@@ -169,7 +169,7 @@ public abstract class AtMostOnceWorkStatusAndResultTests
         counter.Current.ShouldBe(1);
         await controlPanel.Refresh();
 
-        var value = controlPanel.Effects.GetValue<string>("0");
+        var value = controlPanel.Effects.GetValue<string>(0);
         await value.ShouldBeAsync("hello world");
     }
     
@@ -201,7 +201,7 @@ public abstract class AtMostOnceWorkStatusAndResultTests
         counter.Current.ShouldBe(1);
         await controlPanel.Refresh();
 
-        var value = controlPanel.Effects.GetValue<Person>("0");
+        var value = controlPanel.Effects.GetValue<Person>(0);
         await value.ShouldBeAsync(new Person("Peter", 32));
     }
 }

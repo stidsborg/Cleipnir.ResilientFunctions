@@ -1,18 +1,15 @@
-using System;
-
 namespace Cleipnir.ResilientFunctions.Domain;
 
 public class TimeoutId
 {
-    public string Value { get; }
-    public TimeoutId(string value)
+    public int Value { get; }
+    public TimeoutId(int value)
     {
-        ArgumentNullException.ThrowIfNull(value);
         Value = value;
     }
-    
-    public static implicit operator TimeoutId(string timeoutId) => new(timeoutId);
-    public override string ToString() => Value;
+
+    public static implicit operator TimeoutId(int timeoutId) => new(timeoutId);
+    public override string ToString() => Value.ToString();
     public static bool operator ==(TimeoutId id1, TimeoutId id2) => id1.Equals(id2);
     public static bool operator !=(TimeoutId id1, TimeoutId id2) => !(id1 == id2);
 
