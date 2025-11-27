@@ -30,13 +30,13 @@ public class Effect(EffectResults effectResults, UtcNow utcNow, FlowMinimumTimeo
         return storedEffect?.WorkStatus;
     }
 
-    public async Task<bool> Mark(int id)
+    public async Task<bool> Mark()
     {
-        var effectId = CreateEffectId(id);
+        var effectId = CreateEffectId(EffectContext.CurrentContext.NextImplicitId());
         if (await effectResults.Contains(effectId))
             return false;
 
-        var storedEffect = StoredEffect.CreateCompleted(effectId, alias: id.ToString());
+        var storedEffect = StoredEffect.CreateCompleted(effectId, alias: null);
         await effectResults.Set(storedEffect, flush: true);
         return true;
     }

@@ -356,7 +356,7 @@ internal class InvocationHelper<TParam, TReturn>
         var parent = GetAndEnsureParent(detach);
         if (parent != null)
         {
-            var marked = await parent.Effect.Mark($"BulkScheduled#{parent.Effect.TakeNextImplicitId()}".GetHashCode());
+            var marked = await parent.Effect.Mark();
             if (!marked)
                 return CreateInnerScheduled(
                     work.Select(w => new FlowId(_flowType, w.Instance)).ToList(),
