@@ -24,8 +24,18 @@ public class EffectResults(
 
     private readonly Dictionary<EffectId, PendingEffectChange> _effectResults = new();
     
-    public IEnumerable<EffectId> EffectIds => _effectResults.Keys.ToList();
+    public async Task<EffectId?> GetEffectId(string alias)
+    {
+        await InitializeIfRequired();
+        lock (_sync)
+            return _effectResults
+                .Values
+                .FirstOrDefault(c => c.Alias == alias)
+                ?.Id;
+    }
 
+    public IEnumerable<EffectId> EffectIds => _effectResults.Keys.ToList();
+    
     private async Task InitializeIfRequired()
     {
         if (_initialized)
@@ -43,7 +53,8 @@ public class EffectResults(
                         existingEffect.EffectId,
                         existingEffect,
                         Operation: null,
-                        Existing: true
+                        Existing: true,
+                        existingEffect.Alias
                     );
             
             _initialized = true;
@@ -351,7 +362,8 @@ public class EffectResults(
                     effectId,
                     storedEffect,
                     CrudOperation.Insert,
-                    Existing: false
+                    Existing: false,
+                    storedEffect?.Alias
                 );
             }
     }

@@ -41,16 +41,42 @@ public class Effect(EffectResults effectResults, UtcNow utcNow, FlowMinimumTimeo
         return true;
     }
 
-    public Task<T> CreateOrGet<T>(int id, T value, bool flush = true) => CreateOrGet(CreateEffectId(id), value, id.ToString(), flush);
+    public async Task<T> CreateOrGet<T>(string alias, T value, bool flush = true)
+    {
+        var effectId = await effectResults.GetEffectId(alias)
+            ?? CreateNextImplicitId();
+
+        return await CreateOrGet(
+            effectId,
+            value,
+            alias,
+            flush
+        );
+    }
+
     internal Task<T> CreateOrGet<T>(EffectId effectId, T value, string? alias, bool flush) => effectResults.CreateOrGet(effectId, value, alias, flush);
 
-    public async Task Upsert<T>(int id, T value, bool flush = true) => await Upsert(CreateEffectId(id), value, id.ToString(), flush);
+    public async Task Upsert<T>(string alias, T value, bool flush = true)
+        => await Upsert(
+            effectId: await CreateFromAlias(alias),
+            value,
+            alias,
+            flush
+        );
     internal Task Upsert<T>(EffectId effectId, T value, string? alias, bool flush) => effectResults.Upsert(effectId, alias, value, flush);
 
     internal Task Upserts(IEnumerable<Tuple<EffectId, object, string?>> values, bool flush)
         => effectResults.Upserts(values, flush);
 
-    public async Task<Option<T>> TryGet<T>(int id) => await TryGet<T>(CreateEffectId(id));
+    public async Task<Option<T>> TryGet<T>(string alias)
+    {
+        var effectId = await effectResults.GetEffectId(alias);
+        if (effectId == null)
+            return Option.CreateNoValue<T>();
+
+        return await effectResults.TryGet<T>(effectId);
+    } 
+    
     internal Task<Option<T>> TryGet<T>(EffectId effectId) => effectResults.TryGet<T>(effectId);
     public async Task<T> Get<T>(int id) => await Get<T>(CreateEffectId(id));
     internal async Task<T> Get<T>(EffectId effectId)
@@ -153,6 +179,22 @@ public class Effect(EffectResults effectResults, UtcNow utcNow, FlowMinimumTimeo
 
     internal EffectId CreateEffectId(int id)
     {
+        var parent = EffectContext.CurrentContext.Parent;
+        if (parent == null)
+            return id.ToEffectId();
+
+        return new EffectId([..parent.Value, id]);
+    }
+
+    internal async Task<EffectId> CreateFromAlias(string alias)
+    {
+        return await effectResults.GetEffectId(alias)
+            ?? CreateNextImplicitId();
+    }
+
+    internal EffectId CreateNextImplicitId()
+    {
+        var id = EffectContext.CurrentContext.NextImplicitId();
         var parent = EffectContext.CurrentContext.Parent;
         if (parent == null)
             return id.ToEffectId();

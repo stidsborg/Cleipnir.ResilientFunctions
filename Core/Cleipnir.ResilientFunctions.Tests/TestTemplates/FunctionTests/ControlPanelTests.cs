@@ -32,7 +32,7 @@ public abstract class ControlPanelTests
             async (string _, Workflow workflow) =>
             {
                 var (effect, messages) = workflow;
-                await effect.CreateOrGet(0, 123);
+                await effect.CreateOrGet("alias", 123);
                 await messages.AppendMessage("Message");
                 await workflow.Messages.FlowRegisteredTimeouts.RegisterTimeout(1, expiresAt: DateTime.UtcNow.AddDays(1), publishMessage: true);
             }
@@ -84,7 +84,7 @@ public abstract class ControlPanelTests
             async Task<string>(string _, Workflow workflow) =>
             {
                 var (effect, messages) = workflow;
-                await effect.CreateOrGet(0, 123);
+                await effect.CreateOrGet("alias", 123);
                 await messages.AppendMessage("Message");
                 await workflow.Messages.FlowRegisteredTimeouts.RegisterTimeout(1, expiresAt: DateTime.UtcNow.AddDays(1), publishMessage: true);
                 return "hello";
