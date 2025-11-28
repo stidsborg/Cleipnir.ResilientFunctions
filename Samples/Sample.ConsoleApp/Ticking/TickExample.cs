@@ -22,7 +22,7 @@ public static class TickExample
             flowType: "Tick",
             inner: async (string param, Workflow workflow) =>
             {
-                var i = await workflow.Effect.CreateOrGet(0, 0);
+                var i = await workflow.Effect.CreateOrGet("alias", 0);
                 
                 while (true)
                 {

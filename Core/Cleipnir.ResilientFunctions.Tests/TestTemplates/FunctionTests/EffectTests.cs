@@ -346,26 +346,26 @@ public abstract class EffectTests
         );
         var effect = new Effect(effectResults, utcNow: () => DateTime.UtcNow, new FlowMinimumTimeout());
         
-        var option = await effect.TryGet<int>(1);
+        var option = await effect.TryGet<int>("alias");
         option.HasValue.ShouldBeFalse();
 
         Should.Throw<InvalidOperationException>(() => effect.Get<int>(1));
 
-        var result = await effect.CreateOrGet(1, 32);
+        var result = await effect.CreateOrGet("alias", 32);
         result.ShouldBe(32);
-        result = await effect.CreateOrGet(1, 100);
+        result = await effect.CreateOrGet("alias", 100);
         result.ShouldBe(32);
 
-        option = await effect.TryGet<int>(1);
+        option = await effect.TryGet<int>("alias");
         option.HasValue.ShouldBeTrue();
         var value2 = option.Value;
         value2.ShouldBe(32);
-        (await effect.Get<int>(1)).ShouldBe(32);
+        (await effect.Get<int>(0)).ShouldBe(32);
 
-        await effect.Upsert(1, 100);
-        (await effect.Get<int>(1)).ShouldBe(100);
-        await effect.GetStatus(1).ShouldBeAsync(WorkStatus.Completed);
-        await effect.Contains(1).ShouldBeTrueAsync();
+        await effect.Upsert(0, 100);
+        (await effect.Get<int>(0)).ShouldBe(100);
+        await effect.GetStatus(0).ShouldBeAsync(WorkStatus.Completed);
+        await effect.Contains(0).ShouldBeTrueAsync();
     }
     
     public abstract Task ExistingEffectsFuncIsOnlyInvokedAfterGettingValue();
@@ -395,10 +395,10 @@ public abstract class EffectTests
         
         syncedCounter.Current.ShouldBe(0);
         
-        await effect.TryGet<int>(1);
+        await effect.TryGet<int>("alias");
         syncedCounter.Current.ShouldBe(1);
 
-        await effect.TryGet<int>(1);
+        await effect.TryGet<int>("alias");
         syncedCounter.Current.ShouldBe(1);
     }
     
