@@ -349,7 +349,7 @@ public abstract class EffectTests
         var option = await effect.TryGet<int>("alias");
         option.HasValue.ShouldBeFalse();
 
-        Should.Throw<InvalidOperationException>(() => effect.Get<int>(1));
+        Should.Throw<InvalidOperationException>(() => effect.Get<int>("nonexistent"));
 
         var result = await effect.CreateOrGet("alias", 32);
         result.ShouldBe(32);
@@ -360,10 +360,10 @@ public abstract class EffectTests
         option.HasValue.ShouldBeTrue();
         var value2 = option.Value;
         value2.ShouldBe(32);
-        (await effect.Get<int>(0)).ShouldBe(32);
+        (await effect.Get<int>("alias")).ShouldBe(32);
 
         await effect.Upsert("alias", 100);
-        (await effect.Get<int>(0)).ShouldBe(100);
+        (await effect.Get<int>("alias")).ShouldBe(100);
         await effect.GetStatus(0).ShouldBeAsync(WorkStatus.Completed);
         await effect.Contains(0).ShouldBeTrueAsync();
     }
