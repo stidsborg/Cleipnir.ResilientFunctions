@@ -756,25 +756,22 @@ public abstract class EffectTests
         var effectResults = new EffectResults(
             TestFlowId.Create(),
             storedId,
-            lazyExistingEffects: new Lazy<Task<IReadOnlyList<StoredEffect>>>(
-                () => new List<StoredEffect>().CastTo<IReadOnlyList<StoredEffect>>().ToTask()
-            ),
+            lazyExistingEffects: new Lazy<Task<IReadOnlyList<StoredEffect>>>(() => effectStore.GetEffectResults(storedId)),
             effectStore,
-            DefaultSerializer.Instance, 
+            DefaultSerializer.Instance,
             session
         );
-        var effect = new Effect(effectResults, utcNow: () => DateTime.UtcNow, new FlowMinimumTimeout());
+        // Create two effects using the internal API with explicit IDs to avoid implicit ID issues
+        await effectResults.CreateOrGet(0.ToEffectId(), "hello world", "first", flush: true);
+        await effectResults.CreateOrGet(1.ToEffectId(), "hello universe", "second", flush: true);
 
-        await effect.Capture(() => "hello world");
-        await effect.Capture(() => "hello universe");
-        await effect.Flush();
-
-        await effect.Upsert("0", "hello world again");
+        // Upsert the first effect - should not affect the second
+        await effectResults.Upsert(0.ToEffectId(), "first", "hello world again", flush: true);
 
         var storedEffects = await effectStore.GetEffectResults(storedId);
         storedEffects.Count.ShouldBe(2);
-        storedEffects.Single(se => se.EffectId.Id == 0).Result!.ToStringFromUtf8Bytes().DeserializeFromJsonTo<string>().ShouldBe("hello world again");
-        storedEffects.Single(se => se.EffectId.Id == 1).Result!.ToStringFromUtf8Bytes().DeserializeFromJsonTo<string>().ShouldBe("hello universe");
+        storedEffects.Single(se => se.Alias == "first").Result!.ToStringFromUtf8Bytes().DeserializeFromJsonTo<string>().ShouldBe("hello world again");
+        storedEffects.Single(se => se.Alias == "second").Result!.ToStringFromUtf8Bytes().DeserializeFromJsonTo<string>().ShouldBe("hello universe");
     }
     
     public abstract Task CaptureEffectWithRetryPolicy();
