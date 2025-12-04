@@ -41,7 +41,7 @@ public static class LongRunningStressfulTest
 
                         for (var i = 0; i < 100; i++)
                         {
-                            await effect.Clear(i);
+                            await effect.Clear(i.ToString());
                             await Task.Delay(10);
                         }
                     }

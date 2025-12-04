@@ -297,7 +297,7 @@ public abstract class EffectTests
             async Task (string param, Workflow workflow) =>
             {
                 var (effect, _) = workflow;
-                await effect.Clear("SomeEffect".GetHashCode());
+                await effect.Clear("SomeEffect");
             });
 
         await store.CreateFunction(
