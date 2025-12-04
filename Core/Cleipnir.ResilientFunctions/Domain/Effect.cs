@@ -165,7 +165,8 @@ public class Effect(EffectResults effectResults, UtcNow utcNow, FlowMinimumTimeo
         );
     }
 
-    public Task Clear(int id) => effectResults.Clear(CreateEffectId(id), flush: true);
+    public async Task Clear(string alias) 
+        => await effectResults.Clear(await CreateFromAlias(alias), flush: true);
 
     public Task<T> WhenAny<T>(int id, params Task<T>[] tasks)
         => Capture(id, work: async () => await await Task.WhenAny(tasks));
