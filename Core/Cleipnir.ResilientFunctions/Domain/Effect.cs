@@ -118,18 +118,18 @@ public class Effect(EffectResults effectResults, UtcNow utcNow, FlowMinimumTimeo
     private Task<T> Capture<T>(int id, Func<T> work, ResiliencyLevel resiliency = ResiliencyLevel.AtLeastOnce)
         => Capture(id, work: () => work().ToTask(), resiliency);
     private async Task Capture(int id, Func<Task> work, ResiliencyLevel resiliency = ResiliencyLevel.AtLeastOnce)
-        => await InnerCapture(id, alias: id.ToString(), work, resiliency, EffectContext.CurrentContext, retryPolicy: null);
+        => await InnerCapture(id, alias: null, work, resiliency, EffectContext.CurrentContext, retryPolicy: null);
     private async Task<T> Capture<T>(int id, Func<Task<T>> work, ResiliencyLevel resiliency = ResiliencyLevel.AtLeastOnce)
-        => await InnerCapture(id, alias: id.ToString(), work, resiliency, EffectContext.CurrentContext, retryPolicy: null);
+        => await InnerCapture(id, alias: null, work, resiliency, EffectContext.CurrentContext, retryPolicy: null);
 
     private Task Capture(int id, Action work, RetryPolicy retryPolicy, bool flush = true)
         => Capture(id, work: () => { work(); return Task.CompletedTask; }, retryPolicy, flush);
     private Task<T> Capture<T>(int id, Func<T> work, RetryPolicy retryPolicy, bool flush = true)
         => Capture(id, work: () => work().ToTask(), retryPolicy, flush);
     private async Task Capture(int id, Func<Task> work, RetryPolicy retryPolicy, bool flush = true)
-        => await InnerCapture(id, alias: id.ToString(), work, flush ? ResiliencyLevel.AtLeastOnce : ResiliencyLevel.AtLeastOnceDelayFlush, EffectContext.CurrentContext, retryPolicy);
+        => await InnerCapture(id, alias: null, work, flush ? ResiliencyLevel.AtLeastOnce : ResiliencyLevel.AtLeastOnceDelayFlush, EffectContext.CurrentContext, retryPolicy);
     private async Task<T> Capture<T>(int id, Func<Task<T>> work, RetryPolicy retryPolicy, bool flush = true)
-        => await InnerCapture(id, alias: id.ToString(), work, flush ? ResiliencyLevel.AtLeastOnce : ResiliencyLevel.AtLeastOnceDelayFlush, EffectContext.CurrentContext, retryPolicy);
+        => await InnerCapture(id, alias: null, work, flush ? ResiliencyLevel.AtLeastOnce : ResiliencyLevel.AtLeastOnceDelayFlush, EffectContext.CurrentContext, retryPolicy);
 
     private async Task InnerCapture(int id, string? alias, Func<Task> work, ResiliencyLevel resiliency, EffectContext effectContext, RetryPolicy? retryPolicy)
     {
