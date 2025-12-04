@@ -29,7 +29,7 @@ public static class TickExample
                     await Task.Delay(1_000);
                     Console.WriteLine($"[{param}]: #{i} ticked...");
                     i++;
-                    await workflow.Effect.Upsert(0, i);
+                    await workflow.Effect.Upsert("alias", i);
                 }
             }
         );

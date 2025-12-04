@@ -28,7 +28,7 @@ public static class EmailSenderSaga
             message.Body = new TextPart(TextFormat.Html) { Text = content };
             await client.SendAsync(message);
 
-            await workflow.Effect.Upsert(0, atRecipient);
+            await workflow.Effect.Upsert("atRecipient", atRecipient);
         }
     }
 }

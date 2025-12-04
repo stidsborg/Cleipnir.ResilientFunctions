@@ -362,7 +362,7 @@ public abstract class EffectTests
         value2.ShouldBe(32);
         (await effect.Get<int>(0)).ShouldBe(32);
 
-        await effect.Upsert(0, 100);
+        await effect.Upsert("alias", 100);
         (await effect.Get<int>(0)).ShouldBe(100);
         await effect.GetStatus(0).ShouldBeAsync(WorkStatus.Completed);
         await effect.Contains(0).ShouldBeTrueAsync();
@@ -419,13 +419,13 @@ public abstract class EffectTests
                     var e1 =  effect.Capture(async () =>
                     {
                         await Task.Delay(10);
-                        await effect.Upsert("SubEffectValue1".GetHashCode(), "some value");
+                        await effect.Upsert("SubEffectValue1", "some value");
                     });
                     await e1;
                     var e2 = effect.Capture(async () =>
                     {
                         await Task.Delay(1);
-                        await effect.Upsert("SubEffectValue2".GetHashCode(), "some other value");
+                        await effect.Upsert("SubEffectValue2", "some other value");
                     });
 
                     await Task.WhenAll(e1, e2);
@@ -438,13 +438,13 @@ public abstract class EffectTests
         var storedId = rAction.MapToStoredId(flowId.Instance);
         var effectResults = await store.EffectsStore.GetEffectResults(storedId);
 
-        var subEffectValue1Id = effectResults.Single(se => se.EffectId.Id == "SubEffectValue1".GetHashCode()).EffectId;
+        var subEffectValue1Id = effectResults.Single(se => se.Alias == "SubEffectValue1").EffectId;
         subEffectValue1Id.Context.ShouldBe(new int[] {0, 0});
 
-        var subEffectValue2Id = effectResults.Single(se => se.EffectId.Id == "SubEffectValue2".GetHashCode()).EffectId;
+        var subEffectValue2Id = effectResults.Single(se => se.Alias == "SubEffectValue2").EffectId;
         subEffectValue2Id.Context.ShouldBe(new int[] {0, 1});
     }
-    
+
     public abstract Task SubEffectHasExplicitContext();
     public async Task SubEffectHasExplicitContext(Task<IFunctionStore> storeTask)
     {
@@ -462,13 +462,13 @@ public abstract class EffectTests
                     var e1 =  effect.Capture(async () =>
                     {
                         await Task.Delay(10);
-                        await effect.Upsert("SubEffectValue1".GetHashCode(), "some value");
+                        await effect.Upsert("SubEffectValue1", "some value");
                     });
                     await e1;
                     var e2 = effect.Capture(async () =>
                     {
                         await Task.Delay(1);
-                        await effect.Upsert("SubEffectValue2".GetHashCode(), "some other value");
+                        await effect.Upsert("SubEffectValue2", "some other value");
                     });
 
                     await Task.WhenAll(e1, e2);
@@ -477,14 +477,14 @@ public abstract class EffectTests
         );
 
         await rAction.Invoke(flowInstance.ToString());
-        
+
         var storedId = rAction.MapToStoredId(flowId.Instance);
         var effectResults = await store.EffectsStore.GetEffectResults(storedId);
 
-        var subEffectValue1Id = effectResults.Single(se => se.EffectId.Id == "SubEffectValue1".GetHashCode()).EffectId;
+        var subEffectValue1Id = effectResults.Single(se => se.Alias == "SubEffectValue1").EffectId;
         subEffectValue1Id.Context.ShouldBe(new int[] {0, 0});
 
-        var subEffectValue2Id = effectResults.Single(se => se.EffectId.Id == "SubEffectValue2".GetHashCode()).EffectId;
+        var subEffectValue2Id = effectResults.Single(se => se.Alias == "SubEffectValue2").EffectId;
         subEffectValue2Id.Context.ShouldBe(new int[] {0, 1});
     }
 
@@ -769,7 +769,7 @@ public abstract class EffectTests
         await effect.Capture(() => "hello universe");
         await effect.Flush();
 
-        await effect.Upsert(0, "hello world again");
+        await effect.Upsert("0", "hello world again");
 
         var storedEffects = await effectStore.GetEffectResults(storedId);
         storedEffects.Count.ShouldBe(2);
