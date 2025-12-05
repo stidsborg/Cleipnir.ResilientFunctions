@@ -78,7 +78,7 @@ public class Effect(EffectResults effectResults, UtcNow utcNow, FlowMinimumTimeo
     } 
     
     internal Task<Option<T>> TryGet<T>(EffectId effectId) => effectResults.TryGet<T>(effectId);
-    public async Task<T> Get<T>(string alias) => await Get<T>(
+    internal async Task<T> Get<T>(string alias) => await Get<T>(
         await effectResults.GetEffectId(alias) ?? throw new InvalidOperationException($"Unknown alias: '{alias}'")
     );
     internal async Task<T> Get<T>(EffectId effectId)
@@ -165,7 +165,7 @@ public class Effect(EffectResults effectResults, UtcNow utcNow, FlowMinimumTimeo
         );
     }
 
-    public async Task Clear(string alias) 
+    internal async Task Clear(string alias) 
         => await effectResults.Clear(await CreateFromAlias(alias), flush: true);
 
     public Task<T> WhenAny<T>(int id, params Task<T>[] tasks)
