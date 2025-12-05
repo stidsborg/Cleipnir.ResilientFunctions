@@ -58,7 +58,7 @@ public class Effect(EffectResults effectResults, UtcNow utcNow, FlowMinimumTimeo
 
     internal async Task Upsert<T>(string alias, T value, bool flush = true)
         => await Upsert(
-            effectId: await CreateFromAlias(alias),
+            CreateNextImplicitId(),
             value,
             alias,
             flush
@@ -184,12 +184,6 @@ public class Effect(EffectResults effectResults, UtcNow utcNow, FlowMinimumTimeo
             return id.ToEffectId();
 
         return new EffectId([..parent.Value, id]);
-    }
-
-    internal async Task<EffectId> CreateFromAlias(string alias)
-    {
-        return await effectResults.GetEffectId(alias)
-            ?? CreateNextImplicitId();
     }
 
     internal EffectId CreateNextImplicitId()
