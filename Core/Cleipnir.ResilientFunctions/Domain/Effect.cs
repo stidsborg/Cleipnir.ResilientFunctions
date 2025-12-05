@@ -17,20 +17,20 @@ public enum ResiliencyLevel
 
 public class Effect(EffectResults effectResults, UtcNow utcNow, FlowMinimumTimeout flowMinimumTimeout)
 {
-    public async Task<bool> Contains(int id) => await Contains(CreateEffectId(id));
+    internal async Task<bool> Contains(int id) => await Contains(CreateEffectId(id));
     internal Task<bool> Contains(EffectId effectId) => effectResults.Contains(effectId);
 
     internal IEnumerable<EffectId> EffectIds => effectResults.EffectIds;
     internal FlowMinimumTimeout FlowMinimumTimeout => flowMinimumTimeout;
 
-    public async Task<WorkStatus?> GetStatus(int id)
+    internal async Task<WorkStatus?> GetStatus(int id)
     {
         var effectId = CreateEffectId(id);
         var storedEffect = await effectResults.GetOrValueDefault(effectId);
         return storedEffect?.WorkStatus;
     }
 
-    public async Task<bool> Mark()
+    internal async Task<bool> Mark()
     {
         var effectId = CreateEffectId(EffectContext.CurrentContext.NextImplicitId());
         if (await effectResults.Contains(effectId))
@@ -41,7 +41,7 @@ public class Effect(EffectResults effectResults, UtcNow utcNow, FlowMinimumTimeo
         return true;
     }
 
-    public async Task<T> CreateOrGet<T>(string alias, T value, bool flush = true)
+    internal async Task<T> CreateOrGet<T>(string alias, T value, bool flush = true)
     {
         var effectId = await effectResults.GetEffectId(alias)
             ?? CreateNextImplicitId();
@@ -56,7 +56,7 @@ public class Effect(EffectResults effectResults, UtcNow utcNow, FlowMinimumTimeo
 
     internal Task<T> CreateOrGet<T>(EffectId effectId, T value, string? alias, bool flush) => effectResults.CreateOrGet(effectId, value, alias, flush);
 
-    public async Task Upsert<T>(string alias, T value, bool flush = true)
+    internal async Task Upsert<T>(string alias, T value, bool flush = true)
         => await Upsert(
             effectId: await CreateFromAlias(alias),
             value,
@@ -68,7 +68,7 @@ public class Effect(EffectResults effectResults, UtcNow utcNow, FlowMinimumTimeo
     internal Task Upserts(IEnumerable<Tuple<EffectId, object, string?>> values, bool flush)
         => effectResults.Upserts(values, flush);
 
-    public async Task<Option<T>> TryGet<T>(string alias)
+    internal async Task<Option<T>> TryGet<T>(string alias)
     {
         var effectId = await effectResults.GetEffectId(alias);
         if (effectId == null)
