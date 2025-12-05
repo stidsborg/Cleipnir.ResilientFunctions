@@ -284,43 +284,6 @@ public abstract class EffectTests
         storedEffect.Result!.ToStringFromUtf8Bytes().DeserializeFromJsonTo<int[]>().ShouldBe(new [] {1, 2});
     }
     
-    public abstract Task ClearEffectsTest();
-    public async Task ClearEffectsTest(Task<IFunctionStore> storeTask)
-    {  
-        var store = await storeTask;
-        using var functionsRegistry = new FunctionsRegistry(store);
-        var flowId = TestFlowId.Create();
-        var (flowType, flowInstance) = flowId;
-        
-        var registration = functionsRegistry.RegisterAction(
-            flowType,
-            async Task (string param, Workflow workflow) =>
-            {
-                var (effect, _) = workflow;
-                await effect.Clear("SomeEffect");
-            });
-
-        await store.CreateFunction(
-            registration.MapToStoredId(flowId.Instance), 
-            "humanInstanceId",
-            Test.SimpleStoredParameter,
-            leaseExpiration: (DateTime.UtcNow + TimeSpan.FromMinutes(10)).Ticks,
-            postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks,
-            parent: null,
-            owner: null
-        );
-        
-        var controlPanel = await registration.ControlPanel(flowId.Instance);
-        controlPanel.ShouldNotBeNull();
-
-        await controlPanel.Effects.SetSucceeded("SomeEffect".GetHashCode());
-        await controlPanel.Restart();
-
-        await controlPanel.Refresh();
-        (await controlPanel.Effects.AllIds).Count().ShouldBe(0);
-    }
-    
     public abstract Task EffectsCrudTest();
     public async Task EffectsCrudTest(Task<IFunctionStore> storeTask)
     {  

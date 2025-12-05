@@ -38,12 +38,6 @@ public static class LongRunningStressfulTest
                             await effect.Capture(() => i);
                             await Task.Delay(10);
                         }
-
-                        for (var i = 0; i < 100; i++)
-                        {
-                            await effect.Clear(i.ToString());
-                            await Task.Delay(10);
-                        }
                     }
                 });
         
