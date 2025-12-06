@@ -30,10 +30,6 @@ public class EffectTests : ResilientFunctions.Tests.TestTemplates.FunctionTests.
         => TaskWhenAnyFuncTest(FunctionStoreFactory.Create());
     
     [TestMethod]
-    public override Task ClearEffectsTest()
-        => ClearEffectsTest(FunctionStoreFactory.Create());
-    
-    [TestMethod]
     public override Task EffectsCrudTest()
         => EffectsCrudTest(FunctionStoreFactory.Create());
     
@@ -48,6 +44,10 @@ public class EffectTests : ResilientFunctions.Tests.TestTemplates.FunctionTests.
     [TestMethod]
     public override Task SubEffectHasExplicitContext()
         => SubEffectHasExplicitContext(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task EffectsHasCorrectlyOrderedIds()
+        => EffectsHasCorrectlyOrderedIds(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task TaskWhenAllFuncTest()

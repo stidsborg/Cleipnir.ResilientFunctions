@@ -346,7 +346,7 @@ public abstract class SunshineTests
                 flowId.Type,
                 async (string s, Workflow workflow) =>
                 {
-                    initialEffectValue = await workflow.Effect.Get<string>("InitialEffectId".GetHashCode());
+                    initialEffectValue = await workflow.Effect.Get<string>("InitialEffectId");
                     initialMessageValue = await workflow.Messages.OfType<string>().First();
                     return s;
                 });
@@ -357,7 +357,7 @@ public abstract class SunshineTests
             param: "hello",
             initialState: new InitialState(
                 Messages: [new MessageAndIdempotencyKey("InitialMessage")],
-                Effects: [new InitialEffect(Id: "InitialEffectId".GetHashCode(), Value: "InitialEffectValue", Exception: null)]
+                Effects: [new InitialEffect(Id: 0, Value: "InitialEffectValue", Exception: null, Alias: "InitialEffectId")]
             )
         );
         
@@ -385,7 +385,7 @@ public abstract class SunshineTests
                 flowId.Type,
                 async (string _, Workflow workflow) =>
                 {
-                    initialEffectValue = await workflow.Effect.Get<string>("InitialEffectId".GetHashCode());
+                    initialEffectValue = await workflow.Effect.Get<string>("InitialEffectId");
                     initialMessageValue = await workflow.Messages.OfType<string>().First();
                 });
 
@@ -395,7 +395,7 @@ public abstract class SunshineTests
             param: "hello",
             initialState: new InitialState(
                 Messages: [new MessageAndIdempotencyKey("InitialMessage")],
-                Effects: [new InitialEffect(Id: "InitialEffectId".GetHashCode(), Value: "InitialEffectValue", Exception: null)]
+                Effects: [new InitialEffect(Id: 0, Value: "InitialEffectValue", Exception: null, Alias: "InitialEffectId")]
             )
         );
         
@@ -423,7 +423,7 @@ public abstract class SunshineTests
                 flowId.Type,
                 async (Workflow workflow) =>
                 {
-                    initialEffectValue = await workflow.Effect.Get<string>("InitialEffectId".GetHashCode());
+                    initialEffectValue = await workflow.Effect.Get<string>("InitialEffectId");
                     initialMessageValue = await workflow.Messages.OfType<string>().First();
                 });
 
@@ -432,7 +432,7 @@ public abstract class SunshineTests
             flowInstance: "hello",
             initialState: new InitialState(
                 Messages: [new MessageAndIdempotencyKey("InitialMessage")],
-                Effects: [new InitialEffect(Id: "InitialEffectId".GetHashCode(), Value: "InitialEffectValue", Exception: null)]
+                Effects: [new InitialEffect(Id: 0, Value: "InitialEffectValue", Exception: null, Alias: "InitialEffectId")]
             )
         );
         

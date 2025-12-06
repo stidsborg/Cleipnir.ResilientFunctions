@@ -24,8 +24,18 @@ public class EffectResults(
 
     private readonly Dictionary<EffectId, PendingEffectChange> _effectResults = new();
     
-    public IEnumerable<EffectId> EffectIds => _effectResults.Keys.ToList();
+    public async Task<EffectId?> GetEffectId(string alias)
+    {
+        await InitializeIfRequired();
+        lock (_sync)
+            return _effectResults
+                .Values
+                .FirstOrDefault(c => c.Alias == alias)
+                ?.Id;
+    }
 
+    public IEnumerable<EffectId> EffectIds => _effectResults.Keys.ToList();
+    
     private async Task InitializeIfRequired()
     {
         if (_initialized)
@@ -43,7 +53,8 @@ public class EffectResults(
                         existingEffect.EffectId,
                         existingEffect,
                         Operation: null,
-                        Existing: true
+                        Existing: true,
+                        existingEffect.Alias
                     );
             
             _initialized = true;
@@ -149,14 +160,10 @@ public class EffectResults(
         return Option<T>.NoValue;
     }
     
-    public async Task InnerCapture(int id, string? alias, Func<Task> work, ResiliencyLevel resiliency, EffectContext effectContext)
+    public async Task InnerCapture(EffectId effectId, string? alias, Func<Task> work, ResiliencyLevel resiliency, EffectContext effectContext)
     {
         await InitializeIfRequired();
-
-        var parent = effectContext.Parent;
-        var effectId = parent == null
-            ? id.ToEffectId()
-            : new EffectId([..parent.Value, id]);
+        
         EffectContext.SetParent(effectId);
 
         lock (_sync)
@@ -168,7 +175,7 @@ public class EffectResults(
             if (success && storedEffect?.WorkStatus == WorkStatus.Failed)
                 throw serializer.DeserializeException(flowId, storedEffect.StoredException!);
             if (success && resiliency == ResiliencyLevel.AtMostOnce)
-                throw new InvalidOperationException($"Effect '{id}' started but did not complete previously");
+                throw new InvalidOperationException($"Effect '{effectId}' started but did not complete previously");
         }
 
         if (resiliency == ResiliencyLevel.AtMostOnce)
@@ -225,14 +232,10 @@ public class EffectResults(
         }
     }
     
-    public async Task<T> InnerCapture<T>(int id, string? alias, Func<Task<T>> work, ResiliencyLevel resiliency, EffectContext effectContext)
+    public async Task<T> InnerCapture<T>(EffectId effectId, string? alias, Func<Task<T>> work, ResiliencyLevel resiliency, EffectContext effectContext)
     {
         await InitializeIfRequired();
-
-        var parent = effectContext.Parent;
-        var effectId = parent == null
-            ? id.ToEffectId()
-            : new EffectId([..parent.Value, id]);
+        
         EffectContext.SetParent(effectId);
 
         lock (_sync)
@@ -243,7 +246,7 @@ public class EffectResults(
             if (success && storedEffect!.StoredEffect?.WorkStatus == WorkStatus.Failed)
                 throw FatalWorkflowException.Create(flowId, storedEffect.StoredEffect?.StoredException!);
             if (success && resiliency == ResiliencyLevel.AtMostOnce)
-                throw new InvalidOperationException($"Effect '{id}' started but did not complete previously");
+                throw new InvalidOperationException($"Effect '{effectId}' started but did not complete previously");
         }
 
         if (resiliency == ResiliencyLevel.AtMostOnce)
@@ -342,7 +345,8 @@ public class EffectResults(
                     StoredEffect = storedEffect,
                     Operation = delete 
                         ? CrudOperation.Delete
-                        : (existing.Existing ? CrudOperation.Update : CrudOperation.Insert)
+                        : (existing.Existing ? CrudOperation.Update : CrudOperation.Insert),
+                    Alias = storedEffect?.Alias,
                 };
             }
             else
@@ -351,7 +355,8 @@ public class EffectResults(
                     effectId,
                     storedEffect,
                     CrudOperation.Insert,
-                    Existing: false
+                    Existing: false,
+                    storedEffect?.Alias
                 );
             }
     }

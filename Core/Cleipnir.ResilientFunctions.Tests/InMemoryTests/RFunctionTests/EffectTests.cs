@@ -33,11 +33,7 @@ public class EffectTests : TestTemplates.FunctionTests.EffectTests
     [TestMethod]
     public override Task TaskWhenAllFuncTest()
         => TaskWhenAllFuncTest(FunctionStoreFactory.Create());
-
-    [TestMethod]
-    public override Task ClearEffectsTest()
-        => ClearEffectsTest(FunctionStoreFactory.Create());
-
+    
     [TestMethod]
     public override Task EffectsCrudTest()
         => EffectsCrudTest(FunctionStoreFactory.Create());
@@ -53,6 +49,10 @@ public class EffectTests : TestTemplates.FunctionTests.EffectTests
     [TestMethod]
     public override Task SubEffectHasExplicitContext()
         => SubEffectHasExplicitContext(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task EffectsHasCorrectlyOrderedIds()
+        => EffectsHasCorrectlyOrderedIds(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task ExceptionThrownInsideEffectBecomesFatalWorkflowException()

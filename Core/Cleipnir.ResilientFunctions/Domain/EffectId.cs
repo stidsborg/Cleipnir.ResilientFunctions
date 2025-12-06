@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using Cleipnir.ResilientFunctions.Helpers;
 
 namespace Cleipnir.ResilientFunctions.Domain;
 
@@ -44,6 +45,8 @@ public record EffectId(int[] Value)
 
         return new EffectId([..parent.Value, id]);
     }
+
+    public override string ToString() => "[" + Value.Select(v => v.ToString()).StringJoin(",") + "]";
 }
 
 public record SerializedEffectId(int[] Value)
