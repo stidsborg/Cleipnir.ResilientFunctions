@@ -51,6 +51,10 @@ public class EffectTests : TestTemplates.FunctionTests.EffectTests
         => SubEffectHasExplicitContext(FunctionStoreFactory.Create());
 
     [TestMethod]
+    public override Task EffectsHasCorrectlyOrderedIds()
+        => EffectsHasCorrectlyOrderedIds(FunctionStoreFactory.Create());
+
+    [TestMethod]
     public override Task ExceptionThrownInsideEffectBecomesFatalWorkflowException()
         => ExceptionThrownInsideEffectBecomesFatalWorkflowException(FunctionStoreFactory.Create());
 

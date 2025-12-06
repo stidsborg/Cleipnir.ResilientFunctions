@@ -345,7 +345,8 @@ public class EffectResults(
                     StoredEffect = storedEffect,
                     Operation = delete 
                         ? CrudOperation.Delete
-                        : (existing.Existing ? CrudOperation.Update : CrudOperation.Insert)
+                        : (existing.Existing ? CrudOperation.Update : CrudOperation.Insert),
+                    Alias = storedEffect?.Alias,
                 };
             }
             else

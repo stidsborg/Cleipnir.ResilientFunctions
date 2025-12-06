@@ -450,6 +450,71 @@ public abstract class EffectTests
         var subEffectValue2Id = effectResults.Single(se => se.Alias == "SubEffectValue2").EffectId;
         subEffectValue2Id.Context.ShouldBe(new int[] {0, 1});
     }
+    
+    public abstract Task EffectsHasCorrectlyOrderedIds();
+    public async Task EffectsHasCorrectlyOrderedIds(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        using var functionsRegistry = new FunctionsRegistry(store);
+        var flowId = TestFlowId.Create();
+        var (flowType, flowInstance) = flowId;
+        var rAction = functionsRegistry.RegisterParamless(
+            flowType,
+            async Task (workflow) =>
+            {
+                var effect = workflow.Effect;
+                var c0 = effect.Capture("0", async () =>
+                {
+                    var c00 = effect.Capture("0,0", async () =>
+                    {
+                        await Task.Delay(10);
+                        return "0,0";
+                    });
+                   
+                    var c01 = effect.Capture("0,1", async () =>
+                    {
+                        await Task.Delay(1);
+                        return "0,1";
+                    });
+
+                    await Task.WhenAll(c00, c01);
+                    return "0";
+                });
+                
+                var c1 = effect.Capture("1", async () =>
+                {
+                    var c10 = effect.Capture("1,0", async () =>
+                    {
+                        await Task.Delay(10);
+                        return "1,0";
+                    });
+                   
+                    var c11 = effect.Capture("1,1", async () =>
+                    {
+                        await Task.Delay(1);
+                        return "1,1";
+                    });
+
+                    await Task.WhenAll(c10, c11);
+                    return "1";
+                });
+
+                await Task.WhenAll(c0, c1);
+            }
+        );
+
+        await rAction.Invoke(flowInstance);
+
+        var storedId = rAction.MapToStoredId(flowId.Instance);
+        var effectResults = await store.EffectsStore.GetEffectResults(storedId);
+
+        foreach (var se in effectResults.Where(e => e.Alias != null))
+        {
+            var ctx = se.EffectId.ToString();
+            var alias = "[" + se.Alias + "]";
+            ctx.ShouldBe(alias);
+        }
+    }
 
     public abstract Task ExceptionThrownInsideEffectBecomesFatalWorkflowException();
     public async Task ExceptionThrownInsideEffectBecomesFatalWorkflowException(Task<IFunctionStore> storeTask)

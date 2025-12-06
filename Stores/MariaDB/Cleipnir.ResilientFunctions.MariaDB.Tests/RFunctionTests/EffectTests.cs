@@ -46,6 +46,10 @@ public class EffectTests : ResilientFunctions.Tests.TestTemplates.FunctionTests.
         => SubEffectHasExplicitContext(FunctionStoreFactory.Create());
 
     [TestMethod]
+    public override Task EffectsHasCorrectlyOrderedIds()
+        => EffectsHasCorrectlyOrderedIds(FunctionStoreFactory.Create());
+
+    [TestMethod]
     public override Task TaskWhenAllFuncTest()
         => TaskWhenAllFuncTest(FunctionStoreFactory.Create());
     
