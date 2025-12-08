@@ -46,6 +46,22 @@ public record EffectId(int[] Value)
         return new EffectId([..parent.Value, id]);
     }
 
+    public EffectId CreateChild(int id) => new(Value.Append(id).ToArray());
+
+    public bool IsChild(EffectId other)
+    {
+        if (other.Value.Length >= Value.Length)
+            return false;
+        
+        for (var i = 0; i < Value.Length && i < other.Value.Length; i++)
+        {
+            if (Value[i] != other.Value[i])
+                return false;
+        }
+
+        return true;
+    }
+
     public override string ToString() => "[" + Value.Select(v => v.ToString()).StringJoin(",") + "]";
 }
 

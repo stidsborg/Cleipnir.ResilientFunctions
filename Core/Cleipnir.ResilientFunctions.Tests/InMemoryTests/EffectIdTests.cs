@@ -78,4 +78,18 @@ public class EffectIdTests
 
         deserializedId.ShouldBe(effectId);
     }
+    
+    [TestMethod]
+    public void EffectIdChildWorks()
+    {
+        var effectId = new EffectId([2,3,4]);
+        effectId.IsChild(new EffectId([1])).ShouldBeFalse();
+        effectId.IsChild(new EffectId([2])).ShouldBeTrue();
+        effectId.IsChild(new EffectId([2,2])).ShouldBeFalse();
+        effectId.IsChild(new EffectId([2,3])).ShouldBeTrue();
+        effectId.IsChild(new EffectId([2,3,3])).ShouldBeFalse();
+        effectId.IsChild(new EffectId([2,3,4])).ShouldBeFalse();
+        
+        effectId.IsChild(new EffectId([2,3,4,1])).ShouldBeFalse();
+    }
 }

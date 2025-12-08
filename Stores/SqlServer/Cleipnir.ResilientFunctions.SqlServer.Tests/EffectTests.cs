@@ -97,4 +97,8 @@ public class EffectTests : ResilientFunctions.Tests.TestTemplates.FunctionTests.
     [TestMethod]
     public override Task ExceptionPredicateIsUsedForRetryPolicy()
         => ExceptionPredicateIsUsedForRetryPolicy(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task EffectLoopingWorks()
+        => EffectLoopingWorks(FunctionStoreFactory.Create());
 }

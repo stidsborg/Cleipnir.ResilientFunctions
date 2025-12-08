@@ -97,4 +97,8 @@ public class EffectTests : TestTemplates.FunctionTests.EffectTests
     [TestMethod]
     public override Task ExceptionPredicateIsUsedForRetryPolicy()
         => ExceptionPredicateIsUsedForRetryPolicy(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task EffectLoopingWorks()
+        => EffectLoopingWorks(FunctionStoreFactory.Create());
 }

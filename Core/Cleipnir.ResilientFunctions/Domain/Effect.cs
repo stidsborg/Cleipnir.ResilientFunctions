@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime;
 using Cleipnir.ResilientFunctions.Helpers;
@@ -30,9 +31,9 @@ public class Effect(EffectResults effectResults, UtcNow utcNow, FlowMinimumTimeo
         return storedEffect?.WorkStatus;
     }
 
-    internal async Task<bool> Mark()
+    internal async Task<bool> Mark() => await Mark(EffectContext.CurrentContext.NextEffectId());
+    internal async Task<bool> Mark(EffectId effectId)
     {
-        var effectId = CreateEffectId(EffectContext.CurrentContext.NextImplicitId());
         if (await effectResults.Contains(effectId))
             return false;
 
@@ -215,4 +216,29 @@ public class Effect(EffectResults effectResults, UtcNow utcNow, FlowMinimumTimeo
     }
 
     public Task Flush() => effectResults.Flush();
+
+    public async Task ForEach<T>(IEnumerable<T> elms, Func<T, Task> handler, string? alias = null)
+    {
+        var id = EffectContext.CurrentContext.NextEffectId();
+        var atIndex = await CreateOrGet(id, value: 0, alias, flush: false);
+        
+        foreach (var elm in elms.Skip(atIndex))
+        {
+            var prevParent = id.CreateChild(atIndex - 1);
+            await effectResults.Clear(prevParent, flush: true);
+            
+            var parent = id.CreateChild(atIndex);
+            await Capture(
+                parent,
+                alias: null,
+                work: () => handler(elm)
+            );
+            
+            atIndex++;
+            await Upsert(id, atIndex, alias, flush: false);
+        }
+        
+        var lastChild = id.CreateChild(atIndex - 1);
+        await effectResults.Clear(lastChild, flush: false);
+    }
 }

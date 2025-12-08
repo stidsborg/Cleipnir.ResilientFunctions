@@ -8,6 +8,7 @@ using Cleipnir.ResilientFunctions.CoreRuntime.Serialization;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.Helpers;
+using Cleipnir.ResilientFunctions.Reactive.Extensions;
 using Cleipnir.ResilientFunctions.Reactive.Utilities;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Tests.Utils;
@@ -973,5 +974,55 @@ public abstract class EffectTests
         }
         
         syncedCounter.Current.ShouldBe(2);
+    }
+    
+    public abstract Task EffectLoopingWorks();
+    public async Task EffectLoopingWorks(Task<IFunctionStore> storeTask)
+    {  
+        var store = await storeTask;
+        var id = TestFlowId.Create();
+     
+        using var registry = new FunctionsRegistry(store, new Settings(watchdogCheckFrequency: TimeSpan.FromMilliseconds(10)));
+        var iterations = new List<int>();
+        var flag = new Synced<int>();
+        var registration = registry.RegisterParamless(
+            id.Type,
+            inner: async workflow =>
+            {
+                await workflow.Effect.Capture(alias: "Before", () => "");
+                var elms = new[] { 0, 1, 2, 3, 4, 5 };
+                await workflow.Effect.ForEach(elms, async i =>
+                {
+                    await workflow.Effect.Capture(alias: i.ToString(), () => i);
+                    flag.Value = i;
+                    await workflow.Messages.Where(m => m.ToString() == i.ToString()).First();
+                    iterations.Add(i);
+                }, alias: "Loop");
+                
+                await workflow.Delay(TimeSpan.FromMilliseconds(25), alias: "After");
+            });
+
+        await registration.Schedule(id.Instance);
+
+        var cp = await registration.ControlPanel(id.Instance).ShouldNotBeNullAsync();
+        var messageWriter = registration.MessageWriters.For(id.Instance);
+        var effectStore = store.EffectsStore;
+        
+        for (var i = 0; i < 6; i++)
+        {
+            await BusyWait.Until(() => flag.Value == i);
+            await cp.BusyWaitUntil(c => c.Status == Status.Suspended);
+            var storedEffects = await effectStore.GetEffectResults(registration.MapToStoredId(id.Instance));
+            storedEffects.Any(e => e.Alias == "Before").ShouldBeTrue();
+            storedEffects.Any(e => e.Alias == "Loop").ShouldBeTrue();
+            storedEffects.Single(e => e.Alias == i.ToString()).EffectId.ShouldBe(new EffectId([1,i,0]));
+            storedEffects.Count.ShouldBe(3);
+            
+            await messageWriter.AppendMessage(i.ToString());
+        }
+        
+        await cp.BusyWaitUntil(c => c.Status == Status.Succeeded);
+
+        iterations.SequenceEqual([0, 1, 2, 3, 4, 5]).ShouldBeTrue();
     }
 }

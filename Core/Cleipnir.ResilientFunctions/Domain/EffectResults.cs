@@ -314,17 +314,24 @@ public class EffectResults(
     public async Task Clear(EffectId effectId, bool flush)
     {
         await InitializeIfRequired();
-        
+
         lock (_sync)
-            if (!_effectResults.ContainsKey(effectId))
-                return;
+            if (_effectResults.ContainsKey(effectId))
+            {
+                var toDeletes = _effectResults.Keys
+                    .Where(id => id.IsChild(effectId))
+                    .Append(effectId)
+                    .ToList();
+                foreach (var toDelete in toDeletes)
+                    AddToPending(
+                        toDelete,
+                        storedEffect: null,
+                        delete: true
+                    );
+            }
         
-        await FlushOrAddToPending(
-            effectId,
-            storedEffect: null,
-            flush,
-            delete: true
-        );
+        if (flush)
+            await Flush();
     }
 
     private void AddToPending(IEnumerable<StoredEffect> storedEffects)
