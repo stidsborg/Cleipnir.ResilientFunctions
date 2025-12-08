@@ -233,7 +233,7 @@ public class EffectResults(
                 storedEffect,
                 flush: resiliency != ResiliencyLevel.AtLeastOnceDelayFlush,
                 delete: false,
-                clearChildren: false
+                clearChildren: true
             );
         }
     }
@@ -314,7 +314,7 @@ public class EffectResults(
                 storedEffect,
                 flush: resiliency != ResiliencyLevel.AtLeastOnceDelayFlush,
                 delete: false,
-                clearChildren: false
+                clearChildren: true
             );
 
             return result;
@@ -348,6 +348,7 @@ public class EffectResults(
     private void AddToPending(EffectId effectId, StoredEffect? storedEffect, bool delete, bool clearChildren)
     {
         lock (_sync)
+        {
             if (_effectResults.ContainsKey(effectId))
             {
                 var existing = _effectResults[effectId];
@@ -359,14 +360,6 @@ public class EffectResults(
                         : (existing.Existing ? CrudOperation.Update : CrudOperation.Insert),
                     Alias = storedEffect?.Alias,
                 };
-
-                if (clearChildren)
-                {
-                    var children = _effectResults.Keys.Where(id => id.IsChild(effectId));
-                    foreach (var child in children)
-                        _effectResults[child] = 
-                            _effectResults[child] with { Operation = CrudOperation.Delete };
-                }
             }
             else
             {
@@ -378,6 +371,15 @@ public class EffectResults(
                     storedEffect?.Alias
                 );
             }
+            
+            if (clearChildren)
+            {
+                var children = _effectResults.Keys.Where(id => id.IsChild(effectId));
+                foreach (var child in children)
+                    _effectResults[child] = 
+                        _effectResults[child] with { Operation = CrudOperation.Delete };
+            }
+        }
     }
     
     private async Task FlushOrAddToPending(EffectId effectId, StoredEffect? storedEffect, bool flush, bool delete, bool clearChildren)

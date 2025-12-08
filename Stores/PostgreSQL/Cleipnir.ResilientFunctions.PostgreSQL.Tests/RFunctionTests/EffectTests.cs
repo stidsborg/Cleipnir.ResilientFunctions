@@ -101,4 +101,12 @@ public class EffectTests : ResilientFunctions.Tests.TestTemplates.FunctionTests.
     [TestMethod]
     public override Task EffectLoopingWorks()
         => EffectLoopingWorks(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task ChildEffectsAreClearedWhenParentEffectWithResultCompletes()
+        => ChildEffectsAreClearedWhenParentEffectWithResultCompletes(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task ChildEffectsAreClearedWhenParentEffectReturningValueCompletes()
+        => ChildEffectsAreClearedWhenParentEffectReturningValueCompletes(FunctionStoreFactory.Create());
 }

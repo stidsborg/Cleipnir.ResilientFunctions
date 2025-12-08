@@ -998,7 +998,7 @@ public abstract class EffectTests
                     await workflow.Messages.Where(m => m.ToString() == i.ToString()).First();
                     iterations.Add(i);
                 }, alias: "Loop");
-                
+
                 await workflow.Delay(TimeSpan.FromMilliseconds(25), alias: "After");
             });
 
@@ -1007,7 +1007,7 @@ public abstract class EffectTests
         var cp = await registration.ControlPanel(id.Instance).ShouldNotBeNullAsync();
         var messageWriter = registration.MessageWriters.For(id.Instance);
         var effectStore = store.EffectsStore;
-        
+
         for (var i = 0; i < 6; i++)
         {
             await BusyWait.Until(() => flag.Value == i);
@@ -1017,12 +1017,93 @@ public abstract class EffectTests
             storedEffects.Any(e => e.Alias == "Loop").ShouldBeTrue();
             storedEffects.Single(e => e.Alias == i.ToString()).EffectId.ShouldBe(new EffectId([1,i,0]));
             storedEffects.Count.ShouldBe(3);
-            
+
             await messageWriter.AppendMessage(i.ToString());
         }
-        
+
         await cp.BusyWaitUntil(c => c.Status == Status.Succeeded);
 
         iterations.SequenceEqual([0, 1, 2, 3, 4, 5]).ShouldBeTrue();
+    }
+
+    public abstract Task ChildEffectsAreClearedWhenParentEffectWithResultCompletes();
+    public async Task ChildEffectsAreClearedWhenParentEffectWithResultCompletes(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var id = TestFlowId.Create();
+        var readFlag = new SyncedFlag();
+        var continueFlag = new SyncedFlag();
+
+        using var registry = new FunctionsRegistry(store, new Settings(watchdogCheckFrequency: TimeSpan.FromMilliseconds(10)));
+        var registration = registry.RegisterParamless(
+            id.Type,
+            inner: async workflow =>
+            {
+                await workflow.Effect.Capture(alias: "Parent", async () =>
+                {
+                    await workflow.Effect.Capture("Child1", () => "Child1");
+                    await workflow.Effect.Capture("Child2", () => "Child2");
+                    await workflow.Effect.Flush();
+                    readFlag.Raise();
+                    await continueFlag.WaitForRaised();
+                });
+            });
+
+        var invocation = Task.Run(() => registration.Invoke(id.Instance));
+
+        await readFlag.WaitForRaised();
+
+        var effectStore = store.EffectsStore;
+        var storedEffects = await effectStore.GetEffectResults(registration.MapToStoredId(id.Instance));
+        storedEffects.Any(s => s.Alias == "Child1").ShouldBeTrue();
+        storedEffects.Any(s => s.Alias == "Child2").ShouldBeTrue();
+        continueFlag.Raise();
+
+        await invocation;
+
+        storedEffects = await effectStore.GetEffectResults(registration.MapToStoredId(id.Instance));
+        storedEffects.Count.ShouldBe(1);
+        storedEffects.Any(s => s.Alias == "Parent").ShouldBeTrue();
+    }
+
+    public abstract Task ChildEffectsAreClearedWhenParentEffectReturningValueCompletes();
+    public async Task ChildEffectsAreClearedWhenParentEffectReturningValueCompletes(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var id = TestFlowId.Create();
+        var readFlag = new SyncedFlag();
+        var continueFlag = new SyncedFlag();
+
+        using var registry = new FunctionsRegistry(store, new Settings(watchdogCheckFrequency: TimeSpan.FromMilliseconds(10)));
+        var registration = registry.RegisterParamless(
+            id.Type,
+            inner: async workflow =>
+            {
+                await workflow.Effect.Capture(alias: "Parent", async () =>
+                {
+                    await workflow.Effect.Capture("Child1", () => "Child1");
+                    await workflow.Effect.Capture("Child2", () => "Child2");
+                    await workflow.Effect.Flush();
+                    readFlag.Raise();
+                    await continueFlag.WaitForRaised();
+                    return "parent result";
+                });
+            });
+
+        var invocation = Task.Run(() => registration.Invoke(id.Instance));
+
+        await readFlag.WaitForRaised();
+
+        var effectStore = store.EffectsStore;
+        var storedEffects = await effectStore.GetEffectResults(registration.MapToStoredId(id.Instance));
+        storedEffects.Any(s => s.Alias == "Child1").ShouldBeTrue();
+        storedEffects.Any(s => s.Alias == "Child2").ShouldBeTrue();
+        continueFlag.Raise();
+
+        await invocation;
+
+        storedEffects = await effectStore.GetEffectResults(registration.MapToStoredId(id.Instance));
+        storedEffects.Count.ShouldBe(1);
+        storedEffects.Any(s => s.Alias == "Parent").ShouldBeTrue();
     }
 }
