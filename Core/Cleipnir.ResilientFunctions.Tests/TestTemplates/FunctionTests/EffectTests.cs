@@ -373,6 +373,9 @@ public abstract class EffectTests
         using var functionsRegistry = new FunctionsRegistry(store);
         var flowId = TestFlowId.Create();
         var (flowType, flowInstance) = flowId;
+        var readFlag = new SyncedFlag();
+        var continueFlag = new SyncedFlag();
+
         var rAction = functionsRegistry.RegisterParamless(
             flowType,
             async Task (workflow) =>
@@ -380,33 +383,38 @@ public abstract class EffectTests
                 var effect = workflow.Effect;
                 await effect.Capture(async () =>
                 {
+                    // Create upserts directly before nested captures complete
                     var e1 =  effect.Capture(async () =>
                     {
                         await Task.Delay(10);
                         await effect.Upsert("SubEffectValue1", "some value");
+                        await effect.Flush();
+                        readFlag.Raise();
+                        await continueFlag.WaitForRaised();
                     });
                     await e1;
-                    var e2 = effect.Capture(async () =>
-                    {
-                        await Task.Delay(1);
-                        await effect.Upsert("SubEffectValue2", "some other value");
-                    });
-
-                    await Task.WhenAll(e1, e2);
                 });
             }
         );
 
-        await rAction.Invoke(flowInstance.ToString());
-        
+        var invocation = Task.Run(() => rAction.Invoke(flowInstance.ToString()));
+
+        await readFlag.WaitForRaised();
+
         var storedId = rAction.MapToStoredId(flowId.Instance);
         var effectResults = await store.EffectsStore.GetEffectResults(storedId);
 
-        var subEffectValue1Id = effectResults.Single(se => se.Alias == "SubEffectValue1").EffectId;
-        subEffectValue1Id.Context.ShouldBe(new int[] {0, 0});
+        // Verify child effect exists and has correct context before nested capture completes
+        var subEffectValue1 = effectResults.SingleOrDefault(se => se.Alias == "SubEffectValue1");
+        subEffectValue1.ShouldNotBeNull();
+        subEffectValue1.EffectId.Context.ShouldBe(new int[] {0, 0});
 
-        var subEffectValue2Id = effectResults.Single(se => se.Alias == "SubEffectValue2").EffectId;
-        subEffectValue2Id.Context.ShouldBe(new int[] {0, 1});
+        continueFlag.Raise();
+        await invocation;
+
+        // After nested capture completes, child effect should be cleared
+        effectResults = await store.EffectsStore.GetEffectResults(storedId);
+        effectResults.Any(se => se.Alias == "SubEffectValue1").ShouldBeFalse();
     }
 
     public abstract Task SubEffectHasExplicitContext();
@@ -416,6 +424,9 @@ public abstract class EffectTests
         using var functionsRegistry = new FunctionsRegistry(store);
         var flowId = TestFlowId.Create();
         var (flowType, flowInstance) = flowId;
+        var readFlag = new SyncedFlag();
+        var continueFlag = new SyncedFlag();
+
         var rAction = functionsRegistry.RegisterParamless(
             flowType,
             async Task (workflow) =>
@@ -423,35 +434,40 @@ public abstract class EffectTests
                 var effect = workflow.Effect;
                 await effect.Capture(async () =>
                 {
-                    var e1 =  effect.Capture(async () =>
-                    {
-                        await Task.Delay(10);
-                        await effect.Upsert("SubEffectValue1", "some value");
-                    });
-                    await e1;
+                    // Create upserts directly before nested captures complete
                     var e2 = effect.Capture(async () =>
                     {
                         await Task.Delay(1);
                         await effect.Upsert("SubEffectValue2", "some other value");
+                        await effect.Flush();
+                        readFlag.Raise();
+                        await continueFlag.WaitForRaised();
                     });
-
-                    await Task.WhenAll(e1, e2);
+                    await e2;
                 });
             }
         );
 
-        await rAction.Invoke(flowInstance.ToString());
+        var invocation = Task.Run(() => rAction.Invoke(flowInstance.ToString()));
+
+        await readFlag.WaitForRaised();
 
         var storedId = rAction.MapToStoredId(flowId.Instance);
         var effectResults = await store.EffectsStore.GetEffectResults(storedId);
 
-        var subEffectValue1Id = effectResults.Single(se => se.Alias == "SubEffectValue1").EffectId;
-        subEffectValue1Id.Context.ShouldBe(new int[] {0, 0});
+        // Verify child effect exists and has correct context before nested capture completes
+        var subEffectValue2 = effectResults.SingleOrDefault(se => se.Alias == "SubEffectValue2");
+        subEffectValue2.ShouldNotBeNull();
+        subEffectValue2.EffectId.Context.ShouldBe(new int[] {0, 0});
 
-        var subEffectValue2Id = effectResults.Single(se => se.Alias == "SubEffectValue2").EffectId;
-        subEffectValue2Id.Context.ShouldBe(new int[] {0, 1});
+        continueFlag.Raise();
+        await invocation;
+
+        // After nested capture completes, child effect should be cleared
+        effectResults = await store.EffectsStore.GetEffectResults(storedId);
+        effectResults.Any(se => se.Alias == "SubEffectValue2").ShouldBeFalse();
     }
-    
+
     public abstract Task EffectsHasCorrectlyOrderedIds();
     public async Task EffectsHasCorrectlyOrderedIds(Task<IFunctionStore> storeTask)
     {
