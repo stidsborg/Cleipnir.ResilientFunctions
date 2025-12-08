@@ -82,7 +82,8 @@ public class EffectResults(
             storedEffect.EffectId,
             storedEffect,
             flush,
-            delete: false
+            delete: false,
+            clearChildren: false
         );
     }
 
@@ -103,7 +104,8 @@ public class EffectResults(
             storedEffect.EffectId,
             storedEffect,
             flush,
-            delete: false
+            delete: false,
+            clearChildren: false
         );
 
         return value;
@@ -118,7 +120,8 @@ public class EffectResults(
             storedEffect.EffectId,
             storedEffect,
             flush,
-            delete: false
+            delete: false,
+            clearChildren: false
         );
     }
     
@@ -181,7 +184,7 @@ public class EffectResults(
         if (resiliency == ResiliencyLevel.AtMostOnce)
         {
             var storedEffect = StoredEffect.CreateStarted(effectId, alias);
-            await FlushOrAddToPending(effectId, storedEffect, flush: true, delete: false);
+            await FlushOrAddToPending(effectId, storedEffect, flush: true, delete: false, clearChildren: false);
         }
 
         try
@@ -200,7 +203,8 @@ public class EffectResults(
                 storedEffect.EffectId,
                 storedEffect,
                 flush: true,
-                delete: false
+                delete: false,
+                clearChildren: false
             );
 
             exception.FlowId = flowId;
@@ -215,7 +219,8 @@ public class EffectResults(
                 storedEffect.EffectId,
                 storedEffect,
                 flush: true,
-                delete: false
+                delete: false,
+                clearChildren: false
             );
 
             throw fatalWorkflowException;
@@ -227,7 +232,8 @@ public class EffectResults(
                 storedEffect.EffectId,
                 storedEffect,
                 flush: resiliency != ResiliencyLevel.AtLeastOnceDelayFlush,
-                delete: false
+                delete: false,
+                clearChildren: false
             );
         }
     }
@@ -256,7 +262,8 @@ public class EffectResults(
                 effectId,
                 storedEffect,
                 flush: true,
-                delete: false
+                delete: false,
+                clearChildren: false
             );
         }
 
@@ -277,7 +284,8 @@ public class EffectResults(
                 storedEffect.EffectId,
                 storedEffect,
                 flush: true,
-                delete: false
+                delete: false,
+                clearChildren: false
             );
 
             exception.FlowId = flowId;
@@ -293,7 +301,8 @@ public class EffectResults(
                 storedEffect.EffectId,
                 storedEffect,
                 flush: true,
-                delete: false
+                delete: false,
+                clearChildren: false
             );
             throw fatalWorkflowException;
         }
@@ -304,7 +313,8 @@ public class EffectResults(
                 storedEffect.EffectId,
                 storedEffect,
                 flush: resiliency != ResiliencyLevel.AtLeastOnceDelayFlush,
-                delete: false
+                delete: false,
+                clearChildren: false
             );
 
             return result;
@@ -317,18 +327,12 @@ public class EffectResults(
 
         lock (_sync)
             if (_effectResults.ContainsKey(effectId))
-            {
-                var toDeletes = _effectResults.Keys
-                    .Where(id => id.IsChild(effectId))
-                    .Append(effectId)
-                    .ToList();
-                foreach (var toDelete in toDeletes)
-                    AddToPending(
-                        toDelete,
-                        storedEffect: null,
-                        delete: true
-                    );
-            }
+                AddToPending(
+                    effectId,
+                    storedEffect: null,
+                    delete: true,
+                    clearChildren: true
+                );
         
         if (flush)
             await Flush();
@@ -338,10 +342,10 @@ public class EffectResults(
     {
         lock (_sync)
             foreach (var storedEffect in storedEffects)
-                AddToPending(storedEffect.EffectId, storedEffect, delete: false);
+                AddToPending(storedEffect.EffectId, storedEffect, delete: false, clearChildren: false);
     }
 
-    private void AddToPending(EffectId effectId, StoredEffect? storedEffect, bool delete)
+    private void AddToPending(EffectId effectId, StoredEffect? storedEffect, bool delete, bool clearChildren)
     {
         lock (_sync)
             if (_effectResults.ContainsKey(effectId))
@@ -355,6 +359,14 @@ public class EffectResults(
                         : (existing.Existing ? CrudOperation.Update : CrudOperation.Insert),
                     Alias = storedEffect?.Alias,
                 };
+
+                if (clearChildren)
+                {
+                    var children = _effectResults.Keys.Where(id => id.IsChild(effectId));
+                    foreach (var child in children)
+                        _effectResults[child] = 
+                            _effectResults[child] with { Operation = CrudOperation.Delete };
+                }
             }
             else
             {
@@ -368,9 +380,9 @@ public class EffectResults(
             }
     }
     
-    private async Task FlushOrAddToPending(EffectId effectId, StoredEffect? storedEffect, bool flush, bool delete)
+    private async Task FlushOrAddToPending(EffectId effectId, StoredEffect? storedEffect, bool flush, bool delete, bool clearChildren)
     {
-        AddToPending(effectId, storedEffect, delete);
+        AddToPending(effectId, storedEffect, delete, clearChildren);
 
         if (flush)
             await Flush();   
