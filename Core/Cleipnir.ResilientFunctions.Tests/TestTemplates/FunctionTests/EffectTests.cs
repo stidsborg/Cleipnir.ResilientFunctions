@@ -1007,13 +1007,16 @@ public abstract class EffectTests
             {
                 await workflow.Effect.Capture(alias: "Before", () => "");
                 var elms = new[] { 0, 1, 2, 3, 4, 5 };
-                await workflow.Effect.ForEach(elms, async i =>
-                {
-                    await workflow.Effect.Capture(alias: i.ToString(), () => i);
-                    flag.Value = i;
-                    await workflow.Messages.Where(m => m.ToString() == i.ToString()).First();
-                    iterations.Add(i);
-                }, alias: "Loop");
+                await elms.CaptureEach(
+                    async i =>
+                    {
+                        await workflow.Effect.Capture(alias: i.ToString(), () => i);
+                        flag.Value = i;
+                        await workflow.Messages.Where(m => m.ToString() == i.ToString()).First();
+                        iterations.Add(i);
+                    },
+                    alias: "Loop"
+                );
 
                 await workflow.Delay(TimeSpan.FromMilliseconds(25), alias: "After");
             });
