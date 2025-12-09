@@ -16,10 +16,10 @@ public static class EffectExtensions
         return effect.ForEach(elms, handler, alias);
     }
     
-    public static Task CaptureAggregate<T, TSeed>(
-        this IEnumerable<T> elms, 
+    public static Task<TSeed> CaptureAggregate<T, TSeed>(
+        this IEnumerable<T> elms,
         TSeed seed,
-        Func<T, TSeed, Task<TSeed>> handler, 
+        Func<T, TSeed, Task<TSeed>> handler,
         string? alias = null)
     {
         var effect = CurrentFlow.Workflow?.Effect;

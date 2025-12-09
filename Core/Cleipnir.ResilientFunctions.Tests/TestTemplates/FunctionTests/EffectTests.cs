@@ -1138,8 +1138,7 @@ public abstract class EffectTests
             async Task<int> (string param, Workflow workflow) =>
             {
                 var elms = new[] { 1, 2, 3, 4, 5 };
-                var result = await workflow.Effect.AggregateEach(
-                    elms,
+                var result = await elms.CaptureAggregate(
                     seed: 0,
                     handler: async (elm, acc) =>
                     {
@@ -1172,8 +1171,7 @@ public abstract class EffectTests
             async Task<int> (string param, Workflow workflow) =>
             {
                 var elms = new[] { 1, 2, 3, 4, 5 };
-                var result = await workflow.Effect.AggregateEach(
-                    elms,
+                var result = await elms.CaptureAggregate(
                     seed: 0,
                     handler: async (elm, acc) =>
                     {
@@ -1211,8 +1209,7 @@ public abstract class EffectTests
             async Task<List<string>> (string param, Workflow workflow) =>
             {
                 var elms = new[] { "a", "b", "c", "d" };
-                var result = await workflow.Effect.AggregateEach(
-                    elms,
+                var result = await elms.CaptureAggregate(
                     seed: new List<string>(),
                     handler: async (elm, acc) =>
                     {
@@ -1245,8 +1242,7 @@ public abstract class EffectTests
             async Task<int> (string param, Workflow workflow) =>
             {
                 var elms = new[] { 1, 2, 3 };
-                var result = await workflow.Effect.AggregateEach(
-                    elms,
+                var result = await elms.CaptureAggregate(
                     seed: 0,
                     handler: async (elm, acc) =>
                     {
@@ -1281,8 +1277,7 @@ public abstract class EffectTests
             async Task<int> (string param, Workflow workflow) =>
             {
                 var elms = new[] { 10 };
-                var result = await workflow.Effect.AggregateEach(
-                    elms,
+                var result = await elms.CaptureAggregate(
                     seed: 42,
                     handler: async (elm, acc) =>
                     {
