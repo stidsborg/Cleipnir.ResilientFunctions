@@ -15,4 +15,17 @@ public static class EffectExtensions
 
         return effect.ForEach(elms, handler, alias);
     }
+    
+    public static Task CaptureAggregate<T, TSeed>(
+        this IEnumerable<T> elms, 
+        TSeed seed,
+        Func<T, TSeed, Task<TSeed>> handler, 
+        string? alias = null)
+    {
+        var effect = CurrentFlow.Workflow?.Effect;
+        if (effect == null)
+            throw new InvalidOperationException("Must capture inside executing flow");
+
+        return effect.AggregateEach(elms, seed, handler, alias);
+    }
 }

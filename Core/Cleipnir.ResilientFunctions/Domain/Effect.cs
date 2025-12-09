@@ -231,4 +231,36 @@ public class Effect(EffectResults effectResults, UtcNow utcNow, FlowMinimumTimeo
         var lastChild = id.CreateChild(atIndex - 1);
         await effectResults.Clear(lastChild, flush: false);
     }
+    
+    public async Task<TSeed> AggregateEach<T, TSeed>(
+        IEnumerable<T> elms,
+        TSeed seed,
+        Func<T, TSeed, Task<TSeed>> handler, 
+        string? alias = null)
+    {
+        var id = EffectContext.CurrentContext.NextEffectId();
+        var atIndexAndAkk = await CreateOrGet(id, value: Tuple.Create(0, seed), alias, flush: false);
+        var atIndex = atIndexAndAkk.Item1;
+        var akk = atIndexAndAkk.Item2;
+        
+        foreach (var elm in elms.Skip(atIndex))
+        {
+            var prevParent = id.CreateChild(atIndex - 1);
+            await effectResults.Clear(prevParent, flush: true);
+            
+            var parent = id.CreateChild(atIndex);
+            akk = await Capture(
+                parent,
+                alias: null,
+                work: () => handler(elm, akk)
+            );
+            
+            atIndex++;
+            await Upsert(id, Tuple.Create(atIndex, akk), alias, flush: false);
+        }
+        
+        var lastChild = id.CreateChild(atIndex - 1);
+        await effectResults.Clear(lastChild, flush: false);
+        return akk;
+    }
 }

@@ -1125,4 +1125,176 @@ public abstract class EffectTests
         storedEffects.Count.ShouldBe(1);
         storedEffects.Any(s => s.Alias == "Parent").ShouldBeTrue();
     }
+
+    public abstract Task AggregateEachBasicAggregationWorks();
+    public async Task AggregateEachBasicAggregationWorks(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var id = TestFlowId.Create();
+
+        using var registry = new FunctionsRegistry(store);
+        var registration = registry.RegisterFunc(
+            id.Type,
+            async Task<int> (string param, Workflow workflow) =>
+            {
+                var elms = new[] { 1, 2, 3, 4, 5 };
+                var result = await workflow.Effect.AggregateEach(
+                    elms,
+                    seed: 0,
+                    handler: async (elm, acc) =>
+                    {
+                        await Task.Yield();
+                        return acc + elm;
+                    },
+                    alias: "Aggregate"
+                );
+                return result;
+            });
+
+        var result = await registration.Invoke(id.Instance, "test");
+        result.ShouldBe(15);
+
+        var effectStore = store.EffectsStore;
+        var storedEffects = await effectStore.GetEffectResults(registration.MapToStoredId(id.Instance));
+        storedEffects.Any(e => e.Alias == "Aggregate").ShouldBeTrue();
+    }
+
+    public abstract Task AggregateEachResumesMidAggregation();
+    public async Task AggregateEachResumesMidAggregation(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var id = TestFlowId.Create();
+        var syncedCounter = new SyncedCounter();
+
+        using var registry = new FunctionsRegistry(store);
+        var registration = registry.RegisterFunc(
+            id.Type,
+            async Task<int> (string param, Workflow workflow) =>
+            {
+                var elms = new[] { 1, 2, 3, 4, 5 };
+                var result = await workflow.Effect.AggregateEach(
+                    elms,
+                    seed: 0,
+                    handler: async (elm, acc) =>
+                    {
+                        syncedCounter.Increment();
+                        if (syncedCounter.Current == 3)
+                            throw new Exception("Simulated crash");
+                        await Task.Yield();
+                        return acc + elm;
+                    },
+                    alias: "Aggregate"
+                );
+                return result;
+            });
+
+        await Should.ThrowAsync<FatalWorkflowException>(() => registration.Invoke(id.Instance, "test"));
+        syncedCounter.Current.ShouldBe(3);
+
+        var cp = await registration.ControlPanel(id.Instance).ShouldNotBeNullAsync();
+        var result = await cp.Restart(clearFailures: true);
+        result.ShouldBe(15);
+
+        // Should have processed elements 3, 4, 5 on restart (elements 1, 2 were already processed)
+        syncedCounter.Current.ShouldBe(6);
+    }
+
+    public abstract Task AggregateEachWithComplexAccumulator();
+    public async Task AggregateEachWithComplexAccumulator(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var id = TestFlowId.Create();
+
+        using var registry = new FunctionsRegistry(store);
+        var registration = registry.RegisterFunc(
+            id.Type,
+            async Task<List<string>> (string param, Workflow workflow) =>
+            {
+                var elms = new[] { "a", "b", "c", "d" };
+                var result = await workflow.Effect.AggregateEach(
+                    elms,
+                    seed: new List<string>(),
+                    handler: async (elm, acc) =>
+                    {
+                        await Task.Yield();
+                        acc.Add(elm.ToUpper());
+                        return acc;
+                    },
+                    alias: "Aggregate"
+                );
+                return result;
+            });
+
+        var result = await registration.Invoke(id.Instance, "test");
+        result.SequenceEqual(new[] { "A", "B", "C", "D" }).ShouldBeTrue();
+
+        var cp = await registration.ControlPanel(id.Instance).ShouldNotBeNullAsync();
+        var restartResult = await cp.Restart();
+        restartResult.SequenceEqual(new[] { "A", "B", "C", "D" }).ShouldBeTrue();
+    }
+
+    public abstract Task AggregateEachCleansUpIntermediateEffects();
+    public async Task AggregateEachCleansUpIntermediateEffects(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var id = TestFlowId.Create();
+
+        using var registry = new FunctionsRegistry(store);
+        var registration = registry.RegisterFunc(
+            id.Type,
+            async Task<int> (string param, Workflow workflow) =>
+            {
+                var elms = new[] { 1, 2, 3 };
+                var result = await workflow.Effect.AggregateEach(
+                    elms,
+                    seed: 0,
+                    handler: async (elm, acc) =>
+                    {
+                        await Task.Yield();
+                        return acc + elm;
+                    },
+                    alias: "Aggregate"
+                );
+                return result;
+            });
+
+        var result = await registration.Invoke(id.Instance, "test");
+        result.ShouldBe(6);
+
+        var effectStore = store.EffectsStore;
+        var storedEffects = await effectStore.GetEffectResults(registration.MapToStoredId(id.Instance));
+
+        // Should only have the aggregate effect, not the intermediate child effects
+        storedEffects.Count.ShouldBe(1);
+        storedEffects.Single().Alias.ShouldBe("Aggregate");
+    }
+
+    public abstract Task AggregateEachWithSingleElement();
+    public async Task AggregateEachWithSingleElement(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var id = TestFlowId.Create();
+
+        using var registry = new FunctionsRegistry(store);
+        var registration = registry.RegisterFunc(
+            id.Type,
+            async Task<int> (string param, Workflow workflow) =>
+            {
+                var elms = new[] { 10 };
+                var result = await workflow.Effect.AggregateEach(
+                    elms,
+                    seed: 42,
+                    handler: async (elm, acc) =>
+                    {
+                        await Task.Yield();
+                        return acc + elm;
+                    },
+                    alias: "Aggregate"
+                );
+                return result;
+            });
+
+        var result = await registration.Invoke(id.Instance, "test");
+        result.ShouldBe(52);
+    }
 }

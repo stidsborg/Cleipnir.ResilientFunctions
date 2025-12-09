@@ -108,4 +108,24 @@ public class EffectTests : ResilientFunctions.Tests.TestTemplates.FunctionTests.
     [TestMethod]
     public override Task ChildEffectsAreClearedWhenParentEffectReturningValueCompletes()
         => ChildEffectsAreClearedWhenParentEffectReturningValueCompletes(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task AggregateEachBasicAggregationWorks()
+        => AggregateEachBasicAggregationWorks(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task AggregateEachResumesMidAggregation()
+        => AggregateEachResumesMidAggregation(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task AggregateEachWithComplexAccumulator()
+        => AggregateEachWithComplexAccumulator(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task AggregateEachCleansUpIntermediateEffects()
+        => AggregateEachCleansUpIntermediateEffects(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task AggregateEachWithSingleElement()
+        => AggregateEachWithSingleElement(FunctionStoreFactory.Create());
 }
