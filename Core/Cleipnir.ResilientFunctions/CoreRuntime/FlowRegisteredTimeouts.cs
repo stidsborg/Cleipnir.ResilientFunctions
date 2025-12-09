@@ -12,10 +12,10 @@ namespace Cleipnir.ResilientFunctions.CoreRuntime;
 
 public interface IRegisteredTimeouts : IDisposable
 {
-    Task<Tuple<TimeoutStatus, DateTime>> RegisterTimeout(EffectId timeoutId, DateTime expiresAt, bool publishMessage);
-    Task<Tuple<TimeoutStatus, DateTime>> RegisterTimeout(EffectId timeoutId, TimeSpan expiresIn, bool publishMessage);
+    Task<Tuple<TimeoutStatus, DateTime>> RegisterTimeout(EffectId timeoutId, DateTime expiresAt, bool publishMessage, string? alias = null);
+    Task<Tuple<TimeoutStatus, DateTime>> RegisterTimeout(EffectId timeoutId, TimeSpan expiresIn, bool publishMessage, string? alias = null);
     Task CancelTimeout(EffectId timeoutId);
-    Task CompleteTimeout(EffectId timeoutId);
+    Task CompleteTimeout(EffectId timeoutId, string? alias = null);
     Task<IReadOnlyList<RegisteredTimeout>> PendingTimeouts();
 }
 
@@ -27,20 +27,20 @@ public enum TimeoutStatus
     Completed = 3
 }
 
-public class FlowRegisteredTimeouts(Effect effect, UtcNow utcNow, FlowMinimumTimeout flowMinimumTimeout, PublishTimeoutEvent publishTimeoutEvent, UnhandledExceptionHandler unhandledExceptionHandler, FlowId flowId) : IRegisteredTimeouts
+public class FlowRegisteredTimeouts(Effect effect, UtcNow utcNow, FlowMinimumTimeout flowMinimumTimeout, PublishTimeoutEvent publishTimeoutEvent, UnhandledExceptionHandler unhandledExceptionHandler, FlowId flowId) : @IRegisteredTimeouts
 {
     private volatile bool _disposed;
     public int GetNextImplicitId() => EffectContext.CurrentContext.NextImplicitId();
 
 
-    public async Task<Tuple<TimeoutStatus, DateTime>> RegisterTimeout(EffectId timeoutId, DateTime expiresAt, bool publishMessage)
+    public async Task<Tuple<TimeoutStatus, DateTime>> RegisterTimeout(EffectId timeoutId, DateTime expiresAt, bool publishMessage, string? alias = null)
     {
         expiresAt = expiresAt.ToUniversalTime();
         
         if (!await effect.Contains(timeoutId))
         {
             var value = $"{(int)TimeoutStatus.Registered}_{expiresAt.Ticks}";
-            await effect.Upsert(timeoutId, value, alias: null, flush: false); 
+            await effect.Upsert(timeoutId, value, alias, flush: false); 
             
             flowMinimumTimeout.AddTimeout(timeoutId, expiresAt);
             if (publishMessage)
@@ -66,12 +66,12 @@ public class FlowRegisteredTimeouts(Effect effect, UtcNow utcNow, FlowMinimumTim
         }
     }
     
-    public Task<Tuple<TimeoutStatus, DateTime>> RegisterTimeout(int timeoutId, TimeSpan expiresIn, bool publishMessage)
-        => RegisterTimeout(EffectId.CreateWithCurrentContext(timeoutId), expiresAt: utcNow().Add(expiresIn), publishMessage);
-    public Task<Tuple<TimeoutStatus, DateTime>> RegisterTimeout(int timeoutId, DateTime expiresAt, bool publishMessage)
-        => RegisterTimeout(EffectId.CreateWithCurrentContext(timeoutId), expiresAt, publishMessage);
-    public Task<Tuple<TimeoutStatus, DateTime>> RegisterTimeout(EffectId timeoutId, TimeSpan expiresIn, bool publishMessage)
-        => RegisterTimeout(timeoutId, expiresAt: utcNow().Add(expiresIn), publishMessage);
+    public Task<Tuple<TimeoutStatus, DateTime>> RegisterTimeout(int timeoutId, TimeSpan expiresIn, bool publishMessage, string? alias = null)
+        => RegisterTimeout(EffectId.CreateWithCurrentContext(timeoutId), expiresAt: utcNow().Add(expiresIn), publishMessage, alias);
+    public Task<Tuple<TimeoutStatus, DateTime>> RegisterTimeout(int timeoutId, DateTime expiresAt, bool publishMessage, string? alias = null)
+        => RegisterTimeout(EffectId.CreateWithCurrentContext(timeoutId), expiresAt, publishMessage, alias);
+    public Task<Tuple<TimeoutStatus, DateTime>> RegisterTimeout(EffectId timeoutId, TimeSpan expiresIn, bool publishMessage, string? alias = null)
+        => RegisterTimeout(timeoutId, expiresAt: utcNow().Add(expiresIn), publishMessage, alias);
     
     public async Task CancelTimeout(EffectId timeoutId)
     {
@@ -90,7 +90,7 @@ public class FlowRegisteredTimeouts(Effect effect, UtcNow utcNow, FlowMinimumTim
         flowMinimumTimeout.RemoveTimeout(timeoutId);
     }
     
-    public async Task CompleteTimeout(EffectId timeoutId)
+    public async Task CompleteTimeout(EffectId timeoutId, string? alias = null)
     {
         if (!await effect.Contains(timeoutId))
             return;
@@ -103,7 +103,7 @@ public class FlowRegisteredTimeouts(Effect effect, UtcNow utcNow, FlowMinimumTim
             return;
 
         var value = $"{(int)TimeoutStatus.Completed}_{expiresAt}";
-        await effect.Upsert(timeoutId, value, alias: null, flush: false);
+        await effect.Upsert(timeoutId, value, alias, flush: false);
         flowMinimumTimeout.RemoveTimeout(timeoutId);
     }
 

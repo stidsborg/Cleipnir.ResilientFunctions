@@ -40,16 +40,17 @@ public class Workflow
 
     public async Task RegisterCorrelation(string correlation) => await Correlations.Register(correlation);
 
-    public Task Delay(TimeSpan @for, bool suspend = true, int? effectId = null) => Delay(until: _utcNow() + @for, suspend, effectId);
-    public async Task Delay(DateTime until, bool suspend = true, int? effectId = null)
+    public Task Delay(TimeSpan @for, bool suspend = true, string? alias = null) => Delay(until: _utcNow() + @for, suspend, alias);
+    public async Task Delay(DateTime until, bool suspend = true, string? alias = null)
     {
-        effectId ??= Effect.TakeNextImplicitId();
-        var timeoutId = EffectId.CreateWithCurrentContext(effectId.Value);
+        var effectId = Effect.TakeNextImplicitId();
+        var timeoutId = EffectId.CreateWithCurrentContext(effectId);
 
         var (status, expiry) = await Messages.FlowRegisteredTimeouts.RegisterTimeout(
             timeoutId,
             until,
-            publishMessage: false
+            publishMessage: false,
+            alias
         );
 
         if (status is TimeoutStatus.Completed or TimeoutStatus.Cancelled)
@@ -67,7 +68,7 @@ public class Workflow
         if (delay == TimeSpan.Zero)
             await Messages
                 .FlowRegisteredTimeouts
-                .CompleteTimeout(timeoutId);
+                .CompleteTimeout(timeoutId, alias);
         else
             throw new SuspendInvocationException();                
     }

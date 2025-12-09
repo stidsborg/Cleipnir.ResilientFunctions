@@ -35,10 +35,6 @@ public class EffectTests : ResilientFunctions.Tests.TestTemplates.FunctionTests.
         => TaskWhenAllFuncTest(FunctionStoreFactory.Create());
 
     [TestMethod]
-    public override Task ClearEffectsTest()
-        => ClearEffectsTest(FunctionStoreFactory.Create());
-    
-    [TestMethod]
     public override Task ExistingEffectsFuncIsOnlyInvokedAfterGettingValue()
         => ExistingEffectsFuncIsOnlyInvokedAfterGettingValue(FunctionStoreFactory.Create());
     
@@ -49,7 +45,11 @@ public class EffectTests : ResilientFunctions.Tests.TestTemplates.FunctionTests.
     [TestMethod]
     public override Task SubEffectHasExplicitContext()
         => SubEffectHasExplicitContext(FunctionStoreFactory.Create());
-    
+
+    [TestMethod]
+    public override Task EffectsHasCorrectlyOrderedIds()
+        => EffectsHasCorrectlyOrderedIds(FunctionStoreFactory.Create());
+
     [TestMethod]
     public override Task EffectsCrudTest()
         => EffectsCrudTest(FunctionStoreFactory.Create());
@@ -97,4 +97,36 @@ public class EffectTests : ResilientFunctions.Tests.TestTemplates.FunctionTests.
     [TestMethod]
     public override Task ExceptionPredicateIsUsedForRetryPolicy()
         => ExceptionPredicateIsUsedForRetryPolicy(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task EffectLoopingWorks()
+        => EffectLoopingWorks(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task ChildEffectsAreClearedWhenParentEffectWithResultCompletes()
+        => ChildEffectsAreClearedWhenParentEffectWithResultCompletes(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task ChildEffectsAreClearedWhenParentEffectReturningValueCompletes()
+        => ChildEffectsAreClearedWhenParentEffectReturningValueCompletes(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task AggregateEachBasicAggregationWorks()
+        => AggregateEachBasicAggregationWorks(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task AggregateEachResumesMidAggregation()
+        => AggregateEachResumesMidAggregation(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task AggregateEachWithComplexAccumulator()
+        => AggregateEachWithComplexAccumulator(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task AggregateEachCleansUpIntermediateEffects()
+        => AggregateEachCleansUpIntermediateEffects(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task AggregateEachWithSingleElement()
+        => AggregateEachWithSingleElement(FunctionStoreFactory.Create());
 }

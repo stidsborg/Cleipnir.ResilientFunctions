@@ -11,16 +11,16 @@ public class NoOpRegisteredTimeouts : IRegisteredTimeouts
 {
     public static NoOpRegisteredTimeouts Instance { get; } = new();
 
-    public Task<Tuple<TimeoutStatus, DateTime>> RegisterTimeout(EffectId timeoutId, DateTime expiresAt, bool publishMessage)
+    public Task<Tuple<TimeoutStatus, DateTime>> RegisterTimeout(EffectId timeoutId, DateTime expiresAt, bool publishMessage, string? alias = null)
         => Tuple.Create(TimeoutStatus.Registered, expiresAt).ToTask();
 
-    public Task<Tuple<TimeoutStatus, DateTime>> RegisterTimeout(EffectId timeoutId, TimeSpan expiresIn, bool publishMessage)
+    public Task<Tuple<TimeoutStatus, DateTime>> RegisterTimeout(EffectId timeoutId, TimeSpan expiresIn, bool publishMessage, string? alias = null)
         => Tuple.Create(TimeoutStatus.Registered, DateTime.UtcNow.Add(expiresIn)).ToTask();
     
     public Task CancelTimeout(EffectId timeoutId)
         => Task.CompletedTask;
 
-    public Task CompleteTimeout(EffectId timeoutId) 
+    public Task CompleteTimeout(EffectId timeoutId, string? alias = null) 
         => Task.CompletedTask;
 
     public Task<IReadOnlyList<RegisteredTimeout>> PendingTimeouts() => new List<RegisteredTimeout>()

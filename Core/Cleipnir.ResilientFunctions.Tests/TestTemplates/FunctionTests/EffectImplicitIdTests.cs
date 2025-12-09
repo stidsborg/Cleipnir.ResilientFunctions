@@ -230,7 +230,7 @@ public abstract class EffectImplicitIdTests
                 var (effect, _) = workflow;
                 var t1 = new Task<int>(() => 1);
                 var t2 = Task.FromResult(2);
-                return await effect.WhenAny(t1, t2);
+                return await effect.Capture(async () => await await Task.WhenAny(t1, t2));
             });
 
         var result = await rAction.Invoke(flowInstance.ToString(), param: "hello");
@@ -256,7 +256,7 @@ public abstract class EffectImplicitIdTests
                 var (effect, _) = workflow;
                 var t1 = Task.FromResult(1);
                 var t2 = Task.FromResult(2);
-                return await effect.WhenAll(t1, t2);
+                return await effect.Capture(() =>Task.WhenAll(t1, t2));
             });
 
         var result = await rAction.Invoke(flowInstance.ToString(), param: "hello");
