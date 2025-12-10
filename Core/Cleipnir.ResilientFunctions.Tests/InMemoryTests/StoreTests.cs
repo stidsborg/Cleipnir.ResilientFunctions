@@ -257,4 +257,16 @@ public class StoreTests : TestTemplates.StoreTests
     [TestMethod]
     public override Task GetResultsReturnsOnlyExistingFunctionResults()
         => GetResultsReturnsOnlyExistingFunctionResults(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task SetResultSucceedsWhenOwnerMatches()
+        => SetResultSucceedsWhenOwnerMatches(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task SetResultDoesNothingWhenOwnerDoesNotMatch()
+        => SetResultDoesNothingWhenOwnerDoesNotMatch(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task SetResultDoesNothingWhenFunctionDoesNotExist()
+        => SetResultDoesNothingWhenFunctionDoesNotExist(FunctionStoreFactory.Create());
 }

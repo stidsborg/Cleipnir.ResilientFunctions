@@ -200,6 +200,11 @@ public class CrashableFunctionStore : IFunctionStore
             ? Task.FromException<IReadOnlyDictionary<StoredId, byte[]?>>(new TimeoutException())
             : _inner.GetResults(storedIds);
 
+    public Task SetResult(StoredId storedId, byte[] result, ReplicaId expectedReplica)
+        => _crashed
+            ? Task.FromException(new TimeoutException())
+            : _inner.SetResult(storedId, result, expectedReplica);
+
     public IFunctionStore WithPrefix(string prefix)
         => _inner.WithPrefix(prefix);
 }

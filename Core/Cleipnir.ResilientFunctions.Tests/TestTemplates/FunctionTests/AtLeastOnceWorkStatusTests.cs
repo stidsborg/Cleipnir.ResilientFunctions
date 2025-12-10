@@ -27,8 +27,7 @@ public abstract class AtLeastOnceWorkStatusTests
             {
                 await workflow.Effect
                     .Capture(
-                        "Id",
-                        work: async () =>
+                        async () =>
                         {
                             counter.Increment();
                             if (counter.Current == 1)
@@ -62,8 +61,7 @@ public abstract class AtLeastOnceWorkStatusTests
             {
                 await workflow.Effect
                     .Capture(
-                        "someId",
-                        work: async () =>
+                        async () =>
                         {
                             counter.Increment();
                             if (counter.Current == 1)
@@ -98,8 +96,7 @@ public abstract class AtLeastOnceWorkStatusTests
             {
                 await workflow.Effect
                     .Capture(
-                        "Id",
-                        work: () => { counter.Increment(); return Task.CompletedTask; });
+                        () => { counter.Increment(); return Task.CompletedTask; });
             });
 
         await rAction.Invoke(flowInstance.ToString(), "hello");
@@ -123,8 +120,7 @@ public abstract class AtLeastOnceWorkStatusTests
             {
                 await workflow.Effect
                     .Capture(
-                        "someId",
-                        work: () => { counter.Increment(); return Task.CompletedTask; });
+                        () => { counter.Increment(); return Task.CompletedTask; });
             });
 
         await rAction.Invoke(flowInstance.ToString(), "hello");

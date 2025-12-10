@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Threading;
 
 namespace Cleipnir.ResilientFunctions.Domain;
@@ -40,5 +41,11 @@ public class EffectContext
     
     public static void SetParent(EffectId parentId) => Context.Value = new EffectContext(parentId);
 
-    public string NextImplicitId() => (++ImplicitId).ToString();
+    public int NextImplicitId() => ++ImplicitId;
+
+    public EffectId NextEffectId() => new(
+        Parent == null
+            ? [++ImplicitId]
+            : Parent.Value.Append(++ImplicitId).ToArray()
+    );
 }

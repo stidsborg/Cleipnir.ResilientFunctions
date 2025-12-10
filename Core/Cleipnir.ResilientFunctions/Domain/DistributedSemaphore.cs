@@ -19,17 +19,18 @@ public class DistributedSemaphores(Effect effect, ISemaphoreStore semaphoreStore
 
 public class DistributedSemaphore(int maximumCount, string group, string instance, Effect effect, ISemaphoreStore store, StoredId storedId, Func<IReadOnlyList<StoredId>, Task> interrupt)
 {
-    private string? _effectId; 
+    private EffectId? _effectId;
     public async Task<DistributedSemaphore.Lock> Acquire(TimeSpan? maxWait = null)
     {
         maxWait ??= TimeSpan.Zero;
-        if (maxWait < TimeSpan.Zero) 
+        if (maxWait < TimeSpan.Zero)
             throw new ArgumentOutOfRangeException(nameof(maxWait), maxWait, "MaxWait must be non negative");
 
-        var implicitId = effect.TakeNextImplicitId();
-        _effectId = $"Semaphore#{implicitId}";
+        _effectId = effect.CreateNextImplicitId();
         var statusOption = await effect.TryGet<SemaphoreIdAndStatus>(_effectId);
-        var statusIdAndStatus = statusOption.HasValue ? statusOption.Value : new SemaphoreIdAndStatus(group, instance, SemaphoreStatus.Created);
+        var statusIdAndStatus = statusOption.HasValue 
+            ? statusOption.Value 
+            : new SemaphoreIdAndStatus(group, instance, SemaphoreStatus.Created);
         var status = statusIdAndStatus.Status;
 
         var gotLock = true;
@@ -51,11 +52,11 @@ public class DistributedSemaphore(int maximumCount, string group, string instanc
 
         if (!gotLock)
         {
-            await effect.Upsert(_effectId, statusIdAndStatus with { Status = SemaphoreStatus.Waiting });
+            await effect.Upsert(_effectId, statusIdAndStatus with { Status = SemaphoreStatus.Waiting }, alias: null, flush: true);
             throw new SuspendInvocationException();
         }
 
-        await effect.Upsert(_effectId, statusIdAndStatus with { Status = SemaphoreStatus.Acquired });
+        await effect.Upsert(_effectId, statusIdAndStatus with { Status = SemaphoreStatus.Acquired }, alias: null, flush: true);
         return new Lock(Release);
     }
 
@@ -64,7 +65,7 @@ public class DistributedSemaphore(int maximumCount, string group, string instanc
         var lockQueue = await store.Release(group, instance, storedId, maximumCount);
         await interrupt(lockQueue);
 
-        await effect.Upsert(_effectId!, new SemaphoreIdAndStatus(group, instance, SemaphoreStatus.Released));
+        await effect.Upsert(_effectId!, new SemaphoreIdAndStatus(group, instance, SemaphoreStatus.Released), alias: null, flush: true);
     }
     
     public class Lock(Func<Task> releaseFunc) : IAsyncDisposable

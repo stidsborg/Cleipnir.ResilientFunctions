@@ -355,10 +355,12 @@ public abstract class SuspensionTests
             async Task<string> (string param, Workflow workflow) =>
             {
                 var words = param.Split(" ");
-                var results = await Task.WhenAll(
-                    words.Select((word, i) => child.Schedule($"Child#{i}", word).Completion()).ToList()
+
+                var scheduled = await child.BulkSchedule(
+                    words.Select(word => new BulkWork<string>($"Child#{word}", word))
                 );
-                
+
+                var results = await scheduled.Completion();
                 return results.StringJoin(" ");
             });
 
@@ -376,8 +378,8 @@ public abstract class SuspensionTests
             var childrenStatus = await param
                 .Split(" ")
                 .Select((_, i) => store
-                    .GetFunction(StoredId.Create(child.StoredType, $"Child{i}"))
-                    .SelectAsync(sf => new { Name = $"Child{i}", Status = sf?.Status })
+                    .GetFunction(StoredId.Create(child.StoredType, $"Child#{i}"))
+                    .SelectAsync(sf => new { Name = $"Child#{i}", Status = sf?.Status })
                 )
                 .AwaitAll();
             
@@ -491,7 +493,7 @@ public abstract class SuspensionTests
             parentFunctionId.Type,
             inner: async Task<List<string>> (string param, Workflow workflow) =>
             {
-                await workflow.Effect.Capture("ScheduleChildren", async () =>
+                await workflow.Effect.Capture(async () =>
                 {
                     for (var i = 0; i < numberOfChildren; i++)
                         await child.Schedule($"SomeChildInstance#{i}", i.ToString(), detach: true);

@@ -230,7 +230,7 @@ public abstract class SunshineTests
             inner: async workflow =>
             {
                 store.Crash();
-                await workflow.Effect.Contains("test");
+                await workflow.Effect.Contains("test".GetHashCode());
                 store.FixCrash();
             }
         ).Invoke;
@@ -357,7 +357,7 @@ public abstract class SunshineTests
             param: "hello",
             initialState: new InitialState(
                 Messages: [new MessageAndIdempotencyKey("InitialMessage")],
-                Effects: [new InitialEffect(Id: "InitialEffectId", Value: "InitialEffectValue", Exception: null)]
+                Effects: [new InitialEffect(Id: 0, Value: "InitialEffectValue", Exception: null, Alias: "InitialEffectId")]
             )
         );
         
@@ -395,7 +395,7 @@ public abstract class SunshineTests
             param: "hello",
             initialState: new InitialState(
                 Messages: [new MessageAndIdempotencyKey("InitialMessage")],
-                Effects: [new InitialEffect(Id: "InitialEffectId", Value: "InitialEffectValue", Exception: null)]
+                Effects: [new InitialEffect(Id: 0, Value: "InitialEffectValue", Exception: null, Alias: "InitialEffectId")]
             )
         );
         
@@ -432,7 +432,7 @@ public abstract class SunshineTests
             flowInstance: "hello",
             initialState: new InitialState(
                 Messages: [new MessageAndIdempotencyKey("InitialMessage")],
-                Effects: [new InitialEffect(Id: "InitialEffectId", Value: "InitialEffectValue", Exception: null)]
+                Effects: [new InitialEffect(Id: 0, Value: "InitialEffectValue", Exception: null, Alias: "InitialEffectId")]
             )
         );
         
@@ -459,7 +459,7 @@ public abstract class SunshineTests
                 flowId.Type,
                 async workflow =>
                 {
-                    workStatus = await workflow.Effect.GetStatus("InitialEffectId");
+                    workStatus = await workflow.Effect.GetStatus("InitialEffectId".GetHashCode());
                 }
             );
 
@@ -468,7 +468,7 @@ public abstract class SunshineTests
             flowInstance: "hello",
             initialState: new InitialState(
                 Messages: [],
-                Effects: [new InitialEffect(Id: "InitialEffectId", Status: WorkStatus.Started)]
+                Effects: [new InitialEffect(Id: "InitialEffectId".GetHashCode(), Status: WorkStatus.Started)]
             )
         );
         
@@ -492,7 +492,7 @@ public abstract class SunshineTests
                 flowId.Type,
                 async workflow =>
                 {
-                    await workflow.Effect.Capture("InitialEffectId", () => Task.CompletedTask);
+                    await workflow.Effect.Capture(() => {});
                 }
             );
 
@@ -503,7 +503,7 @@ public abstract class SunshineTests
                 flowInstance: "hello",
                 initialState: new InitialState(
                     Messages: [],
-                    Effects: [new InitialEffect(Id: "InitialEffectId", Exception: new TimeoutException())]
+                    Effects: [new InitialEffect(Id: 0, Exception: new TimeoutException())]
                 )
             );
             Assert.Fail("Expected TimeoutException");

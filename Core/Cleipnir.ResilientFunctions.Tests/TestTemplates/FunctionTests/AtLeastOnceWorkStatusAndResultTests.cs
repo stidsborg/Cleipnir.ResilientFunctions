@@ -26,9 +26,7 @@ public abstract class AtLeastOnceWorkStatusAndResultTests
             async Task(string param, Workflow workflow) =>
             {
                 await workflow.Effect
-                    .Capture(
-                        "id",
-                        work: async () =>
+                    .Capture(async () =>
                         {
                             counter.Increment();
                             await workflow.Delay(TimeSpan.FromMilliseconds(100));
@@ -43,7 +41,7 @@ public abstract class AtLeastOnceWorkStatusAndResultTests
         controlPanel.ShouldNotBeNull();
         await controlPanel.WaitForCompletion(allowPostponeAndSuspended: true);
         
-        await controlPanel.Effects.GetValue<int>("id").ShouldBeAsync(1);
+        await controlPanel.Effects.GetValue<int>(0).ShouldBeAsync(1);
         counter.Current.ShouldBe(2);
     }
 
@@ -61,9 +59,7 @@ public abstract class AtLeastOnceWorkStatusAndResultTests
             async Task<string>(string param, Workflow workflow) =>
             {
                 return await workflow.Effect
-                    .Capture(
-                        "someId",
-                        work: async () =>
+                    .Capture(async () =>
                         {
                             counter.Increment();
                             if (counter.Current == 1)
@@ -71,7 +67,7 @@ public abstract class AtLeastOnceWorkStatusAndResultTests
                                 await workflow.Delay(TimeSpan.FromMilliseconds(10));
                                 return "nothing";
                             }
-                            
+
                             return "hello world";
                         }
                     );
@@ -104,17 +100,15 @@ public abstract class AtLeastOnceWorkStatusAndResultTests
             async Task<Person>(string param, Workflow workflow) =>
             {
                 return await workflow.Effect
-                    .Capture(
-                        "someId",
-                        work: async () =>
+                    .Capture(async () =>
                         {
                             counter.Increment();
-                            if (counter.Current == 1) 
+                            if (counter.Current == 1)
                             {
                                 await workflow.Delay(TimeSpan.FromMilliseconds(10));
                                 return null!;
                             }
-                            
+
                             return new Person("Peter", 32);
                         }
                     );
@@ -150,9 +144,7 @@ public abstract class AtLeastOnceWorkStatusAndResultTests
             async Task(string param, Workflow workflow) =>
             {
                 await workflow.Effect
-                    .Capture(
-                        "id",
-                        work: () => { counter.Increment(); return 1.ToTask(); }
+                    .Capture(() => { counter.Increment(); return 1.ToTask(); }
                     );
             });
 
@@ -177,9 +169,7 @@ public abstract class AtLeastOnceWorkStatusAndResultTests
             async Task(string param, Workflow workflow) =>
             {
                 await workflow.Effect
-                    .Capture(
-                        "someId",
-                        work: () => { counter.Increment(); return "hello world".ToTask(); }
+                    .Capture(() => { counter.Increment(); return "hello world".ToTask(); }
                     );
             });
 
@@ -190,7 +180,7 @@ public abstract class AtLeastOnceWorkStatusAndResultTests
         await controlPanel.Restart();
         await controlPanel.Refresh();
 
-        var value = controlPanel.Effects.GetValue<string>("someId");
+        var value = controlPanel.Effects.GetValue<string>(0);
         await value.ShouldBeAsync("hello world");
         counter.Current.ShouldBe(1);
     }

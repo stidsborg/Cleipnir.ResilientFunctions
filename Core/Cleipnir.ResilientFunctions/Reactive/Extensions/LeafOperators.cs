@@ -117,25 +117,25 @@ public static class LeafOperators
     
     public static Task<T> FirstOfType<T>(this IReactiveChain<object> s, TimeSpan? maxWait = null)
         => s.OfType<T>().First(maxWait);
-    public static Task<Option<T>> FirstOfType<T>(this Messages messages, string timeoutId, DateTime expiresAt, TimeSpan? maxWait = null)
+    public static Task<Option<T>> FirstOfType<T>(this Messages messages, int timeoutId, DateTime expiresAt, TimeSpan? maxWait = null)
         => messages.TakeUntilTimeout(timeoutId, expiresAt).OfType<T>().FirstOrNone(maxWait);
-    public static Task<Option<T>> FirstOfType<T>(this Messages messages, string timeoutId, TimeSpan expiresIn, TimeSpan? maxWait = null)
+    public static Task<Option<T>> FirstOfType<T>(this Messages messages, int timeoutId, TimeSpan expiresIn, TimeSpan? maxWait = null)
         => messages.TakeUntilTimeout(timeoutId, expiresIn).OfType<T>().FirstOrNone(maxWait);
     
     public static Task<Either<T1, T2>> FirstOfTypes<T1, T2>(this IReactiveChain<object> s, TimeSpan? maxWait = null)
         => s.OfTypes<T1, T2>().First(maxWait);
-    public static Task<EitherOrNone<T1, T2>> FirstOfTypes<T1, T2>(this Messages messages, string timeoutId, DateTime expiresAt, TimeSpan? maxWait = null)
+    public static Task<EitherOrNone<T1, T2>> FirstOfTypes<T1, T2>(this Messages messages, int timeoutId, DateTime expiresAt, TimeSpan? maxWait = null)
         => messages.TakeUntilTimeout(timeoutId, expiresAt).OfTypes<T1, T2>().FirstOrNone(maxWait);
-    public static Task<EitherOrNone<T1, T2>> FirstOfTypes<T1, T2>(this Messages messages, string timeoutId, TimeSpan expiresIn, TimeSpan? maxWait = null)
+    public static Task<EitherOrNone<T1, T2>> FirstOfTypes<T1, T2>(this Messages messages, int timeoutId, TimeSpan expiresIn, TimeSpan? maxWait = null)
         => messages.TakeUntilTimeout(timeoutId, expiresIn).OfTypes<T1, T2>().FirstOrNone(maxWait);
     public static Task<EitherOrNone<T1, T2>> FirstOfTypes<T1, T2>(this Messages messages, DateTime expiresAt, TimeSpan? maxWait = null)
         => messages.TakeUntilTimeout(expiresAt).OfTypes<T1, T2>().FirstOrNone(maxWait);
     public static Task<EitherOrNone<T1, T2>> FirstOfTypes<T1, T2>(this Messages messages, TimeSpan expiresIn, TimeSpan? maxWait = null)
         => messages.TakeUntilTimeout(expiresIn).OfTypes<T1, T2>().FirstOrNone(maxWait);
     
-    public static Task<EitherOrNone<T1, T2, T3>> FirstOfTypes<T1, T2, T3>(this Messages messages, string timeoutId, DateTime expiresAt, TimeSpan? maxWait = null)
+    public static Task<EitherOrNone<T1, T2, T3>> FirstOfTypes<T1, T2, T3>(this Messages messages, int timeoutId, DateTime expiresAt, TimeSpan? maxWait = null)
         => messages.TakeUntilTimeout(timeoutId, expiresAt).OfTypes<T1, T2, T3>().FirstOrNone(maxWait);
-    public static Task<EitherOrNone<T1, T2, T3>> FirstOfTypes<T1, T2, T3>(this Messages messages, string timeoutId, TimeSpan expiresIn, TimeSpan? maxWait = null)
+    public static Task<EitherOrNone<T1, T2, T3>> FirstOfTypes<T1, T2, T3>(this Messages messages, int timeoutId, TimeSpan expiresIn, TimeSpan? maxWait = null)
         => messages.TakeUntilTimeout(timeoutId, expiresIn).OfTypes<T1, T2, T3>().FirstOrNone(maxWait);
     public static Task<EitherOrNone<T1, T2, T3>> FirstOfTypes<T1, T2, T3>(this Messages messages, DateTime expiresAt, TimeSpan? maxWait = null)
         => messages.TakeUntilTimeout(expiresAt).OfTypes<T1, T2, T3>().FirstOrNone(maxWait);
@@ -173,9 +173,9 @@ public static class LeafOperators
         => s.OfType<T>().Last();
     public static Task<T> LastOf<T>(this IReactiveChain<object> s) => s.LastOfType<T>();
     
-    public static Task<Option<T>> LastOfType<T>(this Messages messages, string timeoutId, DateTime expiresAt)
+    public static Task<Option<T>> LastOfType<T>(this Messages messages, int timeoutId, DateTime expiresAt)
         => messages.TakeUntilTimeout(timeoutId, expiresAt).OfType<T>().LastOrNone();
-    public static Task<Option<T>> LastOfType<T>(this Messages messages, string timeoutId, TimeSpan expiresIn)
+    public static Task<Option<T>> LastOfType<T>(this Messages messages, int timeoutId, TimeSpan expiresIn)
         => messages.TakeUntilTimeout(timeoutId, expiresIn).OfType<T>().LastOrNone();
     
     #endregion

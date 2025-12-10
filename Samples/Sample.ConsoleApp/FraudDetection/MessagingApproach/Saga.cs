@@ -14,7 +14,7 @@ public static class Saga
         await MessageBroker.Send(new ApproveTransaction(transaction));
         
         var results = await messages
-            .TakeUntilTimeout("Timeout", TimeSpan.FromSeconds(2))
+            .TakeUntilTimeout(0, TimeSpan.FromSeconds(2))
             .OfType<FraudDetectorResult>()
             .Take(3)
             .Completion();
@@ -22,7 +22,6 @@ public static class Saga
         var approved = results.Count >= 2 && results.All(result => result.Approved);
 
         await workflow.Effect.Capture(
-            "PublishTransactionApproval",
             () => MessageBroker.Send(approved
                 ? new TransactionApproved(transaction)
                 : new TransactionDeclined(transaction))

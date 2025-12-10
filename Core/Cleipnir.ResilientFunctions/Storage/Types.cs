@@ -113,18 +113,6 @@ public record StoredException(string ExceptionMessage, string? ExceptionStackTra
 
 public record StatusAndId(StoredId StoredId, Status Status, long Expiry);
 
-public record StoredEffectId(Guid Value)
-{
-    public static StoredEffectId Create(EffectId effectId) 
-        => new(StoredIdFactory.FromString(effectId.Serialize().Value));
-}
-
-public static class StoredEffectIdExtensions
-{
-    public static StoredEffectId ToStoredEffectId(this string effectId, EffectType effectType) => ToStoredEffectId(effectId.ToEffectId(effectType));
-    public static StoredEffectId ToStoredEffectId(this EffectId effectId) => StoredEffectId.Create(effectId);
-}
-
 public record StoredEffectChange(
     StoredId StoredId,
     EffectId EffectId,
@@ -146,55 +134,49 @@ public record StoredEffect(
     EffectId EffectId,
     WorkStatus WorkStatus,
     byte[]? Result,
-    StoredException? StoredException
+    StoredException? StoredException,
+    string? Alias
 )
 {
-    public StoredEffectId StoredEffectId => EffectId.ToStoredEffectId();
-
-    public static StoredEffect CreateCompleted(EffectId effectId, byte[] result)
-        => new(effectId, WorkStatus.Completed, result, StoredException: null);
-    public static StoredEffect CreateCompleted(EffectId effectId)
-        => new(effectId, WorkStatus.Completed, Result: null, StoredException: null);
-    public static StoredEffect CreateStarted(EffectId effectId)
-        => new(effectId, WorkStatus.Started, Result: null, StoredException: null);
-    public static StoredEffect CreateFailed(EffectId effectId, StoredException storedException)
-        => new(effectId, WorkStatus.Failed, Result: null, storedException);
+    public static StoredEffect CreateCompleted(EffectId effectId, byte[] result, string? alias)
+        => new(effectId, WorkStatus.Completed, result, StoredException: null, alias);
+    public static StoredEffect CreateCompleted(EffectId effectId, string? alias)
+        => new(effectId, WorkStatus.Completed, Result: null, StoredException: null, alias);
+    public static StoredEffect CreateStarted(EffectId effectId, string? alias)
+        => new(effectId, WorkStatus.Started, Result: null, StoredException: null, alias);
+    public static StoredEffect CreateFailed(EffectId effectId, StoredException storedException, string? alias)
+        => new(effectId, WorkStatus.Failed, Result: null, storedException, alias);
 
     public byte[] Serialize()
     {
-        var effect = EffectId.Serialize().Value.ToUtf8Bytes();
+        var serializedValue = EffectId.Serialize().Value;
+        var effect = new byte[serializedValue.Length * sizeof(int)];
+        Buffer.BlockCopy(serializedValue, 0, effect, 0, effect.Length);
         var status = (byte)WorkStatus;
         var result = Result;
         var exception = StoredException?.Serialize();
-        
-        return BinaryPacker.Pack(effect, [status], result, exception);
+        var alias = Alias?.ToUtf8Bytes();
+
+        return BinaryPacker.Pack(effect, [status], result, exception, alias);
     }
 
     public static StoredEffect Deserialize(byte[] bytes)
     {
-        var parts = BinaryPacker.Split(bytes, expectedPieces: 4);
-        var effect = EffectId.Deserialize(parts[0]!.ToStringFromUtf8Bytes());
+        var parts = BinaryPacker.Split(bytes);
+        var effectBytes = parts[0]!;
+        var effectInts = new int[effectBytes.Length / sizeof(int)];
+        Buffer.BlockCopy(effectBytes, 0, effectInts, 0, effectBytes.Length);
+        var effect = EffectId.Deserialize(effectInts);
         var status = (WorkStatus)parts[1]![0];
         var result = parts[2];
-        var exception = parts[3] == null ? null : StoredException.Deserialize(parts[3]!);
+        var exception = parts.Count > 3
+            ? parts[3] == null ? null : StoredException.Deserialize(parts[3]!)
+            : null;
+        var alias = parts.Count > 3 ? parts[4]?.ToStringFromUtf8Bytes() : null;
 
-        return new StoredEffect(effect, status, result, exception);
-    }
-    
-    public static StoredEffect CreateState(StoredState storedState)
-    {
-        var effectId = storedState.StateId.Value.ToEffectId(effectType: EffectType.State);
-        return new StoredEffect(
-            effectId,
-            WorkStatus.Completed,
-            storedState.StateJson,
-            StoredException: null
-        );
+        return new StoredEffect(effect, status, result, exception, alias);
     }
 };
-public record StoredEffectWithPosition(StoredEffect Effect, long Position);
-
-public record StoredState(StateId StateId, byte[] StateJson);
 
 public record IdWithParam(StoredId StoredId, string HumanInstanceId, byte[]? Param);
 

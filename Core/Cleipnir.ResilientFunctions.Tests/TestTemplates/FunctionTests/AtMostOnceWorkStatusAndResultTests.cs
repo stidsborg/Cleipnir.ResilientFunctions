@@ -26,9 +26,7 @@ public abstract class AtMostOnceWorkStatusAndResultTests
             async Task(string param, Workflow workflow) =>
             {
                 await workflow.Effect
-                    .Capture(
-                        "id",
-                        work: async () =>
+                    .Capture(async () =>
                         {
                             counter.Increment();
                             await workflow.Delay(TimeSpan.FromMilliseconds(10));
@@ -60,9 +58,7 @@ public abstract class AtMostOnceWorkStatusAndResultTests
             async Task(string param, Workflow workflow) =>
             {
                 await workflow.Effect
-                    .Capture(
-                        "someId",
-                        work: async () =>
+                    .Capture(async () =>
                         {
                             counter.Increment();
                             if (counter.Current != 0)
@@ -97,9 +93,7 @@ public abstract class AtMostOnceWorkStatusAndResultTests
             async Task(string param, Workflow workflow) =>
             {
                 await workflow.Effect
-                    .Capture(
-                        "someId",
-                        work: async () =>
+                    .Capture(async () =>
                         {
                             counter.Increment();
                             if (counter.Current != 0)
@@ -136,9 +130,7 @@ public abstract class AtMostOnceWorkStatusAndResultTests
             async Task(string param, Workflow workflow) =>
             {
                 await workflow.Effect
-                    .Capture(
-                        "id",
-                        work: () => { counter.Increment(); return 1.ToTask(); }, 
+                    .Capture(() => { counter.Increment(); return 1.ToTask(); },
                         ResiliencyLevel.AtMostOnce
                     );
             });
@@ -163,9 +155,7 @@ public abstract class AtMostOnceWorkStatusAndResultTests
             async Task(string param, Workflow workflow) =>
             {
                 await workflow.Effect
-                    .Capture(
-                        "someId",
-                        work: () => { counter.Increment(); return "hello world".ToTask(); }, 
+                    .Capture(() => { counter.Increment(); return "hello world".ToTask(); },
                         ResiliencyLevel.AtMostOnce
                     );
             });
@@ -179,7 +169,7 @@ public abstract class AtMostOnceWorkStatusAndResultTests
         counter.Current.ShouldBe(1);
         await controlPanel.Refresh();
 
-        var value = controlPanel.Effects.GetValue<string>("someId");
+        var value = controlPanel.Effects.GetValue<string>(0);
         await value.ShouldBeAsync("hello world");
     }
     
@@ -197,9 +187,7 @@ public abstract class AtMostOnceWorkStatusAndResultTests
             async Task(string param, Workflow workflow) =>
             {
                 await workflow.Effect
-                    .Capture(
-                        "someId",
-                        work: () => { counter.Increment(); return new Person("Peter", 32).ToTask(); }, 
+                    .Capture(() => { counter.Increment(); return new Person("Peter", 32).ToTask(); },
                         ResiliencyLevel.AtMostOnce
                     );
             });
@@ -213,7 +201,7 @@ public abstract class AtMostOnceWorkStatusAndResultTests
         counter.Current.ShouldBe(1);
         await controlPanel.Refresh();
 
-        var value = controlPanel.Effects.GetValue<Person>("someId");
+        var value = controlPanel.Effects.GetValue<Person>(0);
         await value.ShouldBeAsync(new Person("Peter", 32));
     }
 }

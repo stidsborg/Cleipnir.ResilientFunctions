@@ -356,7 +356,7 @@ internal class InvocationHelper<TParam, TReturn>
         var parent = GetAndEnsureParent(detach);
         if (parent != null)
         {
-            var marked = await parent.Effect.Mark($"BulkScheduled#{parent.Effect.TakeNextImplicitId()}");
+            var marked = await parent.Effect.Mark();
             if (!marked)
                 return CreateInnerScheduled(
                     work.Select(w => new FlowId(_flowType, w.Instance)).ToList(),
@@ -397,7 +397,7 @@ internal class InvocationHelper<TParam, TReturn>
             effect,
             UtcNow,
             flowMinimumTimeout,
-            publishTimeoutEvent: timeoutEvent => messageWriter.AppendMessage(timeoutEvent, idempotencyKey: timeoutEvent.TimeoutId.Serialize().Value),
+            publishTimeoutEvent: timeoutEvent => messageWriter.AppendMessage(timeoutEvent, idempotencyKey: timeoutEvent.TimeoutId.Serialize().ToStringValue()),
             unhandledExceptionHandler,
             flowId
         );
@@ -497,15 +497,17 @@ internal class InvocationHelper<TParam, TReturn>
         .Select(e =>
             e.Exception == null
                 ? new StoredEffect(
-                    e.Id.ToEffectId(EffectType.Effect),
+                    e.Id.ToEffectId(),
                     e.Status ?? WorkStatus.Completed,
                     Result: Serializer.Serialize(e.Value, e.Value?.GetType() ?? typeof(object)),
-                    StoredException: null)
+                    StoredException: null,
+                    Alias: e.Alias ?? e.Id.ToString())
                 : new StoredEffect(
-                    e.Id.ToEffectId(EffectType.Effect),
+                    e.Id.ToEffectId(),
                     WorkStatus.Failed,
                     Result: null,
-                    StoredException: Serializer.SerializeException(FatalWorkflowException.CreateNonGeneric(flowId, e.Exception))
+                    StoredException: Serializer.SerializeException(FatalWorkflowException.CreateNonGeneric(flowId, e.Exception)),
+                    Alias: e.Alias
                 )
         ).ToList();
 

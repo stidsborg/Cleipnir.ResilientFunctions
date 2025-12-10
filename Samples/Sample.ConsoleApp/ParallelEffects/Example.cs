@@ -35,7 +35,7 @@ public static class Example
                         return "1.2";
                     });
                 
-                    return await effect.WhenAny(e11, e12);
+                    return await await Task.WhenAny(e11, e12);
                 });
                 
                 var e2 = effect.Capture(async () =>
@@ -53,10 +53,10 @@ public static class Example
                         return "2.2";
                     });
                     
-                    return await effect.WhenAny(e21, e22);
+                    return await await Task.WhenAny(e21, e22);
                 });
 
-                var results = await effect.WhenAll(e1, e2);
+                var results = await Task.WhenAll(e1, e2);
                 return string.Join(", ", results);
             }
         );

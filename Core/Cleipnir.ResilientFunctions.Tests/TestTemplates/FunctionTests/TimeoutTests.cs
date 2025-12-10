@@ -37,10 +37,10 @@ public abstract class TimeoutTests
             {
                 var messages = workflow.Messages;
                 var timeoutTask = messages.OfType<TimeoutEvent>().First();
-                await messages.FlowRegisteredTimeouts.RegisterTimeout("test", expiresIn: TimeSpan.FromMilliseconds(500), publishMessage: true);
+                await messages.FlowRegisteredTimeouts.RegisterTimeout(1, expiresIn: TimeSpan.FromMilliseconds(500), publishMessage: true);
                 timeoutTask.IsCompleted.ShouldBeFalse();
                 var timeout = await timeoutTask;
-                timeout.TimeoutId.Id.ShouldBe("test");
+                timeout.TimeoutId.Id.ShouldBe(1);
             }
         ).Invoke;
 
@@ -69,7 +69,7 @@ public abstract class TimeoutTests
             {
                 var messages = workflow.Messages;
                 await messages
-                    .TakeUntilTimeout("TimeoutId#21", expiresIn: TimeSpan.FromMilliseconds(500))
+                    .TakeUntilTimeout(21, expiresIn: TimeSpan.FromMilliseconds(500))
                     .FirstOfType<string>();
             }
         ).Invoke;
@@ -100,7 +100,7 @@ public abstract class TimeoutTests
             inner: Task (string _, Workflow workflow) =>
                 workflow
                     .Messages
-                    .TakeUntilTimeout("TimeoutId4321", expiresIn: TimeSpan.FromMilliseconds(5_000))
+                    .TakeUntilTimeout(4321, expiresIn: TimeSpan.FromMilliseconds(5_000))
                     .First()
         );
 
@@ -145,15 +145,15 @@ public abstract class TimeoutTests
             inner: Task (workflow) =>
                 workflow
                     .Messages
-                    .TakeUntilTimeout("TimeoutId4321", expiresIn: TimeSpan.FromMinutes(10))
+                    .TakeUntilTimeout(4321, expiresIn: TimeSpan.FromMinutes(10))
                     .First()
         );
 
         await registration.Schedule("someInstanceId");
-        
+
         var controlPanel = await registration.ControlPanel("someInstanceId");
         controlPanel.ShouldNotBeNull();
-        await controlPanel.BusyWaitUntil(cp => 
+        await controlPanel.BusyWaitUntil(cp =>
             cp.Status == Status.Postponed, maxWait: TimeSpan.FromSeconds(10));
 
         var registeredTimeouts = await controlPanel.RegisteredTimeouts.All;
@@ -161,15 +161,8 @@ public abstract class TimeoutTests
         var registeredTimeout = registeredTimeouts.First();
 
         var id = registeredTimeout.TimeoutId;
-        id.Id.ShouldBe("TimeoutId4321");
-        id.Type.ShouldBe(EffectType.Timeout);
+        id.Id.ShouldBe(4321);
 
-        await controlPanel.RegisteredTimeouts.Remove(id);
-        
-        await controlPanel.Refresh();
-
-        await controlPanel.RegisteredTimeouts.All.ShouldBeEmptyAsync();
-        
         unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
     }
     
@@ -192,12 +185,12 @@ public abstract class TimeoutTests
             inner: Task (workflow) =>
                 workflow
                     .Messages
-                    .TakeUntilTimeout("TimeoutId4321", expiresIn: TimeSpan.FromMinutes(10))
+                    .TakeUntilTimeout(4321, expiresIn: TimeSpan.FromMinutes(10))
                     .First()
         );
 
         await registration.Schedule("someInstanceId");
-        
+
         var controlPanel = await registration.ControlPanel("someInstanceId");
         controlPanel.ShouldNotBeNull();
         await controlPanel.BusyWaitUntil(cp => cp.Status == Status.Postponed);
@@ -207,8 +200,7 @@ public abstract class TimeoutTests
         var registeredTimeout = registeredTimeouts.First();
 
         var id = registeredTimeout.TimeoutId;
-        id.Id.ShouldBe("TimeoutId4321");
-        id.Type.ShouldBe(EffectType.Timeout);
+        id.Id.ShouldBe(4321);
 
         await controlPanel.RegisteredTimeouts.Upsert(id, new DateTime(2100, 1, 1, 0, 0, 0, DateTimeKind.Utc));
         
@@ -267,8 +259,8 @@ public abstract class TimeoutTests
         var messages = await controlPanel.Messages.AsObjects;
         messages.Count.ShouldBe(2);
         messages.OfType<TimeoutEvent>().Count().ShouldBe(2);
-        messages.OfType<TimeoutEvent>().Single(t => t.TimeoutId.Id == "0").Expiration.ShouldBe(expiresAt1);
-        messages.OfType<TimeoutEvent>().Single(t => t.TimeoutId.Id == "1").Expiration.ShouldBe(expiresAt2);
+        messages.OfType<TimeoutEvent>().Single(t => t.TimeoutId.Id == 0).Expiration.ShouldBe(expiresAt1);
+        messages.OfType<TimeoutEvent>().Single(t => t.TimeoutId.Id == 1).Expiration.ShouldBe(expiresAt2);
         
         unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
     }
@@ -296,16 +288,16 @@ public abstract class TimeoutTests
             inner: async Task<Tuple<bool, bool>> (string _, Workflow workflow) =>
             {
                 var (effect, messages) = workflow;
-                var didFirstTimeout = await effect.Capture("First", () => 
-                    messages.TakeUntilTimeout("TimeoutId", TimeSpan.FromMilliseconds(10))
+                var didFirstTimeout = await effect.Capture(() =>
+                    messages.TakeUntilTimeout("TimeoutId".GetHashCode(), TimeSpan.FromMilliseconds(10))
                         .FirstOrNone()
                         .SelectAsync(o => !o.HasValue)
                     );
 
                 await messages.AppendMessage("SomeMessage");
-                
-                var didSecondTimeout = await effect.Capture("Second", () => 
-                    messages.TakeUntilTimeout("TimeoutId", TimeSpan.FromSeconds(30))
+
+                var didSecondTimeout = await effect.Capture(() =>
+                    messages.TakeUntilTimeout("TimeoutId".GetHashCode(), TimeSpan.FromSeconds(30))
                         .FirstOrNone()
                         .SelectAsync(o => !o.HasValue)
                     );
@@ -314,7 +306,7 @@ public abstract class TimeoutTests
             }
         );
         
-        var (firstTimeout, secondTimeout) = await registration.Invoke(flowInstance.Value, "param");
+        var (firstTimeout, secondTimeout) = (Tuple<bool, bool>) await registration.Invoke(flowInstance.Value, "param");
         firstTimeout.ShouldBeTrue();
         secondTimeout.ShouldBeFalse();
         

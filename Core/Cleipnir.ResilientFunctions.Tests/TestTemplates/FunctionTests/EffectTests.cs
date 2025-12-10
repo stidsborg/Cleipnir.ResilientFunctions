@@ -8,6 +8,7 @@ using Cleipnir.ResilientFunctions.CoreRuntime.Serialization;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.Helpers;
+using Cleipnir.ResilientFunctions.Reactive.Extensions;
 using Cleipnir.ResilientFunctions.Reactive.Utilities;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Tests.Utils;
@@ -32,8 +33,7 @@ public abstract class EffectTests
             {
                 var (effect, _) = workflow;
                 await effect.Capture(
-                    id: "Test",
-                    work: () => syncedCounter.Increment()
+                    () => syncedCounter.Increment()
                 );
             });
 
@@ -46,14 +46,14 @@ public abstract class EffectTests
         
         syncedCounter.Current.ShouldBe(1);
         var effectResults = await store.EffectsStore.GetEffectResults(storedId);
-        effectResults.Single(r => r.EffectId == "Test".ToEffectId()).WorkStatus.ShouldBe(WorkStatus.Completed);
+        effectResults.Single(r => r.EffectId == 0.ToEffectId()).WorkStatus.ShouldBe(WorkStatus.Completed);
 
         var controlPanel = await rAction.ControlPanel(flowId.Instance);
         controlPanel.ShouldNotBeNull();
         await controlPanel.Restart();
         
         effectResults = await store.EffectsStore.GetEffectResults(storedId);
-        effectResults.Single(r => r.EffectId == "Test".ToEffectId()).WorkStatus.ShouldBe(WorkStatus.Completed);
+        effectResults.Single(r => r.EffectId == 0.ToEffectId()).WorkStatus.ShouldBe(WorkStatus.Completed);
         syncedCounter.Current.ShouldBe(1);
     }
     
@@ -71,8 +71,7 @@ public abstract class EffectTests
             {
                 var (effect, _) = workflow;
                 await effect.Capture(
-                    id: "Test",
-                    work: () => { syncedCounter.Increment(); return Task.CompletedTask; });
+                    () => { syncedCounter.Increment(); return Task.CompletedTask; });
             });
 
         await rAction.Schedule(flowInstance.ToString(), "hello");
@@ -84,14 +83,14 @@ public abstract class EffectTests
         
         syncedCounter.Current.ShouldBe(1);
         var effectResults = await store.EffectsStore.GetEffectResults(storedId);
-        effectResults.Single(r => r.EffectId == "Test".ToEffectId()).WorkStatus.ShouldBe(WorkStatus.Completed);
+        effectResults.Single(r => r.EffectId == 0.ToEffectId()).WorkStatus.ShouldBe(WorkStatus.Completed);
 
         var controlPanel = await rAction.ControlPanel(flowId.Instance);
         controlPanel.ShouldNotBeNull();
         await controlPanel.Restart();
         
         effectResults = await store.EffectsStore.GetEffectResults(storedId);
-        effectResults.Single(r => r.EffectId == "Test".ToEffectId()).WorkStatus.ShouldBe(WorkStatus.Completed);
+        effectResults.Single(r => r.EffectId == 0.ToEffectId()).WorkStatus.ShouldBe(WorkStatus.Completed);
         syncedCounter.Current.ShouldBe(1);
     }
     
@@ -109,8 +108,7 @@ public abstract class EffectTests
             {
                 var (effect, _) = workflow;
                 await effect.Capture(
-                    id: "Test",
-                    work: () =>
+                    () =>
                     {
                         syncedCounter.Increment();
                         return param;
@@ -126,7 +124,7 @@ public abstract class EffectTests
         
         syncedCounter.Current.ShouldBe(1);
         var effectResults = await store.EffectsStore.GetEffectResults(storedId);
-        var storedEffect = effectResults.Single(r => r.EffectId == "Test".ToEffectId());
+        var storedEffect = effectResults.Single(r => r.EffectId == 0.ToEffectId());
         storedEffect.WorkStatus.ShouldBe(WorkStatus.Completed);
         storedEffect.Result!.ToStringFromUtf8Bytes().DeserializeFromJsonTo<string>().ShouldBe("hello");
 
@@ -135,7 +133,7 @@ public abstract class EffectTests
         await controlPanel.Restart();
         
         effectResults = await store.EffectsStore.GetEffectResults(storedId);
-        storedEffect = effectResults.Single(r => r.EffectId == "Test".ToEffectId());
+        storedEffect = effectResults.Single(r => r.EffectId == 0.ToEffectId());
         storedEffect.WorkStatus.ShouldBe(WorkStatus.Completed);
         storedEffect.Result!.ToStringFromUtf8Bytes().DeserializeFromJsonTo<string>().ShouldBe("hello");
         syncedCounter.Current.ShouldBe(1);
@@ -155,8 +153,7 @@ public abstract class EffectTests
             {
                 var (effect, _) = workflow;
                 await effect.Capture(
-                    id: "Test",
-                    work: () =>
+                    () =>
                     {
                         syncedCounter.Increment();
                         return param.ToTask();
@@ -172,7 +169,7 @@ public abstract class EffectTests
         
         syncedCounter.Current.ShouldBe(1);
         var effectResults = await store.EffectsStore.GetEffectResults(storedId);
-        var storedEffect = effectResults.Single(r => r.EffectId == "Test".ToEffectId());
+        var storedEffect = effectResults.Single(r => r.EffectId == 0.ToEffectId());
         storedEffect.WorkStatus.ShouldBe(WorkStatus.Completed);
         storedEffect.Result!.ToStringFromUtf8Bytes().DeserializeFromJsonTo<string>().ShouldBe("hello");
 
@@ -181,7 +178,7 @@ public abstract class EffectTests
         await controlPanel.Restart();
         
         effectResults = await store.EffectsStore.GetEffectResults(storedId);
-        storedEffect = effectResults.Single(r => r.EffectId == "Test".ToEffectId());
+        storedEffect = effectResults.Single(r => r.EffectId == 0.ToEffectId());
         storedEffect.WorkStatus.ShouldBe(WorkStatus.Completed);
         storedEffect.Result!.ToStringFromUtf8Bytes().DeserializeFromJsonTo<string>().ShouldBe("hello");
         syncedCounter.Current.ShouldBe(1);
@@ -201,8 +198,7 @@ public abstract class EffectTests
             {
                 var (effect, _) = workflow;
                 await effect.Capture(
-                    id: "Test",
-                    work: () =>
+                    () =>
                     {
                         syncedCounter.Increment();
                         throw new InvalidOperationException("oh no");
@@ -218,7 +214,7 @@ public abstract class EffectTests
         
         syncedCounter.Current.ShouldBe(1);
         var effectResults = await store.EffectsStore.GetEffectResults(storedId);
-        var storedEffect = effectResults.Single(r => r.EffectId == "Test".ToEffectId());
+        var storedEffect = effectResults.Single(r => r.EffectId == 0.ToEffectId());
         storedEffect.WorkStatus.ShouldBe(WorkStatus.Failed);
         storedEffect.StoredException.ShouldNotBeNull();
         storedEffect.StoredException.ExceptionType.ShouldContain("InvalidOperationException");
@@ -226,9 +222,9 @@ public abstract class EffectTests
         var controlPanel = await rAction.ControlPanel(flowId.Instance);
         controlPanel.ShouldNotBeNull();
         await Should.ThrowAsync<FatalWorkflowException>(() => controlPanel.Restart());
-        
+
         effectResults = await store.EffectsStore.GetEffectResults(storedId);
-        storedEffect = effectResults.Single(r => r.EffectId == "Test".ToEffectId());
+        storedEffect = effectResults.Single(r => r.EffectId == 0.ToEffectId());
         storedEffect.WorkStatus.ShouldBe(WorkStatus.Failed);
         storedEffect.StoredException.ShouldNotBeNull();
         storedEffect.StoredException.ExceptionType.ShouldContain("InvalidOperationException");
@@ -249,7 +245,7 @@ public abstract class EffectTests
                 var (effect, _) = workflow;
                 var t1 = new Task<int>(() => 1);
                 var t2 = Task.FromResult(2);
-                return await effect.WhenAny("WhenAny", t1, t2);
+                return await effect.Capture(async () => await await Task.WhenAny(t1, t2));
             });
 
         var result = await rAction.Invoke(flowInstance.ToString(), param: "hello");
@@ -257,7 +253,7 @@ public abstract class EffectTests
         
         var storedId = rAction.MapToStoredId(flowId.Instance);
         var effectResults = await store.EffectsStore.GetEffectResults(storedId);
-        var storedEffect = effectResults.Single(r => r.EffectId == "WhenAny".ToEffectId());
+        var storedEffect = effectResults.Single(r => r.EffectId == 0.ToEffectId());
         storedEffect.WorkStatus.ShouldBe(WorkStatus.Completed);
         storedEffect.Result!.ToStringFromUtf8Bytes().DeserializeFromJsonTo<int>().ShouldBe(2);
     }
@@ -276,7 +272,7 @@ public abstract class EffectTests
                 var (effect, _) = workflow;
                 var t1 = Task.FromResult(1);
                 var t2 = Task.FromResult(2);
-                return await effect.WhenAll("WhenAll", t1, t2);
+                return await effect.Capture(() => Task.WhenAll(t1, t2));
             });
 
         var result = await rAction.Invoke(flowInstance.ToString(), param: "hello");
@@ -284,46 +280,9 @@ public abstract class EffectTests
         
         var storedId = rAction.MapToStoredId(flowId.Instance);
         var effectResults = await store.EffectsStore.GetEffectResults(storedId);
-        var storedEffect = effectResults.Single(r => r.EffectId == "WhenAll".ToEffectId());
+        var storedEffect = effectResults.Single(r => r.EffectId == 0.ToEffectId());
         storedEffect.WorkStatus.ShouldBe(WorkStatus.Completed);
         storedEffect.Result!.ToStringFromUtf8Bytes().DeserializeFromJsonTo<int[]>().ShouldBe(new [] {1, 2});
-    }
-    
-    public abstract Task ClearEffectsTest();
-    public async Task ClearEffectsTest(Task<IFunctionStore> storeTask)
-    {  
-        var store = await storeTask;
-        using var functionsRegistry = new FunctionsRegistry(store);
-        var flowId = TestFlowId.Create();
-        var (flowType, flowInstance) = flowId;
-        
-        var registration = functionsRegistry.RegisterAction(
-            flowType,
-            async Task (string param, Workflow workflow) =>
-            {
-                var (effect, _) = workflow;
-                await effect.Clear("SomeEffect");
-            });
-
-        await store.CreateFunction(
-            registration.MapToStoredId(flowId.Instance), 
-            "humanInstanceId",
-            Test.SimpleStoredParameter,
-            leaseExpiration: (DateTime.UtcNow + TimeSpan.FromMinutes(10)).Ticks,
-            postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks,
-            parent: null,
-            owner: null
-        );
-        
-        var controlPanel = await registration.ControlPanel(flowId.Instance);
-        controlPanel.ShouldNotBeNull();
-
-        await controlPanel.Effects.SetSucceeded("SomeEffect");
-        await controlPanel.Restart();
-
-        await controlPanel.Refresh();
-        (await controlPanel.Effects.AllIds).Count().ShouldBe(0);
     }
     
     public abstract Task EffectsCrudTest();
@@ -351,26 +310,26 @@ public abstract class EffectTests
         );
         var effect = new Effect(effectResults, utcNow: () => DateTime.UtcNow, new FlowMinimumTimeout());
         
-        var option = await effect.TryGet<int>("Id1");
+        var option = await effect.TryGet<int>("alias");
         option.HasValue.ShouldBeFalse();
-                
-        Should.Throw<InvalidOperationException>(() => effect.Get<int>("Id1"));
 
-        var result = await effect.CreateOrGet("Id1", 32);
+        Should.Throw<InvalidOperationException>(() => effect.Get<int>("nonexistent"));
+
+        var result = await effect.CreateOrGet("alias", 32);
         result.ShouldBe(32);
-        result = await effect.CreateOrGet("Id1", 100);
+        result = await effect.CreateOrGet("alias", 100);
         result.ShouldBe(32);
-                
-        option = await effect.TryGet<int>("Id1");
+
+        option = await effect.TryGet<int>("alias");
         option.HasValue.ShouldBeTrue();
         var value2 = option.Value;
         value2.ShouldBe(32);
-        (await effect.Get<int>("Id1")).ShouldBe(32);
-                
-        await effect.Upsert("Id1", 100);
-        (await effect.Get<int>("Id1")).ShouldBe(100);
-        await effect.GetStatus("Id1").ShouldBeAsync(WorkStatus.Completed);
-        await effect.Contains("Id1").ShouldBeTrueAsync();
+        (await effect.Get<int>("alias")).ShouldBe(32);
+
+        await effect.Upsert("alias", 100);
+        (await effect.Get<int>("alias")).ShouldBe(100);
+        await effect.GetStatus(0).ShouldBeAsync(WorkStatus.Completed);
+        await effect.Contains(0).ShouldBeTrueAsync();
     }
     
     public abstract Task ExistingEffectsFuncIsOnlyInvokedAfterGettingValue();
@@ -400,10 +359,10 @@ public abstract class EffectTests
         
         syncedCounter.Current.ShouldBe(0);
         
-        await effect.TryGet<int>("Id1");
+        await effect.TryGet<int>("alias");
         syncedCounter.Current.ShouldBe(1);
-        
-        await effect.TryGet<int>("Id1");
+
+        await effect.TryGet<int>("alias");
         syncedCounter.Current.ShouldBe(1);
     }
     
@@ -414,6 +373,9 @@ public abstract class EffectTests
         using var functionsRegistry = new FunctionsRegistry(store);
         var flowId = TestFlowId.Create();
         var (flowType, flowInstance) = flowId;
+        var readFlag = new SyncedFlag();
+        var continueFlag = new SyncedFlag();
+
         var rAction = functionsRegistry.RegisterParamless(
             flowType,
             async Task (workflow) =>
@@ -421,37 +383,93 @@ public abstract class EffectTests
                 var effect = workflow.Effect;
                 await effect.Capture(async () =>
                 {
+                    // Create upserts directly before nested captures complete
                     var e1 =  effect.Capture(async () =>
                     {
                         await Task.Delay(10);
                         await effect.Upsert("SubEffectValue1", "some value");
+                        await effect.Flush();
+                        readFlag.Raise();
+                        await continueFlag.WaitForRaised();
                     });
                     await e1;
-                    var e2 = effect.Capture(async () =>
-                    {
-                        await Task.Delay(1);
-                        await effect.Upsert("SubEffectValue2", "some other value");
-                    });
-
-                    await Task.WhenAll(e1, e2);
                 });
             }
         );
 
-        await rAction.Invoke(flowInstance.ToString());
-        
+        var invocation = Task.Run(() => rAction.Invoke(flowInstance.ToString()));
+
+        await readFlag.WaitForRaised();
+
         var storedId = rAction.MapToStoredId(flowId.Instance);
         var effectResults = await store.EffectsStore.GetEffectResults(storedId);
 
-        var subEffectValue1Id = effectResults.Single(se => se.EffectId.Id == "SubEffectValue1").EffectId;
-        subEffectValue1Id.Context.ShouldBe("E0.E0");
-        
-        var subEffectValue2Id = effectResults.Single(se => se.EffectId.Id == "SubEffectValue2").EffectId;
-        subEffectValue2Id.Context.ShouldBe("E0.E1");
+        // Verify child effect exists and has correct context before nested capture completes
+        var subEffectValue1 = effectResults.SingleOrDefault(se => se.Alias == "SubEffectValue1");
+        subEffectValue1.ShouldNotBeNull();
+        subEffectValue1.EffectId.Context.ShouldBe(new int[] {0, 0});
+
+        continueFlag.Raise();
+        await invocation;
+
+        // After nested capture completes, child effect should be cleared
+        effectResults = await store.EffectsStore.GetEffectResults(storedId);
+        effectResults.Any(se => se.Alias == "SubEffectValue1").ShouldBeFalse();
     }
-    
+
     public abstract Task SubEffectHasExplicitContext();
     public async Task SubEffectHasExplicitContext(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        using var functionsRegistry = new FunctionsRegistry(store);
+        var flowId = TestFlowId.Create();
+        var (flowType, flowInstance) = flowId;
+        var readFlag = new SyncedFlag();
+        var continueFlag = new SyncedFlag();
+
+        var rAction = functionsRegistry.RegisterParamless(
+            flowType,
+            async Task (workflow) =>
+            {
+                var effect = workflow.Effect;
+                await effect.Capture(async () =>
+                {
+                    // Create upserts directly before nested captures complete
+                    var e2 = effect.Capture(async () =>
+                    {
+                        await Task.Delay(1);
+                        await effect.Upsert("SubEffectValue2", "some other value");
+                        await effect.Flush();
+                        readFlag.Raise();
+                        await continueFlag.WaitForRaised();
+                    });
+                    await e2;
+                });
+            }
+        );
+
+        var invocation = Task.Run(() => rAction.Invoke(flowInstance.ToString()));
+
+        await readFlag.WaitForRaised();
+
+        var storedId = rAction.MapToStoredId(flowId.Instance);
+        var effectResults = await store.EffectsStore.GetEffectResults(storedId);
+
+        // Verify child effect exists and has correct context before nested capture completes
+        var subEffectValue2 = effectResults.SingleOrDefault(se => se.Alias == "SubEffectValue2");
+        subEffectValue2.ShouldNotBeNull();
+        subEffectValue2.EffectId.Context.ShouldBe(new int[] {0, 0});
+
+        continueFlag.Raise();
+        await invocation;
+
+        // After nested capture completes, child effect should be cleared
+        effectResults = await store.EffectsStore.GetEffectResults(storedId);
+        effectResults.Any(se => se.Alias == "SubEffectValue2").ShouldBeFalse();
+    }
+
+    public abstract Task EffectsHasCorrectlyOrderedIds();
+    public async Task EffectsHasCorrectlyOrderedIds(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
         using var functionsRegistry = new FunctionsRegistry(store);
@@ -462,37 +480,59 @@ public abstract class EffectTests
             async Task (workflow) =>
             {
                 var effect = workflow.Effect;
-                await effect.Capture("GrandParent", async () =>
+                var c0 = effect.Capture("0", async () =>
                 {
-                    var e1 =  effect.Capture("Mother", async () =>
+                    var c00 = effect.Capture("0,0", async () =>
                     {
                         await Task.Delay(10);
-                        await effect.Upsert("SubEffectValue1", "some value");
+                        return "0,0";
                     });
-                    await e1;
-                    var e2 = effect.Capture("Father",async () =>
+                   
+                    var c01 = effect.Capture("0,1", async () =>
                     {
                         await Task.Delay(1);
-                        await effect.Upsert("SubEffectValue2", "some other value");
+                        return "0,1";
                     });
 
-                    await Task.WhenAll(e1, e2);
+                    await Task.WhenAll(c00, c01);
+                    return "0";
                 });
+                
+                var c1 = effect.Capture("1", async () =>
+                {
+                    var c10 = effect.Capture("1,0", async () =>
+                    {
+                        await Task.Delay(10);
+                        return "1,0";
+                    });
+                   
+                    var c11 = effect.Capture("1,1", async () =>
+                    {
+                        await Task.Delay(1);
+                        return "1,1";
+                    });
+
+                    await Task.WhenAll(c10, c11);
+                    return "1";
+                });
+
+                await Task.WhenAll(c0, c1);
             }
         );
 
-        await rAction.Invoke(flowInstance.ToString());
-        
+        await rAction.Invoke(flowInstance);
+
         var storedId = rAction.MapToStoredId(flowId.Instance);
         var effectResults = await store.EffectsStore.GetEffectResults(storedId);
 
-        var subEffectValue1Id = effectResults.Single(se => se.EffectId.Id == "SubEffectValue1").EffectId;
-        subEffectValue1Id.Context.ShouldBe("EGrandParent.EMother");
-        
-        var subEffectValue2Id = effectResults.Single(se => se.EffectId.Id == "SubEffectValue2").EffectId;
-        subEffectValue2Id.Context.ShouldBe("EGrandParent.EFather");
+        foreach (var se in effectResults.Where(e => e.Alias != null))
+        {
+            var ctx = se.EffectId.ToString();
+            var alias = "[" + se.Alias + "]";
+            ctx.ShouldBe(alias);
+        }
     }
-    
+
     public abstract Task ExceptionThrownInsideEffectBecomesFatalWorkflowException();
     public async Task ExceptionThrownInsideEffectBecomesFatalWorkflowException(Task<IFunctionStore> storeTask)
     {
@@ -572,8 +612,7 @@ public abstract class EffectTests
             {
                 var (effect, _) = workflow;
                 return await effect.Capture(
-                    id: "Test",
-                    work: () => Option.Create(message)
+                    () => Option.Create(message)
                 );
             });
 
@@ -584,7 +623,7 @@ public abstract class EffectTests
         var controlPanel = await rAction.ControlPanel(flowId.Instance);
         controlPanel.ShouldNotBeNull();
 
-        var effectValue = await controlPanel.Effects.GetValue<Option<string>>("Test");
+        var effectValue = await controlPanel.Effects.GetValue<Option<string>>(0);
         effectValue.ShouldNotBeNull();
         effectValue.HasValue.ShouldBeTrue();
         effectValue.Value.ShouldBe("Hello!");
@@ -621,12 +660,13 @@ public abstract class EffectTests
             session
         );
         
-        var effectId1 = new EffectId("Id1", EffectType.Effect, Context: "");
+        var effectId1 = new EffectId([1]);
         var storedEffect1 = new StoredEffect(
             effectId1,
             WorkStatus.Completed,
             Result: "hello world".ToUtf8Bytes(),
-            StoredException: null
+            StoredException: null,
+            Alias: null
         );
         await effectResults.Set(storedEffect1, flush: false);
         await effectStore
@@ -634,12 +674,13 @@ public abstract class EffectTests
             .SelectAsync(r => r.Count == 0)
             .ShouldBeTrueAsync();
         
-        var effectId2 = new EffectId("Id2", EffectType.Effect, Context: "");
+        var effectId2 = new EffectId([2]);
         var storedEffect2 = new StoredEffect(
             effectId2,
             WorkStatus.Completed,
             Result: "hello universe".ToUtf8Bytes(),
-            StoredException: null
+            StoredException: null,
+            Alias: null
         );
         await effectResults.Set(storedEffect2, flush: true);
         
@@ -686,17 +727,17 @@ public abstract class EffectTests
         );
         var effect = new Effect(effectResults, utcNow: () => DateTime.UtcNow, new FlowMinimumTimeout());
 
-        var result = await effect.Capture("1", () => "hello world", ResiliencyLevel.AtLeastOnceDelayFlush);
+        var result = await effect.Capture(() => "hello world", ResiliencyLevel.AtLeastOnceDelayFlush);
         result.ShouldBe("hello world");
 
         await effectStore.GetEffectResults(storedId).ShouldBeEmptyAsync();
-        
-        await effect.Capture("2", () => "hello universe");
+
+        await effect.Capture(() => "hello universe");
 
         var storedEffects = await effectStore.GetEffectResults(storedId);
         storedEffects.Count.ShouldBe(2);
-        storedEffects.Single(se => se.EffectId.Id == "1").Result!.ToStringFromUtf8Bytes().DeserializeFromJsonTo<string>().ShouldBe("hello world");
-        storedEffects.Single(se => se.EffectId.Id == "2").Result!.ToStringFromUtf8Bytes().DeserializeFromJsonTo<string>().ShouldBe("hello universe");
+        storedEffects.Single(se => se.EffectId.Id == 0).Result!.ToStringFromUtf8Bytes().DeserializeFromJsonTo<string>().ShouldBe("hello world");
+        storedEffects.Single(se => se.EffectId.Id == 1).Result!.ToStringFromUtf8Bytes().DeserializeFromJsonTo<string>().ShouldBe("hello universe");
     }
 
     public abstract Task CaptureUsingAtLeastOnceWithoutFlushResiliencyDelaysFlushInFlow();
@@ -717,7 +758,7 @@ public abstract class EffectTests
             type,
             async Task (workflow) =>
             {
-                await workflow.Effect.Capture("SomeEffectId", () => someEffectIdValue, ResiliencyLevel.AtLeastOnceDelayFlush);
+                await workflow.Effect.Capture(() => someEffectIdValue, ResiliencyLevel.AtLeastOnceDelayFlush);
                 writtenEffectFlag.Raise();
                 await continueFlag.WaitForRaised();
             }
@@ -737,8 +778,8 @@ public abstract class EffectTests
         await cp.Refresh();
         effectIds = (await cp.Effects.AllIds).ToList();
         effectIds.Count().ShouldBe(1);
-        effectIds.Single().Id.ShouldBe("SomeEffectId");
-        (await cp.Effects.GetValue<Guid>("SomeEffectId")).ShouldBe(someEffectIdValue);
+        effectIds.Single().Id.ShouldBe(0);
+        (await cp.Effects.GetValue<Guid>(0)).ShouldBe(someEffectIdValue);
     }
  
     public abstract Task UpsertingExistingEffectDoesNotAffectOtherExistingEffects();
@@ -760,25 +801,22 @@ public abstract class EffectTests
         var effectResults = new EffectResults(
             TestFlowId.Create(),
             storedId,
-            lazyExistingEffects: new Lazy<Task<IReadOnlyList<StoredEffect>>>(
-                () => new List<StoredEffect>().CastTo<IReadOnlyList<StoredEffect>>().ToTask()
-            ),
+            lazyExistingEffects: new Lazy<Task<IReadOnlyList<StoredEffect>>>(() => effectStore.GetEffectResults(storedId)),
             effectStore,
-            DefaultSerializer.Instance, 
+            DefaultSerializer.Instance,
             session
         );
-        var effect = new Effect(effectResults, utcNow: () => DateTime.UtcNow, new FlowMinimumTimeout());
+        // Create two effects using the internal API with explicit IDs to avoid implicit ID issues
+        await effectResults.CreateOrGet(0.ToEffectId(), "hello world", "first", flush: true);
+        await effectResults.CreateOrGet(1.ToEffectId(), "hello universe", "second", flush: true);
 
-        await effect.Capture("1", () => "hello world");
-        await effect.Capture("2", () => "hello universe");
-        await effect.Flush();
+        // Upsert the first effect - should not affect the second
+        await effectResults.Upsert(0.ToEffectId(), "first", "hello world again", flush: true);
 
-        await effect.Upsert("1", "hello world again");
-        
         var storedEffects = await effectStore.GetEffectResults(storedId);
         storedEffects.Count.ShouldBe(2);
-        storedEffects.Single(se => se.EffectId.Id == "1").Result!.ToStringFromUtf8Bytes().DeserializeFromJsonTo<string>().ShouldBe("hello world again");
-        storedEffects.Single(se => se.EffectId.Id == "2").Result!.ToStringFromUtf8Bytes().DeserializeFromJsonTo<string>().ShouldBe("hello universe");
+        storedEffects.Single(se => se.Alias == "first").Result!.ToStringFromUtf8Bytes().DeserializeFromJsonTo<string>().ShouldBe("hello world again");
+        storedEffects.Single(se => se.Alias == "second").Result!.ToStringFromUtf8Bytes().DeserializeFromJsonTo<string>().ShouldBe("hello universe");
     }
     
     public abstract Task CaptureEffectWithRetryPolicy();
@@ -952,5 +990,306 @@ public abstract class EffectTests
         }
         
         syncedCounter.Current.ShouldBe(2);
+    }
+    
+    public abstract Task EffectLoopingWorks();
+    public async Task EffectLoopingWorks(Task<IFunctionStore> storeTask)
+    {  
+        var store = await storeTask;
+        var id = TestFlowId.Create();
+     
+        using var registry = new FunctionsRegistry(store, new Settings(watchdogCheckFrequency: TimeSpan.FromMilliseconds(10)));
+        var iterations = new List<int>();
+        var flag = new Synced<int>();
+        var registration = registry.RegisterParamless(
+            id.Type,
+            inner: async workflow =>
+            {
+                await workflow.Effect.Capture(alias: "Before", () => "");
+                var elms = new[] { 0, 1, 2, 3, 4, 5 };
+                await elms.CaptureEach(
+                    async i =>
+                    {
+                        await workflow.Effect.Capture(alias: i.ToString(), () => i);
+                        flag.Value = i;
+                        await workflow.Messages.Where(m => m.ToString() == i.ToString()).First();
+                        iterations.Add(i);
+                    },
+                    alias: "Loop"
+                );
+
+                await workflow.Delay(TimeSpan.FromMilliseconds(25), alias: "After");
+            });
+
+        await registration.Schedule(id.Instance);
+
+        var cp = await registration.ControlPanel(id.Instance).ShouldNotBeNullAsync();
+        var messageWriter = registration.MessageWriters.For(id.Instance);
+        var effectStore = store.EffectsStore;
+
+        for (var i = 0; i < 6; i++)
+        {
+            await BusyWait.Until(() => flag.Value == i);
+            await cp.BusyWaitUntil(c => c.Status == Status.Suspended);
+            var storedEffects = await effectStore.GetEffectResults(registration.MapToStoredId(id.Instance));
+            storedEffects.Any(e => e.Alias == "Before").ShouldBeTrue();
+            storedEffects.Any(e => e.Alias == "Loop").ShouldBeTrue();
+            storedEffects.Single(e => e.Alias == i.ToString()).EffectId.ShouldBe(new EffectId([1,i,0]));
+            storedEffects.Count.ShouldBe(3);
+
+            await messageWriter.AppendMessage(i.ToString());
+        }
+
+        await cp.BusyWaitUntil(c => c.Status == Status.Succeeded);
+
+        iterations.SequenceEqual([0, 1, 2, 3, 4, 5]).ShouldBeTrue();
+    }
+
+    public abstract Task ChildEffectsAreClearedWhenParentEffectWithResultCompletes();
+    public async Task ChildEffectsAreClearedWhenParentEffectWithResultCompletes(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var id = TestFlowId.Create();
+        var readFlag = new SyncedFlag();
+        var continueFlag = new SyncedFlag();
+
+        using var registry = new FunctionsRegistry(store, new Settings(watchdogCheckFrequency: TimeSpan.FromMilliseconds(10)));
+        var registration = registry.RegisterParamless(
+            id.Type,
+            inner: async workflow =>
+            {
+                await workflow.Effect.Capture(alias: "Parent", async () =>
+                {
+                    await workflow.Effect.Capture("Child1", () => "Child1");
+                    await workflow.Effect.Capture("Child2", () => "Child2");
+                    await workflow.Effect.Flush();
+                    readFlag.Raise();
+                    await continueFlag.WaitForRaised();
+                });
+            });
+
+        var invocation = Task.Run(() => registration.Invoke(id.Instance));
+
+        await readFlag.WaitForRaised();
+
+        var effectStore = store.EffectsStore;
+        var storedEffects = await effectStore.GetEffectResults(registration.MapToStoredId(id.Instance));
+        storedEffects.Any(s => s.Alias == "Child1").ShouldBeTrue();
+        storedEffects.Any(s => s.Alias == "Child2").ShouldBeTrue();
+        continueFlag.Raise();
+
+        await invocation;
+
+        storedEffects = await effectStore.GetEffectResults(registration.MapToStoredId(id.Instance));
+        storedEffects.Count.ShouldBe(1);
+        storedEffects.Any(s => s.Alias == "Parent").ShouldBeTrue();
+    }
+
+    public abstract Task ChildEffectsAreClearedWhenParentEffectReturningValueCompletes();
+    public async Task ChildEffectsAreClearedWhenParentEffectReturningValueCompletes(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var id = TestFlowId.Create();
+        var readFlag = new SyncedFlag();
+        var continueFlag = new SyncedFlag();
+
+        using var registry = new FunctionsRegistry(store, new Settings(watchdogCheckFrequency: TimeSpan.FromMilliseconds(10)));
+        var registration = registry.RegisterParamless(
+            id.Type,
+            inner: async workflow =>
+            {
+                await workflow.Effect.Capture(alias: "Parent", async () =>
+                {
+                    await workflow.Effect.Capture("Child1", () => "Child1");
+                    await workflow.Effect.Capture("Child2", () => "Child2");
+                    await workflow.Effect.Flush();
+                    readFlag.Raise();
+                    await continueFlag.WaitForRaised();
+                    return "parent result";
+                });
+            });
+
+        var invocation = Task.Run(() => registration.Invoke(id.Instance));
+
+        await readFlag.WaitForRaised();
+
+        var effectStore = store.EffectsStore;
+        var storedEffects = await effectStore.GetEffectResults(registration.MapToStoredId(id.Instance));
+        storedEffects.Any(s => s.Alias == "Child1").ShouldBeTrue();
+        storedEffects.Any(s => s.Alias == "Child2").ShouldBeTrue();
+        continueFlag.Raise();
+
+        await invocation;
+
+        storedEffects = await effectStore.GetEffectResults(registration.MapToStoredId(id.Instance));
+        storedEffects.Count.ShouldBe(1);
+        storedEffects.Any(s => s.Alias == "Parent").ShouldBeTrue();
+    }
+
+    public abstract Task AggregateEachBasicAggregationWorks();
+    public async Task AggregateEachBasicAggregationWorks(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var id = TestFlowId.Create();
+
+        using var registry = new FunctionsRegistry(store);
+        var registration = registry.RegisterFunc(
+            id.Type,
+            async Task<int> (string param, Workflow workflow) =>
+            {
+                var elms = new[] { 1, 2, 3, 4, 5 };
+                var result = await elms.CaptureAggregate(
+                    seed: 0,
+                    handler: async (elm, acc) =>
+                    {
+                        await Task.Yield();
+                        return acc + elm;
+                    },
+                    alias: "Aggregate"
+                );
+                return result;
+            });
+
+        var result = await registration.Invoke(id.Instance, "test");
+        result.ShouldBe(15);
+
+        var effectStore = store.EffectsStore;
+        var storedEffects = await effectStore.GetEffectResults(registration.MapToStoredId(id.Instance));
+        storedEffects.Any(e => e.Alias == "Aggregate").ShouldBeTrue();
+    }
+
+    public abstract Task AggregateEachResumesMidAggregation();
+    public async Task AggregateEachResumesMidAggregation(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var id = TestFlowId.Create();
+        var syncedCounter = new SyncedCounter();
+
+        using var registry = new FunctionsRegistry(store);
+        var registration = registry.RegisterFunc(
+            id.Type,
+            async Task<int> (string param, Workflow workflow) =>
+            {
+                var elms = new[] { 1, 2, 3, 4, 5 };
+                var result = await elms.CaptureAggregate(
+                    seed: 0,
+                    handler: async (elm, acc) =>
+                    {
+                        syncedCounter.Increment();
+                        if (syncedCounter.Current == 3)
+                            throw new Exception("Simulated crash");
+                        await Task.Yield();
+                        return acc + elm;
+                    },
+                    alias: "Aggregate"
+                );
+                return result;
+            });
+
+        await Should.ThrowAsync<FatalWorkflowException>(() => registration.Invoke(id.Instance, "test"));
+        syncedCounter.Current.ShouldBe(3);
+
+        var cp = await registration.ControlPanel(id.Instance).ShouldNotBeNullAsync();
+        var result = await cp.Restart(clearFailures: true);
+        result.ShouldBe(15);
+
+        // Should have processed elements 3, 4, 5 on restart (elements 1, 2 were already processed)
+        syncedCounter.Current.ShouldBe(6);
+    }
+
+    public abstract Task AggregateEachWithComplexAccumulator();
+    public async Task AggregateEachWithComplexAccumulator(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var id = TestFlowId.Create();
+
+        using var registry = new FunctionsRegistry(store);
+        var registration = registry.RegisterFunc(
+            id.Type,
+            async Task<List<string>> (string param, Workflow workflow) =>
+            {
+                var elms = new[] { "a", "b", "c", "d" };
+                var result = await elms.CaptureAggregate(
+                    seed: new List<string>(),
+                    handler: async (elm, acc) =>
+                    {
+                        await Task.Yield();
+                        acc.Add(elm.ToUpper());
+                        return acc;
+                    },
+                    alias: "Aggregate"
+                );
+                return result;
+            });
+
+        var result = await registration.Invoke(id.Instance, "test");
+        result.SequenceEqual(new[] { "A", "B", "C", "D" }).ShouldBeTrue();
+
+        var cp = await registration.ControlPanel(id.Instance).ShouldNotBeNullAsync();
+        var restartResult = await cp.Restart();
+        restartResult.SequenceEqual(new[] { "A", "B", "C", "D" }).ShouldBeTrue();
+    }
+
+    public abstract Task AggregateEachCleansUpIntermediateEffects();
+    public async Task AggregateEachCleansUpIntermediateEffects(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var id = TestFlowId.Create();
+
+        using var registry = new FunctionsRegistry(store);
+        var registration = registry.RegisterFunc(
+            id.Type,
+            async Task<int> (string param, Workflow workflow) =>
+            {
+                var elms = new[] { 1, 2, 3 };
+                var result = await elms.CaptureAggregate(
+                    seed: 0,
+                    handler: async (elm, acc) =>
+                    {
+                        await Task.Yield();
+                        return acc + elm;
+                    },
+                    alias: "Aggregate"
+                );
+                return result;
+            });
+
+        var result = await registration.Invoke(id.Instance, "test");
+        result.ShouldBe(6);
+
+        var effectStore = store.EffectsStore;
+        var storedEffects = await effectStore.GetEffectResults(registration.MapToStoredId(id.Instance));
+
+        // Should only have the aggregate effect, not the intermediate child effects
+        storedEffects.Count.ShouldBe(1);
+        storedEffects.Single().Alias.ShouldBe("Aggregate");
+    }
+
+    public abstract Task AggregateEachWithSingleElement();
+    public async Task AggregateEachWithSingleElement(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var id = TestFlowId.Create();
+
+        using var registry = new FunctionsRegistry(store);
+        var registration = registry.RegisterFunc(
+            id.Type,
+            async Task<int> (string param, Workflow workflow) =>
+            {
+                var elms = new[] { 10 };
+                var result = await elms.CaptureAggregate(
+                    seed: 42,
+                    handler: async (elm, acc) =>
+                    {
+                        await Task.Yield();
+                        return acc + elm;
+                    },
+                    alias: "Aggregate"
+                );
+                return result;
+            });
+
+        var result = await registration.Invoke(id.Instance, "test");
+        result.ShouldBe(52);
     }
 }

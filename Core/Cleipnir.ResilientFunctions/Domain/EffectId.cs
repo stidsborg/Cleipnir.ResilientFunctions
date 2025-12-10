@@ -1,78 +1,92 @@
-using System.Collections.Generic;
+using System;
 using System.Linq;
+using Cleipnir.ResilientFunctions.Helpers;
 
 namespace Cleipnir.ResilientFunctions.Domain;
 
-public record EffectId(string Id, EffectType Type, string Context)
+public record EffectId(int[] Value)
 {
-    public SerializedEffectId Serialize()
+    public int Id => Value[^1];
+    public int[] Context => Value.Length > 1 ? Value[..^1] : [];
+
+    public virtual bool Equals(EffectId? other)
     {
-        var (id, type, context) = this;
-        if (id.All(c => c != '.' && c != '\\'))
-            return new SerializedEffectId(
-                context == ""
-                    ? $"{(char)type}{id}"
-                    : $"{context}.{(char)type}{id}"
-                );
-        
-        var escapedIdList = new List<char>(id.Length * 2);
-        foreach (var idChar in id)
-            switch (idChar)
-            {
-                case '.':
-                    escapedIdList.Add('\\');
-                    escapedIdList.Add('.');
-                    break;
-                case '\\':
-                    escapedIdList.Add('\\');
-                    escapedIdList.Add('\\');
-                    break;
-                default:
-                    escapedIdList.Add(idChar);
-                    break;
-            }
-        
-        var escapedId = new string(escapedIdList.ToArray());
-        return new SerializedEffectId(
-            context == ""
-                ? $"{(char)type}{escapedId}"
-                : $"{context}.{(char)type}{escapedId}"
-            );
+        if (other is null) return false;
+        if (ReferenceEquals(this, other)) return true;
+        return Value.SequenceEqual(other.Value);
     }
 
-    public static EffectId Deserialize(SerializedEffectId serialized) => Deserialize(serialized.Value);
-    public static EffectId Deserialize(string serialized)
+    public override int GetHashCode()
     {
-        int pos;
-        for (pos = serialized.Length - 1; pos > 0; pos--)
-            if (serialized[pos] == '.' && serialized[pos - 1] != '\\')
-                break;
+        var hash = new HashCode();
+        foreach (var v in Value)
+            hash.Add(v);
+        return hash.ToHashCode();
+    }
 
-        if (serialized[pos] == '.')
-            pos++;
+    public SerializedEffectId Serialize() => new(Value);
+
+    public static EffectId Deserialize(SerializedEffectId serialized) => new(serialized.Value);
+    public static EffectId Deserialize(int[] serialized)
+    {
+        if (serialized.Length == 0)
+            throw new ArgumentException("Serialized EffectId cannot be empty", nameof(serialized));
+
+        return new EffectId(serialized);
+    }
+
+    public static EffectId CreateWithRootContext(int id) => new([id]);
+
+    public static EffectId CreateWithCurrentContext(int id)
+    {
+        var parent = EffectContext.CurrentContext.Parent;
+        if (parent == null)
+            return new EffectId([id]);
+
+        return new EffectId([..parent.Value, id]);
+    }
+
+    public EffectId CreateChild(int id) => new(Value.Append(id).ToArray());
+
+    public bool IsChild(EffectId other)
+    {
+        if (other.Value.Length >= Value.Length)
+            return false;
         
-        var type = (EffectType) serialized[pos];
-        var context = pos - 1 < 0 ? "" : serialized[..(pos - 1)]; 
-        var id = serialized[(pos + 1)..];
-        if (id.Any(c => c == '\\'))
+        for (var i = 0; i < Value.Length && i < other.Value.Length; i++)
         {
-            id = id.Replace("\\.", ".").Replace("\\\\", "\\");
+            if (Value[i] != other.Value[i])
+                return false;
         }
 
-        return new EffectId(id, type, context);
+        return true;
     }
 
-    public static EffectId CreateWithRootContext(string id, EffectType effectType = EffectType.Effect)
-        => new(id, effectType, Context: "");
-    
-    public static EffectId CreateWithCurrentContext(string id, EffectType effectType)
-        => new(id, effectType, EffectContext.CurrentContext.Parent?.Serialize().Value ?? "");
+    public override string ToString() => "[" + Value.Select(v => v.ToString()).StringJoin(",") + "]";
 }
 
-public record SerializedEffectId(string Value);
+public record SerializedEffectId(int[] Value)
+{
+    public virtual bool Equals(SerializedEffectId? other)
+    {
+        if (other is null) return false;
+        if (ReferenceEquals(this, other)) return true;
+        return Value.SequenceEqual(other.Value);
+    }
+
+    public override int GetHashCode()
+    {
+        var hash = new HashCode();
+        foreach (var v in Value)
+            hash.Add(v);
+        return hash.ToHashCode();
+    }
+
+    public string ToStringValue() => string.Join(".", Value);
+}
 
 public static class EffectIdExtensions
 {
-    public static EffectId ToEffectId(this string value, EffectType? effectType = null, string? context = null) => new(value, effectType ?? EffectType.Effect, context ?? "");
-    public static SerializedEffectId ToSerializedEffectId(this string value) => new(value);
+    public static EffectId ToEffectId(this int value) => new([value]);
+    public static SerializedEffectId ToSerializedEffectId(this int[] value) => new(value);
 }

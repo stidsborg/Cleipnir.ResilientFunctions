@@ -23,12 +23,11 @@ public class OrderProcessor
     {
         Logger.Information($"Processing of order '{order.OrderId}' started");
         
-        var transactionId = await workflow.Effect.Capture("TransactionId", Guid.NewGuid);
+        var transactionId = await workflow.Effect.Capture(Guid.NewGuid);
         await _paymentProviderClient.Reserve(order.CustomerId, transactionId, order.TotalPrice);
 
         var trackAndTrace = await workflow.Effect.Capture(
-            "ShipProducts",
-            work: () => _logisticsClient.ShipProducts(order.CustomerId, order.ProductIds),
+            () => _logisticsClient.ShipProducts(order.CustomerId, order.ProductIds),
             ResiliencyLevel.AtMostOnce
         );
 

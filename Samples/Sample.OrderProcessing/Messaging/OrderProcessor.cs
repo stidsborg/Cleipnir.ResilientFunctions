@@ -14,7 +14,7 @@ public class OrderProcessor
 
     public async Task Execute(Order order, Workflow workflow)
     {
-        var transactionId = await workflow.Effect.Capture("TransactionId", Guid.NewGuid);
+        var transactionId = await workflow.Effect.Capture(Guid.NewGuid);
         Logger.Information($"Processing of order '{order.OrderId}' started");
         var messages = workflow.Messages;
 

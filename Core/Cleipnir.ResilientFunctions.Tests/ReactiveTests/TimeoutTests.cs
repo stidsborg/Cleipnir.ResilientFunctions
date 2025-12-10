@@ -20,7 +20,7 @@ public class TimeoutTests
     [TestMethod]
     public async Task StreamCompletesAndThrowsNoResultExceptionAfterFiredTimeoutEvent()
     {
-        var timeoutId = "TimeoutId".ToEffectId();
+        var timeoutId = 1.ToEffectId();
         var expiresAt = DateTime.UtcNow.Add(TimeSpan.FromMinutes(15));
         
         var registeredTimeoutsStub = new RegisteredTimeoutsStub();
@@ -45,7 +45,7 @@ public class TimeoutTests
     [TestMethod]
     public async Task StreamCompletesAndReturnsNothingAfterFiredTimeoutEvent()
     {
-        var timeoutId = "TimeoutId".ToEffectId();
+        var timeoutId = 1.ToEffectId();
         var expiresAt = DateTime.UtcNow.Add(TimeSpan.FromMinutes(15));
         
         var registeredTimeoutsStub = new RegisteredTimeoutsStub();
@@ -71,7 +71,7 @@ public class TimeoutTests
     [TestMethod]
     public async Task StreamCompletesSuccessfullyWhenEventSupersedesTimeout()
     {
-        var timeoutId = "TimeoutId".ToEffectId();
+        var timeoutId = 1.ToEffectId();
         var expiresAt = DateTime.UtcNow.Add(TimeSpan.FromMinutes(15));
         
         var registeredTimeoutsStub = new RegisteredTimeoutsStub();
@@ -89,7 +89,7 @@ public class TimeoutTests
     [TestMethod]
     public async Task StreamCompletesSuccessfullyWithValuedOptionWhenEventSupersedesTimeout()
     {
-        var timeoutId = "TimeoutId".ToEffectId();
+        var timeoutId = 1.ToEffectId();
         var expiresAt = DateTime.UtcNow.Add(TimeSpan.FromMinutes(15));
         
         var registeredTimeoutsStub = new RegisteredTimeoutsStub();
@@ -111,7 +111,7 @@ public class TimeoutTests
     [TestMethod]
     public async Task ExistingTimeoutEventInMessagesAvoidRegisteredTimeoutsCancellation()
     {
-        var timeoutId = "TimeoutId".ToEffectId();
+        var timeoutId = 1.ToEffectId();
         var expiresAt = DateTime.UtcNow.Add(TimeSpan.FromMinutes(15));
         
         var registeredTimeoutsStub = new RegisteredTimeoutsStub();
@@ -140,7 +140,7 @@ public class TimeoutTests
         private readonly Lock _sync = new();
         private readonly Dictionary<EffectId, DateTime> _registrations = new();
             
-        public Task<Tuple<TimeoutStatus, DateTime>> RegisterTimeout(EffectId timeoutId, DateTime expiresAt, bool publishMessage)
+        public Task<Tuple<TimeoutStatus, DateTime>> RegisterTimeout(EffectId timeoutId, DateTime expiresAt, bool publishMessage, string? alias = null)
         {
             lock (_sync)
                 _registrations[timeoutId] = expiresAt;
@@ -148,7 +148,7 @@ public class TimeoutTests
             return Tuple.Create(TimeoutStatus.Registered, expiresAt).ToTask();
         }
 
-        public Task<Tuple<TimeoutStatus, DateTime>> RegisterTimeout(EffectId timeoutId, TimeSpan expiresIn, bool publishMessage)
+        public Task<Tuple<TimeoutStatus, DateTime>> RegisterTimeout(EffectId timeoutId, TimeSpan expiresIn, bool publishMessage, string? alias = null)
             => RegisterTimeout(timeoutId, DateTime.UtcNow.Add(expiresIn), publishMessage);
 
         public Task CancelTimeout(EffectId timeoutId)
@@ -157,7 +157,7 @@ public class TimeoutTests
             return Task.CompletedTask;
         }
 
-        public Task CompleteTimeout(EffectId timeoutId) => Task.CompletedTask;
+        public Task CompleteTimeout(EffectId timeoutId, string? alias = null) => Task.CompletedTask;
 
         public Task<IReadOnlyList<RegisteredTimeout>> PendingTimeouts()
             => Task.FromException<IReadOnlyList<RegisteredTimeout>>(new Exception("Stub-method invocation"));
