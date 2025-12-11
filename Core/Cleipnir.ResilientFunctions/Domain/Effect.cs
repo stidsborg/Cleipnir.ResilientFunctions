@@ -66,7 +66,7 @@ public class Effect(EffectResults effectResults, UtcNow utcNow, FlowMinimumTimeo
         );
     internal Task Upsert<T>(EffectId effectId, T value, string? alias, bool flush) => effectResults.Upsert(effectId, alias, value, flush);
 
-    internal Task Upserts(IEnumerable<Tuple<EffectId, object, string?>> values, bool flush)
+    internal Task Upserts(IEnumerable<EffectResult> values, bool flush)
         => effectResults.Upserts(values, flush);
 
     internal async Task<Option<T>> TryGet<T>(string alias)

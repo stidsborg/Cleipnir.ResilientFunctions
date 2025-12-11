@@ -324,8 +324,8 @@ public abstract class StoreTests
         var sf = await store.GetFunction(functionId);
         sf.ShouldNotBeNull();
         sf.Status.ShouldBe(Status.Executing);
-        DefaultSerializer.Instance
-            .Deserialize<string>(sf.Parameter!)
+        ((string)DefaultSerializer.Instance
+            .Deserialize(sf.Parameter!, typeof(string)))
             .ShouldBe(PARAM);
     }
     

@@ -8,7 +8,7 @@ public interface ISerializer
 {
     byte[] Serialize<T>(T value);
     byte[] Serialize(object? value, Type type);
-    T Deserialize<T>(byte[] bytes);
+    object Deserialize(byte[] bytes, Type type);
     
     StoredException SerializeException(FatalWorkflowException fatalWorkflowException);
     FatalWorkflowException DeserializeException(FlowId flowId, StoredException storedException);

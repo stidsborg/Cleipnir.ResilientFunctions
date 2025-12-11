@@ -139,8 +139,8 @@ public class RetryPolicy(TimeSpan initialInterval, double backoffCoefficient, Ti
                 {
                     await effect.Upserts(
                         [
-                            Tuple.Create(delayUntilId, (object) delayUntil.Ticks, (string?) null),
-                            Tuple.Create(iterationId, (object) iteration, (string?) null)
+                            new EffectResult(delayUntilId, delayUntil.Ticks, null),
+                            new EffectResult(iterationId, iteration, null)
                         ],
                         flush: false
                     );
