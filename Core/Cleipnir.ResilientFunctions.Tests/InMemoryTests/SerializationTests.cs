@@ -29,7 +29,7 @@ public class SerializationTests
     {
         var serializer = DefaultSerializer.Instance;
         var serializedBytes = serializer.Serialize("Hello World", typeof(string));
-        var deserialized = serializer.Deserialize<string>(serializedBytes);
+        var deserialized = (string)serializer.Deserialize(serializedBytes, typeof(string));
         deserialized.ShouldBe("Hello World");
     }
 
@@ -39,7 +39,7 @@ public class SerializationTests
         var option = Option.Create("some value");
         var serializer = new CustomSerializableDecorator(DefaultSerializer.Instance);
         var serialized = serializer.Serialize(option, option.GetType());
-        var deserialized = serializer.Deserialize<Option<string>>(serialized);
+        var deserialized = (Option<string>)serializer.Deserialize(serialized, typeof(Option<string>));
         deserialized.ShouldBe(option);
     }
     
@@ -49,7 +49,7 @@ public class SerializationTests
         var option = Option<string>.NoValue;
         var serializer = DefaultSerializer.Instance;
         var serialized = serializer.Serialize(option, option.GetType());
-        var deserialized = serializer.Deserialize<Option<string>>(serialized);
+        var deserialized = (Option<string>)serializer.Deserialize(serialized, typeof(Option<string>));
         deserialized.ShouldBe(option);
     }
     
@@ -143,7 +143,7 @@ public class SerializationTests
     {
         var serializer = new CustomSerializableDecorator(DefaultSerializer.Instance);
         var bytes = serializer.Serialize(value);
-        return serializer.Deserialize<T>(bytes);
+        return (T)serializer.Deserialize(bytes, typeof(T));
     }
     
     [TestMethod]

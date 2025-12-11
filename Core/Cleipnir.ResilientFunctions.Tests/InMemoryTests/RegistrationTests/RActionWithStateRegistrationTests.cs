@@ -55,8 +55,8 @@ public class RActionWithStateRegistrationTests
 
         public byte[] Serialize(object? value, Type type) => Default.Serialize(value, type);
 
-        public T Deserialize<T>(byte[] json) 
-            => Default.Deserialize<T>(json);
+        public object Deserialize(byte[] json, Type type)
+            => Default.Deserialize(json, type);
 
         public StoredException SerializeException(FatalWorkflowException exception)
             => Default.SerializeException(exception);

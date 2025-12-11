@@ -77,8 +77,8 @@ public abstract class CustomMessageSerializerTests
 
         public byte[] Serialize(object? value, Type type) => DefaultSerializer.Instance.Serialize(value, type);
 
-        public T Deserialize<T>(byte[] json) 
-            => DefaultSerializer.Instance.Deserialize<T>(json);
+        public object Deserialize(byte[] json, Type type)
+            => DefaultSerializer.Instance.Deserialize(json, type);
 
         public StoredException SerializeException(FatalWorkflowException exception)
             => DefaultSerializer.Instance.SerializeException(exception);

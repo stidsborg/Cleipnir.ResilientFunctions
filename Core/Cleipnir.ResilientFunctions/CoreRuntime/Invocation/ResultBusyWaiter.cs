@@ -33,7 +33,7 @@ public class ResultBusyWaiter<TResult>(IFunctionStore functionStore, ISerializer
                     return
                         result == null
                             ? default!
-                            : serializer.Deserialize<TResult>(result);
+                            : (TResult)serializer.Deserialize(result, typeof(TResult));
                 case Status.Failed:
                     throw serializer.DeserializeException(flowId, storedFunction.Exception!);
                 case Status.Postponed:

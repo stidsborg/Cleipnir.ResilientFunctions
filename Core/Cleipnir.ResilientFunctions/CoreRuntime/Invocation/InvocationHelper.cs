@@ -231,9 +231,9 @@ internal class InvocationHelper<TParam, TReturn>
         
         try
         {
-            var param = sf.Parameter == null 
-                ? default 
-                : Serializer.Deserialize<TParam>(sf.Parameter);
+            var param = sf.Parameter == null
+                ? default
+                : (TParam)Serializer.Deserialize(sf.Parameter, typeof(TParam));
 
             return new PreparedReInvocation(
                 flowId,
@@ -341,10 +341,10 @@ internal class InvocationHelper<TParam, TReturn>
             Param:
                 sf.Parameter == null
                 ? default
-                : Serializer.Deserialize<TParam>(sf.Parameter),
+                : (TParam)Serializer.Deserialize(sf.Parameter, typeof(TParam)),
             Result: resultBytes == null
                 ? default
-                : Serializer.Deserialize<TReturn>(resultBytes),
+                : (TReturn)Serializer.Deserialize(resultBytes, typeof(TReturn)),
             FatalWorkflowException: sf.Exception == null
                 ? null
                 : Serializer.DeserializeException(flowId, sf.Exception)

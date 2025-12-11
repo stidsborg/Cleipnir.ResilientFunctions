@@ -93,7 +93,7 @@ public class EffectResults(
         lock (_sync)
         {
             if (_effectResults.TryGetValue(effectId, out var existing) && existing.StoredEffect?.WorkStatus == WorkStatus.Completed)
-                return serializer.Deserialize<T>(existing.StoredEffect.Result!);
+                return (T)serializer.Deserialize(existing.StoredEffect.Result!, typeof(T));
 
             if (existing?.StoredEffect?.StoredException != null)
                 throw serializer.DeserializeException(flowId, existing.StoredEffect.StoredException!);
@@ -125,12 +125,12 @@ public class EffectResults(
         );
     }
     
-    internal async Task Upserts(IEnumerable<Tuple<EffectId, object, string?>> values, bool flush)
+    internal async Task Upserts(IEnumerable<EffectResult> values, bool flush)
     {
         await InitializeIfRequired();
 
         var storedEffects = values
-            .Select(t => new { Id = t.Item1, Bytes = serializer.Serialize(t.Item2, t.Item2.GetType()), Alias = t.Item3 })
+            .Select(t => new { Id = t.Id, Bytes = serializer.Serialize(t.Value, t.Value.GetType()), Alias = t.Alias })
             .Select(a => StoredEffect.CreateCompleted(a.Id, a.Bytes, a.Alias))
             .ToList();
 
@@ -151,10 +151,10 @@ public class EffectResults(
                 var storedEffect = change.StoredEffect;
                 if (storedEffect?.WorkStatus == WorkStatus.Completed)
                 {
-                    var value = serializer.Deserialize<T>(storedEffect.Result!)!;
-                    return Option.Create(value);    
+                    var value = (T)serializer.Deserialize(storedEffect.Result!, typeof(T));
+                    return Option.Create(value);
                 }
-                
+
                 if (storedEffect?.StoredException != null)
                     throw serializer.DeserializeException(flowId, storedEffect.StoredException!);
             }
@@ -248,7 +248,7 @@ public class EffectResults(
         {
             var success = _effectResults.TryGetValue(effectId, out var storedEffect);
             if (success && storedEffect!.StoredEffect?.WorkStatus == WorkStatus.Completed)
-                return (storedEffect.StoredEffect?.Result == null ? default : serializer.Deserialize<T>(storedEffect.StoredEffect?.Result!))!;
+                return (storedEffect.StoredEffect?.Result == null ? default : (T)serializer.Deserialize(storedEffect.StoredEffect?.Result!, typeof(T)))!;
             if (success && storedEffect!.StoredEffect?.WorkStatus == WorkStatus.Failed)
                 throw FatalWorkflowException.Create(flowId, storedEffect.StoredEffect?.StoredException!);
             if (success && resiliency == ResiliencyLevel.AtMostOnce)

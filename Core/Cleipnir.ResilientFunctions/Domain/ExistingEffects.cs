@@ -35,9 +35,9 @@ public class ExistingEffects(StoredId storedId, FlowId flowId, IEffectsStore eff
         if (storedEffect!.WorkStatus != WorkStatus.Completed)
             throw new InvalidOperationException($"Effect '{effectId}' has not completed (but has status '{storedEffect.WorkStatus}')");
 
-        return storedEffect.Result == null 
-            ? default 
-            : serializer.Deserialize<TResult>(storedEffects[effectId].Result!);
+        return storedEffect.Result == null
+            ? default
+            : (TResult)serializer.Deserialize(storedEffects[effectId].Result!, typeof(TResult));
     }
 
     public async Task<byte[]?> GetResultBytes(int effectId) => await GetResultBytes(effectId.ToEffectId());

@@ -65,9 +65,9 @@ public class RFuncWithStateRegistrationTests
 
         public byte[] Serialize(object? value, Type type) => Default.Serialize(value, type);
 
-        public T Deserialize<T>(byte[] bytes)
-            => Default.Deserialize<T>(bytes);
-        
+        public object Deserialize(byte[] bytes, Type type)
+            => Default.Deserialize(bytes, type);
+
         public StoredException SerializeException(FatalWorkflowException exception)
             => Default.SerializeException(exception);
         public FatalWorkflowException DeserializeException(FlowId flowId, StoredException storedException)
