@@ -1,12 +1,14 @@
 using System;
 using System.Linq;
-using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
+using Cleipnir.ResilientFunctions.CoreRuntime;
+using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.CoreRuntime.Serialization;
+using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
+using Cleipnir.ResilientFunctions.Queuing;
 using Cleipnir.ResilientFunctions.Storage;
-using Cleipnir.ResilientFunctions.Tests.Messaging.Utils;
 using Cleipnir.ResilientFunctions.Tests.Utils;
 using Shouldly;
 
@@ -20,9 +22,9 @@ public abstract class MessagesSubscriptionTests
         var functionId = TestStoredId.Create();
         var functionStore = await functionStoreTask;
         await functionStore.CreateFunction(
-            functionId, 
+            functionId,
             "humanInstanceId",
-            Test.SimpleStoredParameter, 
+            Test.SimpleStoredParameter,
             leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
@@ -35,10 +37,10 @@ public abstract class MessagesSubscriptionTests
             .GetMessages(functionId, skip: 0)
             .SelectAsync(msgs => msgs.Any())
             .ShouldBeFalseAsync();
-        
+
         var events = await messageStore.GetMessages(functionId, skip: 0);
         events.ShouldBeEmpty();
-        
+
         await messageStore.AppendMessage(
             functionId,
             new StoredMessage("hello world". ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Position: 0)
@@ -67,5 +69,47 @@ public abstract class MessagesSubscriptionTests
             .Instance
             .DeserializeMessage(events[0].MessageContent, events[0].MessageType)
             .ShouldBe("hello universe");
+    }
+
+    public abstract Task QueueClientCanPullSingleMessage();
+    protected async Task QueueClientCanPullSingleMessage(Task<IFunctionStore> functionStoreTask)
+    {
+        var functionStore = await functionStoreTask;
+        var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
+        var unhandledExceptionHandler = new UnhandledExceptionHandler(unhandledExceptionCatcher.Catch);
+        using var functionsRegistry = new FunctionsRegistry(
+            functionStore,
+            new Settings(unhandledExceptionCatcher.Catch)
+        );
+
+        var rFunc = functionsRegistry.RegisterFunc(
+            nameof(QueueClientCanPullSingleMessage),
+            inner: async Task<string> (string _, Workflow workflow) =>
+            {
+                var queueManager = new QueueManager(
+                    workflow.FlowId,
+                    workflow.StoredId,
+                    functionStore.MessageStore,
+                    DefaultSerializer.Instance,
+                    workflow.Effect,
+                    unhandledExceptionHandler
+                );
+                await queueManager.Initialize();
+
+                var queueClient = new QueueClient(queueManager);
+                var message = await queueClient.Pull<string>();
+
+                return (string)message;
+            }
+        );
+
+        var scheduled = await rFunc.Schedule("instanceId", "");
+        var messageWriter = rFunc.MessageWriters.For("instanceId".ToFlowInstance());
+        await messageWriter.AppendMessage("test message");
+
+        var result = await scheduled.Completion();
+        result.ShouldBe("test message");
+
+        unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
 }

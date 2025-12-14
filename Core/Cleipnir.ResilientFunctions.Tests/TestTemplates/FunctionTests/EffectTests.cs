@@ -1292,4 +1292,134 @@ public abstract class EffectTests
         var result = await registration.Invoke(id.Instance, "test");
         result.ShouldBe(52);
     }
+
+    public abstract Task GetChildrenReturnsAllChildEffectValues();
+    public async Task GetChildrenReturnsAllChildEffectValues(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var storedId = TestStoredId.Create();
+        var session = await store.CreateFunction(
+            storedId,
+            "SomeInstance",
+            param: null,
+            leaseExpiration: 0,
+            postponeUntil: null,
+            timestamp: 0,
+            parent: null,
+            owner: ReplicaId.NewId()
+        );
+        var effectResults = new EffectResults(
+            TestFlowId.Create(),
+            storedId,
+            lazyExistingEffects: new Lazy<Task<IReadOnlyList<StoredEffect>>>(() => store.EffectsStore.GetEffectResults(storedId)),
+            store.EffectsStore,
+            DefaultSerializer.Instance,
+            session
+        );
+
+        var parentId = 1.ToEffectId();
+        var child1Id = parentId.CreateChild(1);
+        var child2Id = parentId.CreateChild(2);
+        var child3Id = parentId.CreateChild(3);
+
+        await effectResults.CreateOrGet(child1Id, "first", alias: null, flush: true);
+        await effectResults.CreateOrGet(child2Id, "second", alias: null, flush: true);
+        await effectResults.CreateOrGet(child3Id, "third", alias: null, flush: true);
+
+        var childIds = await effectResults.GetChildren(parentId);
+        var children = new List<string>();
+        foreach (var childId in childIds)
+        {
+            var option = await effectResults.TryGet<string>(childId);
+            if (option.HasValue)
+                children.Add(option.Value!);
+        }
+
+        children.Count.ShouldBe(3);
+        children.ShouldContain("first");
+        children.ShouldContain("second");
+        children.ShouldContain("third");
+    }
+
+    public abstract Task GetChildrenReturnsEmptyListWhenNoChildren();
+    public async Task GetChildrenReturnsEmptyListWhenNoChildren(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var storedId = TestStoredId.Create();
+        var session = await store.CreateFunction(
+            storedId,
+            "SomeInstance",
+            param: null,
+            leaseExpiration: 0,
+            postponeUntil: null,
+            timestamp: 0,
+            parent: null,
+            owner: ReplicaId.NewId()
+        );
+        var effectResults = new EffectResults(
+            TestFlowId.Create(),
+            storedId,
+            lazyExistingEffects: new Lazy<Task<IReadOnlyList<StoredEffect>>>(() => store.EffectsStore.GetEffectResults(storedId)),
+            store.EffectsStore,
+            DefaultSerializer.Instance,
+            session
+        );
+
+        var parentId = 1.ToEffectId();
+
+        var children = await effectResults.GetChildren(parentId);
+
+        children.Count.ShouldBe(0);
+    }
+
+    public abstract Task GetChildrenReturnsAllDescendants();
+    public async Task GetChildrenReturnsAllDescendants(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var storedId = TestStoredId.Create();
+        var session = await store.CreateFunction(
+            storedId,
+            "SomeInstance",
+            param: null,
+            leaseExpiration: 0,
+            postponeUntil: null,
+            timestamp: 0,
+            parent: null,
+            owner: ReplicaId.NewId()
+        );
+        var effectResults = new EffectResults(
+            TestFlowId.Create(),
+            storedId,
+            lazyExistingEffects: new Lazy<Task<IReadOnlyList<StoredEffect>>>(() => store.EffectsStore.GetEffectResults(storedId)),
+            store.EffectsStore,
+            DefaultSerializer.Instance,
+            session
+        );
+
+        var parentId = 1.ToEffectId();
+        var child1Id = parentId.CreateChild(1);
+        var child2Id = parentId.CreateChild(2);
+        var grandChildId = child1Id.CreateChild(1);
+        var unrelatedId = 2.ToEffectId();
+
+        await effectResults.CreateOrGet(child1Id, 100, alias: null, flush: true);
+        await effectResults.CreateOrGet(child2Id, 200, alias: null, flush: true);
+        await effectResults.CreateOrGet(grandChildId, 300, alias: null, flush: true);
+        await effectResults.CreateOrGet(unrelatedId, 400, alias: null, flush: true);
+
+        var childIds = await effectResults.GetChildren(parentId);
+        var children = new List<int>();
+        foreach (var childId in childIds)
+        {
+            var option = await effectResults.TryGet<int>(childId);
+            if (option.HasValue)
+                children.Add(option.Value);
+        }
+
+        children.Count.ShouldBe(3);
+        children.ShouldContain(100);
+        children.ShouldContain(200);
+        children.ShouldContain(300);
+        children.ShouldNotContain(400);
+    }
 }

@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime;
 using Cleipnir.ResilientFunctions.Helpers;
+using Cleipnir.ResilientFunctions.Queuing;
 using Cleipnir.ResilientFunctions.Reactive.Utilities;
 using Cleipnir.ResilientFunctions.Storage;
 
@@ -78,6 +79,7 @@ public class Effect(EffectResults effectResults, UtcNow utcNow, FlowMinimumTimeo
         return await effectResults.TryGet<T>(effectId);
     } 
     
+    internal async Task<Option<object?>> TryGet(EffectId effectId, Type type) => await effectResults.TryGet(effectId, type);
     internal Task<Option<T>> TryGet<T>(EffectId effectId) => effectResults.TryGet<T>(effectId);
     internal async Task<T> Get<T>(string alias) => await Get<T>(
         await effectResults.GetEffectId(alias) ?? throw new InvalidOperationException($"Unknown alias: '{alias}'")
@@ -91,6 +93,9 @@ public class Effect(EffectResults effectResults, UtcNow utcNow, FlowMinimumTimeo
 
         return option.Value;
     }
+    
+    internal async Task<IReadOnlyList<EffectId>> GetChildren(EffectId effectId) => await effectResults.GetChildren(effectId);
+    internal async Task<bool> IsPending(EffectId effectId) => await effectResults.IsDirty(effectId);
 
     #region Implicit ids
 
@@ -231,6 +236,9 @@ public class Effect(EffectResults effectResults, UtcNow utcNow, FlowMinimumTimeo
         var lastChild = id.CreateChild(atIndex - 1);
         await effectResults.Clear(lastChild, flush: false);
     }
+
+    internal async Task Clear(EffectId id, bool flush) => await effectResults.Clear(id, flush);
+    internal async Task<bool> IsDirty(EffectId id) => await effectResults.IsDirty(id);
     
     public async Task<TSeed> AggregateEach<T, TSeed>(
         IEnumerable<T> elms,
@@ -263,4 +271,6 @@ public class Effect(EffectResults effectResults, UtcNow utcNow, FlowMinimumTimeo
         await effectResults.Clear(lastChild, flush: false);
         return akk;
     }
+
+    internal void RegisterQueueManager(QueueManager queueManager) => effectResults.QueueManager = queueManager;
 }

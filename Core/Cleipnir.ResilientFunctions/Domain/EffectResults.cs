@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Serialization;
 using Cleipnir.ResilientFunctions.Domain.Exceptions.Commands;
+using Cleipnir.ResilientFunctions.Queuing;
 using Cleipnir.ResilientFunctions.Reactive.Utilities;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Storage.Session;
@@ -23,6 +24,8 @@ public class EffectResults(
     private volatile bool _initialized;
 
     private readonly Dictionary<EffectId, PendingEffectChange> _effectResults = new();
+    
+    public QueueManager? QueueManager { get; set; }
     
     public async Task<EffectId?> GetEffectId(string alias)
     {
@@ -161,6 +164,40 @@ public class EffectResults(
         }
         
         return Option<T>.NoValue;
+    }
+    
+    public async Task<Option<object?>> TryGet(EffectId effectId, Type type)
+    {
+        await InitializeIfRequired();
+        
+        lock (_sync)
+        {
+            if (_effectResults.TryGetValue(effectId, out var change))
+            {
+                var storedEffect = change.StoredEffect;
+                if (storedEffect?.WorkStatus == WorkStatus.Completed)
+                {
+                    var value = serializer.Deserialize(storedEffect.Result!, type)!;
+                    return Option.Create((object?) value);    
+                }
+                
+                if (storedEffect?.StoredException != null)
+                    throw serializer.DeserializeException(flowId, storedEffect.StoredException!);
+            }
+        }
+        
+        return Option<object?>.NoValue;
+    }
+
+    public async Task<IReadOnlyList<EffectId>> GetChildren(EffectId parentId)
+    {
+        await InitializeIfRequired();
+        
+        lock (_sync)
+            return _effectResults
+                .Keys
+                .Where(id => id.IsChild(parentId))
+                .ToList();
     }
     
     public async Task InnerCapture(EffectId effectId, string? alias, Func<Task> work, ResiliencyLevel resiliency, EffectContext effectContext)
@@ -434,6 +471,17 @@ public class EffectResults(
         {
             _flushSync.Release();
         }
+        
+        QueueManager?.AfterFlush();
     }
 
+    public async Task<bool> IsDirty(EffectId effectId)
+    {
+        await InitializeIfRequired();
+        lock (_sync)
+            if (_effectResults.TryGetValue(effectId, out var change))
+                return change.Operation != null;
+            else
+                return false;
+    }
 }

@@ -129,4 +129,16 @@ public class EffectTests : ResilientFunctions.Tests.TestTemplates.FunctionTests.
     [TestMethod]
     public override Task AggregateEachWithSingleElement()
         => AggregateEachWithSingleElement(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task GetChildrenReturnsAllChildEffectValues()
+        => GetChildrenReturnsAllChildEffectValues(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task GetChildrenReturnsEmptyListWhenNoChildren()
+        => GetChildrenReturnsEmptyListWhenNoChildren(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task GetChildrenReturnsAllDescendants()
+        => GetChildrenReturnsAllDescendants(FunctionStoreFactory.Create());
 }

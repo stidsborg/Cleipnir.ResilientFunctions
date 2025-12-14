@@ -209,6 +209,9 @@ public class SqlServerMessageStore : IMessageStore
 
     public async Task<IReadOnlyList<StoredMessage>> GetMessages(StoredId storedId, IReadOnlyList<long> skipPositions)
     {
+        if (!skipPositions.Any())
+            return await GetMessages(storedId, skip: 0);
+        
         await using var conn = await CreateConnection();
         await using var command = _sqlGenerator.GetMessages(storedId, skipPositions).ToSqlCommand(conn);
 
