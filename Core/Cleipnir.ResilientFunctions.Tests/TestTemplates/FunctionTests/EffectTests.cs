@@ -1311,7 +1311,7 @@ public abstract class EffectTests
         var effectResults = new EffectResults(
             TestFlowId.Create(),
             storedId,
-            lazyExistingEffects: new Lazy<Task<IReadOnlyList<StoredEffect>>>(() => store.EffectsStore.GetEffectResults(storedId)),
+            await store.EffectsStore.GetEffectResults(storedId),
             store.EffectsStore,
             DefaultSerializer.Instance,
             session
@@ -1326,11 +1326,11 @@ public abstract class EffectTests
         await effectResults.CreateOrGet(child2Id, "second", alias: null, flush: true);
         await effectResults.CreateOrGet(child3Id, "third", alias: null, flush: true);
 
-        var childIds = await effectResults.GetChildren(parentId);
+        var childIds = effectResults.GetChildren(parentId);
         var children = new List<string>();
         foreach (var childId in childIds)
         {
-            var option = await effectResults.TryGet<string>(childId);
+            var option = effectResults.TryGet<string>(childId);
             if (option.HasValue)
                 children.Add(option.Value!);
         }
@@ -1359,7 +1359,7 @@ public abstract class EffectTests
         var effectResults = new EffectResults(
             TestFlowId.Create(),
             storedId,
-            lazyExistingEffects: new Lazy<Task<IReadOnlyList<StoredEffect>>>(() => store.EffectsStore.GetEffectResults(storedId)),
+            await store.EffectsStore.GetEffectResults(storedId),
             store.EffectsStore,
             DefaultSerializer.Instance,
             session
@@ -1367,7 +1367,7 @@ public abstract class EffectTests
 
         var parentId = 1.ToEffectId();
 
-        var children = await effectResults.GetChildren(parentId);
+        var children = effectResults.GetChildren(parentId);
 
         children.Count.ShouldBe(0);
     }
@@ -1390,7 +1390,7 @@ public abstract class EffectTests
         var effectResults = new EffectResults(
             TestFlowId.Create(),
             storedId,
-            lazyExistingEffects: new Lazy<Task<IReadOnlyList<StoredEffect>>>(() => store.EffectsStore.GetEffectResults(storedId)),
+            await store.EffectsStore.GetEffectResults(storedId),
             store.EffectsStore,
             DefaultSerializer.Instance,
             session
@@ -1407,11 +1407,11 @@ public abstract class EffectTests
         await effectResults.CreateOrGet(grandChildId, 300, alias: null, flush: true);
         await effectResults.CreateOrGet(unrelatedId, 400, alias: null, flush: true);
 
-        var childIds = await effectResults.GetChildren(parentId);
+        var childIds = effectResults.GetChildren(parentId);
         var children = new List<int>();
         foreach (var childId in childIds)
         {
-            var option = await effectResults.TryGet<int>(childId);
+            var option = effectResults.TryGet<int>(childId);
             if (option.HasValue)
                 children.Add(option.Value);
         }
