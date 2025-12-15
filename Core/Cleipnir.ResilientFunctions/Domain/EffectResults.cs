@@ -78,10 +78,8 @@ public class EffectResults
         }
     }
 
-    public async Task<bool> Contains(EffectId effectId)
+    public bool Contains(EffectId effectId)
     {
-        await Task.CompletedTask;
-        
         lock (_sync)
             return _effectResults.ContainsKey(effectId);
     }

@@ -36,16 +36,16 @@ public class FlowRegisteredTimeouts(Effect effect, UtcNow utcNow, FlowMinimumTim
     public async Task<Tuple<TimeoutStatus, DateTime>> RegisterTimeout(EffectId timeoutId, DateTime expiresAt, bool publishMessage, string? alias = null)
     {
         expiresAt = expiresAt.ToUniversalTime();
-        
-        if (!await effect.Contains(timeoutId))
+
+        if (!effect.Contains(timeoutId))
         {
             var value = $"{(int)TimeoutStatus.Registered}_{expiresAt.Ticks}";
-            await effect.Upsert(timeoutId, value, alias, flush: false); 
-            
+            await effect.Upsert(timeoutId, value, alias, flush: false);
+
             flowMinimumTimeout.AddTimeout(timeoutId, expiresAt);
             if (publishMessage)
                 RegisterTimeoutEventPublish(timeoutId, expiresAt);
-            
+
             return Tuple.Create(TimeoutStatus.Registered, expiresAt);
         }
         else
@@ -59,7 +59,7 @@ public class FlowRegisteredTimeouts(Effect effect, UtcNow utcNow, FlowMinimumTim
             {
                 flowMinimumTimeout.AddTimeout(timeoutId, expiry);
                 if (publishMessage)
-                    RegisterTimeoutEventPublish(timeoutId, expiresAt);                
+                    RegisterTimeoutEventPublish(timeoutId, expiresAt);
             }
 
             return Tuple.Create(status, expiry);
@@ -75,13 +75,13 @@ public class FlowRegisteredTimeouts(Effect effect, UtcNow utcNow, FlowMinimumTim
     
     public async Task CancelTimeout(EffectId timeoutId)
     {
-        if (!await effect.Contains(timeoutId))
+        if (!effect.Contains(timeoutId))
             return;
-        
+
         var values = (await effect.Get<string>(timeoutId)).Split("_");
         var timeoutStatus = values[0].ToInt().ToEnum<TimeoutStatus>();
         var expiresAt = values[1];
-        
+
         if (timeoutStatus == TimeoutStatus.Cancelled)
             return;
 
@@ -92,13 +92,13 @@ public class FlowRegisteredTimeouts(Effect effect, UtcNow utcNow, FlowMinimumTim
     
     public async Task CompleteTimeout(EffectId timeoutId, string? alias = null)
     {
-        if (!await effect.Contains(timeoutId))
+        if (!effect.Contains(timeoutId))
             return;
-        
+
         var values = (await effect.Get<string>(timeoutId)).Split("_");
         var timeoutStatus = values[0].ToInt().ToEnum<TimeoutStatus>();
         var expiresAt = values[1];
-        
+
         if (timeoutStatus == TimeoutStatus.Cancelled)
             return;
 

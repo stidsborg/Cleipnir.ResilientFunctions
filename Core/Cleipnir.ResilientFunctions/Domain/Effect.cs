@@ -18,8 +18,8 @@ public enum ResiliencyLevel
 
 public class Effect(EffectResults effectResults, UtcNow utcNow, FlowMinimumTimeout flowMinimumTimeout)
 {
-    internal async Task<bool> Contains(int id) => await Contains(CreateEffectId(id));
-    internal Task<bool> Contains(EffectId effectId) => effectResults.Contains(effectId);
+    internal bool Contains(int id) => Contains(CreateEffectId(id));
+    internal bool Contains(EffectId effectId) => effectResults.Contains(effectId);
 
     internal IEnumerable<EffectId> EffectIds => effectResults.EffectIds;
     internal FlowMinimumTimeout FlowMinimumTimeout => flowMinimumTimeout;
@@ -34,7 +34,7 @@ public class Effect(EffectResults effectResults, UtcNow utcNow, FlowMinimumTimeo
     internal async Task<bool> Mark() => await Mark(EffectContext.CurrentContext.NextEffectId());
     internal async Task<bool> Mark(EffectId effectId)
     {
-        if (await effectResults.Contains(effectId))
+        if (effectResults.Contains(effectId))
             return false;
 
         var storedEffect = StoredEffect.CreateCompleted(effectId, alias: null);

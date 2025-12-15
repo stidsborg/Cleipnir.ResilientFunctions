@@ -227,11 +227,12 @@ public abstract class SunshineTests
 
         var invoke = functionsRegistry.RegisterParamless(
             functionId.Type,
-            inner: async workflow =>
+            inner: workflow =>
             {
                 store.Crash();
-                await workflow.Effect.Contains("test".GetHashCode());
+                workflow.Effect.Contains("test".GetHashCode());
                 store.FixCrash();
+                return Task.CompletedTask;
             }
         ).Invoke;
 
