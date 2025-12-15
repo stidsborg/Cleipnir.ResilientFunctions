@@ -356,7 +356,7 @@ internal class InvocationHelper<TParam, TReturn>
         var parent = GetAndEnsureParent(detach);
         if (parent != null)
         {
-            var marked = await parent.Effect.Mark();
+            var marked = await parent.Effect.Mark(flush: true); //todo should flush be true
             if (!marked)
                 return CreateInnerScheduled(
                     work.Select(w => new FlowId(_flowType, w.Instance)).ToList(),
@@ -419,13 +419,11 @@ internal class InvocationHelper<TParam, TReturn>
     public Effect CreateEffect(StoredId storedId, FlowId flowId, IReadOnlyList<StoredEffect> storedEffects, FlowMinimumTimeout flowMinimumTimeout, IStorageSession? storageSession)
     {
         var effectsStore = _functionStore.EffectsStore;
-        
-        var lazyEffects = new Lazy<Task<IReadOnlyList<StoredEffect>>>(storedEffects.ToTask);
 
         var effectResults = new EffectResults(
             flowId,
             storedId,
-            lazyEffects,
+            storedEffects,
             effectsStore,
             Serializer,
             storageSession

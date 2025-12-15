@@ -19,33 +19,33 @@ public enum ResiliencyLevel
 
 public class Effect(EffectResults effectResults, UtcNow utcNow, FlowMinimumTimeout flowMinimumTimeout)
 {
-    internal async Task<bool> Contains(int id) => await Contains(CreateEffectId(id));
-    internal Task<bool> Contains(EffectId effectId) => effectResults.Contains(effectId);
+    internal bool Contains(int id) => Contains(CreateEffectId(id));
+    internal bool Contains(EffectId effectId) => effectResults.Contains(effectId);
 
     internal IEnumerable<EffectId> EffectIds => effectResults.EffectIds;
     internal FlowMinimumTimeout FlowMinimumTimeout => flowMinimumTimeout;
 
-    internal async Task<WorkStatus?> GetStatus(int id)
+    internal WorkStatus? GetStatus(int id)
     {
         var effectId = CreateEffectId(id);
-        var storedEffect = await effectResults.GetOrValueDefault(effectId);
+        var storedEffect = effectResults.GetOrValueDefault(effectId);
         return storedEffect?.WorkStatus;
     }
 
-    internal async Task<bool> Mark() => await Mark(EffectContext.CurrentContext.NextEffectId());
-    internal async Task<bool> Mark(EffectId effectId)
+    internal async Task<bool> Mark(bool flush) => await Mark(EffectContext.CurrentContext.NextEffectId(), flush);
+    internal async Task<bool> Mark(EffectId effectId, bool flush)
     {
-        if (await effectResults.Contains(effectId))
+        if (effectResults.Contains(effectId))
             return false;
 
         var storedEffect = StoredEffect.CreateCompleted(effectId, alias: null);
-        await effectResults.Set(storedEffect, flush: true);
+        await effectResults.Set(storedEffect, flush);
         return true;
     }
 
     internal async Task<T> CreateOrGet<T>(string alias, T value, bool flush = true)
     {
-        var effectId = await effectResults.GetEffectId(alias)
+        var effectId = effectResults.GetEffectId(alias)
             ?? CreateNextImplicitId();
 
         return await CreateOrGet(
@@ -70,24 +70,23 @@ public class Effect(EffectResults effectResults, UtcNow utcNow, FlowMinimumTimeo
     internal Task Upserts(IEnumerable<EffectResult> values, bool flush)
         => effectResults.Upserts(values, flush);
 
-    internal async Task<Option<T>> TryGet<T>(string alias)
+    internal Option<T> TryGet<T>(string alias)
     {
-        var effectId = await effectResults.GetEffectId(alias);
+        var effectId = effectResults.GetEffectId(alias);
         if (effectId == null)
             return Option.CreateNoValue<T>();
 
-        return await effectResults.TryGet<T>(effectId);
-    } 
-    
-    internal async Task<Option<object?>> TryGet(EffectId effectId, Type type) => await effectResults.TryGet(effectId, type);
-    internal Task<Option<T>> TryGet<T>(EffectId effectId) => effectResults.TryGet<T>(effectId);
-    internal async Task<T> Get<T>(string alias) => await Get<T>(
-        await effectResults.GetEffectId(alias) ?? throw new InvalidOperationException($"Unknown alias: '{alias}'")
+        return effectResults.TryGet<T>(effectId);
+    }
+
+    internal Option<T> TryGet<T>(EffectId effectId) => effectResults.TryGet<T>(effectId);
+    internal T Get<T>(string alias) => Get<T>(
+        effectResults.GetEffectId(alias) ?? throw new InvalidOperationException($"Unknown alias: '{alias}'")
     );
-    internal async Task<T> Get<T>(EffectId effectId)
+    internal T Get<T>(EffectId effectId)
     {
-        var option = await TryGet<T>(effectId);
-        
+        var option = TryGet<T>(effectId);
+
         if (!option.HasValue)
             throw new InvalidOperationException($"No value exists for id: '{effectId}'");
 

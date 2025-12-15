@@ -227,11 +227,12 @@ public abstract class SunshineTests
 
         var invoke = functionsRegistry.RegisterParamless(
             functionId.Type,
-            inner: async workflow =>
+            inner: workflow =>
             {
                 store.Crash();
-                await workflow.Effect.Contains("test".GetHashCode());
+                workflow.Effect.Contains("test".GetHashCode());
                 store.FixCrash();
+                return Task.CompletedTask;
             }
         ).Invoke;
 
@@ -346,7 +347,7 @@ public abstract class SunshineTests
                 flowId.Type,
                 async (string s, Workflow workflow) =>
                 {
-                    initialEffectValue = await workflow.Effect.Get<string>("InitialEffectId");
+                    initialEffectValue = workflow.Effect.Get<string>("InitialEffectId");
                     initialMessageValue = await workflow.Messages.OfType<string>().First();
                     return s;
                 });
@@ -385,7 +386,7 @@ public abstract class SunshineTests
                 flowId.Type,
                 async (string _, Workflow workflow) =>
                 {
-                    initialEffectValue = await workflow.Effect.Get<string>("InitialEffectId");
+                    initialEffectValue = workflow.Effect.Get<string>("InitialEffectId");
                     initialMessageValue = await workflow.Messages.OfType<string>().First();
                 });
 
@@ -423,7 +424,7 @@ public abstract class SunshineTests
                 flowId.Type,
                 async (Workflow workflow) =>
                 {
-                    initialEffectValue = await workflow.Effect.Get<string>("InitialEffectId");
+                    initialEffectValue = workflow.Effect.Get<string>("InitialEffectId");
                     initialMessageValue = await workflow.Messages.OfType<string>().First();
                 });
 
@@ -456,10 +457,11 @@ public abstract class SunshineTests
 
         var registration = functionsRegistry
             .RegisterParamless(
-                flowId.Type,
-                async workflow =>
+                flowId.Type, 
+                workflow =>
                 {
-                    workStatus = await workflow.Effect.GetStatus("InitialEffectId".GetHashCode());
+                    workStatus = workflow.Effect.GetStatus("InitialEffectId".GetHashCode());
+                    return Task.CompletedTask;
                 }
             );
 

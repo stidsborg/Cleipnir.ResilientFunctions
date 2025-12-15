@@ -303,14 +303,14 @@ public abstract class EffectTests
         var effectResults = new EffectResults(
             TestFlowId.Create(),
             storedId,
-            lazyExistingEffects: new Lazy<Task<IReadOnlyList<StoredEffect>>>(() => store.EffectsStore.GetEffectResults(storedId)),
+            await store.EffectsStore.GetEffectResults(storedId),
             store.EffectsStore,
-            DefaultSerializer.Instance, 
+            DefaultSerializer.Instance,
             session
         );
         var effect = new Effect(effectResults, utcNow: () => DateTime.UtcNow, new FlowMinimumTimeout());
-        
-        var option = await effect.TryGet<int>("alias");
+
+        var option = effect.TryGet<int>("alias");
         option.HasValue.ShouldBeFalse();
 
         Should.Throw<InvalidOperationException>(() => effect.Get<int>("nonexistent"));
@@ -320,50 +320,54 @@ public abstract class EffectTests
         result = await effect.CreateOrGet("alias", 100);
         result.ShouldBe(32);
 
-        option = await effect.TryGet<int>("alias");
+        option = effect.TryGet<int>("alias");
         option.HasValue.ShouldBeTrue();
         var value2 = option.Value;
         value2.ShouldBe(32);
-        (await effect.Get<int>("alias")).ShouldBe(32);
+        effect.Get<int>("alias").ShouldBe(32);
 
         await effect.Upsert("alias", 100);
-        (await effect.Get<int>("alias")).ShouldBe(100);
-        await effect.GetStatus(0).ShouldBeAsync(WorkStatus.Completed);
-        await effect.Contains(0).ShouldBeTrueAsync();
+        effect.Get<int>("alias").ShouldBe(100);
+        effect.GetStatus(0).ShouldBe(WorkStatus.Completed);
+        effect.Contains(0).ShouldBeTrue();
     }
     
     public abstract Task ExistingEffectsFuncIsOnlyInvokedAfterGettingValue();
     public async Task ExistingEffectsFuncIsOnlyInvokedAfterGettingValue(Task<IFunctionStore> storeTask)
-    {  
+    {
         var store = await storeTask;
         var storedId = TestStoredId.Create();
-        var syncedCounter = new SyncedCounter();
 
+        // Create an existing effect
+        var effectId = new EffectId([1]);
+        var existingEffect = new StoredEffect(
+            effectId,
+            WorkStatus.Completed,
+            Result: DefaultSerializer.Instance.Serialize(42),
+            StoredException: null,
+            Alias: "test_alias"
+        );
+
+        // Pass existing effects to constructor - they should be eagerly loaded
         var effectResults = new EffectResults(
             TestFlowId.Create(),
             storedId,
-            lazyExistingEffects: new Lazy<Task<IReadOnlyList<StoredEffect>>>(
-                () =>
-                {
-                    syncedCounter.Increment();
-                    return new List<StoredEffect>()
-                        .CastTo<IReadOnlyList<StoredEffect>>()
-                        .ToTask();
-                })
-            ,
+            new List<StoredEffect> { existingEffect },
             store.EffectsStore,
-            DefaultSerializer.Instance, 
+            DefaultSerializer.Instance,
             storageSession: null
         );
         var effect = new Effect(effectResults, utcNow: () => DateTime.UtcNow, new FlowMinimumTimeout());
-        
-        syncedCounter.Current.ShouldBe(0);
-        
-        await effect.TryGet<int>("alias");
-        syncedCounter.Current.ShouldBe(1);
 
-        await effect.TryGet<int>("alias");
-        syncedCounter.Current.ShouldBe(1);
+        // Verify the effect is immediately available (eager loading)
+        var result = effect.TryGet<int>("test_alias");
+        result.HasValue.ShouldBeTrue();
+        result.Value.ShouldBe(42);
+
+        // Verify we can retrieve it again
+        result = effect.TryGet<int>("test_alias");
+        result.HasValue.ShouldBeTrue();
+        result.Value.ShouldBe(42);
     }
     
     public abstract Task SubEffectHasImplicitContext();
@@ -652,14 +656,12 @@ public abstract class EffectTests
         var effectResults = new EffectResults(
             TestFlowId.Create(),
             storedId,
-            lazyExistingEffects: new Lazy<Task<IReadOnlyList<StoredEffect>>>(
-                () => new List<StoredEffect>().CastTo<IReadOnlyList<StoredEffect>>().ToTask()
-            ),
+            new List<StoredEffect>(),
             effectStore,
-            DefaultSerializer.Instance, 
+            DefaultSerializer.Instance,
             session
         );
-        
+
         var effectId1 = new EffectId([1]);
         var storedEffect1 = new StoredEffect(
             effectId1,
@@ -718,11 +720,9 @@ public abstract class EffectTests
         var effectResults = new EffectResults(
             TestFlowId.Create(),
             storedId,
-            lazyExistingEffects: new Lazy<Task<IReadOnlyList<StoredEffect>>>(
-                () => new List<StoredEffect>().CastTo<IReadOnlyList<StoredEffect>>().ToTask()
-            ),
+            new List<StoredEffect>(),
             effectStore,
-            DefaultSerializer.Instance, 
+            DefaultSerializer.Instance,
             session
         );
         var effect = new Effect(effectResults, utcNow: () => DateTime.UtcNow, new FlowMinimumTimeout());
@@ -801,7 +801,7 @@ public abstract class EffectTests
         var effectResults = new EffectResults(
             TestFlowId.Create(),
             storedId,
-            lazyExistingEffects: new Lazy<Task<IReadOnlyList<StoredEffect>>>(() => effectStore.GetEffectResults(storedId)),
+            await effectStore.GetEffectResults(storedId),
             effectStore,
             DefaultSerializer.Instance,
             session
