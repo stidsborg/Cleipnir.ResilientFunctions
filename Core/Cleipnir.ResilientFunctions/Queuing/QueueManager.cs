@@ -35,11 +35,11 @@ public class QueueManager(FlowId flowId, StoredId storedId, IMessageStore messag
         effect.RegisterQueueManager(this);
 
         _nextToRemoveIndex = await effect.CreateOrGet(_toRemoveNextIndex, 0, alias: null, flush: false);
-        var children = await effect.GetChildren(_toRemoveNextIndex);
+        var children = effect.GetChildren(_toRemoveNextIndex);
         var positions = new List<long>();
         foreach (var childId in children)
         {
-            var position = await effect.Get<long>(childId);
+            var position = effect.Get<long>(childId);
             positions.Add(position);
         }
 
@@ -104,10 +104,10 @@ public class QueueManager(FlowId flowId, StoredId storedId, IMessageStore messag
         {
             try
             {
-                var children = await effect.GetChildren(_parentId);
+                var children = effect.GetChildren(_parentId);
                 var nonDirtyChildren = new List<EffectId>();
                 foreach (var childId in children)
-                    if (!await effect.IsDirty(childId))
+                    if (!effect.IsDirty(childId))
                         nonDirtyChildren.Add(childId);
 
                 if (nonDirtyChildren.Any())
@@ -115,7 +115,7 @@ public class QueueManager(FlowId flowId, StoredId storedId, IMessageStore messag
                     var positions = new List<long>();
                     foreach (var nonDirtyChild in nonDirtyChildren)
                     {
-                        var position = await effect.Get<long>(nonDirtyChild);
+                        var position = effect.Get<long>(nonDirtyChild);
                         positions.Add(position);
                     }
 

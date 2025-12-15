@@ -80,6 +80,7 @@ public class Effect(EffectResults effectResults, UtcNow utcNow, FlowMinimumTimeo
     }
 
     internal Option<T> TryGet<T>(EffectId effectId) => effectResults.TryGet<T>(effectId);
+    internal Option<object?> TryGet(EffectId effectId, Type type) => effectResults.TryGet(effectId, type);
     internal T Get<T>(string alias) => Get<T>(
         effectResults.GetEffectId(alias) ?? throw new InvalidOperationException($"Unknown alias: '{alias}'")
     );
@@ -93,8 +94,7 @@ public class Effect(EffectResults effectResults, UtcNow utcNow, FlowMinimumTimeo
         return option.Value;
     }
     
-    internal async Task<IReadOnlyList<EffectId>> GetChildren(EffectId effectId) => await effectResults.GetChildren(effectId);
-    internal async Task<bool> IsPending(EffectId effectId) => await effectResults.IsDirty(effectId);
+    internal IReadOnlyList<EffectId> GetChildren(EffectId effectId) => effectResults.GetChildren(effectId);
 
     #region Implicit ids
 
@@ -237,7 +237,7 @@ public class Effect(EffectResults effectResults, UtcNow utcNow, FlowMinimumTimeo
     }
 
     internal async Task Clear(EffectId id, bool flush) => await effectResults.Clear(id, flush);
-    internal async Task<bool> IsDirty(EffectId id) => await effectResults.IsDirty(id);
+    internal bool IsDirty(EffectId id) => effectResults.IsDirty(id);
     
     public async Task<TSeed> AggregateEach<T, TSeed>(
         IEnumerable<T> elms,

@@ -23,9 +23,4 @@ public class QueueBuilder<T>(IEnumerable<Func<object, bool>> predicates, QueueMa
 
     public QueueBuilder<TChild> OfType<TChild>() where TChild : T
         => new QueueBuilder<TChild>(predicates, manager);
-
-    public async Task<T> Next()
-    {
-        throw new NotImplementedException();
-    }
 }

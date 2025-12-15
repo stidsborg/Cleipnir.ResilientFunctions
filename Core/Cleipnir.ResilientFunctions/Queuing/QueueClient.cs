@@ -14,7 +14,7 @@ public class QueueClient(QueueManager queueManager)
         var valueId = parentId.CreateChild(0);
         var typeId = parentId.CreateChild(1);
 
-        if (!await effect.Contains(valueId))
+        if (!effect.Contains(valueId))
         {
             var (message, result) = await queueManager.Subscribe(valueId, m => m is T);
             await effect.Upserts([
@@ -27,8 +27,8 @@ public class QueueClient(QueueManager queueManager)
         }
         else
         {
-            var type = Type.GetType(await effect.Get<string>(typeId), throwOnError: true);
-            var option = await effect.TryGet(valueId, type!);
+            var type = Type.GetType(effect.Get<string>(typeId), throwOnError: true);
+            var option = effect.TryGet(valueId, type!);
 
             if (!option.HasValue)
                 throw new InvalidOperationException("Effect did not have value as expected");

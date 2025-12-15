@@ -166,7 +166,7 @@ public class EffectResults
                 }
 
                 if (storedEffect?.StoredException != null)
-                    throw _serializer.DeserializeException(flowId, storedEffect.StoredException!);
+                    throw _serializer.DeserializeException(_flowId, storedEffect.StoredException!);
             }
         }
 
@@ -187,7 +187,7 @@ public class EffectResults
                 }
                 
                 if (storedEffect?.StoredException != null)
-                    throw serializer.DeserializeException(flowId, storedEffect.StoredException!);
+                    throw _serializer.DeserializeException(_flowId, storedEffect.StoredException!);
             }
         }
         
@@ -284,7 +284,7 @@ public class EffectResults
         {
             var success = _effectResults.TryGetValue(effectId, out var storedEffect);
             if (success && storedEffect!.StoredEffect?.WorkStatus == WorkStatus.Completed)
-                return (storedEffect.StoredEffect?.Result == null ? default : _serializer.Deserialize<T>(storedEffect.StoredEffect?.Result!))!;
+                return (storedEffect.StoredEffect?.Result == null ? default : (T) _serializer.Deserialize(storedEffect.StoredEffect?.Result!, typeof(T)))!;
             if (success && storedEffect!.StoredEffect?.WorkStatus == WorkStatus.Failed)
                 throw FatalWorkflowException.Create(_flowId, storedEffect.StoredEffect?.StoredException!);
             if (success && resiliency == ResiliencyLevel.AtMostOnce)
