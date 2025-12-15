@@ -328,7 +328,7 @@ public abstract class EffectTests
 
         await effect.Upsert("alias", 100);
         (await effect.Get<int>("alias")).ShouldBe(100);
-        await effect.GetStatus(0).ShouldBeAsync(WorkStatus.Completed);
+        effect.GetStatus(0).ShouldBe(WorkStatus.Completed);
         effect.Contains(0).ShouldBeTrue();
     }
     

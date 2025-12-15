@@ -24,10 +24,10 @@ public class Effect(EffectResults effectResults, UtcNow utcNow, FlowMinimumTimeo
     internal IEnumerable<EffectId> EffectIds => effectResults.EffectIds;
     internal FlowMinimumTimeout FlowMinimumTimeout => flowMinimumTimeout;
 
-    internal async Task<WorkStatus?> GetStatus(int id)
+    internal WorkStatus? GetStatus(int id)
     {
         var effectId = CreateEffectId(id);
-        var storedEffect = await effectResults.GetOrValueDefault(effectId);
+        var storedEffect = effectResults.GetOrValueDefault(effectId);
         return storedEffect?.WorkStatus;
     }
 

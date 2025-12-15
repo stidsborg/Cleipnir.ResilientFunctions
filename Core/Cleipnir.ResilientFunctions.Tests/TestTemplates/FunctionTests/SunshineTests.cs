@@ -457,10 +457,11 @@ public abstract class SunshineTests
 
         var registration = functionsRegistry
             .RegisterParamless(
-                flowId.Type,
-                async workflow =>
+                flowId.Type, 
+                workflow =>
                 {
-                    workStatus = await workflow.Effect.GetStatus("InitialEffectId".GetHashCode());
+                    workStatus = workflow.Effect.GetStatus("InitialEffectId".GetHashCode());
+                    return Task.CompletedTask;
                 }
             );
 

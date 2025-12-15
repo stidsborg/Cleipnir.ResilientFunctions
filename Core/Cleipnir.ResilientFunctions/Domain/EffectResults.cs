@@ -84,10 +84,8 @@ public class EffectResults
             return _effectResults.ContainsKey(effectId);
     }
 
-    public async Task<StoredEffect?> GetOrValueDefault(EffectId effectId)
+    public StoredEffect? GetOrValueDefault(EffectId effectId)
     {
-        await Task.CompletedTask;
-        
         lock (_sync)
             return _effectResults.GetValueOrDefault(effectId)?.StoredEffect;
     }
