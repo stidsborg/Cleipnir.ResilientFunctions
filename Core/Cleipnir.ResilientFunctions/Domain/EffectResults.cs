@@ -92,8 +92,6 @@ public class EffectResults
 
     public async Task Set(StoredEffect storedEffect, bool flush)
     {
-        await Task.CompletedTask;
-        
         await FlushOrAddToPending(
             storedEffect.EffectId,
             storedEffect,

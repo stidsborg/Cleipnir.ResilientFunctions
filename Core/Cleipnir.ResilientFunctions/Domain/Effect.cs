@@ -31,14 +31,14 @@ public class Effect(EffectResults effectResults, UtcNow utcNow, FlowMinimumTimeo
         return storedEffect?.WorkStatus;
     }
 
-    internal async Task<bool> Mark() => await Mark(EffectContext.CurrentContext.NextEffectId());
-    internal async Task<bool> Mark(EffectId effectId)
+    internal async Task<bool> Mark(bool flush) => await Mark(EffectContext.CurrentContext.NextEffectId(), flush);
+    internal async Task<bool> Mark(EffectId effectId, bool flush)
     {
         if (effectResults.Contains(effectId))
             return false;
 
         var storedEffect = StoredEffect.CreateCompleted(effectId, alias: null);
-        await effectResults.Set(storedEffect, flush: true);
+        await effectResults.Set(storedEffect, flush);
         return true;
     }
 

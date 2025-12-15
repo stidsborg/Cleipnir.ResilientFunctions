@@ -356,7 +356,7 @@ internal class InvocationHelper<TParam, TReturn>
         var parent = GetAndEnsureParent(detach);
         if (parent != null)
         {
-            var marked = await parent.Effect.Mark();
+            var marked = await parent.Effect.Mark(flush: true); //todo should flush be true
             if (!marked)
                 return CreateInnerScheduled(
                     work.Select(w => new FlowId(_flowType, w.Instance)).ToList(),

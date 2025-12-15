@@ -71,7 +71,7 @@ public class Invoker<TParam, TReturn>
 
         if (parent != null)
         {
-            var marked = await parent.Effect.Mark();
+            var marked = await parent.Effect.Mark(flush: true); //todo should flush be true?
             if (!marked)
                 return _invocationHelper.CreateInnerScheduled([flowId], parent, detach);
         }
@@ -109,7 +109,7 @@ public class Invoker<TParam, TReturn>
         var id = new FlowId(_flowType, instanceId);
         if (parent != null)
         {
-            var marked = await parent.Effect.Mark();
+            var marked = await parent.Effect.Mark(flush: true); //todo should flush be true?
             if (!marked)
                 return _invocationHelper.CreateInnerScheduled([id], parent, detach);
         }
