@@ -103,8 +103,6 @@ public class EffectResults
 
     public async Task<T> CreateOrGet<T>(EffectId effectId, T value, string? alias, bool flush)
     {
-        await Task.CompletedTask;
-        
         lock (_sync)
         {
             if (_effectResults.TryGetValue(effectId, out var existing) && existing.StoredEffect?.WorkStatus == WorkStatus.Completed)
