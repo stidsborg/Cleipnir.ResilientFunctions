@@ -43,10 +43,8 @@ public class EffectResults
         Initialize();
     }
     
-    public async Task<EffectId?> GetEffectId(string alias)
+    public EffectId? GetEffectId(string alias)
     {
-        await Task.CompletedTask;
-        
         lock (_sync)
             return _effectResults
                 .Values

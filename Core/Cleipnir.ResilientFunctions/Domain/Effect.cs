@@ -44,7 +44,7 @@ public class Effect(EffectResults effectResults, UtcNow utcNow, FlowMinimumTimeo
 
     internal async Task<T> CreateOrGet<T>(string alias, T value, bool flush = true)
     {
-        var effectId = await effectResults.GetEffectId(alias)
+        var effectId = effectResults.GetEffectId(alias)
             ?? CreateNextImplicitId();
 
         return await CreateOrGet(
@@ -71,7 +71,7 @@ public class Effect(EffectResults effectResults, UtcNow utcNow, FlowMinimumTimeo
 
     internal async Task<Option<T>> TryGet<T>(string alias)
     {
-        var effectId = await effectResults.GetEffectId(alias);
+        var effectId = effectResults.GetEffectId(alias);
         if (effectId == null)
             return Option.CreateNoValue<T>();
 
@@ -80,7 +80,7 @@ public class Effect(EffectResults effectResults, UtcNow utcNow, FlowMinimumTimeo
     
     internal Task<Option<T>> TryGet<T>(EffectId effectId) => effectResults.TryGet<T>(effectId);
     internal async Task<T> Get<T>(string alias) => await Get<T>(
-        await effectResults.GetEffectId(alias) ?? throw new InvalidOperationException($"Unknown alias: '{alias}'")
+        effectResults.GetEffectId(alias) ?? throw new InvalidOperationException($"Unknown alias: '{alias}'")
     );
     internal async Task<T> Get<T>(EffectId effectId)
     {
