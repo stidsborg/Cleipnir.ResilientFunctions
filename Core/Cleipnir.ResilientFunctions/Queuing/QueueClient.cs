@@ -1,6 +1,6 @@
 using System;
 using System.Threading.Tasks;
-using Cleipnir.ResilientFunctions.CoreRuntime;
+using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
 
@@ -8,13 +8,11 @@ namespace Cleipnir.ResilientFunctions.Queuing;
 
 public class QueueClient(QueueManager queueManager)
 {
-    public async Task<object> Pull<T>()
+    public async Task<object> Pull<T>(Workflow workflow, EffectId parentId)
     {
-        var workflow = CurrentFlow.Workflow ?? throw new InvalidOperationException("Method must be called inside of an executing flow");
         var effect = workflow.Effect;
-
-        var valueId = effect.CreateNextImplicitId();
-        var typeId = effect.CreateNextImplicitId();
+        var valueId = parentId.CreateChild(0);
+        var typeId = parentId.CreateChild(1);
 
         if (!await effect.Contains(valueId))
         {
@@ -29,7 +27,7 @@ public class QueueClient(QueueManager queueManager)
         }
         else
         {
-            var type = Type.GetType(await effect.Get<string>(valueId), throwOnError: true);
+            var type = Type.GetType(await effect.Get<string>(typeId), throwOnError: true);
             var option = await effect.TryGet(valueId, type!);
 
             if (!option.HasValue)

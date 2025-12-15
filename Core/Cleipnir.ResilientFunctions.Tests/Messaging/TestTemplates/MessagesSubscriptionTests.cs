@@ -97,7 +97,7 @@ public abstract class MessagesSubscriptionTests
                 await queueManager.Initialize();
 
                 var queueClient = new QueueClient(queueManager);
-                var message = await queueClient.Pull<string>();
+                var message = await queueClient.Pull<string>(workflow, workflow.Effect.CreateNextImplicitId());
 
                 return (string)message;
             }
@@ -110,6 +110,62 @@ public abstract class MessagesSubscriptionTests
         var result = await scheduled.Completion();
         result.ShouldBe("test message");
 
+        unhandledExceptionCatcher.ShouldNotHaveExceptions();
+    }
+
+    public abstract Task QueueClientCanPullMultipleMessages();
+    protected async Task QueueClientCanPullMultipleMessages(Task<IFunctionStore> functionStoreTask)
+    {
+        var functionStore = await functionStoreTask;
+        var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
+        var unhandledExceptionHandler = new UnhandledExceptionHandler(unhandledExceptionCatcher.Catch);
+        using var functionsRegistry = new FunctionsRegistry(
+            functionStore,
+            new Settings(unhandledExceptionCatcher.Catch, watchdogCheckFrequency: TimeSpan.FromMilliseconds(100))
+        );
+
+        StoredId? storedId = null;
+        var rFunc = functionsRegistry.RegisterFunc(
+            nameof(QueueClientCanPullMultipleMessages),
+            inner: async Task<string> (string _, Workflow workflow) =>
+            {
+                storedId = workflow.StoredId;
+                var queueManager = new QueueManager(
+                    workflow.FlowId,
+                    workflow.StoredId,
+                    functionStore.MessageStore,
+                    DefaultSerializer.Instance,
+                    workflow.Effect,
+                    unhandledExceptionHandler
+                );
+                await queueManager.Initialize();
+
+                var queueClient = new QueueClient(queueManager);
+
+                var message1 = await queueClient.Pull<string>(workflow, workflow.Effect.CreateNextImplicitId());
+                await workflow.Delay(TimeSpan.FromMilliseconds(100));
+                var message2 = await queueClient.Pull<string>(workflow, workflow.Effect.CreateNextImplicitId());
+                await workflow.Delay(TimeSpan.FromMilliseconds(100));
+                var message3 = await queueClient.Pull<string>(workflow, workflow.Effect.CreateNextImplicitId());
+                await workflow.Delay(TimeSpan.FromMilliseconds(100));
+                
+                return $"{message1},{message2},{message3}";
+            }
+        );
+
+        var scheduled = await rFunc.Schedule("instanceId", "");
+        var messageWriter = rFunc.MessageWriters.For("instanceId".ToFlowInstance());
+        await messageWriter.AppendMessage("first");
+        await messageWriter.AppendMessage("second");
+        await messageWriter.AppendMessage("third");
+        
+        var result = await scheduled.Completion();
+        result.ShouldBe("first,second,third");
+
+        var results = await functionStore.EffectsStore.GetEffectResults([storedId!]);
+        var x = results.Values.Single();
+        Console.WriteLine(x);
+        
         unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
 }

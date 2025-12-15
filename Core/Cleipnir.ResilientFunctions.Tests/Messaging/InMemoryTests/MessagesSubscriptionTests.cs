@@ -14,4 +14,8 @@ public class MessagesSubscriptionTests : TestTemplates.MessagesSubscriptionTests
     [TestMethod]
     public override Task QueueClientCanPullSingleMessage()
         => QueueClientCanPullSingleMessage(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task QueueClientCanPullMultipleMessages()
+        => QueueClientCanPullMultipleMessages(FunctionStoreFactory.Create());
 }

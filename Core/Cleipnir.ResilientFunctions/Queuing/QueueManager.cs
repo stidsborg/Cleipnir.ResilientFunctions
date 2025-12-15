@@ -56,8 +56,11 @@ public class QueueManager(FlowId flowId, StoredId storedId, IMessageStore messag
     {
         while (!_disposed)
         {
-            var messages = await messageStore
-                .GetMessages(storedId, skipPositions: _toDeliver.Select(m => m.Position).ToList());
+            List<long> skipPositions;
+            lock (_lock)
+                skipPositions = new List<long>(_toDeliver.Select(m => m.Position));
+            
+            var messages = await messageStore.GetMessages(storedId, skipPositions);
             
             foreach (var (messageContent, messageType, position, idempotencyKey) in messages)
             {
@@ -166,26 +169,29 @@ public class QueueManager(FlowId flowId, StoredId storedId, IMessageStore messag
                             _toDeliver.Remove(messageWithPosition);
                             _subscribers.Remove(effectId);
                         }
-                            
+
                         var toRemoveIndex = _nextToRemoveIndex++;
                         effect.Upsert(_toRemoveNextIndex, toRemoveIndex, alias: null, flush: false);
-                        
+
                         var toRemoveId = new EffectId([-1, 0, toRemoveIndex]);
                         var msg = new MessageAndEffectResult(
                             messageWithPosition.Message,
                             new EffectResult(toRemoveId, messageWithPosition.Position, Alias: null)
                         );
                         subscription.Tcs.SetResult(msg);
+                        
                         goto StartAgain;
                     }
                 }
             }
         }
-        finally
+        catch (Exception e)
         {
-            lock (_lock)
-                _delivering = false;
+            unhandledExceptionHandler.Invoke(flowId.Type, e);
         }
+        
+        lock (_lock)
+            _delivering = false;
     }
     
     public Task<MessageAndEffectResult> Subscribe(EffectId effectId, MessagePredicate predicate)
