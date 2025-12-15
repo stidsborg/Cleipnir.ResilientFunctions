@@ -419,13 +419,11 @@ internal class InvocationHelper<TParam, TReturn>
     public Effect CreateEffect(StoredId storedId, FlowId flowId, IReadOnlyList<StoredEffect> storedEffects, FlowMinimumTimeout flowMinimumTimeout, IStorageSession? storageSession)
     {
         var effectsStore = _functionStore.EffectsStore;
-        
-        var lazyEffects = new Lazy<Task<IReadOnlyList<StoredEffect>>>(storedEffects.ToTask);
 
         var effectResults = new EffectResults(
             flowId,
             storedId,
-            lazyEffects,
+            storedEffects,
             effectsStore,
             Serializer,
             storageSession
