@@ -149,10 +149,8 @@ public class EffectResults
             await Flush();
     }
     
-    public async Task<Option<T>> TryGet<T>(EffectId effectId)
+    public Option<T> TryGet<T>(EffectId effectId)
     {
-        await Task.CompletedTask;
-        
         lock (_sync)
         {
             if (_effectResults.TryGetValue(effectId, out var change))
@@ -161,14 +159,14 @@ public class EffectResults
                 if (storedEffect?.WorkStatus == WorkStatus.Completed)
                 {
                     var value = _serializer.Deserialize<T>(storedEffect.Result!)!;
-                    return Option.Create(value);    
+                    return Option.Create(value);
                 }
-                
+
                 if (storedEffect?.StoredException != null)
                     throw _serializer.DeserializeException(_flowId, storedEffect.StoredException!);
             }
         }
-        
+
         return Option<T>.NoValue;
     }
     

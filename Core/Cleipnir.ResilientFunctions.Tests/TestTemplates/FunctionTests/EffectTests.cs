@@ -309,8 +309,8 @@ public abstract class EffectTests
             session
         );
         var effect = new Effect(effectResults, utcNow: () => DateTime.UtcNow, new FlowMinimumTimeout());
-        
-        var option = await effect.TryGet<int>("alias");
+
+        var option = effect.TryGet<int>("alias");
         option.HasValue.ShouldBeFalse();
 
         Should.Throw<InvalidOperationException>(() => effect.Get<int>("nonexistent"));
@@ -320,14 +320,14 @@ public abstract class EffectTests
         result = await effect.CreateOrGet("alias", 100);
         result.ShouldBe(32);
 
-        option = await effect.TryGet<int>("alias");
+        option = effect.TryGet<int>("alias");
         option.HasValue.ShouldBeTrue();
         var value2 = option.Value;
         value2.ShouldBe(32);
-        (await effect.Get<int>("alias")).ShouldBe(32);
+        effect.Get<int>("alias").ShouldBe(32);
 
         await effect.Upsert("alias", 100);
-        (await effect.Get<int>("alias")).ShouldBe(100);
+        effect.Get<int>("alias").ShouldBe(100);
         effect.GetStatus(0).ShouldBe(WorkStatus.Completed);
         effect.Contains(0).ShouldBeTrue();
     }
@@ -360,12 +360,12 @@ public abstract class EffectTests
         var effect = new Effect(effectResults, utcNow: () => DateTime.UtcNow, new FlowMinimumTimeout());
 
         // Verify the effect is immediately available (eager loading)
-        var result = await effect.TryGet<int>("test_alias");
+        var result = effect.TryGet<int>("test_alias");
         result.HasValue.ShouldBeTrue();
         result.Value.ShouldBe(42);
 
         // Verify we can retrieve it again
-        result = await effect.TryGet<int>("test_alias");
+        result = effect.TryGet<int>("test_alias");
         result.HasValue.ShouldBeTrue();
         result.Value.ShouldBe(42);
     }

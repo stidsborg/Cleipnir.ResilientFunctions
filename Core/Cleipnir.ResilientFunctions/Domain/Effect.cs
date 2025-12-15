@@ -69,23 +69,23 @@ public class Effect(EffectResults effectResults, UtcNow utcNow, FlowMinimumTimeo
     internal Task Upserts(IEnumerable<Tuple<EffectId, object, string?>> values, bool flush)
         => effectResults.Upserts(values, flush);
 
-    internal async Task<Option<T>> TryGet<T>(string alias)
+    internal Option<T> TryGet<T>(string alias)
     {
         var effectId = effectResults.GetEffectId(alias);
         if (effectId == null)
             return Option.CreateNoValue<T>();
 
-        return await effectResults.TryGet<T>(effectId);
-    } 
-    
-    internal Task<Option<T>> TryGet<T>(EffectId effectId) => effectResults.TryGet<T>(effectId);
-    internal async Task<T> Get<T>(string alias) => await Get<T>(
+        return effectResults.TryGet<T>(effectId);
+    }
+
+    internal Option<T> TryGet<T>(EffectId effectId) => effectResults.TryGet<T>(effectId);
+    internal T Get<T>(string alias) => Get<T>(
         effectResults.GetEffectId(alias) ?? throw new InvalidOperationException($"Unknown alias: '{alias}'")
     );
-    internal async Task<T> Get<T>(EffectId effectId)
+    internal T Get<T>(EffectId effectId)
     {
-        var option = await TryGet<T>(effectId);
-        
+        var option = TryGet<T>(effectId);
+
         if (!option.HasValue)
             throw new InvalidOperationException($"No value exists for id: '{effectId}'");
 

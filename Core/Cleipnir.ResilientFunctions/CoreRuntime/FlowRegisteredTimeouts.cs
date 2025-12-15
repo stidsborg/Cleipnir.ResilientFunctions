@@ -50,7 +50,7 @@ public class FlowRegisteredTimeouts(Effect effect, UtcNow utcNow, FlowMinimumTim
         }
         else
         {
-            var value = await effect.Get<string>(timeoutId);
+            var value = effect.Get<string>(timeoutId);
             var values = value.Split("_");
             var status = values[0].ToInt().ToEnum<TimeoutStatus>();
             var expiry = values[1].ToLong().ToUtc();
@@ -78,7 +78,7 @@ public class FlowRegisteredTimeouts(Effect effect, UtcNow utcNow, FlowMinimumTim
         if (!effect.Contains(timeoutId))
             return;
 
-        var values = (await effect.Get<string>(timeoutId)).Split("_");
+        var values = effect.Get<string>(timeoutId).Split("_");
         var timeoutStatus = values[0].ToInt().ToEnum<TimeoutStatus>();
         var expiresAt = values[1];
 
@@ -95,7 +95,7 @@ public class FlowRegisteredTimeouts(Effect effect, UtcNow utcNow, FlowMinimumTim
         if (!effect.Contains(timeoutId))
             return;
 
-        var values = (await effect.Get<string>(timeoutId)).Split("_");
+        var values = effect.Get<string>(timeoutId).Split("_");
         var timeoutStatus = values[0].ToInt().ToEnum<TimeoutStatus>();
         var expiresAt = values[1];
 
@@ -111,13 +111,15 @@ public class FlowRegisteredTimeouts(Effect effect, UtcNow utcNow, FlowMinimumTim
 
     public static async Task<IReadOnlyList<RegisteredTimeout>> PendingTimeouts(Effect effect)
     {
+        await Task.CompletedTask;
+        
         var effectIds = effect.EffectIds;
         var timeouts = new List<RegisteredTimeout>();
         foreach (var effectId in effectIds)
         {
             try
             {
-                var value = await effect.Get<string>(effectId);
+                var value = effect.Get<string>(effectId);
                 var values = value.Split("_");
                 if (values.Length != 2) continue;
                 var status = values[0].ToInt().ToEnum<TimeoutStatus>();
