@@ -14,6 +14,12 @@ public class DefaultSerializer : ISerializer
 
     public byte[] Serialize(object? value, Type type) => JsonSerializer.SerializeToUtf8Bytes(value, type);
 
+    public void Serialize(object value, out byte[] valueBytes, out byte[] typeBytes)
+    {
+        valueBytes = JsonSerializer.SerializeToUtf8Bytes(value, value.GetType());
+        typeBytes = value.GetType().SimpleQualifiedName().ToUtf8Bytes();
+    }
+
     public object Deserialize(byte[] bytes, Type type) => JsonSerializer.Deserialize(bytes, type)!;
 
     public StoredException SerializeException(FatalWorkflowException exception)

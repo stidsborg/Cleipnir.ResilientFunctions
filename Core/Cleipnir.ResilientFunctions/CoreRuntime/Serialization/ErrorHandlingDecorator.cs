@@ -7,8 +7,10 @@ namespace Cleipnir.ResilientFunctions.CoreRuntime.Serialization;
 
 public class ErrorHandlingDecorator(ISerializer inner) : ISerializer
 {
-    public byte[] Serialize<T>(T value) => inner.Serialize(value);
     public byte[] Serialize(object? value, Type type) => inner.Serialize(value, type);
+
+    public void Serialize(object value, out byte[] valueBytes, out byte[] typeBytes)
+        => inner.Serialize(value, out valueBytes, out typeBytes);
 
     public object Deserialize(byte[] bytes, Type type)
     {

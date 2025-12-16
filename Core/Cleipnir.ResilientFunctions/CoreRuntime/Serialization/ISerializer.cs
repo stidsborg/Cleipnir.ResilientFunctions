@@ -8,6 +8,7 @@ public interface ISerializer
 {
     byte[] Serialize<T>(T value) => Serialize(value, typeof(T));
     byte[] Serialize(object? value, Type type);
+    void Serialize(object value, out byte[] valueBytes, out byte[] typeBytes);
     object Deserialize(byte[] bytes, Type type);
     
     StoredException SerializeException(FatalWorkflowException fatalWorkflowException);
@@ -15,5 +16,4 @@ public interface ISerializer
 
     SerializedMessage SerializeMessage(object message, Type messageType);
     object DeserializeMessage(byte[] json, byte[] type);
-    
 }

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Reflection;
 using System.Threading;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.CoreRuntime.Serialization;
@@ -16,6 +17,19 @@ public class CustomSerializableDecorator(ISerializer inner) : ISerializer
         value is ICustomSerializable customSerializable
             ? customSerializable.Serialize(this)
             : inner.Serialize(value, type);
+
+    public void Serialize(object value, out byte[] valueBytes, out byte[] typeBytes)
+    {
+        if (value is ICustomSerializable customSerializable)
+        {
+            valueBytes = customSerializable.Serialize(this);
+            typeBytes = value.GetType().SimpleQualifiedName().ToUtf8Bytes();
+        }
+        else
+        {
+            inner.Serialize(value, out valueBytes, out typeBytes);
+        }
+    }
 
     public object Deserialize(byte[] bytes, Type type)
         => type.IsAssignableTo(typeof(ICustomSerializable))

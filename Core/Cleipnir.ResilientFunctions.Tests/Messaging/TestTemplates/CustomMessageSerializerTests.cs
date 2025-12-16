@@ -73,6 +73,9 @@ public abstract class CustomMessageSerializerTests
 
         public byte[] Serialize(object? value, Type type) => DefaultSerializer.Instance.Serialize(value, type);
 
+        public void Serialize(object value, out byte[] valueBytes, out byte[] typeBytes)
+            => DefaultSerializer.Instance.Serialize(value, out valueBytes, out typeBytes);
+
         public object Deserialize(byte[] json, Type type)
             => DefaultSerializer.Instance.Deserialize(json, type);
 

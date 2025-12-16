@@ -63,6 +63,9 @@ public class RFuncWithStateRegistrationTests
             return Default.Serialize(value, type);
         }
 
+        public void Serialize(object value, out byte[] valueBytes, out byte[] typeBytes)
+            => Default.Serialize(value, out valueBytes, out typeBytes);
+
         public object Deserialize(byte[] bytes, Type type)
             => Default.Deserialize(bytes, type);
 
