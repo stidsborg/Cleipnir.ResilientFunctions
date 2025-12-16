@@ -10,9 +10,8 @@ public interface ISerializer
     byte[] Serialize(object? value, Type type);
     void Serialize(object value, out byte[] valueBytes, out byte[] typeBytes);
     object Deserialize(byte[] bytes, Type type);
+    object DeserializeMessage(byte[] json, byte[] type);
     
     StoredException SerializeException(FatalWorkflowException fatalWorkflowException);
     FatalWorkflowException DeserializeException(FlowId flowId, StoredException storedException);
-
-    object DeserializeMessage(byte[] json, byte[] type);
 }
