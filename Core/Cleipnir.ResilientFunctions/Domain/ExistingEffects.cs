@@ -7,31 +7,44 @@ using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.Domain;
 
-public class ExistingEffects(StoredId storedId, FlowId flowId, IEffectsStore effectsStore, ISerializer serializer)
+public class ExistingEffects(StoredId storedId, FlowId flowId, IEffectsStore effectsStore, ISerializer serializer, IReadOnlyList<StoredEffect> initialStoredEffects)
 {
-    private Dictionary<EffectId, StoredEffect>? _storedEffects;
+    private Dictionary<EffectId, StoredEffect> _storedEffectsDict = 
+        initialStoredEffects.ToDictionary(s => s.EffectId, s => s);
 
     private async Task<Dictionary<EffectId, StoredEffect>> GetStoredEffects()
     {
-        if (_storedEffects is not null)
-            return _storedEffects;
-
-        var storedEffects = await effectsStore.GetEffectResults(storedId);
-        return _storedEffects = storedEffects.ToDictionary(e => e.EffectId, e => e);
+        await Task.CompletedTask;
+        return _storedEffectsDict;
     }
     
-    public Task<IEnumerable<EffectId>> AllIds 
-        => GetStoredEffects().ContinueWith(t => (IEnumerable<EffectId>) t.Result.Keys);
+    public Task<IEnumerable<EffectId>> AllIds => GetAllIds();
+    private async Task<IEnumerable<EffectId>> GetAllIds()
+    {
+        var storedEffects = await GetStoredEffects();
+        return storedEffects.Keys;
+    }
 
-    public async Task<bool> HasValue(int effectId) => (await GetStoredEffects()).ContainsKey(effectId.ToEffectId());
+    public async Task<bool> HasValue(int effectId)
+    {
+        var storedEffects = await GetStoredEffects();
+        return storedEffects.ContainsKey(effectId.ToEffectId());
+    }
 
-    public async Task<TResult?> GetValue<TResult>(int effectId) => await GetValue<TResult>(effectId.ToEffectId());
+    public Task<TResult?> GetValue<TResult>(int effectId) => GetValue<TResult>(effectId.ToEffectId());
     public async Task<TResult?> GetValue<TResult>(EffectId effectId)
     {
         var storedEffects = await GetStoredEffects();
         var success = storedEffects.TryGetValue(effectId, out var storedEffect);
         if (!success)
-            throw new KeyNotFoundException($"Effect '{effectId}' was not found");
+        {
+            // Cache might be stale, try reloading once
+            _storedEffectsDict = null;
+            storedEffects = await GetStoredEffects();
+            success = storedEffects.TryGetValue(effectId, out storedEffect);
+            if (!success)
+                throw new KeyNotFoundException($"Effect '{effectId}' was not found");
+        }
         if (storedEffect!.WorkStatus != WorkStatus.Completed)
             throw new InvalidOperationException($"Effect '{effectId}' has not completed (but has status '{storedEffect.WorkStatus}')");
 
@@ -40,7 +53,7 @@ public class ExistingEffects(StoredId storedId, FlowId flowId, IEffectsStore eff
             : (TResult)serializer.Deserialize(storedEffects[effectId].Result!, typeof(TResult));
     }
 
-    public async Task<byte[]?> GetResultBytes(int effectId) => await GetResultBytes(effectId.ToEffectId());
+    public Task<byte[]?> GetResultBytes(int effectId) => GetResultBytes(effectId.ToEffectId());
     public async Task<byte[]?> GetResultBytes(EffectId effectId)
     {
         var storedEffects = await GetStoredEffects();

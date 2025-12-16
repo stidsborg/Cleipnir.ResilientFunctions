@@ -370,14 +370,19 @@ public abstract class BaseControlPanel<TParam, TReturn>
                 : new DateTime(sf.Expires, DateTimeKind.Utc))
             : null;
         FatalWorkflowException = sf.FatalWorkflowException;
-        Effects = _invocationHelper.CreateExistingEffects(FlowId);
+        Effects = await _invocationHelper.CreateExistingEffects(FlowId);
         Messages = _invocationHelper.CreateExistingMessages(FlowId);
         RegisteredTimeouts = _invocationHelper.CreateExistingTimeouts(FlowId, Effects);
         Correlations = _invocationHelper.CreateCorrelations(FlowId);
+        Semaphores = await _invocationHelper.CreateExistingSemaphores(FlowId);
 
         _innerParamChanged = false;
     }
-    
-    public async Task<TReturn> WaitForCompletion(bool allowPostponeAndSuspended = false, TimeSpan? maxWait = null) 
-        => await _invocationHelper.WaitForFunctionResult(FlowId, StoredId, allowPostponeAndSuspended, maxWait);
+
+    public async Task<TReturn> WaitForCompletion(bool allowPostponeAndSuspended = false, TimeSpan? maxWait = null)
+    {
+        var result = await _invocationHelper.WaitForFunctionResult(FlowId, StoredId, allowPostponeAndSuspended, maxWait);
+        await Refresh();
+        return result;
+    }
 }

@@ -439,10 +439,19 @@ internal class InvocationHelper<TParam, TReturn>
         return new Correlations(MapToStoredId(flowId), correlationStore);
     }
 
-    public ExistingEffects CreateExistingEffects(FlowId flowId) => new(MapToStoredId(flowId), flowId, _functionStore.EffectsStore, Serializer);
+    public async Task<ExistingEffects> CreateExistingEffects(FlowId flowId)
+    {
+        var storedId = MapToStoredId(flowId);
+        var storedEffects = await _functionStore.EffectsStore.GetEffectResults(storedId);
+        return new ExistingEffects(storedId, flowId, _functionStore.EffectsStore, Serializer, storedEffects);
+    }
     public ExistingMessages CreateExistingMessages(FlowId flowId) => new(MapToStoredId(flowId), _functionStore.MessageStore, Serializer);
     public ExistingRegisteredTimeouts CreateExistingTimeouts(FlowId flowId, ExistingEffects existingEffects) => new(existingEffects, UtcNow);
-    public ExistingSemaphores CreateExistingSemaphores(FlowId flowId) => new(MapToStoredId(flowId), _functionStore, CreateExistingEffects(flowId));
+    public async Task<ExistingSemaphores> CreateExistingSemaphores(FlowId flowId)
+    {
+        var existingEffects = await CreateExistingEffects(flowId);
+        return new ExistingSemaphores(MapToStoredId(flowId), _functionStore, existingEffects);
+    }
 
     public DistributedSemaphores CreateSemaphores(StoredId storedId, Effect effect)
         => new(effect, _functionStore.SemaphoreStore, storedId, Interrupt);
