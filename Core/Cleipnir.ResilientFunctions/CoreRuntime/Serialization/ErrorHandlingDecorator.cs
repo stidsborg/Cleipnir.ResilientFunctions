@@ -53,8 +53,6 @@ public class ErrorHandlingDecorator(ISerializer inner) : ISerializer
         }
     }
 
-    public SerializedMessage SerializeMessage(object message, Type messageType)
-        => inner.SerializeMessage(message, messageType);
     public object DeserializeMessage(byte[] json, byte[] type)
     {
         try

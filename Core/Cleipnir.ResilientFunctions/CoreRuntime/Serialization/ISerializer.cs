@@ -14,6 +14,5 @@ public interface ISerializer
     StoredException SerializeException(FatalWorkflowException fatalWorkflowException);
     FatalWorkflowException DeserializeException(FlowId flowId, StoredException storedException);
 
-    SerializedMessage SerializeMessage(object message, Type messageType);
     object DeserializeMessage(byte[] json, byte[] type);
 }

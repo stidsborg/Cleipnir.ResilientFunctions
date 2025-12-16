@@ -39,12 +39,9 @@ public class CustomSerializableDecorator(ISerializer inner) : ISerializer
     public StoredException SerializeException(FatalWorkflowException exception)
         => inner.SerializeException(exception);
 
-    public FatalWorkflowException DeserializeException(FlowId flowId, StoredException storedException) 
+    public FatalWorkflowException DeserializeException(FlowId flowId, StoredException storedException)
         => inner.DeserializeException(flowId, storedException);
 
-    public SerializedMessage SerializeMessage(object message, Type messageType)
-        => inner.SerializeMessage(message, messageType);
-    
     public object DeserializeMessage(byte[] json, byte[] type) => inner.DeserializeMessage(json, type);
 
     private object CustomDeserialize(byte[] bytes, Type type)

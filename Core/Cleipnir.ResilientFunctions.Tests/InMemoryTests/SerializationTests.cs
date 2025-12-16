@@ -16,11 +16,12 @@ public class SerializationTests
     {
         var serializer = DefaultSerializer.Instance;
         Parent @event = new Child("Hello World");
-        var serialized = serializer.SerializeMessage(@event, @event.GetType());
+        serializer.Serialize(@event, out var content, out var type);
+        var serialized = new SerializedMessage(content, type);
         var deserialized = serializer.DeserializeMessage(serialized.Content, serialized.Type);
         if (deserialized is not Child child)
             throw new Exception("Expected event to be of child-type");
-                
+
         child.Value.ShouldBe("Hello World");
     }
     
@@ -58,7 +59,8 @@ public class SerializationTests
     {
         var option = Option.Create("some value");
         var serializer = DefaultSerializer.Instance;
-        var serialized = serializer.SerializeMessage(option, option.GetType());
+        serializer.Serialize(option, out var content, out var type);
+        var serialized = new SerializedMessage(content, type);
         var deserialized = serializer.DeserializeMessage(serialized.Content, serialized.Type);
         deserialized.ShouldBe(option);
     }
@@ -68,7 +70,8 @@ public class SerializationTests
     {
         var option = Option<string>.NoValue;
         var serializer = DefaultSerializer.Instance;
-        var serialized = serializer.SerializeMessage(option, option.GetType());
+        serializer.Serialize(option, out var content, out var type);
+        var serialized = new SerializedMessage(content, type);
         var deserialized = serializer.DeserializeMessage(serialized.Content, serialized.Type);
         deserialized.ShouldBe(option);
     }

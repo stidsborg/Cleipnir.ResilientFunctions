@@ -74,7 +74,10 @@ public abstract class CustomMessageSerializerTests
         public byte[] Serialize(object? value, Type type) => DefaultSerializer.Instance.Serialize(value, type);
 
         public void Serialize(object value, out byte[] valueBytes, out byte[] typeBytes)
-            => DefaultSerializer.Instance.Serialize(value, out valueBytes, out typeBytes);
+        {
+            EventToSerialize.Add(value);
+            DefaultSerializer.Instance.Serialize(value, out valueBytes, out typeBytes);
+        }
 
         public object Deserialize(byte[] json, Type type)
             => DefaultSerializer.Instance.Deserialize(json, type);
@@ -84,11 +87,6 @@ public abstract class CustomMessageSerializerTests
         public FatalWorkflowException DeserializeException(FlowId flowId, StoredException storedException)
             => DefaultSerializer.Instance.DeserializeException(flowId, storedException);
 
-        public SerializedMessage SerializeMessage(object message, Type messageType)
-        {
-            EventToSerialize.Add(message);
-            return DefaultSerializer.Instance.SerializeMessage(message, messageType);
-        }
         public object DeserializeMessage(byte[] json, byte[] type)
         {
             EventToDeserialize.Add(Tuple.Create(json.ToStringFromUtf8Bytes(), type.ToStringFromUtf8Bytes()));

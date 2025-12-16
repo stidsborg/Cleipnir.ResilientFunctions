@@ -690,9 +690,6 @@ public abstract class MessagesTests
         public FatalWorkflowException DeserializeException(FlowId flowId, StoredException storedException)
             => DefaultSerializer.Instance.DeserializeException(flowId, storedException);
 
-        public SerializedMessage SerializeMessage(object message, Type messageType)
-            => DefaultSerializer.Instance.SerializeMessage(message, messageType);
-
         public object DeserializeMessage(byte[] json, byte[] type)
         {
             var eventType = Type.GetType(type.ToStringFromUtf8Bytes())!;

@@ -198,8 +198,8 @@ internal class InvocationHelper<TParam, TReturn>
 
         if (msg == null)
             return;
-        
-        var (content, type) = Serializer.SerializeMessage(msg, msg.GetType());
+
+        Serializer.Serialize(msg, out var content, out var type);
         var storedMessage = new StoredMessage(content, type, Position: 0, IdempotencyKey: $"FlowCompleted:{childId}");
         await _functionStore.MessageStore.AppendMessage(parent, storedMessage);
         await _functionStore.Interrupt(parent);
@@ -521,7 +521,7 @@ internal class InvocationHelper<TParam, TReturn>
     public IReadOnlyList<StoredMessage> MapInitialMessages(IEnumerable<MessageAndIdempotencyKey> initialMessages)
         => initialMessages.Select(m =>
         {
-            var (content, type) = Serializer.SerializeMessage(m.Message, m.Message.GetType());
+            Serializer.Serialize(m.Message, out var content, out var type);
             return new StoredMessage(content, type, Position: 0, m.IdempotencyKey);
         }).ToList();
 

@@ -70,9 +70,6 @@ public class RFuncRegistrationTests
         public FatalWorkflowException DeserializeException(FlowId flowId, StoredException storedException)
             => Default.DeserializeException(flowId, storedException);
 
-        public SerializedMessage SerializeMessage(object message, Type messageType)
-            => Default.SerializeMessage(message, messageType);
-            
         public object DeserializeMessage(byte[] json, byte[] type)
             => Default.DeserializeMessage(json, type);
     }

@@ -32,8 +32,6 @@ public class DefaultSerializer : ISerializer
     public FatalWorkflowException DeserializeException(FlowId flowId, StoredException storedException)
         => FatalWorkflowException.Create(flowId, storedException);
 
-    public SerializedMessage SerializeMessage(object message, Type messageType)
-        => new(JsonSerializer.SerializeToUtf8Bytes(message, message.GetType()), message.GetType().SimpleQualifiedName().ToUtf8Bytes());
     public object DeserializeMessage(byte[] json, byte[] type)
         => JsonSerializer.Deserialize(json, Type.GetType(Encoding.UTF8.GetString(type), throwOnError: true)!)!;
 }
