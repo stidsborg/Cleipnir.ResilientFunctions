@@ -12,11 +12,6 @@ public class CustomSerializableDecorator(ISerializer inner) : ISerializer
     private readonly Dictionary<Type, Func<byte[], ISerializer, object>> _deserializers = new();
     private readonly Lock _lock = new();
 
-    public byte[] Serialize<T>(T parameter) 
-        => parameter is ICustomSerializable customSerializable
-            ? customSerializable.Serialize(this)
-            : inner.Serialize(parameter);
-
     public byte[] Serialize(object? value, Type type) =>
         value is ICustomSerializable customSerializable
             ? customSerializable.Serialize(this)

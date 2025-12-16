@@ -47,13 +47,11 @@ public class RActionWithStateRegistrationTests
         public bool Invoked { get; set; }
         private ISerializer Default { get; } = DefaultSerializer.Instance;
 
-        public byte[] Serialize<T>(T value) 
+        public byte[] Serialize(object? value, Type type)
         {
             Invoked = true;
-            return Default.Serialize(value);
+            return Default.Serialize(value, type);
         }
-
-        public byte[] Serialize(object? value, Type type) => Default.Serialize(value, type);
 
         public object Deserialize(byte[] json, Type type)
             => Default.Deserialize(json, type);

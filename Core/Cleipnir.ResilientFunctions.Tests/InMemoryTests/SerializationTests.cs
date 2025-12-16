@@ -141,7 +141,7 @@ public class SerializationTests
 
     private T SerializeAndDeserialize<T>(T value)
     {
-        var serializer = new CustomSerializableDecorator(DefaultSerializer.Instance);
+        ISerializer serializer = new CustomSerializableDecorator(DefaultSerializer.Instance);
         var bytes = serializer.Serialize(value);
         return (T)serializer.Deserialize(bytes, typeof(T));
     }

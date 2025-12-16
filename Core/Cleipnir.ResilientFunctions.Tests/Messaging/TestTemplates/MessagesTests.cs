@@ -674,11 +674,8 @@ public abstract class MessagesTests
     {
         private readonly Type _failDeserializationOnType;
 
-        public ExceptionThrowingEventSerializer(Type failDeserializationOnType) 
+        public ExceptionThrowingEventSerializer(Type failDeserializationOnType)
             => _failDeserializationOnType = failDeserializationOnType;
-
-        public byte[] Serialize<T>(T value) 
-            => DefaultSerializer.Instance.Serialize(value);
 
         public byte[] Serialize(object? value, Type type) => DefaultSerializer.Instance.Serialize(value, type);
 

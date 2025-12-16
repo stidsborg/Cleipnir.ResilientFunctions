@@ -38,8 +38,6 @@ public class ExistingEffects(StoredId storedId, FlowId flowId, IEffectsStore eff
         var success = storedEffects.TryGetValue(effectId, out var storedEffect);
         if (!success)
         {
-            // Cache might be stale, try reloading once
-            _storedEffectsDict = null;
             storedEffects = await GetStoredEffects();
             success = storedEffects.TryGetValue(effectId, out storedEffect);
             if (!success)

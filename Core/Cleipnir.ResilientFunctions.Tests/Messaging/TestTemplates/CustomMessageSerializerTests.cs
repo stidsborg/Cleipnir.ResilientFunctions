@@ -71,9 +71,6 @@ public abstract class CustomMessageSerializerTests
         public Utils.SyncedList<object> EventToSerialize { get; } = new();
         public Utils.SyncedList<Tuple<string, string>> EventToDeserialize { get; }= new();
 
-        public byte[] Serialize<T>(T value)  
-            => DefaultSerializer.Instance.Serialize(value);
-
         public byte[] Serialize(object? value, Type type) => DefaultSerializer.Instance.Serialize(value, type);
 
         public object Deserialize(byte[] json, Type type)

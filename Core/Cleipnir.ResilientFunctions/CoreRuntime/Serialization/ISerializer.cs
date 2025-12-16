@@ -6,7 +6,7 @@ namespace Cleipnir.ResilientFunctions.CoreRuntime.Serialization;
 
 public interface ISerializer
 {
-    byte[] Serialize<T>(T value);
+    byte[] Serialize<T>(T value) => Serialize(value, typeof(T));
     byte[] Serialize(object? value, Type type);
     object Deserialize(byte[] bytes, Type type);
     

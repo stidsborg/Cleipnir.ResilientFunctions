@@ -57,13 +57,11 @@ public class RFuncWithStateRegistrationTests
         public bool Invoked { get; set; }
         private ISerializer Default { get; } = DefaultSerializer.Instance;
 
-        public byte[] Serialize<T>(T parameter)
+        public byte[] Serialize(object? value, Type type)
         {
             Invoked = true;
-            return Default.Serialize(parameter);
+            return Default.Serialize(value, type);
         }
-
-        public byte[] Serialize(object? value, Type type) => Default.Serialize(value, type);
 
         public object Deserialize(byte[] bytes, Type type)
             => Default.Deserialize(bytes, type);
