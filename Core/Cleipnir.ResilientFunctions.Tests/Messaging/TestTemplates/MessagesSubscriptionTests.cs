@@ -107,7 +107,7 @@ public abstract class MessagesSubscriptionTests
         var messageWriter = rFunc.MessageWriters.For("instanceId".ToFlowInstance());
         await messageWriter.AppendMessage("test message");
 
-        var result = await scheduled.Completion();
+        var result = await scheduled.Completion(maxWait: TimeSpan.FromSeconds(5));
         result.ShouldBe("test message");
 
         unhandledExceptionCatcher.ShouldNotHaveExceptions();
@@ -159,7 +159,7 @@ public abstract class MessagesSubscriptionTests
         await messageWriter.AppendMessage("second");
         await messageWriter.AppendMessage("third");
         
-        var result = await scheduled.Completion();
+        var result = await scheduled.Completion(TimeSpan.FromSeconds(5));
         result.ShouldBe("first,second,third");
 
         var results = await functionStore.EffectsStore.GetEffectResults([storedId!]);
