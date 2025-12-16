@@ -272,4 +272,6 @@ public class Effect(EffectResults effectResults, UtcNow utcNow, FlowMinimumTimeo
     }
 
     internal void RegisterQueueManager(QueueManager queueManager) => effectResults.QueueManager = queueManager;
+
+    internal string PrintEffects() => EffectPrinter.Print(effectResults);
 }

@@ -26,6 +26,15 @@ public class EffectResults
 
     private readonly Dictionary<EffectId, PendingEffectChange> _effectResults = new();
 
+    public Dictionary<EffectId, PendingEffectChange> Results
+    {
+        get
+        {
+            lock (_sync)
+                return _effectResults.ToDictionary(kv => kv.Key, kv => kv.Value);
+        }
+    }
+
     public QueueManager? QueueManager { get; set; }
     
     public EffectResults( 
@@ -199,7 +208,7 @@ public class EffectResults
         lock (_sync)
             return _effectResults
                 .Keys
-                .Where(id => id.IsChild(parentId))
+                .Where(id => id.IsDescendant(parentId))
                 .ToList();
     }
     
@@ -408,7 +417,7 @@ public class EffectResults
             
             if (clearChildren)
             {
-                var children = _effectResults.Keys.Where(id => id.IsChild(effectId));
+                var children = _effectResults.Keys.Where(id => id.IsDescendant(effectId));
                 foreach (var child in children)
                     _effectResults[child] = 
                         _effectResults[child] with { Operation = CrudOperation.Delete };
