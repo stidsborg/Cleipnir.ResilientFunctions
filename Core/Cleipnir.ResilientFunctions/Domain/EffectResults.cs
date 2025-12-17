@@ -20,6 +20,7 @@ public class EffectResults
     private readonly IEffectsStore _effectsStore;
     private readonly ISerializer _serializer;
     private readonly IStorageSession? _storageSession;
+    private readonly bool _clearChildren;
 
     private readonly Lock _sync = new();
     private volatile bool _initialized;
@@ -43,7 +44,8 @@ public class EffectResults
         IReadOnlyList<StoredEffect> existingEffects,
         IEffectsStore effectsStore,
         ISerializer serializer,
-        IStorageSession? storageSession)
+        IStorageSession? storageSession,
+        bool clearChildren)
     {
         _flowId = flowId;
         _storedId = storedId;
@@ -51,7 +53,8 @@ public class EffectResults
         _effectsStore = effectsStore;
         _serializer = serializer;
         _storageSession = storageSession;
-        
+        _clearChildren = clearChildren;
+
         Initialize();
     }
     
@@ -280,7 +283,7 @@ public class EffectResults
                 storedEffect,
                 flush: resiliency != ResiliencyLevel.AtLeastOnceDelayFlush,
                 delete: false,
-                clearChildren: true
+                clearChildren: _clearChildren
             );
         }
     }
@@ -359,7 +362,7 @@ public class EffectResults
                 storedEffect,
                 flush: resiliency != ResiliencyLevel.AtLeastOnceDelayFlush,
                 delete: false,
-                clearChildren: true
+                clearChildren: _clearChildren
             );
 
             return result;
@@ -460,12 +463,12 @@ public class EffectResults
             await _effectsStore.SetEffectResults(_storedId, changes, _storageSession);
             
             lock (_sync)
-                foreach (var (key, value) in _effectResults.ToList())
+                foreach (var pendingChange in pendingChanges)
                 {
-                    if (value.Operation == CrudOperation.Delete)
-                        _effectResults.Remove(key);
+                    if (pendingChange.Operation == CrudOperation.Delete)
+                        _effectResults.Remove(pendingChange.Id);
                     else
-                        _effectResults[key] = value with
+                        _effectResults[pendingChange.Id] = _effectResults[pendingChange.Id] with
                         {
                             Existing = true,
                             Operation = null

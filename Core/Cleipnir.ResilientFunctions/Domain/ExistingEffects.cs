@@ -9,7 +9,7 @@ namespace Cleipnir.ResilientFunctions.Domain;
 
 public class ExistingEffects(StoredId storedId, FlowId flowId, IEffectsStore effectsStore, ISerializer serializer, IReadOnlyList<StoredEffect> initialStoredEffects)
 {
-    private Dictionary<EffectId, StoredEffect> _storedEffectsDict = 
+    private readonly Dictionary<EffectId, StoredEffect> _storedEffectsDict = 
         initialStoredEffects.ToDictionary(s => s.EffectId, s => s);
 
     private async Task<Dictionary<EffectId, StoredEffect>> GetStoredEffects()
@@ -125,4 +125,13 @@ public class ExistingEffects(StoredId storedId, FlowId flowId, IEffectsStore eff
     public Task SetFailed(int effectId, Exception exception) => SetFailed(effectId.ToEffectId(), exception);
     public Task SetFailed(EffectId effectId, Exception exception)
         => Set(new StoredEffect(effectId, WorkStatus.Failed, Result: null, StoredException: serializer.SerializeException(FatalWorkflowException.CreateNonGeneric(flowId, exception)), Alias: null));
+
+    public string EffectTree()
+    {
+        var pendingChanges = _storedEffectsDict.ToDictionary(
+            kvp => kvp.Key,
+            kvp => new PendingEffectChange(kvp.Key, kvp.Value, Operation: null, Existing: true, kvp.Value.Alias)
+        );
+        return EffectPrinter.Print(pendingChanges);
+    }
 }

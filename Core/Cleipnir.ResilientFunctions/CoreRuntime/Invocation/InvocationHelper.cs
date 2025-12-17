@@ -16,6 +16,7 @@ namespace Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 internal class InvocationHelper<TParam, TReturn> 
 {
     private readonly ShutdownCoordinator _shutdownCoordinator;
+    private readonly bool _clearChildren;
     private readonly IFunctionStore _functionStore;
     private readonly SettingsWithDefaults _settings;
     private readonly bool _isParamlessFunction;
@@ -27,7 +28,7 @@ internal class InvocationHelper<TParam, TReturn>
 
     private ISerializer Serializer { get; }
 
-    public InvocationHelper(FlowType flowType, StoredType storedType, ReplicaId replicaId, bool isParamlessFunction, SettingsWithDefaults settings, IFunctionStore functionStore, ShutdownCoordinator shutdownCoordinator, ISerializer serializer, UtcNow utcNow)
+    public InvocationHelper(FlowType flowType, StoredType storedType, ReplicaId replicaId, bool isParamlessFunction, SettingsWithDefaults settings, IFunctionStore functionStore, ShutdownCoordinator shutdownCoordinator, ISerializer serializer, UtcNow utcNow, bool clearChildren)
     {
         _flowType = flowType;
         _isParamlessFunction = isParamlessFunction;
@@ -36,6 +37,7 @@ internal class InvocationHelper<TParam, TReturn>
         Serializer = serializer;
         UtcNow = utcNow;
         _shutdownCoordinator = shutdownCoordinator;
+        _clearChildren = clearChildren;
         _storedType = storedType;
         _replicaId = replicaId;
         _functionStore = functionStore;
@@ -426,7 +428,8 @@ internal class InvocationHelper<TParam, TReturn>
             storedEffects,
             effectsStore,
             Serializer,
-            storageSession
+            storageSession,
+            _clearChildren
         );
         
        var effect = new Effect(effectResults, UtcNow, flowMinimumTimeout);

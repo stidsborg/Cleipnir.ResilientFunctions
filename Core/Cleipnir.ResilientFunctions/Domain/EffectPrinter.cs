@@ -10,6 +10,11 @@ public static class EffectPrinter
     public static string Print(EffectResults effectResults)
     {
         var results = effectResults.Results;
+        return Print(results);
+    }
+
+    public static string Print(Dictionary<EffectId, PendingEffectChange> results)
+    {
         AddMissingStartedEffects(results);
 
         var sb = new StringBuilder();
@@ -30,11 +35,16 @@ public static class EffectPrinter
     {
         var pendingChange = effectResults[effectId];
         var storedEffect = pendingChange.StoredEffect;
+        var isDirty = pendingChange.Operation != null;
 
         // Tree branch characters
         var connector = isLast ? "└─ " : "├─ ";
         sb.Append(prefix);
         sb.Append(connector);
+
+        // Color for dirty effects (yellow)
+        if (isDirty)
+            sb.Append("\x1b[33m");
 
         // Status symbol
         var statusSymbol = storedEffect?.WorkStatus switch
@@ -61,6 +71,10 @@ public static class EffectPrinter
         {
             sb.Append($" ({storedEffect.StoredException.ExceptionType})");
         }
+
+        // Reset color
+        if (isDirty)
+            sb.Append("\x1b[0m");
 
         sb.AppendLine();
 
@@ -106,7 +120,7 @@ public static class EffectPrinter
             effectResults[parentId] = new PendingEffectChange(
                 parentId,
                 missingEffect,
-                Operation: null,
+                Operation: CrudOperation.Insert,
                 Existing: false,
                 Alias: null
             );
