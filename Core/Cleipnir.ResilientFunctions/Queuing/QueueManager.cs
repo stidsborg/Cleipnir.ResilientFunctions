@@ -13,7 +13,15 @@ namespace Cleipnir.ResilientFunctions.Queuing;
 
 public delegate bool MessagePredicate(object message);
 
-public class QueueManager(FlowId flowId, StoredId storedId, IMessageStore messageStore, ISerializer serializer, Effect effect, UnhandledExceptionHandler unhandledExceptionHandler)
+public class QueueManager(
+    FlowId flowId, 
+    StoredId storedId, 
+    IMessageStore messageStore, 
+    ISerializer serializer, 
+    Effect effect, 
+    UnhandledExceptionHandler unhandledExceptionHandler,
+    FlowMinimumTimeout minimumTimeout,
+    UtcNow utcNow)
     : IDisposable
 {
     private readonly Dictionary<EffectId, Subscription> _subscribers = new();
@@ -80,7 +88,7 @@ public class QueueManager(FlowId flowId, StoredId storedId, IMessageStore messag
 
     private bool _isFlushing;
     private bool _flushAgain;
-    private bool AlreadyFlushing()
+    private bool TryBeginFlush()
     {
         lock (_lock)
             if (_isFlushing)
@@ -97,7 +105,7 @@ public class QueueManager(FlowId flowId, StoredId storedId, IMessageStore messag
     
     public async Task AfterFlush()
     {
-        if (AlreadyFlushing())
+        if (TryBeginFlush())
             return;
         
         while (true)
@@ -194,13 +202,11 @@ public class QueueManager(FlowId flowId, StoredId storedId, IMessageStore messag
             _delivering = false;
     }
     
-    public Task<MessageAndEffectResult> Subscribe(EffectId effectId, MessagePredicate predicate)
+    public Task<MessageAndEffectResult?> Subscribe(EffectId effectId, MessagePredicate predicate, DateTime? timeout)
     {
-        var tcs = new TaskCompletionSource<MessageAndEffectResult>();
+        var tcs = new TaskCompletionSource<MessageAndEffectResult?>();
         lock (_lock)
-        {
-            _subscribers[effectId] = new Subscription(predicate, tcs);
-        }
+            _subscribers[effectId] = new Subscription(predicate, tcs, timeout);
         
         TryToDeliver();
         
@@ -209,7 +215,7 @@ public class QueueManager(FlowId flowId, StoredId storedId, IMessageStore messag
 
     public record MessageWithPosition(object Message, long Position, string? IdempotencyKey);
     public record MessageAndEffectResult(object Message, EffectResult EffectResult);
-    private record Subscription(MessagePredicate Predicate, TaskCompletionSource<MessageAndEffectResult> Tcs);
+    private record Subscription(MessagePredicate Predicate, TaskCompletionSource<MessageAndEffectResult?> Tcs, DateTime? Timeout);
 
     public void Dispose() => _disposed = true;
 }
