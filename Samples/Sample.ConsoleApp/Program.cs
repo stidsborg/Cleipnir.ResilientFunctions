@@ -23,6 +23,16 @@ internal static class Program
                 flowType: "Fun",
                 inner: async (Workflow workflow) =>
                 {
+                    _ = Task.Run(async () =>
+                    {
+                        while (true)
+                        {
+                            Console.Clear();
+                            Console.WriteLine(workflow.ExecutionTree());
+                            await Task.Delay(250);
+                        }
+                    });
+                    
                     var effect = workflow.Effect;
                         var e1 = effect.Capture(async () =>
                         {
@@ -82,6 +92,8 @@ internal static class Program
             var cp = await rFunc.ControlPanel("some instance");
             //await cp!.WaitForCompletion();
 
+            Console.ReadLine();
+            /*
             while (true)
             {
                 Console.Clear();
@@ -94,7 +106,7 @@ internal static class Program
             Console.WriteLine(i++ + " Status: " + cp.Status);
             Console.WriteLine(cp!.Effects.EffectTree());
             await Task.Delay(5000);
-            Console.Clear();
+            Console.Clear();*/
         }
     }
 }

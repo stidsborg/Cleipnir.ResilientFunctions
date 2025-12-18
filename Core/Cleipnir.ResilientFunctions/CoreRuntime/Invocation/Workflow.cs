@@ -72,4 +72,9 @@ public class Workflow
         else
             throw new SuspendInvocationException();                
     }
+
+    public string ExecutionTree()
+    {
+        return $"{FlowId} ({StoredId}):" + Environment.NewLine + Effect.ExecutionTree();
+    }
 }

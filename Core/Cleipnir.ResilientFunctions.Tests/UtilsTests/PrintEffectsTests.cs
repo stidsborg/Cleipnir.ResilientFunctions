@@ -44,7 +44,7 @@ public class PrintEffectsTests
         );
 
         var effect = new Effect(effectResults, utcNow: () => DateTime.UtcNow, new FlowMinimumTimeout());
-        var output = effect.PrintEffects();
+        var output = effect.ExecutionTree();
 
         var expected = "└─ ✓ [1]\n";
         StripAnsiColors(output).ShouldBe(expected);
@@ -76,7 +76,7 @@ public class PrintEffectsTests
         );
 
         var effect = new Effect(effectResults, utcNow: () => DateTime.UtcNow, new FlowMinimumTimeout());
-        var output = effect.PrintEffects();
+        var output = effect.ExecutionTree();
 
         var expected = "└─ ✓ [1] my-effect\n";
         StripAnsiColors(output).ShouldBe(expected);
@@ -112,7 +112,7 @@ public class PrintEffectsTests
         );
 
         var effect = new Effect(effectResults, utcNow: () => DateTime.UtcNow, new FlowMinimumTimeout());
-        var output = effect.PrintEffects();
+        var output = effect.ExecutionTree();
 
         var expected = "└─ ✗ [1] failed-operation (System.InvalidOperationException)\n";
         StripAnsiColors(output).ShouldBe(expected);
@@ -144,7 +144,7 @@ public class PrintEffectsTests
         );
 
         var effect = new Effect(effectResults, utcNow: () => DateTime.UtcNow, new FlowMinimumTimeout());
-        var output = effect.PrintEffects();
+        var output = effect.ExecutionTree();
 
         var expected = "└─ ⋯ [1] in-progress\n";
         StripAnsiColors(output).ShouldBe(expected);
@@ -190,7 +190,7 @@ public class PrintEffectsTests
         );
 
         var effect = new Effect(effectResults, utcNow: () => DateTime.UtcNow, new FlowMinimumTimeout());
-        var output = effect.PrintEffects();
+        var output = effect.ExecutionTree();
 
         var expected =
             "└─ ✓ [1] parent\n" +
@@ -246,7 +246,7 @@ public class PrintEffectsTests
         );
 
         var effect = new Effect(effectResults, utcNow: () => DateTime.UtcNow, new FlowMinimumTimeout());
-        var output = effect.PrintEffects();
+        var output = effect.ExecutionTree();
 
         var expected =
             "└─ ✓ [1] root\n" +
@@ -296,7 +296,7 @@ public class PrintEffectsTests
         );
 
         var effect = new Effect(effectResults, utcNow: () => DateTime.UtcNow, new FlowMinimumTimeout());
-        var output = effect.PrintEffects();
+        var output = effect.ExecutionTree();
 
         var expected =
             "└─ ✓ [1] first-root\n" +
@@ -331,7 +331,7 @@ public class PrintEffectsTests
         );
 
         var effect = new Effect(effectResults, utcNow: () => DateTime.UtcNow, new FlowMinimumTimeout());
-        var output = effect.PrintEffects();
+        var output = effect.ExecutionTree();
 
         var expected =
             "└─ ✓ [1] root-1\n" +
@@ -366,7 +366,7 @@ public class PrintEffectsTests
         );
 
         var effect = new Effect(effectResults, utcNow: () => DateTime.UtcNow, new FlowMinimumTimeout());
-        var output = effect.PrintEffects();
+        var output = effect.ExecutionTree();
 
         var expected =
             "└─ ✓ [1] root\n" +
@@ -399,7 +399,7 @@ public class PrintEffectsTests
         );
 
         var effect = new Effect(effectResults, utcNow: () => DateTime.UtcNow, new FlowMinimumTimeout());
-        var output = effect.PrintEffects();
+        var output = effect.ExecutionTree();
 
         var expected =
             "└─ ✓ [1] root\n" +
