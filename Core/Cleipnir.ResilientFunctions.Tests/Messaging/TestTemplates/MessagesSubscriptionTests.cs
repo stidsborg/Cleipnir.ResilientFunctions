@@ -92,12 +92,14 @@ public abstract class MessagesSubscriptionTests
                     functionStore.MessageStore,
                     DefaultSerializer.Instance,
                     workflow.Effect,
-                    unhandledExceptionHandler
+                    unhandledExceptionHandler,
+                    new FlowMinimumTimeout(),
+                    () => DateTime.UtcNow
                 );
                 await queueManager.Initialize();
 
-                var queueClient = new QueueClient(queueManager);
-                var message = await queueClient.Pull<string>(workflow, workflow.Effect.CreateNextImplicitId());
+                var queueClient = new QueueClient(queueManager, () => DateTime.UtcNow);
+                var message = await queueClient.Pull<string>(workflow, workflow.Effect.CreateNextImplicitId(), (TimeSpan?)null);
 
                 return (string)message;
             }
@@ -136,17 +138,19 @@ public abstract class MessagesSubscriptionTests
                     functionStore.MessageStore,
                     DefaultSerializer.Instance,
                     workflow.Effect,
-                    unhandledExceptionHandler
+                    unhandledExceptionHandler,
+                    new FlowMinimumTimeout(),
+                    () => DateTime.UtcNow
                 );
                 await queueManager.Initialize();
 
-                var queueClient = new QueueClient(queueManager);
+                var queueClient = new QueueClient(queueManager, () => DateTime.UtcNow);
 
-                var message1 = await queueClient.Pull<string>(workflow, workflow.Effect.CreateNextImplicitId());
+                var message1 = await queueClient.Pull<string>(workflow, workflow.Effect.CreateNextImplicitId(), (TimeSpan?)null);
                 await workflow.Delay(TimeSpan.FromMilliseconds(100));
-                var message2 = await queueClient.Pull<string>(workflow, workflow.Effect.CreateNextImplicitId());
+                var message2 = await queueClient.Pull<string>(workflow, workflow.Effect.CreateNextImplicitId(), (TimeSpan?)null);
                 await workflow.Delay(TimeSpan.FromMilliseconds(100));
-                var message3 = await queueClient.Pull<string>(workflow, workflow.Effect.CreateNextImplicitId());
+                var message3 = await queueClient.Pull<string>(workflow, workflow.Effect.CreateNextImplicitId(), (TimeSpan?)null);
                 await workflow.Delay(TimeSpan.FromMilliseconds(100));
                 
                 return $"{message1},{message2},{message3}";
