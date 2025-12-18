@@ -48,7 +48,7 @@ public static class CrashedTest
             store,
             new Settings(
                 unhandledExceptionHandler: Console.WriteLine,
-                leaseLength: TimeSpan.FromSeconds(10)
+                watchdogCheckFrequency: TimeSpan.FromMilliseconds(50)
             )
         );
         var _ = functionsRegistry.RegisterAction(
@@ -60,7 +60,7 @@ public static class CrashedTest
             store,
             new Settings(
                 unhandledExceptionHandler: Console.WriteLine,
-                leaseLength: TimeSpan.FromSeconds(10)
+                watchdogCheckFrequency: TimeSpan.FromMilliseconds(50)
             )
         );
         functionsRegistry2.RegisterAction(

@@ -209,77 +209,65 @@ public class SqlServerFunctionStore : IFunctionStore
 
     public async Task BulkScheduleFunctions(IEnumerable<IdWithParam> functionsWithParam, StoredId? parent)
     {
-        var parentStr = parent == null ? "NULL" : $"'{parent.AsGuid}'";
-        var chunks = functionsWithParam.Chunk(300);
+        var functions = functionsWithParam.ToList();
+        if (functions.Count == 0) return;
 
         await using var conn = await _connFunc();
 
-        foreach (var chunk in chunks)
         {
-            var remainingFunctions = chunk.ToList();
+            // Create temp table
+            var createTempTableSql = @"
+            CREATE TABLE #FunctionsToInsert (
+                Id UNIQUEIDENTIFIER NOT NULL,
+                ParamJson VARBINARY(MAX) NULL,
+                HumanInstanceId NVARCHAR(MAX) NOT NULL
+            );";
 
-            while (remainingFunctions.Count > 0)
-            {
-                try
-                {
-                    // Build simple INSERT statement
-                    var valueSql = string.Join($",{Environment.NewLine}",
-                        Enumerable.Range(0, remainingFunctions.Count).Select(i =>
-                            $"(@Id{i}, @ParamJson{i}, {(int)Status.Postponed}, NULL, 0, 0, @HumanInstanceId{i}, {parentStr})"
-                        )
-                    );
+            await using var cmd = new SqlCommand(createTempTableSql, conn);
+            await cmd.ExecuteNonQueryAsync();
+        }
 
-                    var insertSql = $@"
-                        INSERT INTO {_tableName} (Id, ParamJson, Status, Owner, Expires, Timestamp, HumanInstanceId, Parent)
-                        VALUES {valueSql}";
+        // Prepare DataTable
+        var dataTable = new DataTable();
+        dataTable.Columns.Add("Id", typeof(Guid));
+        dataTable.Columns.Add("ParamJson", typeof(byte[]));
+        dataTable.Columns.Add("HumanInstanceId", typeof(string));
 
-                    await using var command = new SqlCommand(insertSql, conn);
+        foreach (var f in functions)
+        {
+            dataTable.Rows.Add(f.StoredId.AsGuid, f.Param ?? (object)DBNull.Value, f.HumanInstanceId);
+        }
 
-                    for (int i = 0; i < remainingFunctions.Count; i++)
-                    {
-                        var fp = remainingFunctions[i];
-                        command.Parameters.Add(new SqlParameter($"@Id{i}", SqlDbType.UniqueIdentifier) { Value = fp.StoredId.AsGuid });
-                        command.Parameters.Add(new SqlParameter($"@ParamJson{i}", SqlDbType.VarBinary, -1) { Value = fp.Param ?? (object)DBNull.Value });
-                        command.Parameters.Add(new SqlParameter($"@HumanInstanceId{i}", SqlDbType.NVarChar) { Value = fp.HumanInstanceId });
-                    }
+        // Bulk insert into temp table
+        using (var bulkCopy = new SqlBulkCopy(conn))
+        {
+            bulkCopy.DestinationTableName = "#FunctionsToInsert";
+            bulkCopy.ColumnMappings.Add("Id", "Id");
+            bulkCopy.ColumnMappings.Add("ParamJson", "ParamJson");
+            bulkCopy.ColumnMappings.Add("HumanInstanceId", "HumanInstanceId");
+            await bulkCopy.WriteToServerAsync(dataTable);
+        }
 
-                    await command.ExecuteNonQueryAsync();
-                    break; // Success! Exit while loop
-                }
-                catch (SqlException ex) when (ex.Number == 2627 || ex.Number == 2601) // PK or unique constraint violation
-                {
-                    // Fetch which IDs already exist
-                    var idsToCheck = remainingFunctions.Select(f => f.StoredId.AsGuid).ToList();
-                    var existingIds = new HashSet<Guid>();
+        {
+            // Insert from temp table to actual table (handles duplicates)
+            var insertSql = $@"
+            INSERT INTO {_tableName} (Id, ParamJson, Status, Owner, Expires, Timestamp, HumanInstanceId, Parent)
+            SELECT
+                t.Id,
+                t.ParamJson,
+                {(int)Status.Postponed},
+                NULL,
+                0,
+                0,
+                t.HumanInstanceId,
+                {(parent == null ? "NULL" : $"'{parent.AsGuid}'")}
+            FROM #FunctionsToInsert t
+            WHERE NOT EXISTS (
+                SELECT 1 FROM {_tableName} WHERE Id = t.Id
+            );";
 
-                    var checkSql = $@"
-                        SELECT Id FROM {_tableName}
-                        WHERE Id IN ({string.Join(", ", Enumerable.Range(0, idsToCheck.Count).Select(i => $"@CheckId{i}"))})";
-
-                    await using var checkCommand = new SqlCommand(checkSql, conn);
-                    for (int i = 0; i < idsToCheck.Count; i++)
-                    {
-                        checkCommand.Parameters.Add(new SqlParameter($"@CheckId{i}", SqlDbType.UniqueIdentifier) { Value = idsToCheck[i] });
-                    }
-
-                    await using var reader = await checkCommand.ExecuteReaderAsync();
-                    while (await reader.ReadAsync())
-                    {
-                        existingIds.Add(reader.GetGuid(0));
-                    }
-
-                    // Filter out existing IDs and retry with remaining
-                    remainingFunctions = remainingFunctions
-                        .Where(f => !existingIds.Contains(f.StoredId.AsGuid))
-                        .ToList();
-
-                    // If all were duplicates, we're done
-                    if (remainingFunctions.Count == 0)
-                        break;
-
-                    // Otherwise loop continues and retries with remainingFunctions
-                }
-            }
+            await using var cmd = new SqlCommand(insertSql, conn);
+            await cmd.ExecuteNonQueryAsync();
         }
     }
     
