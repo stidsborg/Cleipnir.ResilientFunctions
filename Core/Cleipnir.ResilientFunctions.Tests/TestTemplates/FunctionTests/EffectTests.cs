@@ -306,7 +306,8 @@ public abstract class EffectTests
             await store.EffectsStore.GetEffectResults(storedId),
             store.EffectsStore,
             DefaultSerializer.Instance,
-            session
+            session,
+            clearChildren: true
         );
         var effect = new Effect(effectResults, utcNow: () => DateTime.UtcNow, new FlowMinimumTimeout());
 
@@ -355,7 +356,8 @@ public abstract class EffectTests
             new List<StoredEffect> { existingEffect },
             store.EffectsStore,
             DefaultSerializer.Instance,
-            storageSession: null
+            storageSession: null,
+            clearChildren: true
         );
         var effect = new Effect(effectResults, utcNow: () => DateTime.UtcNow, new FlowMinimumTimeout());
 
@@ -659,7 +661,8 @@ public abstract class EffectTests
             new List<StoredEffect>(),
             effectStore,
             DefaultSerializer.Instance,
-            session
+            session,
+            clearChildren: true
         );
 
         var effectId1 = new EffectId([1]);
@@ -723,7 +726,8 @@ public abstract class EffectTests
             new List<StoredEffect>(),
             effectStore,
             DefaultSerializer.Instance,
-            session
+            session,
+            clearChildren: true
         );
         var effect = new Effect(effectResults, utcNow: () => DateTime.UtcNow, new FlowMinimumTimeout());
 
@@ -804,7 +808,8 @@ public abstract class EffectTests
             await effectStore.GetEffectResults(storedId),
             effectStore,
             DefaultSerializer.Instance,
-            session
+            session,
+            clearChildren: true
         );
         // Create two effects using the internal API with explicit IDs to avoid implicit ID issues
         await effectResults.CreateOrGet(0.ToEffectId(), "hello world", "first", flush: true);
@@ -1314,7 +1319,8 @@ public abstract class EffectTests
             await store.EffectsStore.GetEffectResults(storedId),
             store.EffectsStore,
             DefaultSerializer.Instance,
-            session
+            session,
+            clearChildren: true
         );
 
         var parentId = 1.ToEffectId();
@@ -1362,7 +1368,8 @@ public abstract class EffectTests
             await store.EffectsStore.GetEffectResults(storedId),
             store.EffectsStore,
             DefaultSerializer.Instance,
-            session
+            session,
+            clearChildren: true
         );
 
         var parentId = 1.ToEffectId();
@@ -1393,7 +1400,8 @@ public abstract class EffectTests
             await store.EffectsStore.GetEffectResults(storedId),
             store.EffectsStore,
             DefaultSerializer.Instance,
-            session
+            session,
+            clearChildren: true
         );
 
         var parentId = 1.ToEffectId();

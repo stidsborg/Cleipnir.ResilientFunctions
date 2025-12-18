@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Text.RegularExpressions;
 using Cleipnir.ResilientFunctions.CoreRuntime;
 using Cleipnir.ResilientFunctions.CoreRuntime.Serialization;
 using Cleipnir.ResilientFunctions.Domain;
@@ -13,6 +14,10 @@ namespace Cleipnir.ResilientFunctions.Tests.UtilsTests;
 [TestClass]
 public class PrintEffectsTests
 {
+    private static string StripAnsiColors(string input)
+    {
+        return Regex.Replace(input, @"\x1b\[[0-9;]*m", string.Empty);
+    }
     [TestMethod]
     public void PrintSingleCompletedEffect()
     {
@@ -34,14 +39,15 @@ public class PrintEffectsTests
             existingEffects,
             new InMemoryFunctionStore().EffectsStore,
             DefaultSerializer.Instance,
-            storageSession: null
+            storageSession: null,
+            clearChildren: true
         );
 
         var effect = new Effect(effectResults, utcNow: () => DateTime.UtcNow, new FlowMinimumTimeout());
         var output = effect.PrintEffects();
 
         var expected = "└─ ✓ [1]\n";
-        output.ShouldBe(expected);
+        StripAnsiColors(output).ShouldBe(expected);
     }
 
     [TestMethod]
@@ -65,14 +71,15 @@ public class PrintEffectsTests
             existingEffects,
             new InMemoryFunctionStore().EffectsStore,
             DefaultSerializer.Instance,
-            storageSession: null
+            storageSession: null,
+            clearChildren: true
         );
 
         var effect = new Effect(effectResults, utcNow: () => DateTime.UtcNow, new FlowMinimumTimeout());
         var output = effect.PrintEffects();
 
         var expected = "└─ ✓ [1] my-effect\n";
-        output.ShouldBe(expected);
+        StripAnsiColors(output).ShouldBe(expected);
     }
 
     [TestMethod]
@@ -100,14 +107,15 @@ public class PrintEffectsTests
             existingEffects,
             new InMemoryFunctionStore().EffectsStore,
             DefaultSerializer.Instance,
-            storageSession: null
+            storageSession: null,
+            clearChildren: true
         );
 
         var effect = new Effect(effectResults, utcNow: () => DateTime.UtcNow, new FlowMinimumTimeout());
         var output = effect.PrintEffects();
 
         var expected = "└─ ✗ [1] failed-operation (System.InvalidOperationException)\n";
-        output.ShouldBe(expected);
+        StripAnsiColors(output).ShouldBe(expected);
     }
 
     [TestMethod]
@@ -131,14 +139,15 @@ public class PrintEffectsTests
             existingEffects,
             new InMemoryFunctionStore().EffectsStore,
             DefaultSerializer.Instance,
-            storageSession: null
+            storageSession: null,
+            clearChildren: true
         );
 
         var effect = new Effect(effectResults, utcNow: () => DateTime.UtcNow, new FlowMinimumTimeout());
         var output = effect.PrintEffects();
 
         var expected = "└─ ⋯ [1] in-progress\n";
-        output.ShouldBe(expected);
+        StripAnsiColors(output).ShouldBe(expected);
     }
 
     [TestMethod]
@@ -176,7 +185,8 @@ public class PrintEffectsTests
             existingEffects,
             new InMemoryFunctionStore().EffectsStore,
             DefaultSerializer.Instance,
-            storageSession: null
+            storageSession: null,
+            clearChildren: true
         );
 
         var effect = new Effect(effectResults, utcNow: () => DateTime.UtcNow, new FlowMinimumTimeout());
@@ -186,7 +196,7 @@ public class PrintEffectsTests
             "└─ ✓ [1] parent\n" +
             "   ├─ ✓ [1] child-1\n" +
             "   └─ ✓ [2] child-2\n";
-        output.ShouldBe(expected);
+        StripAnsiColors(output).ShouldBe(expected);
     }
 
     [TestMethod]
@@ -231,7 +241,8 @@ public class PrintEffectsTests
             existingEffects,
             new InMemoryFunctionStore().EffectsStore,
             DefaultSerializer.Instance,
-            storageSession: null
+            storageSession: null,
+            clearChildren: true
         );
 
         var effect = new Effect(effectResults, utcNow: () => DateTime.UtcNow, new FlowMinimumTimeout());
@@ -242,7 +253,7 @@ public class PrintEffectsTests
             "   └─ ✓ [1] level-1\n" +
             "      └─ ✓ [1] level-2\n" +
             "         └─ ✗ [1] level-3-failed (System.Exception)\n";
-        output.ShouldBe(expected);
+        StripAnsiColors(output).ShouldBe(expected);
     }
 
     [TestMethod]
@@ -280,7 +291,8 @@ public class PrintEffectsTests
             existingEffects,
             new InMemoryFunctionStore().EffectsStore,
             DefaultSerializer.Instance,
-            storageSession: null
+            storageSession: null,
+            clearChildren: true
         );
 
         var effect = new Effect(effectResults, utcNow: () => DateTime.UtcNow, new FlowMinimumTimeout());
@@ -290,7 +302,7 @@ public class PrintEffectsTests
             "└─ ✓ [1] first-root\n" +
             "└─ ⋯ [2] second-root\n" +
             "└─ ✗ [3] third-root (System.Exception)\n";
-        output.ShouldBe(expected);
+        StripAnsiColors(output).ShouldBe(expected);
     }
 
     [TestMethod]
@@ -314,7 +326,8 @@ public class PrintEffectsTests
             existingEffects,
             new InMemoryFunctionStore().EffectsStore,
             DefaultSerializer.Instance,
-            storageSession: null
+            storageSession: null,
+            clearChildren: true
         );
 
         var effect = new Effect(effectResults, utcNow: () => DateTime.UtcNow, new FlowMinimumTimeout());
@@ -327,7 +340,7 @@ public class PrintEffectsTests
             "      └─ ✗ [1] root-1-child-2-grandchild (TestException)\n" +
             "└─ ⋯ [2] root-2\n" +
             "   └─ ✓ [1] root-2-child-1\n";
-        output.ShouldBe(expected);
+        StripAnsiColors(output).ShouldBe(expected);
     }
 
     [TestMethod]
@@ -348,7 +361,8 @@ public class PrintEffectsTests
             existingEffects,
             new InMemoryFunctionStore().EffectsStore,
             DefaultSerializer.Instance,
-            storageSession: null
+            storageSession: null,
+            clearChildren: false
         );
 
         var effect = new Effect(effectResults, utcNow: () => DateTime.UtcNow, new FlowMinimumTimeout());
@@ -358,7 +372,7 @@ public class PrintEffectsTests
             "└─ ✓ [1] root\n" +
             "   └─ ⋯ [2]\n" +  // Missing intermediate effect added with Started status (⋯) and no alias
             "      └─ ✓ [1] grandchild\n";
-        output.ShouldBe(expected);
+        StripAnsiColors(output).ShouldBe(expected);
     }
 
     [TestMethod]
@@ -380,7 +394,8 @@ public class PrintEffectsTests
             existingEffects,
             new InMemoryFunctionStore().EffectsStore,
             DefaultSerializer.Instance,
-            storageSession: null
+            storageSession: null,
+            clearChildren: false
         );
 
         var effect = new Effect(effectResults, utcNow: () => DateTime.UtcNow, new FlowMinimumTimeout());
@@ -391,6 +406,6 @@ public class PrintEffectsTests
             "   └─ ⋯ [2]\n" +  // Missing [1, 2]
             "      └─ ⋯ [3]\n" +  // Missing [1, 2, 3]
             "         └─ ✗ [4] deep-failed (System.Exception)\n";
-        output.ShouldBe(expected);
+        StripAnsiColors(output).ShouldBe(expected);
     }
 }
