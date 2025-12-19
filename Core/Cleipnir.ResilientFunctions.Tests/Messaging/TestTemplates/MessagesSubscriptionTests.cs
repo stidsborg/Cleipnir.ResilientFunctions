@@ -152,7 +152,7 @@ public abstract class MessagesSubscriptionTests
                 await workflow.Delay(TimeSpan.FromMilliseconds(100));
                 var message3 = await queueClient.Pull<string>(workflow, workflow.Effect.CreateNextImplicitId(), (TimeSpan?)null);
                 await workflow.Delay(TimeSpan.FromMilliseconds(100));
-                
+
                 return $"{message1},{message2},{message3}";
             }
         );
@@ -162,13 +162,61 @@ public abstract class MessagesSubscriptionTests
         await messageWriter.AppendMessage("first");
         await messageWriter.AppendMessage("second");
         await messageWriter.AppendMessage("third");
-        
+
         var result = await scheduled.Completion(TimeSpan.FromSeconds(5));
         result.ShouldBe("first,second,third");
 
         var results = await functionStore.EffectsStore.GetEffectResults([storedId!]);
         var x = results.Values.Single();
         Console.WriteLine(x);
+
+        unhandledExceptionCatcher.ShouldNotHaveExceptions();
+    }
+
+    public abstract Task QueueClientReturnsNullAfterTimeout();
+    protected async Task QueueClientReturnsNullAfterTimeout(Task<IFunctionStore> functionStoreTask)
+    {
+        var functionStore = await functionStoreTask;
+        var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
+        var unhandledExceptionHandler = new UnhandledExceptionHandler(unhandledExceptionCatcher.Catch);
+        using var functionsRegistry = new FunctionsRegistry(
+            functionStore,
+            new Settings(unhandledExceptionCatcher.Catch)
+        );
+
+        var rFunc = functionsRegistry.RegisterFunc(
+            nameof(QueueClientReturnsNullAfterTimeout),
+            inner: async Task<string?> (string _, Workflow workflow) =>
+            {
+                var queueManager = new QueueManager(
+                    workflow.FlowId,
+                    workflow.StoredId,
+                    functionStore.MessageStore,
+                    DefaultSerializer.Instance,
+                    workflow.Effect,
+                    unhandledExceptionHandler,
+                    new FlowMinimumTimeout(),
+                    () => DateTime.UtcNow
+                );
+                await queueManager.Initialize();
+
+                var queueClient = new QueueClient(queueManager, () => DateTime.UtcNow);
+                var message = await queueClient.Pull<string>(workflow, workflow.Effect.CreateNextImplicitId(), TimeSpan.FromMilliseconds(100));
+
+                return message;
+            }
+        );
+
+        var scheduled = await rFunc.Schedule("instanceId", "");
+        // No message is sent, so the pull should timeout
+
+        var result = await scheduled.Completion(maxWait: TimeSpan.FromSeconds(5));
+        result.ShouldBeNull();
+
+        var cp = await rFunc.ControlPanel("instanceId").ShouldNotBeNullAsync();
+        await cp.Messages.Append("hello world");
+        var restartResult = await cp.Restart();
+        restartResult.ShouldBeNull();
         
         unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }

@@ -17,7 +17,6 @@ public class QueueClient(QueueManager queueManager, UtcNow utcNow)
         var effect = workflow.Effect;
         var valueId = parentId.CreateChild(0);
         var typeId = parentId.CreateChild(1);
-        var timeoutId = parentId.CreateChild(2);
         
         if (!effect.Contains(valueId))
         {
@@ -29,12 +28,10 @@ public class QueueClient(QueueManager queueManager, UtcNow utcNow)
 
             if (result == null)
             {
-                /*
                 await effect.Upserts([
-                    new EffectResult(valueId, null, Alias: null), //todo how to align this with bytes already from received message
-                    new EffectResult(typeId, message.GetType().SimpleQualifiedName(), Alias: null)
+                    new EffectResult(valueId, default(T?), Alias: null), 
+                    new EffectResult(typeId, typeof(T?).SimpleQualifiedName(), Alias: null)
                 ], flush: false);
-                */
                 return default;                
             }
 

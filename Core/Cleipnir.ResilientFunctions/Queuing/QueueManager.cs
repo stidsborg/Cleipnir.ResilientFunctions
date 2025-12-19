@@ -58,6 +58,7 @@ public class QueueManager(
         }
 
         _ = Task.Run(FetchMessages);
+        _ = Task.Run(CheckTimeouts);
     }
     
     public async Task FetchMessages()
@@ -83,6 +84,30 @@ public class QueueManager(
                 TryToDeliver();
 
             await Task.Delay(1_000);
+        }
+    }
+    
+    public async Task CheckTimeouts()
+    {
+        while (!_disposed)
+        {
+            var now = utcNow();
+            List<KeyValuePair<EffectId, Subscription>> expiredSubscriptions;
+
+            lock (_lock)
+            {
+                expiredSubscriptions = _subscribers
+                    .Where(s => s.Value.Timeout.HasValue && s.Value.Timeout.Value <= now)
+                    .ToList();
+
+                foreach (var expired in expiredSubscriptions)
+                    _subscribers.Remove(expired.Key);
+            }
+
+            foreach (var (_, subscription) in expiredSubscriptions)
+                subscription.Tcs.SetResult(null);
+
+            await Task.Delay(500);
         }
     }
 

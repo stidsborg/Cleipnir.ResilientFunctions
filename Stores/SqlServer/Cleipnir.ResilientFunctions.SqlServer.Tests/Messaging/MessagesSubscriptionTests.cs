@@ -17,4 +17,8 @@ public class MessagesSubscriptionTests : Cleipnir.ResilientFunctions.Tests.Messa
     [TestMethod]
     public override Task QueueClientCanPullMultipleMessages()
         => QueueClientCanPullMultipleMessages(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task QueueClientReturnsNullAfterTimeout()
+        => QueueClientReturnsNullAfterTimeout(FunctionStoreFactory.Create());
 }

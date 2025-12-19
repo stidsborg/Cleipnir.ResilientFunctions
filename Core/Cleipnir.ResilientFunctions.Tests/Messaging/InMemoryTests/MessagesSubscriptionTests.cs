@@ -18,4 +18,8 @@ public class MessagesSubscriptionTests : TestTemplates.MessagesSubscriptionTests
     [TestMethod]
     public override Task QueueClientCanPullMultipleMessages()
         => QueueClientCanPullMultipleMessages(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task QueueClientReturnsNullAfterTimeout()
+        => QueueClientReturnsNullAfterTimeout(FunctionStoreFactory.Create());
 }
