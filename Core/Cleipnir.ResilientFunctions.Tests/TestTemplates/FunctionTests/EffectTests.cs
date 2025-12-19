@@ -183,6 +183,31 @@ public abstract class EffectTests
         storedEffect.Result!.ToStringFromUtf8Bytes().DeserializeFromJsonTo<string>().ShouldBe("hello");
         syncedCounter.Current.ShouldBe(1);
     }
+
+    public abstract Task FuncWithNullValueTest();
+    public async Task FuncWithNullValueTest(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        using var functionsRegistry = new FunctionsRegistry(store);
+        var flowId = TestFlowId.Create();
+        var (flowType, flowInstance) = flowId;
+        var registration = functionsRegistry.RegisterParamless(
+            flowType,
+            async Task(workflow) =>
+            {
+                var (effect, _) = workflow;
+                var result = await effect.Capture(() => default(string?));
+                result.ShouldBe(null);
+                await workflow.Delay(TimeSpan.FromMilliseconds(10));
+            });
+
+        await registration.Schedule(flowInstance.ToString());
+
+        var storedId = registration.MapToStoredId(flowId.Instance);
+        await BusyWait.Until(() =>
+            store.GetFunction(storedId).SelectAsync(sf => sf?.Status == Status.Succeeded)
+        );
+    }
     
     public abstract Task ExceptionThrowingActionTest();
     public async Task ExceptionThrowingActionTest(Task<IFunctionStore> storeTask)

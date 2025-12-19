@@ -23,6 +23,10 @@ public class EffectTests : TestTemplates.FunctionTests.EffectTests
         => SunshineAsyncFuncTest(FunctionStoreFactory.Create());
 
     [TestMethod]
+    public override Task FuncWithNullValueTest()
+        => FuncWithNullValueTest(FunctionStoreFactory.Create());
+
+    [TestMethod]
     public override Task ExceptionThrowingActionTest()
         => ExceptionThrowingActionTest(FunctionStoreFactory.Create());
 

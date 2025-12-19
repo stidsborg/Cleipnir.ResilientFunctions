@@ -21,7 +21,11 @@ public class EffectTests : ResilientFunctions.Tests.TestTemplates.FunctionTests.
     [TestMethod]
     public override Task SunshineAsyncFuncTest()
         => SunshineAsyncFuncTest(FunctionStoreFactory.Create());
-    
+
+    [TestMethod]
+    public override Task FuncWithNullValueTest()
+        => FuncWithNullValueTest(FunctionStoreFactory.Create());
+
     [TestMethod]
     public override Task ExceptionThrowingActionTest()
         => ExceptionThrowingActionTest(FunctionStoreFactory.Create());

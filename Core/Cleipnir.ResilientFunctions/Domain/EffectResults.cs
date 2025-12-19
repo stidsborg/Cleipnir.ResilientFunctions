@@ -154,7 +154,7 @@ public class EffectResults
     internal async Task Upserts(IEnumerable<EffectResult> values, bool flush)
     {
         var storedEffects = values
-            .Select(t => new { Id = t.Id, Bytes = _serializer.Serialize(t.Value, t.Value.GetType()), Alias = t.Alias })
+            .Select(t => new { Id = t.Id, Bytes = _serializer.Serialize(t.Value, t.Value?.GetType() ?? typeof(object)), Alias = t.Alias })
             .Select(a => StoredEffect.CreateCompleted(a.Id, a.Bytes, a.Alias))
             .ToList();
 
