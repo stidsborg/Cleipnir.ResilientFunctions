@@ -21,7 +21,9 @@ public class QueueManager(
     Effect effect, 
     UnhandledExceptionHandler unhandledExceptionHandler,
     FlowMinimumTimeout minimumTimeout,
-    UtcNow utcNow)
+    UtcNow utcNow,
+    int maxIdempotencyKeyCount = 100,
+    TimeSpan? maxIdempotencyKeyTtl = null)
     : IDisposable
 {
     private readonly Dictionary<EffectId, Subscription> _subscribers = new();
@@ -29,10 +31,10 @@ public class QueueManager(
     
     private readonly EffectId _parentId = new([-1]);
     private readonly EffectId _toRemoveNextIndex = new([-1, 0]);
-    private readonly EffectId _idempotencyKeys = new([-1, -1]);
+    private readonly EffectId _idempotencyKeysId = new([-1, -1]);
     private readonly List<MessageWithPosition> _toDeliver = new();
-    
-    //todo add idempotency key feature
+
+    private IdempotencyKeys _idempotencyKeys;
     private int _nextToRemoveIndex = 0;
     private bool _delivering;
 
@@ -42,6 +44,8 @@ public class QueueManager(
     {
         effect.RegisterQueueManager(this);
 
+        _idempotencyKeys = new IdempotencyKeys(_idempotencyKeysId, effect, maxIdempotencyKeyCount, maxIdempotencyKeyTtl, utcNow);
+        
         _nextToRemoveIndex = await effect.CreateOrGet(_toRemoveNextIndex, 0, alias: null, flush: false);
         var children = effect.GetChildren(_toRemoveNextIndex);
         var positions = new List<long>();
@@ -70,15 +74,26 @@ public class QueueManager(
                 skipPositions = new List<long>(_toDeliver.Select(m => m.Position));
             
             var messages = await messageStore.GetMessages(storedId, skipPositions);
+            var toRemove = new List<long>();
             
             foreach (var (messageContent, messageType, position, idempotencyKey) in messages)
             {
-                //if (idempotencyKey) duplicate filter it out immediately
+                if (idempotencyKey != null && _idempotencyKeys.Contains(idempotencyKey, position))
+                {
+                    toRemove.Add(position);
+                    continue;
+                }
+                if (idempotencyKey != null)
+                    _idempotencyKeys.Add();
+                
                 var msg = serializer.DeserializeMessage(messageContent, messageType);
                 var msgWithPosition = new MessageWithPosition(msg, position, idempotencyKey);
                 lock (_lock)
                     _toDeliver.Add(msgWithPosition);
             }
+
+            if (toRemove.Any())
+                await messageStore.DeleteMessages(storedId, toRemove);
             
             if (messages.Any())
                 TryToDeliver();
