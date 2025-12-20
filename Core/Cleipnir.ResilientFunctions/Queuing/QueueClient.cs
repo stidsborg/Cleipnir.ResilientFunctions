@@ -9,21 +9,27 @@ namespace Cleipnir.ResilientFunctions.Queuing;
 
 public class QueueClient(QueueManager queueManager, UtcNow utcNow)
 {
-    public Task<T?> Pull<T>(Workflow workflow, EffectId parentId, TimeSpan? timeout = null)
-        => Pull<T>(workflow, parentId, timeout == null ? null : utcNow().Add(timeout.Value));
-
-    public async Task<T?> Pull<T>(Workflow workflow, EffectId parentId, DateTime? timeout = null)
+    public Task<T?> Pull<T>(Workflow workflow, EffectId parentId) =>
+        Pull<T>(workflow, parentId, timeout: null);
+    public Task<T?> Pull<T>(Workflow workflow, EffectId parentId, TimeSpan timeout)
+        => Pull<T>(workflow, parentId, utcNow().Add(timeout));
+    public Task<T?> Pull<T>(Workflow workflow, EffectId parentId, DateTime timeout)
+        => Pull<T>(workflow, parentId, (DateTime?) timeout);
+    
+    private async Task<T?> Pull<T>(Workflow workflow, EffectId parentId, DateTime? timeout)
     {
         var effect = workflow.Effect;
         var valueId = parentId.CreateChild(0);
         var typeId = parentId.CreateChild(1);
+        var timeoutId = parentId.CreateChild(2);
         
         if (!effect.Contains(valueId))
         {
             var result = await queueManager.Subscribe(
                 valueId, 
                 m => m is T, 
-                timeout
+                timeout,
+                timeoutId
             );
 
             if (result == null)

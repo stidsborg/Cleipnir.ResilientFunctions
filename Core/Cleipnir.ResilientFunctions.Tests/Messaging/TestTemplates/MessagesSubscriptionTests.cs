@@ -99,7 +99,7 @@ public abstract class MessagesSubscriptionTests
                 await queueManager.Initialize();
 
                 var queueClient = new QueueClient(queueManager, () => DateTime.UtcNow);
-                var message = await queueClient.Pull<string>(workflow, workflow.Effect.CreateNextImplicitId(), (TimeSpan?)null);
+                var message = await queueClient.Pull<string>(workflow, workflow.Effect.CreateNextImplicitId());
 
                 return (string)message;
             }
@@ -146,11 +146,11 @@ public abstract class MessagesSubscriptionTests
 
                 var queueClient = new QueueClient(queueManager, () => DateTime.UtcNow);
 
-                var message1 = await queueClient.Pull<string>(workflow, workflow.Effect.CreateNextImplicitId(), (TimeSpan?)null);
+                var message1 = await queueClient.Pull<string>(workflow, workflow.Effect.CreateNextImplicitId());
                 await workflow.Delay(TimeSpan.FromMilliseconds(100));
-                var message2 = await queueClient.Pull<string>(workflow, workflow.Effect.CreateNextImplicitId(), (TimeSpan?)null);
+                var message2 = await queueClient.Pull<string>(workflow, workflow.Effect.CreateNextImplicitId());
                 await workflow.Delay(TimeSpan.FromMilliseconds(100));
-                var message3 = await queueClient.Pull<string>(workflow, workflow.Effect.CreateNextImplicitId(), (TimeSpan?)null);
+                var message3 = await queueClient.Pull<string>(workflow, workflow.Effect.CreateNextImplicitId());
                 await workflow.Delay(TimeSpan.FromMilliseconds(100));
 
                 return $"{message1},{message2},{message3}";
@@ -217,7 +217,68 @@ public abstract class MessagesSubscriptionTests
         await cp.Messages.Append("hello world");
         var restartResult = await cp.Restart();
         restartResult.ShouldBeNull();
+
+        unhandledExceptionCatcher.ShouldNotHaveExceptions();
+    }
+
+    public abstract Task OnlyFirstMessageWithSameIdempotencyKeyIsDeliveredAndBothAreRemovedAfterCompletion();
+    protected async Task OnlyFirstMessageWithSameIdempotencyKeyIsDeliveredAndBothAreRemovedAfterCompletion(Task<IFunctionStore> functionStoreTask)
+    {
+        var functionStore = await functionStoreTask;
+        var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
+        var unhandledExceptionHandler = new UnhandledExceptionHandler(unhandledExceptionCatcher.Catch);
+        using var functionsRegistry = new FunctionsRegistry(
+            functionStore,
+            new Settings(unhandledExceptionCatcher.Catch)
+        );
+
+        StoredId? storedId = null;
+        var rFunc = functionsRegistry.RegisterFunc(
+            nameof(OnlyFirstMessageWithSameIdempotencyKeyIsDeliveredAndBothAreRemovedAfterCompletion),
+            inner: async Task<Tuple<string?, string?>> (string _, Workflow workflow) =>
+            {
+                storedId = workflow.StoredId;
+                var queueManager = new QueueManager(
+                    workflow.FlowId,
+                    workflow.StoredId,
+                    functionStore.MessageStore,
+                    DefaultSerializer.Instance,
+                    workflow.Effect,
+                    unhandledExceptionHandler,
+                    new FlowMinimumTimeout(),
+                    () => DateTime.UtcNow
+                );
+                await queueManager.Initialize();
+
+                var queueClient = new QueueClient(queueManager, () => DateTime.UtcNow);
+                var message1 = await queueClient.Pull<string>(workflow, workflow.Effect.CreateNextImplicitId());
+                var message2 = await queueClient.Pull<string>(workflow, workflow.Effect.CreateNextImplicitId(), timeout: TimeSpan.FromMilliseconds(100));
+                
+                return Tuple.Create(message1, message2);
+            }
+        );
+
+        var scheduled = await rFunc.Schedule("instanceId", "");
+        var messageWriter = rFunc.MessageWriters.For("instanceId".ToFlowInstance());
+
+        // Append two messages with the same idempotency key
+        await messageWriter.AppendMessage("first message", idempotencyKey: "duplicate-key");
+        await messageWriter.AppendMessage("second message", idempotencyKey: "duplicate-key");
+
+        await scheduled.Completion();
         
+        await BusyWait.Until(() => storedId != null);
+        await BusyWait.Until(async () => await functionStore.MessageStore.GetMessages(storedId!, skip: 0).SelectAsync(m => m.Count) == 0);
+
+        // Only the first message should be delivered
+        var result = await scheduled.Completion(maxWait: TimeSpan.FromSeconds(5));
+        result.Item1.ShouldBe("first message");
+        result.Item2.ShouldBeNull();
+
+        // Verify both messages are removed from the store after completion
+        var messagesAfterCompletion = await functionStore.MessageStore.GetMessages(storedId!, skip: 0);
+        messagesAfterCompletion.ShouldBeEmpty();
+
         unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
 }

@@ -22,4 +22,8 @@ public class MessagesSubscriptionTests : TestTemplates.MessagesSubscriptionTests
     [TestMethod]
     public override Task QueueClientReturnsNullAfterTimeout()
         => QueueClientReturnsNullAfterTimeout(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task OnlyFirstMessageWithSameIdempotencyKeyIsDeliveredAndBothAreRemovedAfterCompletion()
+        => OnlyFirstMessageWithSameIdempotencyKeyIsDeliveredAndBothAreRemovedAfterCompletion(FunctionStoreFactory.Create());
 }

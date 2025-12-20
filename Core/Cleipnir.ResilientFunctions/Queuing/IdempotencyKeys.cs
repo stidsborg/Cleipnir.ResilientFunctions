@@ -12,7 +12,7 @@ internal class IdempotencyKeys(EffectId parentId, Effect effect, int maxCount, T
 {
     private int _nextId;
     private readonly Dictionary<int, Entry> _dictionary = new();
-    private readonly Locdsdsk _lock = new();
+    private readonly Lock _lock = new();
     
     public async Task Initialize()
     {
@@ -31,14 +31,24 @@ internal class IdempotencyKeys(EffectId parentId, Effect effect, int maxCount, T
         }
     }
 
-    public void Add(string idempotencyKey, long position)
+    public async Task Add(string idempotencyKey, long position)
     {
+        var entry = new Entry(
+            position,
+            idempotencyKey,
+            keyTtl == null ? -1 : utcNow().Ticks + keyTtl.Value.Ticks
+        );
+        int id;
         lock (_lock)
-            _dictionary[_nextId++] = new Entry(
-                position,
-                idempotencyKey,
-                keyTtl == null ? -1 : utcNow().Ticks + keyTtl.Value.Ticks
-            );
+        {
+            if (_dictionary.Any(e => e.Value.IdempotencyKey == idempotencyKey))
+                return;
+            
+            id = _nextId++;
+            _dictionary[id] = entry;
+        }
+
+        await effect.Upsert(parentId.CreateChild(id), entry.ToTuple(), alias: null, flush: false);
     }
 
     private async Task Remove(int id)

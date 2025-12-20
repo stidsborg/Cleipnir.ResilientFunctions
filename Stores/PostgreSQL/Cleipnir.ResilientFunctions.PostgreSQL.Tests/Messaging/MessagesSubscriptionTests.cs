@@ -21,4 +21,8 @@ public class MessagesSubscriptionTests : Cleipnir.ResilientFunctions.Tests.Messa
     [TestMethod]
     public override Task QueueClientReturnsNullAfterTimeout()
         => QueueClientReturnsNullAfterTimeout(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task OnlyFirstMessageWithSameIdempotencyKeyIsDeliveredAndBothAreRemovedAfterCompletion()
+        => OnlyFirstMessageWithSameIdempotencyKeyIsDeliveredAndBothAreRemovedAfterCompletion(FunctionStoreFactory.Create());
 }

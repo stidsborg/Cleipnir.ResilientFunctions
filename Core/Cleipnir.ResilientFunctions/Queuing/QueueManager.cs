@@ -34,7 +34,7 @@ public class QueueManager(
     private readonly EffectId _idempotencyKeysId = new([-1, -1]);
     private readonly List<MessageWithPosition> _toDeliver = new();
 
-    private IdempotencyKeys _idempotencyKeys;
+    private IdempotencyKeys? _idempotencyKeys;
     private int _nextToRemoveIndex = 0;
     private bool _delivering;
 
@@ -71,20 +71,20 @@ public class QueueManager(
         {
             List<long> skipPositions;
             lock (_lock)
-                skipPositions = new List<long>(_toDeliver.Select(m => m.Position));
+                skipPositions = _toDeliver.Select(m => m.Position).ToList();
             
             var messages = await messageStore.GetMessages(storedId, skipPositions);
             var toRemove = new List<long>();
             
             foreach (var (messageContent, messageType, position, idempotencyKey) in messages)
             {
-                if (idempotencyKey != null && _idempotencyKeys.Contains(idempotencyKey, position))
+                if (idempotencyKey != null && _idempotencyKeys!.Contains(idempotencyKey, position))
                 {
                     toRemove.Add(position);
                     continue;
                 }
                 if (idempotencyKey != null)
-                    _idempotencyKeys.Add();
+                    await _idempotencyKeys!.Add(idempotencyKey, position);
                 
                 var msg = serializer.DeserializeMessage(messageContent, messageType);
                 var msgWithPosition = new MessageWithPosition(msg, position, idempotencyKey);
@@ -99,30 +99,6 @@ public class QueueManager(
                 TryToDeliver();
 
             await Task.Delay(1_000);
-        }
-    }
-    
-    public async Task CheckTimeouts()
-    {
-        while (!_disposed)
-        {
-            var now = utcNow();
-            List<KeyValuePair<EffectId, Subscription>> expiredSubscriptions;
-
-            lock (_lock)
-            {
-                expiredSubscriptions = _subscribers
-                    .Where(s => s.Value.Timeout.HasValue && s.Value.Timeout.Value <= now)
-                    .ToList();
-
-                foreach (var expired in expiredSubscriptions)
-                    _subscribers.Remove(expired.Key);
-            }
-
-            foreach (var (_, subscription) in expiredSubscriptions)
-                subscription.Tcs.SetResult(null);
-
-            await Task.Delay(500);
         }
     }
 
@@ -152,7 +128,7 @@ public class QueueManager(
         {
             try
             {
-                var children = effect.GetChildren(_parentId);
+                var children = effect.GetChildren(_toRemoveNextIndex);
                 var nonDirtyChildren = new List<EffectId>();
                 foreach (var childId in children)
                     if (!effect.IsDirty(childId))
@@ -206,30 +182,32 @@ public class QueueManager(
         try
         {
             foreach (var messageWithPosition in _toDeliver.ToList())
+            foreach (var idAndSubscription in _subscribers.ToList())
             {
-                foreach (var idAndSubscription in _subscribers.ToList())
+                var (effectId, subscription) = idAndSubscription;
+                if (subscription.Predicate(messageWithPosition.Message))
                 {
-                    var (effectId, subscription) = idAndSubscription;
-                    if (subscription.Predicate(messageWithPosition.Message))
+                    int toRemoveIndex;
+                    lock (_lock)
                     {
-                        lock (_lock)
-                        {
-                            _toDeliver.Remove(messageWithPosition);
-                            _subscribers.Remove(effectId);
-                        }
+                        if (!_subscribers.ContainsKey(effectId)) //might have been removed by timeout
+                            continue;
 
-                        var toRemoveIndex = _nextToRemoveIndex++;
-                        effect.Upsert(_toRemoveNextIndex, toRemoveIndex, alias: null, flush: false);
-
-                        var toRemoveId = new EffectId([-1, 0, toRemoveIndex]);
-                        var msg = new MessageAndEffectResult(
-                            messageWithPosition.Message,
-                            new EffectResult(toRemoveId, messageWithPosition.Position, Alias: null)
-                        );
-                        subscription.Tcs.SetResult(msg);
-                        
-                        goto StartAgain;
+                        _toDeliver.Remove(messageWithPosition);
+                        _subscribers.Remove(effectId);
+                        toRemoveIndex = _nextToRemoveIndex++;
                     }
+
+                    effect.Upsert(_toRemoveNextIndex, toRemoveIndex, alias: null, flush: false);
+
+                    var toRemoveId = new EffectId([-1, 0, toRemoveIndex]);
+                    var msg = new MessageAndEffectResult(
+                        messageWithPosition.Message,
+                        new EffectResult(toRemoveId, messageWithPosition.Position, Alias: null)
+                    );
+                    subscription.Tcs.SetResult(msg);
+
+                    goto StartAgain;
                 }
             }
         }
@@ -237,16 +215,43 @@ public class QueueManager(
         {
             unhandledExceptionHandler.Invoke(flowId.Type, e);
         }
-        
+
         lock (_lock)
             _delivering = false;
     }
     
-    public Task<MessageAndEffectResult?> Subscribe(EffectId effectId, MessagePredicate predicate, DateTime? timeout)
+    public async Task CheckTimeouts()
+    {
+        while (!_disposed)
+        {
+            var now = utcNow();
+            List<KeyValuePair<EffectId, Subscription>> expiredSubscriptions;
+
+            lock (_lock)
+            {
+                expiredSubscriptions = _subscribers
+                    .Where(s => s.Value.Timeout.HasValue && s.Value.Timeout.Value <= now)
+                    .ToList();
+
+                foreach (var expired in expiredSubscriptions)
+                    _subscribers.Remove(expired.Key);
+            }
+
+            foreach (var (_, subscription) in expiredSubscriptions)
+                subscription.Tcs.SetResult(null);
+
+            await Task.Delay(500);
+        }
+    }
+    
+    public Task<MessageAndEffectResult?> Subscribe(EffectId effectId, MessagePredicate predicate, DateTime? timeout, EffectId timeoutId)
     {
         var tcs = new TaskCompletionSource<MessageAndEffectResult?>();
         lock (_lock)
-            _subscribers[effectId] = new Subscription(predicate, tcs, timeout);
+            _subscribers[effectId] = new Subscription(predicate, tcs, timeout, timeoutId);
+
+        if (timeout != null)
+            minimumTimeout.AddTimeout(timeoutId!, timeout.Value);
         
         TryToDeliver();
         
@@ -255,7 +260,7 @@ public class QueueManager(
 
     public record MessageWithPosition(object Message, long Position, string? IdempotencyKey);
     public record MessageAndEffectResult(object Message, EffectResult EffectResult);
-    private record Subscription(MessagePredicate Predicate, TaskCompletionSource<MessageAndEffectResult?> Tcs, DateTime? Timeout);
+    private record Subscription(MessagePredicate Predicate, TaskCompletionSource<MessageAndEffectResult?> Tcs, DateTime? Timeout, EffectId? TimeoutId);
 
     public void Dispose() => _disposed = true;
 }
