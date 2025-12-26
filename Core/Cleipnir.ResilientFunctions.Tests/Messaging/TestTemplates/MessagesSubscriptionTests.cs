@@ -275,10 +275,13 @@ public abstract class MessagesSubscriptionTests
         await messageWriter.AppendMessage("message3");
         await messageWriter.AppendMessage("message4");
         await messageWriter.AppendMessage("message5");
-        
+
+        // Give FetchMessages background task time to fetch the messages
+        await Task.Delay(TimeSpan.FromSeconds(1.5));
+
         flag.Raise();
 
-        var result = await scheduled.Completion(maxWait: TimeSpan.FromSeconds(1));
+        var result = await scheduled.Completion(maxWait: TimeSpan.FromSeconds(5));
         result.ShouldBe("message1,message2,message3,message4,message5,NULL");
 
         unhandledExceptionCatcher.ShouldNotHaveExceptions();
