@@ -222,18 +222,17 @@ public class SqlServerMessageStore : IMessageStore
 
     public async Task<Dictionary<StoredId, List<StoredMessage>>> GetMessages(IEnumerable<StoredId> storedIds)
     {
+        storedIds = storedIds.ToList();
+        
         await using var conn = await CreateConnection();
         await using var cmd = _sqlGenerator.GetMessages(storedIds).ToSqlCommand(conn);
         await using var reader = await cmd.ExecuteReaderAsync();
 
         var messages = await _sqlGenerator.ReadStoredIdsMessages(reader);
-        var storedMessages = new Dictionary<StoredId, List<StoredMessage>>();
+        var storedMessages = storedIds.ToDictionary(id => id, _ => new List<StoredMessage>());
         foreach (var id in messages.Keys)
-        {
-            storedMessages[id] = new();
             foreach (var (content, position) in messages[id])
                 storedMessages[id].Add(ConvertToStoredMessage(content, position));
-        }
 
         return storedMessages;
     }

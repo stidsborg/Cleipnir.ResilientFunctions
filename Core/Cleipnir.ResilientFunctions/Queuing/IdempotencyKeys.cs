@@ -14,52 +14,51 @@ internal class IdempotencyKeys(EffectId parentId, Effect effect, int maxCount, T
     private readonly Dictionary<int, Entry> _dictionary = new();
     private readonly Lock _lock = new();
     
-    public async Task Initialize()
+    public void Initialize()
     {
         var children = effect.GetChildren(parentId);
-        var now = utcNow().Ticks;
-        
+       
         foreach (var childId in children)
         {
             var value = effect.Get<Tuple<long, string, long?>>(childId);
-            if (value.Item1 < now)
-                await Remove(childId.Id);
-            else
-                _dictionary[childId.Id] = Entry.FromTuple(value);
-            
+            _dictionary[childId.Id] = Entry.FromTuple(value);
             _nextId = Math.Max(_nextId, childId.Id + 1);
         }
+        
+        CleanUp();
     }
 
-    public async Task Add(string idempotencyKey, long position)
+    public EffectResult? Add(string idempotencyKey, long position)
     {
+        CleanUp();
+
         var entry = new Entry(
             position,
             idempotencyKey,
-            keyTtl == null ? -1 : utcNow().Ticks + keyTtl.Value.Ticks
+            keyTtl == null ? null : utcNow().Ticks + keyTtl.Value.Ticks
         );
         int id;
         lock (_lock)
         {
             if (_dictionary.Any(e => e.Value.IdempotencyKey == idempotencyKey))
-                return;
+                return null;
             
             id = _nextId++;
             _dictionary[id] = entry;
         }
 
-        await effect.Upsert(parentId.CreateChild(id), entry.ToTuple(), alias: null, flush: false);
+        return new EffectResult(parentId.CreateChild(id), entry.ToTuple(), Alias: null);
     }
 
-    private async Task Remove(int id)
+    private void Remove(int id)
     {
         lock (_lock)
             _dictionary.Remove(id);
         
-        await effect.Clear(parentId.CreateChild(id), flush: false);
+        effect.ClearNoFlush(parentId.CreateChild(id));
     }
-
-    public async Task CleanUp()
+    
+    private void CleanUp()
     {
         var now = utcNow().Ticks;
         List<int> toRemove;
@@ -70,16 +69,16 @@ internal class IdempotencyKeys(EffectId parentId, Effect effect, int maxCount, T
                 .ToList();
         
         foreach (var id in toRemove)
-            await Remove(id);
+            Remove(id);
 
-        while (_dictionary.Count > maxCount)
-            await Remove(_dictionary.Keys.Min());
+        while (_dictionary.Count > maxCount) 
+            Remove(_dictionary.Keys.Min());
     }
 
-    public bool Contains(string idempotencyKey, long position)
+    public bool Contains(string idempotencyKey)
     {
         lock (_lock)
-            return _dictionary.Values.Any(s => s.IdempotencyKey == idempotencyKey && s.Position != position);
+            return _dictionary.Values.Any(s => s.IdempotencyKey == idempotencyKey);
     }
 
     private record Entry(long Position, string IdempotencyKey, long? Ttl)

@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
@@ -9,8 +10,8 @@ namespace Cleipnir.ResilientFunctions.Queuing;
 
 public class QueueClient(QueueManager queueManager, UtcNow utcNow)
 {
-    public Task<T?> Pull<T>(Workflow workflow, EffectId parentId) =>
-        Pull<T>(workflow, parentId, timeout: null);
+    public Task<T> Pull<T>(Workflow workflow, EffectId parentId) =>
+        Pull<T>(workflow, parentId, timeout: null)!;
     public Task<T?> Pull<T>(Workflow workflow, EffectId parentId, TimeSpan timeout)
         => Pull<T>(workflow, parentId, utcNow().Add(timeout));
     public Task<T?> Pull<T>(Workflow workflow, EffectId parentId, DateTime timeout)
@@ -42,11 +43,12 @@ public class QueueClient(QueueManager queueManager, UtcNow utcNow)
             }
 
             var (message, effectResult) = result;
-            await effect.Upserts([
-                effectResult,
-                new EffectResult(valueId, message, Alias: null), //todo how to align this with bytes already from received message
-                new EffectResult(typeId, message.GetType().SimpleQualifiedName(), Alias: null)
-            ], flush: false);
+            await effect.Upserts(effectResult.Concat([
+                    new EffectResult(valueId, message, Alias: null), //todo how to align this with bytes already from received message
+                    new EffectResult(typeId, message.GetType().SimpleQualifiedName(), Alias: null)
+                ]),
+                flush: false
+            );
 
             return (T)message;
         }

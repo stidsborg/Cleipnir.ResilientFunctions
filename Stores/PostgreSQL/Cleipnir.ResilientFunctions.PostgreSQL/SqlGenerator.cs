@@ -489,7 +489,8 @@ public class SqlGenerator(string tablePrefix)
         var sql = @$"
             SELECT content, position
             FROM {tablePrefix}_messages
-            WHERE id = $1 AND position != ALL($2);";
+            WHERE id = $1 AND position != ALL($2)
+            ORDER BY position;";
 
         var storeCommand = StoreCommand.Create(
             sql,
@@ -517,7 +518,8 @@ public class SqlGenerator(string tablePrefix)
         var sql = @$"
             SELECT id, position, content
             FROM {tablePrefix}_messages
-            WHERE id = ANY($1);";
+            WHERE id = ANY($1)
+            ORDER BY position;";
 
         var storeCommand = StoreCommand.Create(sql, values: [ storedIds.Select(id => id.AsGuid).ToArray() ]);
         return storeCommand;

@@ -383,6 +383,18 @@ public class EffectResults
         if (flush)
             await Flush();
     }
+    
+    public void ClearNoFlush(EffectId effectId)
+    {
+        lock (_sync)
+            if (_effectResults.ContainsKey(effectId))
+                AddToPending(
+                    effectId,
+                    storedEffect: null,
+                    delete: true,
+                    clearChildren: true
+                );
+    }
 
     private void AddToPending(IEnumerable<StoredEffect> storedEffects)
     {
@@ -481,7 +493,7 @@ public class EffectResults
             _flushSync.Release();
         }
         
-        QueueManager?.AfterFlush();
+        await (QueueManager?.AfterFlush() ?? Task.CompletedTask);
     }
 
     public bool IsDirty(EffectId effectId)

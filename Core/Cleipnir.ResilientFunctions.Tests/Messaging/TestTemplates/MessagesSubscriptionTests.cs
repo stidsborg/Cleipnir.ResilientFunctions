@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime;
@@ -221,6 +222,68 @@ public abstract class MessagesSubscriptionTests
         unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
 
+    public abstract Task QueueClientPullsFiveMessagesAndTimesOutOnSixth();
+    protected async Task QueueClientPullsFiveMessagesAndTimesOutOnSixth(Task<IFunctionStore> functionStoreTask)
+    {
+        var functionStore = await functionStoreTask;
+        var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
+        var unhandledExceptionHandler = new UnhandledExceptionHandler(unhandledExceptionCatcher.Catch);
+        using var functionsRegistry = new FunctionsRegistry(
+            functionStore,
+            new Settings(unhandledExceptionCatcher.Catch)
+        );
+
+        var flag = new SyncedFlag();
+        
+        var rFunc = functionsRegistry.RegisterFunc(
+            nameof(QueueClientPullsFiveMessagesAndTimesOutOnSixth),
+            inner: async Task<string> (string _, Workflow workflow) =>
+            {
+                var queueManager = new QueueManager(
+                    workflow.FlowId,
+                    workflow.StoredId,
+                    functionStore.MessageStore,
+                    DefaultSerializer.Instance,
+                    workflow.Effect,
+                    unhandledExceptionHandler,
+                    new FlowMinimumTimeout(),
+                    () => DateTime.UtcNow
+                );
+                await queueManager.Initialize();
+
+                var queueClient = new QueueClient(queueManager, () => DateTime.UtcNow);
+                var messages = new List<string>();
+
+                await flag.WaitForRaised();
+                
+                for (var i = 0; i < 6; i++)
+                {
+                    var message = await queueClient.Pull<string>(workflow, workflow.Effect.CreateNextImplicitId(), TimeSpan.FromMilliseconds(250));
+                    messages.Add(message ?? "NULL");
+                }
+
+                return string.Join(",", messages);
+            }
+        );
+
+        var scheduled = await rFunc.Schedule("instanceId", "");
+        var messageWriter = rFunc.MessageWriters.For("instanceId".ToFlowInstance());
+
+        // Send 5 messages
+        await messageWriter.AppendMessage("message1");
+        await messageWriter.AppendMessage("message2");
+        await messageWriter.AppendMessage("message3");
+        await messageWriter.AppendMessage("message4");
+        await messageWriter.AppendMessage("message5");
+        
+        flag.Raise();
+
+        var result = await scheduled.Completion(maxWait: TimeSpan.FromSeconds(1));
+        result.ShouldBe("message1,message2,message3,message4,message5,NULL");
+
+        unhandledExceptionCatcher.ShouldNotHaveExceptions();
+    }
+
     public abstract Task OnlyFirstMessageWithSameIdempotencyKeyIsDeliveredAndBothAreRemovedAfterCompletion();
     protected async Task OnlyFirstMessageWithSameIdempotencyKeyIsDeliveredAndBothAreRemovedAfterCompletion(Task<IFunctionStore> functionStoreTask)
     {
@@ -235,7 +298,7 @@ public abstract class MessagesSubscriptionTests
         StoredId? storedId = null;
         var rFunc = functionsRegistry.RegisterFunc(
             nameof(OnlyFirstMessageWithSameIdempotencyKeyIsDeliveredAndBothAreRemovedAfterCompletion),
-            inner: async Task<Tuple<string?, string?>> (string _, Workflow workflow) =>
+            inner: async Task<Tuple<string, string?>> (string _, Workflow workflow) =>
             {
                 storedId = workflow.StoredId;
                 var queueManager = new QueueManager(
@@ -278,6 +341,94 @@ public abstract class MessagesSubscriptionTests
         // Verify both messages are removed from the store after completion
         var messagesAfterCompletion = await functionStore.MessageStore.GetMessages(storedId!, skip: 0);
         messagesAfterCompletion.ShouldBeEmpty();
+
+        unhandledExceptionCatcher.ShouldNotHaveExceptions();
+    }
+
+    public abstract Task MultipleIterationsWithDuplicateIdempotencyKeysProcessCorrectly();
+    protected async Task MultipleIterationsWithDuplicateIdempotencyKeysProcessCorrectly(Task<IFunctionStore> functionStoreTask)
+    {
+        var functionStore = await functionStoreTask;
+        var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
+        var unhandledExceptionHandler = new UnhandledExceptionHandler(unhandledExceptionCatcher.Catch);
+        using var functionsRegistry = new FunctionsRegistry(
+            functionStore,
+            new Settings(unhandledExceptionCatcher.Catch, watchdogCheckFrequency: TimeSpan.FromMilliseconds(100))
+        );
+
+        StoredId? storedId = null;
+        var rFunc = functionsRegistry.RegisterFunc(
+            nameof(MultipleIterationsWithDuplicateIdempotencyKeysProcessCorrectly),
+            inner: async Task<string> (string _, Workflow workflow) =>
+            {
+                storedId = workflow.StoredId;
+                var queueManager = new QueueManager(
+                    workflow.FlowId,
+                    workflow.StoredId,
+                    functionStore.MessageStore,
+                    DefaultSerializer.Instance,
+                    workflow.Effect,
+                    unhandledExceptionHandler,
+                    new FlowMinimumTimeout(),
+                    () => DateTime.UtcNow
+                );
+                await queueManager.Initialize();
+
+                var queueClient = new QueueClient(queueManager, () => DateTime.UtcNow);
+                var receivedMessages = new List<string>();
+
+                // Pull messages until timeout - expecting 60 unique messages
+                var message = "";
+                while (message != "stop")
+                {
+                    message = await queueClient.Pull<string>(
+                        workflow,
+                        workflow.Effect.CreateNextImplicitId(),
+                        TimeSpan.FromMilliseconds(100)
+                    );
+                    
+                    if (message is null)
+                        await workflow.Effect.Flush();
+                    else if (message is "10" or "20" or "30" or "40")
+                    {
+                        await workflow.Delay(TimeSpan.FromMilliseconds(100));
+                        receivedMessages.Add(message);
+                    }
+                    else if (message != "stop")
+                        receivedMessages.Add(message);
+                }
+
+                return string.Join(",", receivedMessages);
+            }
+        );
+
+        // Schedule the function first
+        var scheduled = await rFunc.Schedule("instanceId", "");
+        var messageWriter = rFunc.MessageWriters.For("instanceId".ToFlowInstance());
+        for (var iteration = 0; iteration < 100; iteration += 10)
+            for (var repeat = 0; repeat < 2; repeat++)
+                for (var i = 0; i < 10; i++)
+                await messageWriter.AppendMessage((iteration + i).ToString(), idempotencyKey: ((iteration + i) % 50).ToString());
+        
+        await BusyWait.Until(() => storedId != null);
+        await BusyWait.Until(async () => await functionStore.MessageStore.GetMessages([storedId!]).SelectAsync(m => m[storedId!].Count) == 0, maxWait: TimeSpan.FromSeconds(10));
+        await messageWriter.AppendMessage("stop");
+        
+        // Wait for completion
+        var result = await scheduled.Completion(maxWait: TimeSpan.FromSeconds(10));
+        var receivedMessages = result
+            .Split(',')
+            .Select(int.Parse)
+            .OrderBy(_ => _)
+            .ToList();
+
+        receivedMessages.Count.ShouldBe(50);
+        for (var i = 0; i < 50; i++)
+            receivedMessages[i].ShouldBe(i);
+        
+        await BusyWait.Until(
+            async () => await functionStore.MessageStore.GetMessages(storedId!, skip: 0).SelectAsync(m => m.Count) == 0
+        );
 
         unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }

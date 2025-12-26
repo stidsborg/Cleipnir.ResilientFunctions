@@ -31,7 +31,7 @@ public interface IFunctionStore
         IReadOnlyList<StoredMessage>? messages = null
     );
     
-    Task BulkScheduleFunctions(
+    Task<int> BulkScheduleFunctions(
         IEnumerable<IdWithParam> functionsWithParam,
         StoredId? parent
     );

@@ -92,13 +92,15 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         }
     }
 
-    public Task BulkScheduleFunctions(IEnumerable<IdWithParam> functionsWithParam, StoredId? parent)
+    public Task<int> BulkScheduleFunctions(IEnumerable<IdWithParam> functionsWithParam, StoredId? parent)
     {
+        var insertedCount = 0;
         lock (_sync)
         {
             foreach (var (functionId, humanInstanceId, param) in functionsWithParam)
             {
                 if (!_states.ContainsKey(functionId))
+                {
                     _states[functionId] = new InnerState
                     {
                         StoredId = functionId,
@@ -110,10 +112,12 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
                         Status = Status.Postponed,
                         Parent = parent
                     };
+                    insertedCount++;
+                }
             }
         }
 
-        return Task.CompletedTask;
+        return Task.FromResult(insertedCount);
     }
 
     public virtual async Task<StoredFlowWithEffectsAndMessages?> RestartExecution(StoredId storedId, ReplicaId owner)

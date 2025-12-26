@@ -33,6 +33,7 @@ public class QueueManager(
     private readonly EffectId _toRemoveNextIndex = new([-1, 0]);
     private readonly EffectId _idempotencyKeysId = new([-1, -1]);
     private readonly List<MessageWithPosition> _toDeliver = new();
+    private readonly HashSet<long> _deliveredPositions = new();
 
     private IdempotencyKeys? _idempotencyKeys;
     private int _nextToRemoveIndex = 0;
@@ -44,7 +45,8 @@ public class QueueManager(
     {
         effect.RegisterQueueManager(this);
 
-        _idempotencyKeys = new IdempotencyKeys(_idempotencyKeysId, effect, maxIdempotencyKeyCount, maxIdempotencyKeyTtl, utcNow);
+        _idempotencyKeys = new IdempotencyKeys(_idempotencyKeysId, effect, maxIdempotencyKeyCount, maxIdempotencyKeyTtl, utcNow); 
+        _idempotencyKeys.Initialize();
         
         _nextToRemoveIndex = await effect.CreateOrGet(_toRemoveNextIndex, 0, alias: null, flush: false);
         var children = effect.GetChildren(_toRemoveNextIndex);
@@ -71,29 +73,33 @@ public class QueueManager(
         {
             List<long> skipPositions;
             lock (_lock)
-                skipPositions = _toDeliver.Select(m => m.Position).ToList();
-            
+                skipPositions = _toDeliver.Select(m => m.Position).Concat(_deliveredPositions).ToList();
+
             var messages = await messageStore.GetMessages(storedId, skipPositions);
-            var toRemove = new List<long>();
             
             foreach (var (messageContent, messageType, position, idempotencyKey) in messages)
             {
-                if (idempotencyKey != null && _idempotencyKeys!.Contains(idempotencyKey, position))
+                if (idempotencyKey != null && _idempotencyKeys!.Contains(idempotencyKey))
                 {
-                    toRemove.Add(position);
+                    await messageStore.DeleteMessages(storedId, [position]);
                     continue;
                 }
-                if (idempotencyKey != null)
-                    await _idempotencyKeys!.Add(idempotencyKey, position);
-                
+
+                var idempotencyKeyResult = idempotencyKey == null
+                    ? null
+                    : _idempotencyKeys!.Add(idempotencyKey, position);
+
+                if (idempotencyKey != null && idempotencyKeyResult == null)
+                {
+                    await messageStore.DeleteMessages(storedId, [position]);
+                    continue;
+                }
+
                 var msg = serializer.DeserializeMessage(messageContent, messageType);
-                var msgWithPosition = new MessageWithPosition(msg, position, idempotencyKey);
+                var msgWithPosition = new MessageWithPosition(msg, position, idempotencyKeyResult);
                 lock (_lock)
                     _toDeliver.Add(msgWithPosition);
             }
-
-            if (toRemove.Any())
-                await messageStore.DeleteMessages(storedId, toRemove);
             
             if (messages.Any())
                 TryToDeliver();
@@ -146,6 +152,10 @@ public class QueueManager(
                     await messageStore.DeleteMessages(storedId, positions);
                     foreach (var nonDirtyChild in nonDirtyChildren)
                         await effect.Clear(nonDirtyChild, flush: false);
+                    
+                    lock (_lock)
+                        foreach (var position in positions)
+                            _deliveredPositions.Remove(position);
                 }
 
                 lock (_lock)
@@ -172,17 +182,30 @@ public class QueueManager(
 
     private void TryToDeliver()
     {
+        List<MessageWithPosition> messagesToDeliver;
+        List<KeyValuePair<EffectId, Subscription>> subscribers;
         lock (_lock)
+        {
             if (_delivering)
                 return;
             else
                 _delivering = true;
 
+            messagesToDeliver = _toDeliver.ToList();
+            subscribers = _subscribers.ToList();
+        }
+
         StartAgain:
+        lock (_lock)
+        {
+            messagesToDeliver = _toDeliver.ToList();
+            subscribers = _subscribers.ToList();
+        }
+
         try
         {
-            foreach (var messageWithPosition in _toDeliver.ToList())
-            foreach (var idAndSubscription in _subscribers.ToList())
+            foreach (var messageWithPosition in messagesToDeliver)
+            foreach (var idAndSubscription in subscribers)
             {
                 var (effectId, subscription) = idAndSubscription;
                 if (subscription.Predicate(messageWithPosition.Message))
@@ -194,6 +217,7 @@ public class QueueManager(
                             continue;
 
                         _toDeliver.Remove(messageWithPosition);
+                        _deliveredPositions.Add(messageWithPosition.Position);
                         _subscribers.Remove(effectId);
                         toRemoveIndex = _nextToRemoveIndex++;
                     }
@@ -201,9 +225,11 @@ public class QueueManager(
                     effect.Upsert(_toRemoveNextIndex, toRemoveIndex, alias: null, flush: false);
 
                     var toRemoveId = new EffectId([-1, 0, toRemoveIndex]);
-                    var msg = new MessageAndEffectResult(
+                    var msg = new MessageAndEffectResults(
                         messageWithPosition.Message,
-                        new EffectResult(toRemoveId, messageWithPosition.Position, Alias: null)
+                        messageWithPosition.IdempotencyKeyResult == null
+                        ? [new EffectResult(toRemoveId, messageWithPosition.Position, Alias: null)]
+                        : [new EffectResult(toRemoveId, messageWithPosition.Position, Alias: null), messageWithPosition.IdempotencyKeyResult]
                     );
                     subscription.Tcs.SetResult(msg);
 
@@ -244,9 +270,9 @@ public class QueueManager(
         }
     }
     
-    public Task<MessageAndEffectResult?> Subscribe(EffectId effectId, MessagePredicate predicate, DateTime? timeout, EffectId timeoutId)
+    public Task<MessageAndEffectResults?> Subscribe(EffectId effectId, MessagePredicate predicate, DateTime? timeout, EffectId timeoutId)
     {
-        var tcs = new TaskCompletionSource<MessageAndEffectResult?>();
+        var tcs = new TaskCompletionSource<MessageAndEffectResults?>();
         lock (_lock)
             _subscribers[effectId] = new Subscription(predicate, tcs, timeout, timeoutId);
 
@@ -258,9 +284,9 @@ public class QueueManager(
         return tcs.Task;
     }
 
-    public record MessageWithPosition(object Message, long Position, string? IdempotencyKey);
-    public record MessageAndEffectResult(object Message, EffectResult EffectResult);
-    private record Subscription(MessagePredicate Predicate, TaskCompletionSource<MessageAndEffectResult?> Tcs, DateTime? Timeout, EffectId? TimeoutId);
+    public record MessageWithPosition(object Message, long Position, EffectResult? IdempotencyKeyResult);
+    public record MessageAndEffectResults(object Message, IEnumerable<EffectResult> EffectResults);
+    private record Subscription(MessagePredicate Predicate, TaskCompletionSource<MessageAndEffectResults?> Tcs, DateTime? Timeout, EffectId? TimeoutId);
 
     public void Dispose() => _disposed = true;
 }

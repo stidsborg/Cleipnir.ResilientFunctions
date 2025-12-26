@@ -237,6 +237,7 @@ public class Effect(EffectResults effectResults, UtcNow utcNow, FlowMinimumTimeo
     }
 
     internal async Task Clear(EffectId id, bool flush) => await effectResults.Clear(id, flush);
+    internal void ClearNoFlush(EffectId id) => effectResults.ClearNoFlush(id);
     internal bool IsDirty(EffectId id) => effectResults.IsDirty(id);
     
     public async Task<TSeed> AggregateEach<T, TSeed>(

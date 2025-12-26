@@ -24,6 +24,14 @@ public class MessagesSubscriptionTests : TestTemplates.MessagesSubscriptionTests
         => QueueClientReturnsNullAfterTimeout(FunctionStoreFactory.Create());
 
     [TestMethod]
+    public override Task QueueClientPullsFiveMessagesAndTimesOutOnSixth()
+        => QueueClientPullsFiveMessagesAndTimesOutOnSixth(FunctionStoreFactory.Create());
+
+    [TestMethod]
     public override Task OnlyFirstMessageWithSameIdempotencyKeyIsDeliveredAndBothAreRemovedAfterCompletion()
         => OnlyFirstMessageWithSameIdempotencyKeyIsDeliveredAndBothAreRemovedAfterCompletion(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task MultipleIterationsWithDuplicateIdempotencyKeysProcessCorrectly()
+        => MultipleIterationsWithDuplicateIdempotencyKeysProcessCorrectly(FunctionStoreFactory.Create());
 }

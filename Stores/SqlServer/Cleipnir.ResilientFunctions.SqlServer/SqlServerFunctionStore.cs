@@ -207,10 +207,10 @@ public class SqlServerFunctionStore : IFunctionStore
         }
     }
 
-    public async Task BulkScheduleFunctions(IEnumerable<IdWithParam> functionsWithParam, StoredId? parent)
+    public async Task<int> BulkScheduleFunctions(IEnumerable<IdWithParam> functionsWithParam, StoredId? parent)
     {
         var functions = functionsWithParam.ToList();
-        if (functions.Count == 0) return;
+        if (functions.Count == 0) return 0;
 
         await using var conn = await _connFunc();
 
@@ -267,7 +267,8 @@ public class SqlServerFunctionStore : IFunctionStore
             );";
 
             await using var cmd = new SqlCommand(insertSql, conn);
-            await cmd.ExecuteNonQueryAsync();
+            var affectedRows = await cmd.ExecuteNonQueryAsync();
+            return affectedRows;
         }
     }
     

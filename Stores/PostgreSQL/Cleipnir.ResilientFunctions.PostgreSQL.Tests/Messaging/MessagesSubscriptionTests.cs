@@ -23,6 +23,14 @@ public class MessagesSubscriptionTests : Cleipnir.ResilientFunctions.Tests.Messa
         => QueueClientReturnsNullAfterTimeout(FunctionStoreFactory.Create());
 
     [TestMethod]
+    public override Task QueueClientPullsFiveMessagesAndTimesOutOnSixth()
+        => QueueClientPullsFiveMessagesAndTimesOutOnSixth(FunctionStoreFactory.Create());
+
+    [TestMethod]
     public override Task OnlyFirstMessageWithSameIdempotencyKeyIsDeliveredAndBothAreRemovedAfterCompletion()
         => OnlyFirstMessageWithSameIdempotencyKeyIsDeliveredAndBothAreRemovedAfterCompletion(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task MultipleIterationsWithDuplicateIdempotencyKeysProcessCorrectly()
+        => MultipleIterationsWithDuplicateIdempotencyKeysProcessCorrectly(FunctionStoreFactory.Create());
 }

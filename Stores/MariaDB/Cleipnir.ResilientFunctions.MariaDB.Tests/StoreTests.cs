@@ -142,7 +142,15 @@ public class StoreTests : ResilientFunctions.Tests.TestTemplates.StoreTests
     [TestMethod]
     public override Task BulkScheduleInsertsAllFunctionsSuccessfully()
         => BulkScheduleInsertsAllFunctionsSuccessfully(FunctionStoreFactory.Create());
-    
+
+    [TestMethod]
+    public override Task BulkScheduleDoesNotCountExistingFunctions()
+        => BulkScheduleDoesNotCountExistingFunctions(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task BulkScheduleWithEmptyCollectionReturnsZero()
+        => BulkScheduleWithEmptyCollectionReturnsZero(FunctionStoreFactory.Create());
+
     [TestMethod]
     public override Task DifferentTypesAreFetchedByGetExpiredFunctionsCall()
         => DifferentTypesAreFetchedByGetExpiredFunctionsCall(FunctionStoreFactory.Create());

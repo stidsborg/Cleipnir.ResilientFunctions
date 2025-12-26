@@ -289,6 +289,8 @@ public class MariaDbMessageStore : IMessageStore
 
     public async Task<Dictionary<StoredId, List<StoredMessage>>> GetMessages(IEnumerable<StoredId> storedIds)
     {
+        storedIds = storedIds.ToList();
+        
         await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
         await using var command = _sqlGenerator
             .GetMessages(storedIds)
@@ -297,13 +299,11 @@ public class MariaDbMessageStore : IMessageStore
         await using var reader = await command.ExecuteReaderAsync();
 
         var messages = await _sqlGenerator.ReadStoredIdsMessages(reader);
-        var storedMessages = new Dictionary<StoredId, List<StoredMessage>>();
+        var storedMessages = storedIds.ToDictionary(id => id, _ => new List<StoredMessage>());
+        
         foreach (var id in messages.Keys)
-        {
-            storedMessages[id] = new();
-            foreach (var (content, position) in messages[id])
-                storedMessages[id].Add(ConvertToStoredMessage(content, position));
-        }
+        foreach (var (content, position) in messages[id])
+            storedMessages[id].Add(ConvertToStoredMessage(content, position));
 
         return storedMessages;
     }
