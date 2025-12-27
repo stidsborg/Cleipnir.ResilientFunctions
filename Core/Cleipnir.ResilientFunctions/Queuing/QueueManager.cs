@@ -185,15 +185,8 @@ public class QueueManager(
         List<MessageWithPosition> messagesToDeliver;
         List<KeyValuePair<EffectId, Subscription>> subscribers;
         lock (_lock)
-        {
             if (_delivering)
                 return;
-            else
-                _delivering = true;
-
-            messagesToDeliver = _toDeliver.ToList();
-            subscribers = _subscribers.ToList();
-        }
 
         StartAgain:
         lock (_lock)
