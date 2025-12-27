@@ -4,6 +4,7 @@ using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Exceptions.Commands;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
+using Cleipnir.ResilientFunctions.Queuing;
 using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
@@ -17,10 +18,11 @@ public class Workflow
     public Utilities Utilities { get; }
     public Correlations Correlations { get; }
     public Synchronization Synchronization { get; }
+    private QueueManager _queueManager;
     private readonly UtcNow _utcNow;
-    
-    
-    public Workflow(FlowId flowId, StoredId storedId, Messages messages, Effect effect, Utilities utilities, Correlations correlations, DistributedSemaphores semaphores, UtcNow utcNow)
+
+
+    public Workflow(FlowId flowId, StoredId storedId, Messages messages, Effect effect, Utilities utilities, Correlations correlations, DistributedSemaphores semaphores, QueueManager queueManager, UtcNow utcNow)
     {
         FlowId = flowId;
         StoredId = storedId;
@@ -29,6 +31,7 @@ public class Workflow
         Effect = effect;
         Correlations = correlations;
         Synchronization = new Synchronization(semaphores);
+        _queueManager = queueManager;
         _utcNow = utcNow;
     }
 

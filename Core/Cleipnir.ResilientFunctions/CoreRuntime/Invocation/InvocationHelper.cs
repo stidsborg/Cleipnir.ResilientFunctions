@@ -8,6 +8,7 @@ using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
+using Cleipnir.ResilientFunctions.Queuing;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Storage.Session;
 
@@ -458,7 +459,10 @@ internal class InvocationHelper<TParam, TReturn>
 
     public DistributedSemaphores CreateSemaphores(StoredId storedId, Effect effect)
         => new(effect, _functionStore.SemaphoreStore, storedId, Interrupt);
-    
+
+    public QueueManager CreateQueueManager(FlowId flowId, StoredId storedId, Effect effect, FlowMinimumTimeout minimumTimeout, UnhandledExceptionHandler unhandledExceptionHandler)
+        => new(flowId, storedId, _functionStore.MessageStore, Serializer, effect, unhandledExceptionHandler, minimumTimeout, UtcNow);
+
     public StoredId MapToStoredId(FlowId flowId) => StoredId.Create(_storedType, flowId.Instance.Value);
     
     private byte[]? SerializeParameter(TParam param)
