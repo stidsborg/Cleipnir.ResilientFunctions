@@ -66,6 +66,11 @@ public class QueueManager(
         _ = Task.Run(FetchMessages);
         _ = Task.Run(CheckTimeouts);
     }
+
+    public QueueClient CreateQueueClient()
+    {
+        return new QueueClient(this, utcNow);
+    }
     
     public async Task FetchMessages()
     {
@@ -187,6 +192,8 @@ public class QueueManager(
         lock (_lock)
             if (_delivering)
                 return;
+            else
+                _delivering = true;
 
         StartAgain:
         lock (_lock)

@@ -34,4 +34,8 @@ public class MessagesSubscriptionTests : TestTemplates.MessagesSubscriptionTests
     [TestMethod]
     public override Task MultipleIterationsWithDuplicateIdempotencyKeysProcessCorrectly()
         => MultipleIterationsWithDuplicateIdempotencyKeysProcessCorrectly(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task QueueClientFilterParameterFiltersMessages()
+        => QueueClientFilterParameterFiltersMessages(FunctionStoreFactory.Create());
 }

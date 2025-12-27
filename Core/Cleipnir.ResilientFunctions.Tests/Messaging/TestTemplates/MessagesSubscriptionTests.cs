@@ -389,7 +389,7 @@ public abstract class MessagesSubscriptionTests
                         workflow.Effect.CreateNextImplicitId(),
                         TimeSpan.FromMilliseconds(100)
                     );
-                    
+
                     if (message is null)
                         await workflow.Effect.Flush();
                     else if (message is "10" or "20" or "30" or "40")
@@ -412,11 +412,11 @@ public abstract class MessagesSubscriptionTests
             for (var repeat = 0; repeat < 2; repeat++)
                 for (var i = 0; i < 10; i++)
                 await messageWriter.AppendMessage((iteration + i).ToString(), idempotencyKey: ((iteration + i) % 50).ToString());
-        
+
         await BusyWait.Until(() => storedId != null);
         await BusyWait.Until(async () => await functionStore.MessageStore.GetMessages([storedId!]).SelectAsync(m => m[storedId!].Count) == 0, maxWait: TimeSpan.FromSeconds(10));
         await messageWriter.AppendMessage("stop");
-        
+
         // Wait for completion
         var result = await scheduled.Completion(maxWait: TimeSpan.FromSeconds(10));
         var receivedMessages = result
@@ -428,10 +428,80 @@ public abstract class MessagesSubscriptionTests
         receivedMessages.Count.ShouldBe(50);
         for (var i = 0; i < 50; i++)
             receivedMessages[i].ShouldBe(i);
-        
+
         await BusyWait.Until(
             async () => await functionStore.MessageStore.GetMessages(storedId!, skip: 0).SelectAsync(m => m.Count) == 0
         );
+
+        unhandledExceptionCatcher.ShouldNotHaveExceptions();
+    }
+
+    public abstract Task QueueClientFilterParameterFiltersMessages();
+    protected async Task QueueClientFilterParameterFiltersMessages(Task<IFunctionStore> functionStoreTask)
+    {
+        var functionStore = await functionStoreTask;
+        var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
+        var unhandledExceptionHandler = new UnhandledExceptionHandler(unhandledExceptionCatcher.Catch);
+        using var functionsRegistry = new FunctionsRegistry(
+            functionStore,
+            new Settings(unhandledExceptionCatcher.Catch)
+        );
+
+        var rFunc = functionsRegistry.RegisterFunc(
+            nameof(QueueClientFilterParameterFiltersMessages),
+            inner: async Task<string> (string _, Workflow workflow) =>
+            {
+                var queueManager = new QueueManager(
+                    workflow.FlowId,
+                    workflow.StoredId,
+                    functionStore.MessageStore,
+                    DefaultSerializer.Instance,
+                    workflow.Effect,
+                    unhandledExceptionHandler,
+                    new FlowMinimumTimeout(),
+                    () => DateTime.UtcNow
+                );
+                await queueManager.Initialize();
+
+                var queueClient = new QueueClient(queueManager, () => DateTime.UtcNow);
+
+                // Pull only messages that start with "even-"
+                var message1 = await queueClient.Pull<string>(
+                    workflow,
+                    workflow.Effect.CreateNextImplicitId(),
+                    filter: m => m.StartsWith("even-")
+                );
+
+                var message2 = await queueClient.Pull<string>(
+                    workflow,
+                    workflow.Effect.CreateNextImplicitId(),
+                    filter: m => m.StartsWith("even-")
+                );
+
+                var message3 = await queueClient.Pull<string>(
+                    workflow,
+                    workflow.Effect.CreateNextImplicitId(),
+                    filter: m => m.StartsWith("even-")
+                );
+
+                return $"{message1},{message2},{message3}";
+            }
+        );
+
+        var scheduled = await rFunc.Schedule("instanceId", "");
+        var messageWriter = rFunc.MessageWriters.For("instanceId".ToFlowInstance());
+
+        // Send mixed messages - odd and even
+        await messageWriter.AppendMessage("odd-1");
+        await messageWriter.AppendMessage("even-2");
+        await messageWriter.AppendMessage("odd-3");
+        await messageWriter.AppendMessage("even-4");
+        await messageWriter.AppendMessage("odd-5");
+        await messageWriter.AppendMessage("even-6");
+
+        var result = await scheduled.Completion(maxWait: TimeSpan.FromSeconds(5));
+        // Should only receive the even messages, filtered out the odd ones
+        result.ShouldBe("even-2,even-4,even-6");
 
         unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }

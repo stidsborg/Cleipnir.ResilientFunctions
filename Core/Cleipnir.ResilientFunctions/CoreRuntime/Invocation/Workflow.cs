@@ -76,6 +76,42 @@ public class Workflow
             throw new SuspendInvocationException();                
     }
 
+    public Task<T> Message<T>()
+    {
+        var effectId = Effect.CreateNextImplicitId();
+        return _queueManager.CreateQueueClient().Pull<T>(this, effectId, filter: null);
+    }
+    
+    public Task<T?> Message<T>(DateTime waitUntil)
+    {
+        var effectId = Effect.CreateNextImplicitId();
+        return _queueManager.CreateQueueClient().Pull<T>(this, effectId, waitUntil, filter: null);
+    }
+
+    public Task<T?> Message<T>(TimeSpan waitFor)
+    {
+        var effectId = Effect.CreateNextImplicitId();
+        return _queueManager.CreateQueueClient().Pull<T>(this, effectId, waitFor, filter: null);
+    }
+
+    public Task<T> Message<T>(Func<T, bool> filter)
+    {
+        var effectId = Effect.CreateNextImplicitId();
+        return _queueManager.CreateQueueClient().Pull<T>(this, effectId, filter);
+    }
+    
+    public Task<T?> Message<T>(Func<T, bool> filter, DateTime waitUntil)
+    {
+        var effectId = Effect.CreateNextImplicitId();
+        return _queueManager.CreateQueueClient().Pull<T>(this, effectId, waitUntil, filter);
+    }
+    
+    public Task<T?> Message<T>(Func<T, bool> filter, TimeSpan waitFor)
+    {
+        var effectId = Effect.CreateNextImplicitId();
+        return _queueManager.CreateQueueClient().Pull<T>(this, effectId, waitFor, filter);
+    }
+
     public string ExecutionTree()
     {
         return $"{FlowId} ({StoredId}):" + Environment.NewLine + Effect.ExecutionTree();

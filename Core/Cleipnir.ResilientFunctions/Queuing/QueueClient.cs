@@ -10,14 +10,14 @@ namespace Cleipnir.ResilientFunctions.Queuing;
 
 public class QueueClient(QueueManager queueManager, UtcNow utcNow)
 {
-    public Task<T> Pull<T>(Workflow workflow, EffectId parentId) =>
-        Pull<T>(workflow, parentId, timeout: null)!;
-    public Task<T?> Pull<T>(Workflow workflow, EffectId parentId, TimeSpan timeout)
-        => Pull<T>(workflow, parentId, utcNow().Add(timeout));
-    public Task<T?> Pull<T>(Workflow workflow, EffectId parentId, DateTime timeout)
-        => Pull<T>(workflow, parentId, (DateTime?) timeout);
+    public Task<T> Pull<T>(Workflow workflow, EffectId parentId, Func<T, bool>? filter = null) =>
+        Pull<T>(filter, workflow, parentId, timeout: null)!;
+    public Task<T?> Pull<T>(Workflow workflow, EffectId parentId, TimeSpan timeout, Func<T, bool>? filter = null)
+        => Pull<T>(filter, workflow, parentId, utcNow().Add(timeout));
+    public Task<T?> Pull<T>(Workflow workflow, EffectId parentId, DateTime timeout, Func<T, bool>? filter = null)
+        => Pull<T>(filter, workflow, parentId, (DateTime?) timeout);
     
-    private async Task<T?> Pull<T>(Workflow workflow, EffectId parentId, DateTime? timeout)
+    private async Task<T?> Pull<T>(Func<T, bool>? filter, Workflow workflow, EffectId parentId, DateTime? timeout)
     {
         var effect = workflow.Effect;
         var valueId = parentId.CreateChild(0);
@@ -28,7 +28,7 @@ public class QueueClient(QueueManager queueManager, UtcNow utcNow)
         {
             var result = await queueManager.Subscribe(
                 valueId, 
-                m => m is T, 
+                m => m is T t && (filter?.Invoke(t) ?? true), 
                 timeout,
                 timeoutId
             );
