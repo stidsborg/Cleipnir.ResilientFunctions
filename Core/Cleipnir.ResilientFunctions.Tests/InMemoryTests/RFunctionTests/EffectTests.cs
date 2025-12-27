@@ -145,4 +145,8 @@ public class EffectTests : TestTemplates.FunctionTests.EffectTests
     [TestMethod]
     public override Task GetChildrenReturnsAllDescendants()
         => GetChildrenReturnsAllDescendants(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task RunParallelleTest()
+        => RunParallelleTest(FunctionStoreFactory.Create());
 }

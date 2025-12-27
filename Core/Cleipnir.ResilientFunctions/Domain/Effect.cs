@@ -275,4 +275,6 @@ public class Effect(EffectResults effectResults, UtcNow utcNow, FlowMinimumTimeo
     internal void RegisterQueueManager(QueueManager queueManager) => effectResults.QueueManager = queueManager;
 
     internal string ExecutionTree() => EffectPrinter.Print(effectResults);
+
+    public Task<T> RunParallelle<T>(Func<Task<T>> work) => Capture(() => Task.Run(work));
 }

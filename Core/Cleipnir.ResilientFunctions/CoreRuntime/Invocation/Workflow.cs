@@ -112,6 +112,8 @@ public class Workflow
         return _queueManager.CreateQueueClient().Pull<T>(this, effectId, waitFor, filter);
     }
 
+    public Task<T> Parallelle<T>(Func<Task<T>> work) => Effect.RunParallelle(work);
+
     public string ExecutionTree()
     {
         return $"{FlowId} ({StoredId}):" + Environment.NewLine + Effect.ExecutionTree();

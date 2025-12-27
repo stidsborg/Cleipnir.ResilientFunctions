@@ -144,4 +144,8 @@ public class EffectTests : ResilientFunctions.Tests.TestTemplates.FunctionTests.
     [TestMethod]
     public override Task GetChildrenReturnsAllDescendants()
         => GetChildrenReturnsAllDescendants(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task RunParallelleTest()
+        => RunParallelleTest(FunctionStoreFactory.Create());
 }

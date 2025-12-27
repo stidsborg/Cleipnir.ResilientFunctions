@@ -1455,4 +1455,57 @@ public abstract class EffectTests
         children.ShouldContain(300);
         children.ShouldNotContain(400);
     }
+
+    public abstract Task RunParallelleTest();
+    public async Task RunParallelleTest(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        using var functionsRegistry = new FunctionsRegistry(store);
+        var flowId = TestFlowId.Create();
+        var (flowType, flowInstance) = flowId;
+        var syncedCounter = new SyncedCounter();
+
+        var rFunc = functionsRegistry.RegisterFunc(
+            flowType,
+            async Task<int> (string param, Workflow workflow) =>
+            {
+                var (effect, _) = workflow;
+                var task1 = effect.RunParallelle(async () =>
+                {
+                    syncedCounter.Increment();
+                    await Task.Delay(100);
+                    return 42;
+                });
+
+                var task2 = effect.RunParallelle(async () =>
+                {
+                    syncedCounter.Increment();
+                    await Task.Delay(10);
+                    return 100;
+                });
+
+                await Task.WhenAll(task1, task2);
+                return task1.Result + task2.Result;
+            });
+
+        var result = await rFunc.Invoke(flowInstance.ToString(), param: "hello");
+        result.ShouldBe(142);
+        syncedCounter.Current.ShouldBe(2);
+
+        var storedId = rFunc.MapToStoredId(flowId.Instance);
+        var effectResults = await store.EffectsStore.GetEffectResults(storedId);
+        effectResults.Count.ShouldBe(2);
+        effectResults.Single(r => r.EffectId == 0.ToEffectId()).WorkStatus.ShouldBe(WorkStatus.Completed);
+        effectResults.Single(r => r.EffectId == 1.ToEffectId()).WorkStatus.ShouldBe(WorkStatus.Completed);
+        effectResults.Single(r => r.EffectId == 0.ToEffectId()).Result!.ToStringFromUtf8Bytes().DeserializeFromJsonTo<int>().ShouldBe(42);
+        effectResults.Single(r => r.EffectId == 1.ToEffectId()).Result!.ToStringFromUtf8Bytes().DeserializeFromJsonTo<int>().ShouldBe(100);
+
+        var controlPanel = await rFunc.ControlPanel(flowId.Instance);
+        controlPanel.ShouldNotBeNull();
+        await controlPanel.Restart();
+
+        effectResults = await store.EffectsStore.GetEffectResults(storedId);
+        effectResults.Count.ShouldBe(2);
+        syncedCounter.Current.ShouldBe(2);
+    }
 }
