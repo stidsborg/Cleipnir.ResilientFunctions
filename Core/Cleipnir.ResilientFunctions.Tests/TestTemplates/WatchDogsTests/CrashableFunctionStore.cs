@@ -72,9 +72,9 @@ public class CrashableFunctionStore : IFunctionStore
             messages
         );
 
-    public Task BulkScheduleFunctions(IEnumerable<IdWithParam> functionsWithParam, StoredId? parent)
+    public Task<int> BulkScheduleFunctions(IEnumerable<IdWithParam> functionsWithParam, StoredId? parent)
         => _crashed
-            ? Task.FromException(new TimeoutException())
+            ? Task.FromException<int>(new TimeoutException())
             : _inner.BulkScheduleFunctions(functionsWithParam, parent);
 
     public Task<StoredFlowWithEffectsAndMessages?> RestartExecution(StoredId storedId, ReplicaId replicaId)

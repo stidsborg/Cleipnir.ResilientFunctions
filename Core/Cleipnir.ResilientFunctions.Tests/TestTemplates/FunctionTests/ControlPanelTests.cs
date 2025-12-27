@@ -367,7 +367,7 @@ public abstract class ControlPanelTests
         sf.Status.ShouldBe(Status.Succeeded);
         var results = await store.GetResults([storedId]);
         var resultBytes = results[storedId];
-        var result = DefaultSerializer.Instance.Deserialize<string>(resultBytes!);
+        var result = (string)DefaultSerializer.Instance.Deserialize(resultBytes!, typeof(string));
         result.ShouldBe("hello world");
         
         unhandledExceptionCatcher.ShouldNotHaveExceptions();

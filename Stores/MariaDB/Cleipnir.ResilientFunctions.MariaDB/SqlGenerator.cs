@@ -623,7 +623,8 @@ public class SqlGenerator(string tablePrefix)
         var sql = @$"
             SELECT content, position
             FROM {tablePrefix}_messages
-            WHERE id = ? AND position NOT IN ({positionsClause});";
+            WHERE id = ? AND position NOT IN ({positionsClause})
+            ORDER BY position;";
 
         var command = StoreCommand.Create(
             sql,
@@ -650,7 +651,8 @@ public class SqlGenerator(string tablePrefix)
         var sql = @$"
             SELECT id, position, content
             FROM {tablePrefix}_messages
-            WHERE id IN ({storedIds.Select(id => $"'{id.AsGuid:N}'").StringJoin(", ")});";
+            WHERE id IN ({storedIds.Select(id => $"'{id.AsGuid:N}'").StringJoin(", ")})
+            ORDER BY position;";
 
         var command = StoreCommand.Create(sql);
         return command;

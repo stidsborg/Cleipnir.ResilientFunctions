@@ -68,9 +68,9 @@ public class InnerScheduled<TResult>(
                 FlowId = fc.Id,
                 Result = fc.Result == null
                     ? default!
-                    : serializer.Deserialize<TResult>(fc.Result)    
+                    : (TResult)serializer.Deserialize(fc.Result, typeof(TResult))
             }
-                
+
         ).ToDictionary(a => a.FlowId, a => a.Result);
 
         return scheduledIds.Select(id => results[id]).ToList();
