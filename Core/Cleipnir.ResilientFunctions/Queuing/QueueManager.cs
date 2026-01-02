@@ -22,6 +22,7 @@ public class QueueManager(
     UnhandledExceptionHandler unhandledExceptionHandler,
     FlowMinimumTimeout minimumTimeout,
     UtcNow utcNow,
+    SettingsWithDefaults settings,
     int maxIdempotencyKeyCount = 100,
     TimeSpan? maxIdempotencyKeyTtl = null)
     : IDisposable
@@ -39,36 +40,54 @@ public class QueueManager(
     private int _nextToRemoveIndex = 0;
     private bool _delivering;
 
+    private readonly SemaphoreSlim _semaphoreSlim = new SemaphoreSlim(1);
+    private bool _initialized = false;
     private volatile bool _disposed;
 
     public async Task Initialize()
     {
-        effect.RegisterQueueManager(this);
-
-        _idempotencyKeys = new IdempotencyKeys(_idempotencyKeysId, effect, maxIdempotencyKeyCount, maxIdempotencyKeyTtl, utcNow); 
-        _idempotencyKeys.Initialize();
-        
-        _nextToRemoveIndex = await effect.CreateOrGet(_toRemoveNextIndex, 0, alias: null, flush: false);
-        var children = effect.GetChildren(_toRemoveNextIndex);
-        var positions = new List<long>();
-        foreach (var childId in children)
+        await _semaphoreSlim.WaitAsync();
+        try
         {
-            var position = effect.Get<long>(childId);
-            positions.Add(position);
-        }
+            if (_disposed)
+                throw new ObjectDisposedException($"{nameof(QueueManager)} has already been disposed");
+            if (_initialized)
+                return;
+            
+            effect.RegisterQueueManager(this);
 
-        if (positions.Any()) {
-           await messageStore.DeleteMessages(storedId, positions);
-           foreach (var childId in children) 
-               await effect.Clear(childId, flush: false);
-        }
+            _idempotencyKeys = new IdempotencyKeys(_idempotencyKeysId, effect, maxIdempotencyKeyCount, maxIdempotencyKeyTtl, utcNow);
+            _idempotencyKeys.Initialize();
 
-        _ = Task.Run(FetchMessages);
-        _ = Task.Run(CheckTimeouts);
+            _nextToRemoveIndex = await effect.CreateOrGet(_toRemoveNextIndex, 0, alias: null, flush: false);
+            var children = effect.GetChildren(_toRemoveNextIndex);
+            var positions = new List<long>();
+            foreach (var childId in children)
+            {
+                var position = effect.Get<long>(childId);
+                positions.Add(position);
+            }
+
+            if (positions.Any())
+            {
+                await messageStore.DeleteMessages(storedId, positions);
+                foreach (var childId in children)
+                    await effect.Clear(childId, flush: false);
+            }
+
+            _initialized = true;
+            _ = Task.Run(FetchMessages);
+            _ = Task.Run(CheckTimeouts);
+        }
+        finally
+        {
+            _semaphoreSlim.Release();
+        }
     }
 
-    public QueueClient CreateQueueClient()
+    public async Task<QueueClient> CreateQueueClient()
     {
+        await  Initialize();
         return new QueueClient(this, utcNow);
     }
     
@@ -270,7 +289,7 @@ public class QueueManager(
         }
     }
     
-    public Task<MessageAndEffectResults?> Subscribe(EffectId effectId, MessagePredicate predicate, DateTime? timeout, EffectId timeoutId)
+    public Task<MessageAndEffectResults?> Subscribe(EffectId effectId, MessagePredicate predicate, DateTime? timeout, EffectId timeoutId, TimeSpan? maxWait)
     {
         var tcs = new TaskCompletionSource<MessageAndEffectResults?>();
         lock (_lock)

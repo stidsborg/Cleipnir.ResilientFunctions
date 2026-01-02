@@ -95,7 +95,8 @@ public abstract class MessagesSubscriptionTests
                     workflow.Effect,
                     unhandledExceptionHandler,
                     new FlowMinimumTimeout(),
-                    () => DateTime.UtcNow
+                    () => DateTime.UtcNow,
+                    SettingsWithDefaults.Default
                 );
                 await queueManager.Initialize();
 
@@ -141,7 +142,8 @@ public abstract class MessagesSubscriptionTests
                     workflow.Effect,
                     unhandledExceptionHandler,
                     new FlowMinimumTimeout(),
-                    () => DateTime.UtcNow
+                    () => DateTime.UtcNow,
+                    SettingsWithDefaults.Default
                 );
                 await queueManager.Initialize();
 
@@ -197,7 +199,8 @@ public abstract class MessagesSubscriptionTests
                     workflow.Effect,
                     unhandledExceptionHandler,
                     new FlowMinimumTimeout(),
-                    () => DateTime.UtcNow
+                    () => DateTime.UtcNow,
+                    SettingsWithDefaults.Default
                 );
                 await queueManager.Initialize();
 
@@ -247,7 +250,8 @@ public abstract class MessagesSubscriptionTests
                     workflow.Effect,
                     unhandledExceptionHandler,
                     new FlowMinimumTimeout(),
-                    () => DateTime.UtcNow
+                    () => DateTime.UtcNow,
+                    SettingsWithDefaults.Default
                 );
                 await queueManager.Initialize();
 
@@ -312,7 +316,8 @@ public abstract class MessagesSubscriptionTests
                     workflow.Effect,
                     unhandledExceptionHandler,
                     new FlowMinimumTimeout(),
-                    () => DateTime.UtcNow
+                    () => DateTime.UtcNow,
+                    SettingsWithDefaults.Default
                 );
                 await queueManager.Initialize();
 
@@ -373,7 +378,8 @@ public abstract class MessagesSubscriptionTests
                     workflow.Effect,
                     unhandledExceptionHandler,
                     new FlowMinimumTimeout(),
-                    () => DateTime.UtcNow
+                    () => DateTime.UtcNow,
+                    SettingsWithDefaults.Default
                 );
                 await queueManager.Initialize();
 
@@ -459,7 +465,8 @@ public abstract class MessagesSubscriptionTests
                     workflow.Effect,
                     unhandledExceptionHandler,
                     new FlowMinimumTimeout(),
-                    () => DateTime.UtcNow
+                    () => DateTime.UtcNow,
+                    SettingsWithDefaults.Default
                 );
                 await queueManager.Initialize();
 

@@ -10,14 +10,14 @@ namespace Cleipnir.ResilientFunctions.Queuing;
 
 public class QueueClient(QueueManager queueManager, UtcNow utcNow)
 {
-    public Task<T> Pull<T>(Workflow workflow, EffectId parentId, Func<T, bool>? filter = null) =>
-        Pull<T>(filter, workflow, parentId, timeout: null)!;
-    public Task<T?> Pull<T>(Workflow workflow, EffectId parentId, TimeSpan timeout, Func<T, bool>? filter = null)
-        => Pull<T>(filter, workflow, parentId, utcNow().Add(timeout));
-    public Task<T?> Pull<T>(Workflow workflow, EffectId parentId, DateTime timeout, Func<T, bool>? filter = null)
-        => Pull<T>(filter, workflow, parentId, (DateTime?) timeout);
-    
-    private async Task<T?> Pull<T>(Func<T, bool>? filter, Workflow workflow, EffectId parentId, DateTime? timeout)
+    public Task<T> Pull<T>(Workflow workflow, EffectId parentId, Func<T, bool>? filter = null, TimeSpan? maxWait = null)  where T : class
+        => Pull(filter, workflow, parentId, timeout: null, maxWait)!;
+    public Task<T?> Pull<T>(Workflow workflow, EffectId parentId, TimeSpan timeout, Func<T, bool>? filter = null, TimeSpan? maxWait = null) where T : class
+        => Pull(filter, workflow, parentId, utcNow().Add(timeout), maxWait);
+    public Task<T?> Pull<T>(Workflow workflow, EffectId parentId, DateTime timeout, Func<T, bool>? filter = null, TimeSpan? maxWait = null) where T : class
+        => Pull(filter, workflow, parentId, (DateTime?) timeout, maxWait);
+
+    private async Task<T?> Pull<T>(Func<T, bool>? filter, Workflow workflow, EffectId parentId, DateTime? timeout, TimeSpan? maxWait) where T : class
     {
         var effect = workflow.Effect;
         var valueId = parentId.CreateChild(0);
@@ -27,24 +27,26 @@ public class QueueClient(QueueManager queueManager, UtcNow utcNow)
         if (!effect.Contains(valueId))
         {
             var result = await queueManager.Subscribe(
-                valueId, 
-                m => m is T t && (filter?.Invoke(t) ?? true), 
+                valueId,
+                m => m is T t && (filter?.Invoke(t) ?? true),
                 timeout,
-                timeoutId
+                timeoutId,
+                maxWait
             );
 
             if (result == null)
             {
-                await effect.Upserts([
-                    new EffectResult(valueId, default(T?), Alias: null), 
-                    new EffectResult(typeId, typeof(T?).SimpleQualifiedName(), Alias: null)
-                ], flush: false);
-                return default;                
+                await effect.Upsert<T?>(valueId, null, alias: null, flush: false);
+                await effect.Upsert(typeId, typeof(T).SimpleQualifiedName(), alias: null, flush: false);
+                return null;
             }
 
-            var (message, effectResult) = result;
-            await effect.Upserts(effectResult.Concat([
-                    new EffectResult(valueId, message, Alias: null), //todo how to align this with bytes already from received message
+            var message = result.Message;
+            var effectResults = result.EffectResults;
+            await effect.Upserts(
+                effectResults.Concat(
+                [
+                    new EffectResult(valueId, message, Alias: null), 
                     new EffectResult(typeId, message.GetType().SimpleQualifiedName(), Alias: null)
                 ]),
                 flush: false

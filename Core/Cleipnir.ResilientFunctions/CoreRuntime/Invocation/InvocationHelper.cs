@@ -461,7 +461,7 @@ internal class InvocationHelper<TParam, TReturn>
         => new(effect, _functionStore.SemaphoreStore, storedId, Interrupt);
 
     public QueueManager CreateQueueManager(FlowId flowId, StoredId storedId, Effect effect, FlowMinimumTimeout minimumTimeout, UnhandledExceptionHandler unhandledExceptionHandler)
-        => new(flowId, storedId, _functionStore.MessageStore, Serializer, effect, unhandledExceptionHandler, minimumTimeout, UtcNow);
+        => new(flowId, storedId, _functionStore.MessageStore, Serializer, effect, unhandledExceptionHandler, minimumTimeout, UtcNow, _settings);
 
     public StoredId MapToStoredId(FlowId flowId) => StoredId.Create(_storedType, flowId.Instance.Value);
     
