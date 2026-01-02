@@ -11,6 +11,7 @@ namespace Cleipnir.ResilientFunctions.Tests.TestTemplates.FunctionTests;
 
 public abstract class WorkflowMessageTests
 {
+    public record TestMessage(string Value, int Count);
     // Tests for: Task<T> Message<T>()
     public abstract Task WorkflowMessagePullsMessageSuccessfully();
     public async Task WorkflowMessagePullsMessageSuccessfully(Task<IFunctionStore> functionStoreTask)
@@ -530,6 +531,40 @@ public abstract class WorkflowMessageTests
 
         await controlPanel.BusyWaitUntil(c => c.Status == Status.Succeeded, maxWait: TimeSpan.FromSeconds(10));
         controlPanel.Result.ShouldBe("test:value");
+
+        unhandledExceptionHandler.ShouldNotHaveExceptions();
+    }
+
+    // Test for pulling as object but getting correct deserialized type
+    public abstract Task WorkflowMessagePullAsObjectReturnsCorrectDeserializedType();
+    public async Task WorkflowMessagePullAsObjectReturnsCorrectDeserializedType(Task<IFunctionStore> functionStoreTask)
+    {
+        var store = await functionStoreTask;
+        var unhandledExceptionHandler = new UnhandledExceptionCatcher();
+        using var functionsRegistry = new FunctionsRegistry(
+            store,
+            new Settings(unhandledExceptionHandler.Catch)
+        );
+
+        var registration = functionsRegistry.RegisterFunc(
+            nameof(WorkflowMessagePullAsObjectReturnsCorrectDeserializedType),
+            async Task<string> (string _, Workflow workflow) =>
+            {
+                var message = await workflow.Message<object>();
+                message.ShouldBeOfType<TestMessage>();
+                var typedMessage = (TestMessage)message;
+                return $"{typedMessage.Value}:{typedMessage.Count}";
+            }
+        );
+
+        await registration.Schedule("instanceId", "");
+        await registration.SendMessage("instanceId", new TestMessage("test", 42));
+
+        var controlPanel = await registration.ControlPanel("instanceId");
+        controlPanel.ShouldNotBeNull();
+
+        await controlPanel.BusyWaitUntil(c => c.Status == Status.Succeeded, maxWait: TimeSpan.FromSeconds(10));
+        controlPanel.Result.ShouldBe("test:42");
 
         unhandledExceptionHandler.ShouldNotHaveExceptions();
     }

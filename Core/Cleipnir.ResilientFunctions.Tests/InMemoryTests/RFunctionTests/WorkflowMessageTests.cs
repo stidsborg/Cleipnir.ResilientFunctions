@@ -65,4 +65,8 @@ public class WorkflowMessageTests : TestTemplates.FunctionTests.WorkflowMessageT
     [TestMethod]
     public override Task WorkflowMessageCanPullDifferentMessageTypes()
         => WorkflowMessageCanPullDifferentMessageTypes(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task WorkflowMessagePullAsObjectReturnsCorrectDeserializedType()
+        => WorkflowMessagePullAsObjectReturnsCorrectDeserializedType(FunctionStoreFactory.Create());
 }
