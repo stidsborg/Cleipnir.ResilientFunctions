@@ -76,45 +76,45 @@ public class Workflow
             throw new SuspendInvocationException();                
     }
 
-    public Task<T> Message<T>() where T : class
+    public Task<T> Message<T>(TimeSpan? maxWait = null) where T : class
     {
         var effectId = Effect.CreateNextImplicitId();
-        async Task<T> CreateAndPull() => await (await _queueManager.CreateQueueClient()).Pull<T>(this, effectId, filter: null);
-        return CreateAndPull();
-    }
-    
-    public Task<T?> Message<T>(DateTime waitUntil) where T : class
-    {
-        var effectId = Effect.CreateNextImplicitId();
-        async Task<T?> CreateAndPull() => await (await _queueManager.CreateQueueClient()).Pull<T>(this, effectId, waitUntil, filter: null);
+        async Task<T> CreateAndPull() => await (await _queueManager.CreateQueueClient()).Pull<T>(this, effectId, filter: null, maxWait);
         return CreateAndPull();
     }
 
-    public Task<T?> Message<T>(TimeSpan waitFor) where T : class
+    public Task<T?> Message<T>(DateTime waitUntil, TimeSpan? maxWait = null) where T : class
     {
         var effectId = Effect.CreateNextImplicitId();
-        async Task<T?> CreateAndPull() => await (await _queueManager.CreateQueueClient()).Pull<T>(this, effectId, waitFor, filter: null);
+        async Task<T?> CreateAndPull() => await (await _queueManager.CreateQueueClient()).Pull<T>(this, effectId, waitUntil, filter: null, maxWait);
         return CreateAndPull();
     }
 
-    public Task<T> Message<T>(Func<T, bool> filter) where T : class
+    public Task<T?> Message<T>(TimeSpan waitFor, TimeSpan? maxWait = null) where T : class
     {
         var effectId = Effect.CreateNextImplicitId();
-        async Task<T> CreateAndPull() => await (await _queueManager.CreateQueueClient()).Pull(this, effectId, filter);
+        async Task<T?> CreateAndPull() => await (await _queueManager.CreateQueueClient()).Pull<T>(this, effectId, waitFor, filter: null, maxWait);
         return CreateAndPull();
     }
 
-    public Task<T?> Message<T>(Func<T, bool> filter, DateTime waitUntil) where T : class
+    public Task<T> Message<T>(Func<T, bool> filter, TimeSpan? maxWait = null) where T : class
     {
         var effectId = Effect.CreateNextImplicitId();
-        async Task<T?> CreateAndPull() => await (await _queueManager.CreateQueueClient()).Pull(this, effectId, waitUntil, filter);
+        async Task<T> CreateAndPull() => await (await _queueManager.CreateQueueClient()).Pull(this, effectId, filter, maxWait);
         return CreateAndPull();
     }
 
-    public Task<T?> Message<T>(Func<T, bool> filter, TimeSpan waitFor) where T : class
+    public Task<T?> Message<T>(Func<T, bool> filter, DateTime waitUntil, TimeSpan? maxWait = null) where T : class
     {
         var effectId = Effect.CreateNextImplicitId();
-        async Task<T?> CreateAndPull() => await (await _queueManager.CreateQueueClient()).Pull<T>(this, effectId, waitFor, filter);
+        async Task<T?> CreateAndPull() => await (await _queueManager.CreateQueueClient()).Pull(this, effectId, waitUntil, filter, maxWait);
+        return CreateAndPull();
+    }
+
+    public Task<T?> Message<T>(Func<T, bool> filter, TimeSpan waitFor, TimeSpan? maxWait = null) where T : class
+    {
+        var effectId = Effect.CreateNextImplicitId();
+        async Task<T?> CreateAndPull() => await (await _queueManager.CreateQueueClient()).Pull<T>(this, effectId, waitFor, filter, maxWait);
         return CreateAndPull();
     }
 

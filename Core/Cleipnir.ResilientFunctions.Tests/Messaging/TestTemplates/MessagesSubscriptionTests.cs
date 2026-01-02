@@ -101,7 +101,7 @@ public abstract class MessagesSubscriptionTests
                 await queueManager.Initialize();
 
                 var queueClient = new QueueClient(queueManager, () => DateTime.UtcNow);
-                var message = await queueClient.Pull<string>(workflow, workflow.Effect.CreateNextImplicitId());
+                var message = await queueClient.Pull<string>(workflow, workflow.Effect.CreateNextImplicitId(), maxWait: TimeSpan.FromMinutes(1));
 
                 return (string)message;
             }
@@ -149,11 +149,11 @@ public abstract class MessagesSubscriptionTests
 
                 var queueClient = new QueueClient(queueManager, () => DateTime.UtcNow);
 
-                var message1 = await queueClient.Pull<string>(workflow, workflow.Effect.CreateNextImplicitId());
+                var message1 = await queueClient.Pull<string>(workflow, workflow.Effect.CreateNextImplicitId(), maxWait: TimeSpan.FromMinutes(1));
                 await workflow.Delay(TimeSpan.FromMilliseconds(100));
-                var message2 = await queueClient.Pull<string>(workflow, workflow.Effect.CreateNextImplicitId());
+                var message2 = await queueClient.Pull<string>(workflow, workflow.Effect.CreateNextImplicitId(), maxWait: TimeSpan.FromMinutes(1));
                 await workflow.Delay(TimeSpan.FromMilliseconds(100));
-                var message3 = await queueClient.Pull<string>(workflow, workflow.Effect.CreateNextImplicitId());
+                var message3 = await queueClient.Pull<string>(workflow, workflow.Effect.CreateNextImplicitId(), maxWait: TimeSpan.FromMinutes(1));
                 await workflow.Delay(TimeSpan.FromMilliseconds(100));
 
                 return $"{message1},{message2},{message3}";
@@ -205,7 +205,7 @@ public abstract class MessagesSubscriptionTests
                 await queueManager.Initialize();
 
                 var queueClient = new QueueClient(queueManager, () => DateTime.UtcNow);
-                var message = await queueClient.Pull<string>(workflow, workflow.Effect.CreateNextImplicitId(), TimeSpan.FromMilliseconds(100));
+                var message = await queueClient.Pull<string>(workflow, workflow.Effect.CreateNextImplicitId(), TimeSpan.FromMilliseconds(100), maxWait: TimeSpan.FromMinutes(1));
 
                 return message;
             }
@@ -262,7 +262,7 @@ public abstract class MessagesSubscriptionTests
                 
                 for (var i = 0; i < 6; i++)
                 {
-                    var message = await queueClient.Pull<string>(workflow, workflow.Effect.CreateNextImplicitId(), TimeSpan.FromMilliseconds(250));
+                    var message = await queueClient.Pull<string>(workflow, workflow.Effect.CreateNextImplicitId(), TimeSpan.FromMilliseconds(250), maxWait: TimeSpan.FromMinutes(1));
                     messages.Add(message ?? "NULL");
                 }
 
@@ -322,8 +322,8 @@ public abstract class MessagesSubscriptionTests
                 await queueManager.Initialize();
 
                 var queueClient = new QueueClient(queueManager, () => DateTime.UtcNow);
-                var message1 = await queueClient.Pull<string>(workflow, workflow.Effect.CreateNextImplicitId());
-                var message2 = await queueClient.Pull<string>(workflow, workflow.Effect.CreateNextImplicitId(), timeout: TimeSpan.FromMilliseconds(100));
+                var message1 = await queueClient.Pull<string>(workflow, workflow.Effect.CreateNextImplicitId(), maxWait: TimeSpan.FromMinutes(1));
+                var message2 = await queueClient.Pull<string>(workflow, workflow.Effect.CreateNextImplicitId(), timeout: TimeSpan.FromMilliseconds(100), maxWait: TimeSpan.FromMinutes(1));
                 
                 return Tuple.Create(message1, message2);
             }
@@ -393,7 +393,8 @@ public abstract class MessagesSubscriptionTests
                     message = await queueClient.Pull<string>(
                         workflow,
                         workflow.Effect.CreateNextImplicitId(),
-                        TimeSpan.FromMilliseconds(100)
+                        TimeSpan.FromMilliseconds(100),
+                        maxWait: TimeSpan.FromMinutes(1)
                     );
 
                     if (message is null)
@@ -476,19 +477,22 @@ public abstract class MessagesSubscriptionTests
                 var message1 = await queueClient.Pull<string>(
                     workflow,
                     workflow.Effect.CreateNextImplicitId(),
-                    filter: m => m.StartsWith("even-")
+                    filter: m => m.StartsWith("even-"),
+                    maxWait: TimeSpan.FromMinutes(1)
                 );
 
                 var message2 = await queueClient.Pull<string>(
                     workflow,
                     workflow.Effect.CreateNextImplicitId(),
-                    filter: m => m.StartsWith("even-")
+                    filter: m => m.StartsWith("even-"),
+                    maxWait: TimeSpan.FromMinutes(1)
                 );
 
                 var message3 = await queueClient.Pull<string>(
                     workflow,
                     workflow.Effect.CreateNextImplicitId(),
-                    filter: m => m.StartsWith("even-")
+                    filter: m => m.StartsWith("even-"),
+                    maxWait: TimeSpan.FromMinutes(1)
                 );
 
                 return $"{message1},{message2},{message3}";

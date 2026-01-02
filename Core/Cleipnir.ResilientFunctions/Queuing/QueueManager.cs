@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime;
 using Cleipnir.ResilientFunctions.CoreRuntime.Serialization;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Domain.Exceptions.Commands;
 using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Storage;
 
@@ -289,7 +290,7 @@ public class QueueManager(
         }
     }
     
-    public Task<MessageAndEffectResults?> Subscribe(EffectId effectId, MessagePredicate predicate, DateTime? timeout, EffectId timeoutId, TimeSpan? maxWait)
+    public async Task<MessageAndEffectResults?> Subscribe(EffectId effectId, MessagePredicate predicate, DateTime? timeout, EffectId timeoutId, TimeSpan? maxWait)
     {
         var tcs = new TaskCompletionSource<MessageAndEffectResults?>();
         lock (_lock)
@@ -297,10 +298,15 @@ public class QueueManager(
 
         if (timeout != null)
             minimumTimeout.AddTimeout(timeoutId!, timeout.Value);
-        
+
         TryToDeliver();
-        
-        return tcs.Task;
+
+        await Task.WhenAny(tcs.Task, Task.Delay(maxWait ?? TimeSpan.FromSeconds(0)));
+
+        if (!tcs.Task.IsCompleted)
+            throw new SuspendInvocationException();
+
+        return await tcs.Task;
     }
 
     public record MessageWithPosition(object Message, long Position, EffectResult? IdempotencyKeyResult);

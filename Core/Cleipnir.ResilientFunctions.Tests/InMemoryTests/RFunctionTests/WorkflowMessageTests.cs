@@ -69,4 +69,8 @@ public class WorkflowMessageTests : TestTemplates.FunctionTests.WorkflowMessageT
     [TestMethod]
     public override Task WorkflowMessagePullAsObjectReturnsCorrectDeserializedType()
         => WorkflowMessagePullAsObjectReturnsCorrectDeserializedType(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task WorkflowMessageWithMaxWaitSuspendsFlowWhenExpired()
+        => WorkflowMessageWithMaxWaitSuspendsFlowWhenExpired(FunctionStoreFactory.Create());
 }
