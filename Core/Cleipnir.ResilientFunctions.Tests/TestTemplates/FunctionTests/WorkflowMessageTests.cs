@@ -553,6 +553,7 @@ public abstract class WorkflowMessageTests
                 var message = await workflow.Message<object>();
                 message.ShouldBeOfType<TestMessage>();
                 var typedMessage = (TestMessage)message;
+                await workflow.Delay(TimeSpan.FromMilliseconds(10));
                 return $"{typedMessage.Value}:{typedMessage.Count}";
             }
         );
