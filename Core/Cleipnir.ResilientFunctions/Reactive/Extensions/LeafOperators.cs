@@ -158,9 +158,6 @@ public static class LeafOperators
     public static Task<T> Last<T>(this IReactiveChain<T> s, TimeSpan? maxWait = null)
         => LastOrNone(s, maxWait)
             .SelectAsync(o => o.HasValue ? o.Value : throw new NoResultException());
-    public static Task<T?> LastOrDefault<T>(this IReactiveChain<T> s)
-        => LastOrNone(s)
-            .SelectAsync(o => o.HasValue ? o.Value : default);
     public static Task<Option<T>> LastOrNone<T>(this IReactiveChain<T> s, TimeSpan? maxWait = null)
         => Lasts(s, count: 1, maxWait)
             .SelectAsync(l =>
