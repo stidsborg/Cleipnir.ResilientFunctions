@@ -520,41 +520,6 @@ public class LeafOperatorsTests
         );
     }
     
-    [TestMethod]
-    public async Task LastOfTypeReturnsValueOfTypeOnSignal()
-    {
-        var source = new TestSource();
-        
-        source.SignalNext(2);
-        source.SignalNext("hallo");
-        source.SignalNext("world");
-
-        var lastOfType = source.LastOfType<string>();
-        lastOfType.IsCompleted.ShouldBeFalse();
-        
-        source.SignalCompletion();
-        await BusyWait.Until(() => lastOfType.IsCompletedSuccessfully);
-        lastOfType.Result.ShouldBe("world");
-    }
-    
-    [TestMethod]
-    public async Task LastOfReturnsValueOfTypeOnSignal()
-    {
-        var source = new TestSource();
-        
-        source.SignalNext(2);
-        source.SignalNext("hallo");
-        source.SignalNext("world");
-
-        var lastOfType = source.LastOf<string>();
-        lastOfType.IsCompleted.ShouldBeFalse();
-        
-        source.SignalCompletion();
-        await BusyWait.Until(() => lastOfType.IsCompletedSuccessfully);
-
-        lastOfType.Result.ShouldBe("world");
-    }
-    
     #endregion
     
     #region Completion

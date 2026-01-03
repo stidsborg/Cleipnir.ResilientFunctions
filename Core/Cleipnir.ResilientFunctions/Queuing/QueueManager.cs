@@ -301,7 +301,7 @@ public class QueueManager(
 
         TryToDeliver();
 
-        await Task.WhenAny(tcs.Task, Task.Delay(maxWait ?? TimeSpan.FromSeconds(0)));
+        await Task.WhenAny(tcs.Task, Task.Delay(maxWait ?? settings.MessagesDefaultMaxWaitForCompletion));
 
         if (!tcs.Task.IsCompleted)
             throw new SuspendInvocationException();

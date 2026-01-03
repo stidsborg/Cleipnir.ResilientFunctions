@@ -168,15 +168,5 @@ public static class LeafOperators
                     ? Option.Create(l.First())
                     : Option<T>.NoValue
             );
-
-    public static Task<T> LastOfType<T>(this IReactiveChain<object> s)
-        => s.OfType<T>().Last();
-    public static Task<T> LastOf<T>(this IReactiveChain<object> s) => s.LastOfType<T>();
-    
-    public static Task<Option<T>> LastOfType<T>(this Messages messages, int timeoutId, DateTime expiresAt)
-        => messages.TakeUntilTimeout(timeoutId, expiresAt).OfType<T>().LastOrNone();
-    public static Task<Option<T>> LastOfType<T>(this Messages messages, int timeoutId, TimeSpan expiresIn)
-        => messages.TakeUntilTimeout(timeoutId, expiresIn).OfType<T>().LastOrNone();
-    
     #endregion
 }
