@@ -187,23 +187,6 @@ public class LeafOperatorsTests
     }
     
     [TestMethod]
-    public async Task FirstOfReturnsValueOfTypeOnSignal()
-    {
-        var source = new TestSource();
-        
-        source.SignalNext("hallo");
-        source.SignalNext("world");
-
-        var firstOfType = source.FirstOf<int>();
-        firstOfType.IsCompleted.ShouldBeFalse();
-        
-        source.SignalNext(2);
-        
-        await BusyWait.Until(() => firstOfType.IsCompletedSuccessfully);
-        firstOfType.Result.ShouldBe(2);
-    }
-    
-    [TestMethod]
     public async Task EitherOrNoneOfTwoReturnsNoneOnCompletedStreamWithoutEmits()
     {
         var source = new TestSource();

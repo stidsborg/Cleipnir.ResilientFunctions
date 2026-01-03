@@ -141,9 +141,6 @@ public static class LeafOperators
         => messages.TakeUntilTimeout(expiresAt).OfTypes<T1, T2, T3>().FirstOrNone(maxWait);
     public static Task<EitherOrNone<T1, T2, T3>> FirstOfTypes<T1, T2, T3>(this Messages messages, TimeSpan expiresIn, TimeSpan? maxWait = null)
         => messages.TakeUntilTimeout(expiresIn).OfTypes<T1, T2, T3>().FirstOrNone(maxWait);
-
-    public static Task<T> FirstOf<T>(this IReactiveChain<object> s, TimeSpan? maxWait = null) 
-        => s.FirstOfType<T>(maxWait);
     
     public static Task<List<T>> Firsts<T>(this IReactiveChain<T> s, int count, TimeSpan? maxWait = null)
         => s.Take(count).ToList(maxWait);
