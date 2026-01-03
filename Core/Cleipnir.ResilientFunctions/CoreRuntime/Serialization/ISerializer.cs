@@ -6,14 +6,12 @@ namespace Cleipnir.ResilientFunctions.CoreRuntime.Serialization;
 
 public interface ISerializer
 {
-    byte[] Serialize<T>(T value);
+    byte[] Serialize<T>(T value) => Serialize(value, typeof(T));
     byte[] Serialize(object? value, Type type);
-    T Deserialize<T>(byte[] bytes);
+    void Serialize(object value, out byte[] valueBytes, out byte[] typeBytes);
+    object Deserialize(byte[] bytes, Type type);
+    object DeserializeMessage(byte[] json, byte[] type);
     
     StoredException SerializeException(FatalWorkflowException fatalWorkflowException);
     FatalWorkflowException DeserializeException(FlowId flowId, StoredException storedException);
-
-    SerializedMessage SerializeMessage(object message, Type messageType);
-    object DeserializeMessage(byte[] json, byte[] type);
-    
 }

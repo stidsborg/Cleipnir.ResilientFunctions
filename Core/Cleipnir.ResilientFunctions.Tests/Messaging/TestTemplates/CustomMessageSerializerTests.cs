@@ -32,7 +32,7 @@ public abstract class CustomMessageSerializerTests
         );
         var eventSerializer = new EventSerializer();
         var messagesWriter = new MessageWriter(storedId, functionStore, eventSerializer);
-        var effectResults = new EffectResults(flowId, storedId, new List<StoredEffect>(), functionStore.EffectsStore, DefaultSerializer.Instance, storageSession: null);
+        var effectResults = new EffectResults(flowId, storedId, new List<StoredEffect>(), functionStore.EffectsStore, DefaultSerializer.Instance, storageSession: null, clearChildren: true);
         var minimumTimeout = new FlowMinimumTimeout();
         var effect = new Effect(effectResults, utcNow: () => DateTime.UtcNow, minimumTimeout);
         var registeredTimeouts = new FlowRegisteredTimeouts(
@@ -71,24 +71,22 @@ public abstract class CustomMessageSerializerTests
         public Utils.SyncedList<object> EventToSerialize { get; } = new();
         public Utils.SyncedList<Tuple<string, string>> EventToDeserialize { get; }= new();
 
-        public byte[] Serialize<T>(T value)  
-            => DefaultSerializer.Instance.Serialize(value);
-
         public byte[] Serialize(object? value, Type type) => DefaultSerializer.Instance.Serialize(value, type);
 
-        public T Deserialize<T>(byte[] json) 
-            => DefaultSerializer.Instance.Deserialize<T>(json);
+        public void Serialize(object value, out byte[] valueBytes, out byte[] typeBytes)
+        {
+            EventToSerialize.Add(value);
+            DefaultSerializer.Instance.Serialize(value, out valueBytes, out typeBytes);
+        }
+
+        public object Deserialize(byte[] json, Type type)
+            => DefaultSerializer.Instance.Deserialize(json, type);
 
         public StoredException SerializeException(FatalWorkflowException exception)
             => DefaultSerializer.Instance.SerializeException(exception);
         public FatalWorkflowException DeserializeException(FlowId flowId, StoredException storedException)
             => DefaultSerializer.Instance.DeserializeException(flowId, storedException);
 
-        public SerializedMessage SerializeMessage(object message, Type messageType)
-        {
-            EventToSerialize.Add(message);
-            return DefaultSerializer.Instance.SerializeMessage(message, messageType);
-        }
         public object DeserializeMessage(byte[] json, byte[] type)
         {
             EventToDeserialize.Add(Tuple.Create(json.ToStringFromUtf8Bytes(), type.ToStringFromUtf8Bytes()));

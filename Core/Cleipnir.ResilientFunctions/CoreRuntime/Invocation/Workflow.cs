@@ -4,6 +4,7 @@ using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Exceptions.Commands;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
+using Cleipnir.ResilientFunctions.Queuing;
 using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
@@ -17,10 +18,11 @@ public class Workflow
     public Utilities Utilities { get; }
     public Correlations Correlations { get; }
     public Synchronization Synchronization { get; }
+    private QueueManager _queueManager;
     private readonly UtcNow _utcNow;
-    
-    
-    public Workflow(FlowId flowId, StoredId storedId, Messages messages, Effect effect, Utilities utilities, Correlations correlations, DistributedSemaphores semaphores, UtcNow utcNow)
+
+
+    public Workflow(FlowId flowId, StoredId storedId, Messages messages, Effect effect, Utilities utilities, Correlations correlations, DistributedSemaphores semaphores, QueueManager queueManager, UtcNow utcNow)
     {
         FlowId = flowId;
         StoredId = storedId;
@@ -29,6 +31,7 @@ public class Workflow
         Effect = effect;
         Correlations = correlations;
         Synchronization = new Synchronization(semaphores);
+        _queueManager = queueManager;
         _utcNow = utcNow;
     }
 
@@ -71,5 +74,54 @@ public class Workflow
                 .CompleteTimeout(timeoutId, alias);
         else
             throw new SuspendInvocationException();                
+    }
+
+    public Task<T> Message<T>(TimeSpan? maxWait = null) where T : class
+    {
+        var effectId = Effect.CreateNextImplicitId();
+        async Task<T> CreateAndPull() => await (await _queueManager.CreateQueueClient()).Pull<T>(this, effectId, filter: null, maxWait);
+        return CreateAndPull();
+    }
+
+    public Task<T?> Message<T>(DateTime waitUntil, TimeSpan? maxWait = null) where T : class
+    {
+        var effectId = Effect.CreateNextImplicitId();
+        async Task<T?> CreateAndPull() => await (await _queueManager.CreateQueueClient()).Pull<T>(this, effectId, waitUntil, filter: null, maxWait);
+        return CreateAndPull();
+    }
+
+    public Task<T?> Message<T>(TimeSpan waitFor, TimeSpan? maxWait = null) where T : class
+    {
+        var effectId = Effect.CreateNextImplicitId();
+        async Task<T?> CreateAndPull() => await (await _queueManager.CreateQueueClient()).Pull<T>(this, effectId, waitFor, filter: null, maxWait);
+        return CreateAndPull();
+    }
+
+    public Task<T> Message<T>(Func<T, bool> filter, TimeSpan? maxWait = null) where T : class
+    {
+        var effectId = Effect.CreateNextImplicitId();
+        async Task<T> CreateAndPull() => await (await _queueManager.CreateQueueClient()).Pull(this, effectId, filter, maxWait);
+        return CreateAndPull();
+    }
+
+    public Task<T?> Message<T>(Func<T, bool> filter, DateTime waitUntil, TimeSpan? maxWait = null) where T : class
+    {
+        var effectId = Effect.CreateNextImplicitId();
+        async Task<T?> CreateAndPull() => await (await _queueManager.CreateQueueClient()).Pull(this, effectId, waitUntil, filter, maxWait);
+        return CreateAndPull();
+    }
+
+    public Task<T?> Message<T>(Func<T, bool> filter, TimeSpan waitFor, TimeSpan? maxWait = null) where T : class
+    {
+        var effectId = Effect.CreateNextImplicitId();
+        async Task<T?> CreateAndPull() => await (await _queueManager.CreateQueueClient()).Pull<T>(this, effectId, waitFor, filter, maxWait);
+        return CreateAndPull();
+    }
+
+    public Task<T> Parallelle<T>(Func<Task<T>> work) => Effect.RunParallelle(work);
+
+    public string ExecutionTree()
+    {
+        return $"{FlowId} ({StoredId}):" + Environment.NewLine + Effect.ExecutionTree();
     }
 }

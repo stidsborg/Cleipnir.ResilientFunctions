@@ -198,10 +198,11 @@ public class PostgreSqlFunctionStore : IFunctionStore
         }
     }
 
-    public async Task BulkScheduleFunctions(IEnumerable<IdWithParam> functionsWithParam, StoredId? parent)
+    public async Task<int> BulkScheduleFunctions(IEnumerable<IdWithParam> functionsWithParam, StoredId? parent)
     {
         await using var conn = await CreateConnection();
         var chunks = functionsWithParam.Chunk(1000);
+        var totalInserted = 0;
         foreach (var chunk in chunks)
         {
             var commands = new List<StoreCommand>();
@@ -209,8 +210,10 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 commands.AddRange(_sqlGenerator.BulkScheduleFunctions(idWithParam, parent));
 
             await using var batch = commands.ToNpgsqlBatch().WithConnection(conn);
-            await batch.ExecuteNonQueryAsync();
+            var affectedRows = await batch.ExecuteNonQueryAsync();
+            totalInserted += affectedRows;
         }
+        return totalInserted;
     }
 
     public async Task<StoredFlowWithEffectsAndMessages?> RestartExecution(StoredId storedId, ReplicaId replicaId)

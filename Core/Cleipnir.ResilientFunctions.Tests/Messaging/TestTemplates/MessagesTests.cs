@@ -665,7 +665,7 @@ public abstract class MessagesTests
 
     private Effect CreateEffect(StoredId storedId, FlowId flowId, IFunctionStore functionStore, FlowMinimumTimeout flowMinimumTimeout)
     {
-        var effectResults = new EffectResults(flowId, storedId, new List<StoredEffect>(), functionStore.EffectsStore, DefaultSerializer.Instance, storageSession: null);
+        var effectResults = new EffectResults(flowId, storedId, new List<StoredEffect>(), functionStore.EffectsStore, DefaultSerializer.Instance, storageSession: null, clearChildren: true);
         var effect = new Effect(effectResults, utcNow: () => DateTime.UtcNow, flowMinimumTimeout);
         return effect;
     }
@@ -674,24 +674,21 @@ public abstract class MessagesTests
     {
         private readonly Type _failDeserializationOnType;
 
-        public ExceptionThrowingEventSerializer(Type failDeserializationOnType) 
+        public ExceptionThrowingEventSerializer(Type failDeserializationOnType)
             => _failDeserializationOnType = failDeserializationOnType;
-
-        public byte[] Serialize<T>(T value) 
-            => DefaultSerializer.Instance.Serialize(value);
 
         public byte[] Serialize(object? value, Type type) => DefaultSerializer.Instance.Serialize(value, type);
 
-        public T Deserialize<T>(byte[] json)
-            => DefaultSerializer.Instance.Deserialize<T>(json);
+        public void Serialize(object value, out byte[] valueBytes, out byte[] typeBytes)
+            => DefaultSerializer.Instance.Serialize(value, out valueBytes, out typeBytes);
+
+        public object Deserialize(byte[] json, Type type)
+            => DefaultSerializer.Instance.Deserialize(json, type);
 
         public StoredException SerializeException(FatalWorkflowException exception)
             => DefaultSerializer.Instance.SerializeException(exception);
         public FatalWorkflowException DeserializeException(FlowId flowId, StoredException storedException)
             => DefaultSerializer.Instance.DeserializeException(flowId, storedException);
-
-        public SerializedMessage SerializeMessage(object message, Type messageType)
-            => DefaultSerializer.Instance.SerializeMessage(message, messageType);
 
         public object DeserializeMessage(byte[] json, byte[] type)
         {
