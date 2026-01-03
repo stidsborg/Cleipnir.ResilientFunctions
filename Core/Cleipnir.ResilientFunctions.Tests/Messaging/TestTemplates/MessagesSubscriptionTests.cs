@@ -6,6 +6,7 @@ using Cleipnir.ResilientFunctions.CoreRuntime;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.CoreRuntime.Serialization;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Domain.Events;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Queuing;
@@ -515,5 +516,328 @@ public abstract class MessagesSubscriptionTests
         result.ShouldBe("even-2,even-4,even-6");
 
         unhandledExceptionCatcher.ShouldNotHaveExceptions();
+    }
+
+    public abstract Task QueueClientWorksWithCustomSerializer();
+    protected async Task QueueClientWorksWithCustomSerializer(Task<IFunctionStore> functionStoreTask)
+    {
+        var functionStore = await functionStoreTask;
+        var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
+        // Use default serializer to ensure serialization works correctly
+        using var functionsRegistry = new FunctionsRegistry(
+            functionStore,
+            new Settings(unhandledExceptionCatcher.Catch)
+        );
+
+        var rFunc = functionsRegistry.RegisterFunc(
+            nameof(QueueClientWorksWithCustomSerializer),
+            inner: async Task<string> (string _, Workflow workflow) =>
+            {
+                var unhandledExceptionHandler = new UnhandledExceptionHandler(unhandledExceptionCatcher.Catch);
+                var queueManager = new QueueManager(
+                    workflow.FlowId,
+                    workflow.StoredId,
+                    functionStore.MessageStore,
+                    DefaultSerializer.Instance,
+                    workflow.Effect,
+                    unhandledExceptionHandler,
+                    new FlowMinimumTimeout(),
+                    () => DateTime.UtcNow,
+                    SettingsWithDefaults.Default
+                );
+                await queueManager.Initialize();
+
+                var queueClient = new QueueClient(queueManager, () => DateTime.UtcNow);
+
+                // Pull different types of messages to verify serialization works
+                var message1 = await queueClient.Pull<string>(
+                    workflow,
+                    workflow.Effect.CreateNextImplicitId(),
+                    maxWait: TimeSpan.FromSeconds(5)
+                );
+
+                var message2 = await queueClient.Pull<object>(
+                    workflow,
+                    workflow.Effect.CreateNextImplicitId(),
+                    maxWait: TimeSpan.FromSeconds(5)
+                );
+
+                var message3 = await queueClient.Pull<TestRecord>(
+                    workflow,
+                    workflow.Effect.CreateNextImplicitId(),
+                    maxWait: TimeSpan.FromSeconds(5)
+                );
+
+                return $"{message1},{message2},{message3.Value}";
+            }
+        );
+
+        var scheduled = await rFunc.Schedule("instanceId", "");
+        var messageWriter = rFunc.MessageWriters.For("instanceId".ToFlowInstance());
+
+        await messageWriter.AppendMessage("hello");
+        await messageWriter.AppendMessage(42);
+        await messageWriter.AppendMessage(new TestRecord("world"));
+
+        var result = await scheduled.Completion(maxWait: TimeSpan.FromSeconds(10));
+        result.ShouldBe("hello,42,world");
+
+        unhandledExceptionCatcher.ShouldNotHaveExceptions();
+    }
+
+    private record TestRecord(string Value);
+
+    public abstract Task NoOpMessageIsIgnoredByQueueClient();
+    protected async Task NoOpMessageIsIgnoredByQueueClient(Task<IFunctionStore> functionStoreTask)
+    {
+        var functionStore = await functionStoreTask;
+        var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
+        var unhandledExceptionHandler = new UnhandledExceptionHandler(unhandledExceptionCatcher.Catch);
+        using var functionsRegistry = new FunctionsRegistry(
+            functionStore,
+            new Settings(unhandledExceptionCatcher.Catch)
+        );
+
+        var rFunc = functionsRegistry.RegisterFunc(
+            nameof(NoOpMessageIsIgnoredByQueueClient),
+            inner: async Task<string> (string _, Workflow workflow) =>
+            {
+                var queueManager = new QueueManager(
+                    workflow.FlowId,
+                    workflow.StoredId,
+                    functionStore.MessageStore,
+                    DefaultSerializer.Instance,
+                    workflow.Effect,
+                    unhandledExceptionHandler,
+                    new FlowMinimumTimeout(),
+                    () => DateTime.UtcNow,
+                    SettingsWithDefaults.Default
+                );
+                await queueManager.Initialize();
+
+                var queueClient = new QueueClient(queueManager, () => DateTime.UtcNow);
+                var message = await queueClient.Pull<string>(
+                    workflow,
+                    workflow.Effect.CreateNextImplicitId(),
+                    maxWait: TimeSpan.FromSeconds(10)
+                );
+
+                return message;
+            }
+        );
+
+        var scheduled = await rFunc.Schedule("instanceId", "");
+        var messageWriter = rFunc.MessageWriters.For("instanceId".ToFlowInstance());
+
+        // Send NoOp message followed by real message
+        await messageWriter.AppendMessage(NoOp.Instance);
+        await messageWriter.AppendMessage("Hallo World!");
+
+        var result = await scheduled.Completion(maxWait: TimeSpan.FromSeconds(5));
+        result.ShouldBe("Hallo World!");
+
+        unhandledExceptionCatcher.ShouldNotHaveExceptions();
+    }
+
+    public abstract Task BatchedMessagesAreDeliveredToMultipleFlows();
+    protected async Task BatchedMessagesAreDeliveredToMultipleFlows(Task<IFunctionStore> functionStoreTask)
+    {
+        var functionStore = await functionStoreTask;
+        var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
+        var unhandledExceptionHandler = new UnhandledExceptionHandler(unhandledExceptionCatcher.Catch);
+        using var functionsRegistry = new FunctionsRegistry(
+            functionStore,
+            new Settings(unhandledExceptionCatcher.Catch)
+        );
+
+        var rFunc = functionsRegistry.RegisterFunc(
+            nameof(BatchedMessagesAreDeliveredToMultipleFlows),
+            inner: async Task<string> (string _, Workflow workflow) =>
+            {
+                var queueManager = new QueueManager(
+                    workflow.FlowId,
+                    workflow.StoredId,
+                    functionStore.MessageStore,
+                    DefaultSerializer.Instance,
+                    workflow.Effect,
+                    unhandledExceptionHandler,
+                    new FlowMinimumTimeout(),
+                    () => DateTime.UtcNow,
+                    SettingsWithDefaults.Default
+                );
+                await queueManager.Initialize();
+
+                var queueClient = new QueueClient(queueManager, () => DateTime.UtcNow);
+                var message = await queueClient.Pull<string>(
+                    workflow,
+                    workflow.Effect.CreateNextImplicitId(),
+                    maxWait: TimeSpan.FromMinutes(1)
+                );
+
+                return message;
+            }
+        );
+
+        // Send batched messages first
+        await rFunc.SendMessages(
+            [
+                new BatchedMessage("Instance#1", "hallo world 1", IdempotencyKey: "1"),
+                new BatchedMessage("Instance#2", "hallo world 2", IdempotencyKey: "2")
+            ]
+        );
+
+        // Then schedule the workflows - they should pick up the messages
+        var scheduled1 = await rFunc.Schedule("Instance#1", "");
+        var scheduled2 = await rFunc.Schedule("Instance#2", "");
+
+        // Wait for completion
+        var result1 = await scheduled1.Completion(maxWait: TimeSpan.FromSeconds(10));
+        var result2 = await scheduled2.Completion(maxWait: TimeSpan.FromSeconds(10));
+
+        result1.ShouldBe("hallo world 1");
+        result2.ShouldBe("hallo world 2");
+
+        unhandledExceptionCatcher.ShouldNotHaveExceptions();
+    }
+
+    private record Ping(int Number);
+    private record Pong(int Number);
+
+    public abstract Task QueueClientSupportsMultiFlowMessageExchange();
+    protected async Task QueueClientSupportsMultiFlowMessageExchange(Task<IFunctionStore> functionStoreTask)
+    {
+        var functionStore = await functionStoreTask;
+        functionStore = functionStore.WithPrefix("pingpong" + Guid.NewGuid().ToString("N"));
+        await functionStore.Initialize();
+
+        var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
+        var unhandledExceptionHandler = new UnhandledExceptionHandler(unhandledExceptionCatcher.Catch);
+        using var functionsRegistry = new FunctionsRegistry(
+            functionStore,
+            new Settings(unhandledExceptionCatcher.Catch, messagesPullFrequency: TimeSpan.FromMilliseconds(10))
+        );
+
+        FuncRegistration<string, string>? pongRegistration = null;
+        FuncRegistration<string, string>? pingRegistration = null;
+
+        pingRegistration = functionsRegistry.RegisterFunc(
+            "PingFlow",
+            inner: async Task<string> (string _, Workflow workflow) =>
+            {
+                var queueManager = new QueueManager(
+                    workflow.FlowId,
+                    workflow.StoredId,
+                    functionStore.MessageStore,
+                    DefaultSerializer.Instance,
+                    workflow.Effect,
+                    unhandledExceptionHandler,
+                    new FlowMinimumTimeout(),
+                    () => DateTime.UtcNow,
+                    SettingsWithDefaults.Default
+                );
+                await queueManager.Initialize();
+
+                var queueClient = new QueueClient(queueManager, () => DateTime.UtcNow);
+
+                for (var i = 0; i < 10; i++)
+                {
+                    await pongRegistration!.SendMessage("Pong", new Ping(i), idempotencyKey: $"Pong{i}");
+                    await queueClient.Pull<Pong>(
+                        workflow,
+                        workflow.Effect.CreateNextImplicitId(),
+                        filter: pong => pong.Number == i,
+                        maxWait: TimeSpan.FromMinutes(1)
+                    );
+                }
+
+                return "completed";
+            }
+        );
+
+        pongRegistration = functionsRegistry.RegisterFunc(
+            "PongFlow",
+            inner: async Task<string> (string _, Workflow workflow) =>
+            {
+                var queueManager = new QueueManager(
+                    workflow.FlowId,
+                    workflow.StoredId,
+                    functionStore.MessageStore,
+                    DefaultSerializer.Instance,
+                    workflow.Effect,
+                    unhandledExceptionHandler,
+                    new FlowMinimumTimeout(),
+                    () => DateTime.UtcNow,
+                    SettingsWithDefaults.Default
+                );
+                await queueManager.Initialize();
+
+                var queueClient = new QueueClient(queueManager, () => DateTime.UtcNow);
+
+                for (var i = 0; i < 10; i++)
+                {
+                    await queueClient.Pull<Ping>(
+                        workflow,
+                        workflow.Effect.CreateNextImplicitId(),
+                        filter: ping => ping.Number == i,
+                        maxWait: TimeSpan.FromMinutes(1)
+                    );
+                    await pingRegistration!.SendMessage("Ping", new Pong(i), idempotencyKey: $"Ping{i}");
+                }
+
+                return "completed";
+            }
+        );
+
+        await pongRegistration.Schedule("Pong", "");
+        await pingRegistration.Schedule("Ping", "");
+
+        var pongCp = await pongRegistration.ControlPanel("Pong").ShouldNotBeNullAsync();
+        var pingCp = await pingRegistration.ControlPanel("Ping").ShouldNotBeNullAsync();
+
+        await pongCp.WaitForCompletion(allowPostponeAndSuspended: true);
+        await pingCp.WaitForCompletion(allowPostponeAndSuspended: true);
+
+        await pongCp.Refresh();
+        var pongResult = pongCp.Result;
+        pongResult.ShouldNotBeNull();
+        pongResult.ShouldBe("completed");
+
+        await pingCp.Refresh();
+        var pingResult = pingCp.Result;
+        pingResult.ShouldNotBeNull();
+        pingResult.ShouldBe("completed");
+
+        unhandledExceptionCatcher.ShouldNotHaveExceptions();
+    }
+
+    private class ExceptionThrowingEventSerializer : ISerializer
+    {
+        private readonly Type _failDeserializationOnType;
+
+        public ExceptionThrowingEventSerializer(Type failDeserializationOnType)
+            => _failDeserializationOnType = failDeserializationOnType;
+
+        public byte[] Serialize(object? value, Type type) => DefaultSerializer.Instance.Serialize(value, type);
+
+        public void Serialize(object value, out byte[] valueBytes, out byte[] typeBytes)
+            => DefaultSerializer.Instance.Serialize(value, out valueBytes, out typeBytes);
+
+        public object Deserialize(byte[] json, Type type)
+            => DefaultSerializer.Instance.Deserialize(json, type);
+
+        public StoredException SerializeException(FatalWorkflowException exception)
+            => DefaultSerializer.Instance.SerializeException(exception);
+
+        public FatalWorkflowException DeserializeException(FlowId flowId, StoredException storedException)
+            => DefaultSerializer.Instance.DeserializeException(flowId, storedException);
+
+        public object DeserializeMessage(byte[] json, byte[] type)
+        {
+            var eventType = Type.GetType(type.ToStringFromUtf8Bytes())!;
+            if (eventType == _failDeserializationOnType)
+                throw new Exception("Deserialization exception");
+
+            return DefaultSerializer.Instance.DeserializeMessage(json, type);
+        }
     }
 }

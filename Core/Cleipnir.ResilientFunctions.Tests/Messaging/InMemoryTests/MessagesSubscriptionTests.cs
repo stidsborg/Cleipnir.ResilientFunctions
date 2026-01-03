@@ -38,4 +38,20 @@ public class MessagesSubscriptionTests : TestTemplates.MessagesSubscriptionTests
     [TestMethod]
     public override Task QueueClientFilterParameterFiltersMessages()
         => QueueClientFilterParameterFiltersMessages(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task QueueClientWorksWithCustomSerializer()
+        => QueueClientWorksWithCustomSerializer(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task NoOpMessageIsIgnoredByQueueClient()
+        => NoOpMessageIsIgnoredByQueueClient(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task BatchedMessagesAreDeliveredToMultipleFlows()
+        => BatchedMessagesAreDeliveredToMultipleFlows(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task QueueClientSupportsMultiFlowMessageExchange()
+        => QueueClientSupportsMultiFlowMessageExchange(FunctionStoreFactory.Create());
 }
