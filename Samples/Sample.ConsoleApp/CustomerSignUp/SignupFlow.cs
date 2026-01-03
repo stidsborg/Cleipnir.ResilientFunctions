@@ -9,18 +9,14 @@ public static class SignupFlow
 {
     public static async Task Start(string customerEmail, Workflow workflow)
     {
-        var (effect, messages) = workflow;
+        var (effect, _) = workflow;
         
         await effect.Capture(() => SendWelcomeMail(customerEmail));
 
         for (var i = 0; i <= 5; i++)
         {
-            var emailVerifiedOption = await messages
-                .TakeUntilTimeout(TimeSpan.FromDays(1))
-                .OfType<EmailVerified>()
-                .FirstOrNone();
-            
-            if (emailVerifiedOption.HasValue)
+            var emailVerifiedOption = await workflow.Message<EmailVerified>(waitFor: TimeSpan.FromDays(1));
+            if (emailVerifiedOption == null)
                 break;
             
             if (i == 5)
