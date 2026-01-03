@@ -810,6 +810,72 @@ public abstract class MessagesSubscriptionTests
         unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
 
+    public abstract Task QueueManagerSkipsMessageWithDeserializationError();
+    protected async Task QueueManagerSkipsMessageWithDeserializationError(Task<IFunctionStore> functionStoreTask)
+    {
+        var functionStore = await functionStoreTask;
+        var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
+        var unhandledExceptionHandler = new UnhandledExceptionHandler(unhandledExceptionCatcher.Catch);
+        var exceptionThrowingSerializer = new ExceptionThrowingEventSerializer(typeof(BadMessage));
+        using var functionsRegistry = new FunctionsRegistry(
+            functionStore,
+            new Settings(unhandledExceptionCatcher.Catch)
+        );
+
+        var rFunc = functionsRegistry.RegisterFunc(
+            nameof(QueueManagerSkipsMessageWithDeserializationError),
+            inner: async Task<string> (string _, Workflow workflow) =>
+            {
+                var queueManager = new QueueManager(
+                    workflow.FlowId,
+                    workflow.StoredId,
+                    functionStore.MessageStore,
+                    exceptionThrowingSerializer,
+                    workflow.Effect,
+                    unhandledExceptionHandler,
+                    new FlowMinimumTimeout(),
+                    () => DateTime.UtcNow,
+                    SettingsWithDefaults.Default
+                );
+                await queueManager.Initialize();
+
+                var queueClient = new QueueClient(queueManager, () => DateTime.UtcNow);
+
+                var message1 = await queueClient.Pull<GoodMessage>(
+                    workflow,
+                    workflow.Effect.CreateNextImplicitId(),
+                    maxWait: TimeSpan.FromMinutes(1)
+                );
+                var message2 = await queueClient.Pull<GoodMessage>(
+                    workflow,
+                    workflow.Effect.CreateNextImplicitId(),
+                    maxWait: TimeSpan.FromMinutes(1)
+                );
+
+                return $"{message1.Value},{message2.Value}";
+            }
+        );
+
+        var scheduled = await rFunc.Schedule("instanceId", "");
+        var messageWriter = rFunc.MessageWriters.For("instanceId".ToFlowInstance());
+
+        await messageWriter.AppendMessage(new GoodMessage("first"));
+        await messageWriter.AppendMessage(new BadMessage("will-fail"), idempotencyKey: "bad-message");
+        await messageWriter.AppendMessage(new GoodMessage("second"));
+
+        var result = await scheduled.Completion(maxWait: TimeSpan.FromSeconds(10));
+        result.ShouldBe("first,second");
+
+        unhandledExceptionCatcher.ThrownExceptions.Count.ShouldBe(1);
+        var innerException = unhandledExceptionCatcher.ThrownExceptions[0].InnerException;
+        innerException.ShouldNotBeNull();
+        innerException.ShouldBeOfType<DeserializationException>();
+        innerException.Message.ShouldBe("Deserialization failed for BadMessage");
+    }
+
+    private record GoodMessage(string Value);
+    private record BadMessage(string Value);
+
     private class ExceptionThrowingEventSerializer : ISerializer
     {
         private readonly Type _failDeserializationOnType;
@@ -835,7 +901,7 @@ public abstract class MessagesSubscriptionTests
         {
             var eventType = Type.GetType(type.ToStringFromUtf8Bytes())!;
             if (eventType == _failDeserializationOnType)
-                throw new Exception("Deserialization exception");
+                throw new DeserializationException("Deserialization failed for BadMessage", new Exception("Inner cause"));
 
             return DefaultSerializer.Instance.DeserializeMessage(json, type);
         }

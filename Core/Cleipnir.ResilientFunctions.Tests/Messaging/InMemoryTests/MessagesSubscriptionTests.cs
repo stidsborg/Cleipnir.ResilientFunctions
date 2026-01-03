@@ -54,4 +54,8 @@ public class MessagesSubscriptionTests : TestTemplates.MessagesSubscriptionTests
     [TestMethod]
     public override Task QueueClientSupportsMultiFlowMessageExchange()
         => QueueClientSupportsMultiFlowMessageExchange(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task QueueManagerSkipsMessageWithDeserializationError()
+        => QueueManagerSkipsMessageWithDeserializationError(FunctionStoreFactory.Create());
 }

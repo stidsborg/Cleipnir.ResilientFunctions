@@ -53,4 +53,8 @@ public class MessagesSubscriptionTests : Cleipnir.ResilientFunctions.Tests.Messa
     [TestMethod]
     public override Task QueueClientSupportsMultiFlowMessageExchange()
         => QueueClientSupportsMultiFlowMessageExchange(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task QueueManagerSkipsMessageWithDeserializationError()
+        => QueueManagerSkipsMessageWithDeserializationError(FunctionStoreFactory.Create());
 }

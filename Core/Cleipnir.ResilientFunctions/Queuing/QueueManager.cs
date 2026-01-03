@@ -35,6 +35,7 @@ public class QueueManager(
     private readonly EffectId _toRemoveNextIndex = new([-1, 0]);
     private readonly EffectId _idempotencyKeysId = new([-1, -1]);
     private readonly List<MessageWithPosition> _toDeliver = new();
+    private readonly List<long> _skipPositions = new();
     private readonly HashSet<long> _deliveredPositions = new();
 
     private IdempotencyKeys? _idempotencyKeys;
@@ -98,7 +99,11 @@ public class QueueManager(
         {
             List<long> skipPositions;
             lock (_lock)
-                skipPositions = _toDeliver.Select(m => m.Position).Concat(_deliveredPositions).ToList();
+                skipPositions = _toDeliver
+                    .Select(m => m.Position)
+                    .Concat(_deliveredPositions)
+                    .Concat(_skipPositions)
+                    .ToList();
 
             var messages = await messageStore.GetMessages(storedId, skipPositions);
             
@@ -110,20 +115,30 @@ public class QueueManager(
                     continue;
                 }
 
-                var idempotencyKeyResult = idempotencyKey == null
-                    ? null
-                    : _idempotencyKeys!.Add(idempotencyKey, position);
-
-                if (idempotencyKey != null && idempotencyKeyResult == null)
+                try
                 {
-                    await messageStore.DeleteMessages(storedId, [position]);
-                    continue;
-                }
+                    var msg = serializer.DeserializeMessage(messageContent, messageType);
 
-                var msg = serializer.DeserializeMessage(messageContent, messageType);
-                var msgWithPosition = new MessageWithPosition(msg, position, idempotencyKeyResult);
-                lock (_lock)
-                    _toDeliver.Add(msgWithPosition);
+                    var idempotencyKeyResult = idempotencyKey == null
+                        ? null
+                        : _idempotencyKeys!.Add(idempotencyKey, position);
+
+                    if (idempotencyKey != null && idempotencyKeyResult == null)
+                    {
+                        await messageStore.DeleteMessages(storedId, [position]);
+                        continue;
+                    }
+
+                    var msgWithPosition = new MessageWithPosition(msg, position, idempotencyKeyResult);
+                    lock (_lock)
+                        _toDeliver.Add(msgWithPosition);
+                }
+                catch (Exception e)
+                {
+                    unhandledExceptionHandler.Invoke(flowId.Type, e);
+                    lock (_lock)
+                        _skipPositions.Add(position);
+                }
             }
             
             if (messages.Any())
