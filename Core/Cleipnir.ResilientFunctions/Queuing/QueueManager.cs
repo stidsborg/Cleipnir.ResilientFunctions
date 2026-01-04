@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime;
 using Cleipnir.ResilientFunctions.CoreRuntime.Serialization;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Domain.Events;
 using Cleipnir.ResilientFunctions.Domain.Exceptions.Commands;
 using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Storage;
@@ -119,6 +120,13 @@ public class QueueManager(
                 {
                     var msg = serializer.DeserializeMessage(messageContent, messageType);
 
+                    // NoOp messages are immediately deleted and not delivered
+                    if (msg is NoOp)
+                    {
+                        await messageStore.DeleteMessages(storedId, [position]);
+                        continue;
+                    }
+
                     var idempotencyKeyResult = idempotencyKey == null
                         ? null
                         : _idempotencyKeys!.Add(idempotencyKey, position);
@@ -144,7 +152,7 @@ public class QueueManager(
             if (messages.Any())
                 TryToDeliver();
 
-            await Task.Delay(1_000);
+            await Task.Delay(100);
         }
     }
 
@@ -301,7 +309,7 @@ public class QueueManager(
             foreach (var (_, subscription) in expiredSubscriptions)
                 subscription.Tcs.SetResult(null);
 
-            await Task.Delay(500);
+            await Task.Delay(100);
         }
     }
     
