@@ -10,6 +10,8 @@ namespace Cleipnir.ResilientFunctions.Queuing;
 
 public class QueueClient(QueueManager queueManager, UtcNow utcNow)
 {
+    public Task FetchMessages() => queueManager.FetchMessagesOnce();
+
     public Task<T> Pull<T>(Workflow workflow, EffectId parentId, Func<T, bool>? filter = null, TimeSpan? maxWait = null)  where T : class
         => Pull(filter, workflow, parentId, timeout: null, maxWait)!;
     public Task<T?> Pull<T>(Workflow workflow, EffectId parentId, TimeSpan timeout, Func<T, bool>? filter = null, TimeSpan? maxWait = null) where T : class

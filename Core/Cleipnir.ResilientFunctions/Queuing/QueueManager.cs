@@ -93,10 +93,14 @@ public class QueueManager(
         await  Initialize();
         return new QueueClient(this, utcNow);
     }
-    
-    public async Task FetchMessages()
+
+    public async Task FetchMessagesOnce()
     {
-        while (!_disposed)
+        if (_disposed)
+            throw new ObjectDisposedException($"{nameof(QueueManager)} is disposed already");
+        
+        await _semaphoreSlim.WaitAsync();
+        try
         {
             List<long> skipPositions;
             lock (_lock)
@@ -107,7 +111,7 @@ public class QueueManager(
                     .ToList();
 
             var messages = await messageStore.GetMessages(storedId, skipPositions);
-            
+
             foreach (var (messageContent, messageType, position, idempotencyKey) in messages)
             {
                 if (idempotencyKey != null && _idempotencyKeys!.Contains(idempotencyKey))
@@ -148,10 +152,21 @@ public class QueueManager(
                         _skipPositions.Add(position);
                 }
             }
-            
+
             if (messages.Any())
                 TryToDeliver();
+        }
+        finally
+        {
+            _semaphoreSlim.Release();
+        }
+    }
 
+    public async Task FetchMessages()
+    {
+        while (!_disposed)
+        {
+            await FetchMessagesOnce();
             await Task.Delay(100);
         }
     }

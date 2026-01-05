@@ -29,6 +29,7 @@ public abstract class MessagesTests
             new Settings(unhandledExceptionCatcher.Catch)
         );
 
+        QueueClient? queueClient = null;
         var rFunc = functionsRegistry.RegisterFunc(
             nameof(MessagesSunshineScenario),
             inner: async Task<string> (string _, Workflow workflow) =>
@@ -46,7 +47,7 @@ public abstract class MessagesTests
                 );
                 await queueManager.Initialize();
 
-                var queueClient = new QueueClient(queueManager, () => DateTime.UtcNow);
+                queueClient = new QueueClient(queueManager, () => DateTime.UtcNow);
                 var message = await queueClient.Pull<string>(workflow, workflow.Effect.CreateNextImplicitId(), maxWait: TimeSpan.FromMinutes(1));
 
                 return message;
@@ -54,8 +55,11 @@ public abstract class MessagesTests
         );
 
         var scheduled = await rFunc.Schedule("instanceId", "");
+
         var messageWriter = rFunc.MessageWriters.For("instanceId".ToFlowInstance());
         await messageWriter.AppendMessage("hello world");
+        await BusyWait.Until(() => queueClient is not null);
+        await queueClient!.FetchMessages(); // Immediately fetch the message
 
         var result = await scheduled.Completion(maxWait: TimeSpan.FromSeconds(5));
         result.ShouldBe("hello world");
@@ -368,6 +372,8 @@ public abstract class MessagesTests
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         var unhandledExceptionHandler = new UnhandledExceptionHandler(unhandledExceptionCatcher.Catch);
         using var registry = new FunctionsRegistry(functionStore, new Settings(unhandledExceptionCatcher.Catch));
+
+        var queueClients = new Dictionary<string, QueueClient>();
         var registration = registry.RegisterParamless(
             flowType,
             async Task (workflow) =>
@@ -386,6 +392,9 @@ public abstract class MessagesTests
                 await queueManager.Initialize();
 
                 var queueClient = new QueueClient(queueManager, () => DateTime.UtcNow);
+                lock (queueClients)
+                    queueClients[workflow.FlowId.Instance.Value] = queueClient;
+
                 await queueClient.Pull<string>(workflow, workflow.Effect.CreateNextImplicitId(), maxWait: TimeSpan.FromMinutes(1));
             }
         );
@@ -393,7 +402,11 @@ public abstract class MessagesTests
         await registration.Schedule("Instance#1");
         await registration.Schedule("Instance#2");
 
-        await Task.Delay(300); // Give workflows time to start
+        await BusyWait.Until(() =>
+        {
+            lock (queueClients)
+                return queueClients.ContainsKey("Instance#1") && queueClients.ContainsKey("Instance#2");
+        });
 
         await registration.SendMessages(
             [
@@ -402,11 +415,15 @@ public abstract class MessagesTests
             ]
         );
 
+        // Immediately fetch messages for both workflows
+        await queueClients["Instance#1"].FetchMessages();
+        await queueClients["Instance#2"].FetchMessages();
+
         var controlPanel1 = await registration.ControlPanel("Instance#1").ShouldNotBeNullAsync();
         var controlPanel2 = await registration.ControlPanel("Instance#2").ShouldNotBeNullAsync();
 
-        await controlPanel1.WaitForCompletion(maxWait: TimeSpan.FromSeconds(5));
-        await controlPanel2.WaitForCompletion(maxWait: TimeSpan.FromSeconds(5));
+        await controlPanel1.WaitForCompletion(maxWait: TimeSpan.FromSeconds(2));
+        await controlPanel2.WaitForCompletion(maxWait: TimeSpan.FromSeconds(2));
 
         unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
