@@ -171,75 +171,42 @@ public class QueueManager(
         }
     }
 
-    private bool _isFlushing;
-    private bool _flushAgain;
-    private bool TryBeginFlush()
-    {
-        lock (_lock)
-            if (_isFlushing)
-            {
-                _flushAgain = true;
-                return true;
-            }
-            else
-            {
-                _isFlushing = true;
-                return false;
-            }
-    }
-    
     public async Task AfterFlush()
     {
-        if (TryBeginFlush())
-            return;
-        
-        while (true)
+        await _semaphoreSlim.WaitAsync();
+        try
         {
-            try
+            var children = effect.GetChildren(_toRemoveNextIndex);
+            var nonDirtyChildren = new List<EffectId>();
+            foreach (var childId in children)
+                if (!effect.IsDirty(childId))
+                    nonDirtyChildren.Add(childId);
+
+            if (nonDirtyChildren.Any())
             {
-                var children = effect.GetChildren(_toRemoveNextIndex);
-                var nonDirtyChildren = new List<EffectId>();
-                foreach (var childId in children)
-                    if (!effect.IsDirty(childId))
-                        nonDirtyChildren.Add(childId);
-
-                if (nonDirtyChildren.Any())
+                var positions = new List<long>();
+                foreach (var nonDirtyChild in nonDirtyChildren)
                 {
-                    var positions = new List<long>();
-                    foreach (var nonDirtyChild in nonDirtyChildren)
-                    {
-                        var position = effect.Get<long>(nonDirtyChild);
-                        positions.Add(position);
-                    }
-
-                    await messageStore.DeleteMessages(storedId, positions);
-                    foreach (var nonDirtyChild in nonDirtyChildren)
-                        await effect.Clear(nonDirtyChild, flush: false);
-                    
-                    lock (_lock)
-                        foreach (var position in positions)
-                            _deliveredPositions.Remove(position);
+                    var position = effect.Get<long>(nonDirtyChild);
+                    positions.Add(position);
                 }
 
+                await messageStore.DeleteMessages(storedId, positions);
+                foreach (var nonDirtyChild in nonDirtyChildren)
+                    await effect.Clear(nonDirtyChild, flush: false);
+
                 lock (_lock)
-                    if (_flushAgain)
-                        _flushAgain = false;
-                    else
-                    {
-                        _isFlushing = false;
-                        return;
-                    }
+                    foreach (var position in positions)
+                        _deliveredPositions.Remove(position);
             }
-            catch (Exception exception)
-            {
-                unhandledExceptionHandler.Invoke(flowId.Type, exception);
-                lock (_lock)
-                {
-                    _isFlushing = false;
-                    _flushAgain = false;
-                }
-                return;
-            }
+        }
+        catch (Exception exception)
+        {
+            unhandledExceptionHandler.Invoke(flowId.Type, exception);
+        }
+        finally
+        {
+            _semaphoreSlim.Release();
         }
     }
 
