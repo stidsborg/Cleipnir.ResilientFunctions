@@ -11,16 +11,19 @@ public class LocalSettings
     internal bool? EnableWatchdogs { get; }
     internal int? MaxParallelRetryInvocations { get; }
     public TimeSpan? MessagesDefaultMaxWaitForCompletion { get; }
+    public bool ClearChildrenAfterCapture { get; }
 
     public LocalSettings(
         TimeSpan? retentionPeriod = null,
         bool? enableWatchdogs = null,
         TimeSpan? messagesDefaultMaxWaitForCompletion = null,  
-        int? maxParallelRetryInvocations = null)
+        int? maxParallelRetryInvocations = null,
+        bool clearChildrenAfterCapture = false)
     {
         RetentionPeriod = retentionPeriod;
         EnableWatchdogs = enableWatchdogs;
         MaxParallelRetryInvocations = maxParallelRetryInvocations;
         MessagesDefaultMaxWaitForCompletion = messagesDefaultMaxWaitForCompletion;
+        ClearChildrenAfterCapture = clearChildrenAfterCapture;
     }
 }

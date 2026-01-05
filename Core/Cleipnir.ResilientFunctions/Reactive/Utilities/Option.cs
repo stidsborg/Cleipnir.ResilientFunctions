@@ -35,7 +35,7 @@ public sealed class Option<T>(T v, bool hasValue) : ICustomSerializable
         => serializer.Serialize(HasValue ? [v] : new List<T>());
     public static object Deserialize(byte[] bytes, ISerializer serializer)
     {
-        var list = serializer.Deserialize<List<T>>(bytes);
+        var list = (List<T>)serializer.Deserialize(bytes, typeof(List<T>));
         return list.Count == 0 ? Option<T>.NoValue : new Option<T>(list[0], hasValue: true);
     }
 }

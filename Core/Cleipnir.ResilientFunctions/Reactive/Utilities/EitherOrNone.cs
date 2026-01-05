@@ -129,8 +129,8 @@ public class EitherOrNone<T1, T2> : ICustomSerializable
 
     public static object Deserialize(byte[] bytes, ISerializer serializer)
     {
-        var (valueSpecified, t1, t2) = serializer.Deserialize<Tuple<byte, T1, T2>>(bytes);
-        return new EitherOrNone<T1, T2>((Value) valueSpecified, t1, t2); 
+        var (valueSpecified, t1, t2) = (Tuple<byte, T1, T2>)serializer.Deserialize(bytes, typeof(Tuple<byte, T1, T2>));
+        return new EitherOrNone<T1, T2>((Value) valueSpecified, t1, t2);
     }
 }
 
@@ -283,7 +283,7 @@ public class EitherOrNone<T1, T2, T3> : ICustomSerializable
 
     public static object Deserialize(byte[] bytes, ISerializer serializer)
     {
-        var (valueSpecified, t1, t2, t3) = serializer.Deserialize<Tuple<byte, T1, T2, T3>>(bytes);
-        return new EitherOrNone<T1, T2, T3>((Value) valueSpecified, t1, t2, t3); 
+        var (valueSpecified, t1, t2, t3) = (Tuple<byte, T1, T2, T3>)serializer.Deserialize(bytes, typeof(Tuple<byte, T1, T2, T3>));
+        return new EitherOrNone<T1, T2, T3>((Value) valueSpecified, t1, t2, t3);
     }
 }

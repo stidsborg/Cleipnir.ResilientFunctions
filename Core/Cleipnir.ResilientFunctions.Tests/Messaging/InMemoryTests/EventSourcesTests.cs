@@ -26,32 +26,16 @@ public class MessagesTests : TestTemplates.MessagesTests
         => MessagesFirstOfTypesReturnsSecondForFirstOfTypesOnSecond(FunctionStoreFactory.Create());
 
     [TestMethod]
-    public override Task ExistingEventsShouldBeSameAsAllAfterEmit()
-        => ExistingEventsShouldBeSameAsAllAfterEmit(FunctionStoreFactory.Create());
+    public override Task QueueClientReturnsNullAfterTimeout()
+        => QueueClientReturnsNullAfterTimeout(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task SecondEventWithExistingIdempotencyKeyIsIgnored()
         => SecondEventWithExistingIdempotencyKeyIsIgnored(FunctionStoreFactory.Create());
 
     [TestMethod]
-    public override Task MessagesBulkMethodOverloadAppendsAllEventsSuccessfully()
-        => MessagesBulkMethodOverloadAppendsAllEventsSuccessfully(FunctionStoreFactory.Create());
-
-    [TestMethod]
-    public override Task MessagessSunshineScenarioUsingMessageStore()
-        => MessagessSunshineScenarioUsingMessageStore(FunctionStoreFactory.Create());
-
-    [TestMethod]
-    public override Task SecondEventWithExistingIdempotencyKeyIsIgnoredUsingMessageStore()
-        => SecondEventWithExistingIdempotencyKeyIsIgnoredUsingMessageStore(
-            FunctionStoreFactory.Create()
-        );
-
-    [TestMethod]
-    public override Task MessagesRemembersPreviousThrownEventProcessingExceptionOnAllSubsequentInvocations()
-        => MessagesRemembersPreviousThrownEventProcessingExceptionOnAllSubsequentInvocations(
-            FunctionStoreFactory.Create()
-        );
+    public override Task QueueClientCanPullMultipleMessages()
+        => QueueClientCanPullMultipleMessages(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task BatchedMessagesIsDeliveredToAwaitingFlows()
