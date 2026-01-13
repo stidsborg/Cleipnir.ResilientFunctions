@@ -138,7 +138,7 @@ public record StoredEffect(
     string? Alias
 )
 {
-    public static StoredEffect CreateCompleted(EffectId effectId, byte[] result, string? alias)
+    public static StoredEffect CreateCompleted(EffectId effectId, byte[]? result, string? alias)
         => new(effectId, WorkStatus.Completed, result, StoredException: null, alias);
     public static StoredEffect CreateCompleted(EffectId effectId, string? alias)
         => new(effectId, WorkStatus.Completed, Result: null, StoredException: null, alias);

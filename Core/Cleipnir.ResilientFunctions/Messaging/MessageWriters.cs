@@ -40,7 +40,7 @@ public class MessageWriters
         foreach (var (instance, message, idempotencyKey) in messages)
         {
             var storedId = StoredId.Create(_storedType, instance.Value);
-            var (content, type) = _serializer.SerializeMessage(message, message.GetType());
+            _serializer.Serialize(message, out var content, out var type);
             var storedMessage = new StoredMessage(content, type, Position: 0, idempotencyKey);
             storedIdAndMessages.Add(new StoredIdAndMessage(storedId,storedMessage));
         }

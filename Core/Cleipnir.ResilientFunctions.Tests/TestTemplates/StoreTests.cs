@@ -324,8 +324,8 @@ public abstract class StoreTests
         var sf = await store.GetFunction(functionId);
         sf.ShouldNotBeNull();
         sf.Status.ShouldBe(Status.Executing);
-        DefaultSerializer.Instance
-            .Deserialize<string>(sf.Parameter!)
+        ((string)DefaultSerializer.Instance
+            .Deserialize(sf.Parameter!, typeof(string)))
             .ShouldBe(PARAM);
     }
     
@@ -1121,15 +1121,17 @@ public abstract class StoreTests
             .Range(0, 500)
             .Select(i => StoredId.Create(typeId, i.ToString()))
             .ToList();
-        
-        await store.BulkScheduleFunctions(
+
+        var insertedCount = await store.BulkScheduleFunctions(
             functionIds.Select(functionId => new IdWithParam(functionId, "humanInstanceId", Param: functionId.ToString().ToUtf8Bytes())),
             parent
         );
 
-        var eligibleFunctions = 
+        insertedCount.ShouldBe(functionIds.Count);
+
+        var eligibleFunctions =
             await store.GetExpiredFunctions(DateTime.UtcNow.Ticks);
-        
+
         eligibleFunctions.Count.ShouldBe(functionIds.Count);
         foreach (var flowId in functionIds)
         {
@@ -1144,7 +1146,71 @@ public abstract class StoreTests
             sf.ParentId.ShouldBe(parent);
         }
     }
-    
+
+    public abstract Task BulkScheduleDoesNotCountExistingFunctions();
+    protected async Task BulkScheduleDoesNotCountExistingFunctions(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var parent = TestStoredId.Create();
+        var typeId = TestStoredId.Create().Type;
+
+        // Create 10 function IDs
+        var functionIds = Enumerable
+            .Range(0, 10)
+            .Select(i => StoredId.Create(typeId, i.ToString()))
+            .ToList();
+
+        // First bulk insert: insert all 10 functions
+        var firstInsertCount = await store.BulkScheduleFunctions(
+            functionIds.Select(functionId => new IdWithParam(functionId, "humanInstanceId", Param: functionId.ToString().ToUtf8Bytes())),
+            parent
+        );
+
+        firstInsertCount.ShouldBe(10);
+
+        // Second bulk insert: try to insert the same 10 functions again, plus 5 new ones
+        var newFunctionIds = Enumerable
+            .Range(10, 5)
+            .Select(i => StoredId.Create(typeId, i.ToString()))
+            .ToList();
+
+        var allFunctionIds = functionIds.Concat(newFunctionIds).ToList();
+
+        var secondInsertCount = await store.BulkScheduleFunctions(
+            allFunctionIds.Select(functionId => new IdWithParam(functionId, "humanInstanceId", Param: functionId.ToString().ToUtf8Bytes())),
+            parent
+        );
+
+        // Should only count the 5 new functions, not the 10 duplicates
+        secondInsertCount.ShouldBe(5);
+
+        // Verify all 15 functions exist
+        var eligibleFunctions = await store.GetExpiredFunctions(DateTime.UtcNow.Ticks);
+        eligibleFunctions.Count.ShouldBe(15);
+
+        foreach (var id in allFunctionIds)
+        {
+            var sf = await store.GetFunction(id);
+            sf.ShouldNotBeNull();
+        }
+    }
+
+    public abstract Task BulkScheduleWithEmptyCollectionReturnsZero();
+    protected async Task BulkScheduleWithEmptyCollectionReturnsZero(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var parent = TestStoredId.Create();
+
+        // Call BulkScheduleFunctions with empty collection
+        var insertedCount = await store.BulkScheduleFunctions(
+            Enumerable.Empty<IdWithParam>(),
+            parent
+        );
+
+        // Should return 0 for empty collection
+        insertedCount.ShouldBe(0);
+    }
+
     public abstract Task DifferentTypesAreFetchedByGetExpiredFunctionsCall();
     protected async Task DifferentTypesAreFetchedByGetExpiredFunctionsCall(Task<IFunctionStore> storeTask)
     {
