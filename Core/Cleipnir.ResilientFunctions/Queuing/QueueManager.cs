@@ -114,12 +114,6 @@ public class QueueManager(
 
             foreach (var (messageContent, messageType, position, idempotencyKey) in messages)
             {
-                if (idempotencyKey != null && _idempotencyKeys!.Contains(idempotencyKey))
-                {
-                    await messageStore.DeleteMessages(storedId, [position]);
-                    continue;
-                }
-
                 try
                 {
                     var msg = serializer.DeserializeMessage(messageContent, messageType);
