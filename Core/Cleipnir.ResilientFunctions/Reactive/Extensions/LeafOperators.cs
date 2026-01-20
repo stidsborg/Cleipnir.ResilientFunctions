@@ -89,55 +89,16 @@ public static class LeafOperators
     public static Task<T> First<T>(this IReactiveChain<T> s, TimeSpan? maxWait = null)
         => FirstOrNone(s, maxWait)
             .SelectAsync(o => o.HasValue ? o.Value : throw new NoResultException());
-    
-    public static Task<T?> FirstOrDefault<T>(this IReactiveChain<T> s, TimeSpan? maxWait = null)
-        => FirstOrNone(s, maxWait)
-            .SelectAsync(o => o.HasValue ? o.Value : default);
     public static Task<Option<T>> FirstOrNone<T>(this IReactiveChain<T> s, TimeSpan? maxWait = null)
         => Firsts(s, count: 1, maxWait)
             .SelectAsync(
                 l => l.Any() ? Option.Create(l.First()) : Option<T>.NoValue
             );
     
-    public static Task<EitherOrNone<T1, T2>> FirstOrNone<T1, T2>(this IReactiveChain<Either<T1, T2>> s, TimeSpan? maxWait = null)
-        => Firsts(s, count: 1, maxWait)
-            .SelectAsync(
-                either => either.Any() 
-                    ? EitherOrNone<T1, T2>.CreateFromEither(either.First()) 
-                    : EitherOrNone<T1, T2>.CreateNone()
-            );
-
-    public static Task<EitherOrNone<T1, T2, T3>> FirstOrNone<T1, T2, T3>(this IReactiveChain<Either<T1, T2, T3>> s, TimeSpan? maxWait = null)
-        => Firsts(s, count: 1, maxWait)
-            .SelectAsync(
-                either => either.Any()
-                    ? EitherOrNone<T1, T2, T3>.CreateFromEither(either.First())
-                    : EitherOrNone<T1, T2, T3>.CreateNone()
-            );
-    
     public static Task<T> FirstOfType<T>(this IReactiveChain<object> s, TimeSpan? maxWait = null)
         => s.OfType<T>().First(maxWait);
-    public static Task<EitherOrNone<T1, T2>> FirstOfTypes<T1, T2>(this Messages messages, TimeSpan expiresIn, TimeSpan? maxWait = null)
-        => messages.TakeUntilTimeout(expiresIn).OfTypes<T1, T2>().FirstOrNone(maxWait);
     public static Task<List<T>> Firsts<T>(this IReactiveChain<T> s, int count, TimeSpan? maxWait = null)
         => s.Take(count).ToList(maxWait);
     
-    #endregion
-    
-    #region Last
-    
-    public static Task<List<T>> Lasts<T>(this IReactiveChain<T> s, int count, TimeSpan? maxWait = null) 
-        => s.ToList(maxWait).SelectAsync(l => l.TakeLast(count).ToList());
-    
-    public static Task<T> Last<T>(this IReactiveChain<T> s, TimeSpan? maxWait = null)
-        => LastOrNone(s, maxWait)
-            .SelectAsync(o => o.HasValue ? o.Value : throw new NoResultException());
-    public static Task<Option<T>> LastOrNone<T>(this IReactiveChain<T> s, TimeSpan? maxWait = null)
-        => Lasts(s, count: 1, maxWait)
-            .SelectAsync(l =>
-                l.Any()
-                    ? Option.Create(l.First())
-                    : Option<T>.NoValue
-            );
     #endregion
 }
