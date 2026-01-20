@@ -873,6 +873,64 @@ public abstract class MessagesSubscriptionTests
         innerException.Message.ShouldBe("Deserialization failed for BadMessage");
     }
 
+    public abstract Task RegisteredTimeoutIsRemovedWhenPullingMessage();
+    protected async Task RegisteredTimeoutIsRemovedWhenPullingMessage(Task<IFunctionStore> functionStoreTask)
+    {
+        var functionStore = await functionStoreTask;
+        var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
+        var unhandledExceptionHandler = new UnhandledExceptionHandler(unhandledExceptionCatcher.Catch);
+        using var functionsRegistry = new FunctionsRegistry(
+            functionStore,
+            new Settings(unhandledExceptionCatcher.Catch)
+        );
+
+        var minimumTimeout = new FlowMinimumTimeout();
+        var rFunc = functionsRegistry.RegisterFunc(
+            nameof(RegisteredTimeoutIsRemovedWhenPullingMessage),
+            inner: async Task<string> (string _, Workflow workflow) =>
+            {
+                var queueManager = new QueueManager(
+                    workflow.FlowId,
+                    workflow.StoredId,
+                    functionStore.MessageStore,
+                    DefaultSerializer.Instance,
+                    workflow.Effect,
+                    unhandledExceptionHandler,
+                    minimumTimeout,
+                    () => DateTime.UtcNow,
+                    SettingsWithDefaults.Default
+                );
+                await queueManager.Initialize();
+
+                var queueClient = new QueueClient(queueManager, () => DateTime.UtcNow);
+
+                // Verify timeout is not set before pull
+                minimumTimeout.Current.ShouldBeNull();
+
+                var message = await queueClient.Pull<string>(
+                    workflow,
+                    workflow.Effect.CreateNextImplicitId(),
+                    timeout: TimeSpan.FromMinutes(5),
+                    maxWait: TimeSpan.FromMinutes(1)
+                );
+
+                // Verify timeout is removed after successful pull
+                minimumTimeout.Current.ShouldBeNull();
+
+                return message!;
+            }
+        );
+
+        var scheduled = await rFunc.Schedule("instanceId", "");
+        var messageWriter = rFunc.MessageWriters.For("instanceId".ToFlowInstance());
+        await messageWriter.AppendMessage("test message");
+
+        var result = await scheduled.Completion(maxWait: TimeSpan.FromSeconds(5));
+        result.ShouldBe("test message");
+
+        unhandledExceptionCatcher.ShouldNotHaveExceptions();
+    }
+
     private record GoodMessage(string Value);
     private record BadMessage(string Value);
 

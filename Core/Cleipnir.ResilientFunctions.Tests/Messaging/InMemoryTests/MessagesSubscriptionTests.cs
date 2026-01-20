@@ -58,4 +58,8 @@ public class MessagesSubscriptionTests : TestTemplates.MessagesSubscriptionTests
     [TestMethod]
     public override Task QueueManagerSkipsMessageWithDeserializationError()
         => QueueManagerSkipsMessageWithDeserializationError(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task RegisteredTimeoutIsRemovedWhenPullingMessage()
+        => RegisteredTimeoutIsRemovedWhenPullingMessage(FunctionStoreFactory.Create());
 }

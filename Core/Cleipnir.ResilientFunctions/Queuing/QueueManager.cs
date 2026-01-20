@@ -305,6 +305,7 @@ public class QueueManager(
         if (!tcs.Task.IsCompleted)
             throw new SuspendInvocationException();
 
+        minimumTimeout.RemoveTimeout(timeoutId);
         return await tcs.Task;
     }
 
