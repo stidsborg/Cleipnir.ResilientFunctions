@@ -12,7 +12,7 @@ namespace Cleipnir.ResilientFunctions.CoreRuntime.Watchdogs;
 internal class ReplicaWatchdog(
     ClusterInfo clusterInfo, 
     IFunctionStore functionStore, 
-    TimeSpan leaseLength, 
+    TimeSpan heartbeatFrequency, 
     UtcNow utcNow,
     UnhandledExceptionHandler unhandledExceptionHandler) : IDisposable
 {
@@ -20,6 +20,7 @@ internal class ReplicaWatchdog(
     private bool _started;
     private bool _initialized;
     private IReplicaStore ReplicaStore => functionStore.ReplicaStore;
+    public TimeSpan HeartbeatFrequency => heartbeatFrequency;
     
     public async Task Start()
     {
@@ -60,7 +61,7 @@ internal class ReplicaWatchdog(
                 unhandledExceptionHandler.Invoke(new FrameworkException("ReplicaWatchdog failed during iteration", ex));
             }
             
-            await Task.Delay(leaseLength / 2);
+            await Task.Delay(heartbeatFrequency / 2);
             iteration++;
 
             if (iteration % 100 == 0)
@@ -78,7 +79,7 @@ internal class ReplicaWatchdog(
         var storedReplicas = await ReplicaStore.GetAll();
         var offset = CalculateOffset(storedReplicas.Select(sr => sr.ReplicaId), clusterInfo.ReplicaId);
 
-        var threshold = (utcNowTicks - (2 * leaseLength).Ticks);
+        var threshold = (utcNowTicks - (2 * heartbeatFrequency).Ticks);
         foreach (var crashedReplica in storedReplicas.Where(sr => sr.LatestHeartbeat < threshold))
         {
             if (crashedReplica.ReplicaId == clusterInfo.ReplicaId)

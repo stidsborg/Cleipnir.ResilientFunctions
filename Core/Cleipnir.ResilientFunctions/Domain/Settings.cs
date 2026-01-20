@@ -19,6 +19,7 @@ public class Settings
     internal TimeSpan? MessagesDefaultMaxWaitForCompletion { get; }
     internal ISerializer? Serializer { get; }
     internal UtcNow? UtcNow { get; }
+    internal TimeSpan? ReplicaHeartbeatFrequency { get; }
 
     public Settings(
         Action<FrameworkException>? unhandledExceptionHandler = null, 
@@ -32,7 +33,8 @@ public class Settings
         TimeSpan? delayStartup = null, 
         int? maxParallelRetryInvocations = null, 
         ISerializer? serializer = null,
-        UtcNow? utcNow = null)
+        UtcNow? utcNow = null,
+        TimeSpan? replicaHeartbeatFrequency = null)
     {
         UnhandledExceptionHandler = unhandledExceptionHandler;
         RetentionPeriod = retentionPeriod;
@@ -46,6 +48,10 @@ public class Settings
         MessagesPullFrequency = messagesPullFrequency;
         MessagesDefaultMaxWaitForCompletion = messagesDefaultMaxWaitForCompletion;
         UtcNow = utcNow;
+        if (replicaHeartbeatFrequency.HasValue && replicaHeartbeatFrequency.Value < TimeSpan.Zero)
+            throw new ArgumentOutOfRangeException("ReplicaHeartbeatFrequency must be greater than zero");
+        
+        ReplicaHeartbeatFrequency = replicaHeartbeatFrequency;
     }
 }
 
@@ -61,7 +67,8 @@ public record SettingsWithDefaults(
     TimeSpan DelayStartup,
     int MaxParallelRetryInvocations,
     ISerializer Serializer,
-    UtcNow UtcNow)
+    UtcNow UtcNow,
+    TimeSpan ReplicaHeartbeatFrequency)
 {
     public SettingsWithDefaults Merge(Settings? child)
     {
@@ -81,7 +88,8 @@ public record SettingsWithDefaults(
             child.DelayStartup ?? DelayStartup,
             child.MaxParallelRetryInvocations ?? MaxParallelRetryInvocations,
             child.Serializer ?? Serializer,
-            child.UtcNow ?? (() => DateTime.UtcNow)
+            child.UtcNow ?? (() => DateTime.UtcNow),
+            child.ReplicaHeartbeatFrequency ?? ReplicaHeartbeatFrequency
         );
     }
     
@@ -111,6 +119,7 @@ public record SettingsWithDefaults(
             DelayStartup: TimeSpan.FromSeconds(0),
             MaxParallelRetryInvocations: 1000,
             Serializer: DefaultSerializer.Instance,
-            UtcNow: () => DateTime.UtcNow
+            UtcNow: () => DateTime.UtcNow,
+            ReplicaHeartbeatFrequency: TimeSpan.FromSeconds(10)
         );
 }

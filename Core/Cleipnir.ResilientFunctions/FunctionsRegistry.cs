@@ -52,7 +52,13 @@ public class FunctionsRegistry : IDisposable
             utcNow
         );
         
-        _replicaWatchdog = new ReplicaWatchdog(ClusterInfo, functionStore, leaseLength: TimeSpan.FromSeconds(1), utcNow, _settings.UnhandledExceptionHandler);
+        _replicaWatchdog = new ReplicaWatchdog(
+            ClusterInfo, 
+            functionStore, 
+            heartbeatFrequency: _settings.ReplicaHeartbeatFrequency, 
+            utcNow, 
+            _settings.UnhandledExceptionHandler
+        );
         if (_settings.EnableWatchdogs)
         {
             _replicaWatchdog.Initialize().GetAwaiter().GetResult();
