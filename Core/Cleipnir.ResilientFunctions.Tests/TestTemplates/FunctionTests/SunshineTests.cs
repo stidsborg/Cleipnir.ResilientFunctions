@@ -387,7 +387,7 @@ public abstract class SunshineTests
                 async (string _, Workflow workflow) =>
                 {
                     initialEffectValue = workflow.Effect.Get<string>("InitialEffectId");
-                    initialMessageValue = await workflow.Messages.OfType<string>().First();
+                    initialMessageValue = await workflow.Message<string>();
                 });
 
 
