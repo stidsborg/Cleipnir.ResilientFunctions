@@ -24,26 +24,32 @@ public abstract class MessagingTests
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         using var functionsRegistry = new FunctionsRegistry(
             store,
-            new Settings(unhandledExceptionHandler.Catch, messagesDefaultMaxWaitForCompletion: TimeSpan.MaxValue)
+            new Settings(unhandledExceptionHandler.Catch)
         );
 
         var rAction = functionsRegistry.RegisterFunc(
             nameof(FunctionCompletesAfterAwaitedMessageIsReceived),
             inner: async Task<string> (string _, Workflow workflow) =>
             {
-                var messages = workflow.Messages;
-                return await messages.OfType<string>().First();
+                var x = await workflow.Message<string>(maxWait: TimeSpan.Zero);
+                return x;
             }
         );
 
-        var invocationTask = rAction.Invoke("instanceId", "");
-        await Task.Delay(100);
-        invocationTask.IsCompleted.ShouldBeFalse();
+        await rAction.Schedule("instanceId", "");
+        
+        var controlPanel = await rAction.ControlPanel("instanceId");
+        controlPanel.ShouldNotBeNull();
+
+        await controlPanel.BusyWaitUntil(c => c.Status == Status.Suspended);
         
         var messagesWriter = rAction.MessageWriters.For("instanceId".ToFlowInstance());
         await messagesWriter.AppendMessage("hello world");
-        var result = await invocationTask;
-        result.ShouldBe("hello world");
+
+        await controlPanel.WaitForCompletion(allowPostponeAndSuspended: true);
+        await controlPanel.Refresh();
+        
+        controlPanel.Result.ShouldBe("hello world");
         
         unhandledExceptionHandler.ShouldNotHaveExceptions();
     }
