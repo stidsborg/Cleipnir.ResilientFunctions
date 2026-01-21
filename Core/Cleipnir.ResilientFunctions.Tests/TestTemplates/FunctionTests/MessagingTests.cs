@@ -85,29 +85,14 @@ public abstract class MessagingTests
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler.Catch));
 
+        var tomorrow = DateTime.UtcNow.AddDays(1);
         var rFunc = functionsRegistry.RegisterFunc(
             functionId.Type,
-            inner: async Task<Tuple<bool, string>> (string _, Workflow workflow) =>
-            {
-                var messages = workflow.Messages;
-
-                var timeoutOption = await messages
-                    .TakeUntilTimeout("timeoutId1".GetHashCode(), expiresIn: TimeSpan.FromMilliseconds(250))
-                    .OfType<string>()
-                    .FirstOrNone(TimeSpan.Zero);
-
-                var timeoutEvent = messages
-                    .OfType<TimeoutEvent>()
-                    .Existing(out var __)
-                    .SingleOrDefault();
-
-                return Tuple.Create(timeoutEvent != null && !timeoutOption.HasValue, timeoutEvent?.TimeoutId.Id.ToString() ?? "");
-            }
+            inner: async Task<string?> (string _, Workflow workflow) 
+                => await workflow.Message<string>(waitUntil: tomorrow)
         );
 
-        await Should.ThrowAsync<InvocationPostponedException>(() =>
-            rFunc.Invoke(functionId.Instance.Value, "")
-        );
+        await rFunc.Schedule(functionId.Instance.Value, param: "");
         
         var controlPanel = await rFunc.ControlPanel("instanceId");
         controlPanel.ShouldNotBeNull();
@@ -115,14 +100,12 @@ public abstract class MessagingTests
         await BusyWait.Until(async () =>
         {
             await controlPanel.Refresh();
-            return controlPanel.Status == Status.Succeeded;
+            return controlPanel.Status == Status.Postponed;
         }, maxWait: TimeSpan.FromSeconds(10));
 
-
-        controlPanel.Result.ShouldNotBeNull();
-        var (success, timeoutId) = (Tuple<bool, string>) controlPanel.Result;
-        success.ShouldBeTrue();
-        timeoutId.ShouldBe("timeoutId1".GetHashCode().ToString());
+        await controlPanel.Refresh();
+        controlPanel.Status.ShouldBe(Status.Postponed);
+        controlPanel.PostponedUntil.ShouldBe(tomorrow);
         
         unhandledExceptionHandler.ShouldNotHaveExceptions();
     }
