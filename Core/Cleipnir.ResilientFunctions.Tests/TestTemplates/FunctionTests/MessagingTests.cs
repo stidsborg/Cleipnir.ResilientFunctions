@@ -29,12 +29,7 @@ public abstract class MessagingTests
 
         var rAction = functionsRegistry.RegisterFunc(
             nameof(FunctionCompletesAfterAwaitedMessageIsReceived),
-            inner: async Task<string> (string _, Workflow workflow) =>
-            {
-                var x = await workflow.Message<string>(maxWait: TimeSpan.Zero);
-                return x;
-            }
-        );
+            inner: async Task<string> (string _, Workflow workflow) => await workflow.Message<string>(maxWait: TimeSpan.Zero));
 
         await rAction.Schedule("instanceId", "");
         
