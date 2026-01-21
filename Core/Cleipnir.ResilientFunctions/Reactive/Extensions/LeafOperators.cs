@@ -87,13 +87,11 @@ public static class LeafOperators
 
     #region First
     public static Task<T> First<T>(this IReactiveChain<T> s, TimeSpan? maxWait = null)
-        => FirstOrNone(s, maxWait)
-            .SelectAsync(o => o.HasValue ? o.Value : throw new NoResultException());
-    public static Task<Option<T>> FirstOrNone<T>(this IReactiveChain<T> s, TimeSpan? maxWait = null)
         => s.Take(1).ToList(maxWait)
             .SelectAsync(
                 l => l.Any() ? Option.Create(l.First()) : Option<T>.NoValue
-            );
+            )
+            .SelectAsync(o => o.HasValue ? o.Value : throw new NoResultException());
     
     public static Task<T> FirstOfType<T>(this IReactiveChain<object> s, TimeSpan? maxWait = null)
         => s.OfType<T>().First(maxWait);
