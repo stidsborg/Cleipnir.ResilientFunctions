@@ -79,13 +79,15 @@ public class QueueManager(
             }
 
             _initialized = true;
-            _ = Task.Run(FetchMessages);
-            _ = Task.Run(CheckTimeouts);
         }
         finally
         {
             _semaphoreSlim.Release();
         }
+        
+        await FetchMessagesOnce();
+        _ = Task.Run(FetchMessages);
+        _ = Task.Run(CheckTimeouts);
     }
 
     public async Task<QueueClient> CreateQueueClient()

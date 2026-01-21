@@ -1042,7 +1042,7 @@ public abstract class EffectTests
                     {
                         await workflow.Effect.Capture(alias: i.ToString(), () => i);
                         flag.Value = i;
-                        await workflow.Messages.Where(m => m.ToString() == i.ToString()).First();
+                        await workflow.Message<string>(s => s == i.ToString());
                         iterations.Add(i);
                     },
                     alias: "Loop"
@@ -1065,7 +1065,7 @@ public abstract class EffectTests
             storedEffects.Any(e => e.Alias == "Before").ShouldBeTrue();
             storedEffects.Any(e => e.Alias == "Loop").ShouldBeTrue();
             storedEffects.Single(e => e.Alias == i.ToString()).EffectId.ShouldBe(new EffectId([1,i,0]));
-            storedEffects.Count.ShouldBe(3);
+            storedEffects.Count.ShouldBe(4);
 
             await messageWriter.AppendMessage(i.ToString());
         }
