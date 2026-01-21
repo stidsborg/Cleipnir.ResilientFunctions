@@ -26,14 +26,6 @@ public class TimeoutTests : ResilientFunctions.Tests.TestTemplates.FunctionTests
         => PendingTimeoutCanBeUpdatedFromControlPanel(FunctionStoreFactory.Create());
 
     [TestMethod]
-    public override Task ExpiredImplicitTimeoutsAreAddedToMessages()
-        => ExpiredImplicitTimeoutsAreAddedToMessages(FunctionStoreFactory.Create());
-    
-    [TestMethod]
-    public override Task TimeoutsWithSameIdsButDifferentContextsDoNotCollide()
-        => TimeoutsWithSameIdsButDifferentContextsDoNotCollide(FunctionStoreFactory.Create());
-    
-    [TestMethod]
     public override Task ProvidedUtcNowDelegateIsUsedInWatchdog()
         => ProvidedUtcNowDelegateIsUsedInWatchdog(FunctionStoreFactory.Create());
 }
