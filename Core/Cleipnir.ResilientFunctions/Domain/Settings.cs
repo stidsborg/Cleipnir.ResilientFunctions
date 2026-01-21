@@ -120,6 +120,6 @@ public record SettingsWithDefaults(
             MaxParallelRetryInvocations: 1000,
             Serializer: DefaultSerializer.Instance,
             UtcNow: () => DateTime.UtcNow,
-            ReplicaHeartbeatFrequency: TimeSpan.FromSeconds(10)
+            ReplicaHeartbeatFrequency: TimeSpan.FromSeconds(1)
         );
 }
