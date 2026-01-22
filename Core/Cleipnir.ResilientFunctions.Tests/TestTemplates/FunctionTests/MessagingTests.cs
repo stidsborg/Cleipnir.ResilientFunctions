@@ -134,7 +134,7 @@ public abstract class MessagingTests
             inner: async Task<string> (string _, Workflow workflow) =>
             {
                 await child.Schedule(childFunctionId.Instance.Value, param: "stuff");
-                return await workflow.Messages.FirstOfType<string>(maxWait: TimeSpan.Zero);
+                return await workflow.Message<string>(maxWait: TimeSpan.Zero);
             }
         );
 
