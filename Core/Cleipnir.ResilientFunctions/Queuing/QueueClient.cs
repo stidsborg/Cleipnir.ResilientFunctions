@@ -17,7 +17,7 @@ public class QueueClient(QueueManager queueManager, UtcNow utcNow)
     public Task<T?> Pull<T>(Workflow workflow, EffectId parentId, TimeSpan timeout, Func<T, bool>? filter = null, TimeSpan? maxWait = null) where T : class
         => Pull(filter, workflow, parentId, utcNow().Add(timeout), maxWait);
     public Task<T?> Pull<T>(Workflow workflow, EffectId parentId, DateTime timeout, Func<T, bool>? filter = null, TimeSpan? maxWait = null) where T : class
-        => Pull(filter, workflow, parentId, (DateTime?) timeout, maxWait);
+        => Pull(filter, workflow, parentId, timeout, maxWait);
 
     private async Task<T?> Pull<T>(Func<T, bool>? filter, Workflow workflow, EffectId parentId, DateTime? timeout, TimeSpan? maxWait) where T : class
     {

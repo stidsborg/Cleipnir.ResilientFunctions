@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
@@ -10,14 +11,18 @@ public static class Saga
 {
     public static async Task StartFraudDetection(Transaction transaction, Workflow workflow)
     {
-        var messages = workflow.Messages;
         await MessageBroker.Send(new ApproveTransaction(transaction));
-        
-        var results = await messages
-            .TakeUntilTimeout(0, TimeSpan.FromSeconds(2))
-            .OfType<FraudDetectorResult>()
-            .Take(3)
-            .Completion();
+
+        var maxWait = DateTime.UtcNow.AddSeconds(2);
+        var results = new List<FraudDetectorResult>();
+        for (var i = 0; i < 3; i++)
+        {
+            var result = await workflow.Message<FraudDetectorResult>(waitUntil: maxWait);
+            if (result is null)
+                break;
+            
+            results.Add(result);
+        }
 
         var approved = results.Count >= 2 && results.All(result => result.Approved);
 
