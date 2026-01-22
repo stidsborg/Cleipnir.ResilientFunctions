@@ -94,7 +94,8 @@ public static class LeafOperators
             .SelectAsync(o => o.HasValue ? o.Value : throw new NoResultException());
     
     public static Task<T> FirstOfType<T>(this IReactiveChain<object> s, TimeSpan? maxWait = null)
-        => s.OfType<T>().First(maxWait);
+        => s.OfType<T>().Take(1).ToList(maxWait).SelectAsync(l => l.Any() ? Option.Create(l.First()) : Option<T>.NoValue
+    ).SelectAsync(o => o.HasValue ? o.Value : throw new NoResultException());
     
     #endregion
 }
