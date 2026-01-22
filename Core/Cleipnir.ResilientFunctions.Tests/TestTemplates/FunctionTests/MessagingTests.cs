@@ -29,7 +29,7 @@ public abstract class MessagingTests
 
         var rAction = functionsRegistry.RegisterFunc(
             nameof(FunctionCompletesAfterAwaitedMessageIsReceived),
-            inner: async Task<string> (string _, Workflow workflow) => await workflow.Message<string>(maxWait: TimeSpan.Zero));
+            inner: async Task<string> (string _, Workflow workflow) => await workflow.Message<string>());
 
         await rAction.Schedule("instanceId", "");
         
@@ -61,7 +61,7 @@ public abstract class MessagingTests
         var rAction = functionsRegistry.RegisterFunc(
             functionId.Type,
             inner: async Task<string> (string _, Workflow workflow)
-                => await workflow.Message<string>(maxWait: TimeSpan.Zero)
+                => await workflow.Message<string>()
         );
 
         await Should.ThrowAsync<InvocationSuspendedException>(() =>
@@ -134,7 +134,7 @@ public abstract class MessagingTests
             inner: async Task<string> (string _, Workflow workflow) =>
             {
                 await child.Schedule(childFunctionId.Instance.Value, param: "stuff");
-                return await workflow.Message<string>(maxWait: TimeSpan.Zero);
+                return await workflow.Message<string>();
             }
         );
 

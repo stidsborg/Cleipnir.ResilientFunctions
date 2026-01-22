@@ -299,7 +299,7 @@ public abstract class WatchdogCompoundTests
             flowType,
             inner: async Task<FlowId> (string _, Workflow workflow) =>
             {
-                await workflow.Messages.FirstOfType<string>(maxWait: TimeSpan.Zero);
+                await workflow.Message<string>();
                 return workflow.FlowId;
             }
         );

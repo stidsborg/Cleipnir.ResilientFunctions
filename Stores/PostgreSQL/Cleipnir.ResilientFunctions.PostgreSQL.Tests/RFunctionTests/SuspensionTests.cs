@@ -60,10 +60,6 @@ public class SuspensionTests : ResilientFunctions.Tests.TestTemplates.FunctionTe
 
     public override Task ParentCanWaitForBulkScheduledChildren()
         => ParentCanWaitForBulkScheduledChildren(FunctionStoreFactory.Create());
-
-    [TestMethod]
-    public override Task InterruptCountIsUpdatedWhenMaxWaitDetectsIt()
-        => InterruptCountIsUpdatedWhenMaxWaitDetectsIt(FunctionStoreFactory.Create());
     
     [TestMethod]
     public override Task SuspendedFlowIsRestartedAfterInterrupt()

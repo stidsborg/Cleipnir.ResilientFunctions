@@ -32,7 +32,7 @@ public abstract class RoutingTests
             flowType,
             inner: async workflow =>
             {
-                var someMessage = await workflow.Messages.FirstOfType<SomeMessage>();
+                var someMessage = await workflow.Message<SomeMessage>();
                 syncedValue.Value = someMessage.Value;
                 syncedFlag.Raise();
             }
@@ -71,7 +71,7 @@ public abstract class RoutingTests
             flowType,
             inner: async (string _, Workflow workflow) =>
             {
-                var someMessage = await workflow.Messages.FirstOfType<SomeMessage>();
+                var someMessage = await workflow.Message<SomeMessage>();
                 syncedValue.Value = someMessage.Value;
                 syncedFlag.Raise();
             }
@@ -110,7 +110,7 @@ public abstract class RoutingTests
             flowType,
             inner: async Task<string> (string _, Workflow workflow) =>
             {
-                var someMessage = await workflow.Messages.FirstOfType<SomeMessage>();
+                var someMessage = await workflow.Message<SomeMessage>();
                 syncedValue.Value = someMessage.Value;
                 syncedFlag.Raise();
                 
@@ -151,7 +151,7 @@ public abstract class RoutingTests
             flowType,
             inner: async workflow =>
             {
-                var someMessage = await workflow.Messages.FirstOfType<SomeMessage>();
+                var someMessage = await workflow.Message<SomeMessage>();
                 syncedValue.Value = someMessage.Value;
                 syncedFlag.Raise();
             }
@@ -196,7 +196,7 @@ public abstract class RoutingTests
                 await workflow.RegisterCorrelation(correlationId);
                 correlationIdRegisteredFlag.Raise();
                 
-                var someMessage = await workflow.Messages.FirstOfType<SomeCorrelatedMessage>();
+                var someMessage = await workflow.Message<SomeCorrelatedMessage>();
                 syncedValue.Value = someMessage.Value;
                 syncedFlag.Raise();
             }
@@ -237,7 +237,7 @@ public abstract class RoutingTests
             inner: async workflow =>
             {
                 await workflow.RegisterCorrelation(correlationId);
-                await workflow.Messages.FirstOfType<SomeCorrelatedMessage>();
+                await workflow.Message<SomeCorrelatedMessage>();
             }
         );
         var storedType = registration.StoredType;
@@ -300,13 +300,10 @@ public abstract class RoutingTests
             flowType,
             inner: async (workflow) =>
             {
-                var someMessage = await workflow.Messages.FirstOfType<SomeMessage>();
+                var someMessage = await workflow.Message<SomeMessage>();
                 syncedValue.Value = someMessage.Value;
                 syncedFlag.Raise();
-            },
-            new LocalSettings(
-                messagesDefaultMaxWaitForCompletion: TimeSpan.MaxValue
-            )
+            }
         );
 
         await registration.SendMessage(

@@ -31,8 +31,8 @@ public class DirectInvocationTest
                 {
                     var messages = workflow.Messages;
                     await messages.AppendMessage(param);
-                    
-                    return await messages.FirstOfType<string>();
+
+                    return await workflow.Message<string>();;
                 }
                 catch (Exception exception)
                 {
@@ -55,7 +55,7 @@ public class DirectInvocationTest
                     var messages = workflow.Messages;
                     await messages.AppendMessage(param);
                     
-                    return await messages.FirstOfType<string>();
+                    return await workflow.Message<string>();
                 }
                 catch (Exception exception)
                 {
