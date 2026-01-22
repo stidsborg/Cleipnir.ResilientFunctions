@@ -34,7 +34,7 @@ public static class TimeoutSuspensionTest
                 var functionStopWatch = Stopwatch.StartNew();
                 try
                 {
-                    await workflow.Messages.TakeUntilTimeout(TimeSpan.FromSeconds(30)).OfType<string>().First();
+                    await workflow.Message<string>(waitFor: TimeSpan.FromSeconds(30));
                 }
                 finally
                 {
