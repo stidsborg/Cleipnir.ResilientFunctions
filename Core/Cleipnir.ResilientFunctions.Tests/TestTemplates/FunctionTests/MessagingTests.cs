@@ -60,11 +60,8 @@ public abstract class MessagingTests
 
         var rAction = functionsRegistry.RegisterFunc(
             functionId.Type,
-            inner: async Task<string> (string _, Workflow workflow) =>
-            {
-                var messages = workflow.Messages;
-                return await messages.FirstOfType<string>(maxWait: TimeSpan.Zero);
-            }
+            inner: async Task<string> (string _, Workflow workflow)
+                => await workflow.Message<string>(maxWait: TimeSpan.Zero)
         );
 
         await Should.ThrowAsync<InvocationSuspendedException>(() =>
