@@ -496,12 +496,14 @@ public abstract class SuspensionTests
                     for (var i = 0; i < numberOfChildren; i++)
                         await child.Schedule($"SomeChildInstance#{i}", i.ToString(), detach: true);
                 });
-                
-                var messages = await workflow.Messages
-                    .Take(numberOfChildren)
-                    .Select(m => m.ToString()!)
-                    .Completion(maxWait: TimeSpan.Zero);
 
+                var messages = new List<string>();
+                for (var i = 0; i < numberOfChildren; i++)
+                {
+                    var msg = await workflow.Message<string>();
+                    messages.Add(msg);
+                }
+                
                 return messages;
             }
         );
