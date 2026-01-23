@@ -1,14 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
 using System.Threading.Tasks;
-using Cleipnir.ResilientFunctions.Domain;
-using Cleipnir.ResilientFunctions.Domain.Events;
 using Cleipnir.ResilientFunctions.Domain.Exceptions.Commands;
-using Cleipnir.ResilientFunctions.Helpers;
-using Cleipnir.ResilientFunctions.Messaging;
-using Cleipnir.ResilientFunctions.Reactive.Utilities;
 
 namespace Cleipnir.ResilientFunctions.Reactive.Extensions;
 
@@ -61,9 +55,6 @@ public static class LeafOperators
         
         throw new SuspendInvocationException();
     }
-    
-    public static Task<List<T>> Completion<T>(this IReactiveChain<T> s, TimeSpan? maxWait = null)
-        => s.ToList(maxWait);
     
     internal static List<T> Existing<T>(this IReactiveChain<T> s, out bool streamCompleted)
     {

@@ -620,8 +620,12 @@ public abstract class ControlPanelTests
                 }
                 else
                 {
-                    var existing = await messages.Select(e => e.ToString()!).Take(2).ToList();
-                    syncedList.AddRange(existing);
+                    for (var i = 0; i < 2; i++)
+                    {
+                        var msg = await workflow.Message<string>(maxWait: TimeSpan.FromSeconds(10));
+                        syncedList.Add(msg);
+                    } 
+                        
                 }
             }
         );
@@ -640,8 +644,6 @@ public abstract class ControlPanelTests
         await controlPanel.SaveChanges();
         await controlPanel.Refresh();
         await controlPanel.Restart();
-        
-        await controlPanel.Messages.Count.ShouldBeAsync(2);
         
         syncedList.ShouldNotBeNull();
         if (syncedList.Count != 2)
