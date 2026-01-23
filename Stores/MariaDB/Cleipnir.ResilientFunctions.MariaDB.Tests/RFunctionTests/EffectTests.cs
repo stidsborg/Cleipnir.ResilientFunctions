@@ -148,4 +148,8 @@ public class EffectTests : ResilientFunctions.Tests.TestTemplates.FunctionTests.
     [TestMethod]
     public override Task RunParallelleTest()
         => RunParallelleTest(FunctionStoreFactory.Create());
+    
+    [TestMethod]
+    public override Task UtcNowEffectSunshineTest()
+        => UtcNowEffectSunshineTest(FunctionStoreFactory.Create());
 }

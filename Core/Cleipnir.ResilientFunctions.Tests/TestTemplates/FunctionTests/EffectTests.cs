@@ -1508,4 +1508,30 @@ public abstract class EffectTests
         effectResults.Count.ShouldBe(2);
         syncedCounter.Current.ShouldBe(2);
     }
+
+    public abstract Task UtcNowEffectSunshineTest();
+    public async Task UtcNowEffectSunshineTest(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        using var functionsRegistry = new FunctionsRegistry(store);
+        var flowId = TestFlowId.Create();
+        var (flowType, flowInstance) = flowId;
+
+        var syncedList = new SyncedList<DateTime>();
+        var rAction = functionsRegistry.RegisterParamless(
+            flowType,
+            async Task (workflow) =>
+            {
+                var now = await workflow.UtcNow();
+                syncedList.Add(now);
+                await workflow.Delay(TimeSpan.FromSeconds(1));
+            });
+
+        await rAction.Schedule(flowInstance.ToString());
+        var cp = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
+        await cp.WaitForCompletion(allowPostponeAndSuspended: true);
+        
+        syncedList.Count.ShouldBe(2);
+        syncedList[0].ShouldBe(syncedList[1]);
+    }
 }

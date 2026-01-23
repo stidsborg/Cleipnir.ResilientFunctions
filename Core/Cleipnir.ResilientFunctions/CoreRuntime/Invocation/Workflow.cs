@@ -124,4 +124,16 @@ public class Workflow
     {
         return $"{FlowId} ({StoredId}):" + Environment.NewLine + Effect.ExecutionTree();
     }
+
+    public Task<DateTime> UtcNow(bool flush = true, string? alias = null) =>
+        alias == null
+            ? Effect.Capture(
+                work: () => _utcNow(),
+                resiliency: flush ? ResiliencyLevel.AtLeastOnce : ResiliencyLevel.AtLeastOnceDelayFlush
+            )
+            : Effect.Capture(
+                work: () => _utcNow(),
+                alias: alias,
+                resiliency: flush ? ResiliencyLevel.AtLeastOnce : ResiliencyLevel.AtLeastOnceDelayFlush
+            );
 }
