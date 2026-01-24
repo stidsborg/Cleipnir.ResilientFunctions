@@ -385,18 +385,15 @@ internal class InvocationHelper<TParam, TReturn>
         );
     }
 
-    public Messages CreateMessages(
+    public FlowRegisteredTimeouts CreateFlowRegisteredTimeouts(
         FlowId flowId,
         StoredId storedId,
-        ScheduleReInvocation scheduleReInvocation,
-        Func<bool> isWorkflowRunning,
         Effect effect,
-        IReadOnlyList<StoredMessage> initialMessages,
         FlowMinimumTimeout flowMinimumTimeout,
         UnhandledExceptionHandler unhandledExceptionHandler)
     {
         var messageWriter = new MessageWriter(storedId, _functionStore, Serializer);
-        var registeredTimeouts = new FlowRegisteredTimeouts(
+        return new FlowRegisteredTimeouts(
             effect,
             UtcNow,
             flowMinimumTimeout,
@@ -404,6 +401,15 @@ internal class InvocationHelper<TParam, TReturn>
             unhandledExceptionHandler,
             flowId
         );
+    }
+
+    public Messages CreateMessages(
+        StoredId storedId,
+        Func<bool> isWorkflowRunning,
+        FlowRegisteredTimeouts flowRegisteredTimeouts,
+        IReadOnlyList<StoredMessage> initialMessages)
+    {
+        var messageWriter = new MessageWriter(storedId, _functionStore, Serializer);
         var messagesPullerAndEmitter = new MessagesPullerAndEmitter(
             storedId,
             defaultDelay: _settings.MessagesPullFrequency,
@@ -411,12 +417,12 @@ internal class InvocationHelper<TParam, TReturn>
             isWorkflowRunning,
             _functionStore,
             Serializer,
-            registeredTimeouts,
+            flowRegisteredTimeouts,
             initialMessages,
             UtcNow
         );
-        
-        return new Messages(messageWriter, registeredTimeouts, messagesPullerAndEmitter, UtcNow);
+
+        return new Messages(messageWriter, flowRegisteredTimeouts, messagesPullerAndEmitter, UtcNow);
     }
     
     public Effect CreateEffect(StoredId storedId, FlowId flowId, IReadOnlyList<StoredEffect> storedEffects, FlowMinimumTimeout flowMinimumTimeout, IStorageSession? storageSession)

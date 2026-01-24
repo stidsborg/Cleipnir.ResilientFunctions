@@ -241,22 +241,25 @@ public class Invoker<TParam, TReturn>
             var initialMessages = initialState == null
                 ? (IReadOnlyList<StoredMessage>) []
                 : _invocationHelper.AddPositionsToMessages(_invocationHelper.MapInitialMessages(initialState.Messages));
-            var messages = _invocationHelper.CreateMessages(
+            var flowRegisteredTimeouts = _invocationHelper.CreateFlowRegisteredTimeouts(
                 flowId,
                 storedId,
-                ScheduleRestart,
-                isWorkflowRunning: () => !isWorkflowRunningDisposable.Disposed,
                 effect,
-                initialMessages,
                 minimumTimeout,
                 _unhandledExceptionHandler
             );
-            
+            var messages = _invocationHelper.CreateMessages(
+                storedId,
+                isWorkflowRunning: () => !isWorkflowRunningDisposable.Disposed,
+                flowRegisteredTimeouts,
+                initialMessages
+            );
+
             var correlations = _invocationHelper.CreateCorrelations(flowId);
             var semaphores = _invocationHelper.CreateSemaphores(storedId, effect);
             var queueManager = _invocationHelper.CreateQueueManager(flowId, storedId, effect, minimumTimeout, _unhandledExceptionHandler);
             disposables.Add(queueManager);
-            var workflow = new Workflow(flowId, storedId, messages, effect, _utilities, correlations, semaphores, queueManager, _invocationHelper.UtcNow);
+            var workflow = new Workflow(flowId, storedId, messages, effect, _utilities, correlations, semaphores, queueManager, _invocationHelper.UtcNow, flowRegisteredTimeouts);
 
             return new PreparedInvocation(
                 persisted,
@@ -298,22 +301,25 @@ public class Invoker<TParam, TReturn>
             
             var minimumTimeout = new FlowMinimumTimeout();
             var effect = _invocationHelper.CreateEffect(storedId, flowId, effects, minimumTimeout, storageSession);
-            var messages = _invocationHelper.CreateMessages(
+            var flowRegisteredTimeouts = _invocationHelper.CreateFlowRegisteredTimeouts(
                 flowId,
                 storedId,
-                ScheduleRestart,
-                isWorkflowRunning: () => !isWorkflowRunningDisposable.Disposed,
                 effect,
-                storedMessages,
                 minimumTimeout,
                 _unhandledExceptionHandler
             );
-            
+            var messages = _invocationHelper.CreateMessages(
+                storedId,
+                isWorkflowRunning: () => !isWorkflowRunningDisposable.Disposed,
+                flowRegisteredTimeouts,
+                storedMessages
+            );
+
             var correlations = _invocationHelper.CreateCorrelations(flowId);
             var semaphores = _invocationHelper.CreateSemaphores(storedId, effect);
             var queueManager = _invocationHelper.CreateQueueManager(flowId, storedId, effect, minimumTimeout, _unhandledExceptionHandler);
             disposables.Add(queueManager);
-            
+
             var workflow = new Workflow(
                 flowId,
                 storedId,
@@ -323,7 +329,8 @@ public class Invoker<TParam, TReturn>
                 correlations,
                 semaphores,
                 queueManager,
-                _invocationHelper.UtcNow
+                _invocationHelper.UtcNow,
+                flowRegisteredTimeouts
             );
 
             return new PreparedReInvocation(

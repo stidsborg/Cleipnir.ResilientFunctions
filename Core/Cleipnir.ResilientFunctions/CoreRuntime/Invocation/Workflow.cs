@@ -20,9 +20,10 @@ public class Workflow
     public Synchronization Synchronization { get; }
     private QueueManager _queueManager;
     private readonly UtcNow _utcNow;
+    private FlowRegisteredTimeouts FlowRegisteredTimeouts { get; }
 
 
-    public Workflow(FlowId flowId, StoredId storedId, Messages messages, Effect effect, Utilities utilities, Correlations correlations, DistributedSemaphores semaphores, QueueManager queueManager, UtcNow utcNow)
+    public Workflow(FlowId flowId, StoredId storedId, Messages messages, Effect effect, Utilities utilities, Correlations correlations, DistributedSemaphores semaphores, QueueManager queueManager, UtcNow utcNow, FlowRegisteredTimeouts flowRegisteredTimeouts)
     {
         FlowId = flowId;
         StoredId = storedId;
@@ -33,6 +34,7 @@ public class Workflow
         Synchronization = new Synchronization(semaphores);
         _queueManager = queueManager;
         _utcNow = utcNow;
+        FlowRegisteredTimeouts = flowRegisteredTimeouts;
     }
 
     public void Deconstruct(out Effect effect, out Messages messages)
@@ -49,7 +51,7 @@ public class Workflow
         var effectId = Effect.TakeNextImplicitId();
         var timeoutId = EffectId.CreateWithCurrentContext(effectId);
 
-        var (status, expiry) = await Messages.FlowRegisteredTimeouts.RegisterTimeout(
+        var (status, expiry) = await FlowRegisteredTimeouts.RegisterTimeout(
             timeoutId,
             until,
             publishMessage: false,
@@ -67,13 +69,11 @@ public class Workflow
             await Task.Delay(delay);
             delay = TimeSpan.Zero;
         }
-        
+
         if (delay == TimeSpan.Zero)
-            await Messages
-                .FlowRegisteredTimeouts
-                .CompleteTimeout(timeoutId, alias);
+            await FlowRegisteredTimeouts.CompleteTimeout(timeoutId, alias);
         else
-            throw new SuspendInvocationException();                
+            throw new SuspendInvocationException();
     }
 
     public Task<T> Message<T>(TimeSpan? maxWait = null) where T : class
