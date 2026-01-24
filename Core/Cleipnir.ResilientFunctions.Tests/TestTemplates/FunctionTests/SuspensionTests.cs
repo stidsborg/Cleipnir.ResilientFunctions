@@ -737,8 +737,7 @@ public abstract class SuspensionTests
             flowType,
             inner: async Task<string> (param, workflow) =>
             {
-                var messages = workflow.Messages;
-                await messages.AppendMessage(param);
+                await workflow.AppendMessage(param);
                     
                 return await workflow.Message<string>();
             }

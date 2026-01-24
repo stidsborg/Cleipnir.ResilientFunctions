@@ -29,10 +29,9 @@ public class DirectInvocationTest
             {
                 try
                 {
-                    var messages = workflow.Messages;
-                    await messages.AppendMessage(param);
+                    await workflow.AppendMessage(param);
 
-                    return await workflow.Message<string>();;
+                    return await workflow.Message<string>();
                 }
                 catch (Exception exception)
                 {
@@ -52,9 +51,8 @@ public class DirectInvocationTest
             {
                 try
                 {
-                    var messages = workflow.Messages;
-                    await messages.AppendMessage(param);
-                    
+                    await workflow.AppendMessage(param);
+
                     return await workflow.Message<string>();
                 }
                 catch (Exception exception)

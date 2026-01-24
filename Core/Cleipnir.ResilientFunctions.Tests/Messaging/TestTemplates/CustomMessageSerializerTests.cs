@@ -55,11 +55,13 @@ public abstract class CustomMessageSerializerTests
         );
         var messages = new Messages(messagesWriter, registeredTimeouts, messagesPullerAndEmitter, utcNow: () => DateTime.UtcNow);
         
-        await messages.AppendMessage("hello world");
-        
+        await messagesWriter.AppendMessage("hello world");
+
         eventSerializer.EventToSerialize.Count.ShouldBe(1);
         eventSerializer.EventToSerialize[0].ShouldBe("hello world");
-        
+
+        await messages.Sync();
+
         eventSerializer.EventToDeserialize.Count.ShouldBe(1);
         var (eventJson, eventType) = eventSerializer.EventToDeserialize[0];
         var deserializedEvent = DefaultSerializer.Instance.DeserializeMessage(eventJson.ToUtf8Bytes(), eventType.ToUtf8Bytes());

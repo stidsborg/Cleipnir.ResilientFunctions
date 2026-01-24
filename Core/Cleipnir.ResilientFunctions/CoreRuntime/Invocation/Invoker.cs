@@ -259,7 +259,8 @@ public class Invoker<TParam, TReturn>
             var semaphores = _invocationHelper.CreateSemaphores(storedId, effect);
             var queueManager = _invocationHelper.CreateQueueManager(flowId, storedId, effect, minimumTimeout, _unhandledExceptionHandler);
             disposables.Add(queueManager);
-            var workflow = new Workflow(flowId, storedId, messages, effect, _utilities, correlations, semaphores, queueManager, _invocationHelper.UtcNow, flowRegisteredTimeouts);
+            var messageWriter = _invocationHelper.CreateMessageWriter(storedId);
+            var workflow = new Workflow(flowId, storedId, messages, effect, _utilities, correlations, semaphores, queueManager, _invocationHelper.UtcNow, flowRegisteredTimeouts, messageWriter);
 
             return new PreparedInvocation(
                 persisted,
@@ -319,6 +320,7 @@ public class Invoker<TParam, TReturn>
             var semaphores = _invocationHelper.CreateSemaphores(storedId, effect);
             var queueManager = _invocationHelper.CreateQueueManager(flowId, storedId, effect, minimumTimeout, _unhandledExceptionHandler);
             disposables.Add(queueManager);
+            var messageWriter = _invocationHelper.CreateMessageWriter(storedId);
 
             var workflow = new Workflow(
                 flowId,
@@ -330,7 +332,8 @@ public class Invoker<TParam, TReturn>
                 semaphores,
                 queueManager,
                 _invocationHelper.UtcNow,
-                flowRegisteredTimeouts
+                flowRegisteredTimeouts,
+                messageWriter
             );
 
             return new PreparedReInvocation(

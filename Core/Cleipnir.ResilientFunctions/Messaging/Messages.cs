@@ -28,13 +28,7 @@ public class Messages : IReactiveChain<object>
         _messagePullerAndEmitter = messagePullerAndEmitter;
         UtcNow = utcNow;
     }
-
-    public async Task AppendMessage(object @event, string? idempotencyKey = null)
-    {
-        await _messageWriter.AppendMessage(@event, idempotencyKey);
-        await Sync();
-    }
-
+    
     public Task Sync() => _messagePullerAndEmitter.PullEvents(maxSinceLastSynced: TimeSpan.Zero);
 
     public ISubscription Subscribe(Action<object> onNext, Action onCompletion, Action<Exception> onError) 

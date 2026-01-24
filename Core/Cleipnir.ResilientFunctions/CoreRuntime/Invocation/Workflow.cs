@@ -21,9 +21,10 @@ public class Workflow
     private QueueManager _queueManager;
     private readonly UtcNow _utcNow;
     private FlowRegisteredTimeouts FlowRegisteredTimeouts { get; }
+    private MessageWriter MessageWriter { get; }
 
 
-    public Workflow(FlowId flowId, StoredId storedId, Messages messages, Effect effect, Utilities utilities, Correlations correlations, DistributedSemaphores semaphores, QueueManager queueManager, UtcNow utcNow, FlowRegisteredTimeouts flowRegisteredTimeouts)
+    public Workflow(FlowId flowId, StoredId storedId, Messages messages, Effect effect, Utilities utilities, Correlations correlations, DistributedSemaphores semaphores, QueueManager queueManager, UtcNow utcNow, FlowRegisteredTimeouts flowRegisteredTimeouts, MessageWriter messageWriter)
     {
         FlowId = flowId;
         StoredId = storedId;
@@ -35,6 +36,7 @@ public class Workflow
         _queueManager = queueManager;
         _utcNow = utcNow;
         FlowRegisteredTimeouts = flowRegisteredTimeouts;
+        MessageWriter = messageWriter;
     }
 
     public void Deconstruct(out Effect effect, out Messages messages)
@@ -117,6 +119,8 @@ public class Workflow
         async Task<T?> CreateAndPull() => await (await _queueManager.CreateQueueClient()).Pull<T>(this, effectId, waitFor, filter, maxWait);
         return CreateAndPull();
     }
+
+    public Task AppendMessage(object msg, string? idempotencyKey = null) => MessageWriter.AppendMessage(msg, idempotencyKey);
 
     public Task<T> Parallelle<T>(Func<Task<T>> work) => Effect.RunParallelle(work);
 

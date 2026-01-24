@@ -392,7 +392,7 @@ internal class InvocationHelper<TParam, TReturn>
         FlowMinimumTimeout flowMinimumTimeout,
         UnhandledExceptionHandler unhandledExceptionHandler)
     {
-        var messageWriter = new MessageWriter(storedId, _functionStore, Serializer);
+        var messageWriter = CreateMessageWriter(storedId);
         return new FlowRegisteredTimeouts(
             effect,
             UtcNow,
@@ -403,13 +403,16 @@ internal class InvocationHelper<TParam, TReturn>
         );
     }
 
+    public MessageWriter CreateMessageWriter(StoredId storedId)
+        => new MessageWriter(storedId, _functionStore, Serializer);
+
     public Messages CreateMessages(
         StoredId storedId,
         Func<bool> isWorkflowRunning,
         FlowRegisteredTimeouts flowRegisteredTimeouts,
         IReadOnlyList<StoredMessage> initialMessages)
     {
-        var messageWriter = new MessageWriter(storedId, _functionStore, Serializer);
+        var messageWriter = CreateMessageWriter(storedId);
         var messagesPullerAndEmitter = new MessagesPullerAndEmitter(
             storedId,
             defaultDelay: _settings.MessagesPullFrequency,

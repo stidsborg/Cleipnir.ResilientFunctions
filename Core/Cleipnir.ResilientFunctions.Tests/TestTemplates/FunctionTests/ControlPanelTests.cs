@@ -31,9 +31,8 @@ public abstract class ControlPanelTests
             flowType,
             async (string _, Workflow workflow) =>
             {
-                var (effect, messages) = workflow;
-                await effect.CreateOrGet("alias", 123);
-                await messages.AppendMessage("Message");
+                await workflow.Effect.CreateOrGet("alias", 123);
+                await workflow.AppendMessage("Message");
                 await workflow.Messages.FlowRegisteredTimeouts.RegisterTimeout(1, expiresAt: DateTime.UtcNow.AddDays(1), publishMessage: true);
             }
         );
@@ -83,9 +82,8 @@ public abstract class ControlPanelTests
             flowType,
             async Task<string>(string _, Workflow workflow) =>
             {
-                var (effect, messages) = workflow;
-                await effect.CreateOrGet("alias", 123);
-                await messages.AppendMessage("Message");
+                await workflow.Effect.CreateOrGet("alias", 123);
+                await workflow.AppendMessage("Message");
                 await workflow.Messages.FlowRegisteredTimeouts.RegisterTimeout(1, expiresAt: DateTime.UtcNow.AddDays(1), publishMessage: true);
                 return "hello";
             });
@@ -569,7 +567,7 @@ public abstract class ControlPanelTests
             flowType,
             async Task(string param, Workflow workflow) =>
             {
-                await workflow.Messages.AppendMessage(param);
+                await workflow.AppendMessage(param);
             }
         );
 
@@ -610,13 +608,12 @@ public abstract class ControlPanelTests
             flowType,
             async Task(string param, Workflow workflow) =>
             {
-                var messages = workflow.Messages;
                 if (first)
                 {
                     invocationCount.Increment();
                     first = false;
-                    await messages.AppendMessage("hello world", idempotencyKey: "1");
-                    await messages.AppendMessage("hello universe", idempotencyKey: "2");
+                    await workflow.AppendMessage("hello world", idempotencyKey: "1");
+                    await workflow.AppendMessage("hello universe", idempotencyKey: "2");
                 }
                 else
                 {
@@ -673,12 +670,11 @@ public abstract class ControlPanelTests
             flowType,
             async Task(string param, Workflow workflow) =>
             {
-                var messages = workflow.Messages;
                 if (first)
                 {
                     first = false;
-                    await messages.AppendMessage("hello world", idempotencyKey: "1");
-                    await messages.AppendMessage("hello universe", idempotencyKey: "2");
+                    await workflow.AppendMessage("hello world", idempotencyKey: "1");
+                    await workflow.AppendMessage("hello universe", idempotencyKey: "2");
                 }
             }
         );
