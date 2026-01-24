@@ -1,13 +1,9 @@
 ﻿using System;
-using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Domain;
-using Cleipnir.ResilientFunctions.Domain.Events;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.Helpers;
-using Cleipnir.ResilientFunctions.Reactive;
-using Cleipnir.ResilientFunctions.Reactive.Extensions;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Tests.Utils;
 using Shouldly;
@@ -155,41 +151,5 @@ public abstract class MessagingTests
         
         unhandledExceptionHandler.ShouldNotHaveExceptions();
     }
-    
-    public abstract Task IsWorkflowRunningSubscriptionPropertyTurnsFalseAfterWorkflowInvocationHasCompleted();
-    public async Task IsWorkflowRunningSubscriptionPropertyTurnsFalseAfterWorkflowInvocationHasCompleted(Task<IFunctionStore> functionStore)
-    {
-        var store = await functionStore;
 
-        var (typeId, instanceId) = TestFlowId.Create();
-        
-        var unhandledExceptionHandler = new UnhandledExceptionCatcher();
-        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler.Catch));
-
-        ISubscription? subscription = null;
-        
-        var registration = functionsRegistry.RegisterAction(
-            typeId,
-            inner: Task (string _, Workflow workflow) =>
-            {
-                subscription = workflow.Messages.Subscribe(onNext: _ => { }, onCompletion: () => { }, onError: _ => { });
-                subscription.IsWorkflowRunning.ShouldBeTrue();
-                return Task.CompletedTask;
-            }
-        );
-
-        await registration.Invoke(instanceId.ToString(), param: "test");
-
-        subscription.ShouldNotBeNull();
-        subscription.IsWorkflowRunning.ShouldBeFalse();
-
-        var controlPanel = await registration.ControlPanel(instanceId);
-        controlPanel.ShouldNotBeNull();
-
-        await controlPanel.Restart();
-        subscription.ShouldNotBeNull();
-        subscription.IsWorkflowRunning.ShouldBeFalse();
-        
-        unhandledExceptionHandler.ShouldNotHaveExceptions();
-    }
 }

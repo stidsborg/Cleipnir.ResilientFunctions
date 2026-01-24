@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
-using Cleipnir.ResilientFunctions.Reactive.Extensions;
 
 namespace ConsoleApp.CustomerSignUp;
 
@@ -9,8 +8,8 @@ public static class SignupFlow
 {
     public static async Task Start(string customerEmail, Workflow workflow)
     {
-        var (effect, _) = workflow;
-        
+        var effect = workflow.Effect;
+
         await effect.Capture(() => SendWelcomeMail(customerEmail));
 
         for (var i = 0; i <= 5; i++)

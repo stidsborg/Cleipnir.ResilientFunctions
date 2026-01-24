@@ -31,7 +31,7 @@ public sealed class TransferSagaV2
         public async Task Perform(Transfer transfer, Workflow workflow)
         {
             var arbitrator = workflow.Utilities.Arbitrator;
-            var (effect, _) = workflow;
+            var effect = workflow.Effect;
             var success = await arbitrator.Propose("BankTransfer", transfer.TransferId.ToString(), value: "V1");
             if (!success) throw new InvalidOperationException("Other version was selected for execution");
             

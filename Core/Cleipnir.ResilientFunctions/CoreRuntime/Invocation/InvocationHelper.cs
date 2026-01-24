@@ -5,9 +5,9 @@ using System.Runtime.ExceptionServices;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Serialization;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.Helpers;
-using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Queuing;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Storage.Session;
@@ -406,28 +406,6 @@ internal class InvocationHelper<TParam, TReturn>
     public MessageWriter CreateMessageWriter(StoredId storedId)
         => new MessageWriter(storedId, _functionStore, Serializer);
 
-    public Messages CreateMessages(
-        StoredId storedId,
-        Func<bool> isWorkflowRunning,
-        FlowRegisteredTimeouts flowRegisteredTimeouts,
-        IReadOnlyList<StoredMessage> initialMessages)
-    {
-        var messageWriter = CreateMessageWriter(storedId);
-        var messagesPullerAndEmitter = new MessagesPullerAndEmitter(
-            storedId,
-            defaultDelay: _settings.MessagesPullFrequency,
-            _settings.MessagesDefaultMaxWaitForCompletion,
-            isWorkflowRunning,
-            _functionStore,
-            Serializer,
-            flowRegisteredTimeouts,
-            initialMessages,
-            UtcNow
-        );
-
-        return new Messages(messageWriter, flowRegisteredTimeouts, messagesPullerAndEmitter, UtcNow);
-    }
-    
     public Effect CreateEffect(StoredId storedId, FlowId flowId, IReadOnlyList<StoredEffect> storedEffects, FlowMinimumTimeout flowMinimumTimeout, IStorageSession? storageSession)
     {
         var effectsStore = _functionStore.EffectsStore;

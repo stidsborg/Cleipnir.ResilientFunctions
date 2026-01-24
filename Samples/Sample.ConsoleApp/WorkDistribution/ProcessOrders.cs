@@ -14,7 +14,7 @@ public static class ProcessOrders
     
     public static async Task Execute(List<string> orderIds, Workflow workflow)
     {
-        var (effect, _) = workflow;
+        var effect = workflow.Effect;
         await effect.Capture(
             () => Console.WriteLine($"Processing of orders started ({orderIds.Count})")
         );

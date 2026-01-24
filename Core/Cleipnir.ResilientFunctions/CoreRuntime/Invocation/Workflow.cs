@@ -2,8 +2,8 @@
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Exceptions.Commands;
-using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
+using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Queuing;
 using Cleipnir.ResilientFunctions.Storage;
 
@@ -13,36 +13,28 @@ public class Workflow
 {
     public FlowId FlowId { get; }
     internal StoredId StoredId { get; }
-    public Messages Messages { get; }
     public Effect Effect { get; }
     public Utilities Utilities { get; }
     public Correlations Correlations { get; }
     public Synchronization Synchronization { get; }
+    public FlowRegisteredTimeouts RegisteredTimeouts { get; }
     private QueueManager _queueManager;
     private readonly UtcNow _utcNow;
-    private FlowRegisteredTimeouts FlowRegisteredTimeouts { get; }
     private MessageWriter MessageWriter { get; }
 
 
-    public Workflow(FlowId flowId, StoredId storedId, Messages messages, Effect effect, Utilities utilities, Correlations correlations, DistributedSemaphores semaphores, QueueManager queueManager, UtcNow utcNow, FlowRegisteredTimeouts flowRegisteredTimeouts, MessageWriter messageWriter)
+    public Workflow(FlowId flowId, StoredId storedId, Effect effect, Utilities utilities, Correlations correlations, DistributedSemaphores semaphores, QueueManager queueManager, UtcNow utcNow, FlowRegisteredTimeouts flowRegisteredTimeouts, MessageWriter messageWriter)
     {
         FlowId = flowId;
         StoredId = storedId;
         Utilities = utilities;
-        Messages = messages;
         Effect = effect;
         Correlations = correlations;
         Synchronization = new Synchronization(semaphores);
         _queueManager = queueManager;
         _utcNow = utcNow;
-        FlowRegisteredTimeouts = flowRegisteredTimeouts;
+        RegisteredTimeouts = flowRegisteredTimeouts;
         MessageWriter = messageWriter;
-    }
-
-    public void Deconstruct(out Effect effect, out Messages messages)
-    {
-        effect = Effect;
-        messages = Messages;
     }
 
     public async Task RegisterCorrelation(string correlation) => await Correlations.Register(correlation);
@@ -53,7 +45,7 @@ public class Workflow
         var effectId = Effect.TakeNextImplicitId();
         var timeoutId = EffectId.CreateWithCurrentContext(effectId);
 
-        var (status, expiry) = await FlowRegisteredTimeouts.RegisterTimeout(
+        var (status, expiry) = await RegisteredTimeouts.RegisterTimeout(
             timeoutId,
             until,
             publishMessage: false,
@@ -73,7 +65,7 @@ public class Workflow
         }
 
         if (delay == TimeSpan.Zero)
-            await FlowRegisteredTimeouts.CompleteTimeout(timeoutId, alias);
+            await RegisteredTimeouts.CompleteTimeout(timeoutId, alias);
         else
             throw new SuspendInvocationException();
     }

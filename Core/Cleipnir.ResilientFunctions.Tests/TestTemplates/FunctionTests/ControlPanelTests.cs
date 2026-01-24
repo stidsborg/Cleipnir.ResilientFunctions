@@ -33,7 +33,7 @@ public abstract class ControlPanelTests
             {
                 await workflow.Effect.CreateOrGet("alias", 123);
                 await workflow.AppendMessage("Message");
-                await workflow.Messages.FlowRegisteredTimeouts.RegisterTimeout(1, expiresAt: DateTime.UtcNow.AddDays(1), publishMessage: true);
+                await workflow.RegisteredTimeouts.RegisterTimeout(1, expiresAt: DateTime.UtcNow.AddDays(1), publishMessage: true);
             }
         );
         
@@ -84,7 +84,7 @@ public abstract class ControlPanelTests
             {
                 await workflow.Effect.CreateOrGet("alias", 123);
                 await workflow.AppendMessage("Message");
-                await workflow.Messages.FlowRegisteredTimeouts.RegisterTimeout(1, expiresAt: DateTime.UtcNow.AddDays(1), publishMessage: true);
+                await workflow.RegisteredTimeouts.RegisterTimeout(1, expiresAt: DateTime.UtcNow.AddDays(1), publishMessage: true);
                 return "hello";
             });
         
@@ -1240,7 +1240,7 @@ public abstract class ControlPanelTests
         var actionRegistration = functionsRegistry.RegisterAction(
             flowType,
             Task (string param, Workflow workflow) =>
-                workflow.Messages.FlowRegisteredTimeouts.RegisterTimeout(
+                workflow.RegisteredTimeouts.RegisterTimeout(
                     "someTimeoutId".GetHashCode(),
                     expiresAt: new DateTime(2100, 1,1, 1,1,1, DateTimeKind.Utc),
                     publishMessage: true
@@ -1282,7 +1282,7 @@ public abstract class ControlPanelTests
             flowType,
             async Task<string> (string param, Workflow workflow) =>
             {
-                await workflow.Messages.FlowRegisteredTimeouts.RegisterTimeout(
+                await workflow.RegisteredTimeouts.RegisterTimeout(
                     "someTimeoutId".GetHashCode(),
                     expiresAt: new DateTime(2100, 1, 1, 1, 1, 1, DateTimeKind.Utc),
                     publishMessage: true
