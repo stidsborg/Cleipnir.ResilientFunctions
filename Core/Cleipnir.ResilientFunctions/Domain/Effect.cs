@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime;
 using Cleipnir.ResilientFunctions.Helpers;
+using Cleipnir.ResilientFunctions.Queuing;
 using Cleipnir.ResilientFunctions.Reactive.Utilities;
 using Cleipnir.ResilientFunctions.Storage;
 
@@ -66,7 +67,7 @@ public class Effect(EffectResults effectResults, UtcNow utcNow, FlowMinimumTimeo
         );
     internal Task Upsert<T>(EffectId effectId, T value, string? alias, bool flush) => effectResults.Upsert(effectId, alias, value, flush);
 
-    internal Task Upserts(IEnumerable<Tuple<EffectId, object, string?>> values, bool flush)
+    internal Task Upserts(IEnumerable<EffectResult> values, bool flush)
         => effectResults.Upserts(values, flush);
 
     internal Option<T> TryGet<T>(string alias)
@@ -79,6 +80,7 @@ public class Effect(EffectResults effectResults, UtcNow utcNow, FlowMinimumTimeo
     }
 
     internal Option<T> TryGet<T>(EffectId effectId) => effectResults.TryGet<T>(effectId);
+    internal Option<object?> TryGet(EffectId effectId, Type type) => effectResults.TryGet(effectId, type);
     internal T Get<T>(string alias) => Get<T>(
         effectResults.GetEffectId(alias) ?? throw new InvalidOperationException($"Unknown alias: '{alias}'")
     );
@@ -91,6 +93,8 @@ public class Effect(EffectResults effectResults, UtcNow utcNow, FlowMinimumTimeo
 
         return option.Value;
     }
+    
+    internal IReadOnlyList<EffectId> GetChildren(EffectId effectId) => effectResults.GetChildren(effectId);
 
     #region Implicit ids
 
@@ -231,6 +235,10 @@ public class Effect(EffectResults effectResults, UtcNow utcNow, FlowMinimumTimeo
         var lastChild = id.CreateChild(atIndex - 1);
         await effectResults.Clear(lastChild, flush: false);
     }
+
+    internal async Task Clear(EffectId id, bool flush) => await effectResults.Clear(id, flush);
+    internal void ClearNoFlush(EffectId id) => effectResults.ClearNoFlush(id);
+    internal bool IsDirty(EffectId id) => effectResults.IsDirty(id);
     
     public async Task<TSeed> AggregateEach<T, TSeed>(
         IEnumerable<T> elms,
@@ -263,4 +271,10 @@ public class Effect(EffectResults effectResults, UtcNow utcNow, FlowMinimumTimeo
         await effectResults.Clear(lastChild, flush: false);
         return akk;
     }
+
+    internal void RegisterQueueManager(QueueManager queueManager) => effectResults.QueueManager = queueManager;
+
+    internal string ExecutionTree() => EffectPrinter.Print(effectResults);
+
+    public Task<T> RunParallelle<T>(Func<Task<T>> work) => Capture(() => Task.Run(work));
 }

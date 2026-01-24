@@ -23,6 +23,10 @@ public class EffectTests : TestTemplates.FunctionTests.EffectTests
         => SunshineAsyncFuncTest(FunctionStoreFactory.Create());
 
     [TestMethod]
+    public override Task FuncWithNullValueTest()
+        => FuncWithNullValueTest(FunctionStoreFactory.Create());
+
+    [TestMethod]
     public override Task ExceptionThrowingActionTest()
         => ExceptionThrowingActionTest(FunctionStoreFactory.Create());
 
@@ -129,4 +133,24 @@ public class EffectTests : TestTemplates.FunctionTests.EffectTests
     [TestMethod]
     public override Task AggregateEachWithSingleElement()
         => AggregateEachWithSingleElement(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task GetChildrenReturnsAllChildEffectValues()
+        => GetChildrenReturnsAllChildEffectValues(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task GetChildrenReturnsEmptyListWhenNoChildren()
+        => GetChildrenReturnsEmptyListWhenNoChildren(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task GetChildrenReturnsAllDescendants()
+        => GetChildrenReturnsAllDescendants(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task RunParallelleTest()
+        => RunParallelleTest(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task UtcNowEffectSunshineTest()
+        => UtcNowEffectSunshineTest(FunctionStoreFactory.Create());
 }

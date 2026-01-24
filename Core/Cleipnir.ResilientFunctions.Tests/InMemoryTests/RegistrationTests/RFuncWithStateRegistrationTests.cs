@@ -57,24 +57,23 @@ public class RFuncWithStateRegistrationTests
         public bool Invoked { get; set; }
         private ISerializer Default { get; } = DefaultSerializer.Instance;
 
-        public byte[] Serialize<T>(T parameter)
+        public byte[] Serialize(object? value, Type type)
         {
             Invoked = true;
-            return Default.Serialize(parameter);
+            return Default.Serialize(value, type);
         }
 
-        public byte[] Serialize(object? value, Type type) => Default.Serialize(value, type);
+        public void Serialize(object value, out byte[] valueBytes, out byte[] typeBytes)
+            => Default.Serialize(value, out valueBytes, out typeBytes);
 
-        public T Deserialize<T>(byte[] bytes)
-            => Default.Deserialize<T>(bytes);
-        
+        public object Deserialize(byte[] bytes, Type type)
+            => Default.Deserialize(bytes, type);
+
         public StoredException SerializeException(FatalWorkflowException exception)
             => Default.SerializeException(exception);
         public FatalWorkflowException DeserializeException(FlowId flowId, StoredException storedException)
             => Default.DeserializeException(flowId, storedException);
 
-        public SerializedMessage SerializeMessage(object message, Type messageType)
-            => Default.SerializeMessage(message, messageType);
         public object DeserializeMessage(byte[] json, byte[] type)
             => Default.DeserializeMessage(json, type);
     }

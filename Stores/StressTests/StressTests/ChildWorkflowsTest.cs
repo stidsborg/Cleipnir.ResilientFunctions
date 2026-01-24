@@ -40,7 +40,7 @@ public static class ChildWorkflowsTest
                             .Range(0, testSize)
                             .Select(i => new BulkWork<string>(i.ToString(), i.ToString()))
                     )
-                    .Completion(maxWait: TimeSpan.MaxValue)
+                    .Completion()
         );
         
         Console.WriteLine("CHILD_WORKFLOWS_TEST: Starting parent-invocation");

@@ -24,7 +24,7 @@ public abstract class EffectImplicitIdTests
             flowType,
             async Task(string param, Workflow workflow) =>
             {
-                var (effect, _) = workflow;
+                var effect = workflow.Effect;
                 await effect.Capture(syncedCounter.Increment);
             });
 
@@ -59,7 +59,7 @@ public abstract class EffectImplicitIdTests
             flowType,
             async Task(string param, Workflow workflow) =>
             {
-                var (effect, _) = workflow;
+                var effect = workflow.Effect;
                 await effect.Capture(() => { syncedCounter.Increment(); return Task.CompletedTask; });
             });
 
@@ -94,7 +94,7 @@ public abstract class EffectImplicitIdTests
             flowType,
             async Task(string param, Workflow workflow) =>
             {
-                var (effect, _) = workflow;
+                var effect = workflow.Effect;
                 await effect.Capture(
                     () =>
                     {
@@ -138,7 +138,7 @@ public abstract class EffectImplicitIdTests
             flowType,
             async Task(string param, Workflow workflow) =>
             {
-                var (effect, _) = workflow;
+                var effect = workflow.Effect;
                 await effect.Capture(
                     work: () =>
                     {
@@ -182,7 +182,7 @@ public abstract class EffectImplicitIdTests
             flowType,
             async Task(string param, Workflow workflow) =>
             {
-                var (effect, _) = workflow;
+                var effect = workflow.Effect;
                 await effect.Capture(
                     work: () =>
                     {
@@ -227,7 +227,7 @@ public abstract class EffectImplicitIdTests
             flowType,
             async Task<int> (string param, Workflow workflow) =>
             {
-                var (effect, _) = workflow;
+                var effect = workflow.Effect;
                 var t1 = new Task<int>(() => 1);
                 var t2 = Task.FromResult(2);
                 return await effect.Capture(async () => await await Task.WhenAny(t1, t2));
@@ -253,7 +253,7 @@ public abstract class EffectImplicitIdTests
             flowType,
             async Task<int[]> (string param, Workflow workflow) =>
             {
-                var (effect, _) = workflow;
+                var effect = workflow.Effect;
                 var t1 = Task.FromResult(1);
                 var t2 = Task.FromResult(2);
                 return await effect.Capture(() =>Task.WhenAll(t1, t2));

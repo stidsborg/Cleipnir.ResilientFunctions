@@ -40,7 +40,7 @@ public abstract class AtLeastOnceWorkStatusAndResultTests
         var controlPanel = await rAction.ControlPanel(flowInstance);
         controlPanel.ShouldNotBeNull();
         await controlPanel.WaitForCompletion(allowPostponeAndSuspended: true);
-        
+        await controlPanel.Refresh();
         await controlPanel.Effects.GetValue<int>(0).ShouldBeAsync(1);
         counter.Current.ShouldBe(2);
     }

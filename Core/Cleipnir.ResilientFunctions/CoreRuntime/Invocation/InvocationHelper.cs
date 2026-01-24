@@ -5,9 +5,10 @@ using System.Runtime.ExceptionServices;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Serialization;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.Helpers;
-using Cleipnir.ResilientFunctions.Messaging;
+using Cleipnir.ResilientFunctions.Queuing;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Storage.Session;
 
@@ -16,6 +17,7 @@ namespace Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 internal class InvocationHelper<TParam, TReturn> 
 {
     private readonly ShutdownCoordinator _shutdownCoordinator;
+    private readonly bool _clearChildren;
     private readonly IFunctionStore _functionStore;
     private readonly SettingsWithDefaults _settings;
     private readonly bool _isParamlessFunction;
@@ -27,7 +29,7 @@ internal class InvocationHelper<TParam, TReturn>
 
     private ISerializer Serializer { get; }
 
-    public InvocationHelper(FlowType flowType, StoredType storedType, ReplicaId replicaId, bool isParamlessFunction, SettingsWithDefaults settings, IFunctionStore functionStore, ShutdownCoordinator shutdownCoordinator, ISerializer serializer, UtcNow utcNow)
+    public InvocationHelper(FlowType flowType, StoredType storedType, ReplicaId replicaId, bool isParamlessFunction, SettingsWithDefaults settings, IFunctionStore functionStore, ShutdownCoordinator shutdownCoordinator, ISerializer serializer, UtcNow utcNow, bool clearChildren)
     {
         _flowType = flowType;
         _isParamlessFunction = isParamlessFunction;
@@ -36,6 +38,7 @@ internal class InvocationHelper<TParam, TReturn>
         Serializer = serializer;
         UtcNow = utcNow;
         _shutdownCoordinator = shutdownCoordinator;
+        _clearChildren = clearChildren;
         _storedType = storedType;
         _replicaId = replicaId;
         _functionStore = functionStore;
@@ -198,8 +201,8 @@ internal class InvocationHelper<TParam, TReturn>
 
         if (msg == null)
             return;
-        
-        var (content, type) = Serializer.SerializeMessage(msg, msg.GetType());
+
+        Serializer.Serialize(msg, out var content, out var type);
         var storedMessage = new StoredMessage(content, type, Position: 0, IdempotencyKey: $"FlowCompleted:{childId}");
         await _functionStore.MessageStore.AppendMessage(parent, storedMessage);
         await _functionStore.Interrupt(parent);
@@ -231,9 +234,9 @@ internal class InvocationHelper<TParam, TReturn>
         
         try
         {
-            var param = sf.Parameter == null 
-                ? default 
-                : Serializer.Deserialize<TParam>(sf.Parameter);
+            var param = sf.Parameter == null
+                ? default
+                : (TParam)Serializer.Deserialize(sf.Parameter, typeof(TParam));
 
             return new PreparedReInvocation(
                 flowId,
@@ -341,10 +344,10 @@ internal class InvocationHelper<TParam, TReturn>
             Param:
                 sf.Parameter == null
                 ? default
-                : Serializer.Deserialize<TParam>(sf.Parameter),
+                : (TParam)Serializer.Deserialize(sf.Parameter, typeof(TParam)),
             Result: resultBytes == null
                 ? default
-                : Serializer.Deserialize<TReturn>(resultBytes),
+                : (TReturn)Serializer.Deserialize(resultBytes, typeof(TReturn)),
             FatalWorkflowException: sf.Exception == null
                 ? null
                 : Serializer.DeserializeException(flowId, sf.Exception)
@@ -382,18 +385,15 @@ internal class InvocationHelper<TParam, TReturn>
         );
     }
 
-    public Messages CreateMessages(
+    public FlowRegisteredTimeouts CreateFlowRegisteredTimeouts(
         FlowId flowId,
         StoredId storedId,
-        ScheduleReInvocation scheduleReInvocation,
-        Func<bool> isWorkflowRunning,
         Effect effect,
-        IReadOnlyList<StoredMessage> initialMessages,
         FlowMinimumTimeout flowMinimumTimeout,
         UnhandledExceptionHandler unhandledExceptionHandler)
     {
-        var messageWriter = new MessageWriter(storedId, _functionStore, Serializer);
-        var registeredTimeouts = new FlowRegisteredTimeouts(
+        var messageWriter = CreateMessageWriter(storedId);
+        return new FlowRegisteredTimeouts(
             effect,
             UtcNow,
             flowMinimumTimeout,
@@ -401,21 +401,11 @@ internal class InvocationHelper<TParam, TReturn>
             unhandledExceptionHandler,
             flowId
         );
-        var messagesPullerAndEmitter = new MessagesPullerAndEmitter(
-            storedId,
-            defaultDelay: _settings.MessagesPullFrequency,
-            _settings.MessagesDefaultMaxWaitForCompletion,
-            isWorkflowRunning,
-            _functionStore,
-            Serializer,
-            registeredTimeouts,
-            initialMessages,
-            UtcNow
-        );
-        
-        return new Messages(messageWriter, registeredTimeouts, messagesPullerAndEmitter, UtcNow);
     }
-    
+
+    public MessageWriter CreateMessageWriter(StoredId storedId)
+        => new MessageWriter(storedId, _functionStore, Serializer);
+
     public Effect CreateEffect(StoredId storedId, FlowId flowId, IReadOnlyList<StoredEffect> storedEffects, FlowMinimumTimeout flowMinimumTimeout, IStorageSession? storageSession)
     {
         var effectsStore = _functionStore.EffectsStore;
@@ -426,7 +416,8 @@ internal class InvocationHelper<TParam, TReturn>
             storedEffects,
             effectsStore,
             Serializer,
-            storageSession
+            storageSession,
+            _clearChildren
         );
         
        var effect = new Effect(effectResults, UtcNow, flowMinimumTimeout);
@@ -439,14 +430,26 @@ internal class InvocationHelper<TParam, TReturn>
         return new Correlations(MapToStoredId(flowId), correlationStore);
     }
 
-    public ExistingEffects CreateExistingEffects(FlowId flowId) => new(MapToStoredId(flowId), flowId, _functionStore.EffectsStore, Serializer);
+    public async Task<ExistingEffects> CreateExistingEffects(FlowId flowId)
+    {
+        var storedId = MapToStoredId(flowId);
+        var storedEffects = await _functionStore.EffectsStore.GetEffectResults(storedId);
+        return new ExistingEffects(storedId, flowId, _functionStore.EffectsStore, Serializer, storedEffects);
+    }
     public ExistingMessages CreateExistingMessages(FlowId flowId) => new(MapToStoredId(flowId), _functionStore.MessageStore, Serializer);
     public ExistingRegisteredTimeouts CreateExistingTimeouts(FlowId flowId, ExistingEffects existingEffects) => new(existingEffects, UtcNow);
-    public ExistingSemaphores CreateExistingSemaphores(FlowId flowId) => new(MapToStoredId(flowId), _functionStore, CreateExistingEffects(flowId));
+    public async Task<ExistingSemaphores> CreateExistingSemaphores(FlowId flowId)
+    {
+        var existingEffects = await CreateExistingEffects(flowId);
+        return new ExistingSemaphores(MapToStoredId(flowId), _functionStore, existingEffects);
+    }
 
     public DistributedSemaphores CreateSemaphores(StoredId storedId, Effect effect)
         => new(effect, _functionStore.SemaphoreStore, storedId, Interrupt);
-    
+
+    public QueueManager CreateQueueManager(FlowId flowId, StoredId storedId, Effect effect, FlowMinimumTimeout minimumTimeout, UnhandledExceptionHandler unhandledExceptionHandler)
+        => new(flowId, storedId, _functionStore.MessageStore, Serializer, effect, unhandledExceptionHandler, minimumTimeout, UtcNow, _settings);
+
     public StoredId MapToStoredId(FlowId flowId) => StoredId.Create(_storedType, flowId.Instance.Value);
     
     private byte[]? SerializeParameter(TParam param)
@@ -512,7 +515,7 @@ internal class InvocationHelper<TParam, TReturn>
     public IReadOnlyList<StoredMessage> MapInitialMessages(IEnumerable<MessageAndIdempotencyKey> initialMessages)
         => initialMessages.Select(m =>
         {
-            var (content, type) = Serializer.SerializeMessage(m.Message, m.Message.GetType());
+            Serializer.Serialize(m.Message, out var content, out var type);
             return new StoredMessage(content, type, Position: 0, m.IdempotencyKey);
         }).ToList();
 

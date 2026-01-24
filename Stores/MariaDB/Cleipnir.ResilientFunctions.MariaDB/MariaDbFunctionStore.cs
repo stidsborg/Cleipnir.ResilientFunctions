@@ -173,7 +173,7 @@ public class MariaDbFunctionStore : IFunctionStore
         }
     }
 
-    public async Task BulkScheduleFunctions(IEnumerable<IdWithParam> functionsWithParam, StoredId? parent)
+    public async Task<int> BulkScheduleFunctions(IEnumerable<IdWithParam> functionsWithParam, StoredId? parent)
     {
         var insertSql = @$"
             INSERT IGNORE INTO {_tablePrefix}
@@ -185,6 +185,7 @@ public class MariaDbFunctionStore : IFunctionStore
         var parentStr = parent == null ? "NULL" : $"'{parent.AsGuid:N}'";
 
         var chunks = functionsWithParam.Chunk(500);
+        var totalInserted = 0;
         foreach (var chunk in chunks)
         {
             var rows = new List<string>();
@@ -203,8 +204,10 @@ public class MariaDbFunctionStore : IFunctionStore
 
             await using var conn = await CreateOpenConnection(_connectionString);
             await using var cmd = new MySqlCommand(sql, conn);
-            await cmd.ExecuteNonQueryAsync();
+            var affectedRows = await cmd.ExecuteNonQueryAsync();
+            totalInserted += affectedRows;
         }
+        return totalInserted;
     }
     
     public async Task<StoredFlowWithEffectsAndMessages?> RestartExecution(StoredId storedId, ReplicaId replicaId)

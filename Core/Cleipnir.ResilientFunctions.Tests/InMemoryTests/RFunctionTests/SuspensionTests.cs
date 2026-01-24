@@ -75,11 +75,7 @@ public class SuspensionTests : TestTemplates.FunctionTests.SuspensionTests
     [TestMethod]
     public override Task ChildIsCreatedWithParentsId()
         => ChildIsCreatedWithParentsId(FunctionStoreFactory.Create());
-
-    [TestMethod]
-    public override Task InterruptCountIsUpdatedWhenMaxWaitDetectsIt()
-        => InterruptCountIsUpdatedWhenMaxWaitDetectsIt(FunctionStoreFactory.Create());
-
+    
     [TestMethod]
     public override Task SuspendedFlowIsRestartedAfterInterrupt()
         => SuspendedFlowIsRestartedAfterInterrupt(FunctionStoreFactory.Create());

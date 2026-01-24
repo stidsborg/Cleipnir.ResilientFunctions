@@ -1,13 +1,9 @@
 ﻿using System;
-using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Domain;
-using Cleipnir.ResilientFunctions.Domain.Events;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.Helpers;
-using Cleipnir.ResilientFunctions.Reactive;
-using Cleipnir.ResilientFunctions.Reactive.Extensions;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Tests.Utils;
 using Shouldly;
@@ -24,26 +20,27 @@ public abstract class MessagingTests
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         using var functionsRegistry = new FunctionsRegistry(
             store,
-            new Settings(unhandledExceptionHandler.Catch, messagesDefaultMaxWaitForCompletion: TimeSpan.MaxValue)
+            new Settings(unhandledExceptionHandler.Catch)
         );
 
         var rAction = functionsRegistry.RegisterFunc(
             nameof(FunctionCompletesAfterAwaitedMessageIsReceived),
-            inner: async Task<string> (string _, Workflow workflow) =>
-            {
-                var messages = workflow.Messages;
-                return await messages.OfType<string>().First();
-            }
-        );
+            inner: async Task<string> (string _, Workflow workflow) => await workflow.Message<string>());
 
-        var invocationTask = rAction.Invoke("instanceId", "");
-        await Task.Delay(100);
-        invocationTask.IsCompleted.ShouldBeFalse();
+        await rAction.Schedule("instanceId", "");
+        
+        var controlPanel = await rAction.ControlPanel("instanceId");
+        controlPanel.ShouldNotBeNull();
+
+        await controlPanel.BusyWaitUntil(c => c.Status == Status.Suspended);
         
         var messagesWriter = rAction.MessageWriters.For("instanceId".ToFlowInstance());
         await messagesWriter.AppendMessage("hello world");
-        var result = await invocationTask;
-        result.ShouldBe("hello world");
+
+        await controlPanel.WaitForCompletion(allowPostponeAndSuspended: true);
+        await controlPanel.Refresh();
+        
+        controlPanel.Result.ShouldBe("hello world");
         
         unhandledExceptionHandler.ShouldNotHaveExceptions();
     }
@@ -59,11 +56,8 @@ public abstract class MessagingTests
 
         var rAction = functionsRegistry.RegisterFunc(
             functionId.Type,
-            inner: async Task<string> (string _, Workflow workflow) =>
-            {
-                var messages = workflow.Messages;
-                return await messages.FirstOfType<string>(maxWait: TimeSpan.Zero);
-            }
+            inner: async Task<string> (string _, Workflow workflow)
+                => await workflow.Message<string>()
         );
 
         await Should.ThrowAsync<InvocationSuspendedException>(() =>
@@ -85,29 +79,14 @@ public abstract class MessagingTests
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler.Catch));
 
+        var tomorrow = DateTime.UtcNow.AddDays(1);
         var rFunc = functionsRegistry.RegisterFunc(
             functionId.Type,
-            inner: async Task<Tuple<bool, string>> (string _, Workflow workflow) =>
-            {
-                var messages = workflow.Messages;
-
-                var timeoutOption = await messages
-                    .TakeUntilTimeout("timeoutId1".GetHashCode(), expiresIn: TimeSpan.FromMilliseconds(250))
-                    .OfType<string>()
-                    .FirstOrNone(TimeSpan.Zero);
-
-                var timeoutEvent = messages
-                    .OfType<TimeoutEvent>()
-                    .Existing(out var __)
-                    .SingleOrDefault();
-
-                return Tuple.Create(timeoutEvent != null && !timeoutOption.HasValue, timeoutEvent?.TimeoutId.Id.ToString() ?? "");
-            }
+            inner: async Task<string?> (string _, Workflow workflow) 
+                => await workflow.Message<string>(waitUntil: tomorrow)
         );
 
-        await Should.ThrowAsync<InvocationPostponedException>(() =>
-            rFunc.Invoke(functionId.Instance.Value, "")
-        );
+        await rFunc.Schedule(functionId.Instance.Value, param: "");
         
         var controlPanel = await rFunc.ControlPanel("instanceId");
         controlPanel.ShouldNotBeNull();
@@ -115,14 +94,12 @@ public abstract class MessagingTests
         await BusyWait.Until(async () =>
         {
             await controlPanel.Refresh();
-            return controlPanel.Status == Status.Succeeded;
+            return controlPanel.Status == Status.Postponed;
         }, maxWait: TimeSpan.FromSeconds(10));
 
-
-        controlPanel.Result.ShouldNotBeNull();
-        var (success, timeoutId) = (Tuple<bool, string>) controlPanel.Result;
-        success.ShouldBeTrue();
-        timeoutId.ShouldBe("timeoutId1".GetHashCode().ToString());
+        await controlPanel.Refresh();
+        controlPanel.Status.ShouldBe(Status.Postponed);
+        controlPanel.PostponedUntil.ShouldBe(tomorrow);
         
         unhandledExceptionHandler.ShouldNotHaveExceptions();
     }
@@ -153,7 +130,7 @@ public abstract class MessagingTests
             inner: async Task<string> (string _, Workflow workflow) =>
             {
                 await child.Schedule(childFunctionId.Instance.Value, param: "stuff");
-                return await workflow.Messages.FirstOfType<string>(maxWait: TimeSpan.Zero);
+                return await workflow.Message<string>();
             }
         );
 
@@ -174,41 +151,5 @@ public abstract class MessagingTests
         
         unhandledExceptionHandler.ShouldNotHaveExceptions();
     }
-    
-    public abstract Task IsWorkflowRunningSubscriptionPropertyTurnsFalseAfterWorkflowInvocationHasCompleted();
-    public async Task IsWorkflowRunningSubscriptionPropertyTurnsFalseAfterWorkflowInvocationHasCompleted(Task<IFunctionStore> functionStore)
-    {
-        var store = await functionStore;
 
-        var (typeId, instanceId) = TestFlowId.Create();
-        
-        var unhandledExceptionHandler = new UnhandledExceptionCatcher();
-        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler.Catch));
-
-        ISubscription? subscription = null;
-        
-        var registration = functionsRegistry.RegisterAction(
-            typeId,
-            inner: Task (string _, Workflow workflow) =>
-            {
-                subscription = workflow.Messages.Subscribe(onNext: _ => { }, onCompletion: () => { }, onError: _ => { });
-                subscription.IsWorkflowRunning.ShouldBeTrue();
-                return Task.CompletedTask;
-            }
-        );
-
-        await registration.Invoke(instanceId.ToString(), param: "test");
-
-        subscription.ShouldNotBeNull();
-        subscription.IsWorkflowRunning.ShouldBeFalse();
-
-        var controlPanel = await registration.ControlPanel(instanceId);
-        controlPanel.ShouldNotBeNull();
-
-        await controlPanel.Restart();
-        subscription.ShouldNotBeNull();
-        subscription.IsWorkflowRunning.ShouldBeFalse();
-        
-        unhandledExceptionHandler.ShouldNotHaveExceptions();
-    }
 }

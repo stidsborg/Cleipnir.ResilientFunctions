@@ -52,7 +52,13 @@ public class FunctionsRegistry : IDisposable
             utcNow
         );
         
-        _replicaWatchdog = new ReplicaWatchdog(ClusterInfo, functionStore, leaseLength: TimeSpan.FromSeconds(1), utcNow, _settings.UnhandledExceptionHandler);
+        _replicaWatchdog = new ReplicaWatchdog(
+            ClusterInfo, 
+            functionStore, 
+            heartbeatFrequency: _settings.ReplicaHeartbeatFrequency, 
+            utcNow, 
+            _settings.UnhandledExceptionHandler
+        );
         if (_settings.EnableWatchdogs)
         {
             _replicaWatchdog.Initialize().GetAwaiter().GetResult();
@@ -212,7 +218,8 @@ public class FunctionsRegistry : IDisposable
                 _functionStore,
                 _shutdownCoordinator,
                 serializer,
-                _settings.UtcNow
+                _settings.UtcNow,
+                settings?.ClearChildrenAfterCapture ?? true
             );
             var invoker = new Invoker<TParam, TReturn>(
                 flowType, 
@@ -304,7 +311,8 @@ public class FunctionsRegistry : IDisposable
                 _functionStore,
                 _shutdownCoordinator,
                 serializer,
-                _settings.UtcNow
+                _settings.UtcNow,
+                settings?.ClearChildrenAfterCapture ?? true
             );
             var invoker = new Invoker<Unit, Unit>(
                 flowType, 
@@ -396,7 +404,8 @@ public class FunctionsRegistry : IDisposable
                 _functionStore,
                 _shutdownCoordinator,
                 serializer,
-                _settings.UtcNow
+                _settings.UtcNow,
+                settings?.ClearChildrenAfterCapture ?? true
             );
             var rActionInvoker = new Invoker<TParam, Unit>(
                 flowType, 

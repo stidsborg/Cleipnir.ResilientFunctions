@@ -1,6 +1,4 @@
 ﻿using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
-using Cleipnir.ResilientFunctions.Domain;
-using Cleipnir.ResilientFunctions.Reactive.Extensions;
 using Serilog;
 
 namespace Sample.OrderProcessing.Messaging;
@@ -16,19 +14,18 @@ public class OrderProcessor
     {
         var transactionId = await workflow.Effect.Capture(Guid.NewGuid);
         Logger.Information($"Processing of order '{order.OrderId}' started");
-        var messages = workflow.Messages;
 
         await _bus.Send(new ReserveFunds(order.OrderId, order.TotalPrice, transactionId, order.CustomerId));
-        await messages.FirstOfType<FundsReserved>();
+        await workflow.Message<FundsReserved>();
 
         await _bus.Send(new ShipProducts(order.OrderId, order.CustomerId, order.ProductIds));
-        var productsShipped = await messages.FirstOfType<ProductsShipped>();
+        var productsShipped = await workflow.Message<ProductsShipped>();
 
         await _bus.Send(new CaptureFunds(order.OrderId, order.CustomerId, transactionId));
-        await messages.FirstOfType<FundsCaptured>();
+        await workflow.Message<ProductsShipped>();
 
         await _bus.Send(new SendOrderConfirmationEmail(order.OrderId, order.CustomerId, productsShipped.TrackAndTraceNumber));
-        await messages.FirstOfType<OrderConfirmationEmailSent>();
+        await workflow.Message<OrderConfirmationEmailSent>();
 
         Logger.Information($"Processing of order '{order.OrderId}' completed");
     }

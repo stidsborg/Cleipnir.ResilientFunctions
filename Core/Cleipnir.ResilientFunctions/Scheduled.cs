@@ -51,13 +51,13 @@ public class InnerScheduled<TResult>(
     
     private async Task<IReadOnlyList<TResult>> AttachedScheduled(Workflow parent, TimeSpan? maxWait)
     {
-        var completedFlows = await parent
-            .Messages
-            .OfType<FlowCompleted>()
-            .Where(fc => scheduledIds.Contains(fc.Id))
-            .Take(scheduledIds.Count)
-            .Completion(maxWait);
-
+        var completedFlows = new List<FlowCompleted>();
+        foreach (var _ in scheduledIds)
+        {
+            var completed = await parent.Message<FlowCompleted>(filter: c => scheduledIds.Contains(c.Id), maxWait);
+            completedFlows.Add(completed);
+        }
+        
         var failed = completedFlows.FirstOrDefault(fc => fc.Failed);
         if (failed != null)
             throw new InvalidOperationException($"Child-flow '{failed.Id}' failed");
@@ -68,9 +68,9 @@ public class InnerScheduled<TResult>(
                 FlowId = fc.Id,
                 Result = fc.Result == null
                     ? default!
-                    : serializer.Deserialize<TResult>(fc.Result)    
+                    : (TResult)serializer.Deserialize(fc.Result, typeof(TResult))
             }
-                
+
         ).ToDictionary(a => a.FlowId, a => a.Result);
 
         return scheduledIds.Select(id => results[id]).ToList();

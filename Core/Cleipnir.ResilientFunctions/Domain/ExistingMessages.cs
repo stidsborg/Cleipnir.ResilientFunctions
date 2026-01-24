@@ -54,7 +54,7 @@ public class ExistingMessages
 
     public async Task Append<T>(T message, string? idempotencyKey = null) where T : notnull
     {
-        var (json, type) = _serializer.SerializeMessage(message, typeof(T));
+        _serializer.Serialize(message, out var json, out var type);
         await _messageStore.AppendMessage(
             _storedId, new StoredMessage(json, type, Position: 0, idempotencyKey)
         );
@@ -67,12 +67,12 @@ public class ExistingMessages
     {
         if (_receivedMessages is null)
             await GetReceivedMessages();
-        
+
         var storedMessage = _receivedMessages!.OrderBy(m => m.Position).Skip(position).FirstOrDefault();
         if (storedMessage == null)
             throw new ArgumentException($"Cannot replace non-existing message. Position '{position}' is larger than or equal to length '{_receivedMessages!.Count}'", nameof(position));
-        
-        var (json, type) = _serializer.SerializeMessage(message, typeof(T));
+
+        _serializer.Serialize(message, out var json, out var type);
         await _messageStore.ReplaceMessage(_storedId, storedMessage.Position, new StoredMessage(json, type, Position: storedMessage.Position, idempotencyKey));
 
         // Invalidate cache so it will be re-fetched with correct data

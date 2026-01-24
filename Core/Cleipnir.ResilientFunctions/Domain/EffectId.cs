@@ -48,16 +48,26 @@ public record EffectId(int[] Value)
 
     public EffectId CreateChild(int id) => new(Value.Append(id).ToArray());
 
-    public bool IsChild(EffectId other)
+    public bool IsDescendant(EffectId descendant)
     {
-        if (other.Value.Length >= Value.Length)
+        if (descendant.Value.Length >= Value.Length)
             return false;
         
-        for (var i = 0; i < Value.Length && i < other.Value.Length; i++)
-        {
-            if (Value[i] != other.Value[i])
+        for (var i = 0; i < Value.Length && i < descendant.Value.Length; i++)
+            if (Value[i] != descendant.Value[i])
                 return false;
-        }
+
+        return true;
+    }
+    
+    public bool IsChild(EffectId child)
+    {
+        if (child.Value.Length != Value.Length + 1)
+            return false;
+        
+        for (var i = 0; i < Value.Length; i++)
+            if (Value[i] != child.Value[i])
+                return false;
 
         return true;
     }

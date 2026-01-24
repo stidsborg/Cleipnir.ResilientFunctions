@@ -225,8 +225,7 @@ public abstract class SuspensionTests
             nameof(SuspendedFunctionIsAutomaticallyReInvokedWhenEligibleAndWriteHasTrueBoolFlag),
             async Task<string> (string param, Workflow workflow) =>
             {
-                var messages = workflow.Messages;
-                var next = await messages.FirstOfType<string>(maxWait: TimeSpan.Zero);
+                var next = await workflow.Message<string>();
                 return next;
             }
         );
@@ -271,8 +270,7 @@ public abstract class SuspensionTests
             flowType,
             async Task<string> (string param, Workflow workflow) =>
             {
-                var messages = workflow.Messages;
-                var next = await messages.FirstOfType<string>(maxWait: TimeSpan.Zero);
+                var next = await workflow.Message<string>();
                 return next;
             }
         );
@@ -319,7 +317,7 @@ public abstract class SuspensionTests
             flowType,
             inner: async Task (workflow) =>
             {
-                var msg = await workflow.Messages.FirstOfType<string>();
+                var msg = await workflow.Message<string>();
                 syncedValue.Value = msg;
             }
         );
@@ -498,12 +496,14 @@ public abstract class SuspensionTests
                     for (var i = 0; i < numberOfChildren; i++)
                         await child.Schedule($"SomeChildInstance#{i}", i.ToString(), detach: true);
                 });
-                
-                var messages = await workflow.Messages
-                    .Take(numberOfChildren)
-                    .Select(m => m.ToString()!)
-                    .Completion(maxWait: TimeSpan.Zero);
 
+                var messages = new List<string>();
+                for (var i = 0; i < numberOfChildren; i++)
+                {
+                    var msg = await workflow.Message<string>();
+                    messages.Add(msg);
+                }
+                
                 return messages;
             }
         );
@@ -580,56 +580,6 @@ public abstract class SuspensionTests
 
         var parentStoredId = parentId.ToStoredId(parent.StoredType);
         childStoredFunction.ParentId.ShouldBe(parentStoredId);
-    }
-    
-    public abstract Task InterruptCountIsUpdatedWhenMaxWaitDetectsIt();
-    protected async Task InterruptCountIsUpdatedWhenMaxWaitDetectsIt(Task<IFunctionStore> storeTask)
-    {
-        var store = await storeTask;
-        var functionId = TestFlowId.Create();
-        var (flowType, flowInstance) = functionId;
-
-        var unhandledExceptionHandler = new UnhandledExceptionCatcher();
-        using var functionsRegistry = new FunctionsRegistry
-        (
-            store,
-            new Settings(unhandledExceptionHandler.Catch)
-        );
-
-        var syncFlag = new SyncedFlag();
-        var suspendedFlag = new SyncedFlag();
-        
-        var registration = functionsRegistry.RegisterParamless(
-            flowType,
-            inner: async Task (workflow) =>
-            {
-                syncFlag.Raise();
-                try
-                {
-                    await workflow.Messages.FirstOfType<int>(maxWait: TimeSpan.FromSeconds(2));
-                    await workflow.Messages.FirstOfType<string>(maxWait: TimeSpan.FromMilliseconds(100));
-                }
-                catch (SuspendInvocationException)
-                {
-                    suspendedFlag.Raise();
-                }
-            }
-        );
-        
-        await registration.Schedule(flowInstance);
-        await syncFlag.WaitForRaised();
-
-        await registration.SendMessage(flowInstance, message: 32);
-        var controlPanel = await registration.ControlPanel(flowInstance);
-        controlPanel.ShouldNotBeNull();
-
-        await BusyWait.Until(async () =>
-        {
-            await controlPanel.Refresh();
-            return controlPanel.Status != Status.Executing;
-        });
-           
-        suspendedFlag.Position.ShouldBe(FlagPosition.Raised);
     }
     
     public abstract Task SuspendedFlowIsRestartedAfterInterrupt();
@@ -787,10 +737,9 @@ public abstract class SuspensionTests
             flowType,
             inner: async Task<string> (param, workflow) =>
             {
-                var messages = workflow.Messages;
-                await messages.AppendMessage(param);
+                await workflow.AppendMessage(param);
                     
-                return await messages.FirstOfType<string>();
+                return await workflow.Message<string>();
             }
         );
 

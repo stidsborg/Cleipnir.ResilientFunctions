@@ -31,10 +31,9 @@ public abstract class ControlPanelTests
             flowType,
             async (string _, Workflow workflow) =>
             {
-                var (effect, messages) = workflow;
-                await effect.CreateOrGet("alias", 123);
-                await messages.AppendMessage("Message");
-                await workflow.Messages.FlowRegisteredTimeouts.RegisterTimeout(1, expiresAt: DateTime.UtcNow.AddDays(1), publishMessage: true);
+                await workflow.Effect.CreateOrGet("alias", 123);
+                await workflow.AppendMessage("Message");
+                await workflow.RegisteredTimeouts.RegisterTimeout(1, expiresAt: DateTime.UtcNow.AddDays(1), publishMessage: true);
             }
         );
         
@@ -83,10 +82,9 @@ public abstract class ControlPanelTests
             flowType,
             async Task<string>(string _, Workflow workflow) =>
             {
-                var (effect, messages) = workflow;
-                await effect.CreateOrGet("alias", 123);
-                await messages.AppendMessage("Message");
-                await workflow.Messages.FlowRegisteredTimeouts.RegisterTimeout(1, expiresAt: DateTime.UtcNow.AddDays(1), publishMessage: true);
+                await workflow.Effect.CreateOrGet("alias", 123);
+                await workflow.AppendMessage("Message");
+                await workflow.RegisteredTimeouts.RegisterTimeout(1, expiresAt: DateTime.UtcNow.AddDays(1), publishMessage: true);
                 return "hello";
             });
         
@@ -367,7 +365,7 @@ public abstract class ControlPanelTests
         sf.Status.ShouldBe(Status.Succeeded);
         var results = await store.GetResults([storedId]);
         var resultBytes = results[storedId];
-        var result = DefaultSerializer.Instance.Deserialize<string>(resultBytes!);
+        var result = (string)DefaultSerializer.Instance.Deserialize(resultBytes!, typeof(string));
         result.ShouldBe("hello world");
         
         unhandledExceptionCatcher.ShouldNotHaveExceptions();
@@ -569,7 +567,7 @@ public abstract class ControlPanelTests
             flowType,
             async Task(string param, Workflow workflow) =>
             {
-                await workflow.Messages.AppendMessage(param);
+                await workflow.AppendMessage(param);
             }
         );
 
@@ -610,18 +608,21 @@ public abstract class ControlPanelTests
             flowType,
             async Task(string param, Workflow workflow) =>
             {
-                var messages = workflow.Messages;
                 if (first)
                 {
                     invocationCount.Increment();
                     first = false;
-                    await messages.AppendMessage("hello world", idempotencyKey: "1");
-                    await messages.AppendMessage("hello universe", idempotencyKey: "2");
+                    await workflow.AppendMessage("hello world", idempotencyKey: "1");
+                    await workflow.AppendMessage("hello universe", idempotencyKey: "2");
                 }
                 else
                 {
-                    var existing = await messages.Select(e => e.ToString()!).Take(2).ToList();
-                    syncedList.AddRange(existing);
+                    for (var i = 0; i < 2; i++)
+                    {
+                        var msg = await workflow.Message<string>(maxWait: TimeSpan.FromSeconds(10));
+                        syncedList.Add(msg);
+                    } 
+                        
                 }
             }
         );
@@ -640,8 +641,6 @@ public abstract class ControlPanelTests
         await controlPanel.SaveChanges();
         await controlPanel.Refresh();
         await controlPanel.Restart();
-        
-        await controlPanel.Messages.Count.ShouldBeAsync(2);
         
         syncedList.ShouldNotBeNull();
         if (syncedList.Count != 2)
@@ -671,12 +670,11 @@ public abstract class ControlPanelTests
             flowType,
             async Task(string param, Workflow workflow) =>
             {
-                var messages = workflow.Messages;
                 if (first)
                 {
                     first = false;
-                    await messages.AppendMessage("hello world", idempotencyKey: "1");
-                    await messages.AppendMessage("hello universe", idempotencyKey: "2");
+                    await workflow.AppendMessage("hello world", idempotencyKey: "1");
+                    await workflow.AppendMessage("hello universe", idempotencyKey: "2");
                 }
             }
         );
@@ -1242,7 +1240,7 @@ public abstract class ControlPanelTests
         var actionRegistration = functionsRegistry.RegisterAction(
             flowType,
             Task (string param, Workflow workflow) =>
-                workflow.Messages.FlowRegisteredTimeouts.RegisterTimeout(
+                workflow.RegisteredTimeouts.RegisterTimeout(
                     "someTimeoutId".GetHashCode(),
                     expiresAt: new DateTime(2100, 1,1, 1,1,1, DateTimeKind.Utc),
                     publishMessage: true
@@ -1284,7 +1282,7 @@ public abstract class ControlPanelTests
             flowType,
             async Task<string> (string param, Workflow workflow) =>
             {
-                await workflow.Messages.FlowRegisteredTimeouts.RegisterTimeout(
+                await workflow.RegisteredTimeouts.RegisterTimeout(
                     "someTimeoutId".GetHashCode(),
                     expiresAt: new DateTime(2100, 1, 1, 1, 1, 1, DateTimeKind.Utc),
                     publishMessage: true

@@ -1,14 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
 using System.Threading.Tasks;
-using Cleipnir.ResilientFunctions.Domain;
-using Cleipnir.ResilientFunctions.Domain.Events;
 using Cleipnir.ResilientFunctions.Domain.Exceptions.Commands;
-using Cleipnir.ResilientFunctions.Helpers;
-using Cleipnir.ResilientFunctions.Messaging;
-using Cleipnir.ResilientFunctions.Reactive.Utilities;
 
 namespace Cleipnir.ResilientFunctions.Reactive.Extensions;
 
@@ -62,9 +56,6 @@ public static class LeafOperators
         throw new SuspendInvocationException();
     }
     
-    public static Task<List<T>> Completion<T>(this IReactiveChain<T> s, TimeSpan? maxWait = null)
-        => s.ToList(maxWait);
-    
     internal static List<T> Existing<T>(this IReactiveChain<T> s, out bool streamCompleted)
     {
         var completed = false;
@@ -84,99 +75,4 @@ public static class LeafOperators
         
         return list;
     }
-
-    #region First
-    public static Task<T> First<T>(this IReactiveChain<T> s, TimeSpan? maxWait = null)
-        => FirstOrNone(s, maxWait)
-            .SelectAsync(o => o.HasValue ? o.Value : throw new NoResultException());
-    
-    public static Task<T?> FirstOrDefault<T>(this IReactiveChain<T> s, TimeSpan? maxWait = null)
-        => FirstOrNone(s, maxWait)
-            .SelectAsync(o => o.HasValue ? o.Value : default);
-    public static Task<Option<T>> FirstOrNone<T>(this IReactiveChain<T> s, TimeSpan? maxWait = null)
-        => Firsts(s, count: 1, maxWait)
-            .SelectAsync(
-                l => l.Any() ? Option.Create(l.First()) : Option<T>.NoValue
-            );
-    
-    public static Task<EitherOrNone<T1, T2>> FirstOrNone<T1, T2>(this IReactiveChain<Either<T1, T2>> s, TimeSpan? maxWait = null)
-        => Firsts(s, count: 1, maxWait)
-            .SelectAsync(
-                either => either.Any() 
-                    ? EitherOrNone<T1, T2>.CreateFromEither(either.First()) 
-                    : EitherOrNone<T1, T2>.CreateNone()
-            );
-
-    public static Task<EitherOrNone<T1, T2, T3>> FirstOrNone<T1, T2, T3>(this IReactiveChain<Either<T1, T2, T3>> s, TimeSpan? maxWait = null)
-        => Firsts(s, count: 1, maxWait)
-            .SelectAsync(
-                either => either.Any()
-                    ? EitherOrNone<T1, T2, T3>.CreateFromEither(either.First())
-                    : EitherOrNone<T1, T2, T3>.CreateNone()
-            );
-    
-    public static Task<T> FirstOfType<T>(this IReactiveChain<object> s, TimeSpan? maxWait = null)
-        => s.OfType<T>().First(maxWait);
-    public static Task<Option<T>> FirstOfType<T>(this Messages messages, int timeoutId, DateTime expiresAt, TimeSpan? maxWait = null)
-        => messages.TakeUntilTimeout(timeoutId, expiresAt).OfType<T>().FirstOrNone(maxWait);
-    public static Task<Option<T>> FirstOfType<T>(this Messages messages, int timeoutId, TimeSpan expiresIn, TimeSpan? maxWait = null)
-        => messages.TakeUntilTimeout(timeoutId, expiresIn).OfType<T>().FirstOrNone(maxWait);
-    
-    public static Task<Either<T1, T2>> FirstOfTypes<T1, T2>(this IReactiveChain<object> s, TimeSpan? maxWait = null)
-        => s.OfTypes<T1, T2>().First(maxWait);
-    public static Task<EitherOrNone<T1, T2>> FirstOfTypes<T1, T2>(this Messages messages, int timeoutId, DateTime expiresAt, TimeSpan? maxWait = null)
-        => messages.TakeUntilTimeout(timeoutId, expiresAt).OfTypes<T1, T2>().FirstOrNone(maxWait);
-    public static Task<EitherOrNone<T1, T2>> FirstOfTypes<T1, T2>(this Messages messages, int timeoutId, TimeSpan expiresIn, TimeSpan? maxWait = null)
-        => messages.TakeUntilTimeout(timeoutId, expiresIn).OfTypes<T1, T2>().FirstOrNone(maxWait);
-    public static Task<EitherOrNone<T1, T2>> FirstOfTypes<T1, T2>(this Messages messages, DateTime expiresAt, TimeSpan? maxWait = null)
-        => messages.TakeUntilTimeout(expiresAt).OfTypes<T1, T2>().FirstOrNone(maxWait);
-    public static Task<EitherOrNone<T1, T2>> FirstOfTypes<T1, T2>(this Messages messages, TimeSpan expiresIn, TimeSpan? maxWait = null)
-        => messages.TakeUntilTimeout(expiresIn).OfTypes<T1, T2>().FirstOrNone(maxWait);
-    
-    public static Task<EitherOrNone<T1, T2, T3>> FirstOfTypes<T1, T2, T3>(this Messages messages, int timeoutId, DateTime expiresAt, TimeSpan? maxWait = null)
-        => messages.TakeUntilTimeout(timeoutId, expiresAt).OfTypes<T1, T2, T3>().FirstOrNone(maxWait);
-    public static Task<EitherOrNone<T1, T2, T3>> FirstOfTypes<T1, T2, T3>(this Messages messages, int timeoutId, TimeSpan expiresIn, TimeSpan? maxWait = null)
-        => messages.TakeUntilTimeout(timeoutId, expiresIn).OfTypes<T1, T2, T3>().FirstOrNone(maxWait);
-    public static Task<EitherOrNone<T1, T2, T3>> FirstOfTypes<T1, T2, T3>(this Messages messages, DateTime expiresAt, TimeSpan? maxWait = null)
-        => messages.TakeUntilTimeout(expiresAt).OfTypes<T1, T2, T3>().FirstOrNone(maxWait);
-    public static Task<EitherOrNone<T1, T2, T3>> FirstOfTypes<T1, T2, T3>(this Messages messages, TimeSpan expiresIn, TimeSpan? maxWait = null)
-        => messages.TakeUntilTimeout(expiresIn).OfTypes<T1, T2, T3>().FirstOrNone(maxWait);
-
-    public static Task<T> FirstOf<T>(this IReactiveChain<object> s, TimeSpan? maxWait = null) 
-        => s.FirstOfType<T>(maxWait);
-    
-    public static Task<List<T>> Firsts<T>(this IReactiveChain<T> s, int count, TimeSpan? maxWait = null)
-        => s.Take(count).ToList(maxWait);
-    
-    #endregion
-    
-    #region Last
-    
-    public static Task<List<T>> Lasts<T>(this IReactiveChain<T> s, int count, TimeSpan? maxWait = null) 
-        => s.ToList(maxWait).SelectAsync(l => l.TakeLast(count).ToList());
-    
-    public static Task<T> Last<T>(this IReactiveChain<T> s, TimeSpan? maxWait = null)
-        => LastOrNone(s, maxWait)
-            .SelectAsync(o => o.HasValue ? o.Value : throw new NoResultException());
-    public static Task<T?> LastOrDefault<T>(this IReactiveChain<T> s)
-        => LastOrNone(s)
-            .SelectAsync(o => o.HasValue ? o.Value : default);
-    public static Task<Option<T>> LastOrNone<T>(this IReactiveChain<T> s, TimeSpan? maxWait = null)
-        => Lasts(s, count: 1, maxWait)
-            .SelectAsync(l =>
-                l.Any()
-                    ? Option.Create(l.First())
-                    : Option<T>.NoValue
-            );
-
-    public static Task<T> LastOfType<T>(this IReactiveChain<object> s)
-        => s.OfType<T>().Last();
-    public static Task<T> LastOf<T>(this IReactiveChain<object> s) => s.LastOfType<T>();
-    
-    public static Task<Option<T>> LastOfType<T>(this Messages messages, int timeoutId, DateTime expiresAt)
-        => messages.TakeUntilTimeout(timeoutId, expiresAt).OfType<T>().LastOrNone();
-    public static Task<Option<T>> LastOfType<T>(this Messages messages, int timeoutId, TimeSpan expiresIn)
-        => messages.TakeUntilTimeout(timeoutId, expiresIn).OfType<T>().LastOrNone();
-    
-    #endregion
 }

@@ -20,8 +20,4 @@ public class MessagingTests : ResilientFunctions.Tests.TestTemplates.FunctionTes
     [TestMethod]
     public override Task ScheduleInvocationWithPublishResultToSpecifiedFunctionId()
         => ScheduleInvocationWithPublishResultToSpecifiedFunctionId(FunctionStoreFactory.Create());
-    
-    [TestMethod]
-    public override Task IsWorkflowRunningSubscriptionPropertyTurnsFalseAfterWorkflowInvocationHasCompleted()
-        => IsWorkflowRunningSubscriptionPropertyTurnsFalseAfterWorkflowInvocationHasCompleted(FunctionStoreFactory.Create());
 }
