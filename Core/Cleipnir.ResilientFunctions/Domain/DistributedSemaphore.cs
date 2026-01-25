@@ -27,9 +27,8 @@ public class DistributedSemaphore(int maximumCount, string group, string instanc
             throw new ArgumentOutOfRangeException(nameof(maxWait), maxWait, "MaxWait must be non negative");
 
         _effectId = effect.CreateNextImplicitId();
-        var statusOption = effect.TryGet<SemaphoreIdAndStatus>(_effectId);
-        var statusIdAndStatus = statusOption.HasValue
-            ? statusOption.Value
+        var statusIdAndStatus = effect.TryGet<SemaphoreIdAndStatus>(_effectId, out var storedStatus)
+            ? storedStatus!
             : new SemaphoreIdAndStatus(group, instance, SemaphoreStatus.Created);
         var status = statusIdAndStatus.Status;
 

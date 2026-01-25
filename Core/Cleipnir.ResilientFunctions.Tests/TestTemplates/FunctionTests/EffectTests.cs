@@ -335,8 +335,7 @@ public abstract class EffectTests
         );
         var effect = new Effect(effectResults, utcNow: () => DateTime.UtcNow, new FlowMinimumTimeout());
 
-        var option = effect.TryGet<int>("alias");
-        option.HasValue.ShouldBeFalse();
+        effect.TryGet<int>("alias", out _).ShouldBeFalse();
 
         Should.Throw<InvalidOperationException>(() => effect.Get<int>("nonexistent"));
 
@@ -345,9 +344,7 @@ public abstract class EffectTests
         result = await effect.CreateOrGet("alias", 100);
         result.ShouldBe(32);
 
-        option = effect.TryGet<int>("alias");
-        option.HasValue.ShouldBeTrue();
-        var value2 = option.Value;
+        effect.TryGet<int>("alias", out var value2).ShouldBeTrue();
         value2.ShouldBe(32);
         effect.Get<int>("alias").ShouldBe(32);
 
@@ -386,14 +383,12 @@ public abstract class EffectTests
         var effect = new Effect(effectResults, utcNow: () => DateTime.UtcNow, new FlowMinimumTimeout());
 
         // Verify the effect is immediately available (eager loading)
-        var result = effect.TryGet<int>("test_alias");
-        result.HasValue.ShouldBeTrue();
-        result.Value.ShouldBe(42);
+        effect.TryGet<int>("test_alias", out var result).ShouldBeTrue();
+        result.ShouldBe(42);
 
         // Verify we can retrieve it again
-        result = effect.TryGet<int>("test_alias");
-        result.HasValue.ShouldBeTrue();
-        result.Value.ShouldBe(42);
+        effect.TryGet<int>("test_alias", out result).ShouldBeTrue();
+        result.ShouldBe(42);
     }
     
     public abstract Task SubEffectHasImplicitContext();
@@ -1360,9 +1355,8 @@ public abstract class EffectTests
         var children = new List<string>();
         foreach (var childId in childIds)
         {
-            var option = effectResults.TryGet<string>(childId);
-            if (option.HasValue)
-                children.Add(option.Value!);
+            if (effectResults.TryGet<string>(childId, out var child))
+                children.Add(child!);
         }
 
         children.Count.ShouldBe(3);
@@ -1443,9 +1437,8 @@ public abstract class EffectTests
         var children = new List<int>();
         foreach (var childId in childIds)
         {
-            var option = effectResults.TryGet<int>(childId);
-            if (option.HasValue)
-                children.Add(option.Value);
+            if (effectResults.TryGet<int>(childId, out var child))
+                children.Add(child);
         }
 
         children.Count.ShouldBe(3);

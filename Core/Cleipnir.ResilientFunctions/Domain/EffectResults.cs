@@ -164,7 +164,7 @@ public class EffectResults
             await Flush();
     }
     
-    public Option<T> TryGet<T>(EffectId effectId)
+    public bool TryGet<T>(EffectId effectId, out T? value)
     {
         lock (_sync)
         {
@@ -173,8 +173,8 @@ public class EffectResults
                 var storedEffect = change.StoredEffect;
                 if (storedEffect?.WorkStatus == WorkStatus.Completed)
                 {
-                    var value = (T)_serializer.Deserialize(storedEffect.Result!, typeof(T));
-                    return Option.Create(value);
+                    value = (T?)_serializer.Deserialize(storedEffect.Result!, typeof(T));
+                    return true;
                 }
 
                 if (storedEffect?.StoredException != null)
@@ -182,7 +182,8 @@ public class EffectResults
             }
         }
 
-        return Option<T>.NoValue;
+        value = default;
+        return false;
     }
     
     public Option<object?> TryGet(EffectId effectId, Type type)

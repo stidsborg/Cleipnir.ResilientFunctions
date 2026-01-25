@@ -70,28 +70,29 @@ public class Effect(EffectResults effectResults, UtcNow utcNow, FlowMinimumTimeo
     internal Task Upserts(IEnumerable<EffectResult> values, bool flush)
         => effectResults.Upserts(values, flush);
 
-    internal Option<T> TryGet<T>(string alias)
+    internal bool TryGet<T>(string alias, out T? value)
     {
         var effectId = effectResults.GetEffectId(alias);
         if (effectId == null)
-            return Option.CreateNoValue<T>();
+        {
+            value = default;
+            return false;
+        }
 
-        return effectResults.TryGet<T>(effectId);
+        return effectResults.TryGet(effectId, out value);
     }
 
-    internal Option<T> TryGet<T>(EffectId effectId) => effectResults.TryGet<T>(effectId);
+    internal bool TryGet<T>(EffectId effectId, out T? value) => effectResults.TryGet(effectId, out value);
     internal Option<object?> TryGet(EffectId effectId, Type type) => effectResults.TryGet(effectId, type);
     internal T Get<T>(string alias) => Get<T>(
         effectResults.GetEffectId(alias) ?? throw new InvalidOperationException($"Unknown alias: '{alias}'")
     );
     internal T Get<T>(EffectId effectId)
     {
-        var option = TryGet<T>(effectId);
-
-        if (!option.HasValue)
+        if (!TryGet<T>(effectId, out var value))
             throw new InvalidOperationException($"No value exists for id: '{effectId}'");
 
-        return option.Value;
+        return value!;
     }
     
     internal IReadOnlyList<EffectId> GetChildren(EffectId effectId) => effectResults.GetChildren(effectId);

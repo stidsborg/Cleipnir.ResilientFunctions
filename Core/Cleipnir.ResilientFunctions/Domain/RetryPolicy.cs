@@ -106,9 +106,9 @@ public class RetryPolicy(TimeSpan initialInterval, double backoffCoefficient, Ti
     public async Task<T> Invoke<T>(Func<Task<T>> work, Effect effect, UtcNow utcNow, FlowMinimumTimeout flowMinimumTimeout)
     {
         var delayUntilId = effect.CreateEffectId(0);
-        var delayUntilOption = effect.TryGet<long>(delayUntilId);
-        var delayUntil = delayUntilOption.HasValue ? delayUntilOption.Value.ToDateTime() : DateTime.MinValue;
-        if (delayUntilOption.HasValue && delayUntil > utcNow())
+        var hasDelayUntil = effect.TryGet<long>(delayUntilId, out var delayUntilValue);
+        var delayUntil = hasDelayUntil ? delayUntilValue.ToDateTime() : DateTime.MinValue;
+        if (hasDelayUntil && delayUntil > utcNow())
         {
             flowMinimumTimeout.AddTimeout(delayUntilId, delayUntil);
             throw new SuspendInvocationException();
