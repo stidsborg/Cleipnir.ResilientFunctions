@@ -26,12 +26,12 @@ public class MessageWriters
     public MessageWriter For(FlowInstance instance)
     {
         var storedId = StoredId.Create(_storedType, instance.Value);
-        return new MessageWriter(storedId, _functionStore, _serializer);
+        return new MessageWriter(storedId, _functionStore.MessageStore, _serializer);
     }
     
     internal MessageWriter For(StoredId storedId)
     {
-        return new MessageWriter(storedId, _functionStore, _serializer);
+        return new MessageWriter(storedId, _functionStore.MessageStore, _serializer);
     }
 
     public async Task AppendMessages(IReadOnlyList<BatchedMessage> messages)

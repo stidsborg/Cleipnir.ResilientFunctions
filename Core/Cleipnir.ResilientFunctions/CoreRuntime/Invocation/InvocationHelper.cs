@@ -404,7 +404,7 @@ internal class InvocationHelper<TParam, TReturn>
     }
 
     public MessageWriter CreateMessageWriter(StoredId storedId)
-        => new MessageWriter(storedId, _functionStore, Serializer);
+        => new MessageWriter(storedId, _functionStore.MessageStore, Serializer);
 
     public Effect CreateEffect(StoredId storedId, FlowId flowId, IReadOnlyList<StoredEffect> storedEffects, FlowMinimumTimeout flowMinimumTimeout, IStorageSession? storageSession)
     {

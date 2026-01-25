@@ -628,7 +628,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
             var messages = _messages[storedId];
             messages[messages.Count] = storedMessage;
 
-            return Task.CompletedTask;
+            return Interrupt(storedId);
         }
     }
 
