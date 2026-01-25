@@ -117,10 +117,7 @@ public class EitherOrNone<T1, T2> : ICustomSerializable
     public static EitherOrNone<T1, T2> CreateNone() => new(Value.None, first: default!, second: default!);
     public static EitherOrNone<T1, T2> CreateFirst(T1 first) => new(Value.First, first, second: default!);
     public static EitherOrNone<T1, T2> CreateSecond(T2 second) => new(Value.Second, first: default!, second);
-
-    public static EitherOrNone<T1, T2> CreateFromEither(Either<T1, T2> either) =>
-        either.HasFirst ? CreateFirst(either.First) : CreateSecond(either.Second);
-
+    
     public byte[] Serialize(ISerializer serializer)
     {
         var tuple = Tuple.Create((byte)ValueSpecified, _first, _second);
@@ -273,8 +270,7 @@ public class EitherOrNone<T1, T2, T3> : ICustomSerializable
     public static EitherOrNone<T1, T2, T3> CreateFirst(T1 first) => new(Value.First, first, second: default!, third: default!);
     public static EitherOrNone<T1, T2, T3> CreateSecond(T2 second) => new(Value.Second, first: default!, second, third: default!);
     public static EitherOrNone<T1, T2, T3> CreateThird(T3 third) => new(Value.Third, first: default!, second: default!, third);
-    public static EitherOrNone<T1, T2, T3> CreateFromEither(Either<T1, T2, T3> either) => either.Match(CreateFirst, CreateSecond, CreateThird);
-    
+
     public byte[] Serialize(ISerializer serializer)
     {
         var tuple = Tuple.Create((byte)ValueSpecified, _first, _second, _third);
