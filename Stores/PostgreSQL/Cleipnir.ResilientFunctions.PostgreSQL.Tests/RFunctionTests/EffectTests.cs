@@ -67,10 +67,6 @@ public class EffectTests : ResilientFunctions.Tests.TestTemplates.FunctionTests.
         => ExceptionThrownInsideEffectStaysFatalWorkflowException(FunctionStoreFactory.Create());
     
     [TestMethod]
-    public override Task EffectCanReturnOption()
-        => EffectCanReturnOption(FunctionStoreFactory.Create());
-    
-    [TestMethod]
     public override Task DelayedFlushIsReflectedInUnderlyingStoreForSet()
         => DelayedFlushIsReflectedInUnderlyingStoreForSet(FunctionStoreFactory.Create());
     

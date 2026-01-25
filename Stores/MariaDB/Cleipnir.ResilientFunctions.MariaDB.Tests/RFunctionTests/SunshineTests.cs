@@ -66,10 +66,6 @@ public class SunshineTests : ResilientFunctions.Tests.TestTemplates.FunctionTest
         => ParamlessCanBeCreatedWithInitialFailedEffect(FunctionStoreFactory.Create());
     
     [TestMethod]
-    public override Task FunctionCanAcceptAndReturnOptionType()
-        => FunctionCanAcceptAndReturnOptionType(FunctionStoreFactory.Create());
-    
-    [TestMethod]
     public override Task ExecutingFunctionHasOwner()
         => ExecutingFunctionHasOwner(FunctionStoreFactory.Create());
 }

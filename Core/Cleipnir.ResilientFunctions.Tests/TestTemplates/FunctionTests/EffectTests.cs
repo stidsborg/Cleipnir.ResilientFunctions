@@ -8,7 +8,6 @@ using Cleipnir.ResilientFunctions.CoreRuntime.Serialization;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.Helpers;
-using Cleipnir.ResilientFunctions.Reactive.Utilities;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Tests.Utils;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -622,40 +621,6 @@ public abstract class EffectTests
             return;
         }
         Assert.Fail("Expected FatalWorkflowException<InvalidOperationException>");
-    }
-    
-    public abstract Task EffectCanReturnOption();
-    public async Task EffectCanReturnOption(Task<IFunctionStore> storeTask)
-    {
-        var store = await storeTask;
-        using var functionsRegistry = new FunctionsRegistry(store);
-        var flowId = TestFlowId.Create();
-        var (flowType, flowInstance) = flowId;
-        var rAction = functionsRegistry.RegisterFunc(
-            flowType,
-            async Task<Option<string>> (string message, Workflow workflow) =>
-            {
-                var effect = workflow.Effect;
-                return await effect.Capture(
-                    () => Option.Create(message)
-                );
-            });
-
-        var result = await rAction.Invoke(flowInstance.ToString(), "Hello!");
-        result.HasValue.ShouldBeTrue();
-        result.Value.ShouldBe("Hello!");
-        
-        var controlPanel = await rAction.ControlPanel(flowId.Instance);
-        controlPanel.ShouldNotBeNull();
-
-        var effectValue = await controlPanel.Effects.GetValue<Option<string>>(0);
-        effectValue.ShouldNotBeNull();
-        effectValue.HasValue.ShouldBeTrue();
-        effectValue.Value.ShouldBe("Hello!");
-        
-        result = await controlPanel.Restart();
-        result.HasValue.ShouldBeTrue();
-        result.Value.ShouldBe("Hello!");
     }
     
     public abstract Task DelayedFlushIsReflectedInUnderlyingStoreForSet();
