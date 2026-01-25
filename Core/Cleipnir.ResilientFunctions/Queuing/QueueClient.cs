@@ -59,12 +59,10 @@ public class QueueClient(QueueManager queueManager, UtcNow utcNow)
         else
         {
             var type = Type.GetType(effect.Get<string>(typeId), throwOnError: true);
-            var option = effect.TryGet(valueId, type!);
-
-            if (!option.HasValue)
+            if (!effect.TryGet(valueId, type!, out var value))
                 throw new InvalidOperationException("Effect did not have value as expected");
 
-            return (T)option.Value!;
+            return (T)value!;
         }
     }
 }

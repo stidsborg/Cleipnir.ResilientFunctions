@@ -83,7 +83,7 @@ public class Effect(EffectResults effectResults, UtcNow utcNow, FlowMinimumTimeo
     }
 
     internal bool TryGet<T>(EffectId effectId, out T? value) => effectResults.TryGet(effectId, out value);
-    internal Option<object?> TryGet(EffectId effectId, Type type) => effectResults.TryGet(effectId, type);
+    internal bool TryGet(EffectId effectId, Type type, out object? value) => effectResults.TryGet(effectId, type, out value);
     internal T Get<T>(string alias) => Get<T>(
         effectResults.GetEffectId(alias) ?? throw new InvalidOperationException($"Unknown alias: '{alias}'")
     );

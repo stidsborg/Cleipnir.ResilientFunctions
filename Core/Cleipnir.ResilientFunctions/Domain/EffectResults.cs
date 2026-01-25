@@ -186,7 +186,7 @@ public class EffectResults
         return false;
     }
     
-    public Option<object?> TryGet(EffectId effectId, Type type)
+    public bool TryGet(EffectId effectId, Type type, out object? value)
     {
         lock (_sync)
         {
@@ -195,16 +195,17 @@ public class EffectResults
                 var storedEffect = change.StoredEffect;
                 if (storedEffect?.WorkStatus == WorkStatus.Completed)
                 {
-                    var value = _serializer.Deserialize(storedEffect.Result!, type)!;
-                    return Option.Create((object?) value);    
+                    value = _serializer.Deserialize(storedEffect.Result!, type)!;
+                    return true;
                 }
-                
+
                 if (storedEffect?.StoredException != null)
                     throw _serializer.DeserializeException(_flowId, storedEffect.StoredException!);
             }
         }
-        
-        return Option<object?>.NoValue;
+
+        value = default;
+        return false;
     }
 
     public IReadOnlyList<EffectId> GetChildren(EffectId parentId)
