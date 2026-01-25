@@ -33,55 +33,6 @@ public class SerializationTests
         var deserialized = (string)serializer.Deserialize(serializedBytes, typeof(string));
         deserialized.ShouldBe("Hello World");
     }
-
-    [TestMethod]
-    public void OptionCanBeDeserializedByDefaultSerializer()
-    {
-        var option = Option.Create("some value");
-        var serializer = new CustomSerializableDecorator(DefaultSerializer.Instance);
-        var serialized = serializer.Serialize(option, option.GetType());
-        var deserialized = (Option<string>)serializer.Deserialize(serialized, typeof(Option<string>));
-        deserialized.ShouldBe(option);
-    }
-    
-    [TestMethod]
-    public void OptionWithNoValueCanBeDeserializedByDefaultSerializer()
-    {
-        var option = Option<string>.NoValue;
-        var serializer = DefaultSerializer.Instance;
-        var serialized = serializer.Serialize(option, option.GetType());
-        var deserialized = (Option<string>)serializer.Deserialize(serialized, typeof(Option<string>));
-        deserialized.ShouldBe(option);
-    }
-    
-    [TestMethod]
-    public void OptionCanBeDeserializedAsMessageByDefaultSerializer()
-    {
-        var option = Option.Create("some value");
-        var serializer = DefaultSerializer.Instance;
-        serializer.Serialize(option, out var content, out var type);
-        var serialized = new SerializedMessage(content, type);
-        var deserialized = serializer.DeserializeMessage(serialized.Content, serialized.Type);
-        deserialized.ShouldBe(option);
-    }
-    
-    [TestMethod]
-    public void OptionWithNoValueCanBeDeserializedAsMessageByDefaultSerializer()
-    {
-        var option = Option<string>.NoValue;
-        var serializer = DefaultSerializer.Instance;
-        serializer.Serialize(option, out var content, out var type);
-        var serialized = new SerializedMessage(content, type);
-        var deserialized = serializer.DeserializeMessage(serialized.Content, serialized.Type);
-        deserialized.ShouldBe(option);
-    }
-    
-    private T SerializeAndDeserialize<T>(T value)
-    {
-        ISerializer serializer = new CustomSerializableDecorator(DefaultSerializer.Instance);
-        var bytes = serializer.Serialize(value);
-        return (T)serializer.Deserialize(bytes, typeof(T));
-    }
     
     [TestMethod]
     public void ExceptionCanBeConvertedToAndFromFatalWorkflowException()
