@@ -68,7 +68,7 @@ public class ParamlessRegistration : BaseRegistration
         FlowInstance flowInstance,
         T message,
         bool create = true,
-        string? idempotencyKey = null) where T : notnull
+        string? idempotencyKey = null) where T : class
     {
         if (create)
         {

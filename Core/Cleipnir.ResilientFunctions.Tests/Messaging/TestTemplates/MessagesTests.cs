@@ -238,20 +238,19 @@ public abstract class MessagesTests
                 await queueManager.Initialize();
 
                 var queueClient = new QueueClient(queueManager, () => DateTime.UtcNow);
-                var message = await queueClient.Pull<object>(
+                var message = await queueClient.Pull<string>(
                     workflow,
                     workflow.Effect.CreateNextImplicitId(),
-                    filter: m => m is string or int,
                     maxWait: TimeSpan.FromMinutes(1)
                 );
 
-                return message!.ToString()!;
+                return message;
             }
         );
 
         var scheduled = await rFunc.Schedule("instanceId", "");
         var messageWriter = rFunc.MessageWriters.For("instanceId".ToFlowInstance());
-        await messageWriter.AppendMessage(1);
+        await messageWriter.AppendMessage("1");
 
         var result = await scheduled.Completion(maxWait: TimeSpan.FromSeconds(5));
         result.ShouldBe("1");
@@ -471,7 +470,7 @@ public abstract class MessagesTests
         await registration.SendMessage(instanceId, "World");
         await registration.SendMessage(instanceId, "And");
         await registration.SendMessage(instanceId, "Universe");
-        await registration.SendMessage(instanceId, -1);
+        await registration.SendMessage(instanceId, new object());
 
         var cp = await registration.ControlPanel(instanceId).ShouldNotBeNullAsync();
         await cp.WaitForCompletion(allowPostponeAndSuspended: true);

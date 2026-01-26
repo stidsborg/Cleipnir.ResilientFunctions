@@ -68,7 +68,7 @@ public class ActionRegistration<TParam> : BaseRegistration where TParam : notnul
         FlowInstance flowInstance,
         T message,
         string? idempotencyKey = null
-    ) where T : notnull => await Postman.SendMessage(StoredId.Create(StoredType, flowInstance.Value), message, idempotencyKey);
+    ) where T : class => await Postman.SendMessage(StoredId.Create(StoredType, flowInstance.Value), message, idempotencyKey);
 
     public async Task SendMessages(IReadOnlyList<BatchedMessage> messages)
         => await Postman.SendMessages(messages);

@@ -556,7 +556,7 @@ public abstract class MessagesSubscriptionTests
                     maxWait: TimeSpan.FromSeconds(5)
                 );
 
-                var message2 = await queueClient.Pull<object>(
+                var message2 = await queueClient.Pull<WrappedInt>(
                     workflow,
                     workflow.Effect.CreateNextImplicitId(),
                     maxWait: TimeSpan.FromSeconds(5)
@@ -568,7 +568,7 @@ public abstract class MessagesSubscriptionTests
                     maxWait: TimeSpan.FromSeconds(5)
                 );
 
-                return $"{message1},{message2},{message3.Value}";
+                return $"{message1},{message2.Value},{message3.Value}";
             }
         );
 
@@ -576,7 +576,7 @@ public abstract class MessagesSubscriptionTests
         var messageWriter = rFunc.MessageWriters.For("instanceId".ToFlowInstance());
 
         await messageWriter.AppendMessage("hello");
-        await messageWriter.AppendMessage(42);
+        await messageWriter.AppendMessage(new WrappedInt(42));
         await messageWriter.AppendMessage(new TestRecord("world"));
 
         var result = await scheduled.Completion(maxWait: TimeSpan.FromSeconds(10));
@@ -585,6 +585,7 @@ public abstract class MessagesSubscriptionTests
         unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
 
+    private record WrappedInt(int Value);
     private record TestRecord(string Value);
 
     public abstract Task NoOpMessageIsIgnoredByQueueClient();
