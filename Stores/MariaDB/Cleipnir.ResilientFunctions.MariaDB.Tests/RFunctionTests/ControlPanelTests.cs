@@ -138,14 +138,6 @@ public class ControlPanelTests : ResilientFunctions.Tests.TestTemplates.Function
         => EffectsAreOnlyFetchedOnPropertyInvocation(FunctionStoreFactory.Create());
 
     [TestMethod]
-    public override Task ExistingTimeoutCanBeUpdatedForAction()
-        => ExistingTimeoutCanBeUpdatedForAction(FunctionStoreFactory.Create());
-
-    [TestMethod]
-    public override Task ExistingTimeoutCanBeUpdatedForFunc()
-        => ExistingTimeoutCanBeUpdatedForFunc(FunctionStoreFactory.Create());
-    
-    [TestMethod]
     public override Task CorrelationsCanBeChanged()
         => CorrelationsCanBeChanged(FunctionStoreFactory.Create());
     

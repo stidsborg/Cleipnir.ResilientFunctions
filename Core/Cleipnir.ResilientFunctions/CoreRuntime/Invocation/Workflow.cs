@@ -17,13 +17,13 @@ public class Workflow
     public Utilities Utilities { get; }
     public Correlations Correlations { get; }
     public Synchronization Synchronization { get; }
-    public FlowRegisteredTimeouts RegisteredTimeouts { get; }
+   
     private QueueManager _queueManager;
     private readonly UtcNow _utcNow;
     private MessageWriter MessageWriter { get; }
 
 
-    public Workflow(FlowId flowId, StoredId storedId, Effect effect, Utilities utilities, Correlations correlations, DistributedSemaphores semaphores, QueueManager queueManager, UtcNow utcNow, FlowRegisteredTimeouts flowRegisteredTimeouts, MessageWriter messageWriter)
+    public Workflow(FlowId flowId, StoredId storedId, Effect effect, Utilities utilities, Correlations correlations, DistributedSemaphores semaphores, QueueManager queueManager, UtcNow utcNow, MessageWriter messageWriter)
     {
         FlowId = flowId;
         StoredId = storedId;
@@ -33,7 +33,6 @@ public class Workflow
         Synchronization = new Synchronization(semaphores);
         _queueManager = queueManager;
         _utcNow = utcNow;
-        RegisteredTimeouts = flowRegisteredTimeouts;
         MessageWriter = messageWriter;
     }
 

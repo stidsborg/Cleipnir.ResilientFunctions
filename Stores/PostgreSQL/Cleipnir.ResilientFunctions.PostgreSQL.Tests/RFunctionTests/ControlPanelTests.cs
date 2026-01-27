@@ -107,14 +107,6 @@ public class ControlPanelTests : ResilientFunctions.Tests.TestTemplates.Function
         => SaveChangesPersistsChangedResult(FunctionStoreFactory.Create());
 
     [TestMethod]
-    public override Task ExistingTimeoutCanBeUpdatedForAction()
-        => ExistingTimeoutCanBeUpdatedForAction(FunctionStoreFactory.Create());
-
-    [TestMethod]
-    public override Task ExistingTimeoutCanBeUpdatedForFunc()
-        => ExistingTimeoutCanBeUpdatedForFunc(FunctionStoreFactory.Create());
-
-    [TestMethod]
     public override Task ExistingEffectCanBeRemoved()
         => ExistingEffectCanBeRemoved(FunctionStoreFactory.Create());
 

@@ -32,7 +32,6 @@ public abstract class ControlPanelTests
             {
                 await workflow.Effect.CreateOrGet("alias", 123);
                 await workflow.AppendMessage("Message");
-                await workflow.RegisteredTimeouts.RegisterTimeout(1, expiresAt: DateTime.UtcNow.AddDays(1), publishMessage: true);
             }
         );
         
@@ -83,7 +82,6 @@ public abstract class ControlPanelTests
             {
                 await workflow.Effect.CreateOrGet("alias", 123);
                 await workflow.AppendMessage("Message");
-                await workflow.RegisteredTimeouts.RegisterTimeout(1, expiresAt: DateTime.UtcNow.AddDays(1), publishMessage: true);
                 return "hello";
             });
         
@@ -1225,92 +1223,6 @@ public abstract class ControlPanelTests
         
         unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
-    
-    public abstract Task ExistingTimeoutCanBeUpdatedForAction();
-    protected async Task ExistingTimeoutCanBeUpdatedForAction(Task<IFunctionStore> storeTask)
-    {
-        var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        
-        var store = await storeTask;
-        var functionId = TestFlowId.Create();
-        var (flowType, flowInstance) = functionId;
-        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
-
-        var actionRegistration = functionsRegistry.RegisterAction(
-            flowType,
-            Task (string param, Workflow workflow) =>
-                workflow.RegisteredTimeouts.RegisterTimeout(
-                    "someTimeoutId".GetHashCode(),
-                    expiresAt: new DateTime(2100, 1,1, 1,1,1, DateTimeKind.Utc),
-                    publishMessage: true
-                )
-        );
-
-        await actionRegistration.Invoke(flowInstance.Value, param: "param");
-
-        var controlPanel = await actionRegistration.ControlPanel(flowInstance.Value);
-        controlPanel.ShouldNotBeNull();
-        var timeouts = controlPanel.RegisteredTimeouts;
-        (await timeouts.All).Count.ShouldBe(1);
-        await timeouts["someTimeoutId".GetHashCode()].ShouldBeAsync(new DateTime(2100, 1,1, 1,1,1, DateTimeKind.Utc));
-
-        await timeouts.Upsert("someOtherTimeoutId".GetHashCode(), new DateTime(2101, 1, 1, 1, 1, 1, DateTimeKind.Utc));
-        (await timeouts.All).Count.ShouldBe(2);
-        await timeouts["someOtherTimeoutId".GetHashCode()].ShouldBeAsync(new DateTime(2101, 1,1, 1,1,1, DateTimeKind.Utc));
-
-        await controlPanel.Refresh();
-
-        (await timeouts.All).Count.ShouldBe(2);
-        await timeouts["someTimeoutId".GetHashCode()].ShouldBeAsync(new DateTime(2100, 1,1, 1,1,1, DateTimeKind.Utc));
-        await timeouts["someOtherTimeoutId".GetHashCode()].ShouldBeAsync(new DateTime(2101, 1,1, 1,1,1, DateTimeKind.Utc));
-
-        unhandledExceptionCatcher.ShouldNotHaveExceptions();
-    }
-
-    public abstract Task ExistingTimeoutCanBeUpdatedForFunc();
-    protected async Task ExistingTimeoutCanBeUpdatedForFunc(Task<IFunctionStore> storeTask)
-    {
-        var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        
-        var store = await storeTask;
-        var functionId = TestFlowId.Create();
-        var (flowType, flowInstance) = functionId;
-        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
-
-        var funcRegistration = functionsRegistry.RegisterFunc(
-            flowType,
-            async Task<string> (string param, Workflow workflow) =>
-            {
-                await workflow.RegisteredTimeouts.RegisterTimeout(
-                    "someTimeoutId".GetHashCode(),
-                    expiresAt: new DateTime(2100, 1, 1, 1, 1, 1, DateTimeKind.Utc),
-                    publishMessage: true
-                );
-
-                return param;
-            }
-        );
-
-        await funcRegistration.Invoke(flowInstance.Value, param: "param");
-
-        var controlPanel = await funcRegistration.ControlPanel(flowInstance.Value);
-        controlPanel.ShouldNotBeNull();
-        var timeouts = controlPanel.RegisteredTimeouts;
-        (await timeouts.All).Count.ShouldBe(1);
-        await timeouts["someTimeoutId".GetHashCode()].ShouldBeAsync(new DateTime(2100, 1,1, 1,1,1, DateTimeKind.Utc));
-
-        await timeouts.Upsert("someOtherTimeoutId".GetHashCode(), new DateTime(2101, 1, 1, 1, 1, 1, DateTimeKind.Utc));
-        (await timeouts.All).Count.ShouldBe(2);
-        await timeouts["someOtherTimeoutId".GetHashCode()].ShouldBeAsync(new DateTime(2101, 1,1, 1,1,1, DateTimeKind.Utc));
-
-        await controlPanel.Refresh();
-
-        (await timeouts.All).Count.ShouldBe(2);
-        await timeouts["someTimeoutId".GetHashCode()].ShouldBeAsync(new DateTime(2100, 1,1, 1,1,1, DateTimeKind.Utc));
-        await timeouts["someOtherTimeoutId".GetHashCode()].ShouldBeAsync(new DateTime(2101, 1,1, 1,1,1, DateTimeKind.Utc));
-
-        unhandledExceptionCatcher.ShouldNotHaveExceptions();
-    }
 
     public abstract Task CorrelationsCanBeChanged();
     protected async Task CorrelationsCanBeChanged(Task<IFunctionStore> storeTask)
@@ -1371,8 +1283,7 @@ public abstract class ControlPanelTests
         await controlPanel.Correlations.Register("SomeCorrelation");
         await controlPanel.Effects.SetSucceeded("SomeEffect".GetHashCode());
         await controlPanel.Messages.Append("Some Message");
-        await controlPanel.RegisteredTimeouts.Upsert("SomeTimeout".GetHashCode(), expiresAt: DateTime.UtcNow.Add(TimeSpan.FromDays(1)));
-        
+
         await controlPanel.Delete();
 
         var storedId = registration.MapToStoredId(functionId.Instance);

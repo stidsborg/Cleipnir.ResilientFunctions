@@ -19,17 +19,17 @@ public class ControlPanel : BaseControlPanel<Unit, Unit>
         Status status, long expires,  
         ExistingEffects effects,
         ExistingMessages messages, ExistingSemaphores semaphores, 
-        ExistingRegisteredTimeouts registeredTimeouts, Correlations correlations,
+        Correlations correlations,
         FatalWorkflowException? fatalWorkflowException,
         UtcNow utcNow
     ) : base(
         invoker, invocationHelper, 
         flowId, storedId, ownerReplica, status,
         expires, innerParam: Unit.Instance, innerResult: Unit.Instance, effects,
-        messages, registeredTimeouts, semaphores, correlations, fatalWorkflowException,
+        messages, semaphores, correlations, fatalWorkflowException,
         utcNow
     ) { }
-    
+
     public Task Succeed() => InnerSucceed(result: Unit.Instance);
     
     public async Task BusyWaitUntil(Func<ControlPanel, bool> predicate, TimeSpan? maxWait = null, TimeSpan? checkFrequency = null)
@@ -63,14 +63,14 @@ public class ControlPanel<TParam> : BaseControlPanel<TParam, Unit> where TParam 
         Status status, long expires, TParam innerParam, 
         ExistingEffects effects,
         ExistingMessages messages, ExistingSemaphores semaphores, 
-        ExistingRegisteredTimeouts registeredTimeouts, Correlations correlations, 
+        Correlations correlations, 
         FatalWorkflowException? fatalWorkflowException,
         UtcNow utcNow
     ) : base(
         invoker, invocationHelper, 
         flowId, storedId, ownerReplica, status,
         expires, innerParam, innerResult: Unit.Instance, effects,
-        messages, registeredTimeouts, semaphores, correlations, fatalWorkflowException,
+        messages, semaphores, correlations, fatalWorkflowException,
         utcNow
     ) { }
     
@@ -112,13 +112,13 @@ public class ControlPanel<TParam, TReturn> : BaseControlPanel<TParam, TReturn> w
         long expires, TParam innerParam, 
         TReturn? innerResult, 
         ExistingEffects effects, ExistingMessages messages, ExistingSemaphores semaphores,
-        ExistingRegisteredTimeouts registeredTimeouts, Correlations correlations, FatalWorkflowException? fatalWorkflowException,
+        Correlations correlations, FatalWorkflowException? fatalWorkflowException,
         UtcNow utcNow
     ) : base(
-        invoker, invocationHelper, 
-        flowId, storedId, ownerReplica, status, expires, 
-        innerParam, innerResult, effects, messages, 
-        registeredTimeouts, semaphores, correlations, fatalWorkflowException,
+        invoker, invocationHelper,
+        flowId, storedId, ownerReplica, status, expires,
+        innerParam, innerResult, effects, messages,
+        semaphores, correlations, fatalWorkflowException,
         utcNow
     ) { }
 
@@ -170,7 +170,6 @@ public abstract class BaseControlPanel<TParam, TReturn>
         TReturn? innerResult,
         ExistingEffects effects,
         ExistingMessages messages,
-        ExistingRegisteredTimeouts registeredTimeouts,
         ExistingSemaphores semaphores,
         Correlations correlations,
         FatalWorkflowException? fatalWorkflowException,
@@ -190,7 +189,6 @@ public abstract class BaseControlPanel<TParam, TReturn>
                 : new DateTime(expires, DateTimeKind.Utc)) : null;
         Effects = effects;
         Messages = messages;
-        RegisteredTimeouts = registeredTimeouts;
         Semaphores = semaphores;
         Correlations = correlations;
         FatalWorkflowException = fatalWorkflowException;
@@ -209,8 +207,6 @@ public abstract class BaseControlPanel<TParam, TReturn>
     
     public ExistingSemaphores Semaphores { get; private set; }
     public Correlations Correlations { get; private set; }
-
-    public ExistingRegisteredTimeouts RegisteredTimeouts { get; private set; }
 
     private TParam _innerParam;
     protected TParam InnerParam
@@ -306,7 +302,6 @@ public abstract class BaseControlPanel<TParam, TReturn>
     {
         await Effects.RemoveFailed();
         await Messages.RemoveTimeouts();
-        await RegisteredTimeouts.RemoveAll();
 
         await Refresh();
     }
@@ -372,7 +367,6 @@ public abstract class BaseControlPanel<TParam, TReturn>
         FatalWorkflowException = sf.FatalWorkflowException;
         Effects = await _invocationHelper.CreateExistingEffects(FlowId);
         Messages = _invocationHelper.CreateExistingMessages(FlowId);
-        RegisteredTimeouts = _invocationHelper.CreateExistingTimeouts(FlowId, Effects);
         Correlations = _invocationHelper.CreateCorrelations(FlowId);
         Semaphores = await _invocationHelper.CreateExistingSemaphores(FlowId);
 

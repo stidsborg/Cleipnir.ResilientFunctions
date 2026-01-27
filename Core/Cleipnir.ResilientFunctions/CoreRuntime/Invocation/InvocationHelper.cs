@@ -384,25 +384,7 @@ internal class InvocationHelper<TParam, TReturn>
             detach
         );
     }
-
-    public FlowRegisteredTimeouts CreateFlowRegisteredTimeouts(
-        FlowId flowId,
-        StoredId storedId,
-        Effect effect,
-        FlowMinimumTimeout flowMinimumTimeout,
-        UnhandledExceptionHandler unhandledExceptionHandler)
-    {
-        var messageWriter = CreateMessageWriter(storedId);
-        return new FlowRegisteredTimeouts(
-            effect,
-            UtcNow,
-            flowMinimumTimeout,
-            publishTimeoutEvent: timeoutEvent => messageWriter.AppendMessage(timeoutEvent, idempotencyKey: timeoutEvent.TimeoutId.Serialize().ToStringValue()),
-            unhandledExceptionHandler,
-            flowId
-        );
-    }
-
+    
     public MessageWriter CreateMessageWriter(StoredId storedId)
         => new MessageWriter(storedId, _functionStore.MessageStore, Serializer);
 
@@ -437,7 +419,6 @@ internal class InvocationHelper<TParam, TReturn>
         return new ExistingEffects(storedId, flowId, _functionStore.EffectsStore, Serializer, storedEffects);
     }
     public ExistingMessages CreateExistingMessages(FlowId flowId) => new(MapToStoredId(flowId), _functionStore.MessageStore, Serializer);
-    public ExistingRegisteredTimeouts CreateExistingTimeouts(FlowId flowId, ExistingEffects existingEffects) => new(existingEffects, UtcNow);
     public async Task<ExistingSemaphores> CreateExistingSemaphores(FlowId flowId)
     {
         var existingEffects = await CreateExistingEffects(flowId);

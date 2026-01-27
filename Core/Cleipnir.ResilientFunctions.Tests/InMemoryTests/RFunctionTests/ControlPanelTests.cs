@@ -139,14 +139,6 @@ public class ControlPanelTests : TestTemplates.FunctionTests.ControlPanelTests
         => SaveChangesPersistsChangedResult(Utils.CreateInMemoryFunctionStoreTask());
 
     [TestMethod]
-    public override Task ExistingTimeoutCanBeUpdatedForAction()
-        => ExistingTimeoutCanBeUpdatedForAction(Utils.CreateInMemoryFunctionStoreTask());
-
-    [TestMethod]
-    public override Task ExistingTimeoutCanBeUpdatedForFunc()
-        => ExistingTimeoutCanBeUpdatedForFunc(Utils.CreateInMemoryFunctionStoreTask());
-
-    [TestMethod]
     public override Task CorrelationsCanBeChanged()
         => CorrelationsCanBeChanged(FunctionStoreFactory.Create());
 
