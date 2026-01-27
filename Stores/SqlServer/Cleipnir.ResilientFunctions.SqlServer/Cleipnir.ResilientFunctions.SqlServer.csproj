@@ -6,7 +6,7 @@
         <FileVersion>4.2.5.0</FileVersion>
         <InformationalVersion>4.2.5.0</InformationalVersion>
         <PackageVersion>4.2.5</PackageVersion>
-        <TargetFramework>net9.0</TargetFramework>
+        <TargetFramework>net10.0</TargetFramework>
         <Nullable>enable</Nullable>
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <PackageProjectUrl>https://github.com/stidsborg/Cleipnir.ResilientFunctions</PackageProjectUrl>
@@ -23,7 +23,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="Microsoft.Data.SqlClient" Version="6.1.1" />
+      <PackageReference Include="Microsoft.Data.SqlClient" Version="6.1.4" />
     </ItemGroup>
 
     <PropertyGroup Label="SourceLink">
@@ -33,7 +33,7 @@
         <EmbedUntrackedSources>true</EmbedUntrackedSources>
     </PropertyGroup>
     <ItemGroup Label="SourceLink">
-        <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
+        <PackageReference Include="Microsoft.SourceLink.GitHub" Version="10.0.102" PrivateAssets="All" />
     </ItemGroup>
 
     <ItemGroup>

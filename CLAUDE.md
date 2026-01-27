@@ -80,7 +80,7 @@ The project uses Docker Compose for test databases with these credentials:
 - Test projects follow naming: `<MainProject>.Tests`
 - Store implementations include both library and test projects
 - Core framework is database-agnostic with pluggable store implementations
-- All projects target .NET 9.0
+- All projects target .NET 10.0
 
 ## Framework Usage Patterns
 
