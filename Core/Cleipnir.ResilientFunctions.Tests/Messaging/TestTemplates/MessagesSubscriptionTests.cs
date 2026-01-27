@@ -95,7 +95,7 @@ public abstract class MessagesSubscriptionTests
                     DefaultSerializer.Instance,
                     workflow.Effect,
                     unhandledExceptionHandler,
-                    new FlowMinimumTimeout(),
+                    new FlowTimeouts(),
                     () => DateTime.UtcNow,
                     SettingsWithDefaults.Default
                 );
@@ -142,7 +142,7 @@ public abstract class MessagesSubscriptionTests
                     DefaultSerializer.Instance,
                     workflow.Effect,
                     unhandledExceptionHandler,
-                    new FlowMinimumTimeout(),
+                    new FlowTimeouts(),
                     () => DateTime.UtcNow,
                     SettingsWithDefaults.Default
                 );
@@ -199,7 +199,7 @@ public abstract class MessagesSubscriptionTests
                     DefaultSerializer.Instance,
                     workflow.Effect,
                     unhandledExceptionHandler,
-                    new FlowMinimumTimeout(),
+                    new FlowTimeouts(),
                     () => DateTime.UtcNow,
                     SettingsWithDefaults.Default
                 );
@@ -250,7 +250,7 @@ public abstract class MessagesSubscriptionTests
                     DefaultSerializer.Instance,
                     workflow.Effect,
                     unhandledExceptionHandler,
-                    new FlowMinimumTimeout(),
+                    new FlowTimeouts(),
                     () => DateTime.UtcNow,
                     SettingsWithDefaults.Default
                 );
@@ -316,7 +316,7 @@ public abstract class MessagesSubscriptionTests
                     DefaultSerializer.Instance,
                     workflow.Effect,
                     unhandledExceptionHandler,
-                    new FlowMinimumTimeout(),
+                    new FlowTimeouts(),
                     () => DateTime.UtcNow,
                     SettingsWithDefaults.Default
                 );
@@ -378,7 +378,7 @@ public abstract class MessagesSubscriptionTests
                     DefaultSerializer.Instance,
                     workflow.Effect,
                     unhandledExceptionHandler,
-                    new FlowMinimumTimeout(),
+                    new FlowTimeouts(),
                     () => DateTime.UtcNow,
                     SettingsWithDefaults.Default
                 );
@@ -466,7 +466,7 @@ public abstract class MessagesSubscriptionTests
                     DefaultSerializer.Instance,
                     workflow.Effect,
                     unhandledExceptionHandler,
-                    new FlowMinimumTimeout(),
+                    new FlowTimeouts(),
                     () => DateTime.UtcNow,
                     SettingsWithDefaults.Default
                 );
@@ -541,7 +541,7 @@ public abstract class MessagesSubscriptionTests
                     DefaultSerializer.Instance,
                     workflow.Effect,
                     unhandledExceptionHandler,
-                    new FlowMinimumTimeout(),
+                    new FlowTimeouts(),
                     () => DateTime.UtcNow,
                     SettingsWithDefaults.Default
                 );
@@ -610,7 +610,7 @@ public abstract class MessagesSubscriptionTests
                     DefaultSerializer.Instance,
                     workflow.Effect,
                     unhandledExceptionHandler,
-                    new FlowMinimumTimeout(),
+                    new FlowTimeouts(),
                     () => DateTime.UtcNow,
                     SettingsWithDefaults.Default
                 );
@@ -662,7 +662,7 @@ public abstract class MessagesSubscriptionTests
                     DefaultSerializer.Instance,
                     workflow.Effect,
                     unhandledExceptionHandler,
-                    new FlowMinimumTimeout(),
+                    new FlowTimeouts(),
                     () => DateTime.UtcNow,
                     SettingsWithDefaults.Default
                 );
@@ -732,7 +732,7 @@ public abstract class MessagesSubscriptionTests
                     DefaultSerializer.Instance,
                     workflow.Effect,
                     unhandledExceptionHandler,
-                    new FlowMinimumTimeout(),
+                    new FlowTimeouts(),
                     () => DateTime.UtcNow,
                     SettingsWithDefaults.Default
                 );
@@ -766,7 +766,7 @@ public abstract class MessagesSubscriptionTests
                     DefaultSerializer.Instance,
                     workflow.Effect,
                     unhandledExceptionHandler,
-                    new FlowMinimumTimeout(),
+                    new FlowTimeouts(),
                     () => DateTime.UtcNow,
                     SettingsWithDefaults.Default
                 );
@@ -834,7 +834,7 @@ public abstract class MessagesSubscriptionTests
                     exceptionThrowingSerializer,
                     workflow.Effect,
                     unhandledExceptionHandler,
-                    new FlowMinimumTimeout(),
+                    new FlowTimeouts(),
                     () => DateTime.UtcNow,
                     SettingsWithDefaults.Default
                 );
@@ -885,7 +885,7 @@ public abstract class MessagesSubscriptionTests
             new Settings(unhandledExceptionCatcher.Catch)
         );
 
-        var minimumTimeout = new FlowMinimumTimeout();
+        var minimumTimeout = new FlowTimeouts();
         var rFunc = functionsRegistry.RegisterFunc(
             nameof(RegisteredTimeoutIsRemovedWhenPullingMessage),
             inner: async Task<string> (string _, Workflow workflow) =>
@@ -906,7 +906,7 @@ public abstract class MessagesSubscriptionTests
                 var queueClient = new QueueClient(queueManager, () => DateTime.UtcNow);
 
                 // Verify timeout is not set before pull
-                minimumTimeout.Current.ShouldBeNull();
+                minimumTimeout.MinimumTimeout.ShouldBeNull();
 
                 var message = await queueClient.Pull<string>(
                     workflow,
@@ -916,7 +916,7 @@ public abstract class MessagesSubscriptionTests
                 );
 
                 // Verify timeout is removed after successful pull
-                minimumTimeout.Current.ShouldBeNull();
+                minimumTimeout.MinimumTimeout.ShouldBeNull();
 
                 return message!;
             }

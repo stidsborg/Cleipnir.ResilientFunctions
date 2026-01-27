@@ -41,7 +41,7 @@ public abstract class MessagesTests
                     DefaultSerializer.Instance,
                     workflow.Effect,
                     unhandledExceptionHandler,
-                    new FlowMinimumTimeout(),
+                    new FlowTimeouts(),
                     () => DateTime.UtcNow,
                     SettingsWithDefaults.Default
                 );
@@ -89,7 +89,7 @@ public abstract class MessagesTests
                     DefaultSerializer.Instance,
                     workflow.Effect,
                     unhandledExceptionHandler,
-                    new FlowMinimumTimeout(),
+                    new FlowTimeouts(),
                     () => DateTime.UtcNow,
                     SettingsWithDefaults.Default
                 );
@@ -132,7 +132,7 @@ public abstract class MessagesTests
                     DefaultSerializer.Instance,
                     workflow.Effect,
                     unhandledExceptionHandler,
-                    new FlowMinimumTimeout(),
+                    new FlowTimeouts(),
                     () => DateTime.UtcNow,
                     SettingsWithDefaults.Default
                 );
@@ -181,7 +181,7 @@ public abstract class MessagesTests
                     DefaultSerializer.Instance,
                     workflow.Effect,
                     unhandledExceptionHandler,
-                    new FlowMinimumTimeout(),
+                    new FlowTimeouts(),
                     () => DateTime.UtcNow,
                     SettingsWithDefaults.Default
                 );
@@ -231,7 +231,7 @@ public abstract class MessagesTests
                     DefaultSerializer.Instance,
                     workflow.Effect,
                     unhandledExceptionHandler,
-                    new FlowMinimumTimeout(),
+                    new FlowTimeouts(),
                     () => DateTime.UtcNow,
                     SettingsWithDefaults.Default
                 );
@@ -282,7 +282,7 @@ public abstract class MessagesTests
                     DefaultSerializer.Instance,
                     workflow.Effect,
                     unhandledExceptionHandler,
-                    new FlowMinimumTimeout(),
+                    new FlowTimeouts(),
                     () => DateTime.UtcNow,
                     SettingsWithDefaults.Default
                 );
@@ -334,7 +334,7 @@ public abstract class MessagesTests
                     DefaultSerializer.Instance,
                     workflow.Effect,
                     unhandledExceptionHandler,
-                    new FlowMinimumTimeout(),
+                    new FlowTimeouts(),
                     () => DateTime.UtcNow,
                     SettingsWithDefaults.Default
                 );
@@ -384,7 +384,7 @@ public abstract class MessagesTests
                     DefaultSerializer.Instance,
                     workflow.Effect,
                     unhandledExceptionHandler,
-                    new FlowMinimumTimeout(),
+                    new FlowTimeouts(),
                     () => DateTime.UtcNow,
                     SettingsWithDefaults.Default
                 );
@@ -446,7 +446,7 @@ public abstract class MessagesTests
                     DefaultSerializer.Instance,
                     workflow.Effect,
                     unhandledExceptionHandler,
-                    new FlowMinimumTimeout(),
+                    new FlowTimeouts(),
                     () => DateTime.UtcNow,
                     SettingsWithDefaults.Default
                 );
@@ -510,7 +510,7 @@ public abstract class MessagesTests
                     DefaultSerializer.Instance,
                     workflow.Effect,
                     unhandledExceptionHandler,
-                    new FlowMinimumTimeout(),
+                    new FlowTimeouts(),
                     () => DateTime.UtcNow,
                     SettingsWithDefaults.Default
                 );
@@ -536,7 +536,7 @@ public abstract class MessagesTests
                     DefaultSerializer.Instance,
                     workflow.Effect,
                     unhandledExceptionHandler,
-                    new FlowMinimumTimeout(),
+                    new FlowTimeouts(),
                     () => DateTime.UtcNow,
                     SettingsWithDefaults.Default
                 );
@@ -585,7 +585,7 @@ public abstract class MessagesTests
                     DefaultSerializer.Instance,
                     workflow.Effect,
                     unhandledExceptionHandler,
-                    new FlowMinimumTimeout(),
+                    new FlowTimeouts(),
                     () => DateTime.UtcNow,
                     SettingsWithDefaults.Default
                 );

@@ -89,7 +89,7 @@ public class RetryPolicy(TimeSpan initialInterval, double backoffCoefficient, Ti
     );
     
     
-    public Task Invoke(Func<Task> work, Effect effect, UtcNow utcNow, FlowMinimumTimeout flowMinimumTimeout)
+    public Task Invoke(Func<Task> work, Effect effect, UtcNow utcNow, FlowTimeouts flowTimeouts)
     {
         return Invoke(
             work: async () =>
@@ -99,18 +99,18 @@ public class RetryPolicy(TimeSpan initialInterval, double backoffCoefficient, Ti
             },
             effect,
             utcNow,
-            flowMinimumTimeout
+            flowTimeouts
         );
     }
 
-    public async Task<T> Invoke<T>(Func<Task<T>> work, Effect effect, UtcNow utcNow, FlowMinimumTimeout flowMinimumTimeout)
+    public async Task<T> Invoke<T>(Func<Task<T>> work, Effect effect, UtcNow utcNow, FlowTimeouts flowTimeouts)
     {
         var delayUntilId = effect.CreateEffectId(0);
         var hasDelayUntil = effect.TryGet<long>(delayUntilId, out var delayUntilValue);
         var delayUntil = hasDelayUntil ? delayUntilValue.ToDateTime() : DateTime.MinValue;
         if (hasDelayUntil && delayUntil > utcNow())
         {
-            flowMinimumTimeout.AddTimeout(delayUntilId, delayUntil);
+            flowTimeouts.AddTimeout(delayUntilId, delayUntil);
             throw new SuspendInvocationException();
         }
 
@@ -151,7 +151,7 @@ public class RetryPolicy(TimeSpan initialInterval, double backoffCoefficient, Ti
 
                 if (delay >= suspendThreshold)
                 {
-                    flowMinimumTimeout.AddTimeout(delayUntilId, delayUntil);
+                    flowTimeouts.AddTimeout(delayUntilId, delayUntil);
                     throw new SuspendInvocationException();
                 }
                 

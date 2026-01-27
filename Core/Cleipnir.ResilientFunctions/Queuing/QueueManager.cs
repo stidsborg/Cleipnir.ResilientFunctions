@@ -22,7 +22,7 @@ public class QueueManager(
     ISerializer serializer, 
     Effect effect, 
     UnhandledExceptionHandler unhandledExceptionHandler,
-    FlowMinimumTimeout minimumTimeout,
+    FlowTimeouts timeouts,
     UtcNow utcNow,
     SettingsWithDefaults settings,
     int maxIdempotencyKeyCount = 100,
@@ -298,7 +298,7 @@ public class QueueManager(
             _subscribers[effectId] = new Subscription(predicate, tcs, timeout, timeoutId);
 
         if (timeout != null)
-            minimumTimeout.AddTimeout(timeoutId!, timeout.Value);
+            timeouts.AddTimeout(timeoutId!, timeout.Value);
 
         TryToDeliver();
 
@@ -307,7 +307,7 @@ public class QueueManager(
         if (!tcs.Task.IsCompleted)
             throw new SuspendInvocationException();
 
-        minimumTimeout.RemoveTimeout(timeoutId);
+        timeouts.RemoveTimeout(timeoutId);
         return await tcs.Task;
     }
 

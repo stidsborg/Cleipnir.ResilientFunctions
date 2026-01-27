@@ -388,7 +388,7 @@ internal class InvocationHelper<TParam, TReturn>
     public MessageWriter CreateMessageWriter(StoredId storedId)
         => new MessageWriter(storedId, _functionStore.MessageStore, Serializer);
 
-    public Effect CreateEffect(StoredId storedId, FlowId flowId, IReadOnlyList<StoredEffect> storedEffects, FlowMinimumTimeout flowMinimumTimeout, IStorageSession? storageSession)
+    public Effect CreateEffect(StoredId storedId, FlowId flowId, IReadOnlyList<StoredEffect> storedEffects, FlowTimeouts flowTimeouts, IStorageSession? storageSession)
     {
         var effectsStore = _functionStore.EffectsStore;
 
@@ -402,7 +402,7 @@ internal class InvocationHelper<TParam, TReturn>
             _clearChildren
         );
         
-       var effect = new Effect(effectResults, UtcNow, flowMinimumTimeout);
+       var effect = new Effect(effectResults, UtcNow, flowTimeouts);
        return effect;
     }
     
@@ -428,8 +428,8 @@ internal class InvocationHelper<TParam, TReturn>
     public DistributedSemaphores CreateSemaphores(StoredId storedId, Effect effect)
         => new(effect, _functionStore.SemaphoreStore, storedId, Interrupt);
 
-    public QueueManager CreateQueueManager(FlowId flowId, StoredId storedId, Effect effect, FlowMinimumTimeout minimumTimeout, UnhandledExceptionHandler unhandledExceptionHandler)
-        => new(flowId, storedId, _functionStore.MessageStore, Serializer, effect, unhandledExceptionHandler, minimumTimeout, UtcNow, _settings);
+    public QueueManager CreateQueueManager(FlowId flowId, StoredId storedId, Effect effect, FlowTimeouts timeouts, UnhandledExceptionHandler unhandledExceptionHandler)
+        => new(flowId, storedId, _functionStore.MessageStore, Serializer, effect, unhandledExceptionHandler, timeouts, UtcNow, _settings);
 
     public StoredId MapToStoredId(FlowId flowId) => StoredId.Create(_storedType, flowId.Instance.Value);
     

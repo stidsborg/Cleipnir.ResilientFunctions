@@ -43,7 +43,7 @@ public class PrintEffectsTests
             clearChildren: true
         );
 
-        var effect = new Effect(effectResults, utcNow: () => DateTime.UtcNow, new FlowMinimumTimeout());
+        var effect = new Effect(effectResults, utcNow: () => DateTime.UtcNow, new FlowTimeouts());
         var output = effect.ExecutionTree();
 
         var expected = "└─ ✓ [1]\n";
@@ -75,7 +75,7 @@ public class PrintEffectsTests
             clearChildren: true
         );
 
-        var effect = new Effect(effectResults, utcNow: () => DateTime.UtcNow, new FlowMinimumTimeout());
+        var effect = new Effect(effectResults, utcNow: () => DateTime.UtcNow, new FlowTimeouts());
         var output = effect.ExecutionTree();
 
         var expected = "└─ ✓ [1] my-effect\n";
@@ -111,7 +111,7 @@ public class PrintEffectsTests
             clearChildren: true
         );
 
-        var effect = new Effect(effectResults, utcNow: () => DateTime.UtcNow, new FlowMinimumTimeout());
+        var effect = new Effect(effectResults, utcNow: () => DateTime.UtcNow, new FlowTimeouts());
         var output = effect.ExecutionTree();
 
         var expected = "└─ ✗ [1] failed-operation (System.InvalidOperationException)\n";
@@ -143,7 +143,7 @@ public class PrintEffectsTests
             clearChildren: true
         );
 
-        var effect = new Effect(effectResults, utcNow: () => DateTime.UtcNow, new FlowMinimumTimeout());
+        var effect = new Effect(effectResults, utcNow: () => DateTime.UtcNow, new FlowTimeouts());
         var output = effect.ExecutionTree();
 
         var expected = "└─ ⋯ [1] in-progress\n";
@@ -189,7 +189,7 @@ public class PrintEffectsTests
             clearChildren: true
         );
 
-        var effect = new Effect(effectResults, utcNow: () => DateTime.UtcNow, new FlowMinimumTimeout());
+        var effect = new Effect(effectResults, utcNow: () => DateTime.UtcNow, new FlowTimeouts());
         var output = effect.ExecutionTree();
 
         var expected =
@@ -245,7 +245,7 @@ public class PrintEffectsTests
             clearChildren: true
         );
 
-        var effect = new Effect(effectResults, utcNow: () => DateTime.UtcNow, new FlowMinimumTimeout());
+        var effect = new Effect(effectResults, utcNow: () => DateTime.UtcNow, new FlowTimeouts());
         var output = effect.ExecutionTree();
 
         var expected =
@@ -295,7 +295,7 @@ public class PrintEffectsTests
             clearChildren: true
         );
 
-        var effect = new Effect(effectResults, utcNow: () => DateTime.UtcNow, new FlowMinimumTimeout());
+        var effect = new Effect(effectResults, utcNow: () => DateTime.UtcNow, new FlowTimeouts());
         var output = effect.ExecutionTree();
 
         var expected =
@@ -330,7 +330,7 @@ public class PrintEffectsTests
             clearChildren: true
         );
 
-        var effect = new Effect(effectResults, utcNow: () => DateTime.UtcNow, new FlowMinimumTimeout());
+        var effect = new Effect(effectResults, utcNow: () => DateTime.UtcNow, new FlowTimeouts());
         var output = effect.ExecutionTree();
 
         var expected =
@@ -365,7 +365,7 @@ public class PrintEffectsTests
             clearChildren: false
         );
 
-        var effect = new Effect(effectResults, utcNow: () => DateTime.UtcNow, new FlowMinimumTimeout());
+        var effect = new Effect(effectResults, utcNow: () => DateTime.UtcNow, new FlowTimeouts());
         var output = effect.ExecutionTree();
 
         var expected =
@@ -398,7 +398,7 @@ public class PrintEffectsTests
             clearChildren: false
         );
 
-        var effect = new Effect(effectResults, utcNow: () => DateTime.UtcNow, new FlowMinimumTimeout());
+        var effect = new Effect(effectResults, utcNow: () => DateTime.UtcNow, new FlowTimeouts());
         var output = effect.ExecutionTree();
 
         var expected =

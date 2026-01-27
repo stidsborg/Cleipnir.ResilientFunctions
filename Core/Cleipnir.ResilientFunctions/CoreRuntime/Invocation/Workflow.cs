@@ -53,7 +53,7 @@ public class Workflow
                 return;
             }
 
-            Effect.FlowMinimumTimeout.AddTimeout(timeoutId, expiry.ToDateTime());
+            Effect.FlowTimeouts.AddTimeout(timeoutId, expiry.ToDateTime());
             var delay = (expiry.ToDateTime() - _utcNow()).RoundUpToZero();
             if (!suspend)
             {
@@ -65,7 +65,7 @@ public class Workflow
                 throw new SuspendInvocationException();
         
             await Effect.Upsert(timeoutId, -1L, alias, flush: false);
-            Effect.FlowMinimumTimeout.RemoveTimeout(timeoutId);
+            Effect.FlowTimeouts.RemoveTimeout(timeoutId);
         }
 
         return Inner();

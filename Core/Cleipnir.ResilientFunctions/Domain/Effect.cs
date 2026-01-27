@@ -16,13 +16,13 @@ public enum ResiliencyLevel
     AtLeastOnceDelayFlush
 }
 
-public class Effect(EffectResults effectResults, UtcNow utcNow, FlowMinimumTimeout flowMinimumTimeout)
+public class Effect(EffectResults effectResults, UtcNow utcNow, FlowTimeouts flowTimeouts)
 {
     internal bool Contains(int id) => Contains(CreateEffectId(id));
     internal bool Contains(EffectId effectId) => effectResults.Contains(effectId);
 
     internal IEnumerable<EffectId> EffectIds => effectResults.EffectIds;
-    internal FlowMinimumTimeout FlowMinimumTimeout => flowMinimumTimeout;
+    internal FlowTimeouts FlowTimeouts => flowTimeouts;
 
     internal WorkStatus? GetStatus(int id)
     {
@@ -165,7 +165,7 @@ public class Effect(EffectResults effectResults, UtcNow utcNow, FlowMinimumTimeo
             await effectResults.InnerCapture(
                 id,
                 alias,
-                work: () => retryPolicy.Invoke(work, effect: this, utcNow, flowMinimumTimeout),
+                work: () => retryPolicy.Invoke(work, effect: this, utcNow, flowTimeouts),
                 resiliency,
                 effectContext
             );
@@ -182,7 +182,7 @@ public class Effect(EffectResults effectResults, UtcNow utcNow, FlowMinimumTimeo
         return await effectResults.InnerCapture(
             id,
             alias,
-            work: () => retryPolicy.Invoke(work, effect: this, utcNow, flowMinimumTimeout),
+            work: () => retryPolicy.Invoke(work, effect: this, utcNow, flowTimeouts),
             resiliency,
             effectContext
         );

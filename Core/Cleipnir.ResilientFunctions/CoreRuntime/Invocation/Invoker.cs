@@ -229,7 +229,7 @@ public class Invoker<TParam, TReturn>
             disposables.Add(isWorkflowRunningDisposable);
             success = persisted;
 
-            var minimumTimeout = new FlowMinimumTimeout();
+            var minimumTimeout = new FlowTimeouts();
             var effect = _invocationHelper.CreateEffect(
                 storedId,
                 flowId,
@@ -283,7 +283,7 @@ public class Invoker<TParam, TReturn>
             var isWorkflowRunningDisposable = new PropertyDisposable();
             disposables.Add(isWorkflowRunningDisposable);
             
-            var minimumTimeout = new FlowMinimumTimeout();
+            var minimumTimeout = new FlowTimeouts();
             var effect = _invocationHelper.CreateEffect(storedId, flowId, effects, minimumTimeout, storageSession);
 
             var correlations = _invocationHelper.CreateCorrelations(flowId);

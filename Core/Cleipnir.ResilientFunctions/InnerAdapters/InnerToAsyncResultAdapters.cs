@@ -201,7 +201,7 @@ internal static class InnerToAsyncResultAdapters
         };
     }
     
-    private static DateTime? GetMinimumTimeout(Workflow workflow) => workflow.Effect.FlowMinimumTimeout.Current;
+    private static DateTime? GetMinimumTimeout(Workflow workflow) => workflow.Effect.FlowTimeouts.MinimumTimeout;
 
     private static Result<T> SuspendOrPostpone<T>(Workflow workflow)
     {

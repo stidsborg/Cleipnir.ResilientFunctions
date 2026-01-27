@@ -6,12 +6,12 @@ using Cleipnir.ResilientFunctions.Domain;
 
 namespace Cleipnir.ResilientFunctions.CoreRuntime;
 
-public class FlowMinimumTimeout
+public class FlowTimeouts
 {
     private readonly Lock _lock = new();
     private Dictionary<EffectId, DateTime> Timeouts { get; } = new();
     
-    public DateTime? Current
+    public DateTime? MinimumTimeout
     {
         get
         {
