@@ -40,34 +40,36 @@ public class Workflow
     public async Task RegisterCorrelation(string correlation) => await Correlations.Register(correlation);
 
     public Task Delay(TimeSpan @for, bool suspend = true, string? alias = null) => Delay(until: _utcNow() + @for, suspend, alias);
-    public async Task Delay(DateTime until, bool suspend = true, string? alias = null)
+    public Task Delay(DateTime until, bool suspend = true, string? alias = null)
     {
         var effectId = Effect.TakeNextImplicitId();
         var timeoutId = EffectId.CreateWithCurrentContext(effectId);
 
-        var (status, expiry) = await RegisteredTimeouts.RegisterTimeout(
-            timeoutId,
-            until,
-            publishMessage: false,
-            alias
-        );
-
-        if (status is TimeoutStatus.Completed or TimeoutStatus.Cancelled)
+        async Task Inner()
         {
-            return;
+            var expiry = await Effect.CreateOrGet(timeoutId, until.ToUniversalTime().Ticks, alias, flush: false);
+
+            if (expiry == -1)
+            {
+                return;
+            }
+
+            Effect.FlowMinimumTimeout.AddTimeout(timeoutId, expiry.ToDateTime());
+            var delay = (expiry.ToDateTime() - _utcNow()).RoundUpToZero();
+            if (!suspend)
+            {
+                await Task.Delay(delay);
+                delay = TimeSpan.Zero;
+            }
+
+            if (delay > TimeSpan.Zero)
+                throw new SuspendInvocationException();
+        
+            await Effect.Upsert(timeoutId, -1L, alias, flush: false);
+            Effect.FlowMinimumTimeout.RemoveTimeout(timeoutId);
         }
 
-        var delay =  (expiry - _utcNow()).RoundUpToZero();
-        if (!suspend)
-        {
-            await Task.Delay(delay);
-            delay = TimeSpan.Zero;
-        }
-
-        if (delay == TimeSpan.Zero)
-            await RegisteredTimeouts.CompleteTimeout(timeoutId, alias);
-        else
-            throw new SuspendInvocationException();
+        return Inner();
     }
 
     public Task<T> Message<T>(TimeSpan? maxWait = null) where T : class

@@ -826,6 +826,46 @@ public abstract class SuspensionTests
         await cp.WaitForCompletion(allowPostponeAndSuspended: true);
         
         syncedCounter.Current.ShouldBe(2);
+
+        unhandledExceptionHandler.ShouldNotHaveExceptions();
+    }
+
+    public abstract Task TwoDelaysFlowCompletesSuccessfully();
+    protected async Task TwoDelaysFlowCompletesSuccessfully(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var id = TestFlowId.Create();
+        var (flowType, flowInstance) = id;
+
+        var unhandledExceptionHandler = new UnhandledExceptionCatcher();
+        using var functionsRegistry = new FunctionsRegistry
+        (
+            store,
+            new Settings(unhandledExceptionHandler.Catch)
+        );
+
+        var counter = new SyncedCounter();
+        var registration = functionsRegistry.RegisterParamless(
+            flowType,
+            inner: async Task (workflow) =>
+            {
+                counter.Increment();
+                await workflow.Delay(TimeSpan.FromMilliseconds(100), alias: "first");
+                await workflow.Delay(TimeSpan.FromMilliseconds(100), alias: "second");
+            }
+        );
+
+        await registration.Schedule(flowInstance);
+
+        var cp = await registration.ControlPanel(flowInstance);
+        cp.ShouldNotBeNull();
+        
+        await cp.WaitForCompletion(allowPostponeAndSuspended: true);
+        await cp.Refresh();
+
+        cp.Status.ShouldBe(Status.Succeeded);
+
+        counter.Current.ShouldBe(3);
         
         unhandledExceptionHandler.ShouldNotHaveExceptions();
     }

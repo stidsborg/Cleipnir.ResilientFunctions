@@ -88,4 +88,8 @@ public class SuspensionTests : ResilientFunctions.Tests.TestTemplates.FunctionTe
     [TestMethod]
     public override Task InterruptedExecutingFlowIsRestartedOnce()
         => InterruptedExecutingFlowIsRestartedOnce(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task TwoDelaysFlowCompletesSuccessfully()
+        => TwoDelaysFlowCompletesSuccessfully(FunctionStoreFactory.Create());
 }
