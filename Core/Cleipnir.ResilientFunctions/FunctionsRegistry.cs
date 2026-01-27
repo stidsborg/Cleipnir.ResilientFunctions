@@ -205,7 +205,6 @@ public class FunctionsRegistry : IDisposable
             var settingsWithDefaults = _settings.Merge(settings);
             var serializer = settingsWithDefaults
                 .Serializer
-                .DecorateWithCustomerSerializableHandling()
                 .DecorateWithErrorHandling();
             
             var storedType = _storedTypes.InsertOrGet(flowType).GetAwaiter().GetResult();
@@ -299,7 +298,6 @@ public class FunctionsRegistry : IDisposable
             var settingsWithDefaults = _settings.Merge(settings);
             var serializer = settingsWithDefaults
                 .Serializer
-                .DecorateWithCustomerSerializableHandling()
                 .DecorateWithErrorHandling();
             var storedType = _storedTypes.InsertOrGet(flowType).GetAwaiter().GetResult();
             var invocationHelper = new InvocationHelper<Unit, Unit>(
@@ -393,7 +391,6 @@ public class FunctionsRegistry : IDisposable
             var settingsWithDefaults = _settings.Merge(settings);
             var serializer = settingsWithDefaults
                 .Serializer
-                .DecorateWithCustomerSerializableHandling()
                 .DecorateWithErrorHandling();
             var invocationHelper = new InvocationHelper<TParam, Unit>(
                 flowType,
