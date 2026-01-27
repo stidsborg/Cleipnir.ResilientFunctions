@@ -138,7 +138,7 @@ public class StoredStateTests
         Assert.AreEqual(entity.Type, deserialized.Type);
         Assert.AreEqual(entity.Id, deserialized.Id);
         CollectionAssert.AreEqual(entity.Content, deserialized.Content);
-        Assert.AreEqual(0, deserialized.Content.Length);
+        Assert.IsEmpty(deserialized.Content);
         Assert.AreEqual(entity.Deleted, deserialized.Deleted);
     }
 
@@ -228,7 +228,7 @@ public class StoredStateTests
         var deserialized = StoredStates.Deserialize(serialized);
 
         // Assert
-        Assert.AreEqual(entities.Length, deserialized.Count);
+        Assert.HasCount(entities.Length, deserialized);
         for (var i = 0; i < entities.Length; i++)
         {
             Assert.AreEqual(entities[i].Type, deserialized[i].Type);
@@ -253,7 +253,7 @@ public class StoredStateTests
         var deserialized = StoredStates.Deserialize(serialized);
 
         // Assert
-        Assert.AreEqual(1, deserialized.Count);
+        Assert.HasCount(1, deserialized);
         Assert.AreEqual(entities[0].Type, deserialized[0].Type);
         Assert.AreEqual(entities[0].Id, deserialized[0].Id);
         CollectionAssert.AreEqual(entities[0].Content, deserialized[0].Content);
@@ -272,7 +272,7 @@ public class StoredStateTests
         var deserialized = StoredStates.Deserialize(serialized);
 
         // Assert
-        Assert.AreEqual(0, deserialized.Count);
+        Assert.IsEmpty(deserialized);
     }
 
     [TestMethod]
@@ -293,7 +293,7 @@ public class StoredStateTests
         var deserialized = StoredStates.Deserialize(serialized);
 
         // Assert
-        Assert.AreEqual(entities.Length, deserialized.Count);
+        Assert.HasCount(entities.Length, deserialized);
         Assert.IsFalse(deserialized[0].Deleted);
         Assert.IsTrue(deserialized[1].Deleted);
         Assert.IsFalse(deserialized[2].Deleted);
@@ -316,8 +316,8 @@ public class StoredStateTests
         var deserialized = StoredStates.Deserialize(serialized);
 
         // Assert
-        Assert.AreEqual(1, deserialized.Count);
-        Assert.AreEqual(10000, deserialized[0].Content.Length);
+        Assert.HasCount(1, deserialized);
+        Assert.HasCount(10000, deserialized[0].Content);
         CollectionAssert.AreEqual(largeContent, deserialized[0].Content);
     }
 
@@ -341,7 +341,7 @@ public class StoredStateTests
         var deserialized2 = StoredStates.Deserialize(reserialized);
 
         // Assert - data should remain identical after multiple round trips
-        Assert.AreEqual(entities.Length, deserialized2.Count);
+        Assert.HasCount(entities.Length, deserialized2);
         for (var i = 0; i < entities.Length; i++)
         {
             Assert.AreEqual(entities[i].Type, deserialized2[i].Type);
