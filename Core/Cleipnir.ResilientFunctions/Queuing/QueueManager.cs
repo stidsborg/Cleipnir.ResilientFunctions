@@ -41,7 +41,7 @@ public class QueueManager(
 
     private IdempotencyKeys? _idempotencyKeys;
     private int _nextToRemoveIndex = 0;
-    private bool _delivering;
+    private readonly SemaphoreSlim _deliverySemaphore = new(1, 1);
 
     private readonly SemaphoreSlim _semaphoreSlim = new SemaphoreSlim(1);
     private bool _initialized = false;
@@ -150,7 +150,7 @@ public class QueueManager(
             }
 
             if (messages.Any())
-                TryToDeliver();
+                _ = TryToDeliverAsync();
         }
         finally
         {
@@ -206,65 +206,72 @@ public class QueueManager(
         }
     }
 
-    private void TryToDeliver()
+    private async Task TryToDeliverAsync()
     {
-        List<MessageWithPosition> messagesToDeliver;
-        List<KeyValuePair<EffectId, Subscription>> subscribers;
-        lock (_lock)
-            if (_delivering)
-                return;
-            else
-                _delivering = true;
-
-        StartAgain:
-        lock (_lock)
-        {
-            messagesToDeliver = _toDeliver.ToList();
-            subscribers = _subscribers.ToList();
-        }
-
+        await _deliverySemaphore.WaitAsync();
         try
         {
-            foreach (var messageWithPosition in messagesToDeliver)
-            foreach (var idAndSubscription in subscribers)
+            while (true)
             {
-                var (effectId, subscription) = idAndSubscription;
-                if (subscription.Predicate(messageWithPosition.Message))
+                List<MessageWithPosition> messagesToDeliver;
+                List<KeyValuePair<EffectId, Subscription>> subscribers;
+                lock (_lock)
                 {
-                    int toRemoveIndex;
-                    lock (_lock)
-                    {
-                        if (!_subscribers.ContainsKey(effectId)) //might have been removed by timeout
-                            continue;
-
-                        _toDeliver.Remove(messageWithPosition);
-                        _deliveredPositions.Add(messageWithPosition.Position);
-                        _subscribers.Remove(effectId);
-                        toRemoveIndex = _nextToRemoveIndex++;
-                    }
-
-                    effect.Upsert(_toRemoveNextIndex, toRemoveIndex, alias: null, flush: false);
-
-                    var toRemoveId = new EffectId([-1, 0, toRemoveIndex]);
-                    var msg = new MessageAndEffectResults(
-                        messageWithPosition.Message,
-                        messageWithPosition.IdempotencyKeyResult == null
-                        ? [new EffectResult(toRemoveId, messageWithPosition.Position, Alias: null)]
-                        : [new EffectResult(toRemoveId, messageWithPosition.Position, Alias: null), messageWithPosition.IdempotencyKeyResult]
-                    );
-                    subscription.Tcs.SetResult(msg);
-
-                    goto StartAgain;
+                    messagesToDeliver = _toDeliver.ToList();
+                    subscribers = _subscribers.ToList();
                 }
+
+                var delivered = false;
+                foreach (var messageWithPosition in messagesToDeliver)
+                {
+                    if (delivered) break;
+
+                    foreach (var idAndSubscription in subscribers)
+                    {
+                        var (effectId, subscription) = idAndSubscription;
+                        if (subscription.Predicate(messageWithPosition.Message))
+                        {
+                            int toRemoveIndex;
+                            lock (_lock)
+                            {
+                                if (!_subscribers.ContainsKey(effectId)) //might have been removed by timeout
+                                    continue;
+
+                                _toDeliver.Remove(messageWithPosition);
+                                _deliveredPositions.Add(messageWithPosition.Position);
+                                _subscribers.Remove(effectId);
+                                toRemoveIndex = _nextToRemoveIndex++;
+                            }
+
+                            await effect.Upsert(_toRemoveNextIndex, toRemoveIndex, alias: null, flush: false);
+
+                            var toRemoveId = new EffectId([-1, 0, toRemoveIndex]);
+                            var msg = new MessageAndEffectResults(
+                                messageWithPosition.Message,
+                                messageWithPosition.IdempotencyKeyResult == null
+                                ? [new EffectResult(toRemoveId, messageWithPosition.Position, Alias: null)]
+                                : [new EffectResult(toRemoveId, messageWithPosition.Position, Alias: null), messageWithPosition.IdempotencyKeyResult]
+                            );
+                            subscription.Tcs.SetResult(msg);
+
+                            delivered = true;
+                            break;
+                        }
+                    }
+                }
+
+                if (!delivered)
+                    break;
             }
         }
         catch (Exception e)
         {
             unhandledExceptionHandler.Invoke(flowId.Type, e);
         }
-
-        lock (_lock)
-            _delivering = false;
+        finally
+        {
+            _deliverySemaphore.Release();
+        }
     }
     
     public async Task CheckTimeouts()
@@ -300,7 +307,7 @@ public class QueueManager(
         if (timeout != null)
             timeouts.AddTimeout(timeoutId!, timeout.Value);
 
-        TryToDeliver();
+        _ = TryToDeliverAsync();
 
         await Task.WhenAny(tcs.Task, Task.Delay(maxWait ?? settings.MessagesDefaultMaxWaitForCompletion));
 
