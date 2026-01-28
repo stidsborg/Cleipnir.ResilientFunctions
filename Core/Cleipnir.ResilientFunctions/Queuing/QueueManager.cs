@@ -118,7 +118,7 @@ public class QueueManager(
             {
                 try
                 {
-                    var msg = serializer.DeserializeMessage(messageContent, messageType);
+                    var msg = serializer.Deserialize(messageContent, serializer.ResolveType(messageType)!);
 
                     // NoOp messages are immediately deleted and not delivered
                     if (msg is NoOp)

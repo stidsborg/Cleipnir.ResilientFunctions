@@ -35,7 +35,7 @@ public class ResultBusyWaiter<TResult>(IFunctionStore functionStore, ISerializer
                             ? default!
                             : (TResult)serializer.Deserialize(result, typeof(TResult));
                 case Status.Failed:
-                    throw serializer.DeserializeException(flowId, storedFunction.Exception!);
+                    throw FatalWorkflowException.Create(flowId, storedFunction.Exception!);
                 case Status.Postponed:
                     if (allowPostponedAndSuspended) { await Task.Delay(250); continue;}
                     throw new InvocationPostponedException(

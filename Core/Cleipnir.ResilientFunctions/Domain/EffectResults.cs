@@ -123,10 +123,11 @@ public class EffectResults
                 return (T)_serializer.Deserialize(existing.StoredEffect.Result!, typeof(T));
 
             if (existing?.StoredEffect?.StoredException != null)
-                throw _serializer.DeserializeException(_flowId, existing.StoredEffect.StoredException!);
+                throw FatalWorkflowException.Create(_flowId, existing.StoredEffect.StoredException!);
         }
 
-        var storedEffect = StoredEffect.CreateCompleted(effectId, _serializer.Serialize(value), alias);
+        var serializedValue = _serializer.Serialize(value!, typeof(T));
+        var storedEffect = StoredEffect.CreateCompleted(effectId, serializedValue, alias);
         await FlushOrAddToPending(
             storedEffect.EffectId,
             storedEffect,
@@ -137,10 +138,11 @@ public class EffectResults
 
         return value;
     }
-    
+
     internal async Task Upsert<T>(EffectId effectId, string? alias, T value, bool flush)
     {
-        var storedEffect = StoredEffect.CreateCompleted(effectId, _serializer.Serialize(value), alias);
+        var serializedValue = _serializer.Serialize(value!, typeof(T));
+        var storedEffect = StoredEffect.CreateCompleted(effectId, serializedValue, alias);
         await FlushOrAddToPending(
             storedEffect.EffectId,
             storedEffect,
@@ -153,7 +155,11 @@ public class EffectResults
     internal async Task Upserts(IEnumerable<EffectResult> values, bool flush)
     {
         var storedEffects = values
-            .Select(t => new { Id = t.Id, Bytes = _serializer.Serialize(t.Value, t.Value?.GetType() ?? typeof(object)), Alias = t.Alias })
+            .Select(t =>
+            {
+                var bytes = _serializer.Serialize(t.Value!, t.Value?.GetType() ?? typeof(object));
+                return new { Id = t.Id, Bytes = bytes, Alias = t.Alias };
+            })
             .Select(a => StoredEffect.CreateCompleted(a.Id, a.Bytes, a.Alias))
             .ToList();
 
@@ -177,7 +183,7 @@ public class EffectResults
                 }
 
                 if (storedEffect?.StoredException != null)
-                    throw _serializer.DeserializeException(_flowId, storedEffect.StoredException!);
+                    throw FatalWorkflowException.Create(_flowId, storedEffect.StoredException!);
             }
         }
 
@@ -199,7 +205,7 @@ public class EffectResults
                 }
 
                 if (storedEffect?.StoredException != null)
-                    throw _serializer.DeserializeException(_flowId, storedEffect.StoredException!);
+                    throw FatalWorkflowException.Create(_flowId, storedEffect.StoredException!);
             }
         }
 
@@ -227,7 +233,7 @@ public class EffectResults
             if (success && storedEffect?.WorkStatus == WorkStatus.Completed)
                 return;
             if (success && storedEffect?.WorkStatus == WorkStatus.Failed)
-                throw _serializer.DeserializeException(_flowId, storedEffect.StoredException!);
+                throw FatalWorkflowException.Create(_flowId, storedEffect.StoredException!);
             if (success && resiliency == ResiliencyLevel.AtMostOnce)
                 throw new InvalidOperationException($"Effect '{effectId}' started but did not complete previously");
         }
@@ -248,7 +254,7 @@ public class EffectResults
         }
         catch (FatalWorkflowException exception)
         {
-            var storedException = _serializer.SerializeException(exception);
+            var storedException = exception.ToStoredException();
             var storedEffect = StoredEffect.CreateFailed(effectId, storedException, alias);
             await FlushOrAddToPending(
                 storedEffect.EffectId,
@@ -264,7 +270,7 @@ public class EffectResults
         catch (Exception exception)
         {
             var fatalWorkflowException = FatalWorkflowException.CreateNonGeneric(_flowId, exception);
-            var storedException = _serializer.SerializeException(fatalWorkflowException);
+            var storedException = fatalWorkflowException.ToStoredException();
             var storedEffect = StoredEffect.CreateFailed(effectId, storedException, alias);
             await FlushOrAddToPending(
                 storedEffect.EffectId,
@@ -327,7 +333,7 @@ public class EffectResults
         }
         catch (FatalWorkflowException exception)
         {
-            var storedException = _serializer.SerializeException(exception);
+            var storedException = exception.ToStoredException();
             var storedEffect = StoredEffect.CreateFailed(effectId, storedException, alias);
             await FlushOrAddToPending(
                 storedEffect.EffectId,
@@ -343,7 +349,7 @@ public class EffectResults
         catch (Exception exception)
         {
             var fatalWorkflowException = FatalWorkflowException.CreateNonGeneric(_flowId, exception);
-            var storedException = _serializer.SerializeException(fatalWorkflowException);
+            var storedException = fatalWorkflowException.ToStoredException();
             var storedEffect = StoredEffect.CreateFailed(effectId, storedException, alias);
 
             await FlushOrAddToPending(
@@ -357,7 +363,8 @@ public class EffectResults
         }
 
         {
-            var storedEffect = StoredEffect.CreateCompleted(effectId, _serializer.Serialize(result), alias);
+            var serializedResult = _serializer.Serialize(result!, typeof(T));
+            var storedEffect = StoredEffect.CreateCompleted(effectId, serializedResult, alias);
             await FlushOrAddToPending(
                 storedEffect.EffectId,
                 storedEffect,
@@ -369,7 +376,7 @@ public class EffectResults
             return result;
         }
     }
-    
+
     public async Task Clear(EffectId effectId, bool flush)
     {
         lock (_sync)

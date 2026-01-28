@@ -52,7 +52,7 @@ public abstract class MessagesSubscriptionTests
         events.Count.ShouldBe(1);
         DefaultSerializer
             .Instance
-            .DeserializeMessage(events[0].MessageContent, events[0].MessageType)
+            .Deserialize(events[0].MessageContent, DefaultSerializer.Instance.ResolveType(events[0].MessageType)!)
             .ShouldBe("hello world");
 
         var skipPosition = events[0].Position + 1;
@@ -69,7 +69,7 @@ public abstract class MessagesSubscriptionTests
 
         DefaultSerializer
             .Instance
-            .DeserializeMessage(events[0].MessageContent, events[0].MessageType)
+            .Deserialize(events[0].MessageContent, DefaultSerializer.Instance.ResolveType(events[0].MessageType)!)
             .ShouldBe("hello universe");
     }
 
@@ -942,27 +942,16 @@ public abstract class MessagesSubscriptionTests
         public ExceptionThrowingEventSerializer(Type failDeserializationOnType)
             => _failDeserializationOnType = failDeserializationOnType;
 
-        public byte[] Serialize(object? value, Type type) => DefaultSerializer.Instance.Serialize(value, type);
-
-        public void Serialize(object value, out byte[] valueBytes, out byte[] typeBytes)
-            => DefaultSerializer.Instance.Serialize(value, out valueBytes, out typeBytes);
+        public byte[] Serialize(object value, Type type)
+            => DefaultSerializer.Instance.Serialize(value, type);
 
         public object Deserialize(byte[] json, Type type)
-            => DefaultSerializer.Instance.Deserialize(json, type);
-
-        public StoredException SerializeException(FatalWorkflowException exception)
-            => DefaultSerializer.Instance.SerializeException(exception);
-
-        public FatalWorkflowException DeserializeException(FlowId flowId, StoredException storedException)
-            => DefaultSerializer.Instance.DeserializeException(flowId, storedException);
-
-        public object DeserializeMessage(byte[] json, byte[] type)
         {
-            var eventType = Type.GetType(type.ToStringFromUtf8Bytes())!;
-            if (eventType == _failDeserializationOnType)
+            if (type == _failDeserializationOnType)
                 throw new DeserializationException("Deserialization failed for BadMessage", new Exception("Inner cause"));
 
-            return DefaultSerializer.Instance.DeserializeMessage(json, type);
+            return DefaultSerializer.Instance.Deserialize(json, type);
         }
+
     }
 }

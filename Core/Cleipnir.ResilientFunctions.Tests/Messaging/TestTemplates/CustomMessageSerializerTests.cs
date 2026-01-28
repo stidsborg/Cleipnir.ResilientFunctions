@@ -44,26 +44,17 @@ public abstract class CustomMessageSerializerTests
         public static Utils.SyncedList<object> EventToSerialize { get; } = new();
         public static Utils.SyncedList<Tuple<string, string>> EventToDeserialize { get; }= new();
 
-        public byte[] Serialize(object? value, Type type) => DefaultSerializer.Instance.Serialize(value, type);
-
-        public void Serialize(object value, out byte[] valueBytes, out byte[] typeBytes)
+        public byte[] Serialize(object value, Type type)
         {
             EventToSerialize.Add(value);
-            DefaultSerializer.Instance.Serialize(value, out valueBytes, out typeBytes);
+            return DefaultSerializer.Instance.Serialize(value, type);
         }
 
         public object Deserialize(byte[] json, Type type)
-            => DefaultSerializer.Instance.Deserialize(json, type);
-
-        public StoredException SerializeException(FatalWorkflowException exception)
-            => DefaultSerializer.Instance.SerializeException(exception);
-        public FatalWorkflowException DeserializeException(FlowId flowId, StoredException storedException)
-            => DefaultSerializer.Instance.DeserializeException(flowId, storedException);
-
-        public object DeserializeMessage(byte[] json, byte[] type)
         {
-            EventToDeserialize.Add(Tuple.Create(json.ToStringFromUtf8Bytes(), type.ToStringFromUtf8Bytes()));
-            return DefaultSerializer.Instance.DeserializeMessage(json, type);
+            EventToDeserialize.Add(Tuple.Create(json.ToStringFromUtf8Bytes(), type.FullName!));
+            return DefaultSerializer.Instance.Deserialize(json, type);
         }
+
     }
 }

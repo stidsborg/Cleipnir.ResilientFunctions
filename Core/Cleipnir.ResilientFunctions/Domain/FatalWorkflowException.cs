@@ -1,4 +1,5 @@
 ﻿using System;
+using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.Domain;
@@ -45,6 +46,9 @@ public abstract class FatalWorkflowException : Exception
         return (FatalWorkflowException) Activator.CreateInstance(genricFatalExceptionType, args: [flowId, message, stackTrace, exceptionType])! 
                ?? throw new InvalidOperationException("Unable to create FatalWorkflowException from Exception: " + exception);
     }
+    
+    public StoredException ToStoredException()
+        => new(FlowErrorMessage, FlowStackTrace, ErrorType.SimpleQualifiedName());
 }
 
 public class FatalWorkflowException<TException>(FlowId flowId, string errorMessage, string? stackTrace, Type errorType)

@@ -361,10 +361,11 @@ public abstract class EffectTests
 
         // Create an existing effect
         var effectId = new EffectId([1]);
+        var serializedResult = DefaultSerializer.Instance.Serialize(42, typeof(int));
         var existingEffect = new StoredEffect(
             effectId,
             WorkStatus.Completed,
-            Result: DefaultSerializer.Instance.Serialize(42),
+            Result: serializedResult,
             StoredException: null,
             Alias: "test_alias"
         );

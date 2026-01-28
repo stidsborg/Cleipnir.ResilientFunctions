@@ -3,7 +3,7 @@ using System.Text;
 
 namespace Cleipnir.ResilientFunctions.Helpers;
 
-internal static class TypeHelper
+public static class TypeHelper
 {
     /// <summary>
     /// Creates a simplified assembly qualified name by removing version, culture, and public key token information.

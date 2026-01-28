@@ -491,7 +491,7 @@ public abstract class StoreTests
         sf.ShouldNotBeNull();
         sf.Status.ShouldBe(Status.Failed);
         sf.Exception.ShouldNotBeNull();
-        var fatalWorkflowException = DefaultSerializer.Instance.DeserializeException(flowId, sf.Exception);
+        var fatalWorkflowException = FatalWorkflowException.Create(flowId, sf.Exception);
         fatalWorkflowException.FlowErrorMessage.ShouldBe(storedException.ExceptionMessage);
         fatalWorkflowException.FlowStackTrace.ShouldBe(storedException.ExceptionStackTrace);
         fatalWorkflowException.ErrorType.ShouldBe(typeof(Exception));
@@ -581,7 +581,7 @@ public abstract class StoreTests
 
         var storedMessages = await store.MessageStore.GetMessages(functionId, skip: 0);
         storedMessages.Count.ShouldBe(1);
-        var deserializedMessage = (string) DefaultSerializer.Instance.DeserializeMessage(storedMessages[0].MessageContent, storedMessages[0].MessageType);
+        var deserializedMessage = (string) DefaultSerializer.Instance.Deserialize(storedMessages[0].MessageContent, DefaultSerializer.Instance.ResolveType(storedMessages[0].MessageType)!);
         deserializedMessage.ShouldBe("hello everyone");
     }
     

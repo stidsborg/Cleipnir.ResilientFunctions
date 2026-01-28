@@ -8,7 +8,8 @@ public class MessageWriter(StoredId storedIdId, IMessageStore messageStore, ISer
 {
     public async Task AppendMessage<TMessage>(TMessage message, string? idempotencyKey = null) where TMessage : class
     {
-        eventSerializer.Serialize(message, out var eventJson, out var eventType);
+        var eventJson = eventSerializer.Serialize(message, message.GetType());
+        var eventType = eventSerializer.SerializeType(message.GetType());
 
          await messageStore.AppendMessage(
             storedIdId,

@@ -1,17 +1,13 @@
 ﻿using System;
-using Cleipnir.ResilientFunctions.Domain;
-using Cleipnir.ResilientFunctions.Storage;
+using Cleipnir.ResilientFunctions.Helpers;
 
 namespace Cleipnir.ResilientFunctions.CoreRuntime.Serialization;
 
 public interface ISerializer
 {
-    byte[] Serialize<T>(T value) => Serialize(value, typeof(T));
-    byte[] Serialize(object? value, Type type);
-    void Serialize(object value, out byte[] valueBytes, out byte[] typeBytes);
+    byte[] Serialize(object value, Type type);
     object Deserialize(byte[] bytes, Type type);
-    object DeserializeMessage(byte[] json, byte[] type);
-    
-    StoredException SerializeException(FatalWorkflowException fatalWorkflowException);
-    FatalWorkflowException DeserializeException(FlowId flowId, StoredException storedException);
+
+    Type? ResolveType(byte[] type) => Type.GetType(type.ToStringFromUtf8Bytes());
+    byte[] SerializeType(Type type) => type.SimpleQualifiedName().ToUtf8Bytes();
 }

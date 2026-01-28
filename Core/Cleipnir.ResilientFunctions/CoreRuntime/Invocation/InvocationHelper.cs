@@ -100,7 +100,7 @@ internal class InvocationHelper<TParam, TReturn>
     
     public async Task PersistFailure(StoredId storedId, FatalWorkflowException exception, TParam param)
     {
-        var storedException = Serializer.SerializeException(exception);
+        var storedException = exception.ToStoredException();
 
         var success = await _functionStore.FailFunction(
             storedId,
@@ -142,7 +142,7 @@ internal class InvocationHelper<TParam, TReturn>
             case Outcome.Fail:
                 return await _functionStore.FailFunction(
                     storedId,
-                    storedException: Serializer.SerializeException(result.Fail!),
+                    storedException: result.Fail!.ToStoredException(),
                     timestamp: UtcNow().Ticks,
                     _replicaId,
                     effects: null,
@@ -202,7 +202,8 @@ internal class InvocationHelper<TParam, TReturn>
         if (msg == null)
             return;
 
-        Serializer.Serialize(msg, out var content, out var type);
+        var content = Serializer.Serialize(msg, msg.GetType());
+        var type = Serializer.SerializeType(msg.GetType());
         var storedMessage = new StoredMessage(content, type, Position: 0, IdempotencyKey: $"FlowCompleted:{childId}");
         await _functionStore.MessageStore.AppendMessage(parent, storedMessage);
         await _functionStore.Interrupt(parent);
@@ -257,7 +258,7 @@ internal class InvocationHelper<TParam, TReturn>
             
             await _functionStore.FailFunction(
                 storedId,
-                storedException: Serializer.SerializeException(FatalWorkflowException.CreateNonGeneric(flowId, e)),
+                storedException: FatalWorkflowException.CreateNonGeneric(flowId, e).ToStoredException(),
                 timestamp: UtcNow().Ticks,
                 _replicaId,
                 effects: null,
@@ -298,7 +299,7 @@ internal class InvocationHelper<TParam, TReturn>
             status,
             param: SerializeParameter(param),
             result: SerializeResult(result),
-            exception == null ? null : Serializer.SerializeException(exception),
+            exception == null ? null : exception.ToStoredException(),
             expires,
             expectedReplicaId
         );
@@ -350,7 +351,7 @@ internal class InvocationHelper<TParam, TReturn>
                 : (TReturn)Serializer.Deserialize(resultBytes, typeof(TReturn)),
             FatalWorkflowException: sf.Exception == null
                 ? null
-                : Serializer.DeserializeException(flowId, sf.Exception)
+                : FatalWorkflowException.Create(flowId, sf.Exception)
         );
     }
 
@@ -370,12 +371,16 @@ internal class InvocationHelper<TParam, TReturn>
 
         await _functionStore.BulkScheduleFunctions(
             work.Select(bw =>
-                new IdWithParam(
+            {
+                byte[]? paramBytes = null;
+                if (!_isParamlessFunction && bw.Param != null)
+                    paramBytes = Serializer.Serialize(bw.Param, typeof(TParam));
+                return new IdWithParam(
                     StoredId.Create(_storedType, bw.Instance),
                     bw.Instance,
-                    _isParamlessFunction ? null : Serializer.Serialize(bw.Param)
-                )
-            ),
+                    paramBytes
+                );
+            }),
             parent?.StoredId
         );
         return CreateInnerScheduled(
@@ -437,20 +442,22 @@ internal class InvocationHelper<TParam, TReturn>
     {
         if (typeof(TParam) == typeof(Unit))
             return null;
-        
-        return param is null
-            ? null 
-            : Serializer.Serialize(param);
+
+        if (param is null)
+            return null;
+
+        return Serializer.Serialize(param, typeof(TParam));
     }
     
     private byte[]? SerializeResult(TReturn? result)
     {
         if (typeof(TReturn) == typeof(Unit))
             return null;
-        
-        return result is null
-            ? null 
-            : Serializer.Serialize(result);
+
+        if (result is null)
+            return null;
+
+        return Serializer.Serialize(result, typeof(TReturn));
     }
 
     public InnerScheduled<TReturn> CreateInnerScheduled(List<FlowId> scheduledIds, Workflow? parentWorkflow, bool? detach)
@@ -477,26 +484,33 @@ internal class InvocationHelper<TParam, TReturn>
     public IReadOnlyList<StoredEffect> MapInitialEffects(IEnumerable<InitialEffect> initialEffects, FlowId flowId)
     => initialEffects
         .Select(e =>
-            e.Exception == null
-                ? new StoredEffect(
+        {
+            if (e.Exception == null)
+            {
+                byte[]? resultBytes = null;
+                if (e.Value != null)
+                    resultBytes = Serializer.Serialize(e.Value, e.Value.GetType());
+                return new StoredEffect(
                     e.Id.ToEffectId(),
                     e.Status ?? WorkStatus.Completed,
-                    Result: Serializer.Serialize(e.Value, e.Value?.GetType() ?? typeof(object)),
+                    Result: resultBytes,
                     StoredException: null,
-                    Alias: e.Alias ?? e.Id.ToString())
-                : new StoredEffect(
-                    e.Id.ToEffectId(),
-                    WorkStatus.Failed,
-                    Result: null,
-                    StoredException: Serializer.SerializeException(FatalWorkflowException.CreateNonGeneric(flowId, e.Exception)),
-                    Alias: e.Alias
-                )
-        ).ToList();
+                    Alias: e.Alias ?? e.Id.ToString());
+            }
+            return new StoredEffect(
+                e.Id.ToEffectId(),
+                WorkStatus.Failed,
+                Result: null,
+                StoredException: FatalWorkflowException.CreateNonGeneric(flowId, e.Exception).ToStoredException(),
+                Alias: e.Alias
+            );
+        }).ToList();
 
     public IReadOnlyList<StoredMessage> MapInitialMessages(IEnumerable<MessageAndIdempotencyKey> initialMessages)
         => initialMessages.Select(m =>
         {
-            Serializer.Serialize(m.Message, out var content, out var type);
+            var content = Serializer.Serialize(m.Message, m.Message.GetType());
+            var type = Serializer.SerializeType(m.Message.GetType());
             return new StoredMessage(content, type, Position: 0, m.IdempotencyKey);
         }).ToList();
 
