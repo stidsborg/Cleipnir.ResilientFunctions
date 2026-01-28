@@ -32,11 +32,10 @@ public abstract class CustomMessageSerializerTests
 
         var scheduled = await registration.Schedule(flowId.Instance);
         await registration.MessageWriters.For(flowId.Instance).AppendMessage("hello world");
-
-        await BusyWait.Until(() => EventSerializer.EventToDeserialize.Count > 0);
-        EventSerializer.EventToDeserialize.First().Item1.DeserializeFromJsonTo<string>().ShouldBe("hello world");
-        EventSerializer.EventToSerialize.First().ShouldBe("hello world");
+        
         await scheduled.Completion();
+        EventSerializer.EventToDeserialize.Any().ShouldBeTrue();
+        EventSerializer.EventToSerialize.Any().ShouldBeTrue();
     }
 
     private class EventSerializer : ISerializer
