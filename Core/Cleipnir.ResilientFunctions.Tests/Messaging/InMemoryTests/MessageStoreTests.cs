@@ -111,6 +111,10 @@ public class MessageStoreTests :  TestTemplates.MessageStoreTests
         => DeleteMessagesOnlyAffectsSpecifiedStoredId(FunctionStoreFactory.Create());
 
     [TestMethod]
+    public override Task MessageWithEffectIdCanBeSentAndReceived()
+        => MessageWithEffectIdCanBeSentAndReceived(FunctionStoreFactory.Create());
+
+    [TestMethod]
     public override Task ConcurrentBatchedMessagesToSameStoredIdAreAllAdded()
         => ConcurrentBatchedMessagesToSameStoredIdAreAllAdded(FunctionStoreFactory.Create());
 }

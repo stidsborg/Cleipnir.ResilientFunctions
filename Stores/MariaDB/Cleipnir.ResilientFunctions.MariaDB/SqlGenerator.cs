@@ -582,14 +582,15 @@ public class SqlGenerator(string tablePrefix)
                  {"(?, ?, ?)".Replicate(messages.Count).StringJoin($",{Environment.NewLine}")};";
 
         var command = StoreCommand.Create(sql);
-        foreach (var (storedId, (messageContent, messageType, _, idempotencyKey), position) in messages)
+        foreach (var (storedId, (messageContent, messageType, _, idempotencyKey, effectId), position) in messages)
         {
             command.AddParameter(storedId.AsGuid.ToString("N"));
             command.AddParameter(position);
             var content = BinaryPacker.Pack(
                 messageContent,
                 messageType,
-                idempotencyKey?.ToUtf8Bytes()
+                idempotencyKey?.ToUtf8Bytes(),
+                effectId?.ToUtf8Bytes()
             );
             command.AddParameter(content);
         }

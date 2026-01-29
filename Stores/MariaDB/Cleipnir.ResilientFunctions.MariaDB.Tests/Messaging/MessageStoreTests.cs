@@ -106,6 +106,10 @@ public class MessageStoreTests :  ResilientFunctions.Tests.Messaging.TestTemplat
         => DeleteMessagesOnlyAffectsSpecifiedStoredId(FunctionStoreFactory.Create());
 
     [TestMethod]
+    public override Task MessageWithEffectIdCanBeSentAndReceived()
+        => MessageWithEffectIdCanBeSentAndReceived(FunctionStoreFactory.Create());
+
+    [TestMethod]
     public override Task ConcurrentBatchedMessagesToSameStoredIdAreAllAdded()
         => ConcurrentBatchedMessagesToSameStoredIdAreAllAdded(FunctionStoreFactory.Create());
 }

@@ -5,7 +5,7 @@ using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.Messaging;
 
-public record StoredMessage(byte[] MessageContent, byte[] MessageType, long Position, string? IdempotencyKey = null)
+public record StoredMessage(byte[] MessageContent, byte[] MessageType, long Position, string? IdempotencyKey = null, string? EffectId = null)
 {
     public object DefaultDeserialize() => JsonSerializer.Deserialize(MessageContent, Type.GetType(MessageType.ToStringFromUtf8Bytes(), throwOnError: true)!)!; //todo remove
 }

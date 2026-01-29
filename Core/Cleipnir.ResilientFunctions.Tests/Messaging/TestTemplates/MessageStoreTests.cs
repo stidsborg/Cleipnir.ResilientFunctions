@@ -1066,6 +1066,68 @@ public abstract class MessageStoreTests
         messages2[1].DefaultDeserialize().ShouldBe(msg2);
     }
 
+    public abstract Task MessageWithEffectIdCanBeSentAndReceived();
+    protected async Task MessageWithEffectIdCanBeSentAndReceived(Task<IFunctionStore> functionStoreTask)
+    {
+        var functionId = TestStoredId.Create();
+        var functionStore = await functionStoreTask;
+        await functionStore.CreateFunction(
+            functionId,
+            "humanInstanceId",
+            Test.SimpleStoredParameter,
+            leaseExpiration: DateTime.UtcNow.Ticks,
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks,
+            parent: null,
+            owner: null
+        );
+        var messageStore = functionStore.MessageStore;
+
+        const string msg1 = "hello world";
+        const string msg2 = "hello universe";
+
+        var storedMessage1 = new StoredMessage(
+            msg1.ToJson().ToUtf8Bytes(),
+            msg1.GetType().SimpleQualifiedName().ToUtf8Bytes(),
+            Position: 0,
+            IdempotencyKey: "idempotency_1",
+            EffectId: "effect_1"
+        );
+        var storedMessage2 = new StoredMessage(
+            msg2.ToJson().ToUtf8Bytes(),
+            msg2.GetType().SimpleQualifiedName().ToUtf8Bytes(),
+            Position: 0,
+            IdempotencyKey: null,
+            EffectId: "effect_2"
+        );
+        var storedMessage3 = new StoredMessage(
+            msg1.ToJson().ToUtf8Bytes(),
+            msg1.GetType().SimpleQualifiedName().ToUtf8Bytes(),
+            Position: 0,
+            IdempotencyKey: "idempotency_3",
+            EffectId: null
+        );
+
+        await messageStore.AppendMessage(functionId, storedMessage1);
+        await messageStore.AppendMessage(functionId, storedMessage2);
+        await messageStore.AppendMessage(functionId, storedMessage3);
+
+        var messages = (await messageStore.GetMessages(functionId, skip: 0)).ToList();
+        messages.Count.ShouldBe(3);
+
+        messages[0].DefaultDeserialize().ShouldBe(msg1);
+        messages[0].IdempotencyKey.ShouldBe("idempotency_1");
+        messages[0].EffectId.ShouldBe("effect_1");
+
+        messages[1].DefaultDeserialize().ShouldBe(msg2);
+        messages[1].IdempotencyKey.ShouldBeNull();
+        messages[1].EffectId.ShouldBe("effect_2");
+
+        messages[2].DefaultDeserialize().ShouldBe(msg1);
+        messages[2].IdempotencyKey.ShouldBe("idempotency_3");
+        messages[2].EffectId.ShouldBeNull();
+    }
+
     public abstract Task ConcurrentBatchedMessagesToSameStoredIdAreAllAdded();
     protected async Task ConcurrentBatchedMessagesToSameStoredIdAreAllAdded(Task<IFunctionStore> functionStoreTask)
     {

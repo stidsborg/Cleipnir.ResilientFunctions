@@ -452,14 +452,15 @@ public class SqlGenerator(string tablePrefix)
 
         var command = StoreCommand.Create(sql);
 
-        foreach (var (storedId, (messageContent, messageType, _, idempotencyKey), position) in messages)
+        foreach (var (storedId, (messageContent, messageType, _, idempotencyKey, effectId), position) in messages)
         {
             command.AddParameter(storedId.AsGuid);
             command.AddParameter(position);
             var content = BinaryPacker.Pack(
                 messageContent,
                 messageType,
-                idempotencyKey?.ToUtf8Bytes()
+                idempotencyKey?.ToUtf8Bytes(),
+                effectId?.ToUtf8Bytes()
             );
             command.AddParameter(content);
         }
@@ -533,12 +534,13 @@ public class SqlGenerator(string tablePrefix)
             var id = reader.GetGuid(0).ToStoredId();
             var position = reader.GetInt64(1);
             var content = (byte[]) reader.GetValue(2);
-            var splitted = BinaryPacker.Split(content, expectedPieces: 3);
-            
+            var splitted = BinaryPacker.Split(content, expectedPieces: 4);
+
             var contentBytes = splitted[0]!;
             var typeBytes = splitted[1]!;
             var idempotencyKeyBytes = splitted[2];
-            
+            var effectIdBytes = splitted[3];
+
             if (!dict.ContainsKey(id))
                 dict[id] = new List<StoredMessage>();
 
@@ -547,7 +549,8 @@ public class SqlGenerator(string tablePrefix)
                     contentBytes,
                     typeBytes,
                     position,
-                    idempotencyKeyBytes?.ToStringFromUtf8Bytes()
+                    idempotencyKeyBytes?.ToStringFromUtf8Bytes(),
+                    effectIdBytes?.ToStringFromUtf8Bytes()
                 )
             );
         }

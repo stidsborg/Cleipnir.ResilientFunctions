@@ -81,8 +81,8 @@ public class SqlServerMessageStore : IMessageStore
 
         for (var i = 0; i < messages.Count; i++)
         {
-            var (messageContent, messageType, _, idempotencyKey) = messages[i];
-            var content = BinaryPacker.Pack(messageContent, messageType, idempotencyKey?.ToUtf8Bytes());
+            var (messageContent, messageType, _, idempotencyKey, effectId) = messages[i];
+            var content = BinaryPacker.Pack(messageContent, messageType, idempotencyKey?.ToUtf8Bytes(), effectId?.ToUtf8Bytes());
             command.Parameters.AddWithValue($"@Content{i}", content);
         }
 
@@ -124,9 +124,9 @@ public class SqlServerMessageStore : IMessageStore
         await using var command = new SqlCommand(sql, conn);
         for (var i = 0; i < messages.Count; i++)
         {
-            var (storedId, (messageContent, messageType, _, idempotencyKey)) = messages[i];
+            var (storedId, (messageContent, messageType, _, idempotencyKey, effectId)) = messages[i];
             var position = ++maxPositions[storedId];
-            var content = BinaryPacker.Pack(messageContent, messageType, idempotencyKey?.ToUtf8Bytes());
+            var content = BinaryPacker.Pack(messageContent, messageType, idempotencyKey?.ToUtf8Bytes(), effectId?.ToUtf8Bytes());
             command.Parameters.AddWithValue($"@Id{i}", storedId.AsGuid);
             command.Parameters.AddWithValue($"@Position{i}", position);
             command.Parameters.AddWithValue($"@Content{i}", content);
@@ -157,11 +157,12 @@ public class SqlServerMessageStore : IMessageStore
             SET Content = @Content
             WHERE Id = @Id AND Position = @Position";
 
-        var (messageJson, messageType, _, idempotencyKey) = storedMessage;
+        var (messageJson, messageType, _, idempotencyKey, effectId) = storedMessage;
         var content = BinaryPacker.Pack(
             messageJson,
             messageType,
-            idempotencyKey?.ToUtf8Bytes()
+            idempotencyKey?.ToUtf8Bytes(),
+            effectId?.ToUtf8Bytes()
         );
         await using var command = new SqlCommand(_replaceMessageSql, conn);
         command.Parameters.AddWithValue("@Id", storedId.AsGuid);
@@ -269,15 +270,17 @@ public class SqlServerMessageStore : IMessageStore
 
     public static StoredMessage ConvertToStoredMessage(byte[] content, long position)
     {
-        var arrs = BinaryPacker.Split(content, expectedPieces: 3);
+        var arrs = BinaryPacker.Split(content, expectedPieces: 4);
         var message = arrs[0]!;
         var type = arrs[1]!;
         var idempotencyKey = arrs[2];
+        var effectId = arrs[3];
         var storedMessage = new StoredMessage(
             message,
             type,
             Position: position,
-            idempotencyKey?.ToStringFromUtf8Bytes()
+            idempotencyKey?.ToStringFromUtf8Bytes(),
+            effectId?.ToStringFromUtf8Bytes()
         );
         return storedMessage;
     }
