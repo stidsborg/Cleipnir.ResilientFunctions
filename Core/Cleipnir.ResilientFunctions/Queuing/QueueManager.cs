@@ -13,7 +13,7 @@ using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.Queuing;
 
-public delegate bool MessagePredicate(object message);
+public delegate bool MessagePredicate(Envelope envelope);
 
 public class QueueManager(
     FlowId flowId, 
@@ -35,7 +35,7 @@ public class QueueManager(
     private readonly EffectId _parentId = new([-1]);
     private readonly EffectId _toRemoveNextIndex = new([-1, 0]);
     private readonly EffectId _idempotencyKeysId = new([-1, -1]);
-    private readonly List<MessageWithPosition> _toDeliver = new();
+    private readonly List<EnvelopeWithPosition> _toDeliver = new();
     private readonly List<long> _skipPositions = new();
     private readonly HashSet<long> _deliveredPositions = new();
 
@@ -92,7 +92,7 @@ public class QueueManager(
 
     public async Task<QueueClient> CreateQueueClient()
     {
-        await  Initialize();
+        await Initialize();
         return new QueueClient(this, utcNow);
     }
 
@@ -137,7 +137,8 @@ public class QueueManager(
                         continue;
                     }
 
-                    var msgWithPosition = new MessageWithPosition(msg, position, idempotencyKeyResult);
+                    var envelope = new Envelope(msg, receiver, sender);
+                    var msgWithPosition = new EnvelopeWithPosition(envelope, position, idempotencyKeyResult);
                     lock (_lock)
                         _toDeliver.Add(msgWithPosition);
                 }
@@ -213,7 +214,7 @@ public class QueueManager(
         {
             while (true)
             {
-                List<MessageWithPosition> messagesToDeliver;
+                List<EnvelopeWithPosition> messagesToDeliver;
                 List<KeyValuePair<EffectId, Subscription>> subscribers;
                 lock (_lock)
                 {
@@ -229,7 +230,7 @@ public class QueueManager(
                     foreach (var idAndSubscription in subscribers)
                     {
                         var (effectId, subscription) = idAndSubscription;
-                        if (subscription.Predicate(messageWithPosition.Message))
+                        if (subscription.Predicate(messageWithPosition.Envelope))
                         {
                             int toRemoveIndex;
                             lock (_lock)
@@ -246,13 +247,13 @@ public class QueueManager(
                             await effect.Upsert(_toRemoveNextIndex, toRemoveIndex, alias: null, flush: false);
 
                             var toRemoveId = new EffectId([-1, 0, toRemoveIndex]);
-                            var msg = new MessageAndEffectResults(
-                                messageWithPosition.Message,
+                            var envelopeAndEffectResults = new EnvelopeAndEffectResults(
+                                messageWithPosition.Envelope,
                                 messageWithPosition.IdempotencyKeyResult == null
                                 ? [new EffectResult(toRemoveId, messageWithPosition.Position, Alias: null)]
                                 : [new EffectResult(toRemoveId, messageWithPosition.Position, Alias: null), messageWithPosition.IdempotencyKeyResult]
                             );
-                            subscription.Tcs.SetResult(msg);
+                            subscription.Tcs.SetResult(envelopeAndEffectResults);
 
                             delivered = true;
                             break;
@@ -298,9 +299,9 @@ public class QueueManager(
         }
     }
     
-    public async Task<MessageAndEffectResults?> Subscribe(EffectId effectId, MessagePredicate predicate, DateTime? timeout, EffectId timeoutId, TimeSpan? maxWait)
+    public async Task<EnvelopeAndEffectResults?> Subscribe(EffectId effectId, MessagePredicate predicate, DateTime? timeout, EffectId timeoutId, TimeSpan? maxWait)
     {
-        var tcs = new TaskCompletionSource<MessageAndEffectResults?>();
+        var tcs = new TaskCompletionSource<EnvelopeAndEffectResults?>();
         lock (_lock)
             _subscribers[effectId] = new Subscription(predicate, tcs, timeout, timeoutId);
 
@@ -318,9 +319,9 @@ public class QueueManager(
         return await tcs.Task;
     }
 
-    public record MessageWithPosition(object Message, long Position, EffectResult? IdempotencyKeyResult);
-    public record MessageAndEffectResults(object Message, IEnumerable<EffectResult> EffectResults);
-    private record Subscription(MessagePredicate Predicate, TaskCompletionSource<MessageAndEffectResults?> Tcs, DateTime? Timeout, EffectId? TimeoutId);
+    public record EnvelopeWithPosition(Envelope Envelope, long Position, EffectResult? IdempotencyKeyResult);
+    public record EnvelopeAndEffectResults(Envelope Message, IEnumerable<EffectResult> EffectResults);
+    private record Subscription(MessagePredicate Predicate, TaskCompletionSource<EnvelopeAndEffectResults?> Tcs, DateTime? Timeout, EffectId? TimeoutId);
 
     public void Dispose() => _disposed = true;
 }

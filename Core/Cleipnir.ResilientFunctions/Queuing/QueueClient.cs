@@ -30,7 +30,7 @@ public class QueueClient(QueueManager queueManager, UtcNow utcNow)
         {
             var result = await queueManager.Subscribe(
                 valueId,
-                m => m is T t && (filter?.Invoke(t) ?? true),
+                envelope => envelope.Message is T t && (filter?.Invoke(t) ?? true),
                 timeout,
                 timeoutId,
                 maxWait
@@ -43,12 +43,13 @@ public class QueueClient(QueueManager queueManager, UtcNow utcNow)
                 return null;
             }
 
-            var message = result.Message;
+            var envelope = result.Message;
+            var message = envelope.Message;
             var effectResults = result.EffectResults;
             await effect.Upserts(
                 effectResults.Concat(
                 [
-                    new EffectResult(valueId, message, Alias: null), 
+                    new EffectResult(valueId, message, Alias: null),
                     new EffectResult(typeId, message.GetType().SimpleQualifiedName(), Alias: null)
                 ]),
                 flush: false
