@@ -52,4 +52,8 @@ public class MessagesTests : TestTemplates.MessagesTests
     [TestMethod]
     public override Task NoOpMessageIsIgnored()
         => NoOpMessageIsIgnored(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task SenderIsPersistedAndCanBeFetched()
+        => SenderIsPersistedAndCanBeFetched(FunctionStoreFactory.Create());
 }

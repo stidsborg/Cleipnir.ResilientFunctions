@@ -563,6 +563,23 @@ public abstract class MessagesTests
         unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
     
+    public abstract Task SenderIsPersistedAndCanBeFetched();
+    protected async Task SenderIsPersistedAndCanBeFetched(Task<IFunctionStore> functionStoreTask)
+    {
+        var functionStore = await functionStoreTask;
+        var storedType = new StoredType(1);
+        var storedId = StoredId.Create(storedType, "instanceId");
+        var serializer = DefaultSerializer.Instance;
+        var messageStore = functionStore.MessageStore;
+
+        var messageWriter = new MessageWriter(storedId, messageStore, serializer);
+        await messageWriter.AppendMessage("hello world", idempotencyKey: "key1", sender: "TestSender");
+
+        var messages = await messageStore.GetMessages(storedId, skip: 0);
+        messages.Count.ShouldBe(1);
+        messages[0].Sender.ShouldBe("TestSender");
+    }
+
     public abstract Task NoOpMessageIsIgnored();
     protected async Task NoOpMessageIsIgnored(Task<IFunctionStore> functionStoreTask)
     {
