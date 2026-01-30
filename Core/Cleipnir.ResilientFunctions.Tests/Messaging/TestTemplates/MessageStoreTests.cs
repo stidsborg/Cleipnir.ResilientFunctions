@@ -1066,8 +1066,8 @@ public abstract class MessageStoreTests
         messages2[1].DefaultDeserialize().ShouldBe(msg2);
     }
 
-    public abstract Task MessageWithEffectIdCanBeSentAndReceived();
-    protected async Task MessageWithEffectIdCanBeSentAndReceived(Task<IFunctionStore> functionStoreTask)
+    public abstract Task MessageWithSenderAndReceiverCanBeSentAndReceived();
+    protected async Task MessageWithSenderAndReceiverCanBeSentAndReceived(Task<IFunctionStore> functionStoreTask)
     {
         var functionId = TestStoredId.Create();
         var functionStore = await functionStoreTask;
@@ -1091,21 +1091,24 @@ public abstract class MessageStoreTests
             msg1.GetType().SimpleQualifiedName().ToUtf8Bytes(),
             Position: 0,
             IdempotencyKey: "idempotency_1",
-            EffectId: "effect_1"
+            Sender: "sender_1",
+            Receiver: "receiver_1"
         );
         var storedMessage2 = new StoredMessage(
             msg2.ToJson().ToUtf8Bytes(),
             msg2.GetType().SimpleQualifiedName().ToUtf8Bytes(),
             Position: 0,
             IdempotencyKey: null,
-            EffectId: "effect_2"
+            Sender: "sender_2",
+            Receiver: null
         );
         var storedMessage3 = new StoredMessage(
             msg1.ToJson().ToUtf8Bytes(),
             msg1.GetType().SimpleQualifiedName().ToUtf8Bytes(),
             Position: 0,
             IdempotencyKey: "idempotency_3",
-            EffectId: null
+            Sender: null,
+            Receiver: "receiver_3"
         );
 
         await messageStore.AppendMessage(functionId, storedMessage1);
@@ -1117,15 +1120,18 @@ public abstract class MessageStoreTests
 
         messages[0].DefaultDeserialize().ShouldBe(msg1);
         messages[0].IdempotencyKey.ShouldBe("idempotency_1");
-        messages[0].EffectId.ShouldBe("effect_1");
+        messages[0].Sender.ShouldBe("sender_1");
+        messages[0].Receiver.ShouldBe("receiver_1");
 
         messages[1].DefaultDeserialize().ShouldBe(msg2);
         messages[1].IdempotencyKey.ShouldBeNull();
-        messages[1].EffectId.ShouldBe("effect_2");
+        messages[1].Sender.ShouldBe("sender_2");
+        messages[1].Receiver.ShouldBeNull();
 
         messages[2].DefaultDeserialize().ShouldBe(msg1);
         messages[2].IdempotencyKey.ShouldBe("idempotency_3");
-        messages[2].EffectId.ShouldBeNull();
+        messages[2].Sender.ShouldBeNull();
+        messages[2].Receiver.ShouldBe("receiver_3");
     }
 
     public abstract Task ConcurrentBatchedMessagesToSameStoredIdAreAllAdded();

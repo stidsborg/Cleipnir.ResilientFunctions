@@ -85,8 +85,8 @@ public class PostgreSqlMessageStore : IMessageStore
 
         for (var i = 0; i < messages.Count; i++)
         {
-            var (messageContent, messageType, _, idempotencyKey, effectId) = messages[i];
-            var content = BinaryPacker.Pack(messageContent, messageType, idempotencyKey?.ToUtf8Bytes(), effectId?.ToUtf8Bytes());
+            var (messageContent, messageType, _, idempotencyKey, sender, receiver) = messages[i];
+            var content = BinaryPacker.Pack(messageContent, messageType, idempotencyKey?.ToUtf8Bytes(), sender?.ToUtf8Bytes(), receiver?.ToUtf8Bytes());
             command.Parameters.Add(new() { Value = content });
         }
 
@@ -141,12 +141,13 @@ public class PostgreSqlMessageStore : IMessageStore
                 SET content = $1
                 WHERE id = $2 AND position = $3";
 
-        var (messageJson, messageType, _, idempotencyKey, effectId) = storedMessage;
+        var (messageJson, messageType, _, idempotencyKey, sender, receiver) = storedMessage;
         var content = BinaryPacker.Pack(
             messageJson,
             messageType,
             idempotencyKey?.ToUtf8Bytes(),
-            effectId?.ToUtf8Bytes()
+            sender?.ToUtf8Bytes(),
+            receiver?.ToUtf8Bytes()
         );
         var command = new NpgsqlCommand(_replaceMessageSql, conn)
         {
@@ -228,17 +229,19 @@ public class PostgreSqlMessageStore : IMessageStore
 
     public static StoredMessage ConvertToStoredMessage(byte[] content, long position)
     {
-        var arrs = BinaryPacker.Split(content, expectedPieces: 4);
+        var arrs = BinaryPacker.Split(content, expectedPieces: 5);
         var message = arrs[0]!;
         var type = arrs[1]!;
         var idempotencyKey = arrs[2];
-        var effectId = arrs[3];
+        var sender = arrs[3];
+        var receiver = arrs[4];
         var storedMessage = new StoredMessage(
             message,
             type,
             Position: position,
             idempotencyKey?.ToStringFromUtf8Bytes(),
-            effectId?.ToStringFromUtf8Bytes()
+            sender?.ToStringFromUtf8Bytes(),
+            receiver?.ToStringFromUtf8Bytes()
         );
         return storedMessage;
     }

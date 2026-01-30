@@ -79,10 +79,10 @@ public class MariaDbMessageStore : IMessageStore
                 command.Parameters.Add(new() { Value = storedId.AsGuid.ToString("N") });
                 command.Parameters.Add(new() { Value = randomOffset });
 
-                foreach (var (messageContent, messageType, _, idempotencyKey, effectId) in messages)
+                foreach (var (messageContent, messageType, _, idempotencyKey, sender, receiver) in messages)
                 {
                     command.Parameters.Add(new() { Value = storedId.AsGuid.ToString("N") });
-                    var content = BinaryPacker.Pack(messageContent, messageType, idempotencyKey?.ToUtf8Bytes(), effectId?.ToUtf8Bytes());
+                    var content = BinaryPacker.Pack(messageContent, messageType, idempotencyKey?.ToUtf8Bytes(), sender?.ToUtf8Bytes(), receiver?.ToUtf8Bytes());
                     command.Parameters.Add(new() { Value = content });
                 }
 
@@ -209,7 +209,7 @@ public class MariaDbMessageStore : IMessageStore
     public async Task<bool> ReplaceMessage(StoredId storedId, long position, StoredMessage storedMessage)
     {
         await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
-        var (messageJson, messageType, _, idempotencyKey, effectId) = storedMessage;
+        var (messageJson, messageType, _, idempotencyKey, sender, receiver) = storedMessage;
 
         _replaceMessageSql ??= @$"
                 UPDATE {_tablePrefix}_messages
@@ -219,7 +219,8 @@ public class MariaDbMessageStore : IMessageStore
             messageJson,
             messageType,
             idempotencyKey?.ToUtf8Bytes(),
-            effectId?.ToUtf8Bytes()
+            sender?.ToUtf8Bytes(),
+            receiver?.ToUtf8Bytes()
         );
         await using var command = new MySqlCommand(_replaceMessageSql, conn)
         {
@@ -337,17 +338,19 @@ public class MariaDbMessageStore : IMessageStore
 
     public static StoredMessage ConvertToStoredMessage(byte[] content, long position)
     {
-        var arrs = BinaryPacker.Split(content, expectedPieces: 4);
+        var arrs = BinaryPacker.Split(content, expectedPieces: 5);
         var message = arrs[0]!;
         var type = arrs[1]!;
         var idempotencyKey = arrs[2];
-        var effectId = arrs[3];
+        var sender = arrs[3];
+        var receiver = arrs[4];
         var storedMessage = new StoredMessage(
             message,
             type,
             Position: position,
             idempotencyKey?.ToStringFromUtf8Bytes(),
-            effectId?.ToStringFromUtf8Bytes()
+            sender?.ToStringFromUtf8Bytes(),
+            receiver?.ToStringFromUtf8Bytes()
         );
         return storedMessage;
     }
