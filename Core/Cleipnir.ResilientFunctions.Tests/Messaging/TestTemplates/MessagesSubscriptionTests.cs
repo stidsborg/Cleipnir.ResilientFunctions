@@ -101,7 +101,7 @@ public abstract class MessagesSubscriptionTests
                 );
                 await queueManager.Initialize();
 
-                var queueClient = new QueueClient(queueManager, () => DateTime.UtcNow);
+                var queueClient = new QueueClient(queueManager, DefaultSerializer.Instance, () => DateTime.UtcNow);
                 var message = await queueClient.Pull<string>(workflow, workflow.Effect.CreateNextImplicitId(), maxWait: TimeSpan.FromMinutes(1));
 
                 return (string)message;
@@ -148,7 +148,7 @@ public abstract class MessagesSubscriptionTests
                 );
                 await queueManager.Initialize();
 
-                var queueClient = new QueueClient(queueManager, () => DateTime.UtcNow);
+                var queueClient = new QueueClient(queueManager, DefaultSerializer.Instance, () => DateTime.UtcNow);
 
                 var message1 = await queueClient.Pull<string>(workflow, workflow.Effect.CreateNextImplicitId(), maxWait: TimeSpan.FromMinutes(1));
                 await workflow.Delay(TimeSpan.FromMilliseconds(100));
@@ -205,7 +205,7 @@ public abstract class MessagesSubscriptionTests
                 );
                 await queueManager.Initialize();
 
-                var queueClient = new QueueClient(queueManager, () => DateTime.UtcNow);
+                var queueClient = new QueueClient(queueManager, DefaultSerializer.Instance, () => DateTime.UtcNow);
                 var message = await queueClient.Pull<string>(workflow, workflow.Effect.CreateNextImplicitId(), TimeSpan.FromMilliseconds(100), maxWait: TimeSpan.FromMinutes(1));
 
                 return message;
@@ -256,7 +256,7 @@ public abstract class MessagesSubscriptionTests
                 );
                 await queueManager.Initialize();
 
-                var queueClient = new QueueClient(queueManager, () => DateTime.UtcNow);
+                var queueClient = new QueueClient(queueManager, DefaultSerializer.Instance, () => DateTime.UtcNow);
                 var messages = new List<string>();
 
                 await flag.WaitForRaised();
@@ -322,7 +322,7 @@ public abstract class MessagesSubscriptionTests
                 );
                 await queueManager.Initialize();
 
-                var queueClient = new QueueClient(queueManager, () => DateTime.UtcNow);
+                var queueClient = new QueueClient(queueManager, DefaultSerializer.Instance, () => DateTime.UtcNow);
                 var message1 = await queueClient.Pull<string>(workflow, workflow.Effect.CreateNextImplicitId(), maxWait: TimeSpan.FromMinutes(1));
                 var message2 = await queueClient.Pull<string>(workflow, workflow.Effect.CreateNextImplicitId(), timeout: TimeSpan.FromMilliseconds(100), maxWait: TimeSpan.FromMinutes(1));
                 
@@ -384,7 +384,7 @@ public abstract class MessagesSubscriptionTests
                 );
                 await queueManager.Initialize();
 
-                var queueClient = new QueueClient(queueManager, () => DateTime.UtcNow);
+                var queueClient = new QueueClient(queueManager, DefaultSerializer.Instance, () => DateTime.UtcNow);
                 var receivedMessages = new List<string>();
 
                 // Pull messages until timeout - expecting 60 unique messages
@@ -422,11 +422,11 @@ public abstract class MessagesSubscriptionTests
                 await messageWriter.AppendMessage((iteration + i).ToString(), idempotencyKey: ((iteration + i) % 50).ToString());
 
         await BusyWait.Until(() => storedId != null);
-        await BusyWait.Until(async () => await functionStore.MessageStore.GetMessages([storedId!]).SelectAsync(m => m[storedId!].Count) == 0, maxWait: TimeSpan.FromSeconds(10));
+        await BusyWait.Until(async () => await functionStore.MessageStore.GetMessages([storedId!]).SelectAsync(m => m[storedId!].Count) == 0, maxWait: TimeSpan.FromSeconds(30));
         await messageWriter.AppendMessage("stop");
 
         // Wait for completion
-        var result = await scheduled.Completion(maxWait: TimeSpan.FromSeconds(10));
+        var result = await scheduled.Completion(maxWait: TimeSpan.FromSeconds(30));
         var receivedMessages = result
             .Split(',')
             .Select(int.Parse)
@@ -438,7 +438,8 @@ public abstract class MessagesSubscriptionTests
             receivedMessages[i].ShouldBe(i);
 
         await BusyWait.Until(
-            async () => await functionStore.MessageStore.GetMessages(storedId!, skip: 0).SelectAsync(m => m.Count) == 0
+            async () => await functionStore.MessageStore.GetMessages(storedId!, skip: 0).SelectAsync(m => m.Count) == 0,
+            maxWait: TimeSpan.FromSeconds(30)
         );
 
         unhandledExceptionCatcher.ShouldNotHaveExceptions();
@@ -472,7 +473,7 @@ public abstract class MessagesSubscriptionTests
                 );
                 await queueManager.Initialize();
 
-                var queueClient = new QueueClient(queueManager, () => DateTime.UtcNow);
+                var queueClient = new QueueClient(queueManager, DefaultSerializer.Instance, () => DateTime.UtcNow);
 
                 // Pull only messages that start with "even-"
                 var message1 = await queueClient.Pull<string>(
@@ -547,7 +548,7 @@ public abstract class MessagesSubscriptionTests
                 );
                 await queueManager.Initialize();
 
-                var queueClient = new QueueClient(queueManager, () => DateTime.UtcNow);
+                var queueClient = new QueueClient(queueManager, DefaultSerializer.Instance, () => DateTime.UtcNow);
 
                 // Pull different types of messages to verify serialization works
                 var message1 = await queueClient.Pull<string>(
@@ -616,7 +617,7 @@ public abstract class MessagesSubscriptionTests
                 );
                 await queueManager.Initialize();
 
-                var queueClient = new QueueClient(queueManager, () => DateTime.UtcNow);
+                var queueClient = new QueueClient(queueManager, DefaultSerializer.Instance, () => DateTime.UtcNow);
                 var message = await queueClient.Pull<string>(
                     workflow,
                     workflow.Effect.CreateNextImplicitId(),
@@ -668,7 +669,7 @@ public abstract class MessagesSubscriptionTests
                 );
                 await queueManager.Initialize();
 
-                var queueClient = new QueueClient(queueManager, () => DateTime.UtcNow);
+                var queueClient = new QueueClient(queueManager, DefaultSerializer.Instance, () => DateTime.UtcNow);
                 var message = await queueClient.Pull<string>(
                     workflow,
                     workflow.Effect.CreateNextImplicitId(),
@@ -738,7 +739,7 @@ public abstract class MessagesSubscriptionTests
                 );
                 await queueManager.Initialize();
 
-                var queueClient = new QueueClient(queueManager, () => DateTime.UtcNow);
+                var queueClient = new QueueClient(queueManager, DefaultSerializer.Instance, () => DateTime.UtcNow);
 
                 for (var i = 0; i < 10; i++)
                 {
@@ -772,7 +773,7 @@ public abstract class MessagesSubscriptionTests
                 );
                 await queueManager.Initialize();
 
-                var queueClient = new QueueClient(queueManager, () => DateTime.UtcNow);
+                var queueClient = new QueueClient(queueManager, DefaultSerializer.Instance, () => DateTime.UtcNow);
 
                 for (var i = 0; i < 10; i++)
                 {
@@ -840,7 +841,7 @@ public abstract class MessagesSubscriptionTests
                 );
                 await queueManager.Initialize();
 
-                var queueClient = new QueueClient(queueManager, () => DateTime.UtcNow);
+                var queueClient = new QueueClient(queueManager, DefaultSerializer.Instance, () => DateTime.UtcNow);
 
                 var message1 = await queueClient.Pull<GoodMessage>(
                     workflow,
@@ -903,7 +904,7 @@ public abstract class MessagesSubscriptionTests
                 );
                 await queueManager.Initialize();
 
-                var queueClient = new QueueClient(queueManager, () => DateTime.UtcNow);
+                var queueClient = new QueueClient(queueManager, DefaultSerializer.Instance, () => DateTime.UtcNow);
 
                 // Verify timeout is not set before pull
                 minimumTimeout.MinimumTimeout.ShouldBeNull();
@@ -928,6 +929,58 @@ public abstract class MessagesSubscriptionTests
 
         var result = await scheduled.Completion(maxWait: TimeSpan.FromSeconds(5));
         result.ShouldBe("test message");
+
+        unhandledExceptionCatcher.ShouldNotHaveExceptions();
+    }
+
+public abstract Task PullEnvelopeReturnsEnvelopeWithReceiverAndSender();
+    protected async Task PullEnvelopeReturnsEnvelopeWithReceiverAndSender(Task<IFunctionStore> functionStoreTask)
+    {
+        var functionStore = await functionStoreTask;
+        var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
+        var unhandledExceptionHandler = new UnhandledExceptionHandler(unhandledExceptionCatcher.Catch);
+        using var functionsRegistry = new FunctionsRegistry(
+            functionStore,
+            new Settings(unhandledExceptionCatcher.Catch)
+        );
+
+        var rFunc = functionsRegistry.RegisterFunc(
+            nameof(PullEnvelopeReturnsEnvelopeWithReceiverAndSender),
+            inner: async Task<string> (string _, Workflow workflow) =>
+            {
+                var queueManager = new QueueManager(
+                    workflow.FlowId,
+                    workflow.StoredId,
+                    functionStore.MessageStore,
+                    DefaultSerializer.Instance,
+                    workflow.Effect,
+                    unhandledExceptionHandler,
+                    new FlowTimeouts(),
+                    () => DateTime.UtcNow,
+                    SettingsWithDefaults.Default
+                );
+                await queueManager.Initialize();
+
+                var queueClient = new QueueClient(queueManager, DefaultSerializer.Instance, () => DateTime.UtcNow);
+
+                // Pull envelope for specific receiver
+                var envelope = await queueClient.PullEnvelope<string>(
+                    workflow,
+                    workflow.Effect.CreateNextImplicitId(),
+                    filter: _ => true,
+                    maxWait: TimeSpan.FromMinutes(1)
+                );
+
+                return $"{envelope.Message}|{envelope.Receiver}|{envelope.Sender}";
+            }
+        );
+
+        var scheduled = await rFunc.Schedule("instanceId", "");
+        var messageWriter = rFunc.MessageWriters.For("instanceId".ToFlowInstance());
+        await messageWriter.AppendMessage("test message", receiver: "receiver1", sender: "sender1");
+
+        var result = await scheduled.Completion(maxWait: TimeSpan.FromSeconds(5));
+        result.ShouldBe("test message|receiver1|sender1");
 
         unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }

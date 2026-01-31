@@ -3,12 +3,13 @@ using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
+using Cleipnir.ResilientFunctions.CoreRuntime.Serialization;
 using Cleipnir.ResilientFunctions.Domain;
-using Cleipnir.ResilientFunctions.Helpers;
+using Cleipnir.ResilientFunctions.Messaging;
 
 namespace Cleipnir.ResilientFunctions.Queuing;
 
-public class QueueClient(QueueManager queueManager, UtcNow utcNow)
+public class QueueClient(QueueManager queueManager, ISerializer serializer, UtcNow utcNow)
 {
     public Task FetchMessages() => queueManager.FetchMessagesOnce();
 
@@ -19,18 +20,33 @@ public class QueueClient(QueueManager queueManager, UtcNow utcNow)
     public Task<T?> Pull<T>(Workflow workflow, EffectId parentId, DateTime timeout, Func<T, bool>? filter = null, TimeSpan? maxWait = null) where T : class
         => Pull(filter, workflow, parentId, timeout, maxWait);
 
+    public Task<Envelope> PullEnvelope<T>(Workflow workflow, EffectId parentId, Func<T, bool>? filter = null, TimeSpan? maxWait = null) where T : class
+        => PullEnvelope(e => e.Message is T t && (filter?.Invoke(t) ?? true), workflow, parentId, timeout: null, maxWait)!;
+    public Task<Envelope?> PullEnvelope<T>(Workflow workflow, EffectId parentId, TimeSpan timeout, Func<T, bool>? filter = null, TimeSpan? maxWait = null) where T : class
+        => PullEnvelope(e => e.Message is T t && (filter?.Invoke(t) ?? true), workflow, parentId, utcNow().Add(timeout), maxWait);
+    public Task<Envelope?> PullEnvelope<T>(Workflow workflow, EffectId parentId, DateTime timeout, Func<T, bool>? filter = null, TimeSpan? maxWait = null) where T : class
+        => PullEnvelope(e => e.Message is T t && (filter?.Invoke(t) ?? true), workflow, parentId, timeout, maxWait);
+
     private async Task<T?> Pull<T>(Func<T, bool>? filter, Workflow workflow, EffectId parentId, DateTime? timeout, TimeSpan? maxWait) where T : class
     {
+        var envelope = await PullEnvelope(e => e.Message is T t && (filter?.Invoke(t) ?? true), workflow, parentId, timeout, maxWait);
+        return (T?)envelope?.Message;
+    }
+
+    private async Task<Envelope?> PullEnvelope(Func<Envelope, bool>? filter, Workflow workflow, EffectId parentId, DateTime? timeout, TimeSpan? maxWait)
+    {
         var effect = workflow.Effect;
-        var valueId = parentId.CreateChild(0);
+        var messageId = parentId.CreateChild(0);
         var typeId = parentId.CreateChild(1);
         var timeoutId = parentId.CreateChild(2);
-        
-        if (!effect.Contains(valueId))
+        var receiverId = parentId.CreateChild(3);
+        var senderId = parentId.CreateChild(4);
+
+        if (!effect.Contains(messageId))
         {
             var result = await queueManager.Subscribe(
-                valueId,
-                envelope => envelope.Message is T t && (filter?.Invoke(t) ?? true),
+                messageId,
+                envelope => filter?.Invoke(envelope) ?? true,
                 timeout,
                 timeoutId,
                 maxWait
@@ -38,32 +54,37 @@ public class QueueClient(QueueManager queueManager, UtcNow utcNow)
 
             if (result == null)
             {
-                await effect.Upsert<T?>(valueId, null, alias: null, flush: false);
-                await effect.Upsert(typeId, typeof(T).SimpleQualifiedName(), alias: null, flush: false);
+                await effect.Upsert<object?>(messageId, null, alias: null, flush: false);
                 return null;
             }
 
             var envelope = result.Message;
-            var message = envelope.Message;
             var effectResults = result.EffectResults;
             await effect.Upserts(
                 effectResults.Concat(
                 [
-                    new EffectResult(valueId, message, Alias: null),
-                    new EffectResult(typeId, message.GetType().SimpleQualifiedName(), Alias: null)
+                    new EffectResult(messageId, envelope.Message, Alias: null),
+                    new EffectResult(typeId, serializer.SerializeType(envelope.Message.GetType()), Alias: null),
+                    new EffectResult(receiverId, envelope.Receiver, Alias: null),
+                    new EffectResult(senderId, envelope.Sender, Alias: null)
                 ]),
                 flush: false
             );
 
-            return (T)message;
+            return envelope;
         }
-        else
-        {
-            var type = Type.GetType(effect.Get<string>(typeId), throwOnError: true);
-            if (!effect.TryGet(valueId, type!, out var value))
-                throw new InvalidOperationException("Effect did not have value as expected");
+        
+        if (!effect.TryGet<byte[]>(typeId, out var typeNameBytes))
+            return null; // timeout case - no message was received
 
-            return (T)value!;
-        }
+        var type = serializer.ResolveType(typeNameBytes!)
+                   ?? throw new TypeLoadException($"Type '{Convert.ToBase64String(typeNameBytes!)}' could not be resolved");
+        if (!effect.TryGet(messageId, type!, out var message))
+            throw new InvalidOperationException("Effect did not have message as expected");
+
+        effect.TryGet<string?>(receiverId, out var receiver);
+        effect.TryGet<string?>(senderId, out var sender);
+
+        return new Envelope(message!, receiver, sender);
     }
 }

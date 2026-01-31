@@ -93,7 +93,7 @@ public class QueueManager(
     public async Task<QueueClient> CreateQueueClient()
     {
         await Initialize();
-        return new QueueClient(this, utcNow);
+        return new QueueClient(this, serializer, utcNow);
     }
 
     public async Task FetchMessagesOnce()
@@ -138,9 +138,9 @@ public class QueueManager(
                     }
 
                     var envelope = new Envelope(msg, receiver, sender);
-                    var msgWithPosition = new EnvelopeWithPosition(envelope, position, idempotencyKeyResult);
+                    var envWithPosition = new EnvelopeWithPosition(envelope, position, idempotencyKeyResult);
                     lock (_lock)
-                        _toDeliver.Add(msgWithPosition);
+                        _toDeliver.Add(envWithPosition);
                 }
                 catch (Exception e)
                 {

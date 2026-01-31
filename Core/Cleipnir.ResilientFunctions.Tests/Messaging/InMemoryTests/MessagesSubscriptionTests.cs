@@ -62,4 +62,8 @@ public class MessagesSubscriptionTests : TestTemplates.MessagesSubscriptionTests
     [TestMethod]
     public override Task RegisteredTimeoutIsRemovedWhenPullingMessage()
         => RegisteredTimeoutIsRemovedWhenPullingMessage(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task PullEnvelopeReturnsEnvelopeWithReceiverAndSender()
+        => PullEnvelopeReturnsEnvelopeWithReceiverAndSender(FunctionStoreFactory.Create());
 }

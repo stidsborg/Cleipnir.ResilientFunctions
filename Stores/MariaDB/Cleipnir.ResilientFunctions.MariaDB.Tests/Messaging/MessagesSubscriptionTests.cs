@@ -58,4 +58,8 @@ public class MessagesSubscriptionTests : Cleipnir.ResilientFunctions.Tests.Messa
     [TestMethod]
     public override Task RegisteredTimeoutIsRemovedWhenPullingMessage()
         => RegisteredTimeoutIsRemovedWhenPullingMessage(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task PullEnvelopeReturnsEnvelopeWithReceiverAndSender()
+        => PullEnvelopeReturnsEnvelopeWithReceiverAndSender(FunctionStoreFactory.Create());
 }

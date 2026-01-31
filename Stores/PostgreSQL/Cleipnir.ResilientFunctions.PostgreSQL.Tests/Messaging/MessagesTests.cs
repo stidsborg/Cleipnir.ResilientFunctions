@@ -49,4 +49,8 @@ public class MessagesTests : ResilientFunctions.Tests.Messaging.TestTemplates.Me
     [TestMethod]
     public override Task PingPongMessagesCanBeExchangedMultipleTimes()
         => PingPongMessagesCanBeExchangedMultipleTimes(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task SenderIsPersistedAndCanBeFetched()
+        => SenderIsPersistedAndCanBeFetched(FunctionStoreFactory.Create());
 }
