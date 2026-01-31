@@ -30,10 +30,6 @@ public sealed class TransferSagaV1
 
         public async Task Perform(Transfer transfer, Workflow workflow)
         {
-            var arbitrator = workflow.Utilities.Arbitrator;
-            var success = await arbitrator.Propose("BankTransfer", transfer.TransferId.ToString(), value: "V1");
-            if (!success) throw new InvalidOperationException("Other version was selected for execution");
-            
             var deductTask = workflow.Effect.Capture(
                 () => BankCentralClient.PostTransaction(transfer.FromAccountTransactionId, transfer.FromAccount, -transfer.Amount)
             );

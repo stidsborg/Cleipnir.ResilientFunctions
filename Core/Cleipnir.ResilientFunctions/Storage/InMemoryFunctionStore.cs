@@ -9,7 +9,6 @@ using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Storage.Session;
 using Cleipnir.ResilientFunctions.Utils;
-using Cleipnir.ResilientFunctions.Utils.Arbitrator;
 using Cleipnir.ResilientFunctions.Utils.Register;
 
 namespace Cleipnir.ResilientFunctions.Storage;
@@ -35,10 +34,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
     public InMemoryFunctionStore()
     {
         var underlyingRegister = new UnderlyingInMemoryRegister();
-        Utilities = new Utilities(
-            new Register(underlyingRegister),
-            new Arbitrator(underlyingRegister)
-        );
+        Utilities = new Utilities(new Register(underlyingRegister));
     }
     
     #region FunctionStore
