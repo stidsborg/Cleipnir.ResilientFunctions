@@ -113,7 +113,7 @@ public class QueueManager(
                     .ToList();
 
             var messages = await messageStore.GetMessages(storedId, skipPositions);
-
+            
             foreach (var (messageContent, messageType, position, idempotencyKey, sender, receiver) in messages)
             {
                 try
