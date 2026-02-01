@@ -575,7 +575,7 @@ public abstract class MessagesTests
         var messageWriter = new MessageWriter(storedId, messageStore, serializer);
         await messageWriter.AppendMessage("hello world", idempotencyKey: "key1", sender: "TestSender");
 
-        var messages = await messageStore.GetMessages(storedId, skip: 0);
+        var messages = await messageStore.GetMessages(storedId);
         messages.Count.ShouldBe(1);
         messages[0].Sender.ShouldBe("TestSender");
     }

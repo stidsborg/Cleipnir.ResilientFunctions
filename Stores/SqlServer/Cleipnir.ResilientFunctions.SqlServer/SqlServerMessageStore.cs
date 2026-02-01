@@ -199,10 +199,10 @@ public class SqlServerMessageStore : IMessageStore
         await command.ExecuteNonQueryAsync();
     }
 
-    public async Task<IReadOnlyList<StoredMessage>> GetMessages(StoredId storedId, long skip)
+    public async Task<IReadOnlyList<StoredMessage>> GetMessages(StoredId storedId)
     {
         await using var conn = await CreateConnection();
-        await using var command = _sqlGenerator.GetMessages(storedId, skip).ToSqlCommand(conn);
+        await using var command = _sqlGenerator.GetMessages(storedId).ToSqlCommand(conn);
 
         await using var reader = await command.ExecuteReaderAsync();
         var messages = await _sqlGenerator.ReadMessages(reader);
@@ -212,7 +212,7 @@ public class SqlServerMessageStore : IMessageStore
     public async Task<IReadOnlyList<StoredMessage>> GetMessages(StoredId storedId, IReadOnlyList<long> skipPositions)
     {
         if (!skipPositions.Any())
-            return await GetMessages(storedId, skip: 0);
+            return await GetMessages(storedId);
         
         await using var conn = await CreateConnection();
         await using var command = _sqlGenerator.GetMessages(storedId, skipPositions).ToSqlCommand(conn);

@@ -47,7 +47,7 @@ public abstract class ControlPanelTests
 
         await store
             .MessageStore
-            .GetMessages(storedId, skip: 0)
+            .GetMessages(storedId)
             .SelectAsync(messages => messages.Count)
             .ShouldBeAsync(0);
 
@@ -97,7 +97,7 @@ public abstract class ControlPanelTests
         
         await store
             .MessageStore
-            .GetMessages(storedId, skip: 0)
+            .GetMessages(storedId)
             .SelectAsync(messages => messages.Count)
             .ShouldBeAsync(0);
 
@@ -1289,7 +1289,7 @@ public abstract class ControlPanelTests
         var storedId = registration.MapToStoredId(functionId.Instance);
         await store.GetFunction(storedId).ShouldBeNullAsync();
         
-        await store.MessageStore.GetMessages(storedId, skip: 0)
+        await store.MessageStore.GetMessages(storedId)
             .SelectAsync(msgs => msgs.Count == 0)
             .ShouldBeTrueAsync();
 

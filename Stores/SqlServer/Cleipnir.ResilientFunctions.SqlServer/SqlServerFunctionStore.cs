@@ -275,7 +275,7 @@ public class SqlServerFunctionStore : IFunctionStore
     public async Task<StoredFlowWithEffectsAndMessages?> RestartExecution(StoredId storedId, ReplicaId replicaId)
     {
         var restartCommand = _sqlGenerator.RestartExecution(storedId, replicaId);
-        var messagesCommand = _sqlGenerator.GetMessages(storedId, skip: 0, paramPrefix: "Message");
+        var messagesCommand = _sqlGenerator.GetMessages(storedId, paramPrefix: "Message");
 
         await using var conn = await _connFunc();
         await using var command = StoreCommand

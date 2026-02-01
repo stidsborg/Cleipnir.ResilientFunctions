@@ -36,11 +36,11 @@ public abstract class MessagesSubscriptionTests
         var messageStore = functionStore.MessageStore;
 
         await messageStore
-            .GetMessages(functionId, skip: 0)
+            .GetMessages(functionId)
             .SelectAsync(msgs => msgs.Any())
             .ShouldBeFalseAsync();
 
-        var events = await messageStore.GetMessages(functionId, skip: 0);
+        var events = await messageStore.GetMessages(functionId);
         events.ShouldBeEmpty();
 
         await messageStore.AppendMessage(
@@ -48,28 +48,28 @@ public abstract class MessagesSubscriptionTests
             new StoredMessage("hello world". ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Position: 0)
         );
 
-        events = await messageStore.GetMessages(functionId, skip: 0);
+        events = await messageStore.GetMessages(functionId);
         events.Count.ShouldBe(1);
         DefaultSerializer
             .Instance
             .Deserialize(events[0].MessageContent, DefaultSerializer.Instance.ResolveType(events[0].MessageType)!)
             .ShouldBe("hello world");
 
-        var skipPosition = events[0].Position + 1;
-        events = await messageStore.GetMessages(functionId, skip: skipPosition);
-        events.ShouldBeEmpty();
+        var skipPosition = events[0].Position;
+        var filteredEvents = (await messageStore.GetMessages(functionId)).Where(e => e.Position > skipPosition).ToList();
+        filteredEvents.ShouldBeEmpty();
 
         await messageStore.AppendMessage(
             functionId,
             new StoredMessage("hello universe".ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Position: 0)
         );
 
-        events = await messageStore.GetMessages(functionId, skip: skipPosition);
-        events.Count.ShouldBe(1);
+        filteredEvents = (await messageStore.GetMessages(functionId)).Where(e => e.Position > skipPosition).ToList();
+        filteredEvents.Count.ShouldBe(1);
 
         DefaultSerializer
             .Instance
-            .Deserialize(events[0].MessageContent, DefaultSerializer.Instance.ResolveType(events[0].MessageType)!)
+            .Deserialize(filteredEvents[0].MessageContent, DefaultSerializer.Instance.ResolveType(filteredEvents[0].MessageType)!)
             .ShouldBe("hello universe");
     }
 
@@ -340,7 +340,7 @@ public abstract class MessagesSubscriptionTests
         await scheduled.Completion();
         
         await BusyWait.Until(() => storedId != null);
-        await BusyWait.Until(async () => await functionStore.MessageStore.GetMessages(storedId!, skip: 0).SelectAsync(m => m.Count) == 0);
+        await BusyWait.Until(async () => await functionStore.MessageStore.GetMessages(storedId!).SelectAsync(m => m.Count) == 0);
 
         // Only the first message should be delivered
         var result = await scheduled.Completion(maxWait: TimeSpan.FromSeconds(5));
@@ -348,7 +348,7 @@ public abstract class MessagesSubscriptionTests
         result.Item2.ShouldBeNull();
 
         // Verify both messages are removed from the store after completion
-        var messagesAfterCompletion = await functionStore.MessageStore.GetMessages(storedId!, skip: 0);
+        var messagesAfterCompletion = await functionStore.MessageStore.GetMessages(storedId!);
         messagesAfterCompletion.ShouldBeEmpty();
 
         unhandledExceptionCatcher.ShouldNotHaveExceptions();
@@ -438,7 +438,7 @@ public abstract class MessagesSubscriptionTests
             receivedMessages[i].ShouldBe(i);
 
         await BusyWait.Until(
-            async () => await functionStore.MessageStore.GetMessages(storedId!, skip: 0).SelectAsync(m => m.Count) == 0,
+            async () => await functionStore.MessageStore.GetMessages(storedId!).SelectAsync(m => m.Count) == 0,
             maxWait: TimeSpan.FromSeconds(30)
         );
 

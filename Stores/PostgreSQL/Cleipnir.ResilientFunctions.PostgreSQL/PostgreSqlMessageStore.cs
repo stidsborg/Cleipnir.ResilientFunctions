@@ -191,10 +191,10 @@ public class PostgreSqlMessageStore : IMessageStore
         await command.ExecuteNonQueryAsync();
     }
 
-    public async Task<IReadOnlyList<StoredMessage>> GetMessages(StoredId storedId, long skip)
+    public async Task<IReadOnlyList<StoredMessage>> GetMessages(StoredId storedId)
     {
         await using var conn = await CreateConnection();
-        await using var command = sqlGenerator.GetMessages(storedId, skip).ToNpgsqlCommand(conn);
+        await using var command = sqlGenerator.GetMessages(storedId).ToNpgsqlCommand(conn);
 
         await using var reader = await command.ExecuteReaderAsync();
         var messages = await sqlGenerator.ReadMessages(reader);

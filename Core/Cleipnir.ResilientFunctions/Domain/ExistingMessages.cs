@@ -40,7 +40,7 @@ public class ExistingMessages
                 )
             ).ToList();
 
-        var storedMessages = await _messageStore.GetMessages(_storedId, skip: 0);
+        var storedMessages = await _messageStore.GetMessages(_storedId);
         _receivedMessages = storedMessages.ToList();
         return await GetReceivedMessages();
     }

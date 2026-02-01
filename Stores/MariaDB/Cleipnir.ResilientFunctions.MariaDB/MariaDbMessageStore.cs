@@ -260,11 +260,11 @@ public class MariaDbMessageStore : IMessageStore
         await command.ExecuteNonQueryAsync();
     }
 
-    public async Task<IReadOnlyList<StoredMessage>> GetMessages(StoredId storedId, long skip)
+    public async Task<IReadOnlyList<StoredMessage>> GetMessages(StoredId storedId)
     {
         await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
         await using var command = _sqlGenerator
-            .GetMessages(storedId, skip)
+            .GetMessages(storedId)
             .ToSqlCommand(conn);
 
         await using var reader = await command.ExecuteReaderAsync();
@@ -276,7 +276,7 @@ public class MariaDbMessageStore : IMessageStore
     public async Task<IReadOnlyList<StoredMessage>> GetMessages(StoredId storedId, IReadOnlyList<long> skipPositions)
     {
         if (!skipPositions.Any())
-            return await GetMessages(storedId, skip: 0);
+            return await GetMessages(storedId);
         
         await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
         await using var command = _sqlGenerator

@@ -600,20 +600,19 @@ public class SqlGenerator(string tablePrefix)
     }
     
     private string? _getMessagesSql;
-    public StoreCommand GetMessages(StoredId storedId, long skip)
+    public StoreCommand GetMessages(StoredId storedId)
     {
         _getMessagesSql ??= @$"
             SELECT content, position
             FROM {tablePrefix}_messages
-            WHERE id = ? AND position >= ?
+            WHERE id = ?
             ORDER BY position ASC;";
 
         var command = StoreCommand.Create(
             _getMessagesSql,
             values:
             [
-                storedId.AsGuid.ToString("N"),
-                skip
+                storedId.AsGuid.ToString("N")
             ]
         );
         return command;
