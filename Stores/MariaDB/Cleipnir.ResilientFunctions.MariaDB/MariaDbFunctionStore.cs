@@ -213,7 +213,7 @@ public class MariaDbFunctionStore : IFunctionStore
     public async Task<StoredFlowWithEffectsAndMessages?> RestartExecution(StoredId storedId, ReplicaId replicaId)
     {
         var restartCommand = _sqlGenerator.RestartExecution(storedId, replicaId);
-        var messagesCommand = _sqlGenerator.GetMessages(storedId, skip: 0);
+        var messagesCommand = _sqlGenerator.GetMessages(storedId);
 
         await using var conn = await CreateOpenConnection(_connectionString);
         await using var command = StoreCommand

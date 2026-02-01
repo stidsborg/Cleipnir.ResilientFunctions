@@ -220,7 +220,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
     {
         var restartCommand = _sqlGenerator.RestartExecution(storedId, replicaId);
         var effectsCommand = _sqlGenerator.GetEffects(storedId);
-        var messagesCommand = _sqlGenerator.GetMessages(storedId, skip: 0);
+        var messagesCommand = _sqlGenerator.GetMessages(storedId);
 
         await using var conn = await CreateConnection();
         await using var command = StoreCommandExtensions

@@ -579,7 +579,7 @@ public abstract class StoreTests
         sf.Status.ShouldBe(Status.Succeeded);
         sf.Exception.ShouldBeNull();
 
-        var storedMessages = await store.MessageStore.GetMessages(functionId, skip: 0);
+        var storedMessages = await store.MessageStore.GetMessages(functionId);
         storedMessages.Count.ShouldBe(1);
         var deserializedMessage = (string) DefaultSerializer.Instance.Deserialize(storedMessages[0].MessageContent, DefaultSerializer.Instance.ResolveType(storedMessages[0].MessageType)!);
         deserializedMessage.ShouldBe("hello everyone");
@@ -617,7 +617,7 @@ public abstract class StoreTests
         sf.Status.ShouldBe(Status.Suspended);
         sf.Parameter.ShouldBe(storedParameter.ToUtf8Bytes());
 
-        var messages = await store.MessageStore.GetMessages(functionId, skip: 0);
+        var messages = await store.MessageStore.GetMessages(functionId);
         messages.ShouldBeEmpty();
 
         await Task.Delay(500);
@@ -721,7 +721,7 @@ public abstract class StoreTests
         await store.MessageStore.AppendMessage(functionId, new StoredMessage("Hello".ToJson().ToUtf8Bytes(), MessageType: typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Position: 0));
         await store.MessageStore.AppendMessage(functionId, new StoredMessage("World".ToJson().ToUtf8Bytes(), MessageType: typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Position: 0));
         
-        var messages = await store.MessageStore.GetMessages(functionId, skip: 0);
+        var messages = await store.MessageStore.GetMessages(functionId);
         messages.Count.ShouldBe(2);
         messages[0].DefaultDeserialize().ShouldBe("Hello");
         messages[1].DefaultDeserialize().ShouldBe("World");
@@ -1506,7 +1506,7 @@ public abstract class StoreTests
         effectResult2.EffectId.ShouldBe(new EffectId(["SomeEffect2".GetHashCode()]));
         effectResult2.Result!.ToStringFromUtf8Bytes().ShouldBe("hello universe");
 
-        var messages = await store.MessageStore.GetMessages(storedId, skip: 0);
+        var messages = await store.MessageStore.GetMessages(storedId);
         messages.Count.ShouldBe(2);
         var fetchedMessage1 = messages[0];
         fetchedMessage1.MessageType.ToStringFromUtf8Bytes().ShouldBe("some type");
@@ -1571,7 +1571,7 @@ public abstract class StoreTests
         var effectResults = await store.EffectsStore.GetEffectResults(storedId);
         effectResults.Count.ShouldBe(0);
 
-        var messages = await store.MessageStore.GetMessages(storedId, skip: 0);
+        var messages = await store.MessageStore.GetMessages(storedId);
         messages.Count.ShouldBe(2);
         var fetchedMessage1 = messages[0];
         fetchedMessage1.MessageType.ToStringFromUtf8Bytes().ShouldBe("some type");
@@ -1646,7 +1646,7 @@ public abstract class StoreTests
         effectResult2.EffectId.ShouldBe(new EffectId(["SomeEffect2".GetHashCode()]));
         effectResult2.Result!.ToStringFromUtf8Bytes().ShouldBe("hello universe");
 
-        var messages = await store.MessageStore.GetMessages(storedId, skip: 0);
+        var messages = await store.MessageStore.GetMessages(storedId);
         messages.Count.ShouldBe(0);
         
         //idempotency check

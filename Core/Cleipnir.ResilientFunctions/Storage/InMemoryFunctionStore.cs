@@ -134,7 +134,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         }
         var sf = await GetFunction(storedId);
         var effects = await EffectsStore.GetEffectResults(storedId);
-        var messages = await MessageStore.GetMessages(storedId, skip: 0);
+        var messages = await MessageStore.GetMessages(storedId);
 
         var session = new SnapshotStorageSession(owner);
         foreach (var effect in effects)
@@ -688,7 +688,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         return Task.CompletedTask;
     }
 
-    private IEnumerable<StoredMessage> GetMessages(StoredId storedId)
+    private IEnumerable<StoredMessage> GetMessagesInternal(StoredId storedId)
     {
         lock (_sync)
             return !_messages.ContainsKey(storedId)
@@ -696,18 +696,18 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
                 : _messages[storedId].OrderBy(kv => kv.Key).Select(kv => kv.Value with { Position = kv.Key }).ToList();
     }
 
-    public virtual Task<IReadOnlyList<StoredMessage>> GetMessages(StoredId storedId, long skip)
-        => ((IReadOnlyList<StoredMessage>)GetMessages(storedId).Skip((int)skip).ToList()).ToTask();
+    public virtual Task<IReadOnlyList<StoredMessage>> GetMessages(StoredId storedId)
+        => ((IReadOnlyList<StoredMessage>)GetMessagesInternal(storedId).ToList()).ToTask();
 
     public virtual Task<IReadOnlyList<StoredMessage>> GetMessages(StoredId storedId, IReadOnlyList<long> skipPositions)
-        => ((IReadOnlyList<StoredMessage>)GetMessages(storedId).Where(m => !skipPositions.Contains(m.Position)).ToList()).ToTask();
+        => ((IReadOnlyList<StoredMessage>)GetMessagesInternal(storedId).Where(m => !skipPositions.Contains(m.Position)).ToList()).ToTask();
 
     public async Task<Dictionary<StoredId, List<StoredMessage>>> GetMessages(IEnumerable<StoredId> storedIds)
     {
         var dict = new Dictionary<StoredId, List<StoredMessage>>();
         foreach (var storedId in storedIds)
         {
-            dict[storedId] = (await GetMessages(storedId, skip: 0)).ToList();
+            dict[storedId] = (await GetMessages(storedId)).ToList();
         }
 
         return dict;
@@ -717,7 +717,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
     {
         IDictionary<StoredId, long> positions = new Dictionary<StoredId, long>();
         foreach (var storedId in storedIds)
-            positions[storedId] = GetMessages(storedId).Count() - 1;
+            positions[storedId] = GetMessagesInternal(storedId).Count() - 1;
 
         return positions.ToTask();
     }

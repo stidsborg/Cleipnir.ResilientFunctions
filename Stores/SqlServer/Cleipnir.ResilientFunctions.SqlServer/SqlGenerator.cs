@@ -583,12 +583,12 @@ public class SqlGenerator(string tablePrefix)
     }
     
     private string? _getMessagesSql;
-    public StoreCommand GetMessages(StoredId storedId, long skip, string paramPrefix = "")
+    public StoreCommand GetMessages(StoredId storedId, string paramPrefix = "")
     {
         _getMessagesSql ??= @$"
             SELECT Content, Position
             FROM {tablePrefix}_Messages
-            WHERE Id = @Id AND Position >= @Position
+            WHERE Id = @Id
             ORDER BY Position ASC;";
 
         var sql = _getMessagesSql;
@@ -596,7 +596,6 @@ public class SqlGenerator(string tablePrefix)
             sql = sql.Replace("@", $"@{paramPrefix}");
         var command = StoreCommand.Create(sql);
         command.AddParameter($"@{paramPrefix}Id", storedId.AsGuid);
-        command.AddParameter($"@{paramPrefix}Position", skip);
 
         return command;
     }

@@ -197,7 +197,7 @@ public abstract class StoreCrudTests
         await store.GetFunction(storedId).ShouldBeNullAsync();
         await store.CorrelationStore.GetCorrelations(storedId).ShouldBeEmptyAsync();
         await store.EffectsStore.GetEffectResults(storedId).ShouldBeEmptyAsync();
-        await store.MessageStore.GetMessages(storedId, skip: 0).ShouldBeEmptyAsync();
+        await store.MessageStore.GetMessages(storedId).ShouldBeEmptyAsync();
     }
     
     public abstract Task NonExistingFunctionCanBeDeleted();
