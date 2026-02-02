@@ -83,10 +83,15 @@ public class ExistingMessages
 
     /// <summary>
     /// Removes the message at the provided position.
-    /// A removed message is replaced with a NoOp message in order to preserve other positions. 
     /// </summary>
     /// <param name="position">Message position</param>
-    public Task Remove(int position) => Replace(position, NoOp.Instance);
+    public async Task Remove(long position)
+    {
+        await _messageStore.DeleteMessages(_storedId, positions: [position]);
+
+        // Invalidate cache so it will be re-fetched with correct data
+        _receivedMessages = null;
+    }
 
     /// <summary>
     /// Remove all existing fires timeouts from messages

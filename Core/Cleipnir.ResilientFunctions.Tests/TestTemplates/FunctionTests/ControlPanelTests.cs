@@ -1365,7 +1365,7 @@ public abstract class ControlPanelTests
         
         await controlPanel.ClearFailures();
         await controlPanel.Effects.AllIds.SelectAsync(ids => ids.Any()).ShouldBeFalseAsync();
-        await controlPanel.Messages.AsObjects.SelectAsync(msgs => msgs.Any(msg => msg is not NoOp)).ShouldBeFalseAsync();
+        await controlPanel.Messages.AsObjects.SelectAsync(msgs => msgs.Any()).ShouldBeFalseAsync();
         
         shouldFail = false;
         await controlPanel.Restart();

@@ -43,10 +43,6 @@ public class MessagesTests : Cleipnir.ResilientFunctions.Tests.Messaging.TestTem
         => MultipleMessagesCanBeAppendedOneAfterTheOther(FunctionStoreFactory.Create());
     
     [TestMethod]
-    public override Task NoOpMessageIsIgnored()
-        => NoOpMessageIsIgnored(FunctionStoreFactory.Create());
-    
-    [TestMethod]
     public override Task PingPongMessagesCanBeExchangedMultipleTimes()
         => PingPongMessagesCanBeExchangedMultipleTimes(FunctionStoreFactory.Create());
 

@@ -40,10 +40,6 @@ public class MessagesTests : ResilientFunctions.Tests.Messaging.TestTemplates.Me
         => MultipleMessagesCanBeAppendedOneAfterTheOther(FunctionStoreFactory.Create());
     
     [TestMethod]
-    public override Task NoOpMessageIsIgnored()
-        => NoOpMessageIsIgnored(FunctionStoreFactory.Create());
-    
-    [TestMethod]
     public override Task PingPongMessagesCanBeExchangedMultipleTimes()
         => PingPongMessagesCanBeExchangedMultipleTimes(FunctionStoreFactory.Create());
 

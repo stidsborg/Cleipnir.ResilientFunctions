@@ -6,7 +6,6 @@ using Cleipnir.ResilientFunctions.CoreRuntime;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.CoreRuntime.Serialization;
 using Cleipnir.ResilientFunctions.Domain;
-using Cleipnir.ResilientFunctions.Domain.Events;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Queuing;
@@ -579,52 +578,4 @@ public abstract class MessagesTests
         messages.Count.ShouldBe(1);
         messages[0].Sender.ShouldBe("TestSender");
     }
-
-    public abstract Task NoOpMessageIsIgnored();
-    protected async Task NoOpMessageIsIgnored(Task<IFunctionStore> functionStoreTask)
-    {
-        var flowType = TestFlowId.Create().Type;
-        var functionStore = await functionStoreTask;
-        functionStore = functionStore.WithPrefix("NoOp" + Guid.NewGuid().ToString("N"));
-        await functionStore.Initialize();
-        var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        var unhandledExceptionHandler = new UnhandledExceptionHandler(unhandledExceptionCatcher.Catch);
-
-        using var registry = new FunctionsRegistry(functionStore, new Settings(unhandledExceptionCatcher.Catch));
-        var registration = registry.RegisterFunc<string, string>(
-            flowType,
-            async Task<string> (_, workflow) =>
-            {
-                var queueManager = new QueueManager(
-                    workflow.FlowId,
-                    workflow.StoredId,
-                    functionStore.MessageStore,
-                    DefaultSerializer.Instance,
-                    workflow.Effect,
-                    unhandledExceptionHandler,
-                    new FlowTimeouts(),
-                    () => DateTime.UtcNow,
-                    SettingsWithDefaults.Default
-                );
-                await queueManager.Initialize();
-
-                var queueClient = new QueueClient(queueManager, DefaultSerializer.Instance, () => DateTime.UtcNow);
-                var message = await queueClient.Pull<object>(workflow, workflow.Effect.CreateNextImplicitId(), maxWait: TimeSpan.FromSeconds(10));
-
-                message.ShouldBeOfType<string>();
-                return (string)message;
-            }
-        );
-
-        var invocation = registration.Invoke("SomeInstance", "SomeParam");
-
-        await registration.SendMessage("SomeInstance", NoOp.Instance);
-        await registration.SendMessage("SomeInstance", "Hallo World!");
-
-        var result = await invocation;
-        result.ShouldBe("Hallo World!");
-
-        unhandledExceptionCatcher.ShouldNotHaveExceptions();
-    }
-
 }

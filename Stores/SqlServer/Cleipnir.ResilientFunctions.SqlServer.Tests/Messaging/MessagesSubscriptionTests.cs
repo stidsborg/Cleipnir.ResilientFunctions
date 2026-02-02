@@ -43,10 +43,6 @@ public class MessagesSubscriptionTests : Cleipnir.ResilientFunctions.Tests.Messa
         => QueueClientWorksWithCustomSerializer(FunctionStoreFactory.Create());
 
     [TestMethod]
-    public override Task NoOpMessageIsIgnoredByQueueClient()
-        => NoOpMessageIsIgnoredByQueueClient(FunctionStoreFactory.Create());
-
-    [TestMethod]
     public override Task BatchedMessagesAreDeliveredToMultipleFlows()
         => BatchedMessagesAreDeliveredToMultipleFlows(FunctionStoreFactory.Create());
 
