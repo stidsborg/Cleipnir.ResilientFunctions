@@ -36,16 +36,16 @@ public class QueueManager(
     private readonly EffectId _toRemoveNextIndex = new([-1, 0]);
     private readonly EffectId _idempotencyKeysId = new([-1, -1]);
     private readonly List<EnvelopeWithPosition> _toDeliver = new();
-    private readonly List<long> _skipPositions = new();
     private readonly HashSet<long> _deliveredPositions = new();
 
     private IdempotencyKeys? _idempotencyKeys;
     private int _nextToRemoveIndex = 0;
     private readonly SemaphoreSlim _deliverySemaphore = new(1, 1);
-
     private readonly SemaphoreSlim _semaphoreSlim = new SemaphoreSlim(1);
     private bool _initialized = false;
     private volatile bool _disposed;
+    
+    private volatile Exception? _thrownException = null;
 
     public async Task Initialize()
     {
@@ -104,12 +104,14 @@ public class QueueManager(
         await _semaphoreSlim.WaitAsync();
         try
         {
+            if (_thrownException != null)
+                return;
+            
             List<long> skipPositions;
             lock (_lock)
                 skipPositions = _toDeliver
                     .Select(m => m.Position)
                     .Concat(_deliveredPositions)
-                    .Concat(_skipPositions)
                     .ToList();
 
             var messages = await messageStore.GetMessages(storedId, skipPositions);
@@ -145,8 +147,16 @@ public class QueueManager(
                 catch (Exception e)
                 {
                     unhandledExceptionHandler.Invoke(flowId.Type, e);
+                    _thrownException = e;
+
                     lock (_lock)
-                        _skipPositions.Add(position);
+                    {
+                        foreach (var (_, subscription) in _subscribers)
+                            subscription.Tcs.TrySetException(_thrownException);
+                        _subscribers.Clear();
+                    }
+
+                    return;
                 }
             }
 
@@ -161,7 +171,7 @@ public class QueueManager(
 
     public async Task FetchMessages()
     {
-        while (!_disposed)
+        while (!_disposed && _thrownException == null)
         {
             await FetchMessagesOnce();
             await Task.Delay(100);
@@ -277,7 +287,7 @@ public class QueueManager(
     
     public async Task CheckTimeouts()
     {
-        while (!_disposed)
+        while (!_disposed && _thrownException == null)
         {
             var now = utcNow();
             List<KeyValuePair<EffectId, Subscription>> expiredSubscriptions;
@@ -301,6 +311,9 @@ public class QueueManager(
     
     public async Task<EnvelopeAndEffectResults?> Subscribe(EffectId effectId, MessagePredicate predicate, DateTime? timeout, EffectId timeoutId, TimeSpan? maxWait)
     {
+        if (_thrownException != null)
+            throw _thrownException;
+
         var tcs = new TaskCompletionSource<EnvelopeAndEffectResults?>();
         lock (_lock)
             _subscribers[effectId] = new Subscription(predicate, tcs, timeout, timeoutId);
