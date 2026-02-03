@@ -34,8 +34,8 @@ public class QueueManager(
     private readonly EffectId _parentId = new([-1]);
     private readonly EffectId _toRemoveNextIndex = new([-1, 0]);
     private readonly EffectId _idempotencyKeysId = new([-1, -1]);
-    private readonly List<EnvelopeWithPosition> _toDeliver = new();
-    private readonly HashSet<long> _deliveredPositions = new();
+    private readonly List<MessageData> _toDeliver = new();
+    private readonly HashSet<long> _fetchedPositions = new();
 
     private IdempotencyKeys? _idempotencyKeys;
     private int _nextToRemoveIndex = 0;
@@ -104,17 +104,19 @@ public class QueueManager(
         try
         {
             if (_thrownException != null)
+            {
+                foreach (var (_, subscription) in _subscribers)
+                    subscription.Tcs.TrySetException(_thrownException);
+                _subscribers.Clear();
+                
                 return;
+            }
             
             List<long> skipPositions;
             lock (_lock)
-                skipPositions = _toDeliver
-                    .Select(m => m.Position)
-                    .Concat(_deliveredPositions)
-                    .ToList();
+                skipPositions = _fetchedPositions.ToList();
 
             var messages = await messageStore.GetMessages(storedId, skipPositions);
-            
             foreach (var (messageContent, messageType, position, idempotencyKey, sender, receiver) in messages)
             {
                 try
@@ -132,9 +134,20 @@ public class QueueManager(
                     }
 
                     var envelope = new Envelope(msg, receiver, sender);
-                    var envWithPosition = new EnvelopeWithPosition(envelope, position, idempotencyKeyResult);
+                    var messageData = new MessageData(
+                        envelope,
+                        position,
+                        idempotencyKeyResult,
+                        messageContent,
+                        messageType,
+                        receiver,
+                        sender
+                    );
                     lock (_lock)
-                        _toDeliver.Add(envWithPosition);
+                    {
+                        _toDeliver.Add(messageData);
+                        _fetchedPositions.Add(position);
+                    }
                 }
                 catch (Exception e)
                 {
@@ -196,7 +209,7 @@ public class QueueManager(
 
                 lock (_lock)
                     foreach (var position in positions)
-                        _deliveredPositions.Remove(position);
+                        _fetchedPositions.Remove(position);
             }
         }
         catch (Exception exception)
@@ -216,46 +229,53 @@ public class QueueManager(
         {
             while (true)
             {
-                List<EnvelopeWithPosition> messagesToDeliver;
+                List<MessageData> messages;
                 List<KeyValuePair<EffectId, Subscription>> subscribers;
                 lock (_lock)
                 {
-                    messagesToDeliver = _toDeliver.ToList();
+                    messages = _toDeliver.ToList();
                     subscribers = _subscribers.ToList();
                 }
 
                 var delivered = false;
-                foreach (var messageWithPosition in messagesToDeliver)
+                foreach (var envelopeWithPosition in messages)
                 {
                     if (delivered) break;
 
                     foreach (var idAndSubscription in subscribers)
                     {
                         var (effectId, subscription) = idAndSubscription;
-                        if (subscription.Predicate(messageWithPosition.Envelope))
+                        if (subscription.Predicate(envelopeWithPosition.Envelope))
                         {
-                            int toRemoveIndex;
+                            int positionToRemoveIndex;
                             lock (_lock)
                             {
                                 if (!_subscribers.ContainsKey(effectId)) //might have been removed by timeout
                                     continue;
 
-                                _toDeliver.Remove(messageWithPosition);
-                                _deliveredPositions.Add(messageWithPosition.Position);
+                                _toDeliver.Remove(envelopeWithPosition);
+                                _fetchedPositions.Add(envelopeWithPosition.Position);
                                 _subscribers.Remove(effectId);
-                                toRemoveIndex = _nextToRemoveIndex++;
+                                positionToRemoveIndex = _nextToRemoveIndex++;
                             }
 
-                            await effect.Upsert(_toRemoveNextIndex, toRemoveIndex, alias: null, flush: false);
-
-                            var toRemoveId = new EffectId([-1, 0, toRemoveIndex]);
-                            var envelopeAndEffectResults = new EnvelopeAndEffectResults(
-                                messageWithPosition.Envelope,
-                                messageWithPosition.IdempotencyKeyResult == null
-                                ? [new EffectResult(toRemoveId, messageWithPosition.Position, Alias: null)]
-                                : [new EffectResult(toRemoveId, messageWithPosition.Position, Alias: null), messageWithPosition.IdempotencyKeyResult]
+                            var toRemoveId = new EffectId([-1, 0, positionToRemoveIndex]);
+                            await effect.Upserts(
+                                new List<EffectResult>(
+                                [
+                                    new EffectResult(_toRemoveNextIndex, positionToRemoveIndex, Alias: null),
+                                    new EffectResult(toRemoveId, envelopeWithPosition.Position, Alias: null),
+                                    new EffectResult(subscription.MessageContentId, envelopeWithPosition.MessageContentBytes, Alias: null),
+                                    new EffectResult(subscription.MessageTypeId, envelopeWithPosition.MessageTypeBytes, Alias: null),
+                                    new EffectResult(subscription.ReceiverId, envelopeWithPosition.Receiver, Alias: null),
+                                    new EffectResult(subscription.SenderId, envelopeWithPosition.Sender, Alias: null),
+                                ]).Concat(envelopeWithPosition.IdempotencyKeyResult == null
+                                    ? []
+                                    : [envelopeWithPosition.IdempotencyKeyResult]),
+                                flush: false
                             );
-                            subscription.Tcs.SetResult(envelopeAndEffectResults);
+                            
+                            subscription.Tcs.SetResult(envelopeWithPosition.Envelope);
 
                             delivered = true;
                             break;
@@ -301,17 +321,26 @@ public class QueueManager(
         }
     }
     
-    public async Task<EnvelopeAndEffectResults?> Subscribe(EffectId effectId, MessagePredicate predicate, DateTime? timeout, EffectId timeoutId, TimeSpan? maxWait)
+    public async Task<Envelope?> Subscribe(
+        EffectId effectId,
+        MessagePredicate predicate, 
+        DateTime? timeout, 
+        EffectId timeoutId,
+        EffectId messageId,
+        EffectId messageTypeId,
+        EffectId receiverId,
+        EffectId senderId,
+        TimeSpan? maxWait)
     {
         if (_thrownException != null)
             throw _thrownException;
 
-        var tcs = new TaskCompletionSource<EnvelopeAndEffectResults?>();
+        var tcs = new TaskCompletionSource<Envelope?>();
         lock (_lock)
-            _subscribers[effectId] = new Subscription(predicate, tcs, timeout, timeoutId);
+            _subscribers[effectId] = new Subscription(predicate, tcs, timeout, messageId, messageTypeId, receiverId, senderId);
 
         if (timeout != null)
-            timeouts.AddTimeout(timeoutId!, timeout.Value);
+            timeouts.AddTimeout(timeoutId, timeout.Value);
 
         _ = TryToDeliverAsync();
 
@@ -324,9 +353,24 @@ public class QueueManager(
         return await tcs.Task;
     }
 
-    public record EnvelopeWithPosition(Envelope Envelope, long Position, EffectResult? IdempotencyKeyResult);
-    public record EnvelopeAndEffectResults(Envelope Message, IEnumerable<EffectResult> EffectResults);
-    private record Subscription(MessagePredicate Predicate, TaskCompletionSource<EnvelopeAndEffectResults?> Tcs, DateTime? Timeout, EffectId? TimeoutId);
+    public record MessageData(
+        Envelope Envelope,
+        long Position,
+        EffectResult? IdempotencyKeyResult,
+        byte[] MessageContentBytes,
+        byte[] MessageTypeBytes,
+        string? Receiver,
+        string? Sender
+    );
+
+    private record Subscription(
+        MessagePredicate Predicate, 
+        TaskCompletionSource<Envelope?> Tcs, 
+        DateTime? Timeout, 
+        EffectId MessageContentId, 
+        EffectId MessageTypeId,
+        EffectId ReceiverId,
+        EffectId SenderId);
 
     public void Dispose() => _disposed = true;
 }

@@ -1,5 +1,4 @@
 using System;
-using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
@@ -37,7 +36,7 @@ public class QueueClient(QueueManager queueManager, ISerializer serializer, UtcN
     {
         var effect = workflow.Effect;
         var messageId = parentId.CreateChild(0);
-        var typeId = parentId.CreateChild(1);
+        var messageTypeId = parentId.CreateChild(1);
         var timeoutId = parentId.CreateChild(2);
         var receiverId = parentId.CreateChild(3);
         var senderId = parentId.CreateChild(4);
@@ -49,6 +48,10 @@ public class QueueClient(QueueManager queueManager, ISerializer serializer, UtcN
                 envelope => filter?.Invoke(envelope) ?? true,
                 timeout,
                 timeoutId,
+                messageId,
+                messageTypeId,
+                receiverId,
+                senderId,
                 maxWait
             );
 
@@ -58,33 +61,22 @@ public class QueueClient(QueueManager queueManager, ISerializer serializer, UtcN
                 return null;
             }
 
-            var envelope = result.Message;
-            var effectResults = result.EffectResults;
-            await effect.Upserts(
-                effectResults.Concat(
-                [
-                    new EffectResult(messageId, envelope.Message, Alias: null),
-                    new EffectResult(typeId, serializer.SerializeType(envelope.Message.GetType()), Alias: null),
-                    new EffectResult(receiverId, envelope.Receiver, Alias: null),
-                    new EffectResult(senderId, envelope.Sender, Alias: null)
-                ]),
-                flush: false
-            );
-
-            return envelope;
+            return result;
         }
         
-        if (!effect.TryGet<byte[]>(typeId, out var typeNameBytes))
+        if (!effect.TryGet<byte[]>(messageTypeId, out var typeNameBytes))
             return null; // timeout case - no message was received
 
         var type = serializer.ResolveType(typeNameBytes!)
                    ?? throw new TypeLoadException($"Type '{Convert.ToBase64String(typeNameBytes!)}' could not be resolved");
-        if (!effect.TryGet(messageId, type!, out var message))
+        if (!effect.TryGet<byte[]>(messageId, out var messageBytes))
             throw new InvalidOperationException("Effect did not have message as expected");
+
+        var message = serializer.Deserialize(messageBytes!, type);
 
         effect.TryGet<string?>(receiverId, out var receiver);
         effect.TryGet<string?>(senderId, out var sender);
 
-        return new Envelope(message!, receiver, sender);
+        return new Envelope(message, receiver, sender);
     }
 }
