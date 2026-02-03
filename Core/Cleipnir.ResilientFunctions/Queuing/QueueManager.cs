@@ -298,7 +298,7 @@ public class QueueManager(
             }
 
             foreach (var (_, subscription) in expiredSubscriptions)
-                subscription.Tcs.SetResult(null);
+                subscription.Tcs.TrySetResult(null);
 
             await Task.Delay(100);
         }
