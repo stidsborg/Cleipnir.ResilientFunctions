@@ -30,6 +30,7 @@ public class QueueManager(
 {
     private readonly Dictionary<EffectId, Subscription> _subscribers = new();
 
+    private readonly EffectId _parentId = new([-1]);
     private readonly EffectId _toRemoveNextIndex = new([-1, 0]);
     private readonly EffectId _idempotencyKeysId = new([-1, -1]);
     private readonly List<MessageData> _toDeliver = new();
@@ -81,8 +82,8 @@ public class QueueManager(
             _semaphore.Release();
         }
         
-        await FetchMessages();
-        _ = Task.Run(StartFetchMessagesLoop);
+        await FetchMessagesOnce();
+        _ = Task.Run(FetchMessages);
         _ = Task.Run(CheckTimeouts);
     }
 
@@ -92,7 +93,7 @@ public class QueueManager(
         return new QueueClient(this, serializer, utcNow);
     }
 
-    public async Task FetchMessages()
+    public async Task FetchMessagesOnce()
     {
         if (_disposed)
             throw new ObjectDisposedException($"{nameof(QueueManager)} is disposed already");
@@ -155,7 +156,7 @@ public class QueueManager(
             }
 
             if (messages.Any())
-                _ = Task.Run(DeliverMessages);
+                _ = TryToDeliverAsync();
         }
         finally
         {
@@ -163,11 +164,11 @@ public class QueueManager(
         }
     }
 
-    public async Task StartFetchMessagesLoop()
+    public async Task FetchMessages()
     {
         while (!_disposed && _thrownException == null)
         {
-            await FetchMessages();
+            await FetchMessagesOnce();
             await Task.Delay(100);
         }
     }
@@ -210,7 +211,7 @@ public class QueueManager(
         }
     }
 
-    private async Task DeliverMessages()
+    private async Task TryToDeliverAsync()
     {
         await _semaphore.WaitAsync();
         try
@@ -334,7 +335,7 @@ public class QueueManager(
         if (timeout != null)
             timeouts.AddTimeout(timeoutId, timeout.Value);
 
-        _ = DeliverMessages();
+        _ = TryToDeliverAsync();
 
         await Task.WhenAny(tcs.Task, Task.Delay(maxWait ?? settings.MessagesDefaultMaxWaitForCompletion));
 

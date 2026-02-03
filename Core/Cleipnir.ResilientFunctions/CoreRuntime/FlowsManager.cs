@@ -36,7 +36,7 @@ public class FlowsManager
                     continue;
                 
                 var queueManager = _dict[id].QueueManager;
-                Task.Run(() => queueManager.FetchMessages());
+                Task.Run(() => queueManager.FetchMessagesOnce());
             }
         }
     }
