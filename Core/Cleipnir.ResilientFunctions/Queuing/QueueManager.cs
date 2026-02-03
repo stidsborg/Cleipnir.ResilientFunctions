@@ -29,7 +29,8 @@ public class QueueManager(
     : IDisposable
 {
     private readonly Dictionary<EffectId, Subscription> _subscribers = new();
-
+    private readonly Lock _lock = new();
+    
     private readonly EffectId _parentId = new([-1]);
     private readonly EffectId _toRemoveNextIndex = new([-1, 0]);
     private readonly EffectId _idempotencyKeysId = new([-1, -1]);
@@ -104,13 +105,15 @@ public class QueueManager(
             if (_thrownException != null)
             {
                 foreach (var (_, subscription) in _subscribers)
-                    _ = Task.Run(() => subscription.Tcs.TrySetException(_thrownException));
-
+                    subscription.Tcs.TrySetException(_thrownException);
                 _subscribers.Clear();
+                
                 return;
             }
             
-            var skipPositions = _fetchedPositions.ToList();
+            List<long> skipPositions;
+            lock (_lock)
+                skipPositions = _fetchedPositions.ToList();
 
             var messages = await messageStore.GetMessages(storedId, skipPositions);
             foreach (var (messageContent, messageType, position, idempotencyKey, sender, receiver) in messages)
@@ -139,17 +142,23 @@ public class QueueManager(
                         receiver,
                         sender
                     );
-                    _toDeliver.Add(messageData);
-                    _fetchedPositions.Add(position);
+                    lock (_lock)
+                    {
+                        _toDeliver.Add(messageData);
+                        _fetchedPositions.Add(position);
+                    }
                 }
                 catch (Exception e)
                 {
                     unhandledExceptionHandler.Invoke(flowId.Type, e);
                     _thrownException = e;
 
-                    foreach (var (_, subscription) in _subscribers)
-                        _ = Task.Run(() => subscription.Tcs.TrySetException(_thrownException));
-                    _subscribers.Clear();
+                    lock (_lock)
+                    {
+                        foreach (var (_, subscription) in _subscribers)
+                            subscription.Tcs.TrySetException(_thrownException);
+                        _subscribers.Clear();
+                    }
 
                     return;
                 }
@@ -197,8 +206,9 @@ public class QueueManager(
                 foreach (var nonDirtyChild in nonDirtyChildren)
                     await effect.Clear(nonDirtyChild, flush: false);
 
-                foreach (var position in positions)
-                    _fetchedPositions.Remove(position);
+                lock (_lock)
+                    foreach (var position in positions)
+                        _fetchedPositions.Remove(position);
             }
         }
         catch (Exception exception)
@@ -218,8 +228,13 @@ public class QueueManager(
         {
             while (true)
             {
-                var messages = _toDeliver.ToList();
-                var subscribers = _subscribers.ToList();
+                List<MessageData> messages;
+                List<KeyValuePair<EffectId, Subscription>> subscribers;
+                lock (_lock)
+                {
+                    messages = _toDeliver.ToList();
+                    subscribers = _subscribers.ToList();
+                }
 
                 var delivered = false;
                 foreach (var envelopeWithPosition in messages)
@@ -231,13 +246,17 @@ public class QueueManager(
                         var (effectId, subscription) = idAndSubscription;
                         if (subscription.Predicate(envelopeWithPosition.Envelope))
                         {
-                            if (!_subscribers.ContainsKey(effectId)) //might have been removed by timeout
-                                continue;
+                            int positionToRemoveIndex;
+                            lock (_lock)
+                            {
+                                if (!_subscribers.ContainsKey(effectId)) //might have been removed by timeout
+                                    continue;
 
-                            _toDeliver.Remove(envelopeWithPosition);
-                            _fetchedPositions.Add(envelopeWithPosition.Position);
-                            _subscribers.Remove(effectId);
-                            var positionToRemoveIndex = _nextToRemoveIndex++;
+                                _toDeliver.Remove(envelopeWithPosition);
+                                _fetchedPositions.Add(envelopeWithPosition.Position);
+                                _subscribers.Remove(effectId);
+                                positionToRemoveIndex = _nextToRemoveIndex++;
+                            }
 
                             var toRemoveId = new EffectId([-1, 0, positionToRemoveIndex]);
                             await effect.Upserts(
@@ -281,22 +300,17 @@ public class QueueManager(
     {
         while (!_disposed && _thrownException == null)
         {
+            var now = utcNow();
             List<KeyValuePair<EffectId, Subscription>> expiredSubscriptions;
 
-            await _semaphore.WaitAsync();
-            try
+            lock (_lock)
             {
-                var now = utcNow();
                 expiredSubscriptions = _subscribers
                     .Where(s => s.Value.Timeout.HasValue && s.Value.Timeout.Value <= now)
                     .ToList();
 
                 foreach (var expired in expiredSubscriptions)
                     _subscribers.Remove(expired.Key);
-            }
-            finally
-            {
-                _semaphore.Release();
             }
 
             foreach (var (_, subscription) in expiredSubscriptions)
@@ -308,8 +322,8 @@ public class QueueManager(
     
     public async Task<Envelope?> Subscribe(
         EffectId effectId,
-        MessagePredicate predicate,
-        DateTime? timeout,
+        MessagePredicate predicate, 
+        DateTime? timeout, 
         EffectId timeoutId,
         EffectId messageId,
         EffectId messageTypeId,
@@ -321,16 +335,8 @@ public class QueueManager(
             throw _thrownException;
 
         var tcs = new TaskCompletionSource<Envelope?>();
-
-        await _semaphore.WaitAsync();
-        try
-        {
+        lock (_lock)
             _subscribers[effectId] = new Subscription(predicate, tcs, timeout, messageId, messageTypeId, receiverId, senderId);
-        }
-        finally
-        {
-            _semaphore.Release();
-        }
 
         if (timeout != null)
             timeouts.AddTimeout(timeoutId, timeout.Value);
