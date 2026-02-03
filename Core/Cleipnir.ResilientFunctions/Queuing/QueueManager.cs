@@ -39,8 +39,7 @@ public class QueueManager(
 
     private IdempotencyKeys? _idempotencyKeys;
     private int _nextToRemoveIndex = 0;
-    private readonly SemaphoreSlim _deliverySemaphore = new(1, 1);
-    private readonly SemaphoreSlim _semaphoreSlim = new SemaphoreSlim(1);
+    private readonly SemaphoreSlim _semaphore = new(1);
     private bool _initialized = false;
     private volatile bool _disposed;
     
@@ -48,7 +47,7 @@ public class QueueManager(
 
     public async Task Initialize()
     {
-        await _semaphoreSlim.WaitAsync();
+        await _semaphore.WaitAsync();
         try
         {
             if (_disposed)
@@ -81,7 +80,7 @@ public class QueueManager(
         }
         finally
         {
-            _semaphoreSlim.Release();
+            _semaphore.Release();
         }
         
         await FetchMessagesOnce();
@@ -100,7 +99,7 @@ public class QueueManager(
         if (_disposed)
             throw new ObjectDisposedException($"{nameof(QueueManager)} is disposed already");
         
-        await _semaphoreSlim.WaitAsync();
+        await _semaphore.WaitAsync();
         try
         {
             if (_thrownException != null)
@@ -170,7 +169,7 @@ public class QueueManager(
         }
         finally
         {
-            _semaphoreSlim.Release();
+            _semaphore.Release();
         }
     }
 
@@ -185,7 +184,7 @@ public class QueueManager(
 
     public async Task AfterFlush()
     {
-        await _semaphoreSlim.WaitAsync();
+        await _semaphore.WaitAsync();
         try
         {
             var children = effect.GetChildren(_toRemoveNextIndex);
@@ -218,13 +217,13 @@ public class QueueManager(
         }
         finally
         {
-            _semaphoreSlim.Release();
+            _semaphore.Release();
         }
     }
 
     private async Task TryToDeliverAsync()
     {
-        await _deliverySemaphore.WaitAsync();
+        await _semaphore.WaitAsync();
         try
         {
             while (true)
@@ -275,7 +274,7 @@ public class QueueManager(
                                 flush: false
                             );
                             
-                            subscription.Tcs.SetResult(envelopeWithPosition.Envelope);
+                            _ = Task.Run(() => subscription.Tcs.SetResult(envelopeWithPosition.Envelope));
 
                             delivered = true;
                             break;
@@ -293,7 +292,7 @@ public class QueueManager(
         }
         finally
         {
-            _deliverySemaphore.Release();
+            _semaphore.Release();
         }
     }
     
