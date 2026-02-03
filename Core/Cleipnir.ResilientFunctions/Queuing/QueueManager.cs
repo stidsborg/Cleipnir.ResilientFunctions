@@ -234,7 +234,6 @@ public class QueueManager(
                                 continue;
 
                             _toDeliver.Remove(envelopeWithPosition);
-                            _fetchedPositions.Add(envelopeWithPosition.Position);
                             _subscribers.Remove(effectId);
                             var positionToRemoveIndex = _nextToRemoveIndex++;
 
