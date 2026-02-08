@@ -15,15 +15,16 @@ namespace Cleipnir.ResilientFunctions.Queuing;
 public delegate bool MessagePredicate(Envelope envelope);
 
 public class QueueManager(
-    FlowId flowId, 
-    StoredId storedId, 
-    IMessageStore messageStore, 
-    ISerializer serializer, 
-    Effect effect, 
+    FlowId flowId,
+    StoredId storedId,
+    IMessageStore messageStore,
+    ISerializer serializer,
+    Effect effect,
     UnhandledExceptionHandler unhandledExceptionHandler,
     FlowTimeouts timeouts,
     UtcNow utcNow,
     SettingsWithDefaults settings,
+    FlowsTimeoutManager flowsTimeoutManager,
     int maxIdempotencyKeyCount = 100,
     TimeSpan? maxIdempotencyKeyTtl = null)
     : IDisposable
@@ -57,6 +58,7 @@ public class QueueManager(
                 return;
             
             effect.RegisterQueueManager(this);
+            flowsTimeoutManager.RegisterFlow(storedId, CheckTimeouts);
 
             _idempotencyKeys = new IdempotencyKeys(_idempotencyKeysId, effect, maxIdempotencyKeyCount, maxIdempotencyKeyTtl, utcNow);
             _idempotencyKeys.Initialize();
@@ -86,7 +88,6 @@ public class QueueManager(
         
         await FetchMessagesOnce();
         _ = Task.Run(FetchMessages);
-        _ = Task.Run(CheckTimeouts);
     }
 
     public async Task<QueueClient> CreateQueueClient()
@@ -166,7 +167,7 @@ public class QueueManager(
             }
 
             if (messages.Any())
-                _ = TryToDeliverAsync();
+                _ = DeliverMessages();
         }
         finally
         {
@@ -174,6 +175,12 @@ public class QueueManager(
         }
     }
 
+    public async Task FetchAndTryToDeliver()
+    {
+        await FetchMessages();
+        await DeliverMessages();
+    }
+    
     public async Task FetchMessages()
     {
         while (!_disposed && _thrownException == null)
@@ -222,7 +229,7 @@ public class QueueManager(
         }
     }
 
-    private async Task TryToDeliverAsync()
+    private async Task DeliverMessages()
     {
         await _deliverySemaphore.WaitAsync();
         try
@@ -297,28 +304,26 @@ public class QueueManager(
         }
     }
     
-    public async Task CheckTimeouts()
+    public void CheckTimeouts()
     {
-        while (!_disposed && _thrownException == null)
+        if (_disposed || _thrownException != null)
+            return;
+
+        var now = utcNow();
+        List<KeyValuePair<EffectId, Subscription>> expiredSubscriptions;
+
+        lock (_lock)
         {
-            var now = utcNow();
-            List<KeyValuePair<EffectId, Subscription>> expiredSubscriptions;
+            expiredSubscriptions = _subscribers
+                .Where(s => s.Value.Timeout.HasValue && s.Value.Timeout.Value <= now)
+                .ToList();
 
-            lock (_lock)
-            {
-                expiredSubscriptions = _subscribers
-                    .Where(s => s.Value.Timeout.HasValue && s.Value.Timeout.Value <= now)
-                    .ToList();
-
-                foreach (var expired in expiredSubscriptions)
-                    _subscribers.Remove(expired.Key);
-            }
-
-            foreach (var (_, subscription) in expiredSubscriptions)
-                subscription.Tcs.SetResult(null);
-
-            await Task.Delay(100);
+            foreach (var expired in expiredSubscriptions)
+                _subscribers.Remove(expired.Key);
         }
+
+        foreach (var (_, subscription) in expiredSubscriptions)
+            subscription.Tcs.SetResult(null);
     }
     
     public async Task<Envelope?> Subscribe(
@@ -342,7 +347,7 @@ public class QueueManager(
         if (timeout != null)
             timeouts.AddTimeout(timeoutId, timeout.Value);
 
-        _ = TryToDeliverAsync();
+        _ = DeliverMessages();
 
         await Task.WhenAny(tcs.Task, Task.Delay(maxWait ?? settings.MessagesDefaultMaxWaitForCompletion));
 
@@ -372,5 +377,9 @@ public class QueueManager(
         EffectId ReceiverId,
         EffectId SenderId);
 
-    public void Dispose() => _disposed = true;
+    public void Dispose()
+    {
+        _disposed = true;
+        flowsTimeoutManager.RemoveFlow(storedId);
+    }
 }

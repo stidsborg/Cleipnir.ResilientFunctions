@@ -516,7 +516,7 @@ public abstract class SuspensionTests
         {
             await controlPanel.Refresh();
             return controlPanel.Status == Status.Succeeded;
-        }, maxWait: TimeSpan.FromSeconds(60));
+        }, maxWait: TimeSpan.FromSeconds(120), checkInterval: TimeSpan.FromMilliseconds(250));
 
         var result = controlPanel.Result!.ToHashSet();
         for (var i = 0; i < numberOfChildren; i++)

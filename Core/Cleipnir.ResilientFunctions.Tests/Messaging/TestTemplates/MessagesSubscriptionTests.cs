@@ -87,6 +87,7 @@ public abstract class MessagesSubscriptionTests
             nameof(QueueClientCanPullSingleMessage),
             inner: async Task<string> (string _, Workflow workflow) =>
             {
+                var flowsTimeoutManager = new FlowsTimeoutManager();
                 var queueManager = new QueueManager(
                     workflow.FlowId,
                     workflow.StoredId,
@@ -94,9 +95,10 @@ public abstract class MessagesSubscriptionTests
                     DefaultSerializer.Instance,
                     workflow.Effect,
                     unhandledExceptionHandler,
-                    new FlowTimeouts(),
+                    new FlowTimeouts(flowsTimeoutManager, workflow.StoredId),
                     () => DateTime.UtcNow,
-                    SettingsWithDefaults.Default
+                    SettingsWithDefaults.Default,
+                    flowsTimeoutManager
                 );
                 await queueManager.Initialize();
 
@@ -134,6 +136,7 @@ public abstract class MessagesSubscriptionTests
             inner: async Task<string> (string _, Workflow workflow) =>
             {
                 storedId = workflow.StoredId;
+                var flowsTimeoutManager = new FlowsTimeoutManager();
                 var queueManager = new QueueManager(
                     workflow.FlowId,
                     workflow.StoredId,
@@ -141,9 +144,10 @@ public abstract class MessagesSubscriptionTests
                     DefaultSerializer.Instance,
                     workflow.Effect,
                     unhandledExceptionHandler,
-                    new FlowTimeouts(),
+                    new FlowTimeouts(flowsTimeoutManager, workflow.StoredId),
                     () => DateTime.UtcNow,
-                    SettingsWithDefaults.Default
+                    SettingsWithDefaults.Default,
+                    flowsTimeoutManager
                 );
                 await queueManager.Initialize();
 
@@ -191,6 +195,7 @@ public abstract class MessagesSubscriptionTests
             nameof(QueueClientReturnsNullAfterTimeout),
             inner: async Task<string?> (string _, Workflow workflow) =>
             {
+                var flowsTimeoutManager = new FlowsTimeoutManager();
                 var queueManager = new QueueManager(
                     workflow.FlowId,
                     workflow.StoredId,
@@ -198,9 +203,10 @@ public abstract class MessagesSubscriptionTests
                     DefaultSerializer.Instance,
                     workflow.Effect,
                     unhandledExceptionHandler,
-                    new FlowTimeouts(),
+                    new FlowTimeouts(flowsTimeoutManager, workflow.StoredId),
                     () => DateTime.UtcNow,
-                    SettingsWithDefaults.Default
+                    SettingsWithDefaults.Default,
+                    flowsTimeoutManager
                 );
                 await queueManager.Initialize();
 
@@ -242,6 +248,7 @@ public abstract class MessagesSubscriptionTests
             nameof(QueueClientPullsFiveMessagesAndTimesOutOnSixth),
             inner: async Task<string> (string _, Workflow workflow) =>
             {
+                var flowsTimeoutManager = new FlowsTimeoutManager();
                 var queueManager = new QueueManager(
                     workflow.FlowId,
                     workflow.StoredId,
@@ -249,9 +256,10 @@ public abstract class MessagesSubscriptionTests
                     DefaultSerializer.Instance,
                     workflow.Effect,
                     unhandledExceptionHandler,
-                    new FlowTimeouts(),
+                    new FlowTimeouts(flowsTimeoutManager, workflow.StoredId),
                     () => DateTime.UtcNow,
-                    SettingsWithDefaults.Default
+                    SettingsWithDefaults.Default,
+                    flowsTimeoutManager
                 );
                 await queueManager.Initialize();
 
@@ -308,6 +316,7 @@ public abstract class MessagesSubscriptionTests
             inner: async Task<Tuple<string, string?>> (string _, Workflow workflow) =>
             {
                 storedId = workflow.StoredId;
+                var flowsTimeoutManager = new FlowsTimeoutManager();
                 var queueManager = new QueueManager(
                     workflow.FlowId,
                     workflow.StoredId,
@@ -315,9 +324,10 @@ public abstract class MessagesSubscriptionTests
                     DefaultSerializer.Instance,
                     workflow.Effect,
                     unhandledExceptionHandler,
-                    new FlowTimeouts(),
+                    new FlowTimeouts(flowsTimeoutManager, workflow.StoredId),
                     () => DateTime.UtcNow,
-                    SettingsWithDefaults.Default
+                    SettingsWithDefaults.Default,
+                    flowsTimeoutManager
                 );
                 await queueManager.Initialize();
 
@@ -370,6 +380,7 @@ public abstract class MessagesSubscriptionTests
             inner: async Task<string> (string _, Workflow workflow) =>
             {
                 storedId = workflow.StoredId;
+                var flowsTimeoutManager = new FlowsTimeoutManager();
                 var queueManager = new QueueManager(
                     workflow.FlowId,
                     workflow.StoredId,
@@ -377,9 +388,10 @@ public abstract class MessagesSubscriptionTests
                     DefaultSerializer.Instance,
                     workflow.Effect,
                     unhandledExceptionHandler,
-                    new FlowTimeouts(),
+                    new FlowTimeouts(flowsTimeoutManager, workflow.StoredId),
                     () => DateTime.UtcNow,
-                    SettingsWithDefaults.Default
+                    SettingsWithDefaults.Default,
+                    flowsTimeoutManager
                 );
                 await queueManager.Initialize();
 
@@ -459,6 +471,7 @@ public abstract class MessagesSubscriptionTests
             nameof(QueueClientFilterParameterFiltersMessages),
             inner: async Task<string> (string _, Workflow workflow) =>
             {
+                var flowsTimeoutManager = new FlowsTimeoutManager();
                 var queueManager = new QueueManager(
                     workflow.FlowId,
                     workflow.StoredId,
@@ -466,9 +479,10 @@ public abstract class MessagesSubscriptionTests
                     DefaultSerializer.Instance,
                     workflow.Effect,
                     unhandledExceptionHandler,
-                    new FlowTimeouts(),
+                    new FlowTimeouts(flowsTimeoutManager, workflow.StoredId),
                     () => DateTime.UtcNow,
-                    SettingsWithDefaults.Default
+                    SettingsWithDefaults.Default,
+                    flowsTimeoutManager
                 );
                 await queueManager.Initialize();
 
@@ -534,6 +548,7 @@ public abstract class MessagesSubscriptionTests
             inner: async Task<string> (string _, Workflow workflow) =>
             {
                 var unhandledExceptionHandler = new UnhandledExceptionHandler(unhandledExceptionCatcher.Catch);
+                var flowsTimeoutManager = new FlowsTimeoutManager();
                 var queueManager = new QueueManager(
                     workflow.FlowId,
                     workflow.StoredId,
@@ -541,9 +556,10 @@ public abstract class MessagesSubscriptionTests
                     DefaultSerializer.Instance,
                     workflow.Effect,
                     unhandledExceptionHandler,
-                    new FlowTimeouts(),
+                    new FlowTimeouts(flowsTimeoutManager, workflow.StoredId),
                     () => DateTime.UtcNow,
-                    SettingsWithDefaults.Default
+                    SettingsWithDefaults.Default,
+                    flowsTimeoutManager
                 );
                 await queueManager.Initialize();
 
@@ -603,6 +619,7 @@ public abstract class MessagesSubscriptionTests
             nameof(BatchedMessagesAreDeliveredToMultipleFlows),
             inner: async Task<string> (string _, Workflow workflow) =>
             {
+                var flowsTimeoutManager = new FlowsTimeoutManager();
                 var queueManager = new QueueManager(
                     workflow.FlowId,
                     workflow.StoredId,
@@ -610,9 +627,10 @@ public abstract class MessagesSubscriptionTests
                     DefaultSerializer.Instance,
                     workflow.Effect,
                     unhandledExceptionHandler,
-                    new FlowTimeouts(),
+                    new FlowTimeouts(flowsTimeoutManager, workflow.StoredId),
                     () => DateTime.UtcNow,
-                    SettingsWithDefaults.Default
+                    SettingsWithDefaults.Default,
+                    flowsTimeoutManager
                 );
                 await queueManager.Initialize();
 
@@ -673,6 +691,7 @@ public abstract class MessagesSubscriptionTests
             "PingFlow",
             inner: async Task<string> (string _, Workflow workflow) =>
             {
+                var flowsTimeoutManager = new FlowsTimeoutManager();
                 var queueManager = new QueueManager(
                     workflow.FlowId,
                     workflow.StoredId,
@@ -680,9 +699,10 @@ public abstract class MessagesSubscriptionTests
                     DefaultSerializer.Instance,
                     workflow.Effect,
                     unhandledExceptionHandler,
-                    new FlowTimeouts(),
+                    new FlowTimeouts(flowsTimeoutManager, workflow.StoredId),
                     () => DateTime.UtcNow,
-                    SettingsWithDefaults.Default
+                    SettingsWithDefaults.Default,
+                    flowsTimeoutManager
                 );
                 await queueManager.Initialize();
 
@@ -707,6 +727,7 @@ public abstract class MessagesSubscriptionTests
             "PongFlow",
             inner: async Task<string> (string _, Workflow workflow) =>
             {
+                var flowsTimeoutManager = new FlowsTimeoutManager();
                 var queueManager = new QueueManager(
                     workflow.FlowId,
                     workflow.StoredId,
@@ -714,9 +735,10 @@ public abstract class MessagesSubscriptionTests
                     DefaultSerializer.Instance,
                     workflow.Effect,
                     unhandledExceptionHandler,
-                    new FlowTimeouts(),
+                    new FlowTimeouts(flowsTimeoutManager, workflow.StoredId),
                     () => DateTime.UtcNow,
-                    SettingsWithDefaults.Default
+                    SettingsWithDefaults.Default,
+                    flowsTimeoutManager
                 );
                 await queueManager.Initialize();
 
@@ -775,6 +797,7 @@ public abstract class MessagesSubscriptionTests
             nameof(QueueManagerFailsOnMessageDeserializationError),
             inner: async Task<string> (string _, Workflow workflow) =>
             {
+                var flowsTimeoutManager = new FlowsTimeoutManager();
                 var queueManager = new QueueManager(
                     workflow.FlowId,
                     workflow.StoredId,
@@ -782,9 +805,10 @@ public abstract class MessagesSubscriptionTests
                     exceptionThrowingSerializer,
                     workflow.Effect,
                     unhandledExceptionHandler,
-                    new FlowTimeouts(),
+                    new FlowTimeouts(flowsTimeoutManager, workflow.StoredId),
                     () => DateTime.UtcNow,
-                    SettingsWithDefaults.Default
+                    SettingsWithDefaults.Default,
+                    flowsTimeoutManager
                 );
                 await queueManager.Initialize();
 
@@ -830,11 +854,14 @@ public abstract class MessagesSubscriptionTests
             new Settings(unhandledExceptionCatcher.Catch)
         );
 
-        var minimumTimeout = new FlowTimeouts();
+        var flowsTimeoutManager = new FlowsTimeoutManager();
+        StoredId? storedId = null;
         var rFunc = functionsRegistry.RegisterFunc(
             nameof(RegisteredTimeoutIsRemovedWhenPullingMessage),
             inner: async Task<string> (string _, Workflow workflow) =>
             {
+                storedId = workflow.StoredId;
+                var minimumTimeout = new FlowTimeouts(flowsTimeoutManager, workflow.StoredId);
                 var queueManager = new QueueManager(
                     workflow.FlowId,
                     workflow.StoredId,
@@ -844,7 +871,8 @@ public abstract class MessagesSubscriptionTests
                     unhandledExceptionHandler,
                     minimumTimeout,
                     () => DateTime.UtcNow,
-                    SettingsWithDefaults.Default
+                    SettingsWithDefaults.Default,
+                    flowsTimeoutManager
                 );
                 await queueManager.Initialize();
 
@@ -892,6 +920,7 @@ public abstract Task PullEnvelopeReturnsEnvelopeWithReceiverAndSender();
             nameof(PullEnvelopeReturnsEnvelopeWithReceiverAndSender),
             inner: async Task<string> (string _, Workflow workflow) =>
             {
+                var flowsTimeoutManager = new FlowsTimeoutManager();
                 var queueManager = new QueueManager(
                     workflow.FlowId,
                     workflow.StoredId,
@@ -899,9 +928,10 @@ public abstract Task PullEnvelopeReturnsEnvelopeWithReceiverAndSender();
                     DefaultSerializer.Instance,
                     workflow.Effect,
                     unhandledExceptionHandler,
-                    new FlowTimeouts(),
+                    new FlowTimeouts(flowsTimeoutManager, workflow.StoredId),
                     () => DateTime.UtcNow,
-                    SettingsWithDefaults.Default
+                    SettingsWithDefaults.Default,
+                    flowsTimeoutManager
                 );
                 await queueManager.Initialize();
 

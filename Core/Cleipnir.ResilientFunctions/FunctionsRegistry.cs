@@ -31,6 +31,8 @@ public class FunctionsRegistry : IDisposable
     private volatile bool _disposed;
     private readonly Lock _sync = new();
     private readonly ReplicaWatchdog _replicaWatchdog;
+    private readonly FlowsManager _flowsManager;
+    private readonly FlowsTimeoutManager _flowsTimeoutManager;
 
     public FunctionsRegistry(IFunctionStore functionStore, Settings? settings = null)
     {
@@ -39,6 +41,8 @@ public class FunctionsRegistry : IDisposable
         _shutdownCoordinator = new ShutdownCoordinator();
         _settings = SettingsWithDefaults.Default.Merge(settings);
         var utcNow = _settings.UtcNow;
+        _flowsManager = new FlowsManager();
+        _flowsTimeoutManager = new FlowsTimeoutManager();
         
         ClusterInfo = new ClusterInfo(ReplicaId.NewId());
         
@@ -221,13 +225,14 @@ public class FunctionsRegistry : IDisposable
                 settings?.ClearChildrenAfterCapture ?? true
             );
             var invoker = new Invoker<TParam, TReturn>(
-                flowType, 
+                flowType,
                 storedType,
                 inner,
                 invocationHelper,
                 settingsWithDefaults.UnhandledExceptionHandler,
                 _functionStore.Utilities,
-                ClusterInfo.ReplicaId
+                ClusterInfo.ReplicaId,
+                _flowsTimeoutManager
             );
 
             WatchDogsFactory.CreateAndStart(
@@ -313,15 +318,16 @@ public class FunctionsRegistry : IDisposable
                 settings?.ClearChildrenAfterCapture ?? true
             );
             var invoker = new Invoker<Unit, Unit>(
-                flowType, 
+                flowType,
                 storedType,
-                inner, 
+                inner,
                 invocationHelper,
                 settingsWithDefaults.UnhandledExceptionHandler,
                 _functionStore.Utilities,
-                ClusterInfo.ReplicaId
+                ClusterInfo.ReplicaId,
+                _flowsTimeoutManager
             );
-            
+
             WatchDogsFactory.CreateAndStart(
                 flowType,
                 storedType,
@@ -405,13 +411,14 @@ public class FunctionsRegistry : IDisposable
                 settings?.ClearChildrenAfterCapture ?? true
             );
             var rActionInvoker = new Invoker<TParam, Unit>(
-                flowType, 
+                flowType,
                 storedType,
-                inner, 
+                inner,
                 invocationHelper,
                 settingsWithDefaults.UnhandledExceptionHandler,
                 _functionStore.Utilities,
-                ClusterInfo.ReplicaId
+                ClusterInfo.ReplicaId,
+                _flowsTimeoutManager
             );
             
             WatchDogsFactory.CreateAndStart(
@@ -467,6 +474,7 @@ public class FunctionsRegistry : IDisposable
     public void Dispose()
     {
         _disposed = true;
+        _flowsTimeoutManager.Dispose();
         _shutdownCoordinator.SignalShutdown();
         _replicaWatchdog.Dispose();
     }
