@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Serialization;
-using Cleipnir.ResilientFunctions.Domain.Events;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Storage;
@@ -93,16 +92,4 @@ public class ExistingMessages
         _receivedMessages = null;
     }
 
-    /// <summary>
-    /// Remove all existing fires timeouts from messages
-    /// </summary>
-    public async Task RemoveTimeouts()
-    {
-        var receivedMessages = await GetReceivedMessages();
-        for (var i = 0; i < receivedMessages.Count; i++)
-        {
-            if (receivedMessages[i].Message is TimeoutEvent)
-                await Remove(i);
-        }
-    }
 }

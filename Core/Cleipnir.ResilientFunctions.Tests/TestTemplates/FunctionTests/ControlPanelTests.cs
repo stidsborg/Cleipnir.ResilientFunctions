@@ -4,7 +4,6 @@ using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.CoreRuntime.Serialization;
 using Cleipnir.ResilientFunctions.Domain;
-using Cleipnir.ResilientFunctions.Domain.Events;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
@@ -1335,13 +1334,7 @@ public abstract class ControlPanelTests
 
         try
         {
-            var timeoutEvent = new TimeoutEvent(EffectId.CreateWithRootContext("SomeTimeout".GetHashCode()), DateTime.UtcNow)
-                .ToMessageAndIdempotencyKey();
-
-            await registration.Invoke(
-                flowInstance,
-                InitialState.CreateWithMessagesOnly([timeoutEvent])
-            );
+            await registration.Invoke(flowInstance);
         }
         catch (FatalWorkflowException exception)
         {
@@ -1361,11 +1354,9 @@ public abstract class ControlPanelTests
         }
 
         await controlPanel.Effects.AllIds.SelectAsync(ids => ids.Any()).ShouldBeTrueAsync();
-        await controlPanel.Messages.AsObjects.SelectAsync(ids => ids.Any()).ShouldBeTrueAsync();
-        
+
         await controlPanel.ClearFailures();
         await controlPanel.Effects.AllIds.SelectAsync(ids => ids.Any()).ShouldBeFalseAsync();
-        await controlPanel.Messages.AsObjects.SelectAsync(msgs => msgs.Any()).ShouldBeFalseAsync();
         
         shouldFail = false;
         await controlPanel.Restart();

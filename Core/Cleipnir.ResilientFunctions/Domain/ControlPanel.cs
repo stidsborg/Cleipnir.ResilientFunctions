@@ -296,20 +296,19 @@ public abstract class BaseControlPanel<TParam, TReturn>
     public Task Delete() => _invocationHelper.Delete(StoredId);
 
     /// <summary>
-    /// Clear existing failed effects, retry information and timeouts.
+    /// Clear existing failed effects and retry information.
     /// </summary>
     public async Task ClearFailures()
     {
         await Effects.RemoveFailed();
-        await Messages.RemoveTimeouts();
 
         await Refresh();
     }
-    
+
     /// <summary>
     /// Restart invocation inlined immediately
     /// </summary>
-    /// <param name="clearFailures">Clear existing failed effects, retry information and timeouts</param>
+    /// <param name="clearFailures">Clear existing failed effects and retry information</param>
     /// <param name="refresh">Refresh control panel after invocation</param>
     /// <returns>Result of invocation</returns>
     public async Task<TReturn> Restart(bool clearFailures = false, bool refresh = true)
@@ -334,7 +333,7 @@ public abstract class BaseControlPanel<TParam, TReturn>
     /// <summary>
     /// Schedule invocation immediately
     /// </summary>
-    /// <param name="clearFailures">Clear existing failed effects, retry information and timeouts</param>
+    /// <param name="clearFailures">Clear existing failed effects and retry information</param>
     /// <param name="refresh">Refresh control panel after invocation</param>
     public async Task ScheduleRestart(bool clearFailures = false, bool refresh = true)
     {
