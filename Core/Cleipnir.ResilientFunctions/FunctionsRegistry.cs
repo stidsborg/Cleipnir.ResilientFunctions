@@ -232,7 +232,8 @@ public class FunctionsRegistry : IDisposable
                 settingsWithDefaults.UnhandledExceptionHandler,
                 _functionStore.Utilities,
                 ClusterInfo.ReplicaId,
-                _flowsTimeoutManager
+                _flowsTimeoutManager,
+                _flowsManager
             );
 
             WatchDogsFactory.CreateAndStart(
@@ -325,7 +326,8 @@ public class FunctionsRegistry : IDisposable
                 settingsWithDefaults.UnhandledExceptionHandler,
                 _functionStore.Utilities,
                 ClusterInfo.ReplicaId,
-                _flowsTimeoutManager
+                _flowsTimeoutManager,
+                _flowsManager
             );
 
             WatchDogsFactory.CreateAndStart(
@@ -418,7 +420,8 @@ public class FunctionsRegistry : IDisposable
                 settingsWithDefaults.UnhandledExceptionHandler,
                 _functionStore.Utilities,
                 ClusterInfo.ReplicaId,
-                _flowsTimeoutManager
+                _flowsTimeoutManager,
+                _flowsManager
             );
             
             WatchDogsFactory.CreateAndStart(
