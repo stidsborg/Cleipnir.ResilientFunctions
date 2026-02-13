@@ -92,3 +92,4 @@ Functions are registered using `FunctionsRegistry` and can be:
 The framework supports both direct function invocation and message-based workflows using `workflow.Messages` for event-driven scenarios.
 - never run docker compose assume it is running in the background
 - do not change white spaces for non affected code
+- to reset test databases run `bash reset_docker` followed by `dotnet run --project ./Stores/EnsureDatabaseConnections/EnsureDatabaseConnections.csproj` (it retries internally, no sleep needed)
