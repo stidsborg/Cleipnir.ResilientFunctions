@@ -33,8 +33,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Stores", "Stores", "{F74BC9
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cleipnir.ResilientFunctions.StressTests", "Stores\StressTests\Cleipnir.ResilientFunctions.StressTests.csproj", "{640D8843-9389-4422-9DC0-48A1E9D7C943}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cleipnir.ResilientFunctions.Cli", "Cli\Cleipnir.ResilientFunctions.Cli.csproj", "{DB685431-1846-4F70-A5C7-3DB6E72B7E84}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EnsureDatabaseConnections", "Stores\EnsureDatabaseConnections\EnsureDatabaseConnections.csproj", "{81EB21A5-FF28-4D08-A4E2-DF46CD9B653E}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sample.OrderProcessing", "Samples\Sample.OrderProcessing\Sample.OrderProcessing.csproj", "{1D069506-DDEC-469E-99CF-757A3D725011}"
@@ -172,18 +170,6 @@ Global
 		{640D8843-9389-4422-9DC0-48A1E9D7C943}.Release|x64.Build.0 = Release|Any CPU
 		{640D8843-9389-4422-9DC0-48A1E9D7C943}.Release|x86.ActiveCfg = Release|Any CPU
 		{640D8843-9389-4422-9DC0-48A1E9D7C943}.Release|x86.Build.0 = Release|Any CPU
-		{DB685431-1846-4F70-A5C7-3DB6E72B7E84}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{DB685431-1846-4F70-A5C7-3DB6E72B7E84}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{DB685431-1846-4F70-A5C7-3DB6E72B7E84}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{DB685431-1846-4F70-A5C7-3DB6E72B7E84}.Debug|x64.Build.0 = Debug|Any CPU
-		{DB685431-1846-4F70-A5C7-3DB6E72B7E84}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{DB685431-1846-4F70-A5C7-3DB6E72B7E84}.Debug|x86.Build.0 = Debug|Any CPU
-		{DB685431-1846-4F70-A5C7-3DB6E72B7E84}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{DB685431-1846-4F70-A5C7-3DB6E72B7E84}.Release|Any CPU.Build.0 = Release|Any CPU
-		{DB685431-1846-4F70-A5C7-3DB6E72B7E84}.Release|x64.ActiveCfg = Release|Any CPU
-		{DB685431-1846-4F70-A5C7-3DB6E72B7E84}.Release|x64.Build.0 = Release|Any CPU
-		{DB685431-1846-4F70-A5C7-3DB6E72B7E84}.Release|x86.ActiveCfg = Release|Any CPU
-		{DB685431-1846-4F70-A5C7-3DB6E72B7E84}.Release|x86.Build.0 = Release|Any CPU
 		{81EB21A5-FF28-4D08-A4E2-DF46CD9B653E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{81EB21A5-FF28-4D08-A4E2-DF46CD9B653E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{81EB21A5-FF28-4D08-A4E2-DF46CD9B653E}.Debug|x64.ActiveCfg = Debug|Any CPU
