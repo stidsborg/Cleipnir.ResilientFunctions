@@ -38,7 +38,7 @@ public abstract class ScheduleReInvocationTests
                     if (flag.Position == FlagPosition.Lowered)
                     {
                         flag.Raise();
-                        throw new Exception("oh no");
+                        throw new InvalidOperationException("oh no");
                     }
 
                     syncedParameter.Value = s;
@@ -59,8 +59,9 @@ public abstract class ScheduleReInvocationTests
         var function = await store.GetFunction(rFunc.MapToStoredId("something"));
         function.ShouldNotBeNull();
         function.Status.ShouldBe(Status.Succeeded);
-        
-        unhandledExceptionCatcher.ShouldNotHaveExceptions();
+
+        var fwe = (FatalWorkflowException) unhandledExceptionCatcher.ThrownExceptions.Single().InnerException!;
+        fwe.ErrorType.ShouldBe(typeof(InvalidOperationException));
     }
 
     public abstract Task FuncReInvocationSunshineScenario();
@@ -88,7 +89,7 @@ public abstract class ScheduleReInvocationTests
                 if (flag.Position == FlagPosition.Lowered)
                 {
                     flag.Raise();
-                    throw new Exception("oh no");
+                    throw new InvalidOperationException("oh no");
                 }
                 return s;
             }
@@ -110,7 +111,8 @@ public abstract class ScheduleReInvocationTests
         var results = await store.GetResults([storedId]);
         var resultBytes = results[storedId];
         resultBytes!.ToStringFromUtf8Bytes().DeserializeFromJsonTo<string>().ShouldBe("something");
-        
-        unhandledExceptionCatcher.ShouldNotHaveExceptions();
+
+        var fwe = (FatalWorkflowException) unhandledExceptionCatcher.ThrownExceptions.Single().InnerException!;
+        fwe.ErrorType.ShouldBe(typeof(InvalidOperationException));
     }
 }

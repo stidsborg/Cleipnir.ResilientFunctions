@@ -45,45 +45,20 @@ public class Invoker<TParam, TReturn>
         _flowsManager = flowsManager;
     }
 
-    public async Task<TReturn> Invoke(FlowInstance instance, TParam param, InitialState? initialState = null)
-    {
-        var (flowId, storedId) = CreateIds(instance);
-        var (created, workflow, disposables, queueManager, timeouts, storageSession) = await PrepareForInvocation(flowId, storedId, param, parent: null, initialState);
-        CurrentFlow._workflow.Value = workflow;
-        if (!created) return await WaitForFunctionResult(flowId, storedId, maxWait: null);
-
-        Result<TReturn> result;
-        try
-        {
-            // *** USER FUNCTION INVOCATION *** 
-            result = await _inner(param, workflow);
-        }
-        catch (Exception exception)
-        {
-            var fatalWorkflowException = FatalWorkflowException.CreateNonGeneric(flowId, exception); 
-            await PersistFailure(storedId, flowId, fatalWorkflowException, param, parent: null); 
-            throw FatalWorkflowException.CreateNonGeneric(flowId, exception);
-        }
-        finally{ disposables.Dispose(); }
-
-        await PersistResultAndEnsureSuccess(storedId, flowId, result, param, parent: null, workflow, storageSession);
-        return result.SucceedWithValue!;
-    }
-
     public async Task<InnerScheduled<TReturn>> ScheduleInvoke(FlowInstance flowInstance, TParam param, bool? detach, InitialState? initialState)
     {
         var (flowId, storedId) = CreateIds(flowInstance);
-        
+
         var parentWorkflow = GetAndEnsureParent(detach);
         var scheduledAlreadyParentId = parentWorkflow?.Effect.CreateNextImplicitId();
-        
+
         if (parentWorkflow != null)
             if (parentWorkflow.Effect.Contains(scheduledAlreadyParentId!))
                 return _invocationHelper.CreateInnerScheduled([flowId], parentWorkflow, detach);
-        
+
         var (created, workflow, disposables, _, _, storageSession) = await PrepareForInvocation(flowId, storedId, param, parentWorkflow?.StoredId, initialState);
         await (parentWorkflow?.Effect.Upsert(scheduledAlreadyParentId!, true, alias: null, flush: false) ?? Task.CompletedTask);
-        
+
         CurrentFlow._workflow.Value = workflow;
         if (!created)
             return _invocationHelper.CreateInnerScheduled([flowId], parentWorkflow, detach);
@@ -217,9 +192,6 @@ public class Invoker<TParam, TReturn>
         });
     }
     
-    private async Task<TReturn> WaitForFunctionResult(FlowId flowId, StoredId storedId, TimeSpan? maxWait)
-        => await _invocationHelper.WaitForFunctionResult(flowId, storedId, allowPostponedAndSuspended: false, maxWait);
-
     internal async Task ScheduleRestart(StoredId storedId, RestartedFunction rf, Action onCompletion)
     {
         var (inner, param, humanInstanceId, workflow, disposables, _, _, parent, storageSession) = await PrepareForReInvocation(storedId, rf);

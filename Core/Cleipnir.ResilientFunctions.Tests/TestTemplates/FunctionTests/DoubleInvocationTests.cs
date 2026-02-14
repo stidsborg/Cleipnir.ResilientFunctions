@@ -150,8 +150,8 @@ public abstract class DoubleInvocationTests
         {
             Assert.IsTrue(e.ErrorType == typeof(InvalidOperationException));
         }
-        
-        if (unhandledExceptionHandler.ThrownExceptions.Any())
-            throw new Exception("Unhandled exception occurred", unhandledExceptionHandler.ThrownExceptions[0]);
+
+        var fwe = (FatalWorkflowException) unhandledExceptionHandler.ThrownExceptions.Single().InnerException!;
+        fwe.ErrorType.ShouldBe(typeof(InvalidOperationException));
     }
 }

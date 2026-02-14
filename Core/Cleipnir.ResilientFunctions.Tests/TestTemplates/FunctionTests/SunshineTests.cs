@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
@@ -512,9 +513,10 @@ public abstract class SunshineTests
             exception.ErrorType.ShouldBe(typeof(TimeoutException));
         }
 
-        unhandledExceptionHandler.ShouldNotHaveExceptions();
+        var fwe = (FatalWorkflowException) unhandledExceptionHandler.ThrownExceptions.Single().InnerException!;
+        fwe.ErrorType.ShouldBe(typeof(TimeoutException));
     }
-    
+
     public abstract Task ExecutingFunctionHasOwner();
     public async Task ExecutingFunctionHasOwner(Task<IFunctionStore> storeTask)
     {

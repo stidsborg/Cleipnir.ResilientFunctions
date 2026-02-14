@@ -46,8 +46,8 @@ public abstract class FailedTests
                     flowType,
                     (string _) =>
                         throwUnhandledException
-                            ? throw new Exception()
-                            : Task.FromException(new Exception())
+                            ? throw new InvalidOperationException()
+                            : Task.FromException(new InvalidOperationException())
                 );
 
             await Should.ThrowAsync<FatalWorkflowException>(async () => await actionRegistration.Invoke(flowInstance.ToString(), Param));
@@ -57,7 +57,7 @@ public abstract class FailedTests
         {
             var flag = new SyncedFlag();
             using var functionsRegistry = new FunctionsRegistry(
-                store, 
+                store,
                 new Settings(
                     unhandledExceptionHandler.Catch,
                     watchdogCheckFrequency: TimeSpan.FromMilliseconds(1_000)
@@ -72,18 +72,19 @@ public abstract class FailedTests
                 }
             );
             await Task.Delay(250);
-            
+
             flag.Position.ShouldBe(Lowered);
-            
+
             var sf = await store.GetFunction(rFunc.MapToStoredId(functionId.Instance));
             sf.ShouldNotBeNull();
             sf.Status.ShouldBe(Status.Failed);
             await Should.ThrowAsync<Exception>(async () => await rFunc.Invoke(flowInstance.ToString(), Param));
         }
-            
-        unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
+
+        var fwe = (FatalWorkflowException) unhandledExceptionHandler.ThrownExceptions.Single().InnerException!;
+        fwe.ErrorType.ShouldBe(typeof(InvalidOperationException));
     }
-    
+
     public abstract Task ExceptionThrowingFuncWithStateIsNotCompletedByWatchDog();
     protected Task ExceptionThrowingFuncWithStateIsNotCompletedByWatchDog(Task<IFunctionStore> storeTask)
         => ExceptionThrowingFuncWithStateIsNotCompletedByWatchDog(storeTask, throwUnhandledException: false);
@@ -114,9 +115,9 @@ public abstract class FailedTests
                 .RegisterAction(
                     flowType,
                     (string _) =>
-                        throwUnhandledException 
-                            ? throw new Exception()
-                            : Task.FromException(new Exception())
+                        throwUnhandledException
+                            ? throw new InvalidOperationException()
+                            : Task.FromException(new InvalidOperationException())
                 )
                 .Invoke;
 
@@ -139,10 +140,10 @@ public abstract class FailedTests
                     return Task.CompletedTask;
                 }
             );
-                
+
             await Task.Delay(250);
             flag.Position.ShouldBe(Lowered);
-            
+
             var functionId = new FlowId(flowType, Param.ToFlowInstance());
             var storedFunction = await store.GetFunction(rAction.MapToStoredId(functionId.Instance));
             storedFunction.ShouldNotBeNull();
@@ -150,10 +151,11 @@ public abstract class FailedTests
 
             await Should.ThrowAsync<Exception>(() => rAction.Invoke(Param, Param));
         }
-            
-        unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
+
+        var fwe = (FatalWorkflowException) unhandledExceptionHandler.ThrownExceptions.Single().InnerException!;
+        fwe.ErrorType.ShouldBe(typeof(InvalidOperationException));
     }
-    
+
     public abstract Task ExceptionThrowingActionIsNotCompletedByWatchDog();
     public async Task ExceptionThrowingActionIsNotCompletedByWatchDog(Task<IFunctionStore> storeTask)
     {
@@ -174,7 +176,7 @@ public abstract class FailedTests
             var nonCompletingFunctionsRegistry = functionsRegistry 
                 .RegisterAction(
                     flowType,
-                    (string _) => Task.FromException(new Exception())
+                    (string _) => Task.FromException(new InvalidOperationException())
                 )
                 .Invoke;
 
@@ -183,7 +185,7 @@ public abstract class FailedTests
         {
             var flag = new SyncedFlag();
             using var functionsRegistry = new FunctionsRegistry(
-                store, 
+                store,
                 new Settings(
                     unhandledExceptionHandler.Catch,
                     leaseLength: TimeSpan.FromMilliseconds(100),
@@ -200,16 +202,17 @@ public abstract class FailedTests
                     });
             await Task.Delay(250);
             flag.Position.ShouldBe(Lowered);
-            
+
             var status = await store.GetFunction(rFunc.MapToStoredId(functionId.Instance)).Map(t => t?.Status);
             status.ShouldNotBeNull();
             status.ShouldBe(Status.Failed);
             await Should.ThrowAsync<Exception>(rFunc.Invoke(flowInstance.ToString(), Param));
         }
-            
-        unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
+
+        var fwe = (FatalWorkflowException) unhandledExceptionHandler.ThrownExceptions.Single().InnerException!;
+        fwe.ErrorType.ShouldBe(typeof(InvalidOperationException));
     }
-    
+
     public abstract Task PassingInNullParameterResultsInArgumentNullException();
     public async Task PassingInNullParameterResultsInException(Task<IFunctionStore> storeTask)
     {
@@ -269,10 +272,10 @@ public abstract class FailedTests
             var nonCompletingFunctionsRegistry = functionsRegistry 
                 .RegisterAction(
                     flowType,
-                    (string _) => 
+                    (string _) =>
                         throwUnhandledException
-                            ? throw new Exception()
-                            : Task.FromException(new Exception())
+                            ? throw new InvalidOperationException()
+                            : Task.FromException(new InvalidOperationException())
                 ).Invoke;
 
             await Should.ThrowAsync<Exception>(() => nonCompletingFunctionsRegistry(flowInstance.ToString(), param));
@@ -291,18 +294,19 @@ public abstract class FailedTests
                     return Succeed.WithUnit.ToTask();
                 }
             );
-                
+
             await Task.Delay(250);
             flag.Position.ShouldBe(Lowered);
-            
+
             var storedFunction = await store.GetFunction(rFunc.MapToStoredId(functionId.Instance));
             storedFunction.ShouldNotBeNull();
             storedFunction.Status.ShouldBe(Status.Failed);
-            
+
             await Should.ThrowAsync<Exception>(() => rFunc.Invoke(flowInstance.ToString(), param));
         }
-        
-        unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
+
+        var fwe = (FatalWorkflowException) unhandledExceptionHandler.ThrownExceptions.Single().InnerException!;
+        fwe.ErrorType.ShouldBe(typeof(InvalidOperationException));
         if (throwUnhandledException)
         {
             var key = (await store.TypeStore.GetAllFlowTypes()).Values.First();

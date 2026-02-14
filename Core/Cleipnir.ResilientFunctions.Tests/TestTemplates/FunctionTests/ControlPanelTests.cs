@@ -127,9 +127,9 @@ public abstract class ControlPanelTests
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
         var rAction = functionsRegistry.RegisterAction(
             flowType,
-            Task (string _) => throw new Exception("oh no")
+            Task (string _) => throw new InvalidOperationException("oh no")
         );
-        
+
         await Should.ThrowAsync<Exception>(() => rAction.Invoke(flowInstance.Value, ""));
 
         var controlPanel = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
@@ -143,15 +143,16 @@ public abstract class ControlPanelTests
         controlPanel.Status.ShouldBe(Status.Postponed);
         controlPanel.PostponedUntil.ShouldNotBeNull();
         controlPanel.PostponedUntil.ShouldBe(postponeUntil);
-        
+
         var sf = await store.GetFunction(rAction.MapToStoredId(functionId.Instance));
         sf.ShouldNotBeNull();
         sf.Status.ShouldBe(Status.Postponed);
         sf.Expires.ShouldBe(postponeUntil.Ticks);
-        
-        unhandledExceptionCatcher.ShouldNotHaveExceptions();
+
+        var fwe = (FatalWorkflowException) unhandledExceptionCatcher.ThrownExceptions.Single().InnerException!;
+        fwe.ErrorType.ShouldBe(typeof(InvalidOperationException));
     }
-    
+
     public abstract Task PostponingExistingFunctionFromControlPanelSucceeds();
     protected async Task PostponingExistingFunctionFromControlPanelSucceeds(Task<IFunctionStore> storeTask)
     {
@@ -164,30 +165,31 @@ public abstract class ControlPanelTests
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
         var rFunc = functionsRegistry.RegisterFunc<string, string>(
             flowType,
-            Task<string> (_) => throw new Exception("oh no")
+            Task<string> (_) => throw new InvalidOperationException("oh no")
         );
-        
+
         await Should.ThrowAsync<Exception>(() => rFunc.Invoke(flowInstance.Value, ""));
 
         var controlPanel = await rFunc.ControlPanel(flowInstance).ShouldNotBeNullAsync();
         controlPanel.Status.ShouldBe(Status.Failed);
         controlPanel.FatalWorkflowException.ShouldNotBeNull();
-        
+
         await controlPanel.Postpone(new DateTime(1_000_000));
 
         await controlPanel.Refresh();
         controlPanel.Status.ShouldBe(Status.Postponed);
         controlPanel.PostponedUntil.ShouldNotBeNull();
         controlPanel.PostponedUntil.Value.Ticks.ShouldBe(1_000_000);
-        
+
         var sf = await store.GetFunction(rFunc.MapToStoredId(functionId.Instance));
         sf.ShouldNotBeNull();
         sf.Status.ShouldBe(Status.Postponed);
         sf.Expires.ShouldBe(1_000_000);
-        
-        unhandledExceptionCatcher.ShouldNotHaveExceptions();
+
+        var fwe = (FatalWorkflowException) unhandledExceptionCatcher.ThrownExceptions.Single().InnerException!;
+        fwe.ErrorType.ShouldBe(typeof(InvalidOperationException));
     }
-    
+
     public abstract Task FailingExistingActionFromControlPanelSucceeds();
     protected async Task FailingExistingActionFromControlPanelSucceeds(Task<IFunctionStore> storeTask)
     {
@@ -274,9 +276,9 @@ public abstract class ControlPanelTests
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
         var rAction = functionsRegistry.RegisterAction(
             flowType,
-            Task (string _) => throw new Exception("oh no")
+            Task (string _) => throw new InvalidOperationException("oh no")
         );
-        
+
         await Should.ThrowAsync<Exception>(() => rAction.Invoke(flowInstance.Value, ""));
 
         var controlPanel = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
@@ -287,14 +289,15 @@ public abstract class ControlPanelTests
 
         await controlPanel.Refresh();
         controlPanel.Status.ShouldBe(Status.Succeeded);
-        
+
         var sf = await store.GetFunction(rAction.MapToStoredId(functionId.Instance));
         sf.ShouldNotBeNull();
         sf.Status.ShouldBe(Status.Succeeded);
-        
-        unhandledExceptionCatcher.ShouldNotHaveExceptions();
+
+        var fwe = (FatalWorkflowException) unhandledExceptionCatcher.ThrownExceptions.Single().InnerException!;
+        fwe.ErrorType.ShouldBe(typeof(InvalidOperationException));
     }
-    
+
     public abstract Task SucceedingExistingParamlessFromControlPanelSucceeds();
     protected async Task SucceedingExistingParamlessFromControlPanelSucceeds(Task<IFunctionStore> storeTask)
     {
@@ -307,9 +310,9 @@ public abstract class ControlPanelTests
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
         var paramlessRegistration = functionsRegistry.RegisterParamless(
             flowType,
-            inner: Task () => throw new Exception("oh no")
+            inner: Task () => throw new InvalidOperationException("oh no")
         );
-        
+
         await Should.ThrowAsync<Exception>(() => paramlessRegistration.Invoke(flowInstance.Value));
 
         var controlPanel = await paramlessRegistration.ControlPanel(flowInstance).ShouldNotBeNullAsync();
@@ -320,14 +323,15 @@ public abstract class ControlPanelTests
 
         await controlPanel.Refresh();
         controlPanel.Status.ShouldBe(Status.Succeeded);
-        
+
         var sf = await store.GetFunction(paramlessRegistration.MapToStoredId(functionId.Instance));
         sf.ShouldNotBeNull();
         sf.Status.ShouldBe(Status.Succeeded);
-        
-        unhandledExceptionCatcher.ShouldNotHaveExceptions();
+
+        var fwe = (FatalWorkflowException) unhandledExceptionCatcher.ThrownExceptions.Single().InnerException!;
+        fwe.ErrorType.ShouldBe(typeof(InvalidOperationException));
     }
-    
+
     public abstract Task SucceedingExistingFunctionFromControlPanelSucceeds();
     protected async Task SucceedingExistingFunctionFromControlPanelSucceeds(Task<IFunctionStore> storeTask)
     {
@@ -340,9 +344,9 @@ public abstract class ControlPanelTests
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
         var rFunc = functionsRegistry.RegisterFunc<string, string>(
             flowType,
-            Task<string> (_) => throw new Exception("oh no")
+            Task<string> (_) => throw new InvalidOperationException("oh no")
         );
-        
+
         await Should.ThrowAsync<Exception>(() => rFunc.Invoke(flowInstance.Value, ""));
 
         var controlPanel = await rFunc.ControlPanel(flowInstance).ShouldNotBeNullAsync();
@@ -363,10 +367,11 @@ public abstract class ControlPanelTests
         var resultBytes = results[storedId];
         var result = (string)DefaultSerializer.Instance.Deserialize(resultBytes!, typeof(string));
         result.ShouldBe("hello world");
-        
-        unhandledExceptionCatcher.ShouldNotHaveExceptions();
+
+        var fwe = (FatalWorkflowException) unhandledExceptionCatcher.ThrownExceptions.Single().InnerException!;
+        fwe.ErrorType.ShouldBe(typeof(InvalidOperationException));
     }
-    
+
     public abstract Task ReInvokingExistingFunctionFromControlPanelSucceeds();
     protected async Task ReinvokingExistingFunctionFromControlPanelSucceeds(Task<IFunctionStore> storeTask)
     {
@@ -999,10 +1004,11 @@ public abstract class ControlPanelTests
         await activities.SetSucceeded(effectId: 0);
         
         await controlPanel.Restart();
-        
-        unhandledExceptionCatcher.ShouldNotHaveExceptions();
+
+        var fwe = (FatalWorkflowException) unhandledExceptionCatcher.ThrownExceptions.Single().InnerException!;
+        fwe.ErrorType.ShouldBe(typeof(InvalidOperationException));
     }
-    
+
     public abstract Task ExistingEffectCanBeRemoved();
     protected async Task ExistingEffectCanBeRemoved(Task<IFunctionStore> storeTask)
     {
@@ -1360,7 +1366,8 @@ public abstract class ControlPanelTests
         
         shouldFail = false;
         await controlPanel.Restart();
-        
-        unhandledExceptionCatcher.ShouldNotHaveExceptions();
+
+        var fwe = (FatalWorkflowException) unhandledExceptionCatcher.ThrownExceptions.Single().InnerException!;
+        fwe.ErrorType.ShouldBe(typeof(TimeoutException));
     }
 }

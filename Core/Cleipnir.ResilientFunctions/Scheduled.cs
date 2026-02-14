@@ -19,7 +19,7 @@ public class InnerScheduled<TResult>(
     ResultBusyWaiter<TResult> resultBusyWaiter,
     Task<TResult>? task = null)
 {
-    public async Task<IReadOnlyList<TResult>> Completion(TimeSpan? maxWait = null)
+    public async Task<IReadOnlyList<TResult>> Completion(TimeSpan? maxWait = null, bool allowPostponedAndSuspended = true)
     {
         if (task != null)
         {
@@ -35,7 +35,7 @@ public class InnerScheduled<TResult>(
         }
 
         return parentWorkflow == null
-            ? await DetachedScheduled(maxWait)
+            ? await DetachedScheduled(maxWait, allowPostponedAndSuspended)
             : await AttachedScheduled(parentWorkflow, maxWait);
     }
     
@@ -44,7 +44,7 @@ public class InnerScheduled<TResult>(
     public BulkScheduled ToScheduledWithoutResults() => BulkScheduled.CreateFromInnerScheduled(this);
     public BulkScheduled<TResult> ToScheduledWithResults() => BulkScheduled<TResult>.CreateFromInnerScheduled(this);
 
-    private async Task<IReadOnlyList<TResult>> DetachedScheduled(TimeSpan? maxWait)
+    private async Task<IReadOnlyList<TResult>> DetachedScheduled(TimeSpan? maxWait, bool allowPostponedAndSuspended = true)
     {
         maxWait ??= TimeSpan.FromSeconds(10);
         var stopWatch = Stopwatch.StartNew();
@@ -57,7 +57,7 @@ public class InnerScheduled<TResult>(
                 throw new TimeoutException();
 
             var storedId = scheduledId.ToStoredId(storedType);
-            var result = await resultBusyWaiter.WaitForFunctionResult(scheduledId, storedId, allowPostponedAndSuspended: true, timeLeft);
+            var result = await resultBusyWaiter.WaitForFunctionResult(scheduledId, storedId, allowPostponedAndSuspended, timeLeft);
             results.Add(result);
         }
 
@@ -99,8 +99,8 @@ public class Scheduled(Func<TimeSpan?, Task> completion)
         await completion(maxWait);
     }
 
-    internal static Scheduled CreateFromInnerScheduled<TResult>(InnerScheduled<TResult> inner) 
-        => new(inner.Completion);
+    internal static Scheduled CreateFromInnerScheduled<TResult>(InnerScheduled<TResult> inner)
+        => new(maxWait => inner.Completion(maxWait));
 }
 
 public class Scheduled<TResult>(Func<TimeSpan?, Task<TResult>> completion)
@@ -118,14 +118,14 @@ public class BulkScheduled(Func<TimeSpan?, Task> completion)
         await completion(maxWait);
     }
     
-    internal static BulkScheduled CreateFromInnerScheduled<TResult>(InnerScheduled<TResult> inner) => new(inner.Completion);
+    internal static BulkScheduled CreateFromInnerScheduled<TResult>(InnerScheduled<TResult> inner) => new(maxWait => inner.Completion(maxWait));
 }
 
 public class BulkScheduled<TResult>(Func<TimeSpan?, Task<IReadOnlyList<TResult>>> completion)
 {
     public async Task<IReadOnlyList<TResult>> Completion(TimeSpan? maxWait = null) => await completion(maxWait);
     
-    internal static BulkScheduled<TResult> CreateFromInnerScheduled(InnerScheduled<TResult> inner) => new(inner.Completion);
+    internal static BulkScheduled<TResult> CreateFromInnerScheduled(InnerScheduled<TResult> inner) => new(maxWait => inner.Completion(maxWait));
 }
 
 public static class ScheduledExtensions

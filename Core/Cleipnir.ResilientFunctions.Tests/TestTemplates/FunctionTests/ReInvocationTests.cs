@@ -37,7 +37,7 @@ public abstract class ReInvocationTests
                     if (flag.Position == FlagPosition.Lowered)
                     {
                         flag.Raise();
-                        throw new Exception("oh no");
+                        throw new InvalidOperationException("oh no");
                     }
 
                     syncedParameter.Value = s;
@@ -54,10 +54,11 @@ public abstract class ReInvocationTests
         var function = await store.GetFunction(rFunc.MapToStoredId("something"));
         function.ShouldNotBeNull();
         function.Status.ShouldBe(Status.Succeeded);
-        
-        unhandledExceptionCatcher.ShouldNotHaveExceptions();
+
+        var fwe = (FatalWorkflowException) unhandledExceptionCatcher.ThrownExceptions.Single().InnerException!;
+        fwe.ErrorType.ShouldBe(typeof(InvalidOperationException));
     }
-    
+
     public abstract Task UpdatedParameterIsPassedInOnReInvocationSunshineScenario();
     protected async Task UpdatedParameterIsPassedInOnReInvocationSunshineScenario(Task<IFunctionStore> storeTask)
     {
@@ -83,9 +84,9 @@ public abstract class ReInvocationTests
                 if (flag.Position == FlagPosition.Lowered)
                 {
                     flag.Raise();
-                    throw new Exception("oh no");
+                    throw new InvalidOperationException("oh no");
                 }
-                
+
                 syncedParam.Value = param;
                 return Task.CompletedTask;
             }
@@ -104,7 +105,8 @@ public abstract class ReInvocationTests
         await controlPanel.Restart();
         
         syncedParam.Value.ShouldBe("something_else");
-        unhandledExceptionCatcher.ShouldNotHaveExceptions();
+        var fwe = (FatalWorkflowException) unhandledExceptionCatcher.ThrownExceptions.Single().InnerException!;
+        fwe.ErrorType.ShouldBe(typeof(InvalidOperationException));
     }
     
     public abstract Task UpdatedParameterAndStateIsPassedInOnReInvocationSunshineScenario();
@@ -132,9 +134,9 @@ public abstract class ReInvocationTests
                 if (flag.Position == FlagPosition.Lowered)
                 {
                     flag.Raise();
-                    throw new Exception("oh no");
+                    throw new InvalidOperationException("oh no");
                 }
-                
+
                 syncedValue.Value = param;
                 return Task.CompletedTask;
             }
@@ -153,8 +155,9 @@ public abstract class ReInvocationTests
         await controlPanel.Restart();
         
         syncedValue.Value.ShouldBe("something_else");
-        
-        unhandledExceptionCatcher.ShouldNotHaveExceptions();
+
+        var fwe = (FatalWorkflowException) unhandledExceptionCatcher.ThrownExceptions.Single().InnerException!;
+        fwe.ErrorType.ShouldBe(typeof(InvalidOperationException));
     }
 
     public abstract Task FuncReInvocationSunshineScenario();
@@ -182,7 +185,7 @@ public abstract class ReInvocationTests
                 if (flag.Position == FlagPosition.Lowered)
                 {
                     flag.Raise();
-                    throw new Exception("oh no");
+                    throw new InvalidOperationException("oh no");
                 }
                 return s;
             }
@@ -200,8 +203,9 @@ public abstract class ReInvocationTests
         var results = await store.GetResults([storedId]);
         var resultBytes = results[storedId];
         resultBytes!.ToStringFromUtf8Bytes().DeserializeFromJsonTo<string>().ShouldBe("something");
-        
-        unhandledExceptionCatcher.ShouldNotHaveExceptions();
+
+        var fwe = (FatalWorkflowException) unhandledExceptionCatcher.ThrownExceptions.Single().InnerException!;
+        fwe.ErrorType.ShouldBe(typeof(InvalidOperationException));
     }
 
     public abstract Task ReInvocationFailsWhenTheFunctionDoesNotExist();
