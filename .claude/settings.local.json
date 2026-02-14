@@ -19,7 +19,9 @@
       "WebSearch",
       "Bash(cat:*)",
       "Bash(git add:*)",
-      "Bash(git commit -m \"$\\(cat <<''EOF''\nRemoved unused QueueFlag and associated tests\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")"
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nRemoved unused QueueFlag and associated tests\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git -C /Users/stidsborg/Repos/Cleipnir.ResilientFunctions diff)",
+      "Bash(git -C /Users/stidsborg/Repos/Cleipnir.ResilientFunctions log --oneline -5)"
     ],
     "deny": [],
     "ask": []
