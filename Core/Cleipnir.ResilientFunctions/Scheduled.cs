@@ -13,15 +13,31 @@ namespace Cleipnir.ResilientFunctions;
 
 public class InnerScheduled<TResult>(
     StoredType storedType,
-    List<FlowId> scheduledIds, 
-    Workflow? parentWorkflow, 
+    List<FlowId> scheduledIds,
+    Workflow? parentWorkflow,
     ISerializer serializer,
-    ResultBusyWaiter<TResult> resultBusyWaiter)
+    ResultBusyWaiter<TResult> resultBusyWaiter,
+    Task<TResult>? task = null)
 {
-    public Task<IReadOnlyList<TResult>> Completion(TimeSpan? maxWait = null) 
-        => parentWorkflow == null
-            ? DetachedScheduled(maxWait)
-            : AttachedScheduled(parentWorkflow, maxWait);
+    public async Task<IReadOnlyList<TResult>> Completion(TimeSpan? maxWait = null)
+    {
+        if (task != null)
+        {
+            try
+            {
+                var result = await task;
+                return new List<TResult>(1) { result };
+            }
+            catch
+            {
+                // fall back to normal logic
+            }
+        }
+
+        return parentWorkflow == null
+            ? await DetachedScheduled(maxWait)
+            : await AttachedScheduled(parentWorkflow, maxWait);
+    }
     
     public Scheduled ToScheduledWithoutResult() => Scheduled.CreateFromInnerScheduled(this);
     public Scheduled<TResult> ToScheduledWithResult() => Scheduled<TResult>.CreateFromInnerScheduled(this);
@@ -32,7 +48,7 @@ public class InnerScheduled<TResult>(
     {
         maxWait ??= TimeSpan.FromSeconds(10);
         var stopWatch = Stopwatch.StartNew();
-        
+
         var results = new List<TResult>(scheduledIds.Count);
         foreach (var scheduledId in scheduledIds)
         {
@@ -47,7 +63,7 @@ public class InnerScheduled<TResult>(
 
         return results;
     }
-    
+
     private async Task<IReadOnlyList<TResult>> AttachedScheduled(Workflow parent, TimeSpan? maxWait)
     {
         var completedFlows = new List<FlowCompleted>();
@@ -56,11 +72,11 @@ public class InnerScheduled<TResult>(
             var completed = await parent.Message<FlowCompleted>(filter: c => scheduledIds.Contains(c.Id), maxWait);
             completedFlows.Add(completed);
         }
-        
+
         var failed = completedFlows.FirstOrDefault(fc => fc.Failed);
         if (failed != null)
             throw new InvalidOperationException($"Child-flow '{failed.Id}' failed");
-        
+
         var results = completedFlows.Select(fc =>
             new
             {

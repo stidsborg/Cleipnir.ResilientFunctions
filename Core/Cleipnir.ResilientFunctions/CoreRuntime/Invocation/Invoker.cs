@@ -88,6 +88,7 @@ public class Invoker<TParam, TReturn>
         if (!created)
             return _invocationHelper.CreateInnerScheduled([flowId], parentWorkflow, detach);
 
+        var tcs = new TaskCompletionSource<TReturn>();
         _ = Task.Run(async () =>
         {
             try
@@ -95,19 +96,50 @@ public class Invoker<TParam, TReturn>
                 Result<TReturn> result;
                 try
                 {
-                    // *** USER FUNCTION INVOCATION *** 
+                    // *** USER FUNCTION INVOCATION ***
                     result = await _inner(param, workflow);
                 }
-                catch (FatalWorkflowException exception) { await PersistFailure(storedId, flowId, exception, param, parentWorkflow?.StoredId); throw; }
-                catch (Exception exception) { var fwe = FatalWorkflowException.CreateNonGeneric(flowId, exception); await PersistFailure(storedId, flowId, fwe, param, parentWorkflow?.StoredId); throw fwe; }
-                finally{ disposables.Dispose(); }
+                catch (FatalWorkflowException exception)
+                {
+                    await PersistFailure(storedId, flowId, exception, param, parentWorkflow?.StoredId);
+                    tcs.TrySetCanceled();
+                    return;
+                }
+                catch (Exception exception)
+                {
+                    var fwe = FatalWorkflowException.CreateNonGeneric(flowId, exception);
+                    await PersistFailure(storedId, flowId, fwe, param, parentWorkflow?.StoredId);
+                    tcs.TrySetCanceled();
+                    return;
+                }
+                finally
+                {
+                    disposables.Dispose();
+                }
 
-                await PersistResultAndEnsureSuccess(storedId, flowId, result, param, parentWorkflow?.StoredId, workflow, storageSession, allowPostponedOrSuspended: true);
+                await PersistResultAndEnsureSuccess(
+                    storedId,
+                    flowId,
+                    result,
+                    param,
+                    parentWorkflow?.StoredId,
+                    workflow,
+                    storageSession,
+                    allowPostponedOrSuspended: true
+                );
+                if (result.Succeed)
+                    tcs.TrySetResult(result.SucceedWithValue!);
+                else
+                    tcs.TrySetCanceled();
             }
-            catch (Exception exception) { _unhandledExceptionHandler.Invoke(_flowType, exception); }
+            catch (Exception exception)
+            {
+                _unhandledExceptionHandler.Invoke(_flowType, exception);
+                tcs.TrySetException(exception);
+            }
         });
 
-        return _invocationHelper.CreateInnerScheduled([flowId], parentWorkflow, detach);
+        return _invocationHelper.CreateInnerScheduled([flowId], parentWorkflow, detach, tcs.Task);
     }
 
     public async Task<InnerScheduled<TReturn>> ScheduleAt(FlowInstance instanceId, TParam param, DateTime scheduleAt, bool? detach)

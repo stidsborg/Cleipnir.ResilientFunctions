@@ -460,13 +460,14 @@ internal class InvocationHelper<TParam, TReturn>
         return Serializer.Serialize(result, typeof(TReturn));
     }
 
-    public InnerScheduled<TReturn> CreateInnerScheduled(List<FlowId> scheduledIds, Workflow? parentWorkflow, bool? detach)
+    public InnerScheduled<TReturn> CreateInnerScheduled(List<FlowId> scheduledIds, Workflow? parentWorkflow, bool? detach, Task<TReturn>? task = null)
         => new(
             _storedType,
             scheduledIds,
             parentWorkflow: detach == false ? null : parentWorkflow,
             Serializer,
-            _resultBusyWaiter
+            _resultBusyWaiter,
+            task
         );
     
     public Workflow? GetAndEnsureParent(bool? detach)
