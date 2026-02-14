@@ -1,45 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <Version>4.2.5</Version>
-        <AssemblyVersion>4.2.5.0</AssemblyVersion>
-        <FileVersion>4.2.5.0</FileVersion>
-        <InformationalVersion>4.2.5.0</InformationalVersion>
-        <PackageVersion>4.2.5</PackageVersion>
         <TargetFramework>net10.0</TargetFramework>
         <Nullable>enable</Nullable>
-        <PackageReadmeFile>README.md</PackageReadmeFile>
-        <PackageProjectUrl>https://github.com/stidsborg/Cleipnir.ResilientFunctions</PackageProjectUrl>
-        <Authors>Thomas Stidsborg Sylvest</Authors>
-        <PackageIcon>cleipnir.png</PackageIcon>
-        <PackageLicenseExpression>MIT</PackageLicenseExpression>
-        <Copyright>Thomas Stidsborg Sylvest</Copyright>
-        <Description>Resilient Functions is a .NET framework realizing the saga-pattern for .NET funcs / actions. 
-By registering a function with the framework, it will ensure that the function invocation completes despite: failures, restarts, deployments, data migrations etc.
-The framework also supports failing invocations for manually handling and facilitates data migrations.
-It requires a minimal amount of setup to get started and seamlessly scales with multiple running instances.</Description>
-        <RepositoryUrl>https://github.com/stidsborg/Cleipnir.ResilientFunctions</RepositoryUrl>
-        <PackageTags>saga, process-manager, durable execution, resilient functions, resiliency, micro service, fault-tolerant, distributed systems, cloud independent</PackageTags>
     </PropertyGroup>
-    
-    <ItemGroup>
-      <None Include="..\..\cleipnir.png">
-        <Pack>True</Pack>
-        <PackagePath>\</PackagePath>
-      </None>
-      <None Include="..\..\README.md">
-        <Pack>True</Pack>
-        <PackagePath>\</PackagePath>
-      </None>
-    </ItemGroup>
-    
-    <PropertyGroup Label="SourceLink">
-        <PublishRepositoryUrl>true</PublishRepositoryUrl>
-        <IncludeSymbols>true</IncludeSymbols>
-        <SymbolPackageFormat>snupkg</SymbolPackageFormat>
-        <EmbedUntrackedSources>true</EmbedUntrackedSources>
-    </PropertyGroup>
-    <ItemGroup Label="SourceLink">
-        <PackageReference Include="Microsoft.SourceLink.GitHub" Version="10.0.103" PrivateAssets="All" />
-    </ItemGroup>
+
 </Project>
