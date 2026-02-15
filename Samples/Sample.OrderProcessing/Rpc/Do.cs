@@ -22,6 +22,6 @@ public static class Do
             ProductIds: new[] { Guid.NewGuid(), Guid.NewGuid() },
             TotalPrice: 123.5M
         );
-        await rAction.Invoke(order.OrderId, order);
+        await rAction.Run(order.OrderId, order);
     }
 }

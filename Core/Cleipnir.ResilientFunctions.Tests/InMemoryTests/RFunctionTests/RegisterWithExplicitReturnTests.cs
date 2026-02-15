@@ -22,7 +22,7 @@ public class RegisterWithExplicitReturnTests
                 await Task.CompletedTask;
                 syncedParam.Value = param;
                 return Succeed.WithValue(param.ToUpper());
-            }).Invoke;
+            }).Run;
 
         var result = await rFunc("", "hello world");
         syncedParam.Value.ShouldBe("hello world");
@@ -42,7 +42,7 @@ public class RegisterWithExplicitReturnTests
                 
                 syncedParam.Value = param;
                 return Succeed.WithValue(param.ToUpper());
-            }).Invoke;
+            }).Run;
 
         var result = await rFunc("", "hello world");
         syncedParam.Value.ShouldBe("hello world");
@@ -63,7 +63,7 @@ public class RegisterWithExplicitReturnTests
                     syncedParam.Value = param;
                     return Succeed.WithUnit;
                 })
-            .Invoke;
+            .Run;
 
         await rAction("", "hello world");
         syncedParam.Value.ShouldBe("hello world");
@@ -83,7 +83,7 @@ public class RegisterWithExplicitReturnTests
                     syncedParam.Value = param;
                     return Succeed.WithUnit;
                 })
-            .Invoke;
+            .Run;
 
         await rAction("", "hello world");
         syncedParam.Value.ShouldBe("hello world");

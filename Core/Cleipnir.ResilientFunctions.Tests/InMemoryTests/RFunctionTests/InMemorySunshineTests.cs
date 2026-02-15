@@ -80,7 +80,7 @@ public class InMemorySunshineTests
             return toReturn.ToTask();
         });
 
-        var returned = await registration.Invoke("id1", "hello world");
+        var returned = await registration.Run("id1", "hello world");
         returned.ShouldBe(toReturn);
         syncedParam.Value.ShouldBe("hello world");
 
@@ -95,7 +95,7 @@ public class InMemorySunshineTests
         await registration.Schedule("id2", "hello universe");
         await BusyWait.Until(() => syncedParam.Value != null);
         syncedParam.Value.ShouldBe("hello universe");
-        returned = await registration.Invoke("id2", "hello universe");
+        returned = await registration.Run("id2", "hello universe");
         returned.ShouldBe(toReturn);
         
         syncedParam = new Synced<string>();
@@ -104,7 +104,7 @@ public class InMemorySunshineTests
         await controlPanel.ScheduleRestart();
         await BusyWait.Until(() => syncedParam.Value != null);
         syncedParam.Value.ShouldBe("hello universe");
-        returned = await registration.Invoke("id2", "hello universe");
+        returned = await registration.Run("id2", "hello universe");
         returned.ShouldBe(toReturn);
     }
 
@@ -180,7 +180,7 @@ public class InMemorySunshineTests
             return Task.CompletedTask;
         });
 
-        await registration.Invoke("id1", "hello world");
+        await registration.Run("id1", "hello world");
         syncedParam.Value.ShouldBe("hello world");
 
         syncedParam.Value = null;

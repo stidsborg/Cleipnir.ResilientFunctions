@@ -23,7 +23,7 @@ public class RFuncRegistrationTests
                 _flowType,
                 InnerFunc
             )
-            .Invoke;
+            .Run;
 
         var result = await rFunc(flowInstance, "hello world");
         result.ShouldBe("HELLO WORLD");
@@ -35,7 +35,7 @@ public class RFuncRegistrationTests
         var serializer = new Serializer();
         using var rFunctions = new FunctionsRegistry(new InMemoryFunctionStore(), new Settings(serializer: serializer));
         
-        var rFunc = rFunctions.RegisterFunc<string, string>(_flowType, InnerFunc).Invoke;
+        var rFunc = rFunctions.RegisterFunc<string, string>(_flowType, InnerFunc).Run;
 
         var result = await rFunc(flowInstance, "hello world");
         result.ShouldBe("HELLO WORLD");

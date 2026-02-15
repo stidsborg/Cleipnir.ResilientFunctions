@@ -36,7 +36,7 @@ public class RFunctionsShutdownTests
                 insideRFuncFlag.Raise();
                 await completeRFuncFlag.WaitForRaised();
             }
-        ).Invoke;
+        ).Run;
 
         var rFuncTask1 = rAction("1", "1");
         var rFuncTask2 = rAction("2", "2");
@@ -77,7 +77,7 @@ public class RFunctionsShutdownTests
                 insideRFuncFlag.Raise();
                 return NeverCompletingTask.OfType<Result<Unit>>();
             }
-        ).Invoke;
+        ).Run;
 
         _ = rFunc("1", "1");
 
@@ -227,7 +227,7 @@ public class RFunctionsShutdownTests
                 return Postpone.Until(DateTime.UtcNow.AddMilliseconds(500)).ToUnitResult.ToTask();
             }
         );
-        var rAction = registration.Invoke;
+        var rAction = registration.Run;
         _ = rAction("instanceId", "1");
 
         await BusyWait.Until(() => counter.Current == 1);

@@ -35,10 +35,10 @@ public abstract class DoubleInvocationTests
             (string input) => syncTask.Task.ContinueWith(_ => input)
         );
         
-        var invocationTask = rFunc.Invoke(flowInstance.Value, param: "Hallo World");
+        var invocationTask = rFunc.Run(flowInstance.Value, param: "Hallo World");
         invocationTask.IsCompleted.ShouldBeFalse();
         
-        var secondInvocationTask = rFunc.Invoke(flowInstance.Value, param: "Hallo World");
+        var secondInvocationTask = rFunc.Run(flowInstance.Value, param: "Hallo World");
         secondInvocationTask.IsCompleted.ShouldBeFalse();
         
         syncTask.SetResult();
@@ -72,9 +72,9 @@ public abstract class DoubleInvocationTests
             (string input) => Suspend.Invocation.ToResult<string>().ToTask()
         );
         
-        await Safe.Try(() => rFunc.Invoke(flowInstance.Value, param: "Hallo World"));
+        await Safe.Try(() => rFunc.Run(flowInstance.Value, param: "Hallo World"));
         
-        var secondInvocationTask = rFunc.Invoke(flowInstance.Value, param: "Hallo World");
+        var secondInvocationTask = rFunc.Run(flowInstance.Value, param: "Hallo World");
         await BusyWait.Until(() => secondInvocationTask.IsCompleted);
 
         await Should.ThrowAsync<InvocationSuspendedException>(secondInvocationTask);
@@ -104,9 +104,9 @@ public abstract class DoubleInvocationTests
             (string input) => Postpone.Until(DateTime.UtcNow.AddMilliseconds(100_000)).ToResult<string>().ToTask()
         );
         
-        await Safe.Try(() => rFunc.Invoke(flowInstance.Value, param: "Hallo World"));
+        await Safe.Try(() => rFunc.Run(flowInstance.Value, param: "Hallo World"));
         
-        var secondInvocationTask = rFunc.Invoke(flowInstance.Value, param: "Hallo World");
+        var secondInvocationTask = rFunc.Run(flowInstance.Value, param: "Hallo World");
         await BusyWait.Until(() => secondInvocationTask.IsCompleted);
 
         await Should.ThrowAsync<InvocationPostponedException>(secondInvocationTask);
@@ -136,9 +136,9 @@ public abstract class DoubleInvocationTests
             (string input) => Fail.WithException(new InvalidOperationException("Oh no")).ToResult<string>().ToTask()
         );
 
-        await Safe.Try(() => rFunc.Invoke(flowInstance.Value, param: "Hallo World"));
+        await Safe.Try(() => rFunc.Run(flowInstance.Value, param: "Hallo World"));
         
-        var secondInvocationTask = rFunc.Invoke(flowInstance.Value, param: "Hallo World");
+        var secondInvocationTask = rFunc.Run(flowInstance.Value, param: "Hallo World");
         await BusyWait.Until(() => secondInvocationTask.IsCompleted);
 
         try

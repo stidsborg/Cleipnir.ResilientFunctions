@@ -22,7 +22,7 @@ public static class Example
             .RegisterFunc<LoanApplication, bool>(
                 "LoanApproval",
                 RpcApproach.PerformLoan.Execute
-            ).Invoke;
+            ).Run;
 
         var transaction = new LoanApplication(
             Id: "someId",
@@ -57,7 +57,7 @@ public static class Example
                 flowType: "LoanApproval",
                 ApproveLoan.Execute
             );
-        var rFunc = registration.Invoke;
+        var rFunc = registration.Run;
 
         var messageWriters = registration.MessageWriters;
         MessageBroker.Subscribe(async @event =>

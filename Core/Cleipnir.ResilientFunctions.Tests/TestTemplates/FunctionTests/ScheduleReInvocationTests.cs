@@ -45,7 +45,7 @@ public abstract class ScheduleReInvocationTests
                 }
             );
 
-        await Should.ThrowAsync<Exception>(() => rFunc.Invoke("something", "something"));
+        await Should.ThrowAsync<Exception>(() => rFunc.Run("something", "something"));
 
         await rFunc.ControlPanel("something").Result!.ScheduleRestart();
 
@@ -95,7 +95,7 @@ public abstract class ScheduleReInvocationTests
             }
         );
 
-        await Should.ThrowAsync<Exception>(() => rFunc.Invoke(flowInstance.Value, "something"));
+        await Should.ThrowAsync<Exception>(() => rFunc.Run(flowInstance.Value, "something"));
 
         var controlPanel = await rFunc.ControlPanel(flowInstance).ShouldNotBeNullAsync();
         await controlPanel.ScheduleRestart();

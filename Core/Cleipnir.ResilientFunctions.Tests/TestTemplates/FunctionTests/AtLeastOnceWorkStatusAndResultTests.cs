@@ -82,7 +82,7 @@ public abstract class AtLeastOnceWorkStatusAndResultTests
 
         counter.Current.ShouldBe(2);
 
-        var result = await rFunc.Invoke(functionId.ToString(), "hello");
+        var result = await rFunc.Run(functionId.ToString(), "hello");
         result.ShouldBe("hello world");
     }
     
@@ -123,7 +123,7 @@ public abstract class AtLeastOnceWorkStatusAndResultTests
 
         counter.Current.ShouldBe(2);
 
-        var result = await rFunc.Invoke(functionId.ToString(), "hello");
+        var result = await rFunc.Run(functionId.ToString(), "hello");
         result.ShouldBe(new Person("Peter", 32));
     }
 
@@ -148,7 +148,7 @@ public abstract class AtLeastOnceWorkStatusAndResultTests
                     );
             });
 
-        await rAction.Invoke(flowInstance.ToString(), "hello");
+        await rAction.Run(flowInstance.ToString(), "hello");
         await BusyWait.Until(async () => await store.GetFunction(rAction.MapToStoredId(functionId.Instance)) != null);
         await rAction.ControlPanel(flowInstance).Result!.Restart();
 
@@ -173,7 +173,7 @@ public abstract class AtLeastOnceWorkStatusAndResultTests
                     );
             });
 
-        await rAction.Invoke(flowInstance.ToString(), "hello");
+        await rAction.Run(flowInstance.ToString(), "hello");
         var controlPanel = await rAction.ControlPanel(flowInstance);
         controlPanel.ShouldNotBeNull();
         

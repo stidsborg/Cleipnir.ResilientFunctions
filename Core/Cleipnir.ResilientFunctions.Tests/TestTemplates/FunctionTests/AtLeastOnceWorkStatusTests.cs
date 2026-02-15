@@ -99,7 +99,7 @@ public abstract class AtLeastOnceWorkStatusTests
                         () => { counter.Increment(); return Task.CompletedTask; });
             });
 
-        await rAction.Invoke(flowInstance.ToString(), "hello");
+        await rAction.Run(flowInstance.ToString(), "hello");
         await rAction.ControlPanel(flowInstance).Result!.Restart();
 
         counter.Current.ShouldBe(1);
@@ -123,7 +123,7 @@ public abstract class AtLeastOnceWorkStatusTests
                         () => { counter.Increment(); return Task.CompletedTask; });
             });
 
-        await rAction.Invoke(flowInstance.ToString(), "hello");
+        await rAction.Run(flowInstance.ToString(), "hello");
         await rAction.ControlPanel(flowInstance).Result!.Restart();
 
         counter.Current.ShouldBe(1);

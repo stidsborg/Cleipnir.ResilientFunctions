@@ -98,7 +98,7 @@ public abstract class AtMostOnceWorkStatusTests
                     );
             });
 
-        await rAction.Invoke(flowInstance.ToString(), "hello");
+        await rAction.Run(flowInstance.ToString(), "hello");
         await rAction.ControlPanel(flowInstance).Result!.Restart();
 
         counter.Current.ShouldBe(1);

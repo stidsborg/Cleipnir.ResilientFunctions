@@ -233,7 +233,7 @@ public abstract class EffectImplicitIdTests
                 return await effect.Capture(async () => await await Task.WhenAny(t1, t2));
             });
 
-        var result = await rAction.Invoke(flowInstance.ToString(), param: "hello");
+        var result = await rAction.Run(flowInstance.ToString(), param: "hello");
         result.ShouldBe(2);
         
         var effectResults = await store.EffectsStore.GetEffectResults(rAction.MapToStoredId(flowId.Instance));
@@ -259,7 +259,7 @@ public abstract class EffectImplicitIdTests
                 return await effect.Capture(() =>Task.WhenAll(t1, t2));
             });
 
-        var result = await rAction.Invoke(flowInstance.ToString(), param: "hello");
+        var result = await rAction.Run(flowInstance.ToString(), param: "hello");
         result.ShouldBe(new [] { 1, 2 });
         
         var effectResults = await store.EffectsStore.GetEffectResults(rAction.MapToStoredId(flowId.Instance));
@@ -284,7 +284,7 @@ public abstract class EffectImplicitIdTests
                 await effect.Capture(() => "1");
             });
 
-        await registration.Invoke(flowInstance.ToString(), "hello");
+        await registration.Run(flowInstance.ToString(), "hello");
         
         var controlPanel = await registration.ControlPanel(flowId.Instance);
         controlPanel.ShouldNotBeNull();

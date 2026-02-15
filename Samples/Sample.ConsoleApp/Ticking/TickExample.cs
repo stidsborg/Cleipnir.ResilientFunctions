@@ -34,6 +34,6 @@ public static class TickExample
             }
         );
 
-        await registration.Invoke(flowInstance: "TICKER1", param: "TICKER1");
+        await registration.Run(flowInstance: "TICKER1", param: "TICKER1");
     }
 }

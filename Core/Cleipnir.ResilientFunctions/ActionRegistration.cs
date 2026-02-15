@@ -36,7 +36,7 @@ public class ActionRegistration<TParam> : BaseRegistration where TParam : notnul
         MessageWriters = messageWriters;
     }
 
-    public async Task Invoke(FlowInstance flowInstance, TParam param, InitialState? initialState = null)
+    public async Task Run(FlowInstance flowInstance, TParam param, InitialState? initialState = null)
         => await (await _invoker.ScheduleInvoke(flowInstance, param, detach: null, initialState))
             .Completion(allowPostponedAndSuspended: false);
 

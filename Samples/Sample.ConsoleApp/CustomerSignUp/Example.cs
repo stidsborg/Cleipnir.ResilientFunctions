@@ -24,7 +24,7 @@ public static class Example
             );
 
         var offerDate = new DateOnly(2022, 1, 1);
-        await registration.Invoke(
+        await registration.Run(
             flowInstance: offerDate.ToString(),
             param: "billgates@microsoft.net"
         );

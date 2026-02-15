@@ -36,7 +36,7 @@ public class FuncRegistration<TParam, TReturn> : BaseRegistration where TParam :
         MessageWriters = messageWriters;
     }
 
-    public async Task<TReturn> Invoke(FlowInstance flowInstance, TParam param, InitialState? initialState = null)
+    public async Task<TReturn> Run(FlowInstance flowInstance, TParam param, InitialState? initialState = null)
         => (await (await _invoker.ScheduleInvoke(flowInstance, param, detach: null, initialState))
             .Completion(allowPostponedAndSuspended: false)).First();
 

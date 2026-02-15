@@ -24,7 +24,7 @@ public class RActionWithStateRegistrationTests
                 _flowType,
                 InnerAction
             )
-            .Invoke;
+            .Run;
 
         await rAction(flowInstance, "hello world");
     }
@@ -34,7 +34,7 @@ public class RActionWithStateRegistrationTests
     {
         var serializer = new Serializer();
         using var rFunctions = new FunctionsRegistry(new InMemoryFunctionStore(), new Settings(serializer: serializer));
-        var rAction = rFunctions.RegisterAction<string>(_flowType, InnerAction).Invoke;
+        var rAction = rFunctions.RegisterAction<string>(_flowType, InnerAction).Run;
 
         await rAction(flowInstance, "hello world");
         serializer.Invoked.ShouldBeTrue();

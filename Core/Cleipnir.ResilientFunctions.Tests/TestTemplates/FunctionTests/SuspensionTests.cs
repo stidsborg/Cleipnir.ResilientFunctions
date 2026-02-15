@@ -36,7 +36,7 @@ public abstract class SuspensionTests
         );
 
         await Should.ThrowAsync<InvocationSuspendedException>(
-            () => rAction.Invoke(flowInstance.Value, "hello world")
+            () => rAction.Run(flowInstance.Value, "hello world")
         );
 
         await BusyWait.Until(() =>
@@ -69,7 +69,7 @@ public abstract class SuspensionTests
         );
 
         await Should.ThrowAsync<InvocationSuspendedException>(
-            () => rFunc.Invoke(instanceId.Value, "hello world")
+            () => rFunc.Run(instanceId.Value, "hello world")
         );
         
         await BusyWait.Until(() =>
@@ -113,7 +113,7 @@ public abstract class SuspensionTests
             });
 
         await Should.ThrowAsync<InvocationSuspendedException>(
-            () => rFunc.Invoke(flowInstance.Value, "hello world")
+            () => rFunc.Run(flowInstance.Value, "hello world")
         );
 
         await Task.Delay(250);
@@ -156,7 +156,7 @@ public abstract class SuspensionTests
             });
 
         await Should.ThrowAsync<InvocationPostponedException>(
-            () => rFunc.Invoke(flowInstance.Value, "hello world")
+            () => rFunc.Run(flowInstance.Value, "hello world")
         );
 
         await Task.Delay(250);
@@ -195,7 +195,7 @@ public abstract class SuspensionTests
             });
 
         await Should.ThrowAsync<InvocationSuspendedException>(
-            () => rFunc.Invoke(flowInstance, "hello world")
+            () => rFunc.Run(flowInstance, "hello world")
         );
 
         await rFunc.MessageWriters.For(flowInstance.ToFlowInstance()).AppendMessage("hello universe");
@@ -230,7 +230,7 @@ public abstract class SuspensionTests
         );
 
         await Should.ThrowAsync<InvocationSuspendedException>(() =>
-            registration.Invoke(flowInstance, "hello world")
+            registration.Run(flowInstance, "hello world")
         );
 
         var messagesWriter = registration.MessageWriters.For(flowInstance.ToFlowInstance());
@@ -275,7 +275,7 @@ public abstract class SuspensionTests
         );
 
         await Should.ThrowAsync<InvocationSuspendedException>(() =>
-            registration.Invoke(flowInstance.Value, "hello world")
+            registration.Run(flowInstance.Value, "hello world")
         );
 
         var messagesWriter = registration.MessageWriters.For(flowInstance);
@@ -742,7 +742,7 @@ public abstract class SuspensionTests
             }
         );
 
-        var result = await registration.Invoke("SomeInstance", "Hello World");
+        var result = await registration.Run("SomeInstance", "Hello World");
         result.ShouldBe("Hello World");
         
         unhandledExceptionHandler.ShouldNotHaveExceptions();

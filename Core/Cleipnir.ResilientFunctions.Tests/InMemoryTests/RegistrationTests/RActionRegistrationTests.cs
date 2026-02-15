@@ -18,7 +18,7 @@ public class RActionRegistrationTests
         using var rFunctions = CreateRFunctions();
         var rAction = rFunctions
             .RegisterAction<string>(_flowType, InnerAction)
-            .Invoke;
+            .Run;
 
         await rAction(flowInstance, "hello world");
     }

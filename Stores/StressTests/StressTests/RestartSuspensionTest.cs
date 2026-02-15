@@ -36,7 +36,7 @@ public static class RestartSuspensionTest
         Console.WriteLine("RESTART_SUSPENSION_TEST: Initializing");
         var instances = Enumerable.Range(0, testSize).Select(i => i.ToString()).ToList();
         foreach (var instance in instances)
-            await registration.Invoke(
+            await registration.Run(
                 instance,
                 new InitialState(
                     [new MessageAndIdempotencyKey("Hello")],

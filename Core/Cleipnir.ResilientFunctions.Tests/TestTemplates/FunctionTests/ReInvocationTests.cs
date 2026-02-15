@@ -45,7 +45,7 @@ public abstract class ReInvocationTests
                 }
             );
 
-        await Should.ThrowAsync<Exception>(() => rFunc.Invoke("something", "something"));
+        await Should.ThrowAsync<Exception>(() => rFunc.Run("something", "something"));
 
         await rFunc.ControlPanel("something").Result!.Restart();
         
@@ -93,7 +93,7 @@ public abstract class ReInvocationTests
         );
 
         await Should.ThrowAsync<Exception>(() =>
-            rAction.Invoke(flowInstance.Value, "something")
+            rAction.Run(flowInstance.Value, "something")
         );
         
         var controlPanel = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
@@ -143,7 +143,7 @@ public abstract class ReInvocationTests
         );
 
         await Should.ThrowAsync<Exception>(() =>
-            rAction.Invoke(flowInstance.Value, "something")
+            rAction.Run(flowInstance.Value, "something")
         );
 
         var controlPanel = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
@@ -191,7 +191,7 @@ public abstract class ReInvocationTests
             }
         );
 
-        await Should.ThrowAsync<Exception>(() => rFunc.Invoke(flowInstance.Value, "something"));
+        await Should.ThrowAsync<Exception>(() => rFunc.Run(flowInstance.Value, "something"));
 
         var controlPanel = await rFunc.ControlPanel(flowInstance).ShouldNotBeNullAsync();
         await controlPanel.Restart();
@@ -229,7 +229,7 @@ public abstract class ReInvocationTests
             (string _) => Task.CompletedTask
         );
 
-        await rAction.Invoke(flowInstance.Value, "");
+        await rAction.Run(flowInstance.Value, "");
         var controlPanel1 = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
         var controlPanel2 = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
         await controlPanel1.Delete();

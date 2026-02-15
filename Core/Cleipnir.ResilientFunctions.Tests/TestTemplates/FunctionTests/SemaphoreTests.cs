@@ -164,8 +164,8 @@ public abstract class SemaphoreTests
                 await @lock.DisposeAsync();
             });
         
-        var firstFlowTask = Task.Run(() => firstFlow.Invoke(flowId1.Instance, "hello"));
-        var secondFlowTask = Task.Run(() => secondFlow.Invoke(flowId2.Instance, "hello"));
+        var firstFlowTask = Task.Run(() => firstFlow.Run(flowId1.Instance, "hello"));
+        var secondFlowTask = Task.Run(() => secondFlow.Run(flowId2.Instance, "hello"));
 
         try
         {

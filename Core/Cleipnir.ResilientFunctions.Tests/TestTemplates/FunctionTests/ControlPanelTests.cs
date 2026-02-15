@@ -34,7 +34,7 @@ public abstract class ControlPanelTests
             }
         );
         
-        await rAction.Invoke(flowInstance.Value, "");
+        await rAction.Run(flowInstance.Value, "");
 
         var controlPanel = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
         await controlPanel.Delete();
@@ -84,7 +84,7 @@ public abstract class ControlPanelTests
                 return "hello";
             });
         
-        await rFunc.Invoke(flowInstance.Value, "");
+        await rFunc.Run(flowInstance.Value, "");
 
         var controlPanel = await rFunc.ControlPanel(flowInstance).ShouldNotBeNullAsync();
         await controlPanel.Delete();
@@ -130,7 +130,7 @@ public abstract class ControlPanelTests
             Task (string _) => throw new InvalidOperationException("oh no")
         );
 
-        await Should.ThrowAsync<Exception>(() => rAction.Invoke(flowInstance.Value, ""));
+        await Should.ThrowAsync<Exception>(() => rAction.Run(flowInstance.Value, ""));
 
         var controlPanel = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
         controlPanel.Status.ShouldBe(Status.Failed);
@@ -168,7 +168,7 @@ public abstract class ControlPanelTests
             Task<string> (_) => throw new InvalidOperationException("oh no")
         );
 
-        await Should.ThrowAsync<Exception>(() => rFunc.Invoke(flowInstance.Value, ""));
+        await Should.ThrowAsync<Exception>(() => rFunc.Run(flowInstance.Value, ""));
 
         var controlPanel = await rFunc.ControlPanel(flowInstance).ShouldNotBeNullAsync();
         controlPanel.Status.ShouldBe(Status.Failed);
@@ -205,7 +205,7 @@ public abstract class ControlPanelTests
             Task (string _, Workflow workflow) => workflow.Delay(TimeSpan.FromMinutes(1))
         );
         
-        await Should.ThrowAsync<Exception>(() => rAction.Invoke(flowInstance.Value, ""));
+        await Should.ThrowAsync<Exception>(() => rAction.Run(flowInstance.Value, ""));
 
         var controlPanel = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
         controlPanel.Status.ShouldBe(Status.Postponed);
@@ -244,7 +244,7 @@ public abstract class ControlPanelTests
             }
         );
         
-        await Should.ThrowAsync<Exception>(() => rFunc.Invoke(flowInstance.Value, ""));
+        await Should.ThrowAsync<Exception>(() => rFunc.Run(flowInstance.Value, ""));
 
         var controlPanel = await rFunc.ControlPanel(flowInstance).ShouldNotBeNullAsync();
         controlPanel.Status.ShouldBe(Status.Postponed);
@@ -279,7 +279,7 @@ public abstract class ControlPanelTests
             Task (string _) => throw new InvalidOperationException("oh no")
         );
 
-        await Should.ThrowAsync<Exception>(() => rAction.Invoke(flowInstance.Value, ""));
+        await Should.ThrowAsync<Exception>(() => rAction.Run(flowInstance.Value, ""));
 
         var controlPanel = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
         controlPanel.Status.ShouldBe(Status.Failed);
@@ -313,7 +313,7 @@ public abstract class ControlPanelTests
             inner: Task () => throw new InvalidOperationException("oh no")
         );
 
-        await Should.ThrowAsync<Exception>(() => paramlessRegistration.Invoke(flowInstance.Value));
+        await Should.ThrowAsync<Exception>(() => paramlessRegistration.Run(flowInstance.Value));
 
         var controlPanel = await paramlessRegistration.ControlPanel(flowInstance).ShouldNotBeNullAsync();
         controlPanel.Status.ShouldBe(Status.Failed);
@@ -347,7 +347,7 @@ public abstract class ControlPanelTests
             Task<string> (_) => throw new InvalidOperationException("oh no")
         );
 
-        await Should.ThrowAsync<Exception>(() => rFunc.Invoke(flowInstance.Value, ""));
+        await Should.ThrowAsync<Exception>(() => rFunc.Run(flowInstance.Value, ""));
 
         var controlPanel = await rFunc.ControlPanel(flowInstance).ShouldNotBeNullAsync();
         controlPanel.Status.ShouldBe(Status.Failed);
@@ -386,7 +386,7 @@ public abstract class ControlPanelTests
             Task<string> (string param) => param.ToTask()
         );
 
-        await rAction.Invoke(flowInstance.Value, param: "first");
+        await rAction.Run(flowInstance.Value, param: "first");
 
         var controlPanel = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
         controlPanel.Status.ShouldBe(Status.Succeeded);
@@ -418,7 +418,7 @@ public abstract class ControlPanelTests
             inner: Task (string param, Workflow workflow) => Task.CompletedTask 
         );
 
-        await rAction.Invoke(flowInstance.Value, param: "first");
+        await rAction.Run(flowInstance.Value, param: "first");
 
         var controlPanel = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
         controlPanel.Status.ShouldBe(Status.Succeeded);
@@ -521,7 +521,7 @@ public abstract class ControlPanelTests
             Task<string> (string param) => param.ToTask()
         );
 
-        await rAction.Invoke(flowInstance.Value, param: "param");
+        await rAction.Run(flowInstance.Value, param: "param");
 
         var controlPanel = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
         await controlPanel.SaveChanges();
@@ -545,7 +545,7 @@ public abstract class ControlPanelTests
             Task (string _) => Task.CompletedTask
         );
 
-        await rAction.Invoke(flowInstance.Value, param: "param");
+        await rAction.Run(flowInstance.Value, param: "param");
 
         var controlPanel = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
         await controlPanel.SaveChanges();
@@ -572,7 +572,7 @@ public abstract class ControlPanelTests
             }
         );
 
-        await rAction.Invoke(flowInstance.Value, param: "param");
+        await rAction.Run(flowInstance.Value, param: "param");
 
         var controlPanel = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
         var existingMessages = controlPanel.Messages;
@@ -628,7 +628,7 @@ public abstract class ControlPanelTests
             }
         );
 
-        await rAction.Invoke(flowInstance.Value, param: "param");
+        await rAction.Run(flowInstance.Value, param: "param");
 
         var controlPanel = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
         controlPanel.Status.ShouldBe(Status.Succeeded);
@@ -680,7 +680,7 @@ public abstract class ControlPanelTests
             }
         );
 
-        await rAction.Invoke(flowInstance.Value, param: "param");
+        await rAction.Run(flowInstance.Value, param: "param");
 
         var controlPanel = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
         controlPanel.Param = "test";
@@ -712,7 +712,7 @@ public abstract class ControlPanelTests
             Task(string param, Workflow workflow) => Task.Delay(1)
         );
 
-        await rAction.Invoke(flowInstance.Value, param: "param");
+        await rAction.Run(flowInstance.Value, param: "param");
         await store.MessageStore.AppendMessage(
             rAction.MapToStoredId(functionId.Instance),
             new StoredMessage("hello world".ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Position: 0)
@@ -749,7 +749,7 @@ public abstract class ControlPanelTests
             Task(string param, Workflow workflow) => Task.Delay(1)
         );
 
-        await rAction.Invoke(flowInstance.Value, param: "param");
+        await rAction.Run(flowInstance.Value, param: "param");
         await store.MessageStore.AppendMessage(
             rAction.MapToStoredId(functionId.Instance),
             new StoredMessage("hello world".ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Position: 0)
@@ -791,7 +791,7 @@ public abstract class ControlPanelTests
             Task(string param, Workflow workflow) => Task.Delay(1)
         );
 
-        await rAction.Invoke(flowInstance.Value, param: "param");
+        await rAction.Run(flowInstance.Value, param: "param");
         await store.MessageStore.AppendMessage(
             rAction.MapToStoredId(functionId.Instance),
             new StoredMessage("hello world".ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Position: 0)
@@ -828,7 +828,7 @@ public abstract class ControlPanelTests
             Task(string param, Workflow workflow) => Task.Delay(1)
         );
 
-        await rAction.Invoke(flowInstance.Value, param: "param");
+        await rAction.Run(flowInstance.Value, param: "param");
         await store.MessageStore.AppendMessage(
             rAction.MapToStoredId(functionId.Instance),
             new StoredMessage("hello world".ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Position: 0)
@@ -870,7 +870,7 @@ public abstract class ControlPanelTests
             Task(string param, Workflow workflow) => Task.CompletedTask
         );
 
-        await rAction.Invoke(flowInstance.Value, param: "param");
+        await rAction.Run(flowInstance.Value, param: "param");
         await rAction.MessageWriters
             .For(flowInstance.Value.ToFlowInstance())
             .AppendMessage("hello world", idempotencyKey: "first");
@@ -910,7 +910,7 @@ public abstract class ControlPanelTests
                 => workflow.Effect.Capture(() => "EffectResult")
         );
 
-        var result = await rFunc.Invoke(flowInstance.Value, param: "param");
+        var result = await rFunc.Run(flowInstance.Value, param: "param");
         result.ShouldBe("EffectResult");
         
         var controlPanel = await rFunc.ControlPanel(flowInstance).ShouldNotBeNullAsync();
@@ -942,7 +942,7 @@ public abstract class ControlPanelTests
                     : Task.CompletedTask
         );
 
-        await rAction.Invoke(flowInstance.Value, param: "param");
+        await rAction.Run(flowInstance.Value, param: "param");
         
         var controlPanel = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
         var effects = controlPanel.Effects;
@@ -969,7 +969,7 @@ public abstract class ControlPanelTests
             Task (workflow) => workflow.Effect.Capture(() => 123)
         );
 
-        await rAction.Invoke(flowInstance.Value);
+        await rAction.Run(flowInstance.Value);
         
         var controlPanel = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
         var effects = controlPanel.Effects;
@@ -997,7 +997,7 @@ public abstract class ControlPanelTests
                 => workflow.Effect.Capture(() => throw new InvalidOperationException("oh no"))
         );
 
-        await Should.ThrowAsync<Exception>(rFunc.Invoke(flowInstance.Value, param: "param"));
+        await Should.ThrowAsync<Exception>(rFunc.Run(flowInstance.Value, param: "param"));
         
         var controlPanel = await rFunc.ControlPanel(flowInstance).ShouldNotBeNullAsync();
         var activities = controlPanel.Effects;
@@ -1030,7 +1030,7 @@ public abstract class ControlPanelTests
                 })
         );
 
-        var result = await rFunc.Invoke(flowInstance.Value, param: "param");
+        var result = await rFunc.Run(flowInstance.Value, param: "param");
         result.ShouldBe("EffectResult");
         syncedCounter.Current.ShouldBe(1);
 
@@ -1046,7 +1046,7 @@ public abstract class ControlPanelTests
 
         await controlPanel.Restart();
 
-        result = await rFunc.Invoke(flowInstance.Value, param: "param");
+        result = await rFunc.Run(flowInstance.Value, param: "param");
         result.ShouldBe("EffectResult");
         syncedCounter.Current.ShouldBe(2);
 
@@ -1067,7 +1067,7 @@ public abstract class ControlPanelTests
             flowType,
             (string _, Workflow _) => Task.CompletedTask
         );
-        await rAction.Invoke(flowInstance.Value, param: "param");
+        await rAction.Run(flowInstance.Value, param: "param");
         
         var controlPanel = await rAction.ControlPanel(flowInstance.Value);
         controlPanel.ShouldNotBeNull();
@@ -1105,7 +1105,7 @@ public abstract class ControlPanelTests
             flowType,
             (string _, Workflow _) => Task.CompletedTask
         );
-        await rAction.Invoke(flowInstance.Value, param: "param");
+        await rAction.Run(flowInstance.Value, param: "param");
         
         var controlPanel = await rAction.ControlPanel(flowInstance.Value);
         controlPanel.ShouldNotBeNull();
@@ -1143,7 +1143,7 @@ public abstract class ControlPanelTests
             flowType,
             (string _, Workflow _) => Task.CompletedTask
         );
-        await rAction.Invoke(flowInstance.Value, param: "param");
+        await rAction.Run(flowInstance.Value, param: "param");
         
         var firstControlPanel = await rAction.ControlPanel(flowInstance.Value);
         firstControlPanel.ShouldNotBeNull();
@@ -1182,7 +1182,7 @@ public abstract class ControlPanelTests
                 })
         );
 
-        var result = await rFunc.Invoke(flowInstance.Value, param: "param");
+        var result = await rFunc.Run(flowInstance.Value, param: "param");
         result.ShouldBe("EffectResult");
         syncedCounter.Current.ShouldBe(1);
 
@@ -1213,7 +1213,7 @@ public abstract class ControlPanelTests
             inner: param => param.ToTask()
         );
 
-        await rAction.Invoke(flowInstance.Value, param: "param");
+        await rAction.Run(flowInstance.Value, param: "param");
 
         {
             var controlPanel = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
@@ -1248,7 +1248,7 @@ public abstract class ControlPanelTests
             }
         );
 
-        await registration.Invoke(flowInstance.Value);
+        await registration.Run(flowInstance.Value);
 
         var controlPanel = await registration.ControlPanel(flowInstance.Value);
         controlPanel.ShouldNotBeNull();
@@ -1280,7 +1280,7 @@ public abstract class ControlPanelTests
             inner: () => Task.CompletedTask
         );
 
-        await registration.Invoke(flowInstance.Value);
+        await registration.Run(flowInstance.Value);
 
         var controlPanel = await registration.ControlPanel(flowInstance.Value);
         controlPanel.ShouldNotBeNull();
@@ -1340,7 +1340,7 @@ public abstract class ControlPanelTests
 
         try
         {
-            await registration.Invoke(flowInstance);
+            await registration.Run(flowInstance);
         }
         catch (FatalWorkflowException exception)
         {

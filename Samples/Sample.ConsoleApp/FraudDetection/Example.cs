@@ -23,7 +23,7 @@ public static class Example
             .RegisterFunc<Transaction, bool>(
                 "FraudDetection",
                 Saga.StartFraudDetection
-            ).Invoke;
+            ).Run;
 
         var transaction = new Transaction(
             Id: "someId",
@@ -59,7 +59,7 @@ public static class Example
                 "FraudDetection",
                 Saga.StartFraudDetection
             );
-        var rFunc = registration.Invoke;
+        var rFunc = registration.Run;
 
         var messageWriters = registration.MessageWriters;
         MessageBroker.Subscribe(async events =>

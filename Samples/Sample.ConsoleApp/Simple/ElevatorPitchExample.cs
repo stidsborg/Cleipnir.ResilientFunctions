@@ -34,7 +34,7 @@ public static class ElevatorPitchExample
            //also any crashed invocation of the function type will automatically be picked after this point
 
         const string url = "https://google.com";
-        var responseBody = await registration.Invoke(flowInstance: "google", param: url); //invoking the function - btw you can F11-debug from here into your registered function
+        var responseBody = await registration.Run(flowInstance: "google", param: url); //invoking the function - btw you can F11-debug from here into your registered function
         Log.Information("Resilient Function getting {Url} completed successfully with body: {Body}", url, responseBody);
         
         await functionsRegistry.ShutdownGracefully(); //waits for currently invoking functions to complete before shutdown - otw just do not await!

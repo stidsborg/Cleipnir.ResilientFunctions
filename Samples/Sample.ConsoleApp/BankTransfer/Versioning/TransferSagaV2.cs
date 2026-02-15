@@ -20,7 +20,7 @@ public sealed class TransferSagaV2
     }
 
     public Task Perform(Transfer transfer)
-        => _actionRegistration.Invoke(transfer.TransferId.ToString(), transfer);
+        => _actionRegistration.Run(transfer.TransferId.ToString(), transfer);
 
     public class Inner
     {

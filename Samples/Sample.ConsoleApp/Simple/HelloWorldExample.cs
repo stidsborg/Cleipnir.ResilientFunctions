@@ -19,7 +19,7 @@ public static class HelloWorldExample
             inner: (string param) => param.ToUpper().ToTask()
         );
 
-        var returned = await registration.Invoke(flowInstance: "", param: "hello world");
+        var returned = await registration.Run(flowInstance: "", param: "hello world");
         Console.WriteLine($"Returned: '{returned}'");
     }
 }

@@ -19,7 +19,7 @@ public abstract class ExceptionHandlingTests
         var rFunc = functionsRegistry.RegisterFunc<string, string>( //explicit generic parameters to satisfy Rider-ide
             "typeId".ToFlowType(),
             Task<string> (string param) => throw new ArithmeticException("Division by zero")
-        ).Invoke;
+        ).Run;
         
         await Should.ThrowAsync<FatalWorkflowException<ArithmeticException>>(async () => await rFunc("instanceId", "hello"));
         await Should.ThrowAsync<FatalWorkflowException<ArithmeticException>>(async () => await rFunc("instanceId", "hello"));
@@ -35,7 +35,7 @@ public abstract class ExceptionHandlingTests
         var rFunc = functionsRegistry.RegisterFunc( 
             "typeId".ToFlowType(),
             Task<string> (string param) => throw new ArithmeticException("Division by zero")
-        ).Invoke;
+        ).Run;
         
         await Should.ThrowAsync<FatalWorkflowException<ArithmeticException>>(async () => await rFunc("instanceId", "hello"));
         await Should.ThrowAsync<FatalWorkflowException<ArithmeticException>>(async () => await rFunc("instanceId", "hello"));
@@ -53,7 +53,7 @@ public abstract class ExceptionHandlingTests
                 "typeId".ToFlowType(),
                 Task (string _) => throw new ArithmeticException("Division by zero")
             )
-            .Invoke;
+            .Run;
 
         await Should.ThrowAsync<FatalWorkflowException<ArithmeticException>>(async () => await rFunc("instanceId", "hello"));
         await Should.ThrowAsync<FatalWorkflowException<ArithmeticException>>(async () => await rFunc("instanceId", "hello"));
@@ -71,7 +71,7 @@ public abstract class ExceptionHandlingTests
                 "typeId".ToFlowType(),
                 Task (string _) => throw new ArithmeticException("Division by zero")
             )
-            .Invoke;
+            .Run;
 
         await Should.ThrowAsync<FatalWorkflowException<ArithmeticException>>(async () => await rFunc("instanceId", "hello"));
         await Should.ThrowAsync<FatalWorkflowException<ArithmeticException>>(async () => await rFunc("instanceId", "hello"));

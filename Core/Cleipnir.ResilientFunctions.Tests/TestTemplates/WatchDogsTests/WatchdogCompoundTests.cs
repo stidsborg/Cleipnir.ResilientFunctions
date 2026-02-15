@@ -42,7 +42,7 @@ public abstract class WatchdogCompoundTests
                     Task.Run(() => paramTcs.TrySetResult(p));
                     return NeverCompletingTask.OfType<Result<string>>();
                 }
-            ).Invoke;
+            ).Run;
 
             _ = rFunc(functionId.Instance.Value, param);
 
@@ -157,7 +157,7 @@ public abstract class WatchdogCompoundTests
                         tcs.TrySetResult(p);
                         return NeverCompletingTask.OfVoidType;
                     })
-                .Invoke;
+                .Run;
             
             _ = rAction(functionId.Instance.Value, param);
             var actualParam = await tcs.Task;
@@ -269,7 +269,7 @@ public abstract class WatchdogCompoundTests
             inner: (string _, Workflow _) => Task.CompletedTask
         );
 
-        await registration.Invoke(functionId.Instance.Value, "SomeParam");
+        await registration.Run(functionId.Instance.Value, "SomeParam");
 
         await BusyWait.Until(
             () => store.GetFunction(registration.MapToStoredId(functionId.Instance)).SelectAsync(sf => sf is not null)

@@ -40,7 +40,7 @@ public abstract class CrashedTests
                     flowType,
                     (string s) => s.ToUpper().ToTask()
                 );
-            var rFunc = registration.Invoke;
+            var rFunc = registration.Run;
             
             await BusyWait.Until(
                 async () => await store
@@ -82,7 +82,7 @@ public abstract class CrashedTests
                     flowType,
                     (string _) => Task.CompletedTask
                 );
-            var rAction = registration.Invoke;
+            var rAction = registration.Run;
             
             await BusyWait.Until(
                 async () => await store

@@ -38,7 +38,7 @@ public class ParamlessRegistration : BaseRegistration
         _functionStore = functionStore;
     }
 
-    public async Task Invoke(FlowInstance flowInstance, InitialState? initialState = null)
+    public async Task Run(FlowInstance flowInstance, InitialState? initialState = null)
         => await (await _invoker.ScheduleInvoke(flowInstance.Value, param: Unit.Instance, detach: null, initialState))
             .Completion(allowPostponedAndSuspended: false);
 

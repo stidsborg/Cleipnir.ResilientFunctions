@@ -77,7 +77,7 @@ public class DirectInvocationTest
     {
         try
         {
-            await funcRegistration.Invoke(i.ToString(), i.ToString());
+            await funcRegistration.Run(i.ToString(), i.ToString());
         }
         catch (Exception exception)
         {

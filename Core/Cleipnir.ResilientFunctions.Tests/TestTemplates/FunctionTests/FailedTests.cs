@@ -50,7 +50,7 @@ public abstract class FailedTests
                             : Task.FromException(new InvalidOperationException())
                 );
 
-            await Should.ThrowAsync<FatalWorkflowException>(async () => await actionRegistration.Invoke(flowInstance.ToString(), Param));
+            await Should.ThrowAsync<FatalWorkflowException>(async () => await actionRegistration.Run(flowInstance.ToString(), Param));
             var sf = await store.GetFunction(actionRegistration.MapToStoredId(functionId.Instance));
             sf.ShouldNotBeNull();
         }
@@ -78,7 +78,7 @@ public abstract class FailedTests
             var sf = await store.GetFunction(rFunc.MapToStoredId(functionId.Instance));
             sf.ShouldNotBeNull();
             sf.Status.ShouldBe(Status.Failed);
-            await Should.ThrowAsync<Exception>(async () => await rFunc.Invoke(flowInstance.ToString(), Param));
+            await Should.ThrowAsync<Exception>(async () => await rFunc.Run(flowInstance.ToString(), Param));
         }
 
         var fwe = (FatalWorkflowException) unhandledExceptionHandler.ThrownExceptions.Single().InnerException!;
@@ -119,7 +119,7 @@ public abstract class FailedTests
                             ? throw new InvalidOperationException()
                             : Task.FromException(new InvalidOperationException())
                 )
-                .Invoke;
+                .Run;
 
             await Should.ThrowAsync<Exception>(() => nonCompletingFunctionsRegistry(Param, Param));
         }
@@ -149,7 +149,7 @@ public abstract class FailedTests
             storedFunction.ShouldNotBeNull();
             storedFunction.Status.ShouldBe(Status.Failed);
 
-            await Should.ThrowAsync<Exception>(() => rAction.Invoke(Param, Param));
+            await Should.ThrowAsync<Exception>(() => rAction.Run(Param, Param));
         }
 
         var fwe = (FatalWorkflowException) unhandledExceptionHandler.ThrownExceptions.Single().InnerException!;
@@ -178,7 +178,7 @@ public abstract class FailedTests
                     flowType,
                     (string _) => Task.FromException(new InvalidOperationException())
                 )
-                .Invoke;
+                .Run;
 
             await Should.ThrowAsync<Exception>(nonCompletingFunctionsRegistry(flowInstance.ToString(), Param));
         }
@@ -206,7 +206,7 @@ public abstract class FailedTests
             var status = await store.GetFunction(rFunc.MapToStoredId(functionId.Instance)).Map(t => t?.Status);
             status.ShouldNotBeNull();
             status.ShouldBe(Status.Failed);
-            await Should.ThrowAsync<Exception>(rFunc.Invoke(flowInstance.ToString(), Param));
+            await Should.ThrowAsync<Exception>(rFunc.Run(flowInstance.ToString(), Param));
         }
 
         var fwe = (FatalWorkflowException) unhandledExceptionHandler.ThrownExceptions.Single().InnerException!;
@@ -240,7 +240,7 @@ public abstract class FailedTests
         flag.Position.ShouldBe(Lowered);
 
         await Should.ThrowAsync<ArgumentNullException>(
-            () => registration.Invoke("someflowInstance", param: null!)
+            () => registration.Run("someflowInstance", param: null!)
         );
         unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
     }
@@ -275,7 +275,7 @@ public abstract class FailedTests
                         throwUnhandledException
                             ? throw new InvalidOperationException()
                             : Task.FromException(new InvalidOperationException())
-                ).Invoke;
+                ).Run;
 
             await Should.ThrowAsync<Exception>(() => nonCompletingFunctionsRegistry(flowInstance.ToString(), param));
         }
@@ -301,7 +301,7 @@ public abstract class FailedTests
             storedFunction.ShouldNotBeNull();
             storedFunction.Status.ShouldBe(Status.Failed);
 
-            await Should.ThrowAsync<Exception>(() => rFunc.Invoke(flowInstance.ToString(), param));
+            await Should.ThrowAsync<Exception>(() => rFunc.Run(flowInstance.ToString(), param));
         }
 
         var fwe = (FatalWorkflowException) unhandledExceptionHandler.ThrownExceptions.Single().InnerException!;

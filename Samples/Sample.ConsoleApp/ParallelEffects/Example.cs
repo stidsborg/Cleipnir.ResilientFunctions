@@ -61,7 +61,7 @@ public static class Example
             }
         );
         
-        var result = await rFunc.Invoke("some instance".ToFlowInstance(), "some param");
+        var result = await rFunc.Run("some instance".ToFlowInstance(), "some param");
         Console.WriteLine($"Result: {result}");
     }
 }

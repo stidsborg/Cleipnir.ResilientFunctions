@@ -271,7 +271,7 @@ public abstract class EffectTests
                 return await effect.Capture(async () => await await Task.WhenAny(t1, t2));
             });
 
-        var result = await rAction.Invoke(flowInstance.ToString(), param: "hello");
+        var result = await rAction.Run(flowInstance.ToString(), param: "hello");
         result.ShouldBe(2);
         
         var storedId = rAction.MapToStoredId(flowId.Instance);
@@ -298,7 +298,7 @@ public abstract class EffectTests
                 return await effect.Capture(() => Task.WhenAll(t1, t2));
             });
 
-        var result = await rAction.Invoke(flowInstance.ToString(), param: "hello");
+        var result = await rAction.Run(flowInstance.ToString(), param: "hello");
         result.ShouldBe(new [] { 1, 2 });
         
         var storedId = rAction.MapToStoredId(flowId.Instance);
@@ -422,7 +422,7 @@ public abstract class EffectTests
             }
         );
 
-        var invocation = Task.Run(() => rAction.Invoke(flowInstance.ToString()));
+        var invocation = Task.Run(() => rAction.Run(flowInstance.ToString()));
 
         await readFlag.WaitForRaised();
 
@@ -473,7 +473,7 @@ public abstract class EffectTests
             }
         );
 
-        var invocation = Task.Run(() => rAction.Invoke(flowInstance.ToString()));
+        var invocation = Task.Run(() => rAction.Run(flowInstance.ToString()));
 
         await readFlag.WaitForRaised();
 
@@ -545,7 +545,7 @@ public abstract class EffectTests
             }
         );
 
-        await rAction.Invoke(flowInstance);
+        await rAction.Run(flowInstance);
 
         var storedId = rAction.MapToStoredId(flowId.Instance);
         var effectResults = await store.EffectsStore.GetEffectResults(storedId);
@@ -587,7 +587,7 @@ public abstract class EffectTests
             }
         );
 
-        var result = await rAction.Invoke(flowInstance.ToString(), "");
+        var result = await rAction.Run(flowInstance.ToString(), "");
         result.ShouldBeTrue();
     }
     
@@ -605,7 +605,7 @@ public abstract class EffectTests
 
         try
         {
-            await rAction.Invoke(flowInstance.ToString());
+            await rAction.Run(flowInstance.ToString());
         }
         catch (FatalWorkflowException<InvalidOperationException>)
         {
@@ -615,7 +615,7 @@ public abstract class EffectTests
         
         try
         {
-            await rAction.Invoke(flowInstance.ToString());
+            await rAction.Run(flowInstance.ToString());
         }
         catch (FatalWorkflowException<InvalidOperationException>)
         {
@@ -839,7 +839,7 @@ public abstract class EffectTests
             }
         );
 
-        await Should.ThrowAsync<InvocationPostponedException>(() => registration.Invoke(flowId.Instance));
+        await Should.ThrowAsync<InvocationPostponedException>(() => registration.Run(flowId.Instance));
         utcNow += TimeSpan.FromSeconds(2);
         
         var cp = await registration.ControlPanel(flowId.Instance).ShouldNotBeNullAsync();
@@ -884,7 +884,7 @@ public abstract class EffectTests
             }
         );
 
-        await Should.ThrowAsync<InvocationPostponedException>(() => registration.Invoke(flowId.Instance, "Hello World!"));
+        await Should.ThrowAsync<InvocationPostponedException>(() => registration.Run(flowId.Instance, "Hello World!"));
         utcNow += TimeSpan.FromSeconds(2);
         
         var cp = await registration.ControlPanel(flowId.Instance).ShouldNotBeNullAsync();
@@ -928,7 +928,7 @@ public abstract class EffectTests
             }
         );
 
-        var result = await registration.Invoke(flowId.Instance, "Hello World!");
+        var result = await registration.Run(flowId.Instance, "Hello World!");
         result.ShouldBe("Hello World!");
         
         syncedCounter.Current.ShouldBe(3);
@@ -971,7 +971,7 @@ public abstract class EffectTests
 
         try
         {
-            await registration.Invoke(flowId.Instance);
+            await registration.Run(flowId.Instance);
             Assert.Fail("Expected InvalidOperationException");
         }
         catch (FatalWorkflowException e)
@@ -1058,7 +1058,7 @@ public abstract class EffectTests
                 });
             });
 
-        var invocation = Task.Run(() => registration.Invoke(id.Instance));
+        var invocation = Task.Run(() => registration.Run(id.Instance));
 
         await readFlag.WaitForRaised();
 
@@ -1099,7 +1099,7 @@ public abstract class EffectTests
                 });
             });
 
-        var invocation = Task.Run(() => registration.Invoke(id.Instance));
+        var invocation = Task.Run(() => registration.Run(id.Instance));
 
         await readFlag.WaitForRaised();
 
@@ -1140,7 +1140,7 @@ public abstract class EffectTests
                 return result;
             });
 
-        var result = await registration.Invoke(id.Instance, "test");
+        var result = await registration.Run(id.Instance, "test");
         result.ShouldBe(15);
 
         var effectStore = store.EffectsStore;
@@ -1176,7 +1176,7 @@ public abstract class EffectTests
                 return result;
             });
 
-        await Should.ThrowAsync<FatalWorkflowException>(() => registration.Invoke(id.Instance, "test"));
+        await Should.ThrowAsync<FatalWorkflowException>(() => registration.Run(id.Instance, "test"));
         syncedCounter.Current.ShouldBe(3);
 
         var cp = await registration.ControlPanel(id.Instance).ShouldNotBeNullAsync();
@@ -1212,7 +1212,7 @@ public abstract class EffectTests
                 return result;
             });
 
-        var result = await registration.Invoke(id.Instance, "test");
+        var result = await registration.Run(id.Instance, "test");
         result.SequenceEqual(new[] { "A", "B", "C", "D" }).ShouldBeTrue();
 
         var cp = await registration.ControlPanel(id.Instance).ShouldNotBeNullAsync();
@@ -1244,7 +1244,7 @@ public abstract class EffectTests
                 return result;
             });
 
-        var result = await registration.Invoke(id.Instance, "test");
+        var result = await registration.Run(id.Instance, "test");
         result.ShouldBe(6);
 
         var effectStore = store.EffectsStore;
@@ -1279,7 +1279,7 @@ public abstract class EffectTests
                 return result;
             });
 
-        var result = await registration.Invoke(id.Instance, "test");
+        var result = await registration.Run(id.Instance, "test");
         result.ShouldBe(52);
     }
 
@@ -1446,7 +1446,7 @@ public abstract class EffectTests
                 return task1.Result + task2.Result;
             });
 
-        var result = await rFunc.Invoke(flowInstance.ToString(), param: "hello");
+        var result = await rFunc.Run(flowInstance.ToString(), param: "hello");
         result.ShouldBe(142);
         syncedCounter.Current.ShouldBe(2);
 

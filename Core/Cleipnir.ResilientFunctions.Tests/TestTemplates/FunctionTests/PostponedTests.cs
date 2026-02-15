@@ -35,7 +35,7 @@ public abstract class PostponedTests
             var rFunc = functionsRegistry.RegisterFunc<string, string>(
                 flowType,
                 (string _) => Postpone.Until(DateTime.UtcNow.AddMilliseconds(1_000)).ToResult<string>().ToTask()
-            ).Invoke;
+            ).Run;
 
             await Should.ThrowAsync<InvocationPostponedException>(() =>
                 rFunc(param, param)
@@ -61,7 +61,7 @@ public abstract class PostponedTests
 
             var functionId = new FlowId(flowType, param.ToFlowInstance());
             await BusyWait.Until(async () => (await store.GetFunction(rFunc.MapToStoredId(functionId.Instance)))!.Status == Status.Succeeded);
-            await rFunc.Invoke(param, param).ShouldBeAsync("TEST");
+            await rFunc.Run(param, param).ShouldBeAsync("TEST");
             unhandledExceptionHandler.ShouldNotHaveExceptions();
         }
     }
@@ -87,7 +87,7 @@ public abstract class PostponedTests
             var rAction = functionsRegistry.RegisterAction(
                 flowType, 
                 Task<Result<Unit>> (string _) => Postpone.Until(DateTime.UtcNow.AddMilliseconds(1_000)).ToUnitResult.ToTask()
-            ).Invoke;
+            ).Run;
 
             await Should.ThrowAsync<InvocationPostponedException>(() => rAction(flowInstance.Value, param));
             unhandledExceptionHandler.ShouldNotHaveExceptions();
@@ -108,7 +108,7 @@ public abstract class PostponedTests
                 );
             
             await BusyWait.Until(async () => (await store.GetFunction(rFunc.MapToStoredId(functionId.Instance)))!.Status == Status.Succeeded);
-            await rFunc.Invoke(flowInstance.Value, param);
+            await rFunc.Run(flowInstance.Value, param);
             unhandledExceptionHandler.ShouldNotHaveExceptions();
         }
     }
@@ -131,7 +131,7 @@ public abstract class PostponedTests
             );
             var rFunc = functionsRegistry
                 .RegisterAction(functionId.Type, Task<Result<Unit>> (string _) => Postpone.Until(DateTime.UtcNow.AddMilliseconds(1_000)).ToUnitResult.ToTask())
-                .Invoke;
+                .Run;
 
             var instanceId = functionId.Instance.ToString();
             await Should.ThrowAsync<InvocationPostponedException>(() => _ = rFunc(instanceId, "param"));
@@ -173,7 +173,7 @@ public abstract class PostponedTests
         //invoke
         {
             Should.Throw<InvocationPostponedException>(
-                () => rAction.Invoke("invoke", "hello")
+                () => rAction.Run("invoke", "hello")
             );
             var (status, postponedUntil) = await store
                 .GetFunction(rAction.MapToStoredId("invoke"))
@@ -267,7 +267,7 @@ public abstract class PostponedTests
         {
             var functionId = new FlowId(flowType, "invoke");
             Should.Throw<InvocationPostponedException>(
-                () => rAction.Invoke(functionId.Instance.Value, "hello")
+                () => rAction.Run(functionId.Instance.Value, "hello")
             );
             var (status, postponedUntil) = await store.GetFunction(rAction.MapToStoredId(functionId.Instance)).Map(sf => Tuple.Create(sf?.Status, sf?.Expires));
             status.ShouldBe(Status.Postponed);
@@ -364,7 +364,7 @@ public abstract class PostponedTests
         //invoke
         {
             Should.Throw<InvocationPostponedException>(
-                () => rFunc.Invoke("invoke", "hello")
+                () => rFunc.Run("invoke", "hello")
             );
             var (status, postponedUntil) = await store
                 .GetFunction(rFunc.MapToStoredId("invoke"))
@@ -464,7 +464,7 @@ public abstract class PostponedTests
         {
             var functionId = new FlowId(flowType, "invoke");
             Should.Throw<InvocationPostponedException>(
-                () => rFunc.Invoke(functionId.Instance.Value, "hello")
+                () => rFunc.Run(functionId.Instance.Value, "hello")
             );
             var (status, postponedUntil) = await store.GetFunction(rFunc.MapToStoredId(functionId.Instance)).Map(sf => Tuple.Create(sf?.Status, sf?.Expires));
             status.ShouldBe(Status.Postponed);
@@ -710,7 +710,7 @@ public abstract class PostponedTests
             );
 
         await Should.ThrowAsync<InvocationPostponedException>(
-            () => rFunc.Invoke(functionId.Instance.Value, "test")
+            () => rFunc.Run(functionId.Instance.Value, "test")
         );
         
         unhandledExceptionHandler.ShouldNotHaveExceptions();
@@ -739,7 +739,7 @@ public abstract class PostponedTests
             );
 
         await Should.ThrowAsync<InvocationPostponedException>(
-            () => registration.Invoke(functionId.Instance.Value, "test")
+            () => registration.Run(functionId.Instance.Value, "test")
         );
 
         var controlPanel = await registration.ControlPanel(functionId.Instance);

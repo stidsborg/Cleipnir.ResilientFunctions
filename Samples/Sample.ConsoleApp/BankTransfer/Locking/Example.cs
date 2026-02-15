@@ -26,7 +26,7 @@ public static class Example
             ToAccountTransactionId: Guid.NewGuid(),
             Amount: 100
         );
-        await actionRegistration.Invoke(
+        await actionRegistration.Run(
             transfer.TransferId.ToString(),
             transfer
         );

@@ -36,7 +36,7 @@ public abstract class SunshineTests
                 flowType,
                 (string s) => ToUpper(s)
             );
-        var rFunc = reg.Invoke;
+        var rFunc = reg.Run;
 
         var result = await rFunc("hello", "hello");
         result.ShouldBe("HELLO");
@@ -70,7 +70,7 @@ public abstract class SunshineTests
                 flag.Raise();
                 return Task.CompletedTask;
             });
-        var invoke = reg.Invoke;
+        var invoke = reg.Run;
 
         await invoke("SomeInstanceId");
         flag.Position.ShouldBe(FlagPosition.Raised);
@@ -104,7 +104,7 @@ public abstract class SunshineTests
                     flag.Raise();
                     return Succeed.WithUnit.ToTask();
                 });
-        var invoke = reg.Invoke;
+        var invoke = reg.Run;
 
         await invoke("SomeInstanceId");
         flag.Position.ShouldBe(FlagPosition.Raised);
@@ -134,7 +134,7 @@ public abstract class SunshineTests
                 flowType,
                 (string _) => Task.Delay(10)
             );
-        var rAction = reg.Invoke;
+        var rAction = reg.Run;
 
         await rAction("hello", "hello");
 
@@ -157,7 +157,7 @@ public abstract class SunshineTests
         var rFunc = functionsRegistry.RegisterFunc(
             flowType,
             (string s) => default(string).ToTask()
-        ).Invoke;
+        ).Run;
 
         var result = await rFunc("hello world", "hello world");
         result.ShouldBeNull();
@@ -181,7 +181,7 @@ public abstract class SunshineTests
             var rFunc = functionsRegistry.RegisterAction(
                 functionId.Type,
                 inner: (string _) => Task.CompletedTask
-            ).Invoke;
+            ).Run;
 
             await rFunc("hello world", "hello world");
         }
@@ -232,7 +232,7 @@ public abstract class SunshineTests
                 store.FixCrash();
                 return Task.CompletedTask;
             }
-        ).Invoke;
+        ).Run;
 
         await invoke("test");
         
@@ -260,7 +260,7 @@ public abstract class SunshineTests
                     return Task.CompletedTask;
                 }
             );
-        await reg.Invoke(flowInstance);
+        await reg.Run(flowInstance);
             
         flowId.ShouldBe(new FlowId(flowType, flowInstance));
         unhandledExceptionHandler.ShouldNotHaveExceptions();
@@ -285,7 +285,7 @@ public abstract class SunshineTests
                     return Task.CompletedTask;
                 }
             );
-        await reg.Invoke(instance);
+        await reg.Run(instance);
         
             
         storedId.ShouldBe(reg.MapToStoredId(instance));
@@ -351,7 +351,7 @@ public abstract class SunshineTests
                 });
 
 
-        await registration.Invoke(
+        await registration.Run(
             flowInstance: "hello",
             param: "hello",
             initialState: new InitialState(
@@ -389,7 +389,7 @@ public abstract class SunshineTests
                 });
 
 
-        await registration.Invoke(
+        await registration.Run(
             flowInstance: "hello",
             param: "hello",
             initialState: new InitialState(
@@ -427,7 +427,7 @@ public abstract class SunshineTests
                 });
 
 
-        await registration.Invoke(
+        await registration.Run(
             flowInstance: "hello",
             initialState: new InitialState(
                 Messages: [new MessageAndIdempotencyKey("InitialMessage")],
@@ -464,7 +464,7 @@ public abstract class SunshineTests
             );
 
 
-        await registration.Invoke(
+        await registration.Run(
             flowInstance: "hello",
             initialState: new InitialState(
                 Messages: [],
@@ -499,7 +499,7 @@ public abstract class SunshineTests
 
         try
         {
-            await registration.Invoke(
+            await registration.Run(
                 flowInstance: "hello",
                 initialState: new InitialState(
                     Messages: [],
@@ -537,7 +537,7 @@ public abstract class SunshineTests
                     await completeFlag.WaitForRaised();
                 }
             );
-        var flowTask = registration.Invoke(flowId.Instance, "param");
+        var flowTask = registration.Run(flowId.Instance, "param");
         await insideFlag.WaitForRaised();
 
         var cp = await registration.ControlPanel(flowId.Instance).ShouldNotBeNullAsync();
