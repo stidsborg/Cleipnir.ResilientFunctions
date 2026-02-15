@@ -168,7 +168,7 @@ public abstract class MessagesSubscriptionTests
 
         var cp = await rFunc.ControlPanel("instanceId").ShouldNotBeNullAsync();
         await cp.Messages.Append("hello world");
-        var restartResult = await cp.Restart();
+        var restartResult = await cp.ScheduleRestart().Completion();
         restartResult.ShouldBeNull();
 
         unhandledExceptionCatcher.ShouldNotHaveExceptions();

@@ -87,7 +87,7 @@ public class InMemorySunshineTests
         syncedParam = new Synced<string>();
         var controlPanel = await registration.ControlPanel("id1");
         controlPanel.ShouldNotBeNull();
-        returned = await controlPanel.Restart();
+        returned = await controlPanel.ScheduleRestart().Completion();
         returned.ShouldBe(toReturn);
         syncedParam.Value.ShouldBe("hello world");
         
@@ -184,7 +184,7 @@ public class InMemorySunshineTests
         syncedParam.Value.ShouldBe("hello world");
 
         syncedParam.Value = null;
-        await registration.ControlPanel("id1").Result!.Restart();
+        await registration.ControlPanel("id1").Result!.ScheduleRestart().Completion();
         syncedParam.Value.ShouldBe("hello world");
 
         syncedParam.Value = null;

@@ -55,7 +55,7 @@ public static class RestartSuspensionTest
         stopWatch.Restart();
         foreach (var controlPanel in controlPanels)
         {
-            await controlPanel.Restart();
+            await controlPanel.ScheduleRestart().Completion();
         }
         var executionAverageSpeed = testSize * 1000 / stopWatch.ElapsedMilliseconds;
     

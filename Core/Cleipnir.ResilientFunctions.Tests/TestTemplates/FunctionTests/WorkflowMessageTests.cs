@@ -451,7 +451,7 @@ public abstract class WorkflowMessageTests
             return controlPanel.Status == Status.Failed;
         }, maxWait: TimeSpan.FromSeconds(10));
 
-        await controlPanel.Restart();
+        await controlPanel.ScheduleRestart().Completion();
 
         await BusyWait.Until(async () =>
         {

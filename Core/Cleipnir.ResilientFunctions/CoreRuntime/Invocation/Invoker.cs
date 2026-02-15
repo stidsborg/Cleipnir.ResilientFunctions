@@ -149,26 +149,6 @@ public class Invoker<TParam, TReturn>
     public Task<InnerScheduled<TReturn>> BulkSchedule(IEnumerable<BulkWork<TParam>> instances, bool? detach = null)
         => _invocationHelper.BulkSchedule(instances.ToList(), detach);
 
-    public async Task<TReturn> Restart(StoredId storedId)
-    {
-        var (inner, param, humanInstanceId, workflow, disposables, _, _, parent, storageSession) = await PrepareForReInvocation(storedId);
-        CurrentFlow._workflow.Value = workflow;
-        var flowId = new FlowId(_flowType, humanInstanceId);
-        
-        Result<TReturn> result;
-        try
-        {
-            // *** USER FUNCTION INVOCATION *** 
-            result = await inner(param, workflow);
-        }
-        catch (FatalWorkflowException exception) { await PersistFailure(storedId, flowId, exception, param, parent); throw; }
-        catch (Exception exception) { var fwe = FatalWorkflowException.CreateNonGeneric(flowId, exception); await PersistFailure(storedId, flowId, fwe, param, parent); throw fwe; }
-        finally{ disposables.Dispose(); }
-        
-        await PersistResultAndEnsureSuccess(storedId, flowId, result, param, parent, workflow, storageSession);
-        return result.SucceedWithValue!;
-    }
-
     public async Task<InnerScheduled<TReturn>> ScheduleRestart(StoredId storedId)
     {
         var (inner, param, humanInstanceId, workflow, disposables, _, _, parent, storageSession) = await PrepareForReInvocation(storedId);

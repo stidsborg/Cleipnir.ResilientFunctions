@@ -136,7 +136,7 @@ public abstract class AtMostOnceWorkStatusAndResultTests
             });
 
         await rAction.Run(flowInstance.ToString(), "hello");
-        await rAction.ControlPanel(flowInstance).Result!.Restart();
+        await rAction.ControlPanel(flowInstance).Result!.ScheduleRestart().Completion();
 
         counter.Current.ShouldBe(1);
     }
@@ -164,7 +164,7 @@ public abstract class AtMostOnceWorkStatusAndResultTests
         var controlPanel = await rAction.ControlPanel(flowInstance.ToString());
         controlPanel.ShouldNotBeNull();
 
-        await controlPanel.Restart();
+        await controlPanel.ScheduleRestart().Completion();
 
         counter.Current.ShouldBe(1);
         await controlPanel.Refresh();
@@ -196,7 +196,7 @@ public abstract class AtMostOnceWorkStatusAndResultTests
         var controlPanel = await rAction.ControlPanel(flowInstance.ToString());
         controlPanel.ShouldNotBeNull();
 
-        await controlPanel.Restart();
+        await controlPanel.ScheduleRestart().Completion();
 
         counter.Current.ShouldBe(1);
         await controlPanel.Refresh();

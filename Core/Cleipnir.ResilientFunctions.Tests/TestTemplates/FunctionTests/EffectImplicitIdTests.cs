@@ -40,7 +40,7 @@ public abstract class EffectImplicitIdTests
 
         var controlPanel = await rAction.ControlPanel(flowId.Instance);
         controlPanel.ShouldNotBeNull();
-        await controlPanel.Restart();
+        await controlPanel.ScheduleRestart().Completion();
         
         effectResults = await store.EffectsStore.GetEffectResults(rAction.MapToStoredId(flowId.Instance));
         effectResults.Single(r => r.EffectId == 0.ToEffectId()).WorkStatus.ShouldBe(WorkStatus.Completed);
@@ -75,7 +75,7 @@ public abstract class EffectImplicitIdTests
 
         var controlPanel = await rAction.ControlPanel(flowId.Instance);
         controlPanel.ShouldNotBeNull();
-        await controlPanel.Restart();
+        await controlPanel.ScheduleRestart().Completion();
         
         effectResults = await store.EffectsStore.GetEffectResults(rAction.MapToStoredId(flowId.Instance));
         effectResults.Single(r => r.EffectId == 0.ToEffectId()).WorkStatus.ShouldBe(WorkStatus.Completed);
@@ -117,7 +117,7 @@ public abstract class EffectImplicitIdTests
 
         var controlPanel = await rAction.ControlPanel(flowId.Instance);
         controlPanel.ShouldNotBeNull();
-        await controlPanel.Restart();
+        await controlPanel.ScheduleRestart().Completion();
         
         effectResults = await store.EffectsStore.GetEffectResults(rAction.MapToStoredId(flowId.Instance));
         storedEffect = effectResults.Single(r => r.EffectId == 0.ToEffectId());
@@ -161,7 +161,7 @@ public abstract class EffectImplicitIdTests
 
         var controlPanel = await rAction.ControlPanel(flowId.Instance);
         controlPanel.ShouldNotBeNull();
-        await controlPanel.Restart();
+        await controlPanel.ScheduleRestart().Completion();
         
         effectResults = await store.EffectsStore.GetEffectResults(rAction.MapToStoredId(flowId.Instance));
         storedEffect = effectResults.Single(r => r.EffectId == 0.ToEffectId());
@@ -206,7 +206,7 @@ public abstract class EffectImplicitIdTests
 
         var controlPanel = await rAction.ControlPanel(flowId.Instance);
         controlPanel.ShouldNotBeNull();
-        await Should.ThrowAsync<FatalWorkflowException>(() => controlPanel.Restart());
+        await Should.ThrowAsync<FatalWorkflowException>(() => controlPanel.ScheduleRestart().Completion());
         
         effectResults = await store.EffectsStore.GetEffectResults(rAction.MapToStoredId(flowId.Instance));
         storedEffect = effectResults.Single(r => r.EffectId == 0.ToEffectId());
@@ -289,7 +289,7 @@ public abstract class EffectImplicitIdTests
         var controlPanel = await registration.ControlPanel(flowId.Instance);
         controlPanel.ShouldNotBeNull();
 
-        await controlPanel.Restart();
+        await controlPanel.ScheduleRestart().Completion();
         await controlPanel.Refresh();
 
         var effects = controlPanel.Effects;

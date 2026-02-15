@@ -150,7 +150,7 @@ public abstract class AtLeastOnceWorkStatusAndResultTests
 
         await rAction.Run(flowInstance.ToString(), "hello");
         await BusyWait.Until(async () => await store.GetFunction(rAction.MapToStoredId(functionId.Instance)) != null);
-        await rAction.ControlPanel(flowInstance).Result!.Restart();
+        await rAction.ControlPanel(flowInstance).Result!.ScheduleRestart().Completion();
 
         counter.Current.ShouldBe(1);
     }
@@ -177,7 +177,7 @@ public abstract class AtLeastOnceWorkStatusAndResultTests
         var controlPanel = await rAction.ControlPanel(flowInstance);
         controlPanel.ShouldNotBeNull();
         
-        await controlPanel.Restart();
+        await controlPanel.ScheduleRestart().Completion();
         await controlPanel.Refresh();
 
         var value = controlPanel.Effects.GetValue<string>(0);

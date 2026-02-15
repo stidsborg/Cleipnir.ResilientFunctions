@@ -47,7 +47,7 @@ public abstract class ReInvocationTests
 
         await Should.ThrowAsync<Exception>(() => rFunc.Run("something", "something"));
 
-        await rFunc.ControlPanel("something").Result!.Restart();
+        await rFunc.ControlPanel("something").Result!.ScheduleRestart().Completion();
         
         syncedParameter.Value.ShouldBe("something");
 
@@ -102,7 +102,7 @@ public abstract class ReInvocationTests
         await controlPanel.SaveChanges();
        
         controlPanel = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
-        await controlPanel.Restart();
+        await controlPanel.ScheduleRestart().Completion();
         
         syncedParam.Value.ShouldBe("something_else");
         var fwe = (FatalWorkflowException) unhandledExceptionCatcher.ThrownExceptions.Single().InnerException!;
@@ -152,7 +152,7 @@ public abstract class ReInvocationTests
         await controlPanel.SaveChanges();
        
         controlPanel = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
-        await controlPanel.Restart();
+        await controlPanel.ScheduleRestart().Completion();
         
         syncedValue.Value.ShouldBe("something_else");
 
@@ -194,7 +194,7 @@ public abstract class ReInvocationTests
         await Should.ThrowAsync<Exception>(() => rFunc.Run(flowInstance.Value, "something"));
 
         var controlPanel = await rFunc.ControlPanel(flowInstance).ShouldNotBeNullAsync();
-        await controlPanel.Restart();
+        await controlPanel.ScheduleRestart().Completion();
 
         var storedId = rFunc.MapToStoredId(functionId.Instance);
         var function = await store.GetFunction(storedId);
@@ -234,7 +234,7 @@ public abstract class ReInvocationTests
         var controlPanel2 = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
         await controlPanel1.Delete();
         
-        await Should.ThrowAsync<UnexpectedStateException>(() => controlPanel2.Restart());
+        await Should.ThrowAsync<UnexpectedStateException>(() => controlPanel2.ScheduleRestart().Completion());
 
         unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }

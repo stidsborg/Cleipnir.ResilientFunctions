@@ -394,9 +394,9 @@ public abstract class ControlPanelTests
         controlPanel.FatalWorkflowException.ShouldBeNull();
 
         controlPanel.Param = "second";
-        var result = await controlPanel.Restart();
+        var result = await controlPanel.ScheduleRestart().Completion();
         result.ShouldBe("second");
-        
+
         var sf = await store.GetFunction(rAction.MapToStoredId(functionId.Instance));
         sf.ShouldNotBeNull();
         sf.Status.ShouldBe(Status.Succeeded);
@@ -525,7 +525,7 @@ public abstract class ControlPanelTests
 
         var controlPanel = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
         await controlPanel.SaveChanges();
-        await controlPanel.Restart().ShouldBeAsync("param");
+        await controlPanel.ScheduleRestart().Completion().ShouldBeAsync("param");
         
         unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
@@ -549,11 +549,11 @@ public abstract class ControlPanelTests
 
         var controlPanel = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
         await controlPanel.SaveChanges();
-        await controlPanel.Restart();
-        
+        await controlPanel.ScheduleRestart().Completion();
+
         unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
-    
+
     public abstract Task ControlPanelsExistingMessagesContainsPreviouslyAddedMessages();
     protected async Task ControlPanelsExistingMessagesContainsPreviouslyAddedMessages(Task<IFunctionStore> storeTask)
     {
@@ -641,8 +641,8 @@ public abstract class ControlPanelTests
         
         await controlPanel.SaveChanges();
         await controlPanel.Refresh();
-        await controlPanel.Restart();
-        
+        await controlPanel.ScheduleRestart().Completion();
+
         syncedList.ShouldNotBeNull();
         if (syncedList.Count != 2)
             throw new Exception(
@@ -917,9 +917,9 @@ public abstract class ControlPanelTests
         var effects = controlPanel.Effects;
         await effects.SetSucceeded(effectId: 0, result: "ReplacedResult");
 
-        result = await controlPanel.Restart();
+        result = await controlPanel.ScheduleRestart().Completion();
         result.ShouldBe("ReplacedResult");
-        
+
         unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
     
@@ -949,9 +949,8 @@ public abstract class ControlPanelTests
         await effects.SetStarted(effectId: 0);
         
         runEffect = true;
-        await Should.ThrowAsync<Exception>(controlPanel.Restart());
-        
-        unhandledExceptionCatcher.ShouldNotHaveExceptions();
+        await controlPanel.ScheduleRestart();
+        await Should.ThrowAsync<Exception>(() => controlPanel.WaitForCompletion());
     }
     
     public abstract Task EffectRawBytesResultCanFetched();
@@ -1003,7 +1002,7 @@ public abstract class ControlPanelTests
         var activities = controlPanel.Effects;
         await activities.SetSucceeded(effectId: 0);
         
-        await controlPanel.Restart();
+        await controlPanel.ScheduleRestart().Completion();
 
         var fwe = (FatalWorkflowException) unhandledExceptionCatcher.ThrownExceptions.Single().InnerException!;
         fwe.ErrorType.ShouldBe(typeof(InvalidOperationException));
@@ -1036,15 +1035,15 @@ public abstract class ControlPanelTests
 
         var controlPanel = await rFunc.ControlPanel(flowInstance.Value);
         controlPanel.ShouldNotBeNull();
-        result = await controlPanel.Restart();
+        result = await controlPanel.ScheduleRestart().Completion();
         result.ShouldBe("EffectResult");
         syncedCounter.Current.ShouldBe(1);
-        
+
         await controlPanel.Refresh();
         var activities = controlPanel.Effects;
         await activities.Remove(0);
 
-        await controlPanel.Restart();
+        await controlPanel.ScheduleRestart().Completion();
 
         result = await rFunc.Run(flowInstance.Value, param: "param");
         result.ShouldBe("EffectResult");
@@ -1191,13 +1190,10 @@ public abstract class ControlPanelTests
         var effects = controlPanel.Effects;
         await effects.SetFailed(effectId: 0, new InvalidOperationException("oh no"));
 
-        await Should.ThrowAsync<FatalWorkflowException>(() => 
-            controlPanel.Restart()
-        );
-
-        unhandledExceptionCatcher.ShouldNotHaveExceptions();
+        await controlPanel.ScheduleRestart();
+        await Should.ThrowAsync<FatalWorkflowException>(() => controlPanel.WaitForCompletion());
     }
-    
+
     public abstract Task SaveChangesPersistsChangedResult();
     protected async Task SaveChangesPersistsChangedResult(Task<IFunctionStore> storeTask)
     {
@@ -1350,24 +1346,23 @@ public abstract class ControlPanelTests
         var controlPanel = await registration.ControlPanel(flowInstance.Value);
         controlPanel.ShouldNotBeNull();
         
-        try
-        {
-            await controlPanel.Restart();
-        }
-        catch (FatalWorkflowException exception)
-        {
-            exception.ErrorType.ShouldBe(typeof(TimeoutException));
-        }
+        await controlPanel.ScheduleRestart();
+        await Should.ThrowAsync<FatalWorkflowException>(() => controlPanel.WaitForCompletion());
 
+        await controlPanel.Refresh();
         await controlPanel.Effects.AllIds.SelectAsync(ids => ids.Any()).ShouldBeTrueAsync();
 
         await controlPanel.ClearFailures();
         await controlPanel.Effects.AllIds.SelectAsync(ids => ids.Any()).ShouldBeFalseAsync();
-        
-        shouldFail = false;
-        await controlPanel.Restart();
 
-        var fwe = (FatalWorkflowException) unhandledExceptionCatcher.ThrownExceptions.Single().InnerException!;
-        fwe.ErrorType.ShouldBe(typeof(TimeoutException));
+        shouldFail = false;
+        await controlPanel.ScheduleRestart().Completion();
+
+        unhandledExceptionCatcher.ThrownExceptions.ShouldNotBeEmpty();
+        foreach (var thrownException in unhandledExceptionCatcher.ThrownExceptions)
+        {
+            var fwe = (FatalWorkflowException) thrownException.InnerException!;
+            fwe.ErrorType.ShouldBe(typeof(TimeoutException));
+        }
     }
 }

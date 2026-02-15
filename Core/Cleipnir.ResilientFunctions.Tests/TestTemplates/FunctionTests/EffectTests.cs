@@ -48,7 +48,7 @@ public abstract class EffectTests
 
         var controlPanel = await rAction.ControlPanel(flowId.Instance);
         controlPanel.ShouldNotBeNull();
-        await controlPanel.Restart();
+        await controlPanel.ScheduleRestart().Completion();
         
         effectResults = await store.EffectsStore.GetEffectResults(storedId);
         effectResults.Single(r => r.EffectId == 0.ToEffectId()).WorkStatus.ShouldBe(WorkStatus.Completed);
@@ -85,7 +85,7 @@ public abstract class EffectTests
 
         var controlPanel = await rAction.ControlPanel(flowId.Instance);
         controlPanel.ShouldNotBeNull();
-        await controlPanel.Restart();
+        await controlPanel.ScheduleRestart().Completion();
         
         effectResults = await store.EffectsStore.GetEffectResults(storedId);
         effectResults.Single(r => r.EffectId == 0.ToEffectId()).WorkStatus.ShouldBe(WorkStatus.Completed);
@@ -128,7 +128,7 @@ public abstract class EffectTests
 
         var controlPanel = await rAction.ControlPanel(flowId.Instance);
         controlPanel.ShouldNotBeNull();
-        await controlPanel.Restart();
+        await controlPanel.ScheduleRestart().Completion();
         
         effectResults = await store.EffectsStore.GetEffectResults(storedId);
         storedEffect = effectResults.Single(r => r.EffectId == 0.ToEffectId());
@@ -173,7 +173,7 @@ public abstract class EffectTests
 
         var controlPanel = await rAction.ControlPanel(flowId.Instance);
         controlPanel.ShouldNotBeNull();
-        await controlPanel.Restart();
+        await controlPanel.ScheduleRestart().Completion();
         
         effectResults = await store.EffectsStore.GetEffectResults(storedId);
         storedEffect = effectResults.Single(r => r.EffectId == 0.ToEffectId());
@@ -244,7 +244,7 @@ public abstract class EffectTests
 
         var controlPanel = await rAction.ControlPanel(flowId.Instance);
         controlPanel.ShouldNotBeNull();
-        await Should.ThrowAsync<FatalWorkflowException>(() => controlPanel.Restart());
+        await Should.ThrowAsync<FatalWorkflowException>(() => controlPanel.ScheduleRestart().Completion());
 
         effectResults = await store.EffectsStore.GetEffectResults(storedId);
         storedEffect = effectResults.Single(r => r.EffectId == 0.ToEffectId());
@@ -845,20 +845,21 @@ public abstract class EffectTests
         var cp = await registration.ControlPanel(flowId.Instance).ShouldNotBeNullAsync();
         cp.Status.ShouldBe(Status.Postponed);
         
-        await Should.ThrowAsync<InvocationPostponedException>(() => cp.Restart());
-        
+        await cp.ScheduleRestart();
+        await Should.ThrowAsync<InvocationPostponedException>(() => cp.WaitForCompletion());
+
         utcNow += TimeSpan.FromSeconds(10);
-        
-        await cp.Restart();
-        
+
+        await cp.ScheduleRestart().Completion();
+
         syncedCounter.Current.ShouldBe(3);
     }
-    
+
     public abstract Task CaptureEffectWithRetryPolicyWithResult();
     public async Task CaptureEffectWithRetryPolicyWithResult(Task<IFunctionStore> storeTask)
     {
         var utcNow = DateTime.UtcNow;
-        
+
         var store = await storeTask;
         var flowId = TestFlowId.Create();
         using var registry = new FunctionsRegistry(store, new Settings(utcNow: () => utcNow, enableWatchdogs: false));
@@ -876,8 +877,8 @@ public abstract class EffectTests
                     {
                         syncedCounter.Increment();
                         throw new TimeoutException();
-                    } 
-                    
+                    }
+
                     syncedCounter.Increment();
                     return Task.FromResult(param);
                 }, retryPolicy);
@@ -886,17 +887,18 @@ public abstract class EffectTests
 
         await Should.ThrowAsync<InvocationPostponedException>(() => registration.Run(flowId.Instance, "Hello World!"));
         utcNow += TimeSpan.FromSeconds(2);
-        
+
         var cp = await registration.ControlPanel(flowId.Instance).ShouldNotBeNullAsync();
         cp.Status.ShouldBe(Status.Postponed);
-        
-        await Should.ThrowAsync<InvocationPostponedException>(() => cp.Restart());
-        
+
+        await cp.ScheduleRestart();
+        await Should.ThrowAsync<InvocationPostponedException>(() => cp.WaitForCompletion());
+
         utcNow += TimeSpan.FromSeconds(10);
-        
-        var result = await cp.Restart();
+
+        var result = await cp.ScheduleRestart().Completion();
         result.ShouldBe("Hello World!");
-        
+
         syncedCounter.Current.ShouldBe(3);
     }
     
@@ -1180,7 +1182,7 @@ public abstract class EffectTests
         syncedCounter.Current.ShouldBe(3);
 
         var cp = await registration.ControlPanel(id.Instance).ShouldNotBeNullAsync();
-        var result = await cp.Restart(clearFailures: true);
+        var result = await cp.ScheduleRestart(clearFailures: true).Completion();
         result.ShouldBe(15);
 
         // Should have processed elements 3, 4, 5 on restart (elements 1, 2 were already processed)
@@ -1216,7 +1218,7 @@ public abstract class EffectTests
         result.SequenceEqual(new[] { "A", "B", "C", "D" }).ShouldBeTrue();
 
         var cp = await registration.ControlPanel(id.Instance).ShouldNotBeNullAsync();
-        var restartResult = await cp.Restart();
+        var restartResult = await cp.ScheduleRestart().Completion();
         restartResult.SequenceEqual(new[] { "A", "B", "C", "D" }).ShouldBeTrue();
     }
 
@@ -1460,7 +1462,7 @@ public abstract class EffectTests
 
         var controlPanel = await rFunc.ControlPanel(flowId.Instance);
         controlPanel.ShouldNotBeNull();
-        await controlPanel.Restart();
+        await controlPanel.ScheduleRestart().Completion();
 
         effectResults = await store.EffectsStore.GetEffectResults(storedId);
         effectResults.Count.ShouldBe(2);

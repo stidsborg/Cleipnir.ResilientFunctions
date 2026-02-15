@@ -306,31 +306,6 @@ public abstract class BaseControlPanel<TParam, TReturn>
     }
 
     /// <summary>
-    /// Restart invocation inlined immediately
-    /// </summary>
-    /// <param name="clearFailures">Clear existing failed effects and retry information</param>
-    /// <param name="refresh">Refresh control panel after invocation</param>
-    /// <returns>Result of invocation</returns>
-    public async Task<TReturn> Restart(bool clearFailures = false, bool refresh = true)
-    {
-        if (clearFailures)
-            await ClearFailures();
-        
-        if (_innerParamChanged)
-            await SaveChanges();
-
-        try
-        {
-            return await _invoker.Restart(StoredId);
-        }
-        finally
-        {
-            if (refresh)
-                await Refresh();
-        }
-    }
-    
-    /// <summary>
     /// Schedule invocation immediately
     /// </summary>
     /// <param name="clearFailures">Clear existing failed effects and retry information</param>
