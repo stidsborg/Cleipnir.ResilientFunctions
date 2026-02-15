@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
@@ -144,6 +145,9 @@ public class Invoker<TParam, TReturn>
 
         return _invocationHelper.CreateInnerScheduled([id], parentWorkflow, detach);
     }
+
+    public Task<InnerScheduled<TReturn>> BulkSchedule(IEnumerable<BulkWork<TParam>> instances, bool? detach = null)
+        => _invocationHelper.BulkSchedule(instances.ToList(), detach);
 
     public async Task<TReturn> Restart(StoredId storedId)
     {

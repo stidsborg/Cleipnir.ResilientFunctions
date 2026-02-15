@@ -14,12 +14,12 @@ public static class HelloWorldExample
         var store = new InMemoryFunctionStore();
         var functions = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler: Console.WriteLine));
 
-        var rFunc = functions.RegisterFunc(
+        var registration = functions.RegisterFunc(
             flowType: "HelloWorld",
             inner: (string param) => param.ToUpper().ToTask()
-        ).Invoke;
+        );
 
-        var returned = await rFunc(flowInstance: "", param: "hello world");
+        var returned = await registration.Invoke(flowInstance: "", param: "hello world");
         Console.WriteLine($"Returned: '{returned}'");
     }
 }
