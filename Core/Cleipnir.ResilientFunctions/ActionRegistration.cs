@@ -52,7 +52,7 @@ public class ActionRegistration<TParam> : BaseRegistration where TParam : notnul
     public Task<ControlPanel<TParam>?> ControlPanel(FlowInstance flowInstance)
         => _controlPanelFactory.Create(flowInstance);
 
-    public Task ScheduleIn(string flowInstance, TParam param, TimeSpan delay, bool? detach = null)
+    public Task<Scheduled> ScheduleIn(FlowInstance flowInstance, TParam param, TimeSpan delay, bool? detach = null)
         => ScheduleAt(flowInstance, param, delayUntil: UtcNow().Add(delay), detach);
 
     public async Task SendMessage<T>(

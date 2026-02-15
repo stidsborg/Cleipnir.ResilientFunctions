@@ -54,7 +54,7 @@ public class ParamlessRegistration : BaseRegistration
     public Task<ControlPanel?> ControlPanel(FlowInstance flowInstance)
         => _controlPanelFactory.Create(flowInstance);
 
-    public Task ScheduleIn(string flowInstance, TimeSpan delay, bool? detach = null)
+    public Task<Scheduled> ScheduleIn(FlowInstance flowInstance, TimeSpan delay, bool? detach = null)
         => ScheduleAt(flowInstance, delayUntil: UtcNow().Add(delay), detach);
 
     public async Task SendMessage<T>(

@@ -46,6 +46,9 @@ public class FuncRegistration<TParam, TReturn> : BaseRegistration where TParam :
     public async Task<Scheduled<TReturn>> ScheduleAt(FlowInstance flowInstance, TParam param, DateTime delayUntil, bool? detach = null)
         => (await _invoker.ScheduleAt(flowInstance, param, delayUntil, detach)).ToScheduledWithResult();
 
+    public Task<Scheduled<TReturn>> ScheduleIn(FlowInstance flowInstance, TParam param, TimeSpan delay, bool? detach = null)
+        => ScheduleAt(flowInstance, param, delayUntil: UtcNow().Add(delay), detach);
+
     public async Task<BulkScheduled<TReturn>> BulkSchedule(IEnumerable<BulkWork<TParam>> instances, bool? detach = null)
         => (await _invoker.BulkSchedule(instances, detach)).ToScheduledWithResults();
 
