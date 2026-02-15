@@ -335,7 +335,7 @@ public abstract class BaseControlPanel<TParam, TReturn>
     /// </summary>
     /// <param name="clearFailures">Clear existing failed effects and retry information</param>
     /// <param name="refresh">Refresh control panel after invocation</param>
-    public async Task ScheduleRestart(bool clearFailures = false, bool refresh = true)
+    public async Task<Scheduled<TReturn>> ScheduleRestart(bool clearFailures = false, bool refresh = true)
     {
         if (clearFailures)
             await ClearFailures();
@@ -343,10 +343,12 @@ public abstract class BaseControlPanel<TParam, TReturn>
         if (_innerParamChanged)
             await SaveChanges();
 
-        await _invoker.ScheduleRestart(StoredId);
-        
+        var innerScheduled = await _invoker.ScheduleRestart(StoredId);
+
         if (refresh)
             await Refresh();
+
+        return innerScheduled.ToScheduledWithResult();
     }
     
     public async Task Refresh()

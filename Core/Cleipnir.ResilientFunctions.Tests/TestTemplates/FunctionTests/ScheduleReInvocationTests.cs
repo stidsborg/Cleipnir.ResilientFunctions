@@ -98,19 +98,14 @@ public abstract class ScheduleReInvocationTests
         await Should.ThrowAsync<Exception>(() => rFunc.Run(flowInstance.Value, "something"));
 
         var controlPanel = await rFunc.ControlPanel(flowInstance).ShouldNotBeNullAsync();
-        await controlPanel.ScheduleRestart();
+        var scheduled = await controlPanel.ScheduleRestart();
+        var result = await scheduled.Completion(maxWait: TimeSpan.FromSeconds(10));
+        result.ShouldBe("something");
 
         var storedId = rFunc.MapToStoredId(functionId.Instance);
-        await BusyWait.Until(
-            () => store.GetFunction(storedId).Map(sf => sf?.Status == Status.Succeeded)
-        );
-
         var function = await store.GetFunction(storedId);
         function.ShouldNotBeNull();
         function.Status.ShouldBe(Status.Succeeded);
-        var results = await store.GetResults([storedId]);
-        var resultBytes = results[storedId];
-        resultBytes!.ToStringFromUtf8Bytes().DeserializeFromJsonTo<string>().ShouldBe("something");
 
         var fwe = (FatalWorkflowException) unhandledExceptionCatcher.ThrownExceptions.Single().InnerException!;
         fwe.ErrorType.ShouldBe(typeof(InvalidOperationException));
