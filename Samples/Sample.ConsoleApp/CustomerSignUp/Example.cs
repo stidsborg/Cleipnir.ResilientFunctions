@@ -17,14 +17,14 @@ public static class Example
             new Settings(unhandledExceptionHandler: Console.WriteLine)
         );
 
-        var rAction = functions
+        var registration = functions
             .RegisterAction<string>(
              "CustomerSignupFlow",
                 SignupFlow.Start
-            ).Invoke;
+            );
 
         var offerDate = new DateOnly(2022, 1, 1);
-        await rAction(
+        await registration.Invoke(
             flowInstance: offerDate.ToString(),
             param: "billgates@microsoft.net"
         );

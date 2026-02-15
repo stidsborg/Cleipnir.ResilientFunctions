@@ -228,20 +228,19 @@ public abstract class FailedTests
                 watchdogCheckFrequency: TimeSpan.FromMilliseconds(2)
             )
         );
-        var rFunc = functionsRegistry
+        var registration = functionsRegistry
             .RegisterAction(
                 flowType,
                 inner: (string _) =>
                 {
                     flag.Raise();
                     return Task.CompletedTask;
-                })
-            .Invoke;
+                });
         await Task.Delay(100);
         flag.Position.ShouldBe(Lowered);
 
         await Should.ThrowAsync<ArgumentNullException>(
-            () => rFunc("someflowInstance", param: null!)
+            () => registration.Invoke("someflowInstance", param: null!)
         );
         unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
     }
