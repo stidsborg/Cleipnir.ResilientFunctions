@@ -19,11 +19,12 @@ public class Workflow
     public Synchronization Synchronization { get; }
    
     private QueueManager _queueManager;
+    private FlowsManager _flowsManager;
     private readonly UtcNow _utcNow;
     private MessageWriter MessageWriter { get; }
 
 
-    public Workflow(FlowId flowId, StoredId storedId, Effect effect, Utilities utilities, Correlations correlations, DistributedSemaphores semaphores, QueueManager queueManager, UtcNow utcNow, MessageWriter messageWriter)
+    public Workflow(FlowId flowId, StoredId storedId, Effect effect, Utilities utilities, Correlations correlations, DistributedSemaphores semaphores, QueueManager queueManager, UtcNow utcNow, MessageWriter messageWriter, FlowsManager flowsManager)
     {
         FlowId = flowId;
         StoredId = storedId;
@@ -34,6 +35,7 @@ public class Workflow
         _queueManager = queueManager;
         _utcNow = utcNow;
         MessageWriter = messageWriter;
+        _flowsManager = flowsManager;
     }
 
     public async Task RegisterCorrelation(string correlation) => await Correlations.Register(correlation);
@@ -74,42 +76,42 @@ public class Workflow
     public Task<T> Message<T>(TimeSpan? maxWait = null) where T : class
     {
         var effectId = Effect.CreateNextImplicitId();
-        async Task<T> CreateAndPull() => await (await _queueManager.CreateQueueClient()).Pull<T>(this, effectId, filter: null, maxWait);
+        async Task<T> CreateAndPull() => await (await _queueManager.CreateQueueClient(_flowsManager)).Pull<T>(this, effectId, filter: null, maxWait);
         return CreateAndPull();
     }
 
     public Task<T?> Message<T>(DateTime waitUntil, TimeSpan? maxWait = null) where T : class
     {
         var effectId = Effect.CreateNextImplicitId();
-        async Task<T?> CreateAndPull() => await (await _queueManager.CreateQueueClient()).Pull<T>(this, effectId, waitUntil, filter: null, maxWait);
+        async Task<T?> CreateAndPull() => await (await _queueManager.CreateQueueClient(_flowsManager)).Pull<T>(this, effectId, waitUntil, filter: null, maxWait);
         return CreateAndPull();
     }
 
     public Task<T?> Message<T>(TimeSpan waitFor, TimeSpan? maxWait = null) where T : class
     {
         var effectId = Effect.CreateNextImplicitId();
-        async Task<T?> CreateAndPull() => await (await _queueManager.CreateQueueClient()).Pull<T>(this, effectId, waitFor, filter: null, maxWait);
+        async Task<T?> CreateAndPull() => await (await _queueManager.CreateQueueClient(_flowsManager)).Pull<T>(this, effectId, waitFor, filter: null, maxWait);
         return CreateAndPull();
     }
 
     public Task<T> Message<T>(Func<T, bool> filter, TimeSpan? maxWait = null) where T : class
     {
         var effectId = Effect.CreateNextImplicitId();
-        async Task<T> CreateAndPull() => await (await _queueManager.CreateQueueClient()).Pull(this, effectId, filter, maxWait);
+        async Task<T> CreateAndPull() => await (await _queueManager.CreateQueueClient(_flowsManager)).Pull(this, effectId, filter, maxWait);
         return CreateAndPull();
     }
 
     public Task<T?> Message<T>(Func<T, bool> filter, DateTime waitUntil, TimeSpan? maxWait = null) where T : class
     {
         var effectId = Effect.CreateNextImplicitId();
-        async Task<T?> CreateAndPull() => await (await _queueManager.CreateQueueClient()).Pull(this, effectId, waitUntil, filter, maxWait);
+        async Task<T?> CreateAndPull() => await (await _queueManager.CreateQueueClient(_flowsManager)).Pull(this, effectId, waitUntil, filter, maxWait);
         return CreateAndPull();
     }
 
     public Task<T?> Message<T>(Func<T, bool> filter, TimeSpan waitFor, TimeSpan? maxWait = null) where T : class
     {
         var effectId = Effect.CreateNextImplicitId();
-        async Task<T?> CreateAndPull() => await (await _queueManager.CreateQueueClient()).Pull<T>(this, effectId, waitFor, filter, maxWait);
+        async Task<T?> CreateAndPull() => await (await _queueManager.CreateQueueClient(_flowsManager)).Pull<T>(this, effectId, waitFor, filter, maxWait);
         return CreateAndPull();
     }
 

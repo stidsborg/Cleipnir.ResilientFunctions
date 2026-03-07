@@ -46,10 +46,13 @@ public class QueueManager(
     private volatile bool _disposed;
     
     private volatile Exception? _thrownException = null;
+    private FlowsManager? FlowsManager { get; set; }
 
-    public async Task Initialize()
+    private async Task Initialize(FlowsManager flowsManager)
     {
         await _semaphoreSlim.WaitAsync();
+        FlowsManager = flowsManager;
+
         try
         {
             if (_disposed)
@@ -90,9 +93,10 @@ public class QueueManager(
         _ = Task.Run(FetchMessages);
     }
 
-    public async Task<QueueClient> CreateQueueClient()
+    public async Task<QueueClient> CreateQueueClient(FlowsManager flowsManager)
     {
-        await Initialize();
+        if (!_initialized)
+            await Initialize(flowsManager);
         return new QueueClient(this, serializer, utcNow);
     }
 

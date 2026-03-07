@@ -475,7 +475,10 @@ public abstract class SuspensionTests
         var parentFunctionId = new FlowId($"ParentFunction{Guid.NewGuid()}", Guid.NewGuid().ToString());
         const int numberOfChildren = 100;
         
-        using var functionsRegistry = new FunctionsRegistry(store);
+        using var functionsRegistry = new FunctionsRegistry(
+            store,
+            new Settings(watchdogCheckFrequency: TimeSpan.FromMilliseconds(100))
+        );
 
         FuncRegistration<string, List<string>>? parent = null;
         var child = functionsRegistry.RegisterAction(
@@ -502,7 +505,7 @@ public abstract class SuspensionTests
                     var msg = await workflow.Message<string>();
                     messages.Add(msg);
                 }
-                
+
                 return messages;
             }
         );
