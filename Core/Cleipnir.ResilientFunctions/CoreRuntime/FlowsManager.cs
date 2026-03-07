@@ -8,23 +8,64 @@ using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.CoreRuntime;
 
-public record FlowStatus(StoredId Id, Action Suspend, QueueManager QueueManager, int Threads, int AwaitingThreads, FlowTimeouts Timeouts);
+public record FlowStatus(StoredId Id, Action Suspend, QueueManager QueueManager, int Threads, int SuspendedThreads, FlowTimeouts Timeouts);
 
-public class FlowsManager
+public record TimeoutId(StoredId StoredId, EffectId EffectId);
+
+public class FlowsManager : IDisposable
 {
     private readonly Dictionary<StoredId, FlowStatus> _dict = new();
+    private readonly Dictionary<TimeoutId, DateTime> _timeouts = new();
     private readonly Lock _lock = new();
+    private readonly UtcNow _utcNow;
     private volatile bool _disposed;
+
+    public FlowsManager(UtcNow utcNow)
+    {
+        _utcNow = utcNow;
+        _ = Task.Run(TimeoutCheckLoop);
+    }
+
+    private async Task TimeoutCheckLoop()
+    {
+        while (!_disposed)
+        {
+            var queueManagers = new List<QueueManager>();
+            lock (_lock)
+            {
+                var now = _utcNow();
+                var expired = new List<TimeoutId>();
+                foreach (var (timeoutId, expiry) in _timeouts)
+                    if (expiry <= now)
+                        expired.Add(timeoutId);
+
+                foreach (var timeoutId in expired)
+                {
+                    _timeouts.Remove(timeoutId);
+                    if (_dict.TryGetValue(timeoutId.StoredId, out var status))
+                        queueManagers.Add(status.QueueManager);
+                }
+            }
+
+            foreach (var queueManager in queueManagers)
+                queueManager.CheckTimeouts();
+
+            await Task.Delay(10);
+        }
+    }
+
+    public void Dispose() => _disposed = true;
 
     public void AddFlow(StoredId id, Action suspend, QueueManager queueManager, FlowTimeouts timeouts)
     {
         lock (_lock)
-        {
-            if (!_dict.ContainsKey(id))
-                return;
+            _dict[id] = new FlowStatus(id, suspend, queueManager, Threads: 1, SuspendedThreads: 0, timeouts);
+    }
 
-            _dict[id] = new FlowStatus(id, suspend, queueManager, Threads: 1, AwaitingThreads: 0, timeouts);
-        }
+    public void RemoveFlow(StoredId id)
+    {
+        lock (_lock)
+            _dict.Remove(id);
     }
 
     public void Interrupt(IEnumerable<StoredId> ids)
@@ -37,6 +78,7 @@ public class FlowsManager
                     continue;
                 
                 var queueManager = _dict[id].QueueManager;
+                InterruptThreads(id);
                 Task.Run(() => queueManager.FetchAndTryToDeliver());
             }
         }
@@ -54,23 +96,75 @@ public class FlowsManager
         }
     }
 
-    public void AddThread(StoredId id)
+    public void StartThread(StoredId id)
     {
-        throw new NotImplementedException();
+        lock (_lock)
+        {
+            if (!_dict.ContainsKey(id))
+                return;
+
+            var status = _dict[id];
+            _dict[id] = status with { Threads = status.Threads + 1 };
+        }
     }
 
-    public void CompletedThread(StoredId id)
+    public void CompleteThread(StoredId id)
     {
-        throw new NotImplementedException();
+        lock (_lock)
+        {
+            if (!_dict.ContainsKey(id))
+                return;
+
+            var status = _dict[id];
+            _dict[id] = status with { Threads = status.Threads - 1 };
+        }
     }
 
-    public void StartedThread(StoredId id)
+    public void InterruptThreads(StoredId id)
     {
-        throw new NotImplementedException();
+        lock (_lock)
+        {
+            if (!_dict.ContainsKey(id))
+                return;
+
+            var status = _dict[id];
+            _dict[id] = status with { SuspendedThreads = 0 };
+        }
     }
 
-    public void SuspendedThread(StoredId id)
+    public void SuspendThread(StoredId id)
     {
-        throw new NotImplementedException();
+        lock (_lock)
+        {
+            if (!_dict.ContainsKey(id))
+                return;
+
+            var status = _dict[id];
+            _dict[id] = status with { SuspendedThreads = status.SuspendedThreads + 1 };
+        }
+    }
+
+    public void AddTimeout(StoredId storedId, EffectId effectId, DateTime expiry)
+    {
+        lock (_lock)
+            _timeouts[new TimeoutId(storedId, effectId)] = expiry;
+    }
+
+    public void RemoveTimeout(StoredId storedId, EffectId effectId)
+    {
+        lock (_lock)
+            _timeouts.Remove(new TimeoutId(storedId, effectId));
+    }
+
+    public List<TimeoutId> GetExpiredTimeouts(DateTime now)
+    {
+        lock (_lock)
+        {
+            var expired = new List<TimeoutId>();
+            foreach (var (timeoutId, expiry) in _timeouts)
+                if (expiry <= now)
+                    expired.Add(timeoutId);
+            return expired;
+        }
     }
 }

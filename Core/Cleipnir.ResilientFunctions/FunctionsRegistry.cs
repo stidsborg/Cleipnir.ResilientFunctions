@@ -32,7 +32,6 @@ public class FunctionsRegistry : IDisposable
     private readonly Lock _sync = new();
     private readonly ReplicaWatchdog _replicaWatchdog;
     private readonly FlowsManager _flowsManager;
-    private readonly FlowsTimeoutManager _flowsTimeoutManager;
 
     public FunctionsRegistry(IFunctionStore functionStore, Settings? settings = null)
     {
@@ -41,8 +40,7 @@ public class FunctionsRegistry : IDisposable
         _shutdownCoordinator = new ShutdownCoordinator();
         _settings = SettingsWithDefaults.Default.Merge(settings);
         var utcNow = _settings.UtcNow;
-        _flowsManager = new FlowsManager();
-        _flowsTimeoutManager = new FlowsTimeoutManager();
+        _flowsManager = new FlowsManager(utcNow);
         
         ClusterInfo = new ClusterInfo(ReplicaId.NewId());
         
@@ -232,7 +230,6 @@ public class FunctionsRegistry : IDisposable
                 settingsWithDefaults.UnhandledExceptionHandler,
                 _functionStore.Utilities,
                 ClusterInfo.ReplicaId,
-                _flowsTimeoutManager,
                 _flowsManager
             );
 
@@ -323,7 +320,6 @@ public class FunctionsRegistry : IDisposable
                 settingsWithDefaults.UnhandledExceptionHandler,
                 _functionStore.Utilities,
                 ClusterInfo.ReplicaId,
-                _flowsTimeoutManager,
                 _flowsManager
             );
 
@@ -414,7 +410,6 @@ public class FunctionsRegistry : IDisposable
                 settingsWithDefaults.UnhandledExceptionHandler,
                 _functionStore.Utilities,
                 ClusterInfo.ReplicaId,
-                _flowsTimeoutManager,
                 _flowsManager
             );
             
@@ -468,7 +463,7 @@ public class FunctionsRegistry : IDisposable
     public void Dispose()
     {
         _disposed = true;
-        _flowsTimeoutManager.Dispose();
+        _flowsManager.Dispose();
         _shutdownCoordinator.SignalShutdown();
         _replicaWatchdog.Dispose();
     }

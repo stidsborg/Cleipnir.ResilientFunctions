@@ -24,7 +24,6 @@ public class QueueManager(
     FlowTimeouts timeouts,
     UtcNow utcNow,
     SettingsWithDefaults settings,
-    FlowsTimeoutManager flowsTimeoutManager,
     int maxIdempotencyKeyCount = 100,
     TimeSpan? maxIdempotencyKeyTtl = null)
     : IDisposable
@@ -46,10 +45,13 @@ public class QueueManager(
     private volatile bool _disposed;
     
     private volatile Exception? _thrownException = null;
+    private FlowsManager? FlowsManager { get; set; }
 
-    public async Task Initialize()
+    private async Task Initialize(FlowsManager flowsManager)
     {
         await _semaphoreSlim.WaitAsync();
+        FlowsManager = flowsManager;
+
         try
         {
             if (_disposed)
@@ -58,7 +60,6 @@ public class QueueManager(
                 return;
             
             effect.RegisterQueueManager(this);
-            flowsTimeoutManager.RegisterFlow(storedId, CheckTimeouts);
 
             _idempotencyKeys = new IdempotencyKeys(_idempotencyKeysId, effect, maxIdempotencyKeyCount, maxIdempotencyKeyTtl, utcNow);
             _idempotencyKeys.Initialize();
@@ -90,9 +91,10 @@ public class QueueManager(
         _ = Task.Run(FetchMessages);
     }
 
-    public async Task<QueueClient> CreateQueueClient()
+    public async Task<QueueClient> CreateQueueClient(FlowsManager flowsManager)
     {
-        await Initialize();
+        if (!_initialized)
+            await Initialize(flowsManager);
         return new QueueClient(this, serializer, utcNow);
     }
 
@@ -188,6 +190,16 @@ public class QueueManager(
             await FetchMessagesOnce();
             await Task.Delay(100);
         }
+    }
+
+    public void SignalTimeout()
+    {
+        //find relevant timeouts
+    }
+    
+    public void SignalInterrupt()
+    {
+        //fetch messages
     }
 
     public async Task AfterFlush()
@@ -345,7 +357,10 @@ public class QueueManager(
             _subscribers[effectId] = new Subscription(predicate, tcs, timeout, messageId, messageTypeId, receiverId, senderId);
 
         if (timeout != null)
+        {
             timeouts.AddTimeout(timeoutId, timeout.Value);
+            FlowsManager?.AddTimeout(storedId, timeoutId, timeout.Value);
+        }
 
         _ = DeliverMessages();
 
@@ -355,6 +370,7 @@ public class QueueManager(
             throw new SuspendInvocationException();
 
         timeouts.RemoveTimeout(timeoutId);
+        FlowsManager?.RemoveTimeout(storedId, timeoutId);
         return await tcs.Task;
     }
 
@@ -380,6 +396,5 @@ public class QueueManager(
     public void Dispose()
     {
         _disposed = true;
-        flowsTimeoutManager.RemoveFlow(storedId);
     }
 }
