@@ -21,7 +21,6 @@ public class Invoker<TParam, TReturn>
     private readonly InvocationHelper<TParam, TReturn> _invocationHelper;
     private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
     private readonly Utilities _utilities;
-    private readonly FlowsTimeoutManager _flowsTimeoutManager;
     private readonly FlowsManager _flowsManager;
 
     internal Invoker(
@@ -31,7 +30,6 @@ public class Invoker<TParam, TReturn>
         UnhandledExceptionHandler unhandledExceptionHandler,
         Utilities utilities,
         ReplicaId replicaId,
-        FlowsTimeoutManager flowsTimeoutManager,
         FlowsManager flowsManager
     )
     {
@@ -42,7 +40,6 @@ public class Invoker<TParam, TReturn>
         _invocationHelper = invocationHelper;
         _unhandledExceptionHandler = unhandledExceptionHandler;
         _utilities = utilities;
-        _flowsTimeoutManager = flowsTimeoutManager;
         _flowsManager = flowsManager;
     }
 
@@ -118,6 +115,10 @@ public class Invoker<TParam, TReturn>
             {
                 _unhandledExceptionHandler.Invoke(_flowType, exception);
                 tcs.TrySetException(exception);
+            }
+            finally
+            {
+                _flowsManager.RemoveFlow(storedId);
             }
         });
 
@@ -205,11 +206,15 @@ public class Invoker<TParam, TReturn>
                 _unhandledExceptionHandler.Invoke(_flowType, exception);
                 tcs.TrySetException(exception);
             }
+            finally
+            {
+                _flowsManager.RemoveFlow(storedId);
+            }
         });
 
         return _invocationHelper.CreateInnerScheduled([flowId], parentWorkflow: null, detach: null, tcs.Task);
     }
-    
+
     internal async Task ScheduleRestart(StoredId storedId, RestartedFunction rf, Action onCompletion)
     {
         var (inner, param, humanInstanceId, workflow, disposables, queueManager, timeouts, parent, storageSession) = await PrepareForReInvocation(storedId, rf);
@@ -245,7 +250,7 @@ public class Invoker<TParam, TReturn>
                     tcs.TrySetCanceled();
             }
             catch (Exception exception) { _unhandledExceptionHandler.Invoke(_flowType, exception); tcs.TrySetException(exception); }
-            finally{ onCompletion(); }
+            finally{ _flowsManager.RemoveFlow(storedId); onCompletion(); }
         });
     }
     
@@ -271,7 +276,7 @@ public class Invoker<TParam, TReturn>
             disposables.Add(isWorkflowRunningDisposable);
             success = persisted;
 
-            var flowTimeouts = new FlowTimeouts(_flowsTimeoutManager, storedId);
+            var flowTimeouts = new FlowTimeouts();
             var effect = _invocationHelper.CreateEffect(
                 storedId,
                 flowId,
@@ -282,7 +287,7 @@ public class Invoker<TParam, TReturn>
 
             var correlations = _invocationHelper.CreateCorrelations(flowId);
             var semaphores = _invocationHelper.CreateSemaphores(storedId, effect);
-            var queueManager = _invocationHelper.CreateQueueManager(flowId, storedId, effect, flowTimeouts, _unhandledExceptionHandler, _flowsTimeoutManager);
+            var queueManager = _invocationHelper.CreateQueueManager(flowId, storedId, effect, flowTimeouts, _unhandledExceptionHandler);
             disposables.Add(queueManager);
             var messageWriter = _invocationHelper.CreateMessageWriter(storedId);
             var workflow = new Workflow(flowId, storedId, effect, _utilities, correlations, semaphores, queueManager, _invocationHelper.UtcNow, messageWriter, _flowsManager);
@@ -327,12 +332,12 @@ public class Invoker<TParam, TReturn>
             var isWorkflowRunningDisposable = new PropertyDisposable();
             disposables.Add(isWorkflowRunningDisposable);
             
-            var flowTimeouts = new FlowTimeouts(_flowsTimeoutManager, storedId);
+            var flowTimeouts = new FlowTimeouts();
             var effect = _invocationHelper.CreateEffect(storedId, flowId, effects, flowTimeouts, storageSession);
 
             var correlations = _invocationHelper.CreateCorrelations(flowId);
             var semaphores = _invocationHelper.CreateSemaphores(storedId, effect);
-            var queueManager = _invocationHelper.CreateQueueManager(flowId, storedId, effect, flowTimeouts, _unhandledExceptionHandler, _flowsTimeoutManager);
+            var queueManager = _invocationHelper.CreateQueueManager(flowId, storedId, effect, flowTimeouts, _unhandledExceptionHandler);
             disposables.Add(queueManager);
             var messageWriter = _invocationHelper.CreateMessageWriter(storedId);
 
