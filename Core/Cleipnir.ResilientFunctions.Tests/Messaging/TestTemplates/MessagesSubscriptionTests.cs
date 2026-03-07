@@ -243,7 +243,7 @@ public abstract class MessagesSubscriptionTests
                 storedId = workflow.StoredId;
 
                 var message1 = await workflow.Message<string>(maxWait: TimeSpan.FromMinutes(1));
-                var message2 = await workflow.Message<string>(TimeSpan.FromMilliseconds(100), maxWait: TimeSpan.FromMinutes(1));
+                var message2 = await workflow.Message<string>(TimeSpan.FromSeconds(1), maxWait: TimeSpan.FromMinutes(1));
 
                 return Tuple.Create(message1, message2);
             }
@@ -575,9 +575,8 @@ public abstract class MessagesSubscriptionTests
                     SettingsWithDefaults.Default,
                     flowsTimeoutManager
                 );
-                await queueManager.Initialize();
 
-                var queueClient = new QueueClient(queueManager, DefaultSerializer.Instance, () => DateTime.UtcNow);
+                var queueClient = await queueManager.CreateQueueClient(new FlowsManager());
 
                 var message = await queueClient.Pull<GoodMessage>(
                     workflow,
@@ -639,9 +638,8 @@ public abstract class MessagesSubscriptionTests
                     SettingsWithDefaults.Default,
                     flowsTimeoutManager
                 );
-                await queueManager.Initialize();
 
-                var queueClient = new QueueClient(queueManager, DefaultSerializer.Instance, () => DateTime.UtcNow);
+                var queueClient = await queueManager.CreateQueueClient(new FlowsManager());
 
                 // Verify timeout is not set before pull
                 minimumTimeout.MinimumTimeout.ShouldBeNull();
@@ -698,9 +696,8 @@ public abstract Task PullEnvelopeReturnsEnvelopeWithReceiverAndSender();
                     SettingsWithDefaults.Default,
                     flowsTimeoutManager
                 );
-                await queueManager.Initialize();
 
-                var queueClient = new QueueClient(queueManager, DefaultSerializer.Instance, () => DateTime.UtcNow);
+                var queueClient = await queueManager.CreateQueueClient(new FlowsManager());
 
                 // Pull envelope for specific receiver
                 var envelope = await queueClient.PullEnvelope<string>(
