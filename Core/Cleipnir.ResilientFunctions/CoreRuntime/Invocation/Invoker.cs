@@ -212,28 +212,39 @@ public class Invoker<TParam, TReturn>
     
     internal async Task ScheduleRestart(StoredId storedId, RestartedFunction rf, Action onCompletion)
     {
-        var (inner, param, humanInstanceId, workflow, disposables, _, _, parent, storageSession) = await PrepareForReInvocation(storedId, rf);
+        var (inner, param, humanInstanceId, workflow, disposables, queueManager, timeouts, parent, storageSession) = await PrepareForReInvocation(storedId, rf);
         var flowId = new FlowId(_flowType, humanInstanceId);
-        
+
+        var tcs = new TaskCompletionSource<TReturn>();
+        _flowsManager.AddFlow(
+            storedId,
+            suspend: () => tcs.TrySetException(new InvocationSuspendedException(flowId)),
+            queueManager,
+            timeouts
+        );
         _ = Task.Run(async () =>
         {
             CurrentFlow._workflow.Value = workflow;
-            
+
             try
             {
                 Result<TReturn> result;
                 try
                 {
-                    // *** USER FUNCTION INVOCATION *** 
+                    // *** USER FUNCTION INVOCATION ***
                     result = await inner(param, workflow);
                 }
-                catch (FatalWorkflowException exception) { await PersistFailure(storedId, flowId, exception, param, parent); throw; }
-                catch (Exception exception) { var fwe = FatalWorkflowException.CreateNonGeneric(flowId, exception); await PersistFailure(storedId, flowId, fwe, param, parent); throw fwe; }
+                catch (FatalWorkflowException exception) { await PersistFailure(storedId, flowId, exception, param, parent); tcs.TrySetCanceled(); throw; }
+                catch (Exception exception) { var fwe = FatalWorkflowException.CreateNonGeneric(flowId, exception); await PersistFailure(storedId, flowId, fwe, param, parent); tcs.TrySetCanceled(); throw fwe; }
                 finally { disposables.Dispose(); }
-                
+
                 await PersistResultAndEnsureSuccess(storedId, flowId, result, param, parent, workflow, storageSession, allowPostponedOrSuspended: true);
+                if (result.Succeed)
+                    tcs.TrySetResult(result.SucceedWithValue!);
+                else
+                    tcs.TrySetCanceled();
             }
-            catch (Exception exception) { _unhandledExceptionHandler.Invoke(_flowType, exception); }
+            catch (Exception exception) { _unhandledExceptionHandler.Invoke(_flowType, exception); tcs.TrySetException(exception); }
             finally{ onCompletion(); }
         });
     }
