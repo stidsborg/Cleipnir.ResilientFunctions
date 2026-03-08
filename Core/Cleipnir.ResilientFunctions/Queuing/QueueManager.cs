@@ -31,7 +31,6 @@ public class QueueManager(
     private readonly Dictionary<EffectId, Subscription> _subscribers = new();
     private readonly Lock _lock = new();
     
-    private readonly EffectId _parentId = new([-1]);
     private readonly EffectId _toRemoveNextIndex = new([-1, 0]);
     private readonly EffectId _idempotencyKeysId = new([-1, -1]);
     private readonly List<MessageData> _toDeliver = new();
@@ -179,7 +178,7 @@ public class QueueManager(
 
     public async Task FetchAndTryToDeliver()
     {
-        await FetchMessages();
+        await FetchMessagesOnce();
         await DeliverMessages();
     }
     
@@ -273,7 +272,6 @@ public class QueueManager(
                                     continue;
 
                                 _toDeliver.Remove(envelopeWithPosition);
-                                _fetchedPositions.Add(envelopeWithPosition.Position);
                                 _subscribers.Remove(effectId);
                                 positionToRemoveIndex = _nextToRemoveIndex++;
                             }
