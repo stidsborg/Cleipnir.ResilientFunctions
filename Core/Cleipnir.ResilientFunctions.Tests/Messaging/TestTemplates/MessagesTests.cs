@@ -46,7 +46,7 @@ public abstract class MessagesTests
                     SettingsWithDefaults.Default
                 );
 
-                queueClient = await queueManager.CreateQueueClient(new FlowsManager(() => DateTime.UtcNow));
+                queueClient = await queueManager.CreateQueueClient();
                 var message = await queueClient.Pull<string>(workflow, workflow.Effect.CreateNextImplicitId(), maxWait: TimeSpan.FromMinutes(1));
 
                 return message;
@@ -97,7 +97,7 @@ public abstract class MessagesTests
 
                 var flowsManager = new FlowsManager(() => DateTime.UtcNow);
                 flowsManager.AddFlow(workflow.StoredId, () => { }, queueManager, flowTimeouts);
-                var queueClient = await queueManager.CreateQueueClient(flowsManager);
+                var queueClient = await queueManager.CreateQueueClient();
                 var message = await queueClient.Pull<string>(workflow, workflow.Effect.CreateNextImplicitId(), TimeSpan.FromMilliseconds(100), maxWait: TimeSpan.FromMinutes(1));
 
                 return message;
@@ -143,7 +143,7 @@ public abstract class MessagesTests
 
                 var flowsManager = new FlowsManager(() => DateTime.UtcNow);
                 flowsManager.AddFlow(workflow.StoredId, () => { }, queueManager, flowTimeouts);
-                var queueClient = await queueManager.CreateQueueClient(flowsManager);
+                var queueClient = await queueManager.CreateQueueClient();
                 var message = await queueClient.Pull<object>(
                     workflow,
                     workflow.Effect.CreateNextImplicitId(),
@@ -192,7 +192,7 @@ public abstract class MessagesTests
                     SettingsWithDefaults.Default
                 );
 
-                var queueClient = await queueManager.CreateQueueClient(new FlowsManager(() => DateTime.UtcNow));
+                var queueClient = await queueManager.CreateQueueClient();
                 var message = await queueClient.Pull<object>(
                     workflow,
                     workflow.Effect.CreateNextImplicitId(),
@@ -242,7 +242,7 @@ public abstract class MessagesTests
                     SettingsWithDefaults.Default
                 );
 
-                var queueClient = await queueManager.CreateQueueClient(new FlowsManager(() => DateTime.UtcNow));
+                var queueClient = await queueManager.CreateQueueClient();
                 var message = await queueClient.Pull<string>(
                     workflow,
                     workflow.Effect.CreateNextImplicitId(),
@@ -293,7 +293,7 @@ public abstract class MessagesTests
                     SettingsWithDefaults.Default
                 );
 
-                var queueClient = await queueManager.CreateQueueClient(new FlowsManager(() => DateTime.UtcNow));
+                var queueClient = await queueManager.CreateQueueClient();
                 var message1 = await queueClient.Pull<string>(workflow, workflow.Effect.CreateNextImplicitId(), maxWait: TimeSpan.FromMinutes(1));
                 var message2 = await queueClient.Pull<string>(workflow, workflow.Effect.CreateNextImplicitId(), maxWait: TimeSpan.FromMinutes(1));
 
@@ -345,7 +345,7 @@ public abstract class MessagesTests
                     SettingsWithDefaults.Default
                 );
 
-                var queueClient = await queueManager.CreateQueueClient(new FlowsManager(() => DateTime.UtcNow));
+                var queueClient = await queueManager.CreateQueueClient();
 
                 var message1 = await queueClient.Pull<string>(workflow, workflow.Effect.CreateNextImplicitId(), maxWait: TimeSpan.FromMinutes(1));
                 var message2 = await queueClient.Pull<string>(workflow, workflow.Effect.CreateNextImplicitId(), maxWait: TimeSpan.FromMinutes(1));
@@ -395,7 +395,7 @@ public abstract class MessagesTests
                     SettingsWithDefaults.Default
                 );
 
-                var queueClient = await queueManager.CreateQueueClient(new FlowsManager(() => DateTime.UtcNow));
+                var queueClient = await queueManager.CreateQueueClient();
                 lock (queueClients)
                     queueClients[workflow.FlowId.Instance.Value] = queueClient;
 
@@ -457,7 +457,7 @@ public abstract class MessagesTests
                     SettingsWithDefaults.Default
                 );
 
-                var queueClient = await queueManager.CreateQueueClient(new FlowsManager(() => DateTime.UtcNow));
+                var queueClient = await queueManager.CreateQueueClient();
 
                 while (true)
                 {
@@ -521,7 +521,7 @@ public abstract class MessagesTests
                     SettingsWithDefaults.Default
                 );
 
-                var queueClient = await queueManager.CreateQueueClient(new FlowsManager(() => DateTime.UtcNow));
+                var queueClient = await queueManager.CreateQueueClient();
 
                 for (var i = 0; i < 10; i++)
                 {
@@ -547,7 +547,7 @@ public abstract class MessagesTests
                     SettingsWithDefaults.Default
                 );
 
-                var queueClient = await queueManager.CreateQueueClient(new FlowsManager(() => DateTime.UtcNow));
+                var queueClient = await queueManager.CreateQueueClient();
 
                 for (var i = 0; i < 10; i++)
                 {

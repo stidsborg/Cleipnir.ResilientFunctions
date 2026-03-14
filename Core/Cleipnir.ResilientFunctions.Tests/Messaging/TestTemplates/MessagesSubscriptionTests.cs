@@ -575,7 +575,7 @@ public abstract class MessagesSubscriptionTests
                     SettingsWithDefaults.Default
                 );
 
-                var queueClient = await queueManager.CreateQueueClient(new FlowsManager(() => DateTime.UtcNow));
+                var queueClient = await queueManager.CreateQueueClient();
 
                 var message = await queueClient.Pull<GoodMessage>(
                     workflow,
@@ -636,7 +636,7 @@ public abstract class MessagesSubscriptionTests
                     SettingsWithDefaults.Default
                 );
 
-                var queueClient = await queueManager.CreateQueueClient(new FlowsManager(() => DateTime.UtcNow));
+                var queueClient = await queueManager.CreateQueueClient();
 
                 // Verify timeout is not set before pull
                 minimumTimeout.MinimumTimeout.ShouldBeNull();
@@ -693,7 +693,7 @@ public abstract Task PullEnvelopeReturnsEnvelopeWithReceiverAndSender();
                     SettingsWithDefaults.Default
                 );
 
-                var queueClient = await queueManager.CreateQueueClient(new FlowsManager(() => DateTime.UtcNow));
+                var queueClient = await queueManager.CreateQueueClient();
 
                 // Pull envelope for specific receiver
                 var envelope = await queueClient.PullEnvelope<string>(

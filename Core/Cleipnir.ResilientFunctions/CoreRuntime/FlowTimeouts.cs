@@ -16,9 +16,12 @@ public class FlowTimeouts
         get
         {
             lock (_lock)
-                return Timeouts.Values.Count != 0 ? Timeouts.Values.Min() : null;
+                return GetMinimumTimeout();
         }
     }
+
+    private DateTime? GetMinimumTimeout()
+        => Timeouts.Values.Count != 0 ? Timeouts.Values.Min() : null;
 
     public void AddTimeout(EffectId effectId, DateTime timeout)
     {
@@ -30,5 +33,11 @@ public class FlowTimeouts
     {
         lock (_lock)
             Timeouts.Remove(effectId);
+    }
+
+    public bool HasExpiredTimeouts(DateTime now)
+    {
+        lock (_lock)
+            return GetMinimumTimeout() <= now;
     }
 }

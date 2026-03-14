@@ -67,7 +67,7 @@ public class QueueClient(QueueManager queueManager, ISerializer serializer, UtcN
         var type = serializer.ResolveType(typeNameBytes!)
                    ?? throw new TypeLoadException($"Type '{Convert.ToBase64String(typeNameBytes!)}' could not be resolved");
         if (!effect.TryGet<byte[]>(messageId, out var messageBytes))
-            throw new InvalidOperationException("Effect did not have message as expected");
+            throw new InvalidOperationException("Effect did not contain message");
 
         var message = serializer.Deserialize(messageBytes!, type);
 

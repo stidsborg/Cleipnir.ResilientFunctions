@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Queuing;
 using Cleipnir.ResilientFunctions.Storage;
 
@@ -10,12 +9,9 @@ namespace Cleipnir.ResilientFunctions.CoreRuntime;
 
 public record FlowStatus(StoredId Id, Action Suspend, QueueManager QueueManager, int Threads, int SuspendedThreads, FlowTimeouts Timeouts);
 
-public record TimeoutId(StoredId StoredId, EffectId EffectId);
-
 public class FlowsManager : IDisposable
 {
     private readonly Dictionary<StoredId, FlowStatus> _dict = new();
-    private readonly Dictionary<TimeoutId, DateTime> _timeouts = new();
     private readonly Lock _lock = new();
     private readonly UtcNow _utcNow;
     private volatile bool _disposed;
@@ -34,17 +30,9 @@ public class FlowsManager : IDisposable
             lock (_lock)
             {
                 var now = _utcNow();
-                var expired = new List<TimeoutId>();
-                foreach (var (timeoutId, expiry) in _timeouts)
-                    if (expiry <= now)
-                        expired.Add(timeoutId);
-
-                foreach (var timeoutId in expired)
-                {
-                    _timeouts.Remove(timeoutId);
-                    if (_dict.TryGetValue(timeoutId.StoredId, out var status))
+                foreach (var (_, status) in _dict)
+                    if (status.Timeouts.HasExpiredTimeouts(now))
                         queueManagers.Add(status.QueueManager);
-                }
             }
 
             foreach (var queueManager in queueManagers)
@@ -144,27 +132,4 @@ public class FlowsManager : IDisposable
         }
     }
 
-    public void AddTimeout(StoredId storedId, EffectId effectId, DateTime expiry)
-    {
-        lock (_lock)
-            _timeouts[new TimeoutId(storedId, effectId)] = expiry;
-    }
-
-    public void RemoveTimeout(StoredId storedId, EffectId effectId)
-    {
-        lock (_lock)
-            _timeouts.Remove(new TimeoutId(storedId, effectId));
-    }
-
-    public List<TimeoutId> GetExpiredTimeouts(DateTime now)
-    {
-        lock (_lock)
-        {
-            var expired = new List<TimeoutId>();
-            foreach (var (timeoutId, expiry) in _timeouts)
-                if (expiry <= now)
-                    expired.Add(timeoutId);
-            return expired;
-        }
-    }
 }

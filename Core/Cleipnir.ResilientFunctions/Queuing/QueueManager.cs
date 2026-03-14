@@ -44,12 +44,10 @@ public class QueueManager(
     private volatile bool _disposed;
     
     private volatile Exception? _thrownException = null;
-    private FlowsManager? FlowsManager { get; set; }
 
-    private async Task Initialize(FlowsManager flowsManager)
+    private async Task Initialize()
     {
         await _semaphoreSlim.WaitAsync();
-        FlowsManager = flowsManager;
 
         try
         {
@@ -90,10 +88,10 @@ public class QueueManager(
         _ = Task.Run(FetchMessages);
     }
 
-    public async Task<QueueClient> CreateQueueClient(FlowsManager flowsManager)
+    public async Task<QueueClient> CreateQueueClient()
     {
         if (!_initialized)
-            await Initialize(flowsManager);
+            await Initialize();
         return new QueueClient(this, serializer, utcNow);
     }
 
@@ -355,10 +353,7 @@ public class QueueManager(
             _subscribers[effectId] = new Subscription(predicate, tcs, timeout, messageId, messageTypeId, receiverId, senderId);
 
         if (timeout != null)
-        {
             timeouts.AddTimeout(timeoutId, timeout.Value);
-            FlowsManager?.AddTimeout(storedId, timeoutId, timeout.Value);
-        }
 
         _ = DeliverMessages();
 
@@ -368,7 +363,6 @@ public class QueueManager(
             throw new SuspendInvocationException();
 
         timeouts.RemoveTimeout(timeoutId);
-        FlowsManager?.RemoveTimeout(storedId, timeoutId);
         return await tcs.Task;
     }
 
