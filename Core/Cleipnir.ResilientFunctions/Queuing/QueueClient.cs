@@ -56,10 +56,7 @@ public class QueueClient(QueueManager queueManager, ISerializer serializer, UtcN
             );
 
             if (result == null)
-            {
                 await effect.Upsert<object?>(messageId, null, alias: null, flush: false);
-                return null;
-            }
 
             return result;
         }
