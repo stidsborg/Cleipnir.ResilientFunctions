@@ -3,21 +3,21 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
-using Cleipnir.ResilientFunctions.Domain.Exceptions.Commands;
+using Cleipnir.ResilientFunctions.CoreRuntime;
 using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.Domain;
 
-public class DistributedSemaphores(Effect effect, ISemaphoreStore semaphoreStore, StoredId storedId, Func<IReadOnlyList<StoredId>, Task> interrupt)
+public class DistributedSemaphores(Effect effect, ISemaphoreStore semaphoreStore, StoredId storedId, Func<IReadOnlyList<StoredId>, Task> interrupt, FlowsManager flowsManager)
 {
-    public DistributedSemaphore Create(string group, string instance, int maximumCount) 
-        => new(maximumCount, group, instance, effect, semaphoreStore, storedId, interrupt);
-    
-    public DistributedSemaphore CreateLock(string group, string instance) 
-        => new(maximumCount: 1, group, instance, effect, semaphoreStore, storedId, interrupt);
+    public DistributedSemaphore Create(string group, string instance, int maximumCount)
+        => new(maximumCount, group, instance, effect, semaphoreStore, storedId, interrupt, flowsManager);
+
+    public DistributedSemaphore CreateLock(string group, string instance)
+        => new(maximumCount: 1, group, instance, effect, semaphoreStore, storedId, interrupt, flowsManager);
 }
 
-public class DistributedSemaphore(int maximumCount, string group, string instance, Effect effect, ISemaphoreStore store, StoredId storedId, Func<IReadOnlyList<StoredId>, Task> interrupt)
+public class DistributedSemaphore(int maximumCount, string group, string instance, Effect effect, ISemaphoreStore store, StoredId storedId, Func<IReadOnlyList<StoredId>, Task> interrupt, FlowsManager flowsManager)
 {
     private EffectId? _effectId;
     public async Task<DistributedSemaphore.Lock> Acquire(TimeSpan? maxWait = null)
@@ -52,7 +52,7 @@ public class DistributedSemaphore(int maximumCount, string group, string instanc
         if (!gotLock)
         {
             await effect.Upsert(_effectId, statusIdAndStatus with { Status = SemaphoreStatus.Waiting }, alias: null, flush: true);
-            throw new SuspendInvocationException();
+            await flowsManager.Suspend(storedId);
         }
 
         await effect.Upsert(_effectId, statusIdAndStatus with { Status = SemaphoreStatus.Acquired }, alias: null, flush: true);

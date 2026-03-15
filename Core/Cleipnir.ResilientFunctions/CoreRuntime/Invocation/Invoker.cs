@@ -277,17 +277,19 @@ public class Invoker<TParam, TReturn>
             success = persisted;
 
             var flowTimeouts = new FlowTimeouts();
+
             var effect = _invocationHelper.CreateEffect(
                 storedId,
                 flowId,
                 initialState == null ? [] : _invocationHelper.MapInitialEffects(initialState.Effects, flowId),
                 flowTimeouts,
-                storageSession
+                storageSession,
+                _flowsManager
             );
 
             var correlations = _invocationHelper.CreateCorrelations(flowId);
-            var semaphores = _invocationHelper.CreateSemaphores(storedId, effect);
-            var queueManager = _invocationHelper.CreateQueueManager(flowId, storedId, effect, flowTimeouts, _unhandledExceptionHandler);
+            var semaphores = _invocationHelper.CreateSemaphores(storedId, effect, _flowsManager);
+            var queueManager = _invocationHelper.CreateQueueManager(flowId, storedId, effect, flowTimeouts, _unhandledExceptionHandler, _flowsManager);
             disposables.Add(queueManager);
             var messageWriter = _invocationHelper.CreateMessageWriter(storedId);
             var workflow = new Workflow(flowId, storedId, effect, _utilities, correlations, semaphores, queueManager, _invocationHelper.UtcNow, messageWriter, _flowsManager);
@@ -333,11 +335,12 @@ public class Invoker<TParam, TReturn>
             disposables.Add(isWorkflowRunningDisposable);
             
             var flowTimeouts = new FlowTimeouts();
-            var effect = _invocationHelper.CreateEffect(storedId, flowId, effects, flowTimeouts, storageSession);
+
+            var effect = _invocationHelper.CreateEffect(storedId, flowId, effects, flowTimeouts, storageSession, _flowsManager);
 
             var correlations = _invocationHelper.CreateCorrelations(flowId);
-            var semaphores = _invocationHelper.CreateSemaphores(storedId, effect);
-            var queueManager = _invocationHelper.CreateQueueManager(flowId, storedId, effect, flowTimeouts, _unhandledExceptionHandler);
+            var semaphores = _invocationHelper.CreateSemaphores(storedId, effect, _flowsManager);
+            var queueManager = _invocationHelper.CreateQueueManager(flowId, storedId, effect, flowTimeouts, _unhandledExceptionHandler, _flowsManager);
             disposables.Add(queueManager);
             var messageWriter = _invocationHelper.CreateMessageWriter(storedId);
 

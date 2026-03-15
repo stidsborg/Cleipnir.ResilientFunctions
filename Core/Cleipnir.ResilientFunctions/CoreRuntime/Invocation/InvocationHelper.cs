@@ -393,7 +393,7 @@ internal class InvocationHelper<TParam, TReturn>
     public MessageWriter CreateMessageWriter(StoredId storedId)
         => new MessageWriter(storedId, _functionStore.MessageStore, Serializer);
 
-    public Effect CreateEffect(StoredId storedId, FlowId flowId, IReadOnlyList<StoredEffect> storedEffects, FlowTimeouts flowTimeouts, IStorageSession? storageSession)
+    public Effect CreateEffect(StoredId storedId, FlowId flowId, IReadOnlyList<StoredEffect> storedEffects, FlowTimeouts flowTimeouts, IStorageSession? storageSession, FlowsManager flowsManager)
     {
         var effectsStore = _functionStore.EffectsStore;
 
@@ -406,8 +406,8 @@ internal class InvocationHelper<TParam, TReturn>
             storageSession,
             _clearChildren
         );
-        
-       var effect = new Effect(effectResults, UtcNow, flowTimeouts);
+
+       var effect = new Effect(effectResults, UtcNow, flowTimeouts, flowsManager, storedId);
        return effect;
     }
     
@@ -430,11 +430,11 @@ internal class InvocationHelper<TParam, TReturn>
         return new ExistingSemaphores(MapToStoredId(flowId), _functionStore, existingEffects);
     }
 
-    public DistributedSemaphores CreateSemaphores(StoredId storedId, Effect effect)
-        => new(effect, _functionStore.SemaphoreStore, storedId, Interrupt);
+    public DistributedSemaphores CreateSemaphores(StoredId storedId, Effect effect, FlowsManager flowsManager)
+        => new(effect, _functionStore.SemaphoreStore, storedId, Interrupt, flowsManager);
 
-    public QueueManager CreateQueueManager(FlowId flowId, StoredId storedId, Effect effect, FlowTimeouts timeouts, UnhandledExceptionHandler unhandledExceptionHandler)
-        => new(flowId, storedId, _functionStore.MessageStore, Serializer, effect, unhandledExceptionHandler, timeouts, UtcNow, _settings);
+    public QueueManager CreateQueueManager(FlowId flowId, StoredId storedId, Effect effect, FlowTimeouts timeouts, UnhandledExceptionHandler unhandledExceptionHandler, FlowsManager flowsManager)
+        => new(flowId, storedId, _functionStore.MessageStore, Serializer, effect, unhandledExceptionHandler, timeouts, UtcNow, _settings, flowsManager);
 
     public StoredId MapToStoredId(FlowId flowId) => StoredId.Create(_storedType, flowId.Instance.Value);
     

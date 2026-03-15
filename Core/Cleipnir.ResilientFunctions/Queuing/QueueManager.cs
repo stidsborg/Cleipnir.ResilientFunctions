@@ -6,7 +6,6 @@ using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime;
 using Cleipnir.ResilientFunctions.CoreRuntime.Serialization;
 using Cleipnir.ResilientFunctions.Domain;
-using Cleipnir.ResilientFunctions.Domain.Exceptions.Commands;
 using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Storage;
 
@@ -24,6 +23,7 @@ public class QueueManager(
     FlowTimeouts timeouts,
     UtcNow utcNow,
     SettingsWithDefaults settings,
+    FlowsManager flowsManager,
     int maxIdempotencyKeyCount = 100,
     TimeSpan? maxIdempotencyKeyTtl = null)
     : IDisposable
@@ -328,6 +328,7 @@ public class QueueManager(
 
         await Task.WhenAny(tcs.Task, timeoutTask, Task.Delay(maxWait ?? settings.MessagesDefaultMaxWaitForCompletion));
 
+        var shouldSuspend = false;
         lock (_lock)
         {
             if (!tcs.Task.IsCompleted && timeoutTask.IsCompleted)
@@ -337,10 +338,13 @@ public class QueueManager(
             }
 
             if (!tcs.Task.IsCompleted)
-                throw new SuspendInvocationException();
-
-            timeouts.RemoveTimeout(timeoutId);            
+                shouldSuspend = true;
+            else
+                timeouts.RemoveTimeout(timeoutId);
         }
+
+        if (shouldSuspend)
+            await flowsManager.Suspend(storedId);
 
         return await tcs.Task;
     }

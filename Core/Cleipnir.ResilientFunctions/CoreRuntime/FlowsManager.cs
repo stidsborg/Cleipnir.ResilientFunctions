@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Threading;
 using System.Threading.Tasks;
+using Cleipnir.ResilientFunctions.Domain.Exceptions.Commands;
 using Cleipnir.ResilientFunctions.Queuing;
 using Cleipnir.ResilientFunctions.Storage;
 
@@ -117,5 +119,8 @@ public class FlowsManager : IDisposable
             _dict[id] = status with { SuspendedThreads = status.SuspendedThreads + 1 };
         }
     }
+
+    [DoesNotReturn]
+    public async Task Suspend(StoredId id) => throw new SuspendInvocationException();
 
 }

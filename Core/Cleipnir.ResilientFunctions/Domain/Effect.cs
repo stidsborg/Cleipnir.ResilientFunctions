@@ -16,13 +16,15 @@ public enum ResiliencyLevel
     AtLeastOnceDelayFlush
 }
 
-public class Effect(EffectResults effectResults, UtcNow utcNow, FlowTimeouts flowTimeouts)
+public class Effect(EffectResults effectResults, UtcNow utcNow, FlowTimeouts flowTimeouts, FlowsManager flowsManager, StoredId storedId)
 {
     internal bool Contains(int id) => Contains(CreateEffectId(id));
     internal bool Contains(EffectId effectId) => effectResults.Contains(effectId);
 
     internal IEnumerable<EffectId> EffectIds => effectResults.EffectIds;
     internal FlowTimeouts FlowTimeouts => flowTimeouts;
+
+    internal Task Suspend() => flowsManager.Suspend(storedId);
 
     internal WorkStatus? GetStatus(int id)
     {

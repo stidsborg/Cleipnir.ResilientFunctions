@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
-using Cleipnir.ResilientFunctions.Domain.Exceptions.Commands;
 using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Queuing;
@@ -62,7 +61,7 @@ public class Workflow
             {
                 var delay = (expiry.ToDateTime() - _utcNow()).RoundUpToZero();
                 if (delay > TimeSpan.Zero)
-                    throw new SuspendInvocationException();
+                    await _flowsManager.Suspend(StoredId);
             }
         
             await Effect.Upsert(timeoutId, -1L, alias, flush: false);

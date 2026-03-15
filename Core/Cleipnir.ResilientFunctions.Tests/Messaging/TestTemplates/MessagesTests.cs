@@ -43,7 +43,8 @@ public abstract class MessagesTests
                     unhandledExceptionHandler,
                     new FlowTimeouts(),
                     () => DateTime.UtcNow,
-                    SettingsWithDefaults.Default
+                    SettingsWithDefaults.Default,
+                    new FlowsManager(() => DateTime.UtcNow)
                 );
 
                 queueClient = await queueManager.CreateQueueClient();
@@ -92,7 +93,8 @@ public abstract class MessagesTests
                     unhandledExceptionHandler,
                     flowTimeouts,
                     () => DateTime.UtcNow,
-                    SettingsWithDefaults.Default
+                    SettingsWithDefaults.Default,
+                    new FlowsManager(() => DateTime.UtcNow)
                 );
 
                 var flowsManager = new FlowsManager(() => DateTime.UtcNow);
@@ -138,7 +140,8 @@ public abstract class MessagesTests
                     unhandledExceptionHandler,
                     flowTimeouts,
                     () => DateTime.UtcNow,
-                    SettingsWithDefaults.Default
+                    SettingsWithDefaults.Default,
+                    new FlowsManager(() => DateTime.UtcNow)
                 );
 
                 var flowsManager = new FlowsManager(() => DateTime.UtcNow);
@@ -189,7 +192,8 @@ public abstract class MessagesTests
                     unhandledExceptionHandler,
                     new FlowTimeouts(),
                     () => DateTime.UtcNow,
-                    SettingsWithDefaults.Default
+                    SettingsWithDefaults.Default,
+                    new FlowsManager(() => DateTime.UtcNow)
                 );
 
                 var queueClient = await queueManager.CreateQueueClient();
@@ -239,7 +243,8 @@ public abstract class MessagesTests
                     unhandledExceptionHandler,
                     new FlowTimeouts(),
                     () => DateTime.UtcNow,
-                    SettingsWithDefaults.Default
+                    SettingsWithDefaults.Default,
+                    new FlowsManager(() => DateTime.UtcNow)
                 );
 
                 var queueClient = await queueManager.CreateQueueClient();
@@ -290,7 +295,8 @@ public abstract class MessagesTests
                     unhandledExceptionHandler,
                     new FlowTimeouts(),
                     () => DateTime.UtcNow,
-                    SettingsWithDefaults.Default
+                    SettingsWithDefaults.Default,
+                    new FlowsManager(() => DateTime.UtcNow)
                 );
 
                 var queueClient = await queueManager.CreateQueueClient();
@@ -342,7 +348,8 @@ public abstract class MessagesTests
                     unhandledExceptionHandler,
                     new FlowTimeouts(),
                     () => DateTime.UtcNow,
-                    SettingsWithDefaults.Default
+                    SettingsWithDefaults.Default,
+                    new FlowsManager(() => DateTime.UtcNow)
                 );
 
                 var queueClient = await queueManager.CreateQueueClient();
@@ -392,7 +399,8 @@ public abstract class MessagesTests
                     unhandledExceptionHandler,
                     new FlowTimeouts(),
                     () => DateTime.UtcNow,
-                    SettingsWithDefaults.Default
+                    SettingsWithDefaults.Default,
+                    new FlowsManager(() => DateTime.UtcNow)
                 );
 
                 var queueClient = await queueManager.CreateQueueClient();
@@ -454,7 +462,8 @@ public abstract class MessagesTests
                     unhandledExceptionHandler,
                     new FlowTimeouts(),
                     () => DateTime.UtcNow,
-                    SettingsWithDefaults.Default
+                    SettingsWithDefaults.Default,
+                    new FlowsManager(() => DateTime.UtcNow)
                 );
 
                 var queueClient = await queueManager.CreateQueueClient();
@@ -518,7 +527,8 @@ public abstract class MessagesTests
                     unhandledExceptionHandler,
                     new FlowTimeouts(),
                     () => DateTime.UtcNow,
-                    SettingsWithDefaults.Default
+                    SettingsWithDefaults.Default,
+                    new FlowsManager(() => DateTime.UtcNow)
                 );
 
                 var queueClient = await queueManager.CreateQueueClient();
@@ -544,7 +554,8 @@ public abstract class MessagesTests
                     unhandledExceptionHandler,
                     new FlowTimeouts(),
                     () => DateTime.UtcNow,
-                    SettingsWithDefaults.Default
+                    SettingsWithDefaults.Default,
+                    new FlowsManager(() => DateTime.UtcNow)
                 );
 
                 var queueClient = await queueManager.CreateQueueClient();

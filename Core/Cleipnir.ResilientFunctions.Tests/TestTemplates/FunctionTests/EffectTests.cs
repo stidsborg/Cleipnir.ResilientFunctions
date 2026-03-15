@@ -332,7 +332,7 @@ public abstract class EffectTests
             session,
             clearChildren: true
         );
-        var effect = new Effect(effectResults, utcNow: () => DateTime.UtcNow, new FlowTimeouts());
+        var effect = new Effect(effectResults, utcNow: () => DateTime.UtcNow, new FlowTimeouts(), new FlowsManager(() => DateTime.UtcNow), storedId);
 
         effect.TryGet<int>("alias", out _).ShouldBeFalse();
 
@@ -380,7 +380,7 @@ public abstract class EffectTests
             storageSession: null,
             clearChildren: true
         );
-        var effect = new Effect(effectResults, utcNow: () => DateTime.UtcNow, new FlowTimeouts());
+        var effect = new Effect(effectResults, utcNow: () => DateTime.UtcNow, new FlowTimeouts(), new FlowsManager(() => DateTime.UtcNow), storedId);
 
         // Verify the effect is immediately available (eager loading)
         effect.TryGet<int>("test_alias", out var result).ShouldBeTrue();
@@ -714,7 +714,7 @@ public abstract class EffectTests
             session,
             clearChildren: true
         );
-        var effect = new Effect(effectResults, utcNow: () => DateTime.UtcNow, new FlowTimeouts());
+        var effect = new Effect(effectResults, utcNow: () => DateTime.UtcNow, new FlowTimeouts(), new FlowsManager(() => DateTime.UtcNow), storedId);
 
         var result = await effect.Capture(() => "hello world", ResiliencyLevel.AtLeastOnceDelayFlush);
         result.ShouldBe("hello world");
