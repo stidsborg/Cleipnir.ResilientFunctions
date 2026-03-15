@@ -27,20 +27,17 @@ public class FlowsManager : IDisposable
         while (!_disposed)
         {
             var expiredStatuses = new List<FlowStatus>();
+            var now = _utcNow();
             lock (_lock)
-            {
-                var now = _utcNow();
                 foreach (var (_, status) in _dict)
                     if (status.Timeouts.HasExpiredTimeouts(now))
                         expiredStatuses.Add(status);
-            }
 
             foreach (var status in expiredStatuses)
                 status.QueueManager.CheckTimeouts();
-
-            var now2 = _utcNow();
+            
             foreach (var status in expiredStatuses)
-                status.Timeouts.SignalExpiredTimeouts(now2);
+                status.Timeouts.SignalExpiredTimeouts(now);
 
             await Task.Delay(10);
         }
