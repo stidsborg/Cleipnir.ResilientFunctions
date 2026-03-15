@@ -91,4 +91,8 @@ public class SuspensionTests : ResilientFunctions.Tests.TestTemplates.FunctionTe
     [TestMethod]
     public override Task TwoDelaysFlowCompletesSuccessfully()
         => TwoDelaysFlowCompletesSuccessfully(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task NonSuspendingDelayCompletesViaFlowsManagerSignal()
+        => NonSuspendingDelayCompletesViaFlowsManagerSignal(FunctionStoreFactory.Create());
 }

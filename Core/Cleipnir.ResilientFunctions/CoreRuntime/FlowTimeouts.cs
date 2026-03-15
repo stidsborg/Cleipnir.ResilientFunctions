@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 
 namespace Cleipnir.ResilientFunctions.CoreRuntime;
@@ -9,7 +10,7 @@ namespace Cleipnir.ResilientFunctions.CoreRuntime;
 public class FlowTimeouts
 {
     private readonly Lock _lock = new();
-    private Dictionary<EffectId, DateTime> Timeouts { get; } = new();
+    private Dictionary<EffectId, Tuple<DateTime, TaskCompletionSource>> Timeouts { get; } = new();
 
     public DateTime? MinimumTimeout
     {
@@ -21,12 +22,18 @@ public class FlowTimeouts
     }
 
     private DateTime? GetMinimumTimeout()
-        => Timeouts.Values.Count != 0 ? Timeouts.Values.Min() : null;
+        => Timeouts.Values.Count != 0 ? Timeouts.Values.Min(t => t.Item1) : (DateTime?)null;
 
-    public void AddTimeout(EffectId effectId, DateTime timeout)
+    public Task AddTimeout(EffectId effectId, DateTime timeout)
     {
+        TaskCompletionSource tcs;
         lock (_lock)
-            Timeouts[effectId] = timeout;
+        {
+            tcs = new TaskCompletionSource();
+            Timeouts[effectId] = Tuple.Create(timeout, tcs);
+        }
+
+        return tcs.Task;
     }
 
     public void RemoveTimeout(EffectId effectId)
@@ -39,5 +46,15 @@ public class FlowTimeouts
     {
         lock (_lock)
             return GetMinimumTimeout() <= now;
+    }
+
+    public void SignalExpiredTimeouts(DateTime now)
+    {
+        lock (_lock)
+        {
+            foreach (var (_, (timeout, tcs)) in Timeouts)
+                if (timeout <= now)
+                    tcs.TrySetResult();
+        }
     }
 }

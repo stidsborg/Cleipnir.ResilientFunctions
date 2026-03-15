@@ -352,12 +352,13 @@ public class QueueManager(
         lock (_lock)
             _subscribers[effectId] = new Subscription(predicate, tcs, timeout, messageId, messageTypeId, receiverId, senderId);
 
-        if (timeout != null)
-            timeouts.AddTimeout(timeoutId, timeout.Value);
+        var timeoutTask = timeout != null
+            ? timeouts.AddTimeout(timeoutId, timeout.Value)
+            : new TaskCompletionSource().Task;
 
         _ = DeliverMessages();
 
-        await Task.WhenAny(tcs.Task, Task.Delay(maxWait ?? settings.MessagesDefaultMaxWaitForCompletion));
+        await Task.WhenAny(tcs.Task, timeoutTask, Task.Delay(maxWait ?? settings.MessagesDefaultMaxWaitForCompletion));
 
         if (!tcs.Task.IsCompleted)
             throw new SuspendInvocationException();

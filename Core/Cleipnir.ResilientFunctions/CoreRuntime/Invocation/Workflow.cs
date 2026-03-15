@@ -55,16 +55,15 @@ public class Workflow
                 return;
             }
 
-            Effect.FlowTimeouts.AddTimeout(timeoutId, expiry.ToDateTime());
-            var delay = (expiry.ToDateTime() - _utcNow()).RoundUpToZero();
+            var timeoutTask = Effect.FlowTimeouts.AddTimeout(timeoutId, expiry.ToDateTime());
             if (!suspend)
+                await timeoutTask;
+            else
             {
-                await Task.Delay(delay);
-                delay = TimeSpan.Zero;
+                var delay = (expiry.ToDateTime() - _utcNow()).RoundUpToZero();
+                if (delay > TimeSpan.Zero)
+                    throw new SuspendInvocationException();
             }
-
-            if (delay > TimeSpan.Zero)
-                throw new SuspendInvocationException();
         
             await Effect.Upsert(timeoutId, -1L, alias, flush: false);
             Effect.FlowTimeouts.RemoveTimeout(timeoutId);
