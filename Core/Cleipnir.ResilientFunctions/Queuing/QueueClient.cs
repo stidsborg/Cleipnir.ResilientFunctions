@@ -41,6 +41,19 @@ public class QueueClient(QueueManager queueManager, ISerializer serializer, UtcN
         var receiverId = parentId.CreateChild(3);
         var senderId = parentId.CreateChild(4);
 
+        if (timeout != null)
+        {
+            var timeoutTicks = await effect.CreateOrGet(
+                timeoutId,
+                timeout.Value.ToUniversalTime().Ticks,
+                flush: false,
+                alias: null
+            );
+
+            timeout = new DateTime(timeoutTicks, DateTimeKind.Utc);
+        }
+
+        
         if (!effect.Contains(messageId))
         {
             var result = await queueManager.Subscribe(
