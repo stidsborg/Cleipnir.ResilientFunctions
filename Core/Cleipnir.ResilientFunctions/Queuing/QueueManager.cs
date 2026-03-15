@@ -28,9 +28,8 @@ public class QueueManager(
     TimeSpan? maxIdempotencyKeyTtl = null)
     : IDisposable
 {
-    private readonly Dictionary<EffectId, Subscription> _subscribers = new();
     private readonly Lock _lock = new();
-    
+
     private readonly EffectId _toRemoveNextIndex = new([-1, 0]);
     private readonly EffectId _idempotencyKeysId = new([-1, -1]);
     private readonly List<MessageData> _toDeliver = new();
@@ -38,12 +37,12 @@ public class QueueManager(
 
     private IdempotencyKeys? _idempotencyKeys;
     private int _nextToRemoveIndex = 0;
-    private readonly SemaphoreSlim _deliverySemaphore = new(1, 1);
     private readonly SemaphoreSlim _semaphoreSlim = new SemaphoreSlim(1);
     private bool _initialized = false;
     private volatile bool _disposed;
-    
+
     private volatile Exception? _thrownException = null;
+    private TaskCompletionSource _pulse = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
     private async Task Initialize()
     {
@@ -99,19 +98,13 @@ public class QueueManager(
     {
         if (_disposed)
             throw new ObjectDisposedException($"{nameof(QueueManager)} is disposed already");
-        
+
         await _semaphoreSlim.WaitAsync();
         try
         {
             if (_thrownException != null)
-            {
-                foreach (var (_, subscription) in _subscribers)
-                    subscription.Tcs.TrySetException(_thrownException);
-                _subscribers.Clear();
-                
                 return;
-            }
-            
+
             List<long> skipPositions;
             lock (_lock)
                 skipPositions = _fetchedPositions.ToList();
@@ -153,33 +146,17 @@ public class QueueManager(
                 {
                     unhandledExceptionHandler.Invoke(flowId.Type, e);
                     _thrownException = e;
-
-                    lock (_lock)
-                    {
-                        foreach (var (_, subscription) in _subscribers)
-                            subscription.Tcs.TrySetException(_thrownException);
-                        _subscribers.Clear();
-                    }
-
                     return;
                 }
             }
-
-            if (messages.Any())
-                _ = DeliverMessages();
         }
         finally
         {
+            PulseAll();
             _semaphoreSlim.Release();
         }
     }
 
-    public async Task FetchAndTryToDeliver()
-    {
-        await FetchMessagesOnce();
-        await DeliverMessages();
-    }
-    
     public async Task FetchMessages()
     {
         while (!_disposed && _thrownException == null)
@@ -228,84 +205,20 @@ public class QueueManager(
         }
     }
 
-    private async Task DeliverMessages()
+    private void PulseAll()
     {
-        await _deliverySemaphore.WaitAsync();
-        try
+        TaskCompletionSource oldPulse;
+        lock (_lock)
         {
-            while (true)
-            {
-                List<MessageData> messages;
-                List<KeyValuePair<EffectId, Subscription>> subscribers;
-                lock (_lock)
-                {
-                    messages = _toDeliver.ToList();
-                    subscribers = _subscribers.ToList();
-                }
-
-                var delivered = false;
-                foreach (var envelopeWithPosition in messages)
-                {
-                    if (delivered) break;
-
-                    foreach (var idAndSubscription in subscribers)
-                    {
-                        var (effectId, subscription) = idAndSubscription;
-                        if (subscription.Predicate(envelopeWithPosition.Envelope))
-                        {
-                            int positionToRemoveIndex;
-                            lock (_lock)
-                            {
-                                if (!_subscribers.ContainsKey(effectId)) //might have been removed by timeout
-                                    continue;
-
-                                _toDeliver.Remove(envelopeWithPosition);
-                                _subscribers.Remove(effectId);
-                                positionToRemoveIndex = _nextToRemoveIndex++;
-                            }
-
-                            var toRemoveId = new EffectId([-1, 0, positionToRemoveIndex]);
-                            await effect.Upserts(
-                                new List<EffectResult>(
-                                [
-                                    new EffectResult(_toRemoveNextIndex, positionToRemoveIndex, Alias: null),
-                                    new EffectResult(toRemoveId, envelopeWithPosition.Position, Alias: null),
-                                    new EffectResult(subscription.MessageContentId, envelopeWithPosition.MessageContentBytes, Alias: null),
-                                    new EffectResult(subscription.MessageTypeId, envelopeWithPosition.MessageTypeBytes, Alias: null),
-                                    new EffectResult(subscription.ReceiverId, envelopeWithPosition.Receiver, Alias: null),
-                                    new EffectResult(subscription.SenderId, envelopeWithPosition.Sender, Alias: null),
-                                ]).Concat(envelopeWithPosition.IdempotencyKeyResult == null
-                                    ? []
-                                    : [envelopeWithPosition.IdempotencyKeyResult]),
-                                flush: false
-                            );
-                            
-                            subscription.Tcs.SetResult(envelopeWithPosition.Envelope);
-
-                            delivered = true;
-                            break;
-                        }
-                    }
-                }
-
-                if (!delivered)
-                    break;
-            }
+            oldPulse = _pulse;
+            _pulse = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         }
-        catch (Exception e)
-        {
-            unhandledExceptionHandler.Invoke(flowId.Type, e);
-        }
-        finally
-        {
-            _deliverySemaphore.Release();
-        }
+        oldPulse.TrySetResult();
     }
-    
+
     public async Task<Envelope?> Subscribe(
-        EffectId effectId,
-        MessagePredicate predicate, 
-        DateTime? timeout, 
+        MessagePredicate predicate,
+        DateTime? timeout,
         EffectId timeoutId,
         EffectId messageId,
         EffectId messageTypeId,
@@ -316,37 +229,69 @@ public class QueueManager(
         if (_thrownException != null)
             throw _thrownException;
 
-        var tcs = new TaskCompletionSource<Envelope?>();
-        lock (_lock)
-            _subscribers[effectId] = new Subscription(predicate, tcs, timeout, messageId, messageTypeId, receiverId, senderId);
+        await FetchMessagesOnce();
 
         var timeoutTask = timeout != null
             ? timeouts.AddTimeout(timeoutId, timeout.Value)
             : new TaskCompletionSource().Task;
 
-        _ = DeliverMessages();
+        var maxWaitTask = Task.Delay(maxWait ?? settings.MessagesDefaultMaxWaitForCompletion);
 
-        await Task.WhenAny(tcs.Task, timeoutTask, Task.Delay(maxWait ?? settings.MessagesDefaultMaxWaitForCompletion));
-
-        var shouldSuspend = false;
-        lock (_lock)
+        while (true)
         {
-            if (!tcs.Task.IsCompleted && timeoutTask.IsCompleted)
+            if (_thrownException != null)
+                throw _thrownException;
+
+            MessageData? matched = null;
+            var positionToRemoveIndex = 0;
+            Task pulseTask;
+            lock (_lock)
             {
-                _subscribers.Remove(effectId);
-                tcs.TrySetResult(null);
+                for (var i = 0; i < _toDeliver.Count; i++)
+                    if (predicate(_toDeliver[i].Envelope))
+                    {
+                        matched = _toDeliver[i];
+                        _toDeliver.RemoveAt(i);
+                        positionToRemoveIndex = _nextToRemoveIndex++;
+                        break;
+                    }
+
+                pulseTask = _pulse.Task;
             }
 
-            if (!tcs.Task.IsCompleted)
-                shouldSuspend = true;
-            else
+            if (matched != null)
+            {
+                var toRemoveId = new EffectId([-1, 0, positionToRemoveIndex]);
+                await effect.Upserts(
+                    new List<EffectResult>(
+                    [
+                        new EffectResult(_toRemoveNextIndex, positionToRemoveIndex, Alias: null),
+                        new EffectResult(toRemoveId, matched.Position, Alias: null),
+                        new EffectResult(messageId, matched.MessageContentBytes, Alias: null),
+                        new EffectResult(messageTypeId, matched.MessageTypeBytes, Alias: null),
+                        new EffectResult(receiverId, matched.Receiver, Alias: null),
+                        new EffectResult(senderId, matched.Sender, Alias: null),
+                    ]).Concat(matched.IdempotencyKeyResult == null
+                        ? []
+                        : [matched.IdempotencyKeyResult]),
+                    flush: false
+                );
+
                 timeouts.RemoveTimeout(timeoutId);
+                return matched.Envelope;
+            }
+
+            await Task.WhenAny(pulseTask, timeoutTask, maxWaitTask);
+
+            if (timeoutTask.IsCompleted)
+                return null;
+
+            if (maxWaitTask.IsCompleted)
+            {
+                await flowsManager.Suspend(storedId);
+                return null;
+            }
         }
-
-        if (shouldSuspend)
-            await flowsManager.Suspend(storedId);
-
-        return await tcs.Task;
     }
 
     public record MessageData(
@@ -358,15 +303,6 @@ public class QueueManager(
         string? Receiver,
         string? Sender
     );
-
-    private record Subscription(
-        MessagePredicate Predicate, 
-        TaskCompletionSource<Envelope?> Tcs, 
-        DateTime? Timeout, 
-        EffectId MessageContentId, 
-        EffectId MessageTypeId,
-        EffectId ReceiverId,
-        EffectId SenderId);
 
     public void Dispose()
     {

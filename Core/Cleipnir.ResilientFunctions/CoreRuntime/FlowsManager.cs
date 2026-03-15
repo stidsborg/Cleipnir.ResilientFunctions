@@ -67,7 +67,7 @@ public class FlowsManager : IDisposable
                 
                 var queueManager = _dict[id].QueueManager;
                 InterruptThreads(id);
-                Task.Run(() => queueManager.FetchAndTryToDeliver());
+                Task.Run(() => queueManager.FetchMessagesOnce());
             }
         }
     }

@@ -57,7 +57,6 @@ public class QueueClient(QueueManager queueManager, ISerializer serializer, UtcN
         if (!effect.Contains(messageId))
         {
             var result = await queueManager.Subscribe(
-                messageId,
                 envelope => filter?.Invoke(envelope) ?? true,
                 timeout,
                 timeoutId,
