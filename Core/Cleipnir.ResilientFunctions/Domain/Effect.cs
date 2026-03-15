@@ -24,8 +24,6 @@ public class Effect(EffectResults effectResults, UtcNow utcNow, FlowTimeouts flo
     internal IEnumerable<EffectId> EffectIds => effectResults.EffectIds;
     internal FlowTimeouts FlowTimeouts => flowTimeouts;
 
-    internal Task Suspend() => flowsManager.Suspend(storedId);
-
     internal WorkStatus? GetStatus(int id)
     {
         var effectId = CreateEffectId(id);

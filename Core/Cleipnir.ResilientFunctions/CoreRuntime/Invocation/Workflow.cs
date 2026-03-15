@@ -54,15 +54,8 @@ public class Workflow
                 return;
             }
 
-            var timeoutTask = Effect.FlowTimeouts.AddTimeout(timeoutId, expiry.ToDateTime());
-            if (!suspend)
-                await timeoutTask;
-            else
-            {
-                var delay = (expiry.ToDateTime() - _utcNow()).RoundUpToZero();
-                if (delay > TimeSpan.Zero)
-                    await _flowsManager.Suspend(StoredId);
-            }
+            var maxWait = suspend ? TimeSpan.Zero : (TimeSpan?)null;
+            await Effect.FlowTimeouts.AddTimeout(timeoutId, expiry.ToDateTime(), maxWait);
         
             await Effect.Upsert(timeoutId, -1L, alias, flush: false);
             Effect.FlowTimeouts.RemoveTimeout(timeoutId);

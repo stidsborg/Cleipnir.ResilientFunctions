@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Domain.Exceptions.Commands;
 
 namespace Cleipnir.ResilientFunctions.CoreRuntime;
 
@@ -24,7 +25,7 @@ public class FlowTimeouts
     private DateTime? GetMinimumTimeout()
         => Timeouts.Values.Count != 0 ? Timeouts.Values.Min(t => t.Item1) : (DateTime?)null;
 
-    public Task AddTimeout(EffectId effectId, DateTime timeout)
+    public async Task AddTimeout(EffectId effectId, DateTime timeout, TimeSpan? maxWait = null)
     {
         TaskCompletionSource tcs;
         lock (_lock)
@@ -33,7 +34,15 @@ public class FlowTimeouts
             Timeouts[effectId] = Tuple.Create(timeout, tcs);
         }
 
-        return tcs.Task;
+        if (maxWait == null || timeout <= DateTime.UtcNow)
+        {
+            await tcs.Task;
+            return;
+        }
+
+        var completed = await Task.WhenAny(tcs.Task, Task.Delay(maxWait.Value));
+        if (completed != tcs.Task)
+            throw new SuspendInvocationException();
     }
 
     public void RemoveTimeout(EffectId effectId)
