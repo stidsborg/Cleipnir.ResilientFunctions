@@ -189,16 +189,6 @@ public class QueueManager(
         }
     }
 
-    public void SignalTimeout()
-    {
-        //find relevant timeouts
-    }
-    
-    public void SignalInterrupt()
-    {
-        //fetch messages
-    }
-
     public async Task AfterFlush()
     {
         await _semaphoreSlim.WaitAsync();
@@ -312,28 +302,6 @@ public class QueueManager(
         }
     }
     
-    public void CheckTimeouts()
-    {
-        if (_disposed || _thrownException != null)
-            return;
-
-        var now = utcNow();
-        List<KeyValuePair<EffectId, Subscription>> expiredSubscriptions;
-
-        lock (_lock)
-        {
-            expiredSubscriptions = _subscribers
-                .Where(s => s.Value.Timeout.HasValue && s.Value.Timeout.Value <= now)
-                .ToList();
-
-            foreach (var expired in expiredSubscriptions)
-                _subscribers.Remove(expired.Key);
-        }
-
-        foreach (var (_, subscription) in expiredSubscriptions)
-            subscription.Tcs.SetResult(null);
-    }
-    
     public async Task<Envelope?> Subscribe(
         EffectId effectId,
         MessagePredicate predicate, 
@@ -359,6 +327,13 @@ public class QueueManager(
         _ = DeliverMessages();
 
         await Task.WhenAny(tcs.Task, timeoutTask, Task.Delay(maxWait ?? settings.MessagesDefaultMaxWaitForCompletion));
+
+        if (!tcs.Task.IsCompleted && timeoutTask.IsCompleted)
+        {
+            lock (_lock)
+                _subscribers.Remove(effectId);
+            tcs.TrySetResult(null);
+        }
 
         if (!tcs.Task.IsCompleted)
             throw new SuspendInvocationException();

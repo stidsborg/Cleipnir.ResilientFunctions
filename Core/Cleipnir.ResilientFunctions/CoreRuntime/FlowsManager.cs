@@ -34,9 +34,6 @@ public class FlowsManager : IDisposable
                         expiredStatuses.Add(status);
 
             foreach (var status in expiredStatuses)
-                status.QueueManager.CheckTimeouts();
-            
-            foreach (var status in expiredStatuses)
                 status.Timeouts.SignalExpiredTimeouts(now);
 
             await Task.Delay(10);
@@ -70,18 +67,6 @@ public class FlowsManager : IDisposable
                 InterruptThreads(id);
                 Task.Run(() => queueManager.FetchAndTryToDeliver());
             }
-        }
-    }
-
-    public void SignalTimeout(StoredId id)
-    {
-        lock (_lock)
-        {
-            if (!_dict.ContainsKey(id))
-                return;
-            
-            var queueManager = _dict[id].QueueManager;
-            queueManager.CheckTimeouts();
         }
     }
 

@@ -51,10 +51,11 @@ public class FlowTimeouts
     public void SignalExpiredTimeouts(DateTime now)
     {
         lock (_lock)
-        {
-            foreach (var (_, (timeout, tcs)) in Timeouts)
+            foreach (var (effectId, (timeout, tcs)) in Timeouts.ToList())
                 if (timeout <= now)
-                    tcs.TrySetResult();
-        }
+                {
+                    Timeouts.Remove(effectId);
+                    Task.Run(() => tcs.TrySetResult());
+                }
     }
 }
