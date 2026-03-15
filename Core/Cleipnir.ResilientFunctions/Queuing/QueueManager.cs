@@ -328,17 +328,20 @@ public class QueueManager(
 
         await Task.WhenAny(tcs.Task, timeoutTask, Task.Delay(maxWait ?? settings.MessagesDefaultMaxWaitForCompletion));
 
-        if (!tcs.Task.IsCompleted && timeoutTask.IsCompleted)
+        lock (_lock)
         {
-            lock (_lock)
+            if (!tcs.Task.IsCompleted && timeoutTask.IsCompleted)
+            {
                 _subscribers.Remove(effectId);
-            tcs.TrySetResult(null);
+                tcs.TrySetResult(null);
+            }
+
+            if (!tcs.Task.IsCompleted)
+                throw new SuspendInvocationException();
+
+            timeouts.RemoveTimeout(timeoutId);            
         }
 
-        if (!tcs.Task.IsCompleted)
-            throw new SuspendInvocationException();
-
-        timeouts.RemoveTimeout(timeoutId);
         return await tcs.Task;
     }
 
