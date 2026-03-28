@@ -157,6 +157,22 @@ public class QueueManager(
         }
     }
 
+    private (MessageData? Matched, int PositionToRemoveIndex, Task PulseTask) TryTakeMessage(MessagePredicate predicate)
+    {
+        lock (_lock)
+        {
+            for (var i = 0; i < _toDeliver.Count; i++)
+                if (predicate(_toDeliver[i].Envelope))
+                {
+                    var matched = _toDeliver[i];
+                    _toDeliver.RemoveAt(i);
+                    return (matched, _nextToRemoveIndex++, _pulse.Task);
+                }
+
+            return (null, 0, _pulse.Task);
+        }
+    }
+
     public async Task FetchMessages()
     {
         while (!_disposed && _thrownException == null)
@@ -242,23 +258,7 @@ public class QueueManager(
             if (_thrownException != null)
                 throw _thrownException;
 
-            MessageData? matched = null;
-            var positionToRemoveIndex = 0;
-            Task pulseTask;
-            lock (_lock)
-            {
-                for (var i = 0; i < _toDeliver.Count; i++)
-                    if (predicate(_toDeliver[i].Envelope))
-                    {
-                        matched = _toDeliver[i];
-                        _toDeliver.RemoveAt(i);
-                        positionToRemoveIndex = _nextToRemoveIndex++;
-                        break;
-                    }
-
-                pulseTask = _pulse.Task;
-            }
-
+            var (matched, positionToRemoveIndex, pulseTask) = TryTakeMessage(predicate);
             if (matched != null)
             {
                 var toRemoveId = new EffectId([-1, 0, positionToRemoveIndex]);
