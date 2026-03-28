@@ -276,5 +276,14 @@ public class Effect(EffectResults effectResults, UtcNow utcNow, FlowTimeouts flo
 
     internal string ExecutionTree() => EffectPrinter.Print(effectResults);
 
-    public Task<T> RunParallelle<T>(Func<Task<T>> work) => Capture(() => Task.Run(work));
+    public Task<T> RunParallelle<T>(Func<Task<T>> work)
+    {
+        flowsManager.StartThread(storedId);
+        var task = Capture(() => Task.Run(work));
+        return task.ContinueWith(t =>
+        {
+            flowsManager.CompleteThread(storedId);
+            return t.GetAwaiter().GetResult();
+        });
+    }
 }

@@ -108,15 +108,7 @@ public class Workflow
 
     public Task AppendMessage(object msg, string? idempotencyKey = null) => MessageWriter.AppendMessage(msg, idempotencyKey);
 
-    public Task<T> Parallelle<T>(Func<Task<T>> work)
-    {
-        _flowsManager.StartThread(StoredId);
-        return Effect.RunParallelle(work).ContinueWith(t =>
-        {
-            _flowsManager.CompleteThread(StoredId);
-            return t.GetAwaiter().GetResult();
-        });
-    }
+    public Task<T> Parallelle<T>(Func<Task<T>> work) => Effect.RunParallelle(work);
 
     public string ExecutionTree()
     {
