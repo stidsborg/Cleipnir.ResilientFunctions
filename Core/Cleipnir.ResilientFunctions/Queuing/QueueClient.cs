@@ -12,27 +12,27 @@ public class QueueClient(QueueManager queueManager, ISerializer serializer, UtcN
 {
     public Task FetchMessages() => queueManager.FetchMessagesOnce();
 
-    public Task<T> Pull<T>(Workflow workflow, EffectId parentId, Func<T, bool>? filter = null, TimeSpan? maxWait = null)  where T : class
-        => Pull(filter, workflow, parentId, timeout: null, maxWait)!;
-    public Task<T?> Pull<T>(Workflow workflow, EffectId parentId, TimeSpan timeout, Func<T, bool>? filter = null, TimeSpan? maxWait = null) where T : class
-        => Pull(filter, workflow, parentId, utcNow().Add(timeout), maxWait);
-    public Task<T?> Pull<T>(Workflow workflow, EffectId parentId, DateTime timeout, Func<T, bool>? filter = null, TimeSpan? maxWait = null) where T : class
-        => Pull(filter, workflow, parentId, timeout, maxWait);
+    public Task<T> Pull<T>(Workflow workflow, EffectId parentId, Func<T, bool>? filter = null)  where T : class
+        => Pull(filter, workflow, parentId, timeout: null)!;
+    public Task<T?> Pull<T>(Workflow workflow, EffectId parentId, TimeSpan timeout, Func<T, bool>? filter = null) where T : class
+        => Pull(filter, workflow, parentId, utcNow().Add(timeout));
+    public Task<T?> Pull<T>(Workflow workflow, EffectId parentId, DateTime timeout, Func<T, bool>? filter = null) where T : class
+        => Pull(filter, workflow, parentId, timeout);
 
-    public Task<Envelope> PullEnvelope<T>(Workflow workflow, EffectId parentId, Func<T, bool>? filter = null, TimeSpan? maxWait = null) where T : class
-        => PullEnvelope(e => e.Message is T t && (filter?.Invoke(t) ?? true), workflow, parentId, timeout: null, maxWait)!;
-    public Task<Envelope?> PullEnvelope<T>(Workflow workflow, EffectId parentId, TimeSpan timeout, Func<T, bool>? filter = null, TimeSpan? maxWait = null) where T : class
-        => PullEnvelope(e => e.Message is T t && (filter?.Invoke(t) ?? true), workflow, parentId, utcNow().Add(timeout), maxWait);
-    public Task<Envelope?> PullEnvelope<T>(Workflow workflow, EffectId parentId, DateTime timeout, Func<T, bool>? filter = null, TimeSpan? maxWait = null) where T : class
-        => PullEnvelope(e => e.Message is T t && (filter?.Invoke(t) ?? true), workflow, parentId, timeout, maxWait);
+    public Task<Envelope> PullEnvelope<T>(Workflow workflow, EffectId parentId, Func<T, bool>? filter = null) where T : class
+        => PullEnvelope(e => e.Message is T t && (filter?.Invoke(t) ?? true), workflow, parentId, timeout: null)!;
+    public Task<Envelope?> PullEnvelope<T>(Workflow workflow, EffectId parentId, TimeSpan timeout, Func<T, bool>? filter = null) where T : class
+        => PullEnvelope(e => e.Message is T t && (filter?.Invoke(t) ?? true), workflow, parentId, utcNow().Add(timeout));
+    public Task<Envelope?> PullEnvelope<T>(Workflow workflow, EffectId parentId, DateTime timeout, Func<T, bool>? filter = null) where T : class
+        => PullEnvelope(e => e.Message is T t && (filter?.Invoke(t) ?? true), workflow, parentId, timeout);
 
-    private async Task<T?> Pull<T>(Func<T, bool>? filter, Workflow workflow, EffectId parentId, DateTime? timeout, TimeSpan? maxWait) where T : class
+    private async Task<T?> Pull<T>(Func<T, bool>? filter, Workflow workflow, EffectId parentId, DateTime? timeout) where T : class
     {
-        var envelope = await PullEnvelope(e => e.Message is T t && (filter?.Invoke(t) ?? true), workflow, parentId, timeout, maxWait);
+        var envelope = await PullEnvelope(e => e.Message is T t && (filter?.Invoke(t) ?? true), workflow, parentId, timeout);
         return (T?)envelope?.Message;
     }
 
-    private async Task<Envelope?> PullEnvelope(Func<Envelope, bool>? filter, Workflow workflow, EffectId parentId, DateTime? timeout, TimeSpan? maxWait)
+    private async Task<Envelope?> PullEnvelope(Func<Envelope, bool>? filter, Workflow workflow, EffectId parentId, DateTime? timeout)
     {
         var effect = workflow.Effect;
         var messageId = parentId.CreateChild(0);
@@ -53,7 +53,7 @@ public class QueueClient(QueueManager queueManager, ISerializer serializer, UtcN
             timeout = new DateTime(timeoutTicks, DateTimeKind.Utc);
         }
 
-        
+
         if (!effect.Contains(messageId))
         {
             var result = await queueManager.Subscribe(
@@ -63,8 +63,7 @@ public class QueueClient(QueueManager queueManager, ISerializer serializer, UtcN
                 messageId,
                 messageTypeId,
                 receiverId,
-                senderId,
-                maxWait
+                senderId
             );
 
             if (result == null)
@@ -72,7 +71,7 @@ public class QueueClient(QueueManager queueManager, ISerializer serializer, UtcN
 
             return result;
         }
-        
+
         if (!effect.TryGet<byte[]>(messageTypeId, out var typeNameBytes))
             return null; // timeout case - no message was received
 

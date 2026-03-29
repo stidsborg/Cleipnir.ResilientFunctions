@@ -620,7 +620,7 @@ public abstract class ControlPanelTests
                 {
                     for (var i = 0; i < 2; i++)
                     {
-                        var msg = await workflow.Message<string>(maxWait: TimeSpan.FromSeconds(10));
+                        var msg = await workflow.Message<string>();
                         syncedList.Add(msg);
                     } 
                         

@@ -27,7 +27,7 @@ public abstract class WorkflowMessageTests
             nameof(WorkflowMessagePullsMessageSuccessfully),
             async Task<string> (string _, Workflow workflow) =>
             {
-                var message = await workflow.Message<string>(maxWait: TimeSpan.FromMinutes(1));
+                var message = await workflow.Message<string>();
                 return message;
             }
         );
@@ -58,7 +58,7 @@ public abstract class WorkflowMessageTests
             nameof(WorkflowMessagePullsFirstMessageWhenMultipleMessagesExist),
             async Task<string> (string _, Workflow workflow) =>
             {
-                var message = await workflow.Message<string>(maxWait: TimeSpan.FromMinutes(1));
+                var message = await workflow.Message<string>();
                 return message;
             }
         );
@@ -92,7 +92,7 @@ public abstract class WorkflowMessageTests
             nameof(WorkflowMessageWithDateTimeReturnsMessageBeforeTimeout),
             async Task<string?> (string _, Workflow workflow) =>
             {
-                var message = await workflow.Message<string>(DateTime.UtcNow.AddSeconds(10), maxWait: TimeSpan.FromMinutes(1));
+                var message = await workflow.Message<string>(DateTime.UtcNow.AddSeconds(10));
                 return message;
             }
         );
@@ -123,7 +123,7 @@ public abstract class WorkflowMessageTests
             nameof(WorkflowMessageWithDateTimeReturnsNullOnTimeout),
             async Task<string?> (string _, Workflow workflow) =>
             {
-                var message = await workflow.Message<string>(DateTime.UtcNow.AddMilliseconds(100), maxWait: TimeSpan.FromMinutes(1));
+                var message = await workflow.Message<string>(DateTime.UtcNow.AddMilliseconds(100));
                 return message;
             }
         );
@@ -159,7 +159,7 @@ public abstract class WorkflowMessageTests
             nameof(WorkflowMessageWithTimeSpanReturnsMessageBeforeTimeout),
             async Task<string?> (string _, Workflow workflow) =>
             {
-                var message = await workflow.Message<string>(TimeSpan.FromSeconds(10), maxWait: TimeSpan.FromMinutes(1));
+                var message = await workflow.Message<string>(TimeSpan.FromSeconds(10));
                 return message;
             }
         );
@@ -190,7 +190,7 @@ public abstract class WorkflowMessageTests
             nameof(WorkflowMessageWithTimeSpanReturnsNullOnTimeout),
             async Task<string?> (string _, Workflow workflow) =>
             {
-                var message = await workflow.Message<string>(TimeSpan.FromMilliseconds(100), maxWait: TimeSpan.FromMinutes(1));
+                var message = await workflow.Message<string>(TimeSpan.FromMilliseconds(100));
                 return message;
             }
         );
@@ -226,7 +226,7 @@ public abstract class WorkflowMessageTests
             nameof(WorkflowMessageWithFilterReturnsMatchingMessage),
             async Task<string> (string _, Workflow workflow) =>
             {
-                var message = await workflow.Message<string>(s => s.Length > 5, maxWait: TimeSpan.FromMinutes(1));
+                var message = await workflow.Message<string>(s => s.Length > 5);
                 return message;
             }
         );
@@ -258,7 +258,7 @@ public abstract class WorkflowMessageTests
             nameof(WorkflowMessageWithFilterIgnoresNonMatchingMessages),
             async Task<string> (string _, Workflow workflow) =>
             {
-                var message = await workflow.Message<string>(s => s.StartsWith("hello"), maxWait: TimeSpan.FromMinutes(1));
+                var message = await workflow.Message<string>(s => s.StartsWith("hello"));
                 return message;
             }
         );
@@ -291,7 +291,7 @@ public abstract class WorkflowMessageTests
             nameof(WorkflowMessageWithFilterAndDateTimeReturnsMatchingMessageBeforeTimeout),
             async Task<string?> (string _, Workflow workflow) =>
             {
-                string? message = await workflow.Message<string>(s => s.Length > 5, DateTime.UtcNow.AddSeconds(10), maxWait: TimeSpan.FromMinutes(1));
+                string? message = await workflow.Message<string>(s => s.Length > 5, DateTime.UtcNow.AddSeconds(10));
                 return message;
             }
         );
@@ -323,7 +323,7 @@ public abstract class WorkflowMessageTests
             nameof(WorkflowMessageWithFilterAndDateTimeReturnsNullOnTimeout),
             async Task<string?> (string _, Workflow workflow) =>
             {
-                var message = await workflow.Message<string>(s => s.Length > 5, DateTime.UtcNow.AddMilliseconds(100), maxWait: TimeSpan.FromMinutes(1));
+                var message = await workflow.Message<string>(s => s.Length > 5, DateTime.UtcNow.AddMilliseconds(100));
                 return message;
             }
         );
@@ -360,7 +360,7 @@ public abstract class WorkflowMessageTests
             nameof(WorkflowMessageWithFilterAndTimeSpanReturnsMatchingMessageBeforeTimeout),
             async Task<string?> (string _, Workflow workflow) =>
             {
-                var message = await workflow.Message<string>(s => s.Length > 5, TimeSpan.FromSeconds(10), maxWait: TimeSpan.FromMinutes(1));
+                var message = await workflow.Message<string>(s => s.Length > 5, TimeSpan.FromSeconds(10));
                 return message;
             }
         );
@@ -392,7 +392,7 @@ public abstract class WorkflowMessageTests
             nameof(WorkflowMessageWithFilterAndTimeSpanReturnsNullOnTimeout),
             async Task<string?> (string _, Workflow workflow) =>
             {
-                var message = await workflow.Message<string>(s => s.Length > 5, TimeSpan.FromMilliseconds(100), maxWait: TimeSpan.FromMinutes(1));
+                var message = await workflow.Message<string>(s => s.Length > 5, TimeSpan.FromMilliseconds(100));
                 return message;
             }
         );
@@ -431,7 +431,7 @@ public abstract class WorkflowMessageTests
             async Task<string> (string _, Workflow workflow) =>
             {
                 invocationCount++;
-                var message = await workflow.Message<string>(maxWait: TimeSpan.FromMinutes(1));
+                var message = await workflow.Message<string>();
                 if (invocationCount == 1)
                     throw new Exception("Simulated failure");
                 return message;
@@ -482,8 +482,8 @@ public abstract class WorkflowMessageTests
             nameof(MultipleSequentialMessageCallsReturnDifferentMessages),
             async Task<string> (string _, Workflow workflow) =>
             {
-                var first = await workflow.Message<string>(maxWait: TimeSpan.FromMinutes(1));
-                var second = await workflow.Message<string>(maxWait: TimeSpan.FromMinutes(1));
+                var first = await workflow.Message<string>();
+                var second = await workflow.Message<string>();
                 return first + " " + second;
             }
         );
@@ -516,8 +516,8 @@ public abstract class WorkflowMessageTests
             nameof(WorkflowMessageCanPullDifferentMessageTypes),
             async Task<string> (string _, Workflow workflow) =>
             {
-                var stringMessage = await workflow.Message<string>(maxWait: TimeSpan.FromMinutes(1));
-                var secondMessage = await workflow.Message<string>(maxWait: TimeSpan.FromMinutes(1));
+                var stringMessage = await workflow.Message<string>();
+                var secondMessage = await workflow.Message<string>();
                 return $"{stringMessage}:{secondMessage}";
             }
         );
@@ -550,7 +550,7 @@ public abstract class WorkflowMessageTests
             nameof(WorkflowMessagePullAsObjectReturnsCorrectDeserializedType),
             async Task<string> (string _, Workflow workflow) =>
             {
-                var message = await workflow.Message<object>(maxWait: TimeSpan.FromMinutes(1));
+                var message = await workflow.Message<object>();
                 message.ShouldBeOfType<TestMessage>();
                 var typedMessage = (TestMessage)message;
                 await workflow.Delay(TimeSpan.FromMilliseconds(10));
@@ -585,7 +585,7 @@ public abstract class WorkflowMessageTests
             nameof(WorkflowMessageWithMaxWaitSuspendsFlowWhenExpired),
             async Task<string> (string _, Workflow workflow) =>
             {
-                var message = await workflow.Message<string>(maxWait: TimeSpan.FromMilliseconds(500));
+                var message = await workflow.Message<string>();
                 return message;
             }
         );
