@@ -19,12 +19,6 @@ public class MessagingTests : TestTemplates.FunctionTests.MessagingTests
         );
     
     [TestMethod]
-    public override Task TimeoutEventCausesSuspendedFunctionToBeReInvoked()
-        => TimeoutEventCausesSuspendedFunctionToBeReInvoked(
-            FunctionStoreFactory.Create()
-        );
-
-    [TestMethod]
     public override Task ScheduleInvocationWithPublishResultToSpecifiedFunctionId()
         => ScheduleInvocationWithPublishResultToSpecifiedFunctionId(FunctionStoreFactory.Create());
 }

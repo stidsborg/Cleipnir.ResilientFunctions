@@ -84,7 +84,7 @@ public abstract class MessagesSubscriptionTests
 
         var rFunc = functionsRegistry.RegisterFunc(
             nameof(QueueClientCanPullSingleMessage),
-            inner: (string _, Workflow workflow) => workflow.Message<string>(maxWait: TimeSpan.FromMinutes(1))
+            inner: (string _, Workflow workflow) => workflow.Message<string>()
         );
 
         var scheduled = await rFunc.Schedule("instanceId", "");
@@ -114,11 +114,11 @@ public abstract class MessagesSubscriptionTests
             {
                 storedId = workflow.StoredId;
 
-                var message1 = await workflow.Message<string>(maxWait: TimeSpan.FromMinutes(1));
+                var message1 = await workflow.Message<string>();
                 await workflow.Delay(TimeSpan.FromMilliseconds(100));
-                var message2 = await workflow.Message<string>(maxWait: TimeSpan.FromMinutes(1));
+                var message2 = await workflow.Message<string>();
                 await workflow.Delay(TimeSpan.FromMilliseconds(100));
-                var message3 = await workflow.Message<string>(maxWait: TimeSpan.FromMinutes(1));
+                var message3 = await workflow.Message<string>();
                 await workflow.Delay(TimeSpan.FromMilliseconds(100));
 
                 return $"{message1},{message2},{message3}";
@@ -155,7 +155,7 @@ public abstract class MessagesSubscriptionTests
             nameof(QueueClientReturnsNullAfterTimeout),
             inner: async Task<string?> (string _, Workflow workflow) =>
             {
-                var message = await workflow.Message<string>(TimeSpan.FromMilliseconds(100), maxWait: TimeSpan.FromMinutes(1));
+                var message = await workflow.Message<string>(TimeSpan.FromMilliseconds(100));
                 return message;
             }
         );
@@ -196,7 +196,7 @@ public abstract class MessagesSubscriptionTests
 
                 for (var i = 0; i < 6; i++)
                 {
-                    var message = await workflow.Message<string>(TimeSpan.FromMilliseconds(250), maxWait: TimeSpan.FromMinutes(1));
+                    var message = await workflow.Message<string>(TimeSpan.FromMilliseconds(250));
                     messages.Add(message ?? "NULL");
                 }
 
@@ -242,8 +242,8 @@ public abstract class MessagesSubscriptionTests
             {
                 storedId = workflow.StoredId;
 
-                var message1 = await workflow.Message<string>(maxWait: TimeSpan.FromMinutes(1));
-                var message2 = await workflow.Message<string>(TimeSpan.FromSeconds(1), maxWait: TimeSpan.FromMinutes(1));
+                var message1 = await workflow.Message<string>();
+                var message2 = await workflow.Message<string>(TimeSpan.FromSeconds(1));
 
                 return Tuple.Create(message1, message2);
             }
@@ -297,8 +297,7 @@ public abstract class MessagesSubscriptionTests
                 while (message != "stop")
                 {
                     message = await workflow.Message<string>(
-                        TimeSpan.FromMilliseconds(100),
-                        maxWait: TimeSpan.FromMinutes(1)
+                        TimeSpan.FromMilliseconds(100)
                     );
 
                     if (message is null)
@@ -364,18 +363,15 @@ public abstract class MessagesSubscriptionTests
             {
                 // Pull only messages that start with "even-"
                 var message1 = await workflow.Message<string>(
-                    m => m.StartsWith("even-"),
-                    maxWait: TimeSpan.FromMinutes(1)
+                    m => m.StartsWith("even-")
                 );
 
                 var message2 = await workflow.Message<string>(
-                    m => m.StartsWith("even-"),
-                    maxWait: TimeSpan.FromMinutes(1)
+                    m => m.StartsWith("even-")
                 );
 
                 var message3 = await workflow.Message<string>(
-                    m => m.StartsWith("even-"),
-                    maxWait: TimeSpan.FromMinutes(1)
+                    m => m.StartsWith("even-")
                 );
 
                 return $"{message1},{message2},{message3}";
@@ -408,7 +404,7 @@ public abstract class MessagesSubscriptionTests
         // Use default serializer to ensure serialization works correctly
         using var functionsRegistry = new FunctionsRegistry(
             functionStore,
-            new Settings(unhandledExceptionCatcher.Catch)
+            new Settings(unhandledExceptionCatcher.Catch, messagesDefaultMaxWaitForCompletion: TimeSpan.FromMinutes(1))
         );
 
         var rFunc = functionsRegistry.RegisterFunc(
@@ -416,9 +412,9 @@ public abstract class MessagesSubscriptionTests
             inner: async Task<string> (string _, Workflow workflow) =>
             {
                 // Pull different types of messages to verify serialization works
-                var message1 = await workflow.Message<string>(maxWait: TimeSpan.FromSeconds(5));
-                var message2 = await workflow.Message<WrappedInt>(maxWait: TimeSpan.FromSeconds(5));
-                var message3 = await workflow.Message<TestRecord>(maxWait: TimeSpan.FromSeconds(5));
+                var message1 = await workflow.Message<string>();
+                var message2 = await workflow.Message<WrappedInt>();
+                var message3 = await workflow.Message<TestRecord>();
 
                 return $"{message1},{message2.Value},{message3.Value}";
             }
@@ -452,7 +448,7 @@ public abstract class MessagesSubscriptionTests
 
         var rFunc = functionsRegistry.RegisterFunc(
             nameof(BatchedMessagesAreDeliveredToMultipleFlows),
-            inner: (string _, Workflow workflow) => workflow.Message<string>(maxWait: TimeSpan.FromMinutes(1))
+            inner: (string _, Workflow workflow) => workflow.Message<string>()
         );
 
         // Send batched messages first
@@ -503,7 +499,7 @@ public abstract class MessagesSubscriptionTests
                 for (var i = 0; i < 10; i++)
                 {
                     await pongRegistration!.SendMessage("Pong", new Ping(i), idempotencyKey: $"Pong{i}");
-                    await workflow.Message<Pong>(pong => pong.Number == i, maxWait: TimeSpan.FromMinutes(1));
+                    await workflow.Message<Pong>(pong => pong.Number == i);
                 }
 
                 return "completed";
@@ -516,7 +512,7 @@ public abstract class MessagesSubscriptionTests
             {
                 for (var i = 0; i < 10; i++)
                 {
-                    await workflow.Message<Ping>(ping => ping.Number == i, maxWait: TimeSpan.FromMinutes(1));
+                    await workflow.Message<Ping>(ping => ping.Number == i);
                     await pingRegistration!.SendMessage("Ping", new Pong(i), idempotencyKey: $"Ping{i}");
                 }
 
@@ -580,8 +576,7 @@ public abstract class MessagesSubscriptionTests
 
                 var message = await queueClient.Pull<GoodMessage>(
                     workflow,
-                    workflow.Effect.CreateNextImplicitId(),
-                    maxWait: TimeSpan.FromMinutes(1)
+                    workflow.Effect.CreateNextImplicitId()
                 );
 
                 return message.Value;
@@ -646,8 +641,7 @@ public abstract class MessagesSubscriptionTests
                 var message = await queueClient.Pull<string>(
                     workflow,
                     workflow.Effect.CreateNextImplicitId(),
-                    timeout: TimeSpan.FromMinutes(5),
-                    maxWait: TimeSpan.FromMinutes(1)
+                    timeout: TimeSpan.FromMinutes(5)
                 );
 
                 // Verify timeout is removed after successful pull
@@ -702,8 +696,7 @@ public abstract Task PullEnvelopeReturnsEnvelopeWithReceiverAndSender();
                 var envelope = await queueClient.PullEnvelope<string>(
                     workflow,
                     workflow.Effect.CreateNextImplicitId(),
-                    filter: _ => true,
-                    maxWait: TimeSpan.FromMinutes(1)
+                    filter: _ => true
                 );
 
                 return $"{envelope.Message}|{envelope.Receiver}|{envelope.Sender}";

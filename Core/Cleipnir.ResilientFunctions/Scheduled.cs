@@ -69,7 +69,7 @@ public class InnerScheduled<TResult>(
         var completedFlows = new List<FlowCompleted>();
         foreach (var _ in scheduledIds)
         {
-            var completed = await parent.Message<FlowCompleted>(filter: c => scheduledIds.Contains(c.Id), maxWait);
+            var completed = await parent.Message<FlowCompleted>(filter: c => scheduledIds.Contains(c.Id));
             completedFlows.Add(completed);
         }
 

@@ -239,8 +239,7 @@ public class QueueManager(
         EffectId messageId,
         EffectId messageTypeId,
         EffectId receiverId,
-        EffectId senderId,
-        TimeSpan? maxWait)
+        EffectId senderId)
     {
         if (_thrownException != null)
             throw _thrownException;
@@ -251,7 +250,9 @@ public class QueueManager(
             ? timeouts.AddTimeout(timeoutId, timeout.Value)
             : new TaskCompletionSource().Task;
 
-        var maxWaitTask = Task.Delay(maxWait ?? settings.MessagesDefaultMaxWaitForCompletion);
+        var maxWaitTask = timeout != null
+            ? new TaskCompletionSource().Task
+            : Task.Delay(settings.MessagesDefaultMaxWaitForCompletion);
 
         while (true)
         {

@@ -14,10 +14,6 @@ public class MessagingTests : ResilientFunctions.Tests.TestTemplates.FunctionTes
         => FunctionIsSuspendedWhenAwaitedMessageDoesNotAlreadyExist(FunctionStoreFactory.Create());
     
     [TestMethod]
-    public override Task TimeoutEventCausesSuspendedFunctionToBeReInvoked()
-        => TimeoutEventCausesSuspendedFunctionToBeReInvoked(FunctionStoreFactory.Create());
-
-    [TestMethod]
     public override Task ScheduleInvocationWithPublishResultToSpecifiedFunctionId()
         => ScheduleInvocationWithPublishResultToSpecifiedFunctionId(FunctionStoreFactory.Create());
 }

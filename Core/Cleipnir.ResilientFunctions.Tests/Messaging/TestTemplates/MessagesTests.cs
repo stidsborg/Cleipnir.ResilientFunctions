@@ -48,7 +48,7 @@ public abstract class MessagesTests
                 );
 
                 queueClient = await queueManager.CreateQueueClient();
-                var message = await queueClient.Pull<string>(workflow, workflow.Effect.CreateNextImplicitId(), maxWait: TimeSpan.FromMinutes(1));
+                var message = await queueClient.Pull<string>(workflow, workflow.Effect.CreateNextImplicitId());
 
                 return message;
             }
@@ -100,7 +100,7 @@ public abstract class MessagesTests
                 var flowsManager = new FlowsManager(() => DateTime.UtcNow);
                 flowsManager.AddFlow(workflow.StoredId, () => { }, queueManager, flowTimeouts);
                 var queueClient = await queueManager.CreateQueueClient();
-                var message = await queueClient.Pull<string>(workflow, workflow.Effect.CreateNextImplicitId(), TimeSpan.FromMilliseconds(100), maxWait: TimeSpan.FromMinutes(1));
+                var message = await queueClient.Pull<string>(workflow, workflow.Effect.CreateNextImplicitId(), TimeSpan.FromMilliseconds(100));
 
                 return message;
             }
@@ -151,8 +151,7 @@ public abstract class MessagesTests
                     workflow,
                     workflow.Effect.CreateNextImplicitId(),
                     TimeSpan.Zero,
-                    filter: m => m is string or int,
-                    maxWait: TimeSpan.FromMinutes(1)
+                    filter: m => m is string or int
                 );
 
                 return message == null ? "NONE" : message.ToString()!;
@@ -200,8 +199,7 @@ public abstract class MessagesTests
                 var message = await queueClient.Pull<object>(
                     workflow,
                     workflow.Effect.CreateNextImplicitId(),
-                    filter: m => m is string or int,
-                    maxWait: TimeSpan.FromMinutes(1)
+                    filter: m => m is string or int
                 );
 
                 return message!.ToString()!;
@@ -250,8 +248,7 @@ public abstract class MessagesTests
                 var queueClient = await queueManager.CreateQueueClient();
                 var message = await queueClient.Pull<string>(
                     workflow,
-                    workflow.Effect.CreateNextImplicitId(),
-                    maxWait: TimeSpan.FromMinutes(1)
+                    workflow.Effect.CreateNextImplicitId()
                 );
 
                 return message;
@@ -300,8 +297,8 @@ public abstract class MessagesTests
                 );
 
                 var queueClient = await queueManager.CreateQueueClient();
-                var message1 = await queueClient.Pull<string>(workflow, workflow.Effect.CreateNextImplicitId(), maxWait: TimeSpan.FromMinutes(1));
-                var message2 = await queueClient.Pull<string>(workflow, workflow.Effect.CreateNextImplicitId(), maxWait: TimeSpan.FromMinutes(1));
+                var message1 = await queueClient.Pull<string>(workflow, workflow.Effect.CreateNextImplicitId());
+                var message2 = await queueClient.Pull<string>(workflow, workflow.Effect.CreateNextImplicitId());
 
                 return Tuple.Create(message1, message2);
             }
@@ -354,8 +351,8 @@ public abstract class MessagesTests
 
                 var queueClient = await queueManager.CreateQueueClient();
 
-                var message1 = await queueClient.Pull<string>(workflow, workflow.Effect.CreateNextImplicitId(), maxWait: TimeSpan.FromMinutes(1));
-                var message2 = await queueClient.Pull<string>(workflow, workflow.Effect.CreateNextImplicitId(), maxWait: TimeSpan.FromMinutes(1));
+                var message1 = await queueClient.Pull<string>(workflow, workflow.Effect.CreateNextImplicitId());
+                var message2 = await queueClient.Pull<string>(workflow, workflow.Effect.CreateNextImplicitId());
 
                 return $"{message1},{message2}";
             }
@@ -399,7 +396,7 @@ public abstract class MessagesTests
                     unhandledExceptionHandler,
                     new FlowTimeouts(),
                     () => DateTime.UtcNow,
-                    SettingsWithDefaults.Default,
+                    SettingsWithDefaults.Default with { MessagesDefaultMaxWaitForCompletion = TimeSpan.FromMinutes(1) },
                     new FlowsManager(() => DateTime.UtcNow)
                 );
 
@@ -407,7 +404,7 @@ public abstract class MessagesTests
                 lock (queueClients)
                     queueClients[workflow.FlowId.Instance.Value] = queueClient;
 
-                await queueClient.Pull<string>(workflow, workflow.Effect.CreateNextImplicitId(), maxWait: TimeSpan.FromMinutes(1));
+                await queueClient.Pull<string>(workflow, workflow.Effect.CreateNextImplicitId());
             }
         );
 
@@ -470,7 +467,7 @@ public abstract class MessagesTests
 
                 while (true)
                 {
-                    var message = await queueClient.Pull<object>(workflow, workflow.Effect.CreateNextImplicitId(), maxWait: TimeSpan.FromSeconds(10));
+                    var message = await queueClient.Pull<object>(workflow, workflow.Effect.CreateNextImplicitId());
                     if (message is string s)
                         await workflow.Effect.Capture(() => messages.Add(s));
                     else
@@ -536,7 +533,7 @@ public abstract class MessagesTests
                 for (var i = 0; i < 10; i++)
                 {
                     await pongRegistration.SendMessage("Pong", new Ping(i), idempotencyKey: $"Pong{i}");
-                    await queueClient.Pull<Pong>(workflow, workflow.Effect.CreateNextImplicitId(), filter: pong => pong.Number == i, maxWait: TimeSpan.FromMinutes(1));
+                    await queueClient.Pull<Pong>(workflow, workflow.Effect.CreateNextImplicitId(), filter: pong => pong.Number == i);
                 }
             });
 
@@ -562,7 +559,7 @@ public abstract class MessagesTests
 
                 for (var i = 0; i < 10; i++)
                 {
-                    await queueClient.Pull<Ping>(workflow, workflow.Effect.CreateNextImplicitId(), filter: ping => ping.Number == i, maxWait: TimeSpan.FromMinutes(1));
+                    await queueClient.Pull<Ping>(workflow, workflow.Effect.CreateNextImplicitId(), filter: ping => ping.Number == i);
                     await pingRegistration.SendMessage("Ping", new Pong(i), idempotencyKey: $"Ping{i}");
                 }
             });

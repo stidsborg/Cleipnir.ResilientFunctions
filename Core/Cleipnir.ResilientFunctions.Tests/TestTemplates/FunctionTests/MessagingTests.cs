@@ -70,40 +70,6 @@ public abstract class MessagingTests
         unhandledExceptionHandler.ShouldNotHaveExceptions();
     }
     
-    public abstract Task TimeoutEventCausesSuspendedFunctionToBeReInvoked();
-    public async Task TimeoutEventCausesSuspendedFunctionToBeReInvoked(Task<IFunctionStore> functionStore)
-    {
-        var store = await functionStore;
-
-        var functionId = new FlowId(nameof(TimeoutEventCausesSuspendedFunctionToBeReInvoked),"instanceId");
-        var unhandledExceptionHandler = new UnhandledExceptionCatcher();
-        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler.Catch));
-
-        var tomorrow = DateTime.UtcNow.AddDays(1);
-        var rFunc = functionsRegistry.RegisterFunc(
-            functionId.Type,
-            inner: async Task<string?> (string _, Workflow workflow) 
-                => await workflow.Message<string>(waitUntil: tomorrow)
-        );
-
-        await rFunc.Schedule(functionId.Instance.Value, param: "");
-        
-        var controlPanel = await rFunc.ControlPanel("instanceId");
-        controlPanel.ShouldNotBeNull();
-
-        await BusyWait.Until(async () =>
-        {
-            await controlPanel.Refresh();
-            return controlPanel.Status == Status.Postponed;
-        }, maxWait: TimeSpan.FromSeconds(10));
-
-        await controlPanel.Refresh();
-        controlPanel.Status.ShouldBe(Status.Postponed);
-        controlPanel.PostponedUntil.ShouldBe(tomorrow);
-        
-        unhandledExceptionHandler.ShouldNotHaveExceptions();
-    }
-    
     public abstract Task ScheduleInvocationWithPublishResultToSpecifiedFunctionId();
     public async Task ScheduleInvocationWithPublishResultToSpecifiedFunctionId(Task<IFunctionStore> functionStore)
     {
