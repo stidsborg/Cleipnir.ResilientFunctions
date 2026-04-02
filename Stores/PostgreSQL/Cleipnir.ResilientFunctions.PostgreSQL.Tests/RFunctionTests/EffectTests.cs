@@ -149,4 +149,8 @@ public class EffectTests : ResilientFunctions.Tests.TestTemplates.FunctionTests.
     [TestMethod]
     public override Task UtcNowEffectSunshineTest()
         => UtcNowEffectSunshineTest(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task FlushlessUpsertIsNotStoredUntilFlushed()
+        => FlushlessUpsertIsNotStoredUntilFlushed(FunctionStoreFactory.Create());
 }
