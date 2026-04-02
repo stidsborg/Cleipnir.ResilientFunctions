@@ -1494,4 +1494,47 @@ public abstract class EffectTests
         syncedList.Count.ShouldBe(2);
         syncedList[0].ShouldBe(syncedList[1]);
     }
+
+    public abstract Task UpsertWithoutFlushIsNotStoredUntilFlushed();
+    public async Task UpsertWithoutFlushIsNotStoredUntilFlushed(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var storedId = TestStoredId.Create();
+        var session = await store.CreateFunction(
+            storedId,
+            "SomeInstance",
+            param: null,
+            leaseExpiration: 0,
+            postponeUntil: null,
+            timestamp: 0,
+            parent: null,
+            owner: ReplicaId.NewId()
+        );
+        var effectStore = store.EffectsStore;
+        var effectResults = new EffectResults(
+            TestFlowId.Create(),
+            storedId,
+            new List<StoredEffect>(),
+            effectStore,
+            DefaultSerializer.Instance,
+            session,
+            clearChildren: true
+        );
+
+        var effectId = new EffectId([1]);
+        effectResults.UpsertWithoutFlush(effectId, alias: null, 42);
+
+        // before flush nothing should be stored
+        var fetchedResults = await effectStore.GetEffectResults(storedId);
+        fetchedResults.Count.ShouldBe(0);
+
+        // after flush the value should be persisted
+        await effectResults.Flush();
+
+        fetchedResults = await effectStore.GetEffectResults(storedId);
+        fetchedResults.Count.ShouldBe(1);
+        var storedEffect = fetchedResults.Single();
+        storedEffect.EffectId.ShouldBe(effectId);
+        ((int)DefaultSerializer.Instance.Deserialize(storedEffect.Result!, typeof(int))).ShouldBe(42);
+    }
 }

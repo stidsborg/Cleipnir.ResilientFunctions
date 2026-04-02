@@ -149,4 +149,8 @@ public class EffectTests : TestTemplates.FunctionTests.EffectTests
     [TestMethod]
     public override Task UtcNowEffectSunshineTest()
         => UtcNowEffectSunshineTest(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task UpsertWithoutFlushIsNotStoredUntilFlushed()
+        => UpsertWithoutFlushIsNotStoredUntilFlushed(FunctionStoreFactory.Create());
 }

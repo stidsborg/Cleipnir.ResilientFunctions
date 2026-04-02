@@ -151,6 +151,13 @@ public class EffectResults
             clearChildren: false
         );
     }
+
+    internal void UpsertWithoutFlush<T>(EffectId effectId, string? alias, T value)
+    {
+        var serializedValue = _serializer.Serialize(value!, typeof(T));
+        var storedEffect = StoredEffect.CreateCompleted(effectId, serializedValue, alias);
+        AddToPending(storedEffect.EffectId, storedEffect, delete: false, clearChildren: false);
+    }
     
     internal async Task Upserts(IEnumerable<EffectResult> values, bool flush)
     {
