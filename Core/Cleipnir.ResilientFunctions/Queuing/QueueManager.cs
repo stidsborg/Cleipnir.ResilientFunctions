@@ -166,7 +166,9 @@ public class QueueManager(
                 {
                     var matched = _toDeliver[i];
                     _toDeliver.RemoveAt(i);
-                    return (matched, _nextToRemoveIndex++, _pulse.Task);
+                    var positionToRemoveIndex = _nextToRemoveIndex++;
+                    effect.FlushlessUpsert(_toRemoveNextIndex, _nextToRemoveIndex, alias: null);
+                    return (matched, positionToRemoveIndex, _pulse.Task);
                 }
 
             return (null, 0, _pulse.Task);
@@ -266,7 +268,6 @@ public class QueueManager(
                 effect.FlushlessUpserts(
                     new List<EffectResult>(
                     [
-                        new EffectResult(_toRemoveNextIndex, positionToRemoveIndex, Alias: null),
                         new EffectResult(toRemoveId, matched.Position, Alias: null),
                         new EffectResult(messageId, matched.MessageContentBytes, Alias: null),
                         new EffectResult(messageTypeId, matched.MessageTypeBytes, Alias: null),
