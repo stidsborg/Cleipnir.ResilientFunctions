@@ -175,6 +175,20 @@ public class EffectResults
         if (flush)
             await Flush();
     }
+
+    internal void FlushlessUpserts(IEnumerable<EffectResult> values)
+    {
+        var storedEffects = values
+            .Select(t =>
+            {
+                var bytes = _serializer.Serialize(t.Value!, t.Value?.GetType() ?? typeof(object));
+                return new { Id = t.Id, Bytes = bytes, Alias = t.Alias };
+            })
+            .Select(a => StoredEffect.CreateCompleted(a.Id, a.Bytes, a.Alias))
+            .ToList();
+
+        AddToPending(storedEffects);
+    }
     
     public bool TryGet<T>(EffectId effectId, out T? value)
     {

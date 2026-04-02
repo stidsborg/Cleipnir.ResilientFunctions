@@ -263,7 +263,7 @@ public class QueueManager(
             if (matched != null)
             {
                 var toRemoveId = new EffectId([-1, 0, positionToRemoveIndex]);
-                await effect.Upserts(
+                effect.FlushlessUpserts(
                     new List<EffectResult>(
                     [
                         new EffectResult(_toRemoveNextIndex, positionToRemoveIndex, Alias: null),
@@ -274,8 +274,7 @@ public class QueueManager(
                         new EffectResult(senderId, matched.Sender, Alias: null),
                     ]).Concat(matched.IdempotencyKeyResult == null
                         ? []
-                        : [matched.IdempotencyKeyResult]),
-                    flush: false
+                        : [matched.IdempotencyKeyResult])
                 );
 
                 timeouts.RemoveTimeout(timeoutId);

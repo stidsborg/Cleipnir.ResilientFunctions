@@ -1537,4 +1537,55 @@ public abstract class EffectTests
         storedEffect.EffectId.ShouldBe(effectId);
         ((int)DefaultSerializer.Instance.Deserialize(storedEffect.Result!, typeof(int))).ShouldBe(42);
     }
+
+    public abstract Task FlushlessUpsertsAreNotStoredUntilFlushed();
+    public async Task FlushlessUpsertsAreNotStoredUntilFlushed(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var storedId = TestStoredId.Create();
+        var session = await store.CreateFunction(
+            storedId,
+            "SomeInstance",
+            param: null,
+            leaseExpiration: 0,
+            postponeUntil: null,
+            timestamp: 0,
+            parent: null,
+            owner: ReplicaId.NewId()
+        );
+        var effectStore = store.EffectsStore;
+        var effectResults = new EffectResults(
+            TestFlowId.Create(),
+            storedId,
+            new List<StoredEffect>(),
+            effectStore,
+            DefaultSerializer.Instance,
+            session,
+            clearChildren: true
+        );
+
+        var effectId1 = new EffectId([1]);
+        var effectId2 = new EffectId([2]);
+        effectResults.FlushlessUpserts(
+        [
+            new EffectResult(effectId1, 42, Alias: null),
+            new EffectResult(effectId2, "hello", Alias: null),
+        ]);
+
+        // before flush nothing should be stored
+        var fetchedResults = await effectStore.GetEffectResults(storedId);
+        fetchedResults.Count.ShouldBe(0);
+
+        // after flush the values should be persisted
+        await effectResults.Flush();
+
+        fetchedResults = await effectStore.GetEffectResults(storedId);
+        fetchedResults.Count.ShouldBe(2);
+        ((int)DefaultSerializer.Instance.Deserialize(
+            fetchedResults.Single(r => r.EffectId == effectId1).Result!, typeof(int)
+        )).ShouldBe(42);
+        ((string)DefaultSerializer.Instance.Deserialize(
+            fetchedResults.Single(r => r.EffectId == effectId2).Result!, typeof(string)
+        )).ShouldBe("hello");
+    }
 }

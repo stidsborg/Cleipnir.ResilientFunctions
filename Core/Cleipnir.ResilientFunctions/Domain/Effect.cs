@@ -69,6 +69,8 @@ public class Effect(EffectResults effectResults, UtcNow utcNow, FlowTimeouts flo
 
     internal Task Upserts(IEnumerable<EffectResult> values, bool flush)
         => effectResults.Upserts(values, flush);
+    internal void FlushlessUpserts(IEnumerable<EffectResult> values)
+        => effectResults.FlushlessUpserts(values);
 
     internal bool TryGet<T>(string alias, out T? value)
     {

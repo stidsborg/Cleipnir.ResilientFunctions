@@ -152,4 +152,8 @@ public class EffectTests : ResilientFunctions.Tests.TestTemplates.FunctionTests.
     [TestMethod]
     public override Task FlushlessUpsertIsNotStoredUntilFlushed()
         => FlushlessUpsertIsNotStoredUntilFlushed(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task FlushlessUpsertsAreNotStoredUntilFlushed()
+        => FlushlessUpsertsAreNotStoredUntilFlushed(FunctionStoreFactory.Create());
 }
