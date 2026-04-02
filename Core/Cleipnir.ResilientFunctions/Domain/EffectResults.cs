@@ -152,7 +152,7 @@ public class EffectResults
         );
     }
 
-    internal void UpsertWithoutFlush<T>(EffectId effectId, string? alias, T value)
+    internal void FlushlessUpsert<T>(EffectId effectId, string? alias, T value)
     {
         var serializedValue = _serializer.Serialize(value!, typeof(T));
         var storedEffect = StoredEffect.CreateCompleted(effectId, serializedValue, alias);

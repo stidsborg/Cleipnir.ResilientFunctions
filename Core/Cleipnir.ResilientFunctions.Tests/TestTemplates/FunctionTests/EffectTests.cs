@@ -1495,8 +1495,8 @@ public abstract class EffectTests
         syncedList[0].ShouldBe(syncedList[1]);
     }
 
-    public abstract Task UpsertWithoutFlushIsNotStoredUntilFlushed();
-    public async Task UpsertWithoutFlushIsNotStoredUntilFlushed(Task<IFunctionStore> storeTask)
+    public abstract Task FlushlessUpsertIsNotStoredUntilFlushed();
+    public async Task FlushlessUpsertIsNotStoredUntilFlushed(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
         var storedId = TestStoredId.Create();
@@ -1522,7 +1522,7 @@ public abstract class EffectTests
         );
 
         var effectId = new EffectId([1]);
-        effectResults.UpsertWithoutFlush(effectId, alias: null, 42);
+        effectResults.FlushlessUpsert(effectId, alias: null, 42);
 
         // before flush nothing should be stored
         var fetchedResults = await effectStore.GetEffectResults(storedId);

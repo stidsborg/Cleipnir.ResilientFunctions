@@ -65,7 +65,7 @@ public class Effect(EffectResults effectResults, UtcNow utcNow, FlowTimeouts flo
             flush
         );
     internal Task Upsert<T>(EffectId effectId, T value, string? alias, bool flush) => effectResults.Upsert(effectId, alias, value, flush);
-    internal void UpsertWithoutFlush<T>(EffectId effectId, T value, string? alias) => effectResults.UpsertWithoutFlush(effectId, alias, value);
+    internal void FlushlessUpsert<T>(EffectId effectId, T value, string? alias) => effectResults.FlushlessUpsert(effectId, alias, value);
 
     internal Task Upserts(IEnumerable<EffectResult> values, bool flush)
         => effectResults.Upserts(values, flush);
