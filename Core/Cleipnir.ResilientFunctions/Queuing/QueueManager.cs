@@ -42,7 +42,6 @@ public class QueueManager(
     private volatile bool _disposed;
 
     private volatile Exception? _thrownException = null;
-    private TaskCompletionSource _pulse = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
     private async Task Initialize()
     {
@@ -152,13 +151,15 @@ public class QueueManager(
         }
         finally
         {
-            PulseAll();
+            flowsManager.SignalInterrupt(storedId);
             _semaphoreSlim.Release();
         }
     }
 
     private (MessageData? Matched, int PositionToRemoveIndex, Task PulseTask) TryTakeMessage(MessagePredicate predicate)
     {
+        var interruptedSignal = flowsManager.GetInterruptedSignal(storedId);
+        
         lock (_lock)
         {
             for (var i = 0; i < _toDeliver.Count; i++)
@@ -166,10 +167,12 @@ public class QueueManager(
                 {
                     var matched = _toDeliver[i];
                     _toDeliver.RemoveAt(i);
-                    return (matched, _nextToRemoveIndex++, _pulse.Task);
+                    var positionToRemoveIndex = _nextToRemoveIndex++;
+                    effect.FlushlessUpsert(_toRemoveNextIndex, _nextToRemoveIndex, alias: null);
+                    return (matched, positionToRemoveIndex, interruptedSignal);
                 }
 
-            return (null, 0, _pulse.Task);
+            return (null, 0, interruptedSignal);
         }
     }
 
@@ -221,17 +224,6 @@ public class QueueManager(
         }
     }
 
-    private void PulseAll()
-    {
-        TaskCompletionSource oldPulse;
-        lock (_lock)
-        {
-            oldPulse = _pulse;
-            _pulse = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        }
-        oldPulse.TrySetResult();
-    }
-
     public async Task<Envelope?> Subscribe(
         MessagePredicate predicate,
         DateTime? timeout,
@@ -266,7 +258,6 @@ public class QueueManager(
                 effect.FlushlessUpserts(
                     new List<EffectResult>(
                     [
-                        new EffectResult(_toRemoveNextIndex, positionToRemoveIndex, Alias: null),
                         new EffectResult(toRemoveId, matched.Position, Alias: null),
                         new EffectResult(messageId, matched.MessageContentBytes, Alias: null),
                         new EffectResult(messageTypeId, matched.MessageTypeBytes, Alias: null),
