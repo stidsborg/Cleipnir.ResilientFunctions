@@ -9,7 +9,20 @@ on:
   workflow_dispatch:
 
 jobs:
+  build:
+    runs-on: ubuntu-latest
+    environment: Pipeline
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: '10.0.x'
+
+      - run: dotnet build Cleipnir.ResilientFunctions.sln
+
   test:
+    needs: build
     runs-on: ubuntu-latest
     environment: Pipeline
     strategy:
@@ -33,7 +46,7 @@ jobs:
 
       - run: dotnet build Cleipnir.ResilientFunctions.sln
 
-      - run: dotnet run --project ./Stores/EnsureDatabaseConnections/EnsureDatabaseConnections.csproj --no-build
+      - run: dotnet run --project ./Stores/EnsureDatabaseConnections/EnsureDatabaseConnections.csproj
 
       - run: dotnet test ./${{ matrix.test-project }} --no-build --logger "console;verbosity=detailed"
 
