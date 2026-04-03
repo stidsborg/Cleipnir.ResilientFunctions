@@ -42,7 +42,6 @@ public class QueueManager(
     private volatile bool _disposed;
 
     private volatile Exception? _thrownException = null;
-    private TaskCompletionSource _pulse = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
     private async Task Initialize()
     {
@@ -152,13 +151,15 @@ public class QueueManager(
         }
         finally
         {
-            PulseAll();
+            flowsManager.SignalInterrupt(storedId);
             _semaphoreSlim.Release();
         }
     }
 
     private (MessageData? Matched, int PositionToRemoveIndex, Task PulseTask) TryTakeMessage(MessagePredicate predicate)
     {
+        var interruptedSignal = flowsManager.GetInterruptedSignal(storedId);
+        
         lock (_lock)
         {
             for (var i = 0; i < _toDeliver.Count; i++)
@@ -168,10 +169,10 @@ public class QueueManager(
                     _toDeliver.RemoveAt(i);
                     var positionToRemoveIndex = _nextToRemoveIndex++;
                     effect.FlushlessUpsert(_toRemoveNextIndex, _nextToRemoveIndex, alias: null);
-                    return (matched, positionToRemoveIndex, _pulse.Task);
+                    return (matched, positionToRemoveIndex, interruptedSignal);
                 }
 
-            return (null, 0, _pulse.Task);
+            return (null, 0, interruptedSignal);
         }
     }
 
@@ -221,17 +222,6 @@ public class QueueManager(
         {
             _semaphoreSlim.Release();
         }
-    }
-
-    private void PulseAll()
-    {
-        TaskCompletionSource oldPulse;
-        lock (_lock)
-        {
-            oldPulse = _pulse;
-            _pulse = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        }
-        oldPulse.TrySetResult();
     }
 
     public async Task<Envelope?> Subscribe(

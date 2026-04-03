@@ -56,7 +56,7 @@ public class Workflow
 
             var maxWait = suspend ? TimeSpan.Zero : (TimeSpan?)null;
             await Effect.FlowTimeouts.AddTimeout(timeoutId, expiry.ToDateTime(), maxWait);
-        
+            
             await Effect.Upsert(timeoutId, -1L, alias, flush: false);
             Effect.FlowTimeouts.RemoveTimeout(timeoutId);
         }
