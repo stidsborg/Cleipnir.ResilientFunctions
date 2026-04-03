@@ -16,19 +16,25 @@ jobs:
       runs-on: ubuntu-latest
       strategy:
         matrix:
-          test-project:
-            - Core/Cleipnir.ResilientFunctions.Tests
-            - Stores/MariaDB/Cleipnir.ResilientFunctions.MariaDB.Tests
-            - Stores/PostgreSQL/Cleipnir.ResilientFunctions.PostgreSQL.Tests
-            - Stores/SqlServer/Cleipnir.ResilientFunctions.SqlServer.Tests
+          include:
+            - test-project: Core/Cleipnir.ResilientFunctions.Tests
+              compose-service: ''
+            - test-project: Stores/MariaDB/Cleipnir.ResilientFunctions.MariaDB.Tests
+              compose-service: maria-db
+            - test-project: Stores/PostgreSQL/Cleipnir.ResilientFunctions.PostgreSQL.Tests
+              compose-service: postgresql-db
+            - test-project: Stores/SqlServer/Cleipnir.ResilientFunctions.SqlServer.Tests
+              compose-service: sql-server-db
       steps:
         - uses: actions/checkout@v4
         - uses: actions/setup-dotnet@v4
           with:
             dotnet-version: '10.0.x'
         - run: dotnet build Cleipnir.ResilientFunctions.sln
-        - run: docker compose up -d
-        - run: dotnet run --project ./Stores/EnsureDatabaseConnections/EnsureDatabaseConnections.csproj --no-build
+        - if: matrix.compose-service != ''
+          run: docker compose up -d ${{ matrix.compose-service }}
+        - if: matrix.compose-service != ''
+          run: dotnet run --project ./Stores/EnsureDatabaseConnections/EnsureDatabaseConnections.csproj --no-build
         - run: dotnet test ./${{ matrix.test-project }} --no-build --logger "console;verbosity=detailed"
-        - if: always()
+        - if: always() && matrix.compose-service != ''
           run: docker compose down
