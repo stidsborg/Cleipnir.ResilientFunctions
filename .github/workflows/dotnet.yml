@@ -21,10 +21,13 @@ jobs:
               compose-service: ''
             - test-project: Stores/MariaDB/Cleipnir.ResilientFunctions.MariaDB.Tests
               compose-service: maria-db
+              db-name: mariadb
             - test-project: Stores/PostgreSQL/Cleipnir.ResilientFunctions.PostgreSQL.Tests
               compose-service: postgresql-db
+              db-name: postgres
             - test-project: Stores/SqlServer/Cleipnir.ResilientFunctions.SqlServer.Tests
               compose-service: sql-server-db
+              db-name: sqlserver
       steps:
         - uses: actions/checkout@v4
         - uses: actions/setup-dotnet@v4
@@ -34,7 +37,7 @@ jobs:
         - if: matrix.compose-service != ''
           run: docker compose up -d ${{ matrix.compose-service }}
         - if: matrix.compose-service != ''
-          run: dotnet run --project ./Stores/EnsureDatabaseConnections/EnsureDatabaseConnections.csproj --no-build
+          run: dotnet run --project ./Stores/EnsureDatabaseConnections/EnsureDatabaseConnections.csproj --no-build -- ${{ matrix.db-name }}
         - run: dotnet test ./${{ matrix.test-project }} --no-build --logger "console;verbosity=detailed"
         - if: always() && matrix.compose-service != ''
           run: docker compose down

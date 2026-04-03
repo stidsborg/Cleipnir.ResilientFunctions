@@ -8,60 +8,42 @@ internal static class Program
 {
     public static async Task<int> Main(string[] args)
     {
-        var retry = 1;
-        while (true)
+        var databases = args.Length > 0
+            ? args.Select(a => a.ToLowerInvariant()).ToHashSet()
+            : new HashSet<string> { "mariadb", "postgres", "sqlserver" };
+
+        var checks = new List<(string Name, Func<Task> Connect)>();
+        if (databases.Contains("mariadb"))
+            checks.Add(("MariaDB", CreateAndOpenMariaDbConnection));
+        if (databases.Contains("postgres"))
+            checks.Add(("Postgres", CreateAndOpenPostgresConnection));
+        if (databases.Contains("sqlserver"))
+            checks.Add(("SQL Server", CreateAndOpenSqlServerConnection));
+
+        foreach (var (name, connect) in checks)
         {
-            await Task.Delay(1_000);
-            Console.WriteLine($"Trying {retry}/20");
-            
-            try
+            var retry = 1;
+            while (true)
             {
-                await CreateAndOpenMariaDbConnection();
-            }
-            catch (Exception e)
-            {
-                if (retry == 20)
+                await Task.Delay(1_000);
+                Console.WriteLine($"[{name}] Trying {retry}/20");
+                try
                 {
-                    Console.WriteLine($"Unable to connect to MariaDB. Exception: {e}");
-                    return -1;
+                    await connect();
+                    break;
                 }
-                retry++;
-                continue;
-            }
-            
-            try
-            {
-                await CreateAndOpenPostgresConnection();
-            }
-            catch (Exception e)
-            {
-                if (retry == 20)
+                catch (Exception e)
                 {
-                    Console.WriteLine($"Unable to connect to Postgres. Exception: {e}");
-                    return -1;
+                    if (retry == 20)
+                    {
+                        Console.WriteLine($"Unable to connect to {name}. Exception: {e}");
+                        return -1;
+                    }
+                    retry++;
                 }
-                retry++;
-                continue;
             }
-            
-            try
-            {
-                await CreateAndOpenSqlServerConnection();
-            }
-            catch (Exception e)
-            {
-                if (retry == 20)
-                {
-                    Console.WriteLine($"Unable to connect to SQL Server. Exception: {e}");
-                    return -1;
-                }
-                retry++;
-                continue;
-            }
-            
-            break;
         }
-        
+
         Console.WriteLine("All connections were established successfully");
         return 0;
     }
