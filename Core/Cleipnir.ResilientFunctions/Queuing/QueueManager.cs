@@ -251,7 +251,7 @@ public class QueueManager(
             if (_thrownException != null)
                 throw _thrownException;
 
-            var (matched, positionToRemoveIndex, pulseTask) = TryTakeMessage(predicate);
+            var (matched, positionToRemoveIndex, interruptSignal) = TryTakeMessage(predicate);
             if (matched != null)
             {
                 var toRemoveId = new EffectId([-1, 0, positionToRemoveIndex]);
@@ -272,7 +272,7 @@ public class QueueManager(
                 return matched.Envelope;
             }
 
-            await Task.WhenAny(pulseTask, timeoutTask, maxWaitTask);
+            await Task.WhenAny(interruptSignal, timeoutTask, maxWaitTask);
 
             if (timeoutTask.IsCompleted)
                 return null;
