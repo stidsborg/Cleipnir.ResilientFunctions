@@ -111,7 +111,10 @@ public class SqlServerFunctionStore : IFunctionStore
                 WHERE Status = {(int)Status.Postponed};
             CREATE INDEX {_tableName}_idx_Succeeded
                 ON {_tableName} (Id)
-                WHERE Status = {(int)Status.Succeeded};";
+                WHERE Status = {(int)Status.Succeeded};
+            CREATE INDEX {_tableName}_idx_Interrupted
+                ON {_tableName} (Id)
+                WHERE Interrupted = 1;";
 
         await using var command = new SqlCommand(_initializeSql, conn);
         try
@@ -485,16 +488,12 @@ public class SqlServerFunctionStore : IFunctionStore
         return ids;
     }
 
-    public async Task<IReadOnlyList<StoredId>> GetInterruptedFunctions(IEnumerable<StoredId> ids)
+    public async Task<IReadOnlyList<StoredId>> GetInterruptedFunctions()
     {
-        var inSql = ids.Select(id => $"'{id.AsGuid}'").StringJoin(", ");
-        if (string.IsNullOrEmpty(inSql))
-            return [];
-
         var sql = @$"
             SELECT Id
             FROM {_tableName} WITH (NOLOCK)
-            WHERE Interrupted = 1 AND Id IN ({inSql})";
+            WHERE Interrupted = 1";
 
         await using var conn = await _connFunc();
         await using var command = new SqlCommand(sql, conn);

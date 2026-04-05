@@ -88,7 +88,8 @@ public class MariaDbFunctionStore : IFunctionStore
                 parent CHAR(32) NULL,
                 owner CHAR(32) NULL,
                 effects LONGBLOB NULL,
-                INDEX (expires, id, status)   
+                INDEX (expires, id, status),
+                INDEX idx_interrupted (id, interrupted)
             );";
 
         await using var command = new MySqlCommand(_initializeSql, conn);
@@ -441,16 +442,12 @@ public class MariaDbFunctionStore : IFunctionStore
         return ids;
     }
 
-    public async Task<IReadOnlyList<StoredId>> GetInterruptedFunctions(IEnumerable<StoredId> ids)
+    public async Task<IReadOnlyList<StoredId>> GetInterruptedFunctions()
     {
-        var inSql = ids.Select(id => $"'{id.AsGuid:N}'").StringJoin(", ");
-        if (string.IsNullOrEmpty(inSql))
-            return [];
-        
         var sql = @$"
             SELECT id
             FROM {_tablePrefix}
-            WHERE interrupted = TRUE AND id IN ({inSql})";
+            WHERE interrupted = TRUE";
 
         await using var conn = await CreateOpenConnection(_connectionString);
         await using var command = new MySqlCommand(sql, conn);

@@ -240,15 +240,11 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
                 .ToTask();
     }
 
-    public Task<IReadOnlyList<StoredId>> GetInterruptedFunctions(IEnumerable<StoredId> ids)
+    public Task<IReadOnlyList<StoredId>> GetInterruptedFunctions()
     {
-        var idsList = ids.ToHashSet();
-        if (idsList.Count == 0)
-            return Array.Empty<StoredId>().CastTo<IReadOnlyList<StoredId>>().ToTask();
-
         lock (_sync)
             return _states
-                .Where(kv => idsList.Contains(kv.Key) && kv.Value.Interrupted)
+                .Where(kv => kv.Value.Interrupted)
                 .Select(kv => kv.Key)
                 .ToList()
                 .CastTo<IReadOnlyList<StoredId>>()

@@ -231,8 +231,8 @@ public class StoreTests : ResilientFunctions.Tests.TestTemplates.StoreTests
         => GetInterruptedFunctionsReturnsOnlyInterruptedFunctions(FunctionStoreFactory.Create());
 
     [TestMethod]
-    public override Task GetInterruptedFunctionsReturnsEmptyListWhenNoIdsProvided()
-        => GetInterruptedFunctionsReturnsEmptyListWhenNoIdsProvided(FunctionStoreFactory.Create());
+    public override Task GetInterruptedFunctionsReturnsEmptyListWhenNoneExist()
+        => GetInterruptedFunctionsReturnsEmptyListWhenNoneExist(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task GetInterruptedFunctionsReturnsEmptyListWhenNoneFunctionsAreInterrupted()
