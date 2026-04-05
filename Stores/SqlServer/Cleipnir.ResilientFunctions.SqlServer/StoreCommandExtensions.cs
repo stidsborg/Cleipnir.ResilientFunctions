@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using Cleipnir.ResilientFunctions.Storage;
 using Microsoft.Data.SqlClient;
 
@@ -28,6 +29,12 @@ internal static class StoreCommandExtensions
 
     public static SqlBatch ToSqlBatch(this IEnumerable<StoreCommand> commands) => commands.CreateBatch();
     public static SqlBatch ToSqlBatch(this StoreCommands commands) => commands.Commands.CreateBatch();
+}
+
+internal static class StoredIdExtensions
+{
+    public static string ToCommaSeparatedIds(this IEnumerable<StoredId> storedIds)
+        => string.Join(",", storedIds.Select(id => id.AsGuid));
 }
 
 internal static class StoreCommandsHelper

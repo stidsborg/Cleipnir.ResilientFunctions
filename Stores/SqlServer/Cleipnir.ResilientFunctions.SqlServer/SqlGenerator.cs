@@ -17,36 +17,42 @@ namespace Cleipnir.ResilientFunctions.SqlServer;
 
 public class SqlGenerator(string tablePrefix)
 {
+    private string? _interruptSql;
     public StoreCommand Interrupt(IEnumerable<StoredId> storedIds)
     {
-        var sql = @$"
+        _interruptSql ??= @$"
                 UPDATE {tablePrefix}
-                SET 
+                SET
                     Interrupted = 1,
-                    Status = 
-                        CASE 
+                    Status =
+                        CASE
                             WHEN Status = {(int)Status.Suspended} THEN {(int)Status.Postponed}
                             ELSE Status
                         END,
-                    Expires = 
+                    Expires =
                         CASE
                             WHEN Status = {(int)Status.Postponed} THEN 0
                             WHEN Status = {(int)Status.Suspended} THEN 0
                             ELSE Expires
                         END
-                WHERE Id IN ({storedIds.Select(id => $"'{id.AsGuid}'").StringJoin(", ")});";
+                WHERE Id IN (SELECT CAST(value AS UNIQUEIDENTIFIER) FROM STRING_SPLIT(@Ids, ','));";
 
-        return StoreCommand.Create(sql);
+        var command = StoreCommand.Create(_interruptSql);
+        command.AddParameter("@Ids", storedIds.ToCommaSeparatedIds());
+        return command;
     }
 
+    private string? _resetInterruptedSql;
     public StoreCommand ResetInterrupted(IEnumerable<StoredId> storedIds)
     {
-        var sql = @$"
+        _resetInterruptedSql ??= @$"
                 UPDATE {tablePrefix}
                 SET Interrupted = 0
-                WHERE Id IN ({storedIds.Select(id => $"'{id.AsGuid}'").StringJoin(", ")});";
+                WHERE Id IN (SELECT CAST(value AS UNIQUEIDENTIFIER) FROM STRING_SPLIT(@Ids, ','));";
 
-        return StoreCommand.Create(sql);
+        var command = StoreCommand.Create(_resetInterruptedSql);
+        command.AddParameter("@Ids", storedIds.ToCommaSeparatedIds());
+        return command;
     }
 
     public StoreCommand InsertEffects(StoredId storedId, IReadOnlyList<StoredEffectChange> changes, SnapshotStorageSession session, string paramPrefix)
@@ -118,14 +124,16 @@ public class SqlGenerator(string tablePrefix)
         return new StoredEffectsWithSession(effects, session);
     }
     
+    private string? _getEffectsBulkSql;
     public StoreCommand GetEffects(IEnumerable<StoredId> storedIds)
     {
-        var sql = @$"
+        _getEffectsBulkSql ??= @$"
             SELECT Id, Effects
             FROM {tablePrefix}
-            WHERE Id IN ({storedIds.InClause()})";
+            WHERE Id IN (SELECT CAST(value AS UNIQUEIDENTIFIER) FROM STRING_SPLIT(@Ids, ','))";
 
-        var command = StoreCommand.Create(sql);
+        var command = StoreCommand.Create(_getEffectsBulkSql);
+        command.AddParameter("@Ids", storedIds.ToCommaSeparatedIds());
         return command;
     }
 
@@ -467,11 +475,11 @@ public class SqlGenerator(string tablePrefix)
                    inserted.Parent,
                    inserted.Owner,
                    inserted.Effects
-            WHERE Id IN ({{0}}) AND Owner IS NULL;";
+            WHERE Id IN (SELECT CAST(value AS UNIQUEIDENTIFIER) FROM STRING_SPLIT(@Ids, ',')) AND Owner IS NULL;";
 
-        var sql = string.Format(_restartExecutionsSql, storedIds.InClause());
-        var storeCommand = StoreCommand.Create(sql);
+        var storeCommand = StoreCommand.Create(_restartExecutionsSql);
         storeCommand.AddParameter("@Owner", replicaId.AsGuid);
+        storeCommand.AddParameter("@Ids", storedIds.ToCommaSeparatedIds());
 
         return storeCommand;
     }
@@ -637,15 +645,17 @@ public class SqlGenerator(string tablePrefix)
         return messages;
     }
     
+    private string? _getMessagesBulkSql;
     public StoreCommand GetMessages(IEnumerable<StoredId> storedIds)
     {
-        var sql = @$"
+        _getMessagesBulkSql ??= @$"
             SELECT Id, Position, Content
             FROM {tablePrefix}_Messages
-            WHERE Id IN ({storedIds.InClause()})
+            WHERE Id IN (SELECT CAST(value AS UNIQUEIDENTIFIER) FROM STRING_SPLIT(@Ids, ','))
             ORDER BY Position;";
 
-        var command = StoreCommand.Create(sql);
+        var command = StoreCommand.Create(_getMessagesBulkSql);
+        command.AddParameter("@Ids", storedIds.ToCommaSeparatedIds());
         return command;
     }
     
