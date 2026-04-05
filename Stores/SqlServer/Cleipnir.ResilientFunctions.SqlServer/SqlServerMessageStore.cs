@@ -131,6 +131,8 @@ public class SqlServerMessageStore : IMessageStore
             command.Parameters.AddWithValue($"@Position{i}", position);
             command.Parameters.AddWithValue($"@Content{i}", content);
         }
+        foreach (var (value, name) in interuptsSql.Parameters)
+            command.Parameters.AddWithValue(name, value);
 
         await command.ExecuteNonQueryAsync();
     }
