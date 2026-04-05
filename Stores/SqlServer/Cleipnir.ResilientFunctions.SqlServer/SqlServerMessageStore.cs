@@ -131,6 +131,8 @@ public class SqlServerMessageStore : IMessageStore
             command.Parameters.AddWithValue($"@Position{i}", position);
             command.Parameters.AddWithValue($"@Content{i}", content);
         }
+        foreach (var (value, name) in interuptsSql.Parameters)
+            command.Parameters.AddWithValue(name, value);
 
         await command.ExecuteNonQueryAsync();
     }
@@ -247,11 +249,12 @@ public class SqlServerMessageStore : IMessageStore
         var sql = @$"
             SELECT Id, MAX(Position)
             FROM {_tablePrefix}_Messages
-            WHERE Id IN ({storedIds.Select(id => $"'{id}'").StringJoin(", ")})
+            WHERE Id IN (SELECT CAST(value AS UNIQUEIDENTIFIER) FROM STRING_SPLIT(@Ids, ','))
             GROUP BY Id;";
 
         await using var conn = await CreateConnection();
         await using var command = new SqlCommand(sql, conn);
+        command.Parameters.AddWithValue("@Ids", storedIds.ToCommaSeparatedIds());
 
         var positions = new Dictionary<StoredId, long>(capacity: storedIds.Count);
         foreach (var storedId in storedIds)

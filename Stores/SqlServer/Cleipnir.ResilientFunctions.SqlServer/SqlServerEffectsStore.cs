@@ -87,9 +87,10 @@ public class SqlServerEffectsStore(string connectionString, string tablePrefix =
         var sql = @$"
             SELECT Id, Effects
             FROM {_tableName}
-            WHERE Id IN ({storedIdsList.InClause()})";
+            WHERE Id IN (SELECT CAST(value AS UNIQUEIDENTIFIER) FROM STRING_SPLIT(@Ids, ','))";
 
         var command = StoreCommand.Create(sql);
+        command.AddParameter("@Ids", storedIdsList.ToCommaSeparatedIds());
         await using var reader = await _commandExecutor.Execute(command);
 
         foreach (var storedId in storedIdsList)
