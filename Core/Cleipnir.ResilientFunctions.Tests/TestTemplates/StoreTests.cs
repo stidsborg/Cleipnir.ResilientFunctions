@@ -2008,8 +2008,8 @@ public abstract class StoreTests
         await store.Interrupt(functionId1).ShouldBeTrueAsync();
         await store.Interrupt(functionId3).ShouldBeTrueAsync();
 
-        // Get interrupted functions from the set of all 4 functions
-        var interruptedFunctions = await store.GetInterruptedFunctions([functionId1, functionId2, functionId3, functionId4]);
+        // Get interrupted functions
+        var interruptedFunctions = await store.GetInterruptedFunctions();
 
         // Should return only the 2 interrupted functions
         interruptedFunctions.Count.ShouldBe(2);
@@ -2019,12 +2019,12 @@ public abstract class StoreTests
         interruptedFunctions.Any(id => id == functionId4).ShouldBeFalse();
     }
 
-    public abstract Task GetInterruptedFunctionsReturnsEmptyListWhenNoIdsProvided();
-    protected async Task GetInterruptedFunctionsReturnsEmptyListWhenNoIdsProvided(Task<IFunctionStore> storeTask)
+    public abstract Task GetInterruptedFunctionsReturnsEmptyListWhenNoneExist();
+    protected async Task GetInterruptedFunctionsReturnsEmptyListWhenNoneExist(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
 
-        var interruptedFunctions = await store.GetInterruptedFunctions([]);
+        var interruptedFunctions = await store.GetInterruptedFunctions();
         interruptedFunctions.Count.ShouldBe(0);
     }
 
@@ -2060,7 +2060,7 @@ public abstract class StoreTests
         session.ShouldBeNull();
 
         // Don't interrupt any functions
-        var interruptedFunctions = await store.GetInterruptedFunctions([functionId1, functionId2]);
+        var interruptedFunctions = await store.GetInterruptedFunctions();
 
         interruptedFunctions.Count.ShouldBe(0);
     }
@@ -2101,10 +2101,13 @@ public abstract class StoreTests
         await store.Interrupt(functionId1).ShouldBeTrueAsync();
         await store.Interrupt(functionId2).ShouldBeTrueAsync();
 
-        // Query for non-existent IDs
-        var interruptedFunctions = await store.GetInterruptedFunctions([nonExistentId1, nonExistentId2]);
+        // No functions are interrupted despite existing
+        var interruptedFunctions = await store.GetInterruptedFunctions();
 
-        interruptedFunctions.Count.ShouldBe(0);
+        // Should return the 2 interrupted functions
+        interruptedFunctions.Count.ShouldBe(2);
+        interruptedFunctions.Any(id => id == functionId1).ShouldBeTrue();
+        interruptedFunctions.Any(id => id == functionId2).ShouldBeTrue();
     }
 
     public abstract Task GetInterruptedFunctionsOnlyReturnsMatchingInterruptedFunctions();
@@ -2171,15 +2174,15 @@ public abstract class StoreTests
         await store.Interrupt(functionId3).ShouldBeTrueAsync();
         await store.Interrupt(functionId4).ShouldBeTrueAsync();
 
-        // Query for only functions 2 and 4
-        var interruptedFunctions = await store.GetInterruptedFunctions([functionId2, functionId4]);
+        // Get all interrupted functions
+        var interruptedFunctions = await store.GetInterruptedFunctions();
 
-        // Should return only the 2 queried interrupted functions
-        interruptedFunctions.Count.ShouldBe(2);
+        // Should return all 4 interrupted functions
+        interruptedFunctions.Count.ShouldBe(4);
+        interruptedFunctions.Any(id => id == functionId1).ShouldBeTrue();
         interruptedFunctions.Any(id => id == functionId2).ShouldBeTrue();
+        interruptedFunctions.Any(id => id == functionId3).ShouldBeTrue();
         interruptedFunctions.Any(id => id == functionId4).ShouldBeTrue();
-        interruptedFunctions.Any(id => id == functionId1).ShouldBeFalse();
-        interruptedFunctions.Any(id => id == functionId3).ShouldBeFalse();
     }
 
     public abstract Task GetResultsReturnsResultsForExistingFunctions();

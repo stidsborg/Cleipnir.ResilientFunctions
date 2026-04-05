@@ -94,7 +94,11 @@ public class PostgreSqlFunctionStore : IFunctionStore
 
             CREATE INDEX IF NOT EXISTS idx_{_tableName}_expires
             ON {_tableName}(expires, id)
-            WHERE status = {(int) Status.Postponed};";
+            WHERE status = {(int) Status.Postponed};
+
+            CREATE INDEX IF NOT EXISTS idx_{_tableName}_interrupted
+            ON {_tableName}(id)
+            WHERE interrupted = TRUE;";
 
         await using var command = new NpgsqlCommand(_initializeSql, conn);
         await command.ExecuteNonQueryAsync();
@@ -410,20 +414,15 @@ public class PostgreSqlFunctionStore : IFunctionStore
         return ids;
     }
 
-    public async Task<IReadOnlyList<StoredId>> GetInterruptedFunctions(IEnumerable<StoredId> ids)
+    public async Task<IReadOnlyList<StoredId>> GetInterruptedFunctions()
     {
-        var idsArray = ids.Select(id => id.AsGuid).ToArray();
-        if (idsArray.Length == 0)
-            return [];
-
         var sql = @$"
             SELECT id
             FROM {_tableName}
-            WHERE interrupted = TRUE AND id = ANY($1)";
+            WHERE interrupted = TRUE";
 
         await using var conn = await CreateConnection();
         await using var command = new NpgsqlCommand(sql, conn);
-        command.Parameters.Add(new NpgsqlParameter { Value = idsArray });
 
         await using var reader = await command.ExecuteReaderAsync();
         var interruptedIds = new List<StoredId>();
