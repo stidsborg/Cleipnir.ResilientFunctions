@@ -668,9 +668,19 @@ public class PostgreSqlFunctionStore : IFunctionStore
     {
         if (storedIds.Count == 0)
             return;
-        
+
         await using var conn = await CreateConnection();
         await using var command = _sqlGenerator.Interrupt(storedIds).ToNpgsqlCommand(conn);
+        await command.ExecuteNonQueryAsync();
+    }
+
+    public async Task ResetInterrupted(IReadOnlyList<StoredId> storedIds)
+    {
+        if (storedIds.Count == 0)
+            return;
+
+        await using var conn = await CreateConnection();
+        await using var command = _sqlGenerator.ResetInterrupted(storedIds).ToNpgsqlCommand(conn);
         await command.ExecuteNonQueryAsync();
     }
 

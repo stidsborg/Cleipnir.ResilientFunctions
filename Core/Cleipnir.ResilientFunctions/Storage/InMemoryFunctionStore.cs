@@ -450,6 +450,18 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
             await Interrupt(storedId);
     }
 
+    public Task ResetInterrupted(IReadOnlyList<StoredId> storedIds)
+    {
+        lock (_sync)
+        {
+            foreach (var storedId in storedIds)
+                if (_states.TryGetValue(storedId, out var state))
+                    state.Interrupted = false;
+        }
+
+        return Task.CompletedTask;
+    }
+
     public Task<bool?> Interrupted(StoredId storedId)
     {
         lock (_sync)

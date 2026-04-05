@@ -33,7 +33,17 @@ public class SqlGenerator(string tablePrefix)
 
         return StoreCommand.Create(sql);
     }
-    
+
+    public StoreCommand ResetInterrupted(IEnumerable<StoredId> storedIds)
+    {
+        var sql = @$"
+                UPDATE {tablePrefix}
+                SET interrupted = FALSE
+                WHERE Id IN ({storedIds.Select(id => $"'{id.AsGuid:N}'").StringJoin(", ")});";
+
+        return StoreCommand.Create(sql);
+    }
+
     private string? _getEffectResultsSql;
     public StoreCommand GetEffects(StoredId storedId)
     {

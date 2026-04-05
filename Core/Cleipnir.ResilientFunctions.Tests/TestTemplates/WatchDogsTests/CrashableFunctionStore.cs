@@ -187,6 +187,8 @@ public class CrashableFunctionStore : IFunctionStore
 
     public Task Interrupt(IReadOnlyList<StoredId> storedIds) => _inner.Interrupt(storedIds);
 
+    public Task ResetInterrupted(IReadOnlyList<StoredId> storedIds) => _inner.ResetInterrupted(storedIds);
+
     public Task<bool?> Interrupted(StoredId storedId) 
         => _crashed
             ? Task.FromException<bool?>(new TimeoutException())

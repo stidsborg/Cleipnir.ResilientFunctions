@@ -670,9 +670,19 @@ public class MariaDbFunctionStore : IFunctionStore
     {
         if (storedIds.Count == 0)
             return;
-        
+
         await using var conn = await CreateOpenConnection(_connectionString);
         await using var cmd = _sqlGenerator.Interrupt(storedIds).ToSqlCommand(conn);
+        await cmd.ExecuteNonQueryAsync();
+    }
+
+    public async Task ResetInterrupted(IReadOnlyList<StoredId> storedIds)
+    {
+        if (storedIds.Count == 0)
+            return;
+
+        await using var conn = await CreateOpenConnection(_connectionString);
+        await using var cmd = _sqlGenerator.ResetInterrupted(storedIds).ToSqlCommand(conn);
         await cmd.ExecuteNonQueryAsync();
     }
 

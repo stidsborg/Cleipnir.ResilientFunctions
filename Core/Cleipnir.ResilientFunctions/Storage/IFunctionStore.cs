@@ -104,7 +104,8 @@ public interface IFunctionStore
 
     Task<bool> Interrupt(StoredId storedId);
     Task Interrupt(IReadOnlyList<StoredId> storedIds);
-    Task<bool?> Interrupted(StoredId storedId); 
+    Task ResetInterrupted(IReadOnlyList<StoredId> storedIds);
+    Task<bool?> Interrupted(StoredId storedId);
 
     Task<Status?> GetFunctionStatus(StoredId storedId);
     Task<IReadOnlyList<StatusAndId>> GetFunctionsStatus(IEnumerable<StoredId> storedIds);
