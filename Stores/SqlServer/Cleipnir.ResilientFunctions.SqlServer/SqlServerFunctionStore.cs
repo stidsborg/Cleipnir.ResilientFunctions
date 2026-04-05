@@ -772,22 +772,7 @@ public class SqlServerFunctionStore : IFunctionStore
         var affectedRows = await command.ExecuteNonQueryAsync();
         return affectedRows > 0;
     }
-    
-    private string? _interruptedSql;
-    public async Task<bool?> Interrupted(StoredId storedId)
-    {
-        await using var conn = await _connFunc();
-        _interruptedSql ??= @$"
-                SELECT Interrupted 
-                FROM {_tableName}            
-                WHERE Id = @Id;";
 
-        await using var command = new SqlCommand(_interruptedSql, conn);
-        command.Parameters.AddWithValue("@Id", storedId.AsGuid);
-
-        var interrupted = await command.ExecuteScalarAsync();
-        return (bool?) interrupted;
-    }
 
     private string? _getFunctionStatusSql;
     public async Task<Status?> GetFunctionStatus(StoredId storedId)

@@ -462,17 +462,6 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         return Task.CompletedTask;
     }
 
-    public Task<bool?> Interrupted(StoredId storedId)
-    {
-        lock (_sync)
-        {
-            if (!_states.ContainsKey(storedId))
-                return Task.FromResult(default(bool?));
-
-            return ((bool?) _states[storedId].Interrupted).ToTask();
-        }
-    }
-
     public Task<Status?> GetFunctionStatus(StoredId storedId)
     {
         lock (_sync)

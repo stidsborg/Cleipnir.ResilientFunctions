@@ -719,26 +719,6 @@ public class MariaDbFunctionStore : IFunctionStore
         return affectedRows == 1;
     }
 
-    private string? _getInterruptCountSql;
-    public async Task<bool?> Interrupted(StoredId storedId)
-    {
-        await using var conn = await CreateOpenConnection(_connectionString);
-        
-        _getInterruptCountSql ??= $@"
-            SELECT interrupted 
-            FROM {_tablePrefix}
-            WHERE id = ?;";
-
-        await using var command = new MySqlCommand(_getInterruptCountSql, conn)
-        {
-            Parameters =
-            {
-                new() { Value = storedId.AsGuid.ToString("N") },
-            }
-        };
-        
-        return (bool?) await command.ExecuteScalarAsync();
-    }
 
     private string? _getFunctionStatusSql;
     public async Task<Status?> GetFunctionStatus(StoredId storedId)

@@ -689,14 +689,14 @@ public abstract class StoreTests
         session.ShouldBeNull();
 
         await store.Interrupt(functionId).ShouldBeTrueAsync();
-        await store.Interrupted(functionId).ShouldBeAsync(true);
+        (await store.GetInterruptedFunctions()).Any(id => id == functionId).ShouldBeTrue();
 
         await store.RestartExecution(
-            functionId, 
+            functionId,
             owner: ReplicaId.NewId()
         ).ShouldNotBeNullAsync();
-       
-        await store.Interrupted(functionId).ShouldBeAsync(false);
+
+        (await store.GetInterruptedFunctions()).Any(id => id == functionId).ShouldBeFalse();
     }
     
     public abstract Task MessagesCanBeFetchedAfterFunctionWithInitialMessagesHasBeenCreated();
@@ -1039,7 +1039,7 @@ public abstract class StoreTests
     {
         var functionId = TestStoredId.Create();
         var store = await storeTask;
-        (await store.Interrupted(functionId)).ShouldBeNull();
+        (await store.GetFunction(functionId)).ShouldBeNull();
     }
     
     public abstract Task DefaultStateCanSetAndFetchedAfterwards();

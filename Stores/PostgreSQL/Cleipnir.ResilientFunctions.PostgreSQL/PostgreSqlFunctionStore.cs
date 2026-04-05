@@ -684,24 +684,6 @@ public class PostgreSqlFunctionStore : IFunctionStore
         await command.ExecuteNonQueryAsync();
     }
 
-    private string? _interruptedSql;
-    public async Task<bool?> Interrupted(StoredId storedId)
-    {
-        await using var conn = await CreateConnection();
-
-        _interruptedSql ??= $@"
-                SELECT interrupted 
-                FROM {_tableName}
-                WHERE id = $1";
-        await using var command = new NpgsqlCommand(_interruptedSql, conn)
-        {
-            Parameters =
-            {
-                new() { Value = storedId.AsGuid },
-            }
-        };
-        return (bool?) await command.ExecuteScalarAsync();
-    }
 
     private string? _getFunctionStatusSql;
     public async Task<Status?> GetFunctionStatus(StoredId storedId)
