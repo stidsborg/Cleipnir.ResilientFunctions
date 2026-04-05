@@ -37,7 +37,17 @@ public class SqlGenerator(string tablePrefix)
 
         return StoreCommand.Create(sql, values: [ storedIds.Select(id => id.AsGuid).ToArray() ]);
     }
-    
+
+    public StoreCommand ResetInterrupted(IEnumerable<StoredId> storedIds)
+    {
+        var sql = @$"
+                UPDATE {tablePrefix}
+                SET interrupted = FALSE
+                WHERE Id = ANY($1)";
+
+        return StoreCommand.Create(sql, values: [ storedIds.Select(id => id.AsGuid).ToArray() ]);
+    }
+
     private string? _getEffectResultsSql;
     public StoreCommand GetEffects(StoredId storedId)
     {

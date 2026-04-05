@@ -99,6 +99,10 @@ public class StoreTests : TestTemplates.StoreTests
         => RestartingFunctionShouldSetInterruptedToFalse(FunctionStoreFactory.Create());
 
     [TestMethod]
+    public override Task ResetInterruptedClearsInterruptedFlag()
+        => ResetInterruptedClearsInterruptedFlag(FunctionStoreFactory.Create());
+
+    [TestMethod]
     public override Task MessagesCanBeFetchedAfterFunctionWithInitialMessagesHasBeenCreated()
         => MessagesCanBeFetchedAfterFunctionWithInitialMessagesHasBeenCreated(FunctionStoreFactory.Create());
 
