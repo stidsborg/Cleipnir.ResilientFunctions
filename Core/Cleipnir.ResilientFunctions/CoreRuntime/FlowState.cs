@@ -12,23 +12,24 @@ internal class FlowState
     private readonly Lock _lock = new();
 
     public StoredId Id { get; }
-    public Action Suspend { get; }
+    public Action SignalSuspendedToInvoker { get; }
     public QueueManager QueueManager { get; }
     public int Threads { get; private set; }
     public int SuspendedThreads { get; private set; }
     public FlowTimeouts Timeouts { get; }
-    public AsyncSignal Signal { get; } = new();
+    public AsyncSignal InterruptSignal { get; } = new();
+    public bool Suspended { get; private set; }
 
     public FlowState(
         StoredId id,
-        Action suspend,
+        Action signalSuspendedToInvoker,
         QueueManager queueManager,
         int threads,
         int suspendedThreads,
         FlowTimeouts timeouts)
     {
         Id = id;
-        Suspend = suspend;
+        SignalSuspendedToInvoker = signalSuspendedToInvoker;
         QueueManager = queueManager;
         Threads = threads;
         SuspendedThreads = suspendedThreads;
@@ -47,19 +48,39 @@ internal class FlowState
             Threads--;
     }
 
-    public async Task ThreadSuspended()
+    public void ThreadSuspended()
     {
         lock (_lock)
             SuspendedThreads++;
+    }
 
-        await Signal.Wait();
+    public bool ResumeThread()
+    {
+        lock (_lock)
+            if (Suspended)
+                return false;
+            else
+                SuspendedThreads--;
+
+        return true;
     }
 
     public void Interrupt()
     {
         lock (_lock)
+        {
+            if (Suspended)
+                return;
+            
             SuspendedThreads = 0;
+        }
+        
+        InterruptSignal.Fire();
+    }
 
-        Signal.Fire();
+    public bool Suspend()
+    {
+        lock (_lock)
+            return Threads == SuspendedThreads && (Suspended = true);
     }
 }

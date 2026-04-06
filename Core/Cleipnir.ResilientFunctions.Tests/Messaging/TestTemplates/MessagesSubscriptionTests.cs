@@ -559,6 +559,8 @@ public abstract class MessagesSubscriptionTests
             inner: async Task<string> (string _, Workflow workflow) =>
             {
 
+                var flowTimeouts = new FlowTimeouts();
+                var flowsManager = new FlowsManager(functionStore, () => DateTime.UtcNow);
                 var queueManager = new QueueManager(
                     workflow.FlowId,
                     workflow.StoredId,
@@ -566,12 +568,13 @@ public abstract class MessagesSubscriptionTests
                     exceptionThrowingSerializer,
                     workflow.Effect,
                     unhandledExceptionHandler,
-                    new FlowTimeouts(),
+                    flowTimeouts,
                     () => DateTime.UtcNow,
                     SettingsWithDefaults.Default,
-                    new FlowsManager(functionStore, () => DateTime.UtcNow)
+                    flowsManager
                 );
 
+                flowsManager.AddFlow(workflow.StoredId, () => { }, queueManager, flowTimeouts);
                 var queueClient = await queueManager.CreateQueueClient();
 
                 var message = await queueClient.Pull<GoodMessage>(
@@ -620,6 +623,7 @@ public abstract class MessagesSubscriptionTests
             {
                 storedId = workflow.StoredId;
                 var minimumTimeout = new FlowTimeouts();
+                var flowsManager = new FlowsManager(functionStore, () => DateTime.UtcNow);
                 var queueManager = new QueueManager(
                     workflow.FlowId,
                     workflow.StoredId,
@@ -630,8 +634,10 @@ public abstract class MessagesSubscriptionTests
                     minimumTimeout,
                     () => DateTime.UtcNow,
                     SettingsWithDefaults.Default,
-                    new FlowsManager(functionStore, () => DateTime.UtcNow)
+                    flowsManager
                 );
+
+                flowsManager.AddFlow(workflow.StoredId, () => { }, queueManager, minimumTimeout);
 
                 var queueClient = await queueManager.CreateQueueClient();
 
@@ -677,6 +683,8 @@ public abstract Task PullEnvelopeReturnsEnvelopeWithReceiverAndSender();
             inner: async Task<string> (string _, Workflow workflow) =>
             {
 
+                var flowTimeouts = new FlowTimeouts();
+                var flowsManager = new FlowsManager(functionStore, () => DateTime.UtcNow);
                 var queueManager = new QueueManager(
                     workflow.FlowId,
                     workflow.StoredId,
@@ -684,12 +692,13 @@ public abstract Task PullEnvelopeReturnsEnvelopeWithReceiverAndSender();
                     DefaultSerializer.Instance,
                     workflow.Effect,
                     unhandledExceptionHandler,
-                    new FlowTimeouts(),
+                    flowTimeouts,
                     () => DateTime.UtcNow,
                     SettingsWithDefaults.Default,
-                    new FlowsManager(functionStore, () => DateTime.UtcNow)
+                    flowsManager
                 );
 
+                flowsManager.AddFlow(workflow.StoredId, () => { }, queueManager, flowTimeouts);
                 var queueClient = await queueManager.CreateQueueClient();
 
                 // Pull envelope for specific receiver
