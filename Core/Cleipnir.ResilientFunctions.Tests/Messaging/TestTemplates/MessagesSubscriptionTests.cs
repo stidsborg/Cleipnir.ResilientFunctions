@@ -559,8 +559,8 @@ public abstract class MessagesSubscriptionTests
             inner: async Task<string> (string _, Workflow workflow) =>
             {
 
-                var flowTimeouts = new FlowTimeouts();
                 var flowsManager = new FlowsManager(functionStore);
+                var flowTimeouts = new FlowTimeouts(flowsManager);
                 var queueManager = new QueueManager(
                     workflow.FlowId,
                     workflow.StoredId,
@@ -622,8 +622,8 @@ public abstract class MessagesSubscriptionTests
             inner: async Task<string> (string _, Workflow workflow) =>
             {
                 storedId = workflow.StoredId;
-                var minimumTimeout = new FlowTimeouts();
                 var flowsManager = new FlowsManager(functionStore);
+                var minimumTimeout = new FlowTimeouts(flowsManager);
                 var queueManager = new QueueManager(
                     workflow.FlowId,
                     workflow.StoredId,
@@ -683,8 +683,8 @@ public abstract Task PullEnvelopeReturnsEnvelopeWithReceiverAndSender();
             inner: async Task<string> (string _, Workflow workflow) =>
             {
 
-                var flowTimeouts = new FlowTimeouts();
                 var flowsManager = new FlowsManager(functionStore);
+                var flowTimeouts = new FlowTimeouts(flowsManager);
                 var queueManager = new QueueManager(
                     workflow.FlowId,
                     workflow.StoredId,

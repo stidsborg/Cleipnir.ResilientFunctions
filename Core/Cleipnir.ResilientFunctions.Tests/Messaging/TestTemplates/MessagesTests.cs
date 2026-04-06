@@ -34,8 +34,8 @@ public abstract class MessagesTests
             inner: async Task<string> (string _, Workflow workflow) =>
             {
 
-                var flowTimeouts = new FlowTimeouts();
                 var flowsManager = new FlowsManager(functionStore);
+                var flowTimeouts = new FlowTimeouts(flowsManager);
                 var queueManager = new QueueManager(
                     workflow.FlowId,
                     workflow.StoredId,
@@ -86,8 +86,8 @@ public abstract class MessagesTests
             inner: async Task<string?> (string _, Workflow workflow) =>
             {
 
-                var flowTimeouts = new FlowTimeouts();
                 var flowsManager = new FlowsManager(functionStore);
+                var flowTimeouts = new FlowTimeouts(flowsManager);
                 var queueManager = new QueueManager(
                     workflow.FlowId,
                     workflow.StoredId,
@@ -133,8 +133,8 @@ public abstract class MessagesTests
             inner: async Task<string> (string _, Workflow workflow) =>
             {
 
-                var flowTimeouts = new FlowTimeouts();
                 var flowsManager = new FlowsManager(functionStore);
+                var flowTimeouts = new FlowTimeouts(flowsManager);
                 var queueManager = new QueueManager(
                     workflow.FlowId,
                     workflow.StoredId,
@@ -185,8 +185,8 @@ public abstract class MessagesTests
             inner: async Task<string> (string _, Workflow workflow) =>
             {
 
-                var flowTimeouts = new FlowTimeouts();
                 var flowsManager = new FlowsManager(functionStore);
+                var flowTimeouts = new FlowTimeouts(flowsManager);
                 var queueManager = new QueueManager(
                     workflow.FlowId,
                     workflow.StoredId,
@@ -238,8 +238,8 @@ public abstract class MessagesTests
             inner: async Task<string> (string _, Workflow workflow) =>
             {
 
-                var flowTimeouts = new FlowTimeouts();
                 var flowsManager = new FlowsManager(functionStore);
+                var flowTimeouts = new FlowTimeouts(flowsManager);
                 var queueManager = new QueueManager(
                     workflow.FlowId,
                     workflow.StoredId,
@@ -292,8 +292,8 @@ public abstract class MessagesTests
             {
                 storedId = workflow.StoredId;
 
-                var flowTimeouts = new FlowTimeouts();
                 var flowsManager = new FlowsManager(functionStore);
+                var flowTimeouts = new FlowTimeouts(flowsManager);
                 var queueManager = new QueueManager(
                     workflow.FlowId,
                     workflow.StoredId,
@@ -348,8 +348,8 @@ public abstract class MessagesTests
             {
                 storedId = workflow.StoredId;
 
-                var flowTimeouts = new FlowTimeouts();
                 var flowsManager = new FlowsManager(functionStore);
+                var flowTimeouts = new FlowTimeouts(flowsManager);
                 var queueManager = new QueueManager(
                     workflow.FlowId,
                     workflow.StoredId,
@@ -402,8 +402,8 @@ public abstract class MessagesTests
             async Task (workflow) =>
             {
 
-                var flowTimeouts = new FlowTimeouts();
                 var flowsManager = new FlowsManager(functionStore);
+                var flowTimeouts = new FlowTimeouts(flowsManager);
                 var queueManager = new QueueManager(
                     workflow.FlowId,
                     workflow.StoredId,
@@ -468,8 +468,8 @@ public abstract class MessagesTests
             async Task (workflow) =>
             {
 
-                var flowTimeouts = new FlowTimeouts();
                 var flowsManager = new FlowsManager(functionStore);
+                var flowTimeouts = new FlowTimeouts(flowsManager);
                 var queueManager = new QueueManager(
                     workflow.FlowId,
                     workflow.StoredId,
@@ -536,8 +536,8 @@ public abstract class MessagesTests
             async Task (workflow) =>
             {
 
-                var flowTimeouts = new FlowTimeouts();
                 var flowsManager = new FlowsManager(functionStore);
+                var flowTimeouts = new FlowTimeouts(flowsManager);
                 var queueManager = new QueueManager(
                     workflow.FlowId,
                     workflow.StoredId,
@@ -566,8 +566,8 @@ public abstract class MessagesTests
             async Task (workflow) =>
             {
 
-                var flowTimeouts = new FlowTimeouts();
                 var flowsManager = new FlowsManager(functionStore);
+                var flowTimeouts = new FlowTimeouts(flowsManager);
                 var queueManager = new QueueManager(
                     workflow.FlowId,
                     workflow.StoredId,
