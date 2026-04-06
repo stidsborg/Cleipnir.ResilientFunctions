@@ -13,11 +13,13 @@ public class FlowsManager : IDisposable
 {
     private readonly Dictionary<StoredId, FlowState> _dict = new();
     private readonly Lock _lock = new();
+    private readonly IFunctionStore _functionStore;
     private readonly UtcNow _utcNow;
     private volatile bool _disposed;
 
-    public FlowsManager(UtcNow utcNow)
+    public FlowsManager(IFunctionStore functionStore, UtcNow utcNow)
     {
+        _functionStore = functionStore;
         _utcNow = utcNow;
         _ = Task.Run(TimeoutCheckLoop);
     }
@@ -54,20 +56,19 @@ public class FlowsManager : IDisposable
             _dict.Remove(id);
     }
 
-    public void Interrupt(IEnumerable<StoredId> ids)
+    public async Task Interrupt(IReadOnlyList<StoredId> ids)
     {
+        await _functionStore.ResetInterrupted(ids);
+        
         lock (_lock)
-        {
             foreach (var id in ids)
             {
                 if (!_dict.TryGetValue(id, out var flowState))
                     continue;
-
+                
                 flowState.Interrupt();
                 Task.Run(() => flowState.QueueManager.FetchMessagesOnce());
             }
-
-        }
     }
 
     public void StartThread(StoredId id)

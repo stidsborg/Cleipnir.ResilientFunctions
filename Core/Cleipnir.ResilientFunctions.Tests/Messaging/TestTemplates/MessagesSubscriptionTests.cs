@@ -569,7 +569,7 @@ public abstract class MessagesSubscriptionTests
                     new FlowTimeouts(),
                     () => DateTime.UtcNow,
                     SettingsWithDefaults.Default,
-                    new FlowsManager(() => DateTime.UtcNow)
+                    new FlowsManager(functionStore, () => DateTime.UtcNow)
                 );
 
                 var queueClient = await queueManager.CreateQueueClient();
@@ -630,7 +630,7 @@ public abstract class MessagesSubscriptionTests
                     minimumTimeout,
                     () => DateTime.UtcNow,
                     SettingsWithDefaults.Default,
-                    new FlowsManager(() => DateTime.UtcNow)
+                    new FlowsManager(functionStore, () => DateTime.UtcNow)
                 );
 
                 var queueClient = await queueManager.CreateQueueClient();
@@ -687,7 +687,7 @@ public abstract Task PullEnvelopeReturnsEnvelopeWithReceiverAndSender();
                     new FlowTimeouts(),
                     () => DateTime.UtcNow,
                     SettingsWithDefaults.Default,
-                    new FlowsManager(() => DateTime.UtcNow)
+                    new FlowsManager(functionStore, () => DateTime.UtcNow)
                 );
 
                 var queueClient = await queueManager.CreateQueueClient();
