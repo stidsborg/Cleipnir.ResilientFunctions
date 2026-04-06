@@ -276,7 +276,7 @@ public class Invoker<TParam, TReturn>
             disposables.Add(isWorkflowRunningDisposable);
             success = persisted;
 
-            var flowTimeouts = new FlowTimeouts();
+            var flowTimeouts = new FlowTimeouts(_flowsManager);
 
             var effect = _invocationHelper.CreateEffect(
                 storedId,
@@ -334,7 +334,7 @@ public class Invoker<TParam, TReturn>
             var isWorkflowRunningDisposable = new PropertyDisposable();
             disposables.Add(isWorkflowRunningDisposable);
             
-            var flowTimeouts = new FlowTimeouts();
+            var flowTimeouts = new FlowTimeouts(_flowsManager);
 
             var effect = _invocationHelper.CreateEffect(storedId, flowId, effects, flowTimeouts, storageSession, _flowsManager);
 

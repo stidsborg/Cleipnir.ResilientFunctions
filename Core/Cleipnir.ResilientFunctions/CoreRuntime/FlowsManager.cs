@@ -14,32 +14,11 @@ public class FlowsManager : IDisposable
     private readonly Dictionary<StoredId, FlowState> _dict = new();
     private readonly Lock _lock = new();
     private readonly IFunctionStore _functionStore;
-    private readonly UtcNow _utcNow;
     private volatile bool _disposed;
 
-    public FlowsManager(IFunctionStore functionStore, UtcNow utcNow)
+    public FlowsManager(IFunctionStore functionStore)
     {
         _functionStore = functionStore;
-        _utcNow = utcNow;
-        _ = Task.Run(TimeoutCheckLoop);
-    }
-
-    private async Task TimeoutCheckLoop()
-    {
-        while (!_disposed)
-        {
-            var expiredStates = new List<FlowState>();
-            var now = _utcNow();
-            lock (_lock)
-                foreach (var (_, status) in _dict)
-                    if (status.Timeouts.HasExpiredTimeouts(now))
-                        expiredStates.Add(status);
-
-            foreach (var status in expiredStates)
-                status.Timeouts.SignalExpiredTimeouts(now);
-
-            await Task.Delay(10);
-        }
     }
 
     public void Dispose() => _disposed = true;
