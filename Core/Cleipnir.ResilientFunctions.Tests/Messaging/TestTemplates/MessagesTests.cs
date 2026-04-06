@@ -34,6 +34,8 @@ public abstract class MessagesTests
             inner: async Task<string> (string _, Workflow workflow) =>
             {
 
+                var flowTimeouts = new FlowTimeouts();
+                var flowsManager = new FlowsManager(functionStore, () => DateTime.UtcNow);
                 var queueManager = new QueueManager(
                     workflow.FlowId,
                     workflow.StoredId,
@@ -41,12 +43,13 @@ public abstract class MessagesTests
                     DefaultSerializer.Instance,
                     workflow.Effect,
                     unhandledExceptionHandler,
-                    new FlowTimeouts(),
+                    flowTimeouts,
                     () => DateTime.UtcNow,
                     SettingsWithDefaults.Default,
-                    new FlowsManager(functionStore, () => DateTime.UtcNow)
+                    flowsManager
                 );
 
+                flowsManager.AddFlow(workflow.StoredId, () => { }, queueManager, flowTimeouts);
                 queueClient = await queueManager.CreateQueueClient();
                 var message = await queueClient.Pull<string>(workflow, workflow.Effect.CreateNextImplicitId());
 
@@ -182,6 +185,8 @@ public abstract class MessagesTests
             inner: async Task<string> (string _, Workflow workflow) =>
             {
 
+                var flowTimeouts = new FlowTimeouts();
+                var flowsManager = new FlowsManager(functionStore, () => DateTime.UtcNow);
                 var queueManager = new QueueManager(
                     workflow.FlowId,
                     workflow.StoredId,
@@ -189,12 +194,13 @@ public abstract class MessagesTests
                     DefaultSerializer.Instance,
                     workflow.Effect,
                     unhandledExceptionHandler,
-                    new FlowTimeouts(),
+                    flowTimeouts,
                     () => DateTime.UtcNow,
                     SettingsWithDefaults.Default,
-                    new FlowsManager(functionStore, () => DateTime.UtcNow)
+                    flowsManager
                 );
 
+                flowsManager.AddFlow(workflow.StoredId, () => { }, queueManager, flowTimeouts);
                 var queueClient = await queueManager.CreateQueueClient();
                 var message = await queueClient.Pull<object>(
                     workflow,
@@ -232,6 +238,8 @@ public abstract class MessagesTests
             inner: async Task<string> (string _, Workflow workflow) =>
             {
 
+                var flowTimeouts = new FlowTimeouts();
+                var flowsManager = new FlowsManager(functionStore, () => DateTime.UtcNow);
                 var queueManager = new QueueManager(
                     workflow.FlowId,
                     workflow.StoredId,
@@ -239,12 +247,13 @@ public abstract class MessagesTests
                     DefaultSerializer.Instance,
                     workflow.Effect,
                     unhandledExceptionHandler,
-                    new FlowTimeouts(),
+                    flowTimeouts,
                     () => DateTime.UtcNow,
                     SettingsWithDefaults.Default,
-                    new FlowsManager(functionStore, () => DateTime.UtcNow)
+                    flowsManager
                 );
 
+                flowsManager.AddFlow(workflow.StoredId, () => { }, queueManager, flowTimeouts);
                 var queueClient = await queueManager.CreateQueueClient();
                 var message = await queueClient.Pull<string>(
                     workflow,
@@ -283,6 +292,8 @@ public abstract class MessagesTests
             {
                 storedId = workflow.StoredId;
 
+                var flowTimeouts = new FlowTimeouts();
+                var flowsManager = new FlowsManager(functionStore, () => DateTime.UtcNow);
                 var queueManager = new QueueManager(
                     workflow.FlowId,
                     workflow.StoredId,
@@ -290,12 +301,13 @@ public abstract class MessagesTests
                     DefaultSerializer.Instance,
                     workflow.Effect,
                     unhandledExceptionHandler,
-                    new FlowTimeouts(),
+                    flowTimeouts,
                     () => DateTime.UtcNow,
                     SettingsWithDefaults.Default,
-                    new FlowsManager(functionStore, () => DateTime.UtcNow)
+                    flowsManager
                 );
 
+                flowsManager.AddFlow(workflow.StoredId, () => { }, queueManager, flowTimeouts);
                 var queueClient = await queueManager.CreateQueueClient();
                 var message1 = await queueClient.Pull<string>(workflow, workflow.Effect.CreateNextImplicitId());
                 var message2 = await queueClient.Pull<string>(workflow, workflow.Effect.CreateNextImplicitId());
@@ -336,6 +348,8 @@ public abstract class MessagesTests
             {
                 storedId = workflow.StoredId;
 
+                var flowTimeouts = new FlowTimeouts();
+                var flowsManager = new FlowsManager(functionStore, () => DateTime.UtcNow);
                 var queueManager = new QueueManager(
                     workflow.FlowId,
                     workflow.StoredId,
@@ -343,12 +357,13 @@ public abstract class MessagesTests
                     DefaultSerializer.Instance,
                     workflow.Effect,
                     unhandledExceptionHandler,
-                    new FlowTimeouts(),
+                    flowTimeouts,
                     () => DateTime.UtcNow,
                     SettingsWithDefaults.Default,
-                    new FlowsManager(functionStore, () => DateTime.UtcNow)
+                    flowsManager
                 );
 
+                flowsManager.AddFlow(workflow.StoredId, () => { }, queueManager, flowTimeouts);
                 var queueClient = await queueManager.CreateQueueClient();
 
                 var message1 = await queueClient.Pull<string>(workflow, workflow.Effect.CreateNextImplicitId());
@@ -387,6 +402,8 @@ public abstract class MessagesTests
             async Task (workflow) =>
             {
 
+                var flowTimeouts = new FlowTimeouts();
+                var flowsManager = new FlowsManager(functionStore, () => DateTime.UtcNow);
                 var queueManager = new QueueManager(
                     workflow.FlowId,
                     workflow.StoredId,
@@ -394,12 +411,13 @@ public abstract class MessagesTests
                     DefaultSerializer.Instance,
                     workflow.Effect,
                     unhandledExceptionHandler,
-                    new FlowTimeouts(),
+                    flowTimeouts,
                     () => DateTime.UtcNow,
                     SettingsWithDefaults.Default with { MessagesDefaultMaxWaitForCompletion = TimeSpan.FromMinutes(1) },
-                    new FlowsManager(functionStore, () => DateTime.UtcNow)
+                    flowsManager
                 );
 
+                flowsManager.AddFlow(workflow.StoredId, () => { }, queueManager, flowTimeouts);
                 var queueClient = await queueManager.CreateQueueClient();
                 lock (queueClients)
                     queueClients[workflow.FlowId.Instance.Value] = queueClient;
@@ -450,6 +468,8 @@ public abstract class MessagesTests
             async Task (workflow) =>
             {
 
+                var flowTimeouts = new FlowTimeouts();
+                var flowsManager = new FlowsManager(functionStore, () => DateTime.UtcNow);
                 var queueManager = new QueueManager(
                     workflow.FlowId,
                     workflow.StoredId,
@@ -457,12 +477,13 @@ public abstract class MessagesTests
                     DefaultSerializer.Instance,
                     workflow.Effect,
                     unhandledExceptionHandler,
-                    new FlowTimeouts(),
+                    flowTimeouts,
                     () => DateTime.UtcNow,
                     SettingsWithDefaults.Default,
-                    new FlowsManager(functionStore, () => DateTime.UtcNow)
+                    flowsManager
                 );
 
+                flowsManager.AddFlow(workflow.StoredId, () => { }, queueManager, flowTimeouts);
                 var queueClient = await queueManager.CreateQueueClient();
 
                 while (true)
@@ -515,6 +536,8 @@ public abstract class MessagesTests
             async Task (workflow) =>
             {
 
+                var flowTimeouts = new FlowTimeouts();
+                var flowsManager = new FlowsManager(functionStore, () => DateTime.UtcNow);
                 var queueManager = new QueueManager(
                     workflow.FlowId,
                     workflow.StoredId,
@@ -522,12 +545,13 @@ public abstract class MessagesTests
                     DefaultSerializer.Instance,
                     workflow.Effect,
                     unhandledExceptionHandler,
-                    new FlowTimeouts(),
+                    flowTimeouts,
                     () => DateTime.UtcNow,
                     SettingsWithDefaults.Default,
-                    new FlowsManager(functionStore, () => DateTime.UtcNow)
+                    flowsManager
                 );
 
+                flowsManager.AddFlow(workflow.StoredId, () => { }, queueManager, flowTimeouts);
                 var queueClient = await queueManager.CreateQueueClient();
 
                 for (var i = 0; i < 10; i++)
@@ -542,6 +566,8 @@ public abstract class MessagesTests
             async Task (workflow) =>
             {
 
+                var flowTimeouts = new FlowTimeouts();
+                var flowsManager = new FlowsManager(functionStore, () => DateTime.UtcNow);
                 var queueManager = new QueueManager(
                     workflow.FlowId,
                     workflow.StoredId,
@@ -549,12 +575,13 @@ public abstract class MessagesTests
                     DefaultSerializer.Instance,
                     workflow.Effect,
                     unhandledExceptionHandler,
-                    new FlowTimeouts(),
+                    flowTimeouts,
                     () => DateTime.UtcNow,
                     SettingsWithDefaults.Default,
-                    new FlowsManager(functionStore, () => DateTime.UtcNow)
+                    flowsManager
                 );
 
+                flowsManager.AddFlow(workflow.StoredId, () => { }, queueManager, flowTimeouts);
                 var queueClient = await queueManager.CreateQueueClient();
 
                 for (var i = 0; i < 10; i++)

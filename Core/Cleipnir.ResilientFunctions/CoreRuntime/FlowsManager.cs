@@ -91,7 +91,7 @@ public class FlowsManager : IDisposable
             if (_dict.TryGetValue(id, out var flowState))
                 return flowState.ResumeThread();
 
-        return true;
+        return false;
     }
 
     public void SuspendThread(StoredId id)
