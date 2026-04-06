@@ -84,6 +84,7 @@ public abstract class MessagesTests
             {
 
                 var flowTimeouts = new FlowTimeouts();
+                var flowsManager = new FlowsManager(functionStore, () => DateTime.UtcNow);
                 var queueManager = new QueueManager(
                     workflow.FlowId,
                     workflow.StoredId,
@@ -94,10 +95,9 @@ public abstract class MessagesTests
                     flowTimeouts,
                     () => DateTime.UtcNow,
                     SettingsWithDefaults.Default,
-                    new FlowsManager(functionStore, () => DateTime.UtcNow)
+                    flowsManager
                 );
 
-                var flowsManager = new FlowsManager(functionStore, () => DateTime.UtcNow);
                 flowsManager.AddFlow(workflow.StoredId, () => { }, queueManager, flowTimeouts);
                 var queueClient = await queueManager.CreateQueueClient();
                 var message = await queueClient.Pull<string>(workflow, workflow.Effect.CreateNextImplicitId(), TimeSpan.FromMilliseconds(100));
@@ -131,6 +131,7 @@ public abstract class MessagesTests
             {
 
                 var flowTimeouts = new FlowTimeouts();
+                var flowsManager = new FlowsManager(functionStore, () => DateTime.UtcNow);
                 var queueManager = new QueueManager(
                     workflow.FlowId,
                     workflow.StoredId,
@@ -141,10 +142,9 @@ public abstract class MessagesTests
                     flowTimeouts,
                     () => DateTime.UtcNow,
                     SettingsWithDefaults.Default,
-                    new FlowsManager(functionStore, () => DateTime.UtcNow)
+                    flowsManager
                 );
 
-                var flowsManager = new FlowsManager(functionStore, () => DateTime.UtcNow);
                 flowsManager.AddFlow(workflow.StoredId, () => { }, queueManager, flowTimeouts);
                 var queueClient = await queueManager.CreateQueueClient();
                 var message = await queueClient.Pull<object>(
