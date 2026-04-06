@@ -30,7 +30,7 @@ public class QueueManager(
 {
     private readonly Lock _lock = new();
 
-    private readonly EffectId _toRemoveNextIndex = new([-1, 0]);
+    private readonly EffectId _toRemoveNextId = new([-1, 0]);
     private readonly EffectId _idempotencyKeysId = new([-1, -1]);
     private readonly List<MessageData> _toDeliver = new();
     private readonly HashSet<long> _fetchedPositions = new();
@@ -59,8 +59,8 @@ public class QueueManager(
             _idempotencyKeys = new IdempotencyKeys(_idempotencyKeysId, effect, maxIdempotencyKeyCount, maxIdempotencyKeyTtl, utcNow);
             _idempotencyKeys.Initialize();
 
-            _nextToRemoveIndex = await effect.CreateOrGet(_toRemoveNextIndex, 0, alias: null, flush: false);
-            var children = effect.GetChildren(_toRemoveNextIndex);
+            _nextToRemoveIndex = await effect.CreateOrGet(_toRemoveNextId, 0, alias: null, flush: false);
+            var children = effect.GetChildren(_toRemoveNextId);
             var positions = new List<long>();
             foreach (var childId in children)
             {
@@ -168,7 +168,7 @@ public class QueueManager(
                     var matched = _toDeliver[i];
                     _toDeliver.RemoveAt(i);
                     var positionToRemoveIndex = _nextToRemoveIndex++;
-                    effect.FlushlessUpsert(_toRemoveNextIndex, _nextToRemoveIndex, alias: null);
+                    effect.FlushlessUpsert(_toRemoveNextId, _nextToRemoveIndex, alias: null);
                     return (matched, positionToRemoveIndex, interruptedSignal);
                 }
 
@@ -190,7 +190,7 @@ public class QueueManager(
         await _semaphoreSlim.WaitAsync();
         try
         {
-            var children = effect.GetChildren(_toRemoveNextIndex);
+            var children = effect.GetChildren(_toRemoveNextId);
             var nonDirtyChildren = new List<EffectId>();
             foreach (var childId in children)
                 if (!effect.IsDirty(childId))
@@ -271,9 +271,13 @@ public class QueueManager(
                 timeouts.RemoveTimeout(timeoutId);
                 return matched.Envelope;
             }
-
+            
+            flowsManager.SuspendThread(storedId);
             await Task.WhenAny(interruptSignal, timeoutTask, maxWaitTask);
-
+            var success = flowsManager.ThreadResumed(storedId);
+            if (!success)
+                await new TaskCompletionSource().Task;
+            
             if (timeoutTask.IsCompleted)
                 return null;
 

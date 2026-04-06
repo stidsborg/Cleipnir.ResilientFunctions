@@ -85,21 +85,27 @@ public class FlowsManager : IDisposable
                 flowState.ThreadCompleted();
     }
 
-    public async Task SuspendThread(StoredId id)
+    public bool ThreadResumed(StoredId id)
     {
-        FlowState? flowState;
         lock (_lock)
-            _dict.TryGetValue(id, out flowState);
+            if (_dict.TryGetValue(id, out var flowState))
+                return flowState.ResumeThread();
 
-        if (flowState != null)
-            await flowState.ThreadSuspended();
+        return false;
+    }
+
+    public void SuspendThread(StoredId id)
+    {
+        lock (_lock)
+            if (_dict.TryGetValue(id, out var flowState))
+                flowState.ThreadSuspended();
     }
 
     public Task GetInterruptedSignal(StoredId id)
     {
         lock (_lock)
             return _dict.TryGetValue(id, out var flowState)
-                ? flowState.Signal.Wait()
+                ? flowState.InterruptSignal.Wait()
                 : Task.CompletedTask;
     }
 
@@ -107,7 +113,7 @@ public class FlowsManager : IDisposable
     {
         lock (_lock)
             if (_dict.TryGetValue(id, out var flowState))
-                flowState.Signal.Fire();
+                flowState.InterruptSignal.Fire();
     }
 
     [DoesNotReturn]
