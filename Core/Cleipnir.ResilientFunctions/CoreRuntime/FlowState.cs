@@ -1,4 +1,3 @@
-using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Helpers;
@@ -7,33 +6,33 @@ using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.CoreRuntime;
 
-internal class FlowState
+public class FlowState
 {
     private readonly Lock _lock = new();
+    private readonly TaskCompletionSource _suspendedTcs = new();
 
     public StoredId Id { get; }
-    public Action SignalSuspendedToInvoker { get; }
     public QueueManager QueueManager { get; }
     public int Threads { get; private set; }
     public int SuspendedThreads { get; private set; }
     public FlowTimeouts Timeouts { get; }
     public AsyncSignal InterruptSignal { get; } = new();
     public bool Suspended { get; private set; }
+    public Task SuspendedTask { get; }
 
     public FlowState(
         StoredId id,
-        Action signalSuspendedToInvoker,
         QueueManager queueManager,
         int threads,
         int suspendedThreads,
         FlowTimeouts timeouts)
     {
         Id = id;
-        SignalSuspendedToInvoker = signalSuspendedToInvoker;
         QueueManager = queueManager;
         Threads = threads;
         SuspendedThreads = suspendedThreads;
         Timeouts = timeouts;
+        SuspendedTask = _suspendedTcs.Task;
     }
 
     public void NewThreadStarted()
@@ -83,4 +82,6 @@ internal class FlowState
         lock (_lock)
             return Threads == SuspendedThreads && (Suspended = true);
     }
+
+    public void NotifySuspension() => _suspendedTcs.TrySetResult();
 }
