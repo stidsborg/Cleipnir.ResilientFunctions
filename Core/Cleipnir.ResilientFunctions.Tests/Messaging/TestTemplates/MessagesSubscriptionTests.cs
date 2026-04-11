@@ -574,7 +574,7 @@ public abstract class MessagesSubscriptionTests
                     flowsManager
                 );
 
-                flowsManager.AddFlow(workflow.StoredId, () => { }, queueManager, flowTimeouts);
+                flowsManager.AddFlow(workflow.StoredId, queueManager,flowTimeouts);
                 var queueClient = await queueManager.CreateQueueClient();
 
                 var message = await queueClient.Pull<GoodMessage>(
@@ -637,7 +637,7 @@ public abstract class MessagesSubscriptionTests
                     flowsManager
                 );
 
-                flowsManager.AddFlow(workflow.StoredId, () => { }, queueManager, minimumTimeout);
+                flowsManager.AddFlow(workflow.StoredId, queueManager,minimumTimeout);
 
                 var queueClient = await queueManager.CreateQueueClient();
 
@@ -698,7 +698,7 @@ public abstract Task PullEnvelopeReturnsEnvelopeWithReceiverAndSender();
                     flowsManager
                 );
 
-                flowsManager.AddFlow(workflow.StoredId, () => { }, queueManager, flowTimeouts);
+                flowsManager.AddFlow(workflow.StoredId, queueManager,flowTimeouts);
                 var queueClient = await queueManager.CreateQueueClient();
 
                 // Pull envelope for specific receiver

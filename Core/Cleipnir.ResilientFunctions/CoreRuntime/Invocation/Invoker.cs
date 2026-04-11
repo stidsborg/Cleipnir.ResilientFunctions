@@ -62,12 +62,12 @@ public class Invoker<TParam, TReturn>
             return _invocationHelper.CreateInnerScheduled([flowId], parentWorkflow, detach);
 
         var tcs = new TaskCompletionSource<TReturn>();
-        _flowsManager.AddFlow(
+        var flowState = _flowsManager.AddFlow(
             storedId,
-            suspend: () => tcs.TrySetException(new InvocationSuspendedException(flowId)),
             queueManager,
             timeouts
         );
+        _ = flowState.SuspendedTask.ContinueWith(_ => tcs.TrySetException(new InvocationSuspendedException(flowId)));
         _ = Task.Run(async () =>
         {
             try
@@ -162,12 +162,12 @@ public class Invoker<TParam, TReturn>
         var flowId = new FlowId(_flowType, humanInstanceId);
 
         var tcs = new TaskCompletionSource<TReturn>();
-        _flowsManager.AddFlow(
+        var flowState = _flowsManager.AddFlow(
             storedId,
-            suspend: () => tcs.TrySetException(new InvocationSuspendedException(flowId)),
             queueManager,
             timeouts
         );
+        _ = flowState.SuspendedTask.ContinueWith(_ => tcs.TrySetException(new InvocationSuspendedException(flowId)));
         _ = Task.Run(async () =>
         {
             CurrentFlow._workflow.Value = workflow;
@@ -221,12 +221,12 @@ public class Invoker<TParam, TReturn>
         var flowId = new FlowId(_flowType, humanInstanceId);
 
         var tcs = new TaskCompletionSource<TReturn>();
-        _flowsManager.AddFlow(
+        var flowState = _flowsManager.AddFlow(
             storedId,
-            suspend: () => tcs.TrySetException(new InvocationSuspendedException(flowId)),
             queueManager,
             timeouts
         );
+        _ = flowState.SuspendedTask.ContinueWith(_ => tcs.TrySetException(new InvocationSuspendedException(flowId)));
         _ = Task.Run(async () =>
         {
             CurrentFlow._workflow.Value = workflow;
