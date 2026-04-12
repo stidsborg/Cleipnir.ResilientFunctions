@@ -1,7 +1,6 @@
 using System.Threading;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Helpers;
-using Cleipnir.ResilientFunctions.Queuing;
 using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.CoreRuntime;
@@ -12,7 +11,6 @@ public class FlowState
     private readonly TaskCompletionSource _suspendedTcs = new();
 
     public StoredId Id { get; }
-    public QueueManager QueueManager { get; }
     public int Subflows { get; private set; }
     public int WaitingSubflows { get; private set; }
     public FlowTimeouts Timeouts { get; }
@@ -22,13 +20,11 @@ public class FlowState
 
     public FlowState(
         StoredId id,
-        QueueManager queueManager,
         int subflows,
         int waitingSubflows,
         FlowTimeouts timeouts)
     {
         Id = id;
-        QueueManager = queueManager;
         Subflows = subflows;
         WaitingSubflows = waitingSubflows;
         Timeouts = timeouts;

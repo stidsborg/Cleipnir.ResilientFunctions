@@ -433,8 +433,8 @@ internal class InvocationHelper<TParam, TReturn>
     public DistributedSemaphores CreateSemaphores(StoredId storedId, Effect effect, FlowsManager flowsManager)
         => new(effect, _functionStore.SemaphoreStore, storedId, Interrupt, flowsManager);
 
-    public QueueManager CreateQueueManager(FlowId flowId, StoredId storedId, Effect effect, FlowTimeouts timeouts, UnhandledExceptionHandler unhandledExceptionHandler)
-        => new(flowId, storedId, _functionStore.MessageStore, Serializer, effect, unhandledExceptionHandler, timeouts, UtcNow, _settings);
+    public QueueManager CreateQueueManager(FlowId flowId, StoredId storedId, Effect effect, FlowState flowState, FlowTimeouts timeouts, UnhandledExceptionHandler unhandledExceptionHandler)
+        => new(flowId, storedId, _functionStore.MessageStore, Serializer, effect, flowState, unhandledExceptionHandler, timeouts, UtcNow, _settings);
 
     public StoredId MapToStoredId(FlowId flowId) => StoredId.Create(_storedType, flowId.Instance.Value);
     

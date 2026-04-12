@@ -7,6 +7,7 @@ using Cleipnir.ResilientFunctions.CoreRuntime;
 using Cleipnir.ResilientFunctions.CoreRuntime.Serialization;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Exceptions.Commands;
+using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Storage;
 
@@ -20,6 +21,7 @@ public class QueueManager(
     IMessageStore messageStore,
     ISerializer serializer,
     Effect effect,
+    FlowState flowState,
     UnhandledExceptionHandler unhandledExceptionHandler,
     FlowTimeouts timeouts,
     UtcNow utcNow,
@@ -29,9 +31,6 @@ public class QueueManager(
     : IDisposable
 {
     private readonly Lock _lock = new();
-    private FlowState _flowState = null!;
-
-    public void AttachFlowState(FlowState flowState) => _flowState = flowState;
 
     private readonly EffectId _toRemoveNextId = new([-1, 0]);
     private readonly EffectId _idempotencyKeysId = new([-1, -1]);
@@ -40,6 +39,7 @@ public class QueueManager(
 
     private IdempotencyKeys? _idempotencyKeys;
     private int _nextToRemoveIndex = 0;
+    private readonly AsyncSignal _interruptSignal = new();
     private readonly SemaphoreSlim _semaphoreSlim = new SemaphoreSlim(1);
     private bool _initialized = false;
     private volatile bool _disposed;
@@ -84,6 +84,16 @@ public class QueueManager(
         {
             _semaphoreSlim.Release();
         }
+
+        _ = Task.Run(async () =>
+        {
+            while (!_disposed)
+            {
+                await flowState.InterruptSignal.Wait();
+                if (!_disposed)
+                    await FetchMessagesOnce();
+            }
+        });
         
         await FetchMessagesOnce();
         _ = Task.Run(FetchMessages);
@@ -154,14 +164,14 @@ public class QueueManager(
         }
         finally
         {
-            _flowState.InterruptSignal.Fire();
+            _interruptSignal.Fire();
             _semaphoreSlim.Release();
         }
     }
 
     private (MessageData? Matched, int PositionToRemoveIndex, Task PulseTask) TryTakeMessage(MessagePredicate predicate)
     {
-        var interruptedSignal = _flowState.InterruptSignal.Wait();
+        var interruptedSignal = _interruptSignal.Wait();
         
         lock (_lock)
         {
@@ -274,10 +284,10 @@ public class QueueManager(
                 timeouts.RemoveTimeout(timeoutId);
                 return matched.Envelope;
             }
-            
-            _flowState.SubflowWaiting();
+
+            flowState.SubflowWaiting();
             await Task.WhenAny(interruptSignal, timeoutTask, maxWaitTask);
-            var success = _flowState.ResumeSubflow();
+            var success = flowState.ResumeSubflow();
             if (!success)
                 await new TaskCompletionSource().Task;
 

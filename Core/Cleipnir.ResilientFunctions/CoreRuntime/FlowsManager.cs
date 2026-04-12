@@ -4,7 +4,6 @@ using System.Diagnostics.CodeAnalysis;
 using System.Threading;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain.Exceptions.Commands;
-using Cleipnir.ResilientFunctions.Queuing;
 using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.CoreRuntime;
@@ -44,14 +43,13 @@ public class FlowsManager : IDisposable
 
     public void Dispose() => _disposed = true;
 
-    public FlowState AddFlow(StoredId id, QueueManager queueManager, FlowTimeouts timeouts)
+    public FlowState CreateFlowState(StoredId id, FlowTimeouts timeouts)
+        => new(id, subflows: 1, waitingSubflows: 0, timeouts);
+
+    public void AddFlow(FlowState flowState)
     {
         lock (_lock)
-        {
-            var flowState = new FlowState(id, queueManager, subflows: 1, waitingSubflows: 0, timeouts);
-            queueManager.AttachFlowState(flowState);
-            return _dict[id] = flowState;
-        }
+            _dict[flowState.Id] = flowState;
     }
 
     public void RemoveFlow(StoredId id, FlowState flowState)
@@ -64,16 +62,11 @@ public class FlowsManager : IDisposable
     public async Task Interrupt(IReadOnlyList<StoredId> ids)
     {
         await _functionStore.ResetInterrupted(ids);
-        
+
         lock (_lock)
             foreach (var id in ids)
-            {
-                if (!_dict.TryGetValue(id, out var flowState))
-                    continue;
-                
-                flowState.Interrupt();
-                Task.Run(() => flowState.QueueManager.FetchMessagesOnce());
-            }
+                if (_dict.TryGetValue(id, out var flowState))
+                    flowState.Interrupt();
     }
 
     public void StartThread(StoredId id)
