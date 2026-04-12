@@ -50,10 +50,11 @@ public class FlowsManager : IDisposable
             return _dict[id] = new FlowState(id, queueManager, threads: 1, waitingThreads: 0, timeouts);
     }
 
-    public void RemoveFlow(StoredId id)
+    public void RemoveFlow(StoredId id, FlowState flowState)
     {
         lock (_lock)
-            _dict.Remove(id);
+            if (_dict.TryGetValue(id, out var existingState) && flowState == existingState)
+              _dict.Remove(id);
     }
 
     public async Task Interrupt(IReadOnlyList<StoredId> ids)

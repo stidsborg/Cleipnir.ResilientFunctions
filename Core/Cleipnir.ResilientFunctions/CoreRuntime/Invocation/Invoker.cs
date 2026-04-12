@@ -118,7 +118,7 @@ public class Invoker<TParam, TReturn>
             }
             finally
             {
-                _flowsManager.RemoveFlow(storedId);
+                _flowsManager.RemoveFlow(storedId, flowState);
             }
         });
 
@@ -208,7 +208,7 @@ public class Invoker<TParam, TReturn>
             }
             finally
             {
-                _flowsManager.RemoveFlow(storedId);
+                _flowsManager.RemoveFlow(storedId, flowState);
             }
         });
 
@@ -250,7 +250,7 @@ public class Invoker<TParam, TReturn>
                     tcs.TrySetCanceled();
             }
             catch (Exception exception) { _unhandledExceptionHandler.Invoke(_flowType, exception); tcs.TrySetException(exception); }
-            finally{ _flowsManager.RemoveFlow(storedId); onCompletion(); }
+            finally{ _flowsManager.RemoveFlow(storedId, flowState); onCompletion(); }
         });
     }
     
