@@ -47,7 +47,7 @@ public class FlowsManager : IDisposable
     public FlowState AddFlow(StoredId id, QueueManager queueManager, FlowTimeouts timeouts)
     {
         lock (_lock)
-            return _dict[id] = new FlowState(id, queueManager, threads: 1, suspendedThreads: 0, timeouts);
+            return _dict[id] = new FlowState(id, queueManager, threads: 1, waitingThreads: 0, timeouts);
     }
 
     public void RemoveFlow(StoredId id)

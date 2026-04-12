@@ -14,7 +14,7 @@ public class FlowState
     public StoredId Id { get; }
     public QueueManager QueueManager { get; }
     public int Threads { get; private set; }
-    public int SuspendedThreads { get; private set; }
+    public int WaitingThreads { get; private set; }
     public FlowTimeouts Timeouts { get; }
     public AsyncSignal InterruptSignal { get; } = new();
     public bool Suspended { get; private set; }
@@ -24,13 +24,13 @@ public class FlowState
         StoredId id,
         QueueManager queueManager,
         int threads,
-        int suspendedThreads,
+        int waitingThreads,
         FlowTimeouts timeouts)
     {
         Id = id;
         QueueManager = queueManager;
         Threads = threads;
-        SuspendedThreads = suspendedThreads;
+        WaitingThreads = waitingThreads;
         Timeouts = timeouts;
         SuspendedTask = _suspendedTcs.Task;
     }
@@ -50,7 +50,7 @@ public class FlowState
     public void ThreadSuspended()
     {
         lock (_lock)
-            SuspendedThreads++;
+            WaitingThreads++;
     }
 
     public bool ResumeThread()
@@ -59,7 +59,7 @@ public class FlowState
             if (Suspended)
                 return false;
             else
-                SuspendedThreads--;
+                WaitingThreads--;
 
         return true;
     }
@@ -71,7 +71,7 @@ public class FlowState
             if (Suspended)
                 return;
             
-            SuspendedThreads = 0;
+            WaitingThreads = 0;
         }
         
         InterruptSignal.Fire();
@@ -80,8 +80,12 @@ public class FlowState
     public bool Suspend()
     {
         lock (_lock)
-            return Threads == SuspendedThreads && (Suspended = true);
+            if (Threads == WaitingThreads)
+                Suspended = true;
+            else
+                return false;
+        
+        _suspendedTcs.TrySetResult();
+        return true;
     }
-
-    public void NotifySuspension() => _suspendedTcs.TrySetResult();
 }
