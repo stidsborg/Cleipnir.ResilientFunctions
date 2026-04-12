@@ -45,8 +45,7 @@ public abstract class MessagesTests
                     unhandledExceptionHandler,
                     flowTimeouts,
                     () => DateTime.UtcNow,
-                    SettingsWithDefaults.Default,
-                    flowsManager
+                    SettingsWithDefaults.Default
                 );
 
                 flowsManager.AddFlow(workflow.StoredId, queueManager,flowTimeouts);
@@ -97,8 +96,7 @@ public abstract class MessagesTests
                     unhandledExceptionHandler,
                     flowTimeouts,
                     () => DateTime.UtcNow,
-                    SettingsWithDefaults.Default,
-                    flowsManager
+                    SettingsWithDefaults.Default
                 );
 
                 flowsManager.AddFlow(workflow.StoredId, queueManager,flowTimeouts);
@@ -144,8 +142,7 @@ public abstract class MessagesTests
                     unhandledExceptionHandler,
                     flowTimeouts,
                     () => DateTime.UtcNow,
-                    SettingsWithDefaults.Default,
-                    flowsManager
+                    SettingsWithDefaults.Default
                 );
 
                 flowsManager.AddFlow(workflow.StoredId, queueManager,flowTimeouts);
@@ -196,8 +193,7 @@ public abstract class MessagesTests
                     unhandledExceptionHandler,
                     flowTimeouts,
                     () => DateTime.UtcNow,
-                    SettingsWithDefaults.Default,
-                    flowsManager
+                    SettingsWithDefaults.Default
                 );
 
                 flowsManager.AddFlow(workflow.StoredId, queueManager,flowTimeouts);
@@ -249,8 +245,7 @@ public abstract class MessagesTests
                     unhandledExceptionHandler,
                     flowTimeouts,
                     () => DateTime.UtcNow,
-                    SettingsWithDefaults.Default,
-                    flowsManager
+                    SettingsWithDefaults.Default
                 );
 
                 flowsManager.AddFlow(workflow.StoredId, queueManager,flowTimeouts);
@@ -303,8 +298,7 @@ public abstract class MessagesTests
                     unhandledExceptionHandler,
                     flowTimeouts,
                     () => DateTime.UtcNow,
-                    SettingsWithDefaults.Default,
-                    flowsManager
+                    SettingsWithDefaults.Default
                 );
 
                 flowsManager.AddFlow(workflow.StoredId, queueManager,flowTimeouts);
@@ -359,8 +353,7 @@ public abstract class MessagesTests
                     unhandledExceptionHandler,
                     flowTimeouts,
                     () => DateTime.UtcNow,
-                    SettingsWithDefaults.Default,
-                    flowsManager
+                    SettingsWithDefaults.Default
                 );
 
                 flowsManager.AddFlow(workflow.StoredId, queueManager,flowTimeouts);
@@ -413,8 +406,7 @@ public abstract class MessagesTests
                     unhandledExceptionHandler,
                     flowTimeouts,
                     () => DateTime.UtcNow,
-                    SettingsWithDefaults.Default with { MessagesDefaultMaxWaitForCompletion = TimeSpan.FromMinutes(1) },
-                    flowsManager
+                    SettingsWithDefaults.Default with { MessagesDefaultMaxWaitForCompletion = TimeSpan.FromMinutes(1) }
                 );
 
                 flowsManager.AddFlow(workflow.StoredId, queueManager,flowTimeouts);
@@ -479,8 +471,7 @@ public abstract class MessagesTests
                     unhandledExceptionHandler,
                     flowTimeouts,
                     () => DateTime.UtcNow,
-                    SettingsWithDefaults.Default,
-                    flowsManager
+                    SettingsWithDefaults.Default
                 );
 
                 flowsManager.AddFlow(workflow.StoredId, queueManager,flowTimeouts);
@@ -547,8 +538,7 @@ public abstract class MessagesTests
                     unhandledExceptionHandler,
                     flowTimeouts,
                     () => DateTime.UtcNow,
-                    SettingsWithDefaults.Default,
-                    flowsManager
+                    SettingsWithDefaults.Default
                 );
 
                 flowsManager.AddFlow(workflow.StoredId, queueManager,flowTimeouts);
@@ -577,8 +567,7 @@ public abstract class MessagesTests
                     unhandledExceptionHandler,
                     flowTimeouts,
                     () => DateTime.UtcNow,
-                    SettingsWithDefaults.Default,
-                    flowsManager
+                    SettingsWithDefaults.Default
                 );
 
                 flowsManager.AddFlow(workflow.StoredId, queueManager,flowTimeouts);

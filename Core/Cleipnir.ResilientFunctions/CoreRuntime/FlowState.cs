@@ -13,8 +13,8 @@ public class FlowState
 
     public StoredId Id { get; }
     public QueueManager QueueManager { get; }
-    public int Threads { get; private set; }
-    public int WaitingThreads { get; private set; }
+    public int Subflows { get; private set; }
+    public int WaitingSubflows { get; private set; }
     public FlowTimeouts Timeouts { get; }
     public AsyncSignal InterruptSignal { get; } = new();
     public bool Suspended { get; private set; }
@@ -23,43 +23,43 @@ public class FlowState
     public FlowState(
         StoredId id,
         QueueManager queueManager,
-        int threads,
-        int waitingThreads,
+        int subflows,
+        int waitingSubflows,
         FlowTimeouts timeouts)
     {
         Id = id;
         QueueManager = queueManager;
-        Threads = threads;
-        WaitingThreads = waitingThreads;
+        Subflows = subflows;
+        WaitingSubflows = waitingSubflows;
         Timeouts = timeouts;
         SuspendedTask = _suspendedTcs.Task;
     }
 
-    public void NewThreadStarted()
+    public void SubflowStarted()
     {
         lock (_lock)
-            Threads++;
+            Subflows++;
     }
 
-    public void ThreadCompleted()
+    public void SubflowCompleted()
     {
         lock (_lock)
-            Threads--;
+            Subflows--;
     }
 
-    public void ThreadSuspended()
+    public void SubflowWaiting()
     {
         lock (_lock)
-            WaitingThreads++;
+            WaitingSubflows++;
     }
 
-    public bool ResumeThread()
+    public bool ResumeSubflow()
     {
         lock (_lock)
             if (Suspended)
                 return false;
             else
-                WaitingThreads--;
+                WaitingSubflows--;
 
         return true;
     }
@@ -67,12 +67,10 @@ public class FlowState
     public void Interrupt()
     {
         lock (_lock)
-        {
             if (Suspended)
                 return;
-            
-            WaitingThreads = 0;
-        }
+            else
+                WaitingSubflows = 0;
         
         InterruptSignal.Fire();
     }
@@ -80,7 +78,7 @@ public class FlowState
     public bool Suspend()
     {
         lock (_lock)
-            if (Threads == WaitingThreads)
+            if (Subflows == WaitingSubflows)
                 Suspended = true;
             else
                 return false;

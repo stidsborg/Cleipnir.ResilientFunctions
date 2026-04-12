@@ -570,8 +570,7 @@ public abstract class MessagesSubscriptionTests
                     unhandledExceptionHandler,
                     flowTimeouts,
                     () => DateTime.UtcNow,
-                    SettingsWithDefaults.Default,
-                    flowsManager
+                    SettingsWithDefaults.Default
                 );
 
                 flowsManager.AddFlow(workflow.StoredId, queueManager,flowTimeouts);
@@ -633,8 +632,7 @@ public abstract class MessagesSubscriptionTests
                     unhandledExceptionHandler,
                     minimumTimeout,
                     () => DateTime.UtcNow,
-                    SettingsWithDefaults.Default,
-                    flowsManager
+                    SettingsWithDefaults.Default
                 );
 
                 flowsManager.AddFlow(workflow.StoredId, queueManager,minimumTimeout);
@@ -694,8 +692,7 @@ public abstract Task PullEnvelopeReturnsEnvelopeWithReceiverAndSender();
                     unhandledExceptionHandler,
                     flowTimeouts,
                     () => DateTime.UtcNow,
-                    SettingsWithDefaults.Default,
-                    flowsManager
+                    SettingsWithDefaults.Default
                 );
 
                 flowsManager.AddFlow(workflow.StoredId, queueManager,flowTimeouts);

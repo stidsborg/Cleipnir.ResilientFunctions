@@ -47,7 +47,11 @@ public class FlowsManager : IDisposable
     public FlowState AddFlow(StoredId id, QueueManager queueManager, FlowTimeouts timeouts)
     {
         lock (_lock)
-            return _dict[id] = new FlowState(id, queueManager, threads: 1, waitingThreads: 0, timeouts);
+        {
+            var flowState = new FlowState(id, queueManager, subflows: 1, waitingSubflows: 0, timeouts);
+            queueManager.AttachFlowState(flowState);
+            return _dict[id] = flowState;
+        }
     }
 
     public void RemoveFlow(StoredId id, FlowState flowState)
@@ -76,45 +80,14 @@ public class FlowsManager : IDisposable
     {
         lock (_lock)
             if (_dict.TryGetValue(id, out var flowState))
-                flowState.NewThreadStarted();
+                flowState.SubflowStarted();
     }
 
     public void CompleteThread(StoredId id)
     {
         lock (_lock)
             if (_dict.TryGetValue(id, out var flowState))
-                flowState.ThreadCompleted();
-    }
-
-    public bool ThreadResumed(StoredId id)
-    {
-        lock (_lock)
-            if (_dict.TryGetValue(id, out var flowState))
-                return flowState.ResumeThread();
-
-        return false;
-    }
-
-    public void SuspendThread(StoredId id)
-    {
-        lock (_lock)
-            if (_dict.TryGetValue(id, out var flowState))
-                flowState.ThreadSuspended();
-    }
-
-    public Task GetInterruptedSignal(StoredId id)
-    {
-        lock (_lock)
-            return _dict.TryGetValue(id, out var flowState)
-                ? flowState.InterruptSignal.Wait()
-                : Task.CompletedTask;
-    }
-
-    public void SignalInterrupt(StoredId id)
-    {
-        lock (_lock)
-            if (_dict.TryGetValue(id, out var flowState))
-                flowState.InterruptSignal.Fire();
+                flowState.SubflowCompleted();
     }
 
     [DoesNotReturn]

@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime;
 using Cleipnir.ResilientFunctions.CoreRuntime.Serialization;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Domain.Exceptions.Commands;
 using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Storage;
 
@@ -23,12 +24,14 @@ public class QueueManager(
     FlowTimeouts timeouts,
     UtcNow utcNow,
     SettingsWithDefaults settings,
-    FlowsManager flowsManager,
     int maxIdempotencyKeyCount = 100,
     TimeSpan? maxIdempotencyKeyTtl = null)
     : IDisposable
 {
     private readonly Lock _lock = new();
+    private FlowState _flowState = null!;
+
+    public void AttachFlowState(FlowState flowState) => _flowState = flowState;
 
     private readonly EffectId _toRemoveNextId = new([-1, 0]);
     private readonly EffectId _idempotencyKeysId = new([-1, -1]);
@@ -151,14 +154,14 @@ public class QueueManager(
         }
         finally
         {
-            flowsManager.SignalInterrupt(storedId);
+            _flowState.InterruptSignal.Fire();
             _semaphoreSlim.Release();
         }
     }
 
     private (MessageData? Matched, int PositionToRemoveIndex, Task PulseTask) TryTakeMessage(MessagePredicate predicate)
     {
-        var interruptedSignal = flowsManager.GetInterruptedSignal(storedId);
+        var interruptedSignal = _flowState.InterruptSignal.Wait();
         
         lock (_lock)
         {
@@ -272,20 +275,17 @@ public class QueueManager(
                 return matched.Envelope;
             }
             
-            flowsManager.SuspendThread(storedId);
+            _flowState.SubflowWaiting();
             await Task.WhenAny(interruptSignal, timeoutTask, maxWaitTask);
-            var success = flowsManager.ThreadResumed(storedId);
+            var success = _flowState.ResumeSubflow();
             if (!success)
                 await new TaskCompletionSource().Task;
-            
+
             if (timeoutTask.IsCompleted)
                 return null;
 
             if (maxWaitTask.IsCompleted)
-            {
-                await flowsManager.Suspend(storedId);
-                return null;
-            }
+                throw new SuspendInvocationException();
         }
     }
 
