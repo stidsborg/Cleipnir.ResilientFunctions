@@ -561,7 +561,7 @@ public abstract class MessagesSubscriptionTests
 
                 var flowTimeouts = new FlowTimeouts();
                 var flowsManager = new FlowsManager(functionStore, () => DateTime.UtcNow);
-                var flowState = flowsManager.CreateFlowState(workflow.StoredId, flowTimeouts);
+                var flowState = flowsManager.CreateFlow(workflow.StoredId, flowTimeouts);
                 var queueManager = new QueueManager(
                     workflow.FlowId,
                     workflow.StoredId,
@@ -575,7 +575,6 @@ public abstract class MessagesSubscriptionTests
                     SettingsWithDefaults.Default
                 );
 
-                flowsManager.AddFlow(flowState);
                 var queueClient = await queueManager.CreateQueueClient();
 
                 var message = await queueClient.Pull<GoodMessage>(
@@ -625,7 +624,7 @@ public abstract class MessagesSubscriptionTests
                 storedId = workflow.StoredId;
                 var minimumTimeout = new FlowTimeouts();
                 var flowsManager = new FlowsManager(functionStore, () => DateTime.UtcNow);
-                var flowState = flowsManager.CreateFlowState(workflow.StoredId, minimumTimeout);
+                var flowState = flowsManager.CreateFlow(workflow.StoredId, minimumTimeout);
                 var queueManager = new QueueManager(
                     workflow.FlowId,
                     workflow.StoredId,
@@ -639,7 +638,6 @@ public abstract class MessagesSubscriptionTests
                     SettingsWithDefaults.Default
                 );
 
-                flowsManager.AddFlow(flowState);
 
                 var queueClient = await queueManager.CreateQueueClient();
 
@@ -687,7 +685,7 @@ public abstract Task PullEnvelopeReturnsEnvelopeWithReceiverAndSender();
 
                 var flowTimeouts = new FlowTimeouts();
                 var flowsManager = new FlowsManager(functionStore, () => DateTime.UtcNow);
-                var flowState = flowsManager.CreateFlowState(workflow.StoredId, flowTimeouts);
+                var flowState = flowsManager.CreateFlow(workflow.StoredId, flowTimeouts);
                 var queueManager = new QueueManager(
                     workflow.FlowId,
                     workflow.StoredId,
@@ -701,7 +699,6 @@ public abstract Task PullEnvelopeReturnsEnvelopeWithReceiverAndSender();
                     SettingsWithDefaults.Default
                 );
 
-                flowsManager.AddFlow(flowState);
                 var queueClient = await queueManager.CreateQueueClient();
 
                 // Pull envelope for specific receiver

@@ -43,13 +43,10 @@ public class FlowsManager : IDisposable
 
     public void Dispose() => _disposed = true;
 
-    public FlowState CreateFlowState(StoredId id, FlowTimeouts timeouts)
-        => new(id, subflows: 1, waitingSubflows: 0, timeouts);
-
-    public void AddFlow(FlowState flowState)
+    public FlowState CreateFlow(StoredId id, FlowTimeouts timeouts)
     {
         lock (_lock)
-            _dict[flowState.Id] = flowState;
+            return _dict[id] = new FlowState(id, subflows: 1, waitingSubflows: 0, timeouts);;
     }
 
     public void RemoveFlow(StoredId id, FlowState flowState)
