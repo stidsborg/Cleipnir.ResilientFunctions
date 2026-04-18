@@ -36,20 +36,20 @@ public abstract class MessagesTests
 
                 var flowTimeouts = new FlowTimeouts();
                 var flowsManager = new FlowsManager(functionStore, () => DateTime.UtcNow);
+                var flowState = flowsManager.CreateFlow(workflow.StoredId, flowTimeouts);
                 var queueManager = new QueueManager(
                     workflow.FlowId,
                     workflow.StoredId,
                     functionStore.MessageStore,
                     DefaultSerializer.Instance,
                     workflow.Effect,
+                    flowState,
                     unhandledExceptionHandler,
                     flowTimeouts,
                     () => DateTime.UtcNow,
-                    SettingsWithDefaults.Default,
-                    flowsManager
+                    SettingsWithDefaults.Default
                 );
 
-                flowsManager.AddFlow(workflow.StoredId, queueManager,flowTimeouts);
                 queueClient = await queueManager.CreateQueueClient();
                 var message = await queueClient.Pull<string>(workflow, workflow.Effect.CreateNextImplicitId());
 
@@ -88,20 +88,20 @@ public abstract class MessagesTests
 
                 var flowTimeouts = new FlowTimeouts();
                 var flowsManager = new FlowsManager(functionStore, () => DateTime.UtcNow);
+                var flowState = flowsManager.CreateFlow(workflow.StoredId, flowTimeouts);
                 var queueManager = new QueueManager(
                     workflow.FlowId,
                     workflow.StoredId,
                     functionStore.MessageStore,
                     DefaultSerializer.Instance,
                     workflow.Effect,
+                    flowState,
                     unhandledExceptionHandler,
                     flowTimeouts,
                     () => DateTime.UtcNow,
-                    SettingsWithDefaults.Default,
-                    flowsManager
+                    SettingsWithDefaults.Default
                 );
 
-                flowsManager.AddFlow(workflow.StoredId, queueManager,flowTimeouts);
                 var queueClient = await queueManager.CreateQueueClient();
                 var message = await queueClient.Pull<string>(workflow, workflow.Effect.CreateNextImplicitId(), TimeSpan.FromMilliseconds(100));
 
@@ -135,20 +135,20 @@ public abstract class MessagesTests
 
                 var flowTimeouts = new FlowTimeouts();
                 var flowsManager = new FlowsManager(functionStore, () => DateTime.UtcNow);
+                var flowState = flowsManager.CreateFlow(workflow.StoredId, flowTimeouts);
                 var queueManager = new QueueManager(
                     workflow.FlowId,
                     workflow.StoredId,
                     functionStore.MessageStore,
                     DefaultSerializer.Instance,
                     workflow.Effect,
+                    flowState,
                     unhandledExceptionHandler,
                     flowTimeouts,
                     () => DateTime.UtcNow,
-                    SettingsWithDefaults.Default,
-                    flowsManager
+                    SettingsWithDefaults.Default
                 );
 
-                flowsManager.AddFlow(workflow.StoredId, queueManager,flowTimeouts);
                 var queueClient = await queueManager.CreateQueueClient();
                 var message = await queueClient.Pull<object>(
                     workflow,
@@ -187,20 +187,20 @@ public abstract class MessagesTests
 
                 var flowTimeouts = new FlowTimeouts();
                 var flowsManager = new FlowsManager(functionStore, () => DateTime.UtcNow);
+                var flowState = flowsManager.CreateFlow(workflow.StoredId, flowTimeouts);
                 var queueManager = new QueueManager(
                     workflow.FlowId,
                     workflow.StoredId,
                     functionStore.MessageStore,
                     DefaultSerializer.Instance,
                     workflow.Effect,
+                    flowState,
                     unhandledExceptionHandler,
                     flowTimeouts,
                     () => DateTime.UtcNow,
-                    SettingsWithDefaults.Default,
-                    flowsManager
+                    SettingsWithDefaults.Default
                 );
 
-                flowsManager.AddFlow(workflow.StoredId, queueManager,flowTimeouts);
                 var queueClient = await queueManager.CreateQueueClient();
                 var message = await queueClient.Pull<object>(
                     workflow,
@@ -240,20 +240,20 @@ public abstract class MessagesTests
 
                 var flowTimeouts = new FlowTimeouts();
                 var flowsManager = new FlowsManager(functionStore, () => DateTime.UtcNow);
+                var flowState = flowsManager.CreateFlow(workflow.StoredId, flowTimeouts);
                 var queueManager = new QueueManager(
                     workflow.FlowId,
                     workflow.StoredId,
                     functionStore.MessageStore,
                     DefaultSerializer.Instance,
                     workflow.Effect,
+                    flowState,
                     unhandledExceptionHandler,
                     flowTimeouts,
                     () => DateTime.UtcNow,
-                    SettingsWithDefaults.Default,
-                    flowsManager
+                    SettingsWithDefaults.Default
                 );
 
-                flowsManager.AddFlow(workflow.StoredId, queueManager,flowTimeouts);
                 var queueClient = await queueManager.CreateQueueClient();
                 var message = await queueClient.Pull<string>(
                     workflow,
@@ -294,20 +294,20 @@ public abstract class MessagesTests
 
                 var flowTimeouts = new FlowTimeouts();
                 var flowsManager = new FlowsManager(functionStore, () => DateTime.UtcNow);
+                var flowState = flowsManager.CreateFlow(workflow.StoredId, flowTimeouts);
                 var queueManager = new QueueManager(
                     workflow.FlowId,
                     workflow.StoredId,
                     functionStore.MessageStore,
                     DefaultSerializer.Instance,
                     workflow.Effect,
+                    flowState,
                     unhandledExceptionHandler,
                     flowTimeouts,
                     () => DateTime.UtcNow,
-                    SettingsWithDefaults.Default,
-                    flowsManager
+                    SettingsWithDefaults.Default
                 );
 
-                flowsManager.AddFlow(workflow.StoredId, queueManager,flowTimeouts);
                 var queueClient = await queueManager.CreateQueueClient();
                 var message1 = await queueClient.Pull<string>(workflow, workflow.Effect.CreateNextImplicitId());
                 var message2 = await queueClient.Pull<string>(workflow, workflow.Effect.CreateNextImplicitId());
@@ -350,20 +350,20 @@ public abstract class MessagesTests
 
                 var flowTimeouts = new FlowTimeouts();
                 var flowsManager = new FlowsManager(functionStore, () => DateTime.UtcNow);
+                var flowState = flowsManager.CreateFlow(workflow.StoredId, flowTimeouts);
                 var queueManager = new QueueManager(
                     workflow.FlowId,
                     workflow.StoredId,
                     functionStore.MessageStore,
                     DefaultSerializer.Instance,
                     workflow.Effect,
+                    flowState,
                     unhandledExceptionHandler,
                     flowTimeouts,
                     () => DateTime.UtcNow,
-                    SettingsWithDefaults.Default,
-                    flowsManager
+                    SettingsWithDefaults.Default
                 );
 
-                flowsManager.AddFlow(workflow.StoredId, queueManager,flowTimeouts);
                 var queueClient = await queueManager.CreateQueueClient();
 
                 var message1 = await queueClient.Pull<string>(workflow, workflow.Effect.CreateNextImplicitId());
@@ -404,20 +404,20 @@ public abstract class MessagesTests
 
                 var flowTimeouts = new FlowTimeouts();
                 var flowsManager = new FlowsManager(functionStore, () => DateTime.UtcNow);
+                var flowState = flowsManager.CreateFlow(workflow.StoredId, flowTimeouts);
                 var queueManager = new QueueManager(
                     workflow.FlowId,
                     workflow.StoredId,
                     functionStore.MessageStore,
                     DefaultSerializer.Instance,
                     workflow.Effect,
+                    flowState,
                     unhandledExceptionHandler,
                     flowTimeouts,
                     () => DateTime.UtcNow,
-                    SettingsWithDefaults.Default with { MessagesDefaultMaxWaitForCompletion = TimeSpan.FromMinutes(1) },
-                    flowsManager
+                    SettingsWithDefaults.Default with { MessagesDefaultMaxWaitForCompletion = TimeSpan.FromMinutes(1) }
                 );
 
-                flowsManager.AddFlow(workflow.StoredId, queueManager,flowTimeouts);
                 var queueClient = await queueManager.CreateQueueClient();
                 lock (queueClients)
                     queueClients[workflow.FlowId.Instance.Value] = queueClient;
@@ -470,20 +470,20 @@ public abstract class MessagesTests
 
                 var flowTimeouts = new FlowTimeouts();
                 var flowsManager = new FlowsManager(functionStore, () => DateTime.UtcNow);
+                var flowState = flowsManager.CreateFlow(workflow.StoredId, flowTimeouts);
                 var queueManager = new QueueManager(
                     workflow.FlowId,
                     workflow.StoredId,
                     functionStore.MessageStore,
                     DefaultSerializer.Instance,
                     workflow.Effect,
+                    flowState,
                     unhandledExceptionHandler,
                     flowTimeouts,
                     () => DateTime.UtcNow,
-                    SettingsWithDefaults.Default,
-                    flowsManager
+                    SettingsWithDefaults.Default
                 );
 
-                flowsManager.AddFlow(workflow.StoredId, queueManager,flowTimeouts);
                 var queueClient = await queueManager.CreateQueueClient();
 
                 while (true)
@@ -538,20 +538,20 @@ public abstract class MessagesTests
 
                 var flowTimeouts = new FlowTimeouts();
                 var flowsManager = new FlowsManager(functionStore, () => DateTime.UtcNow);
+                var flowState = flowsManager.CreateFlow(workflow.StoredId, flowTimeouts);
                 var queueManager = new QueueManager(
                     workflow.FlowId,
                     workflow.StoredId,
                     functionStore.MessageStore,
                     DefaultSerializer.Instance,
                     workflow.Effect,
+                    flowState,
                     unhandledExceptionHandler,
                     flowTimeouts,
                     () => DateTime.UtcNow,
-                    SettingsWithDefaults.Default,
-                    flowsManager
+                    SettingsWithDefaults.Default
                 );
 
-                flowsManager.AddFlow(workflow.StoredId, queueManager,flowTimeouts);
                 var queueClient = await queueManager.CreateQueueClient();
 
                 for (var i = 0; i < 10; i++)
@@ -568,20 +568,20 @@ public abstract class MessagesTests
 
                 var flowTimeouts = new FlowTimeouts();
                 var flowsManager = new FlowsManager(functionStore, () => DateTime.UtcNow);
+                var flowState = flowsManager.CreateFlow(workflow.StoredId, flowTimeouts);
                 var queueManager = new QueueManager(
                     workflow.FlowId,
                     workflow.StoredId,
                     functionStore.MessageStore,
                     DefaultSerializer.Instance,
                     workflow.Effect,
+                    flowState,
                     unhandledExceptionHandler,
                     flowTimeouts,
                     () => DateTime.UtcNow,
-                    SettingsWithDefaults.Default,
-                    flowsManager
+                    SettingsWithDefaults.Default
                 );
 
-                flowsManager.AddFlow(workflow.StoredId, queueManager,flowTimeouts);
                 var queueClient = await queueManager.CreateQueueClient();
 
                 for (var i = 0; i < 10; i++)

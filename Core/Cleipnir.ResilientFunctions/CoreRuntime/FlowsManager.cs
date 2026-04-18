@@ -4,7 +4,6 @@ using System.Diagnostics.CodeAnalysis;
 using System.Threading;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain.Exceptions.Commands;
-using Cleipnir.ResilientFunctions.Queuing;
 using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.CoreRuntime;
@@ -44,10 +43,10 @@ public class FlowsManager : IDisposable
 
     public void Dispose() => _disposed = true;
 
-    public FlowState AddFlow(StoredId id, QueueManager queueManager, FlowTimeouts timeouts)
+    public FlowState CreateFlow(StoredId id, FlowTimeouts timeouts)
     {
         lock (_lock)
-            return _dict[id] = new FlowState(id, queueManager, threads: 1, waitingThreads: 0, timeouts);
+            return _dict[id] = new FlowState(id, subflows: 1, waitingSubflows: 0, timeouts);;
     }
 
     public void RemoveFlow(StoredId id, FlowState flowState)
@@ -60,61 +59,25 @@ public class FlowsManager : IDisposable
     public async Task Interrupt(IReadOnlyList<StoredId> ids)
     {
         await _functionStore.ResetInterrupted(ids);
-        
+
         lock (_lock)
             foreach (var id in ids)
-            {
-                if (!_dict.TryGetValue(id, out var flowState))
-                    continue;
-                
-                flowState.Interrupt();
-                Task.Run(() => flowState.QueueManager.FetchMessagesOnce());
-            }
+                if (_dict.TryGetValue(id, out var flowState))
+                    flowState.Interrupt();
     }
 
     public void StartThread(StoredId id)
     {
         lock (_lock)
             if (_dict.TryGetValue(id, out var flowState))
-                flowState.NewThreadStarted();
+                flowState.SubflowStarted();
     }
 
     public void CompleteThread(StoredId id)
     {
         lock (_lock)
             if (_dict.TryGetValue(id, out var flowState))
-                flowState.ThreadCompleted();
-    }
-
-    public bool ThreadResumed(StoredId id)
-    {
-        lock (_lock)
-            if (_dict.TryGetValue(id, out var flowState))
-                return flowState.ResumeThread();
-
-        return false;
-    }
-
-    public void SuspendThread(StoredId id)
-    {
-        lock (_lock)
-            if (_dict.TryGetValue(id, out var flowState))
-                flowState.ThreadSuspended();
-    }
-
-    public Task GetInterruptedSignal(StoredId id)
-    {
-        lock (_lock)
-            return _dict.TryGetValue(id, out var flowState)
-                ? flowState.InterruptSignal.Wait()
-                : Task.CompletedTask;
-    }
-
-    public void SignalInterrupt(StoredId id)
-    {
-        lock (_lock)
-            if (_dict.TryGetValue(id, out var flowState))
-                flowState.InterruptSignal.Fire();
+                flowState.SubflowCompleted();
     }
 
     [DoesNotReturn]

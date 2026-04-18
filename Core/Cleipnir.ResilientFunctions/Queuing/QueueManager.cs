@@ -6,6 +6,8 @@ using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime;
 using Cleipnir.ResilientFunctions.CoreRuntime.Serialization;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Domain.Exceptions.Commands;
+using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Storage;
 
@@ -19,11 +21,11 @@ public class QueueManager(
     IMessageStore messageStore,
     ISerializer serializer,
     Effect effect,
+    FlowState flowState,
     UnhandledExceptionHandler unhandledExceptionHandler,
     FlowTimeouts timeouts,
     UtcNow utcNow,
     SettingsWithDefaults settings,
-    FlowsManager flowsManager,
     int maxIdempotencyKeyCount = 100,
     TimeSpan? maxIdempotencyKeyTtl = null)
     : IDisposable
@@ -37,6 +39,7 @@ public class QueueManager(
 
     private IdempotencyKeys? _idempotencyKeys;
     private int _nextToRemoveIndex = 0;
+    private readonly AsyncSignal _interruptSignal = new();
     private readonly SemaphoreSlim _semaphoreSlim = new SemaphoreSlim(1);
     private bool _initialized = false;
     private volatile bool _disposed;
@@ -81,6 +84,16 @@ public class QueueManager(
         {
             _semaphoreSlim.Release();
         }
+
+        _ = Task.Run(async () =>
+        {
+            while (!_disposed)
+            {
+                await flowState.InterruptSignal.Wait();
+                if (!_disposed)
+                    await FetchMessagesOnce();
+            }
+        });
         
         await FetchMessagesOnce();
         _ = Task.Run(FetchMessages);
@@ -151,14 +164,14 @@ public class QueueManager(
         }
         finally
         {
-            flowsManager.SignalInterrupt(storedId);
+            _interruptSignal.Fire();
             _semaphoreSlim.Release();
         }
     }
 
     private (MessageData? Matched, int PositionToRemoveIndex, Task PulseTask) TryTakeMessage(MessagePredicate predicate)
     {
-        var interruptedSignal = flowsManager.GetInterruptedSignal(storedId);
+        var interruptedSignal = _interruptSignal.Wait();
         
         lock (_lock)
         {
@@ -271,21 +284,18 @@ public class QueueManager(
                 timeouts.RemoveTimeout(timeoutId);
                 return matched.Envelope;
             }
-            
-            flowsManager.SuspendThread(storedId);
+
+            flowState.SubflowWaiting();
             await Task.WhenAny(interruptSignal, timeoutTask, maxWaitTask);
-            var success = flowsManager.ThreadResumed(storedId);
+            var success = flowState.ResumeSubflow();
             if (!success)
                 await new TaskCompletionSource().Task;
-            
+
             if (timeoutTask.IsCompleted)
                 return null;
 
             if (maxWaitTask.IsCompleted)
-            {
-                await flowsManager.Suspend(storedId);
-                return null;
-            }
+                throw new SuspendInvocationException();
         }
     }
 

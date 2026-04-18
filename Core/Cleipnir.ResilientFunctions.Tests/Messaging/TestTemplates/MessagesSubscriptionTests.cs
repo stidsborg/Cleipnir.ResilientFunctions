@@ -561,20 +561,20 @@ public abstract class MessagesSubscriptionTests
 
                 var flowTimeouts = new FlowTimeouts();
                 var flowsManager = new FlowsManager(functionStore, () => DateTime.UtcNow);
+                var flowState = flowsManager.CreateFlow(workflow.StoredId, flowTimeouts);
                 var queueManager = new QueueManager(
                     workflow.FlowId,
                     workflow.StoredId,
                     functionStore.MessageStore,
                     exceptionThrowingSerializer,
                     workflow.Effect,
+                    flowState,
                     unhandledExceptionHandler,
                     flowTimeouts,
                     () => DateTime.UtcNow,
-                    SettingsWithDefaults.Default,
-                    flowsManager
+                    SettingsWithDefaults.Default
                 );
 
-                flowsManager.AddFlow(workflow.StoredId, queueManager,flowTimeouts);
                 var queueClient = await queueManager.CreateQueueClient();
 
                 var message = await queueClient.Pull<GoodMessage>(
@@ -624,20 +624,20 @@ public abstract class MessagesSubscriptionTests
                 storedId = workflow.StoredId;
                 var minimumTimeout = new FlowTimeouts();
                 var flowsManager = new FlowsManager(functionStore, () => DateTime.UtcNow);
+                var flowState = flowsManager.CreateFlow(workflow.StoredId, minimumTimeout);
                 var queueManager = new QueueManager(
                     workflow.FlowId,
                     workflow.StoredId,
                     functionStore.MessageStore,
                     DefaultSerializer.Instance,
                     workflow.Effect,
+                    flowState,
                     unhandledExceptionHandler,
                     minimumTimeout,
                     () => DateTime.UtcNow,
-                    SettingsWithDefaults.Default,
-                    flowsManager
+                    SettingsWithDefaults.Default
                 );
 
-                flowsManager.AddFlow(workflow.StoredId, queueManager,minimumTimeout);
 
                 var queueClient = await queueManager.CreateQueueClient();
 
@@ -685,20 +685,20 @@ public abstract Task PullEnvelopeReturnsEnvelopeWithReceiverAndSender();
 
                 var flowTimeouts = new FlowTimeouts();
                 var flowsManager = new FlowsManager(functionStore, () => DateTime.UtcNow);
+                var flowState = flowsManager.CreateFlow(workflow.StoredId, flowTimeouts);
                 var queueManager = new QueueManager(
                     workflow.FlowId,
                     workflow.StoredId,
                     functionStore.MessageStore,
                     DefaultSerializer.Instance,
                     workflow.Effect,
+                    flowState,
                     unhandledExceptionHandler,
                     flowTimeouts,
                     () => DateTime.UtcNow,
-                    SettingsWithDefaults.Default,
-                    flowsManager
+                    SettingsWithDefaults.Default
                 );
 
-                flowsManager.AddFlow(workflow.StoredId, queueManager,flowTimeouts);
                 var queueClient = await queueManager.CreateQueueClient();
 
                 // Pull envelope for specific receiver
