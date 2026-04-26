@@ -228,7 +228,6 @@ public class FunctionsRegistry : IDisposable
                 inner,
                 invocationHelper,
                 settingsWithDefaults.UnhandledExceptionHandler,
-                _functionStore.Utilities,
                 ClusterInfo.ReplicaId,
                 _flowsManager
             );
@@ -318,7 +317,6 @@ public class FunctionsRegistry : IDisposable
                 inner,
                 invocationHelper,
                 settingsWithDefaults.UnhandledExceptionHandler,
-                _functionStore.Utilities,
                 ClusterInfo.ReplicaId,
                 _flowsManager
             );
@@ -408,7 +406,6 @@ public class FunctionsRegistry : IDisposable
                 inner,
                 invocationHelper,
                 settingsWithDefaults.UnhandledExceptionHandler,
-                _functionStore.Utilities,
                 ClusterInfo.ReplicaId,
                 _flowsManager
             );

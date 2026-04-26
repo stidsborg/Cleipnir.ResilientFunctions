@@ -6,7 +6,6 @@ using System.Linq;
 using System.Runtime.Serialization;
 using System.Text.Json;
 using System.Threading.Tasks;
-using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
@@ -32,12 +31,9 @@ public class SqlServerFunctionStore : IFunctionStore
     public ICorrelationStore CorrelationStore => _correlationStore;
     public ITypeStore TypeStore => _typeStore;
     public IMessageStore MessageStore => _messageStore;
-    public Utilities Utilities { get; }
     private readonly SqlServerReplicaStore _replicaStore;
     public IReplicaStore ReplicaStore => _replicaStore;
 
-    private readonly SqlServerUnderlyingRegister _underlyingRegister;
-    
     private readonly SqlGenerator _sqlGenerator;
 
     public SqlServerFunctionStore(string connectionString, string tablePrefix = "")
@@ -45,15 +41,13 @@ public class SqlServerFunctionStore : IFunctionStore
         _tableName = tablePrefix == "" ? "RFunctions" : tablePrefix;
         _connectionString = connectionString;
         _sqlGenerator = new SqlGenerator(_tableName);
-        
+
         _connFunc = CreateConnection(connectionString);
         _messageStore = new SqlServerMessageStore(connectionString, _sqlGenerator, _tableName);
-        _underlyingRegister = new SqlServerUnderlyingRegister(connectionString, _tableName);
         _effectsStore = new SqlServerEffectsStore(connectionString, _tableName);
         _correlationStore = new SqlServerCorrelationsStore(connectionString, _tableName);
         _typeStore = new SqlServerTypeStore(connectionString, _tableName);
         _replicaStore = new SqlServerReplicaStore(connectionString, _tableName);
-        Utilities = new Utilities(_underlyingRegister);
     }
     
     private static Func<Task<SqlConnection>> CreateConnection(string connectionString)
@@ -71,8 +65,7 @@ public class SqlServerFunctionStore : IFunctionStore
     {
         if (await DoTablesAlreadyExist())
             return;
-        
-        await _underlyingRegister.Initialize();
+
         await _messageStore.Initialize();
         await _effectsStore.Initialize();
         await _correlationStore.Initialize();
@@ -122,7 +115,6 @@ public class SqlServerFunctionStore : IFunctionStore
     private string? _truncateSql;
     public async Task TruncateTables()
     {
-        await _underlyingRegister.TruncateTable();
         await _messageStore.TruncateTable();
         await _effectsStore.Truncate();
         await _correlationStore.Truncate();

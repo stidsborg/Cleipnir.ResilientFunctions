@@ -3,13 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Storage.Session;
-using Cleipnir.ResilientFunctions.Utils;
-using Cleipnir.ResilientFunctions.Utils.Register;
 
 namespace Cleipnir.ResilientFunctions.Storage;
 
@@ -25,17 +22,10 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
     public IEffectsStore EffectsStore => _effectsStore;
     private readonly InMemoryCorrelationStore _correlationStore = new();
     public ICorrelationStore CorrelationStore => _correlationStore;
-    public Utilities Utilities { get; }
     public IReplicaStore ReplicaStore { get; } = new InMemoryReplicaStore();
 
     public Task Initialize() => Task.CompletedTask;
 
-    public InMemoryFunctionStore()
-    {
-        var underlyingRegister = new UnderlyingInMemoryRegister();
-        Utilities = new Utilities(new Register(underlyingRegister));
-    }
-    
     #region FunctionStore
 
     public virtual Task<IStorageSession?> CreateFunction(

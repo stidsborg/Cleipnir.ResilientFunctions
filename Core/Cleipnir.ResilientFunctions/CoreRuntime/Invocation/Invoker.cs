@@ -20,7 +20,6 @@ public class Invoker<TParam, TReturn>
     
     private readonly InvocationHelper<TParam, TReturn> _invocationHelper;
     private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
-    private readonly Utilities _utilities;
     private readonly FlowsManager _flowsManager;
 
     internal Invoker(
@@ -28,7 +27,6 @@ public class Invoker<TParam, TReturn>
         Func<TParam, Workflow, Task<Result<TReturn>>> inner,
         InvocationHelper<TParam, TReturn> invocationHelper,
         UnhandledExceptionHandler unhandledExceptionHandler,
-        Utilities utilities,
         ReplicaId replicaId,
         FlowsManager flowsManager
     )
@@ -39,7 +37,6 @@ public class Invoker<TParam, TReturn>
         _inner = inner;
         _invocationHelper = invocationHelper;
         _unhandledExceptionHandler = unhandledExceptionHandler;
-        _utilities = utilities;
         _flowsManager = flowsManager;
     }
 
@@ -289,7 +286,7 @@ public class Invoker<TParam, TReturn>
             var queueManager = _invocationHelper.CreateQueueManager(flowId, storedId, effect, flowState, flowTimeouts, _unhandledExceptionHandler);
             disposables.Add(queueManager);
             var messageWriter = _invocationHelper.CreateMessageWriter(storedId);
-            var workflow = new Workflow(flowId, storedId, effect, _utilities, correlations, queueManager, _invocationHelper.UtcNow, messageWriter);
+            var workflow = new Workflow(flowId, storedId, effect, correlations, queueManager, _invocationHelper.UtcNow, messageWriter);
 
             return new PreparedInvocation(
                 persisted,
@@ -346,7 +343,6 @@ public class Invoker<TParam, TReturn>
                 flowId,
                 storedId,
                 effect,
-                _utilities,
                 correlations,
                 queueManager,
                 _invocationHelper.UtcNow,

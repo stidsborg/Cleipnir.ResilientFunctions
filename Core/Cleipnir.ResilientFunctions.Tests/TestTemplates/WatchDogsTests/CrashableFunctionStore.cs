@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Storage;
@@ -22,7 +21,6 @@ public class CrashableFunctionStore : IFunctionStore
     private readonly CrashableEffectStore _crashableEffectStore;
     public IEffectsStore EffectsStore => _crashableEffectStore;
     public ICorrelationStore CorrelationStore => _crashed ? throw new TimeoutException() : _inner.CorrelationStore;
-    public Utilities Utilities => _crashed ? throw new TimeoutException() : _inner.Utilities;
     public IReplicaStore ReplicaStore => _crashed ? throw new TimeoutException() : _inner.ReplicaStore;
 
     public CrashableFunctionStore(IFunctionStore inner)

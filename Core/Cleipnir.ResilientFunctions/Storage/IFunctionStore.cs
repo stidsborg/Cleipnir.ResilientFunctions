@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Storage.Session;
@@ -13,7 +12,6 @@ public interface IFunctionStore
     public IMessageStore MessageStore { get; }
     public IEffectsStore EffectsStore { get; }
     public ICorrelationStore CorrelationStore { get; }
-    public Utilities Utilities { get; }
     public IReplicaStore ReplicaStore { get; }
     public Task Initialize();
     

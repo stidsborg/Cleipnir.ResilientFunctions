@@ -1,6 +1,5 @@
 ﻿using System.Text;
 using System.Text.Json;
-using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.MariaDB.StoreCommand;
@@ -33,27 +32,21 @@ public class MariaDbFunctionStore : IFunctionStore
     private readonly MariaDbReplicaStore _replicaStore;
     public IReplicaStore ReplicaStore => _replicaStore;
 
-    public Utilities Utilities { get; }
-    private readonly MariaDbUnderlyingRegister _mariaDbUnderlyingRegister;
-
     private readonly SqlGenerator _sqlGenerator;
 
     public MariaDbFunctionStore(string connectionString, string tablePrefix = "")
     {
         tablePrefix = tablePrefix == "" ? "rfunctions" : tablePrefix;
-        
+
         _connectionString = connectionString;
         _tablePrefix = tablePrefix;
         _sqlGenerator = new SqlGenerator(tablePrefix);
-        
+
         _messageStore = new MariaDbMessageStore(connectionString, _sqlGenerator, tablePrefix);
         _effectsStore = new MariaDbEffectsStore(connectionString, tablePrefix);
         _correlationStore = new MariaDbCorrelationStore(connectionString, tablePrefix);
-        _mariaDbUnderlyingRegister = new MariaDbUnderlyingRegister(connectionString, tablePrefix);
         _typeStore = new MariaDbTypeStore(connectionString, tablePrefix);
         _replicaStore = new MariaDbReplicaStore(connectionString, tablePrefix);
-        
-        Utilities = new Utilities(_mariaDbUnderlyingRegister);
     }
 
     private string? _initializeSql;
@@ -61,8 +54,7 @@ public class MariaDbFunctionStore : IFunctionStore
     {
         if (await DoTablesAlreadyExist())
             return;
-        
-        await _mariaDbUnderlyingRegister.Initialize();
+
         await MessageStore.Initialize();
         await EffectsStore.Initialize();
         await CorrelationStore.Initialize();
@@ -95,7 +87,6 @@ public class MariaDbFunctionStore : IFunctionStore
     public async Task TruncateTables()
     {
         await _messageStore.TruncateTable();
-        await _mariaDbUnderlyingRegister.TruncateTable();
         await _effectsStore.Truncate();
         await _correlationStore.Truncate();
         await _typeStore.Truncate();
