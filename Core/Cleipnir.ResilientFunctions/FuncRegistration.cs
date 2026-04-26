@@ -25,9 +25,8 @@ public class FuncRegistration<TParam, TReturn> : BaseRegistration where TParam :
         Invoker<TParam, TReturn> invoker,
         ControlPanelFactory<TParam, TReturn> controlPanelFactory,
         MessageWriters messageWriters,
-        Postman postman,
         UtcNow utcNow
-    ) : base(storedType, postman, functionStore, utcNow)
+    ) : base(storedType, functionStore, utcNow)
     {
         Type = flowType;
         _invoker = invoker;
@@ -59,8 +58,8 @@ public class FuncRegistration<TParam, TReturn> : BaseRegistration where TParam :
         FlowInstance flowInstance,
         T message,
         string? idempotencyKey = null
-    ) where T : class => await Postman.SendMessage(StoredId.Create(StoredType, flowInstance.Value), message, idempotencyKey);
+    ) where T : class => await MessageWriters.For(flowInstance).AppendMessage(message, idempotencyKey);
 
     public async Task SendMessages(IReadOnlyList<BatchedMessage> messages)
-        => await Postman.SendMessages(messages);
+        => await MessageWriters.AppendMessages(messages);
 }
