@@ -284,13 +284,12 @@ public class Invoker<TParam, TReturn>
             );
 
             var correlations = _invocationHelper.CreateCorrelations(flowId);
-            var semaphores = _invocationHelper.CreateSemaphores(storedId, effect, _flowsManager);
 
             var flowState = _flowsManager.CreateFlow(storedId, flowTimeouts);
             var queueManager = _invocationHelper.CreateQueueManager(flowId, storedId, effect, flowState, flowTimeouts, _unhandledExceptionHandler);
             disposables.Add(queueManager);
             var messageWriter = _invocationHelper.CreateMessageWriter(storedId);
-            var workflow = new Workflow(flowId, storedId, effect, _utilities, correlations, semaphores, queueManager, _invocationHelper.UtcNow, messageWriter, _flowsManager);
+            var workflow = new Workflow(flowId, storedId, effect, _utilities, correlations, queueManager, _invocationHelper.UtcNow, messageWriter);
 
             return new PreparedInvocation(
                 persisted,
@@ -338,7 +337,6 @@ public class Invoker<TParam, TReturn>
             var effect = _invocationHelper.CreateEffect(storedId, flowId, effects, flowTimeouts, storageSession, _flowsManager);
 
             var correlations = _invocationHelper.CreateCorrelations(flowId);
-            var semaphores = _invocationHelper.CreateSemaphores(storedId, effect, _flowsManager);
             var flowState = _flowsManager.CreateFlow(storedId, flowTimeouts);
             var queueManager = _invocationHelper.CreateQueueManager(flowId, storedId, effect, flowState, flowTimeouts, _unhandledExceptionHandler);
             disposables.Add(queueManager);
@@ -350,11 +348,9 @@ public class Invoker<TParam, TReturn>
                 effect,
                 _utilities,
                 correlations,
-                semaphores,
                 queueManager,
                 _invocationHelper.UtcNow,
-                messageWriter,
-                _flowsManager
+                messageWriter
             );
 
             return new PreparedReInvocation(

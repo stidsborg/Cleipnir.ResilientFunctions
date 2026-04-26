@@ -321,14 +321,6 @@ internal class InvocationHelper<TParam, TReturn>
 
     public async Task Delete(StoredId storedId) => await _functionStore.DeleteFunction(storedId);
 
-    public async Task Interrupt(IReadOnlyList<StoredId> storedIds)
-    {
-        if (storedIds.Count == 0)
-            return;
-
-        await _functionStore.Interrupt(storedIds);
-    }
-    
     public async Task<FunctionState<TParam, TReturn>?> GetFunction(StoredId storedId, FlowId flowId)
     {
         var sf = await _functionStore.GetFunction(storedId);
@@ -424,14 +416,6 @@ internal class InvocationHelper<TParam, TReturn>
         return new ExistingEffects(storedId, flowId, _functionStore.EffectsStore, Serializer, storedEffects);
     }
     public ExistingMessages CreateExistingMessages(FlowId flowId) => new(MapToStoredId(flowId), _functionStore.MessageStore, Serializer);
-    public async Task<ExistingSemaphores> CreateExistingSemaphores(FlowId flowId)
-    {
-        var existingEffects = await CreateExistingEffects(flowId);
-        return new ExistingSemaphores(MapToStoredId(flowId), _functionStore, existingEffects);
-    }
-
-    public DistributedSemaphores CreateSemaphores(StoredId storedId, Effect effect, FlowsManager flowsManager)
-        => new(effect, _functionStore.SemaphoreStore, storedId, Interrupt, flowsManager);
 
     public QueueManager CreateQueueManager(FlowId flowId, StoredId storedId, Effect effect, FlowState flowState, FlowTimeouts timeouts, UnhandledExceptionHandler unhandledExceptionHandler)
         => new(flowId, storedId, _functionStore.MessageStore, Serializer, effect, flowState, unhandledExceptionHandler, timeouts, UtcNow, _settings);

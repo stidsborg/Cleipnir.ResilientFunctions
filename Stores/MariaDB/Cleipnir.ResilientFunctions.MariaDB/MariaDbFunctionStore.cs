@@ -29,9 +29,6 @@ public class MariaDbFunctionStore : IFunctionStore
     
     private readonly MariaDbCorrelationStore _correlationStore;
     public ICorrelationStore CorrelationStore => _correlationStore;
-    
-    private readonly MariaDbSemaphoreStore _semaphoreStore;
-    public ISemaphoreStore SemaphoreStore => _semaphoreStore;
 
     private readonly MariaDbReplicaStore _replicaStore;
     public IReplicaStore ReplicaStore => _replicaStore;
@@ -52,7 +49,6 @@ public class MariaDbFunctionStore : IFunctionStore
         _messageStore = new MariaDbMessageStore(connectionString, _sqlGenerator, tablePrefix);
         _effectsStore = new MariaDbEffectsStore(connectionString, tablePrefix);
         _correlationStore = new MariaDbCorrelationStore(connectionString, tablePrefix);
-        _semaphoreStore = new MariaDbSemaphoreStore(connectionString, tablePrefix);
         _mariaDbUnderlyingRegister = new MariaDbUnderlyingRegister(connectionString, tablePrefix);
         _typeStore = new MariaDbTypeStore(connectionString, tablePrefix);
         _replicaStore = new MariaDbReplicaStore(connectionString, tablePrefix);
@@ -70,7 +66,6 @@ public class MariaDbFunctionStore : IFunctionStore
         await MessageStore.Initialize();
         await EffectsStore.Initialize();
         await CorrelationStore.Initialize();
-        await _semaphoreStore.Initialize();
         await _typeStore.Initialize();
         await _replicaStore.Initialize();
         await using var conn = await CreateOpenConnection(_connectionString);
@@ -103,7 +98,6 @@ public class MariaDbFunctionStore : IFunctionStore
         await _mariaDbUnderlyingRegister.TruncateTable();
         await _effectsStore.Truncate();
         await _correlationStore.Truncate();
-        await _semaphoreStore.Truncate();
         await _typeStore.Truncate();
         await _replicaStore.Truncate();
         

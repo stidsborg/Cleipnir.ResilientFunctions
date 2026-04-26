@@ -42,7 +42,6 @@ public class ControlPanelFactory
             functionState.Expires,
             existingEffects,
             _invocationHelper.CreateExistingMessages(flowId),
-            await _invocationHelper.CreateExistingSemaphores(flowId),
             _invocationHelper.CreateCorrelations(flowId),
             functionState.FatalWorkflowException,
             _utcNow
@@ -51,7 +50,7 @@ public class ControlPanelFactory
 }
 
 
-public class ControlPanelFactory<TParam> where TParam : notnull 
+public class ControlPanelFactory<TParam> where TParam : notnull
 {
     private readonly FlowType _flowType;
     private readonly StoredType _storedType;
@@ -88,7 +87,6 @@ public class ControlPanelFactory<TParam> where TParam : notnull
             functionState.Param!,
             existingEffects,
             _invocationHelper.CreateExistingMessages(flowId),
-            await _invocationHelper.CreateExistingSemaphores(flowId),
             _invocationHelper.CreateCorrelations(flowId),
             functionState.FatalWorkflowException,
             _utcNow
@@ -134,7 +132,6 @@ public class ControlPanelFactory<TParam, TReturn> where TParam : notnull
             functionState.Result,
             existingEffects,
             _invocationHelper.CreateExistingMessages(flowId),
-            await _invocationHelper.CreateExistingSemaphores(flowId),
             _invocationHelper.CreateCorrelations(flowId),
             functionState.FatalWorkflowException,
             _utcNow

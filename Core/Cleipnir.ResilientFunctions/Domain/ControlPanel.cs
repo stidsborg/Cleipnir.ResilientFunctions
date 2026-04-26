@@ -12,21 +12,21 @@ namespace Cleipnir.ResilientFunctions.Domain;
 public class ControlPanel : BaseControlPanel<Unit, Unit>  
 {
     internal ControlPanel(
-        Invoker<Unit, Unit> invoker, 
-        InvocationHelper<Unit, Unit> invocationHelper, 
+        Invoker<Unit, Unit> invoker,
+        InvocationHelper<Unit, Unit> invocationHelper,
         FlowId flowId, StoredId storedId,
         ReplicaId? ownerReplica,
-        Status status, long expires,  
+        Status status, long expires,
         ExistingEffects effects,
-        ExistingMessages messages, ExistingSemaphores semaphores, 
+        ExistingMessages messages,
         Correlations correlations,
         FatalWorkflowException? fatalWorkflowException,
         UtcNow utcNow
     ) : base(
-        invoker, invocationHelper, 
+        invoker, invocationHelper,
         flowId, storedId, ownerReplica, status,
         expires, innerParam: Unit.Instance, innerResult: Unit.Instance, effects,
-        messages, semaphores, correlations, fatalWorkflowException,
+        messages, correlations, fatalWorkflowException,
         utcNow
     ) { }
 
@@ -56,21 +56,21 @@ public class ControlPanel : BaseControlPanel<Unit, Unit>
 public class ControlPanel<TParam> : BaseControlPanel<TParam, Unit> where TParam : notnull  
 {
     internal ControlPanel(
-        Invoker<TParam, Unit> invoker, 
-        InvocationHelper<TParam, Unit> invocationHelper, 
+        Invoker<TParam, Unit> invoker,
+        InvocationHelper<TParam, Unit> invocationHelper,
         FlowId flowId, StoredId storedId,
         ReplicaId? ownerReplica,
-        Status status, long expires, TParam innerParam, 
+        Status status, long expires, TParam innerParam,
         ExistingEffects effects,
-        ExistingMessages messages, ExistingSemaphores semaphores, 
-        Correlations correlations, 
+        ExistingMessages messages,
+        Correlations correlations,
         FatalWorkflowException? fatalWorkflowException,
         UtcNow utcNow
     ) : base(
-        invoker, invocationHelper, 
+        invoker, invocationHelper,
         flowId, storedId, ownerReplica, status,
         expires, innerParam, innerResult: Unit.Instance, effects,
-        messages, semaphores, correlations, fatalWorkflowException,
+        messages, correlations, fatalWorkflowException,
         utcNow
     ) { }
     
@@ -106,19 +106,19 @@ public class ControlPanel<TParam> : BaseControlPanel<TParam, Unit> where TParam 
 public class ControlPanel<TParam, TReturn> : BaseControlPanel<TParam, TReturn> where TParam : notnull
 {
     internal ControlPanel(
-        Invoker<TParam, TReturn> invoker, 
-        InvocationHelper<TParam, TReturn> invocationHelper, 
+        Invoker<TParam, TReturn> invoker,
+        InvocationHelper<TParam, TReturn> invocationHelper,
         FlowId flowId, StoredId storedId, ReplicaId? ownerReplica, Status status,
-        long expires, TParam innerParam, 
-        TReturn? innerResult, 
-        ExistingEffects effects, ExistingMessages messages, ExistingSemaphores semaphores,
+        long expires, TParam innerParam,
+        TReturn? innerResult,
+        ExistingEffects effects, ExistingMessages messages,
         Correlations correlations, FatalWorkflowException? fatalWorkflowException,
         UtcNow utcNow
     ) : base(
         invoker, invocationHelper,
         flowId, storedId, ownerReplica, status, expires,
         innerParam, innerResult, effects, messages,
-        semaphores, correlations, fatalWorkflowException,
+        correlations, fatalWorkflowException,
         utcNow
     ) { }
 
@@ -159,18 +159,17 @@ public abstract class BaseControlPanel<TParam, TReturn>
     private bool _innerParamChanged;
 
     internal BaseControlPanel(
-        Invoker<TParam, TReturn> invoker, 
+        Invoker<TParam, TReturn> invoker,
         InvocationHelper<TParam, TReturn> invocationHelper,
-        FlowId flowId, 
+        FlowId flowId,
         StoredId storedId,
         ReplicaId? ownerReplica,
-        Status status, 
+        Status status,
         long expires,
-        TParam innerParam, 
+        TParam innerParam,
         TReturn? innerResult,
         ExistingEffects effects,
         ExistingMessages messages,
-        ExistingSemaphores semaphores,
         Correlations correlations,
         FatalWorkflowException? fatalWorkflowException,
         UtcNow utcNow)
@@ -183,13 +182,12 @@ public abstract class BaseControlPanel<TParam, TReturn>
         Status = status;
         _innerParam = innerParam;
         InnerResult = innerResult;
-        PostponedUntil = Status == Status.Postponed ? 
+        PostponedUntil = Status == Status.Postponed ?
             (expires == long.MaxValue
-                ? DateTime.MaxValue 
+                ? DateTime.MaxValue
                 : new DateTime(expires, DateTimeKind.Utc)) : null;
         Effects = effects;
         Messages = messages;
-        Semaphores = semaphores;
         Correlations = correlations;
         FatalWorkflowException = fatalWorkflowException;
         UtcNow = utcNow;
@@ -204,8 +202,7 @@ public abstract class BaseControlPanel<TParam, TReturn>
     public ExistingMessages Messages { get; private set; }
     
     public ExistingEffects Effects { get; private set; }
-    
-    public ExistingSemaphores Semaphores { get; private set; }
+
     public Correlations Correlations { get; private set; }
 
     private TParam _innerParam;
@@ -344,7 +341,6 @@ public abstract class BaseControlPanel<TParam, TReturn>
         Effects = await _invocationHelper.CreateExistingEffects(FlowId);
         Messages = _invocationHelper.CreateExistingMessages(FlowId);
         Correlations = _invocationHelper.CreateCorrelations(FlowId);
-        Semaphores = await _invocationHelper.CreateExistingSemaphores(FlowId);
 
         _innerParamChanged = false;
     }

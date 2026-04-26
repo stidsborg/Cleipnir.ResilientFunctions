@@ -33,8 +33,6 @@ public class SqlServerFunctionStore : IFunctionStore
     public ITypeStore TypeStore => _typeStore;
     public IMessageStore MessageStore => _messageStore;
     public Utilities Utilities { get; }
-    private readonly SqlServerSemaphoreStore _semaphoreStore;
-    public ISemaphoreStore SemaphoreStore => _semaphoreStore;
     private readonly SqlServerReplicaStore _replicaStore;
     public IReplicaStore ReplicaStore => _replicaStore;
 
@@ -53,7 +51,6 @@ public class SqlServerFunctionStore : IFunctionStore
         _underlyingRegister = new SqlServerUnderlyingRegister(connectionString, _tableName);
         _effectsStore = new SqlServerEffectsStore(connectionString, _tableName);
         _correlationStore = new SqlServerCorrelationsStore(connectionString, _tableName);
-        _semaphoreStore = new SqlServerSemaphoreStore(connectionString, _tableName);
         _typeStore = new SqlServerTypeStore(connectionString, _tableName);
         _replicaStore = new SqlServerReplicaStore(connectionString, _tableName);
         Utilities = new Utilities(_underlyingRegister);
@@ -80,7 +77,6 @@ public class SqlServerFunctionStore : IFunctionStore
         await _effectsStore.Initialize();
         await _correlationStore.Initialize();
         await _typeStore.Initialize();
-        await _semaphoreStore.Initialize();
         await _replicaStore.Initialize();
         await using var conn = await _connFunc();
         _initializeSql ??= @$"
@@ -131,7 +127,6 @@ public class SqlServerFunctionStore : IFunctionStore
         await _effectsStore.Truncate();
         await _correlationStore.Truncate();
         await _typeStore.Truncate();
-        await _semaphoreStore.Truncate();
         await _replicaStore.Truncate();
         
         await using var conn = await _connFunc();
