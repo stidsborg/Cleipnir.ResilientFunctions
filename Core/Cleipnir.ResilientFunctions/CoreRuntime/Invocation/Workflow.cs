@@ -15,22 +15,20 @@ public class Workflow
     public Effect Effect { get; }
     public Utilities Utilities { get; }
     public Correlations Correlations { get; }
-    public Synchronization Synchronization { get; }
-   
+
     private QueueManager _queueManager;
     private FlowsManager _flowsManager;
     private readonly UtcNow _utcNow;
     private MessageWriter MessageWriter { get; }
 
 
-    public Workflow(FlowId flowId, StoredId storedId, Effect effect, Utilities utilities, Correlations correlations, DistributedSemaphores semaphores, QueueManager queueManager, UtcNow utcNow, MessageWriter messageWriter, FlowsManager flowsManager)
+    public Workflow(FlowId flowId, StoredId storedId, Effect effect, Utilities utilities, Correlations correlations, QueueManager queueManager, UtcNow utcNow, MessageWriter messageWriter, FlowsManager flowsManager)
     {
         FlowId = flowId;
         StoredId = storedId;
         Utilities = utilities;
         Effect = effect;
         Correlations = correlations;
-        Synchronization = new Synchronization(semaphores);
         _queueManager = queueManager;
         _utcNow = utcNow;
         MessageWriter = messageWriter;

@@ -26,7 +26,6 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
     private readonly InMemoryCorrelationStore _correlationStore = new();
     public ICorrelationStore CorrelationStore => _correlationStore;
     public Utilities Utilities { get; }
-    public ISemaphoreStore SemaphoreStore { get; } = new InMemorySemaphoreStore();
     public IReplicaStore ReplicaStore { get; } = new InMemoryReplicaStore();
 
     public Task Initialize() => Task.CompletedTask;
