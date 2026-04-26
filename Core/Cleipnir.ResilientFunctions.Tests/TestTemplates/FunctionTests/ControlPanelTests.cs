@@ -1225,52 +1225,16 @@ public abstract class ControlPanelTests
         unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
 
-    public abstract Task CorrelationsCanBeChanged();
-    protected async Task CorrelationsCanBeChanged(Task<IFunctionStore> storeTask)
-    {
-        var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        
-        var store = await storeTask;
-        var functionId = TestFlowId.Create();
-        var (flowType, flowInstance) = functionId;
-        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
-        
-        var registration = functionsRegistry.RegisterParamless(
-            flowType,
-            async workflow =>
-            {
-                await workflow.Correlations.Register("SomeCorrelation");
-                
-            }
-        );
-
-        await registration.Run(flowInstance.Value);
-
-        var controlPanel = await registration.ControlPanel(flowInstance.Value);
-        controlPanel.ShouldNotBeNull();
-       
-        await controlPanel.Correlations.Contains("SomeCorrelation").ShouldBeTrueAsync();
-        await controlPanel.Correlations.Remove("SomeCorrelation");
-        await controlPanel.Correlations.Register("SomeNewCorrelation");
-
-        controlPanel = await registration.ControlPanel(flowInstance.Value);
-        controlPanel.ShouldNotBeNull();
-        await controlPanel.Correlations.Contains("SomeCorrelation").ShouldBeFalseAsync();
-        await controlPanel.Correlations.Contains("SomeNewCorrelation").ShouldBeTrueAsync();
-        
-        unhandledExceptionCatcher.ShouldNotHaveExceptions();
-    }
-    
     public abstract Task DeleteRemovesFunctionFromAllStores();
     protected async Task DeleteRemovesFunctionFromAllStores(Task<IFunctionStore> storeTask)
     {
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        
+
         var store = await storeTask;
         var functionId = TestFlowId.Create();
         var (flowType, flowInstance) = functionId;
         using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
-        
+
         var registration = functionsRegistry.RegisterParamless(
             flowType,
             inner: () => Task.CompletedTask
@@ -1281,7 +1245,6 @@ public abstract class ControlPanelTests
         var controlPanel = await registration.ControlPanel(flowInstance.Value);
         controlPanel.ShouldNotBeNull();
 
-        await controlPanel.Correlations.Register("SomeCorrelation");
         await controlPanel.Effects.SetSucceeded("SomeEffect".GetHashCode());
         await controlPanel.Messages.Append("Some Message");
 
@@ -1289,20 +1252,16 @@ public abstract class ControlPanelTests
 
         var storedId = registration.MapToStoredId(functionId.Instance);
         await store.GetFunction(storedId).ShouldBeNullAsync();
-        
+
         await store.MessageStore.GetMessages(storedId)
             .SelectAsync(msgs => msgs.Count == 0)
             .ShouldBeTrueAsync();
-
-        await store.CorrelationStore.GetCorrelations(storedId)
-            .SelectAsync(c => c.Any())
-            .ShouldBeFalseAsync();
 
         await store.EffectsStore
             .GetEffectResults(storedId)
             .SelectAsync(e => e.Any())
             .ShouldBeFalseAsync();
-        
+
         unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
     

@@ -138,10 +138,6 @@ public class ControlPanelTests : ResilientFunctions.Tests.TestTemplates.Function
         => EffectsAreOnlyFetchedOnPropertyInvocation(FunctionStoreFactory.Create());
 
     [TestMethod]
-    public override Task CorrelationsCanBeChanged()
-        => CorrelationsCanBeChanged(FunctionStoreFactory.Create());
-    
-    [TestMethod]
     public override Task DeleteRemovesFunctionFromAllStores()
         => DeleteRemovesFunctionFromAllStores(FunctionStoreFactory.Create());
     

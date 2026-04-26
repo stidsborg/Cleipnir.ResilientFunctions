@@ -402,12 +402,6 @@ internal class InvocationHelper<TParam, TReturn>
        var effect = new Effect(effectResults, UtcNow, flowTimeouts, flowsManager, storedId);
        return effect;
     }
-    
-    public Correlations CreateCorrelations(FlowId flowId)
-    {
-        var correlationStore = _functionStore.CorrelationStore;
-        return new Correlations(MapToStoredId(flowId), correlationStore);
-    }
 
     public async Task<ExistingEffects> CreateExistingEffects(FlowId flowId)
     {

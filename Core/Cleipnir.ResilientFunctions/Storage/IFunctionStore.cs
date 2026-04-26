@@ -11,7 +11,6 @@ public interface IFunctionStore
     public ITypeStore TypeStore { get; }
     public IMessageStore MessageStore { get; }
     public IEffectsStore EffectsStore { get; }
-    public ICorrelationStore CorrelationStore { get; }
     public IReplicaStore ReplicaStore { get; }
     public Task Initialize();
     

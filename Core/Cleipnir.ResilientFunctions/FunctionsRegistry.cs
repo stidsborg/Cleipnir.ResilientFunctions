@@ -258,11 +258,7 @@ public class FunctionsRegistry : IDisposable
                 serializer
             );
 
-            var postman = new Postman(
-                storedType,
-                _functionStore.CorrelationStore,
-                messageWriters
-            );
+            var postman = new Postman(messageWriters);
             
             var registration = new FuncRegistration<TParam, TReturn>(
                 flowType,
@@ -347,11 +343,7 @@ public class FunctionsRegistry : IDisposable
                 serializer
             );
 
-            var postman = new Postman(
-                storedType,
-                _functionStore.CorrelationStore,
-                messageWriters
-            );
+            var postman = new Postman(messageWriters);
 
             var registration = new ParamlessRegistration(
                 flowType,
@@ -435,11 +427,7 @@ public class FunctionsRegistry : IDisposable
                 _functionStore,
                 serializer
             );
-            var postman = new Postman(
-                storedType,
-                _functionStore.CorrelationStore,
-                messageWriters
-            );
+            var postman = new Postman(messageWriters);
             
             var registration = new ActionRegistration<TParam>(
                 flowType,

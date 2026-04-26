@@ -42,7 +42,6 @@ public class ControlPanelFactory
             functionState.Expires,
             existingEffects,
             _invocationHelper.CreateExistingMessages(flowId),
-            _invocationHelper.CreateCorrelations(flowId),
             functionState.FatalWorkflowException,
             _utcNow
         );
@@ -87,7 +86,6 @@ public class ControlPanelFactory<TParam> where TParam : notnull
             functionState.Param!,
             existingEffects,
             _invocationHelper.CreateExistingMessages(flowId),
-            _invocationHelper.CreateCorrelations(flowId),
             functionState.FatalWorkflowException,
             _utcNow
         );
@@ -132,7 +130,6 @@ public class ControlPanelFactory<TParam, TReturn> where TParam : notnull
             functionState.Result,
             existingEffects,
             _invocationHelper.CreateExistingMessages(flowId),
-            _invocationHelper.CreateCorrelations(flowId),
             functionState.FatalWorkflowException,
             _utcNow
         );

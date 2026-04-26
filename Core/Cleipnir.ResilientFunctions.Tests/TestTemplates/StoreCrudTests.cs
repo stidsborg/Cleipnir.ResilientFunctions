@@ -184,18 +184,16 @@ public abstract class StoreCrudTests
             StoredEffect.CreateCompleted(1.ToEffectId(), "SomeStateJson".ToUtf8Bytes(), alias: null).ToStoredChange(storedId, Insert),
             session: null
         );
-        await store.CorrelationStore.SetCorrelation(storedId, "SomeCorrelationId");
         await store.EffectsStore.SetEffectResult(
             storedId,
             new StoredEffect(2.ToEffectId(), WorkStatus.Completed, Result: null, StoredException: null, Alias: null).ToStoredChange(storedId, Insert),
             session: null
         );
         await store.MessageStore.AppendMessage(storedId, new StoredMessage("SomeJson".ToUtf8Bytes(), "SomeType".ToUtf8Bytes(), Position: 0));
-        
+
         await store.DeleteFunction(storedId);
 
         await store.GetFunction(storedId).ShouldBeNullAsync();
-        await store.CorrelationStore.GetCorrelations(storedId).ShouldBeEmptyAsync();
         await store.EffectsStore.GetEffectResults(storedId).ShouldBeEmptyAsync();
         await store.MessageStore.GetMessages(storedId).ShouldBeEmptyAsync();
     }

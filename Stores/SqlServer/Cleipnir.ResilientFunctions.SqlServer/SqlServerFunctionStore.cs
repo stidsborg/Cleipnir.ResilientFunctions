@@ -24,11 +24,9 @@ public class SqlServerFunctionStore : IFunctionStore
     
     private readonly SqlServerEffectsStore _effectsStore;
     private readonly SqlServerMessageStore _messageStore;
-    private readonly SqlServerCorrelationsStore _correlationStore;
     private readonly SqlServerTypeStore _typeStore;
-    
+
     public IEffectsStore EffectsStore => _effectsStore;
-    public ICorrelationStore CorrelationStore => _correlationStore;
     public ITypeStore TypeStore => _typeStore;
     public IMessageStore MessageStore => _messageStore;
     private readonly SqlServerReplicaStore _replicaStore;
@@ -45,7 +43,6 @@ public class SqlServerFunctionStore : IFunctionStore
         _connFunc = CreateConnection(connectionString);
         _messageStore = new SqlServerMessageStore(connectionString, _sqlGenerator, _tableName);
         _effectsStore = new SqlServerEffectsStore(connectionString, _tableName);
-        _correlationStore = new SqlServerCorrelationsStore(connectionString, _tableName);
         _typeStore = new SqlServerTypeStore(connectionString, _tableName);
         _replicaStore = new SqlServerReplicaStore(connectionString, _tableName);
     }
@@ -68,7 +65,6 @@ public class SqlServerFunctionStore : IFunctionStore
 
         await _messageStore.Initialize();
         await _effectsStore.Initialize();
-        await _correlationStore.Initialize();
         await _typeStore.Initialize();
         await _replicaStore.Initialize();
         await using var conn = await _connFunc();
@@ -117,7 +113,6 @@ public class SqlServerFunctionStore : IFunctionStore
     {
         await _messageStore.TruncateTable();
         await _effectsStore.Truncate();
-        await _correlationStore.Truncate();
         await _typeStore.Truncate();
         await _replicaStore.Truncate();
         
@@ -925,7 +920,6 @@ public class SqlServerFunctionStore : IFunctionStore
     {
         await _messageStore.Truncate(storedId);
         await _effectsStore.Remove(storedId);
-        await _correlationStore.RemoveCorrelations(storedId);
 
         return await DeleteStoredFunction(storedId);
     }

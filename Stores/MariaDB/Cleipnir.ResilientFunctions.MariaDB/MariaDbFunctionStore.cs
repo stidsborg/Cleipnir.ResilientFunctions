@@ -25,9 +25,6 @@ public class MariaDbFunctionStore : IFunctionStore
     
     private readonly MariaDbTypeStore _typeStore;
     public ITypeStore TypeStore => _typeStore;
-    
-    private readonly MariaDbCorrelationStore _correlationStore;
-    public ICorrelationStore CorrelationStore => _correlationStore;
 
     private readonly MariaDbReplicaStore _replicaStore;
     public IReplicaStore ReplicaStore => _replicaStore;
@@ -44,7 +41,6 @@ public class MariaDbFunctionStore : IFunctionStore
 
         _messageStore = new MariaDbMessageStore(connectionString, _sqlGenerator, tablePrefix);
         _effectsStore = new MariaDbEffectsStore(connectionString, tablePrefix);
-        _correlationStore = new MariaDbCorrelationStore(connectionString, tablePrefix);
         _typeStore = new MariaDbTypeStore(connectionString, tablePrefix);
         _replicaStore = new MariaDbReplicaStore(connectionString, tablePrefix);
     }
@@ -57,7 +53,6 @@ public class MariaDbFunctionStore : IFunctionStore
 
         await MessageStore.Initialize();
         await EffectsStore.Initialize();
-        await CorrelationStore.Initialize();
         await _typeStore.Initialize();
         await _replicaStore.Initialize();
         await using var conn = await CreateOpenConnection(_connectionString);
@@ -88,7 +83,6 @@ public class MariaDbFunctionStore : IFunctionStore
     {
         await _messageStore.TruncateTable();
         await _effectsStore.Truncate();
-        await _correlationStore.Truncate();
         await _typeStore.Truncate();
         await _replicaStore.Truncate();
         
@@ -884,7 +878,6 @@ public class MariaDbFunctionStore : IFunctionStore
     {
         await _messageStore.Truncate(storedId);
         await _effectsStore.Remove(storedId);
-        await _correlationStore.RemoveCorrelations(storedId);
 
         return await DeleteStoredFunction(storedId);
     }

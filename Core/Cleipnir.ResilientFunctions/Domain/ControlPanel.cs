@@ -19,14 +19,13 @@ public class ControlPanel : BaseControlPanel<Unit, Unit>
         Status status, long expires,
         ExistingEffects effects,
         ExistingMessages messages,
-        Correlations correlations,
         FatalWorkflowException? fatalWorkflowException,
         UtcNow utcNow
     ) : base(
         invoker, invocationHelper,
         flowId, storedId, ownerReplica, status,
         expires, innerParam: Unit.Instance, innerResult: Unit.Instance, effects,
-        messages, correlations, fatalWorkflowException,
+        messages, fatalWorkflowException,
         utcNow
     ) { }
 
@@ -63,14 +62,13 @@ public class ControlPanel<TParam> : BaseControlPanel<TParam, Unit> where TParam 
         Status status, long expires, TParam innerParam,
         ExistingEffects effects,
         ExistingMessages messages,
-        Correlations correlations,
         FatalWorkflowException? fatalWorkflowException,
         UtcNow utcNow
     ) : base(
         invoker, invocationHelper,
         flowId, storedId, ownerReplica, status,
         expires, innerParam, innerResult: Unit.Instance, effects,
-        messages, correlations, fatalWorkflowException,
+        messages, fatalWorkflowException,
         utcNow
     ) { }
     
@@ -112,13 +110,13 @@ public class ControlPanel<TParam, TReturn> : BaseControlPanel<TParam, TReturn> w
         long expires, TParam innerParam,
         TReturn? innerResult,
         ExistingEffects effects, ExistingMessages messages,
-        Correlations correlations, FatalWorkflowException? fatalWorkflowException,
+        FatalWorkflowException? fatalWorkflowException,
         UtcNow utcNow
     ) : base(
         invoker, invocationHelper,
         flowId, storedId, ownerReplica, status, expires,
         innerParam, innerResult, effects, messages,
-        correlations, fatalWorkflowException,
+        fatalWorkflowException,
         utcNow
     ) { }
 
@@ -170,7 +168,6 @@ public abstract class BaseControlPanel<TParam, TReturn>
         TReturn? innerResult,
         ExistingEffects effects,
         ExistingMessages messages,
-        Correlations correlations,
         FatalWorkflowException? fatalWorkflowException,
         UtcNow utcNow)
     {
@@ -188,7 +185,6 @@ public abstract class BaseControlPanel<TParam, TReturn>
                 : new DateTime(expires, DateTimeKind.Utc)) : null;
         Effects = effects;
         Messages = messages;
-        Correlations = correlations;
         FatalWorkflowException = fatalWorkflowException;
         UtcNow = utcNow;
     }
@@ -202,8 +198,6 @@ public abstract class BaseControlPanel<TParam, TReturn>
     public ExistingMessages Messages { get; private set; }
     
     public ExistingEffects Effects { get; private set; }
-
-    public Correlations Correlations { get; private set; }
 
     private TParam _innerParam;
     protected TParam InnerParam
@@ -340,7 +334,6 @@ public abstract class BaseControlPanel<TParam, TReturn>
         FatalWorkflowException = sf.FatalWorkflowException;
         Effects = await _invocationHelper.CreateExistingEffects(FlowId);
         Messages = _invocationHelper.CreateExistingMessages(FlowId);
-        Correlations = _invocationHelper.CreateCorrelations(FlowId);
 
         _innerParamChanged = false;
     }
