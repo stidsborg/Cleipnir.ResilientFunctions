@@ -27,9 +27,8 @@ public class ParamlessRegistration : BaseRegistration
         Invoker<Unit, Unit> invoker,
         ControlPanelFactory controlPanelFactory,
         MessageWriters messageWriters,
-        Postman postman,
         UtcNow utcNow
-    ) : base(storedType, postman, functionStore, utcNow)
+    ) : base(storedType, functionStore, utcNow)
     {
         Type = flowType;
         _invoker = invoker;
@@ -70,9 +69,9 @@ public class ParamlessRegistration : BaseRegistration
                 await Schedule(flowInstance);
         }
 
-        await Postman.SendMessage(StoredId.Create(StoredType, flowInstance.Value), message, idempotencyKey);
+        await MessageWriters.For(flowInstance).AppendMessage(message, idempotencyKey);
     }
 
     public async Task SendMessages(IReadOnlyList<BatchedMessage> messages)
-        => await Postman.SendMessages(messages);
+        => await MessageWriters.AppendMessages(messages);
 }

@@ -258,8 +258,6 @@ public class FunctionsRegistry : IDisposable
                 serializer
             );
 
-            var postman = new Postman(messageWriters);
-            
             var registration = new FuncRegistration<TParam, TReturn>(
                 flowType,
                 storedType,
@@ -267,7 +265,6 @@ public class FunctionsRegistry : IDisposable
                 invoker,
                 controlPanels,
                 messageWriters,
-                postman,
                 _settings.UtcNow
             );
             _functions[flowType] = registration;
@@ -343,8 +340,6 @@ public class FunctionsRegistry : IDisposable
                 serializer
             );
 
-            var postman = new Postman(messageWriters);
-
             var registration = new ParamlessRegistration(
                 flowType,
                 storedType,
@@ -352,7 +347,6 @@ public class FunctionsRegistry : IDisposable
                 invoker,
                 controlPanels,
                 messageWriters,
-                postman,
                 _settings.UtcNow
             );
             _functions[flowType] = registration;
@@ -427,8 +421,6 @@ public class FunctionsRegistry : IDisposable
                 _functionStore,
                 serializer
             );
-            var postman = new Postman(messageWriters);
-            
             var registration = new ActionRegistration<TParam>(
                 flowType,
                 storedType,
@@ -436,7 +428,6 @@ public class FunctionsRegistry : IDisposable
                 rActionInvoker,
                 controlPanels,
                 messageWriters,
-                postman,
                 _settings.UtcNow
             );
             _functions[flowType] = registration;
