@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Storage;
@@ -18,7 +17,6 @@ public class CrashableFunctionStore : IFunctionStore
     public IMessageStore MessageStore => _inner.MessageStore;
     public IEffectsStore EffectsStore => _inner.EffectsStore;
     public ICorrelationStore CorrelationStore => _inner.CorrelationStore;
-    public Utilities Utilities => _inner.Utilities;
     public IReplicaStore ReplicaStore => _inner.ReplicaStore;
 
     public CrashableFunctionStore(IFunctionStore inner) => _inner = inner;

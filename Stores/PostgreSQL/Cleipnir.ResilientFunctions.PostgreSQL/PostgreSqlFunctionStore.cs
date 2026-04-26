@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
-using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
@@ -33,9 +32,6 @@ public class PostgreSqlFunctionStore : IFunctionStore
     private readonly PostgreSqlDbReplicaStore _replicaStore;
     public IReplicaStore ReplicaStore => _replicaStore;
 
-    public Utilities Utilities { get; }
-    
-    private readonly PostgresSqlUnderlyingRegister _postgresSqlUnderlyingRegister;
     private readonly SqlGenerator _sqlGenerator;
 
     public PostgreSqlFunctionStore(string connectionString, string tablePrefix = "")
@@ -43,15 +39,13 @@ public class PostgreSqlFunctionStore : IFunctionStore
         _tableName = tablePrefix == "" ? "rfunctions" : tablePrefix;
         _connectionString = connectionString;
         _sqlGenerator = new SqlGenerator(_tableName);
-        
+
         _messageStore = new PostgreSqlMessageStore(connectionString, _sqlGenerator, _tableName);
         _effectsStore = new PostgreSqlEffectsStore(connectionString, _tableName);
         _correlationStore = new PostgreSqlCorrelationStore(connectionString, _tableName);
         _typeStore = new PostgreSqlTypeStore(connectionString, _tableName);
-        _postgresSqlUnderlyingRegister = new PostgresSqlUnderlyingRegister(connectionString, _tableName);
         _replicaStore = new PostgreSqlDbReplicaStore(connectionString, _tableName);
-        Utilities = new Utilities(_postgresSqlUnderlyingRegister);
-    } 
+    }
 
     private async Task<NpgsqlConnection> CreateConnection()
     {
@@ -65,8 +59,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
     {
         if (await DoTablesAlreadyExist())
             return;
-        
-        await _postgresSqlUnderlyingRegister.Initialize();
+
         await _messageStore.Initialize();
         await _effectsStore.Initialize();
         await _correlationStore.Initialize();
@@ -104,7 +97,6 @@ public class PostgreSqlFunctionStore : IFunctionStore
     public async Task TruncateTables()
     {
         await _messageStore.TruncateTable();
-        await _postgresSqlUnderlyingRegister.TruncateTable();
         await _effectsStore.Truncate();
         await _correlationStore.Truncate();
         await _typeStore.Truncate();

@@ -13,7 +13,6 @@ public class Workflow
     public FlowId FlowId { get; }
     internal StoredId StoredId { get; }
     public Effect Effect { get; }
-    public Utilities Utilities { get; }
     public Correlations Correlations { get; }
 
     private QueueManager _queueManager;
@@ -21,11 +20,10 @@ public class Workflow
     private MessageWriter MessageWriter { get; }
 
 
-    public Workflow(FlowId flowId, StoredId storedId, Effect effect, Utilities utilities, Correlations correlations, QueueManager queueManager, UtcNow utcNow, MessageWriter messageWriter)
+    public Workflow(FlowId flowId, StoredId storedId, Effect effect, Correlations correlations, QueueManager queueManager, UtcNow utcNow, MessageWriter messageWriter)
     {
         FlowId = flowId;
         StoredId = storedId;
-        Utilities = utilities;
         Effect = effect;
         Correlations = correlations;
         _queueManager = queueManager;
