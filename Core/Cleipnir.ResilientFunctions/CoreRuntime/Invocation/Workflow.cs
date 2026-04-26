@@ -17,12 +17,11 @@ public class Workflow
     public Correlations Correlations { get; }
 
     private QueueManager _queueManager;
-    private FlowsManager _flowsManager;
     private readonly UtcNow _utcNow;
     private MessageWriter MessageWriter { get; }
 
 
-    public Workflow(FlowId flowId, StoredId storedId, Effect effect, Utilities utilities, Correlations correlations, QueueManager queueManager, UtcNow utcNow, MessageWriter messageWriter, FlowsManager flowsManager)
+    public Workflow(FlowId flowId, StoredId storedId, Effect effect, Utilities utilities, Correlations correlations, QueueManager queueManager, UtcNow utcNow, MessageWriter messageWriter)
     {
         FlowId = flowId;
         StoredId = storedId;
@@ -32,7 +31,6 @@ public class Workflow
         _queueManager = queueManager;
         _utcNow = utcNow;
         MessageWriter = messageWriter;
-        _flowsManager = flowsManager;
     }
 
     public async Task RegisterCorrelation(string correlation) => await Correlations.Register(correlation);

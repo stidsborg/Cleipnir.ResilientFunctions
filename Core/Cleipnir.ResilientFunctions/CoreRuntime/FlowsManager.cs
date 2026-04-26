@@ -1,9 +1,7 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.Threading;
 using System.Threading.Tasks;
-using Cleipnir.ResilientFunctions.Domain.Exceptions.Commands;
 using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.CoreRuntime;
@@ -79,8 +77,4 @@ public class FlowsManager : IDisposable
             if (_dict.TryGetValue(id, out var flowState))
                 flowState.SubflowCompleted();
     }
-
-    [DoesNotReturn]
-    public async Task Suspend(StoredId id) => throw new SuspendInvocationException();
-
 }
