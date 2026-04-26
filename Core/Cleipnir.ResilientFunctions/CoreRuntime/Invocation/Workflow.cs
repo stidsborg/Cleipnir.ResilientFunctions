@@ -13,25 +13,21 @@ public class Workflow
     public FlowId FlowId { get; }
     internal StoredId StoredId { get; }
     public Effect Effect { get; }
-    public Correlations Correlations { get; }
 
     private QueueManager _queueManager;
     private readonly UtcNow _utcNow;
     private MessageWriter MessageWriter { get; }
 
 
-    public Workflow(FlowId flowId, StoredId storedId, Effect effect, Correlations correlations, QueueManager queueManager, UtcNow utcNow, MessageWriter messageWriter)
+    public Workflow(FlowId flowId, StoredId storedId, Effect effect, QueueManager queueManager, UtcNow utcNow, MessageWriter messageWriter)
     {
         FlowId = flowId;
         StoredId = storedId;
         Effect = effect;
-        Correlations = correlations;
         _queueManager = queueManager;
         _utcNow = utcNow;
         MessageWriter = messageWriter;
     }
-
-    public async Task RegisterCorrelation(string correlation) => await Correlations.Register(correlation);
 
     public Task Delay(TimeSpan @for, bool suspend = true, string? alias = null) => Delay(until: _utcNow() + @for, suspend, alias);
     public Task Delay(DateTime until, bool suspend = true, string? alias = null)

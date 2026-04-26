@@ -280,13 +280,11 @@ public class Invoker<TParam, TReturn>
                 _flowsManager
             );
 
-            var correlations = _invocationHelper.CreateCorrelations(flowId);
-
             var flowState = _flowsManager.CreateFlow(storedId, flowTimeouts);
             var queueManager = _invocationHelper.CreateQueueManager(flowId, storedId, effect, flowState, flowTimeouts, _unhandledExceptionHandler);
             disposables.Add(queueManager);
             var messageWriter = _invocationHelper.CreateMessageWriter(storedId);
-            var workflow = new Workflow(flowId, storedId, effect, correlations, queueManager, _invocationHelper.UtcNow, messageWriter);
+            var workflow = new Workflow(flowId, storedId, effect, queueManager, _invocationHelper.UtcNow, messageWriter);
 
             return new PreparedInvocation(
                 persisted,
@@ -333,7 +331,6 @@ public class Invoker<TParam, TReturn>
 
             var effect = _invocationHelper.CreateEffect(storedId, flowId, effects, flowTimeouts, storageSession, _flowsManager);
 
-            var correlations = _invocationHelper.CreateCorrelations(flowId);
             var flowState = _flowsManager.CreateFlow(storedId, flowTimeouts);
             var queueManager = _invocationHelper.CreateQueueManager(flowId, storedId, effect, flowState, flowTimeouts, _unhandledExceptionHandler);
             disposables.Add(queueManager);
@@ -343,7 +340,6 @@ public class Invoker<TParam, TReturn>
                 flowId,
                 storedId,
                 effect,
-                correlations,
                 queueManager,
                 _invocationHelper.UtcNow,
                 messageWriter

@@ -20,8 +20,6 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
     public IMessageStore MessageStore => this;
     private readonly InMemoryEffectsStore _effectsStore = new();
     public IEffectsStore EffectsStore => _effectsStore;
-    private readonly InMemoryCorrelationStore _correlationStore = new();
-    public ICorrelationStore CorrelationStore => _correlationStore;
     public IReplicaStore ReplicaStore { get; } = new InMemoryReplicaStore();
 
     public Task Initialize() => Task.CompletedTask;
@@ -543,8 +541,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         {
             _messages.Remove(storedId);
             _effectsStore.Remove(storedId);
-            _correlationStore.RemoveCorrelations(storedId);
-            
+
             return _states.Remove(storedId).ToTask();
         }
     }

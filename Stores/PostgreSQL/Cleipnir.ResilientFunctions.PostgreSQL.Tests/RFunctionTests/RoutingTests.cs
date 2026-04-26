@@ -23,14 +23,6 @@ public class RoutingTests : ResilientFunctions.Tests.TestTemplates.FunctionTests
         => MessageIsRoutedUsingRoutingInfo(FunctionStoreFactory.Create());
 
     [TestMethod]
-    public override Task MessageIsRoutedToParamlessInstanceUsingCorrelationId()
-        => MessageIsRoutedToParamlessInstanceUsingCorrelationId(FunctionStoreFactory.Create());
-    
-    [TestMethod]
-    public override Task MessageIsRoutedToMultipleInstancesUsingCorrelationId()
-        => MessageIsRoutedToMultipleInstancesUsingCorrelationId(FunctionStoreFactory.Create());
-
-    [TestMethod]
     public override Task ParamlessInstanceIsStartedByMessage()
         => ParamlessInstanceIsStartedByMessage(FunctionStoreFactory.Create());
 }

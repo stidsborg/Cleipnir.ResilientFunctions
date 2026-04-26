@@ -25,9 +25,6 @@ public class PostgreSqlFunctionStore : IFunctionStore
     
     private readonly PostgreSqlEffectsStore _effectsStore;
     public IEffectsStore EffectsStore => _effectsStore;
-    
-    private readonly ICorrelationStore _correlationStore;
-    public ICorrelationStore CorrelationStore => _correlationStore;
 
     private readonly PostgreSqlDbReplicaStore _replicaStore;
     public IReplicaStore ReplicaStore => _replicaStore;
@@ -42,7 +39,6 @@ public class PostgreSqlFunctionStore : IFunctionStore
 
         _messageStore = new PostgreSqlMessageStore(connectionString, _sqlGenerator, _tableName);
         _effectsStore = new PostgreSqlEffectsStore(connectionString, _tableName);
-        _correlationStore = new PostgreSqlCorrelationStore(connectionString, _tableName);
         _typeStore = new PostgreSqlTypeStore(connectionString, _tableName);
         _replicaStore = new PostgreSqlDbReplicaStore(connectionString, _tableName);
     }
@@ -62,7 +58,6 @@ public class PostgreSqlFunctionStore : IFunctionStore
 
         await _messageStore.Initialize();
         await _effectsStore.Initialize();
-        await _correlationStore.Initialize();
         await _typeStore.Initialize();
         await _replicaStore.Initialize();
         await using var conn = await CreateConnection();
@@ -98,7 +93,6 @@ public class PostgreSqlFunctionStore : IFunctionStore
     {
         await _messageStore.TruncateTable();
         await _effectsStore.Truncate();
-        await _correlationStore.Truncate();
         await _typeStore.Truncate();
         await _replicaStore.Truncate();
 
@@ -799,7 +793,6 @@ public class PostgreSqlFunctionStore : IFunctionStore
     {
         await _messageStore.Truncate(storedId);
         await _effectsStore.Remove(storedId);
-        await _correlationStore.RemoveCorrelations(storedId);
 
         return await DeleteStoredFunction(storedId);
     }

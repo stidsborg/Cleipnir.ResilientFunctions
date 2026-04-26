@@ -23,9 +23,6 @@ public abstract class BaseRegistration
         UtcNow = utcNow;
     } 
 
-    public Task RouteMessage<T>(T message, string correlationId, string? idempotencyKey = null) where T : class 
-        => Postman.RouteMessage(message, correlationId, idempotencyKey);
-    
     public StoredId MapToStoredId(FlowInstance instance) => StoredId.Create(StoredType, instance.Value);
     
     public Task Interrupt(IEnumerable<FlowInstance> instances)
