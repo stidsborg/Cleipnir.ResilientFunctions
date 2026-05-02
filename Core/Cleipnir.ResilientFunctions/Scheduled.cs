@@ -19,7 +19,7 @@ public class InnerScheduled<TResult>(
     ResultBusyWaiter<TResult> resultBusyWaiter,
     Task<TResult>? task = null)
 {
-    public async Task<IReadOnlyList<TResult>> Completion(TimeSpan? maxWait = null, bool allowPostponedAndSuspended = true)
+    public async Task<IReadOnlyList<TResult>> Completion(TimeSpan? timeout = null, bool allowPostponedAndSuspended = true)
     {
         if (task != null)
         {
@@ -35,8 +35,8 @@ public class InnerScheduled<TResult>(
         }
 
         return parentWorkflow == null
-            ? await DetachedScheduled(maxWait, allowPostponedAndSuspended)
-            : await AttachedScheduled(parentWorkflow, maxWait);
+            ? await DetachedScheduled(timeout, allowPostponedAndSuspended)
+            : await AttachedScheduled(parentWorkflow, timeout);
     }
     
     public Scheduled ToScheduledWithoutResult() => Scheduled.CreateFromInnerScheduled(this);
@@ -44,15 +44,15 @@ public class InnerScheduled<TResult>(
     public BulkScheduled ToScheduledWithoutResults() => BulkScheduled.CreateFromInnerScheduled(this);
     public BulkScheduled<TResult> ToScheduledWithResults() => BulkScheduled<TResult>.CreateFromInnerScheduled(this);
 
-    private async Task<IReadOnlyList<TResult>> DetachedScheduled(TimeSpan? maxWait, bool allowPostponedAndSuspended = true)
+    private async Task<IReadOnlyList<TResult>> DetachedScheduled(TimeSpan? timeout, bool allowPostponedAndSuspended = true)
     {
-        maxWait ??= TimeSpan.FromSeconds(10);
+        timeout ??= TimeSpan.FromSeconds(10);
         var stopWatch = Stopwatch.StartNew();
 
         var results = new List<TResult>(scheduledIds.Count);
         foreach (var scheduledId in scheduledIds)
         {
-            var timeLeft = maxWait - stopWatch.Elapsed;
+            var timeLeft = timeout - stopWatch.Elapsed;
             if (timeLeft < TimeSpan.Zero)
                 throw new TimeoutException();
 
@@ -64,12 +64,21 @@ public class InnerScheduled<TResult>(
         return results;
     }
 
-    private async Task<IReadOnlyList<TResult>> AttachedScheduled(Workflow parent, TimeSpan? maxWait)
+    private async Task<IReadOnlyList<TResult>> AttachedScheduled(Workflow parent, TimeSpan? timeout)
     {
+        timeout ??= TimeSpan.FromSeconds(10);
+        var stopWatch = Stopwatch.StartNew();
+
         var completedFlows = new List<FlowCompleted>();
         foreach (var _ in scheduledIds)
         {
-            var completed = await parent.Message<FlowCompleted>(filter: c => scheduledIds.Contains(c.Id));
+            var timeLeft = timeout.Value - stopWatch.Elapsed;
+            if (timeLeft < TimeSpan.Zero)
+                throw new TimeoutException();
+
+            var completed = await parent.Message<FlowCompleted>(filter: c => scheduledIds.Contains(c.Id), waitFor: timeLeft);
+            if (completed == null)
+                throw new TimeoutException();
             completedFlows.Add(completed);
         }
 
@@ -94,51 +103,51 @@ public class InnerScheduled<TResult>(
 
 public class Scheduled(Func<TimeSpan?, Task> completion)
 {
-    public async Task Completion(TimeSpan? maxWait = null)
+    public async Task Completion(TimeSpan? timeout = null)
     {
-        await completion(maxWait);
+        await completion(timeout);
     }
 
     internal static Scheduled CreateFromInnerScheduled<TResult>(InnerScheduled<TResult> inner)
-        => new(maxWait => inner.Completion(maxWait));
+        => new(timeout => inner.Completion(timeout));
 }
 
 public class Scheduled<TResult>(Func<TimeSpan?, Task<TResult>> completion)
 {
-    public async Task<TResult> Completion(TimeSpan? maxWait = null) => await completion(maxWait);
-    
-    internal static Scheduled<TResult> CreateFromInnerScheduled(InnerScheduled<TResult> inner) 
-        => new(async maxWait => (await inner.Completion(maxWait)).First());
+    public async Task<TResult> Completion(TimeSpan? timeout = null) => await completion(timeout);
+
+    internal static Scheduled<TResult> CreateFromInnerScheduled(InnerScheduled<TResult> inner)
+        => new(async timeout => (await inner.Completion(timeout)).First());
 }
 
 public class BulkScheduled(Func<TimeSpan?, Task> completion)
 {
-    public async Task Completion(TimeSpan? maxWait = null)
+    public async Task Completion(TimeSpan? timeout = null)
     {
-        await completion(maxWait);
+        await completion(timeout);
     }
-    
-    internal static BulkScheduled CreateFromInnerScheduled<TResult>(InnerScheduled<TResult> inner) => new(maxWait => inner.Completion(maxWait));
+
+    internal static BulkScheduled CreateFromInnerScheduled<TResult>(InnerScheduled<TResult> inner) => new(timeout => inner.Completion(timeout));
 }
 
 public class BulkScheduled<TResult>(Func<TimeSpan?, Task<IReadOnlyList<TResult>>> completion)
 {
-    public async Task<IReadOnlyList<TResult>> Completion(TimeSpan? maxWait = null) => await completion(maxWait);
-    
-    internal static BulkScheduled<TResult> CreateFromInnerScheduled(InnerScheduled<TResult> inner) => new(maxWait => inner.Completion(maxWait));
+    public async Task<IReadOnlyList<TResult>> Completion(TimeSpan? timeout = null) => await completion(timeout);
+
+    internal static BulkScheduled<TResult> CreateFromInnerScheduled(InnerScheduled<TResult> inner) => new(timeout => inner.Completion(timeout));
 }
 
 public static class ScheduledExtensions
 {
-    public static async Task<IReadOnlyList<TResult>> Completion<TResult>(this Task<BulkScheduled<TResult>> scheduledTask, TimeSpan? maxWait = null) 
-        => await (await scheduledTask).Completion(maxWait);
-    
-    public static async Task Completion(this Task<BulkScheduled> scheduledTask, TimeSpan? maxWait = null)    
-        => await (await scheduledTask).Completion(maxWait);
-    
-    public static async Task<TResult> Completion<TResult>(this Task<Scheduled<TResult>> scheduledTask, TimeSpan? maxWait = null)
-        => await (await scheduledTask).Completion(maxWait);
-    
-    public static async Task Completion(this Task<Scheduled> scheduledTask, TimeSpan? maxWait = null)
-        => await (await scheduledTask).Completion(maxWait);
+    public static async Task<IReadOnlyList<TResult>> Completion<TResult>(this Task<BulkScheduled<TResult>> scheduledTask, TimeSpan? timeout = null)
+        => await (await scheduledTask).Completion(timeout);
+
+    public static async Task Completion(this Task<BulkScheduled> scheduledTask, TimeSpan? timeout = null)
+        => await (await scheduledTask).Completion(timeout);
+
+    public static async Task<TResult> Completion<TResult>(this Task<Scheduled<TResult>> scheduledTask, TimeSpan? timeout = null)
+        => await (await scheduledTask).Completion(timeout);
+
+    public static async Task Completion(this Task<Scheduled> scheduledTask, TimeSpan? timeout = null)
+        => await (await scheduledTask).Completion(timeout);
 }

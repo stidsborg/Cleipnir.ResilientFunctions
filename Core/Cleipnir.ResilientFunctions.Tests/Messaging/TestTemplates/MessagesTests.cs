@@ -64,7 +64,7 @@ public abstract class MessagesTests
         await BusyWait.Until(() => queueClient is not null);
         await queueClient!.FetchMessages(); // Immediately fetch the message
 
-        var result = await scheduled.Completion(maxWait: TimeSpan.FromSeconds(5));
+        var result = await scheduled.Completion(timeout: TimeSpan.FromSeconds(5));
         result.ShouldBe("hello world");
 
         unhandledExceptionCatcher.ShouldNotHaveExceptions();
@@ -111,7 +111,7 @@ public abstract class MessagesTests
 
         var scheduled = await rFunc.Schedule("instanceId", "");
 
-        var result = await scheduled.Completion(maxWait: TimeSpan.FromSeconds(5));
+        var result = await scheduled.Completion(timeout: TimeSpan.FromSeconds(5));
         result.ShouldBeNull();
 
         unhandledExceptionCatcher.ShouldNotHaveExceptions();
@@ -163,7 +163,7 @@ public abstract class MessagesTests
 
         var scheduled = await rFunc.Schedule("instanceId", "");
 
-        var result = await scheduled.Completion(maxWait: TimeSpan.FromSeconds(5));
+        var result = await scheduled.Completion(timeout: TimeSpan.FromSeconds(5));
         result.ShouldBe("NONE");
 
         unhandledExceptionCatcher.ShouldNotHaveExceptions();
@@ -216,7 +216,7 @@ public abstract class MessagesTests
         var messageWriter = rFunc.MessageWriters.For("instanceId".ToFlowInstance());
         await messageWriter.AppendMessage("Hello");
 
-        var result = await scheduled.Completion(maxWait: TimeSpan.FromSeconds(5));
+        var result = await scheduled.Completion(timeout: TimeSpan.FromSeconds(5));
         result.ShouldBe("Hello");
 
         unhandledExceptionCatcher.ShouldNotHaveExceptions();
@@ -268,7 +268,7 @@ public abstract class MessagesTests
         var messageWriter = rFunc.MessageWriters.For("instanceId".ToFlowInstance());
         await messageWriter.AppendMessage("1");
 
-        var result = await scheduled.Completion(maxWait: TimeSpan.FromSeconds(5));
+        var result = await scheduled.Completion(timeout: TimeSpan.FromSeconds(5));
         result.ShouldBe("1");
 
         unhandledExceptionCatcher.ShouldNotHaveExceptions();
@@ -323,7 +323,7 @@ public abstract class MessagesTests
         await messageWriter.AppendMessage("hello world", idempotencyKey: "1");
         await messageWriter.AppendMessage("hello universe");
 
-        var result = await scheduled.Completion(maxWait: TimeSpan.FromSeconds(5));
+        var result = await scheduled.Completion(timeout: TimeSpan.FromSeconds(5));
         result.Item1.ShouldBe("hello world");
         result.Item2.ShouldBe("hello universe");
 
