@@ -36,7 +36,7 @@ public class InnerScheduled<TResult>(
 
         return parentWorkflow == null
             ? await DetachedScheduled(timeout, allowPostponedAndSuspended)
-            : await AttachedScheduled(parentWorkflow, timeout);
+            : await AttachedScheduled(parentWorkflow);
     }
     
     public Scheduled ToScheduledWithoutResult() => Scheduled.CreateFromInnerScheduled(this);
@@ -64,21 +64,12 @@ public class InnerScheduled<TResult>(
         return results;
     }
 
-    private async Task<IReadOnlyList<TResult>> AttachedScheduled(Workflow parent, TimeSpan? timeout)
+    private async Task<IReadOnlyList<TResult>> AttachedScheduled(Workflow parent)
     {
-        timeout ??= TimeSpan.FromSeconds(10);
-        var stopWatch = Stopwatch.StartNew();
-
         var completedFlows = new List<FlowCompleted>();
         foreach (var _ in scheduledIds)
         {
-            var timeLeft = timeout.Value - stopWatch.Elapsed;
-            if (timeLeft < TimeSpan.Zero)
-                throw new TimeoutException();
-
-            var completed = await parent.Message<FlowCompleted>(filter: c => scheduledIds.Contains(c.Id), waitFor: timeLeft);
-            if (completed == null)
-                throw new TimeoutException();
+            var completed = await parent.Message<FlowCompleted>(filter: c => scheduledIds.Contains(c.Id));
             completedFlows.Add(completed);
         }
 
