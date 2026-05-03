@@ -4,12 +4,6 @@ using Cleipnir.ResilientFunctions.Helpers;
 
 namespace Cleipnir.ResilientFunctions.Domain;
 
-public static class Result
-{
-    public static Result<T> SucceedWithValue<T>(T value) => new(value);
-    public static Result<Unit> SucceedWithUnit { get; } = new Result<Unit>(Unit.Instance);
-}
-
 public static class Succeed
 {
     public static Result<T> WithValue<T>(T value) => new Result<T>(value);
