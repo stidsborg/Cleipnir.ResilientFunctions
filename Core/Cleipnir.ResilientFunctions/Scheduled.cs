@@ -106,15 +106,12 @@ public class InnerScheduled<TResult>(
             return scheduledIds.Select(id => results[id]).ToList();
         }
         
-        return await parent.Effect.Capture(async () =>
-        {
-            var workTask = WaitForCompletions();
-            await Task.WhenAny(workTask, Task.Delay(timeout ?? Timeout.InfiniteTimeSpan));
-            if (!workTask.IsCompleted)
-                throw new TimeoutException();
-            
-            return await workTask;
-        });
+        var workTask = WaitForCompletions();
+        await Task.WhenAny(workTask, Task.Delay(timeout ?? Timeout.InfiniteTimeSpan));
+        if (!workTask.IsCompleted)
+            throw new TimeoutException();
+
+        return await workTask;
     }
 }
 
