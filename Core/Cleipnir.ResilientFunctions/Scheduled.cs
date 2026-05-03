@@ -67,33 +67,22 @@ public class InnerScheduled<TResult>(
 
     private async Task<IReadOnlyList<TResult>> AttachedScheduled(Workflow parent, TimeSpan? timeout)
     {
-        return await parent.Effect.Capture(async () =>
-        {
-            var workTask = WaitForCompletions();
-            var winner = await Task.WhenAny(workTask, Task.Delay(timeout ?? Timeout.InfiniteTimeSpan));
-            if (winner != workTask)
-                throw new TimeoutException();
-            return await workTask;
-        });
-
         async Task<IReadOnlyList<TResult>> WaitForCompletions()
         {
             var completedFlows = new List<FlowCompleted>();
-            foreach (var _ in scheduledIds)
+            foreach (var scheduledId in scheduledIds)
             {
                 FlowCompleted completed;
                 if (timeout == null)
-                {
-                    completed = await parent.Message<FlowCompleted>(filter: c => scheduledIds.Contains(c.Id));
-                }
+                    completed = await parent.Message<FlowCompleted>(filter: c => c.Id == scheduledId);
                 else
                 {
                     var maybe = await parent.Message<FlowCompleted>(
-                        filter: c => scheduledIds.Contains(c.Id),
+                        filter: c => c.Id == scheduledId,
                         waitFor: timeout.Value
                     );
                     if (maybe == null)
-                        throw new TimeoutException();
+                        return Array.Empty<TResult>();
                     completed = maybe;
                 }
                 completedFlows.Add(completed);
@@ -116,6 +105,16 @@ public class InnerScheduled<TResult>(
 
             return scheduledIds.Select(id => results[id]).ToList();
         }
+        
+        return await parent.Effect.Capture(async () =>
+        {
+            var workTask = WaitForCompletions();
+            await Task.WhenAny(workTask, Task.Delay(timeout ?? Timeout.InfiniteTimeSpan));
+            if (!workTask.IsCompleted)
+                throw new TimeoutException();
+            
+            return await workTask;
+        });
     }
 }
 
