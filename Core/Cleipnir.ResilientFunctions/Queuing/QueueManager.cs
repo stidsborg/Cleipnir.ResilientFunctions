@@ -32,8 +32,10 @@ public class QueueManager(
 {
     private readonly Lock _lock = new();
 
-    private readonly EffectId _toRemoveNextId = new([-1, 0]);
-    private readonly EffectId _idempotencyKeysId = new([-1, -1]);
+    private static readonly EffectId PendingDeletionsRoot = new([-1, 0]);
+    private static readonly EffectId IdempotencyKeysRoot = new([-1, -1]);
+    private static EffectId PendingDeletion(int index) => new([-1, 0, index]);
+
     private readonly List<MessageData> _toDeliver = new();
     private readonly HashSet<long> _fetchedPositions = new();
 
@@ -59,11 +61,11 @@ public class QueueManager(
             
             effect.RegisterQueueManager(this);
 
-            _idempotencyKeys = new IdempotencyKeys(_idempotencyKeysId, effect, maxIdempotencyKeyCount, maxIdempotencyKeyTtl, utcNow);
+            _idempotencyKeys = new IdempotencyKeys(IdempotencyKeysRoot, effect, maxIdempotencyKeyCount, maxIdempotencyKeyTtl, utcNow);
             _idempotencyKeys.Initialize();
 
-            _nextToRemoveIndex = await effect.CreateOrGet(_toRemoveNextId, 0, alias: null, flush: false);
-            var children = effect.GetChildren(_toRemoveNextId);
+            _nextToRemoveIndex = await effect.CreateOrGet(PendingDeletionsRoot, 0, alias: null, flush: false);
+            var children = effect.GetChildren(PendingDeletionsRoot);
             var positions = new List<long>();
             foreach (var childId in children)
             {
@@ -85,18 +87,7 @@ public class QueueManager(
             _semaphoreSlim.Release();
         }
 
-        _ = Task.Run(async () =>
-        {
-            while (!_disposed)
-            {
-                await flowState.InterruptSignal.Wait();
-                if (!_disposed)
-                    await FetchMessagesOnce();
-            }
-        });
-        
-        await FetchMessagesOnce();
-        _ = Task.Run(FetchMessages);
+        _ = Task.Run(FetchLoop);
     }
 
     public async Task<QueueClient> CreateQueueClient()
@@ -181,7 +172,7 @@ public class QueueManager(
                     var matched = _toDeliver[i];
                     _toDeliver.RemoveAt(i);
                     var positionToRemoveIndex = _nextToRemoveIndex++;
-                    effect.FlushlessUpsert(_toRemoveNextId, _nextToRemoveIndex, alias: null);
+                    effect.FlushlessUpsert(PendingDeletionsRoot, _nextToRemoveIndex, alias: null);
                     return (matched, positionToRemoveIndex, interruptedSignal);
                 }
 
@@ -189,12 +180,14 @@ public class QueueManager(
         }
     }
 
-    public async Task FetchMessages()
+    private async Task FetchLoop()
     {
         while (!_disposed && _thrownException == null)
         {
             await FetchMessagesOnce();
-            await Task.Delay(settings.MessagesPullFrequency);
+            await Task.WhenAny(
+                flowState.InterruptSignal.Wait(),
+                Task.Delay(settings.MessagesPullFrequency));
         }
     }
 
@@ -203,7 +196,7 @@ public class QueueManager(
         await _semaphoreSlim.WaitAsync();
         try
         {
-            var children = effect.GetChildren(_toRemoveNextId);
+            var children = effect.GetChildren(PendingDeletionsRoot);
             var nonDirtyChildren = new List<EffectId>();
             foreach (var childId in children)
                 if (!effect.IsDirty(childId))
@@ -251,12 +244,9 @@ public class QueueManager(
 
         await FetchMessagesOnce();
 
-        var timeoutTask = timeout != null
+        var isHardTimeout = timeout != null;
+        var waitTask = timeout != null
             ? timeouts.AddTimeout(timeoutId, timeout.Value)
-            : new TaskCompletionSource().Task;
-
-        var maxWaitTask = timeout != null
-            ? new TaskCompletionSource().Task
             : Task.Delay(settings.MessagesDefaultMaxWaitForCompletion);
 
         while (true)
@@ -267,7 +257,7 @@ public class QueueManager(
             var (matched, positionToRemoveIndex, interruptSignal) = TryTakeMessage(predicate);
             if (matched != null)
             {
-                var toRemoveId = new EffectId([-1, 0, positionToRemoveIndex]);
+                var toRemoveId = PendingDeletion(positionToRemoveIndex);
                 effect.FlushlessUpserts(
                     new List<EffectResult>(
                     [
@@ -286,16 +276,13 @@ public class QueueManager(
             }
 
             flowState.SubflowWaiting();
-            await Task.WhenAny(interruptSignal, timeoutTask, maxWaitTask);
+            await Task.WhenAny(interruptSignal, waitTask);
             var success = flowState.ResumeSubflow();
             if (!success)
                 await new TaskCompletionSource().Task;
 
-            if (timeoutTask.IsCompleted)
-                return null;
-
-            if (maxWaitTask.IsCompleted)
-                throw new SuspendInvocationException();
+            if (waitTask.IsCompleted)
+                return isHardTimeout ? null : throw new SuspendInvocationException();
         }
     }
 
@@ -309,8 +296,5 @@ public class QueueManager(
         string? Sender
     );
 
-    public void Dispose()
-    {
-        _disposed = true;
-    }
+    public void Dispose() => _disposed = true;
 }
