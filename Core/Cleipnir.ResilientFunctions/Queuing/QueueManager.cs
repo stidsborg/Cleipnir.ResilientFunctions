@@ -194,7 +194,7 @@ public class QueueManager(
         while (!_disposed && _thrownException == null)
         {
             await FetchMessagesOnce();
-            await Task.Delay(100);
+            await Task.Delay(settings.MessagesPullFrequency);
         }
     }
 
