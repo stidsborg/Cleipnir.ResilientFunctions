@@ -438,7 +438,7 @@ public abstract class SuspensionTests
             inner: Task (string param) => child.Schedule("SomeChildInstance#1", param).Completion()
         );
 
-        await parent.Schedule(parentFunctionId.Instance.Value, param: "hello").Completion(maxWait: TimeSpan.FromSeconds(100));
+        await parent.Schedule(parentFunctionId.Instance.Value, param: "hello").Completion(timeout: TimeSpan.FromSeconds(100));
         unhandledExceptionHandler.ShouldNotHaveExceptions();
     }
     
@@ -462,7 +462,7 @@ public abstract class SuspensionTests
         );
         
         await Should.ThrowAsync<FatalWorkflowException>(
-            () => parent.Schedule(parentFunctionId.Instance.Value, param: "hello").Completion(maxWait: TimeSpan.FromSeconds(100))
+            () => parent.Schedule(parentFunctionId.Instance.Value, param: "hello").Completion(timeout: TimeSpan.FromSeconds(100))
         );
         
         unhandledExceptionHandler.ThrownExceptions.ShouldNotBeEmpty();

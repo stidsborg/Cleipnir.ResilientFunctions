@@ -91,7 +91,7 @@ public abstract class MessagesSubscriptionTests
         var messageWriter = rFunc.MessageWriters.For("instanceId".ToFlowInstance());
         await messageWriter.AppendMessage("test message");
 
-        var result = await scheduled.Completion(maxWait: TimeSpan.FromSeconds(5));
+        var result = await scheduled.Completion(timeout: TimeSpan.FromSeconds(5));
         result.ShouldBe("test message");
 
         unhandledExceptionCatcher.ShouldNotHaveExceptions();
@@ -163,7 +163,7 @@ public abstract class MessagesSubscriptionTests
         var scheduled = await rFunc.Schedule("instanceId", "");
         // No message is sent, so the pull should timeout
 
-        var result = await scheduled.Completion(maxWait: TimeSpan.FromSeconds(5));
+        var result = await scheduled.Completion(timeout: TimeSpan.FromSeconds(5));
         result.ShouldBeNull();
 
         var cp = await rFunc.ControlPanel("instanceId").ShouldNotBeNullAsync();
@@ -219,7 +219,7 @@ public abstract class MessagesSubscriptionTests
 
         flag.Raise();
 
-        var result = await scheduled.Completion(maxWait: TimeSpan.FromSeconds(5));
+        var result = await scheduled.Completion(timeout: TimeSpan.FromSeconds(5));
         result.ShouldBe("message1,message2,message3,message4,message5,NULL");
 
         unhandledExceptionCatcher.ShouldNotHaveExceptions();
@@ -262,7 +262,7 @@ public abstract class MessagesSubscriptionTests
         await BusyWait.Until(async () => await functionStore.MessageStore.GetMessages(storedId!).SelectAsync(m => m.Count) == 0);
 
         // Only the first message should be delivered
-        var result = await scheduled.Completion(maxWait: TimeSpan.FromSeconds(5));
+        var result = await scheduled.Completion(timeout: TimeSpan.FromSeconds(5));
         result.Item1.ShouldBe("first message");
         result.Item2.ShouldBeNull();
 
@@ -328,7 +328,7 @@ public abstract class MessagesSubscriptionTests
         await messageWriter.AppendMessage("stop");
 
         // Wait for completion
-        var result = await scheduled.Completion(maxWait: TimeSpan.FromSeconds(30));
+        var result = await scheduled.Completion(timeout: TimeSpan.FromSeconds(30));
         var receivedMessages = result
             .Split(',')
             .Select(int.Parse)
@@ -389,7 +389,7 @@ public abstract class MessagesSubscriptionTests
         await messageWriter.AppendMessage("odd-5");
         await messageWriter.AppendMessage("even-6");
 
-        var result = await scheduled.Completion(maxWait: TimeSpan.FromSeconds(5));
+        var result = await scheduled.Completion(timeout: TimeSpan.FromSeconds(5));
         // Should only receive the even messages, filtered out the odd ones
         result.ShouldBe("even-2,even-4,even-6");
 
@@ -427,7 +427,7 @@ public abstract class MessagesSubscriptionTests
         await messageWriter.AppendMessage(new WrappedInt(42));
         await messageWriter.AppendMessage(new TestRecord("world"));
 
-        var result = await scheduled.Completion(maxWait: TimeSpan.FromSeconds(10));
+        var result = await scheduled.Completion(timeout: TimeSpan.FromSeconds(10));
         result.ShouldBe("hello,42,world");
 
         unhandledExceptionCatcher.ShouldNotHaveExceptions();
@@ -464,8 +464,8 @@ public abstract class MessagesSubscriptionTests
         var scheduled2 = await rFunc.Schedule("Instance#2", "");
 
         // Wait for completion
-        var result1 = await scheduled1.Completion(maxWait: TimeSpan.FromSeconds(10));
-        var result2 = await scheduled2.Completion(maxWait: TimeSpan.FromSeconds(10));
+        var result1 = await scheduled1.Completion(timeout: TimeSpan.FromSeconds(10));
+        var result2 = await scheduled2.Completion(timeout: TimeSpan.FromSeconds(10));
 
         result1.ShouldBe("hallo world 1");
         result2.ShouldBe("hallo world 2");
@@ -661,7 +661,7 @@ public abstract class MessagesSubscriptionTests
         var messageWriter = rFunc.MessageWriters.For("instanceId".ToFlowInstance());
         await messageWriter.AppendMessage("test message");
 
-        var result = await scheduled.Completion(maxWait: TimeSpan.FromSeconds(5));
+        var result = await scheduled.Completion(timeout: TimeSpan.FromSeconds(5));
         result.ShouldBe("test message");
 
         unhandledExceptionCatcher.ShouldNotHaveExceptions();
@@ -716,7 +716,7 @@ public abstract Task PullEnvelopeReturnsEnvelopeWithReceiverAndSender();
         var messageWriter = rFunc.MessageWriters.For("instanceId".ToFlowInstance());
         await messageWriter.AppendMessage("test message", receiver: "receiver1", sender: "sender1");
 
-        var result = await scheduled.Completion(maxWait: TimeSpan.FromSeconds(5));
+        var result = await scheduled.Completion(timeout: TimeSpan.FromSeconds(5));
         result.ShouldBe("test message|receiver1|sender1");
 
         unhandledExceptionCatcher.ShouldNotHaveExceptions();

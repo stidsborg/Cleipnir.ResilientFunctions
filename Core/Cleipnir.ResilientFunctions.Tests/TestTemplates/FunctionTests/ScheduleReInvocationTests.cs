@@ -99,7 +99,7 @@ public abstract class ScheduleReInvocationTests
 
         var controlPanel = await rFunc.ControlPanel(flowInstance).ShouldNotBeNullAsync();
         var scheduled = await controlPanel.ScheduleRestart();
-        var result = await scheduled.Completion(maxWait: TimeSpan.FromSeconds(10));
+        var result = await scheduled.Completion(timeout: TimeSpan.FromSeconds(10));
         result.ShouldBe("something");
 
         var storedId = rFunc.MapToStoredId(functionId.Instance);
