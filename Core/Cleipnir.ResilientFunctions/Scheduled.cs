@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.CoreRuntime.Serialization;
@@ -36,7 +37,7 @@ public class InnerScheduled<TResult>(
 
         return parentWorkflow == null
             ? await DetachedScheduled(timeout, allowPostponedAndSuspended)
-            : await AttachedScheduled(parentWorkflow);
+            : await AttachedScheduled(parentWorkflow, timeout);
     }
     
     public Scheduled ToScheduledWithoutResult() => Scheduled.CreateFromInnerScheduled(this);
@@ -64,31 +65,57 @@ public class InnerScheduled<TResult>(
         return results;
     }
 
-    private async Task<IReadOnlyList<TResult>> AttachedScheduled(Workflow parent)
+    private async Task<IReadOnlyList<TResult>> AttachedScheduled(Workflow parent, TimeSpan? timeout)
     {
-        var completedFlows = new List<FlowCompleted>();
-        foreach (var _ in scheduledIds)
+        return await parent.Effect.Capture(async () =>
         {
-            var completed = await parent.Message<FlowCompleted>(filter: c => scheduledIds.Contains(c.Id));
-            completedFlows.Add(completed);
-        }
+            var workTask = WaitForCompletions();
+            var winner = await Task.WhenAny(workTask, Task.Delay(timeout ?? Timeout.InfiniteTimeSpan));
+            if (winner != workTask)
+                throw new TimeoutException();
+            return await workTask;
+        });
 
-        var failed = completedFlows.FirstOrDefault(fc => fc.Failed);
-        if (failed != null)
-            throw new InvalidOperationException($"Child-flow '{failed.Id}' failed");
-
-        var results = completedFlows.Select(fc =>
-            new
+        async Task<IReadOnlyList<TResult>> WaitForCompletions()
+        {
+            var completedFlows = new List<FlowCompleted>();
+            foreach (var _ in scheduledIds)
             {
-                FlowId = fc.Id,
-                Result = fc.Result == null
-                    ? default!
-                    : (TResult)serializer.Deserialize(fc.Result, typeof(TResult))
+                FlowCompleted completed;
+                if (timeout == null)
+                {
+                    completed = await parent.Message<FlowCompleted>(filter: c => scheduledIds.Contains(c.Id));
+                }
+                else
+                {
+                    var maybe = await parent.Message<FlowCompleted>(
+                        filter: c => scheduledIds.Contains(c.Id),
+                        waitFor: timeout.Value
+                    );
+                    if (maybe == null)
+                        throw new TimeoutException();
+                    completed = maybe;
+                }
+                completedFlows.Add(completed);
             }
 
-        ).ToDictionary(a => a.FlowId, a => a.Result);
+            var failed = completedFlows.FirstOrDefault(fc => fc.Failed);
+            if (failed != null)
+                throw new InvalidOperationException($"Child-flow '{failed.Id}' failed");
 
-        return scheduledIds.Select(id => results[id]).ToList();
+            var results = completedFlows.Select(fc =>
+                new
+                {
+                    FlowId = fc.Id,
+                    Result = fc.Result == null
+                        ? default!
+                        : (TResult)serializer.Deserialize(fc.Result, typeof(TResult))
+                }
+
+            ).ToDictionary(a => a.FlowId, a => a.Result);
+
+            return scheduledIds.Select(id => results[id]).ToList();
+        }
     }
 }
 
