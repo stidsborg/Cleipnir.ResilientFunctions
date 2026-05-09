@@ -15,21 +15,19 @@ namespace Cleipnir.ResilientFunctions.Queuing;
 
 public delegate bool MessagePredicate(Envelope envelope);
 
-public class QueueManager(
-    FlowId flowId,
-    StoredId storedId,
-    IMessageStore messageStore,
-    ISerializer serializer,
-    Effect effect,
-    FlowState flowState,
-    UnhandledExceptionHandler unhandledExceptionHandler,
-    FlowTimeouts timeouts,
-    UtcNow utcNow,
-    SettingsWithDefaults settings,
-    int maxIdempotencyKeyCount = 100,
-    TimeSpan? maxIdempotencyKeyTtl = null)
-    : IDisposable
+public class QueueManager : IDisposable
 {
+    private readonly FlowId _flowId;
+    private readonly StoredId _storedId;
+    private readonly IMessageStore _messageStore;
+    private readonly ISerializer _serializer;
+    private readonly Effect _effect;
+    private readonly FlowState _flowState;
+    private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
+    private readonly FlowTimeouts _timeouts;
+    private readonly UtcNow _utcNow;
+    private readonly SettingsWithDefaults _settings;
+
     private readonly Lock _lock = new();
 
     private static readonly EffectId PendingDeletionsRoot = new([-1, 0]);
@@ -39,7 +37,7 @@ public class QueueManager(
     private readonly List<MessageData> _toDeliver = new();
     private readonly HashSet<long> _fetchedPositions = new();
 
-    private IdempotencyKeys? _idempotencyKeys;
+    private readonly IdempotencyKeys _idempotencyKeys;
     private int _nextToRemoveIndex = 0;
     private readonly AsyncSignal _interruptSignal = new();
     private readonly SemaphoreSlim _semaphoreSlim = new SemaphoreSlim(1);
@@ -47,6 +45,34 @@ public class QueueManager(
     private volatile bool _disposed;
 
     private volatile Exception? _thrownException = null;
+
+    public QueueManager(
+        FlowId flowId,
+        StoredId storedId,
+        IMessageStore messageStore,
+        ISerializer serializer,
+        Effect effect,
+        FlowState flowState,
+        UnhandledExceptionHandler unhandledExceptionHandler,
+        FlowTimeouts timeouts,
+        UtcNow utcNow,
+        SettingsWithDefaults settings,
+        int maxIdempotencyKeyCount = 100,
+        TimeSpan? maxIdempotencyKeyTtl = null)
+    {
+        _flowId = flowId;
+        _storedId = storedId;
+        _messageStore = messageStore;
+        _serializer = serializer;
+        _effect = effect;
+        _flowState = flowState;
+        _unhandledExceptionHandler = unhandledExceptionHandler;
+        _timeouts = timeouts;
+        _utcNow = utcNow;
+        _settings = settings;
+
+        _idempotencyKeys = new IdempotencyKeys(IdempotencyKeysRoot, _effect, maxIdempotencyKeyCount, maxIdempotencyKeyTtl, _utcNow);
+    }
 
     private async Task Initialize()
     {
@@ -58,26 +84,24 @@ public class QueueManager(
                 throw new ObjectDisposedException($"{nameof(QueueManager)} has already been disposed");
             if (_initialized)
                 return;
-            
-            effect.RegisterQueueManager(this);
 
-            _idempotencyKeys = new IdempotencyKeys(IdempotencyKeysRoot, effect, maxIdempotencyKeyCount, maxIdempotencyKeyTtl, utcNow);
+            _effect.RegisterQueueManager(this);
             _idempotencyKeys.Initialize();
 
-            _nextToRemoveIndex = await effect.CreateOrGet(PendingDeletionsRoot, 0, alias: null, flush: false);
-            var children = effect.GetChildren(PendingDeletionsRoot);
+            _nextToRemoveIndex = await _effect.CreateOrGet(PendingDeletionsRoot, 0, alias: null, flush: false);
+            var children = _effect.GetChildren(PendingDeletionsRoot);
             var positions = new List<long>();
             foreach (var childId in children)
             {
-                var position = effect.Get<long>(childId);
+                var position = _effect.Get<long>(childId);
                 positions.Add(position);
             }
 
             if (positions.Any())
             {
-                await messageStore.DeleteMessages(storedId, positions);
+                await _messageStore.DeleteMessages(_storedId, positions);
                 foreach (var childId in children)
-                    await effect.Clear(childId, flush: false);
+                    await _effect.Clear(childId, flush: false);
             }
 
             _initialized = true;
@@ -94,7 +118,7 @@ public class QueueManager(
     {
         if (!_initialized)
             await Initialize();
-        return new QueueClient(this, serializer, utcNow);
+        return new QueueClient(this, _serializer, _utcNow);
     }
 
     public async Task FetchMessagesOnce()
@@ -112,16 +136,16 @@ public class QueueManager(
             lock (_lock)
                 skipPositions = _fetchedPositions.ToList();
 
-            var messages = await messageStore.GetMessages(storedId, skipPositions);
+            var messages = await _messageStore.GetMessages(_storedId, skipPositions);
             foreach (var (messageContent, messageType, position, idempotencyKey, sender, receiver) in messages)
             {
                 try
                 {
-                    var msg = serializer.Deserialize(messageContent, serializer.ResolveType(messageType)!);
+                    var msg = _serializer.Deserialize(messageContent, _serializer.ResolveType(messageType)!);
 
-                    if (idempotencyKey != null && !_idempotencyKeys!.Add(idempotencyKey, position))
+                    if (idempotencyKey != null && !_idempotencyKeys.Add(idempotencyKey, position))
                     {
-                        await messageStore.DeleteMessages(storedId, [position]);
+                        await _messageStore.DeleteMessages(_storedId, [position]);
                         continue;
                     }
 
@@ -142,7 +166,7 @@ public class QueueManager(
                 }
                 catch (Exception e)
                 {
-                    unhandledExceptionHandler.Invoke(flowId.Type, e);
+                    _unhandledExceptionHandler.Invoke(_flowId.Type, e);
                     _thrownException = e;
                     return;
                 }
@@ -158,7 +182,7 @@ public class QueueManager(
     private (MessageData? Matched, int PositionToRemoveIndex, Task PulseTask) TryTakeMessage(MessagePredicate predicate)
     {
         var interruptedSignal = _interruptSignal.Wait();
-        
+
         lock (_lock)
         {
             for (var i = 0; i < _toDeliver.Count; i++)
@@ -167,7 +191,7 @@ public class QueueManager(
                     var matched = _toDeliver[i];
                     _toDeliver.RemoveAt(i);
                     var positionToRemoveIndex = _nextToRemoveIndex++;
-                    effect.FlushlessUpsert(PendingDeletionsRoot, _nextToRemoveIndex, alias: null);
+                    _effect.FlushlessUpsert(PendingDeletionsRoot, _nextToRemoveIndex, alias: null);
                     return (matched, positionToRemoveIndex, interruptedSignal);
                 }
 
@@ -181,8 +205,8 @@ public class QueueManager(
         {
             await FetchMessagesOnce();
             await Task.WhenAny(
-                flowState.InterruptSignal.Wait(),
-                Task.Delay(settings.MessagesPullFrequency));
+                _flowState.InterruptSignal.Wait(),
+                Task.Delay(_settings.MessagesPullFrequency));
         }
     }
 
@@ -191,10 +215,10 @@ public class QueueManager(
         await _semaphoreSlim.WaitAsync();
         try
         {
-            var children = effect.GetChildren(PendingDeletionsRoot);
+            var children = _effect.GetChildren(PendingDeletionsRoot);
             var nonDirtyChildren = new List<EffectId>();
             foreach (var childId in children)
-                if (!effect.IsDirty(childId))
+                if (!_effect.IsDirty(childId))
                     nonDirtyChildren.Add(childId);
 
             if (nonDirtyChildren.Any())
@@ -202,13 +226,13 @@ public class QueueManager(
                 var positions = new List<long>();
                 foreach (var nonDirtyChild in nonDirtyChildren)
                 {
-                    var position = effect.Get<long>(nonDirtyChild);
+                    var position = _effect.Get<long>(nonDirtyChild);
                     positions.Add(position);
                 }
 
-                await messageStore.DeleteMessages(storedId, positions);
+                await _messageStore.DeleteMessages(_storedId, positions);
                 foreach (var nonDirtyChild in nonDirtyChildren)
-                    await effect.Clear(nonDirtyChild, flush: false);
+                    await _effect.Clear(nonDirtyChild, flush: false);
 
                 lock (_lock)
                     foreach (var position in positions)
@@ -217,7 +241,7 @@ public class QueueManager(
         }
         catch (Exception exception)
         {
-            unhandledExceptionHandler.Invoke(flowId.Type, exception);
+            _unhandledExceptionHandler.Invoke(_flowId.Type, exception);
         }
         finally
         {
@@ -241,8 +265,8 @@ public class QueueManager(
 
         var isHardTimeout = timeout != null;
         var waitTask = timeout != null
-            ? timeouts.AddTimeout(timeoutId, timeout.Value)
-            : Task.Delay(settings.MessagesDefaultMaxWaitForCompletion);
+            ? _timeouts.AddTimeout(timeoutId, timeout.Value)
+            : Task.Delay(_settings.MessagesDefaultMaxWaitForCompletion);
 
         while (true)
         {
@@ -253,7 +277,7 @@ public class QueueManager(
             if (matched != null)
             {
                 var toRemoveId = PendingDeletion(positionToRemoveIndex);
-                effect.FlushlessUpserts(
+                _effect.FlushlessUpserts(
                 [
                     new EffectResult(toRemoveId, matched.Position, Alias: null),
                     new EffectResult(messageId, matched.MessageContentBytes, Alias: null),
@@ -262,13 +286,13 @@ public class QueueManager(
                     new EffectResult(senderId, matched.Sender, Alias: null),
                 ]);
 
-                timeouts.RemoveTimeout(timeoutId);
+                _timeouts.RemoveTimeout(timeoutId);
                 return matched.Envelope;
             }
 
-            flowState.SubflowWaiting();
+            _flowState.SubflowWaiting();
             await Task.WhenAny(interruptSignal, waitTask);
-            var success = flowState.ResumeSubflow();
+            var success = _flowState.ResumeSubflow();
             if (!success)
                 await new TaskCompletionSource().Task;
 
