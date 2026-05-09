@@ -128,11 +128,7 @@ public class QueueManager(
                 {
                     var msg = serializer.Deserialize(messageContent, serializer.ResolveType(messageType)!);
 
-                    var idempotencyKeyResult = idempotencyKey == null
-                        ? null
-                        : _idempotencyKeys!.Add(idempotencyKey, position);
-
-                    if (idempotencyKey != null && idempotencyKeyResult == null)
+                    if (idempotencyKey != null && !_idempotencyKeys!.Add(idempotencyKey, position))
                     {
                         await messageStore.DeleteMessages(storedId, [position]);
                         continue;
@@ -142,7 +138,6 @@ public class QueueManager(
                     var messageData = new MessageData(
                         envelope,
                         position,
-                        idempotencyKeyResult,
                         messageContent,
                         messageType,
                         receiver,
@@ -269,17 +264,13 @@ public class QueueManager(
             {
                 var toRemoveId = new EffectId([-1, 0, positionToRemoveIndex]);
                 effect.FlushlessUpserts(
-                    new List<EffectResult>(
-                    [
-                        new EffectResult(toRemoveId, matched.Position, Alias: null),
-                        new EffectResult(messageId, matched.MessageContentBytes, Alias: null),
-                        new EffectResult(messageTypeId, matched.MessageTypeBytes, Alias: null),
-                        new EffectResult(receiverId, matched.Receiver, Alias: null),
-                        new EffectResult(senderId, matched.Sender, Alias: null),
-                    ]).Concat(matched.IdempotencyKeyResult == null
-                        ? []
-                        : [matched.IdempotencyKeyResult])
-                );
+                [
+                    new EffectResult(toRemoveId, matched.Position, Alias: null),
+                    new EffectResult(messageId, matched.MessageContentBytes, Alias: null),
+                    new EffectResult(messageTypeId, matched.MessageTypeBytes, Alias: null),
+                    new EffectResult(receiverId, matched.Receiver, Alias: null),
+                    new EffectResult(senderId, matched.Sender, Alias: null),
+                ]);
 
                 timeouts.RemoveTimeout(timeoutId);
                 return matched.Envelope;
@@ -302,7 +293,6 @@ public class QueueManager(
     public record MessageData(
         Envelope Envelope,
         long Position,
-        EffectResult? IdempotencyKeyResult,
         byte[] MessageContentBytes,
         byte[] MessageTypeBytes,
         string? Receiver,
