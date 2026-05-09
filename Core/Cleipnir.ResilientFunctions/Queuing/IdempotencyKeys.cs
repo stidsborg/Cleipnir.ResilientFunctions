@@ -7,15 +7,16 @@ using Cleipnir.ResilientFunctions.Domain;
 
 namespace Cleipnir.ResilientFunctions.Queuing;
 
-internal class IdempotencyKeys(EffectId parentId, Effect effect, int maxCount, TimeSpan? keyTtl, UtcNow utcNow)
+internal class IdempotencyKeys(Effect effect, int maxCount, TimeSpan? keyTtl, UtcNow utcNow)
 {
     private int _nextId;
     private readonly Dictionary<int, Entry> _dictionary = new();
     private readonly Lock _lock = new();
-    
+    private static readonly EffectId RootId = new([-1, -1]);
+
     public void Initialize()
     {
-        var children = effect.GetChildren(parentId);
+        var children = effect.GetChildren(RootId);
        
         foreach (var childId in children)
         {
@@ -48,7 +49,7 @@ internal class IdempotencyKeys(EffectId parentId, Effect effect, int maxCount, T
             _dictionary[id] = entry;
         }
 
-        effect.FlushlessUpsert(parentId.CreateChild(id), entry.ToTuple(), alias: null);
+        effect.FlushlessUpsert(RootId.CreateChild(id), entry.ToTuple(), alias: null);
         return true;
     }
 
@@ -57,7 +58,7 @@ internal class IdempotencyKeys(EffectId parentId, Effect effect, int maxCount, T
         lock (_lock)
             _dictionary.Remove(id);
         
-        effect.ClearNoFlush(parentId.CreateChild(id));
+        effect.ClearNoFlush(RootId.CreateChild(id));
     }
     
     private void CleanUp()
@@ -75,12 +76,6 @@ internal class IdempotencyKeys(EffectId parentId, Effect effect, int maxCount, T
 
         while (_dictionary.Count > maxCount) 
             Remove(_dictionary.Keys.Min());
-    }
-
-    public bool Contains(string idempotencyKey)
-    {
-        lock (_lock)
-            return _dictionary.Values.Any(s => s.IdempotencyKey == idempotencyKey);
     }
 
     private record Entry(long Position, string IdempotencyKey, long? Ttl)

@@ -31,7 +31,6 @@ public class QueueManager : IDisposable
     private readonly Lock _lock = new();
 
     private static readonly EffectId PendingDeletionsRoot = new([-1, 0]);
-    private static readonly EffectId IdempotencyKeysRoot = new([-1, -1]);
     private static EffectId PendingDeletion(int index) => new([-1, 0, index]);
 
     private readonly List<MessageData> _toDeliver = new();
@@ -70,8 +69,8 @@ public class QueueManager : IDisposable
         _timeouts = timeouts;
         _utcNow = utcNow;
         _settings = settings;
-
-        _idempotencyKeys = new IdempotencyKeys(IdempotencyKeysRoot, _effect, maxIdempotencyKeyCount, maxIdempotencyKeyTtl, _utcNow);
+        
+        _idempotencyKeys = new IdempotencyKeys(_effect, maxIdempotencyKeyCount, maxIdempotencyKeyTtl, _utcNow);
     }
 
     private async Task Initialize()
