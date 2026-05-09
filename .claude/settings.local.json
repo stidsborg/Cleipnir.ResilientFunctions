@@ -26,7 +26,13 @@
       "Bash(git checkout:*)",
       "Bash(git push:*)",
       "Bash(git pull *)",
-      "Bash(git stash *)"
+      "Bash(git stash *)",
+      "Bash(grep -rn \"MessagePredicate\" /Users/stidsborg/Repos/Cleipnir.ResilientFunctions --include=\"*.cs\" --include-dir=\"Core/Cleipnir.ResilientFunctions\")",
+      "Bash(pkill -f \"dotnet test.*Messaging\")",
+      "Bash(rm -f /tmp/messaging-tests.log)",
+      "Bash(dotnet test *)",
+      "Read(//private/tmp/**)",
+      "Bash(gh pr *)"
     ],
     "deny": [],
     "ask": []
