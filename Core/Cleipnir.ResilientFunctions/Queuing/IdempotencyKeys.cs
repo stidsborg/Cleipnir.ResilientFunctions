@@ -7,16 +7,15 @@ using Cleipnir.ResilientFunctions.Domain;
 
 namespace Cleipnir.ResilientFunctions.Queuing;
 
-internal class IdempotencyKeys(Effect effect, int maxCount, TimeSpan? keyTtl, UtcNow utcNow)
+internal class IdempotencyKeys(EffectId rootId, Effect effect, int maxCount, TimeSpan? keyTtl, UtcNow utcNow)
 {
     private int _nextId;
     private readonly Dictionary<int, Entry> _dictionary = new();
     private readonly Lock _lock = new();
-    private static readonly EffectId RootId = new([-1, -1]);
 
     public void Initialize()
     {
-        var children = effect.GetChildren(RootId);
+        var children = effect.GetChildren(rootId);
        
         foreach (var childId in children)
         {
@@ -49,7 +48,7 @@ internal class IdempotencyKeys(Effect effect, int maxCount, TimeSpan? keyTtl, Ut
             _dictionary[id] = entry;
         }
 
-        effect.FlushlessUpsert(RootId.CreateChild(id), entry.ToTuple(), alias: null);
+        effect.FlushlessUpsert(rootId.CreateChild(id), entry.ToTuple(), alias: null);
         return true;
     }
 
@@ -58,7 +57,7 @@ internal class IdempotencyKeys(Effect effect, int maxCount, TimeSpan? keyTtl, Ut
         lock (_lock)
             _dictionary.Remove(id);
         
-        effect.ClearNoFlush(RootId.CreateChild(id));
+        effect.ClearNoFlush(rootId.CreateChild(id));
     }
     
     private void CleanUp()

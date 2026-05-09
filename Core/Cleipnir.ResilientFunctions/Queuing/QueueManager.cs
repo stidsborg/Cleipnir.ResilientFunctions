@@ -17,6 +17,8 @@ public delegate bool MessagePredicate(Envelope envelope);
 
 public class QueueManager : IDisposable
 {
+    private const int ReservedIdPrefix = -1;
+
     private readonly FlowId _flowId;
     private readonly StoredId _storedId;
     private readonly IMessageStore _messageStore;
@@ -30,8 +32,9 @@ public class QueueManager : IDisposable
 
     private readonly Lock _lock = new();
 
-    private static readonly EffectId PendingDeletionsRoot = new([-1, 0]);
-    private static EffectId PendingDeletion(int index) => new([-1, 0, index]);
+    private static readonly EffectId PendingDeletionsRoot = new([ReservedIdPrefix, 0]);
+    private static EffectId          PendingDeletion(int index) => new([ReservedIdPrefix, 0, index]);
+    private static readonly EffectId IdempotencyKeysRoot   = new([ReservedIdPrefix, -1]);
 
     private readonly List<MessageData> _toDeliver = new();
     private readonly HashSet<long> _fetchedPositions = new();
@@ -70,7 +73,7 @@ public class QueueManager : IDisposable
         _utcNow = utcNow;
         _settings = settings;
         
-        _idempotencyKeys = new IdempotencyKeys(_effect, maxIdempotencyKeyCount, maxIdempotencyKeyTtl, _utcNow);
+        _idempotencyKeys = new IdempotencyKeys(IdempotencyKeysRoot, _effect, maxIdempotencyKeyCount, maxIdempotencyKeyTtl, _utcNow);
     }
 
     private async Task Initialize()
