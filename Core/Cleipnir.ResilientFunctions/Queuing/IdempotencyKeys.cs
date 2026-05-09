@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
-using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime;
 using Cleipnir.ResilientFunctions.Domain;
 
@@ -28,7 +27,7 @@ internal class IdempotencyKeys(EffectId parentId, Effect effect, int maxCount, T
         CleanUp();
     }
 
-    public EffectResult? Add(string idempotencyKey, long position)
+    public bool Add(string idempotencyKey, long position)
     {
         CleanUp();
 
@@ -40,14 +39,17 @@ internal class IdempotencyKeys(EffectId parentId, Effect effect, int maxCount, T
         int id;
         lock (_lock)
         {
+            if (_dictionary.Any(e => e.Value.IdempotencyKey == idempotencyKey && e.Value.Position == position))
+                return true;
             if (_dictionary.Any(e => e.Value.IdempotencyKey == idempotencyKey))
-                return null;
+                return false;
             
             id = _nextId++;
             _dictionary[id] = entry;
         }
 
-        return new EffectResult(parentId.CreateChild(id), entry.ToTuple(), Alias: null);
+        effect.FlushlessUpsert(parentId.CreateChild(id), entry.ToTuple(), alias: null);
+        return true;
     }
 
     private void Remove(int id)
