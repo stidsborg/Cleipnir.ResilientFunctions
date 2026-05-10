@@ -38,10 +38,10 @@ public class QueueManager : IDisposable
 
     private readonly List<MessageData> _toDeliver = new();
     private readonly HashSet<long> _fetchedPositions = new();
+    private readonly List<Subscription> _subscriptions = new();
 
     private readonly IdempotencyKeys _idempotencyKeys;
     private int _nextToRemoveIndex = 0;
-    private readonly AsyncSignal _interruptSignal = new();
     private readonly SemaphoreSlim _semaphoreSlim = new SemaphoreSlim(1);
     private bool _initialized = false;
     private volatile bool _disposed;
@@ -72,7 +72,7 @@ public class QueueManager : IDisposable
         _timeouts = timeouts;
         _utcNow = utcNow;
         _settings = settings;
-        
+
         _idempotencyKeys = new IdempotencyKeys(IdempotencyKeysRoot, _effect, maxIdempotencyKeyCount, maxIdempotencyKeyTtl, _utcNow);
     }
 
@@ -170,34 +170,46 @@ public class QueueManager : IDisposable
                 {
                     _unhandledExceptionHandler.Invoke(_flowId.Type, e);
                     _thrownException = e;
+                    FailAllSubscriptions(e);
                     return;
                 }
             }
         }
         finally
         {
-            _interruptSignal.Fire();
+            TryDispatch();
             _semaphoreSlim.Release();
         }
     }
 
-    private (MessageData? Matched, int PositionToRemoveIndex, Task PulseTask) TryTakeMessage(MessagePredicate predicate)
+    private void TryDispatch()
     {
-        var interruptedSignal = _interruptSignal.Wait();
+        lock (_lock)
+            for (var subscriptionIndex = 0; subscriptionIndex < _subscriptions.Count; subscriptionIndex++)
+            {
+                var subscription = _subscriptions[subscriptionIndex];
+                for (var matchIndex = 0; matchIndex < _toDeliver.Count; matchIndex++)
+                    if (subscription.Predicate(_toDeliver[matchIndex].Envelope))
+                    {
+                        var msg = _toDeliver[matchIndex];
+                        _toDeliver.RemoveAt(matchIndex);
+                        var positionToRemoveIndex = _nextToRemoveIndex++;
+                        _effect.FlushlessUpsert(PendingDeletionsRoot, _nextToRemoveIndex, alias: null);
+                        _subscriptions.RemoveAt(subscriptionIndex);
+                        subscription.Tcs.TrySetResult(new MatchResult(msg, positionToRemoveIndex));
+                        TryDispatch();
+                        return;
+                    }
+            }
+    }
 
+    private void FailAllSubscriptions(Exception exception)
+    {
         lock (_lock)
         {
-            for (var i = 0; i < _toDeliver.Count; i++)
-                if (predicate(_toDeliver[i].Envelope))
-                {
-                    var matched = _toDeliver[i];
-                    _toDeliver.RemoveAt(i);
-                    var positionToRemoveIndex = _nextToRemoveIndex++;
-                    _effect.FlushlessUpsert(PendingDeletionsRoot, _nextToRemoveIndex, alias: null);
-                    return (matched, positionToRemoveIndex, interruptedSignal);
-                }
-
-            return (null, 0, interruptedSignal);
+            foreach (var sub in _subscriptions)
+                sub.Tcs.TrySetException(exception);
+            _subscriptions.Clear();
         }
     }
 
@@ -251,6 +263,39 @@ public class QueueManager : IDisposable
         }
     }
 
+    private async Task<MatchResult?> WaitForMessageOrTimeout(EffectId timeoutId, MessagePredicate predicate, DateTime? timeout)
+    {
+        var subscription = new Subscription(predicate, timeout);
+
+        lock (_lock)
+            _subscriptions.Add(subscription);
+
+        TryDispatch();
+
+        var waitTask = timeout != null
+            ? _timeouts.AddTimeout(timeoutId, timeout.Value)
+            : Task.Delay(_settings.MessagesDefaultMaxWaitForCompletion);
+
+        _flowState.SubflowWaiting();
+        await Task.WhenAny(subscription.Tcs.Task, waitTask);
+        var success = _flowState.ResumeSubflow();
+        if (!success)
+            await new TaskCompletionSource().Task;
+
+        lock (_lock)
+        {
+            var stillRegistered = _subscriptions.Remove(subscription);
+            if (stillRegistered)
+                subscription.Tcs.TrySetResult(null);
+        }
+
+        var result = await subscription.Tcs.Task;
+        if (result != null)
+            _timeouts.RemoveTimeout(timeoutId);
+
+        return result;
+    }
+
     public async Task<Envelope?> Subscribe(
         MessagePredicate predicate,
         DateTime? timeout,
@@ -265,42 +310,25 @@ public class QueueManager : IDisposable
 
         await FetchMessagesOnce();
 
-        var isHardTimeout = timeout != null;
-        var waitTask = timeout != null
-            ? _timeouts.AddTimeout(timeoutId, timeout.Value)
-            : Task.Delay(_settings.MessagesDefaultMaxWaitForCompletion);
+        var matched = await WaitForMessageOrTimeout(timeoutId, predicate, timeout);
 
-        while (true)
-        {
-            if (_thrownException != null)
-                throw _thrownException;
+        if (_thrownException != null)
+            throw _thrownException;
 
-            var (matched, positionToRemoveIndex, interruptSignal) = TryTakeMessage(predicate);
-            if (matched != null)
-            {
-                var toRemoveId = PendingDeletion(positionToRemoveIndex);
-                _effect.FlushlessUpserts(
-                [
-                    new EffectResult(toRemoveId, matched.Position, Alias: null),
-                    new EffectResult(messageId, matched.MessageContentBytes, Alias: null),
-                    new EffectResult(messageTypeId, matched.MessageTypeBytes, Alias: null),
-                    new EffectResult(receiverId, matched.Receiver, Alias: null),
-                    new EffectResult(senderId, matched.Sender, Alias: null),
-                ]);
+        if (matched == null)
+            return timeout != null ? null : throw new SuspendInvocationException();
 
-                _timeouts.RemoveTimeout(timeoutId);
-                return matched.Envelope;
-            }
+        var toRemoveId = PendingDeletion(matched.PositionToRemoveIndex);
+        _effect.FlushlessUpserts(
+        [
+            new EffectResult(toRemoveId, matched.Message.Position, Alias: null),
+            new EffectResult(messageId, matched.Message.MessageContentBytes, Alias: null),
+            new EffectResult(messageTypeId, matched.Message.MessageTypeBytes, Alias: null),
+            new EffectResult(receiverId, matched.Message.Receiver, Alias: null),
+            new EffectResult(senderId, matched.Message.Sender, Alias: null),
+        ]);
 
-            _flowState.SubflowWaiting();
-            await Task.WhenAny(interruptSignal, waitTask);
-            var success = _flowState.ResumeSubflow();
-            if (!success)
-                await new TaskCompletionSource().Task;
-
-            if (waitTask.IsCompleted)
-                return isHardTimeout ? null : throw new SuspendInvocationException();
-        }
+        return matched.Message.Envelope;
     }
 
     public record MessageData(
@@ -311,6 +339,13 @@ public class QueueManager : IDisposable
         string? Receiver,
         string? Sender
     );
+
+    private record MatchResult(MessageData Message, int PositionToRemoveIndex);
+
+    private record Subscription(MessagePredicate Predicate, DateTime? Timeout)
+    {
+        public TaskCompletionSource<MatchResult?> Tcs { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    }
 
     public void Dispose() => _disposed = true;
 }
