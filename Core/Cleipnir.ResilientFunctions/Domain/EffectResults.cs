@@ -413,7 +413,7 @@ public class EffectResults
             await Flush();
     }
     
-    public void ClearNoFlush(EffectId effectId)
+    public void FlushlessClear(EffectId effectId)
     {
         lock (_sync)
             if (_effectResults.ContainsKey(effectId))
