@@ -57,7 +57,7 @@ internal class IdempotencyKeys(EffectId rootId, Effect effect, int maxCount, Tim
         lock (_lock)
             _dictionary.Remove(id);
         
-        effect.ClearNoFlush(rootId.CreateChild(id));
+        effect.FlushlessClear(rootId.CreateChild(id));
     }
     
     private void CleanUp()
