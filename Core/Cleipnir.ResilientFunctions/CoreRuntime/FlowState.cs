@@ -49,7 +49,7 @@ public class FlowState
             WaitingSubflows++;
     }
 
-    public bool ResumeSubflow()
+    public bool TryResumeSubflow()
     {
         lock (_lock)
             if (Suspended)

@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime;
 using Cleipnir.ResilientFunctions.CoreRuntime.Serialization;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Domain.Exceptions.Commands;
 using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Storage;
 
@@ -14,8 +15,7 @@ namespace Cleipnir.ResilientFunctions.Queuing;
 internal class FetchedMessages
 {
     private const int ReservedIdPrefix = -1;
-    private static readonly EffectId PendingDeletionsRoot = new([ReservedIdPrefix, 0]);
-    private static EffectId          PendingDeletion(int index) => new([ReservedIdPrefix, 0, index]);
+    private static readonly EffectId DeliveredPositionsId = new([ReservedIdPrefix, 0]);
     private static readonly EffectId IdempotencyKeysRoot   = new([ReservedIdPrefix, -1]);
 
     private readonly FlowId _flowId;
@@ -26,16 +26,18 @@ internal class FetchedMessages
     private readonly FlowState _flowState;
     private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
     private readonly FlowTimeouts _timeouts;
+    private readonly UtcNow _utcNow;
     private readonly SettingsWithDefaults _settings;
     private readonly IdempotencyKeys _idempotencyKeys;
 
     private readonly SemaphoreSlim _semaphore = new(1);
     private readonly Lock _lock = new();
     private readonly List<MessageData> _toDeliver = new();
-    private readonly HashSet<long> _fetchedPositions = new();
     private readonly List<Subscription> _subscriptions = new();
-    private int _nextToRemoveIndex;
     private volatile Exception? _thrownException;
+    
+    private readonly HashSet<long> _fetchedPositions = new();
+    private readonly HashSet<long> _deliveredPositions = new();
 
     public Exception? ThrownException => _thrownException;
 
@@ -61,6 +63,7 @@ internal class FetchedMessages
         _flowState = flowState;
         _unhandledExceptionHandler = unhandledExceptionHandler;
         _timeouts = timeouts;
+        _utcNow = utcNow;
         _settings = settings;
         _idempotencyKeys = new IdempotencyKeys(IdempotencyKeysRoot, _effect, maxIdempotencyKeyCount, maxIdempotencyKeyTtl, utcNow);
     }
@@ -69,8 +72,7 @@ internal class FetchedMessages
     {
         _idempotencyKeys.Initialize();
 
-        _nextToRemoveIndex = await _effect.CreateOrGet(PendingDeletionsRoot, 0, alias: null, flush: false);
-        var children = _effect.GetChildren(PendingDeletionsRoot);
+        var children = _effect.GetChildren(DeliveredPositionsId);
         var positions = new List<long>();
         foreach (var childId in children)
         {
@@ -137,72 +139,54 @@ internal class FetchedMessages
         }
         finally
         {
-            TryDispatch();
+            DeliverMessages();
             _semaphore.Release();
         }
     }
 
-    public async Task<MatchResult?> WaitForMessageOrTimeout(EffectId timeoutId, MessagePredicate predicate, DateTime? timeout)
+    public async Task<MessageData?> AddSubscription(EffectId id, MessagePredicate predicate, DateTime? timeout, Func<MessageData?, IEnumerable<EffectResult>> captureMessage)
     {
-        var subscription = new Subscription(predicate, timeout);
-
+        if (timeout != null)
+            _timeouts.AddTimeout(id, timeout.Value);
+        
+        var utcNow = _utcNow();
+        var maxWait = utcNow + _settings.MessagesDefaultMaxWaitForCompletion;
+        var waitBeforeNull = timeout == null ? 
+            maxWait :  
+            timeout.Value > maxWait ? maxWait : timeout;
+        
+        var subscription = new Subscription(id, predicate, waitBeforeNull, UserTimeout: timeout, captureMessage);
         lock (_lock)
             _subscriptions.Add(subscription);
 
-        TryDispatch();
-
-        var waitTask = timeout != null
-            ? _timeouts.AddTimeout(timeoutId, timeout.Value)
-            : Task.Delay(_settings.MessagesDefaultMaxWaitForCompletion);
-
         _flowState.SubflowWaiting();
-        await Task.WhenAny(subscription.Tcs.Task, waitTask);
-        var success = _flowState.ResumeSubflow();
+        var result = await subscription.Tcs.Task;
+        var success = _flowState.TryResumeSubflow();
         if (!success)
             await new TaskCompletionSource().Task;
 
-        lock (_lock)
-        {
-            var stillRegistered = _subscriptions.Remove(subscription);
-            if (stillRegistered)
-                subscription.Tcs.TrySetResult(null);
-        }
-
-        var result = await subscription.Tcs.Task;
         if (result != null)
-            _timeouts.RemoveTimeout(timeoutId);
+            return result;
+        if (timeout != null && _utcNow() > timeout.Value)
+            return null;
 
-        return result;
+        throw new SuspendInvocationException();
     }
-
+    
     public async Task AfterFlush()
     {
         await _semaphore.WaitAsync();
         try
         {
-            var children = _effect.GetChildren(PendingDeletionsRoot);
-            var nonDirtyChildren = new List<EffectId>();
-            foreach (var childId in children)
-                if (!_effect.IsDirty(childId))
-                    nonDirtyChildren.Add(childId);
+            if (!_effect.TryGet<List<long>>(DeliveredPositionsId, out var deliveredPositions) || deliveredPositions is null)
+                return;
 
-            if (nonDirtyChildren.Any())
-            {
-                var positions = new List<long>();
-                foreach (var nonDirtyChild in nonDirtyChildren)
-                {
-                    var position = _effect.Get<long>(nonDirtyChild);
-                    positions.Add(position);
-                }
+            if (deliveredPositions.Count == 0 || _effect.IsDirty(DeliveredPositionsId))
+                return;
 
-                await _messageStore.DeleteMessages(_storedId, positions);
-                foreach (var nonDirtyChild in nonDirtyChildren)
-                    await _effect.Clear(nonDirtyChild, flush: false);
-
-                lock (_lock)
-                    foreach (var position in positions)
-                        _fetchedPositions.Remove(position);
-            }
+            await _messageStore.DeleteMessages(_storedId, deliveredPositions);
+            deliveredPositions.Clear();
+            _effect.FlushlessUpsert(DeliveredPositionsId, deliveredPositions, alias: null);
         }
         catch (Exception exception)
         {
@@ -214,7 +198,7 @@ internal class FetchedMessages
         }
     }
 
-    private void TryDispatch()
+    private void DeliverMessages()
     {
         lock (_lock)
             for (var subscriptionIndex = 0; subscriptionIndex < _subscriptions.Count; subscriptionIndex++)
@@ -225,12 +209,17 @@ internal class FetchedMessages
                     {
                         var msg = _toDeliver[matchIndex];
                         _toDeliver.RemoveAt(matchIndex);
-                        var positionToRemoveIndex = _nextToRemoveIndex++;
-                        var toRemoveId = PendingDeletion(positionToRemoveIndex);
-                        _effect.FlushlessUpsert(PendingDeletionsRoot, _nextToRemoveIndex, alias: null);
+                        _deliveredPositions.Add(msg.Position);
                         _subscriptions.RemoveAt(subscriptionIndex);
-                        subscription.Tcs.TrySetResult(new MatchResult(msg, toRemoveId));
-                        TryDispatch();
+
+                        _effect.FlushlessUpserts(
+                            subscription.CaptureMessage(msg)
+                                .Append(EffectResult.Create(DeliveredPositionsId, _deliveredPositions.ToList()))
+                        );
+
+                        _timeouts.RemoveTimeout(subscription.EffectId);
+                        subscription.Tcs.TrySetResult(msg);
+                        DeliverMessages();
                         return;
                     }
             }
@@ -246,6 +235,28 @@ internal class FetchedMessages
         }
     }
 
+    public void FireTimeouts()
+    {
+        var now = _utcNow();
+        lock (_lock)
+            for (var i = _subscriptions.Count - 1; i >= 0; i--)
+            {
+                var subscription = _subscriptions[i];
+                if (subscription.Timeout is { } timeout && timeout <= now)
+                {
+                    _subscriptions.RemoveAt(i);
+
+                    if (subscription.UserTimeout is { } userTimeout && userTimeout <= now)
+                    {
+                        _effect.FlushlessUpserts(subscription.CaptureMessage(null));
+                        _timeouts.RemoveTimeout(subscription.EffectId);
+                    }
+
+                    subscription.Tcs.TrySetResult(null);
+                }
+            }
+    }
+
     public record MessageData(
         Envelope Envelope,
         long Position,
@@ -254,11 +265,10 @@ internal class FetchedMessages
         string? Receiver,
         string? Sender
     );
+    
 
-    public record MatchResult(MessageData Message, EffectId ToRemoveId);
-
-    private record Subscription(MessagePredicate Predicate, DateTime? Timeout)
+    private record Subscription(EffectId EffectId, MessagePredicate Predicate, DateTime? Timeout, DateTime? UserTimeout, Func<MessageData?, IEnumerable<EffectResult>> CaptureMessage)
     {
-        public TaskCompletionSource<MatchResult?> Tcs { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public TaskCompletionSource<MessageData?> Tcs { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
     }
 }

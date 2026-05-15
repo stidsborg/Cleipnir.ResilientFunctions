@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Domain.Exceptions.Commands;
 using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Queuing;
@@ -14,12 +15,12 @@ public class Workflow
     internal StoredId StoredId { get; }
     public Effect Effect { get; }
 
-    private QueueManager _queueManager;
+    private readonly QueueManager _queueManager;
     private readonly UtcNow _utcNow;
     private MessageWriter MessageWriter { get; }
 
 
-    public Workflow(FlowId flowId, StoredId storedId, Effect effect, QueueManager queueManager, UtcNow utcNow, MessageWriter messageWriter)
+    internal Workflow(FlowId flowId, StoredId storedId, Effect effect, QueueManager queueManager, UtcNow utcNow, MessageWriter messageWriter)
     {
         FlowId = flowId;
         StoredId = storedId;
@@ -32,23 +33,25 @@ public class Workflow
     public Task Delay(TimeSpan @for, bool suspend = true, string? alias = null) => Delay(until: _utcNow() + @for, suspend, alias);
     public Task Delay(DateTime until, bool suspend = true, string? alias = null)
     {
-        var effectId = Effect.TakeNextImplicitId();
-        var timeoutId = EffectId.CreateWithCurrentContext(effectId);
+        var timeoutId = Effect.CreateNextImplicitId();
 
         async Task Inner()
         {
-            var expiry = await Effect.CreateOrGet(timeoutId, until.ToUniversalTime().Ticks, alias, flush: false);
-
-            if (expiry == -1)
-            {
-                return;
-            }
-
-            var maxWait = suspend ? TimeSpan.Zero : (TimeSpan?)null;
-            await Effect.FlowTimeouts.AddTimeout(timeoutId, expiry.ToDateTime(), maxWait);
+            var expiry = (await Effect.CreateOrGet(timeoutId, until.ToUniversalTime().Ticks, alias, flush: false))
+                .ToDateTime();
             
-            await Effect.Upsert(timeoutId, -1L, alias, flush: false);
-            Effect.FlowTimeouts.RemoveTimeout(timeoutId);
+            var now = _utcNow();
+            if (now > expiry)
+                return;
+            
+            Effect.FlowTimeouts.AddTimeout(timeoutId, expiry);
+            if (suspend)
+                throw new SuspendInvocationException();
+
+            //do in-memory wait
+            var delay = expiry - now;
+            await Task.Delay(delay);
+            Effect.FlowTimeouts.RemoveTimeout(timeoutId);    
         }
 
         return Inner();

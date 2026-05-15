@@ -5,7 +5,7 @@ using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.Domain;
 
-public static class EffectPrinter
+internal static class EffectPrinter
 {
     public static string Print(EffectResults effectResults)
     {

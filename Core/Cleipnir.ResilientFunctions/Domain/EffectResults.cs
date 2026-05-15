@@ -11,7 +11,7 @@ using Cleipnir.ResilientFunctions.Storage.Session;
 
 namespace Cleipnir.ResilientFunctions.Domain;
 
-public class EffectResults
+internal class EffectResults
 {
     private readonly FlowId _flowId;
     private readonly StoredId _storedId;
