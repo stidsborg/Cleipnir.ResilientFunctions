@@ -141,15 +141,10 @@ public class EffectResults
 
     internal async Task Upsert<T>(EffectId effectId, string? alias, T value, bool flush)
     {
-        var serializedValue = _serializer.Serialize(value!, typeof(T));
-        var storedEffect = StoredEffect.CreateCompleted(effectId, serializedValue, alias);
-        await FlushOrAddToPending(
-            storedEffect.EffectId,
-            storedEffect,
-            flush,
-            delete: false,
-            clearChildren: false
-        );
+        FlushlessUpsert(effectId, alias, value);
+
+        if (flush)
+            await Flush();
     }
 
     internal void FlushlessUpsert<T>(EffectId effectId, string? alias, T value)
@@ -158,19 +153,10 @@ public class EffectResults
         var storedEffect = StoredEffect.CreateCompleted(effectId, serializedValue, alias);
         AddToPending(storedEffect.EffectId, storedEffect, delete: false, clearChildren: false);
     }
-    
+
     internal async Task Upserts(IEnumerable<EffectResult> values, bool flush)
     {
-        var storedEffects = values
-            .Select(t =>
-            {
-                var bytes = _serializer.Serialize(t.Value!, t.Value?.GetType() ?? typeof(object));
-                return new { Id = t.Id, Bytes = bytes, Alias = t.Alias };
-            })
-            .Select(a => StoredEffect.CreateCompleted(a.Id, a.Bytes, a.Alias))
-            .ToList();
-
-        AddToPending(storedEffects);
+        FlushlessUpserts(values);
 
         if (flush)
             await Flush();
@@ -400,19 +386,12 @@ public class EffectResults
 
     public async Task Clear(EffectId effectId, bool flush)
     {
-        lock (_sync)
-            if (_effectResults.ContainsKey(effectId))
-                AddToPending(
-                    effectId,
-                    storedEffect: null,
-                    delete: true,
-                    clearChildren: true
-                );
-        
+        FlushlessClear(effectId);
+
         if (flush)
             await Flush();
     }
-    
+
     public void FlushlessClear(EffectId effectId)
     {
         lock (_sync)
