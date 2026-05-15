@@ -2,6 +2,7 @@
 using System.IO.Pipelines;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime;
+using Cleipnir.ResilientFunctions.Domain.Exceptions.Commands;
 using Cleipnir.ResilientFunctions.Helpers;
 
 namespace Cleipnir.ResilientFunctions.Domain;
@@ -108,7 +109,10 @@ public class RetryPolicy(TimeSpan initialInterval, double backoffCoefficient, Ti
         var hasDelayUntil = effect.TryGet<long>(delayUntilId, out var delayUntilValue);
         var delayUntil = hasDelayUntil ? delayUntilValue.ToDateTime() : DateTime.MinValue;
         if (hasDelayUntil && delayUntil > utcNow())
-            await flowTimeouts.AddTimeout(delayUntilId, delayUntil, maxWait: TimeSpan.Zero);
+        {
+            flowTimeouts.AddTimeout(delayUntilId, delayUntil);
+            throw new SuspendInvocationException();
+        }
 
         var iterationId = effect.CreateEffectId(1);
         var iteration = await effect.CreateOrGet(iterationId, 0, alias: null, flush: false);
@@ -146,9 +150,12 @@ public class RetryPolicy(TimeSpan initialInterval, double backoffCoefficient, Ti
                     throw;
 
                 if (delay >= suspendThreshold)
-                    await flowTimeouts.AddTimeout(delayUntilId, delayUntil, maxWait: TimeSpan.Zero);
-                else
-                    await Task.Delay(delay);
+                {
+                    flowTimeouts.AddTimeout(delayUntilId, delayUntil);
+                    throw new SuspendInvocationException();
+                }
+
+                await Task.Delay(delay);
             }            
         }
     }

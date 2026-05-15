@@ -40,7 +40,7 @@ public class FunctionsRegistry : IDisposable
         _shutdownCoordinator = new ShutdownCoordinator();
         _settings = SettingsWithDefaults.Default.Merge(settings);
         var utcNow = _settings.UtcNow;
-        _flowsManager = new FlowsManager(_functionStore, utcNow);
+        _flowsManager = new FlowsManager(_functionStore);
         
         ClusterInfo = new ClusterInfo(ReplicaId.NewId());
         
@@ -439,7 +439,6 @@ public class FunctionsRegistry : IDisposable
     public void Dispose()
     {
         _disposed = true;
-        _flowsManager.Dispose();
         _shutdownCoordinator.SignalShutdown();
         _replicaWatchdog.Dispose();
     }

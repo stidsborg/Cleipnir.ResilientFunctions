@@ -560,7 +560,7 @@ public abstract class MessagesSubscriptionTests
             {
 
                 var flowTimeouts = new FlowTimeouts();
-                var flowsManager = new FlowsManager(functionStore, () => DateTime.UtcNow);
+                var flowsManager = new FlowsManager(functionStore);
                 var flowState = flowsManager.CreateFlow(workflow.StoredId, flowTimeouts);
                 var queueManager = new QueueManager(
                     workflow.FlowId,
@@ -623,7 +623,7 @@ public abstract class MessagesSubscriptionTests
             {
                 storedId = workflow.StoredId;
                 var minimumTimeout = new FlowTimeouts();
-                var flowsManager = new FlowsManager(functionStore, () => DateTime.UtcNow);
+                var flowsManager = new FlowsManager(functionStore);
                 var flowState = flowsManager.CreateFlow(workflow.StoredId, minimumTimeout);
                 var queueManager = new QueueManager(
                     workflow.FlowId,
@@ -684,7 +684,7 @@ public abstract Task PullEnvelopeReturnsEnvelopeWithReceiverAndSender();
             {
 
                 var flowTimeouts = new FlowTimeouts();
-                var flowsManager = new FlowsManager(functionStore, () => DateTime.UtcNow);
+                var flowsManager = new FlowsManager(functionStore);
                 var flowState = flowsManager.CreateFlow(workflow.StoredId, flowTimeouts);
                 var queueManager = new QueueManager(
                     workflow.FlowId,
