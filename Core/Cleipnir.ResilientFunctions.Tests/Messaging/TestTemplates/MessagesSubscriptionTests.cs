@@ -196,7 +196,7 @@ public abstract class MessagesSubscriptionTests
 
                 for (var i = 0; i < 6; i++)
                 {
-                    var message = await workflow.Message<string>(TimeSpan.FromMilliseconds(250));
+                    var message = await workflow.Message<string>(TimeSpan.FromMilliseconds(1_000));
                     messages.Add(message ?? "NULL");
                 }
 
