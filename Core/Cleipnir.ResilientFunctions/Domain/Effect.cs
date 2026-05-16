@@ -16,8 +16,24 @@ public enum ResiliencyLevel
     AtLeastOnceDelayFlush
 }
 
-public class Effect(EffectResults effectResults, UtcNow utcNow, FlowTimeouts flowTimeouts, FlowsManager flowsManager, StoredId storedId)
+public class Effect
 {
+    private readonly EffectResults effectResults;
+    private readonly UtcNow utcNow;
+    private readonly FlowTimeouts flowTimeouts;
+    private readonly FlowsManager flowsManager;
+    private readonly StoredId storedId;
+
+    internal Effect(EffectResults effectResults, UtcNow utcNow, FlowTimeouts flowTimeouts, FlowsManager flowsManager, StoredId storedId)
+    {
+        this.effectResults = effectResults;
+        this.utcNow = utcNow;
+        this.flowTimeouts = flowTimeouts;
+        this.flowsManager = flowsManager;
+        this.storedId = storedId;
+    }
+
+
     internal bool Contains(int id) => Contains(CreateEffectId(id));
     internal bool Contains(EffectId effectId) => effectResults.Contains(effectId);
 

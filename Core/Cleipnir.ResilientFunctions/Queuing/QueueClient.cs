@@ -8,7 +8,7 @@ using Cleipnir.ResilientFunctions.Messaging;
 
 namespace Cleipnir.ResilientFunctions.Queuing;
 
-public class QueueClient(QueueManager queueManager, ISerializer serializer, UtcNow utcNow)
+internal class QueueClient(QueueManager queueManager, ISerializer serializer, UtcNow utcNow)
 {
     public Task FetchMessages() => queueManager.FetchMessagesOnce();
 
@@ -52,8 +52,7 @@ public class QueueClient(QueueManager queueManager, ISerializer serializer, UtcN
 
             timeout = new DateTime(timeoutTicks, DateTimeKind.Utc);
         }
-
-
+        
         if (!effect.Contains(messageId))
         {
             var result = await queueManager.Subscribe(
@@ -63,12 +62,19 @@ public class QueueClient(QueueManager queueManager, ISerializer serializer, UtcN
                 messageId,
                 messageTypeId,
                 receiverId,
-                senderId
+                senderId,
+                captureMessage: msg =>
+                    msg == null
+                        ? [EffectResult.Create(messageId, null)]
+                        :
+                        [
+                            EffectResult.Create(messageId, msg.MessageContentBytes),
+                            EffectResult.Create(messageTypeId, msg.MessageTypeBytes),
+                            EffectResult.Create(receiverId, msg.Receiver),
+                            EffectResult.Create(senderId, msg.Sender),
+                        ]
             );
-
-            if (result == null)
-                effect.FlushlessUpsert<object?>(messageId, null, alias: null);
-
+            
             return result;
         }
 

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime;
@@ -12,7 +13,7 @@ namespace Cleipnir.ResilientFunctions.Queuing;
 
 public delegate bool MessagePredicate(Envelope envelope);
 
-public class QueueManager : IDisposable
+internal class QueueManager : IDisposable
 {
     private readonly Effect _effect;
     private readonly FlowState _flowState;
@@ -95,6 +96,7 @@ public class QueueManager : IDisposable
     {
         if (_disposed)
             throw new ObjectDisposedException($"{nameof(QueueManager)} is disposed already");
+        
         return _fetchedMessages.FetchOnce();
     }
 
@@ -107,31 +109,16 @@ public class QueueManager : IDisposable
         EffectId messageId,
         EffectId messageTypeId,
         EffectId receiverId,
-        EffectId senderId)
+        EffectId senderId,
+        Func<FetchedMessages.MessageData?, IEnumerable<EffectResult>> captureMessage)
     {
         if (_fetchedMessages.ThrownException is { } pre)
             throw pre;
 
+        var task = _fetchedMessages.AddSubscription(messageId, predicate, timeout, captureMessage);
         await FetchMessagesOnce();
 
-        var matched = await _fetchedMessages.WaitForMessageOrTimeout(timeoutId, predicate, timeout);
-
-        if (_fetchedMessages.ThrownException is { } post)
-            throw post;
-
-        if (matched == null)
-            return timeout != null ? null : throw new SuspendInvocationException();
-
-        _effect.FlushlessUpserts(
-        [
-            new EffectResult(matched.ToRemoveId, matched.Message.Position, Alias: null),
-            new EffectResult(messageId, matched.Message.MessageContentBytes, Alias: null),
-            new EffectResult(messageTypeId, matched.Message.MessageTypeBytes, Alias: null),
-            new EffectResult(receiverId, matched.Message.Receiver, Alias: null),
-            new EffectResult(senderId, matched.Message.Sender, Alias: null),
-        ]);
-
-        return matched.Message.Envelope;
+        return (await task)?.Envelope;
     }
 
     private async Task FetchLoop()
@@ -139,6 +126,8 @@ public class QueueManager : IDisposable
         while (!_disposed && _fetchedMessages.ThrownException == null)
         {
             await FetchMessagesOnce();
+            _fetchedMessages.FireTimeouts();
+            
             await Task.WhenAny(
                 _flowState.InterruptSignal.Wait(),
                 Task.Delay(_settings.MessagesPullFrequency));
