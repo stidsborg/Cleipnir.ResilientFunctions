@@ -356,7 +356,7 @@ public abstract class SunshineTests
             param: "hello",
             initialState: new InitialState(
                 Messages: [new MessageAndIdempotencyKey("InitialMessage")],
-                Effects: [new InitialEffect(Id: 0, Value: "InitialEffectValue", Exception: null, Alias: "InitialEffectId")]
+                Effects: [new InitialEffect(Id: 0.ToEffectId(), Value: "InitialEffectValue", Exception: null, Alias: "InitialEffectId")]
             )
         );
         
@@ -394,7 +394,7 @@ public abstract class SunshineTests
             param: "hello",
             initialState: new InitialState(
                 Messages: [new MessageAndIdempotencyKey("InitialMessage")],
-                Effects: [new InitialEffect(Id: 0, Value: "InitialEffectValue", Exception: null, Alias: "InitialEffectId")]
+                Effects: [new InitialEffect(Id: 0.ToEffectId(), Value: "InitialEffectValue", Exception: null, Alias: "InitialEffectId")]
             )
         );
         
@@ -431,7 +431,7 @@ public abstract class SunshineTests
             flowInstance: "hello",
             initialState: new InitialState(
                 Messages: [new MessageAndIdempotencyKey("InitialMessage")],
-                Effects: [new InitialEffect(Id: 0, Value: "InitialEffectValue", Exception: null, Alias: "InitialEffectId")]
+                Effects: [new InitialEffect(Id: 0.ToEffectId(), Value: "InitialEffectValue", Exception: null, Alias: "InitialEffectId")]
             )
         );
         
@@ -468,7 +468,7 @@ public abstract class SunshineTests
             flowInstance: "hello",
             initialState: new InitialState(
                 Messages: [],
-                Effects: [new InitialEffect(Id: "InitialEffectId".GetHashCode(), Status: WorkStatus.Started)]
+                Effects: [new InitialEffect(Id: "InitialEffectId".GetHashCode().ToEffectId(), Status: WorkStatus.Started)]
             )
         );
         
@@ -503,7 +503,7 @@ public abstract class SunshineTests
                 flowInstance: "hello",
                 initialState: new InitialState(
                     Messages: [],
-                    Effects: [new InitialEffect(Id: 0, Exception: new TimeoutException())]
+                    Effects: [new InitialEffect(Id: 0.ToEffectId(), Exception: new TimeoutException())]
                 )
             );
             Assert.Fail("Expected TimeoutException");

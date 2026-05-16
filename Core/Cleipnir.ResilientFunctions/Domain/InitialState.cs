@@ -13,4 +13,4 @@ public record InitialState(
         => new(messages, Effects: []);
 }
 
-public record InitialEffect(int Id, object? Value = null, Exception? Exception = null, WorkStatus? Status = null, string? Alias = null);
+public record InitialEffect(EffectId Id, object? Value = null, Exception? Exception = null, WorkStatus? Status = null, string? Alias = null);

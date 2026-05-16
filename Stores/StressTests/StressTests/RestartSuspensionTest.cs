@@ -40,7 +40,7 @@ public static class RestartSuspensionTest
                 instance,
                 new InitialState(
                     [new MessageAndIdempotencyKey("Hello")],
-                    [new InitialEffect(0, Guid.NewGuid())]
+                    [new InitialEffect(0.ToEffectId(), Guid.NewGuid())]
                 )
             );
         
