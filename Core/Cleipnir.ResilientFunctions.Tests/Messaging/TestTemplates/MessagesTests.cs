@@ -1,15 +1,11 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
-using Cleipnir.ResilientFunctions.CoreRuntime;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.CoreRuntime.Serialization;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
-using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
-using Cleipnir.ResilientFunctions.Queuing;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Tests.Utils;
 using Shouldly;
@@ -32,47 +28,21 @@ public abstract class MessagesTests
     {
         var functionStore = await functionStoreTask;
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        var unhandledExceptionHandler = new UnhandledExceptionHandler(unhandledExceptionCatcher.Catch);
         using var functionsRegistry = new FunctionsRegistry(
             functionStore,
             CreateSettings(unhandledExceptionCatcher.Catch)
         );
 
-        QueueClient? queueClient = null;
         var rFunc = functionsRegistry.RegisterFunc(
             nameof(MessagesSunshineScenario),
-            inner: async Task<string> (string _, Workflow workflow) =>
-            {
-
-                var flowTimeouts = new FlowTimeouts();
-                var flowsManager = new FlowsManager(functionStore);
-                var flowState = flowsManager.CreateFlow(workflow.StoredId, flowTimeouts);
-                var queueManager = new QueueManager(
-                    workflow.FlowId,
-                    workflow.StoredId,
-                    functionStore.MessageStore,
-                    DefaultSerializer.Instance,
-                    workflow.Effect,
-                    flowState,
-                    unhandledExceptionHandler,
-                    flowTimeouts,
-                    () => DateTime.UtcNow,
-                    SettingsWithDefaults.Default
-                );
-
-                queueClient = await queueManager.CreateQueueClient();
-                var message = await queueClient.Pull<string>(workflow, workflow.Effect.CreateNextImplicitId());
-
-                return message;
-            }
+            inner: async Task<string> (string _, Workflow workflow)
+                => await workflow.Message<string>()
         );
 
         var scheduled = await rFunc.Schedule("instanceId", "");
 
         var messageWriter = rFunc.MessageWriters.For("instanceId".ToFlowInstance());
         await messageWriter.AppendMessage("hello world");
-        await BusyWait.Until(() => queueClient is not null);
-        await queueClient!.FetchMessages(); // Immediately fetch the message
 
         var result = await scheduled.Completion(timeout: TimeSpan.FromSeconds(5));
         result.ShouldBe("hello world");
@@ -85,7 +55,6 @@ public abstract class MessagesTests
     {
         var functionStore = await functionStoreTask;
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        var unhandledExceptionHandler = new UnhandledExceptionHandler(unhandledExceptionCatcher.Catch);
         using var functionsRegistry = new FunctionsRegistry(
             functionStore,
             CreateSettings(unhandledExceptionCatcher.Catch)
@@ -110,7 +79,6 @@ public abstract class MessagesTests
     {
         var functionStore = await functionStoreTask;
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        var unhandledExceptionHandler = new UnhandledExceptionHandler(unhandledExceptionCatcher.Catch);
         using var functionsRegistry = new FunctionsRegistry(
             functionStore,
             CreateSettings(unhandledExceptionCatcher.Catch)
@@ -120,31 +88,10 @@ public abstract class MessagesTests
             nameof(MessagesFirstOfTypesReturnsNoneForFirstOfTypesOnTimeout),
             inner: async Task<string> (string _, Workflow workflow) =>
             {
-
-                var flowTimeouts = new FlowTimeouts();
-                var flowsManager = new FlowsManager(functionStore);
-                var flowState = flowsManager.CreateFlow(workflow.StoredId, flowTimeouts);
-                var queueManager = new QueueManager(
-                    workflow.FlowId,
-                    workflow.StoredId,
-                    functionStore.MessageStore,
-                    DefaultSerializer.Instance,
-                    workflow.Effect,
-                    flowState,
-                    unhandledExceptionHandler,
-                    flowTimeouts,
-                    () => DateTime.UtcNow,
-                    SettingsWithDefaults.Default
+                var message = await workflow.Message<object>(
+                    filter: m => m is string or int,
+                    waitFor: TimeSpan.Zero
                 );
-
-                var queueClient = await queueManager.CreateQueueClient();
-                var message = await queueClient.Pull<object>(
-                    workflow,
-                    workflow.Effect.CreateNextImplicitId(),
-                    TimeSpan.Zero,
-                    filter: m => m is string or int
-                );
-
                 return message == null ? "NONE" : message.ToString()!;
             }
         );
@@ -162,7 +109,6 @@ public abstract class MessagesTests
     {
         var functionStore = await functionStoreTask;
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        var unhandledExceptionHandler = new UnhandledExceptionHandler(unhandledExceptionCatcher.Catch);
         using var functionsRegistry = new FunctionsRegistry(
             functionStore,
             CreateSettings(unhandledExceptionCatcher.Catch)
@@ -172,31 +118,8 @@ public abstract class MessagesTests
             nameof(MessagesFirstOfTypesReturnsFirstForFirstOfTypesOnFirst),
             inner: async Task<string> (string _, Workflow workflow) =>
             {
-
-                var flowTimeouts = new FlowTimeouts();
-                var flowsManager = new FlowsManager(functionStore);
-                var flowState = flowsManager.CreateFlow(workflow.StoredId, flowTimeouts);
-                var queueManager = new QueueManager(
-                    workflow.FlowId,
-                    workflow.StoredId,
-                    functionStore.MessageStore,
-                    DefaultSerializer.Instance,
-                    workflow.Effect,
-                    flowState,
-                    unhandledExceptionHandler,
-                    flowTimeouts,
-                    () => DateTime.UtcNow,
-                    SettingsWithDefaults.Default
-                );
-
-                var queueClient = await queueManager.CreateQueueClient();
-                var message = await queueClient.Pull<object>(
-                    workflow,
-                    workflow.Effect.CreateNextImplicitId(),
-                    filter: m => m is string or int
-                );
-
-                return message!.ToString()!;
+                var message = await workflow.Message<object>(filter: m => m is string or int);
+                return message.ToString()!;
             }
         );
 
@@ -215,7 +138,6 @@ public abstract class MessagesTests
     {
         var functionStore = await functionStoreTask;
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        var unhandledExceptionHandler = new UnhandledExceptionHandler(unhandledExceptionCatcher.Catch);
         using var functionsRegistry = new FunctionsRegistry(
             functionStore,
             CreateSettings(unhandledExceptionCatcher.Catch)
@@ -223,33 +145,8 @@ public abstract class MessagesTests
 
         var rFunc = functionsRegistry.RegisterFunc(
             nameof(MessagesFirstOfTypesReturnsSecondForFirstOfTypesOnSecond),
-            inner: async Task<string> (string _, Workflow workflow) =>
-            {
-
-                var flowTimeouts = new FlowTimeouts();
-                var flowsManager = new FlowsManager(functionStore);
-                var flowState = flowsManager.CreateFlow(workflow.StoredId, flowTimeouts);
-                var queueManager = new QueueManager(
-                    workflow.FlowId,
-                    workflow.StoredId,
-                    functionStore.MessageStore,
-                    DefaultSerializer.Instance,
-                    workflow.Effect,
-                    flowState,
-                    unhandledExceptionHandler,
-                    flowTimeouts,
-                    () => DateTime.UtcNow,
-                    SettingsWithDefaults.Default
-                );
-
-                var queueClient = await queueManager.CreateQueueClient();
-                var message = await queueClient.Pull<string>(
-                    workflow,
-                    workflow.Effect.CreateNextImplicitId()
-                );
-
-                return message;
-            }
+            inner: async Task<string> (string _, Workflow workflow)
+                => await workflow.Message<string>()
         );
 
         var scheduled = await rFunc.Schedule("instanceId", "");
@@ -267,39 +164,17 @@ public abstract class MessagesTests
     {
         var functionStore = await functionStoreTask;
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        var unhandledExceptionHandler = new UnhandledExceptionHandler(unhandledExceptionCatcher.Catch);
         using var functionsRegistry = new FunctionsRegistry(
             functionStore,
             CreateSettings(unhandledExceptionCatcher.Catch)
         );
 
-        StoredId? storedId = null;
         var rFunc = functionsRegistry.RegisterFunc(
             nameof(SecondEventWithExistingIdempotencyKeyIsIgnored),
             inner: async Task<Tuple<string, string>> (string _, Workflow workflow) =>
             {
-                storedId = workflow.StoredId;
-
-                var flowTimeouts = new FlowTimeouts();
-                var flowsManager = new FlowsManager(functionStore);
-                var flowState = flowsManager.CreateFlow(workflow.StoredId, flowTimeouts);
-                var queueManager = new QueueManager(
-                    workflow.FlowId,
-                    workflow.StoredId,
-                    functionStore.MessageStore,
-                    DefaultSerializer.Instance,
-                    workflow.Effect,
-                    flowState,
-                    unhandledExceptionHandler,
-                    flowTimeouts,
-                    () => DateTime.UtcNow,
-                    SettingsWithDefaults.Default
-                );
-
-                var queueClient = await queueManager.CreateQueueClient();
-                var message1 = await queueClient.Pull<string>(workflow, workflow.Effect.CreateNextImplicitId());
-                var message2 = await queueClient.Pull<string>(workflow, workflow.Effect.CreateNextImplicitId());
-
+                var message1 = await workflow.Message<string>();
+                var message2 = await workflow.Message<string>();
                 return Tuple.Create(message1, message2);
             }
         );
@@ -323,40 +198,17 @@ public abstract class MessagesTests
     {
         var functionStore = await functionStoreTask;
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        var unhandledExceptionHandler = new UnhandledExceptionHandler(unhandledExceptionCatcher.Catch);
         using var functionsRegistry = new FunctionsRegistry(
             functionStore,
             CreateSettings(unhandledExceptionCatcher.Catch)
         );
 
-        StoredId? storedId = null;
         var rFunc = functionsRegistry.RegisterFunc(
             nameof(QueueClientCanPullMultipleMessages),
             inner: async Task<string> (string _, Workflow workflow) =>
             {
-                storedId = workflow.StoredId;
-
-                var flowTimeouts = new FlowTimeouts();
-                var flowsManager = new FlowsManager(functionStore);
-                var flowState = flowsManager.CreateFlow(workflow.StoredId, flowTimeouts);
-                var queueManager = new QueueManager(
-                    workflow.FlowId,
-                    workflow.StoredId,
-                    functionStore.MessageStore,
-                    DefaultSerializer.Instance,
-                    workflow.Effect,
-                    flowState,
-                    unhandledExceptionHandler,
-                    flowTimeouts,
-                    () => DateTime.UtcNow,
-                    SettingsWithDefaults.Default
-                );
-
-                var queueClient = await queueManager.CreateQueueClient();
-
-                var message1 = await queueClient.Pull<string>(workflow, workflow.Effect.CreateNextImplicitId());
-                var message2 = await queueClient.Pull<string>(workflow, workflow.Effect.CreateNextImplicitId());
-
+                var message1 = await workflow.Message<string>();
+                var message2 = await workflow.Message<string>();
                 return $"{message1},{message2}";
             }
         );
@@ -381,47 +233,18 @@ public abstract class MessagesTests
         var flowType = TestFlowId.Create().Type;
         var functionStore = await functionStoreTask;
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        var unhandledExceptionHandler = new UnhandledExceptionHandler(unhandledExceptionCatcher.Catch);
         using var registry = new FunctionsRegistry(functionStore, CreateSettings(unhandledExceptionCatcher.Catch));
 
-        var queueClients = new Dictionary<string, QueueClient>();
         var registration = registry.RegisterParamless(
             flowType,
             async Task (workflow) =>
             {
-
-                var flowTimeouts = new FlowTimeouts();
-                var flowsManager = new FlowsManager(functionStore);
-                var flowState = flowsManager.CreateFlow(workflow.StoredId, flowTimeouts);
-                var queueManager = new QueueManager(
-                    workflow.FlowId,
-                    workflow.StoredId,
-                    functionStore.MessageStore,
-                    DefaultSerializer.Instance,
-                    workflow.Effect,
-                    flowState,
-                    unhandledExceptionHandler,
-                    flowTimeouts,
-                    () => DateTime.UtcNow,
-                    SettingsWithDefaults.Default with { MessagesDefaultMaxWaitForCompletion = TimeSpan.FromMinutes(1) }
-                );
-
-                var queueClient = await queueManager.CreateQueueClient();
-                lock (queueClients)
-                    queueClients[workflow.FlowId.Instance.Value] = queueClient;
-
-                await queueClient.Pull<string>(workflow, workflow.Effect.CreateNextImplicitId());
+                await workflow.Message<string>();
             }
         );
 
         await registration.Schedule("Instance#1");
         await registration.Schedule("Instance#2");
-
-        await BusyWait.Until(() =>
-        {
-            lock (queueClients)
-                return queueClients.ContainsKey("Instance#1") && queueClients.ContainsKey("Instance#2");
-        });
 
         await registration.SendMessages(
             [
@@ -429,10 +252,6 @@ public abstract class MessagesTests
                 new BatchedMessage("Instance#2", "hallo world", IdempotencyKey: "1")
             ]
         );
-
-        // Immediately fetch messages for both workflows
-        await queueClients["Instance#1"].FetchMessages();
-        await queueClients["Instance#2"].FetchMessages();
 
         var controlPanel1 = await registration.ControlPanel("Instance#1").ShouldNotBeNullAsync();
         var controlPanel2 = await registration.ControlPanel("Instance#2").ShouldNotBeNullAsync();
@@ -448,35 +267,15 @@ public abstract class MessagesTests
         var flowType = TestFlowId.Create().Type;
         var functionStore = await functionStoreTask;
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        var unhandledExceptionHandler = new UnhandledExceptionHandler(unhandledExceptionCatcher.Catch);
         using var registry = new FunctionsRegistry(functionStore, CreateSettings(unhandledExceptionCatcher.Catch));
         var messages = new List<string>();
         var registration = registry.RegisterParamless(
             flowType,
             async Task (workflow) =>
             {
-
-                var flowTimeouts = new FlowTimeouts();
-                var flowsManager = new FlowsManager(functionStore);
-                var flowState = flowsManager.CreateFlow(workflow.StoredId, flowTimeouts);
-                var queueManager = new QueueManager(
-                    workflow.FlowId,
-                    workflow.StoredId,
-                    functionStore.MessageStore,
-                    DefaultSerializer.Instance,
-                    workflow.Effect,
-                    flowState,
-                    unhandledExceptionHandler,
-                    flowTimeouts,
-                    () => DateTime.UtcNow,
-                    SettingsWithDefaults.Default
-                );
-
-                var queueClient = await queueManager.CreateQueueClient();
-
                 while (true)
                 {
-                    var message = await queueClient.Pull<object>(workflow, workflow.Effect.CreateNextImplicitId());
+                    var message = await workflow.Message<object>();
                     if (message is string s)
                         await workflow.Effect.Capture(() => messages.Add(s));
                     else
@@ -514,7 +313,6 @@ public abstract class MessagesTests
         functionStore = functionStore.WithPrefix("pingpong" + Guid.NewGuid().ToString("N"));
         await functionStore.Initialize();
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        var unhandledExceptionHandler = new UnhandledExceptionHandler(unhandledExceptionCatcher.Catch);
         using var registry = new FunctionsRegistry(functionStore, CreateSettings(unhandledExceptionCatcher.Catch, messagesPullFrequency: TimeSpan.FromMilliseconds(10)));
         ParamlessRegistration pongRegistration = null!;
         ParamlessRegistration pingRegistration = null!;
@@ -523,29 +321,10 @@ public abstract class MessagesTests
             "PingFlow",
             async Task (workflow) =>
             {
-
-                var flowTimeouts = new FlowTimeouts();
-                var flowsManager = new FlowsManager(functionStore);
-                var flowState = flowsManager.CreateFlow(workflow.StoredId, flowTimeouts);
-                var queueManager = new QueueManager(
-                    workflow.FlowId,
-                    workflow.StoredId,
-                    functionStore.MessageStore,
-                    DefaultSerializer.Instance,
-                    workflow.Effect,
-                    flowState,
-                    unhandledExceptionHandler,
-                    flowTimeouts,
-                    () => DateTime.UtcNow,
-                    SettingsWithDefaults.Default
-                );
-
-                var queueClient = await queueManager.CreateQueueClient();
-
                 for (var i = 0; i < 10; i++)
                 {
                     await pongRegistration.SendMessage("Pong", new Ping(i), idempotencyKey: $"Pong{i}");
-                    await queueClient.Pull<Pong>(workflow, workflow.Effect.CreateNextImplicitId(), filter: pong => pong.Number == i);
+                    await workflow.Message<Pong>(filter: pong => pong.Number == i);
                 }
             });
 
@@ -553,28 +332,9 @@ public abstract class MessagesTests
             "PongFlow",
             async Task (workflow) =>
             {
-
-                var flowTimeouts = new FlowTimeouts();
-                var flowsManager = new FlowsManager(functionStore);
-                var flowState = flowsManager.CreateFlow(workflow.StoredId, flowTimeouts);
-                var queueManager = new QueueManager(
-                    workflow.FlowId,
-                    workflow.StoredId,
-                    functionStore.MessageStore,
-                    DefaultSerializer.Instance,
-                    workflow.Effect,
-                    flowState,
-                    unhandledExceptionHandler,
-                    flowTimeouts,
-                    () => DateTime.UtcNow,
-                    SettingsWithDefaults.Default
-                );
-
-                var queueClient = await queueManager.CreateQueueClient();
-
                 for (var i = 0; i < 10; i++)
                 {
-                    await queueClient.Pull<Ping>(workflow, workflow.Effect.CreateNextImplicitId(), filter: ping => ping.Number == i);
+                    await workflow.Message<Ping>(filter: ping => ping.Number == i);
                     await pingRegistration.SendMessage("Ping", new Pong(i), idempotencyKey: $"Ping{i}");
                 }
             });
