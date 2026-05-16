@@ -93,30 +93,8 @@ public abstract class MessagesTests
 
         var rFunc = functionsRegistry.RegisterFunc(
             nameof(QueueClientReturnsNullAfterTimeout),
-            inner: async Task<string?> (string _, Workflow workflow) =>
-            {
-
-                var flowTimeouts = new FlowTimeouts();
-                var flowsManager = new FlowsManager(functionStore);
-                var flowState = flowsManager.CreateFlow(workflow.StoredId, flowTimeouts);
-                var queueManager = new QueueManager(
-                    workflow.FlowId,
-                    workflow.StoredId,
-                    functionStore.MessageStore,
-                    DefaultSerializer.Instance,
-                    workflow.Effect,
-                    flowState,
-                    unhandledExceptionHandler,
-                    flowTimeouts,
-                    () => DateTime.UtcNow,
-                    SettingsWithDefaults.Default
-                );
-
-                var queueClient = await queueManager.CreateQueueClient();
-                var message = await queueClient.Pull<string>(workflow, workflow.Effect.CreateNextImplicitId(), TimeSpan.FromMilliseconds(100));
-
-                return message;
-            }
+            inner: async Task<string?> (string _, Workflow workflow)
+                => await workflow.Message<string>(TimeSpan.FromMilliseconds(100))
         );
 
         var scheduled = await rFunc.Schedule("instanceId", "");
