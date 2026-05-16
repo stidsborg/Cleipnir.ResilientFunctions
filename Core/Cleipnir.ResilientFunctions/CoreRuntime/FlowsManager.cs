@@ -5,16 +5,10 @@ using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.CoreRuntime;
 
-public class FlowsManager
+public class FlowsManager(IFunctionStore functionStore)
 {
     private readonly Dictionary<StoredId, FlowState> _dict = new();
     private readonly Lock _lock = new();
-    private readonly IFunctionStore _functionStore;
-
-    public FlowsManager(IFunctionStore functionStore)
-    {
-        _functionStore = functionStore;
-    }
 
     public FlowState CreateFlow(StoredId id, FlowTimeouts timeouts)
     {
@@ -31,7 +25,7 @@ public class FlowsManager
 
     public async Task Interrupt(IReadOnlyList<StoredId> ids)
     {
-        await _functionStore.ResetInterrupted(ids);
+        await functionStore.ResetInterrupted(ids);
 
         lock (_lock)
             foreach (var id in ids)
