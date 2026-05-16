@@ -6,6 +6,7 @@ using Cleipnir.ResilientFunctions.CoreRuntime;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.CoreRuntime.Serialization;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Queuing;
@@ -17,6 +18,15 @@ namespace Cleipnir.ResilientFunctions.Tests.Messaging.TestTemplates;
 
 public abstract class MessagesTests
 {
+    private static Settings CreateSettings(
+        Action<FrameworkException> unhandledExceptionHandler,
+        TimeSpan? messagesPullFrequency = null) =>
+        new(
+            unhandledExceptionHandler,
+            watchdogCheckFrequency: TimeSpan.FromMilliseconds(100),
+            messagesPullFrequency: messagesPullFrequency ?? TimeSpan.FromMilliseconds(100)
+        );
+
     public abstract Task MessagesSunshineScenario();
     protected async Task MessagesSunshineScenario(Task<IFunctionStore> functionStoreTask)
     {
@@ -25,7 +35,7 @@ public abstract class MessagesTests
         var unhandledExceptionHandler = new UnhandledExceptionHandler(unhandledExceptionCatcher.Catch);
         using var functionsRegistry = new FunctionsRegistry(
             functionStore,
-            new Settings(unhandledExceptionCatcher.Catch)
+            CreateSettings(unhandledExceptionCatcher.Catch)
         );
 
         QueueClient? queueClient = null;
@@ -78,7 +88,7 @@ public abstract class MessagesTests
         var unhandledExceptionHandler = new UnhandledExceptionHandler(unhandledExceptionCatcher.Catch);
         using var functionsRegistry = new FunctionsRegistry(
             functionStore,
-            new Settings(unhandledExceptionCatcher.Catch)
+            CreateSettings(unhandledExceptionCatcher.Catch)
         );
 
         var rFunc = functionsRegistry.RegisterFunc(
@@ -125,7 +135,7 @@ public abstract class MessagesTests
         var unhandledExceptionHandler = new UnhandledExceptionHandler(unhandledExceptionCatcher.Catch);
         using var functionsRegistry = new FunctionsRegistry(
             functionStore,
-            new Settings(unhandledExceptionCatcher.Catch)
+            CreateSettings(unhandledExceptionCatcher.Catch)
         );
 
         var rFunc = functionsRegistry.RegisterFunc(
@@ -177,7 +187,7 @@ public abstract class MessagesTests
         var unhandledExceptionHandler = new UnhandledExceptionHandler(unhandledExceptionCatcher.Catch);
         using var functionsRegistry = new FunctionsRegistry(
             functionStore,
-            new Settings(unhandledExceptionCatcher.Catch)
+            CreateSettings(unhandledExceptionCatcher.Catch)
         );
 
         var rFunc = functionsRegistry.RegisterFunc(
@@ -230,7 +240,7 @@ public abstract class MessagesTests
         var unhandledExceptionHandler = new UnhandledExceptionHandler(unhandledExceptionCatcher.Catch);
         using var functionsRegistry = new FunctionsRegistry(
             functionStore,
-            new Settings(unhandledExceptionCatcher.Catch)
+            CreateSettings(unhandledExceptionCatcher.Catch)
         );
 
         var rFunc = functionsRegistry.RegisterFunc(
@@ -282,7 +292,7 @@ public abstract class MessagesTests
         var unhandledExceptionHandler = new UnhandledExceptionHandler(unhandledExceptionCatcher.Catch);
         using var functionsRegistry = new FunctionsRegistry(
             functionStore,
-            new Settings(unhandledExceptionCatcher.Catch)
+            CreateSettings(unhandledExceptionCatcher.Catch)
         );
 
         StoredId? storedId = null;
@@ -338,7 +348,7 @@ public abstract class MessagesTests
         var unhandledExceptionHandler = new UnhandledExceptionHandler(unhandledExceptionCatcher.Catch);
         using var functionsRegistry = new FunctionsRegistry(
             functionStore,
-            new Settings(unhandledExceptionCatcher.Catch)
+            CreateSettings(unhandledExceptionCatcher.Catch)
         );
 
         StoredId? storedId = null;
@@ -394,7 +404,7 @@ public abstract class MessagesTests
         var functionStore = await functionStoreTask;
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         var unhandledExceptionHandler = new UnhandledExceptionHandler(unhandledExceptionCatcher.Catch);
-        using var registry = new FunctionsRegistry(functionStore, new Settings(unhandledExceptionCatcher.Catch));
+        using var registry = new FunctionsRegistry(functionStore, CreateSettings(unhandledExceptionCatcher.Catch));
 
         var queueClients = new Dictionary<string, QueueClient>();
         var registration = registry.RegisterParamless(
@@ -461,7 +471,7 @@ public abstract class MessagesTests
         var functionStore = await functionStoreTask;
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         var unhandledExceptionHandler = new UnhandledExceptionHandler(unhandledExceptionCatcher.Catch);
-        using var registry = new FunctionsRegistry(functionStore, new Settings(unhandledExceptionCatcher.Catch));
+        using var registry = new FunctionsRegistry(functionStore, CreateSettings(unhandledExceptionCatcher.Catch));
         var messages = new List<string>();
         var registration = registry.RegisterParamless(
             flowType,
@@ -527,7 +537,7 @@ public abstract class MessagesTests
         await functionStore.Initialize();
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         var unhandledExceptionHandler = new UnhandledExceptionHandler(unhandledExceptionCatcher.Catch);
-        using var registry = new FunctionsRegistry(functionStore, new Settings(unhandledExceptionCatcher.Catch, messagesPullFrequency: TimeSpan.FromMilliseconds(10)));
+        using var registry = new FunctionsRegistry(functionStore, CreateSettings(unhandledExceptionCatcher.Catch, messagesPullFrequency: TimeSpan.FromMilliseconds(10)));
         ParamlessRegistration pongRegistration = null!;
         ParamlessRegistration pingRegistration = null!;
 
