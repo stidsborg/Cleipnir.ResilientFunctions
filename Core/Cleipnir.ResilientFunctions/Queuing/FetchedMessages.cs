@@ -150,12 +150,15 @@ internal class FetchedMessages
             _timeouts.AddTimeout(id, timeout.Value);
         
         var utcNow = _utcNow();
-        var maxWait = utcNow + _settings.MessagesDefaultMaxWaitForCompletion;
-        var waitBeforeNull = timeout == null ? 
-            maxWait :  
-            timeout.Value > maxWait ? maxWait : timeout;
+        var waitBeforeNull = (timeout, _settings.MessagesDefaultMaxWaitForCompletion) switch
+        {
+            (null, { Ticks: 0 })  => utcNow,
+            (null, var w)         => utcNow + w,
+            ({ } t, { Ticks: 0 }) => utcNow,
+            ({ } t, var w)        => t < utcNow + w ? t : utcNow + w
+        };
         
-        var subscription = new Subscription(id, predicate, waitBeforeNull, UserTimeout: timeout, captureMessage);
+        var subscription = new Subscription(id, predicate, Timeout: waitBeforeNull, UserTimeout: timeout, captureMessage);
         lock (_lock)
             _subscriptions.Add(subscription);
 
