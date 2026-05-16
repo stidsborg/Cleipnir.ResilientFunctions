@@ -31,6 +31,7 @@ public class FunctionsRegistry : IDisposable
     private volatile bool _disposed;
     private readonly Lock _sync = new();
     private readonly ReplicaWatchdog _replicaWatchdog;
+    private readonly InterruptedWatchdog _interruptedWatchdog;
     private readonly FlowsManager _flowsManager;
 
     public FunctionsRegistry(IFunctionStore functionStore, Settings? settings = null)
@@ -61,10 +62,22 @@ public class FunctionsRegistry : IDisposable
             utcNow, 
             _settings.UnhandledExceptionHandler
         );
+
+        _interruptedWatchdog = new InterruptedWatchdog(
+            _functionStore,
+            _flowsManager,
+            _shutdownCoordinator,
+            _settings.UnhandledExceptionHandler,
+            _settings.WatchdogCheckFrequency,
+            _settings.DelayStartup,
+            utcNow
+        );
+
         if (_settings.EnableWatchdogs)
         {
             _replicaWatchdog.Initialize().GetAwaiter().GetResult();
             _ = _replicaWatchdog.Start();            
+            _ = Task.Run(_interruptedWatchdog.Start);
         }
     }
 

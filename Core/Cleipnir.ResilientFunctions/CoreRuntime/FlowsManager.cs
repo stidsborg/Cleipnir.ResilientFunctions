@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Storage;
@@ -23,14 +24,20 @@ public class FlowsManager(IFunctionStore functionStore)
               _dict.Remove(id);
     }
 
-    public async Task Interrupt(IReadOnlyList<StoredId> ids)
+    public IReadOnlyList<StoredId> FilterOwned(IEnumerable<StoredId> ids)
     {
-        await functionStore.ResetInterrupted(ids);
+        lock (_lock)
+            return ids.Where(_dict.ContainsKey).ToList();
+    }
 
+    public Task Interrupt(IReadOnlyList<StoredId> ids)
+    {
         lock (_lock)
             foreach (var id in ids)
                 if (_dict.TryGetValue(id, out var flowState))
                     flowState.Interrupt();
+
+        return Task.CompletedTask;
     }
 
     public void StartThread(StoredId id)
