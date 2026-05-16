@@ -256,8 +256,8 @@ public abstract class MessagesTests
         var controlPanel1 = await registration.ControlPanel("Instance#1").ShouldNotBeNullAsync();
         var controlPanel2 = await registration.ControlPanel("Instance#2").ShouldNotBeNullAsync();
 
-        await controlPanel1.WaitForCompletion(maxWait: TimeSpan.FromSeconds(2));
-        await controlPanel2.WaitForCompletion(maxWait: TimeSpan.FromSeconds(2));
+        await controlPanel1.WaitForCompletion(allowPostponeAndSuspended: true, maxWait: TimeSpan.FromSeconds(2));
+        await controlPanel2.WaitForCompletion(allowPostponeAndSuspended: true, maxWait: TimeSpan.FromSeconds(2));
 
         unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
