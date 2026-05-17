@@ -267,9 +267,7 @@ public class SqlGenerator(string tablePrefix)
     }
     
     private string? _postponedFunctionSql;
-    private string? _postponedFunctionFailIfInterruptedSql;
     private string? _postponedFunctionWithEffectsSql;
-    private string? _postponedFunctionWithEffectsFailIfInterruptedSql;
     public StoreCommand PostponeFunction(
         StoredId storedId,
         long postponeUntil,
@@ -280,88 +278,53 @@ public class SqlGenerator(string tablePrefix)
     {
         if (effects == null)
         {
-            string sql;
-            if (failIfInterrupted)
-            {
-                _postponedFunctionFailIfInterruptedSql ??= $@"
-                    UPDATE {tablePrefix}
-                    SET status = {(int)Status.Postponed},
-                        expires = ?,
-                        timestamp = ?,
-                        owner = NULL
-                    WHERE
-                        id = ? AND
-                        owner = ? AND
-                        interrupted = 0";
-                sql = _postponedFunctionFailIfInterruptedSql;
-            }
-            else
-            {
-                _postponedFunctionSql ??= $@"
-                    UPDATE {tablePrefix}
-                    SET status = {(int)Status.Postponed},
-                        expires = ?,
-                        timestamp = ?,
-                        owner = NULL,
-                        interrupted = 0
-                    WHERE
-                        id = ? AND
-                        owner = ?";
-                sql = _postponedFunctionSql;
-            }
+            _postponedFunctionSql ??= $@"
+                UPDATE {tablePrefix}
+                SET status = {(int)Status.Postponed},
+                    expires = ?,
+                    timestamp = ?,
+                    owner = NULL,
+                    interrupted = 0
+                WHERE
+                    id = ? AND
+                    owner = ? AND
+                    (? = 0 OR interrupted = 0)";
 
             return StoreCommand.Create(
-                sql,
+                _postponedFunctionSql,
                 values: [
                     postponeUntil,
                     timestamp,
                     storedId.AsGuid.ToString("N"),
                     expectedReplica.AsGuid.ToString("N"),
+                    failIfInterrupted ? 1 : 0,
                 ]
             );
         }
         else
         {
-            string sql;
-            if (failIfInterrupted)
-            {
-                _postponedFunctionWithEffectsFailIfInterruptedSql ??= $@"
-                    UPDATE {tablePrefix}
-                    SET status = {(int)Status.Postponed},
-                        expires = ?,
-                        timestamp = ?,
-                        owner = NULL,
-                        effects = ?
-                    WHERE
-                        id = ? AND
-                        owner = ? AND
-                        interrupted = 0";
-                sql = _postponedFunctionWithEffectsFailIfInterruptedSql;
-            }
-            else
-            {
-                _postponedFunctionWithEffectsSql ??= $@"
-                    UPDATE {tablePrefix}
-                    SET status = {(int)Status.Postponed},
-                        expires = ?,
-                        timestamp = ?,
-                        owner = NULL,
-                        interrupted = 0,
-                        effects = ?
-                    WHERE
-                        id = ? AND
-                        owner = ?";
-                sql = _postponedFunctionWithEffectsSql;
-            }
+            _postponedFunctionWithEffectsSql ??= $@"
+                UPDATE {tablePrefix}
+                SET status = {(int)Status.Postponed},
+                    expires = ?,
+                    timestamp = ?,
+                    owner = NULL,
+                    interrupted = 0,
+                    effects = ?
+                WHERE
+                    id = ? AND
+                    owner = ? AND
+                    (? = 0 OR interrupted = 0)";
 
             return StoreCommand.Create(
-                sql,
+                _postponedFunctionWithEffectsSql,
                 values: [
                     postponeUntil,
                     timestamp,
                     effects,
                     storedId.AsGuid.ToString("N"),
                     expectedReplica.AsGuid.ToString("N"),
+                    failIfInterrupted ? 1 : 0,
                 ]
             );
         }

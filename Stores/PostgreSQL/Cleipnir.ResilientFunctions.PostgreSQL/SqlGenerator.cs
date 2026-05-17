@@ -260,7 +260,6 @@ public class SqlGenerator(string tablePrefix)
     }
     
     private string? _postponeFunctionSql;
-    private string? _postponeFunctionFailIfInterruptedSql;
     public StoreCommand PostponeFunction(
         StoredId storedId,
         long postponeUntil,
@@ -268,43 +267,26 @@ public class SqlGenerator(string tablePrefix)
         ReplicaId expectedReplica,
         bool failIfInterrupted)
     {
-        string sql;
-        if (failIfInterrupted)
-        {
-            _postponeFunctionFailIfInterruptedSql ??= $@"
-                UPDATE {tablePrefix}
-                SET status = {(int) Status.Postponed},
-                    expires = $1,
-                    owner = NULL,
-                    timestamp = $4
-                WHERE
-                    id = $2 AND
-                    owner = $3 AND
-                    interrupted = FALSE;";
-            sql = _postponeFunctionFailIfInterruptedSql;
-        }
-        else
-        {
-            _postponeFunctionSql ??= $@"
-                UPDATE {tablePrefix}
-                SET status = {(int) Status.Postponed},
-                    expires = $1,
-                    owner = NULL,
-                    interrupted = FALSE,
-                    timestamp = $4
-                WHERE
-                    id = $2 AND
-                    owner = $3;";
-            sql = _postponeFunctionSql;
-        }
+        _postponeFunctionSql ??= $@"
+            UPDATE {tablePrefix}
+            SET status = {(int) Status.Postponed},
+                expires = $1,
+                owner = NULL,
+                interrupted = FALSE,
+                timestamp = $4
+            WHERE
+                id = $2 AND
+                owner = $3 AND
+                (NOT $5 OR interrupted = FALSE);";
 
         return StoreCommand.Create(
-            sql,
+            _postponeFunctionSql,
             values: [
                 postponeUntil,
                 storedId.AsGuid,
                 expectedReplica.AsGuid,
                 timestamp,
+                failIfInterrupted,
             ]
         );
     }
