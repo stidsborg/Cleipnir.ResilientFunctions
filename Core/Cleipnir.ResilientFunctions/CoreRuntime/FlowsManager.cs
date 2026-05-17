@@ -6,7 +6,7 @@ using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.CoreRuntime;
 
-public class FlowsManager(IFunctionStore functionStore)
+public class FlowsManager
 {
     private readonly Dictionary<StoredId, FlowState> _dict = new();
     private readonly Lock _lock = new();
@@ -32,11 +32,13 @@ public class FlowsManager(IFunctionStore functionStore)
 
     public Task Interrupt(IReadOnlyList<StoredId> ids)
     {
-        lock (_lock)
-            foreach (var id in ids)
-                if (_dict.TryGetValue(id, out var flowState))
-                    flowState.Interrupt();
+        /*
+         * lock (_lock)
+           foreach (var id in ids)
+               if (_dict.TryGetValue(id, out var flowState))
+                   flowState.Interrupt();
 
+         */
         return Task.CompletedTask;
     }
 

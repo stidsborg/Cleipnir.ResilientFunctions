@@ -62,6 +62,13 @@ public class FlowState
 
     public void Interrupt()
     {
+        lock (_lock)
+            if (Suspended)
+                return;
+            else
+                WaitingSubflows = 0;
+        
+        InterruptSignal.Fire();
     }
 
     public bool Suspend()
