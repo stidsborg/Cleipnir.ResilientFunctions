@@ -71,7 +71,7 @@ public class MariaDbFunctionStore : IFunctionStore
                 owner CHAR(32) NULL,
                 effects LONGBLOB NULL,
                 INDEX (expires, id, status),
-                INDEX idx_interrupted (id, interrupted)
+                INDEX idx_interrupted (interrupted, id)
             );";
 
         await using var command = new MySqlCommand(_initializeSql, conn);

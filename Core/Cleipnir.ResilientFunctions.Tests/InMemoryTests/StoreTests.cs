@@ -251,12 +251,12 @@ public class StoreTests : TestTemplates.StoreTests
         => GetInterruptedFunctionsReturnsEmptyListWhenNoneFunctionsAreInterrupted(FunctionStoreFactory.Create());
 
     [TestMethod]
-    public override Task GetInterruptedFunctionsReturnsEmptyListWhenQueriedIdsDoNotExist()
-        => GetInterruptedFunctionsReturnsEmptyListWhenQueriedIdsDoNotExist(FunctionStoreFactory.Create());
+    public override Task GetInterruptedFunctionsReturnsIdOnceWhenInterruptedMultipleTimes()
+        => GetInterruptedFunctionsReturnsIdOnceWhenInterruptedMultipleTimes(FunctionStoreFactory.Create());
 
     [TestMethod]
-    public override Task GetInterruptedFunctionsOnlyReturnsMatchingInterruptedFunctions()
-        => GetInterruptedFunctionsOnlyReturnsMatchingInterruptedFunctions(FunctionStoreFactory.Create());
+    public override Task GetInterruptedFunctionsIncludesPostponedInterruptedFunction()
+        => GetInterruptedFunctionsIncludesPostponedInterruptedFunction(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task GetResultsReturnsResultsForExistingFunctions()
