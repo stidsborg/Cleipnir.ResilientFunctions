@@ -187,6 +187,7 @@ public class RFunctionsShutdownTests
             Guid.Empty.ToReplicaId(),
             effects: null,
             messages: null,
+            failIfInterrupted: true,
             storageSession: null
         ).ShouldBeTrueAsync();
 

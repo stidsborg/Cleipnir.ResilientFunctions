@@ -505,8 +505,8 @@ public class PostgreSqlFunctionStore : IFunctionStore
         ReplicaId expectedReplica,
         IReadOnlyList<StoredEffect>? effects,
         IReadOnlyList<StoredMessage>? messages,
-        IStorageSession? storageSession,
-        bool failIfInterrupted = true)
+        bool failIfInterrupted,
+        IStorageSession? storageSession)
     {
         await using var conn = await CreateConnection();
         await using var command = _sqlGenerator.PostponeFunction(

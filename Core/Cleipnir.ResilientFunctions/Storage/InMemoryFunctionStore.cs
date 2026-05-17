@@ -298,8 +298,8 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         ReplicaId? expectedReplica,
         IReadOnlyList<StoredEffect>? effects,
         IReadOnlyList<StoredMessage>? messages,
-        IStorageSession? storageSession,
-        bool failIfInterrupted = true)
+        bool failIfInterrupted,
+        IStorageSession? storageSession)
     {
         lock (_sync)
         {

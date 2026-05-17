@@ -114,6 +114,7 @@ public class DelayedStartUpTests
             expectedReplica: ReplicaId.Empty,
             effects: null,
             messages: null,
+            failIfInterrupted: true,
             storageSession: null
         ).ShouldBeTrueAsync();
         
@@ -154,6 +155,7 @@ public class DelayedStartUpTests
             expectedReplica: ReplicaId.Empty,
             effects: null,
             messages: null,
+            failIfInterrupted: true,
             storageSession: null
         );
 

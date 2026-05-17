@@ -131,14 +131,14 @@ public class CrashableFunctionStore : IFunctionStore
         ReplicaId expectedReplica,
         IReadOnlyList<StoredEffect>? effects,
         IReadOnlyList<StoredMessage>? messages,
-        IStorageSession? storageSession,
-        bool failIfInterrupted = true
+        bool failIfInterrupted,
+        IStorageSession? storageSession
     )
     {
         if (_crashed)
             throw new TimeoutException();
 
-        var result = await _inner.PostponeFunction(storedId, postponeUntil, timestamp, expectedReplica, effects, messages, storageSession, failIfInterrupted);
+        var result = await _inner.PostponeFunction(storedId, postponeUntil, timestamp, expectedReplica, effects, messages, failIfInterrupted, storageSession);
         AfterPostponeFunctionFlag.Raise();
 
         return result;

@@ -509,8 +509,8 @@ public class MariaDbFunctionStore : IFunctionStore
         ReplicaId expectedReplica,
         IReadOnlyList<StoredEffect>? effects,
         IReadOnlyList<StoredMessage>? messages,
-        IStorageSession? storageSession,
-        bool failIfInterrupted = true)
+        bool failIfInterrupted,
+        IStorageSession? storageSession)
     {
         byte[]? effectsBytes = null;
         if (storageSession is SnapshotStorageSession session && session.Effects.Count > 0)

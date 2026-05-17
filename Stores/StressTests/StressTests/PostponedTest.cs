@@ -44,6 +44,7 @@ public static class PostponedTest
                 expectedReplica: ReplicaId.Empty,
                 effects: null,
                 messages: null,
+                failIfInterrupted: true,
                 storageSession: null
             );
         }

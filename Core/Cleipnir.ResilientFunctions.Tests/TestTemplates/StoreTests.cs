@@ -244,6 +244,7 @@ public abstract class StoreTests
             expectedReplica: ReplicaId.Empty,
             effects: null,
             messages: null,
+            failIfInterrupted: true,
             storageSession: null
         ).ShouldBeTrueAsync();
         
@@ -281,6 +282,7 @@ public abstract class StoreTests
             expectedReplica: ReplicaId.Empty,
             effects: null,
             messages: null,
+            failIfInterrupted: true,
             storageSession: null
         ).ShouldBeTrueAsync();
         
@@ -318,6 +320,7 @@ public abstract class StoreTests
             expectedReplica: ReplicaId.NewId(),
             effects: null,
             messages: null,
+            failIfInterrupted: true,
             storageSession: null
         ).ShouldBeFalseAsync();
 
@@ -859,6 +862,7 @@ public abstract class StoreTests
             expectedReplica: ReplicaId.Empty,
             effects: null,
             messages: null,
+            failIfInterrupted: true,
             storageSession: null
         );
         
@@ -1390,6 +1394,7 @@ public abstract class StoreTests
             expectedReplica: ReplicaId.Empty,
             effects: null,
             messages: null,
+            failIfInterrupted: true,
             storageSession: null
         ).ShouldBeFalseAsync();
 
@@ -1431,8 +1436,8 @@ public abstract class StoreTests
             expectedReplica: ReplicaId.Empty,
             effects: null,
             messages: null,
-            storageSession: null,
-            failIfInterrupted: false
+            failIfInterrupted: false,
+            storageSession: null
         ).ShouldBeTrueAsync();
 
         var sf = await store.GetFunction(storedId).ShouldNotBeNullAsync();
@@ -1902,6 +1907,7 @@ public abstract class StoreTests
             expectedReplica: ReplicaId.Empty,
             effects: null,
             messages: null,
+            failIfInterrupted: true,
             storageSession: null
         ).ShouldBeTrueAsync();
         

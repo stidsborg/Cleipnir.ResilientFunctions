@@ -137,6 +137,7 @@ internal class InvocationHelper<TParam, TReturn>
                     _replicaId,
                     effects: null,
                     messages: null,
+                    failIfInterrupted: true,
                     storageSession
                 ) ? PersistResultOutcome.Success : PersistResultOutcome.Reschedule;
             case Outcome.Fail:
@@ -508,8 +509,8 @@ internal class InvocationHelper<TParam, TReturn>
             _replicaId,
             effects: null,
             messages: null,
-            storageSession: null,
-            failIfInterrupted: false
+            failIfInterrupted: false,
+            storageSession: null
         );
     }
 }

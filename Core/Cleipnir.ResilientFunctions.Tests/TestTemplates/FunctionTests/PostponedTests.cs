@@ -571,6 +571,7 @@ public abstract class PostponedTests
             expectedReplica: ReplicaId.Empty,
             effects: null,
             messages: null,
+            failIfInterrupted: true,
             storageSession: null
         ).ShouldBeTrueAsync();
         
