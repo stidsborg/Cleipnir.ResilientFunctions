@@ -505,14 +505,16 @@ public class PostgreSqlFunctionStore : IFunctionStore
         ReplicaId expectedReplica,
         IReadOnlyList<StoredEffect>? effects,
         IReadOnlyList<StoredMessage>? messages,
-        IStorageSession? storageSession)
+        IStorageSession? storageSession,
+        bool failIfInterrupted = true)
     {
         await using var conn = await CreateConnection();
         await using var command = _sqlGenerator.PostponeFunction(
             storedId,
             postponeUntil,
             timestamp,
-            expectedReplica
+            expectedReplica,
+            failIfInterrupted
         ).ToNpgsqlCommand(conn);
 
         var affectedRows = await command.ExecuteNonQueryAsync();

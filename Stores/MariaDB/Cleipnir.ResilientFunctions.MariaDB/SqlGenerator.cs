@@ -267,29 +267,51 @@ public class SqlGenerator(string tablePrefix)
     }
     
     private string? _postponedFunctionSql;
+    private string? _postponedFunctionFailIfInterruptedSql;
     private string? _postponedFunctionWithEffectsSql;
+    private string? _postponedFunctionWithEffectsFailIfInterruptedSql;
     public StoreCommand PostponeFunction(
         StoredId storedId,
         long postponeUntil,
         long timestamp,
         ReplicaId expectedReplica,
+        bool failIfInterrupted,
         byte[]? effects = null)
     {
         if (effects == null)
         {
-            _postponedFunctionSql ??= $@"
-                UPDATE {tablePrefix}
-                SET status = {(int)Status.Postponed},
-                    expires = CASE WHEN interrupted = 1 THEN 0 ELSE ? END,
-                    timestamp = ?,
-                    owner = NULL,
-                    interrupted = 0
-                WHERE
-                    id = ? AND
-                    owner = ?";
+            string sql;
+            if (failIfInterrupted)
+            {
+                _postponedFunctionFailIfInterruptedSql ??= $@"
+                    UPDATE {tablePrefix}
+                    SET status = {(int)Status.Postponed},
+                        expires = ?,
+                        timestamp = ?,
+                        owner = NULL
+                    WHERE
+                        id = ? AND
+                        owner = ? AND
+                        interrupted = 0";
+                sql = _postponedFunctionFailIfInterruptedSql;
+            }
+            else
+            {
+                _postponedFunctionSql ??= $@"
+                    UPDATE {tablePrefix}
+                    SET status = {(int)Status.Postponed},
+                        expires = ?,
+                        timestamp = ?,
+                        owner = NULL,
+                        interrupted = 0
+                    WHERE
+                        id = ? AND
+                        owner = ?";
+                sql = _postponedFunctionSql;
+            }
 
             return StoreCommand.Create(
-                _postponedFunctionSql,
+                sql,
                 values: [
                     postponeUntil,
                     timestamp,
@@ -300,20 +322,40 @@ public class SqlGenerator(string tablePrefix)
         }
         else
         {
-            _postponedFunctionWithEffectsSql ??= $@"
-                UPDATE {tablePrefix}
-                SET status = {(int)Status.Postponed},
-                    expires = CASE WHEN interrupted = 1 THEN 0 ELSE ? END,
-                    timestamp = ?,
-                    owner = NULL,
-                    interrupted = 0,
-                    effects = ?
-                WHERE
-                    id = ? AND
-                    owner = ?";
+            string sql;
+            if (failIfInterrupted)
+            {
+                _postponedFunctionWithEffectsFailIfInterruptedSql ??= $@"
+                    UPDATE {tablePrefix}
+                    SET status = {(int)Status.Postponed},
+                        expires = ?,
+                        timestamp = ?,
+                        owner = NULL,
+                        effects = ?
+                    WHERE
+                        id = ? AND
+                        owner = ? AND
+                        interrupted = 0";
+                sql = _postponedFunctionWithEffectsFailIfInterruptedSql;
+            }
+            else
+            {
+                _postponedFunctionWithEffectsSql ??= $@"
+                    UPDATE {tablePrefix}
+                    SET status = {(int)Status.Postponed},
+                        expires = ?,
+                        timestamp = ?,
+                        owner = NULL,
+                        interrupted = 0,
+                        effects = ?
+                    WHERE
+                        id = ? AND
+                        owner = ?";
+                sql = _postponedFunctionWithEffectsSql;
+            }
 
             return StoreCommand.Create(
-                _postponedFunctionWithEffectsSql,
+                sql,
                 values: [
                     postponeUntil,
                     timestamp,
@@ -383,12 +425,11 @@ public class SqlGenerator(string tablePrefix)
         {
             _suspendFunctionSql ??= $@"
                 UPDATE {tablePrefix}
-                SET status = CASE WHEN interrupted = 1 THEN {(int)Status.Postponed} ELSE {(int)Status.Suspended} END,
+                SET status = {(int)Status.Suspended},
                     expires = 0,
                     timestamp = ?,
-                    owner = NULL,
-                    interrupted = 0
-                WHERE id = ? AND owner = ?";
+                    owner = NULL
+                WHERE id = ? AND owner = ? AND interrupted = 0";
 
             return StoreCommand.Create(
                 _suspendFunctionSql,
@@ -403,13 +444,12 @@ public class SqlGenerator(string tablePrefix)
         {
             _suspendFunctionWithEffectsSql ??= $@"
                 UPDATE {tablePrefix}
-                SET status = CASE WHEN interrupted = 1 THEN {(int)Status.Postponed} ELSE {(int)Status.Suspended} END,
+                SET status = {(int)Status.Suspended},
                     expires = 0,
                     timestamp = ?,
                     owner = NULL,
-                    interrupted = 0,
                     effects = ?
-                WHERE id = ? AND owner = ?";
+                WHERE id = ? AND owner = ? AND interrupted = 0";
 
             return StoreCommand.Create(
                 _suspendFunctionWithEffectsSql,

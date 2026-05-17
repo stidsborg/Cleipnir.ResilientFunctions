@@ -73,7 +73,8 @@ public interface IFunctionStore
         ReplicaId expectedReplica,
         IReadOnlyList<StoredEffect>? effects,
         IReadOnlyList<StoredMessage>? messages,
-        IStorageSession? storageSession
+        IStorageSession? storageSession,
+        bool failIfInterrupted = true
     );
     
     Task<bool> FailFunction(

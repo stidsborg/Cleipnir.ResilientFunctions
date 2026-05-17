@@ -509,7 +509,8 @@ public class MariaDbFunctionStore : IFunctionStore
         ReplicaId expectedReplica,
         IReadOnlyList<StoredEffect>? effects,
         IReadOnlyList<StoredMessage>? messages,
-        IStorageSession? storageSession)
+        IStorageSession? storageSession,
+        bool failIfInterrupted = true)
     {
         byte[]? effectsBytes = null;
         if (storageSession is SnapshotStorageSession session && session.Effects.Count > 0)
@@ -517,7 +518,7 @@ public class MariaDbFunctionStore : IFunctionStore
 
         await using var conn = await CreateOpenConnection(_connectionString);
         await using var command = _sqlGenerator
-            .PostponeFunction(storedId, postponeUntil, timestamp, expectedReplica, effectsBytes)
+            .PostponeFunction(storedId, postponeUntil, timestamp, expectedReplica, failIfInterrupted, effectsBytes)
             .ToSqlCommand(conn);
 
         var affectedRows = await command.ExecuteNonQueryAsync();

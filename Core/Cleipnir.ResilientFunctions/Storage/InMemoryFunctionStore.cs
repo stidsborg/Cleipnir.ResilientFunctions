@@ -298,7 +298,8 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         ReplicaId? expectedReplica,
         IReadOnlyList<StoredEffect>? effects,
         IReadOnlyList<StoredMessage>? messages,
-        IStorageSession? storageSession)
+        IStorageSession? storageSession,
+        bool failIfInterrupted = true)
     {
         lock (_sync)
         {
@@ -306,9 +307,10 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
 
             var state = _states[storedId];
             if (state.Owner != expectedReplica) return false.ToTask();
+            if (failIfInterrupted && state.Interrupted) return false.ToTask();
 
             state.Status = Status.Postponed;
-            state.Expires = state.Interrupted ? 0 : postponeUntil;
+            state.Expires = postponeUntil;
             state.Interrupted = false;
             state.Timestamp = timestamp;
             state.Owner = null;
@@ -358,12 +360,13 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
             var state = _states[storedId];
             if (state.Owner != expectedReplica)
                 return false.ToTask();
+            if (state.Interrupted)
+                return false.ToTask();
 
-            state.Status = state.Interrupted ? Status.Postponed : Status.Suspended;
+            state.Status = Status.Suspended;
             state.Expires = 0;
             state.Timestamp = timestamp;
             state.Owner = null;
-            state.Interrupted = false;
 
             return true.ToTask();
         }

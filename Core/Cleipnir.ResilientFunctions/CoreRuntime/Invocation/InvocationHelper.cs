@@ -138,7 +138,7 @@ internal class InvocationHelper<TParam, TReturn>
                     effects: null,
                     messages: null,
                     storageSession
-                ) ? PersistResultOutcome.Success : PersistResultOutcome.Success;
+                ) ? PersistResultOutcome.Success : PersistResultOutcome.Reschedule;
             case Outcome.Fail:
                 return await _functionStore.FailFunction(
                     storedId,
@@ -508,7 +508,8 @@ internal class InvocationHelper<TParam, TReturn>
             _replicaId,
             effects: null,
             messages: null,
-            storageSession: null
+            storageSession: null,
+            failIfInterrupted: false
         );
     }
 }

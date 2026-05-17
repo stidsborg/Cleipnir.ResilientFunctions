@@ -568,7 +568,8 @@ public class SqlServerFunctionStore : IFunctionStore
         ReplicaId expectedReplica,
         IReadOnlyList<StoredEffect>? effects,
         IReadOnlyList<StoredMessage>? messages,
-        IStorageSession? storageSession)
+        IStorageSession? storageSession,
+        bool failIfInterrupted = true)
     {
         byte[]? effectsBytes = null;
         if (storageSession is SnapshotStorageSession session && session.Effects.Count > 0)
@@ -581,6 +582,7 @@ public class SqlServerFunctionStore : IFunctionStore
             timestamp,
             expectedReplica,
             paramPrefix: "",
+            failIfInterrupted: failIfInterrupted,
             effects: effectsBytes
         ).ToSqlCommand(conn);
 

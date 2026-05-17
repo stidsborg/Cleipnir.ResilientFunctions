@@ -927,14 +927,14 @@ public abstract class StoreTests
         storedFunction.ShouldNotBeNull();
     }
     
-    public abstract Task SuspensionDoesNotSucceedOnExpectedMessagesCountMismatchButPostponesFunction();
-    protected async Task SuspensionDoesNotSucceedOnExpectedMessagesCountMismatchButPostponesFunction(Task<IFunctionStore> storeTask)
+    public abstract Task SuspendingInterruptedFunctionReturnsFalse();
+    protected async Task SuspendingInterruptedFunctionReturnsFalse(Task<IFunctionStore> storeTask)
     {
         var functionId = TestStoredId.Create();
-        
+
         var store = await storeTask;
         await store.CreateFunction(
-            functionId, 
+            functionId,
             "humanInstanceId",
             param: Test.SimpleStoredParameter,
             leaseExpiration: DateTime.UtcNow.Ticks,
@@ -944,13 +944,8 @@ public abstract class StoreTests
             owner: ReplicaId.Empty
         ).ShouldNotBeNullAsync();
 
-        await store.MessageStore.AppendMessage(
-            functionId,
-            new StoredMessage("some message".ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Position: 0)
-        );
+        await store.Interrupt(functionId).ShouldBeTrueAsync();
 
-        await store.Interrupt(functionId);
-        
         await store.SuspendFunction(
             functionId,
             timestamp: DateTime.UtcNow.Ticks,
@@ -958,53 +953,11 @@ public abstract class StoreTests
             effects: null,
             messages: null,
             storageSession: null
-        ).ShouldBeTrueAsync();
-        
-        var storedFunction = await store.GetFunction(functionId);
-        storedFunction.ShouldNotBeNull();
-        storedFunction.Status.ShouldBe(Status.Postponed);
-        storedFunction.Expires.ShouldBe(0);
-    }
-    
-    public abstract Task FunctionIsStillExecutingOnSuspensionAndInterruptCountMismatch();
-    protected async Task FunctionIsStillExecutingOnSuspensionAndInterruptCountMismatch(Task<IFunctionStore> storeTask)
-    {
-        var functionId = TestStoredId.Create();
-        
-        var store = await storeTask;
-        await store.CreateFunction(
-            functionId, 
-            "humanInstanceId",
-            param: Test.SimpleStoredParameter,
-            leaseExpiration: DateTime.UtcNow.Ticks,
-            postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks,
-            parent: null,
-            owner: ReplicaId.Empty
-        ).ShouldNotBeNullAsync();
+        ).ShouldBeFalseAsync();
 
-        await store.MessageStore.AppendMessage(
-            functionId,
-            new StoredMessage("hello world".ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Position: 0)
-        );
-
-        await store.Interrupt(functionId);
-        
-        var success = await store.SuspendFunction(
-            functionId,
-            timestamp: DateTime.UtcNow.Ticks,
-            expectedReplica: ReplicaId.Empty,
-            effects: null,
-            messages: null,
-            storageSession: null
-        );
-        
-        success.ShouldBeTrue();
-        
-        var storedFunction = await store.GetFunction(functionId);
-        storedFunction.ShouldNotBeNull();
-        storedFunction.Status.ShouldBe(Status.Postponed);
-        storedFunction.Expires.ShouldBe(0);
+        var storedFunction = await store.GetFunction(functionId).ShouldNotBeNullAsync();
+        storedFunction.Status.ShouldBe(Status.Executing);
+        (await store.GetInterruptedFunctions()).Any(id => id == functionId).ShouldBeTrue();
     }
     
     public abstract Task InterruptCountCanBeIncrementedForExecutingFunction();
@@ -1411,8 +1364,8 @@ public abstract class StoreTests
         statusAndEpoch2.Status.ShouldBe(Status.Succeeded);
     }
     
-    public abstract Task InterruptedFunctionIsNotPostponedToZeroWhenInterrupted();
-    protected async Task InterruptedFunctionIsNotPostponedToZeroWhenInterrupted(Task<IFunctionStore> storeTask)
+    public abstract Task PostponingInterruptedFunctionReturnsFalse();
+    protected async Task PostponingInterruptedFunctionReturnsFalse(Task<IFunctionStore> storeTask)
     {
         var storedId = TestStoredId.Create();
         var store = await storeTask;
@@ -1430,20 +1383,19 @@ public abstract class StoreTests
 
         await store.Interrupt([storedId]);
 
-        var success = await store.PostponeFunction(
+        await store.PostponeFunction(
             storedId,
-            postponeUntil: 0,
-            timestamp: 100,
+            postponeUntil: DateTime.UtcNow.Ticks + 100_000,
+            timestamp: DateTime.UtcNow.Ticks,
             expectedReplica: ReplicaId.Empty,
             effects: null,
             messages: null,
             storageSession: null
-        );
-        success.ShouldBeTrue();
+        ).ShouldBeFalseAsync();
 
         var sf = await store.GetFunction(storedId).ShouldNotBeNullAsync();
-        sf.Status.ShouldBe(Status.Postponed);
-        sf.Expires.ShouldBe(0);
+        sf.Status.ShouldBe(Status.Executing);
+        (await store.GetInterruptedFunctions()).Any(id => id == storedId).ShouldBeTrue();
     }
 
     public abstract Task InterruptNothingWorks();
@@ -1452,9 +1404,9 @@ public abstract class StoreTests
         var store = await storeTask;
         await store.Interrupt(storedIds: []);
     }
-    
-    public abstract Task InterruptedFunctionIsPostponedWhenIgnoringInterruptedFunction();
-    protected async Task InterruptedFunctionIsPostponedWhenIgnoringInterruptedFunction(Task<IFunctionStore> storeTask)
+
+    public abstract Task PostponingInterruptedFunctionWithFailIfInterruptedFalseSucceedsAndClearsFlag();
+    protected async Task PostponingInterruptedFunctionWithFailIfInterruptedFalseSucceedsAndClearsFlag(Task<IFunctionStore> storeTask)
     {
         var storedId = TestStoredId.Create();
         var store = await storeTask;
@@ -1472,19 +1424,21 @@ public abstract class StoreTests
 
         await store.Interrupt([storedId]);
 
-        var success = await store.PostponeFunction(
+        await store.PostponeFunction(
             storedId,
             postponeUntil: 0,
-            timestamp: 0,
+            timestamp: DateTime.UtcNow.Ticks,
             expectedReplica: ReplicaId.Empty,
             effects: null,
             messages: null,
-            storageSession: null
-        );
-        success.ShouldBeTrue();
+            storageSession: null,
+            failIfInterrupted: false
+        ).ShouldBeTrueAsync();
 
         var sf = await store.GetFunction(storedId).ShouldNotBeNullAsync();
         sf.Status.ShouldBe(Status.Postponed);
+        sf.Expires.ShouldBe(0);
+        (await store.GetInterruptedFunctions()).Any(id => id == storedId).ShouldBeFalse();
     }
     
     public abstract Task FunctionCanBeCreatedWithMessagesAndEffects();

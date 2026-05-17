@@ -260,25 +260,46 @@ public class SqlGenerator(string tablePrefix)
     }
     
     private string? _postponeFunctionSql;
+    private string? _postponeFunctionFailIfInterruptedSql;
     public StoreCommand PostponeFunction(
         StoredId storedId,
         long postponeUntil,
         long timestamp,
-        ReplicaId expectedReplica)
+        ReplicaId expectedReplica,
+        bool failIfInterrupted)
     {
-        _postponeFunctionSql ??= $@"
-            UPDATE {tablePrefix}
-            SET status = {(int) Status.Postponed},
-                expires = CASE WHEN interrupted THEN 0 ELSE $1 END,
-                owner = NULL,
-                interrupted = FALSE,
-                timestamp = $4
-            WHERE
-                id = $2 AND
-                owner = $3;";
+        string sql;
+        if (failIfInterrupted)
+        {
+            _postponeFunctionFailIfInterruptedSql ??= $@"
+                UPDATE {tablePrefix}
+                SET status = {(int) Status.Postponed},
+                    expires = $1,
+                    owner = NULL,
+                    timestamp = $4
+                WHERE
+                    id = $2 AND
+                    owner = $3 AND
+                    interrupted = FALSE;";
+            sql = _postponeFunctionFailIfInterruptedSql;
+        }
+        else
+        {
+            _postponeFunctionSql ??= $@"
+                UPDATE {tablePrefix}
+                SET status = {(int) Status.Postponed},
+                    expires = $1,
+                    owner = NULL,
+                    interrupted = FALSE,
+                    timestamp = $4
+                WHERE
+                    id = $2 AND
+                    owner = $3;";
+            sql = _postponeFunctionSql;
+        }
 
         return StoreCommand.Create(
-            _postponeFunctionSql,
+            sql,
             values: [
                 postponeUntil,
                 storedId.AsGuid,
@@ -317,12 +338,11 @@ public class SqlGenerator(string tablePrefix)
     {
         _suspendFunctionSql ??= $@"
             UPDATE {tablePrefix}
-            SET status = CASE WHEN interrupted THEN {(int) Status.Postponed} ELSE {(int) Status.Suspended} END,
+            SET status = {(int) Status.Suspended},
                 expires = 0,
                 owner = NULL,
-                interrupted = FALSE,
                 timestamp = $3
-            WHERE id = $1 AND owner = $2;";
+            WHERE id = $1 AND owner = $2 AND interrupted = FALSE;";
 
         return StoreCommand.Create(
             _suspendFunctionSql,

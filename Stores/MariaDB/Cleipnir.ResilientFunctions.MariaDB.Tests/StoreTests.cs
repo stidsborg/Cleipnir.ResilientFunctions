@@ -116,12 +116,8 @@ public class StoreTests : ResilientFunctions.Tests.TestTemplates.StoreTests
         => EpochIsNotIncrementedOnSuspension(FunctionStoreFactory.Create());
 
     [TestMethod]
-    public override Task SuspensionDoesNotSucceedOnExpectedMessagesCountMismatchButPostponesFunction()
-        => SuspensionDoesNotSucceedOnExpectedMessagesCountMismatchButPostponesFunction(FunctionStoreFactory.Create());
-
-    [TestMethod]
-    public override Task FunctionIsStillExecutingOnSuspensionAndInterruptCountMismatch()
-        => FunctionIsStillExecutingOnSuspensionAndInterruptCountMismatch(FunctionStoreFactory.Create());
+    public override Task SuspendingInterruptedFunctionReturnsFalse()
+        => SuspendingInterruptedFunctionReturnsFalse(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task InterruptCountCanBeIncrementedForExecutingFunction()
@@ -176,16 +172,16 @@ public class StoreTests : ResilientFunctions.Tests.TestTemplates.StoreTests
         => MultipleFunctionsStatusCanBeFetched(FunctionStoreFactory.Create());
     
     [TestMethod]
-    public override Task InterruptedFunctionIsNotPostponedToZeroWhenInterrupted()
-        => InterruptedFunctionIsNotPostponedToZeroWhenInterrupted(FunctionStoreFactory.Create());
-    
+    public override Task PostponingInterruptedFunctionReturnsFalse()
+        => PostponingInterruptedFunctionReturnsFalse(FunctionStoreFactory.Create());
+
     [TestMethod]
     public override Task InterruptNothingWorks()
         => InterruptNothingWorks(FunctionStoreFactory.Create());
 
     [TestMethod]
-    public override Task InterruptedFunctionIsPostponedWhenIgnoringInterruptedFunction()
-        => InterruptedFunctionIsPostponedWhenIgnoringInterruptedFunction(FunctionStoreFactory.Create());
+    public override Task PostponingInterruptedFunctionWithFailIfInterruptedFalseSucceedsAndClearsFlag()
+        => PostponingInterruptedFunctionWithFailIfInterruptedFalseSucceedsAndClearsFlag(FunctionStoreFactory.Create());
     
     [TestMethod]
     public override Task FunctionCanBeCreatedWithMessagesAndEffects()

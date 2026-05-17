@@ -268,23 +268,41 @@ public class SqlGenerator(string tablePrefix)
     }
     
     private string? _postponedFunctionSql;
+    private string? _postponedFunctionFailIfInterruptedSql;
     private string? _postponedFunctionWithEffectsSql;
-    public StoreCommand PostponeFunction(StoredId storedId, long postponeUntil, long timestamp, ReplicaId expectedReplica, string paramPrefix, byte[]? effects = null)
+    private string? _postponedFunctionWithEffectsFailIfInterruptedSql;
+    public StoreCommand PostponeFunction(StoredId storedId, long postponeUntil, long timestamp, ReplicaId expectedReplica, string paramPrefix, bool failIfInterrupted, byte[]? effects = null)
     {
         if (effects == null)
         {
-            _postponedFunctionSql ??= @$"
-                UPDATE {tablePrefix}
-                SET Status = {(int)Status.Postponed},
-                    Expires = CASE WHEN Interrupted = 1 THEN 0 ELSE @PostponedUntil END,
-                    Timestamp = @Timestamp,
-                    Owner = NULL,
-                    Interrupted = 0
-                WHERE Id = @Id AND Owner = @ExpectedReplica";
+            string templateSql;
+            if (failIfInterrupted)
+            {
+                _postponedFunctionFailIfInterruptedSql ??= @$"
+                    UPDATE {tablePrefix}
+                    SET Status = {(int)Status.Postponed},
+                        Expires = @PostponedUntil,
+                        Timestamp = @Timestamp,
+                        Owner = NULL
+                    WHERE Id = @Id AND Owner = @ExpectedReplica AND Interrupted = 0";
+                templateSql = _postponedFunctionFailIfInterruptedSql;
+            }
+            else
+            {
+                _postponedFunctionSql ??= @$"
+                    UPDATE {tablePrefix}
+                    SET Status = {(int)Status.Postponed},
+                        Expires = @PostponedUntil,
+                        Timestamp = @Timestamp,
+                        Owner = NULL,
+                        Interrupted = 0
+                    WHERE Id = @Id AND Owner = @ExpectedReplica";
+                templateSql = _postponedFunctionSql;
+            }
 
             var sql = paramPrefix == ""
-                ? _postponedFunctionSql
-                : _postponedFunctionSql.Replace("@", $"@{paramPrefix}");
+                ? templateSql
+                : templateSql.Replace("@", $"@{paramPrefix}");
 
             var command = StoreCommand.Create(sql);
             command.AddParameter($"@{paramPrefix}PostponedUntil", postponeUntil);
@@ -296,19 +314,36 @@ public class SqlGenerator(string tablePrefix)
         }
         else
         {
-            _postponedFunctionWithEffectsSql ??= @$"
-                UPDATE {tablePrefix}
-                SET Status = {(int)Status.Postponed},
-                    Expires = CASE WHEN Interrupted = 1 THEN 0 ELSE @PostponedUntil END,
-                    Timestamp = @Timestamp,
-                    Owner = NULL,
-                    Interrupted = 0,
-                    Effects = @Effects
-                WHERE Id = @Id AND Owner = @ExpectedReplica";
+            string templateSql;
+            if (failIfInterrupted)
+            {
+                _postponedFunctionWithEffectsFailIfInterruptedSql ??= @$"
+                    UPDATE {tablePrefix}
+                    SET Status = {(int)Status.Postponed},
+                        Expires = @PostponedUntil,
+                        Timestamp = @Timestamp,
+                        Owner = NULL,
+                        Effects = @Effects
+                    WHERE Id = @Id AND Owner = @ExpectedReplica AND Interrupted = 0";
+                templateSql = _postponedFunctionWithEffectsFailIfInterruptedSql;
+            }
+            else
+            {
+                _postponedFunctionWithEffectsSql ??= @$"
+                    UPDATE {tablePrefix}
+                    SET Status = {(int)Status.Postponed},
+                        Expires = @PostponedUntil,
+                        Timestamp = @Timestamp,
+                        Owner = NULL,
+                        Interrupted = 0,
+                        Effects = @Effects
+                    WHERE Id = @Id AND Owner = @ExpectedReplica";
+                templateSql = _postponedFunctionWithEffectsSql;
+            }
 
             var sql = paramPrefix == ""
-                ? _postponedFunctionWithEffectsSql
-                : _postponedFunctionWithEffectsSql.Replace("@", $"@{paramPrefix}");
+                ? templateSql
+                : templateSql.Replace("@", $"@{paramPrefix}");
 
             var command = StoreCommand.Create(sql);
             command.AddParameter($"@{paramPrefix}PostponedUntil", postponeUntil);
@@ -380,12 +415,11 @@ public class SqlGenerator(string tablePrefix)
         {
             _suspendFunctionSql ??= @$"
                     UPDATE {tablePrefix}
-                    SET Status = CASE WHEN Interrupted = 1 THEN {(int)Status.Postponed} ELSE {(int)Status.Suspended} END,
+                    SET Status = {(int)Status.Suspended},
                         Expires = 0,
                         Timestamp = @Timestamp,
-                        Owner = NULL,
-                        Interrupted = 0
-                    WHERE Id = @Id AND Owner = @ExpectedReplica";
+                        Owner = NULL
+                    WHERE Id = @Id AND Owner = @ExpectedReplica AND Interrupted = 0";
 
             var sql = paramPrefix == ""
                 ? _suspendFunctionSql
@@ -402,13 +436,12 @@ public class SqlGenerator(string tablePrefix)
         {
             _suspendFunctionWithEffectsSql ??= @$"
                     UPDATE {tablePrefix}
-                    SET Status = CASE WHEN Interrupted = 1 THEN {(int)Status.Postponed} ELSE {(int)Status.Suspended} END,
+                    SET Status = {(int)Status.Suspended},
                         Expires = 0,
                         Timestamp = @Timestamp,
                         Owner = NULL,
-                        Interrupted = 0,
                         Effects = @Effects
-                    WHERE Id = @Id AND Owner = @ExpectedReplica";
+                    WHERE Id = @Id AND Owner = @ExpectedReplica AND Interrupted = 0";
 
             var sql = paramPrefix == ""
                 ? _suspendFunctionWithEffectsSql
