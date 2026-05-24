@@ -83,19 +83,11 @@ internal class QueueManager : IDisposable
 
             _idempotencyKeys.Initialize();
 
-            var children = _effect.GetChildren(DeliveredPositionsId);
-            var positions = new List<long>();
-            foreach (var childId in children)
-            {
-                var position = _effect.Get<long>(childId);
-                positions.Add(position);
-            }
-
-            if (positions.Any())
+            if (_effect.TryGet<List<long>>(DeliveredPositionsId, out var positions) && positions is { Count: > 0 })
             {
                 await _messageStore.DeleteMessages(_storedId, positions);
-                foreach (var childId in children)
-                    await _effect.Clear(childId, flush: false);
+                positions.Clear();
+                _effect.FlushlessUpsert(DeliveredPositionsId, positions, alias: null);
             }
 
             _initialized = true;
