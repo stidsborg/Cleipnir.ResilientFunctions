@@ -32,7 +32,10 @@
       "Bash(rm -f /tmp/messaging-tests.log)",
       "Bash(dotnet test *)",
       "Read(//private/tmp/**)",
-      "Bash(gh pr *)"
+      "Bash(gh pr *)",
+      "Read(//Users/stidsborg/.claude/**)",
+      "mcp__rider__find_files_by_name_keyword",
+      "mcp__rider__search_in_files_by_regex"
     ],
     "deny": [],
     "ask": []

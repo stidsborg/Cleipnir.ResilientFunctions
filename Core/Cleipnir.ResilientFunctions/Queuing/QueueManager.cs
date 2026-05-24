@@ -128,11 +128,7 @@ internal class QueueManager : IDisposable
     public async Task<Envelope?> Subscribe(
         MessagePredicate predicate,
         DateTime? timeout,
-        EffectId timeoutId,
         EffectId messageId,
-        EffectId messageTypeId,
-        EffectId receiverId,
-        EffectId senderId,
         Func<MessageData?, IEnumerable<EffectResult>> captureMessage)
     {
         if (_thrownException is { } pre)
