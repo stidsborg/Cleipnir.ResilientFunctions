@@ -14,7 +14,7 @@ public class FlowsManager
     public FlowState CreateFlow(StoredId id, FlowTimeouts timeouts)
     {
         lock (_lock)
-            return _dict[id] = new FlowState(id, subflows: 1, waitingSubflows: 0, timeouts);;
+            return _dict[id] = new FlowState(id, subflows: 1, waitingSubflows: 0, timeouts);
     }
 
     public void RemoveFlow(StoredId id, FlowState flowState)
@@ -30,16 +30,12 @@ public class FlowsManager
             return ids.Where(_dict.ContainsKey).ToList();
     }
 
-    public Task Interrupt(IReadOnlyList<StoredId> ids)
+    public void Interrupt(IReadOnlyList<StoredId> ids)
     {
-        /*
-         * lock (_lock)
-           foreach (var id in ids)
-               if (_dict.TryGetValue(id, out var flowState))
-                   flowState.Interrupt();
-
-         */
-        return Task.CompletedTask;
+        lock (_lock)
+            foreach (var id in ids)
+                if (_dict.TryGetValue(id, out var flowState))
+                    flowState.Interrupt();
     }
 
     public void StartThread(StoredId id)

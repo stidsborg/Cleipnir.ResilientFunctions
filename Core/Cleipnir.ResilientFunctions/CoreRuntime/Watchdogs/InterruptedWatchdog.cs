@@ -49,7 +49,10 @@ internal class InterruptedWatchdog
                 var interrupted = await _functionStore.GetInterruptedFunctions();
                 var owned = _flowsManager.FilterOwned(interrupted);
                 if (owned.Count > 0)
-                    await _flowsManager.Interrupt(owned);
+                {
+                    await _functionStore.ResetInterrupted(owned);
+                    _flowsManager.Interrupt(owned);
+                }
 
                 var timeElapsed = _utcNow() - now;
                 var delay = (_checkFrequency - timeElapsed).RoundUpToZero();
