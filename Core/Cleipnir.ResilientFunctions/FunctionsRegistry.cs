@@ -76,7 +76,7 @@ public class FunctionsRegistry : IDisposable
         if (_settings.EnableWatchdogs)
         {
             _replicaWatchdog.Initialize().GetAwaiter().GetResult();
-            _ = _replicaWatchdog.Start();            
+            _ = _replicaWatchdog.Start();
             _ = Task.Run(_interruptedWatchdog.Start);
         }
     }

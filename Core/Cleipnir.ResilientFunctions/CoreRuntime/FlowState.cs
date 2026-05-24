@@ -1,6 +1,6 @@
 using System.Threading;
 using System.Threading.Tasks;
-using Cleipnir.ResilientFunctions.Helpers;
+using Cleipnir.ResilientFunctions.Queuing;
 using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.CoreRuntime;
@@ -14,7 +14,7 @@ public class FlowState
     public int Subflows { get; private set; }
     public int WaitingSubflows { get; private set; }
     public FlowTimeouts Timeouts { get; }
-    public AsyncSignal InterruptSignal { get; } = new();
+    internal QueueManager? QueueManager { get; set; }
     public bool Suspended { get; private set; }
     public Task SuspendedTask { get; }
 
@@ -67,8 +67,8 @@ public class FlowState
                 return;
             else
                 WaitingSubflows = 0;
-        
-        InterruptSignal.Fire();
+
+        QueueManager?.Interrupt();
     }
 
     public bool Suspend()

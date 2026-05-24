@@ -55,7 +55,7 @@ internal class QueueClient(QueueManager queueManager, ISerializer serializer, Ut
         
         if (!effect.Contains(messageId))
         {
-            var result = await queueManager.Subscribe(
+            return await queueManager.Subscribe(
                 envelope => filter?.Invoke(envelope) ?? true,
                 timeout,
                 timeoutId,
@@ -74,8 +74,6 @@ internal class QueueClient(QueueManager queueManager, ISerializer serializer, Ut
                             EffectResult.Create(senderId, msg.Sender),
                         ]
             );
-            
-            return result;
         }
 
         if (!effect.TryGet<byte[]>(messageTypeId, out var typeNameBytes))
