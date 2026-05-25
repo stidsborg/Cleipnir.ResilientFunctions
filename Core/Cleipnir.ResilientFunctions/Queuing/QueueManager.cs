@@ -153,7 +153,7 @@ internal class QueueManager : IDisposable
         finally
         {
             if (!_flowState.TryResumeSubflow())
-                await new TaskCompletionSource<MessageData?>().Task;
+                await ForeverTask.Instance;
 
             await delayCts.CancelAsync();
             delayCts.Dispose();
