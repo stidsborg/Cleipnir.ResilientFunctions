@@ -1018,23 +1018,81 @@ public abstract class EffectTests
         var cp = await registration.ControlPanel(id.Instance).ShouldNotBeNullAsync();
         var messageWriter = registration.MessageWriters.For(id.Instance);
         var effectStore = store.EffectsStore;
+        var storedId = registration.MapToStoredId(id.Instance);
+
+        async Task<string> DumpAsync(string phase)
+        {
+            string status;
+            try { await cp.Refresh(); status = cp.Status.ToString(); }
+            catch (Exception ex) { status = $"<refresh failed: {ex.GetType().Name}: {ex.Message}>"; }
+
+            string effectsDump;
+            try
+            {
+                var effects = await effectStore.GetEffectResults(storedId);
+                effectsDump = string.Join(", ", effects.Select(e => $"{e.Alias ?? "<null>"}:{e.EffectId}:{e.WorkStatus}"));
+            }
+            catch (Exception ex) { effectsDump = $"<effects fetch failed: {ex.GetType().Name}: {ex.Message}>"; }
+
+            string messagesDump;
+            try
+            {
+                var msgs = await store.MessageStore.GetMessages(storedId);
+                messagesDump = string.Join(", ", msgs.Select(m =>
+                {
+                    try { return $"[{m.Position}]{System.Text.Encoding.UTF8.GetString(m.MessageContent)}"; }
+                    catch { return $"[{m.Position}]<{m.MessageContent.Length} bytes>"; }
+                }));
+            }
+            catch (Exception ex) { messagesDump = $"<messages fetch failed: {ex.GetType().Name}: {ex.Message}>"; }
+
+            int[] iterationsSnapshot;
+            try { iterationsSnapshot = iterations.ToArray(); }
+            catch { iterationsSnapshot = Array.Empty<int>(); }
+
+            return $"phase={phase}; flag.Value={flag.Value}; status={status}; iterations=[{string.Join(",", iterationsSnapshot)}]; effects=[{effectsDump}]; messages=[{messagesDump}]";
+        }
+
+        async Task WaitAsync(string label, Func<Task<bool>> predicate)
+        {
+            try
+            {
+                await BusyWait.Until(predicate, maxWait: TimeSpan.FromSeconds(30));
+            }
+            catch (TimeoutException)
+            {
+                throw new TimeoutException($"Wait '{label}' timed out after 30s. {await DumpAsync(label)}");
+            }
+        }
 
         for (var i = 0; i < 6; i++)
         {
-            await BusyWait.Until(() => flag.Value == i, maxWait: TimeSpan.FromSeconds(30));
-            await cp.BusyWaitUntil(c => c.Status == Status.Suspended, maxWait: TimeSpan.FromSeconds(30));
-            var storedEffects = await effectStore.GetEffectResults(registration.MapToStoredId(id.Instance));
-            storedEffects.Any(e => e.Alias == "Before").ShouldBeTrue();
-            storedEffects.Any(e => e.Alias == "Loop").ShouldBeTrue();
-            storedEffects.Single(e => e.Alias == i.ToString()).EffectId.ShouldBe(new EffectId([1,i,0]));
-            storedEffects.Count(e => e.Alias != null).ShouldBe(3);
+            await WaitAsync($"flag.Value == {i}", () => Task.FromResult(flag.Value == i));
+            await WaitAsync($"Status == Suspended (i={i})", async () => { await cp.Refresh(); return cp.Status == Status.Suspended; });
+
+            var storedEffects = await effectStore.GetEffectResults(storedId);
+            try
+            {
+                storedEffects.Any(e => e.Alias == "Before").ShouldBeTrue();
+                storedEffects.Any(e => e.Alias == "Loop").ShouldBeTrue();
+                storedEffects.Single(e => e.Alias == i.ToString()).EffectId.ShouldBe(new EffectId([1, i, 0]));
+                storedEffects.Count(e => e.Alias != null).ShouldBe(3);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Effect assertion failed at i={i}. {await DumpAsync($"effect-assertions i={i}")}", ex);
+            }
 
             await messageWriter.AppendMessage(i.ToString());
         }
 
-        await cp.BusyWaitUntil(c => c.Status == Status.Succeeded, maxWait: TimeSpan.FromSeconds(30));
+        await WaitAsync("Status == Succeeded (final)", async () => { await cp.Refresh(); return cp.Status == Status.Succeeded; });
 
-        iterations.SequenceEqual([0, 1, 2, 3, 4, 5]).ShouldBeTrue();
+        try { iterations.SequenceEqual([0, 1, 2, 3, 4, 5]).ShouldBeTrue(); }
+        catch (Exception ex)
+        {
+            throw new Exception($"Final iterations check failed. {await DumpAsync("final-iterations")}", ex);
+        }
     }
 
     public abstract Task ChildEffectsAreClearedWhenParentEffectWithResultCompletes();
