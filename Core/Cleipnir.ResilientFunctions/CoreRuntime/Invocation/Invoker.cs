@@ -270,6 +270,7 @@ public class Invoker<TParam, TReturn>
                 );
 
             var flowTimeouts = new FlowTimeouts();
+            var flowState = _flowsManager.CreateFlow(storedId, flowTimeouts);
 
             var effect = _invocationHelper.CreateEffect(
                 storedId,
@@ -277,10 +278,9 @@ public class Invoker<TParam, TReturn>
                 initialState == null ? [] : _invocationHelper.MapInitialEffects(initialState.Effects, flowId),
                 flowTimeouts,
                 storageSession,
-                _flowsManager
+                flowState
             );
 
-            var flowState = _flowsManager.CreateFlow(storedId, flowTimeouts);
             var queueManager = _invocationHelper.CreateQueueManager(flowId, storedId, effect, flowState, flowTimeouts, _unhandledExceptionHandler);
             disposables.Add(queueManager);
             var messageWriter = _invocationHelper.CreateMessageWriter(storedId);
@@ -328,10 +328,10 @@ public class Invoker<TParam, TReturn>
             disposables.Add(isWorkflowRunningDisposable);
             
             var flowTimeouts = new FlowTimeouts();
-
-            var effect = _invocationHelper.CreateEffect(storedId, flowId, effects, flowTimeouts, storageSession, _flowsManager);
-
             var flowState = _flowsManager.CreateFlow(storedId, flowTimeouts);
+
+            var effect = _invocationHelper.CreateEffect(storedId, flowId, effects, flowTimeouts, storageSession, flowState);
+
             var queueManager = _invocationHelper.CreateQueueManager(flowId, storedId, effect, flowState, flowTimeouts, _unhandledExceptionHandler);
             disposables.Add(queueManager);
             var messageWriter = _invocationHelper.CreateMessageWriter(storedId);

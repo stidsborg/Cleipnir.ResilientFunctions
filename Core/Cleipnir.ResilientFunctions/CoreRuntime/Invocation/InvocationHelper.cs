@@ -385,7 +385,7 @@ internal class InvocationHelper<TParam, TReturn>
     public MessageWriter CreateMessageWriter(StoredId storedId)
         => new MessageWriter(storedId, _functionStore.MessageStore, Serializer);
 
-    public Effect CreateEffect(StoredId storedId, FlowId flowId, IReadOnlyList<StoredEffect> storedEffects, FlowTimeouts flowTimeouts, IStorageSession? storageSession, FlowsManager flowsManager)
+    public Effect CreateEffect(StoredId storedId, FlowId flowId, IReadOnlyList<StoredEffect> storedEffects, FlowTimeouts flowTimeouts, IStorageSession? storageSession, FlowState flowState)
     {
         var effectsStore = _functionStore.EffectsStore;
 
@@ -399,7 +399,7 @@ internal class InvocationHelper<TParam, TReturn>
             _clearChildren
         );
 
-       var effect = new Effect(effectResults, UtcNow, flowTimeouts, flowsManager, storedId);
+       var effect = new Effect(effectResults, UtcNow, flowTimeouts, flowState);
        return effect;
     }
 
