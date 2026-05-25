@@ -38,17 +38,4 @@ public class FlowsManager
                     flowState.Interrupt();
     }
 
-    public void StartThread(StoredId id)
-    {
-        lock (_lock)
-            if (_dict.TryGetValue(id, out var flowState))
-                flowState.SubflowStarted();
-    }
-
-    public void CompleteThread(StoredId id)
-    {
-        lock (_lock)
-            if (_dict.TryGetValue(id, out var flowState))
-                flowState.SubflowCompleted();
-    }
 }

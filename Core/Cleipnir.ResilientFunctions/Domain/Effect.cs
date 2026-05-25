@@ -21,16 +21,14 @@ public class Effect
     private readonly EffectResults effectResults;
     private readonly UtcNow utcNow;
     private readonly FlowTimeouts flowTimeouts;
-    private readonly FlowsManager flowsManager;
-    private readonly StoredId storedId;
+    private readonly FlowState flowState;
 
-    internal Effect(EffectResults effectResults, UtcNow utcNow, FlowTimeouts flowTimeouts, FlowsManager flowsManager, StoredId storedId)
+    internal Effect(EffectResults effectResults, UtcNow utcNow, FlowTimeouts flowTimeouts, FlowState flowState)
     {
         this.effectResults = effectResults;
         this.utcNow = utcNow;
         this.flowTimeouts = flowTimeouts;
-        this.flowsManager = flowsManager;
-        this.storedId = storedId;
+        this.flowState = flowState;
     }
 
 
@@ -297,11 +295,11 @@ public class Effect
 
     public Task<T> RunParallelle<T>(Func<Task<T>> work)
     {
-        flowsManager.StartThread(storedId);
+        flowState.SubflowStarted();
         var task = Capture(() => Task.Run(work));
         return task.ContinueWith(t =>
         {
-            flowsManager.CompleteThread(storedId);
+            flowState.SubflowCompleted();
             return t.GetAwaiter().GetResult();
         });
     }
