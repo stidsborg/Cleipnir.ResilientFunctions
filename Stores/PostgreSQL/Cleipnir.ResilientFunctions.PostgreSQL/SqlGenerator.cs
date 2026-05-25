@@ -452,6 +452,44 @@ public class SqlGenerator(string tablePrefix)
         return null;
     } 
 
+    private string? _appendMessagesSql;
+    public StoreCommand AppendMessages(StoredId storedId, IEnumerable<StoredMessage> messages)
+    {
+        // Computes per-message positions server-side so the SQL string is constant regardless of batch size.
+        // max_pos: base = COALESCE(MAX(position), -1) + 2147483647 + $2 (random) — placed well above any
+        // existing position and randomized per call so concurrent appenders to the same flow rarely collide.
+        // unnest($3::bytea[]) WITH ORDINALITY expands the byte[][] parameter into rows with a 1-based offset,
+        // so each inserted row gets a unique position = base + pos_offset, in caller order.
+        _appendMessagesSql ??= @$"
+            WITH max_pos AS (
+                SELECT COALESCE(MAX(position), -1) + 2147483647 + $2 AS pos
+                FROM {tablePrefix}_messages
+                WHERE id = $1
+            )
+            INSERT INTO {tablePrefix}_messages (id, position, content)
+            SELECT $1, (SELECT pos FROM max_pos) + pos_offset, content
+            FROM unnest($3::bytea[]) WITH ORDINALITY AS t(content, pos_offset);";
+
+        var contents = messages
+            .Select(m => BinaryPacker.Pack(
+                m.MessageContent,
+                m.MessageType,
+                m.IdempotencyKey?.ToUtf8Bytes(),
+                m.Sender?.ToUtf8Bytes(),
+                m.Receiver?.ToUtf8Bytes()
+            ))
+            .ToArray();
+
+        return StoreCommand.Create(
+            _appendMessagesSql,
+            values: [
+                storedId.AsGuid,
+                (long)Random.Shared.Next(),
+                contents
+            ]
+        );
+    }
+
     public StoreCommand AppendMessages(IReadOnlyList<StoredIdAndMessageWithPosition> messages)
     {
         var sql = @$"    

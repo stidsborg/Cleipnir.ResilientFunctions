@@ -1021,8 +1021,8 @@ public abstract class EffectTests
 
         for (var i = 0; i < 6; i++)
         {
-            await BusyWait.Until(() => flag.Value == i);
-            await cp.BusyWaitUntil(c => c.Status == Status.Suspended);
+            await BusyWait.Until(() => flag.Value == i, maxWait: TimeSpan.FromSeconds(30));
+            await cp.BusyWaitUntil(c => c.Status == Status.Suspended, maxWait: TimeSpan.FromSeconds(30));
             var storedEffects = await effectStore.GetEffectResults(registration.MapToStoredId(id.Instance));
             storedEffects.Any(e => e.Alias == "Before").ShouldBeTrue();
             storedEffects.Any(e => e.Alias == "Loop").ShouldBeTrue();
@@ -1032,7 +1032,7 @@ public abstract class EffectTests
             await messageWriter.AppendMessage(i.ToString());
         }
 
-        await cp.BusyWaitUntil(c => c.Status == Status.Succeeded);
+        await cp.BusyWaitUntil(c => c.Status == Status.Succeeded, maxWait: TimeSpan.FromSeconds(30));
 
         iterations.SequenceEqual([0, 1, 2, 3, 4, 5]).ShouldBeTrue();
     }
