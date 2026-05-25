@@ -51,7 +51,8 @@ public class Invoker<TParam, TReturn>
             if (parentWorkflow.Effect.Contains(scheduledAlreadyParentId!))
                 return _invocationHelper.CreateInnerScheduled([flowId], parentWorkflow, detach);
 
-        var (created, workflow, disposables, queueManager, flowState, timeouts, storageSession) = await PrepareForInvocation(flowId, storedId, param, parentWorkflow?.StoredId, initialState);
+        var tcs = new TaskCompletionSource<TReturn>();
+        var (created, workflow, disposables, queueManager, flowState, timeouts, storageSession) = await PrepareForInvocation(flowId, storedId, param, parentWorkflow?.StoredId, initialState, tcs.Task);
         await (parentWorkflow?.Effect.Upsert(scheduledAlreadyParentId!, true, alias: null, flush: false) ?? Task.CompletedTask);
 
         if (!created)
@@ -59,7 +60,6 @@ public class Invoker<TParam, TReturn>
 
         CurrentFlow._workflow.Value = workflow;
 
-        var tcs = new TaskCompletionSource<TReturn>();
         _ = flowState.SuspendedTask.ContinueWith(_ => tcs.TrySetException(new InvocationSuspendedException(flowId)));
         _ = Task.Run(async () =>
         {
@@ -151,10 +151,10 @@ public class Invoker<TParam, TReturn>
 
     public async Task<InnerScheduled<TReturn>> ScheduleRestart(StoredId storedId)
     {
-        var (inner, param, humanInstanceId, workflow, disposables, queueManager, flowState, timeouts, parent, storageSession) = await PrepareForReInvocation(storedId);
+        var tcs = new TaskCompletionSource<TReturn>();
+        var (inner, param, humanInstanceId, workflow, disposables, queueManager, flowState, timeouts, parent, storageSession) = await PrepareForReInvocation(storedId, tcs.Task);
         var flowId = new FlowId(_flowType, humanInstanceId);
 
-        var tcs = new TaskCompletionSource<TReturn>();
         _ = flowState.SuspendedTask.ContinueWith(_ => tcs.TrySetException(new InvocationSuspendedException(flowId)));
         _ = Task.Run(async () =>
         {
@@ -205,10 +205,10 @@ public class Invoker<TParam, TReturn>
 
     internal async Task ScheduleRestart(StoredId storedId, RestartedFunction rf, Action onCompletion)
     {
-        var (inner, param, humanInstanceId, workflow, disposables, queueManager, flowState, timeouts, parent, storageSession) = await PrepareForReInvocation(storedId, rf);
+        var tcs = new TaskCompletionSource<TReturn>();
+        var (inner, param, humanInstanceId, workflow, disposables, queueManager, flowState, timeouts, parent, storageSession) = await PrepareForReInvocation(storedId, rf, tcs.Task);
         var flowId = new FlowId(_flowType, humanInstanceId);
 
-        var tcs = new TaskCompletionSource<TReturn>();
         _ = flowState.SuspendedTask.ContinueWith(_ => tcs.TrySetException(new InvocationSuspendedException(flowId)));
         _ = Task.Run(async () =>
         {
@@ -237,7 +237,7 @@ public class Invoker<TParam, TReturn>
         });
     }
     
-    private async Task<PreparedInvocation> PrepareForInvocation(FlowId flowId, StoredId storedId, TParam param, StoredId? parent, InitialState? initialState)
+    private async Task<PreparedInvocation> PrepareForInvocation(FlowId flowId, StoredId storedId, TParam param, StoredId? parent, InitialState? initialState, Task completed)
     {
         var disposables = new List<IDisposable>(capacity: 3);
         var success = false;
@@ -270,7 +270,7 @@ public class Invoker<TParam, TReturn>
                 );
 
             var flowTimeouts = new FlowTimeouts();
-            var flowState = _flowsManager.CreateFlow(storedId, flowTimeouts);
+            var flowState = _flowsManager.CreateFlowState(storedId, flowTimeouts, completed);
 
             var effect = _invocationHelper.CreateEffect(
                 storedId,
@@ -307,16 +307,16 @@ public class Invoker<TParam, TReturn>
     }
     private record PreparedInvocation(bool Persisted, Workflow Workflow, IDisposable Disposables, QueueManager QueueManager, FlowState FlowState, FlowTimeouts FlowTimeouts, IStorageSession? StorageSession = null);
 
-    private async Task<PreparedReInvocation> PrepareForReInvocation(StoredId storedId)
+    private async Task<PreparedReInvocation> PrepareForReInvocation(StoredId storedId, Task completed)
     {
         var restartedFunction = await _invocationHelper.RestartFunction(storedId);
         if (restartedFunction == null)
             throw UnexpectedStateException.ConcurrentModification(storedId);
 
-        return await PrepareForReInvocation(storedId, restartedFunction);
+        return await PrepareForReInvocation(storedId, restartedFunction, completed);
     }
 
-    private async Task<PreparedReInvocation> PrepareForReInvocation(StoredId storedId, RestartedFunction restartedFunction)
+    private async Task<PreparedReInvocation> PrepareForReInvocation(StoredId storedId, RestartedFunction restartedFunction, Task completed)
     {
         var disposables = new List<IDisposable>(capacity: 3);
         try
@@ -328,7 +328,7 @@ public class Invoker<TParam, TReturn>
             disposables.Add(isWorkflowRunningDisposable);
             
             var flowTimeouts = new FlowTimeouts();
-            var flowState = _flowsManager.CreateFlow(storedId, flowTimeouts);
+            var flowState = _flowsManager.CreateFlowState(storedId, flowTimeouts, completed);
 
             var effect = _invocationHelper.CreateEffect(storedId, flowId, effects, flowTimeouts, storageSession, flowState);
 
