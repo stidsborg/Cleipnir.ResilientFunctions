@@ -60,42 +60,44 @@ public class PostgreSqlMessageStore : IMessageStore
     public async Task AppendMessage(StoredId storedId, StoredMessage storedMessage)
         => await messageBatcher.Handle(storedId, [storedMessage]);
 
+    private string? _appendMessagesSql;
     private async Task AppendMessages(StoredId storedId, IReadOnlyList<StoredMessage> messages)
     {
         if (messages.Count == 0)
             return;
 
         var randomOffset = Random.Shared.Next();
-        var values = messages.Select((_, i) => $"($1, (SELECT pos FROM max_pos) + {i + 1}, ${i + 3})").StringJoin(", ");
 
-        var sql = @$"
+        _appendMessagesSql ??= @$"
             WITH max_pos AS (
                 SELECT COALESCE(MAX(position), -1) + 2147483647 + $2 AS pos
                 FROM {tablePrefix}_messages
                 WHERE id = $1
             )
             INSERT INTO {tablePrefix}_messages (id, position, content)
-            VALUES {values};";
+            SELECT $1, (SELECT pos FROM max_pos) + ord, content
+            FROM unnest($3::bytea[]) WITH ORDINALITY AS t(content, ord);";
 
-        await using var conn = await CreateConnection();
-        await using var command = new NpgsqlCommand(sql, conn);
-
-        command.Parameters.Add(new() { Value = storedId.AsGuid });
-        command.Parameters.Add(new() { Value = (long)randomOffset });
-
+        var contents = new byte[messages.Count][];
         for (var i = 0; i < messages.Count; i++)
         {
             var (messageContent, messageType, _, idempotencyKey, sender, receiver) = messages[i];
-            var content = BinaryPacker.Pack(messageContent, messageType, idempotencyKey?.ToUtf8Bytes(), sender?.ToUtf8Bytes(), receiver?.ToUtf8Bytes());
-            command.Parameters.Add(new() { Value = content });
+            contents[i] = BinaryPacker.Pack(messageContent, messageType, idempotencyKey?.ToUtf8Bytes(), sender?.ToUtf8Bytes(), receiver?.ToUtf8Bytes());
         }
 
-        await command.ExecuteNonQueryAsync();
+        var appendBatchCommand = new NpgsqlBatchCommand(_appendMessagesSql);
+        appendBatchCommand.Parameters.Add(new() { Value = storedId.AsGuid });
+        appendBatchCommand.Parameters.Add(new() { Value = (long)randomOffset });
+        appendBatchCommand.Parameters.Add(new() { Value = contents });
 
-        // Execute interrupt command
         var interruptCommand = sqlGenerator.Interrupt([storedId]);
-        await using var interruptCmd = interruptCommand.ToNpgsqlCommand(conn);
-        await interruptCmd.ExecuteNonQueryAsync();
+
+        await using var conn = await CreateConnection();
+        await using var batch = new NpgsqlBatch(conn);
+        batch.BatchCommands.Add(appendBatchCommand);
+        batch.BatchCommands.Add(interruptCommand.ToNpgsqlBatchCommand());
+
+        await batch.ExecuteNonQueryAsync();
     }
 
     public async Task AppendMessages(IReadOnlyList<StoredIdAndMessage> messages)
