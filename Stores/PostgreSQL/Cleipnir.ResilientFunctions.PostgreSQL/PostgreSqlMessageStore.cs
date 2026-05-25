@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Helpers;
@@ -60,62 +59,25 @@ public class PostgreSqlMessageStore : IMessageStore
     public async Task AppendMessage(StoredId storedId, StoredMessage storedMessage)
         => await messageBatcher.Handle(storedId, [storedMessage]);
 
-    private string? _appendMessagesSql;
-    private async Task AppendMessages(StoredId storedId, IReadOnlyList<StoredMessage> messages)
+    private Task AppendMessages(StoredId storedId, IReadOnlyList<StoredMessage> messages)
+        => AppendMessages(messages.Select(m => new StoredIdAndMessage(storedId, m)).ToList());
+
+    public async Task AppendMessages(IReadOnlyList<StoredIdAndMessage> messages)
     {
         if (messages.Count == 0)
             return;
 
-        var randomOffset = Random.Shared.Next();
-
-        _appendMessagesSql ??= @$"
-            WITH max_pos AS (
-                SELECT COALESCE(MAX(position), -1) + 2147483647 + $2 AS pos
-                FROM {tablePrefix}_messages
-                WHERE id = $1
-            )
-            INSERT INTO {tablePrefix}_messages (id, position, content)
-            SELECT $1, (SELECT pos FROM max_pos) + ord, content
-            FROM unnest($3::bytea[]) WITH ORDINALITY AS t(content, ord);";
-
-        var contents = new byte[messages.Count][];
-        for (var i = 0; i < messages.Count; i++)
-        {
-            var (messageContent, messageType, _, idempotencyKey, sender, receiver) = messages[i];
-            contents[i] = BinaryPacker.Pack(messageContent, messageType, idempotencyKey?.ToUtf8Bytes(), sender?.ToUtf8Bytes(), receiver?.ToUtf8Bytes());
-        }
-
-        var appendBatchCommand = new NpgsqlBatchCommand(_appendMessagesSql);
-        appendBatchCommand.Parameters.Add(new() { Value = storedId.AsGuid });
-        appendBatchCommand.Parameters.Add(new() { Value = (long)randomOffset });
-        appendBatchCommand.Parameters.Add(new() { Value = contents });
-
-        var interruptCommand = sqlGenerator.Interrupt([storedId]);
+        var commands = messages
+            .GroupBy(m => m.StoredId)
+            .Select(g => sqlGenerator.AppendMessages(g.Key, g.Select(m => m.StoredMessage)))
+            .Append(sqlGenerator.Interrupt(messages.Select(m => m.StoredId).Distinct()));
 
         await using var conn = await CreateConnection();
-        await using var batch = new NpgsqlBatch(conn);
-        batch.BatchCommands.Add(appendBatchCommand);
-        batch.BatchCommands.Add(interruptCommand.ToNpgsqlBatchCommand());
+        await using var batch = commands
+            .ToNpgsqlBatch()
+            .WithConnection(conn);
 
         await batch.ExecuteNonQueryAsync();
-    }
-
-    public async Task AppendMessages(IReadOnlyList<StoredIdAndMessage> messages)
-    {
-        var maxPositions = await GetMaxPositions(
-            storedIds: messages.Select(msg => msg.StoredId).Distinct().ToList()
-        );
-
-        var messageWithPositions = messages
-            .Select(msg =>
-                new StoredIdAndMessageWithPosition(
-                    msg.StoredId,
-                    msg.StoredMessage,
-                    ++maxPositions[msg.StoredId]
-                )
-            ).ToList();
-
-        await AppendMessages(messageWithPositions);
     }
 
     public async Task AppendMessages(IReadOnlyList<StoredIdAndMessageWithPosition> messages)
