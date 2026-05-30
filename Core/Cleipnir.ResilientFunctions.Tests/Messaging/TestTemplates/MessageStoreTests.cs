@@ -589,73 +589,6 @@ public abstract class MessageStoreTests
         newEvents.Count.ShouldBe(0);
     }
     
-    public abstract Task MaxPositionIsCorrectForAppendedMessages();
-    protected async Task MaxPositionIsCorrectForAppendedMessages(Task<IFunctionStore> functionStoreTask)
-    {
-        var id1 = TestStoredId.Create();
-        var id2 = TestStoredId.Create(id1.Type);
-        var id3 = TestStoredId.Create();
-        
-        var functionStore = await functionStoreTask;
-        var session = await functionStore.CreateFunction(
-            id1,
-            "humanInstanceId",
-            Test.SimpleStoredParameter,
-            leaseExpiration: DateTime.UtcNow.Ticks,
-            postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks,
-            parent: null,
-            owner: null
-        );
-        session.ShouldBeNull();
-        session = await functionStore.CreateFunction(
-            id2,
-            "humanInstanceId2",
-            Test.SimpleStoredParameter,
-            leaseExpiration: DateTime.UtcNow.Ticks,
-            postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks,
-            parent: null,
-            owner: null
-        );
-        session.ShouldBeNull();
-        var messageStore = functionStore.MessageStore;
-
-        const string msg1 = "";
-        const string msg2 = "";
-
-        await messageStore.AppendMessage(
-            id1,
-            new StoredMessage(msg1.ToJsonByteArray(), msg1.GetType().SimpleQualifiedName().ToUtf8Bytes(), Position: 0)
-        );
-        await messageStore.AppendMessage(
-            id1,
-            new StoredMessage(msg1.ToJsonByteArray(), msg2.GetType().SimpleQualifiedName().ToUtf8Bytes(), Position: 0)
-        );
-
-        await messageStore.AppendMessage(
-            id2,
-            new StoredMessage(msg2.ToJsonByteArray(), msg2.GetType().SimpleQualifiedName().ToUtf8Bytes(), Position: 0)
-        );
-
-        var maxPositions = await messageStore.GetMaxPositions([id1, id2, id3]);
-        maxPositions.Count.ShouldBe(3);
-
-        // Get actual messages to verify ordering is correct
-        var id1Messages = (await messageStore.GetMessages(id1)).ToList();
-        var id2Messages = (await messageStore.GetMessages(id2)).ToList();
-
-        // Verify positions match the last message in each flow
-        id1Messages.Count.ShouldBe(2);
-        maxPositions[id1].ShouldBe(id1Messages.Max(m => m.Position));
-
-        id2Messages.Count.ShouldBe(1);
-        maxPositions[id2].ShouldBe(id2Messages[0].Position);
-
-        // id3 has no messages, so max position should be -1
-        maxPositions[id3].ShouldBe(-1);
-    }   
-    
     public abstract Task AppendedMultipleMessagesAtOnceCanBeFetchedAgain();
     protected async Task AppendedMultipleMessagesAtOnceCanBeFetchedAgain(Task<IFunctionStore> functionStoreTask)
     {
@@ -795,9 +728,9 @@ public abstract class MessageStoreTests
         
         await messageStore.AppendMessages(
             [
-                new StoredIdAndMessageWithPosition(id1, msg1, Position: 0),
-                new StoredIdAndMessageWithPosition(id2, msg1, Position: 0),
-                new StoredIdAndMessageWithPosition(id1, msg2, Position: 1),
+                new StoredIdAndMessage(id1, msg1),
+                new StoredIdAndMessage(id2, msg1),
+                new StoredIdAndMessage(id1, msg2),
             ]
         );
 
@@ -824,7 +757,7 @@ public abstract class MessageStoreTests
 
         await messageStore.AppendMessages(
             [
-                new StoredIdAndMessageWithPosition(id2, msg2, Position: 1)
+                new StoredIdAndMessage(id2, msg2)
             ]
         );
         

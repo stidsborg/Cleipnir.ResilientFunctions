@@ -71,10 +71,6 @@ public class MessageStoreTests :  TestTemplates.MessageStoreTests
         => EventSubscriptionPublishesFiltersOutEventsWithSameIdempotencyKeys(FunctionStoreFactory.Create());
 
     [TestMethod]
-    public override Task MaxPositionIsCorrectForAppendedMessages()
-        => MaxPositionIsCorrectForAppendedMessages(FunctionStoreFactory.Create());
-
-    [TestMethod]
     public override Task AppendedMultipleMessagesAtOnceCanBeFetchedAgain()
         => AppendedMultipleMessagesAtOnceCanBeFetchedAgain(FunctionStoreFactory.Create());
 

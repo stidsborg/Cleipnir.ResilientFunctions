@@ -568,15 +568,15 @@ public class SqlGenerator(string tablePrefix)
         return (null, null);
     }
     
-    public StoreCommand? AppendMessages(IReadOnlyList<StoredIdAndMessageWithPosition> messages, string prefix = "")
+    public StoreCommand? AppendMessages(IReadOnlyList<StoredIdAndMessage> messages, string prefix = "")
     {
         if (messages.Count == 0)
             return null;
 
         var interruptCommand = Interrupt(messages.Select(m => m.StoredId).Distinct().ToList());
 
-        // Position on the supplied messages is ignored — the identity column assigns it. Rows are listed in
-        // caller order so identity assignment preserves message order.
+        // The identity column assigns position. Rows are listed in caller order so identity assignment
+        // preserves message order.
         var sql = @$"
             INSERT INTO {tablePrefix}_Messages
                 (Id, Content)
@@ -586,7 +586,7 @@ public class SqlGenerator(string tablePrefix)
         var appendCommand = StoreCommand.Create(sql);
         for (var i = 0; i < messages.Count; i++)
         {
-            var (storedId, (messageContent, messageType, _, idempotencyKey, sender, receiver), _) = messages[i];
+            var (storedId, (messageContent, messageType, _, idempotencyKey, sender, receiver)) = messages[i];
             var content = BinaryPacker.Pack(
                 messageContent,
                 messageType,

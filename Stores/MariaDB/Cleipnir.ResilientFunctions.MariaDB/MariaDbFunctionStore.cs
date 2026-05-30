@@ -133,7 +133,7 @@ public class MariaDbFunctionStore : IFunctionStore
             var storeCommand = _sqlGenerator.CreateFunction(storedId, humanInstanceId, param, leaseExpiration, postponeUntil, timestamp, parent, owner, ignoreDuplicate: false, effects: effectsBytes);
 
             var messagesCommand = _sqlGenerator.AppendMessages(
-                messages.Select((msg, position) => new StoredIdAndMessageWithPosition(storedId, msg, position)).ToList()
+                messages.Select(msg => new StoredIdAndMessage(storedId, msg)).ToList()
             );
             storeCommand = storeCommand.Merge(messagesCommand);
 

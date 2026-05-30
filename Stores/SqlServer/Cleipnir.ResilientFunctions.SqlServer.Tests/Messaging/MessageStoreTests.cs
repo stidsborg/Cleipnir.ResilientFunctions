@@ -67,10 +67,6 @@ public class MessageStoreTests :  Cleipnir.ResilientFunctions.Tests.Messaging.Te
         => EventSubscriptionPublishesFiltersOutEventsWithSameIdempotencyKeys(FunctionStoreFactory.Create());
     
     [TestMethod]
-    public override Task MaxPositionIsCorrectForAppendedMessages()
-        => MaxPositionIsCorrectForAppendedMessages(FunctionStoreFactory.Create());
-    
-    [TestMethod]
     public override Task AppendedMultipleMessagesAtOnceCanBeFetchedAgain()
         => AppendedMultipleMessagesAtOnceCanBeFetchedAgain(FunctionStoreFactory.Create());
     

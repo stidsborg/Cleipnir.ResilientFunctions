@@ -583,10 +583,10 @@ public class SqlGenerator(string tablePrefix)
         return (null, null);
     }
     
-    public StoreCommand AppendMessages(IReadOnlyList<StoredIdAndMessageWithPosition> messages)
+    public StoreCommand AppendMessages(IReadOnlyList<StoredIdAndMessage> messages)
     {
-        // Position on the supplied messages is ignored — the AUTO_INCREMENT column assigns it. Rows are listed
-        // in caller order so the assignment preserves message order.
+        // The AUTO_INCREMENT column assigns position. Rows are listed in caller order so the assignment
+        // preserves message order.
         var sql = @$"
             INSERT INTO {tablePrefix}_messages
                 (id, content)
@@ -594,7 +594,7 @@ public class SqlGenerator(string tablePrefix)
                  {"(?, ?)".Replicate(messages.Count).StringJoin($",{Environment.NewLine}")};";
 
         var command = StoreCommand.Create(sql);
-        foreach (var (storedId, (messageContent, messageType, _, idempotencyKey, sender, receiver), _) in messages)
+        foreach (var (storedId, (messageContent, messageType, _, idempotencyKey, sender, receiver)) in messages)
         {
             command.AddParameter(storedId.AsGuid.ToString("N"));
             var content = BinaryPacker.Pack(

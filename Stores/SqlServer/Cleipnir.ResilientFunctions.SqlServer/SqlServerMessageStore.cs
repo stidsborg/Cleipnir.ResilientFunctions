@@ -127,18 +127,6 @@ public class SqlServerMessageStore : IMessageStore
         await command.ExecuteNonQueryAsync();
     }
 
-    public async Task AppendMessages(IReadOnlyList<StoredIdAndMessageWithPosition> messages)
-    {
-        if (messages.Count == 0)
-            return;
-
-        await using var conn = await CreateConnection();
-        await using var command = _sqlGenerator
-            .AppendMessages(messages)!
-            .ToSqlCommand(conn);
-        await command.ExecuteNonQueryAsync();
-    }
-
     private string? _replaceMessageSql;
     public async Task<bool> ReplaceMessage(StoredId storedId, long position, StoredMessage storedMessage)
     {
@@ -229,37 +217,6 @@ public class SqlServerMessageStore : IMessageStore
                 storedMessages[id].Add(ConvertToStoredMessage(content, position));
 
         return storedMessages;
-    }
-
-    public async Task<IDictionary<StoredId, long>> GetMaxPositions(IReadOnlyList<StoredId> storedIds)
-    {
-        if (storedIds.Count == 0)
-            return new Dictionary<StoredId, long>();
-
-        var sql = @$"
-            SELECT Id, MAX(Position)
-            FROM {_tablePrefix}_Messages
-            WHERE Id IN (SELECT CAST(value AS UNIQUEIDENTIFIER) FROM STRING_SPLIT(@Ids, ','))
-            GROUP BY Id;";
-
-        await using var conn = await CreateConnection();
-        await using var command = new SqlCommand(sql, conn);
-        command.Parameters.AddWithValue("@Ids", storedIds.ToCommaSeparatedIds());
-
-        var positions = new Dictionary<StoredId, long>(capacity: storedIds.Count);
-        foreach (var storedId in storedIds)
-            positions[storedId] = -1;
-
-        await using var reader = await command.ExecuteReaderAsync();
-        while (await reader.ReadAsync())
-        {
-            var id = reader.GetGuid(0);
-            var storedId = new StoredId(id);
-            var position = reader.GetInt64(1);
-            positions[storedId] = position;
-        }
-
-        return positions;
     }
 
     public static StoredMessage ConvertToStoredMessage(byte[] content, long position)

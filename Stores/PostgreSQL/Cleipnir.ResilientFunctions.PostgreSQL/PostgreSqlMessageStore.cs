@@ -80,22 +80,6 @@ public class PostgreSqlMessageStore : IMessageStore
         await batch.ExecuteNonQueryAsync();
     }
 
-    public async Task AppendMessages(IReadOnlyList<StoredIdAndMessageWithPosition> messages)
-    {
-        if (messages.Count == 0)
-            return;
-
-        var appendMessagesCommand = sqlGenerator.AppendMessages(messages);
-        var interruptCommand = sqlGenerator.Interrupt(messages.Select(m => m.StoredId).Distinct());
-
-        await using var conn = await CreateConnection();
-        await using var command = StoreCommandExtensions
-            .ToNpgsqlBatch([appendMessagesCommand, interruptCommand])
-            .WithConnection(conn);
-
-        await command.ExecuteNonQueryAsync();
-    }
-
     private string? _replaceMessageSql;
     public async Task<bool> ReplaceMessage(StoredId storedId, long position, StoredMessage storedMessage)
     {
@@ -208,35 +192,5 @@ public class PostgreSqlMessageStore : IMessageStore
             receiver?.ToStringFromUtf8Bytes()
         );
         return storedMessage;
-    }
-
-    public async Task<IDictionary<StoredId, long>> GetMaxPositions(IReadOnlyList<StoredId> storedIds)
-    {
-        if (storedIds.Count == 0)
-            return new Dictionary<StoredId, long>();
-
-        var sql = @$"
-            SELECT id, MAX(position)
-            FROM {tablePrefix}_messages
-            WHERE Id = ANY($1)
-            GROUP BY id;";
-
-        await using var conn = await CreateConnection();
-        await using var command = new NpgsqlCommand(sql, conn);
-        command.Parameters.Add(new NpgsqlParameter { Value = storedIds.Select(id => id.AsGuid).ToArray() });
-
-        var positions = new Dictionary<StoredId, long>(capacity: storedIds.Count);
-        foreach (var storedId in storedIds)
-            positions[storedId] = -1;
-
-        await using var reader = await command.ExecuteReaderAsync();
-        while (await reader.ReadAsync())
-        {
-            var storedId =  new StoredId(reader.GetGuid(0));
-            var position = reader.GetInt64(1);
-            positions[storedId] = position;
-        }
-
-        return positions;
     }
 }

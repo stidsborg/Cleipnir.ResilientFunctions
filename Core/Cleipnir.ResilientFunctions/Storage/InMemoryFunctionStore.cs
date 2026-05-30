@@ -605,21 +605,6 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         }
     }
 
-    public async Task AppendMessages(IReadOnlyList<StoredIdAndMessageWithPosition> messages)
-    {
-        foreach (var (storedId, storedMessage, _) in messages)
-        {
-            lock (_sync)
-            {
-                if (!_messages.ContainsKey(storedId))
-                    _messages[storedId] = new Dictionary<long, StoredMessage>();
-
-                _messages[storedId].Add(_nextMessagePosition++, storedMessage);
-            }
-
-            await Interrupt(storedId);
-        }
-    }
 
     public Task<bool> ReplaceMessage(StoredId storedId, long position, StoredMessage storedMessage)
     {
@@ -679,18 +664,6 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         }
 
         return dict;
-    }
-
-    public Task<IDictionary<StoredId, long>> GetMaxPositions(IReadOnlyList<StoredId> storedIds)
-    {
-        IDictionary<StoredId, long> positions = new Dictionary<StoredId, long>();
-        lock (_sync)
-            foreach (var storedId in storedIds)
-                positions[storedId] = _messages.TryGetValue(storedId, out var messages) && messages.Count > 0
-                    ? messages.Keys.Max()
-                    : -1;
-
-        return positions.ToTask();
     }
 
     #endregion
