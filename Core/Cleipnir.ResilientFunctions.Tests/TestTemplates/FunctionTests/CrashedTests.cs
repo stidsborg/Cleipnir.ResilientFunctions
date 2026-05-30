@@ -74,7 +74,7 @@ public abstract class CrashedTests
         {
             using var functionsRegistry = new FunctionsRegistry(
                 store,
-                new Settings(leaseLength: TimeSpan.FromMilliseconds(250))
+                new Settings()
             );
 
             var registration = functionsRegistry

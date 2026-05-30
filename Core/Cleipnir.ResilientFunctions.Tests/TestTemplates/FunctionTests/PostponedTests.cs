@@ -80,7 +80,6 @@ public abstract class PostponedTests
                 store,
                 new Settings(
                     unhandledExceptionHandler.Catch,
-                    leaseLength: TimeSpan.Zero,
                     enableWatchdogs: false
                 )
             );
@@ -125,7 +124,6 @@ public abstract class PostponedTests
             (
                 crashableStore,
                 new Settings(
-                    leaseLength: TimeSpan.Zero,
                     enableWatchdogs: false
                 )
             );
@@ -655,7 +653,6 @@ public abstract class PostponedTests
             store,
             new Settings(
                 unhandledExceptionHandler.Catch,
-                leaseLength: TimeSpan.Zero,
                 watchdogCheckFrequency: TimeSpan.FromSeconds(1)
             )
         );

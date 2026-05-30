@@ -18,8 +18,7 @@ public class DirectInvocationTest
         using var functionsRegistry = new FunctionsRegistry(
             store,
             new Settings(
-                unhandledExceptionHandler: Console.WriteLine,
-                leaseLength: TimeSpan.FromSeconds(10)
+                unhandledExceptionHandler: Console.WriteLine
             )
         );
         var rFunc1 = functionsRegistry.RegisterFunc(
@@ -42,7 +41,7 @@ public class DirectInvocationTest
         
         using var functionsRegistry2 = new FunctionsRegistry(
             store,
-            new Settings(unhandledExceptionHandler: Console.WriteLine, leaseLength: TimeSpan.FromSeconds(10))
+            new Settings(unhandledExceptionHandler: Console.WriteLine)
         );
         var rFunc2 = functionsRegistry2.RegisterFunc(
             "DirectInvocationTest",

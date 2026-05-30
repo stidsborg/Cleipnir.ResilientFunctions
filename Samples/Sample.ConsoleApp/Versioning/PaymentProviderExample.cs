@@ -23,7 +23,6 @@ public static class PaymentProviderExample
         using var functionsRegistry = new FunctionsRegistry(
             crashableStore, 
             new Settings(
-                leaseLength: TimeSpan.FromMilliseconds(100)
             )
         );
 
@@ -49,8 +48,7 @@ public static class PaymentProviderExample
         using var functionsRegistry = new FunctionsRegistry(
             Store, 
             new Settings(
-                unhandledExceptionHandler: Console.WriteLine,
-                leaseLength: TimeSpan.FromMilliseconds(100)
+                unhandledExceptionHandler: Console.WriteLine
             )
         );
 

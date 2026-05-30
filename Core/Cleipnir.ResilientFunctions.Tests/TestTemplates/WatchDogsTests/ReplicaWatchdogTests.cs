@@ -366,7 +366,7 @@ public abstract class ReplicaWatchdogTests
         var flowId = TestFlowId.Create();
         var (flowType, flowInstance) = flowId;
 
-        var settings = new Settings(leaseLength: TimeSpan.FromMilliseconds(250));
+        var settings = new Settings();
         using var crashingRegistry = new FunctionsRegistry(functionStore, settings);
         using var overtakingRegistry = new FunctionsRegistry(functionStore, settings);
 

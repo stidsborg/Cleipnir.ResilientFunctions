@@ -23,7 +23,6 @@ public class DelayedStartUpTests
         var stopWatch = new Stopwatch();
         stopWatch.Start();
         using var rFunctions = new FunctionsRegistry(store, new Settings(
-            leaseLength: TimeSpan.FromMilliseconds(10),
             delayStartup: TimeSpan.FromSeconds(1))
         );
         var registration = rFunctions.RegisterAction(
@@ -68,7 +67,7 @@ public class DelayedStartUpTests
         var stopWatch = new Stopwatch();
         stopWatch.Start();
         
-        using var rFunctions = new FunctionsRegistry(store, new Settings(leaseLength: TimeSpan.FromMilliseconds(10)));
+        using var rFunctions = new FunctionsRegistry(store, new Settings());
         rFunctions.RegisterAction(
             flowId.Type,
             Task (string param) => Task.CompletedTask

@@ -24,7 +24,7 @@ public static class LongRunningStressfulTest
                 {
                     Console.WriteLine(e);
                     Environment.Exit(1);
-                }, leaseLength: TimeSpan.FromSeconds(10), maxParallelRetryInvocations: testSize * 2)
+                }, maxParallelRetryInvocations: testSize * 2)
             );
             var actionRegistration = functionsRegistry1.RegisterParamless(
                 "LongRunningStressfulTest",
