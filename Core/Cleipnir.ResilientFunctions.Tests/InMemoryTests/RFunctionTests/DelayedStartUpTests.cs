@@ -67,7 +67,7 @@ public class DelayedStartUpTests
         var stopWatch = new Stopwatch();
         stopWatch.Start();
         
-        using var rFunctions = new FunctionsRegistry(store, new Settings());
+        using var rFunctions = new FunctionsRegistry(store);
         rFunctions.RegisterAction(
             flowId.Type,
             Task (string param) => Task.CompletedTask

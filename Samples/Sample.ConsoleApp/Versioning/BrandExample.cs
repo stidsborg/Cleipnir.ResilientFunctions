@@ -20,11 +20,7 @@ public static class BrandExample
     private static async Task Version1()
     {
         var crashableStore = new CrashableFunctionStore(Store);
-        using var functionsRegistry = new FunctionsRegistry(
-            crashableStore, 
-            new Settings(
-            )
-        );
+        using var functionsRegistry = new FunctionsRegistry(crashableStore);
 
         var rAction = functionsRegistry.RegisterAction(
             "SaveOrder",

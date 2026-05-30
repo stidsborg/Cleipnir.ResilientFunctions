@@ -72,10 +72,7 @@ public abstract class CrashedTests
             crashableStore.Crash();
         }
         {
-            using var functionsRegistry = new FunctionsRegistry(
-                store,
-                new Settings()
-            );
+            using var functionsRegistry = new FunctionsRegistry(store);
 
             var registration = functionsRegistry
                 .RegisterAction(

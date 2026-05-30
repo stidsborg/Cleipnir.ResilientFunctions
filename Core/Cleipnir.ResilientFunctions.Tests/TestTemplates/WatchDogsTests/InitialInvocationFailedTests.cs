@@ -18,7 +18,7 @@ public abstract class InitialInvocationFailedTests
         var functionId = TestFlowId.Create();
 
         var flag = new SyncedFlag();
-        using var functionsRegistry = new FunctionsRegistry(store, new Settings());
+        using var functionsRegistry = new FunctionsRegistry(store);
         var registration = functionsRegistry.RegisterAction(
             functionId.Type,
             Task (string param) =>
@@ -52,7 +52,7 @@ public abstract class InitialInvocationFailedTests
         var functionId = TestFlowId.Create();
 
         var flag = new SyncedFlag();
-        using var functionsRegistry = new FunctionsRegistry(store, new Settings());
+        using var functionsRegistry = new FunctionsRegistry(store);
         var registration = functionsRegistry.RegisterAction<string>(
             functionId.Type,
             Task (string param) =>
@@ -86,7 +86,7 @@ public abstract class InitialInvocationFailedTests
         var functionId = TestFlowId.Create();
 
         var flag = new SyncedFlag();
-        using var functionsRegistry = new FunctionsRegistry(store, new Settings());
+        using var functionsRegistry = new FunctionsRegistry(store);
         var registration = functionsRegistry.RegisterFunc(
             functionId.Type,
             Task<string> (string param) =>
@@ -125,7 +125,7 @@ public abstract class InitialInvocationFailedTests
         var functionId = TestFlowId.Create();
 
         var flag = new SyncedFlag();
-        using var functionsRegistry = new FunctionsRegistry(store, new Settings());
+        using var functionsRegistry = new FunctionsRegistry(store);
         var registration = functionsRegistry.RegisterFunc(
             functionId.Type,
             Task<string> (string param) =>
