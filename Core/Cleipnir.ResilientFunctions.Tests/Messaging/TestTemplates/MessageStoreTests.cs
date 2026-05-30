@@ -214,7 +214,8 @@ public abstract class MessageStoreTests
             .ShouldBeAsync(2);
         
         var storedEvent3 = new StoredMessage(msg3.ToJson().ToUtf8Bytes(), msg3.GetType().SimpleQualifiedName().ToUtf8Bytes(), Position: 0, IdempotencyKey: "3");
-        await messageStore.ReplaceMessage(functionId, position: 2, storedEvent3).ShouldBeFalseAsync();
+        var nonExistentPosition = (await messageStore.GetMessages(functionId)).Max(m => m.Position) + 1;
+        await messageStore.ReplaceMessage(functionId, nonExistentPosition, storedEvent3).ShouldBeFalseAsync();
         
         var events = (await messageStore.GetMessages(functionId)).ToList();
         events.Count.ShouldBe(2);

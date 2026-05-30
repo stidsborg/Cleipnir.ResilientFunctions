@@ -14,6 +14,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
 {
     private readonly Dictionary<StoredId, InnerState> _states = new();
     private readonly Dictionary<StoredId, Dictionary<long, StoredMessage>> _messages = new();
+    private long _nextMessagePosition;
     private readonly Lock _sync = new();
 
     public ITypeStore TypeStore { get; } = new InMemoryTypeStore();
@@ -589,7 +590,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
                 _messages[storedId] = new Dictionary<long, StoredMessage>();
 
             var messages = _messages[storedId];
-            messages[messages.Count] = storedMessage;
+            messages[_nextMessagePosition++] = storedMessage;
 
             return Interrupt(storedId);
         }
@@ -606,14 +607,14 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
 
     public async Task AppendMessages(IReadOnlyList<StoredIdAndMessageWithPosition> messages)
     {
-        foreach (var (storedId, storedMessage, position) in messages)
+        foreach (var (storedId, storedMessage, _) in messages)
         {
             lock (_sync)
             {
                 if (!_messages.ContainsKey(storedId))
                     _messages[storedId] = new Dictionary<long, StoredMessage>();
 
-                _messages[storedId].Add(position, storedMessage);
+                _messages[storedId].Add(_nextMessagePosition++, storedMessage);
             }
 
             await Interrupt(storedId);
@@ -624,10 +625,10 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
     {
         lock (_sync)
         {
-            if (!_messages.ContainsKey(storedId) || _messages[storedId].Count <= position)
+            if (!_messages.TryGetValue(storedId, out var messages) || !messages.ContainsKey(position))
                 return false.ToTask();
 
-            _messages[storedId][(int)position] = storedMessage;
+            messages[position] = storedMessage;
             return true.ToTask();
         }
     }
@@ -683,8 +684,11 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
     public Task<IDictionary<StoredId, long>> GetMaxPositions(IReadOnlyList<StoredId> storedIds)
     {
         IDictionary<StoredId, long> positions = new Dictionary<StoredId, long>();
-        foreach (var storedId in storedIds)
-            positions[storedId] = GetMessagesInternal(storedId).Count() - 1;
+        lock (_sync)
+            foreach (var storedId in storedIds)
+                positions[storedId] = _messages.TryGetValue(storedId, out var messages) && messages.Count > 0
+                    ? messages.Keys.Max()
+                    : -1;
 
         return positions.ToTask();
     }

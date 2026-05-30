@@ -455,20 +455,13 @@ public class SqlGenerator(string tablePrefix)
     private string? _appendMessagesSql;
     public StoreCommand AppendMessages(StoredId storedId, IEnumerable<StoredMessage> messages)
     {
-        // Computes per-message positions server-side so the SQL string is constant regardless of batch size.
-        // max_pos: base = COALESCE(MAX(position), -1) + 2147483647 + $2 (random) — placed well above any
-        // existing position and randomized per call so concurrent appenders to the same flow rarely collide.
-        // unnest($3::bytea[]) WITH ORDINALITY expands the byte[][] parameter into rows with a 1-based offset,
-        // so each inserted row gets a unique position = base + pos_offset, in caller order.
+        // position is assigned by the table's identity column. unnest($2::bytea[]) WITH ORDINALITY expands the
+        // byte[][] parameter into rows; ORDER BY ord makes the identity assignment follow caller order.
         _appendMessagesSql ??= @$"
-            WITH max_pos AS (
-                SELECT COALESCE(MAX(position), -1) + 2147483647 + $2 AS pos
-                FROM {tablePrefix}_messages
-                WHERE id = $1
-            )
-            INSERT INTO {tablePrefix}_messages (id, position, content)
-            SELECT $1, (SELECT pos FROM max_pos) + pos_offset, content
-            FROM unnest($3::bytea[]) WITH ORDINALITY AS t(content, pos_offset);";
+            INSERT INTO {tablePrefix}_messages (id, content)
+            SELECT $1, content
+            FROM unnest($2::bytea[]) WITH ORDINALITY AS t(content, ord)
+            ORDER BY ord;";
 
         var contents = messages
             .Select(m => BinaryPacker.Pack(
@@ -484,26 +477,26 @@ public class SqlGenerator(string tablePrefix)
             _appendMessagesSql,
             values: [
                 storedId.AsGuid,
-                (long)Random.Shared.Next(),
                 contents
             ]
         );
     }
 
+    // Position on the supplied messages is ignored — the identity column assigns it. Rows are listed in caller
+    // order so identity assignment preserves message order.
     public StoreCommand AppendMessages(IReadOnlyList<StoredIdAndMessageWithPosition> messages)
     {
-        var sql = @$"    
+        var sql = @$"
             INSERT INTO {tablePrefix}_messages
-                (id, position, content)
-            VALUES 
-                 {messages.Select((_, i) => $"(${i * 3 + 1}, ${i * 3 + 2}, ${i * 3 + 3})").StringJoin($",{Environment.NewLine}")};";
+                (id, content)
+            VALUES
+                 {messages.Select((_, i) => $"(${i * 2 + 1}, ${i * 2 + 2})").StringJoin($",{Environment.NewLine}")};";
 
         var command = StoreCommand.Create(sql);
 
-        foreach (var (storedId, (messageContent, messageType, _, idempotencyKey, sender, receiver), position) in messages)
+        foreach (var (storedId, (messageContent, messageType, _, idempotencyKey, sender, receiver), _) in messages)
         {
             command.AddParameter(storedId.AsGuid);
-            command.AddParameter(position);
             var content = BinaryPacker.Pack(
                 messageContent,
                 messageType,

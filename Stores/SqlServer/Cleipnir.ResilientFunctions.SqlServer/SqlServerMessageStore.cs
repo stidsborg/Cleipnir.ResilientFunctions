@@ -32,11 +32,11 @@ public class SqlServerMessageStore : IMessageStore
 
         _initializeSql ??= @$"
         CREATE TABLE {_tablePrefix}_Messages (
+            Position BIGINT IDENTITY(1,1) PRIMARY KEY,
             Id UNIQUEIDENTIFIER,
-            Position BIGINT,
-            Content VARBINARY(MAX),
-            PRIMARY KEY (Id, Position)
-        );";
+            Content VARBINARY(MAX)
+        );
+        CREATE INDEX {_tablePrefix}_Messages_Id ON {_tablePrefix}_Messages (Id);";
         var command = new SqlCommand(_initializeSql, conn);
         try
         {
@@ -61,23 +61,16 @@ public class SqlServerMessageStore : IMessageStore
         if (messages.Count == 0)
             return;
 
-        var randomOffset = Random.Shared.Next();
-        var values = messages.Select((_, i) => $"(@Id, @MaxPos + {i + 1}, @Content{i})").StringJoin(", ");
+        var values = messages.Select((_, i) => $"(@Id, @Content{i})").StringJoin(", ");
 
         var sql = @$"
-            DECLARE @MaxPos BIGINT;
-            SELECT @MaxPos = COALESCE(MAX(Position), -1) + 2147483647 + @RandomOffset
-            FROM {_tablePrefix}_Messages
-            WHERE Id = @Id;
-
-            INSERT INTO {_tablePrefix}_Messages (Id, Position, Content)
+            INSERT INTO {_tablePrefix}_Messages (Id, Content)
             VALUES {values};";
 
         await using var conn = await CreateConnection();
         await using var command = new SqlCommand(sql, conn);
 
         command.Parameters.AddWithValue("@Id", storedId.AsGuid);
-        command.Parameters.AddWithValue("@RandomOffset", (long)randomOffset);
 
         for (var i = 0; i < messages.Count; i++)
         {
@@ -108,16 +101,15 @@ public class SqlServerMessageStore : IMessageStore
         }
 
         var storedIds = messages.Select(m => m.StoredId).Distinct().ToList();
-        var maxPositions = await GetMaxPositions(storedIds);
 
         var interuptsSql = _sqlGenerator.Interrupt(storedIds)!;
 
         await using var conn = await CreateConnection();
         var sql = @$"
             INSERT INTO {_tablePrefix}_Messages
-                (Id, Position, Content)
+                (Id, Content)
             VALUES
-                 {messages.Select((_, i) => $"(@Id{i}, @Position{i}, @Content{i})").StringJoin($",{Environment.NewLine}")};
+                 {messages.Select((_, i) => $"(@Id{i}, @Content{i})").StringJoin($",{Environment.NewLine}")};
 
             {interuptsSql.Sql}";
 
@@ -125,10 +117,8 @@ public class SqlServerMessageStore : IMessageStore
         for (var i = 0; i < messages.Count; i++)
         {
             var (storedId, (messageContent, messageType, _, idempotencyKey, sender, receiver)) = messages[i];
-            var position = ++maxPositions[storedId];
             var content = BinaryPacker.Pack(messageContent, messageType, idempotencyKey?.ToUtf8Bytes(), sender?.ToUtf8Bytes(), receiver?.ToUtf8Bytes());
             command.Parameters.AddWithValue($"@Id{i}", storedId.AsGuid);
-            command.Parameters.AddWithValue($"@Position{i}", position);
             command.Parameters.AddWithValue($"@Content{i}", content);
         }
         foreach (var (value, name) in interuptsSql.Parameters)
