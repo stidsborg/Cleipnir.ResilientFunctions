@@ -11,10 +11,10 @@ public class FlowsManager
     private readonly Dictionary<StoredId, FlowState> _dict = new();
     private readonly Lock _lock = new();
 
-    public FlowState CreateFlow(StoredId id, FlowTimeouts timeouts)
+    public FlowState CreateFlowState(StoredId id, FlowTimeouts timeouts, Task completed)
     {
         lock (_lock)
-            return _dict[id] = new FlowState(id, subflows: 1, waitingSubflows: 0, timeouts);
+            return _dict[id] = new FlowState(id, subflows: 1, waitingSubflows: 0, timeouts, completed);
     }
 
     public void RemoveFlow(StoredId id, FlowState flowState)
@@ -37,5 +37,24 @@ public class FlowsManager
                 if (_dict.TryGetValue(id, out var flowState))
                     flowState.Interrupt();
     }
+
+    /*
+    public async Task CheckForSuspension()
+    {
+        while (true)
+        {
+            var waitingFlows = new List<FlowState>();
+            lock (_dict)
+            {
+                waitingFlows = _dict.Values.Where(s => s.)
+                foreach (var flowState in _dict.Values)
+                {
+                    flowState.
+                }
+            }
+            
+            await Task.Delay(250);
+        }
+    }*/
 
 }

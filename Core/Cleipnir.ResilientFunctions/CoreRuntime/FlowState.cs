@@ -1,9 +1,17 @@
 using System.Threading;
 using System.Threading.Tasks;
+using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Queuing;
 using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.CoreRuntime;
+
+public enum FlowStatus
+{
+    Running = 0,
+    Waiting = 1,
+    Completed = 2
+}
 
 public class FlowState
 {
@@ -18,17 +26,42 @@ public class FlowState
     public bool Suspended { get; private set; }
     public Task SuspendedTask { get; }
 
+    private FlowStatus _status = FlowStatus.Running;
+    public FlowStatus Status
+    {
+        get
+        {
+            lock (_lock)
+                return _status;
+        }
+        set
+        {
+            lock (_lock)
+                if (_status != FlowStatus.Completed)
+                    _status = value;
+        }
+    }
+
     public FlowState(
         StoredId id,
         int subflows,
         int waitingSubflows,
-        FlowTimeouts timeouts)
+        FlowTimeouts timeouts,
+        Task completed)
     {
         Id = id;
         Subflows = subflows;
         WaitingSubflows = waitingSubflows;
         Timeouts = timeouts;
         SuspendedTask = _suspendedTcs.Task;
+
+        _ = completed.ContinueWith(_ => Status = FlowStatus.Completed);
+    }
+
+    public bool Waiting()
+    {
+        lock (_lock)
+            return Subflows == WaitingSubflows;
     }
 
     public void SubflowStarted()
@@ -49,25 +82,20 @@ public class FlowState
             WaitingSubflows++;
     }
 
-    public bool TryResumeSubflow()
+    public Task ResumeSubflow()
     {
         lock (_lock)
             if (Suspended)
-                return false;
+                return ForeverTask.Instance;
             else
                 WaitingSubflows--;
 
-        return true;
+        return Task.CompletedTask;
     }
 
     public void Interrupt()
     {
-        lock (_lock)
-            if (Suspended)
-                return;
-            else
-                WaitingSubflows = 0;
-
+        if (Suspended) return;
         QueueManager?.Interrupt();
     }
 
