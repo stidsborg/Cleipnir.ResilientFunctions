@@ -1,10 +1,15 @@
 using System;
+using System.Collections.Concurrent;
 using System.Text;
 
 namespace Cleipnir.ResilientFunctions.Helpers;
 
 public static class TypeHelper
 {
+    // Type -> simplified name is a pure mapping and is computed on every serialize,
+    // so the result is cached to avoid re-parsing the assembly-qualified name repeatedly.
+    private static readonly ConcurrentDictionary<Type, string> SimpleQualifiedNameCache = new();
+
     /// <summary>
     /// Creates a simplified assembly qualified name by removing version, culture, and public key token information.
     /// This is useful for serialization scenarios where type portability across assembly versions is needed.
@@ -17,18 +22,27 @@ public static class TypeHelper
     /// instead of the full assembly qualified name with version/culture/token.
     /// </example>
     public static string SimpleQualifiedName(this Type type)
-    {
-        var assemblyQualifiedName = type.AssemblyQualifiedName;
-        if (assemblyQualifiedName == null)
-            return type.FullName ?? type.Name;
+        => SimpleQualifiedNameCache.GetOrAdd(type, static t =>
+        {
+            var assemblyQualifiedName = t.AssemblyQualifiedName;
+            if (assemblyQualifiedName == null)
+                return t.FullName ?? t.Name;
 
-        var builder = new StringBuilder(assemblyQualifiedName.Length);
-        ExtractSimplifiedName(assemblyQualifiedName, 0, builder);
-        return builder.ToString();
-    }
+            var builder = new StringBuilder(assemblyQualifiedName.Length);
+            ExtractSimplifiedName(assemblyQualifiedName, 0, builder);
+            return builder.ToString();
+        });
 
+    // Walks one bracket-scope of an assembly-qualified name, copying it while dropping
+    // the Version/Culture/PublicKeyToken segments. Recurses on '[' so each nested generic
+    // argument (and array suffix) is processed in its own scope; returns the index of the
+    // ']' that closed this scope so the caller can continue past it.
     private static int ExtractSimplifiedName(string name, int i, StringBuilder stringBuilder)
     {
+        // Within a scope the assembly qualifier is "TypeName, Assembly, Version=.., Culture=.., PublicKeyToken=..".
+        // The first "real" comma separates the type name from the assembly name (kept); any further commas
+        // begin Version/Culture/Token (dropped). Commas of the form "],[" separate generic arguments and are
+        // not assembly qualifiers, so they are excluded from the count via the lookahead below.
         var ignore = false;
         var commas = 0;
         for (; i < name.Length; i++)
@@ -47,6 +61,7 @@ public static class TypeHelper
             }
             else if (letter == ',')
             {
+                // A comma directly before '[' is a generic-argument separator ("],["), not an assembly qualifier.
                 if (i + 1 < name.Length && name[i + 1] != '[')
                     commas++;
                 ignore = commas > 1;
