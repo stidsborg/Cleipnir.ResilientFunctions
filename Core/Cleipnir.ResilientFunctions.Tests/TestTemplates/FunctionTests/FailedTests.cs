@@ -37,7 +37,6 @@ public abstract class FailedTests
                 store,
                 new Settings(
                     unhandledExceptionHandler.Catch,
-                    leaseLength: TimeSpan.Zero,
                     enableWatchdogs: false
                 )
             );
@@ -107,7 +106,6 @@ public abstract class FailedTests
                 store,
                 new Settings(
                     unhandledExceptionHandler.Catch,
-                    leaseLength: TimeSpan.FromMilliseconds(0),
                     enableWatchdogs: false
                 )
             );
@@ -129,7 +127,6 @@ public abstract class FailedTests
                     store,
                     new Settings(
                         unhandledExceptionHandler.Catch,
-                        leaseLength: TimeSpan.FromMilliseconds(100),
                         watchdogCheckFrequency: TimeSpan.FromMilliseconds(100)
                     )
                 );
@@ -169,7 +166,6 @@ public abstract class FailedTests
                 store,
                 new Settings(
                     unhandledExceptionHandler.Catch,
-                    leaseLength: TimeSpan.FromMilliseconds(0),
                     enableWatchdogs: false
                 )
             );
@@ -188,7 +184,6 @@ public abstract class FailedTests
                 store,
                 new Settings(
                     unhandledExceptionHandler.Catch,
-                    leaseLength: TimeSpan.FromMilliseconds(100),
                     watchdogCheckFrequency: TimeSpan.FromMilliseconds(100)
                 )
             );
@@ -224,7 +219,6 @@ public abstract class FailedTests
             store,
             new Settings(
                 unhandledExceptionHandler.Catch,
-                leaseLength: TimeSpan.FromMilliseconds(2),
                 watchdogCheckFrequency: TimeSpan.FromMilliseconds(2)
             )
         );
@@ -266,7 +260,7 @@ public abstract class FailedTests
         {
             using var functionsRegistry = new FunctionsRegistry(
                 store,
-                new Settings(unhandledExceptionHandler.Catch, leaseLength: TimeSpan.Zero, enableWatchdogs: false)
+                new Settings(unhandledExceptionHandler.Catch, enableWatchdogs: false)
             );
             var nonCompletingFunctionsRegistry = functionsRegistry 
                 .RegisterAction(
@@ -283,7 +277,7 @@ public abstract class FailedTests
             var flag = new SyncedFlag();
             using var functionsRegistry = new FunctionsRegistry(
                 store,
-                new Settings(unhandledExceptionHandler.Catch, leaseLength: TimeSpan.FromMilliseconds(100))
+                new Settings(unhandledExceptionHandler.Catch)
             );
             var rFunc = functionsRegistry.RegisterAction(
                 flowType,

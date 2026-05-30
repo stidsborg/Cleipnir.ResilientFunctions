@@ -16,7 +16,7 @@ public static class TickExample
         var store = new PostgreSqlFunctionStore(connectionString, "tickering_flow");
         await store.Initialize();
         
-        var registry = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler: Console.WriteLine, leaseLength: TimeSpan.FromSeconds(1)));
+        var registry = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler: Console.WriteLine));
         
         var registration = registry.RegisterAction(
             flowType: "Tick",

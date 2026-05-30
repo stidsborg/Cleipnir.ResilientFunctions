@@ -24,7 +24,6 @@ public abstract class ReInvocationTests
             store,
             new Settings(
                 unhandledExceptionCatcher.Catch,
-                leaseLength: TimeSpan.Zero,
                 enableWatchdogs: false
             )
         );
@@ -71,7 +70,6 @@ public abstract class ReInvocationTests
             store,
             new Settings(
                 unhandledExceptionCatcher.Catch,
-                leaseLength: TimeSpan.Zero,
                 enableWatchdogs: false
             )
         );
@@ -121,7 +119,6 @@ public abstract class ReInvocationTests
             store,
             new Settings(
                 unhandledExceptionCatcher.Catch,
-                leaseLength: TimeSpan.Zero,
                 enableWatchdogs: false
             )
         );
@@ -172,7 +169,6 @@ public abstract class ReInvocationTests
             store,
             new Settings(
                 unhandledExceptionCatcher.Catch,
-                leaseLength: TimeSpan.Zero,
                 enableWatchdogs: false
             )
         );
@@ -219,7 +215,6 @@ public abstract class ReInvocationTests
             store,
             new Settings(
                 unhandledExceptionCatcher.Catch,
-                leaseLength: TimeSpan.Zero,
                 enableWatchdogs: false
             )
         );

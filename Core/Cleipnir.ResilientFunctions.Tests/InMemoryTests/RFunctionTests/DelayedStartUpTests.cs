@@ -23,7 +23,6 @@ public class DelayedStartUpTests
         var stopWatch = new Stopwatch();
         stopWatch.Start();
         using var rFunctions = new FunctionsRegistry(store, new Settings(
-            leaseLength: TimeSpan.FromMilliseconds(10),
             delayStartup: TimeSpan.FromSeconds(1))
         );
         var registration = rFunctions.RegisterAction(
@@ -34,7 +33,6 @@ public class DelayedStartUpTests
             registration.MapToStoredId(functionId.Instance), 
             "humanInstanceId",
             "hello world".ToJson().ToUtf8Bytes(),
-            leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: 0,
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
@@ -58,7 +56,6 @@ public class DelayedStartUpTests
             storedId, 
             "humanInstanceId",
             "hello world".ToJson().ToUtf8Bytes(),
-            leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: 0,
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
@@ -68,7 +65,7 @@ public class DelayedStartUpTests
         var stopWatch = new Stopwatch();
         stopWatch.Start();
         
-        using var rFunctions = new FunctionsRegistry(store, new Settings(leaseLength: TimeSpan.FromMilliseconds(10)));
+        using var rFunctions = new FunctionsRegistry(store);
         rFunctions.RegisterAction(
             flowId.Type,
             Task (string param) => Task.CompletedTask
@@ -101,7 +98,6 @@ public class DelayedStartUpTests
             registration.MapToStoredId(functionId.Instance), 
             "humanInstanceId",
             storedParameter.ToUtf8Bytes(),
-            leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
@@ -141,7 +137,6 @@ public class DelayedStartUpTests
             registration.MapToStoredId(functionId.Instance), 
             "humanInstanceId",
             storedParameter,
-            leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,

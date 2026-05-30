@@ -23,7 +23,6 @@ public abstract class ScheduleReInvocationTests
             store,
             new Settings(
                 unhandledExceptionCatcher.Catch,
-                leaseLength: TimeSpan.Zero,
                 enableWatchdogs: false
             )
         );
@@ -76,7 +75,6 @@ public abstract class ScheduleReInvocationTests
             store,
             new Settings(
                 unhandledExceptionCatcher.Catch,
-                leaseLength: TimeSpan.Zero,
                 enableWatchdogs: false
             )
         );

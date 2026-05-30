@@ -31,7 +31,6 @@ public static class PostponedTest
                 StoredId.Create(storedType, i.ToString()),
                 "humanInstanceId",
                 storedParameter.ToUtf8Bytes(),
-                leaseExpiration: DateTime.UtcNow.Ticks,
                 postponeUntil: null,
                 timestamp: DateTime.UtcNow.Ticks,
                 parent: null,

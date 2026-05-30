@@ -26,7 +26,6 @@ public abstract class DoubleInvocationTests
             store,
             new Settings(
                 unhandledExceptionHandler.Catch,
-                leaseLength: TimeSpan.Zero,
                 enableWatchdogs: false
             )
         );
@@ -63,7 +62,6 @@ public abstract class DoubleInvocationTests
             store,
             new Settings(
                 unhandledExceptionHandler.Catch,
-                leaseLength: TimeSpan.Zero,
                 enableWatchdogs: false
             )
         );
@@ -95,7 +93,6 @@ public abstract class DoubleInvocationTests
             store,
             new Settings(
                 unhandledExceptionHandler.Catch,
-                leaseLength: TimeSpan.Zero,
                 enableWatchdogs: false
             )
         );
@@ -127,7 +124,6 @@ public abstract class DoubleInvocationTests
             store,
             new Settings(
                 unhandledExceptionHandler.Catch,
-                leaseLength: TimeSpan.Zero,
                 enableWatchdogs: false
             )
         );

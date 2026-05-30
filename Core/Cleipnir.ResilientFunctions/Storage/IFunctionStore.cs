@@ -15,10 +15,9 @@ public interface IFunctionStore
     public Task Initialize();
     
     Task<IStorageSession?> CreateFunction(
-        StoredId storedId, 
+        StoredId storedId,
         FlowInstance humanInstanceId,
         byte[]? param,
-        long leaseExpiration,
         long? postponeUntil,
         long timestamp,
         StoredId? parent,

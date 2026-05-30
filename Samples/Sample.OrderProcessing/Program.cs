@@ -20,8 +20,7 @@ internal static class Program
         var functionsRegistry = new FunctionsRegistry(
             store,
             new Settings(
-                unhandledExceptionHandler: e => Log.Logger.Error(e, "Unhandled framework exception occured"),
-                leaseLength: TimeSpan.FromSeconds(5)
+                unhandledExceptionHandler: e => Log.Logger.Error(e, "Unhandled framework exception occured")
             )
         );
         

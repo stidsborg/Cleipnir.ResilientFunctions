@@ -31,7 +31,6 @@ public abstract class WatchdogCompoundTests
                 crashableStore,
                 new Settings(
                     unhandledExceptionCatcher.Catch,
-                    leaseLength: TimeSpan.FromMilliseconds(100),
                     watchdogCheckFrequency: TimeSpan.FromMilliseconds(100)
                 )
             );
@@ -60,7 +59,6 @@ public abstract class WatchdogCompoundTests
                 crashableStore,
                 new Settings(
                     unhandledExceptionCatcher.Catch,
-                    leaseLength: TimeSpan.FromMilliseconds(100),
                     watchdogCheckFrequency: TimeSpan.FromMilliseconds(100)
                 )
             );
@@ -85,7 +83,6 @@ public abstract class WatchdogCompoundTests
                 crashableStore,
                 new Settings(
                     unhandledExceptionCatcher.Catch,
-                    leaseLength: TimeSpan.FromMilliseconds(100),
                     watchdogCheckFrequency: TimeSpan.FromMilliseconds(100)
                 )
             );
@@ -108,7 +105,6 @@ public abstract class WatchdogCompoundTests
                 store,
                 new Settings(
                     unhandledExceptionCatcher.Catch,
-                    leaseLength: TimeSpan.FromMilliseconds(100),
                     watchdogCheckFrequency: TimeSpan.FromMilliseconds(100)
                 )
             );
@@ -145,7 +141,6 @@ public abstract class WatchdogCompoundTests
                 crashableStore,
                 new Settings(
                     unhandledExceptionCatcher.Catch,
-                    leaseLength: TimeSpan.FromMilliseconds(100),
                     watchdogCheckFrequency: TimeSpan.FromMilliseconds(100)
                 )
             );
@@ -174,7 +169,6 @@ public abstract class WatchdogCompoundTests
                 crashableStore,
                 new Settings(
                     unhandledExceptionCatcher.Catch,
-                    leaseLength: TimeSpan.FromMilliseconds(100),
                     watchdogCheckFrequency: TimeSpan.FromMilliseconds(100)
                 )
             );
@@ -202,7 +196,6 @@ public abstract class WatchdogCompoundTests
                 crashableStore,
                 new Settings(
                     unhandledExceptionCatcher.Catch,
-                    leaseLength: TimeSpan.FromMilliseconds(100),
                     watchdogCheckFrequency: TimeSpan.FromMilliseconds(100)
                 )
             );
@@ -227,7 +220,6 @@ public abstract class WatchdogCompoundTests
                 store,
                 new Settings(
                     unhandledExceptionCatcher.Catch,
-                    leaseLength: TimeSpan.FromMilliseconds(100),
                     watchdogCheckFrequency: TimeSpan.FromMilliseconds(100)
                 )
             );
@@ -259,7 +251,6 @@ public abstract class WatchdogCompoundTests
             store,
             new Settings(
                 unhandledExceptionCatcher.Catch,
-                leaseLength: TimeSpan.FromMilliseconds(100),
                 watchdogCheckFrequency: TimeSpan.FromMilliseconds(100),
                 retentionPeriod: TimeSpan.FromMilliseconds(100)
             )
@@ -288,7 +279,6 @@ public abstract class WatchdogCompoundTests
             store,
             new Settings(
                 unhandledExceptionCatcher.Catch,
-                leaseLength: TimeSpan.FromMilliseconds(100),
                 watchdogCheckFrequency: TimeSpan.FromMilliseconds(100),
                 retentionPeriod: TimeSpan.FromMilliseconds(100)
             )

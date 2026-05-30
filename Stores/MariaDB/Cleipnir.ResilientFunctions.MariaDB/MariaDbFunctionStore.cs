@@ -96,7 +96,6 @@ public class MariaDbFunctionStore : IFunctionStore
         StoredId storedId,
         FlowInstance humanInstanceId,
         byte[]? param,
-        long leaseExpiration,
         long? postponeUntil,
         long timestamp,
         StoredId? parent,
@@ -120,7 +119,7 @@ public class MariaDbFunctionStore : IFunctionStore
         {
             await using var conn = await CreateOpenConnection(_connectionString);
             await using var command = _sqlGenerator
-                .CreateFunction(storedId, humanInstanceId, param, leaseExpiration, postponeUntil, timestamp, parent, owner, ignoreDuplicate: true, effects: effectsBytes)
+                .CreateFunction(storedId, humanInstanceId, param, postponeUntil, timestamp, parent, owner, ignoreDuplicate: true, effects: effectsBytes)
                 .ToSqlCommand(conn);
             var affectedRows = await command.ExecuteNonQueryAsync();
             if (affectedRows != 1 || owner == null)
@@ -130,7 +129,7 @@ public class MariaDbFunctionStore : IFunctionStore
         }
         else
         {
-            var storeCommand = _sqlGenerator.CreateFunction(storedId, humanInstanceId, param, leaseExpiration, postponeUntil, timestamp, parent, owner, ignoreDuplicate: false, effects: effectsBytes);
+            var storeCommand = _sqlGenerator.CreateFunction(storedId, humanInstanceId, param, postponeUntil, timestamp, parent, owner, ignoreDuplicate: false, effects: effectsBytes);
 
             var messagesCommand = _sqlGenerator.AppendMessages(
                 messages.Select(msg => new StoredIdAndMessage(storedId, msg)).ToList()

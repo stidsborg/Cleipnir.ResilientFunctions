@@ -281,7 +281,6 @@ public abstract class ReplicaWatchdogTests
             storedId,
             humanInstanceId: "SomeInstanceId",
             param: null,
-            leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
@@ -366,9 +365,8 @@ public abstract class ReplicaWatchdogTests
         var flowId = TestFlowId.Create();
         var (flowType, flowInstance) = flowId;
 
-        var settings = new Settings(leaseLength: TimeSpan.FromMilliseconds(250));
-        using var crashingRegistry = new FunctionsRegistry(functionStore, settings);
-        using var overtakingRegistry = new FunctionsRegistry(functionStore, settings);
+        using var crashingRegistry = new FunctionsRegistry(functionStore);
+        using var overtakingRegistry = new FunctionsRegistry(functionStore);
 
         var insideTest1 = new SyncedFlag();
         var insideTest2 = new SyncedFlag();

@@ -26,7 +26,6 @@ public abstract class MessagesSubscriptionTests
             functionId,
             "humanInstanceId",
             Test.SimpleStoredParameter,
-            leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,

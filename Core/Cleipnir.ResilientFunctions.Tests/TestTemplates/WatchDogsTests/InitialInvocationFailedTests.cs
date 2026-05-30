@@ -18,7 +18,7 @@ public abstract class InitialInvocationFailedTests
         var functionId = TestFlowId.Create();
 
         var flag = new SyncedFlag();
-        using var functionsRegistry = new FunctionsRegistry(store, new Settings(leaseLength: TimeSpan.FromMilliseconds(100)));
+        using var functionsRegistry = new FunctionsRegistry(store);
         var registration = functionsRegistry.RegisterAction(
             functionId.Type,
             Task (string param) =>
@@ -31,7 +31,6 @@ public abstract class InitialInvocationFailedTests
             registration.MapToStoredId(functionId.Instance), 
             "humanInstanceId",
             param: "hello world".ToJson().ToUtf8Bytes(),
-            leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: 0,
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
@@ -52,7 +51,7 @@ public abstract class InitialInvocationFailedTests
         var functionId = TestFlowId.Create();
 
         var flag = new SyncedFlag();
-        using var functionsRegistry = new FunctionsRegistry(store, new Settings(leaseLength: TimeSpan.FromMilliseconds(100)));
+        using var functionsRegistry = new FunctionsRegistry(store);
         var registration = functionsRegistry.RegisterAction<string>(
             functionId.Type,
             Task (string param) =>
@@ -65,7 +64,6 @@ public abstract class InitialInvocationFailedTests
             registration.MapToStoredId(functionId.Instance), 
             "humanInstanceId",
             param: "hello world".ToJson().ToUtf8Bytes(),
-            leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: 0,
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
@@ -86,7 +84,7 @@ public abstract class InitialInvocationFailedTests
         var functionId = TestFlowId.Create();
 
         var flag = new SyncedFlag();
-        using var functionsRegistry = new FunctionsRegistry(store, new Settings(leaseLength: TimeSpan.FromMilliseconds(100)));
+        using var functionsRegistry = new FunctionsRegistry(store);
         var registration = functionsRegistry.RegisterFunc(
             functionId.Type,
             Task<string> (string param) =>
@@ -99,7 +97,6 @@ public abstract class InitialInvocationFailedTests
             registration.MapToStoredId(functionId.Instance), 
             "humanInstanceId",
             param: "hello world".ToJson().ToUtf8Bytes(),
-            leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: 0,
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
@@ -125,7 +122,7 @@ public abstract class InitialInvocationFailedTests
         var functionId = TestFlowId.Create();
 
         var flag = new SyncedFlag();
-        using var functionsRegistry = new FunctionsRegistry(store, new Settings(leaseLength: TimeSpan.FromMilliseconds(100)));
+        using var functionsRegistry = new FunctionsRegistry(store);
         var registration = functionsRegistry.RegisterFunc(
             functionId.Type,
             Task<string> (string param) =>
@@ -138,7 +135,6 @@ public abstract class InitialInvocationFailedTests
             registration.MapToStoredId(functionId.Instance), 
             "humanInstanceId",
             param: "hello world".ToJson().ToUtf8Bytes(),
-            leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: 0,
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,

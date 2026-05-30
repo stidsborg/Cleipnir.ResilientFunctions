@@ -80,7 +80,6 @@ public abstract class PostponedTests
                 store,
                 new Settings(
                     unhandledExceptionHandler.Catch,
-                    leaseLength: TimeSpan.Zero,
                     enableWatchdogs: false
                 )
             );
@@ -125,7 +124,6 @@ public abstract class PostponedTests
             (
                 crashableStore,
                 new Settings(
-                    leaseLength: TimeSpan.Zero,
                     enableWatchdogs: false
                 )
             );
@@ -205,7 +203,6 @@ public abstract class PostponedTests
                 rAction.MapToStoredId(functionId.Instance),
                 "humanInstanceId",
                 param: "hello".ToJson().ToUtf8Bytes(),
-                leaseExpiration: DateTime.UtcNow.Ticks,
                 postponeUntil: null,
                 timestamp: DateTime.UtcNow.Ticks,
                 parent: null,
@@ -230,7 +227,6 @@ public abstract class PostponedTests
                 rAction.MapToStoredId(functionId.Instance),
                 "humanInstanceId",
                 param: "hello".ToJson().ToUtf8Bytes(),
-                leaseExpiration: DateTime.UtcNow.Ticks,
                 postponeUntil: null,
                 timestamp: DateTime.UtcNow.Ticks,
                 parent: null,
@@ -295,7 +291,6 @@ public abstract class PostponedTests
                 rAction.MapToStoredId(functionId.Instance),
                 "humanInstanceId",
                 param: "hello".ToJson().ToUtf8Bytes(),
-                leaseExpiration: DateTime.UtcNow.Ticks,
                 postponeUntil: null,
                 timestamp: DateTime.UtcNow.Ticks,
                 parent: null,
@@ -320,7 +315,6 @@ public abstract class PostponedTests
                 rAction.MapToStoredId(functionId.Instance),
                 "humanInstanceId",
                 param: "hello".ToJson().ToUtf8Bytes(),
-                leaseExpiration: DateTime.UtcNow.Ticks,
                 postponeUntil: null,
                 timestamp: DateTime.UtcNow.Ticks,
                 parent: null,
@@ -396,7 +390,6 @@ public abstract class PostponedTests
                 rFunc.MapToStoredId(functionId.Instance),
                 "humanInstanceId",
                 param: "hello".ToJson().ToUtf8Bytes(),
-                leaseExpiration: DateTime.UtcNow.Ticks,
                 postponeUntil: null,
                 timestamp: DateTime.UtcNow.Ticks,
                 parent: null,
@@ -420,7 +413,6 @@ public abstract class PostponedTests
                 rFunc.MapToStoredId(functionId.Instance),
                 "humanInstanceId",
                 param: "hello".ToJson().ToUtf8Bytes(),
-                leaseExpiration: DateTime.UtcNow.Ticks,
                 postponeUntil: null,
                 timestamp: DateTime.UtcNow.Ticks,
                 parent: null,
@@ -494,7 +486,6 @@ public abstract class PostponedTests
                 rFunc.MapToStoredId(functionId.Instance),
                 "humanInstanceId",
                 "hello".ToJson().ToUtf8Bytes(),
-                leaseExpiration: DateTime.UtcNow.Ticks,
                 postponeUntil: null,
                 timestamp: DateTime.UtcNow.Ticks,
                 parent: null,
@@ -519,7 +510,6 @@ public abstract class PostponedTests
                 rFunc.MapToStoredId(functionId.Instance),
                 "humanInstanceId",
                 param: "hello".ToJson().ToUtf8Bytes(),
-                leaseExpiration: DateTime.UtcNow.Ticks,
                 postponeUntil: null,
                 timestamp: DateTime.UtcNow.Ticks,
                 parent: null,
@@ -557,7 +547,6 @@ public abstract class PostponedTests
             storedId, 
             "humanInstanceId",
             storedParameter.ToUtf8Bytes(),
-            leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
@@ -655,7 +644,6 @@ public abstract class PostponedTests
             store,
             new Settings(
                 unhandledExceptionHandler.Catch,
-                leaseLength: TimeSpan.Zero,
                 watchdogCheckFrequency: TimeSpan.FromSeconds(1)
             )
         );

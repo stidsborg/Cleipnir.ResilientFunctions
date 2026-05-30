@@ -23,12 +23,10 @@ public abstract class StoreCrudTests
     {
         var store = await storeTask;
         
-        var leaseExpiration = DateTime.UtcNow.Ticks;
         var session = await store.CreateFunction(
             StoredId,
             "humanInstanceId",
             Param.ToUtf8Bytes(),
-            leaseExpiration,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
@@ -43,19 +41,17 @@ public abstract class StoreCrudTests
         var resultBytes = results.TryGetValue(StoredId, out var rb) ? rb : null;
         resultBytes.ShouldBeNull();
         stored.Status.ShouldBe(Status.Executing);
-        stored.Expires.ShouldBe(leaseExpiration);
+        stored.Expires.ShouldBe(0);
     }
 
     public abstract Task FunctionCanBeCreatedWithTwoParametersSuccessfully();
     protected async Task FunctionCanBeCreatedWithTwoParametersSuccessfully(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var leaseExpiration = DateTime.UtcNow.Ticks;
         var session = await store.CreateFunction(
             StoredId,
             "humanInstanceId",
             Param.ToUtf8Bytes(),
-            leaseExpiration,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
@@ -70,19 +66,17 @@ public abstract class StoreCrudTests
         var resultBytes = results.TryGetValue(StoredId, out var rb) ? rb : null;
         resultBytes.ShouldBeNull();
         stored.Status.ShouldBe(Status.Executing);
-        stored.Expires.ShouldBe(leaseExpiration);
+        stored.Expires.ShouldBe(0);
     }
 
     public abstract Task FunctionCanBeCreatedWithTwoParametersAndStateSuccessfully();
     protected async Task FunctionCanBeCreatedWithTwoParametersAndStateSuccessfully(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var leaseExpiration = DateTime.UtcNow.Ticks;
         var session = await store.CreateFunction(
             StoredId,
             "humanInstanceId",
             Param.ToUtf8Bytes(),
-            leaseExpiration,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
@@ -97,7 +91,7 @@ public abstract class StoreCrudTests
         var resultBytes = results.TryGetValue(StoredId, out var rb) ? rb : null;
         resultBytes.ShouldBeNull();
         stored.Status.ShouldBe(Status.Executing);
-        stored.Expires.ShouldBe(leaseExpiration);
+        stored.Expires.ShouldBe(0);
     }
 
     public abstract Task FetchingNonExistingFunctionReturnsNull();
@@ -116,7 +110,6 @@ public abstract class StoreCrudTests
             StoredId, 
             "humanInstanceId",
             Param.ToUtf8Bytes(),
-            leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
@@ -144,7 +137,6 @@ public abstract class StoreCrudTests
             StoredId, 
             "humanInstanceId",
             Param.ToUtf8Bytes(),
-            leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
@@ -171,7 +163,6 @@ public abstract class StoreCrudTests
             storedId,
             "humanInstanceId",
             Param.ToUtf8Bytes(),
-            leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
@@ -213,7 +204,6 @@ public abstract class StoreCrudTests
             StoredId,
             "humanInstanceId",
             Param.ToUtf8Bytes(),
-            leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
@@ -245,7 +235,6 @@ public abstract class StoreCrudTests
             StoredId,
             "humanInstanceId",
             Param.ToUtf8Bytes(),
-            leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
@@ -276,7 +265,6 @@ public abstract class StoreCrudTests
             StoredId,
             "humanInstanceId",
             Param.ToUtf8Bytes(),
-            leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
@@ -304,7 +292,6 @@ public abstract class StoreCrudTests
             StoredId, 
             "humanInstanceId",
             Param.ToUtf8Bytes(),
-            leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
@@ -339,7 +326,6 @@ public abstract class StoreCrudTests
             storedId1,
             "instance1",
             Param.ToUtf8Bytes(),
-            leaseExpiration: 0,
             postponeUntil: DateTime.UtcNow.Ticks,
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
@@ -349,7 +335,6 @@ public abstract class StoreCrudTests
             storedId2,
             "instance2",
             Param.ToUtf8Bytes(),
-            leaseExpiration: 0,
             postponeUntil: DateTime.UtcNow.Ticks,
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
@@ -359,7 +344,6 @@ public abstract class StoreCrudTests
             storedId3,
             "instance3",
             Param.ToUtf8Bytes(),
-            leaseExpiration: 0,
             postponeUntil: DateTime.UtcNow.Ticks,
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
@@ -397,7 +381,6 @@ public abstract class StoreCrudTests
             storedId1,
             "instance1",
             Param.ToUtf8Bytes(),
-            leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
@@ -407,7 +390,6 @@ public abstract class StoreCrudTests
             storedId2,
             "instance2",
             Param.ToUtf8Bytes(),
-            leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
@@ -435,7 +417,6 @@ public abstract class StoreCrudTests
             storedId1,
             "instance1",
             Param.ToUtf8Bytes(),
-            leaseExpiration: 0,
             postponeUntil: DateTime.UtcNow.Ticks,
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
@@ -445,7 +426,6 @@ public abstract class StoreCrudTests
             storedId2,
             "instance2",
             Param.ToUtf8Bytes(),
-            leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
@@ -455,7 +435,6 @@ public abstract class StoreCrudTests
             storedId3,
             "instance3",
             Param.ToUtf8Bytes(),
-            leaseExpiration: 0,
             postponeUntil: DateTime.UtcNow.Ticks,
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
@@ -528,7 +507,6 @@ public abstract class StoreCrudTests
             storedId1,
             "instance1",
             Param.ToUtf8Bytes(),
-            leaseExpiration: 0,
             postponeUntil: DateTime.UtcNow.Ticks,
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
@@ -540,7 +518,6 @@ public abstract class StoreCrudTests
             storedId2,
             "instance2",
             Param.ToUtf8Bytes(),
-            leaseExpiration: 0,
             postponeUntil: DateTime.UtcNow.Ticks,
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,

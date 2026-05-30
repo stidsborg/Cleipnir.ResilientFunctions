@@ -24,14 +24,12 @@ public static class CrashedTest
         var storedType = await store.TypeStore.InsertOrGetStoredType(flowType);
         
         Console.WriteLine("CRASHED_TEST: Initializing");
-        var leaseExpiration = DateTime.UtcNow.Ticks;
         for (var i = 0; i < testSize; i++)
         {
             await store.CreateFunction(
                 StoredId.Create(storedType, i.ToString()),
                 humanInstanceId: "humanInstanceId",
                 param: JsonSerializer.Serialize("hello world").ToUtf8Bytes(),
-                leaseExpiration,
                 postponeUntil: 0,
                 timestamp: DateTime.UtcNow.Ticks,
                 parent: null,
