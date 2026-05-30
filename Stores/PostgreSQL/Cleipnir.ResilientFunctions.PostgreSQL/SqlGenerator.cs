@@ -181,7 +181,6 @@ public class SqlGenerator(string tablePrefix)
         StoredId storedId,
         FlowInstance humanInstanceId,
         byte[]? param,
-        long leaseExpiration,
         long? postponeUntil,
         long timestamp,
         StoredId? parent,
@@ -203,7 +202,7 @@ public class SqlGenerator(string tablePrefix)
                 [
                     storedId.AsGuid,
                     (int)(postponeUntil == null ? Status.Executing : Status.Postponed),
-                    postponeUntil ?? leaseExpiration,
+                    postponeUntil ?? 0,
                     owner?.AsGuid ?? (object)DBNull.Value,
                     timestamp,
                     param == null ? DBNull.Value : param,
@@ -225,7 +224,7 @@ public class SqlGenerator(string tablePrefix)
                 [
                     storedId.AsGuid,
                     (int)(postponeUntil == null ? Status.Executing : Status.Postponed),
-                    postponeUntil ?? leaseExpiration,
+                    postponeUntil ?? 0,
                     owner?.AsGuid ?? (object)DBNull.Value,
                     timestamp,
                     param == null ? DBNull.Value : param,

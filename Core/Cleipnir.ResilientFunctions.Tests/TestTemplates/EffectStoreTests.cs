@@ -21,7 +21,6 @@ public abstract class EffectStoreTests
             functionId,
             "HumanInstanceId",
             param: null,
-            leaseExpiration: 0,
             postponeUntil: null,
             timestamp: 0,
             parent: null,
@@ -81,7 +80,6 @@ public abstract class EffectStoreTests
             functionId,
             "HumanInstanceId",
             param: null,
-            leaseExpiration: 0,
             postponeUntil: null,
             timestamp: 0,
             parent: null,
@@ -124,7 +122,6 @@ public abstract class EffectStoreTests
             functionId,
             "HumanInstanceId",
             param: null,
-            leaseExpiration: 0,
             postponeUntil: null,
             timestamp: 0,
             parent: null,
@@ -167,7 +164,6 @@ public abstract class EffectStoreTests
             functionId,
             "HumanInstanceId",
             param: null,
-            leaseExpiration: 0,
             postponeUntil: null,
             timestamp: 0,
             parent: null,
@@ -223,7 +219,6 @@ public abstract class EffectStoreTests
             functionId,
             "HumanInstanceId",
             param: null,
-            leaseExpiration: 0,
             postponeUntil: null,
             timestamp: 0,
             parent: null,
@@ -233,7 +228,6 @@ public abstract class EffectStoreTests
             otherFunctionId,
             "OtherInstanceId",
             param: null,
-            leaseExpiration: 0,
             postponeUntil: null,
             timestamp: 0,
             parent: null,
@@ -288,7 +282,6 @@ public abstract class EffectStoreTests
             functionId,
             "HumanInstanceId",
             param: null,
-            leaseExpiration: 0,
             postponeUntil: null,
             timestamp: 0,
             parent: null,
@@ -298,7 +291,6 @@ public abstract class EffectStoreTests
             otherFunctionId,
             "OtherInstanceId",
             param: null,
-            leaseExpiration: 0,
             postponeUntil: null,
             timestamp: 0,
             parent: null,
@@ -347,7 +339,6 @@ public abstract class EffectStoreTests
             storedId,
             "HumanInstanceId",
             param: null,
-            leaseExpiration: 0,
             postponeUntil: null,
             timestamp: 0,
             parent: null,
@@ -392,7 +383,6 @@ public abstract class EffectStoreTests
             storedId,
             "HumanInstanceId",
             param: null,
-            leaseExpiration: 0,
             postponeUntil: null,
             timestamp: 0,
             parent: null,
@@ -447,7 +437,6 @@ public abstract class EffectStoreTests
             storedId,
             "HumanInstanceId",
             param: null,
-            leaseExpiration: 0,
             postponeUntil: null,
             timestamp: 0,
             parent: null,
@@ -496,7 +485,6 @@ public abstract class EffectStoreTests
             storedId,
             "HumanInstanceId",
             param: null,
-            leaseExpiration: 0,
             postponeUntil: null,
             timestamp: 0,
             parent: null,
@@ -520,7 +508,6 @@ public abstract class EffectStoreTests
             id1,
             "HumanInstanceId1",
             param: null,
-            leaseExpiration: 0,
             postponeUntil: null,
             timestamp: 0,
             parent: null,
@@ -530,7 +517,6 @@ public abstract class EffectStoreTests
             id2,
             "HumanInstanceId2",
             param: null,
-            leaseExpiration: 0,
             postponeUntil: null,
             timestamp: 0,
             parent: null,
@@ -580,7 +566,6 @@ public abstract class EffectStoreTests
             storedId,
             "SomeInstanceId",
             param: null,
-            leaseExpiration: 0,
             postponeUntil: null,
             timestamp: 0,
             parent: null,
@@ -622,7 +607,6 @@ public abstract class EffectStoreTests
             storedId,
             "SomeInstanceId",
             param: null,
-            leaseExpiration: 0,
             postponeUntil: null,
             timestamp: 0,
             parent: null,
@@ -684,7 +668,7 @@ public abstract class EffectStoreTests
         var storedId = TestStoredId.Create();
 
         // Create initial session
-        var session = await store.CreateFunction(storedId, "instance", null, 0, null, 0, null, ReplicaId.NewId());
+        var session = await store.CreateFunction(storedId, "instance", null, null, 0, null, ReplicaId.NewId());
 
         // Sequential updates - each should increment version properly
         var effect1 = new StoredEffect(1.ToEffectId(), WorkStatus.Completed, "result1".ToUtf8Bytes(), null, Alias: null);
@@ -712,7 +696,7 @@ public abstract class EffectStoreTests
         var storedId = TestStoredId.Create();
 
         // Create initial session
-        var session = await store.CreateFunction(storedId, "instance", null, 0, null, 0, null, ReplicaId.NewId());
+        var session = await store.CreateFunction(storedId, "instance", null, null, 0, null, ReplicaId.NewId());
 
         // Insert 100 effects
         const int effectCount = 100;
@@ -747,7 +731,6 @@ public abstract class EffectStoreTests
             storedId,
             "HumanInstanceId",
             param: null,
-            leaseExpiration: 0,
             postponeUntil: null,
             timestamp: 0,
             parent: null,
@@ -826,7 +809,7 @@ public abstract class EffectStoreTests
         var storedId = TestStoredId.Create();
 
         // Create initial session
-        var session = await store.CreateFunction(storedId, "instance", null, 0, null, 0, null, ReplicaId.NewId());
+        var session = await store.CreateFunction(storedId, "instance", null, null, 0, null, ReplicaId.NewId());
 
         // INSERT effect1
         var effect1 = new StoredEffect(1.ToEffectId(), WorkStatus.Started, null, null, Alias: null);
@@ -875,7 +858,6 @@ public abstract class EffectStoreTests
             functionId,
             "HumanInstanceId",
             param: null,
-            leaseExpiration: 0,
             postponeUntil: null,
             timestamp: 0,
             parent: null,

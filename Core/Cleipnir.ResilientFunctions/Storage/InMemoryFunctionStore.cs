@@ -31,7 +31,6 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         StoredId storedId,
         FlowInstance humanInstanceId,
         byte[]? param,
-        long leaseExpiration,
         long? postponeUntil,
         long timestamp,
         StoredId? parent,
@@ -52,7 +51,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
                 Status = postponeUntil == null ? Status.Executing : Status.Postponed,
                 Exception = null,
                 Result = null,
-                Expires = postponeUntil ?? leaseExpiration,
+                Expires = postponeUntil ?? 0,
                 Timestamp = timestamp,
                 Parent = parent,
                 Owner = owner

@@ -75,7 +75,6 @@ internal class InvocationHelper<TParam, TReturn>
                 storedId,
                 humanInstanceId,
                 storedParameter,
-                leaseExpiration: utcNowTicks,
                 postponeUntil: scheduleAt?.ToUniversalTime().Ticks,
                 timestamp: utcNowTicks,
                 parent,

@@ -281,7 +281,6 @@ public abstract class ReplicaWatchdogTests
             storedId,
             humanInstanceId: "SomeInstanceId",
             param: null,
-            leaseExpiration: DateTime.UtcNow.Ticks,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
