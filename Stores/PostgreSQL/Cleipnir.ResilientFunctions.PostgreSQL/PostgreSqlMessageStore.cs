@@ -37,11 +37,11 @@ public class PostgreSqlMessageStore : IMessageStore
         await using var conn = await CreateConnection();
         _initializeSql ??= @$"
             CREATE TABLE IF NOT EXISTS {tablePrefix}_messages (
+                position BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
                 id UUID,
-                position BIGINT,
-                content BYTEA,
-                PRIMARY KEY (id, position)
-            );";
+                content BYTEA
+            );
+            CREATE INDEX IF NOT EXISTS {tablePrefix}_messages_id_idx ON {tablePrefix}_messages (id);";
 
         var command = new NpgsqlCommand(_initializeSql, conn);
         await command.ExecuteNonQueryAsync();
