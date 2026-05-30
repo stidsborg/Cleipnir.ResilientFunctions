@@ -167,7 +167,7 @@ public class SqlServerFunctionStore : IFunctionStore
             if (messages?.Any() ?? false)
             {
                 var messagesCommand = _sqlGenerator.AppendMessages(
-                    messages.Select((msg, position) => new StoredIdAndMessageWithPosition(storedId, msg, position)).ToList(),
+                    messages.Select(msg => new StoredIdAndMessage(storedId, msg)).ToList(),
                     prefix: "Message"
                 );
                 storeCommand = storeCommand.Merge(messagesCommand);

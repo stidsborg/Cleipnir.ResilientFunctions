@@ -87,11 +87,8 @@ public class MariaDbMessageStore : IMessageStore
             return;
 
         var storedIds = messages.Select(m => m.StoredId).Distinct().ToList();
-        var messagesWithPosition = messages
-            .Select(msg => new StoredIdAndMessageWithPosition(msg.StoredId, msg.StoredMessage, Position: 0))
-            .ToList();
 
-        var appendMessagesCommand = _sqlGenerator.AppendMessages(messagesWithPosition);
+        var appendMessagesCommand = _sqlGenerator.AppendMessages(messages);
         var interruptsCommand = _sqlGenerator.Interrupt(storedIds);
 
         var command = StoreCommand.Merge(appendMessagesCommand, interruptsCommand);
@@ -100,22 +97,6 @@ public class MariaDbMessageStore : IMessageStore
         await using var sqlCommand = command.ToSqlCommand(conn);
 
         await sqlCommand.ExecuteNonQueryAsync();
-    }
-
-    public async Task AppendMessages(IReadOnlyList<StoredIdAndMessageWithPosition> messages)
-    {
-        if (messages.Count == 0)
-            return;
-
-        var appendCommand = _sqlGenerator.AppendMessages(messages);
-        var interruptCommand = _sqlGenerator.Interrupt(messages.Select(m => m.StoredId).Distinct());
-
-        await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
-        await using var command = StoreCommand
-            .Merge(appendCommand, interruptCommand)
-            .ToSqlCommand(conn);
-
-        await command.ExecuteNonQueryAsync();
     }
 
     private string? _replaceMessageSql;
@@ -221,32 +202,6 @@ public class MariaDbMessageStore : IMessageStore
             storedMessages[id].Add(ConvertToStoredMessage(content, position));
 
         return storedMessages;
-    }
-
-    public async Task<IDictionary<StoredId, long>> GetMaxPositions(IReadOnlyList<StoredId> storedIds)
-    {
-        var sql = @$"
-            SELECT id, MAX(position)
-            FROM {_tablePrefix}_messages
-            WHERE Id IN ({storedIds.Select(id => $"'{id.AsGuid:N}'").StringJoin(", ")})
-            GROUP BY id;";
-
-        await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
-        await using var command = new MySqlCommand(sql, conn);
-
-        var positions = new Dictionary<StoredId, long>(capacity: storedIds.Count);
-        foreach (var storedId in storedIds)
-            positions[storedId] = -1;
-
-        await using var reader = await command.ExecuteReaderAsync();
-        while (await reader.ReadAsync())
-        {
-            var storedId = new StoredId(reader.GetString(0).ToGuid());
-            var position = reader.GetInt64(1);
-            positions[storedId] = position;
-        }
-
-        return positions;
     }
 
     public static StoredMessage ConvertToStoredMessage(byte[] content, long position)

@@ -164,7 +164,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
 
             if (messages?.Any() ?? false)
                 commands.AddRange(_sqlGenerator.AppendMessages(
-                        messages.Select((msg, position) => new StoredIdAndMessageWithPosition(storedId, msg, position)).ToList()
+                        messages.Select(msg => new StoredIdAndMessage(storedId, msg)).ToList()
                     )
                 );
 

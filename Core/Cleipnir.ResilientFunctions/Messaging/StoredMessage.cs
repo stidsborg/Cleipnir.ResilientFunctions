@@ -10,7 +10,6 @@ public record StoredMessage(byte[] MessageContent, byte[] MessageType, long Posi
     public object DefaultDeserialize() => JsonSerializer.Deserialize(MessageContent, Type.GetType(MessageType.ToStringFromUtf8Bytes(), throwOnError: true)!)!; //todo remove
 }
 
-public record StoredIdAndMessageWithPosition(StoredId StoredId, StoredMessage StoredMessage, long Position);
 public record StoredIdAndMessage(StoredId StoredId, StoredMessage StoredMessage);
 public static class StoredIdAndMessageExtensions
 {
