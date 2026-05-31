@@ -98,6 +98,8 @@ internal class QueueManager : IDisposable
         {
             _initializeSemaphore.Release();
         }
+
+        await FetchAndNotify();
     }
 
     public async Task<QueueClient> CreateQueueClient()
@@ -130,19 +132,23 @@ internal class QueueManager : IDisposable
         lock (_lock)
             _subscriptions.Add(subscription);
 
-        await FetchAndNotify();
+        DeliverMessages(); //drain already-buffered messages against the new subscription (in-memory, no store fetch)
+
         if (subscription.Tcs.Task.IsCompleted)
             return (await subscription.Tcs.Task)?.Envelope;
 
+        var delay = _settings.MessagesDefaultMaxWaitForCompletion;
         if (timeout != null)
+        {
             _timeouts.AddTimeout(messageId, timeout.Value);
+            var timeoutDelay = (timeout.Value - _utcNow()).RoundUpToZero();
+            if (timeoutDelay < delay)
+                delay = timeoutDelay;
+        }
 
-        var now = _utcNow();
-        var maxWaitAt = now + _settings.MessagesDefaultMaxWaitForCompletion;
         var delayCts = new CancellationTokenSource();
-        var fireAt = timeout.HasValue && timeout.Value < maxWaitAt ? timeout.Value : maxWaitAt;
-        _ = Task.Delay((fireAt - now).RoundUpToZero(), delayCts.Token)
-            .ContinueWith(_ => ExpireSubscription(subscription, timeout, messageId), TaskContinuationOptions.OnlyOnRanToCompletion);
+        _ = Task.Delay(delay, delayCts.Token)
+            .ContinueWith(_ => ExpireOrSuspendSubscription(subscription, timeout, messageId), TaskContinuationOptions.OnlyOnRanToCompletion);
 
         _flowState.SubflowWaiting();
         try
@@ -215,7 +221,7 @@ internal class QueueManager : IDisposable
         }
     }
 
-    private void ExpireSubscription(Subscription subscription, DateTime? timeout, EffectId id)
+    private void ExpireOrSuspendSubscription(Subscription subscription, DateTime? timeout, EffectId id)
     {
         lock (_lock)
             if (!_subscriptions.Remove(subscription)) //has the subscription been resolved
@@ -228,9 +234,7 @@ internal class QueueManager : IDisposable
             subscription.Tcs.TrySetResult(null);
         }
         else
-        {
             subscription.Tcs.TrySetException(new SuspendInvocationException());
-        }
     }
 
     public async Task AfterFlush()
