@@ -63,7 +63,6 @@ public class FlowState
     public FlowState(
         StoredId id,
         int subflows,
-        int waitingSubflows,
         FlowTimeouts timeouts,
         Task completed,
         TimeSpan maxWaitBeforeSuspension)

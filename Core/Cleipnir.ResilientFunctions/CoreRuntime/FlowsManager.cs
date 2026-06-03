@@ -28,7 +28,7 @@ public class FlowsManager
     public FlowState CreateFlowState(StoredId id, FlowTimeouts timeouts, Task completed, TimeSpan maxWait)
     {
         lock (_lock)
-            return _dict[id] = new FlowState(id, subflows: 1, waitingSubflows: 0, timeouts, completed, maxWait);
+            return _dict[id] = new FlowState(id, subflows: 1, timeouts, completed, maxWait);
     }
 
     public void RemoveFlow(StoredId id, FlowState flowState)
