@@ -19,6 +19,7 @@ public class FlowState
     private readonly Lock _lock = new();
     private readonly TaskCompletionSource _suspendedTcs = new();
     private readonly TimeSpan _maxWaitBeforeSuspension;
+    private readonly UtcNow _utcNow;
     private DateTime? _waitingForMessageSince;
 
     public StoredId Id { get; }
@@ -65,13 +66,15 @@ public class FlowState
         int subflows,
         FlowTimeouts timeouts,
         Task completed,
-        TimeSpan maxWaitBeforeSuspension)
+        TimeSpan maxWaitBeforeSuspension,
+        UtcNow utcNow)
     {
         Id = id;
         Subflows = subflows;
         Timeouts = timeouts;
         SuspendedTask = _suspendedTcs.Task;
         _maxWaitBeforeSuspension = maxWaitBeforeSuspension;
+        _utcNow = utcNow;
 
         _ = completed.ContinueWith(_ => Status = FlowStatus.Completed);
     }
@@ -145,12 +148,12 @@ public class FlowState
         return true;
     }
 
-    public bool TrySuspendIfMaxWaitExceeded(DateTime now)
+    public bool SuspendIfMaxWaitExceeded()
     {
         lock (_lock)
         {
             if (Suspended)
-                return false;
+                return true;
 
             if (!AllSubflowWaitingForMessage())
             {
@@ -158,6 +161,7 @@ public class FlowState
                 return false;
             }
 
+            var now = _utcNow();
             _waitingForMessageSince ??= now;
             if (now - _waitingForMessageSince.Value < _maxWaitBeforeSuspension)
                 return false;

@@ -28,7 +28,7 @@ public class FlowsManager
     public FlowState CreateFlowState(StoredId id, FlowTimeouts timeouts, Task completed, TimeSpan maxWait)
     {
         lock (_lock)
-            return _dict[id] = new FlowState(id, subflows: 1, timeouts, completed, maxWait);
+            return _dict[id] = new FlowState(id, subflows: 1, timeouts, completed, maxWait, _utcNow);
     }
 
     public void RemoveFlow(StoredId id, FlowState flowState)
@@ -72,14 +72,12 @@ public class FlowsManager
         {
             try
             {
-                var now = _utcNow();
-
                 List<FlowState> waiting;
                 lock (_lock)
                     waiting = _dict.Values.ToList();
 
                 foreach (var flowState in waiting)
-                    if (flowState.TrySuspendIfMaxWaitExceeded(now))
+                    if (flowState.SuspendIfMaxWaitExceeded())
                         lock (_lock)
                             _dict.Remove(flowState.Id);
             }
