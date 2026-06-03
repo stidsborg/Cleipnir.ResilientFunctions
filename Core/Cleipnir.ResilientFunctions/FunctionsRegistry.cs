@@ -41,7 +41,7 @@ public class FunctionsRegistry : IDisposable
         _shutdownCoordinator = new ShutdownCoordinator();
         _settings = SettingsWithDefaults.Default.Merge(settings);
         var utcNow = _settings.UtcNow;
-        _flowsManager = new FlowsManager();
+        _flowsManager = new FlowsManager(utcNow, _shutdownCoordinator, _settings.UnhandledExceptionHandler);
         
         ClusterInfo = new ClusterInfo(ReplicaId.NewId());
         
@@ -78,6 +78,7 @@ public class FunctionsRegistry : IDisposable
             _replicaWatchdog.Initialize().GetAwaiter().GetResult();
             _ = _replicaWatchdog.Start();
             _ = Task.Run(_interruptedWatchdog.Start);
+            _ = Task.Run(_flowsManager.CheckForSuspension);
         }
     }
 
