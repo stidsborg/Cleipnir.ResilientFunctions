@@ -1,3 +1,4 @@
+using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Helpers;
@@ -17,6 +18,8 @@ public class FlowState
 {
     private readonly Lock _lock = new();
     private readonly TaskCompletionSource _suspendedTcs = new();
+    private readonly TimeSpan _maxWaitBeforeSuspension;
+    private DateTime? _waitingForMessageSince;
 
     public StoredId Id { get; }
     public int Subflows { get; private set; }
@@ -26,6 +29,21 @@ public class FlowState
     public bool Suspended { get; private set; }
     public Task SuspendedTask { get; }
 
+    private bool _interrupted;
+    public bool Interrupted
+    {
+        get
+        {
+            lock (_lock)
+                return _interrupted;
+        }
+        set
+        {
+            lock (_lock)
+                _interrupted = value;
+        }
+    }
+
     private FlowStatus _status = FlowStatus.Running;
     public FlowStatus Status
     {
@@ -34,7 +52,7 @@ public class FlowState
             lock (_lock)
                 return _status;
         }
-        set
+        private set
         {
             lock (_lock)
                 if (_status != FlowStatus.Completed)
@@ -47,13 +65,14 @@ public class FlowState
         int subflows,
         int waitingSubflows,
         FlowTimeouts timeouts,
-        Task completed)
+        Task completed,
+        TimeSpan maxWaitBeforeSuspension)
     {
         Id = id;
         Subflows = subflows;
-        WaitingSubflows = waitingSubflows;
         Timeouts = timeouts;
         SuspendedTask = _suspendedTcs.Task;
+        _maxWaitBeforeSuspension = maxWaitBeforeSuspension;
 
         _ = completed.ContinueWith(_ => Status = FlowStatus.Completed);
     }
@@ -83,31 +102,68 @@ public class FlowState
     }
 
     public Task ResumeSubflow()
+        => TryResumeSubflow()
+            ? Task.CompletedTask
+            : ForeverTask.Instance;
+    
+    public bool TryResumeSubflow()
     {
         lock (_lock)
             if (Suspended)
-                return ForeverTask.Instance;
+                return false;
             else
                 WaitingSubflows--;
 
-        return Task.CompletedTask;
+        return true;
     }
 
-    public void Interrupt()
+    public bool Interrupt()
     {
-        if (Suspended) return;
+        if (Suspended) return false;
+
         QueueManager?.Interrupt();
+        return true;
     }
 
-    public bool Suspend()
+    private bool AllSubflowWaitingForMessage()
     {
         lock (_lock)
-            if (Subflows == WaitingSubflows)
+            if (QueueManager == null)
+                return false;
+            else
+                return QueueManager.SubscribtionsCount() == Subflows;
+    }
+    
+    public bool TrySuspend()
+    {
+        lock (_lock)
+            if (AllSubflowWaitingForMessage())
                 Suspended = true;
             else
                 return false;
-        
+
         _suspendedTcs.TrySetResult();
         return true;
+    }
+
+    public bool TrySuspendIfMaxWaitExceeded(DateTime now)
+    {
+        lock (_lock)
+        {
+            if (Suspended)
+                return false;
+
+            if (!AllSubflowWaitingForMessage())
+            {
+                _waitingForMessageSince = null;
+                return false;
+            }
+
+            _waitingForMessageSince ??= now;
+            if (now - _waitingForMessageSince.Value < _maxWaitBeforeSuspension)
+                return false;
+        }
+
+        return TrySuspend();
     }
 }

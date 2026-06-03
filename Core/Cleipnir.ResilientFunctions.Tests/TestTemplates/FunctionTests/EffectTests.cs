@@ -331,7 +331,7 @@ public abstract class EffectTests
             session,
             clearChildren: true
         );
-        var effect = new Effect(effectResults, utcNow: () => DateTime.UtcNow, new FlowTimeouts(), new FlowState(storedId, subflows: 1, waitingSubflows: 0, new FlowTimeouts(), completed: ForeverTask.Instance));
+        var effect = new Effect(effectResults, utcNow: () => DateTime.UtcNow, new FlowTimeouts(), new FlowState(storedId, subflows: 1, waitingSubflows: 0, new FlowTimeouts(), completed: ForeverTask.Instance, maxWaitBeforeSuspension: TimeSpan.MaxValue));
 
         effect.TryGet<int>("alias", out _).ShouldBeFalse();
 
@@ -379,7 +379,7 @@ public abstract class EffectTests
             storageSession: null,
             clearChildren: true
         );
-        var effect = new Effect(effectResults, utcNow: () => DateTime.UtcNow, new FlowTimeouts(), new FlowState(storedId, subflows: 1, waitingSubflows: 0, new FlowTimeouts(), completed: ForeverTask.Instance));
+        var effect = new Effect(effectResults, utcNow: () => DateTime.UtcNow, new FlowTimeouts(), new FlowState(storedId, subflows: 1, waitingSubflows: 0, new FlowTimeouts(), completed: ForeverTask.Instance, maxWaitBeforeSuspension: TimeSpan.MaxValue));
 
         // Verify the effect is immediately available (eager loading)
         effect.TryGet<int>("test_alias", out var result).ShouldBeTrue();
@@ -711,7 +711,7 @@ public abstract class EffectTests
             session,
             clearChildren: true
         );
-        var effect = new Effect(effectResults, utcNow: () => DateTime.UtcNow, new FlowTimeouts(), new FlowState(storedId, subflows: 1, waitingSubflows: 0, new FlowTimeouts(), completed: ForeverTask.Instance));
+        var effect = new Effect(effectResults, utcNow: () => DateTime.UtcNow, new FlowTimeouts(), new FlowState(storedId, subflows: 1, waitingSubflows: 0, new FlowTimeouts(), completed: ForeverTask.Instance, maxWaitBeforeSuspension: TimeSpan.MaxValue));
 
         var result = await effect.Capture(() => "hello world", ResiliencyLevel.AtLeastOnceDelayFlush);
         result.ShouldBe("hello world");

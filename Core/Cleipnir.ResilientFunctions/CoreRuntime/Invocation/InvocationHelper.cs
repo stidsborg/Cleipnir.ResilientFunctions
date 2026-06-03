@@ -26,6 +26,7 @@ internal class InvocationHelper<TParam, TReturn>
     private readonly ReplicaId _replicaId;
     private readonly ResultBusyWaiter<TReturn> _resultBusyWaiter;
     public UtcNow UtcNow { get; }
+    public TimeSpan MessagesDefaultMaxWaitForCompletion => _settings.MessagesDefaultMaxWaitForCompletion;
 
     private ISerializer Serializer { get; }
 

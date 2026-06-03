@@ -64,7 +64,16 @@
       "Bash(sed -n '23,29p' Samples/Sample.ConsoleApp/Versioning/BrandExample.cs)",
       "Bash(echo \"no-match-or-error rc=$?\")",
       "Bash(echo \"rc=$?\")",
-      "Bash(echo \"---rc=$?---\")"
+      "Bash(echo \"---rc=$?---\")",
+      "Bash(echo \"EXIT=$?\")",
+      "Bash(shasum -a 256 Core/Cleipnir.ResilientFunctions/Helpers/TypeHelper.cs)",
+      "Bash(grep -rln \"Subscribe\" Core/Cleipnir.ResilientFunctions --include=*.cs)",
+      "Read(//tmp/**)",
+      "Bash(/usr/bin/grep -rIn \"CreateQueueClient\" --include=\\\\*.cs .)",
+      "Bash(echo \"exit=$?\")",
+      "Bash(git --no-pager diff main -- Core/Cleipnir.ResilientFunctions/Queuing/QueueManager.cs)",
+      "Bash(sed -n '40,80p' /tmp/qm.diff)",
+      "Bash(md5 Core/Cleipnir.ResilientFunctions/Queuing/QueueManager.cs)"
     ],
     "deny": [],
     "ask": []

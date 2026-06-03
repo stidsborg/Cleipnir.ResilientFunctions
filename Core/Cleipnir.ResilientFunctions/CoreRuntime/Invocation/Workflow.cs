@@ -17,10 +17,11 @@ public class Workflow
 
     private readonly QueueManager _queueManager;
     private readonly UtcNow _utcNow;
+    private readonly FlowState _flowState;
     private MessageWriter MessageWriter { get; }
 
 
-    internal Workflow(FlowId flowId, StoredId storedId, Effect effect, QueueManager queueManager, UtcNow utcNow, MessageWriter messageWriter)
+    internal Workflow(FlowId flowId, StoredId storedId, Effect effect, QueueManager queueManager, UtcNow utcNow, MessageWriter messageWriter, FlowState flowState)
     {
         FlowId = flowId;
         StoredId = storedId;
@@ -28,6 +29,7 @@ public class Workflow
         _queueManager = queueManager;
         _utcNow = utcNow;
         MessageWriter = messageWriter;
+        _flowState = flowState;
     }
 
     public Task Delay(TimeSpan @for, bool suspend = true, string? alias = null) => Delay(until: _utcNow() + @for, suspend, alias);
@@ -50,8 +52,10 @@ public class Workflow
 
             //do in-memory wait
             var delay = expiry - now;
-            await Task.Delay(delay);
-            Effect.FlowTimeouts.RemoveTimeout(timeoutId);    
+            _flowState.SubflowWaiting();
+            await Task.Delay(delay); //todo have this delay be cancelled when the flow is suspended
+            await _flowState.ResumeSubflow();
+            Effect.FlowTimeouts.RemoveTimeout(timeoutId);
         }
 
         return Inner();

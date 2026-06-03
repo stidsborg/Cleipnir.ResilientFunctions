@@ -43,7 +43,7 @@ internal class QueueManager : IDisposable
     private volatile Exception? _thrownException;
     private bool _initialized;
     private volatile bool _disposed;
-
+    
     public QueueManager(
         FlowId flowId,
         StoredId storedId,
@@ -102,6 +102,12 @@ internal class QueueManager : IDisposable
         await FetchAndNotify();
     }
 
+    public int SubscribtionsCount()
+    {
+        lock (_lock)
+            return _subscriptions.Count;
+    }
+
     public async Task<QueueClient> CreateQueueClient()
     {
         if (!_initialized)
@@ -116,6 +122,7 @@ internal class QueueManager : IDisposable
     {
         if (_disposed)
             return;
+        
         _ = FetchMessagesOnce();
     }
 
@@ -147,10 +154,9 @@ internal class QueueManager : IDisposable
         }
 
         var delayCts = new CancellationTokenSource();
-        _ = Task.Delay(delay, delayCts.Token)
+        _ = Task.Delay(delay, delayCts.Token) //todo on suspension cancel the delayCts
             .ContinueWith(_ => ExpireOrSuspendSubscription(subscription, timeout, messageId), TaskContinuationOptions.OnlyOnRanToCompletion);
 
-        _flowState.SubflowWaiting();
         try
         {
             var msgData = await subscription.Tcs.Task;
@@ -158,8 +164,6 @@ internal class QueueManager : IDisposable
         }
         finally
         {
-            await _flowState.ResumeSubflow();
-
             await delayCts.CancelAsync();
             delayCts.Dispose();
         }
@@ -224,9 +228,12 @@ internal class QueueManager : IDisposable
     private void ExpireOrSuspendSubscription(Subscription subscription, DateTime? timeout, EffectId id)
     {
         lock (_lock)
-            if (!_subscriptions.Remove(subscription)) //has the subscription been resolved
+            if (!_subscriptions.Remove(subscription))
                 return;
 
+        _flowState.ResumeSubflow();
+
+        
         if (timeout.HasValue && _utcNow() >= timeout.Value)
         {
             _effect.FlushlessUpserts(subscription.CaptureMessage(null));
@@ -234,7 +241,7 @@ internal class QueueManager : IDisposable
             subscription.Tcs.TrySetResult(null);
         }
         else
-            subscription.Tcs.TrySetException(new SuspendInvocationException());
+            subscription.Tcs.TrySetException(new SuspendInvocationException()); 
     }
 
     public async Task AfterFlush()
@@ -298,7 +305,7 @@ internal class QueueManager : IDisposable
             _subscriptions.Clear();
         }
     }
-
+    
     public void Dispose() => _disposed = true;
 
     public record MessageData(

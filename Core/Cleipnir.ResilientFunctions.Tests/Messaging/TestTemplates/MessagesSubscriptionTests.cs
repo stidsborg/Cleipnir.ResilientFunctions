@@ -560,7 +560,7 @@ public abstract class MessagesSubscriptionTests
 
                 var flowTimeouts = new FlowTimeouts();
                 var flowsManager = new FlowsManager();
-                var flowState = flowsManager.CreateFlowState(workflow.StoredId, flowTimeouts, completed: ForeverTask.Instance);
+                var flowState = flowsManager.CreateFlowState(workflow.StoredId, flowTimeouts, completed: ForeverTask.Instance, maxWait: TimeSpan.MaxValue);
                 var queueManager = new QueueManager(
                     workflow.FlowId,
                     workflow.StoredId,
@@ -623,7 +623,7 @@ public abstract class MessagesSubscriptionTests
                 storedId = workflow.StoredId;
                 var minimumTimeout = new FlowTimeouts();
                 var flowsManager = new FlowsManager();
-                var flowState = flowsManager.CreateFlowState(workflow.StoredId, minimumTimeout, completed: ForeverTask.Instance);
+                var flowState = flowsManager.CreateFlowState(workflow.StoredId, minimumTimeout, completed: ForeverTask.Instance, maxWait: TimeSpan.MaxValue);
                 var queueManager = new QueueManager(
                     workflow.FlowId,
                     workflow.StoredId,
@@ -684,7 +684,7 @@ public abstract Task PullEnvelopeReturnsEnvelopeWithReceiverAndSender();
 
                 var flowTimeouts = new FlowTimeouts();
                 var flowsManager = new FlowsManager();
-                var flowState = flowsManager.CreateFlowState(workflow.StoredId, flowTimeouts, completed: ForeverTask.Instance);
+                var flowState = flowsManager.CreateFlowState(workflow.StoredId, flowTimeouts, completed: ForeverTask.Instance, maxWait: TimeSpan.MaxValue);
                 var queueManager = new QueueManager(
                     workflow.FlowId,
                     workflow.StoredId,
