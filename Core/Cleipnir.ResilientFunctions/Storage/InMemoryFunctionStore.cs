@@ -581,7 +581,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
     
     #region MessageStore
 
-    public virtual Task<ReplicaId?> AppendMessage(StoredId storedId, StoredMessage storedMessage)
+    public virtual Task<ReplicaId> AppendMessage(StoredId storedId, StoredMessage storedMessage)
     {
         lock (_sync)
         {
@@ -589,12 +589,13 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
                 _messages[storedId] = new Dictionary<long, StoredMessage>();
 
             var flowOwner = _states.TryGetValue(storedId, out var state) ? state.Owner : null;
+            var replica = flowOwner ?? storedMessage.Replica;
             var messages = _messages[storedId];
-            messages[_nextMessagePosition++] = storedMessage with { Replica = flowOwner ?? storedMessage.Replica };
+            messages[_nextMessagePosition++] = storedMessage with { Replica = replica };
 
             // schedules the flow to run immediately when it is suspended/postponed (and flags it interrupted)
             Interrupt(storedId);
-            return Task.FromResult(flowOwner);
+            return Task.FromResult(replica);
         }
     }
 

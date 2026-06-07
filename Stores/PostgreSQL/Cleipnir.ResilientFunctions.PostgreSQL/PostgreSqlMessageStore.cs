@@ -57,29 +57,34 @@ public class PostgreSqlMessageStore : IMessageStore
         await command.ExecuteNonQueryAsync();
     }
 
-    public async Task<ReplicaId?> AppendMessage(StoredId storedId, StoredMessage storedMessage)
+    private string? _appendMessageSql;
+    public async Task<ReplicaId> AppendMessage(StoredId storedId, StoredMessage storedMessage)
     {
+        _appendMessageSql ??= @$"
+            INSERT INTO {tablePrefix}_messages (id, replica, content)
+            VALUES ($1, COALESCE((SELECT owner FROM {tablePrefix} WHERE id = $1), $2), $3)
+            RETURNING replica;";
+
+        var content = BinaryPacker.Pack(
+            storedMessage.MessageContent,
+            storedMessage.MessageType,
+            storedMessage.IdempotencyKey?.ToUtf8Bytes(),
+            storedMessage.Sender?.ToUtf8Bytes(),
+            storedMessage.Receiver?.ToUtf8Bytes()
+        );
+
         await using var conn = await CreateConnection();
         await using var batch = new[]
             {
-                sqlGenerator.AppendMessages(storedId, [storedMessage]),
+                StoreCommand.Create(_appendMessageSql, values: [storedId.AsGuid, storedMessage.Replica.AsGuid, content]),
                 sqlGenerator.Interrupt([storedId]),
             }
             .ToNpgsqlBatch()
             .WithConnection(conn);
-        await batch.ExecuteNonQueryAsync();
 
-        return await GetOwner(storedId, conn);
-    }
-
-    private async Task<ReplicaId?> GetOwner(StoredId storedId, NpgsqlConnection conn)
-    {
-        await using var command = new NpgsqlCommand($"SELECT owner FROM {tablePrefix} WHERE id = $1", conn)
-        {
-            Parameters = { new() { Value = storedId.AsGuid } }
-        };
-        var result = await command.ExecuteScalarAsync();
-        return result is Guid owner ? owner.ToReplicaId() : null;
+        await using var reader = await batch.ExecuteReaderAsync();
+        await reader.ReadAsync();
+        return reader.GetGuid(0).ToReplicaId();
     }
 
     public async Task AppendMessages(IReadOnlyList<StoredIdAndMessage> messages)

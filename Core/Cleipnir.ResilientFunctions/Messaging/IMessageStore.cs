@@ -10,10 +10,11 @@ public interface IMessageStore
     Task Initialize();
 
     /// <summary>
-    /// Appends a message to the target flow and returns the flow's current owner replica
-    /// (null when the flow is not currently executing - in which case the flow is scheduled to run immediately).
+    /// Appends a message to the target flow and returns the replica written to the message row
+    /// (the target flow's current owner, or the publishing replica when the target is not executing).
+    /// The target flow is scheduled to run immediately when it is suspended/postponed.
     /// </summary>
-    Task<ReplicaId?> AppendMessage(StoredId storedId, StoredMessage storedMessage);
+    Task<ReplicaId> AppendMessage(StoredId storedId, StoredMessage storedMessage);
     Task AppendMessages(IReadOnlyList<StoredIdAndMessage> messages);
 
     Task<bool> ReplaceMessage(StoredId storedId, long position, StoredMessage storedMessage);
