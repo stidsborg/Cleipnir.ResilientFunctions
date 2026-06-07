@@ -14,14 +14,12 @@ public class MariaDbMessageStore : IMessageStore
     private readonly string _connectionString;
     private readonly string _tablePrefix;
     private readonly SqlGenerator _sqlGenerator;
-    private readonly MessageBatcher<StoredMessage> _messageBatcher;
-    
+
     public MariaDbMessageStore(string connectionString, SqlGenerator sqlGenerator, string tablePrefix = "")
     {
         _connectionString = connectionString;
         _tablePrefix = tablePrefix;
         _sqlGenerator = sqlGenerator;
-        _messageBatcher = new MessageBatcher<StoredMessage>(AppendMessages);
     }
 
     private string? _initializeSql;
@@ -50,40 +48,29 @@ public class MariaDbMessageStore : IMessageStore
     }
 
 
-    public async Task AppendMessage(StoredId storedId, StoredMessage storedMessage) 
-        => await _messageBatcher.Handle(storedId, [storedMessage]);
-    
-    private async Task AppendMessages(StoredId storedId, IReadOnlyList<StoredMessage> messages)
+    public async Task<ReplicaId> AppendMessage(StoredId storedId, StoredMessage storedMessage)
     {
-        if (messages.Count == 0)
-            return;
-
-        var values = messages.Select(_ => $"(?, COALESCE((SELECT owner FROM {_tablePrefix} WHERE id = ?), ?), ?)").StringJoin(", ");
+        var (messageContent, messageType, _, replica, idempotencyKey, sender, receiver) = storedMessage;
+        var content = BinaryPacker.Pack(messageContent, messageType, idempotencyKey?.ToUtf8Bytes(), sender?.ToUtf8Bytes(), receiver?.ToUtf8Bytes());
 
         var sql = @$"
-            INSERT INTO {_tablePrefix}_messages
-                (id, replica, content)
-            VALUES
-                {values};";
+            INSERT INTO {_tablePrefix}_messages (id, replica, content)
+            VALUES (?, COALESCE((SELECT owner FROM {_tablePrefix} WHERE id = ?), ?), ?)
+            RETURNING replica;";
 
         await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
         await using var command = new MySqlCommand(sql, conn);
+        command.Parameters.Add(new() { Value = storedId.AsGuid.ToString("N") });
+        command.Parameters.Add(new() { Value = storedId.AsGuid.ToString("N") });
+        command.Parameters.Add(new() { Value = replica.AsGuid.ToString("N") });
+        command.Parameters.Add(new() { Value = content });
+        var insertedReplica = ((string) (await command.ExecuteScalarAsync())!).ParseToReplicaId();
 
-        foreach (var (messageContent, messageType, _, replica, idempotencyKey, sender, receiver) in messages)
-        {
-            command.Parameters.Add(new() { Value = storedId.AsGuid.ToString("N") });
-            command.Parameters.Add(new() { Value = storedId.AsGuid.ToString("N") });
-            command.Parameters.Add(new() { Value = replica.AsGuid.ToString("N") });
-            var content = BinaryPacker.Pack(messageContent, messageType, idempotencyKey?.ToUtf8Bytes(), sender?.ToUtf8Bytes(), receiver?.ToUtf8Bytes());
-            command.Parameters.Add(new() { Value = content });
-        }
-
-        await command.ExecuteNonQueryAsync();
-
-        // Execute interrupt command
-        var interruptCommand = _sqlGenerator.Interrupt([storedId]);
-        await using var interruptCmd = interruptCommand.ToSqlCommand(conn);
+        // schedule the target flow when it is suspended/postponed
+        await using var interruptCmd = _sqlGenerator.Interrupt([storedId]).ToSqlCommand(conn);
         await interruptCmd.ExecuteNonQueryAsync();
+
+        return insertedReplica;
     }
 
     public async Task AppendMessages(IReadOnlyList<StoredIdAndMessage> messages)

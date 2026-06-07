@@ -14,14 +14,12 @@ namespace Cleipnir.ResilientFunctions.PostgreSQL;
 public class PostgreSqlMessageStore : IMessageStore
 {
     private readonly string tablePrefix;
-    private readonly MessageBatcher<StoredMessage> messageBatcher;
     private readonly string connectionString;
     private readonly SqlGenerator sqlGenerator;
 
     public PostgreSqlMessageStore(string connectionString, SqlGenerator sqlGenerator, string tablePrefix = "")
     {
         this.tablePrefix = tablePrefix.ToLower();
-        messageBatcher = new(AppendMessages);
         this.connectionString = connectionString;
         this.sqlGenerator = sqlGenerator;
     }
@@ -59,11 +57,35 @@ public class PostgreSqlMessageStore : IMessageStore
         await command.ExecuteNonQueryAsync();
     }
 
-    public async Task AppendMessage(StoredId storedId, StoredMessage storedMessage)
-        => await messageBatcher.Handle(storedId, [storedMessage]);
+    private string? _appendMessageSql;
+    public async Task<ReplicaId> AppendMessage(StoredId storedId, StoredMessage storedMessage)
+    {
+        _appendMessageSql ??= @$"
+            INSERT INTO {tablePrefix}_messages (id, replica, content)
+            VALUES ($1, COALESCE((SELECT owner FROM {tablePrefix} WHERE id = $1), $2), $3)
+            RETURNING replica;";
 
-    private Task AppendMessages(StoredId storedId, IReadOnlyList<StoredMessage> messages)
-        => AppendMessages(messages.Select(m => new StoredIdAndMessage(storedId, m)).ToList());
+        var content = BinaryPacker.Pack(
+            storedMessage.MessageContent,
+            storedMessage.MessageType,
+            storedMessage.IdempotencyKey?.ToUtf8Bytes(),
+            storedMessage.Sender?.ToUtf8Bytes(),
+            storedMessage.Receiver?.ToUtf8Bytes()
+        );
+
+        await using var conn = await CreateConnection();
+        await using var batch = new[]
+            {
+                StoreCommand.Create(_appendMessageSql, values: [storedId.AsGuid, storedMessage.Replica.AsGuid, content]),
+                sqlGenerator.Interrupt([storedId]),
+            }
+            .ToNpgsqlBatch()
+            .WithConnection(conn);
+
+        await using var reader = await batch.ExecuteReaderAsync();
+        await reader.ReadAsync();
+        return reader.GetGuid(0).ToReplicaId();
+    }
 
     public async Task AppendMessages(IReadOnlyList<StoredIdAndMessage> messages)
     {
