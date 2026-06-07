@@ -1,6 +1,8 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Storage;
@@ -39,6 +41,7 @@ public class PostgreSqlMessageStore : IMessageStore
             CREATE TABLE IF NOT EXISTS {tablePrefix}_messages (
                 position BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
                 id UUID,
+                replica UUID NULL,
                 content BYTEA
             );
             CREATE INDEX IF NOT EXISTS {tablePrefix}_messages_id_idx ON {tablePrefix}_messages (id);";
@@ -86,8 +89,8 @@ public class PostgreSqlMessageStore : IMessageStore
         await using var conn = await CreateConnection();
         _replaceMessageSql ??= @$"
                 UPDATE {tablePrefix}_messages
-                SET content = $1
-                WHERE id = $2 AND position = $3";
+                SET replica = $1, content = $2
+                WHERE id = $3 AND position = $4";
 
         var (messageJson, messageType, _, idempotencyKey, sender, receiver) = storedMessage;
         var content = BinaryPacker.Pack(
@@ -101,6 +104,7 @@ public class PostgreSqlMessageStore : IMessageStore
         {
             Parameters =
             {
+                new() {Value = storedMessage.Replica?.AsGuid ?? (object)DBNull.Value},
                 new() {Value = content},
                 new() {Value = storedId.AsGuid},
                 new() {Value = position},
@@ -146,7 +150,7 @@ public class PostgreSqlMessageStore : IMessageStore
 
         await using var reader = await command.ExecuteReaderAsync();
         var messages = await sqlGenerator.ReadMessages(reader);
-        return messages.Select(m => ConvertToStoredMessage(m.content, m.position)).ToList();
+        return messages.Select(m => ConvertToStoredMessage(m.content, m.position, m.replica)).ToList();
     }
 
     public async Task<IReadOnlyList<StoredMessage>> GetMessages(StoredId storedId, IReadOnlyList<long> skipPositions)
@@ -156,7 +160,7 @@ public class PostgreSqlMessageStore : IMessageStore
 
         await using var reader = await command.ExecuteReaderAsync();
         var messages = await sqlGenerator.ReadMessages(reader);
-        return messages.Select(m => ConvertToStoredMessage(m.content, m.position)).ToList();
+        return messages.Select(m => ConvertToStoredMessage(m.content, m.position, m.replica)).ToList();
     }
 
     public async Task<Dictionary<StoredId, List<StoredMessage>>> GetMessages(IEnumerable<StoredId> storedIds)
@@ -169,13 +173,13 @@ public class PostgreSqlMessageStore : IMessageStore
         var messages = await sqlGenerator.ReadStoredIdsMessages(reader);
         var storedMessages = storedIds.ToDictionary(id => id, _ => new List<StoredMessage>());
         foreach (var id in messages.Keys)
-            foreach (var (content, position) in messages[id])
-                storedMessages[id].Add(ConvertToStoredMessage(content, position));
+            foreach (var (content, position, replica) in messages[id])
+                storedMessages[id].Add(ConvertToStoredMessage(content, position, replica));
 
         return storedMessages;
     }
 
-    public static StoredMessage ConvertToStoredMessage(byte[] content, long position)
+    public static StoredMessage ConvertToStoredMessage(byte[] content, long position, Guid? replica)
     {
         var arrs = BinaryPacker.Split(content, expectedPieces: 5);
         var message = arrs[0]!;
@@ -190,7 +194,10 @@ public class PostgreSqlMessageStore : IMessageStore
             idempotencyKey?.ToStringFromUtf8Bytes(),
             sender?.ToStringFromUtf8Bytes(),
             receiver?.ToStringFromUtf8Bytes()
-        );
+        )
+        {
+            Replica = replica?.ToReplicaId()
+        };
         return storedMessage;
     }
 }

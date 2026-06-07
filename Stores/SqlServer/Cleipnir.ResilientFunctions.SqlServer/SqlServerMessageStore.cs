@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Storage;
@@ -34,6 +35,7 @@ public class SqlServerMessageStore : IMessageStore
         CREATE TABLE {_tablePrefix}_Messages (
             Position BIGINT IDENTITY(1,1) PRIMARY KEY,
             Id UNIQUEIDENTIFIER,
+            Replica UNIQUEIDENTIFIER NULL,
             Content VARBINARY(MAX)
         );
         CREATE INDEX {_tablePrefix}_Messages_Id ON {_tablePrefix}_Messages (Id);";
@@ -61,10 +63,10 @@ public class SqlServerMessageStore : IMessageStore
         if (messages.Count == 0)
             return;
 
-        var values = messages.Select((_, i) => $"(@Id, @Content{i})").StringJoin(", ");
+        var values = messages.Select((_, i) => $"(@Id, @Replica{i}, @Content{i})").StringJoin(", ");
 
         var sql = @$"
-            INSERT INTO {_tablePrefix}_Messages (Id, Content)
+            INSERT INTO {_tablePrefix}_Messages (Id, Replica, Content)
             VALUES {values};";
 
         await using var conn = await CreateConnection();
@@ -74,8 +76,10 @@ public class SqlServerMessageStore : IMessageStore
 
         for (var i = 0; i < messages.Count; i++)
         {
-            var (messageContent, messageType, _, idempotencyKey, sender, receiver) = messages[i];
+            var storedMessage = messages[i];
+            var (messageContent, messageType, _, idempotencyKey, sender, receiver) = storedMessage;
             var content = BinaryPacker.Pack(messageContent, messageType, idempotencyKey?.ToUtf8Bytes(), sender?.ToUtf8Bytes(), receiver?.ToUtf8Bytes());
+            command.Parameters.AddWithValue($"@Replica{i}", storedMessage.Replica?.AsGuid ?? (object)DBNull.Value);
             command.Parameters.AddWithValue($"@Content{i}", content);
         }
 
@@ -107,18 +111,20 @@ public class SqlServerMessageStore : IMessageStore
         await using var conn = await CreateConnection();
         var sql = @$"
             INSERT INTO {_tablePrefix}_Messages
-                (Id, Content)
+                (Id, Replica, Content)
             VALUES
-                 {messages.Select((_, i) => $"(@Id{i}, @Content{i})").StringJoin($",{Environment.NewLine}")};
+                 {messages.Select((_, i) => $"(@Id{i}, @Replica{i}, @Content{i})").StringJoin($",{Environment.NewLine}")};
 
             {interuptsSql.Sql}";
 
         await using var command = new SqlCommand(sql, conn);
         for (var i = 0; i < messages.Count; i++)
         {
-            var (storedId, (messageContent, messageType, _, idempotencyKey, sender, receiver)) = messages[i];
+            var (storedId, storedMessage) = messages[i];
+            var (messageContent, messageType, _, idempotencyKey, sender, receiver) = storedMessage;
             var content = BinaryPacker.Pack(messageContent, messageType, idempotencyKey?.ToUtf8Bytes(), sender?.ToUtf8Bytes(), receiver?.ToUtf8Bytes());
             command.Parameters.AddWithValue($"@Id{i}", storedId.AsGuid);
+            command.Parameters.AddWithValue($"@Replica{i}", storedMessage.Replica?.AsGuid ?? (object)DBNull.Value);
             command.Parameters.AddWithValue($"@Content{i}", content);
         }
         foreach (var (value, name) in interuptsSql.Parameters)
@@ -134,7 +140,7 @@ public class SqlServerMessageStore : IMessageStore
 
         _replaceMessageSql ??= @$"
             UPDATE {_tablePrefix}_Messages
-            SET Content = @Content
+            SET Replica = @Replica, Content = @Content
             WHERE Id = @Id AND Position = @Position";
 
         var (messageJson, messageType, _, idempotencyKey, sender, receiver) = storedMessage;
@@ -148,6 +154,7 @@ public class SqlServerMessageStore : IMessageStore
         await using var command = new SqlCommand(_replaceMessageSql, conn);
         command.Parameters.AddWithValue("@Id", storedId.AsGuid);
         command.Parameters.AddWithValue("@Position", position);
+        command.Parameters.AddWithValue("@Replica", storedMessage.Replica?.AsGuid ?? (object)DBNull.Value);
         command.Parameters.AddWithValue("@Content", content);
         
         var affectedRows = await command.ExecuteNonQueryAsync();
@@ -186,20 +193,20 @@ public class SqlServerMessageStore : IMessageStore
 
         await using var reader = await command.ExecuteReaderAsync();
         var messages = await _sqlGenerator.ReadMessages(reader);
-        return messages.Select(m => ConvertToStoredMessage(m.content, m.position)).ToList();
+        return messages.Select(m => ConvertToStoredMessage(m.content, m.position, m.replica)).ToList();
     }
 
     public async Task<IReadOnlyList<StoredMessage>> GetMessages(StoredId storedId, IReadOnlyList<long> skipPositions)
     {
         if (!skipPositions.Any())
             return await GetMessages(storedId);
-        
+
         await using var conn = await CreateConnection();
         await using var command = _sqlGenerator.GetMessages(storedId, skipPositions).ToSqlCommand(conn);
 
         await using var reader = await command.ExecuteReaderAsync();
         var messages = await _sqlGenerator.ReadMessages(reader);
-        return messages.Select(m => ConvertToStoredMessage(m.content, m.position)).ToList();
+        return messages.Select(m => ConvertToStoredMessage(m.content, m.position, m.replica)).ToList();
     }
 
     public async Task<Dictionary<StoredId, List<StoredMessage>>> GetMessages(IEnumerable<StoredId> storedIds)
@@ -213,13 +220,13 @@ public class SqlServerMessageStore : IMessageStore
         var messages = await _sqlGenerator.ReadStoredIdsMessages(reader);
         var storedMessages = storedIds.ToDictionary(id => id, _ => new List<StoredMessage>());
         foreach (var id in messages.Keys)
-            foreach (var (content, position) in messages[id])
-                storedMessages[id].Add(ConvertToStoredMessage(content, position));
+            foreach (var (content, position, replica) in messages[id])
+                storedMessages[id].Add(ConvertToStoredMessage(content, position, replica));
 
         return storedMessages;
     }
 
-    public static StoredMessage ConvertToStoredMessage(byte[] content, long position)
+    public static StoredMessage ConvertToStoredMessage(byte[] content, long position, Guid? replica)
     {
         var arrs = BinaryPacker.Split(content, expectedPieces: 5);
         var message = arrs[0]!;
@@ -234,7 +241,10 @@ public class SqlServerMessageStore : IMessageStore
             idempotencyKey?.ToStringFromUtf8Bytes(),
             sender?.ToStringFromUtf8Bytes(),
             receiver?.ToStringFromUtf8Bytes()
-        );
+        )
+        {
+            Replica = replica?.ToReplicaId()
+        };
         return storedMessage;
     }
 

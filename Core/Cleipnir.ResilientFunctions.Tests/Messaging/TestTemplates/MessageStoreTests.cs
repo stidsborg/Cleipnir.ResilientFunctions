@@ -1,8 +1,10 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Serialization;
+using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Storage;
@@ -1107,5 +1109,67 @@ public abstract class MessageStoreTests
             .ToList();
 
         messageContents.ShouldBe(expectedContents);
+    }
+
+    public abstract Task MessageReplicaIsPersistedAndFetched();
+    protected async Task MessageReplicaIsPersistedAndFetched(Task<IFunctionStore> functionStoreTask)
+    {
+        var functionId = TestStoredId.Create();
+        var functionStore = await functionStoreTask;
+        await functionStore.CreateFunction(
+            functionId,
+            "humanInstanceId",
+            Test.SimpleStoredParameter,
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks,
+            parent: null,
+            owner: null
+        );
+        var messageStore = functionStore.MessageStore;
+
+        var replica1 = ReplicaId.NewId();
+        var replica2 = ReplicaId.NewId();
+        var stringType = typeof(string).SimpleQualifiedName().ToUtf8Bytes();
+
+        // single append carrying a replica
+        await messageStore.AppendMessage(
+            functionId,
+            new StoredMessage("with replica".ToJson().ToUtf8Bytes(), stringType, Position: 0) { Replica = replica1 }
+        );
+        // single append without a replica
+        await messageStore.AppendMessage(
+            functionId,
+            new StoredMessage("without replica".ToJson().ToUtf8Bytes(), stringType, Position: 0)
+        );
+        // bulk append carrying a replica
+        await messageStore.AppendMessages([
+            new StoredIdAndMessage(
+                functionId,
+                new StoredMessage("bulk with replica".ToJson().ToUtf8Bytes(), stringType, Position: 0) { Replica = replica2 }
+            )
+        ]);
+
+        var messages = (await messageStore.GetMessages(functionId)).ToList();
+        messages.Count.ShouldBe(3);
+        messages[0].Replica.ShouldBe(replica1);
+        messages[1].Replica.ShouldBeNull();
+        messages[2].Replica.ShouldBe(replica2);
+
+        // multi-storedId fetch path round-trips the replica as well
+        var byStoredId = await messageStore.GetMessages([functionId]);
+        var fetched = byStoredId[functionId];
+        fetched[0].Replica.ShouldBe(replica1);
+        fetched[1].Replica.ShouldBeNull();
+        fetched[2].Replica.ShouldBe(replica2);
+
+        // replacing a message updates its replica
+        await messageStore.ReplaceMessage(
+            functionId,
+            position: messages[1].Position,
+            new StoredMessage("replaced".ToJson().ToUtf8Bytes(), stringType, Position: messages[1].Position) { Replica = replica1 }
+        );
+        var afterReplace = (await messageStore.GetMessages(functionId)).ToList();
+        afterReplace[1].DefaultDeserialize().ShouldBe("replaced");
+        afterReplace[1].Replica.ShouldBe(replica1);
     }
 }
