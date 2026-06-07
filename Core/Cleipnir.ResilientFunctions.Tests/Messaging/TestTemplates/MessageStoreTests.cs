@@ -1143,15 +1143,19 @@ public abstract class MessageStoreTests
         );
 
         var messageStore = functionStore.MessageStore;
+        var publisher = ReplicaId.NewId(); // the publishing replica - used as fallback when the target is idle
 
-        // the Replica supplied by the caller is ignored - it is derived from the target flow's current owner
-        await messageStore.AppendMessage(executingFlow, new StoredMessage("a".ToJson().ToUtf8Bytes(), stringType, Position: 0, Replica: ReplicaId.NewId()));
-        await messageStore.AppendMessage(idleFlow, new StoredMessage("b".ToJson().ToUtf8Bytes(), stringType, Position: 0));
+        // executing target -> the target flow's owner wins, the publisher fallback is ignored
+        await messageStore.AppendMessage(executingFlow, new StoredMessage("a".ToJson().ToUtf8Bytes(), stringType, Position: 0, Replica: publisher));
+        // idle target -> falls back to the publishing replica
+        await messageStore.AppendMessage(idleFlow, new StoredMessage("b".ToJson().ToUtf8Bytes(), stringType, Position: 0, Replica: publisher));
+        // idle target with no publisher replica -> null
+        await messageStore.AppendMessage(idleFlow, new StoredMessage("c".ToJson().ToUtf8Bytes(), stringType, Position: 0));
 
-        // bulk append derives the owner per target flow
+        // bulk append resolves per target flow
         await messageStore.AppendMessages([
-            new StoredIdAndMessage(executingFlow, new StoredMessage("c".ToJson().ToUtf8Bytes(), stringType, Position: 0)),
-            new StoredIdAndMessage(idleFlow, new StoredMessage("d".ToJson().ToUtf8Bytes(), stringType, Position: 0)),
+            new StoredIdAndMessage(executingFlow, new StoredMessage("d".ToJson().ToUtf8Bytes(), stringType, Position: 0, Replica: publisher)),
+            new StoredIdAndMessage(idleFlow, new StoredMessage("e".ToJson().ToUtf8Bytes(), stringType, Position: 0, Replica: publisher)),
         ]);
 
         var executingMessages = (await messageStore.GetMessages(executingFlow)).ToList();
@@ -1159,22 +1163,32 @@ public abstract class MessageStoreTests
         executingMessages.ShouldAllBe(m => m.Replica == owner);
 
         var idleMessages = (await messageStore.GetMessages(idleFlow)).ToList();
-        idleMessages.Count.ShouldBe(2);
-        idleMessages.ShouldAllBe(m => m.Replica == null);
+        idleMessages.Count.ShouldBe(3);
+        idleMessages[0].Replica.ShouldBe(publisher); // "b" - fallback
+        idleMessages[1].Replica.ShouldBeNull();      // "c" - no fallback
+        idleMessages[2].Replica.ShouldBe(publisher); // "e" - fallback
 
-        // multi-storedId fetch path round-trips the same replica
+        // multi-storedId fetch path round-trips the resolved replica
         var byStoredId = await messageStore.GetMessages([executingFlow, idleFlow]);
         byStoredId[executingFlow].ShouldAllBe(m => m.Replica == owner);
-        byStoredId[idleFlow].ShouldAllBe(m => m.Replica == null);
 
-        // replacing a message re-derives the owner from the target flow
+        // replacing a message re-resolves: executing target keeps its owner ...
         await messageStore.ReplaceMessage(
             executingFlow,
             position: executingMessages[0].Position,
-            new StoredMessage("replaced".ToJson().ToUtf8Bytes(), stringType, Position: executingMessages[0].Position)
+            new StoredMessage("replaced".ToJson().ToUtf8Bytes(), stringType, Position: executingMessages[0].Position, Replica: publisher)
         );
-        var afterReplace = (await messageStore.GetMessages(executingFlow)).ToList();
-        afterReplace[0].DefaultDeserialize().ShouldBe("replaced");
-        afterReplace[0].Replica.ShouldBe(owner);
+        var afterReplaceExecuting = (await messageStore.GetMessages(executingFlow)).ToList();
+        afterReplaceExecuting[0].DefaultDeserialize().ShouldBe("replaced");
+        afterReplaceExecuting[0].Replica.ShouldBe(owner);
+
+        // ... while an idle target falls back to the publisher replica
+        await messageStore.ReplaceMessage(
+            idleFlow,
+            position: idleMessages[1].Position,
+            new StoredMessage("replaced".ToJson().ToUtf8Bytes(), stringType, Position: idleMessages[1].Position, Replica: publisher)
+        );
+        var afterReplaceIdle = (await messageStore.GetMessages(idleFlow)).ToList();
+        afterReplaceIdle.Single(m => m.Position == idleMessages[1].Position).Replica.ShouldBe(publisher);
     }
 }

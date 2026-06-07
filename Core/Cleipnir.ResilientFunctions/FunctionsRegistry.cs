@@ -268,7 +268,8 @@ public class FunctionsRegistry : IDisposable
             var messageWriters = new MessageWriters(
                 storedType,
                 _functionStore,
-                serializer
+                serializer,
+                ClusterInfo.ReplicaId
             );
 
             var registration = new FuncRegistration<TParam, TReturn>(
@@ -350,7 +351,8 @@ public class FunctionsRegistry : IDisposable
             var messageWriters = new MessageWriters(
                 storedType,
                 _functionStore,
-                serializer
+                serializer,
+                ClusterInfo.ReplicaId
             );
 
             var registration = new ParamlessRegistration(
@@ -432,7 +434,8 @@ public class FunctionsRegistry : IDisposable
             var messageWriters = new MessageWriters(
                 storedType,
                 _functionStore,
-                serializer
+                serializer,
+                ClusterInfo.ReplicaId
             );
             var registration = new ActionRegistration<TParam>(
                 flowType,
