@@ -5,7 +5,7 @@ using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.Messaging;
 
-public class MessageWriter(StoredId storedIdId, IMessageStore messageStore, ISerializer eventSerializer, ReplicaId? publisherReplica = null)
+public class MessageWriter(StoredId storedIdId, IMessageStore messageStore, ISerializer eventSerializer, ReplicaId publisherReplica)
 {
     public async Task AppendMessage<TMessage>(TMessage message, string? idempotencyKey = null, string? sender = null, string? receiver = null) where TMessage : class
     {
