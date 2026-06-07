@@ -115,6 +115,6 @@ public class MessageStoreTests :  TestTemplates.MessageStoreTests
         => ConcurrentBatchedMessagesToSameStoredIdAreAllAdded(FunctionStoreFactory.Create());
 
     [TestMethod]
-    public override Task MessageReplicaIsPersistedAndFetched()
-        => MessageReplicaIsPersistedAndFetched(FunctionStoreFactory.Create());
+    public override Task MessageReplicaIsTakenFromTargetFlowOwner()
+        => MessageReplicaIsTakenFromTargetFlowOwner(FunctionStoreFactory.Create());
 }

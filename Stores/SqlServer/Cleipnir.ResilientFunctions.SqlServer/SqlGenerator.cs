@@ -580,12 +580,12 @@ public class SqlGenerator(string tablePrefix)
             INSERT INTO {tablePrefix}_Messages
                 (Id, Replica, Content)
             VALUES
-                 {messages.Select((_, i) => $"(@{prefix}Id{i}, @{prefix}Replica{i}, @{prefix}Content{i})").StringJoin($",{Environment.NewLine}")};";
+                 {messages.Select((_, i) => $"(@{prefix}Id{i}, (SELECT Owner FROM {tablePrefix} WHERE Id = @{prefix}Id{i}), @{prefix}Content{i})").StringJoin($",{Environment.NewLine}")};";
 
         var appendCommand = StoreCommand.Create(sql);
         for (var i = 0; i < messages.Count; i++)
         {
-            var (storedId, (messageContent, messageType, _, idempotencyKey, sender, receiver, replica)) = messages[i];
+            var (storedId, (messageContent, messageType, _, idempotencyKey, sender, receiver, _)) = messages[i];
             var content = BinaryPacker.Pack(
                 messageContent,
                 messageType,
@@ -594,7 +594,6 @@ public class SqlGenerator(string tablePrefix)
                 receiver?.ToUtf8Bytes()
             );
             appendCommand.AddParameter($"@{prefix}Id{i}", storedId.AsGuid);
-            appendCommand.AddParameter($"@{prefix}Replica{i}", replica?.AsGuid ?? (object)DBNull.Value);
             appendCommand.AddParameter($"@{prefix}Content{i}", content);
         }
 

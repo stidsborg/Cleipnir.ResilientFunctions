@@ -588,8 +588,9 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
             if (!_messages.ContainsKey(storedId))
                 _messages[storedId] = new Dictionary<long, StoredMessage>();
 
+            var owner = _states.TryGetValue(storedId, out var state) ? state.Owner : null;
             var messages = _messages[storedId];
-            messages[_nextMessagePosition++] = storedMessage;
+            messages[_nextMessagePosition++] = storedMessage with { Replica = owner };
 
             return Interrupt(storedId);
         }
@@ -612,7 +613,8 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
             if (!_messages.TryGetValue(storedId, out var messages) || !messages.ContainsKey(position))
                 return false.ToTask();
 
-            messages[position] = storedMessage;
+            var owner = _states.TryGetValue(storedId, out var state) ? state.Owner : null;
+            messages[position] = storedMessage with { Replica = owner };
             return true.ToTask();
         }
     }

@@ -111,6 +111,6 @@ public class MessageStoreTests :  Cleipnir.ResilientFunctions.Tests.Messaging.Te
         => ConcurrentBatchedMessagesToSameStoredIdAreAllAdded(FunctionStoreFactory.Create());
 
     [TestMethod]
-    public override Task MessageReplicaIsPersistedAndFetched()
-        => MessageReplicaIsPersistedAndFetched(FunctionStoreFactory.Create());
+    public override Task MessageReplicaIsTakenFromTargetFlowOwner()
+        => MessageReplicaIsTakenFromTargetFlowOwner(FunctionStoreFactory.Create());
 }

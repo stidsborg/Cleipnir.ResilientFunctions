@@ -1111,65 +1111,70 @@ public abstract class MessageStoreTests
         messageContents.ShouldBe(expectedContents);
     }
 
-    public abstract Task MessageReplicaIsPersistedAndFetched();
-    protected async Task MessageReplicaIsPersistedAndFetched(Task<IFunctionStore> functionStoreTask)
+    public abstract Task MessageReplicaIsTakenFromTargetFlowOwner();
+    protected async Task MessageReplicaIsTakenFromTargetFlowOwner(Task<IFunctionStore> functionStoreTask)
     {
-        var functionId = TestStoredId.Create();
         var functionStore = await functionStoreTask;
+        var stringType = typeof(string).SimpleQualifiedName().ToUtf8Bytes();
+
+        // a flow currently executing on a replica
+        var owner = ReplicaId.NewId();
+        var executingFlow = TestStoredId.Create();
         await functionStore.CreateFunction(
-            functionId,
-            "humanInstanceId",
+            executingFlow,
+            "executing",
+            Test.SimpleStoredParameter,
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks,
+            parent: null,
+            owner: owner
+        );
+
+        // a flow that is not executing (no owner)
+        var idleFlow = TestStoredId.Create();
+        await functionStore.CreateFunction(
+            idleFlow,
+            "idle",
             Test.SimpleStoredParameter,
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: null
         );
+
         var messageStore = functionStore.MessageStore;
 
-        var replica1 = ReplicaId.NewId();
-        var replica2 = ReplicaId.NewId();
-        var stringType = typeof(string).SimpleQualifiedName().ToUtf8Bytes();
+        // the Replica supplied by the caller is ignored - it is derived from the target flow's current owner
+        await messageStore.AppendMessage(executingFlow, new StoredMessage("a".ToJson().ToUtf8Bytes(), stringType, Position: 0, Replica: ReplicaId.NewId()));
+        await messageStore.AppendMessage(idleFlow, new StoredMessage("b".ToJson().ToUtf8Bytes(), stringType, Position: 0));
 
-        // single append carrying a replica
-        await messageStore.AppendMessage(
-            functionId,
-            new StoredMessage("with replica".ToJson().ToUtf8Bytes(), stringType, Position: 0, Replica: replica1)
-        );
-        // single append without a replica
-        await messageStore.AppendMessage(
-            functionId,
-            new StoredMessage("without replica".ToJson().ToUtf8Bytes(), stringType, Position: 0)
-        );
-        // bulk append carrying a replica
+        // bulk append derives the owner per target flow
         await messageStore.AppendMessages([
-            new StoredIdAndMessage(
-                functionId,
-                new StoredMessage("bulk with replica".ToJson().ToUtf8Bytes(), stringType, Position: 0, Replica: replica2)
-            )
+            new StoredIdAndMessage(executingFlow, new StoredMessage("c".ToJson().ToUtf8Bytes(), stringType, Position: 0)),
+            new StoredIdAndMessage(idleFlow, new StoredMessage("d".ToJson().ToUtf8Bytes(), stringType, Position: 0)),
         ]);
 
-        var messages = (await messageStore.GetMessages(functionId)).ToList();
-        messages.Count.ShouldBe(3);
-        messages[0].Replica.ShouldBe(replica1);
-        messages[1].Replica.ShouldBeNull();
-        messages[2].Replica.ShouldBe(replica2);
+        var executingMessages = (await messageStore.GetMessages(executingFlow)).ToList();
+        executingMessages.Count.ShouldBe(2);
+        executingMessages.ShouldAllBe(m => m.Replica == owner);
 
-        // multi-storedId fetch path round-trips the replica as well
-        var byStoredId = await messageStore.GetMessages([functionId]);
-        var fetched = byStoredId[functionId];
-        fetched[0].Replica.ShouldBe(replica1);
-        fetched[1].Replica.ShouldBeNull();
-        fetched[2].Replica.ShouldBe(replica2);
+        var idleMessages = (await messageStore.GetMessages(idleFlow)).ToList();
+        idleMessages.Count.ShouldBe(2);
+        idleMessages.ShouldAllBe(m => m.Replica == null);
 
-        // replacing a message updates its replica
+        // multi-storedId fetch path round-trips the same replica
+        var byStoredId = await messageStore.GetMessages([executingFlow, idleFlow]);
+        byStoredId[executingFlow].ShouldAllBe(m => m.Replica == owner);
+        byStoredId[idleFlow].ShouldAllBe(m => m.Replica == null);
+
+        // replacing a message re-derives the owner from the target flow
         await messageStore.ReplaceMessage(
-            functionId,
-            position: messages[1].Position,
-            new StoredMessage("replaced".ToJson().ToUtf8Bytes(), stringType, Position: messages[1].Position, Replica: replica1)
+            executingFlow,
+            position: executingMessages[0].Position,
+            new StoredMessage("replaced".ToJson().ToUtf8Bytes(), stringType, Position: executingMessages[0].Position)
         );
-        var afterReplace = (await messageStore.GetMessages(functionId)).ToList();
-        afterReplace[1].DefaultDeserialize().ShouldBe("replaced");
-        afterReplace[1].Replica.ShouldBe(replica1);
+        var afterReplace = (await messageStore.GetMessages(executingFlow)).ToList();
+        afterReplace[0].DefaultDeserialize().ShouldBe("replaced");
+        afterReplace[0].Replica.ShouldBe(owner);
     }
 }

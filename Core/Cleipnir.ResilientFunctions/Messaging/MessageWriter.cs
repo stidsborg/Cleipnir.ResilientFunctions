@@ -1,11 +1,10 @@
 ﻿using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Serialization;
-using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.Messaging;
 
-public class MessageWriter(StoredId storedIdId, IMessageStore messageStore, ISerializer eventSerializer, ReplicaId? replica = null)
+public class MessageWriter(StoredId storedIdId, IMessageStore messageStore, ISerializer eventSerializer)
 {
     public async Task AppendMessage<TMessage>(TMessage message, string? idempotencyKey = null, string? sender = null, string? receiver = null) where TMessage : class
     {
@@ -14,7 +13,7 @@ public class MessageWriter(StoredId storedIdId, IMessageStore messageStore, ISer
 
          await messageStore.AppendMessage(
             storedIdId,
-            new StoredMessage(eventJson, eventType, Position: 0, idempotencyKey, Sender: sender, Receiver: receiver, Replica: replica)
+            new StoredMessage(eventJson, eventType, Position: 0, idempotencyKey, Sender: sender, Receiver: receiver)
         );
     }
 }
