@@ -222,7 +222,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
 
         await reader.NextResultAsync();
         var messages = await _sqlGenerator.ReadMessages(reader);
-        var storedMessages = messages.Select(m => PostgreSqlMessageStore.ConvertToStoredMessage(m.content, m.position)).ToList();
+        var storedMessages = messages.Select(m => PostgreSqlMessageStore.ConvertToStoredMessage(m.content, m.position, m.replica)).ToList();
 
         return new StoredFlowWithEffectsAndMessages(sf, effects, storedMessages, session);
     }

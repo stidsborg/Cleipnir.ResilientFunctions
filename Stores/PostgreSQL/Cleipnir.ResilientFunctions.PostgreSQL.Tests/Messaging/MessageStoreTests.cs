@@ -109,4 +109,8 @@ public class MessageStoreTests :  ResilientFunctions.Tests.Messaging.TestTemplat
     [TestMethod]
     public override Task ConcurrentBatchedMessagesToSameStoredIdAreAllAdded()
         => ConcurrentBatchedMessagesToSameStoredIdAreAllAdded(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task MessageReplicaIsTakenFromTargetFlowOwner()
+        => MessageReplicaIsTakenFromTargetFlowOwner(FunctionStoreFactory.Create());
 }

@@ -1,4 +1,6 @@
-﻿using Cleipnir.ResilientFunctions.Helpers;
+﻿using System;
+using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.MariaDB.StoreCommand;
 using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Storage;
@@ -30,6 +32,7 @@ public class MariaDbMessageStore : IMessageStore
             CREATE TABLE IF NOT EXISTS {_tablePrefix}_messages (
                 position BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
                 id CHAR(32),
+                replica CHAR(32) NULL,
                 content LONGBLOB,
                 INDEX {_tablePrefix}_messages_id_idx (id)
             );";
@@ -55,19 +58,20 @@ public class MariaDbMessageStore : IMessageStore
         if (messages.Count == 0)
             return;
 
-        var values = messages.Select(_ => "(?, ?)").StringJoin(", ");
+        var values = messages.Select(_ => $"(?, (SELECT owner FROM {_tablePrefix} WHERE id = ?), ?)").StringJoin(", ");
 
         var sql = @$"
             INSERT INTO {_tablePrefix}_messages
-                (id, content)
+                (id, replica, content)
             VALUES
                 {values};";
 
         await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
         await using var command = new MySqlCommand(sql, conn);
 
-        foreach (var (messageContent, messageType, _, idempotencyKey, sender, receiver) in messages)
+        foreach (var (messageContent, messageType, _, idempotencyKey, sender, receiver, _) in messages)
         {
+            command.Parameters.Add(new() { Value = storedId.AsGuid.ToString("N") });
             command.Parameters.Add(new() { Value = storedId.AsGuid.ToString("N") });
             var content = BinaryPacker.Pack(messageContent, messageType, idempotencyKey?.ToUtf8Bytes(), sender?.ToUtf8Bytes(), receiver?.ToUtf8Bytes());
             command.Parameters.Add(new() { Value = content });
@@ -103,11 +107,11 @@ public class MariaDbMessageStore : IMessageStore
     public async Task<bool> ReplaceMessage(StoredId storedId, long position, StoredMessage storedMessage)
     {
         await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
-        var (messageJson, messageType, _, idempotencyKey, sender, receiver) = storedMessage;
+        var (messageJson, messageType, _, idempotencyKey, sender, receiver, _) = storedMessage;
 
         _replaceMessageSql ??= @$"
                 UPDATE {_tablePrefix}_messages
-                SET content = ?
+                SET replica = (SELECT owner FROM {_tablePrefix} WHERE id = ?), content = ?
                 WHERE id = ? AND position = ?";
         var content = BinaryPacker.Pack(
             messageJson,
@@ -120,6 +124,7 @@ public class MariaDbMessageStore : IMessageStore
         {
             Parameters =
             {
+                new() {Value = storedId.AsGuid.ToString("N")},
                 new() {Value = content},
                 new() {Value = storedId.AsGuid.ToString("N")},
                 new() {Value = position}
@@ -164,14 +169,14 @@ public class MariaDbMessageStore : IMessageStore
         await using var reader = await command.ExecuteReaderAsync();
 
         var messages = await _sqlGenerator.ReadMessages(reader);
-        return messages.Select(m => ConvertToStoredMessage(m.content, m.position)).ToList();
+        return messages.Select(m => ConvertToStoredMessage(m.content, m.position, m.replica)).ToList();
     }
 
     public async Task<IReadOnlyList<StoredMessage>> GetMessages(StoredId storedId, IReadOnlyList<long> skipPositions)
     {
         if (!skipPositions.Any())
             return await GetMessages(storedId);
-        
+
         await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
         await using var command = _sqlGenerator
             .GetMessages(storedId, skipPositions)
@@ -180,7 +185,7 @@ public class MariaDbMessageStore : IMessageStore
         await using var reader = await command.ExecuteReaderAsync();
 
         var messages = await _sqlGenerator.ReadMessages(reader);
-        return messages.Select(m => ConvertToStoredMessage(m.content, m.position)).ToList();
+        return messages.Select(m => ConvertToStoredMessage(m.content, m.position, m.replica)).ToList();
     }
 
     public async Task<Dictionary<StoredId, List<StoredMessage>>> GetMessages(IEnumerable<StoredId> storedIds)
@@ -198,13 +203,13 @@ public class MariaDbMessageStore : IMessageStore
         var storedMessages = storedIds.ToDictionary(id => id, _ => new List<StoredMessage>());
         
         foreach (var id in messages.Keys)
-        foreach (var (content, position) in messages[id])
-            storedMessages[id].Add(ConvertToStoredMessage(content, position));
+        foreach (var (content, position, replica) in messages[id])
+            storedMessages[id].Add(ConvertToStoredMessage(content, position, replica));
 
         return storedMessages;
     }
 
-    public static StoredMessage ConvertToStoredMessage(byte[] content, long position)
+    public static StoredMessage ConvertToStoredMessage(byte[] content, long position, string? replica)
     {
         var arrs = BinaryPacker.Split(content, expectedPieces: 5);
         var message = arrs[0]!;
@@ -218,7 +223,8 @@ public class MariaDbMessageStore : IMessageStore
             Position: position,
             idempotencyKey?.ToStringFromUtf8Bytes(),
             sender?.ToStringFromUtf8Bytes(),
-            receiver?.ToStringFromUtf8Bytes()
+            receiver?.ToStringFromUtf8Bytes(),
+            Replica: replica?.ParseToReplicaId()
         );
         return storedMessage;
     }

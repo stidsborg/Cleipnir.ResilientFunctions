@@ -1,8 +1,10 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Serialization;
+using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Storage;
@@ -1107,5 +1109,72 @@ public abstract class MessageStoreTests
             .ToList();
 
         messageContents.ShouldBe(expectedContents);
+    }
+
+    public abstract Task MessageReplicaIsTakenFromTargetFlowOwner();
+    protected async Task MessageReplicaIsTakenFromTargetFlowOwner(Task<IFunctionStore> functionStoreTask)
+    {
+        var functionStore = await functionStoreTask;
+        var stringType = typeof(string).SimpleQualifiedName().ToUtf8Bytes();
+
+        // a flow currently executing on a replica
+        var owner = ReplicaId.NewId();
+        var executingFlow = TestStoredId.Create();
+        await functionStore.CreateFunction(
+            executingFlow,
+            "executing",
+            Test.SimpleStoredParameter,
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks,
+            parent: null,
+            owner: owner
+        );
+
+        // a flow that is not executing (no owner)
+        var idleFlow = TestStoredId.Create();
+        await functionStore.CreateFunction(
+            idleFlow,
+            "idle",
+            Test.SimpleStoredParameter,
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks,
+            parent: null,
+            owner: null
+        );
+
+        var messageStore = functionStore.MessageStore;
+
+        // the Replica supplied by the caller is ignored - it is derived from the target flow's current owner
+        await messageStore.AppendMessage(executingFlow, new StoredMessage("a".ToJson().ToUtf8Bytes(), stringType, Position: 0, Replica: ReplicaId.NewId()));
+        await messageStore.AppendMessage(idleFlow, new StoredMessage("b".ToJson().ToUtf8Bytes(), stringType, Position: 0));
+
+        // bulk append derives the owner per target flow
+        await messageStore.AppendMessages([
+            new StoredIdAndMessage(executingFlow, new StoredMessage("c".ToJson().ToUtf8Bytes(), stringType, Position: 0)),
+            new StoredIdAndMessage(idleFlow, new StoredMessage("d".ToJson().ToUtf8Bytes(), stringType, Position: 0)),
+        ]);
+
+        var executingMessages = (await messageStore.GetMessages(executingFlow)).ToList();
+        executingMessages.Count.ShouldBe(2);
+        executingMessages.ShouldAllBe(m => m.Replica == owner);
+
+        var idleMessages = (await messageStore.GetMessages(idleFlow)).ToList();
+        idleMessages.Count.ShouldBe(2);
+        idleMessages.ShouldAllBe(m => m.Replica == null);
+
+        // multi-storedId fetch path round-trips the same replica
+        var byStoredId = await messageStore.GetMessages([executingFlow, idleFlow]);
+        byStoredId[executingFlow].ShouldAllBe(m => m.Replica == owner);
+        byStoredId[idleFlow].ShouldAllBe(m => m.Replica == null);
+
+        // replacing a message re-derives the owner from the target flow
+        await messageStore.ReplaceMessage(
+            executingFlow,
+            position: executingMessages[0].Position,
+            new StoredMessage("replaced".ToJson().ToUtf8Bytes(), stringType, Position: executingMessages[0].Position)
+        );
+        var afterReplace = (await messageStore.GetMessages(executingFlow)).ToList();
+        afterReplace[0].DefaultDeserialize().ShouldBe("replaced");
+        afterReplace[0].Replica.ShouldBe(owner);
     }
 }

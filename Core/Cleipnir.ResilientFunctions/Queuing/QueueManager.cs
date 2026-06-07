@@ -172,7 +172,7 @@ internal class QueueManager : IDisposable
                 skipPositions = _fetchedPositions.ToList();
 
             var messages = await _messageStore.GetMessages(_storedId, skipPositions);
-            foreach (var (messageContent, messageType, position, idempotencyKey, sender, receiver) in messages)
+            foreach (var (messageContent, messageType, position, idempotencyKey, sender, receiver, _) in messages)
             {
                 try
                 {

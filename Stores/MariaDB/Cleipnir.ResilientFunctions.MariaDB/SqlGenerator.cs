@@ -588,13 +588,14 @@ public class SqlGenerator(string tablePrefix)
         // preserves message order.
         var sql = @$"
             INSERT INTO {tablePrefix}_messages
-                (id, content)
+                (id, replica, content)
             VALUES
-                 {"(?, ?)".Replicate(messages.Count).StringJoin($",{Environment.NewLine}")};";
+                 {$"(?, (SELECT owner FROM {tablePrefix} WHERE id = ?), ?)".Replicate(messages.Count).StringJoin($",{Environment.NewLine}")};";
 
         var command = StoreCommand.Create(sql);
-        foreach (var (storedId, (messageContent, messageType, _, idempotencyKey, sender, receiver)) in messages)
+        foreach (var (storedId, (messageContent, messageType, _, idempotencyKey, sender, receiver, _)) in messages)
         {
+            command.AddParameter(storedId.AsGuid.ToString("N"));
             command.AddParameter(storedId.AsGuid.ToString("N"));
             var content = BinaryPacker.Pack(
                 messageContent,
@@ -613,7 +614,7 @@ public class SqlGenerator(string tablePrefix)
     public StoreCommand GetMessages(StoredId storedId)
     {
         _getMessagesSql ??= @$"
-            SELECT content, position
+            SELECT content, position, replica
             FROM {tablePrefix}_messages
             WHERE id = ?
             ORDER BY position ASC;";
@@ -632,7 +633,7 @@ public class SqlGenerator(string tablePrefix)
     {
         var positionsClause = skipPositions.Select(p => p.ToString()).StringJoin(", ");
         var sql = @$"
-            SELECT content, position
+            SELECT content, position, replica
             FROM {tablePrefix}_messages
             WHERE id = ? AND position NOT IN ({positionsClause})
             ORDER BY position;";
@@ -644,23 +645,24 @@ public class SqlGenerator(string tablePrefix)
         return command;
     }
 
-    public async Task<IReadOnlyList<(byte[] content, long position)>> ReadMessages(MySqlDataReader reader)
+    public async Task<IReadOnlyList<(byte[] content, long position, string? replica)>> ReadMessages(MySqlDataReader reader)
     {
-        var messages = new List<(byte[], long)>();
+        var messages = new List<(byte[], long, string?)>();
         while (await reader.ReadAsync())
         {
             var content = (byte[]) reader.GetValue(0);
             var position = reader.GetInt64(1);
-            messages.Add((content, position));
+            var replica = await reader.IsDBNullAsync(2) ? null : reader.GetString(2);
+            messages.Add((content, position, replica));
         }
 
         return messages;
     }
-    
+
     public StoreCommand GetMessages(IEnumerable<StoredId> storedIds)
     {
         var sql = @$"
-            SELECT id, position, content
+            SELECT id, position, content, replica
             FROM {tablePrefix}_messages
             WHERE id IN ({storedIds.Select(id => $"'{id.AsGuid:N}'").StringJoin(", ")})
             ORDER BY position;";
@@ -668,21 +670,22 @@ public class SqlGenerator(string tablePrefix)
         var command = StoreCommand.Create(sql);
         return command;
     }
-    
-    public async Task<Dictionary<StoredId, List<(byte[] content, long position)>>> ReadStoredIdsMessages(MySqlDataReader reader)
+
+    public async Task<Dictionary<StoredId, List<(byte[] content, long position, string? replica)>>> ReadStoredIdsMessages(MySqlDataReader reader)
     {
-        var messages = new Dictionary<StoredId, List<(byte[] content, long position)>>();
+        var messages = new Dictionary<StoredId, List<(byte[] content, long position, string? replica)>>();
 
         while (await reader.ReadAsync())
         {
             var id = reader.GetString(0).ToGuid().ToStoredId();
             var position = reader.GetInt64(1);
             var content = (byte[]) reader.GetValue(2);
+            var replica = await reader.IsDBNullAsync(3) ? null : reader.GetString(3);
 
             if (!messages.ContainsKey(id))
-                messages[id] = new List<(byte[], long)>();
+                messages[id] = new List<(byte[], long, string?)>();
 
-            messages[id].Add((content, position));
+            messages[id].Add((content, position, replica));
         }
 
         return messages.ToDictionary(
