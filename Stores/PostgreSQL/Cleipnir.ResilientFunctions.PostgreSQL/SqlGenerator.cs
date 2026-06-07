@@ -454,16 +454,18 @@ public class SqlGenerator(string tablePrefix)
     private string? _appendMessagesSql;
     public StoreCommand AppendMessages(StoredId storedId, IEnumerable<StoredMessage> messages)
     {
-        // position is assigned by the table's identity column. unnest($2::bytea[]) WITH ORDINALITY expands the
-        // byte[][] parameter into rows; ORDER BY ord makes the identity assignment follow caller order.
-        // replica is derived from the target flow's current owner.
+        // position is assigned by the table's identity column. unnest($2::bytea[], $3::uuid[]) WITH ORDINALITY
+        // expands the content/fallback-replica parameters into rows in parallel; ORDER BY ord makes the identity
+        // assignment follow caller order. replica is the target flow's current owner, falling back to the
+        // publisher's replica when the target flow is not executing.
         _appendMessagesSql ??= @$"
             INSERT INTO {tablePrefix}_messages (id, replica, content)
-            SELECT $1, (SELECT owner FROM {tablePrefix} WHERE id = $1), content
-            FROM unnest($2::bytea[]) WITH ORDINALITY AS t(content, ord)
+            SELECT $1, COALESCE((SELECT owner FROM {tablePrefix} WHERE id = $1), replica), content
+            FROM unnest($2::bytea[], $3::uuid[]) WITH ORDINALITY AS t(content, replica, ord)
             ORDER BY ord;";
 
-        var contents = messages
+        var materialized = messages.ToList();
+        var contents = materialized
             .Select(m => BinaryPacker.Pack(
                 m.MessageContent,
                 m.MessageType,
@@ -472,12 +474,16 @@ public class SqlGenerator(string tablePrefix)
                 m.Receiver?.ToUtf8Bytes()
             ))
             .ToArray();
+        var replicas = materialized
+            .Select(m => m.Replica.AsGuid)
+            .ToArray();
 
         return StoreCommand.Create(
             _appendMessagesSql,
             values: [
                 storedId.AsGuid,
-                contents
+                contents,
+                replicas
             ]
         );
     }
@@ -486,24 +492,26 @@ public class SqlGenerator(string tablePrefix)
     // message order.
     public StoreCommand AppendMessages(IReadOnlyList<StoredIdAndMessage> messages)
     {
-        // replica is derived from each message's target flow owner. The ordinal column preserves caller order
-        // so the identity column assigns positions accordingly.
+        // replica is each message's target flow owner, falling back to the publisher's replica when the target
+        // flow is not executing. The ordinal column preserves caller order so the identity column assigns
+        // positions accordingly.
         var rows = messages
             .Select((_, i) => i == 0
-                ? $"($1::uuid, $2::bytea, {i})"
-                : $"(${i * 2 + 1}, ${i * 2 + 2}, {i})")
+                ? $"($1::uuid, $2::uuid, $3::bytea, {i})"
+                : $"(${i * 3 + 1}, ${i * 3 + 2}, ${i * 3 + 3}, {i})")
             .StringJoin($",{Environment.NewLine}");
         var sql = @$"
             INSERT INTO {tablePrefix}_messages (id, replica, content)
-            SELECT v.id, (SELECT owner FROM {tablePrefix} WHERE id = v.id), v.content
-            FROM (VALUES {rows}) AS v(id, content, ord)
+            SELECT v.id, COALESCE((SELECT owner FROM {tablePrefix} WHERE id = v.id), v.replica), v.content
+            FROM (VALUES {rows}) AS v(id, replica, content, ord)
             ORDER BY v.ord;";
 
         var command = StoreCommand.Create(sql);
 
-        foreach (var (storedId, (messageContent, messageType, _, idempotencyKey, sender, receiver, _)) in messages)
+        foreach (var (storedId, (messageContent, messageType, _, replica, idempotencyKey, sender, receiver)) in messages)
         {
             command.AddParameter(storedId.AsGuid);
+            command.AddParameter(replica.AsGuid);
             var content = BinaryPacker.Pack(
                 messageContent,
                 messageType,
@@ -601,10 +609,10 @@ public class SqlGenerator(string tablePrefix)
                     contentBytes,
                     typeBytes,
                     position,
+                    replica?.ToReplicaId() ?? ReplicaId.Empty,
                     idempotencyKeyBytes?.ToStringFromUtf8Bytes(),
                     senderBytes?.ToStringFromUtf8Bytes(),
-                    receiverBytes?.ToStringFromUtf8Bytes(),
-                    Replica: replica?.ToReplicaId()
+                    receiverBytes?.ToStringFromUtf8Bytes()
                 )
             );
         }

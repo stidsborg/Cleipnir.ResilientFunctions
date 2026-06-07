@@ -63,7 +63,7 @@ public class SqlServerMessageStore : IMessageStore
         if (messages.Count == 0)
             return;
 
-        var values = messages.Select((_, i) => $"(@Id, (SELECT Owner FROM {_tablePrefix} WHERE Id = @Id), @Content{i})").StringJoin(", ");
+        var values = messages.Select((_, i) => $"(@Id, COALESCE((SELECT Owner FROM {_tablePrefix} WHERE Id = @Id), @Replica{i}), @Content{i})").StringJoin(", ");
 
         var sql = @$"
             INSERT INTO {_tablePrefix}_Messages (Id, Replica, Content)
@@ -76,8 +76,9 @@ public class SqlServerMessageStore : IMessageStore
 
         for (var i = 0; i < messages.Count; i++)
         {
-            var (messageContent, messageType, _, idempotencyKey, sender, receiver, _) = messages[i];
+            var (messageContent, messageType, _, replica, idempotencyKey, sender, receiver) = messages[i];
             var content = BinaryPacker.Pack(messageContent, messageType, idempotencyKey?.ToUtf8Bytes(), sender?.ToUtf8Bytes(), receiver?.ToUtf8Bytes());
+            command.Parameters.AddWithValue($"@Replica{i}", replica.AsGuid);
             command.Parameters.AddWithValue($"@Content{i}", content);
         }
 
@@ -111,16 +112,17 @@ public class SqlServerMessageStore : IMessageStore
             INSERT INTO {_tablePrefix}_Messages
                 (Id, Replica, Content)
             VALUES
-                 {messages.Select((_, i) => $"(@Id{i}, (SELECT Owner FROM {_tablePrefix} WHERE Id = @Id{i}), @Content{i})").StringJoin($",{Environment.NewLine}")};
+                 {messages.Select((_, i) => $"(@Id{i}, COALESCE((SELECT Owner FROM {_tablePrefix} WHERE Id = @Id{i}), @Replica{i}), @Content{i})").StringJoin($",{Environment.NewLine}")};
 
             {interuptsSql.Sql}";
 
         await using var command = new SqlCommand(sql, conn);
         for (var i = 0; i < messages.Count; i++)
         {
-            var (storedId, (messageContent, messageType, _, idempotencyKey, sender, receiver, _)) = messages[i];
+            var (storedId, (messageContent, messageType, _, replica, idempotencyKey, sender, receiver)) = messages[i];
             var content = BinaryPacker.Pack(messageContent, messageType, idempotencyKey?.ToUtf8Bytes(), sender?.ToUtf8Bytes(), receiver?.ToUtf8Bytes());
             command.Parameters.AddWithValue($"@Id{i}", storedId.AsGuid);
+            command.Parameters.AddWithValue($"@Replica{i}", replica.AsGuid);
             command.Parameters.AddWithValue($"@Content{i}", content);
         }
         foreach (var (value, name) in interuptsSql.Parameters)
@@ -136,10 +138,10 @@ public class SqlServerMessageStore : IMessageStore
 
         _replaceMessageSql ??= @$"
             UPDATE {_tablePrefix}_Messages
-            SET Replica = (SELECT Owner FROM {_tablePrefix} WHERE Id = @Id), Content = @Content
+            SET Replica = COALESCE((SELECT Owner FROM {_tablePrefix} WHERE Id = @Id), @Replica), Content = @Content
             WHERE Id = @Id AND Position = @Position";
 
-        var (messageJson, messageType, _, idempotencyKey, sender, receiver, _) = storedMessage;
+        var (messageJson, messageType, _, replica, idempotencyKey, sender, receiver) = storedMessage;
         var content = BinaryPacker.Pack(
             messageJson,
             messageType,
@@ -150,6 +152,7 @@ public class SqlServerMessageStore : IMessageStore
         await using var command = new SqlCommand(_replaceMessageSql, conn);
         command.Parameters.AddWithValue("@Id", storedId.AsGuid);
         command.Parameters.AddWithValue("@Position", position);
+        command.Parameters.AddWithValue("@Replica", replica.AsGuid);
         command.Parameters.AddWithValue("@Content", content);
         
         var affectedRows = await command.ExecuteNonQueryAsync();
@@ -232,11 +235,11 @@ public class SqlServerMessageStore : IMessageStore
         var storedMessage = new StoredMessage(
             message,
             type,
-            Position: position,
+            position,
+            replica?.ToReplicaId() ?? ReplicaId.Empty,
             idempotencyKey?.ToStringFromUtf8Bytes(),
             sender?.ToStringFromUtf8Bytes(),
-            receiver?.ToStringFromUtf8Bytes(),
-            Replica: replica?.ToReplicaId()
+            receiver?.ToStringFromUtf8Bytes()
         );
         return storedMessage;
     }

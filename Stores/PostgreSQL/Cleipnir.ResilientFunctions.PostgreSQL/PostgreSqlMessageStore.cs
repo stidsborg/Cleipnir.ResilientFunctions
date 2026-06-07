@@ -89,10 +89,10 @@ public class PostgreSqlMessageStore : IMessageStore
         await using var conn = await CreateConnection();
         _replaceMessageSql ??= @$"
                 UPDATE {tablePrefix}_messages
-                SET replica = (SELECT owner FROM {tablePrefix} WHERE id = $1), content = $2
-                WHERE id = $1 AND position = $3";
+                SET replica = COALESCE((SELECT owner FROM {tablePrefix} WHERE id = $1), $2), content = $3
+                WHERE id = $1 AND position = $4";
 
-        var (messageJson, messageType, _, idempotencyKey, sender, receiver, _) = storedMessage;
+        var (messageJson, messageType, _, replica, idempotencyKey, sender, receiver) = storedMessage;
         var content = BinaryPacker.Pack(
             messageJson,
             messageType,
@@ -105,6 +105,7 @@ public class PostgreSqlMessageStore : IMessageStore
             Parameters =
             {
                 new() {Value = storedId.AsGuid},
+                new() {Value = replica.AsGuid},
                 new() {Value = content},
                 new() {Value = position},
             }
@@ -189,11 +190,11 @@ public class PostgreSqlMessageStore : IMessageStore
         var storedMessage = new StoredMessage(
             message,
             type,
-            Position: position,
+            position,
+            replica?.ToReplicaId() ?? ReplicaId.Empty,
             idempotencyKey?.ToStringFromUtf8Bytes(),
             sender?.ToStringFromUtf8Bytes(),
-            receiver?.ToStringFromUtf8Bytes(),
-            Replica: replica?.ToReplicaId()
+            receiver?.ToStringFromUtf8Bytes()
         );
         return storedMessage;
     }

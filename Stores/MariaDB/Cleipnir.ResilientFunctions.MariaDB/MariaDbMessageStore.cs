@@ -58,7 +58,7 @@ public class MariaDbMessageStore : IMessageStore
         if (messages.Count == 0)
             return;
 
-        var values = messages.Select(_ => $"(?, (SELECT owner FROM {_tablePrefix} WHERE id = ?), ?)").StringJoin(", ");
+        var values = messages.Select(_ => $"(?, COALESCE((SELECT owner FROM {_tablePrefix} WHERE id = ?), ?), ?)").StringJoin(", ");
 
         var sql = @$"
             INSERT INTO {_tablePrefix}_messages
@@ -69,10 +69,11 @@ public class MariaDbMessageStore : IMessageStore
         await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
         await using var command = new MySqlCommand(sql, conn);
 
-        foreach (var (messageContent, messageType, _, idempotencyKey, sender, receiver, _) in messages)
+        foreach (var (messageContent, messageType, _, replica, idempotencyKey, sender, receiver) in messages)
         {
             command.Parameters.Add(new() { Value = storedId.AsGuid.ToString("N") });
             command.Parameters.Add(new() { Value = storedId.AsGuid.ToString("N") });
+            command.Parameters.Add(new() { Value = replica.AsGuid.ToString("N") });
             var content = BinaryPacker.Pack(messageContent, messageType, idempotencyKey?.ToUtf8Bytes(), sender?.ToUtf8Bytes(), receiver?.ToUtf8Bytes());
             command.Parameters.Add(new() { Value = content });
         }
@@ -107,11 +108,11 @@ public class MariaDbMessageStore : IMessageStore
     public async Task<bool> ReplaceMessage(StoredId storedId, long position, StoredMessage storedMessage)
     {
         await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
-        var (messageJson, messageType, _, idempotencyKey, sender, receiver, _) = storedMessage;
+        var (messageJson, messageType, _, replica, idempotencyKey, sender, receiver) = storedMessage;
 
         _replaceMessageSql ??= @$"
                 UPDATE {_tablePrefix}_messages
-                SET replica = (SELECT owner FROM {_tablePrefix} WHERE id = ?), content = ?
+                SET replica = COALESCE((SELECT owner FROM {_tablePrefix} WHERE id = ?), ?), content = ?
                 WHERE id = ? AND position = ?";
         var content = BinaryPacker.Pack(
             messageJson,
@@ -125,6 +126,7 @@ public class MariaDbMessageStore : IMessageStore
             Parameters =
             {
                 new() {Value = storedId.AsGuid.ToString("N")},
+                new() {Value = replica.AsGuid.ToString("N")},
                 new() {Value = content},
                 new() {Value = storedId.AsGuid.ToString("N")},
                 new() {Value = position}
@@ -220,11 +222,11 @@ public class MariaDbMessageStore : IMessageStore
         var storedMessage = new StoredMessage(
             message,
             type,
-            Position: position,
+            position,
+            replica?.ParseToReplicaId() ?? ReplicaId.Empty,
             idempotencyKey?.ToStringFromUtf8Bytes(),
             sender?.ToStringFromUtf8Bytes(),
-            receiver?.ToStringFromUtf8Bytes(),
-            Replica: replica?.ParseToReplicaId()
+            receiver?.ToStringFromUtf8Bytes()
         );
         return storedMessage;
     }

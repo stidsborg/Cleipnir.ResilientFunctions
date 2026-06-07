@@ -12,26 +12,29 @@ public class MessageWriters
     private readonly StoredType _storedType;
     private readonly IFunctionStore _functionStore;
     private readonly ISerializer _serializer;
+    private readonly ReplicaId _publisherReplica;
 
     public MessageWriters(
         StoredType storedType,
-        IFunctionStore functionStore, 
-        ISerializer serializer)
+        IFunctionStore functionStore,
+        ISerializer serializer,
+        ReplicaId publisherReplica)
     {
         _storedType = storedType;
         _functionStore = functionStore;
         _serializer = serializer;
+        _publisherReplica = publisherReplica;
     }
 
     public MessageWriter For(FlowInstance instance)
     {
         var storedId = StoredId.Create(_storedType, instance.Value);
-        return new MessageWriter(storedId, _functionStore.MessageStore, _serializer);
+        return new MessageWriter(storedId, _functionStore.MessageStore, _serializer, _publisherReplica);
     }
-    
+
     internal MessageWriter For(StoredId storedId)
     {
-        return new MessageWriter(storedId, _functionStore.MessageStore, _serializer);
+        return new MessageWriter(storedId, _functionStore.MessageStore, _serializer, _publisherReplica);
     }
 
     public async Task AppendMessages(IReadOnlyList<BatchedMessage> messages)
@@ -42,10 +45,10 @@ public class MessageWriters
             var storedId = StoredId.Create(_storedType, instance.Value);
             var content = _serializer.Serialize(message, message.GetType());
             var type = _serializer.SerializeType(message.GetType());
-            var storedMessage = new StoredMessage(content, type, Position: 0, idempotencyKey);
+            var storedMessage = new StoredMessage(content, type, Position: 0, Replica: _publisherReplica, IdempotencyKey: idempotencyKey);
             storedIdAndMessages.Add(new StoredIdAndMessage(storedId,storedMessage));
         }
 
         await _functionStore.MessageStore.AppendMessages(storedIdAndMessages);
-    } 
+    }
 }

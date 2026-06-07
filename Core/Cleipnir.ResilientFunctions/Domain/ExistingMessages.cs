@@ -56,7 +56,7 @@ public class ExistingMessages
         var json = _serializer.Serialize(message, message.GetType());
         var type = _serializer.SerializeType(message.GetType());
         await _messageStore.AppendMessage(
-            _storedId, new StoredMessage(json, type, Position: 0, idempotencyKey)
+            _storedId, new StoredMessage(json, type, Position: 0, Replica: ReplicaId.Empty, IdempotencyKey: idempotencyKey)
         );
 
         // Invalidate cache so it will be re-fetched with correct positions
@@ -74,7 +74,7 @@ public class ExistingMessages
 
         var json = _serializer.Serialize(message, message.GetType());
         var type = _serializer.SerializeType(message.GetType());
-        await _messageStore.ReplaceMessage(_storedId, storedMessage.Position, new StoredMessage(json, type, Position: storedMessage.Position, idempotencyKey));
+        await _messageStore.ReplaceMessage(_storedId, storedMessage.Position, new StoredMessage(json, type, Position: storedMessage.Position, Replica: ReplicaId.Empty, IdempotencyKey: idempotencyKey));
 
         // Invalidate cache so it will be re-fetched with correct data
         _receivedMessages = null;
