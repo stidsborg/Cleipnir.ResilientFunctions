@@ -489,7 +489,7 @@ internal class InvocationHelper<TParam, TReturn>
         {
             var content = Serializer.Serialize(m.Message, m.Message.GetType());
             var type = Serializer.SerializeType(m.Message.GetType());
-            return new StoredMessage(content, type, Position: 0, m.IdempotencyKey);
+            return new StoredMessage(content, type, Position: 0, Replica: _replicaId, IdempotencyKey: m.IdempotencyKey);
         }).ToList();
 
     internal IReadOnlyList<StoredMessage> AddPositionsToMessages(IReadOnlyList<StoredMessage> messages)

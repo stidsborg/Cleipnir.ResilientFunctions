@@ -475,7 +475,7 @@ public class SqlGenerator(string tablePrefix)
             ))
             .ToArray();
         var replicas = materialized
-            .Select(m => m.Replica?.AsGuid)
+            .Select(m => m.Replica.AsGuid)
             .ToArray();
 
         return StoreCommand.Create(
@@ -508,10 +508,10 @@ public class SqlGenerator(string tablePrefix)
 
         var command = StoreCommand.Create(sql);
 
-        foreach (var (storedId, (messageContent, messageType, _, idempotencyKey, sender, receiver, replica)) in messages)
+        foreach (var (storedId, (messageContent, messageType, _, replica, idempotencyKey, sender, receiver)) in messages)
         {
             command.AddParameter(storedId.AsGuid);
-            command.AddParameter(replica?.AsGuid ?? (object)DBNull.Value);
+            command.AddParameter(replica.AsGuid);
             var content = BinaryPacker.Pack(
                 messageContent,
                 messageType,
@@ -609,10 +609,10 @@ public class SqlGenerator(string tablePrefix)
                     contentBytes,
                     typeBytes,
                     position,
+                    replica?.ToReplicaId() ?? ReplicaId.Empty,
                     idempotencyKeyBytes?.ToStringFromUtf8Bytes(),
                     senderBytes?.ToStringFromUtf8Bytes(),
-                    receiverBytes?.ToStringFromUtf8Bytes(),
-                    Replica: replica?.ToReplicaId()
+                    receiverBytes?.ToStringFromUtf8Bytes()
                 )
             );
         }

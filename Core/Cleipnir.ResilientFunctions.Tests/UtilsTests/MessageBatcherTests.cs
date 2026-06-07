@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Storage;
@@ -318,6 +319,7 @@ public class MessageBatcherTests
     private static StoredMessage CreateMessage(string content) => new(
         Encoding.UTF8.GetBytes(content),
         Encoding.UTF8.GetBytes("System.String"),
-        Position: 0
+        Position: 0,
+        Replica: ReplicaId.Empty
     );
 }

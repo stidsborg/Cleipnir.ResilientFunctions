@@ -536,6 +536,7 @@ public abstract class StoreTests
             "hello everyone".ToJson().ToUtf8Bytes(),
             MessageType: typeof(string).SimpleQualifiedName().ToUtf8Bytes(),
             Position: 0,
+            Replica: ReplicaId.Empty,
             IdempotencyKey: "idempotency_key_1"
         );
         await messages.AppendMessage(functionId, message1);
@@ -601,7 +602,7 @@ public abstract class StoreTests
 
         await store.MessageStore.AppendMessage(
             functionId,
-            new StoredMessage("hello world".ToJson().ToUtf8Bytes(), MessageType: typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Position: 0)
+            new StoredMessage("hello world".ToJson().ToUtf8Bytes(), MessageType: typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Replica: ReplicaId.Empty, Position: 0)
         );
     }
     
@@ -613,7 +614,7 @@ public abstract class StoreTests
         
         await store.MessageStore.AppendMessage(
             functionId,
-            new StoredMessage("hello world".ToJson().ToUtf8Bytes(), MessageType: typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Position: 0)
+            new StoredMessage("hello world".ToJson().ToUtf8Bytes(), MessageType: typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Replica: ReplicaId.Empty, Position: 0)
         );
     }
     
@@ -732,8 +733,8 @@ public abstract class StoreTests
         );
         session.ShouldBeNull();
 
-        await store.MessageStore.AppendMessage(functionId, new StoredMessage("Hello".ToJson().ToUtf8Bytes(), MessageType: typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Position: 0));
-        await store.MessageStore.AppendMessage(functionId, new StoredMessage("World".ToJson().ToUtf8Bytes(), MessageType: typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Position: 0));
+        await store.MessageStore.AppendMessage(functionId, new StoredMessage("Hello".ToJson().ToUtf8Bytes(), MessageType: typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Replica: ReplicaId.Empty, Position: 0));
+        await store.MessageStore.AppendMessage(functionId, new StoredMessage("World".ToJson().ToUtf8Bytes(), MessageType: typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Replica: ReplicaId.Empty, Position: 0));
         
         var messages = await store.MessageStore.GetMessages(functionId);
         messages.Count.ShouldBe(2);
@@ -912,7 +913,7 @@ public abstract class StoreTests
 
         await store.MessageStore.AppendMessage(
             functionId,
-            new StoredMessage("some message".ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Position: 0)
+            new StoredMessage("some message".ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Replica: ReplicaId.Empty, Position: 0)
         );
 
         await store.Interrupt(functionId);
@@ -950,7 +951,7 @@ public abstract class StoreTests
 
         await store.MessageStore.AppendMessage(
             functionId,
-            new StoredMessage("hello world".ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Position: 0)
+            new StoredMessage("hello world".ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Replica: ReplicaId.Empty, Position: 0)
         );
 
         await store.Interrupt(functionId);
@@ -1469,12 +1470,14 @@ public abstract class StoreTests
             MessageContent: "hallo world".ToUtf8Bytes(),
             MessageType: "some type".ToUtf8Bytes(),
             Position: 0,
+            Replica: ReplicaId.Empty,
             IdempotencyKey: "some idempotency key"
         );
         var message2 = new StoredMessage(
             MessageContent: "hallo universe".ToUtf8Bytes(),
             MessageType: "some type".ToUtf8Bytes(),
             Position: 0,
+            Replica: ReplicaId.Empty,
             IdempotencyKey: "some idempotency key"
         );
 
@@ -1538,12 +1541,14 @@ public abstract class StoreTests
             MessageContent: "hallo world".ToUtf8Bytes(),
             MessageType: "some type".ToUtf8Bytes(),
             Position: 0,
+            Replica: ReplicaId.Empty,
             IdempotencyKey: "some idempotency key"
         );
         var message2 = new StoredMessage(
             MessageContent: "hallo universe".ToUtf8Bytes(),
             MessageType: "some type".ToUtf8Bytes(),
             Position: 0,
+            Replica: ReplicaId.Empty,
             IdempotencyKey: "some idempotency key"
         );
 
@@ -1677,7 +1682,8 @@ public abstract class StoreTests
             new StoredMessage(
                 "hallo message".ToUtf8Bytes(),
                 typeof(string).SimpleQualifiedName().ToUtf8Bytes(),
-                Position: 0
+                Position: 0,
+                Replica: ReplicaId.Empty
             )
         );
 

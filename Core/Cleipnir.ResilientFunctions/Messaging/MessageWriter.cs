@@ -14,7 +14,7 @@ public class MessageWriter(StoredId storedIdId, IMessageStore messageStore, ISer
 
          await messageStore.AppendMessage(
             storedIdId,
-            new StoredMessage(eventJson, eventType, Position: 0, idempotencyKey, Sender: sender, Receiver: receiver, Replica: publisherReplica)
+            new StoredMessage(eventJson, eventType, Position: 0, Replica: publisherReplica, IdempotencyKey: idempotencyKey, Sender: sender, Receiver: receiver)
         );
     }
 }
