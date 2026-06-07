@@ -224,6 +224,22 @@ public class SqlServerMessageStore : IMessageStore
         return storedMessages;
     }
 
+    public async Task<Dictionary<StoredId, List<StoredMessage>>> GetMessagesForReplica(ReplicaId replicaId)
+    {
+        await using var conn = await CreateConnection();
+        await using var cmd = _sqlGenerator.GetMessagesForReplica(replicaId).ToSqlCommand(conn);
+        await using var reader = await cmd.ExecuteReaderAsync();
+
+        var messages = await _sqlGenerator.ReadStoredIdsMessages(reader);
+        var storedMessages = new Dictionary<StoredId, List<StoredMessage>>();
+        foreach (var id in messages.Keys)
+            storedMessages[id] = messages[id]
+                .Select(m => ConvertToStoredMessage(m.content, m.position, m.replica))
+                .ToList();
+
+        return storedMessages;
+    }
+
     public static StoredMessage ConvertToStoredMessage(byte[] content, long position, Guid? replica)
     {
         var arrs = BinaryPacker.Split(content, expectedPieces: 5);

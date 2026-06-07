@@ -667,5 +667,25 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         return dict;
     }
 
+    public Task<Dictionary<StoredId, List<StoredMessage>>> GetMessagesForReplica(ReplicaId replicaId)
+    {
+        lock (_sync)
+        {
+            var dict = new Dictionary<StoredId, List<StoredMessage>>();
+            foreach (var (storedId, messages) in _messages)
+            {
+                var list = messages
+                    .OrderBy(kv => kv.Key)
+                    .Where(kv => kv.Value.Replica == replicaId)
+                    .Select(kv => kv.Value with { Position = kv.Key })
+                    .ToList();
+                if (list.Count > 0)
+                    dict[storedId] = list;
+            }
+
+            return dict.ToTask();
+        }
+    }
+
     #endregion
 }

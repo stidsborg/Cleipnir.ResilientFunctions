@@ -211,6 +211,26 @@ public class MariaDbMessageStore : IMessageStore
         return storedMessages;
     }
 
+    public async Task<Dictionary<StoredId, List<StoredMessage>>> GetMessagesForReplica(ReplicaId replicaId)
+    {
+        await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
+        await using var command = _sqlGenerator
+            .GetMessagesForReplica(replicaId)
+            .ToSqlCommand(conn);
+
+        await using var reader = await command.ExecuteReaderAsync();
+
+        var messages = await _sqlGenerator.ReadStoredIdsMessages(reader);
+        var storedMessages = new Dictionary<StoredId, List<StoredMessage>>();
+
+        foreach (var id in messages.Keys)
+            storedMessages[id] = messages[id]
+                .Select(m => ConvertToStoredMessage(m.content, m.position, m.replica))
+                .ToList();
+
+        return storedMessages;
+    }
+
     public static StoredMessage ConvertToStoredMessage(byte[] content, long position, string? replica)
     {
         var arrs = BinaryPacker.Split(content, expectedPieces: 5);

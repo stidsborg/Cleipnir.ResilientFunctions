@@ -661,6 +661,20 @@ public class SqlGenerator(string tablePrefix)
         return command;
     }
 
+    private string? _getMessagesForReplicaSql;
+    public StoreCommand GetMessagesForReplica(ReplicaId replicaId)
+    {
+        _getMessagesForReplicaSql ??= @$"
+            SELECT Id, Position, Content, Replica
+            FROM {tablePrefix}_Messages
+            WHERE Replica = @Replica
+            ORDER BY Position;";
+
+        var command = StoreCommand.Create(_getMessagesForReplicaSql);
+        command.AddParameter("@Replica", replicaId.AsGuid);
+        return command;
+    }
+
     public async Task<Dictionary<StoredId, List<(byte[] content, long position, Guid? replica)>>> ReadStoredIdsMessages(SqlDataReader reader)
     {
         var messages = new Dictionary<StoredId, List<(byte[] content, long position, Guid? replica)>>();
