@@ -92,7 +92,7 @@ public class PostgreSqlMessageStore : IMessageStore
                 SET replica = $1, content = $2
                 WHERE id = $3 AND position = $4";
 
-        var (messageJson, messageType, _, idempotencyKey, sender, receiver) = storedMessage;
+        var (messageJson, messageType, _, idempotencyKey, sender, receiver, replica) = storedMessage;
         var content = BinaryPacker.Pack(
             messageJson,
             messageType,
@@ -104,7 +104,7 @@ public class PostgreSqlMessageStore : IMessageStore
         {
             Parameters =
             {
-                new() {Value = storedMessage.Replica?.AsGuid ?? (object)DBNull.Value},
+                new() {Value = replica?.AsGuid ?? (object)DBNull.Value},
                 new() {Value = content},
                 new() {Value = storedId.AsGuid},
                 new() {Value = position},
@@ -193,11 +193,9 @@ public class PostgreSqlMessageStore : IMessageStore
             Position: position,
             idempotencyKey?.ToStringFromUtf8Bytes(),
             sender?.ToStringFromUtf8Bytes(),
-            receiver?.ToStringFromUtf8Bytes()
-        )
-        {
-            Replica = replica?.ToReplicaId()
-        };
+            receiver?.ToStringFromUtf8Bytes(),
+            Replica: replica?.ToReplicaId()
+        );
         return storedMessage;
     }
 }

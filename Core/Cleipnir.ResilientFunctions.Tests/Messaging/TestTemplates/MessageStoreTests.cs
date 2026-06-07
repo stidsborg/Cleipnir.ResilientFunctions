@@ -1134,7 +1134,7 @@ public abstract class MessageStoreTests
         // single append carrying a replica
         await messageStore.AppendMessage(
             functionId,
-            new StoredMessage("with replica".ToJson().ToUtf8Bytes(), stringType, Position: 0) { Replica = replica1 }
+            new StoredMessage("with replica".ToJson().ToUtf8Bytes(), stringType, Position: 0, Replica: replica1)
         );
         // single append without a replica
         await messageStore.AppendMessage(
@@ -1145,7 +1145,7 @@ public abstract class MessageStoreTests
         await messageStore.AppendMessages([
             new StoredIdAndMessage(
                 functionId,
-                new StoredMessage("bulk with replica".ToJson().ToUtf8Bytes(), stringType, Position: 0) { Replica = replica2 }
+                new StoredMessage("bulk with replica".ToJson().ToUtf8Bytes(), stringType, Position: 0, Replica: replica2)
             )
         ]);
 
@@ -1166,7 +1166,7 @@ public abstract class MessageStoreTests
         await messageStore.ReplaceMessage(
             functionId,
             position: messages[1].Position,
-            new StoredMessage("replaced".ToJson().ToUtf8Bytes(), stringType, Position: messages[1].Position) { Replica = replica1 }
+            new StoredMessage("replaced".ToJson().ToUtf8Bytes(), stringType, Position: messages[1].Position, Replica: replica1)
         );
         var afterReplace = (await messageStore.GetMessages(functionId)).ToList();
         afterReplace[1].DefaultDeserialize().ShouldBe("replaced");

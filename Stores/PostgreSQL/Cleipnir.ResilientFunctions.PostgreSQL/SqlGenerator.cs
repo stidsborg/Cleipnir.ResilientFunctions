@@ -499,11 +499,10 @@ public class SqlGenerator(string tablePrefix)
 
         var command = StoreCommand.Create(sql);
 
-        foreach (var (storedId, storedMessage) in messages)
+        foreach (var (storedId, (messageContent, messageType, _, idempotencyKey, sender, receiver, replica)) in messages)
         {
-            var (messageContent, messageType, _, idempotencyKey, sender, receiver) = storedMessage;
             command.AddParameter(storedId.AsGuid);
-            command.AddParameter(storedMessage.Replica?.AsGuid ?? (object)DBNull.Value);
+            command.AddParameter(replica?.AsGuid ?? (object)DBNull.Value);
             var content = BinaryPacker.Pack(
                 messageContent,
                 messageType,
@@ -603,11 +602,9 @@ public class SqlGenerator(string tablePrefix)
                     position,
                     idempotencyKeyBytes?.ToStringFromUtf8Bytes(),
                     senderBytes?.ToStringFromUtf8Bytes(),
-                    receiverBytes?.ToStringFromUtf8Bytes()
+                    receiverBytes?.ToStringFromUtf8Bytes(),
+                    Replica: replica?.ToReplicaId()
                 )
-                {
-                    Replica = replica?.ToReplicaId()
-                }
             );
         }
 

@@ -69,11 +69,10 @@ public class MariaDbMessageStore : IMessageStore
         await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
         await using var command = new MySqlCommand(sql, conn);
 
-        foreach (var storedMessage in messages)
+        foreach (var (messageContent, messageType, _, idempotencyKey, sender, receiver, replica) in messages)
         {
-            var (messageContent, messageType, _, idempotencyKey, sender, receiver) = storedMessage;
             command.Parameters.Add(new() { Value = storedId.AsGuid.ToString("N") });
-            command.Parameters.Add(new() { Value = storedMessage.Replica?.AsGuid.ToString("N") ?? (object)DBNull.Value });
+            command.Parameters.Add(new() { Value = replica?.AsGuid.ToString("N") ?? (object)DBNull.Value });
             var content = BinaryPacker.Pack(messageContent, messageType, idempotencyKey?.ToUtf8Bytes(), sender?.ToUtf8Bytes(), receiver?.ToUtf8Bytes());
             command.Parameters.Add(new() { Value = content });
         }
@@ -108,7 +107,7 @@ public class MariaDbMessageStore : IMessageStore
     public async Task<bool> ReplaceMessage(StoredId storedId, long position, StoredMessage storedMessage)
     {
         await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
-        var (messageJson, messageType, _, idempotencyKey, sender, receiver) = storedMessage;
+        var (messageJson, messageType, _, idempotencyKey, sender, receiver, replica) = storedMessage;
 
         _replaceMessageSql ??= @$"
                 UPDATE {_tablePrefix}_messages
@@ -125,7 +124,7 @@ public class MariaDbMessageStore : IMessageStore
         {
             Parameters =
             {
-                new() {Value = storedMessage.Replica?.AsGuid.ToString("N") ?? (object)DBNull.Value},
+                new() {Value = replica?.AsGuid.ToString("N") ?? (object)DBNull.Value},
                 new() {Value = content},
                 new() {Value = storedId.AsGuid.ToString("N")},
                 new() {Value = position}
@@ -224,11 +223,9 @@ public class MariaDbMessageStore : IMessageStore
             Position: position,
             idempotencyKey?.ToStringFromUtf8Bytes(),
             sender?.ToStringFromUtf8Bytes(),
-            receiver?.ToStringFromUtf8Bytes()
-        )
-        {
-            Replica = replica?.ParseToReplicaId()
-        };
+            receiver?.ToStringFromUtf8Bytes(),
+            Replica: replica?.ParseToReplicaId()
+        );
         return storedMessage;
     }
 }

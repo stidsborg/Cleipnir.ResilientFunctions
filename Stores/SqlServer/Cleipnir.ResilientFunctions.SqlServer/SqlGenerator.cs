@@ -585,8 +585,7 @@ public class SqlGenerator(string tablePrefix)
         var appendCommand = StoreCommand.Create(sql);
         for (var i = 0; i < messages.Count; i++)
         {
-            var (storedId, storedMessage) = messages[i];
-            var (messageContent, messageType, _, idempotencyKey, sender, receiver) = storedMessage;
+            var (storedId, (messageContent, messageType, _, idempotencyKey, sender, receiver, replica)) = messages[i];
             var content = BinaryPacker.Pack(
                 messageContent,
                 messageType,
@@ -595,7 +594,7 @@ public class SqlGenerator(string tablePrefix)
                 receiver?.ToUtf8Bytes()
             );
             appendCommand.AddParameter($"@{prefix}Id{i}", storedId.AsGuid);
-            appendCommand.AddParameter($"@{prefix}Replica{i}", storedMessage.Replica?.AsGuid ?? (object)DBNull.Value);
+            appendCommand.AddParameter($"@{prefix}Replica{i}", replica?.AsGuid ?? (object)DBNull.Value);
             appendCommand.AddParameter($"@{prefix}Content{i}", content);
         }
 

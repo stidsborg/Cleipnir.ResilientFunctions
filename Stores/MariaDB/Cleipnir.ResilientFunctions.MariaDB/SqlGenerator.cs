@@ -593,11 +593,10 @@ public class SqlGenerator(string tablePrefix)
                  {"(?, ?, ?)".Replicate(messages.Count).StringJoin($",{Environment.NewLine}")};";
 
         var command = StoreCommand.Create(sql);
-        foreach (var (storedId, storedMessage) in messages)
+        foreach (var (storedId, (messageContent, messageType, _, idempotencyKey, sender, receiver, replica)) in messages)
         {
-            var (messageContent, messageType, _, idempotencyKey, sender, receiver) = storedMessage;
             command.AddParameter(storedId.AsGuid.ToString("N"));
-            command.AddParameter(storedMessage.Replica?.AsGuid.ToString("N") ?? (object)DBNull.Value);
+            command.AddParameter(replica?.AsGuid.ToString("N") ?? (object)DBNull.Value);
             var content = BinaryPacker.Pack(
                 messageContent,
                 messageType,

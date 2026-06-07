@@ -203,7 +203,7 @@ internal class InvocationHelper<TParam, TReturn>
 
         var content = Serializer.Serialize(msg, msg.GetType());
         var type = Serializer.SerializeType(msg.GetType());
-        var storedMessage = new StoredMessage(content, type, Position: 0, IdempotencyKey: $"FlowCompleted:{childId}") { Replica = _replicaId };
+        var storedMessage = new StoredMessage(content, type, Position: 0, IdempotencyKey: $"FlowCompleted:{childId}", Replica: _replicaId);
         await _functionStore.MessageStore.AppendMessage(parent, storedMessage);
         await _functionStore.Interrupt(parent);
     }
