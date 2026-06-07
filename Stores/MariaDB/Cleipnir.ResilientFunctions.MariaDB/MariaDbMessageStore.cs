@@ -64,13 +64,7 @@ public class MariaDbMessageStore : IMessageStore
         command.Parameters.Add(new() { Value = storedId.AsGuid.ToString("N") });
         command.Parameters.Add(new() { Value = replica.AsGuid.ToString("N") });
         command.Parameters.Add(new() { Value = content });
-        var insertedReplica = ((string) (await command.ExecuteScalarAsync())!).ParseToReplicaId();
-
-        // schedule the target flow when it is suspended/postponed
-        await using var interruptCmd = _sqlGenerator.Interrupt([storedId]).ToSqlCommand(conn);
-        await interruptCmd.ExecuteNonQueryAsync();
-
-        return insertedReplica;
+        return ((string) (await command.ExecuteScalarAsync())!).ParseToReplicaId();
     }
 
     public async Task AppendMessages(IReadOnlyList<StoredIdAndMessage> messages)

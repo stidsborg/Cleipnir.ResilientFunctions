@@ -68,13 +68,7 @@ public class SqlServerMessageStore : IMessageStore
         command.Parameters.AddWithValue("@Id", storedId.AsGuid);
         command.Parameters.AddWithValue("@Replica", replica.AsGuid);
         command.Parameters.AddWithValue("@Content", content);
-        var insertedReplica = ((Guid) (await command.ExecuteScalarAsync())!).ToReplicaId();
-
-        // schedule the target flow when it is suspended/postponed
-        await using var interruptCmd = _sqlGenerator.Interrupt([storedId]).ToSqlCommand(conn);
-        await interruptCmd.ExecuteNonQueryAsync();
-
-        return insertedReplica;
+        return ((Guid) (await command.ExecuteScalarAsync())!).ToReplicaId();
     }
 
     public async Task AppendMessages(IReadOnlyList<StoredIdAndMessage> messages)

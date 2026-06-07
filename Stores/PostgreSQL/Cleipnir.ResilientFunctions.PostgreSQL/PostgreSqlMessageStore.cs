@@ -74,17 +74,11 @@ public class PostgreSqlMessageStore : IMessageStore
         );
 
         await using var conn = await CreateConnection();
-        await using var batch = new[]
-            {
-                StoreCommand.Create(_appendMessageSql, values: [storedId.AsGuid, storedMessage.Replica.AsGuid, content]),
-                sqlGenerator.Interrupt([storedId]),
-            }
-            .ToNpgsqlBatch()
-            .WithConnection(conn);
-
-        await using var reader = await batch.ExecuteReaderAsync();
-        await reader.ReadAsync();
-        return reader.GetGuid(0).ToReplicaId();
+        await using var command = StoreCommand
+            .Create(_appendMessageSql, values: [storedId.AsGuid, storedMessage.Replica.AsGuid, content])
+            .ToNpgsqlCommand(conn);
+        var result = await command.ExecuteScalarAsync();
+        return ((Guid) result!).ToReplicaId();
     }
 
     public async Task AppendMessages(IReadOnlyList<StoredIdAndMessage> messages)

@@ -29,12 +29,12 @@ public class MessageWriters
     public MessageWriter For(FlowInstance instance)
     {
         var storedId = StoredId.Create(_storedType, instance.Value);
-        return new MessageWriter(storedId, _functionStore.MessageStore, _serializer, _publisherReplica);
+        return new MessageWriter(storedId, _functionStore.MessageStore, _serializer, _publisherReplica, sid => _functionStore.Interrupt(sid));
     }
 
     internal MessageWriter For(StoredId storedId)
     {
-        return new MessageWriter(storedId, _functionStore.MessageStore, _serializer, _publisherReplica);
+        return new MessageWriter(storedId, _functionStore.MessageStore, _serializer, _publisherReplica, sid => _functionStore.Interrupt(sid));
     }
 
     public async Task AppendMessages(IReadOnlyList<BatchedMessage> messages)

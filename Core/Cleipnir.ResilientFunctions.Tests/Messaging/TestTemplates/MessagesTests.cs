@@ -360,7 +360,7 @@ public abstract class MessagesTests
         var serializer = DefaultSerializer.Instance;
         var messageStore = functionStore.MessageStore;
 
-        var messageWriter = new MessageWriter(storedId, messageStore, serializer, ReplicaId.NewId());
+        var messageWriter = new MessageWriter(storedId, messageStore, serializer, ReplicaId.NewId(), _ => Task.CompletedTask);
         await messageWriter.AppendMessage("hello world", idempotencyKey: "key1", sender: "TestSender");
 
         var messages = await messageStore.GetMessages(storedId);
