@@ -14,14 +14,12 @@ namespace Cleipnir.ResilientFunctions.PostgreSQL;
 public class PostgreSqlMessageStore : IMessageStore
 {
     private readonly string tablePrefix;
-    private readonly MessageBatcher<StoredMessage> messageBatcher;
     private readonly string connectionString;
     private readonly SqlGenerator sqlGenerator;
 
     public PostgreSqlMessageStore(string connectionString, SqlGenerator sqlGenerator, string tablePrefix = "")
     {
         this.tablePrefix = tablePrefix.ToLower();
-        messageBatcher = new(AppendMessages);
         this.connectionString = connectionString;
         this.sqlGenerator = sqlGenerator;
     }
@@ -59,11 +57,30 @@ public class PostgreSqlMessageStore : IMessageStore
         await command.ExecuteNonQueryAsync();
     }
 
-    public async Task AppendMessage(StoredId storedId, StoredMessage storedMessage)
-        => await messageBatcher.Handle(storedId, [storedMessage]);
+    public async Task<ReplicaId?> AppendMessage(StoredId storedId, StoredMessage storedMessage)
+    {
+        await using var conn = await CreateConnection();
+        await using var batch = new[]
+            {
+                sqlGenerator.AppendMessages(storedId, [storedMessage]),
+                sqlGenerator.Interrupt([storedId]),
+            }
+            .ToNpgsqlBatch()
+            .WithConnection(conn);
+        await batch.ExecuteNonQueryAsync();
 
-    private Task AppendMessages(StoredId storedId, IReadOnlyList<StoredMessage> messages)
-        => AppendMessages(messages.Select(m => new StoredIdAndMessage(storedId, m)).ToList());
+        return await GetOwner(storedId, conn);
+    }
+
+    private async Task<ReplicaId?> GetOwner(StoredId storedId, NpgsqlConnection conn)
+    {
+        await using var command = new NpgsqlCommand($"SELECT owner FROM {tablePrefix} WHERE id = $1", conn)
+        {
+            Parameters = { new() { Value = storedId.AsGuid } }
+        };
+        var result = await command.ExecuteScalarAsync();
+        return result is Guid owner ? owner.ToReplicaId() : null;
+    }
 
     public async Task AppendMessages(IReadOnlyList<StoredIdAndMessage> messages)
     {

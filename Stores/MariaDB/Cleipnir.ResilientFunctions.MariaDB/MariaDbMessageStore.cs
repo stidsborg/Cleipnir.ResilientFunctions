@@ -14,14 +14,12 @@ public class MariaDbMessageStore : IMessageStore
     private readonly string _connectionString;
     private readonly string _tablePrefix;
     private readonly SqlGenerator _sqlGenerator;
-    private readonly MessageBatcher<StoredMessage> _messageBatcher;
-    
+
     public MariaDbMessageStore(string connectionString, SqlGenerator sqlGenerator, string tablePrefix = "")
     {
         _connectionString = connectionString;
         _tablePrefix = tablePrefix;
         _sqlGenerator = sqlGenerator;
-        _messageBatcher = new MessageBatcher<StoredMessage>(AppendMessages);
     }
 
     private string? _initializeSql;
@@ -50,8 +48,20 @@ public class MariaDbMessageStore : IMessageStore
     }
 
 
-    public async Task AppendMessage(StoredId storedId, StoredMessage storedMessage) 
-        => await _messageBatcher.Handle(storedId, [storedMessage]);
+    public async Task<ReplicaId?> AppendMessage(StoredId storedId, StoredMessage storedMessage)
+    {
+        await AppendMessages(storedId, [storedMessage]);
+        return await GetOwner(storedId);
+    }
+
+    private async Task<ReplicaId?> GetOwner(StoredId storedId)
+    {
+        await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
+        await using var command = new MySqlCommand($"SELECT owner FROM {_tablePrefix} WHERE id = ?", conn);
+        command.Parameters.Add(new() { Value = storedId.AsGuid.ToString("N") });
+        var result = await command.ExecuteScalarAsync();
+        return result is string owner ? owner.ParseToReplicaId() : null;
+    }
     
     private async Task AppendMessages(StoredId storedId, IReadOnlyList<StoredMessage> messages)
     {

@@ -9,7 +9,11 @@ public interface IMessageStore
 {
     Task Initialize();
 
-    Task AppendMessage(StoredId storedId, StoredMessage storedMessage);
+    /// <summary>
+    /// Appends a message to the target flow and returns the flow's current owner replica
+    /// (null when the flow is not currently executing - in which case the flow is scheduled to run immediately).
+    /// </summary>
+    Task<ReplicaId?> AppendMessage(StoredId storedId, StoredMessage storedMessage);
     Task AppendMessages(IReadOnlyList<StoredIdAndMessage> messages);
 
     Task<bool> ReplaceMessage(StoredId storedId, long position, StoredMessage storedMessage);

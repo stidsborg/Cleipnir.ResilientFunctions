@@ -581,18 +581,20 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
     
     #region MessageStore
 
-    public virtual Task AppendMessage(StoredId storedId, StoredMessage storedMessage)
+    public virtual Task<ReplicaId?> AppendMessage(StoredId storedId, StoredMessage storedMessage)
     {
         lock (_sync)
         {
             if (!_messages.ContainsKey(storedId))
                 _messages[storedId] = new Dictionary<long, StoredMessage>();
 
-            var owner = (_states.TryGetValue(storedId, out var state) ? state.Owner : null) ?? storedMessage.Replica;
+            var flowOwner = _states.TryGetValue(storedId, out var state) ? state.Owner : null;
             var messages = _messages[storedId];
-            messages[_nextMessagePosition++] = storedMessage with { Replica = owner };
+            messages[_nextMessagePosition++] = storedMessage with { Replica = flowOwner ?? storedMessage.Replica };
 
-            return Interrupt(storedId);
+            // schedules the flow to run immediately when it is suspended/postponed (and flags it interrupted)
+            Interrupt(storedId);
+            return Task.FromResult(flowOwner);
         }
     }
 

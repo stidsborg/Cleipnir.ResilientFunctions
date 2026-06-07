@@ -16,14 +16,12 @@ public class SqlServerMessageStore : IMessageStore
     private readonly string _connectionString;
     private readonly SqlGenerator _sqlGenerator;
     private readonly string _tablePrefix;
-    private readonly MessageBatcher<StoredMessage> _messageBatcher;
 
     public SqlServerMessageStore(string connectionString, SqlGenerator sqlGenerator, string tablePrefix = "")
     {
         _connectionString = connectionString;
         _sqlGenerator = sqlGenerator;
         _tablePrefix = tablePrefix;
-        _messageBatcher = new MessageBatcher<StoredMessage>(AppendMessages);
     }
 
     private string? _initializeSql;
@@ -55,8 +53,20 @@ public class SqlServerMessageStore : IMessageStore
         await command.ExecuteNonQueryAsync();
     }
 
-    public async Task AppendMessage(StoredId storedId, StoredMessage storedMessage)
-        => await _messageBatcher.Handle(storedId, [storedMessage]);
+    public async Task<ReplicaId?> AppendMessage(StoredId storedId, StoredMessage storedMessage)
+    {
+        await AppendMessages(storedId, [storedMessage]);
+        return await GetOwner(storedId);
+    }
+
+    private async Task<ReplicaId?> GetOwner(StoredId storedId)
+    {
+        await using var conn = await CreateConnection();
+        await using var command = new SqlCommand($"SELECT Owner FROM {_tablePrefix} WHERE Id = @Id", conn);
+        command.Parameters.AddWithValue("@Id", storedId.AsGuid);
+        var result = await command.ExecuteScalarAsync();
+        return result is Guid owner ? owner.ToReplicaId() : null;
+    }
 
     private async Task AppendMessages(StoredId storedId, IReadOnlyList<StoredMessage> messages)
     {
