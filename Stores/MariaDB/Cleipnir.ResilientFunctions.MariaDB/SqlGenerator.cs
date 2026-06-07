@@ -660,6 +660,17 @@ public class SqlGenerator(string tablePrefix)
         return messages;
     }
 
+    public StoreCommand GetMessagesForReplica(ReplicaId replicaId)
+    {
+        var sql = @$"
+            SELECT id, position, content, replica
+            FROM {tablePrefix}_messages
+            WHERE replica = ?
+            ORDER BY position;";
+
+        return StoreCommand.Create(sql, values: [ replicaId.AsGuid.ToString("N") ]);
+    }
+
     public StoreCommand GetMessages(IEnumerable<StoredId> storedIds)
     {
         var sql = @$"

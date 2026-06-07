@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.CoreRuntime;
@@ -36,6 +37,17 @@ public class FlowsManager
             foreach (var id in ids)
                 if (_dict.TryGetValue(id, out var flowState))
                     flowState.Interrupt();
+    }
+
+    public Task Push(IReadOnlyDictionary<StoredId, List<StoredMessage>> messagesByFlow)
+    {
+        List<Task> tasks = new();
+        lock (_lock)
+            foreach (var (id, messages) in messagesByFlow)
+                if (_dict.TryGetValue(id, out var flowState))
+                    tasks.Add(flowState.Push(messages));
+
+        return Task.WhenAll(tasks);
     }
 
     /*

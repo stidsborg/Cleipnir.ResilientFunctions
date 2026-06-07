@@ -1,6 +1,8 @@
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Helpers;
+using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Queuing;
 using Cleipnir.ResilientFunctions.Storage;
 
@@ -97,6 +99,12 @@ public class FlowState
     {
         if (Suspended) return;
         QueueManager?.Interrupt();
+    }
+
+    public Task Push(IReadOnlyList<StoredMessage> messages)
+    {
+        if (Suspended) return Task.CompletedTask;
+        return QueueManager?.Push(messages) ?? Task.CompletedTask;
     }
 
     public bool Suspend()

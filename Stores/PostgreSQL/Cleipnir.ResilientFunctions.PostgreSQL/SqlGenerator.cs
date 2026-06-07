@@ -583,6 +583,17 @@ public class SqlGenerator(string tablePrefix)
         var storeCommand = StoreCommand.Create(sql, values: [ storedIds.Select(id => id.AsGuid).ToArray() ]);
         return storeCommand;
     }
+
+    public StoreCommand GetMessagesForReplica(ReplicaId replicaId)
+    {
+        var sql = @$"
+            SELECT id, position, content, replica
+            FROM {tablePrefix}_messages
+            WHERE replica = $1
+            ORDER BY position;";
+
+        return StoreCommand.Create(sql, values: [ replicaId.AsGuid ]);
+    }
     
     public async Task<Dictionary<StoredId, IReadOnlyList<StoredMessage>>> ReadMessagesForMultipleStores(NpgsqlDataReader reader)
     {

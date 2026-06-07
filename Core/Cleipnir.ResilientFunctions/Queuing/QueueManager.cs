@@ -117,6 +117,30 @@ internal class QueueManager : IDisposable
         _ = FetchMessagesOnce();
     }
 
+    /// <summary>
+    /// Pushes messages fetched elsewhere (the MessageWatchdog) straight into the delivery pipeline,
+    /// avoiding a per-flow re-fetch. Idempotent: positions already processed are skipped by ProcessMessages.
+    /// </summary>
+    public async Task Push(IReadOnlyList<StoredMessage> messages)
+    {
+        if (_disposed || messages.Count == 0)
+            return;
+
+        await _fetchSemaphore.WaitAsync();
+        try
+        {
+            if (_thrownException != null)
+                return;
+
+            await ProcessMessages(messages);
+        }
+        finally
+        {
+            DeliverMessages();
+            _fetchSemaphore.Release();
+        }
+    }
+
     public async Task<Envelope?> Subscribe(
         MessagePredicate predicate,
         DateTime? timeout,
@@ -172,46 +196,59 @@ internal class QueueManager : IDisposable
                 skipPositions = _fetchedPositions.ToList();
 
             var messages = await _messageStore.GetMessages(_storedId, skipPositions);
-            foreach (var (messageContent, messageType, position, _, idempotencyKey, sender, receiver) in messages)
-            {
-                try
-                {
-                    var msg = _serializer.Deserialize(messageContent, _serializer.ResolveType(messageType)!);
-
-                    if (idempotencyKey != null && !_idempotencyKeys.Add(idempotencyKey, position))
-                    {
-                        await _messageStore.DeleteMessages(_storedId, [position]);
-                        continue;
-                    }
-
-                    var envelope = new Envelope(msg, receiver, sender);
-                    var messageData = new MessageData(
-                        envelope,
-                        position,
-                        messageContent,
-                        messageType,
-                        receiver,
-                        sender
-                    );
-                    lock (_lock)
-                    {
-                        _toDeliver.Add(messageData);
-                        _fetchedPositions.Add(position);
-                    }
-                }
-                catch (Exception e)
-                {
-                    _unhandledExceptionHandler.Invoke(_flowId.Type, e);
-                    _thrownException = e;
-                    FailAllSubscriptions(e);
-                    return;
-                }
-            }
+            await ProcessMessages(messages);
         }
         finally
         {
             DeliverMessages();
             _fetchSemaphore.Release();
+        }
+    }
+
+    // Caller must hold _fetchSemaphore. Deserializes, dedups by idempotency-key and by already-fetched
+    // position (so pushes are idempotent), and stages messages for delivery.
+    private async Task ProcessMessages(IReadOnlyList<StoredMessage> messages)
+    {
+        foreach (var (messageContent, messageType, position, _, idempotencyKey, sender, receiver) in messages)
+        {
+            bool alreadyFetched;
+            lock (_lock)
+                alreadyFetched = _fetchedPositions.Contains(position);
+            if (alreadyFetched)
+                continue;
+
+            try
+            {
+                var msg = _serializer.Deserialize(messageContent, _serializer.ResolveType(messageType)!);
+
+                if (idempotencyKey != null && !_idempotencyKeys.Add(idempotencyKey, position))
+                {
+                    await _messageStore.DeleteMessages(_storedId, [position]);
+                    continue;
+                }
+
+                var envelope = new Envelope(msg, receiver, sender);
+                var messageData = new MessageData(
+                    envelope,
+                    position,
+                    messageContent,
+                    messageType,
+                    receiver,
+                    sender
+                );
+                lock (_lock)
+                {
+                    _toDeliver.Add(messageData);
+                    _fetchedPositions.Add(position);
+                }
+            }
+            catch (Exception e)
+            {
+                _unhandledExceptionHandler.Invoke(_flowId.Type, e);
+                _thrownException = e;
+                FailAllSubscriptions(e);
+                return;
+            }
         }
     }
 

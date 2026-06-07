@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Threading.Tasks;
+using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.Messaging;
@@ -19,4 +20,10 @@ public interface IMessageStore
     Task<IReadOnlyList<StoredMessage>> GetMessages(StoredId storedId);
     Task<IReadOnlyList<StoredMessage>> GetMessages(StoredId storedId, IReadOnlyList<long> skipPositions);
     Task<Dictionary<StoredId, List<StoredMessage>>> GetMessages(IEnumerable<StoredId> storedIds);
+
+    /// <summary>
+    /// Returns the undelivered messages whose replica equals the provided replica, grouped by target flow.
+    /// Used by the MessageWatchdog to push messages to live flows owned by this replica.
+    /// </summary>
+    Task<Dictionary<StoredId, List<StoredMessage>>> GetMessagesForReplica(ReplicaId replicaId);
 }
