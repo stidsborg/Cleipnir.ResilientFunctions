@@ -61,25 +61,20 @@ public class FlowsManager : IFlowsManager
     }
 
     /// <summary>
-    /// Wakes the target flow so it consumes the just-published message. Always applies the durable interrupt
+    /// Wakes the target flow so it consumes the just-published message by applying the durable interrupt
     /// (interrupted flag + expires=0) - the suspend-race guard and watchdog backstop, so the message is never
-    /// lost even when the target suspends concurrently or is owned by another replica. When this replica
-    /// executes the flow's type and the flow is idle, it is additionally restarted immediately instead of
-    /// waiting for the PostponedWatchdog tick.
+    /// lost even when the target suspends concurrently or is owned by another replica. An idle target this
+    /// replica executes is then picked up by the PostponedWatchdog.
     /// </summary>
-    public async Task Schedule(StoredId storedId)
-    {
-        await _functionStore.Interrupt(storedId);
-
-        IScheduleRestart? scheduleRestart;
-        lock (_lock)
-        {
-            if (_dict.ContainsKey(storedId))
-                return; // already executing on this replica - it receives the message through the push pipeline
-            if (!_scheduleRestarts.TryGetValue(storedId.Type, out scheduleRestart))
-                return; // this replica does not execute the flow's type
-        }
-
-        await scheduleRestart.ScheduleRestart(storedId);
-    }
+    /// <remarks>
+    /// STOPGAP: the immediate in-process restart of an idle target - look up <see cref="_scheduleRestarts"/>
+    /// by <see cref="StoredId.Type"/> for a flow not in <c>_dict</c> and await
+    /// <see cref="IScheduleRestart.ScheduleRestart"/> - is disabled. It races with the suspend/resume
+    /// machinery and deadlocks the ping-pong / multi-flow message exchange. The durable interrupt below still
+    /// guarantees delivery via the PostponedWatchdog. Restore the immediate restart once the suspension rework
+    /// lands. <see cref="RegisterScheduleRestart"/> keeps populating <see cref="_scheduleRestarts"/> so that
+    /// re-enabling is a local change here.
+    /// </remarks>
+    public Task Schedule(StoredId storedId)
+        => _functionStore.Interrupt(storedId);
 }
