@@ -24,12 +24,13 @@ internal class InvocationHelper<TParam, TReturn>
     private readonly FlowType _flowType;
     private readonly StoredType _storedType;
     private readonly ReplicaId _replicaId;
+    private readonly IFlowsManagerRegistry _flowsManagerRegistry;
     private readonly ResultBusyWaiter<TReturn> _resultBusyWaiter;
     public UtcNow UtcNow { get; }
 
     private ISerializer Serializer { get; }
 
-    public InvocationHelper(FlowType flowType, StoredType storedType, ReplicaId replicaId, bool isParamlessFunction, SettingsWithDefaults settings, IFunctionStore functionStore, ShutdownCoordinator shutdownCoordinator, ISerializer serializer, UtcNow utcNow, bool clearChildren)
+    public InvocationHelper(FlowType flowType, StoredType storedType, ReplicaId replicaId, bool isParamlessFunction, SettingsWithDefaults settings, IFunctionStore functionStore, ShutdownCoordinator shutdownCoordinator, ISerializer serializer, UtcNow utcNow, bool clearChildren, IFlowsManagerRegistry flowsManagerRegistry)
     {
         _flowType = flowType;
         _isParamlessFunction = isParamlessFunction;
@@ -42,6 +43,7 @@ internal class InvocationHelper<TParam, TReturn>
         _storedType = storedType;
         _replicaId = replicaId;
         _functionStore = functionStore;
+        _flowsManagerRegistry = flowsManagerRegistry;
         _resultBusyWaiter = new ResultBusyWaiter<TReturn>(_functionStore, Serializer);
     }
 
@@ -383,7 +385,7 @@ internal class InvocationHelper<TParam, TReturn>
     }
     
     public MessageWriter CreateMessageWriter(StoredId storedId)
-        => new MessageWriter(storedId, _functionStore.MessageStore, Serializer, _replicaId, sid => _functionStore.Interrupt(sid));
+        => new MessageWriter(storedId, _functionStore.MessageStore, Serializer, _replicaId, _flowsManagerRegistry);
 
     public Effect CreateEffect(StoredId storedId, FlowId flowId, IReadOnlyList<StoredEffect> storedEffects, FlowTimeouts flowTimeouts, IStorageSession? storageSession, FlowState flowState)
     {

@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Threading.Tasks;
+using Cleipnir.ResilientFunctions.CoreRuntime;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.CoreRuntime.Serialization;
 using Cleipnir.ResilientFunctions.Domain;
@@ -13,28 +14,31 @@ public class MessageWriters
     private readonly IFunctionStore _functionStore;
     private readonly ISerializer _serializer;
     private readonly ReplicaId _publisherReplica;
+    private readonly IFlowsManagerRegistry _flowsManagerRegistry;
 
     public MessageWriters(
         StoredType storedType,
         IFunctionStore functionStore,
         ISerializer serializer,
-        ReplicaId publisherReplica)
+        ReplicaId publisherReplica,
+        IFlowsManagerRegistry flowsManagerRegistry)
     {
         _storedType = storedType;
         _functionStore = functionStore;
         _serializer = serializer;
         _publisherReplica = publisherReplica;
+        _flowsManagerRegistry = flowsManagerRegistry;
     }
 
     public MessageWriter For(FlowInstance instance)
     {
         var storedId = StoredId.Create(_storedType, instance.Value);
-        return new MessageWriter(storedId, _functionStore.MessageStore, _serializer, _publisherReplica, sid => _functionStore.Interrupt(sid));
+        return new MessageWriter(storedId, _functionStore.MessageStore, _serializer, _publisherReplica, _flowsManagerRegistry);
     }
 
     internal MessageWriter For(StoredId storedId)
     {
-        return new MessageWriter(storedId, _functionStore.MessageStore, _serializer, _publisherReplica, sid => _functionStore.Interrupt(sid));
+        return new MessageWriter(storedId, _functionStore.MessageStore, _serializer, _publisherReplica, _flowsManagerRegistry);
     }
 
     public async Task AppendMessages(IReadOnlyList<BatchedMessage> messages)
