@@ -5,9 +5,9 @@ namespace Cleipnir.ResilientFunctions.CoreRuntime;
 
 /// <summary>
 /// Schedules a stored flow for immediate execution so it consumes a just-published message.
-/// Implemented by <see cref="FlowsManagerRegistry"/>.
+/// Implemented by <see cref="FlowsManager"/>.
 /// </summary>
-public interface IFlowsManagerRegistry
+public interface IFlowsManager
 {
     Task Schedule(StoredId storedId);
 }

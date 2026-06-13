@@ -14,31 +14,31 @@ public class MessageWriters
     private readonly IFunctionStore _functionStore;
     private readonly ISerializer _serializer;
     private readonly ReplicaId _publisherReplica;
-    private readonly IFlowsManagerRegistry _flowsManagerRegistry;
+    private readonly IFlowsManager _flowsManager;
 
     public MessageWriters(
         StoredType storedType,
         IFunctionStore functionStore,
         ISerializer serializer,
         ReplicaId publisherReplica,
-        IFlowsManagerRegistry flowsManagerRegistry)
+        IFlowsManager flowsManager)
     {
         _storedType = storedType;
         _functionStore = functionStore;
         _serializer = serializer;
         _publisherReplica = publisherReplica;
-        _flowsManagerRegistry = flowsManagerRegistry;
+        _flowsManager = flowsManager;
     }
 
     public MessageWriter For(FlowInstance instance)
     {
         var storedId = StoredId.Create(_storedType, instance.Value);
-        return new MessageWriter(storedId, _functionStore.MessageStore, _serializer, _publisherReplica, _flowsManagerRegistry);
+        return new MessageWriter(storedId, _functionStore.MessageStore, _serializer, _publisherReplica, _flowsManager);
     }
 
     internal MessageWriter For(StoredId storedId)
     {
-        return new MessageWriter(storedId, _functionStore.MessageStore, _serializer, _publisherReplica, _flowsManagerRegistry);
+        return new MessageWriter(storedId, _functionStore.MessageStore, _serializer, _publisherReplica, _flowsManager);
     }
 
     public async Task AppendMessages(IReadOnlyList<BatchedMessage> messages)

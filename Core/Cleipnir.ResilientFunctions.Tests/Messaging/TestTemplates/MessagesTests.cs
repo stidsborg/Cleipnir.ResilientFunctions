@@ -361,7 +361,7 @@ public abstract class MessagesTests
         var serializer = DefaultSerializer.Instance;
         var messageStore = functionStore.MessageStore;
 
-        var messageWriter = new MessageWriter(storedId, messageStore, serializer, ReplicaId.NewId(), new NoOpFlowsManagerRegistry());
+        var messageWriter = new MessageWriter(storedId, messageStore, serializer, ReplicaId.NewId(), new NoOpFlowsManager());
         await messageWriter.AppendMessage("hello world", idempotencyKey: "key1", sender: "TestSender");
 
         var messages = await messageStore.GetMessages(storedId);
@@ -369,7 +369,7 @@ public abstract class MessagesTests
         messages[0].Sender.ShouldBe("TestSender");
     }
 
-    private sealed class NoOpFlowsManagerRegistry : IFlowsManagerRegistry
+    private sealed class NoOpFlowsManager : IFlowsManager
     {
         public Task Schedule(StoredId storedId) => Task.CompletedTask;
     }

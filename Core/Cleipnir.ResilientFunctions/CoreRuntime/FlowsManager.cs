@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -8,11 +7,14 @@ using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.CoreRuntime;
 
-public class FlowsManager
+public class FlowsManager : IFlowsManager
 {
     private readonly Dictionary<StoredId, FlowState> _dict = new();
-    private Func<StoredId, Task>? _scheduleRestart;
+    private readonly Dictionary<StoredType, IScheduleRestart> _scheduleRestarts = new();
+    private readonly IFunctionStore _functionStore;
     private readonly Lock _lock = new();
+
+    public FlowsManager(IFunctionStore functionStore) => _functionStore = functionStore;
 
     public FlowState CreateFlowState(StoredId id, FlowTimeouts timeouts, Task completed)
     {
@@ -52,47 +54,32 @@ public class FlowsManager
         return Task.WhenAll(tasks);
     }
 
-    public void RegisterScheduleRestart(StoredType storedType, Func<StoredId, Task> scheduleRestart)
+    public void RegisterScheduleRestart(StoredType storedType, IScheduleRestart scheduleRestart)
     {
         lock (_lock)
-            _scheduleRestart = scheduleRestart;
+            _scheduleRestarts[storedType] = scheduleRestart;
     }
 
     /// <summary>
-    /// Schedules the flow for immediate execution. No-op when the flow is already executing on this
-    /// replica - it receives the message through the push pipeline instead.
+    /// Wakes the target flow so it consumes the just-published message. Always applies the durable interrupt
+    /// (interrupted flag + expires=0) - the suspend-race guard and watchdog backstop, so the message is never
+    /// lost even when the target suspends concurrently or is owned by another replica. When this replica
+    /// executes the flow's type and the flow is idle, it is additionally restarted immediately instead of
+    /// waiting for the PostponedWatchdog tick.
     /// </summary>
     public async Task Schedule(StoredId storedId)
     {
-        Func<StoredId, Task>? scheduleRestart;
+        await _functionStore.Interrupt(storedId);
+
+        IScheduleRestart? scheduleRestart;
         lock (_lock)
         {
             if (_dict.ContainsKey(storedId))
-                return; // already executing on this replica
-            scheduleRestart = _scheduleRestart;
+                return; // already executing on this replica - it receives the message through the push pipeline
+            if (!_scheduleRestarts.TryGetValue(storedId.Type, out scheduleRestart))
+                return; // this replica does not execute the flow's type
         }
 
-        if (scheduleRestart is not null)
-            await scheduleRestart(storedId);
+        await scheduleRestart.ScheduleRestart(storedId);
     }
-
-    /*
-    public async Task CheckForSuspension()
-    {
-        while (true)
-        {
-            var waitingFlows = new List<FlowState>();
-            lock (_dict)
-            {
-                waitingFlows = _dict.Values.Where(s => s.)
-                foreach (var flowState in _dict.Values)
-                {
-                    flowState.
-                }
-            }
-            
-            await Task.Delay(250);
-        }
-    }*/
-
 }

@@ -6,7 +6,7 @@ using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.Messaging;
 
-public class MessageWriter(StoredId storedIdId, IMessageStore messageStore, ISerializer eventSerializer, ReplicaId publisherReplica, IFlowsManagerRegistry flowsManagerRegistry)
+public class MessageWriter(StoredId storedIdId, IMessageStore messageStore, ISerializer eventSerializer, ReplicaId publisherReplica, IFlowsManager flowsManager)
 {
     public async Task AppendMessage<TMessage>(TMessage message, string? idempotencyKey = null, string? sender = null, string? receiver = null) where TMessage : class
     {
@@ -21,6 +21,6 @@ public class MessageWriter(StoredId storedIdId, IMessageStore messageStore, ISer
         // The message fell back to (or is owned by) this replica - schedule the target so it runs and consumes
         // the message. Targets owned by another replica are delivered by that replica's MessageWatchdog.
         if (writtenReplica == publisherReplica)
-            await flowsManagerRegistry.Schedule(storedIdId);
+            await flowsManager.Schedule(storedIdId);
     }
 }
