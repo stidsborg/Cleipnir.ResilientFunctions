@@ -593,8 +593,6 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
             var messages = _messages[storedId];
             messages[_nextMessagePosition++] = storedMessage with { Replica = replica };
 
-            // schedules the flow to run immediately when it is suspended/postponed (and flags it interrupted)
-            Interrupt(storedId);
             return Task.FromResult(replica);
         }
     }

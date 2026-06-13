@@ -11,7 +11,7 @@ using Cleipnir.ResilientFunctions.Storage.Session;
 
 namespace Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 
-public class Invoker<TParam, TReturn> 
+public class Invoker<TParam, TReturn> : IScheduleRestart
 {
     private readonly FlowType _flowType;
     private readonly StoredType _storedType;
@@ -202,6 +202,8 @@ public class Invoker<TParam, TReturn>
 
         return _invocationHelper.CreateInnerScheduled([flowId], parentWorkflow: null, detach: null, tcs.Task);
     }
+
+    Task IScheduleRestart.ScheduleRestart(StoredId storedId) => ScheduleRestart(storedId);
 
     internal async Task ScheduleRestart(StoredId storedId, RestartedFunction rf, Action onCompletion)
     {

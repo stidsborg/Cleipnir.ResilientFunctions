@@ -24,12 +24,13 @@ internal class InvocationHelper<TParam, TReturn>
     private readonly FlowType _flowType;
     private readonly StoredType _storedType;
     private readonly ReplicaId _replicaId;
+    private readonly IFlowsManager _flowsManager;
     private readonly ResultBusyWaiter<TReturn> _resultBusyWaiter;
     public UtcNow UtcNow { get; }
 
     private ISerializer Serializer { get; }
 
-    public InvocationHelper(FlowType flowType, StoredType storedType, ReplicaId replicaId, bool isParamlessFunction, SettingsWithDefaults settings, IFunctionStore functionStore, ShutdownCoordinator shutdownCoordinator, ISerializer serializer, UtcNow utcNow, bool clearChildren)
+    public InvocationHelper(FlowType flowType, StoredType storedType, ReplicaId replicaId, bool isParamlessFunction, SettingsWithDefaults settings, IFunctionStore functionStore, ShutdownCoordinator shutdownCoordinator, ISerializer serializer, UtcNow utcNow, bool clearChildren, IFlowsManager flowsManager)
     {
         _flowType = flowType;
         _isParamlessFunction = isParamlessFunction;
@@ -42,6 +43,7 @@ internal class InvocationHelper<TParam, TReturn>
         _storedType = storedType;
         _replicaId = replicaId;
         _functionStore = functionStore;
+        _flowsManager = flowsManager;
         _resultBusyWaiter = new ResultBusyWaiter<TReturn>(_functionStore, Serializer);
     }
 
@@ -204,8 +206,9 @@ internal class InvocationHelper<TParam, TReturn>
         var content = Serializer.Serialize(msg, msg.GetType());
         var type = Serializer.SerializeType(msg.GetType());
         var storedMessage = new StoredMessage(content, type, Position: 0, IdempotencyKey: $"FlowCompleted:{childId}", Replica: _replicaId);
-        await _functionStore.MessageStore.AppendMessage(parent, storedMessage);
-        await _functionStore.Interrupt(parent);
+        var writtenReplica = await _functionStore.MessageStore.AppendMessage(parent, storedMessage);
+        if (writtenReplica == _replicaId)
+            await _functionStore.Interrupt(parent);
     }
 
     public async Task<RestartedFunction?> RestartFunction(StoredId flowId)
@@ -382,7 +385,7 @@ internal class InvocationHelper<TParam, TReturn>
     }
     
     public MessageWriter CreateMessageWriter(StoredId storedId)
-        => new MessageWriter(storedId, _functionStore.MessageStore, Serializer, _replicaId);
+        => new MessageWriter(storedId, _functionStore.MessageStore, Serializer, _replicaId, _flowsManager);
 
     public Effect CreateEffect(StoredId storedId, FlowId flowId, IReadOnlyList<StoredEffect> storedEffects, FlowTimeouts flowTimeouts, IStorageSession? storageSession, FlowState flowState)
     {

@@ -42,8 +42,8 @@ public class FunctionsRegistry : IDisposable
         _shutdownCoordinator = new ShutdownCoordinator();
         _settings = SettingsWithDefaults.Default.Merge(settings);
         var utcNow = _settings.UtcNow;
-        _flowsManager = new FlowsManager();
-        
+        _flowsManager = new FlowsManager(_functionStore);
+
         ClusterInfo = new ClusterInfo(ReplicaId.NewId());
         
         _postponedWatchdog = new PostponedWatchdog(
@@ -246,7 +246,8 @@ public class FunctionsRegistry : IDisposable
                 _shutdownCoordinator,
                 serializer,
                 _settings.UtcNow,
-                settings?.ClearChildrenAfterCapture ?? true
+                settings?.ClearChildrenAfterCapture ?? true,
+                _flowsManager
             );
             var invoker = new Invoker<TParam, TReturn>(
                 flowType,
@@ -258,6 +259,7 @@ public class FunctionsRegistry : IDisposable
                 _flowsManager
             );
 
+            _flowsManager.RegisterScheduleRestart(storedType, invoker);
             WatchDogsFactory.CreateAndStart(
                 flowType,
                 storedType,
@@ -282,7 +284,8 @@ public class FunctionsRegistry : IDisposable
                 storedType,
                 _functionStore,
                 serializer,
-                ClusterInfo.ReplicaId
+                ClusterInfo.ReplicaId,
+                _flowsManager
             );
 
             var registration = new FuncRegistration<TParam, TReturn>(
@@ -329,7 +332,8 @@ public class FunctionsRegistry : IDisposable
                 _shutdownCoordinator,
                 serializer,
                 _settings.UtcNow,
-                settings?.ClearChildrenAfterCapture ?? true
+                settings?.ClearChildrenAfterCapture ?? true,
+                _flowsManager
             );
             var invoker = new Invoker<Unit, Unit>(
                 flowType,
@@ -341,6 +345,7 @@ public class FunctionsRegistry : IDisposable
                 _flowsManager
             );
 
+            _flowsManager.RegisterScheduleRestart(storedType, invoker);
             WatchDogsFactory.CreateAndStart(
                 flowType,
                 storedType,
@@ -365,7 +370,8 @@ public class FunctionsRegistry : IDisposable
                 storedType,
                 _functionStore,
                 serializer,
-                ClusterInfo.ReplicaId
+                ClusterInfo.ReplicaId,
+                _flowsManager
             );
 
             var registration = new ParamlessRegistration(
@@ -412,7 +418,8 @@ public class FunctionsRegistry : IDisposable
                 _shutdownCoordinator,
                 serializer,
                 _settings.UtcNow,
-                settings?.ClearChildrenAfterCapture ?? true
+                settings?.ClearChildrenAfterCapture ?? true,
+                _flowsManager
             );
             var rActionInvoker = new Invoker<TParam, Unit>(
                 flowType,
@@ -423,7 +430,8 @@ public class FunctionsRegistry : IDisposable
                 ClusterInfo.ReplicaId,
                 _flowsManager
             );
-            
+
+            _flowsManager.RegisterScheduleRestart(storedType, rActionInvoker);            
             WatchDogsFactory.CreateAndStart(
                 flowType,
                 storedType,
@@ -448,7 +456,8 @@ public class FunctionsRegistry : IDisposable
                 storedType,
                 _functionStore,
                 serializer,
-                ClusterInfo.ReplicaId
+                ClusterInfo.ReplicaId,
+                _flowsManager
             );
             var registration = new ActionRegistration<TParam>(
                 flowType,
