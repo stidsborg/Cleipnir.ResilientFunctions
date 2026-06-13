@@ -38,6 +38,7 @@ public class FlowsManagerRegistry : IFlowsManagerRegistry
         FlowsManager? flowsManager;
         lock (_lock)
             _flowsManagers.TryGetValue(storedId.Type, out flowsManager);
-        flowsManager?.Schedule(storedId);
+        if (flowsManager is not null)
+            await flowsManager.Schedule(storedId);
     }
 }
