@@ -702,16 +702,14 @@ public class SqlGenerator(string tablePrefix)
 
     public StoreCommand SetReplica(IEnumerable<long> positions, ReplicaId newReplica, ReplicaId expectedReplica)
     {
-        var positionsList = positions.ToList();
         var sql = @$"
             UPDATE {tablePrefix}_Messages
             SET Replica = @NewReplica
-            WHERE Position IN ({positionsList.Select((_, i) => $"@Position{i}").StringJoin(", ")}) AND Replica = @ExpectedReplica";
+            WHERE Position IN (SELECT CAST(value AS BIGINT) FROM STRING_SPLIT(@Positions, ',')) AND Replica = @ExpectedReplica";
 
         var command = StoreCommand.Create(sql);
         command.AddParameter("@NewReplica", newReplica.AsGuid);
-        for (var i = 0; i < positionsList.Count; i++)
-            command.AddParameter($"@Position{i}", positionsList[i]);
+        command.AddParameter("@Positions", string.Join(",", positions));
         command.AddParameter("@ExpectedReplica", expectedReplica.AsGuid);
 
         return command;
