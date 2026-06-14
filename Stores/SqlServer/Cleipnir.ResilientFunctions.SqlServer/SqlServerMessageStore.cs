@@ -33,7 +33,7 @@ public class SqlServerMessageStore : IMessageStore
         CREATE TABLE {_tablePrefix}_Messages (
             Position BIGINT IDENTITY(1,1) PRIMARY KEY,
             Id UNIQUEIDENTIFIER,
-            Replica UNIQUEIDENTIFIER NULL,
+            Replica UNIQUEIDENTIFIER NOT NULL,
             Content VARBINARY(MAX)
         );
         CREATE INDEX {_tablePrefix}_Messages_Id ON {_tablePrefix}_Messages (Id);";

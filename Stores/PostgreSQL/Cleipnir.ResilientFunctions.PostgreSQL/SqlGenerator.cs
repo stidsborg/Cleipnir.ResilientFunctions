@@ -600,8 +600,7 @@ public class SqlGenerator(string tablePrefix)
         var sql = @$"
             SELECT id, position
             FROM {tablePrefix}_messages
-            WHERE replica IS NOT NULL AND replica != ALL($1)
-            ORDER BY position;";
+            WHERE replica != ALL($1)";
 
         return StoreCommand.Create(sql, values: [ liveReplicas.Select(r => r.AsGuid).ToArray() ]);
     }

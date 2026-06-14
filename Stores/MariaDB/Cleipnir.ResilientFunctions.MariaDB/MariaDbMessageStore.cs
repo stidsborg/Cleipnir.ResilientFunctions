@@ -30,7 +30,7 @@ public class MariaDbMessageStore : IMessageStore
             CREATE TABLE IF NOT EXISTS {_tablePrefix}_messages (
                 position BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
                 id CHAR(32),
-                replica CHAR(32) NULL,
+                replica CHAR(32) NOT NULL,
                 content LONGBLOB,
                 INDEX {_tablePrefix}_messages_id_idx (id)
             );";

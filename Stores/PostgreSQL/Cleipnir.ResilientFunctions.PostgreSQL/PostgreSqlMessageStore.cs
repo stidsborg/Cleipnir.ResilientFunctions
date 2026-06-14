@@ -39,7 +39,7 @@ public class PostgreSqlMessageStore : IMessageStore
             CREATE TABLE IF NOT EXISTS {tablePrefix}_messages (
                 position BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
                 id UUID,
-                replica UUID NULL,
+                replica UUID NOT NULL,
                 content BYTEA
             );
             CREATE INDEX IF NOT EXISTS {tablePrefix}_messages_id_idx ON {tablePrefix}_messages (id);";

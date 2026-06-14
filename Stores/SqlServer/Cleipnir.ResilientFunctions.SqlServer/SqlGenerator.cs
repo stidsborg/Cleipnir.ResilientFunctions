@@ -678,14 +678,10 @@ public class SqlGenerator(string tablePrefix)
     public StoreCommand GetCrashedReplicaMessages(IEnumerable<ReplicaId> liveReplicas)
     {
         var replicas = liveReplicas.ToList();
-        var notInClause = replicas.Count == 0
-            ? ""
-            : $" AND Replica NOT IN ({replicas.Select((_, i) => $"@Replica{i}").StringJoin(", ")})";
         var sql = @$"
             SELECT Id, Position
             FROM {tablePrefix}_Messages
-            WHERE Replica IS NOT NULL{notInClause}
-            ORDER BY Position;";
+            WHERE Replica NOT IN ({replicas.Select((_, i) => $"@Replica{i}").StringJoin(", ")})";
 
         var command = StoreCommand.Create(sql);
         for (var i = 0; i < replicas.Count; i++)
