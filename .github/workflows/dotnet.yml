@@ -33,9 +33,9 @@ jobs:
         - uses: actions/setup-dotnet@v5
           with:
             dotnet-version: '10.0.x'
-        - run: dotnet build Cleipnir.ResilientFunctions.sln
         - if: matrix.compose-service != ''
           run: docker compose up -d ${{ matrix.compose-service }}
+        - run: dotnet build Cleipnir.ResilientFunctions.sln
         - if: matrix.compose-service != ''
           run: dotnet run --project ./Stores/EnsureDatabaseConnections/EnsureDatabaseConnections.csproj --no-build -- ${{ matrix.db-name }}
         - run: dotnet test ./${{ matrix.test-project }} --no-build --logger "console;verbosity=detailed"
