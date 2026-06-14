@@ -113,4 +113,12 @@ public class MessageStoreTests :  Cleipnir.ResilientFunctions.Tests.Messaging.Te
     [TestMethod]
     public override Task MessageReplicaIsTakenFromTargetFlowOwner()
         => MessageReplicaIsTakenFromTargetFlowOwner(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task CrashedReplicaMessagesAreFetched()
+        => CrashedReplicaMessagesAreFetched(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task MessageReplicaCanBeReassigned()
+        => MessageReplicaCanBeReassigned(FunctionStoreFactory.Create());
 }

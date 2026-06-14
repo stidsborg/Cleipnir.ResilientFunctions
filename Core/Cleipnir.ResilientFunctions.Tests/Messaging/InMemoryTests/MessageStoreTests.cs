@@ -117,4 +117,12 @@ public class MessageStoreTests :  TestTemplates.MessageStoreTests
     [TestMethod]
     public override Task MessageReplicaIsTakenFromTargetFlowOwner()
         => MessageReplicaIsTakenFromTargetFlowOwner(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task CrashedReplicaMessagesAreFetched()
+        => CrashedReplicaMessagesAreFetched(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task MessageReplicaCanBeReassigned()
+        => MessageReplicaCanBeReassigned(FunctionStoreFactory.Create());
 }

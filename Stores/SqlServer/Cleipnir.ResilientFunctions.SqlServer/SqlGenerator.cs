@@ -675,6 +675,46 @@ public class SqlGenerator(string tablePrefix)
         return command;
     }
 
+    public StoreCommand GetCrashedReplicaMessages(IReadOnlySet<ReplicaId> liveReplicas)
+    {
+        var sql = @$"
+            SELECT Id, Position
+            FROM {tablePrefix}_Messages
+            WHERE Replica NOT IN (SELECT CAST(value AS UNIQUEIDENTIFIER) FROM STRING_SPLIT(@Replicas, ','))";
+
+        var command = StoreCommand.Create(sql);
+        command.AddParameter("@Replicas", string.Join(",", liveReplicas.Select(r => r.AsGuid)));
+        return command;
+    }
+
+    public async Task<List<StoredIdAndPosition>> ReadStoredIdAndPositions(SqlDataReader reader)
+    {
+        var result = new List<StoredIdAndPosition>();
+        while (await reader.ReadAsync())
+        {
+            var id = reader.GetGuid(0).ToStoredId();
+            var position = reader.GetInt64(1);
+            result.Add(new StoredIdAndPosition(id, position));
+        }
+
+        return result;
+    }
+
+    public StoreCommand SetReplica(IEnumerable<long> positions, ReplicaId newReplica, ReplicaId expectedReplica)
+    {
+        var sql = @$"
+            UPDATE {tablePrefix}_Messages
+            SET Replica = @NewReplica
+            WHERE Position IN (SELECT CAST(value AS BIGINT) FROM STRING_SPLIT(@Positions, ',')) AND Replica = @ExpectedReplica";
+
+        var command = StoreCommand.Create(sql);
+        command.AddParameter("@NewReplica", newReplica.AsGuid);
+        command.AddParameter("@Positions", string.Join(",", positions));
+        command.AddParameter("@ExpectedReplica", expectedReplica.AsGuid);
+
+        return command;
+    }
+
     public async Task<Dictionary<StoredId, List<(byte[] content, long position, Guid? replica)>>> ReadStoredIdsMessages(SqlDataReader reader)
     {
         var messages = new Dictionary<StoredId, List<(byte[] content, long position, Guid? replica)>>();

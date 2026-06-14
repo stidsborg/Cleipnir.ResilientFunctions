@@ -1203,4 +1203,70 @@ public abstract class MessageStoreTests
         var afterReplaceIdle = (await messageStore.GetMessages(idleFlow)).ToList();
         afterReplaceIdle.Single(m => m.Position == idleMessages[1].Position).Replica.ShouldBe(publisher);
     }
+
+    public abstract Task CrashedReplicaMessagesAreFetched();
+    protected async Task CrashedReplicaMessagesAreFetched(Task<IFunctionStore> functionStoreTask)
+    {
+        var functionStore = await functionStoreTask;
+        var messageStore = functionStore.MessageStore;
+        var stringType = typeof(string).SimpleQualifiedName().ToUtf8Bytes();
+
+        var liveReplica = ReplicaId.NewId();
+        var crashedReplica1 = ReplicaId.NewId();
+        var crashedReplica2 = ReplicaId.NewId();
+
+        var flow1 = TestStoredId.Create();
+        var flow2 = TestStoredId.Create();
+
+        // owned by a live replica -> not crashed
+        await messageStore.AppendMessage(flow1, new StoredMessage("a".ToJson().ToUtf8Bytes(), stringType, Position: 0, Replica: liveReplica));
+        // owned by crashed replicas -> crashed
+        await messageStore.AppendMessage(flow1, new StoredMessage("b".ToJson().ToUtf8Bytes(), stringType, Position: 0, Replica: crashedReplica1));
+        await messageStore.AppendMessage(flow2, new StoredMessage("c".ToJson().ToUtf8Bytes(), stringType, Position: 0, Replica: crashedReplica2));
+
+        var flow1Messages = await messageStore.GetMessages(flow1);
+        var flow2Messages = await messageStore.GetMessages(flow2);
+        var bPosition = flow1Messages.Single(m => m.Replica == crashedReplica1).Position;
+        var cPosition = flow2Messages.Single(m => m.Replica == crashedReplica2).Position;
+
+        var crashed = await messageStore.GetCrashedReplicaMessages(new HashSet<ReplicaId> { liveReplica });
+
+        crashed.Count.ShouldBe(2);
+        crashed.ShouldContain(t => t.StoredId == flow1 && t.Position == bPosition);
+        crashed.ShouldContain(t => t.StoredId == flow2 && t.Position == cPosition);
+    }
+
+    public abstract Task MessageReplicaCanBeReassigned();
+    protected async Task MessageReplicaCanBeReassigned(Task<IFunctionStore> functionStoreTask)
+    {
+        var functionStore = await functionStoreTask;
+        var messageStore = functionStore.MessageStore;
+        var stringType = typeof(string).SimpleQualifiedName().ToUtf8Bytes();
+
+        var crashedReplica = ReplicaId.NewId();
+        var newReplica = ReplicaId.NewId();
+        var otherReplica = ReplicaId.NewId();
+
+        var flow1 = TestStoredId.Create();
+        var flow2 = TestStoredId.Create();
+
+        await messageStore.AppendMessage(flow1, new StoredMessage("a".ToJson().ToUtf8Bytes(), stringType, Position: 0, Replica: crashedReplica));
+        await messageStore.AppendMessage(flow2, new StoredMessage("b".ToJson().ToUtf8Bytes(), stringType, Position: 0, Replica: crashedReplica));
+        // owned by a different replica -> must not be reassigned even though its position is included
+        await messageStore.AppendMessage(flow2, new StoredMessage("c".ToJson().ToUtf8Bytes(), stringType, Position: 0, Replica: otherReplica));
+
+        var aPosition = (await messageStore.GetMessages(flow1)).Single().Position;
+        var flow2Messages = await messageStore.GetMessages(flow2);
+        var bPosition = flow2Messages.Single(m => m.Replica == crashedReplica).Position;
+        var cPosition = flow2Messages.Single(m => m.Replica == otherReplica).Position;
+
+        await messageStore.SetReplica([aPosition, bPosition, cPosition], newReplica, expectedReplica: crashedReplica);
+
+        var afterFlow1 = await messageStore.GetMessages(flow1);
+        var afterFlow2 = await messageStore.GetMessages(flow2);
+
+        afterFlow1.Single().Replica.ShouldBe(newReplica);
+        afterFlow2.Single(m => m.Position == bPosition).Replica.ShouldBe(newReplica);
+        afterFlow2.Single(m => m.Position == cPosition).Replica.ShouldBe(otherReplica);
+    }
 }

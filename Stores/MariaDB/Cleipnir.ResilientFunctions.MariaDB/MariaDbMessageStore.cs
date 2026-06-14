@@ -30,7 +30,7 @@ public class MariaDbMessageStore : IMessageStore
             CREATE TABLE IF NOT EXISTS {_tablePrefix}_messages (
                 position BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
                 id CHAR(32),
-                replica CHAR(32) NULL,
+                replica CHAR(32) NOT NULL,
                 content LONGBLOB,
                 INDEX {_tablePrefix}_messages_id_idx (id)
             );";
@@ -210,6 +210,30 @@ public class MariaDbMessageStore : IMessageStore
                 .ToList();
 
         return storedMessages;
+    }
+
+    public async Task<List<StoredIdAndPosition>> GetCrashedReplicaMessages(IReadOnlySet<ReplicaId> liveReplicas)
+    {
+        await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
+        await using var command = _sqlGenerator
+            .GetCrashedReplicaMessages(liveReplicas)
+            .ToSqlCommand(conn);
+
+        await using var reader = await command.ExecuteReaderAsync();
+        return await _sqlGenerator.ReadStoredIdAndPositions(reader);
+    }
+
+    public async Task SetReplica(IEnumerable<long> positions, ReplicaId newReplica, ReplicaId expectedReplica)
+    {
+        var positionsList = positions.ToList();
+        if (positionsList.Count == 0)
+            return;
+
+        await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
+        await using var command = _sqlGenerator
+            .SetReplica(positionsList, newReplica, expectedReplica)
+            .ToSqlCommand(conn);
+        await command.ExecuteNonQueryAsync();
     }
 
     public static StoredMessage ConvertToStoredMessage(byte[] content, long position, string? replica)

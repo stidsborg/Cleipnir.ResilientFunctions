@@ -33,7 +33,7 @@ public class SqlServerMessageStore : IMessageStore
         CREATE TABLE {_tablePrefix}_Messages (
             Position BIGINT IDENTITY(1,1) PRIMARY KEY,
             Id UNIQUEIDENTIFIER,
-            Replica UNIQUEIDENTIFIER NULL,
+            Replica UNIQUEIDENTIFIER NOT NULL,
             Content VARBINARY(MAX)
         );
         CREATE INDEX {_tablePrefix}_Messages_Id ON {_tablePrefix}_Messages (Id);";
@@ -219,6 +219,26 @@ public class SqlServerMessageStore : IMessageStore
                 .ToList();
 
         return storedMessages;
+    }
+
+    public async Task<List<StoredIdAndPosition>> GetCrashedReplicaMessages(IReadOnlySet<ReplicaId> liveReplicas)
+    {
+        await using var conn = await CreateConnection();
+        await using var cmd = _sqlGenerator.GetCrashedReplicaMessages(liveReplicas).ToSqlCommand(conn);
+        await using var reader = await cmd.ExecuteReaderAsync();
+
+        return await _sqlGenerator.ReadStoredIdAndPositions(reader);
+    }
+
+    public async Task SetReplica(IEnumerable<long> positions, ReplicaId newReplica, ReplicaId expectedReplica)
+    {
+        var positionsList = positions.ToList();
+        if (positionsList.Count == 0)
+            return;
+
+        await using var conn = await CreateConnection();
+        await using var command = _sqlGenerator.SetReplica(positionsList, newReplica, expectedReplica).ToSqlCommand(conn);
+        await command.ExecuteNonQueryAsync();
     }
 
     public static StoredMessage ConvertToStoredMessage(byte[] content, long position, Guid? replica)

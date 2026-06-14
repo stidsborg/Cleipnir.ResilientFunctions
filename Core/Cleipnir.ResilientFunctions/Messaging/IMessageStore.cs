@@ -31,4 +31,17 @@ public interface IMessageStore
     /// Used by the MessageWatchdog to push messages to live flows owned by this replica.
     /// </summary>
     Task<Dictionary<StoredId, List<StoredMessage>>> GetMessagesForReplica(ReplicaId replicaId);
+
+    /// <summary>
+    /// Returns the (flow, position) identifiers of the undelivered messages owned by a replica that is no
+    /// longer alive (its replica is not contained in <paramref name="liveReplicas"/>).
+    /// Used to detect messages stranded by crashed replicas so they can be re-assigned to a live replica via <see cref="SetReplica"/>.
+    /// </summary>
+    Task<List<StoredIdAndPosition>> GetCrashedReplicaMessages(IReadOnlySet<ReplicaId> liveReplicas);
+
+    /// <summary>
+    /// Re-assigns the messages at the provided positions to <paramref name="newReplica"/>,
+    /// but only those still owned by <paramref name="expectedReplica"/>.
+    /// </summary>
+    Task SetReplica(IEnumerable<long> positions, ReplicaId newReplica, ReplicaId expectedReplica);
 }

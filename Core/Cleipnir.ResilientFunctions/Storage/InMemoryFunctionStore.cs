@@ -688,5 +688,32 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         }
     }
 
+    public Task<List<StoredIdAndPosition>> GetCrashedReplicaMessages(IReadOnlySet<ReplicaId> liveReplicas)
+    {
+        lock (_sync)
+        {
+            var result = new List<StoredIdAndPosition>();
+            foreach (var (storedId, messages) in _messages)
+                foreach (var (position, message) in messages.OrderBy(kv => kv.Key))
+                    if (!liveReplicas.Contains(message.Replica))
+                        result.Add(new StoredIdAndPosition(storedId, position));
+
+            return result.ToTask();
+        }
+    }
+
+    public Task SetReplica(IEnumerable<long> positions, ReplicaId newReplica, ReplicaId expectedReplica)
+    {
+        lock (_sync)
+        {
+            foreach (var position in positions)
+                foreach (var messages in _messages.Values)
+                    if (messages.TryGetValue(position, out var message) && message.Replica == expectedReplica)
+                        messages[position] = message with { Replica = newReplica };
+
+            return Task.CompletedTask;
+        }
+    }
+
     #endregion
 }

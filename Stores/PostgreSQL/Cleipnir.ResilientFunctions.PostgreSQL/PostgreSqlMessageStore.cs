@@ -39,7 +39,7 @@ public class PostgreSqlMessageStore : IMessageStore
             CREATE TABLE IF NOT EXISTS {tablePrefix}_messages (
                 position BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
                 id UUID,
-                replica UUID NULL,
+                replica UUID NOT NULL,
                 content BYTEA
             );
             CREATE INDEX IF NOT EXISTS {tablePrefix}_messages_id_idx ON {tablePrefix}_messages (id);";
@@ -209,6 +209,26 @@ public class PostgreSqlMessageStore : IMessageStore
                 .ToList();
 
         return storedMessages;
+    }
+
+    public async Task<List<StoredIdAndPosition>> GetCrashedReplicaMessages(IReadOnlySet<ReplicaId> liveReplicas)
+    {
+        await using var conn = await CreateConnection();
+        await using var command = sqlGenerator.GetCrashedReplicaMessages(liveReplicas).ToNpgsqlCommand(conn);
+
+        await using var reader = await command.ExecuteReaderAsync();
+        return await sqlGenerator.ReadStoredIdAndPositions(reader);
+    }
+
+    public async Task SetReplica(IEnumerable<long> positions, ReplicaId newReplica, ReplicaId expectedReplica)
+    {
+        var positionsArray = positions.ToArray();
+        if (positionsArray.Length == 0)
+            return;
+
+        await using var conn = await CreateConnection();
+        await using var command = sqlGenerator.SetReplica(positionsArray, newReplica, expectedReplica).ToNpgsqlCommand(conn);
+        await command.ExecuteNonQueryAsync();
     }
 
     public static StoredMessage ConvertToStoredMessage(byte[] content, long position, Guid? replica)
