@@ -259,7 +259,6 @@ public class FunctionsRegistry : IDisposable
                 _flowsManager
             );
 
-            _flowsManager.RegisterScheduleRestart(storedType, invoker);
             WatchDogsFactory.CreateAndStart(
                 flowType,
                 storedType,
@@ -345,7 +344,6 @@ public class FunctionsRegistry : IDisposable
                 _flowsManager
             );
 
-            _flowsManager.RegisterScheduleRestart(storedType, invoker);
             WatchDogsFactory.CreateAndStart(
                 flowType,
                 storedType,
@@ -431,7 +429,6 @@ public class FunctionsRegistry : IDisposable
                 _flowsManager
             );
 
-            _flowsManager.RegisterScheduleRestart(storedType, rActionInvoker);            
             WatchDogsFactory.CreateAndStart(
                 flowType,
                 storedType,
