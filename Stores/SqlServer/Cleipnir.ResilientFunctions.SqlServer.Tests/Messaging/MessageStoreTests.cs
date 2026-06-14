@@ -121,4 +121,8 @@ public class MessageStoreTests :  Cleipnir.ResilientFunctions.Tests.Messaging.Te
     [TestMethod]
     public override Task MessageReplicaCanBeReassigned()
         => MessageReplicaCanBeReassigned(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task GetMessagesForReplicaExcludesIgnoredPositions()
+        => GetMessagesForReplicaExcludesIgnoredPositions(FunctionStoreFactory.Create());
 }

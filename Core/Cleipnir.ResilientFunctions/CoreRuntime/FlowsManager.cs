@@ -42,7 +42,7 @@ public class FlowsManager : IFlowsManager
                     flowState.Interrupt();
     }
 
-    public Task Push(IReadOnlyDictionary<StoredId, List<StoredMessage>> messagesByFlow)
+    public Task Push(IReadOnlyList<StoredMessages> messagesByFlow)
     {
         List<Task> tasks = new();
         lock (_lock)

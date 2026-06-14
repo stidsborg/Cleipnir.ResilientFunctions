@@ -28,9 +28,11 @@ public interface IMessageStore
 
     /// <summary>
     /// Returns the undelivered messages whose replica equals the provided replica, grouped by target flow.
+    /// Messages at any of the <paramref name="ignorePositions"/> are excluded - the MessageWatchdog passes the
+    /// positions it has already pushed so they are not re-delivered on subsequent ticks.
     /// Used by the MessageWatchdog to push messages to live flows owned by this replica.
     /// </summary>
-    Task<Dictionary<StoredId, List<StoredMessage>>> GetMessagesForReplica(ReplicaId replicaId);
+    Task<List<StoredMessages>> GetMessagesForReplica(ReplicaId replicaId, IReadOnlyList<long> ignorePositions);
 
     /// <summary>
     /// Returns the (flow, position) identifiers of the undelivered messages owned by a replica that is no

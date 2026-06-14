@@ -121,4 +121,8 @@ public class MessageStoreTests :  ResilientFunctions.Tests.Messaging.TestTemplat
     [TestMethod]
     public override Task MessageReplicaCanBeReassigned()
         => MessageReplicaCanBeReassigned(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task GetMessagesForReplicaExcludesIgnoredPositions()
+        => GetMessagesForReplicaExcludesIgnoredPositions(FunctionStoreFactory.Create());
 }
