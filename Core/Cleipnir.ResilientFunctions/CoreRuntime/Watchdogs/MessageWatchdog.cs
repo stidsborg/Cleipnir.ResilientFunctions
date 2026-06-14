@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
@@ -17,6 +19,11 @@ internal class MessageWatchdog
     private readonly TimeSpan _checkFrequency;
     private readonly TimeSpan _delayStartUp;
     private readonly UtcNow _utcNow;
+
+    // Positions already pushed to this replica's flows. Passed as ignore-set so messages are not re-delivered
+    // on subsequent ticks. Version 1: ever-growing - to be refined once the QueueManager reports the positions
+    // it has persisted into its effects.
+    private readonly HashSet<long> _pushedPositions = new();
 
     public MessageWatchdog(
         IMessageStore messageStore,
@@ -51,9 +58,15 @@ internal class MessageWatchdog
 
                 // Messages destined for flows currently owned by this replica (replica = COALESCE(owner, publisher)).
                 // FlowsManager.Push delivers only to live flows; entries for non-live flows are ignored.
-                var messagesByFlow = await _messageStore.GetMessagesForReplica(_clusterInfo.ReplicaId);
-                if (messagesByFlow.Count > 0)
-                    await _flowsManager.Push(messagesByFlow);
+                var messageGroups = await _messageStore.GetMessagesForReplica(_clusterInfo.ReplicaId, _pushedPositions.ToList());
+                if (messageGroups.Count > 0)
+                {
+                    foreach (var group in messageGroups)
+                        foreach (var message in group.Messages)
+                            _pushedPositions.Add(message.Position);
+
+                    await _flowsManager.Push(messageGroups);
+                }
 
                 var timeElapsed = _utcNow() - now;
                 var delay = (_checkFrequency - timeElapsed).RoundUpToZero();

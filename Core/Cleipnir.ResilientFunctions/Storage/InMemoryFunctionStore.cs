@@ -668,23 +668,24 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         return dict;
     }
 
-    public Task<Dictionary<StoredId, List<StoredMessage>>> GetMessagesForReplica(ReplicaId replicaId)
+    public Task<List<StoredMessages>> GetMessagesForReplica(ReplicaId replicaId, IReadOnlyList<long> ignorePositions)
     {
         lock (_sync)
         {
-            var dict = new Dictionary<StoredId, List<StoredMessage>>();
+            var ignore = ignorePositions.ToHashSet();
+            var result = new List<StoredMessages>();
             foreach (var (storedId, messages) in _messages)
             {
                 var list = messages
                     .OrderBy(kv => kv.Key)
-                    .Where(kv => kv.Value.Replica == replicaId)
+                    .Where(kv => kv.Value.Replica == replicaId && !ignore.Contains(kv.Key))
                     .Select(kv => kv.Value with { Position = kv.Key })
                     .ToList();
                 if (list.Count > 0)
-                    dict[storedId] = list;
+                    result.Add(new StoredMessages(storedId, list));
             }
 
-            return dict.ToTask();
+            return result.ToTask();
         }
     }
 

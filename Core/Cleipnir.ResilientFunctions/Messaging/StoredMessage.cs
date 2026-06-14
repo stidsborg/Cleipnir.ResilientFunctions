@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Text.Json;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
@@ -12,6 +13,7 @@ public record StoredMessage(byte[] MessageContent, byte[] MessageType, long Posi
 }
 
 public record StoredIdAndMessage(StoredId StoredId, StoredMessage StoredMessage);
+public record StoredMessages(StoredId StoredId, List<StoredMessage> Messages);
 public static class StoredIdAndMessageExtensions
 {
     public static StoredIdAndMessage ToStoredIdAndMessage(this StoredMessage storedMessage, StoredId storedId) 

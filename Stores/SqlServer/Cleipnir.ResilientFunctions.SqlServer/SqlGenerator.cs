@@ -662,16 +662,17 @@ public class SqlGenerator(string tablePrefix)
     }
 
     private string? _getMessagesForReplicaSql;
-    public StoreCommand GetMessagesForReplica(ReplicaId replicaId)
+    public StoreCommand GetMessagesForReplica(ReplicaId replicaId, IReadOnlyList<long> ignorePositions)
     {
         _getMessagesForReplicaSql ??= @$"
             SELECT Id, Position, Content, Replica
             FROM {tablePrefix}_Messages
-            WHERE Replica = @Replica
+            WHERE Replica = @Replica AND Position NOT IN (SELECT CAST(value AS BIGINT) FROM STRING_SPLIT(@IgnorePositions, ','))
             ORDER BY Position;";
 
         var command = StoreCommand.Create(_getMessagesForReplicaSql);
         command.AddParameter("@Replica", replicaId.AsGuid);
+        command.AddParameter("@IgnorePositions", ignorePositions.Count > 0 ? string.Join(",", ignorePositions) : "-1");
         return command;
     }
 

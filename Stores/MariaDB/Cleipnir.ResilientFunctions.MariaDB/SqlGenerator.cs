@@ -660,15 +660,15 @@ public class SqlGenerator(string tablePrefix)
         return messages;
     }
 
-    public StoreCommand GetMessagesForReplica(ReplicaId replicaId)
+    public StoreCommand GetMessagesForReplica(ReplicaId replicaId, IReadOnlyList<long> ignorePositions)
     {
         var sql = @$"
             SELECT id, position, content, replica
             FROM {tablePrefix}_messages
-            WHERE replica = ?
+            WHERE replica = ? AND FIND_IN_SET(position, ?) = 0
             ORDER BY position;";
 
-        return StoreCommand.Create(sql, values: [ replicaId.AsGuid.ToString("N") ]);
+        return StoreCommand.Create(sql, values: [ replicaId.AsGuid.ToString("N"), string.Join(",", ignorePositions) ]);
     }
 
     public StoreCommand GetCrashedReplicaMessages(IReadOnlySet<ReplicaId> liveReplicas)
