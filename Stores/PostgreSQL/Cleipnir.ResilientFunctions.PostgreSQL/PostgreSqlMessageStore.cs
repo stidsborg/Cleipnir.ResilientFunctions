@@ -211,6 +211,26 @@ public class PostgreSqlMessageStore : IMessageStore
         return storedMessages;
     }
 
+    public async Task<List<Tuple<StoredId, long>>> GetCrashedReplicaMessages(IEnumerable<ReplicaId> liveReplicas)
+    {
+        await using var conn = await CreateConnection();
+        await using var command = sqlGenerator.GetCrashedReplicaMessages(liveReplicas).ToNpgsqlCommand(conn);
+
+        await using var reader = await command.ExecuteReaderAsync();
+        return await sqlGenerator.ReadStoredIdAndPositions(reader);
+    }
+
+    public async Task SetReplica(IEnumerable<long> positions, ReplicaId newReplica, ReplicaId expectedReplica)
+    {
+        var positionsArray = positions.ToArray();
+        if (positionsArray.Length == 0)
+            return;
+
+        await using var conn = await CreateConnection();
+        await using var command = sqlGenerator.SetReplica(positionsArray, newReplica, expectedReplica).ToNpgsqlCommand(conn);
+        await command.ExecuteNonQueryAsync();
+    }
+
     public static StoredMessage ConvertToStoredMessage(byte[] content, long position, Guid? replica)
     {
         var arrs = BinaryPacker.Split(content, expectedPieces: 5);

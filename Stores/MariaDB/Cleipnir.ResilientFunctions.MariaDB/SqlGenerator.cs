@@ -1,3 +1,4 @@
+using System;
 using System.Runtime.Serialization;
 using System.Text.Json;
 using Cleipnir.ResilientFunctions.Domain;
@@ -669,6 +670,52 @@ public class SqlGenerator(string tablePrefix)
             ORDER BY position;";
 
         return StoreCommand.Create(sql, values: [ replicaId.AsGuid.ToString("N") ]);
+    }
+
+    public StoreCommand GetCrashedReplicaMessages(IEnumerable<ReplicaId> liveReplicas)
+    {
+        var replicas = liveReplicas.Select(r => $"'{r.AsGuid:N}'").ToList();
+        var notInClause = replicas.Count == 0
+            ? ""
+            : $" AND replica NOT IN ({replicas.StringJoin(", ")})";
+        var sql = @$"
+            SELECT id, position
+            FROM {tablePrefix}_messages
+            WHERE replica IS NOT NULL{notInClause}
+            ORDER BY position;";
+
+        return StoreCommand.Create(sql);
+    }
+
+    public async Task<List<Tuple<StoredId, long>>> ReadStoredIdAndPositions(MySqlDataReader reader)
+    {
+        var result = new List<Tuple<StoredId, long>>();
+        while (await reader.ReadAsync())
+        {
+            var id = reader.GetString(0).ToGuid().ToStoredId();
+            var position = reader.GetInt64(1);
+            result.Add(Tuple.Create(id, position));
+        }
+
+        return result;
+    }
+
+    public StoreCommand SetReplica(IEnumerable<long> positions, ReplicaId newReplica, ReplicaId expectedReplica)
+    {
+        var positionsList = positions.ToList();
+
+        var sql = @$"
+                UPDATE {tablePrefix}_messages
+                SET replica = ?
+                WHERE position IN ({string.Join(", ", positionsList.Select(_ => "?"))}) AND replica = ?";
+
+        var command = StoreCommand.Create(sql);
+        command.AddParameter(newReplica.AsGuid.ToString("N"));
+        foreach (var position in positionsList)
+            command.AddParameter(position);
+        command.AddParameter(expectedReplica.AsGuid.ToString("N"));
+
+        return command;
     }
 
     public StoreCommand GetMessages(IEnumerable<StoredId> storedIds)

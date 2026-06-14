@@ -594,6 +594,43 @@ public class SqlGenerator(string tablePrefix)
 
         return StoreCommand.Create(sql, values: [ replicaId.AsGuid ]);
     }
+
+    public StoreCommand GetCrashedReplicaMessages(IEnumerable<ReplicaId> liveReplicas)
+    {
+        var sql = @$"
+            SELECT id, position
+            FROM {tablePrefix}_messages
+            WHERE replica IS NOT NULL AND replica != ALL($1)
+            ORDER BY position;";
+
+        return StoreCommand.Create(sql, values: [ liveReplicas.Select(r => r.AsGuid).ToArray() ]);
+    }
+
+    public async Task<List<Tuple<StoredId, long>>> ReadStoredIdAndPositions(NpgsqlDataReader reader)
+    {
+        var result = new List<Tuple<StoredId, long>>();
+        while (await reader.ReadAsync())
+        {
+            var id = reader.GetGuid(0).ToStoredId();
+            var position = reader.GetInt64(1);
+            result.Add(Tuple.Create(id, position));
+        }
+
+        return result;
+    }
+
+    public StoreCommand SetReplica(IEnumerable<long> positions, ReplicaId newReplica, ReplicaId expectedReplica)
+    {
+        var sql = @$"
+            UPDATE {tablePrefix}_messages
+            SET replica = $1
+            WHERE position = ANY($2) AND replica = $3";
+
+        return StoreCommand.Create(
+            sql,
+            values: [ newReplica.AsGuid, positions.ToArray(), expectedReplica.AsGuid ]
+        );
+    }
     
     public async Task<Dictionary<StoredId, IReadOnlyList<StoredMessage>>> ReadMessagesForMultipleStores(NpgsqlDataReader reader)
     {

@@ -675,6 +675,54 @@ public class SqlGenerator(string tablePrefix)
         return command;
     }
 
+    public StoreCommand GetCrashedReplicaMessages(IEnumerable<ReplicaId> liveReplicas)
+    {
+        var replicas = liveReplicas.ToList();
+        var notInClause = replicas.Count == 0
+            ? ""
+            : $" AND Replica NOT IN ({replicas.Select((_, i) => $"@Replica{i}").StringJoin(", ")})";
+        var sql = @$"
+            SELECT Id, Position
+            FROM {tablePrefix}_Messages
+            WHERE Replica IS NOT NULL{notInClause}
+            ORDER BY Position;";
+
+        var command = StoreCommand.Create(sql);
+        for (var i = 0; i < replicas.Count; i++)
+            command.AddParameter($"@Replica{i}", replicas[i].AsGuid);
+        return command;
+    }
+
+    public async Task<List<Tuple<StoredId, long>>> ReadStoredIdAndPositions(SqlDataReader reader)
+    {
+        var result = new List<Tuple<StoredId, long>>();
+        while (await reader.ReadAsync())
+        {
+            var id = reader.GetGuid(0).ToStoredId();
+            var position = reader.GetInt64(1);
+            result.Add(Tuple.Create(id, position));
+        }
+
+        return result;
+    }
+
+    public StoreCommand SetReplica(IEnumerable<long> positions, ReplicaId newReplica, ReplicaId expectedReplica)
+    {
+        var positionsList = positions.ToList();
+        var sql = @$"
+            UPDATE {tablePrefix}_Messages
+            SET Replica = @NewReplica
+            WHERE Position IN ({positionsList.Select((_, i) => $"@Position{i}").StringJoin(", ")}) AND Replica = @ExpectedReplica";
+
+        var command = StoreCommand.Create(sql);
+        command.AddParameter("@NewReplica", newReplica.AsGuid);
+        for (var i = 0; i < positionsList.Count; i++)
+            command.AddParameter($"@Position{i}", positionsList[i]);
+        command.AddParameter("@ExpectedReplica", expectedReplica.AsGuid);
+
+        return command;
+    }
+
     public async Task<Dictionary<StoredId, List<(byte[] content, long position, Guid? replica)>>> ReadStoredIdsMessages(SqlDataReader reader)
     {
         var messages = new Dictionary<StoredId, List<(byte[] content, long position, Guid? replica)>>();

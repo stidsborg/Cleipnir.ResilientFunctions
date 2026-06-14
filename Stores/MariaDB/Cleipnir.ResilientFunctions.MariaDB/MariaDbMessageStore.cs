@@ -212,6 +212,30 @@ public class MariaDbMessageStore : IMessageStore
         return storedMessages;
     }
 
+    public async Task<List<Tuple<StoredId, long>>> GetCrashedReplicaMessages(IEnumerable<ReplicaId> liveReplicas)
+    {
+        await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
+        await using var command = _sqlGenerator
+            .GetCrashedReplicaMessages(liveReplicas)
+            .ToSqlCommand(conn);
+
+        await using var reader = await command.ExecuteReaderAsync();
+        return await _sqlGenerator.ReadStoredIdAndPositions(reader);
+    }
+
+    public async Task SetReplica(IEnumerable<long> positions, ReplicaId newReplica, ReplicaId expectedReplica)
+    {
+        var positionsList = positions.ToList();
+        if (positionsList.Count == 0)
+            return;
+
+        await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
+        await using var command = _sqlGenerator
+            .SetReplica(positionsList, newReplica, expectedReplica)
+            .ToSqlCommand(conn);
+        await command.ExecuteNonQueryAsync();
+    }
+
     public static StoredMessage ConvertToStoredMessage(byte[] content, long position, string? replica)
     {
         var arrs = BinaryPacker.Split(content, expectedPieces: 5);
