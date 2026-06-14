@@ -693,14 +693,14 @@ public class SqlGenerator(string tablePrefix)
         return command;
     }
 
-    public async Task<List<Tuple<StoredId, long>>> ReadStoredIdAndPositions(SqlDataReader reader)
+    public async Task<List<StoredIdAndPosition>> ReadStoredIdAndPositions(SqlDataReader reader)
     {
-        var result = new List<Tuple<StoredId, long>>();
+        var result = new List<StoredIdAndPosition>();
         while (await reader.ReadAsync())
         {
             var id = reader.GetGuid(0).ToStoredId();
             var position = reader.GetInt64(1);
-            result.Add(Tuple.Create(id, position));
+            result.Add(new StoredIdAndPosition(id, position));
         }
 
         return result;

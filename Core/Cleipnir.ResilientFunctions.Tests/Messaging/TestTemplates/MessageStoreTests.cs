@@ -1232,8 +1232,8 @@ public abstract class MessageStoreTests
         var crashed = await messageStore.GetCrashedReplicaMessages([liveReplica]);
 
         crashed.Count.ShouldBe(2);
-        crashed.ShouldContain(t => t.Item1 == flow1 && t.Item2 == bPosition);
-        crashed.ShouldContain(t => t.Item1 == flow2 && t.Item2 == cPosition);
+        crashed.ShouldContain(t => t.StoredId == flow1 && t.Position == bPosition);
+        crashed.ShouldContain(t => t.StoredId == flow2 && t.Position == cPosition);
     }
 
     public abstract Task MessageReplicaCanBeReassigned();

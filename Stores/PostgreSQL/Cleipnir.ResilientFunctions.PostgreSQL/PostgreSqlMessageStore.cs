@@ -211,7 +211,7 @@ public class PostgreSqlMessageStore : IMessageStore
         return storedMessages;
     }
 
-    public async Task<List<Tuple<StoredId, long>>> GetCrashedReplicaMessages(IEnumerable<ReplicaId> liveReplicas)
+    public async Task<List<StoredIdAndPosition>> GetCrashedReplicaMessages(IEnumerable<ReplicaId> liveReplicas)
     {
         await using var conn = await CreateConnection();
         await using var command = sqlGenerator.GetCrashedReplicaMessages(liveReplicas).ToNpgsqlCommand(conn);

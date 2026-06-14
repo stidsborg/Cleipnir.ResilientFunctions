@@ -113,6 +113,8 @@ public record StoredException(string ExceptionMessage, string? ExceptionStackTra
 
 public record StatusAndId(StoredId StoredId, Status Status, long Expiry);
 
+public record StoredIdAndPosition(StoredId StoredId, long Position);
+
 public record StoredEffectChange(
     StoredId StoredId,
     EffectId EffectId,
