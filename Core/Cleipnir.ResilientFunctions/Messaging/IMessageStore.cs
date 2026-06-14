@@ -37,7 +37,7 @@ public interface IMessageStore
     /// longer alive (its replica is not contained in <paramref name="liveReplicas"/>).
     /// Used to detect messages stranded by crashed replicas so they can be re-assigned to a live replica via <see cref="SetReplica"/>.
     /// </summary>
-    Task<List<StoredIdAndPosition>> GetCrashedReplicaMessages(IEnumerable<ReplicaId> liveReplicas);
+    Task<List<StoredIdAndPosition>> GetCrashedReplicaMessages(IReadOnlySet<ReplicaId> liveReplicas);
 
     /// <summary>
     /// Re-assigns the messages at the provided positions to <paramref name="newReplica"/>,

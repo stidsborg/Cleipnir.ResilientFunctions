@@ -671,7 +671,7 @@ public class SqlGenerator(string tablePrefix)
         return StoreCommand.Create(sql, values: [ replicaId.AsGuid.ToString("N") ]);
     }
 
-    public StoreCommand GetCrashedReplicaMessages(IEnumerable<ReplicaId> liveReplicas)
+    public StoreCommand GetCrashedReplicaMessages(IReadOnlySet<ReplicaId> liveReplicas)
     {
         var replicas = liveReplicas.Select(r => $"'{r.AsGuid:N}'").ToList();
         var sql = @$"

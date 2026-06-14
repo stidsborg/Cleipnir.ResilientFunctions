@@ -1229,7 +1229,7 @@ public abstract class MessageStoreTests
         var bPosition = flow1Messages.Single(m => m.Replica == crashedReplica1).Position;
         var cPosition = flow2Messages.Single(m => m.Replica == crashedReplica2).Position;
 
-        var crashed = await messageStore.GetCrashedReplicaMessages([liveReplica]);
+        var crashed = await messageStore.GetCrashedReplicaMessages(new HashSet<ReplicaId> { liveReplica });
 
         crashed.Count.ShouldBe(2);
         crashed.ShouldContain(t => t.StoredId == flow1 && t.Position == bPosition);

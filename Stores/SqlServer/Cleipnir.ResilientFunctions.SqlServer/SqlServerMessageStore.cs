@@ -221,7 +221,7 @@ public class SqlServerMessageStore : IMessageStore
         return storedMessages;
     }
 
-    public async Task<List<StoredIdAndPosition>> GetCrashedReplicaMessages(IEnumerable<ReplicaId> liveReplicas)
+    public async Task<List<StoredIdAndPosition>> GetCrashedReplicaMessages(IReadOnlySet<ReplicaId> liveReplicas)
     {
         await using var conn = await CreateConnection();
         await using var cmd = _sqlGenerator.GetCrashedReplicaMessages(liveReplicas).ToSqlCommand(conn);

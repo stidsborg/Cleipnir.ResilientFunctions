@@ -675,7 +675,7 @@ public class SqlGenerator(string tablePrefix)
         return command;
     }
 
-    public StoreCommand GetCrashedReplicaMessages(IEnumerable<ReplicaId> liveReplicas)
+    public StoreCommand GetCrashedReplicaMessages(IReadOnlySet<ReplicaId> liveReplicas)
     {
         var replicas = liveReplicas.ToList();
         var sql = @$"

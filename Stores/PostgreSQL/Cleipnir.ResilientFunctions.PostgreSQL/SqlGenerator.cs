@@ -595,7 +595,7 @@ public class SqlGenerator(string tablePrefix)
         return StoreCommand.Create(sql, values: [ replicaId.AsGuid ]);
     }
 
-    public StoreCommand GetCrashedReplicaMessages(IEnumerable<ReplicaId> liveReplicas)
+    public StoreCommand GetCrashedReplicaMessages(IReadOnlySet<ReplicaId> liveReplicas)
     {
         var sql = @$"
             SELECT id, position

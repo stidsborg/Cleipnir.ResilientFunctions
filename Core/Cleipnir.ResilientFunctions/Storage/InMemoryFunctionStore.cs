@@ -688,15 +688,14 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         }
     }
 
-    public Task<List<StoredIdAndPosition>> GetCrashedReplicaMessages(IEnumerable<ReplicaId> liveReplicas)
+    public Task<List<StoredIdAndPosition>> GetCrashedReplicaMessages(IReadOnlySet<ReplicaId> liveReplicas)
     {
-        var live = liveReplicas.ToHashSet();
         lock (_sync)
         {
             var result = new List<StoredIdAndPosition>();
             foreach (var (storedId, messages) in _messages)
                 foreach (var (position, message) in messages.OrderBy(kv => kv.Key))
-                    if (!live.Contains(message.Replica))
+                    if (!liveReplicas.Contains(message.Replica))
                         result.Add(new StoredIdAndPosition(storedId, position));
 
             return result.ToTask();
