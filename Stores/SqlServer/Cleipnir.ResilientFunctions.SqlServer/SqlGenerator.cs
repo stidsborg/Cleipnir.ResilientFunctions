@@ -677,15 +677,13 @@ public class SqlGenerator(string tablePrefix)
 
     public StoreCommand GetCrashedReplicaMessages(IReadOnlySet<ReplicaId> liveReplicas)
     {
-        var replicas = liveReplicas.ToList();
         var sql = @$"
             SELECT Id, Position
             FROM {tablePrefix}_Messages
-            WHERE Replica NOT IN ({replicas.Select((_, i) => $"@Replica{i}").StringJoin(", ")})";
+            WHERE Replica NOT IN (SELECT CAST(value AS UNIQUEIDENTIFIER) FROM STRING_SPLIT(@Replicas, ','))";
 
         var command = StoreCommand.Create(sql);
-        for (var i = 0; i < replicas.Count; i++)
-            command.AddParameter($"@Replica{i}", replicas[i].AsGuid);
+        command.AddParameter("@Replicas", string.Join(",", liveReplicas.Select(r => r.AsGuid)));
         return command;
     }
 
