@@ -53,24 +53,6 @@ public class SqlServerMessageStore : IMessageStore
         await command.ExecuteNonQueryAsync();
     }
 
-    public async Task<ReplicaId> AppendMessage(StoredId storedId, StoredMessage storedMessage)
-    {
-        var (messageContent, messageType, _, replica, idempotencyKey, sender, receiver) = storedMessage;
-        var content = BinaryPacker.Pack(messageContent, messageType, idempotencyKey?.ToUtf8Bytes(), sender?.ToUtf8Bytes(), receiver?.ToUtf8Bytes());
-
-        var sql = @$"
-            INSERT INTO {_tablePrefix}_Messages (Id, Replica, Content)
-            OUTPUT inserted.Replica
-            VALUES (@Id, COALESCE((SELECT Owner FROM {_tablePrefix} WHERE Id = @Id), @Replica), @Content);";
-
-        await using var conn = await CreateConnection();
-        await using var command = new SqlCommand(sql, conn);
-        command.Parameters.AddWithValue("@Id", storedId.AsGuid);
-        command.Parameters.AddWithValue("@Replica", replica.AsGuid);
-        command.Parameters.AddWithValue("@Content", content);
-        return ((Guid) (await command.ExecuteScalarAsync())!).ToReplicaId();
-    }
-
     public async Task AppendMessages(IReadOnlyList<StoredIdAndMessage> messages)
     {
         if (messages.Count == 0)

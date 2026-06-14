@@ -246,8 +246,7 @@ public class FunctionsRegistry : IDisposable
                 _shutdownCoordinator,
                 serializer,
                 _settings.UtcNow,
-                settings?.ClearChildrenAfterCapture ?? true,
-                _flowsManager
+                settings?.ClearChildrenAfterCapture ?? true
             );
             var invoker = new Invoker<TParam, TReturn>(
                 flowType,
@@ -283,8 +282,7 @@ public class FunctionsRegistry : IDisposable
                 storedType,
                 _functionStore,
                 serializer,
-                ClusterInfo.ReplicaId,
-                _flowsManager
+                ClusterInfo.ReplicaId
             );
 
             var registration = new FuncRegistration<TParam, TReturn>(
@@ -331,8 +329,7 @@ public class FunctionsRegistry : IDisposable
                 _shutdownCoordinator,
                 serializer,
                 _settings.UtcNow,
-                settings?.ClearChildrenAfterCapture ?? true,
-                _flowsManager
+                settings?.ClearChildrenAfterCapture ?? true
             );
             var invoker = new Invoker<Unit, Unit>(
                 flowType,
@@ -368,8 +365,7 @@ public class FunctionsRegistry : IDisposable
                 storedType,
                 _functionStore,
                 serializer,
-                ClusterInfo.ReplicaId,
-                _flowsManager
+                ClusterInfo.ReplicaId
             );
 
             var registration = new ParamlessRegistration(
@@ -416,8 +412,7 @@ public class FunctionsRegistry : IDisposable
                 _shutdownCoordinator,
                 serializer,
                 _settings.UtcNow,
-                settings?.ClearChildrenAfterCapture ?? true,
-                _flowsManager
+                settings?.ClearChildrenAfterCapture ?? true
             );
             var rActionInvoker = new Invoker<TParam, Unit>(
                 flowType,
@@ -453,8 +448,7 @@ public class FunctionsRegistry : IDisposable
                 storedType,
                 _functionStore,
                 serializer,
-                ClusterInfo.ReplicaId,
-                _flowsManager
+                ClusterInfo.ReplicaId
             );
             var registration = new ActionRegistration<TParam>(
                 flowType,

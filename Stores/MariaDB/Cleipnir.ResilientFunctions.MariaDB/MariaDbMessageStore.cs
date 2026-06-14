@@ -48,25 +48,6 @@ public class MariaDbMessageStore : IMessageStore
     }
 
 
-    public async Task<ReplicaId> AppendMessage(StoredId storedId, StoredMessage storedMessage)
-    {
-        var (messageContent, messageType, _, replica, idempotencyKey, sender, receiver) = storedMessage;
-        var content = BinaryPacker.Pack(messageContent, messageType, idempotencyKey?.ToUtf8Bytes(), sender?.ToUtf8Bytes(), receiver?.ToUtf8Bytes());
-
-        var sql = @$"
-            INSERT INTO {_tablePrefix}_messages (id, replica, content)
-            VALUES (?, COALESCE((SELECT owner FROM {_tablePrefix} WHERE id = ?), ?), ?)
-            RETURNING replica;";
-
-        await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
-        await using var command = new MySqlCommand(sql, conn);
-        command.Parameters.Add(new() { Value = storedId.AsGuid.ToString("N") });
-        command.Parameters.Add(new() { Value = storedId.AsGuid.ToString("N") });
-        command.Parameters.Add(new() { Value = replica.AsGuid.ToString("N") });
-        command.Parameters.Add(new() { Value = content });
-        return ((string) (await command.ExecuteScalarAsync())!).ParseToReplicaId();
-    }
-
     public async Task AppendMessages(IReadOnlyList<StoredIdAndMessage> messages)
     {
         if (messages.Count == 0)
