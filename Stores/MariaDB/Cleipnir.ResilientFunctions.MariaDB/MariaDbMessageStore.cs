@@ -58,12 +58,17 @@ public class MariaDbMessageStore : IMessageStore
         var appendMessagesCommand = _sqlGenerator.AppendMessages(messages);
         var interruptsCommand = _sqlGenerator.Interrupt(storedIds);
 
-        var command = StoreCommand.Merge(appendMessagesCommand, interruptsCommand);
-
         await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
-        await using var sqlCommand = command.ToSqlCommand(conn);
 
-        await sqlCommand.ExecuteNonQueryAsync();
+        // The append and the interrupt are executed as separate commands - not merged into one - so the
+        // insert's locks are released before the interrupt UPDATE runs. Merging them caused lock contention
+        // that deadlocked tight message-exchange loops (e.g. ping-pong) where two executing flows interrupt
+        // each other.
+        await using var appendCommand = appendMessagesCommand.ToSqlCommand(conn);
+        await appendCommand.ExecuteNonQueryAsync();
+
+        await using var interruptCommand = interruptsCommand.ToSqlCommand(conn);
+        await interruptCommand.ExecuteNonQueryAsync();
     }
 
     private string? _replaceMessageSql;
