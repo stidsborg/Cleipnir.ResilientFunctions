@@ -33,7 +33,7 @@ public class FunctionsRegistry : IDisposable
     private readonly ReplicaWatchdog _replicaWatchdog;
     private readonly InterruptedWatchdog _interruptedWatchdog;
     private readonly MessageWatchdog _messageWatchdog;
-    private readonly FlowsManager _flowsManager;
+    private readonly FlowsManagers _flowsManagers;
 
     public FunctionsRegistry(IFunctionStore functionStore, Settings? settings = null)
     {
@@ -42,7 +42,7 @@ public class FunctionsRegistry : IDisposable
         _shutdownCoordinator = new ShutdownCoordinator();
         _settings = SettingsWithDefaults.Default.Merge(settings);
         var utcNow = _settings.UtcNow;
-        _flowsManager = new FlowsManager(_functionStore);
+        _flowsManagers = new FlowsManagers(_functionStore);
 
         ClusterInfo = new ClusterInfo(ReplicaId.NewId());
         
@@ -66,7 +66,7 @@ public class FunctionsRegistry : IDisposable
 
         _interruptedWatchdog = new InterruptedWatchdog(
             _functionStore,
-            _flowsManager,
+            _flowsManagers,
             _shutdownCoordinator,
             _settings.UnhandledExceptionHandler,
             _settings.WatchdogCheckFrequency,
@@ -76,7 +76,7 @@ public class FunctionsRegistry : IDisposable
 
         _messageWatchdog = new MessageWatchdog(
             _functionStore.MessageStore,
-            _flowsManager,
+            _flowsManagers,
             ClusterInfo,
             _shutdownCoordinator,
             _settings.UnhandledExceptionHandler,
@@ -255,7 +255,7 @@ public class FunctionsRegistry : IDisposable
                 invocationHelper,
                 settingsWithDefaults.UnhandledExceptionHandler,
                 ClusterInfo.ReplicaId,
-                _flowsManager
+                _flowsManagers.GetOrCreate(storedType)
             );
 
             WatchDogsFactory.CreateAndStart(
@@ -338,7 +338,7 @@ public class FunctionsRegistry : IDisposable
                 invocationHelper,
                 settingsWithDefaults.UnhandledExceptionHandler,
                 ClusterInfo.ReplicaId,
-                _flowsManager
+                _flowsManagers.GetOrCreate(storedType)
             );
 
             WatchDogsFactory.CreateAndStart(
@@ -421,7 +421,7 @@ public class FunctionsRegistry : IDisposable
                 invocationHelper,
                 settingsWithDefaults.UnhandledExceptionHandler,
                 ClusterInfo.ReplicaId,
-                _flowsManager
+                _flowsManagers.GetOrCreate(storedType)
             );
 
             WatchDogsFactory.CreateAndStart(

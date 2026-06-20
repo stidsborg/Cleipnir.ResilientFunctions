@@ -12,7 +12,7 @@ namespace Cleipnir.ResilientFunctions.CoreRuntime.Watchdogs;
 internal class MessageWatchdog
 {
     private readonly IMessageStore _messageStore;
-    private readonly FlowsManager _flowsManager;
+    private readonly FlowsManagers _flowsManagers;
     private readonly ClusterInfo _clusterInfo;
     private readonly ShutdownCoordinator _shutdownCoordinator;
     private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
@@ -27,7 +27,7 @@ internal class MessageWatchdog
 
     public MessageWatchdog(
         IMessageStore messageStore,
-        FlowsManager flowsManager,
+        FlowsManagers flowsManagers,
         ClusterInfo clusterInfo,
         ShutdownCoordinator shutdownCoordinator,
         UnhandledExceptionHandler unhandledExceptionHandler,
@@ -36,7 +36,7 @@ internal class MessageWatchdog
         UtcNow utcNow)
     {
         _messageStore = messageStore;
-        _flowsManager = flowsManager;
+        _flowsManagers = flowsManagers;
         _clusterInfo = clusterInfo;
         _shutdownCoordinator = shutdownCoordinator;
         _unhandledExceptionHandler = unhandledExceptionHandler;
@@ -57,7 +57,8 @@ internal class MessageWatchdog
                 var now = _utcNow();
 
                 // Messages destined for flows currently owned by this replica (replica = COALESCE(owner, publisher)).
-                // FlowsManager.Push delivers only to live flows; entries for non-live flows are ignored.
+                // FlowsManagers.Push routes each group to its flow type's manager and delivers only to live
+                // flows; entries for non-live flows (or unregistered types) are ignored.
                 var messageGroups = await _messageStore.GetMessagesForReplica(_clusterInfo.ReplicaId, _pushedPositions.ToList());
                 if (messageGroups.Count > 0)
                 {
@@ -65,7 +66,7 @@ internal class MessageWatchdog
                         foreach (var message in group.Messages)
                             _pushedPositions.Add(message.Position);
 
-                    await _flowsManager.Push(messageGroups);
+                    await _flowsManagers.Push(messageGroups);
                 }
 
                 var timeElapsed = _utcNow() - now;

@@ -10,7 +10,7 @@ namespace Cleipnir.ResilientFunctions.CoreRuntime.Watchdogs;
 internal class InterruptedWatchdog
 {
     private readonly IFunctionStore _functionStore;
-    private readonly FlowsManager _flowsManager;
+    private readonly FlowsManagers _flowsManagers;
     private readonly ShutdownCoordinator _shutdownCoordinator;
     private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
     private readonly TimeSpan _checkFrequency;
@@ -19,7 +19,7 @@ internal class InterruptedWatchdog
 
     public InterruptedWatchdog(
         IFunctionStore functionStore,
-        FlowsManager flowsManager,
+        FlowsManagers flowsManagers,
         ShutdownCoordinator shutdownCoordinator,
         UnhandledExceptionHandler unhandledExceptionHandler,
         TimeSpan checkFrequency,
@@ -27,7 +27,7 @@ internal class InterruptedWatchdog
         UtcNow utcNow)
     {
         _functionStore = functionStore;
-        _flowsManager = flowsManager;
+        _flowsManagers = flowsManagers;
         _shutdownCoordinator = shutdownCoordinator;
         _unhandledExceptionHandler = unhandledExceptionHandler;
         _checkFrequency = checkFrequency;
@@ -47,11 +47,11 @@ internal class InterruptedWatchdog
                 var now = _utcNow();
 
                 var interrupted = await _functionStore.GetInterruptedFunctions();
-                var owned = _flowsManager.FilterOwned(interrupted);
+                var owned = _flowsManagers.FilterOwned(interrupted);
                 if (owned.Count > 0)
                 {
                     await _functionStore.ResetInterrupted(owned);
-                    _flowsManager.Interrupt(owned);
+                    _flowsManagers.Interrupt(owned);
                 }
 
                 var timeElapsed = _utcNow() - now;
