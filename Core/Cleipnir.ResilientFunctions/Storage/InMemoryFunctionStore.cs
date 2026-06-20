@@ -628,16 +628,15 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         }
     }
 
-    public Task DeleteMessages(IEnumerable<long> positions)
+    public Task DeleteMessages(IReadOnlyList<long> positions)
     {
         lock (_sync)
         {
-            var positionsList = positions.ToList();
-            if (positionsList.Count == 0)
+            if (positions.Count == 0)
                 return Task.CompletedTask;
 
             foreach (var messages in _messages.Values)
-                foreach (var position in positionsList)
+                foreach (var position in positions)
                     messages.Remove(position);
 
             return Task.CompletedTask;

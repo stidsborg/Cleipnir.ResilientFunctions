@@ -118,10 +118,9 @@ public class PostgreSqlMessageStore : IMessageStore
         await command.ExecuteNonQueryAsync();
     }
 
-    public async Task DeleteMessages(IEnumerable<long> positions)
+    public async Task DeleteMessages(IReadOnlyList<long> positions)
     {
-        var positionsArray = positions.ToArray();
-        if (positionsArray.Length == 0)
+        if (positions.Count == 0)
             return;
 
         await using var conn = await CreateConnection();
@@ -132,7 +131,7 @@ public class PostgreSqlMessageStore : IMessageStore
         {
             Parameters =
             {
-                new() { Value = positionsArray }
+                new() { Value = positions.ToArray() }
             }
         };
         await command.ExecuteNonQueryAsync();

@@ -156,7 +156,7 @@ public class MessageClearerTests
         public List<long[]> DeletedBatches { get; } = new();
         public IEnumerable<long> DeletedPositions => DeletedBatches.SelectMany(b => b);
 
-        public async Task DeleteMessages(IEnumerable<long> positions)
+        public async Task DeleteMessages(IReadOnlyList<long> positions)
         {
             var batch = positions.ToArray();
             lock (_lock)

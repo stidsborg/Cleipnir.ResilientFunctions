@@ -26,7 +26,7 @@ public interface IMessageStore
     /// globally unique (identity values), so no <see cref="StoredId"/> is needed - allowing handled messages
     /// across many flows to be removed in a single query.
     /// </summary>
-    Task DeleteMessages(IEnumerable<long> positions);
+    Task DeleteMessages(IReadOnlyList<long> positions);
 
     Task Truncate(StoredId storedId);
 
