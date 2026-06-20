@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
+using Cleipnir.ResilientFunctions.CoreRuntime.Watchdogs;
 using Cleipnir.ResilientFunctions.CoreRuntime.Serialization;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
@@ -17,6 +18,15 @@ namespace Cleipnir.ResilientFunctions.Tests.Messaging.TestTemplates;
 
 public abstract class MessagesSubscriptionTests
 {
+    // These tests hand-roll a QueueManager, which depends on IMessageWatchdog only to report deleted message
+    // positions. They don't exercise that path, so a no-op stub suffices.
+    private static readonly IMessageWatchdog StubMessageWatchdog = new NoopMessageWatchdog();
+
+    private sealed class NoopMessageWatchdog : IMessageWatchdog
+    {
+        public void RemoveMessages(IReadOnlyList<long> positions) { }
+    }
+
     public abstract Task EventsSubscriptionSunshineScenario();
     protected async Task EventsSubscriptionSunshineScenario(Task<IFunctionStore> functionStoreTask)
     {
@@ -571,7 +581,8 @@ public abstract class MessagesSubscriptionTests
                     unhandledExceptionHandler,
                     flowTimeouts,
                     () => DateTime.UtcNow,
-                    SettingsWithDefaults.Default
+                    SettingsWithDefaults.Default,
+                    StubMessageWatchdog
                 );
 
                 var queueClient = await queueManager.CreateQueueClient();
@@ -634,7 +645,8 @@ public abstract class MessagesSubscriptionTests
                     unhandledExceptionHandler,
                     minimumTimeout,
                     () => DateTime.UtcNow,
-                    SettingsWithDefaults.Default
+                    SettingsWithDefaults.Default,
+                    StubMessageWatchdog
                 );
 
 
@@ -695,7 +707,8 @@ public abstract Task PullEnvelopeReturnsEnvelopeWithReceiverAndSender();
                     unhandledExceptionHandler,
                     flowTimeouts,
                     () => DateTime.UtcNow,
-                    SettingsWithDefaults.Default
+                    SettingsWithDefaults.Default,
+                    StubMessageWatchdog
                 );
 
                 var queueClient = await queueManager.CreateQueueClient();

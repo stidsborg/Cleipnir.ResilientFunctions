@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
@@ -9,7 +10,7 @@ using Cleipnir.ResilientFunctions.Messaging;
 
 namespace Cleipnir.ResilientFunctions.CoreRuntime.Watchdogs;
 
-internal class MessageWatchdog
+internal class MessageWatchdog : IMessageWatchdog
 {
     private readonly IMessageStore _messageStore;
     private readonly FlowsManagers _flowsManagers;
@@ -21,9 +22,11 @@ internal class MessageWatchdog
     private readonly UtcNow _utcNow;
 
     // Positions already pushed to this replica's flows. Passed as ignore-set so messages are not re-delivered
-    // on subsequent ticks. Version 1: ever-growing - to be refined once the QueueManager reports the positions
-    // it has persisted into its effects.
+    // on subsequent ticks. A QueueManager calls RemoveMessages once it has deleted the corresponding messages
+    // from the store, trimming this set so it does not grow without bound. Guarded by _pushedPositionsLock
+    // because RemoveMessages runs on flow threads concurrently with the watchdog loop.
     private readonly HashSet<long> _pushedPositions = new();
+    private readonly Lock _pushedPositionsLock = new();
 
     public MessageWatchdog(
         IMessageStore messageStore,
@@ -59,12 +62,17 @@ internal class MessageWatchdog
                 // Messages destined for flows currently owned by this replica (replica = COALESCE(owner, publisher)).
                 // FlowsManagers.Push routes each group to its flow type's manager and delivers only to live
                 // flows; entries for non-live flows (or unregistered types) are ignored.
-                var messageGroups = await _messageStore.GetMessagesForReplica(_clusterInfo.ReplicaId, _pushedPositions.ToList());
+                List<long> ignorePositions;
+                lock (_pushedPositionsLock)
+                    ignorePositions = _pushedPositions.ToList();
+
+                var messageGroups = await _messageStore.GetMessagesForReplica(_clusterInfo.ReplicaId, ignorePositions);
                 if (messageGroups.Count > 0)
                 {
-                    foreach (var group in messageGroups)
-                        foreach (var message in group.Messages)
-                            _pushedPositions.Add(message.Position);
+                    lock (_pushedPositionsLock)
+                        foreach (var group in messageGroups)
+                            foreach (var message in group.Messages)
+                                _pushedPositions.Add(message.Position);
 
                     await _flowsManagers.Push(messageGroups);
                 }
@@ -87,5 +95,19 @@ internal class MessageWatchdog
             await Task.Delay(5_000);
             goto Start;
         }
+    }
+
+    /// <summary>
+    /// Called by a QueueManager once it has deleted the given message positions from the store, so the
+    /// watchdog drops them from its ignore-set instead of carrying them forever.
+    /// </summary>
+    public void RemoveMessages(IReadOnlyList<long> positions)
+    {
+        if (positions.Count == 0)
+            return;
+
+        lock (_pushedPositionsLock)
+            foreach (var position in positions)
+                _pushedPositions.Remove(position);
     }
 }

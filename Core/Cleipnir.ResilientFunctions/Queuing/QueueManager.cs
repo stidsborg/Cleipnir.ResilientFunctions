@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime;
 using Cleipnir.ResilientFunctions.CoreRuntime.Serialization;
+using Cleipnir.ResilientFunctions.CoreRuntime.Watchdogs;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Exceptions.Commands;
 using Cleipnir.ResilientFunctions.Helpers;
@@ -31,6 +32,7 @@ internal class QueueManager : IDisposable
     private readonly FlowTimeouts _timeouts;
     private readonly UtcNow _utcNow;
     private readonly SettingsWithDefaults _settings;
+    private readonly IMessageWatchdog _messageWatchdog;
     private readonly IdempotencyKeys _idempotencyKeys;
 
     private readonly SemaphoreSlim _initializeSemaphore = new(1);
@@ -55,6 +57,7 @@ internal class QueueManager : IDisposable
         FlowTimeouts timeouts,
         UtcNow utcNow,
         SettingsWithDefaults settings,
+        IMessageWatchdog messageWatchdog,
         int maxIdempotencyKeyCount = 100,
         TimeSpan? maxIdempotencyKeyTtl = null)
     {
@@ -68,6 +71,7 @@ internal class QueueManager : IDisposable
         _timeouts = timeouts;
         _utcNow = utcNow;
         _settings = settings;
+        _messageWatchdog = messageWatchdog;
         _idempotencyKeys = new IdempotencyKeys(IdempotencyKeysRoot, _effect, maxIdempotencyKeyCount, maxIdempotencyKeyTtl, utcNow);
     }
 
@@ -86,6 +90,7 @@ internal class QueueManager : IDisposable
             if (_effect.TryGet<List<long>>(DeliveredPositionsId, out var positions) && positions is { Count: > 0 })
             {
                 await _messageStore.DeleteMessages(_storedId, positions);
+                _messageWatchdog.RemoveMessages(positions);
                 positions.Clear();
                 _effect.FlushlessUpsert(DeliveredPositionsId, positions, alias: null);
             }
@@ -224,6 +229,7 @@ internal class QueueManager : IDisposable
                 if (idempotencyKey != null && !_idempotencyKeys.Add(idempotencyKey, position))
                 {
                     await _messageStore.DeleteMessages(_storedId, [position]);
+                    _messageWatchdog.RemoveMessages([position]);
                     continue;
                 }
 
@@ -282,6 +288,7 @@ internal class QueueManager : IDisposable
                 return;
 
             await _messageStore.DeleteMessages(_storedId, deliveredPositions);
+            _messageWatchdog.RemoveMessages(deliveredPositions);
             deliveredPositions.Clear();
             _effect.FlushlessUpsert(DeliveredPositionsId, deliveredPositions, alias: null);
         }
