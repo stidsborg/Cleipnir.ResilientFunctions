@@ -581,27 +581,20 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
     
     #region MessageStore
 
-    public virtual Task<ReplicaId> AppendMessage(StoredId storedId, StoredMessage storedMessage)
-    {
-        lock (_sync)
-        {
-            if (!_messages.ContainsKey(storedId))
-                _messages[storedId] = new Dictionary<long, StoredMessage>();
-
-            var flowOwner = _states.TryGetValue(storedId, out var state) ? state.Owner : null;
-            var replica = flowOwner ?? storedMessage.Replica;
-            var messages = _messages[storedId];
-            messages[_nextMessagePosition++] = storedMessage with { Replica = replica };
-
-            return Task.FromResult(replica);
-        }
-    }
-
     public async Task AppendMessages(IReadOnlyList<StoredIdAndMessage> messages)
     {
         foreach (var (storedId, storedMessage) in messages)
         {
-            await AppendMessage(storedId, storedMessage);
+            lock (_sync)
+            {
+                if (!_messages.TryGetValue(storedId, out var flowMessages))
+                    flowMessages = _messages[storedId] = new Dictionary<long, StoredMessage>();
+
+                var flowOwner = _states.TryGetValue(storedId, out var state) ? state.Owner : null;
+                var replica = flowOwner ?? storedMessage.Replica;
+                flowMessages[_nextMessagePosition++] = storedMessage with { Replica = replica };
+            }
+
             await Interrupt(storedId);
         }
     }

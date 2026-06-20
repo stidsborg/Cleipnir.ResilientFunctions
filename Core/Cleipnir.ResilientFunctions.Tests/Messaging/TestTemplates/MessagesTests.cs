@@ -361,16 +361,11 @@ public abstract class MessagesTests
         var serializer = DefaultSerializer.Instance;
         var messageStore = functionStore.MessageStore;
 
-        var messageWriter = new MessageWriter(storedId, messageStore, serializer, ReplicaId.NewId(), new NoOpFlowsManager());
+        var messageWriter = new MessageWriter(storedId, messageStore, serializer, ReplicaId.NewId());
         await messageWriter.AppendMessage("hello world", idempotencyKey: "key1", sender: "TestSender");
 
         var messages = await messageStore.GetMessages(storedId);
         messages.Count.ShouldBe(1);
         messages[0].Sender.ShouldBe("TestSender");
-    }
-
-    private sealed class NoOpFlowsManager : IFlowsManager
-    {
-        public Task Schedule(StoredId storedId) => Task.CompletedTask;
     }
 }

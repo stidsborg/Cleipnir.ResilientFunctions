@@ -57,30 +57,6 @@ public class PostgreSqlMessageStore : IMessageStore
         await command.ExecuteNonQueryAsync();
     }
 
-    private string? _appendMessageSql;
-    public async Task<ReplicaId> AppendMessage(StoredId storedId, StoredMessage storedMessage)
-    {
-        _appendMessageSql ??= @$"
-            INSERT INTO {tablePrefix}_messages (id, replica, content)
-            VALUES ($1, COALESCE((SELECT owner FROM {tablePrefix} WHERE id = $1), $2), $3)
-            RETURNING replica;";
-
-        var content = BinaryPacker.Pack(
-            storedMessage.MessageContent,
-            storedMessage.MessageType,
-            storedMessage.IdempotencyKey?.ToUtf8Bytes(),
-            storedMessage.Sender?.ToUtf8Bytes(),
-            storedMessage.Receiver?.ToUtf8Bytes()
-        );
-
-        await using var conn = await CreateConnection();
-        await using var command = StoreCommand
-            .Create(_appendMessageSql, values: [storedId.AsGuid, storedMessage.Replica.AsGuid, content])
-            .ToNpgsqlCommand(conn);
-        var result = await command.ExecuteScalarAsync();
-        return ((Guid) result!).ToReplicaId();
-    }
-
     public async Task AppendMessages(IReadOnlyList<StoredIdAndMessage> messages)
     {
         if (messages.Count == 0)

@@ -53,24 +53,6 @@ public class SqlServerMessageStore : IMessageStore
         await command.ExecuteNonQueryAsync();
     }
 
-    public async Task<ReplicaId> AppendMessage(StoredId storedId, StoredMessage storedMessage)
-    {
-        var (messageContent, messageType, _, replica, idempotencyKey, sender, receiver) = storedMessage;
-        var content = BinaryPacker.Pack(messageContent, messageType, idempotencyKey?.ToUtf8Bytes(), sender?.ToUtf8Bytes(), receiver?.ToUtf8Bytes());
-
-        var sql = @$"
-            INSERT INTO {_tablePrefix}_Messages (Id, Replica, Content)
-            OUTPUT inserted.Replica
-            VALUES (@Id, COALESCE((SELECT Owner FROM {_tablePrefix} WHERE Id = @Id), @Replica), @Content);";
-
-        await using var conn = await CreateConnection();
-        await using var command = new SqlCommand(sql, conn);
-        command.Parameters.AddWithValue("@Id", storedId.AsGuid);
-        command.Parameters.AddWithValue("@Replica", replica.AsGuid);
-        command.Parameters.AddWithValue("@Content", content);
-        return ((Guid) (await command.ExecuteScalarAsync())!).ToReplicaId();
-    }
-
     public async Task AppendMessages(IReadOnlyList<StoredIdAndMessage> messages)
     {
         if (messages.Count == 0)
@@ -93,9 +75,7 @@ public class SqlServerMessageStore : IMessageStore
             INSERT INTO {_tablePrefix}_Messages
                 (Id, Replica, Content)
             VALUES
-                 {messages.Select((_, i) => $"(@Id{i}, COALESCE((SELECT Owner FROM {_tablePrefix} WHERE Id = @Id{i}), @Replica{i}), @Content{i})").StringJoin($",{Environment.NewLine}")};
-
-            {interuptsSql.Sql}";
+                 {messages.Select((_, i) => $"(@Id{i}, COALESCE((SELECT Owner FROM {_tablePrefix} WHERE Id = @Id{i}), @Replica{i}), @Content{i})").StringJoin($",{Environment.NewLine}")};";
 
         await using var command = new SqlCommand(sql, conn);
         for (var i = 0; i < messages.Count; i++)
@@ -106,10 +86,14 @@ public class SqlServerMessageStore : IMessageStore
             command.Parameters.AddWithValue($"@Replica{i}", replica.AsGuid);
             command.Parameters.AddWithValue($"@Content{i}", content);
         }
-        foreach (var (value, name) in interuptsSql.Parameters)
-            command.Parameters.AddWithValue(name, value);
-
         await command.ExecuteNonQueryAsync();
+
+        // The interrupt is executed as a separate command - not merged into the insert above - so the
+        // insert's locks are released before the interrupt UPDATE runs. Merging them caused lock contention
+        // that deadlocked tight message-exchange loops (e.g. ping-pong) where two executing flows interrupt
+        // each other (SQL Server's lock-wait is unbounded, so it hung indefinitely).
+        await using var interruptCommand = interuptsSql.ToSqlCommand(conn);
+        await interruptCommand.ExecuteNonQueryAsync();
     }
 
     private string? _replaceMessageSql;
