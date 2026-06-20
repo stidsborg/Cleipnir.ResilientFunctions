@@ -24,7 +24,7 @@ internal class QueueManager : IDisposable
 
     private readonly FlowId _flowId;
     private readonly StoredId _storedId;
-    private readonly IMessageStore _messageStore;
+    private readonly MessageFetcher _fetchMessages;
     private readonly ISerializer _serializer;
     private readonly Effect _effect;
     private readonly FlowState _flowState;
@@ -49,7 +49,7 @@ internal class QueueManager : IDisposable
     public QueueManager(
         FlowId flowId,
         StoredId storedId,
-        IMessageStore messageStore,
+        MessageFetcher fetchMessages,
         ISerializer serializer,
         Effect effect,
         FlowState flowState,
@@ -63,7 +63,7 @@ internal class QueueManager : IDisposable
     {
         _flowId = flowId;
         _storedId = storedId;
-        _messageStore = messageStore;
+        _fetchMessages = fetchMessages;
         _serializer = serializer;
         _effect = effect;
         _flowState = flowState;
@@ -199,7 +199,7 @@ internal class QueueManager : IDisposable
             lock (_lock)
                 skipPositions = _fetchedPositions.ToList();
 
-            var messages = await _messageStore.GetMessages(_storedId, skipPositions);
+            var messages = await _fetchMessages(_storedId, skipPositions);
             await ProcessMessages(messages);
         }
         finally

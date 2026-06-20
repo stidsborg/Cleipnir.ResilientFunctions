@@ -574,7 +574,7 @@ public abstract class MessagesSubscriptionTests
                 var queueManager = new QueueManager(
                     workflow.FlowId,
                     workflow.StoredId,
-                    functionStore.MessageStore,
+                    functionStore.MessageStore.GetMessages,
                     exceptionThrowingSerializer,
                     workflow.Effect,
                     flowState,
@@ -638,7 +638,7 @@ public abstract class MessagesSubscriptionTests
                 var queueManager = new QueueManager(
                     workflow.FlowId,
                     workflow.StoredId,
-                    functionStore.MessageStore,
+                    functionStore.MessageStore.GetMessages,
                     DefaultSerializer.Instance,
                     workflow.Effect,
                     flowState,
@@ -700,7 +700,7 @@ public abstract Task PullEnvelopeReturnsEnvelopeWithReceiverAndSender();
                 var queueManager = new QueueManager(
                     workflow.FlowId,
                     workflow.StoredId,
-                    functionStore.MessageStore,
+                    functionStore.MessageStore.GetMessages,
                     DefaultSerializer.Instance,
                     workflow.Effect,
                     flowState,

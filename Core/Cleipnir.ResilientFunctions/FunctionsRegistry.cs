@@ -255,7 +255,8 @@ public class FunctionsRegistry : IDisposable
                 serializer,
                 _settings.UtcNow,
                 settings?.ClearChildrenAfterCapture ?? true,
-                _messageClearer
+                _messageClearer,
+                _messageWatchdog.FetchMessages
             );
             var invoker = new Invoker<TParam, TReturn>(
                 flowType,
@@ -339,7 +340,8 @@ public class FunctionsRegistry : IDisposable
                 serializer,
                 _settings.UtcNow,
                 settings?.ClearChildrenAfterCapture ?? true,
-                _messageClearer
+                _messageClearer,
+                _messageWatchdog.FetchMessages
             );
             var invoker = new Invoker<Unit, Unit>(
                 flowType,
@@ -423,7 +425,8 @@ public class FunctionsRegistry : IDisposable
                 serializer,
                 _settings.UtcNow,
                 settings?.ClearChildrenAfterCapture ?? true,
-                _messageClearer
+                _messageClearer,
+                _messageWatchdog.FetchMessages
             );
             var rActionInvoker = new Invoker<TParam, Unit>(
                 flowType,
