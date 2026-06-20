@@ -10,7 +10,7 @@ using Cleipnir.ResilientFunctions.Messaging;
 
 namespace Cleipnir.ResilientFunctions.CoreRuntime.Watchdogs;
 
-internal class MessageWatchdog
+internal class MessageWatchdog : IMessageWatchdog
 {
     private readonly IMessageStore _messageStore;
     private readonly FlowsManagers _flowsManagers;

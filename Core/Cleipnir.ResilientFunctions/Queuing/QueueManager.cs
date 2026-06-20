@@ -32,7 +32,7 @@ internal class QueueManager : IDisposable
     private readonly FlowTimeouts _timeouts;
     private readonly UtcNow _utcNow;
     private readonly SettingsWithDefaults _settings;
-    private readonly MessageWatchdog _messageWatchdog;
+    private readonly IMessageWatchdog _messageWatchdog;
     private readonly IdempotencyKeys _idempotencyKeys;
 
     private readonly SemaphoreSlim _initializeSemaphore = new(1);
@@ -57,7 +57,7 @@ internal class QueueManager : IDisposable
         FlowTimeouts timeouts,
         UtcNow utcNow,
         SettingsWithDefaults settings,
-        MessageWatchdog messageWatchdog,
+        IMessageWatchdog messageWatchdog,
         int maxIdempotencyKeyCount = 100,
         TimeSpan? maxIdempotencyKeyTtl = null)
     {

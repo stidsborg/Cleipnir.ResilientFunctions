@@ -18,19 +18,14 @@ namespace Cleipnir.ResilientFunctions.Tests.Messaging.TestTemplates;
 
 public abstract class MessagesSubscriptionTests
 {
-    // These tests hand-roll a QueueManager, which now requires a MessageWatchdog. The watchdog is never
-    // started here, so it only serves QueueManager.RemoveMessages calls (a no-op against its empty ignore-set).
-    private static MessageWatchdog CreateMessageWatchdog(IFunctionStore functionStore, UnhandledExceptionHandler unhandledExceptionHandler)
-        => new(
-            functionStore.MessageStore,
-            new FlowsManagers(functionStore),
-            new ClusterInfo(ReplicaId.NewId()),
-            new ShutdownCoordinator(),
-            unhandledExceptionHandler,
-            checkFrequency: TimeSpan.FromSeconds(1),
-            delayStartUp: TimeSpan.Zero,
-            () => DateTime.UtcNow
-        );
+    // These tests hand-roll a QueueManager, which depends on IMessageWatchdog only to report deleted message
+    // positions. They don't exercise that path, so a no-op stub suffices.
+    private static readonly IMessageWatchdog StubMessageWatchdog = new NoopMessageWatchdog();
+
+    private sealed class NoopMessageWatchdog : IMessageWatchdog
+    {
+        public void RemoveMessages(IReadOnlyList<long> positions) { }
+    }
 
     public abstract Task EventsSubscriptionSunshineScenario();
     protected async Task EventsSubscriptionSunshineScenario(Task<IFunctionStore> functionStoreTask)
@@ -587,7 +582,7 @@ public abstract class MessagesSubscriptionTests
                     flowTimeouts,
                     () => DateTime.UtcNow,
                     SettingsWithDefaults.Default,
-                    CreateMessageWatchdog(functionStore, unhandledExceptionHandler)
+                    StubMessageWatchdog
                 );
 
                 var queueClient = await queueManager.CreateQueueClient();
@@ -651,7 +646,7 @@ public abstract class MessagesSubscriptionTests
                     minimumTimeout,
                     () => DateTime.UtcNow,
                     SettingsWithDefaults.Default,
-                    CreateMessageWatchdog(functionStore, unhandledExceptionHandler)
+                    StubMessageWatchdog
                 );
 
 
@@ -713,7 +708,7 @@ public abstract Task PullEnvelopeReturnsEnvelopeWithReceiverAndSender();
                     flowTimeouts,
                     () => DateTime.UtcNow,
                     SettingsWithDefaults.Default,
-                    CreateMessageWatchdog(functionStore, unhandledExceptionHandler)
+                    StubMessageWatchdog
                 );
 
                 var queueClient = await queueManager.CreateQueueClient();
