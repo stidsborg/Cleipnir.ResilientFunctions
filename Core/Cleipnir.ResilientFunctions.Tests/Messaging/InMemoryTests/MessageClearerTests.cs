@@ -9,6 +9,7 @@ using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Storage;
+using Cleipnir.ResilientFunctions.Tests.Utils;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Shouldly;
 
@@ -110,6 +111,32 @@ public class MessageClearerTests
 
         clearer.NonClearedPositions().OrderBy(p => p).ShouldBe(new long[] { 1, 3 });
     }
+
+    [TestMethod]
+    public async Task ClearedPositionsAreGoneFromTheStoreWhenTheReturnedTaskCompletes()
+    {
+        var functionStore = new InMemoryFunctionStore();
+        var messageStore = functionStore.MessageStore;
+        var storedId = TestStoredId.Create();
+
+        await messageStore.AppendMessages([
+            new StoredIdAndMessage(storedId, Message()),
+            new StoredIdAndMessage(storedId, Message()),
+            new StoredIdAndMessage(storedId, Message())
+        ]);
+        var positions = (await messageStore.GetMessages(storedId)).Select(m => m.Position).ToList();
+        positions.Count.ShouldBe(3);
+
+        var clearer = CreateClearer(messageStore);
+        await clearer.Clear(positions.Take(2).ToList()).WaitAsync(MaxWait);
+
+        // The instant Clear's task completes, the cleared messages must already be gone from the store.
+        var remaining = (await messageStore.GetMessages(storedId)).Select(m => m.Position).ToList();
+        remaining.ShouldBe(new[] { positions[2] });
+    }
+
+    private static StoredMessage Message()
+        => new(MessageContent: new byte[] { 1 }, MessageType: new byte[] { 2 }, Position: 0, Replica: ReplicaId.Empty);
 
     private static MessageClearer CreateClearer(
         IMessageStore messageStore,
