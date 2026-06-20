@@ -124,17 +124,6 @@ public class SqlServerMessageStore : IMessageStore
         return affectedRows == 1;
     }
 
-    public async Task DeleteMessages(StoredId storedId, IEnumerable<long> positions)
-    {
-        var positionsList = positions.ToList();
-        if (positionsList.Count == 0)
-            return;
-
-        await using var conn = await CreateConnection();
-        await using var command = _sqlGenerator.DeleteMessages(storedId, positionsList).ToSqlCommand(conn);
-        await command.ExecuteNonQueryAsync();
-    }
-
     public async Task DeleteMessages(IReadOnlyList<long> positions)
     {
         if (positions.Count == 0)

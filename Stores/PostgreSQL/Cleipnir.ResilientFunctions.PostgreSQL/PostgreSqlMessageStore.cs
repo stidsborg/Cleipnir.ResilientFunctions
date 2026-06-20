@@ -107,17 +107,6 @@ public class PostgreSqlMessageStore : IMessageStore
         return affectedRows == 1;
     }
 
-    public async Task DeleteMessages(StoredId storedId, IEnumerable<long> positions)
-    {
-        var positionsArray = positions.ToArray();
-        if (positionsArray.Length == 0)
-            return;
-
-        await using var conn = await CreateConnection();
-        await using var command = sqlGenerator.DeleteMessages(storedId, positionsArray).ToNpgsqlCommand(conn);
-        await command.ExecuteNonQueryAsync();
-    }
-
     public async Task DeleteMessages(IReadOnlyList<long> positions)
     {
         if (positions.Count == 0)

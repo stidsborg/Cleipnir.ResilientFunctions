@@ -174,17 +174,18 @@ public abstract class ControlPanelTests
         controlPanel.Status.ShouldBe(Status.Failed);
         controlPanel.FatalWorkflowException.ShouldNotBeNull();
 
-        await controlPanel.Postpone(new DateTime(1_000_000));
+        var postponeUntil = DateTime.UtcNow.AddDays(1);
+        await controlPanel.Postpone(postponeUntil);
 
         await controlPanel.Refresh();
         controlPanel.Status.ShouldBe(Status.Postponed);
         controlPanel.PostponedUntil.ShouldNotBeNull();
-        controlPanel.PostponedUntil.Value.Ticks.ShouldBe(1_000_000);
+        controlPanel.PostponedUntil.Value.Ticks.ShouldBe(postponeUntil.Ticks);
 
         var sf = await store.GetFunction(rFunc.MapToStoredId(functionId.Instance));
         sf.ShouldNotBeNull();
         sf.Status.ShouldBe(Status.Postponed);
-        sf.Expires.ShouldBe(1_000_000);
+        sf.Expires.ShouldBe(postponeUntil.Ticks);
 
         var fwe = (FatalWorkflowException) unhandledExceptionCatcher.ThrownExceptions.Single().InnerException!;
         fwe.ErrorType.ShouldBe(typeof(InvalidOperationException));

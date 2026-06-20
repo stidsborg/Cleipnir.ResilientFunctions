@@ -167,7 +167,6 @@ public class MessageClearerTests
         public Task Initialize() => throw new NotSupportedException();
         public Task AppendMessages(IReadOnlyList<StoredIdAndMessage> messages) => throw new NotSupportedException();
         public Task<bool> ReplaceMessage(StoredId storedId, long position, StoredMessage storedMessage) => throw new NotSupportedException();
-        public Task DeleteMessages(StoredId storedId, IEnumerable<long> positions) => throw new NotSupportedException();
         public Task Truncate(StoredId storedId) => throw new NotSupportedException();
         public Task<IReadOnlyList<StoredMessage>> GetMessages(StoredId storedId) => throw new NotSupportedException();
         public Task<IReadOnlyList<StoredMessage>> GetMessages(StoredId storedId, IReadOnlyList<long> skipPositions) => throw new NotSupportedException();
