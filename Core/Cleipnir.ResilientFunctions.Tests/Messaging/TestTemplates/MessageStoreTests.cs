@@ -845,7 +845,7 @@ public abstract class MessageStoreTests
         messages.Count.ShouldBe(4);
 
         // Delete the first and third messages
-        await messageStore.DeleteMessages(functionId, new[] { messages[0].Position, messages[2].Position });
+        await messageStore.DeleteMessages(new[] { messages[0].Position, messages[2].Position });
 
         var remainingMessages = (await messageStore.GetMessages(functionId)).ToList();
         remainingMessages.Count.ShouldBe(2);
@@ -878,7 +878,7 @@ public abstract class MessageStoreTests
         var messages = (await messageStore.GetMessages(functionId)).ToList();
         messages.Count.ShouldBe(2);
 
-        await messageStore.DeleteMessages(functionId, new[] { messages[0].Position });
+        await messageStore.DeleteMessages(new[] { messages[0].Position });
 
         var remainingMessages = (await messageStore.GetMessages(functionId)).ToList();
         remainingMessages.Count.ShouldBe(1);
@@ -902,17 +902,25 @@ public abstract class MessageStoreTests
         var messageStore = functionStore.MessageStore;
 
         const string msg1 = "message1";
+        const string msg2 = "message2";
 
         await messageStore.AppendMessage(functionId, new StoredMessage(msg1.ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Replica: ReplicaId.Empty, Position: 0));
+        await messageStore.AppendMessage(functionId, new StoredMessage(msg2.ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Replica: ReplicaId.Empty, Position: 0));
 
         var messages = (await messageStore.GetMessages(functionId)).ToList();
-        messages.Count.ShouldBe(1);
+        messages.Count.ShouldBe(2);
 
-        // Try to delete messages at non-existent positions (should not throw)
-        await messageStore.DeleteMessages(functionId, new[] { 999L, 1000L });
+        // Delete the first message, then delete its now-vacant position again - deleting a position
+        // that no longer exists should be a no-op rather than throw. A real (already-deleted) position
+        // is used rather than an arbitrary number, since positions are globally unique and a hardcoded
+        // value could collide with another flow's message in a shared store.
+        var deletedPosition = messages[0].Position;
+        await messageStore.DeleteMessages(new[] { deletedPosition });
+        await messageStore.DeleteMessages(new[] { deletedPosition });
 
         var remainingMessages = (await messageStore.GetMessages(functionId)).ToList();
         remainingMessages.Count.ShouldBe(1);
+        remainingMessages[0].DefaultDeserialize().ShouldBe(msg2);
     }
 
     public abstract Task DeleteMessagesWithEmptyPositionsDoesNotThrow();
@@ -932,7 +940,7 @@ public abstract class MessageStoreTests
         var messageStore = functionStore.MessageStore;
 
         // Should not throw when deleting with empty positions list
-        await messageStore.DeleteMessages(functionId, Array.Empty<long>());
+        await messageStore.DeleteMessages(Array.Empty<long>());
     }
 
     public abstract Task DeleteMessagesOnlyAffectsSpecifiedStoredId();
@@ -974,8 +982,9 @@ public abstract class MessageStoreTests
         var messages1 = (await messageStore.GetMessages(id1)).ToList();
         messages1.Count.ShouldBe(2);
 
-        // Delete first message from id1 only
-        await messageStore.DeleteMessages(id1, new[] { messages1[0].Position });
+        // Delete first message from id1 only - the position is globally unique to that message,
+        // so deleting it must not affect id2's messages.
+        await messageStore.DeleteMessages(new[] { messages1[0].Position });
 
         // Verify id1 has only one message left
         var remainingMessages1 = (await messageStore.GetMessages(id1)).ToList();

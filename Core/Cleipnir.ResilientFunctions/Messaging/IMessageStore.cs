@@ -19,7 +19,6 @@ public interface IMessageStore
     Task AppendMessages(IReadOnlyList<StoredIdAndMessage> messages);
 
     Task<bool> ReplaceMessage(StoredId storedId, long position, StoredMessage storedMessage);
-    Task DeleteMessages(StoredId storedId, IEnumerable<long> positions);
 
     /// <summary>
     /// Deletes the messages at the given positions regardless of which flow they belong to. Positions are

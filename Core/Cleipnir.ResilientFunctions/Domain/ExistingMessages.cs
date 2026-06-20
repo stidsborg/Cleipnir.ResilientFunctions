@@ -85,7 +85,7 @@ public class ExistingMessages
     /// <param name="position">Message position</param>
     public async Task Remove(long position)
     {
-        await _messageStore.DeleteMessages(_storedId, positions: [position]);
+        await _messageStore.DeleteMessages(positions: [position]);
 
         // Invalidate cache so it will be re-fetched with correct data
         _receivedMessages = null;
