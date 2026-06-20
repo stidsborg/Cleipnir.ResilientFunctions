@@ -1,13 +1,15 @@
 using System.Collections.Generic;
+using System.Threading.Tasks;
+using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.CoreRuntime.Watchdogs;
 
 /// <summary>
-/// The slice of <see cref="MessageWatchdog"/> a QueueManager depends on: reporting message positions it has
-/// deleted from the store so the watchdog can drop them from its ignore-set. Exists so tests that hand-roll a
+/// The slice of <see cref="MessageWatchdog"/> a QueueManager depends on: deleting handled messages from the
+/// store and dropping their positions from the watchdog's ignore-set. Exists so tests that hand-roll a
 /// QueueManager can pass a no-op stub instead of a fully wired watchdog.
 /// </summary>
 internal interface IMessageWatchdog
 {
-    void RemoveMessages(IReadOnlyList<long> positions);
+    Task RemoveMessages(StoredId storedId, IReadOnlyList<long> positions);
 }

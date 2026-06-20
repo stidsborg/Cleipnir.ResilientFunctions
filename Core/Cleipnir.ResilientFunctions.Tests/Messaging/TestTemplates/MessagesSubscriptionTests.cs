@@ -18,13 +18,13 @@ namespace Cleipnir.ResilientFunctions.Tests.Messaging.TestTemplates;
 
 public abstract class MessagesSubscriptionTests
 {
-    // These tests hand-roll a QueueManager, which depends on IMessageWatchdog only to report deleted message
-    // positions. They don't exercise that path, so a no-op stub suffices.
+    // These tests hand-roll a QueueManager, which delegates message deletion to IMessageWatchdog. They don't
+    // assert on store cleanup, so a no-op stub suffices.
     private static readonly IMessageWatchdog StubMessageWatchdog = new NoopMessageWatchdog();
 
     private sealed class NoopMessageWatchdog : IMessageWatchdog
     {
-        public void RemoveMessages(IReadOnlyList<long> positions) { }
+        public Task RemoveMessages(StoredId storedId, IReadOnlyList<long> positions) => Task.CompletedTask;
     }
 
     public abstract Task EventsSubscriptionSunshineScenario();

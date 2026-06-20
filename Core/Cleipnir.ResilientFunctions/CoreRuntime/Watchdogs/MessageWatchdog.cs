@@ -7,6 +7,7 @@ using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
+using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.CoreRuntime.Watchdogs;
 
@@ -22,9 +23,9 @@ internal class MessageWatchdog : IMessageWatchdog
     private readonly UtcNow _utcNow;
 
     // Positions already pushed to this replica's flows. Passed as ignore-set so messages are not re-delivered
-    // on subsequent ticks. A QueueManager calls RemoveMessages once it has deleted the corresponding messages
-    // from the store, trimming this set so it does not grow without bound. Guarded by _pushedPositionsLock
-    // because RemoveMessages runs on flow threads concurrently with the watchdog loop.
+    // on subsequent ticks. RemoveMessages (called by a QueueManager to delete handled messages) trims this set
+    // so it does not grow without bound. Guarded by _pushedPositionsLock because RemoveMessages runs on flow
+    // threads concurrently with the watchdog loop.
     private readonly HashSet<long> _pushedPositions = new();
     private readonly Lock _pushedPositionsLock = new();
 
@@ -98,13 +99,16 @@ internal class MessageWatchdog : IMessageWatchdog
     }
 
     /// <summary>
-    /// Called by a QueueManager once it has deleted the given message positions from the store, so the
-    /// watchdog drops them from its ignore-set instead of carrying them forever.
+    /// Deletes the given handled message positions from the store on a QueueManager's behalf, then drops them
+    /// from the ignore-set instead of carrying them forever. Deleting before trimming avoids re-fetching a
+    /// position that is no longer ignored but not yet gone from the store.
     /// </summary>
-    public void RemoveMessages(IReadOnlyList<long> positions)
+    public async Task RemoveMessages(StoredId storedId, IReadOnlyList<long> positions)
     {
         if (positions.Count == 0)
             return;
+
+        await _messageStore.DeleteMessages(storedId, positions);
 
         lock (_pushedPositionsLock)
             foreach (var position in positions)

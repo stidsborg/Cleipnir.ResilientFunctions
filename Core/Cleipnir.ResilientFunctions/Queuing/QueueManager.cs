@@ -89,8 +89,7 @@ internal class QueueManager : IDisposable
 
             if (_effect.TryGet<List<long>>(DeliveredPositionsId, out var positions) && positions is { Count: > 0 })
             {
-                await _messageStore.DeleteMessages(_storedId, positions);
-                _messageWatchdog.RemoveMessages(positions);
+                await _messageWatchdog.RemoveMessages(_storedId, positions);
                 positions.Clear();
                 _effect.FlushlessUpsert(DeliveredPositionsId, positions, alias: null);
             }
@@ -228,8 +227,7 @@ internal class QueueManager : IDisposable
 
                 if (idempotencyKey != null && !_idempotencyKeys.Add(idempotencyKey, position))
                 {
-                    await _messageStore.DeleteMessages(_storedId, [position]);
-                    _messageWatchdog.RemoveMessages([position]);
+                    await _messageWatchdog.RemoveMessages(_storedId, [position]);
                     continue;
                 }
 
@@ -287,8 +285,7 @@ internal class QueueManager : IDisposable
             if (deliveredPositions.Count == 0 || _effect.IsDirty(DeliveredPositionsId))
                 return;
 
-            await _messageStore.DeleteMessages(_storedId, deliveredPositions);
-            _messageWatchdog.RemoveMessages(deliveredPositions);
+            await _messageWatchdog.RemoveMessages(_storedId, deliveredPositions);
             deliveredPositions.Clear();
             _effect.FlushlessUpsert(DeliveredPositionsId, deliveredPositions, alias: null);
         }
