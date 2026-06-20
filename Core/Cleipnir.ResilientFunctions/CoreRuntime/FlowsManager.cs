@@ -7,7 +7,7 @@ using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.CoreRuntime;
 
-public class FlowsManager : IFlowsManager
+public class FlowsManager
 {
     private readonly Dictionary<StoredId, FlowState> _dict = new();
     private readonly IFunctionStore _functionStore;
