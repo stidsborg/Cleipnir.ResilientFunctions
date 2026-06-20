@@ -18,13 +18,13 @@ namespace Cleipnir.ResilientFunctions.Tests.Messaging.TestTemplates;
 
 public abstract class MessagesSubscriptionTests
 {
-    // These tests hand-roll a QueueManager, which delegates message deletion to IMessageWatchdog. They don't
+    // These tests hand-roll a QueueManager, which delegates message deletion to IMessageClearer. They don't
     // assert on store cleanup, so a no-op stub suffices.
-    private static readonly IMessageWatchdog StubMessageWatchdog = new NoopMessageWatchdog();
+    private static readonly IMessageClearer StubMessageClearer = new NoopMessageClearer();
 
-    private sealed class NoopMessageWatchdog : IMessageWatchdog
+    private sealed class NoopMessageClearer : IMessageClearer
     {
-        public Task RemoveMessages(StoredId storedId, IReadOnlyList<long> positions) => Task.CompletedTask;
+        public Task Clear(IReadOnlyList<long> positions) => Task.CompletedTask;
     }
 
     public abstract Task EventsSubscriptionSunshineScenario();
@@ -582,7 +582,7 @@ public abstract class MessagesSubscriptionTests
                     flowTimeouts,
                     () => DateTime.UtcNow,
                     SettingsWithDefaults.Default,
-                    StubMessageWatchdog
+                    StubMessageClearer
                 );
 
                 var queueClient = await queueManager.CreateQueueClient();
@@ -646,7 +646,7 @@ public abstract class MessagesSubscriptionTests
                     minimumTimeout,
                     () => DateTime.UtcNow,
                     SettingsWithDefaults.Default,
-                    StubMessageWatchdog
+                    StubMessageClearer
                 );
 
 
@@ -708,7 +708,7 @@ public abstract Task PullEnvelopeReturnsEnvelopeWithReceiverAndSender();
                     flowTimeouts,
                     () => DateTime.UtcNow,
                     SettingsWithDefaults.Default,
-                    StubMessageWatchdog
+                    StubMessageClearer
                 );
 
                 var queueClient = await queueManager.CreateQueueClient();

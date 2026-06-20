@@ -118,6 +118,25 @@ public class PostgreSqlMessageStore : IMessageStore
         await command.ExecuteNonQueryAsync();
     }
 
+    public async Task DeleteMessages(IReadOnlyList<long> positions)
+    {
+        if (positions.Count == 0)
+            return;
+
+        await using var conn = await CreateConnection();
+        var sql = @$"
+                DELETE FROM {tablePrefix}_messages
+                WHERE position = ANY($1)";
+        await using var command = new NpgsqlCommand(sql, conn)
+        {
+            Parameters =
+            {
+                new() { Value = positions.ToArray() }
+            }
+        };
+        await command.ExecuteNonQueryAsync();
+    }
+
     private string? _truncateFunctionSql;
     public async Task Truncate(StoredId storedId)
     {

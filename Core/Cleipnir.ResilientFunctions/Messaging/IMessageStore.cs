@@ -21,6 +21,13 @@ public interface IMessageStore
     Task<bool> ReplaceMessage(StoredId storedId, long position, StoredMessage storedMessage);
     Task DeleteMessages(StoredId storedId, IEnumerable<long> positions);
 
+    /// <summary>
+    /// Deletes the messages at the given positions regardless of which flow they belong to. Positions are
+    /// globally unique (identity values), so no <see cref="StoredId"/> is needed - allowing handled messages
+    /// across many flows to be removed in a single query.
+    /// </summary>
+    Task DeleteMessages(IReadOnlyList<long> positions);
+
     Task Truncate(StoredId storedId);
 
     Task<IReadOnlyList<StoredMessage>> GetMessages(StoredId storedId);

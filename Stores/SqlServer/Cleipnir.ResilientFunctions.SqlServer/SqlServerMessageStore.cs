@@ -135,6 +135,21 @@ public class SqlServerMessageStore : IMessageStore
         await command.ExecuteNonQueryAsync();
     }
 
+    public async Task DeleteMessages(IReadOnlyList<long> positions)
+    {
+        if (positions.Count == 0)
+            return;
+
+        await using var conn = await CreateConnection();
+        var sql = @$"
+            DELETE FROM {_tablePrefix}_Messages
+            WHERE Position IN (SELECT CAST(value AS BIGINT) FROM STRING_SPLIT(@Positions, ','))";
+        await using var command = new SqlCommand(sql, conn);
+        command.Parameters.AddWithValue("@Positions", string.Join(",", positions));
+
+        await command.ExecuteNonQueryAsync();
+    }
+
     private string? _truncateSql;
     public async Task Truncate(StoredId storedId)
     {
