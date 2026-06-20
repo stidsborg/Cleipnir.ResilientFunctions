@@ -144,10 +144,9 @@ public class SqlServerMessageStore : IMessageStore
         await using var conn = await CreateConnection();
         var sql = @$"
             DELETE FROM {_tablePrefix}_Messages
-            WHERE Position IN ({string.Join(", ", positionsList.Select((_, i) => $"@Position{i}"))})";
+            WHERE Position IN (SELECT CAST(value AS BIGINT) FROM STRING_SPLIT(@Positions, ','))";
         await using var command = new SqlCommand(sql, conn);
-        for (var i = 0; i < positionsList.Count; i++)
-            command.Parameters.AddWithValue($"@Position{i}", positionsList[i]);
+        command.Parameters.AddWithValue("@Positions", string.Join(",", positionsList));
 
         await command.ExecuteNonQueryAsync();
     }
