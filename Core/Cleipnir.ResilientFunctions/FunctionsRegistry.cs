@@ -33,6 +33,7 @@ public class FunctionsRegistry : IDisposable
     private readonly ReplicaWatchdog _replicaWatchdog;
     private readonly InterruptedWatchdog _interruptedWatchdog;
     private readonly MessageWatchdog _messageWatchdog;
+    private readonly MessageClearer _messageClearer;
     private readonly FlowsManagers _flowsManagers;
 
     public FunctionsRegistry(IFunctionStore functionStore, Settings? settings = null)
@@ -74,9 +75,16 @@ public class FunctionsRegistry : IDisposable
             utcNow
         );
 
+        _messageClearer = new MessageClearer(
+            _functionStore.MessageStore,
+            _settings.UnhandledExceptionHandler,
+            _settings.WatchdogCheckFrequency
+        );
+
         _messageWatchdog = new MessageWatchdog(
             _functionStore.MessageStore,
             _flowsManagers,
+            _messageClearer,
             ClusterInfo,
             _shutdownCoordinator,
             _settings.UnhandledExceptionHandler,
@@ -247,7 +255,7 @@ public class FunctionsRegistry : IDisposable
                 serializer,
                 _settings.UtcNow,
                 settings?.ClearChildrenAfterCapture ?? true,
-                _messageWatchdog
+                _messageClearer
             );
             var invoker = new Invoker<TParam, TReturn>(
                 flowType,
@@ -331,7 +339,7 @@ public class FunctionsRegistry : IDisposable
                 serializer,
                 _settings.UtcNow,
                 settings?.ClearChildrenAfterCapture ?? true,
-                _messageWatchdog
+                _messageClearer
             );
             var invoker = new Invoker<Unit, Unit>(
                 flowType,
@@ -415,7 +423,7 @@ public class FunctionsRegistry : IDisposable
                 serializer,
                 _settings.UtcNow,
                 settings?.ClearChildrenAfterCapture ?? true,
-                _messageWatchdog
+                _messageClearer
             );
             var rActionInvoker = new Invoker<TParam, Unit>(
                 flowType,

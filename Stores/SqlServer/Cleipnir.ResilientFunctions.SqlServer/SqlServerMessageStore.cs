@@ -135,6 +135,23 @@ public class SqlServerMessageStore : IMessageStore
         await command.ExecuteNonQueryAsync();
     }
 
+    public async Task DeleteMessages(IEnumerable<long> positions)
+    {
+        var positionsList = positions.ToList();
+        if (positionsList.Count == 0)
+            return;
+
+        await using var conn = await CreateConnection();
+        var sql = @$"
+            DELETE FROM {_tablePrefix}_Messages
+            WHERE Position IN ({string.Join(", ", positionsList.Select((_, i) => $"@Position{i}"))})";
+        await using var command = new SqlCommand(sql, conn);
+        for (var i = 0; i < positionsList.Count; i++)
+            command.Parameters.AddWithValue($"@Position{i}", positionsList[i]);
+
+        await command.ExecuteNonQueryAsync();
+    }
+
     private string? _truncateSql;
     public async Task Truncate(StoredId storedId)
     {

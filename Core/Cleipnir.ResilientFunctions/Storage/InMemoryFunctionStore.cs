@@ -628,6 +628,22 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         }
     }
 
+    public Task DeleteMessages(IEnumerable<long> positions)
+    {
+        lock (_sync)
+        {
+            var positionsList = positions.ToList();
+            if (positionsList.Count == 0)
+                return Task.CompletedTask;
+
+            foreach (var messages in _messages.Values)
+                foreach (var position in positionsList)
+                    messages.Remove(position);
+
+            return Task.CompletedTask;
+        }
+    }
+
     public virtual Task Truncate(StoredId storedId)
     {
         lock (_sync)

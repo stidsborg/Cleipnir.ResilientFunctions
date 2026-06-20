@@ -32,7 +32,7 @@ internal class QueueManager : IDisposable
     private readonly FlowTimeouts _timeouts;
     private readonly UtcNow _utcNow;
     private readonly SettingsWithDefaults _settings;
-    private readonly IMessageWatchdog _messageWatchdog;
+    private readonly IMessageClearer _messageClearer;
     private readonly IdempotencyKeys _idempotencyKeys;
 
     private readonly SemaphoreSlim _initializeSemaphore = new(1);
@@ -57,7 +57,7 @@ internal class QueueManager : IDisposable
         FlowTimeouts timeouts,
         UtcNow utcNow,
         SettingsWithDefaults settings,
-        IMessageWatchdog messageWatchdog,
+        IMessageClearer messageClearer,
         int maxIdempotencyKeyCount = 100,
         TimeSpan? maxIdempotencyKeyTtl = null)
     {
@@ -71,7 +71,7 @@ internal class QueueManager : IDisposable
         _timeouts = timeouts;
         _utcNow = utcNow;
         _settings = settings;
-        _messageWatchdog = messageWatchdog;
+        _messageClearer = messageClearer;
         _idempotencyKeys = new IdempotencyKeys(IdempotencyKeysRoot, _effect, maxIdempotencyKeyCount, maxIdempotencyKeyTtl, utcNow);
     }
 
@@ -89,7 +89,7 @@ internal class QueueManager : IDisposable
 
             if (_effect.TryGet<List<long>>(DeliveredPositionsId, out var positions) && positions is { Count: > 0 })
             {
-                await _messageWatchdog.RemoveMessages(_storedId, positions);
+                await _messageClearer.Clear(positions);
                 positions.Clear();
                 _effect.FlushlessUpsert(DeliveredPositionsId, positions, alias: null);
             }
@@ -227,7 +227,7 @@ internal class QueueManager : IDisposable
 
                 if (idempotencyKey != null && !_idempotencyKeys.Add(idempotencyKey, position))
                 {
-                    await _messageWatchdog.RemoveMessages(_storedId, [position]);
+                    await _messageClearer.Clear([position]);
                     continue;
                 }
 
@@ -285,7 +285,7 @@ internal class QueueManager : IDisposable
             if (deliveredPositions.Count == 0 || _effect.IsDirty(DeliveredPositionsId))
                 return;
 
-            await _messageWatchdog.RemoveMessages(_storedId, deliveredPositions);
+            await _messageClearer.Clear(deliveredPositions);
             deliveredPositions.Clear();
             _effect.FlushlessUpsert(DeliveredPositionsId, deliveredPositions, alias: null);
         }

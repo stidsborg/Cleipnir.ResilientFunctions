@@ -1,92 +1,57 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
-using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.CoreRuntime.Watchdogs;
 
-internal class MessageWatchdog : IMessageWatchdog
+internal class MessageWatchdog(
+    IMessageStore messageStore,
+    FlowsManagers flowsManagers,
+    MessageClearer messageClearer,
+    ClusterInfo clusterInfo,
+    ShutdownCoordinator shutdownCoordinator,
+    UnhandledExceptionHandler unhandledExceptionHandler,
+    TimeSpan checkFrequency,
+    TimeSpan delayStartUp,
+    UtcNow utcNow)
 {
-    private readonly IMessageStore _messageStore;
-    private readonly FlowsManagers _flowsManagers;
-    private readonly ClusterInfo _clusterInfo;
-    private readonly ShutdownCoordinator _shutdownCoordinator;
-    private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
-    private readonly TimeSpan _checkFrequency;
-    private readonly TimeSpan _delayStartUp;
-    private readonly UtcNow _utcNow;
-
-    // Positions already pushed to this replica's flows. Passed as ignore-set so messages are not re-delivered
-    // on subsequent ticks. RemoveMessages (called by a QueueManager to delete handled messages) trims this set
-    // so it does not grow without bound. Guarded by _pushedPositionsLock because RemoveMessages runs on flow
-    // threads concurrently with the watchdog loop.
-    private readonly HashSet<long> _pushedPositions = new();
-    private readonly Lock _pushedPositionsLock = new();
-
-    public MessageWatchdog(
-        IMessageStore messageStore,
-        FlowsManagers flowsManagers,
-        ClusterInfo clusterInfo,
-        ShutdownCoordinator shutdownCoordinator,
-        UnhandledExceptionHandler unhandledExceptionHandler,
-        TimeSpan checkFrequency,
-        TimeSpan delayStartUp,
-        UtcNow utcNow)
-    {
-        _messageStore = messageStore;
-        _flowsManagers = flowsManagers;
-        _clusterInfo = clusterInfo;
-        _shutdownCoordinator = shutdownCoordinator;
-        _unhandledExceptionHandler = unhandledExceptionHandler;
-        _checkFrequency = checkFrequency;
-        _delayStartUp = delayStartUp;
-        _utcNow = utcNow;
-    }
-
     public async Task Start()
     {
-        await Task.Delay(_delayStartUp);
+        await Task.Delay(delayStartUp);
 
         Start:
         try
         {
-            while (!_shutdownCoordinator.ShutdownInitiated)
+            while (!shutdownCoordinator.ShutdownInitiated)
             {
-                var now = _utcNow();
+                var now = utcNow();
 
                 // Messages destined for flows currently owned by this replica (replica = COALESCE(owner, publisher)).
-                // FlowsManagers.Push routes each group to its flow type's manager and delivers only to live
-                // flows; entries for non-live flows (or unregistered types) are ignored.
-                List<long> ignorePositions;
-                lock (_pushedPositionsLock)
-                    ignorePositions = _pushedPositions.ToList();
+                // The clearer's ignore-set excludes messages already pushed (and not yet cleared) so they are not
+                // re-delivered. FlowsManagers.Push routes each group to its flow type's manager and delivers only
+                // to live flows; entries for non-live flows (or unregistered types) are ignored.
+                var nonClearedPositions = messageClearer.NonClearedPositions();
 
-                var messageGroups = await _messageStore.GetMessagesForReplica(_clusterInfo.ReplicaId, ignorePositions);
+                var messageGroups = await messageStore.GetMessagesForReplica(clusterInfo.ReplicaId, nonClearedPositions);
                 if (messageGroups.Count > 0)
                 {
-                    lock (_pushedPositionsLock)
-                        foreach (var group in messageGroups)
-                            foreach (var message in group.Messages)
-                                _pushedPositions.Add(message.Position);
-
-                    await _flowsManagers.Push(messageGroups);
+                    messageClearer.MarkPushed(messageGroups.SelectMany(group => group.Messages).Select(message => message.Position));
+                    await flowsManagers.Push(messageGroups);
                 }
 
-                var timeElapsed = _utcNow() - now;
-                var delay = (_checkFrequency - timeElapsed).RoundUpToZero();
+                var timeElapsed = utcNow() - now;
+                var delay = (checkFrequency - timeElapsed).RoundUpToZero();
 
                 await Task.Delay(delay);
             }
         }
         catch (Exception thrownException)
         {
-            _unhandledExceptionHandler.Invoke(
+            unhandledExceptionHandler.Invoke(
                 new FrameworkException(
                     $"{nameof(MessageWatchdog)} execution failed - retrying in 5 seconds",
                     innerException: thrownException
@@ -96,22 +61,5 @@ internal class MessageWatchdog : IMessageWatchdog
             await Task.Delay(5_000);
             goto Start;
         }
-    }
-
-    /// <summary>
-    /// Deletes the given handled message positions from the store on a QueueManager's behalf, then drops them
-    /// from the ignore-set instead of carrying them forever. Deleting before trimming avoids re-fetching a
-    /// position that is no longer ignored but not yet gone from the store.
-    /// </summary>
-    public async Task RemoveMessages(StoredId storedId, IReadOnlyList<long> positions)
-    {
-        if (positions.Count == 0)
-            return;
-
-        await _messageStore.DeleteMessages(storedId, positions);
-
-        lock (_pushedPositionsLock)
-            foreach (var position in positions)
-                _pushedPositions.Remove(position);
     }
 }
