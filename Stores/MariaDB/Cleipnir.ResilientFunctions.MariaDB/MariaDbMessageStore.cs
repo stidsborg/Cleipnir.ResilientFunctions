@@ -123,10 +123,9 @@ public class MariaDbMessageStore : IMessageStore
         await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
         var sql = @$"
                 DELETE FROM {_tablePrefix}_messages
-                WHERE position IN ({string.Join(", ", positionsList.Select(_ => "?"))})";
+                WHERE FIND_IN_SET(position, ?) > 0";
         await using var command = new MySqlCommand(sql, conn);
-        foreach (var position in positionsList)
-            command.Parameters.Add(new() { Value = position });
+        command.Parameters.Add(new() { Value = string.Join(",", positionsList) });
 
         await command.ExecuteNonQueryAsync();
     }
