@@ -15,7 +15,7 @@ public enum FlowStatus
     Completed = 2
 }
 
-public class FlowState
+public class FlowExecutionState
 {
     private readonly Lock _lock = new();
     private readonly TaskCompletionSource _suspendedTcs = new();
@@ -44,7 +44,7 @@ public class FlowState
         }
     }
 
-    public FlowState(
+    public FlowExecutionState(
         StoredId id,
         int subflows,
         int waitingSubflows,

@@ -386,7 +386,7 @@ internal class InvocationHelper<TParam, TReturn>
     public MessageWriter CreateMessageWriter(StoredId storedId)
         => new MessageWriter(storedId, _functionStore.MessageStore, Serializer, _replicaId);
 
-    public Effect CreateEffect(StoredId storedId, FlowId flowId, IReadOnlyList<StoredEffect> storedEffects, FlowTimeouts flowTimeouts, IStorageSession? storageSession, FlowState flowState)
+    public Effect CreateEffect(StoredId storedId, FlowId flowId, IReadOnlyList<StoredEffect> storedEffects, FlowTimeouts flowTimeouts, IStorageSession? storageSession, FlowExecutionState flowExecutionState)
     {
         var effectsStore = _functionStore.EffectsStore;
 
@@ -400,7 +400,7 @@ internal class InvocationHelper<TParam, TReturn>
             _clearChildren
         );
 
-       var effect = new Effect(effectResults, UtcNow, flowTimeouts, flowState);
+       var effect = new Effect(effectResults, UtcNow, flowTimeouts, flowExecutionState);
        return effect;
     }
 
@@ -412,8 +412,8 @@ internal class InvocationHelper<TParam, TReturn>
     }
     public ExistingMessages CreateExistingMessages(FlowId flowId) => new(MapToStoredId(flowId), _functionStore.MessageStore, Serializer);
 
-    public QueueManager CreateQueueManager(FlowId flowId, StoredId storedId, Effect effect, FlowState flowState, FlowTimeouts timeouts, UnhandledExceptionHandler unhandledExceptionHandler)
-        => new(flowId, storedId, _functionStore.MessageStore, Serializer, effect, flowState, unhandledExceptionHandler, timeouts, UtcNow, _settings, _messageClearer);
+    public QueueManager CreateQueueManager(FlowId flowId, StoredId storedId, Effect effect, FlowExecutionState flowExecutionState, FlowTimeouts timeouts, UnhandledExceptionHandler unhandledExceptionHandler)
+        => new(flowId, storedId, _functionStore.MessageStore, Serializer, effect, flowExecutionState, unhandledExceptionHandler, timeouts, UtcNow, _settings, _messageClearer);
 
     public StoredId MapToStoredId(FlowId flowId) => StoredId.Create(_storedType, flowId.Instance.Value);
     

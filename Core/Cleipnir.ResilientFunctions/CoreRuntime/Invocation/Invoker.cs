@@ -265,7 +265,7 @@ public class Invoker<TParam, TReturn>
                     Workflow: null!,
                     Disposable.Combine(disposables),
                     QueueManager: null!,
-                    FlowState: null!,
+                    FlowExecutionState: null!,
                     FlowTimeouts: null!
                 );
 
@@ -305,7 +305,7 @@ public class Invoker<TParam, TReturn>
             if (!success) Disposable.Combine(disposables).Dispose();
         }
     }
-    private record PreparedInvocation(bool Persisted, Workflow Workflow, IDisposable Disposables, QueueManager QueueManager, FlowState FlowState, FlowTimeouts FlowTimeouts, IStorageSession? StorageSession = null);
+    private record PreparedInvocation(bool Persisted, Workflow Workflow, IDisposable Disposables, QueueManager QueueManager, FlowExecutionState FlowExecutionState, FlowTimeouts FlowTimeouts, IStorageSession? StorageSession = null);
 
     private async Task<PreparedReInvocation> PrepareForReInvocation(StoredId storedId, Task completed)
     {
@@ -372,7 +372,7 @@ public class Invoker<TParam, TReturn>
         Workflow Workflow,
         IDisposable Disposables,
         QueueManager QueueManager,
-        FlowState FlowState,
+        FlowExecutionState FlowExecutionState,
         FlowTimeouts FlowTimeouts,
         StoredId? Parent,
         IStorageSession? StorageSession

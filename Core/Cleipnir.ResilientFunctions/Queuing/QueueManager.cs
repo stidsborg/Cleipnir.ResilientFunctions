@@ -27,7 +27,7 @@ internal class QueueManager : IDisposable
     private readonly IMessageStore _messageStore;
     private readonly ISerializer _serializer;
     private readonly Effect _effect;
-    private readonly FlowState _flowState;
+    private readonly FlowExecutionState _flowExecutionState;
     private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
     private readonly FlowTimeouts _timeouts;
     private readonly UtcNow _utcNow;
@@ -52,7 +52,7 @@ internal class QueueManager : IDisposable
         IMessageStore messageStore,
         ISerializer serializer,
         Effect effect,
-        FlowState flowState,
+        FlowExecutionState flowExecutionState,
         UnhandledExceptionHandler unhandledExceptionHandler,
         FlowTimeouts timeouts,
         UtcNow utcNow,
@@ -66,7 +66,7 @@ internal class QueueManager : IDisposable
         _messageStore = messageStore;
         _serializer = serializer;
         _effect = effect;
-        _flowState = flowState;
+        _flowExecutionState = flowExecutionState;
         _unhandledExceptionHandler = unhandledExceptionHandler;
         _timeouts = timeouts;
         _utcNow = utcNow;
@@ -96,7 +96,7 @@ internal class QueueManager : IDisposable
 
             _initialized = true;
             _effect.RegisterQueueManager(this);
-            _flowState.QueueManager = this;
+            _flowExecutionState.QueueManager = this;
         }
         finally
         {
@@ -172,7 +172,7 @@ internal class QueueManager : IDisposable
         _ = Task.Delay((fireAt - now).RoundUpToZero(), delayCts.Token)
             .ContinueWith(_ => ExpireSubscription(subscription, timeout, messageId), TaskContinuationOptions.OnlyOnRanToCompletion);
 
-        _flowState.SubflowWaiting();
+        _flowExecutionState.SubflowWaiting();
         try
         {
             var msgData = await subscription.Tcs.Task;
@@ -180,7 +180,7 @@ internal class QueueManager : IDisposable
         }
         finally
         {
-            await _flowState.ResumeSubflow();
+            await _flowExecutionState.ResumeSubflow();
 
             await delayCts.CancelAsync();
             delayCts.Dispose();

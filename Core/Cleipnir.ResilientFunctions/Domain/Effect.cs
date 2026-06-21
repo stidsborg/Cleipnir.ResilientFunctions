@@ -21,14 +21,14 @@ public class Effect
     private readonly EffectResults effectResults;
     private readonly UtcNow utcNow;
     private readonly FlowTimeouts flowTimeouts;
-    private readonly FlowState flowState;
+    private readonly FlowExecutionState _flowExecutionState;
 
-    internal Effect(EffectResults effectResults, UtcNow utcNow, FlowTimeouts flowTimeouts, FlowState flowState)
+    internal Effect(EffectResults effectResults, UtcNow utcNow, FlowTimeouts flowTimeouts, FlowExecutionState flowExecutionState)
     {
         this.effectResults = effectResults;
         this.utcNow = utcNow;
         this.flowTimeouts = flowTimeouts;
-        this.flowState = flowState;
+        this._flowExecutionState = flowExecutionState;
     }
 
 
@@ -295,11 +295,11 @@ public class Effect
 
     public Task<T> RunParallelle<T>(Func<Task<T>> work)
     {
-        flowState.SubflowStarted();
+        _flowExecutionState.SubflowStarted();
         var task = Capture(() => Task.Run(work));
         return task.ContinueWith(t =>
         {
-            flowState.SubflowCompleted();
+            _flowExecutionState.SubflowCompleted();
             return t.GetAwaiter().GetResult();
         });
     }

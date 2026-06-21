@@ -9,22 +9,22 @@ namespace Cleipnir.ResilientFunctions.CoreRuntime;
 
 public class FlowsManager
 {
-    private readonly Dictionary<StoredId, FlowState> _dict = new();
+    private readonly Dictionary<StoredId, FlowExecutionState> _dict = new();
     private readonly IFunctionStore _functionStore;
     private readonly Lock _lock = new();
 
     public FlowsManager(IFunctionStore functionStore) => _functionStore = functionStore;
 
-    public FlowState CreateFlowState(StoredId id, FlowTimeouts timeouts, Task completed)
+    public FlowExecutionState CreateFlowState(StoredId id, FlowTimeouts timeouts, Task completed)
     {
         lock (_lock)
-            return _dict[id] = new FlowState(id, subflows: 1, waitingSubflows: 0, timeouts, completed);
+            return _dict[id] = new FlowExecutionState(id, subflows: 1, waitingSubflows: 0, timeouts, completed);
     }
 
-    public void RemoveFlow(StoredId id, FlowState flowState)
+    public void RemoveFlow(StoredId id, FlowExecutionState flowExecutionState)
     {
         lock (_lock)
-            if (_dict.TryGetValue(id, out var existingState) && flowState == existingState)
+            if (_dict.TryGetValue(id, out var existingState) && flowExecutionState == existingState)
               _dict.Remove(id);
     }
 
