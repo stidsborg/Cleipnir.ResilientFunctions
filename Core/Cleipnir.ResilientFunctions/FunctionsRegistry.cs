@@ -43,10 +43,15 @@ public class FunctionsRegistry : IDisposable
         _shutdownCoordinator = new ShutdownCoordinator();
         _settings = SettingsWithDefaults.Default.Merge(settings);
         var utcNow = _settings.UtcNow;
-        _flowsManagers = new FlowsManagers(_functionStore);
-
+        _messageClearer = new MessageClearer(
+            _functionStore.MessageStore,
+            _settings.UnhandledExceptionHandler,
+            _settings.WatchdogCheckFrequency
+        );
         ClusterInfo = new ClusterInfo(ReplicaId.NewId());
-        
+
+        _flowsManagers = new FlowsManagers(_functionStore, _messageClearer, ClusterInfo);
+
         _postponedWatchdog = new PostponedWatchdog(
             _functionStore,
             _shutdownCoordinator,
@@ -73,12 +78,6 @@ public class FunctionsRegistry : IDisposable
             _settings.WatchdogCheckFrequency,
             _settings.DelayStartup,
             utcNow
-        );
-
-        _messageClearer = new MessageClearer(
-            _functionStore.MessageStore,
-            _settings.UnhandledExceptionHandler,
-            _settings.WatchdogCheckFrequency
         );
 
         _messageWatchdog = new MessageWatchdog(
@@ -257,6 +256,7 @@ public class FunctionsRegistry : IDisposable
                 settings?.ClearChildrenAfterCapture ?? true,
                 _messageClearer
             );
+            var flowsManager = _flowsManagers.GetOrCreate(storedType);
             var invoker = new Invoker<TParam, TReturn>(
                 flowType,
                 storedType,
@@ -264,8 +264,9 @@ public class FunctionsRegistry : IDisposable
                 invocationHelper,
                 settingsWithDefaults.UnhandledExceptionHandler,
                 ClusterInfo.ReplicaId,
-                _flowsManagers.GetOrCreate(storedType)
+                flowsManager
             );
+            flowsManager.SetRestarter(invoker);
 
             WatchDogsFactory.CreateAndStart(
                 flowType,
@@ -341,6 +342,7 @@ public class FunctionsRegistry : IDisposable
                 settings?.ClearChildrenAfterCapture ?? true,
                 _messageClearer
             );
+            var flowsManager = _flowsManagers.GetOrCreate(storedType);
             var invoker = new Invoker<Unit, Unit>(
                 flowType,
                 storedType,
@@ -348,8 +350,9 @@ public class FunctionsRegistry : IDisposable
                 invocationHelper,
                 settingsWithDefaults.UnhandledExceptionHandler,
                 ClusterInfo.ReplicaId,
-                _flowsManagers.GetOrCreate(storedType)
+                flowsManager
             );
+            flowsManager.SetRestarter(invoker);
 
             WatchDogsFactory.CreateAndStart(
                 flowType,
@@ -425,6 +428,7 @@ public class FunctionsRegistry : IDisposable
                 settings?.ClearChildrenAfterCapture ?? true,
                 _messageClearer
             );
+            var flowsManager = _flowsManagers.GetOrCreate(storedType);
             var rActionInvoker = new Invoker<TParam, Unit>(
                 flowType,
                 storedType,
@@ -432,8 +436,9 @@ public class FunctionsRegistry : IDisposable
                 invocationHelper,
                 settingsWithDefaults.UnhandledExceptionHandler,
                 ClusterInfo.ReplicaId,
-                _flowsManagers.GetOrCreate(storedType)
+                flowsManager
             );
+            flowsManager.SetRestarter(rActionInvoker);
 
             WatchDogsFactory.CreateAndStart(
                 flowType,

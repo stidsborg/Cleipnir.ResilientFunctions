@@ -40,6 +40,13 @@ internal sealed class MessageClearer(
                 _pushedPositions.Add(position);
     }
 
+    public void ReopenPositions(IEnumerable<long> positions)
+    {
+        lock (_pushedPositionsLock)
+            foreach (var position in positions)
+                _pushedPositions.Remove(position);
+    }
+
     /// <summary>Snapshot of the not-yet-cleared positions, passed to the store as the fetch ignore-set.</summary>
     public IReadOnlyList<long> NonClearedPositions()
     {

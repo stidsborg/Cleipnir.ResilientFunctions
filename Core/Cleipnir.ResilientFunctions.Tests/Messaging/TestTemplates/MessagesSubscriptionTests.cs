@@ -21,10 +21,12 @@ public abstract class MessagesSubscriptionTests
     // These tests hand-roll a QueueManager, which delegates message deletion to IMessageClearer. They don't
     // assert on store cleanup, so a no-op stub suffices.
     private static readonly IMessageClearer StubMessageClearer = new NoopMessageClearer();
+    private static readonly ClusterInfo StubClusterInfo = new(ReplicaId.NewId());
 
     private sealed class NoopMessageClearer : IMessageClearer
     {
         public Task Clear(IReadOnlyList<long> positions) => Task.CompletedTask;
+        public void ReopenPositions(IEnumerable<long> positions) { }
     }
 
     public abstract Task EventsSubscriptionSunshineScenario();
@@ -569,7 +571,7 @@ public abstract class MessagesSubscriptionTests
             {
 
                 var flowTimeouts = new FlowTimeouts();
-                var flowsManager = new FlowsManager(functionStore);
+                var flowsManager = new FlowsManager(functionStore, StubMessageClearer, StubClusterInfo);
                 var flowState = flowsManager.CreateFlowState(workflow.StoredId, flowTimeouts, completed: ForeverTask.Instance);
                 var queueManager = new QueueManager(
                     workflow.FlowId,
@@ -633,7 +635,7 @@ public abstract class MessagesSubscriptionTests
             {
                 storedId = workflow.StoredId;
                 var minimumTimeout = new FlowTimeouts();
-                var flowsManager = new FlowsManager(functionStore);
+                var flowsManager = new FlowsManager(functionStore, StubMessageClearer, StubClusterInfo);
                 var flowState = flowsManager.CreateFlowState(workflow.StoredId, minimumTimeout, completed: ForeverTask.Instance);
                 var queueManager = new QueueManager(
                     workflow.FlowId,
@@ -695,7 +697,7 @@ public abstract Task PullEnvelopeReturnsEnvelopeWithReceiverAndSender();
             {
 
                 var flowTimeouts = new FlowTimeouts();
-                var flowsManager = new FlowsManager(functionStore);
+                var flowsManager = new FlowsManager(functionStore, StubMessageClearer, StubClusterInfo);
                 var flowState = flowsManager.CreateFlowState(workflow.StoredId, flowTimeouts, completed: ForeverTask.Instance);
                 var queueManager = new QueueManager(
                     workflow.FlowId,
