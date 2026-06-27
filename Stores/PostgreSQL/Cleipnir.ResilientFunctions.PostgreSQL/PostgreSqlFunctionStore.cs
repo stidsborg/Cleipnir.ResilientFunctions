@@ -267,6 +267,41 @@ public class PostgreSqlFunctionStore : IFunctionStore
         return result;
     }
 
+    public async Task<Dictionary<StoredId, StoredFlowWithEffects>> RestartExecutionsWithoutMessages(
+        IReadOnlyList<StoredId> storedIds,
+        ReplicaId owner)
+    {
+        if (storedIds.Count == 0)
+            return new Dictionary<StoredId, StoredFlowWithEffects>();
+
+        // Execute 2 queries in parallel
+        var restartTask = RestartFlowsAsync(storedIds, owner);
+        var effectsTask = FetchEffectsAsync(storedIds, owner);
+
+        await Task.WhenAll(restartTask, effectsTask);
+
+        var restartedFlows = await restartTask;
+        var effectsMap = await effectsTask;
+
+        // Build result dictionary - only for successfully restarted flows
+        var result = new Dictionary<StoredId, StoredFlowWithEffects>();
+        foreach (var flow in restartedFlows)
+        {
+            var effects = effectsMap.TryGetValue(flow.StoredId, out var session)
+                ? session.Effects.Values.ToList()
+                : new List<StoredEffect>();
+            var storageSession = effectsMap.TryGetValue(flow.StoredId, out var s)
+                ? s
+                : new SnapshotStorageSession(owner);
+
+            result[flow.StoredId] = new StoredFlowWithEffects(
+                flow, effects, storageSession
+            );
+        }
+
+        return result;
+    }
+
     private async Task<List<StoredFlow>> RestartFlowsAsync(
         IReadOnlyList<StoredId> storedIds,
         ReplicaId owner)

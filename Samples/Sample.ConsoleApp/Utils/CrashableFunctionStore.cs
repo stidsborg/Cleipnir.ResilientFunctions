@@ -63,6 +63,11 @@ public class CrashableFunctionStore : IFunctionStore
             ? Task.FromException<Dictionary<StoredId, StoredFlowWithEffectsAndMessages>>(new TimeoutException())
             : _inner.RestartExecutions(storedIds, owner);
 
+    public Task<Dictionary<StoredId, StoredFlowWithEffects>> RestartExecutionsWithoutMessages(IReadOnlyList<StoredId> storedIds, ReplicaId owner)
+        => _crashed
+            ? Task.FromException<Dictionary<StoredId, StoredFlowWithEffects>>(new TimeoutException())
+            : _inner.RestartExecutionsWithoutMessages(storedIds, owner);
+
     public Task<IReadOnlyList<StoredId>> GetExpiredFunctions(long expiresBefore)
         => _crashed
             ? Task.FromException<IReadOnlyList<StoredId>>(new TimeoutException())

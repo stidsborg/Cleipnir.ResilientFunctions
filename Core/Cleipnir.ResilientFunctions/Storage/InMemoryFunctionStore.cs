@@ -201,7 +201,64 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
 
         return result;
     }
-    
+
+    public virtual async Task<Dictionary<StoredId, StoredFlowWithEffects>> RestartExecutionsWithoutMessages(
+        IReadOnlyList<StoredId> storedIds,
+        ReplicaId owner)
+    {
+        if (storedIds.Count == 0)
+            return new Dictionary<StoredId, StoredFlowWithEffects>();
+
+        var restartedIds = new List<StoredId>();
+
+        // Restart eligible flows
+        lock (_sync)
+        {
+            foreach (var storedId in storedIds)
+            {
+                if (!_states.ContainsKey(storedId))
+                    continue;
+
+                var state = _states[storedId];
+                if (state.Owner != null)
+                    continue; // Skip already owned flows
+
+                // Restart this flow
+                state.Status = Status.Executing;
+                state.Expires = 0;
+                state.Interrupted = false;
+                state.Owner = owner;
+
+                restartedIds.Add(storedId);
+            }
+        }
+
+        var effectsDict = await EffectsStore.GetEffectResults(storedIds);
+
+        // Build result dictionary - only for restarted flows
+        var result = new Dictionary<StoredId, StoredFlowWithEffects>();
+        foreach (var storedId in restartedIds)
+        {
+            var sf = await GetFunction(storedId);
+            if (sf == null) continue;
+
+            var effects = effectsDict.TryGetValue(storedId, out var effs)
+                ? effs
+                : new List<StoredEffect>();
+
+            var session = new SnapshotStorageSession(owner);
+            foreach (var effect in effects)
+                session.Effects[effect.EffectId] = effect;
+
+            session.Version = _effectsStore.GetVersion(storedId);
+            session.RowExists = effects.Any();
+
+            result[storedId] = new StoredFlowWithEffects(sf, effects, session);
+        }
+
+        return result;
+    }
+
     public virtual Task<IReadOnlyList<StoredId>> GetExpiredFunctions(long expiresBefore)
     {
         lock (_sync)
