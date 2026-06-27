@@ -136,7 +136,7 @@ internal class QueueManager : IDisposable
             if (_thrownException != null)
                 return;
 
-            await ProcessMessages(messages);
+            ProcessMessages(messages);
         }
         finally
         {
@@ -200,7 +200,7 @@ internal class QueueManager : IDisposable
                 skipPositions = _fetchedPositions.ToList();
 
             var messages = await _messageStore.GetMessages(_storedId, skipPositions);
-            await ProcessMessages(messages);
+            ProcessMessages(messages);
         }
         finally
         {
@@ -211,7 +211,7 @@ internal class QueueManager : IDisposable
 
     // Caller must hold _fetchSemaphore. Deserializes, dedups by idempotency-key and by already-fetched
     // position (so pushes are idempotent), and stages messages for delivery.
-    private async Task ProcessMessages(IReadOnlyList<StoredMessage> messages)
+    private void ProcessMessages(IReadOnlyList<StoredMessage> messages)
     {
         foreach (var (messageContent, messageType, position, _, idempotencyKey, sender, receiver) in messages)
         {
