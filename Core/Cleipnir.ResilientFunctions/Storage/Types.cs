@@ -182,6 +182,12 @@ public record StoredEffect(
 
 public record IdWithParam(StoredId StoredId, string HumanInstanceId, byte[]? Param);
 
+public record StoredFlowWithEffects(
+    StoredFlow StoredFlow,
+    IReadOnlyList<StoredEffect> Effects,
+    IStorageSession StorageSession
+);
+
 public record StoredFlowWithEffectsAndMessages(
     StoredFlow StoredFlow,
     IReadOnlyList<StoredEffect> Effects,

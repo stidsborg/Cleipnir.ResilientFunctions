@@ -277,6 +277,43 @@ public class MariaDbFunctionStore : IFunctionStore
         return result;
     }
 
+    public async Task<Dictionary<StoredId, StoredFlowWithEffects>> RestartExecutionsWithoutMessages(
+        IReadOnlyList<StoredId> storedIds,
+        ReplicaId owner)
+    {
+        if (storedIds.Count == 0)
+            return new Dictionary<StoredId, StoredFlowWithEffects>();
+
+        // Execute restart (effects are returned inline)
+        var restartedFlows = await RestartFlowsAsync(storedIds, owner);
+
+        // Build result dictionary - only for successfully restarted flows
+        var result = new Dictionary<StoredId, StoredFlowWithEffects>();
+        foreach (var (flow, effectsBytes, session) in restartedFlows)
+        {
+            var effects = new List<StoredEffect>();
+            if (effectsBytes != null)
+            {
+                var effectsBytesArray = BinaryPacker.Split(effectsBytes);
+                foreach (var effectBytes in effectsBytesArray)
+                {
+                    if (effectBytes != null)
+                    {
+                        var storedEffect = StoredEffect.Deserialize(effectBytes);
+                        effects.Add(storedEffect);
+                        session.Effects[storedEffect.EffectId] = storedEffect;
+                    }
+                }
+            }
+
+            result[flow.StoredId] = new StoredFlowWithEffects(
+                flow, effects, session
+            );
+        }
+
+        return result;
+    }
+
     private async Task<List<(StoredFlow flow, byte[]? effectsBytes, SnapshotStorageSession session)>> RestartFlowsAsync(
         IReadOnlyList<StoredId> storedIds,
         ReplicaId owner)

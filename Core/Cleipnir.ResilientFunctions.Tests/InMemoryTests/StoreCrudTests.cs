@@ -75,4 +75,20 @@ public class StoreCrudTests : TestTemplates.StoreCrudTests
     [TestMethod]
     public override Task RestartExecutionsIncludesExistingEffectsAndMessages()
         => RestartExecutionsIncludesExistingEffectsAndMessages(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task RestartExecutionsWithoutMessagesRestartsMultipleUnownedFlows()
+        => RestartExecutionsWithoutMessagesRestartsMultipleUnownedFlows(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task RestartExecutionsWithoutMessagesRestartsOnlyUnownedFlows()
+        => RestartExecutionsWithoutMessagesRestartsOnlyUnownedFlows(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task RestartExecutionsWithoutMessagesReturnsEmptyDictionaryForEmptyInput()
+        => RestartExecutionsWithoutMessagesReturnsEmptyDictionaryForEmptyInput(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task RestartExecutionsWithoutMessagesIncludesExistingEffects()
+        => RestartExecutionsWithoutMessagesIncludesExistingEffects(FunctionStoreFactory.Create());
 }
