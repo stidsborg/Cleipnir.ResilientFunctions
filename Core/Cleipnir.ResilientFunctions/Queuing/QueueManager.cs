@@ -227,7 +227,11 @@ internal class QueueManager : IDisposable
 
                 if (idempotencyKey != null && !_idempotencyKeys.Add(idempotencyKey, position))
                 {
-                    await _messageClearer.Clear([position]);
+                    lock (_lock)
+                    {
+                        _deliveredPositions.Add(position);
+                        _effect.FlushlessUpsert(DeliveredPositionsId, _deliveredPositions.ToList(), alias: null);
+                    }
                     continue;
                 }
 
