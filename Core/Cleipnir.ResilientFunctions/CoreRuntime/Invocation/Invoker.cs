@@ -11,7 +11,7 @@ using Cleipnir.ResilientFunctions.Storage.Session;
 
 namespace Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 
-public class Invoker<TParam, TReturn>
+public class Invoker<TParam, TReturn> : IFlowRestarter
 {
     private readonly FlowType _flowType;
     private readonly StoredType _storedType;
@@ -236,7 +236,10 @@ public class Invoker<TParam, TReturn>
             finally{ _flowsManager.RemoveFlow(storedId, flowState); onCompletion(); }
         });
     }
-    
+
+    Task IFlowRestarter.ScheduleRestart(StoredId storedId, RestartedFunction restartedFunction, Action onCompletion)
+        => ScheduleRestart(storedId, restartedFunction, onCompletion);
+
     private async Task<PreparedInvocation> PrepareForInvocation(FlowId flowId, StoredId storedId, TParam param, StoredId? parent, InitialState? initialState, Task completed)
     {
         var disposables = new List<IDisposable>(capacity: 3);

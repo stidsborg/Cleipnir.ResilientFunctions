@@ -2,6 +2,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Cleipnir.ResilientFunctions.CoreRuntime.Watchdogs;
+using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Storage;
 
@@ -16,10 +18,19 @@ namespace Cleipnir.ResilientFunctions.CoreRuntime;
 public class FlowsManagers
 {
     private readonly Dictionary<StoredType, FlowsManager> _managers = new();
+    
     private readonly IFunctionStore _functionStore;
+    private readonly MessageClearer _messageClearer;
+    private readonly ClusterInfo _clusterInfo;
+
     private readonly Lock _lock = new();
 
-    public FlowsManagers(IFunctionStore functionStore) => _functionStore = functionStore;
+    internal FlowsManagers(IFunctionStore functionStore, MessageClearer messageClearer, ClusterInfo clusterInfo)
+    {
+        _functionStore = functionStore;
+        _messageClearer = messageClearer;
+        _clusterInfo = clusterInfo;
+    }
 
     public FlowsManager GetOrCreate(StoredType storedType)
     {
@@ -28,7 +39,7 @@ public class FlowsManagers
             if (_managers.TryGetValue(storedType, out var existing))
                 return existing;
 
-            return _managers[storedType] = new FlowsManager(_functionStore);
+            return _managers[storedType] = new FlowsManager(_functionStore, _messageClearer, _clusterInfo);
         }
     }
 
@@ -38,14 +49,24 @@ public class FlowsManagers
             return _managers.GetValueOrDefault(storedType);
     }
 
-    public Task Push(IReadOnlyList<StoredMessages> messagesByFlow)
+    public Task Push(IReadOnlyList<StoredMessages> messages)
     {
-        List<Task> tasks = new();
-        foreach (var group in messagesByFlow.GroupBy(m => m.StoredId.Type))
-            if (TryGet(group.Key) is { } manager)
-                tasks.Add(manager.Push(group.ToList()));
+        List<Task> messageDeliveries;
+        lock (_lock)
+        {
+            var notRunning = messages
+                .Where(msg => !_managers.ContainsKey(msg.StoredId.Type));
 
-        return Task.WhenAll(tasks);
+            var running = messages
+                .Where(msg => _managers.ContainsKey(msg.StoredId.Type))
+                .GroupBy(msg => msg.StoredId.Type)
+                .Select(g => _managers[g.Key].Push(g.ToList()))
+                .ToList();
+
+            messageDeliveries = running;
+        }
+        
+        return Task.WhenAll(messageDeliveries);
     }
 
     public IReadOnlyList<StoredId> FilterOwned(IEnumerable<StoredId> ids)
