@@ -642,7 +642,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
     
     #region MessageStore
 
-    public async Task AppendMessages(IReadOnlyList<StoredIdAndMessage> messages)
+    public Task AppendMessages(IReadOnlyList<StoredIdAndMessage> messages)
     {
         foreach (var (storedId, storedMessage) in messages)
         {
@@ -655,9 +655,9 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
                 var replica = flowOwner ?? storedMessage.Replica;
                 flowMessages[_nextMessagePosition++] = storedMessage with { Replica = replica };
             }
-
-            await Interrupt(storedId);
         }
+
+        return Task.CompletedTask;
     }
 
 

@@ -111,13 +111,13 @@ public class FlowsManager
 
         // Flows that could not be claimed were never delivered to, yet the MessageWatchdog optimistically marked
         // their positions as pushed. Reopen the positions of flows that may become claimable later (executing
-        // elsewhere, or a lost claim race) so their messages are re-fetched - without deleting them from the store.
-        // Completed or deleted flows can never consume their messages; their positions stay in the ignore-set so
-        // they are not pointlessly re-fetched every poll.
+        // elsewhere, a lost claim race, or a flow that has not been created yet - messages may legally precede
+        // their flow) so their messages are re-fetched - without deleting them from the store. Completed flows
+        // can never consume their messages; their positions stay in the ignore-set so they are not pointlessly
+        // re-fetched every poll.
         foreach (var (storedId, storedMessagesList) in groups.Where(kv => !results.ContainsKey(kv.Key)))
         {
             StoredFlow? storedFlow;
-            var statusKnown = true;
             try
             {
                 storedFlow = await _functionStore.GetFunction(storedId);
@@ -126,11 +126,9 @@ public class FlowsManager
             {
                 // Status unknown - reopen below so delivery is retried rather than the positions being stranded.
                 storedFlow = null;
-                statusKnown = false;
             }
 
-            var undeliverable = statusKnown && (storedFlow == null || storedFlow.Status is Status.Succeeded or Status.Failed);
-            if (undeliverable)
+            if (storedFlow != null && storedFlow.Status is Status.Succeeded or Status.Failed)
                 continue;
 
             _messageClearer.ReopenPositions(
