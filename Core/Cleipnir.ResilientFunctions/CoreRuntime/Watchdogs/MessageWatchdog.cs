@@ -30,18 +30,7 @@ internal class MessageWatchdog(
             {
                 var now = utcNow();
 
-                // Messages destined for flows currently owned by this replica (replica = COALESCE(owner, publisher)).
-                // The clearer's ignore-set excludes messages already pushed (and not yet cleared) so they are not
-                // re-delivered. FlowsManagers.Push routes each group to its flow type's manager and delivers only
-                // to live flows; entries for non-live flows (or unregistered types) are ignored.
-                var nonClearedPositions = messageClearer.NonClearedPositions();
-
-                var messageGroups = await messageStore.GetMessagesForReplica(clusterInfo.ReplicaId, nonClearedPositions);
-                if (messageGroups.Count > 0)
-                {
-                    messageClearer.MarkPushed(messageGroups.SelectMany(group => group.Messages).Select(message => message.Position));
-                    await flowsManagers.Push(messageGroups);
-                }
+                await PushOnce();
 
                 var timeElapsed = utcNow() - now;
                 var delay = (checkFrequency - timeElapsed).RoundUpToZero();
@@ -60,6 +49,25 @@ internal class MessageWatchdog(
 
             await Task.Delay(5_000);
             goto Start;
+        }
+    }
+
+    /// <summary>
+    /// One fetch-and-push cycle: fetches this replica's not-yet-pushed messages (replica = COALESCE(owner, publisher)),
+    /// marks them pushed so the next poll skips them, and routes each group to its flow type's manager, which delivers
+    /// only to live flows; entries for non-live flows (or unregistered types) are ignored. Run on the poll loop, and
+    /// on-demand at flow initialization so a freshly started/resumed flow receives its pending messages immediately
+    /// instead of waiting for the next poll.
+    /// </summary>
+    public async Task PushOnce()
+    {
+        var nonClearedPositions = messageClearer.NonClearedPositions();
+
+        var messageGroups = await messageStore.GetMessagesForReplica(clusterInfo.ReplicaId, nonClearedPositions);
+        if (messageGroups.Count > 0)
+        {
+            messageClearer.MarkPushed(messageGroups.SelectMany(group => group.Messages).Select(message => message.Position));
+            await flowsManagers.Push(messageGroups);
         }
     }
 }

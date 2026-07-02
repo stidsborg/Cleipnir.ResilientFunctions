@@ -33,6 +33,7 @@ internal class QueueManager : IDisposable
     private readonly UtcNow _utcNow;
     private readonly SettingsWithDefaults _settings;
     private readonly IMessageClearer _messageClearer;
+    private readonly Func<Task>? _pushPendingMessages;
     private readonly IdempotencyKeys _idempotencyKeys;
 
     private readonly SemaphoreSlim _initializeSemaphore = new(1);
@@ -58,6 +59,7 @@ internal class QueueManager : IDisposable
         UtcNow utcNow,
         SettingsWithDefaults settings,
         IMessageClearer messageClearer,
+        Func<Task>? pushPendingMessages = null,
         int maxIdempotencyKeyCount = 100,
         TimeSpan? maxIdempotencyKeyTtl = null)
     {
@@ -72,10 +74,11 @@ internal class QueueManager : IDisposable
         _utcNow = utcNow;
         _settings = settings;
         _messageClearer = messageClearer;
+        _pushPendingMessages = pushPendingMessages;
         _idempotencyKeys = new IdempotencyKeys(IdempotencyKeysRoot, _effect, maxIdempotencyKeyCount, maxIdempotencyKeyTtl, utcNow);
     }
 
-    private async Task Initialize()
+    private async Task Initialize(bool pushPendingMessages)
     {
         await _initializeSemaphore.WaitAsync();
         try
@@ -104,6 +107,14 @@ internal class QueueManager : IDisposable
             _initialized = true;
             _effect.RegisterQueueManager(this);
             _flowExecutionState.QueueManager = this;
+
+            // Kick an immediate fetch-and-push so a freshly started/resumed flow receives its pending messages now
+            // rather than waiting for the next MessageWatchdog poll. _initialized is already set, so the resulting
+            // push routes straight into ProcessMessages for this flow without re-running Initialize. Skipped when
+            // initialization is triggered by an incoming Push: the pusher already holds an in-flight batch, and a
+            // nested fetch would stage any newer messages ahead of that older batch, reordering delivery.
+            if (pushPendingMessages && _pushPendingMessages != null)
+                await _pushPendingMessages();
         }
         finally
         {
@@ -114,7 +125,7 @@ internal class QueueManager : IDisposable
     public async Task<QueueClient> CreateQueueClient()
     {
         if (!_initialized)
-            await Initialize();
+            await Initialize(pushPendingMessages: true);
         return new QueueClient(this, _serializer, _utcNow);
     }
 
@@ -140,7 +151,7 @@ internal class QueueManager : IDisposable
             return;
 
         if (!_initialized)
-            await Initialize();
+            await Initialize(pushPendingMessages: false);
 
         await _fetchSemaphore.WaitAsync();
         try
@@ -258,7 +269,13 @@ internal class QueueManager : IDisposable
                 );
                 lock (_lock)
                 {
-                    _toDeliver.Add(messageData);
+                    // Keep the staged messages position-sorted so delivery order stays append order even when two
+                    // pushers (the MessageWatchdog poll and an initialization-time push) stage batches out of order.
+                    var insertAt = _toDeliver.FindIndex(staged => staged.Position > position);
+                    if (insertAt == -1)
+                        _toDeliver.Add(messageData);
+                    else
+                        _toDeliver.Insert(insertAt, messageData);
                     _fetchedPositions.Add(position);
                 }
             }
