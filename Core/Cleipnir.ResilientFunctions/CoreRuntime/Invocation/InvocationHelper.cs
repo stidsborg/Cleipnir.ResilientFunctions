@@ -415,7 +415,7 @@ internal class InvocationHelper<TParam, TReturn>
     public ExistingMessages CreateExistingMessages(FlowId flowId) => new(MapToStoredId(flowId), _functionStore.MessageStore, Serializer);
 
     public QueueManager CreateQueueManager(FlowId flowId, StoredId storedId, Effect effect, FlowExecutionState flowExecutionState, FlowTimeouts timeouts, UnhandledExceptionHandler unhandledExceptionHandler)
-        => new(flowId, storedId, _functionStore.MessageStore, Serializer, effect, flowExecutionState, unhandledExceptionHandler, timeouts, UtcNow, _settings, _messageClearer, _pushPendingMessages);
+        => new(flowId, storedId, Serializer, effect, flowExecutionState, unhandledExceptionHandler, timeouts, UtcNow, _settings, _messageClearer, _pushPendingMessages);
 
     public StoredId MapToStoredId(FlowId flowId) => StoredId.Create(_storedType, flowId.Instance.Value);
     

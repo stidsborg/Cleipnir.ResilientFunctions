@@ -24,7 +24,6 @@ internal class QueueManager : IDisposable
 
     private readonly FlowId _flowId;
     private readonly StoredId _storedId;
-    private readonly IMessageStore _messageStore;
     private readonly ISerializer _serializer;
     private readonly Effect _effect;
     private readonly FlowExecutionState _flowExecutionState;
@@ -50,7 +49,6 @@ internal class QueueManager : IDisposable
     public QueueManager(
         FlowId flowId,
         StoredId storedId,
-        IMessageStore messageStore,
         ISerializer serializer,
         Effect effect,
         FlowExecutionState flowExecutionState,
@@ -65,7 +63,6 @@ internal class QueueManager : IDisposable
     {
         _flowId = flowId;
         _storedId = storedId;
-        _messageStore = messageStore;
         _serializer = serializer;
         _effect = effect;
         _flowExecutionState = flowExecutionState;
@@ -132,14 +129,23 @@ internal class QueueManager : IDisposable
         return new QueueClient(this, _serializer, _utcNow);
     }
 
+    // Re-evaluates the already-pushed messages against the current subscriptions. The queue manager no longer reads
+    // from the message store: messages arrive exclusively via Push (the MessageWatchdog poll and the restart
+    // hand-over), so this only flushes whatever has already been staged for delivery.
     public Task FetchMessagesOnce()
-        => _disposed ? Task.CompletedTask : FetchAndNotify();
+    {
+        if (!_disposed)
+            DeliverMessages();
+
+        return Task.CompletedTask;
+    }
 
     internal void Interrupt()
     {
         if (_disposed)
             return;
-        _ = FetchMessagesOnce();
+
+        DeliverMessages();
     }
 
     /// <summary>
@@ -208,7 +214,7 @@ internal class QueueManager : IDisposable
         lock (_lock)
             _subscriptions.Add(subscription);
 
-        await FetchAndNotify();
+        DeliverMessages();
         if (subscription.Tcs.Task.IsCompleted)
             return (await subscription.Tcs.Task)?.Envelope;
 
@@ -234,28 +240,6 @@ internal class QueueManager : IDisposable
 
             await delayCts.CancelAsync();
             delayCts.Dispose();
-        }
-    }
-
-    private async Task FetchAndNotify()
-    {
-        await _fetchSemaphore.WaitAsync();
-        try
-        {
-            if (_thrownException != null)
-                return;
-
-            List<long> skipPositions;
-            lock (_lock)
-                skipPositions = _fetchedPositions.ToList();
-
-            var messages = await _messageStore.GetMessages(_storedId, skipPositions);
-            ProcessMessages(messages);
-        }
-        finally
-        {
-            DeliverMessages();
-            _fetchSemaphore.Release();
         }
     }
 
