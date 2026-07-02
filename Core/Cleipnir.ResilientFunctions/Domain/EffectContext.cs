@@ -41,6 +41,14 @@ public class EffectContext
     
     public static void SetParent(EffectId parentId) => Context.Value = new EffectContext(parentId);
 
+    /// <summary>
+    /// Gives the current async flow a fresh context. Invoked at the start of every flow invocation: the invocation
+    /// runs on a Task that captured the scheduler's execution context (user code or a watchdog restart chain), and
+    /// inheriting - and mutating - a context created there would shift the implicit effect ids across incarnations
+    /// and break replay determinism.
+    /// </summary>
+    internal static void Reset() => Context.Value = new EffectContext();
+
     public int NextImplicitId() => ++ImplicitId;
 
     public EffectId NextEffectId() => new(

@@ -63,6 +63,8 @@ public class Invoker<TParam, TReturn> : IFlowRestarter
         _ = flowState.SuspendedTask.ContinueWith(_ => tcs.TrySetException(new InvocationSuspendedException(flowId)));
         _ = Task.Run(async () =>
         {
+            EffectContext.Reset();
+
             try
             {
                 Result<TReturn> result;
@@ -158,6 +160,7 @@ public class Invoker<TParam, TReturn> : IFlowRestarter
         _ = flowState.SuspendedTask.ContinueWith(_ => tcs.TrySetException(new InvocationSuspendedException(flowId)));
         _ = Task.Run(async () =>
         {
+            EffectContext.Reset();
             CurrentFlow._workflow.Value = workflow;
 
             try
@@ -212,6 +215,7 @@ public class Invoker<TParam, TReturn> : IFlowRestarter
         _ = flowState.SuspendedTask.ContinueWith(_ => tcs.TrySetException(new InvocationSuspendedException(flowId)));
         _ = Task.Run(async () =>
         {
+            EffectContext.Reset();
             CurrentFlow._workflow.Value = workflow;
 
             try
