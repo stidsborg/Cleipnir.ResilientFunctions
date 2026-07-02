@@ -88,10 +88,6 @@ public class StoreTests : ResilientFunctions.Tests.TestTemplates.StoreTests
         => RestartingFunctionShouldSetInterruptedToFalse(FunctionStoreFactory.Create());
 
     [TestMethod]
-    public override Task ResetInterruptedClearsInterruptedFlag()
-        => ResetInterruptedClearsInterruptedFlag(FunctionStoreFactory.Create());
-
-    [TestMethod]
     public override Task MessagesCanBeFetchedAfterFunctionWithInitialMessagesHasBeenCreated()
         => MessagesCanBeFetchedAfterFunctionWithInitialMessagesHasBeenCreated(FunctionStoreFactory.Create());
 
@@ -226,26 +222,6 @@ public class StoreTests : ResilientFunctions.Tests.TestTemplates.StoreTests
     [TestMethod]
     public override Task SucceedSetsOwnerToNull()
         => SucceedSetsOwnerToNull(FunctionStoreFactory.Create());
-
-    [TestMethod]
-    public override Task GetInterruptedFunctionsReturnsOnlyInterruptedFunctions()
-        => GetInterruptedFunctionsReturnsOnlyInterruptedFunctions(FunctionStoreFactory.Create());
-
-    [TestMethod]
-    public override Task GetInterruptedFunctionsReturnsEmptyListWhenNoneExist()
-        => GetInterruptedFunctionsReturnsEmptyListWhenNoneExist(FunctionStoreFactory.Create());
-
-    [TestMethod]
-    public override Task GetInterruptedFunctionsReturnsEmptyListWhenNoneFunctionsAreInterrupted()
-        => GetInterruptedFunctionsReturnsEmptyListWhenNoneFunctionsAreInterrupted(FunctionStoreFactory.Create());
-
-    [TestMethod]
-    public override Task GetInterruptedFunctionsReturnsIdOnceWhenInterruptedMultipleTimes()
-        => GetInterruptedFunctionsReturnsIdOnceWhenInterruptedMultipleTimes(FunctionStoreFactory.Create());
-
-    [TestMethod]
-    public override Task GetInterruptedFunctionsIncludesPostponedInterruptedFunction()
-        => GetInterruptedFunctionsIncludesPostponedInterruptedFunction(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task GetResultsReturnsResultsForExistingFunctions()

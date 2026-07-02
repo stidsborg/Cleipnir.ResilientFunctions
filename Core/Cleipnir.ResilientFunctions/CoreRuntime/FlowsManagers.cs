@@ -79,19 +79,4 @@ public class FlowsManagers
         return Task.WhenAll(messageDeliveries);
     }
 
-    public IReadOnlyList<StoredId> FilterOwned(IEnumerable<StoredId> ids)
-    {
-        var owned = new List<StoredId>();
-        foreach (var group in ids.GroupBy(id => id.Type))
-            if (TryGet(group.Key) is { } manager)
-                owned.AddRange(manager.FilterOwned(group.ToList()));
-
-        return owned;
-    }
-
-    public void Interrupt(IReadOnlyList<StoredId> ids)
-    {
-        foreach (var group in ids.GroupBy(id => id.Type))
-            TryGet(group.Key)?.Interrupt(group.ToList());
-    }
 }

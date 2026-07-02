@@ -100,12 +100,6 @@ public class FlowExecutionState
         return Task.CompletedTask;
     }
 
-    public void Interrupt()
-    {
-        if (Suspended) return;
-        QueueManager?.Interrupt();
-    }
-
     public Task Push(IReadOnlyList<StoredMessage> messages)
     {
         var queueManager = QueueManager;

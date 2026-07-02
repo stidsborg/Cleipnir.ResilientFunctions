@@ -37,7 +37,6 @@ public interface IFunctionStore
     
     Task<IReadOnlyList<StoredId>> GetExpiredFunctions(long expiresBefore);
     Task<IReadOnlyList<StoredId>> GetSucceededFunctions(long completedBefore);
-    Task<IReadOnlyList<StoredId>> GetInterruptedFunctions();
     
     Task<bool> SetParameters(
         StoredId storedId,
@@ -100,7 +99,6 @@ public interface IFunctionStore
 
     Task<bool> Interrupt(StoredId storedId);
     Task Interrupt(IReadOnlyList<StoredId> storedIds);
-    Task ResetInterrupted(IReadOnlyList<StoredId> storedIds);
 
     Task<Status?> GetFunctionStatus(StoredId storedId);
     Task<IReadOnlyList<StatusAndId>> GetFunctionsStatus(IEnumerable<StoredId> storedIds);

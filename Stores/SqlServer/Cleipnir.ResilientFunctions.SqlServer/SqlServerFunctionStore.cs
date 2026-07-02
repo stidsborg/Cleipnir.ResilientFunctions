@@ -505,31 +505,6 @@ public class SqlServerFunctionStore : IFunctionStore
         return ids;
     }
 
-    public async Task<IReadOnlyList<StoredId>> GetInterruptedFunctions()
-    {
-        var sql = @$"
-            SELECT Id
-            FROM {_tableName} WITH (NOLOCK)
-            WHERE Interrupted = 1";
-
-        await using var conn = await _connFunc();
-        await using var command = new SqlCommand(sql, conn);
-
-        await using var reader = await command.ExecuteReaderAsync();
-        var interruptedIds = new List<StoredId>();
-        while (reader.HasRows)
-        {
-            while (reader.Read())
-            {
-                var storedId = reader.GetGuid(0).ToStoredId();
-                interruptedIds.Add(storedId);
-            }
-
-            reader.NextResult();
-        }
-
-        return interruptedIds;
-    }
 
     private string? _setFunctionStateSql;
     public async Task<bool> SetFunctionState(
@@ -750,16 +725,6 @@ public class SqlServerFunctionStore : IFunctionStore
 
         await using var conn = await _connFunc();
         await using var cmd = _sqlGenerator.Interrupt(storedIds).ToSqlCommand(conn);
-        await cmd.ExecuteNonQueryAsync();
-    }
-
-    public async Task ResetInterrupted(IReadOnlyList<StoredId> storedIds)
-    {
-        if (storedIds.Count == 0)
-            return;
-
-        await using var conn = await _connFunc();
-        await using var cmd = _sqlGenerator.ResetInterrupted(storedIds).ToSqlCommand(conn);
         await cmd.ExecuteNonQueryAsync();
     }
 

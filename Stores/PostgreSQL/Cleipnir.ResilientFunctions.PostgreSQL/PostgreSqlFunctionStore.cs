@@ -427,27 +427,6 @@ public class PostgreSqlFunctionStore : IFunctionStore
         return ids;
     }
 
-    public async Task<IReadOnlyList<StoredId>> GetInterruptedFunctions()
-    {
-        var sql = @$"
-            SELECT id
-            FROM {_tableName}
-            WHERE interrupted = TRUE";
-
-        await using var conn = await CreateConnection();
-        await using var command = new NpgsqlCommand(sql, conn);
-
-        await using var reader = await command.ExecuteReaderAsync();
-        var interruptedIds = new List<StoredId>();
-        while (await reader.ReadAsync())
-        {
-            var storedId = reader.GetGuid(0).ToStoredId();
-            interruptedIds.Add(storedId);
-        }
-
-        return interruptedIds;
-    }
-
     private string? _setFunctionStateSqlMain;
     private string? _setFunctionStateSqlMainWithoutReplica;
 
@@ -686,17 +665,6 @@ public class PostgreSqlFunctionStore : IFunctionStore
         await using var command = _sqlGenerator.Interrupt(storedIds).ToNpgsqlCommand(conn);
         await command.ExecuteNonQueryAsync();
     }
-
-    public async Task ResetInterrupted(IReadOnlyList<StoredId> storedIds)
-    {
-        if (storedIds.Count == 0)
-            return;
-
-        await using var conn = await CreateConnection();
-        await using var command = _sqlGenerator.ResetInterrupted(storedIds).ToNpgsqlCommand(conn);
-        await command.ExecuteNonQueryAsync();
-    }
-
 
     private string? _getFunctionStatusSql;
     public async Task<Status?> GetFunctionStatus(StoredId storedId)

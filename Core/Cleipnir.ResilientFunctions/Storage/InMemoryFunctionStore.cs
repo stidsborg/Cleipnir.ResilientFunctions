@@ -288,17 +288,6 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
                 .ToTask();
     }
 
-    public Task<IReadOnlyList<StoredId>> GetInterruptedFunctions()
-    {
-        lock (_sync)
-            return _states
-                .Where(kv => kv.Value.Interrupted)
-                .Select(kv => kv.Key)
-                .ToList()
-                .CastTo<IReadOnlyList<StoredId>>()
-                .ToTask();
-    }
-
     public virtual Task<bool> SetFunctionState(
         StoredId storedId,
         Status status,
@@ -496,18 +485,6 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
     {
         foreach (var storedId in storedIds)
             await Interrupt(storedId);
-    }
-
-    public Task ResetInterrupted(IReadOnlyList<StoredId> storedIds)
-    {
-        lock (_sync)
-        {
-            foreach (var storedId in storedIds)
-                if (_states.TryGetValue(storedId, out var state))
-                    state.Interrupted = false;
-        }
-
-        return Task.CompletedTask;
     }
 
     public Task<Status?> GetFunctionStatus(StoredId storedId)

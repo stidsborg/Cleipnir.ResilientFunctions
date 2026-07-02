@@ -31,7 +31,6 @@ public class FunctionsRegistry : IDisposable
     private volatile bool _disposed;
     private readonly Lock _sync = new();
     private readonly ReplicaWatchdog _replicaWatchdog;
-    private readonly InterruptedWatchdog _interruptedWatchdog;
     private readonly MessageWatchdog _messageWatchdog;
     private readonly MessageClearer _messageClearer;
     private readonly FlowsManagers _flowsManagers;
@@ -70,16 +69,6 @@ public class FunctionsRegistry : IDisposable
             _settings.UnhandledExceptionHandler
         );
 
-        _interruptedWatchdog = new InterruptedWatchdog(
-            _functionStore,
-            _flowsManagers,
-            _shutdownCoordinator,
-            _settings.UnhandledExceptionHandler,
-            _settings.WatchdogCheckFrequency,
-            _settings.DelayStartup,
-            utcNow
-        );
-
         // The MessageWatchdog is the message-delivery loop, so it runs at the message-pull frequency - the
         // (slower) watchdog check frequency would make every push-restarted exchange poll-bound.
         _messageWatchdog = new MessageWatchdog(
@@ -98,7 +87,6 @@ public class FunctionsRegistry : IDisposable
         {
             _replicaWatchdog.Initialize().GetAwaiter().GetResult();
             _ = _replicaWatchdog.Start();
-            _ = Task.Run(_interruptedWatchdog.Start);
             _ = Task.Run(_messageWatchdog.Start);
         }
     }

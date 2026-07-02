@@ -48,20 +48,6 @@ public class FlowsManager
               _dict.Remove(id);
     }
 
-    public IReadOnlyList<StoredId> FilterOwned(IEnumerable<StoredId> ids)
-    {
-        lock (_lock)
-            return ids.Where(_dict.ContainsKey).ToList();
-    }
-
-    public void Interrupt(IReadOnlyList<StoredId> ids)
-    {
-        lock (_lock)
-            foreach (var id in ids)
-                if (_dict.TryGetValue(id, out var flowState))
-                    flowState.Interrupt();
-    }
-
     public Task Push(IReadOnlyList<StoredMessages> messagesByFlow)
     {
         List<Task> tasks = new();

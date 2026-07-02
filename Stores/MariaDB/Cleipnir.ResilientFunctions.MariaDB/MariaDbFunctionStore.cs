@@ -461,27 +461,6 @@ public class MariaDbFunctionStore : IFunctionStore
         return ids;
     }
 
-    public async Task<IReadOnlyList<StoredId>> GetInterruptedFunctions()
-    {
-        var sql = @$"
-            SELECT id
-            FROM {_tablePrefix}
-            WHERE interrupted = TRUE";
-
-        await using var conn = await CreateOpenConnection(_connectionString);
-        await using var command = new MySqlCommand(sql, conn);
-
-        await using var reader = await command.ExecuteReaderAsync();
-        var interruptedIds = new List<StoredId>();
-        while (await reader.ReadAsync())
-        {
-            var storedId = reader.GetString(0).ToGuid().ToStoredId();
-            interruptedIds.Add(storedId);
-        }
-
-        return interruptedIds;
-    }
-
     private string? _setFunctionStateSql;
     public async Task<bool> SetFunctionState(
         StoredId storedId, Status status, 
@@ -692,16 +671,6 @@ public class MariaDbFunctionStore : IFunctionStore
 
         await using var conn = await CreateOpenConnection(_connectionString);
         await using var cmd = _sqlGenerator.Interrupt(storedIds).ToSqlCommand(conn);
-        await cmd.ExecuteNonQueryAsync();
-    }
-
-    public async Task ResetInterrupted(IReadOnlyList<StoredId> storedIds)
-    {
-        if (storedIds.Count == 0)
-            return;
-
-        await using var conn = await CreateOpenConnection(_connectionString);
-        await using var cmd = _sqlGenerator.ResetInterrupted(storedIds).ToSqlCommand(conn);
         await cmd.ExecuteNonQueryAsync();
     }
 

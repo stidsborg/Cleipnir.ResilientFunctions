@@ -140,14 +140,6 @@ internal class QueueManager : IDisposable
         return Task.CompletedTask;
     }
 
-    internal void Interrupt()
-    {
-        if (_disposed)
-            return;
-
-        DeliverMessages();
-    }
-
     /// <summary>
     /// Pushes messages fetched elsewhere (the MessageWatchdog, or the in-hand messages handed over on restart)
     /// straight into the delivery pipeline, avoiding a per-flow re-fetch. Ensures the queue manager is initialized

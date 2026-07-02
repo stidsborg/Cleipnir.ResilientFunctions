@@ -42,19 +42,6 @@ public class SqlGenerator(string tablePrefix)
         return command;
     }
 
-    private string? _resetInterruptedSql;
-    public StoreCommand ResetInterrupted(IEnumerable<StoredId> storedIds)
-    {
-        _resetInterruptedSql ??= @$"
-                UPDATE {tablePrefix}
-                SET Interrupted = 0
-                WHERE Id IN (SELECT CAST(value AS UNIQUEIDENTIFIER) FROM STRING_SPLIT(@Ids, ','));";
-
-        var command = StoreCommand.Create(_resetInterruptedSql);
-        command.AddParameter("@Ids", storedIds.ToCommaSeparatedIds());
-        return command;
-    }
-
     public StoreCommand InsertEffects(StoredId storedId, IReadOnlyList<StoredEffectChange> changes, SnapshotStorageSession session, string paramPrefix)
     {
         foreach (var change in changes)
