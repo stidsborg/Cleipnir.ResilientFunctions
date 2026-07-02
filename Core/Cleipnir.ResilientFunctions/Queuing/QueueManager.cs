@@ -76,6 +76,10 @@ internal class QueueManager : IDisposable
         _messageClearer = messageClearer;
         _pushPendingMessages = pushPendingMessages;
         _idempotencyKeys = new IdempotencyKeys(IdempotencyKeysRoot, _effect, maxIdempotencyKeyCount, maxIdempotencyKeyTtl, utcNow);
+
+        // Attach to the flow state immediately - not first at initialization - so a push arriving before the flow's
+        // first message interaction is processed (Push self-initializes) instead of being dropped by the flow state.
+        flowExecutionState.QueueManager = this;
     }
 
     private async Task Initialize(bool pushPendingMessages)
@@ -106,7 +110,6 @@ internal class QueueManager : IDisposable
 
             _initialized = true;
             _effect.RegisterQueueManager(this);
-            _flowExecutionState.QueueManager = this;
 
             // Kick an immediate fetch-and-push so a freshly started/resumed flow receives its pending messages now
             // rather than waiting for the next MessageWatchdog poll. _initialized is already set, so the resulting

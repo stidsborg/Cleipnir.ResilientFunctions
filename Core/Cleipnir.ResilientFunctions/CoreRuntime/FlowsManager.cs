@@ -38,7 +38,7 @@ public class FlowsManager
     public FlowExecutionState CreateFlowState(StoredId id, FlowTimeouts timeouts, Task completed)
     {
         lock (_lock)
-            return _dict[id] = new FlowExecutionState(id, subflows: 1, waitingSubflows: 0, timeouts, completed);
+            return _dict[id] = new FlowExecutionState(id, subflows: 1, waitingSubflows: 0, timeouts, completed, _messageClearer.ReopenPositions);
     }
 
     public void RemoveFlow(StoredId id, FlowExecutionState flowExecutionState)
@@ -65,10 +65,21 @@ public class FlowsManager
     public Task Push(IReadOnlyList<StoredMessages> messagesByFlow)
     {
         List<Task> tasks = new();
+        List<StoredMessages> notLive = new();
         lock (_lock)
-            foreach (var (id, messages) in messagesByFlow)
-                if (_dict.TryGetValue(id, out var flowState))
-                    tasks.Add(flowState.Push(messages));
+            foreach (var storedMessages in messagesByFlow)
+                if (_dict.TryGetValue(storedMessages.StoredId, out var flowState))
+                    tasks.Add(flowState.Push(storedMessages.Messages));
+                else
+                    notLive.Add(storedMessages);
+
+        // The MessageWatchdog optimistically marked all pushed positions; a flow that is not live cannot receive
+        // its messages now, so reopen the positions - stranding them in the ignore-set would let a later-positioned
+        // duplicate consume the idempotency key first once the flow starts.
+        if (notLive.Count > 0)
+            _messageClearer.ReopenPositions(
+                notLive.SelectMany(storedMessages => storedMessages.Messages).Select(message => message.Position)
+            );
 
         return Task.WhenAll(tasks);
     }
