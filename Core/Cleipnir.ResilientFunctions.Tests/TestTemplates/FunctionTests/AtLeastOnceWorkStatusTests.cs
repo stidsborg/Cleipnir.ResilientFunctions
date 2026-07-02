@@ -31,7 +31,7 @@ public abstract class AtLeastOnceWorkStatusTests
                         {
                             counter.Increment();
                             if (counter.Current == 1)
-                                await workflow.Delay(TimeSpan.FromMilliseconds(10));
+                                await workflow.Delay(TimeSpan.FromMilliseconds(500));
                         }
                     );
             });
@@ -65,7 +65,7 @@ public abstract class AtLeastOnceWorkStatusTests
                         {
                             counter.Increment();
                             if (counter.Current == 1)
-                                await workflow.Delay(TimeSpan.FromMilliseconds(10));
+                                await workflow.Delay(TimeSpan.FromMilliseconds(500));
                             return Task.CompletedTask;
                         }
                     );

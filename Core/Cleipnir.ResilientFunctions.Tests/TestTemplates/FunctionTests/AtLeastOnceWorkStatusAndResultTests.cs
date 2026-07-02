@@ -64,7 +64,7 @@ public abstract class AtLeastOnceWorkStatusAndResultTests
                             counter.Increment();
                             if (counter.Current == 1)
                             {
-                                await workflow.Delay(TimeSpan.FromMilliseconds(10));
+                                await workflow.Delay(TimeSpan.FromMilliseconds(500));
                                 return "nothing";
                             }
 
@@ -105,7 +105,7 @@ public abstract class AtLeastOnceWorkStatusAndResultTests
                             counter.Increment();
                             if (counter.Current == 1)
                             {
-                                await workflow.Delay(TimeSpan.FromMilliseconds(10));
+                                await workflow.Delay(TimeSpan.FromMilliseconds(500));
                                 return null!;
                             }
 
