@@ -244,8 +244,7 @@ public class FunctionsRegistry : IDisposable
                 serializer,
                 _settings.UtcNow,
                 settings?.ClearChildrenAfterCapture ?? true,
-                _messageClearer,
-                _messageWatchdog.PushOnce
+                _messageClearer
             );
             var flowsManager = _flowsManagers.GetOrCreate(storedType);
             var invoker = new Invoker<TParam, TReturn>(
@@ -331,8 +330,7 @@ public class FunctionsRegistry : IDisposable
                 serializer,
                 _settings.UtcNow,
                 settings?.ClearChildrenAfterCapture ?? true,
-                _messageClearer,
-                _messageWatchdog.PushOnce
+                _messageClearer
             );
             var flowsManager = _flowsManagers.GetOrCreate(storedType);
             var invoker = new Invoker<Unit, Unit>(
@@ -418,8 +416,7 @@ public class FunctionsRegistry : IDisposable
                 serializer,
                 _settings.UtcNow,
                 settings?.ClearChildrenAfterCapture ?? true,
-                _messageClearer,
-                _messageWatchdog.PushOnce
+                _messageClearer
             );
             var flowsManager = _flowsManagers.GetOrCreate(storedType);
             var rActionInvoker = new Invoker<TParam, Unit>(

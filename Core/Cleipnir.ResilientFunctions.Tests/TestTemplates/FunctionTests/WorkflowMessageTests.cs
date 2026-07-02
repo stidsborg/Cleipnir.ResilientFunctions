@@ -425,14 +425,17 @@ public abstract class WorkflowMessageTests
             new Settings(unhandledExceptionHandler.Catch)
         );
 
-        var invocationCount = 0;
+        // Count deliveries rather than invocations: an invocation may suspend before the message arrives and be
+        // restarted by the watchdog, so the invocation count is delivery-timing dependent - the delivery count
+        // is not.
+        var deliveredCount = 0;
         var registration = functionsRegistry.RegisterFunc(
             nameof(WorkflowMessageIsIdempotentAcrossRestarts),
             async Task<string> (string _, Workflow workflow) =>
             {
-                invocationCount++;
                 var message = await workflow.Message<string>();
-                if (invocationCount == 1)
+                deliveredCount++;
+                if (deliveredCount == 1)
                     throw new Exception("Simulated failure");
                 return message;
             }
@@ -460,7 +463,7 @@ public abstract class WorkflowMessageTests
         }, maxWait: TimeSpan.FromSeconds(10));
 
         controlPanel.Result.ShouldBe("hello world");
-        invocationCount.ShouldBe(2);
+        deliveredCount.ShouldBe(2);
 
         // The first invocation throws an exception which goes to the unhandled exception handler
         unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(1);

@@ -32,7 +32,6 @@ internal class QueueManager : IDisposable
     private readonly UtcNow _utcNow;
     private readonly SettingsWithDefaults _settings;
     private readonly IMessageClearer _messageClearer;
-    private readonly Func<Task>? _pushPendingMessages;
     private readonly IdempotencyKeys _idempotencyKeys;
 
     private readonly SemaphoreSlim _initializeSemaphore = new(1);
@@ -57,7 +56,6 @@ internal class QueueManager : IDisposable
         UtcNow utcNow,
         SettingsWithDefaults settings,
         IMessageClearer messageClearer,
-        Func<Task>? pushPendingMessages = null,
         int maxIdempotencyKeyCount = 100,
         TimeSpan? maxIdempotencyKeyTtl = null)
     {
@@ -71,7 +69,6 @@ internal class QueueManager : IDisposable
         _utcNow = utcNow;
         _settings = settings;
         _messageClearer = messageClearer;
-        _pushPendingMessages = pushPendingMessages;
         _idempotencyKeys = new IdempotencyKeys(IdempotencyKeysRoot, _effect, maxIdempotencyKeyCount, maxIdempotencyKeyTtl, utcNow);
 
         // Attach to the flow state immediately - not first at initialization - so a push arriving before the flow's
@@ -79,7 +76,7 @@ internal class QueueManager : IDisposable
         flowExecutionState.QueueManager = this;
     }
 
-    private async Task Initialize(bool pushPendingMessages)
+    private async Task Initialize()
     {
         await _initializeSemaphore.WaitAsync();
         try
@@ -107,14 +104,6 @@ internal class QueueManager : IDisposable
 
             _initialized = true;
             _effect.RegisterQueueManager(this);
-
-            // Kick an immediate fetch-and-push so a freshly started/resumed flow receives its pending messages now
-            // rather than waiting for the next MessageWatchdog poll. _initialized is already set, so the resulting
-            // push routes straight into ProcessMessages for this flow without re-running Initialize. Skipped when
-            // initialization is triggered by an incoming Push: the pusher already holds an in-flight batch, and a
-            // nested fetch would stage any newer messages ahead of that older batch, reordering delivery.
-            if (pushPendingMessages && _pushPendingMessages != null)
-                await _pushPendingMessages();
         }
         finally
         {
@@ -125,7 +114,7 @@ internal class QueueManager : IDisposable
     public async Task<QueueClient> CreateQueueClient()
     {
         if (!_initialized)
-            await Initialize(pushPendingMessages: true);
+            await Initialize();
         return new QueueClient(this, _serializer, _utcNow);
     }
 
@@ -165,7 +154,7 @@ internal class QueueManager : IDisposable
         {
             try
             {
-                await Initialize(pushPendingMessages: false);
+                await Initialize();
             }
             catch (ObjectDisposedException)
             {
