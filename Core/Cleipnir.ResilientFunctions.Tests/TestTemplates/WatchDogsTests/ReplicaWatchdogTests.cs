@@ -5,6 +5,7 @@ using Cleipnir.ResilientFunctions.CoreRuntime;
 using Cleipnir.ResilientFunctions.CoreRuntime.Watchdogs;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
+using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Tests.Utils;
 using Shouldly;
@@ -393,6 +394,42 @@ public abstract class ReplicaWatchdogTests
         var sf = await functionStore.GetFunction(flowId.ToStoredId(testRegistration2.StoredType)).ShouldNotBeNullAsync();
         sf.OwnerId.ShouldBe(overtakingRegistry.ClusterInfo.ReplicaId);
         testCompletedFlag.Raise();
+    }
+
+    public abstract Task CrashedReplicasMessagesAreTakenOverByLiveReplica();
+    public async Task CrashedReplicasMessagesAreTakenOverByLiveReplica(Task<IFunctionStore> storeTask)
+    {
+        var functionStore = await WithRandomPrefix(storeTask);
+        var messageStore = functionStore.MessageStore;
+        var stringType = typeof(string).SimpleQualifiedName().ToUtf8Bytes();
+
+        var crashedReplica = ReplicaId.NewId();
+        await functionStore.ReplicaStore.Insert(crashedReplica, timeStamp: 0);
+
+        // Message published by the crashed replica to an ownerless flow - without the handover it would never be
+        // fetched again since GetMessagesForReplica only returns messages assigned to the fetching replica.
+        var flowId = TestStoredId.Create();
+        await messageStore.AppendMessage(
+            flowId,
+            new StoredMessage("orphan".ToJson().ToUtf8Bytes(), stringType, Position: 0, Replica: crashedReplica)
+        );
+
+        var liveReplica = new ClusterInfo(ReplicaId.NewId());
+        using var watchdog = new ReplicaWatchdog(
+            liveReplica,
+            functionStore,
+            heartbeatFrequency: TimeSpan.FromTicks(1),
+            utcNow: () => DateTime.UtcNow,
+            unhandledExceptionHandler: default(UnhandledExceptionHandler)!
+        );
+        await watchdog.Initialize(utcNowTicks: 0);
+        await watchdog.PerformIteration(utcNowTicks: 3);
+
+        var replicas = await functionStore.ReplicaStore.GetAll();
+        replicas.Single().ReplicaId.ShouldBe(liveReplica.ReplicaId);
+
+        var messages = await messageStore.GetMessages(flowId);
+        messages.Single().Replica.ShouldBe(liveReplica.ReplicaId);
     }
 
     private async Task<IFunctionStore> WithRandomPrefix(Task<IFunctionStore> storeTask)

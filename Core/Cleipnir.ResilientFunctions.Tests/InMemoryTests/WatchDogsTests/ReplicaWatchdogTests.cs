@@ -53,4 +53,8 @@ public class ReplicaWatchdogTests : TestTemplates.WatchDogsTests.ReplicaWatchdog
     [TestMethod]
     public override Task ReplicaCrashedFunctionIsTakenOverByOtherReplica()
         => ReplicaCrashedFunctionIsTakenOverByOtherReplica(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task CrashedReplicasMessagesAreTakenOverByLiveReplica()
+        => CrashedReplicasMessagesAreTakenOverByLiveReplica(FunctionStoreFactory.Create());
 }
