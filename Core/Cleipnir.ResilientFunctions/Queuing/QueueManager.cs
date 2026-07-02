@@ -89,6 +89,13 @@ internal class QueueManager : IDisposable
 
             if (_effect.TryGet<List<long>>(DeliveredPositionsId, out var positions) && positions is { Count: > 0 })
             {
+                // Remember the positions a previous incarnation already delivered, so a message fetched before its
+                // Clear deletes it from the store (e.g. the restart's in-hand messages) is skipped by
+                // ProcessMessages rather than delivered a second time.
+                lock (_lock)
+                    foreach (var position in positions)
+                        _fetchedPositions.Add(position);
+
                 await _messageClearer.Clear(positions);
                 positions.Clear();
                 _effect.FlushlessUpsert(DeliveredPositionsId, positions, alias: null);
@@ -122,13 +129,18 @@ internal class QueueManager : IDisposable
     }
 
     /// <summary>
-    /// Pushes messages fetched elsewhere (the MessageWatchdog) straight into the delivery pipeline,
-    /// avoiding a per-flow re-fetch. Idempotent: positions already processed are skipped by ProcessMessages.
+    /// Pushes messages fetched elsewhere (the MessageWatchdog, or the in-hand messages handed over on restart)
+    /// straight into the delivery pipeline, avoiding a per-flow re-fetch. Ensures the queue manager is initialized
+    /// first so the idempotency-key state is loaded before the messages are processed. Idempotent: positions
+    /// already processed are skipped by ProcessMessages.
     /// </summary>
     public async Task Push(IReadOnlyList<StoredMessage> messages)
     {
         if (_disposed || messages.Count == 0)
             return;
+
+        if (!_initialized)
+            await Initialize();
 
         await _fetchSemaphore.WaitAsync();
         try

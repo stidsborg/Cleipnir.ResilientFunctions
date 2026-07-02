@@ -337,6 +337,12 @@ public class Invoker<TParam, TReturn> : IFlowRestarter
 
             var queueManager = _invocationHelper.CreateQueueManager(flowId, storedId, effect, flowState, flowTimeouts, _unhandledExceptionHandler);
             disposables.Add(queueManager);
+
+            // Deliver the in-hand messages handed over by the restart straight into the queue manager's pipeline so
+            // the flow does not have to re-fetch them from the store. Push initializes the queue manager first, which
+            // loads the idempotency-key state before these messages are processed.
+            await queueManager.Push(storedMessages);
+
             var messageWriter = _invocationHelper.CreateMessageWriter(storedId);
 
             var workflow = new Workflow(
