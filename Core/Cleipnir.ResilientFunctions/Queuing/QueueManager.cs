@@ -166,10 +166,23 @@ internal class QueueManager : IDisposable
         await _fetchSemaphore.WaitAsync();
         try
         {
-            if (_thrownException != null)
-                return;
+            if (_thrownException == null)
+                ProcessMessages(messages);
 
-            ProcessMessages(messages);
+            // A poisoned queue manager (message deserialization failed) cannot deliver. Reopen the batch's
+            // unstaged positions so the messages are refetched and handed to a restarted incarnation, whose
+            // subscription then surfaces the failure and fails the flow - otherwise a concurrently suspending
+            // flow would never learn of the poisoned message and both would be stranded.
+            if (_thrownException != null)
+            {
+                List<long> unstagedPositions;
+                lock (_lock)
+                    unstagedPositions = messages
+                        .Select(m => m.Position)
+                        .Where(position => !_fetchedPositions.Contains(position))
+                        .ToList();
+                _messageClearer.ReopenPositions(unstagedPositions);
+            }
         }
         finally
         {

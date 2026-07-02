@@ -1,11 +1,12 @@
-﻿using System.Threading.Tasks;
+﻿using System;
+using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Serialization;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.Messaging;
 
-public class MessageWriter(StoredId storedIdId, IMessageStore messageStore, ISerializer eventSerializer, ReplicaId publisherReplica)
+public class MessageWriter(StoredId storedIdId, IMessageStore messageStore, ISerializer eventSerializer, ReplicaId publisherReplica, Action? notifyDelivery = null)
 {
     public async Task AppendMessage<TMessage>(TMessage message, string? idempotencyKey = null, string? sender = null, string? receiver = null) where TMessage : class
     {
@@ -14,5 +15,8 @@ public class MessageWriter(StoredId storedIdId, IMessageStore messageStore, ISer
 
         var storedMessage = new StoredMessage(eventJson, eventType, Position: 0, Replica: publisherReplica, IdempotencyKey: idempotencyKey, Sender: sender, Receiver: receiver);
         await messageStore.AppendMessages([new StoredIdAndMessage(storedIdId, storedMessage)]);
+
+        // Wake the MessageWatchdog so the appended message is delivered now rather than on the next poll.
+        notifyDelivery?.Invoke();
     }
 }

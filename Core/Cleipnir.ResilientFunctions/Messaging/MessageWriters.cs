@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
@@ -14,28 +15,31 @@ public class MessageWriters
     private readonly IFunctionStore _functionStore;
     private readonly ISerializer _serializer;
     private readonly ReplicaId _publisherReplica;
+    private readonly Action? _notifyDelivery;
 
     public MessageWriters(
         StoredType storedType,
         IFunctionStore functionStore,
         ISerializer serializer,
-        ReplicaId publisherReplica)
+        ReplicaId publisherReplica,
+        Action? notifyDelivery = null)
     {
         _storedType = storedType;
         _functionStore = functionStore;
         _serializer = serializer;
         _publisherReplica = publisherReplica;
+        _notifyDelivery = notifyDelivery;
     }
 
     public MessageWriter For(FlowInstance instance)
     {
         var storedId = StoredId.Create(_storedType, instance.Value);
-        return new MessageWriter(storedId, _functionStore.MessageStore, _serializer, _publisherReplica);
+        return new MessageWriter(storedId, _functionStore.MessageStore, _serializer, _publisherReplica, _notifyDelivery);
     }
 
     internal MessageWriter For(StoredId storedId)
     {
-        return new MessageWriter(storedId, _functionStore.MessageStore, _serializer, _publisherReplica);
+        return new MessageWriter(storedId, _functionStore.MessageStore, _serializer, _publisherReplica, _notifyDelivery);
     }
 
     public async Task AppendMessages(IReadOnlyList<BatchedMessage> messages)
@@ -51,5 +55,8 @@ public class MessageWriters
         }
 
         await _functionStore.MessageStore.AppendMessages(storedIdAndMessages);
+
+        // Wake the MessageWatchdog so the appended messages are delivered now rather than on the next poll.
+        _notifyDelivery?.Invoke();
     }
 }

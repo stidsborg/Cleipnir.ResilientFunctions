@@ -27,11 +27,12 @@ internal class InvocationHelper<TParam, TReturn>
     private readonly ReplicaId _replicaId;
     private readonly ResultBusyWaiter<TReturn> _resultBusyWaiter;
     private readonly IMessageClearer _messageClearer;
+    private readonly Action _notifyMessagesDelivery;
     public UtcNow UtcNow { get; }
 
     private ISerializer Serializer { get; }
 
-    public InvocationHelper(FlowType flowType, StoredType storedType, ReplicaId replicaId, bool isParamlessFunction, SettingsWithDefaults settings, IFunctionStore functionStore, ShutdownCoordinator shutdownCoordinator, ISerializer serializer, UtcNow utcNow, bool clearChildren, IMessageClearer messageClearer)
+    public InvocationHelper(FlowType flowType, StoredType storedType, ReplicaId replicaId, bool isParamlessFunction, SettingsWithDefaults settings, IFunctionStore functionStore, ShutdownCoordinator shutdownCoordinator, ISerializer serializer, UtcNow utcNow, bool clearChildren, IMessageClearer messageClearer, Action notifyMessagesDelivery)
     {
         _flowType = flowType;
         _isParamlessFunction = isParamlessFunction;
@@ -45,6 +46,7 @@ internal class InvocationHelper<TParam, TReturn>
         _replicaId = replicaId;
         _functionStore = functionStore;
         _messageClearer = messageClearer;
+        _notifyMessagesDelivery = notifyMessagesDelivery;
         _resultBusyWaiter = new ResultBusyWaiter<TReturn>(_functionStore, Serializer);
     }
 
@@ -208,6 +210,9 @@ internal class InvocationHelper<TParam, TReturn>
         var type = Serializer.SerializeType(msg.GetType());
         var storedMessage = new StoredMessage(content, type, Position: 0, IdempotencyKey: $"FlowCompleted:{childId}", Replica: _replicaId);
         await _functionStore.MessageStore.AppendMessages([new StoredIdAndMessage(parent, storedMessage)]);
+
+        // Wake the MessageWatchdog so the waiting parent receives the completion now rather than on the next poll.
+        _notifyMessagesDelivery();
     }
 
     public async Task<RestartedFunction?> RestartFunction(StoredId flowId)
@@ -384,7 +389,7 @@ internal class InvocationHelper<TParam, TReturn>
     }
     
     public MessageWriter CreateMessageWriter(StoredId storedId)
-        => new MessageWriter(storedId, _functionStore.MessageStore, Serializer, _replicaId);
+        => new MessageWriter(storedId, _functionStore.MessageStore, Serializer, _replicaId, _notifyMessagesDelivery);
 
     public Effect CreateEffect(StoredId storedId, FlowId flowId, IReadOnlyList<StoredEffect> storedEffects, FlowTimeouts flowTimeouts, IStorageSession? storageSession, FlowExecutionState flowExecutionState)
     {

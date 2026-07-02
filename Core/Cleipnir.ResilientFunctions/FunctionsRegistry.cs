@@ -244,7 +244,8 @@ public class FunctionsRegistry : IDisposable
                 serializer,
                 _settings.UtcNow,
                 settings?.ClearChildrenAfterCapture ?? true,
-                _messageClearer
+                _messageClearer,
+                _messageWatchdog.Notify
             );
             var flowsManager = _flowsManagers.GetOrCreate(storedType);
             var invoker = new Invoker<TParam, TReturn>(
@@ -282,7 +283,8 @@ public class FunctionsRegistry : IDisposable
                 storedType,
                 _functionStore,
                 serializer,
-                ClusterInfo.ReplicaId
+                ClusterInfo.ReplicaId,
+                _messageWatchdog.Notify
             );
 
             var registration = new FuncRegistration<TParam, TReturn>(
@@ -330,7 +332,8 @@ public class FunctionsRegistry : IDisposable
                 serializer,
                 _settings.UtcNow,
                 settings?.ClearChildrenAfterCapture ?? true,
-                _messageClearer
+                _messageClearer,
+                _messageWatchdog.Notify
             );
             var flowsManager = _flowsManagers.GetOrCreate(storedType);
             var invoker = new Invoker<Unit, Unit>(
@@ -368,7 +371,8 @@ public class FunctionsRegistry : IDisposable
                 storedType,
                 _functionStore,
                 serializer,
-                ClusterInfo.ReplicaId
+                ClusterInfo.ReplicaId,
+                _messageWatchdog.Notify
             );
 
             var registration = new ParamlessRegistration(
@@ -416,7 +420,8 @@ public class FunctionsRegistry : IDisposable
                 serializer,
                 _settings.UtcNow,
                 settings?.ClearChildrenAfterCapture ?? true,
-                _messageClearer
+                _messageClearer,
+                _messageWatchdog.Notify
             );
             var flowsManager = _flowsManagers.GetOrCreate(storedType);
             var rActionInvoker = new Invoker<TParam, Unit>(
@@ -454,7 +459,8 @@ public class FunctionsRegistry : IDisposable
                 storedType,
                 _functionStore,
                 serializer,
-                ClusterInfo.ReplicaId
+                ClusterInfo.ReplicaId,
+                _messageWatchdog.Notify
             );
             var registration = new ActionRegistration<TParam>(
                 flowType,
