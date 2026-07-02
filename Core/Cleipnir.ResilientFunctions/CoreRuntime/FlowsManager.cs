@@ -141,13 +141,4 @@ public class FlowsManager
             await _restarter!.ScheduleRestart(storedId, restartedFunction, onCompletion: () => { });
         }
     }
-
-    /// <summary>
-    /// Wakes the target flow so it consumes the just-published message by applying the durable interrupt
-    /// (interrupted flag + expires=0) - the suspend-race guard and watchdog backstop, so the message is never
-    /// lost even when the target suspends concurrently or is owned by another replica. An idle target this
-    /// replica executes is then picked up by the PostponedWatchdog.
-    /// </summary>
-    public Task Schedule(StoredId storedId)
-        => _functionStore.Interrupt(storedId);
 }
