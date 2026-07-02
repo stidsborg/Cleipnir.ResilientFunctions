@@ -80,6 +80,8 @@ public class FunctionsRegistry : IDisposable
             utcNow
         );
 
+        // The MessageWatchdog is the message-delivery loop, so it runs at the message-pull frequency - the
+        // (slower) watchdog check frequency would make every push-restarted exchange poll-bound.
         _messageWatchdog = new MessageWatchdog(
             _functionStore.MessageStore,
             _flowsManagers,
@@ -87,7 +89,7 @@ public class FunctionsRegistry : IDisposable
             ClusterInfo,
             _shutdownCoordinator,
             _settings.UnhandledExceptionHandler,
-            _settings.WatchdogCheckFrequency,
+            _settings.MessagesPullFrequency,
             _settings.DelayStartup,
             utcNow
         );
