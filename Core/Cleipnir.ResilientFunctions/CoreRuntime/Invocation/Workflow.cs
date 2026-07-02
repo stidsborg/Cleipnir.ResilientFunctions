@@ -19,6 +19,7 @@ public class Workflow
     private readonly UtcNow _utcNow;
     private MessageWriter MessageWriter { get; }
 
+    internal QueueManager QueueManager => _queueManager;
 
     internal Workflow(FlowId flowId, StoredId storedId, Effect effect, QueueManager queueManager, UtcNow utcNow, MessageWriter messageWriter)
     {

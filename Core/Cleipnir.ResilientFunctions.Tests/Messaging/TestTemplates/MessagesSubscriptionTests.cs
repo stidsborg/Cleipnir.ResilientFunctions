@@ -18,17 +18,6 @@ namespace Cleipnir.ResilientFunctions.Tests.Messaging.TestTemplates;
 
 public abstract class MessagesSubscriptionTests
 {
-    // These tests hand-roll a QueueManager, which delegates message deletion to IMessageClearer. They don't
-    // assert on store cleanup, so a no-op stub suffices.
-    private static readonly IMessageClearer StubMessageClearer = new NoopMessageClearer();
-    private static readonly ClusterInfo StubClusterInfo = new(ReplicaId.NewId());
-
-    private sealed class NoopMessageClearer : IMessageClearer
-    {
-        public Task Clear(IReadOnlyList<long> positions) => Task.CompletedTask;
-        public void ReopenPositions(IEnumerable<long> positions) { }
-    }
-
     public abstract Task EventsSubscriptionSunshineScenario();
     protected async Task EventsSubscriptionSunshineScenario(Task<IFunctionStore> functionStoreTask)
     {
@@ -558,42 +547,17 @@ public abstract class MessagesSubscriptionTests
     {
         var functionStore = await functionStoreTask;
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        var unhandledExceptionHandler = new UnhandledExceptionHandler(unhandledExceptionCatcher.Catch);
         var exceptionThrowingSerializer = new ExceptionThrowingEventSerializer(typeof(BadMessage));
         using var functionsRegistry = new FunctionsRegistry(
             functionStore,
-            new Settings(unhandledExceptionCatcher.Catch)
+            new Settings(unhandledExceptionCatcher.Catch, serializer: exceptionThrowingSerializer)
         );
 
         var rFunc = functionsRegistry.RegisterFunc(
             nameof(QueueManagerFailsOnMessageDeserializationError),
             inner: async Task<string> (string _, Workflow workflow) =>
             {
-
-                var flowTimeouts = new FlowTimeouts();
-                var flowsManager = new FlowsManager(functionStore, StubMessageClearer, StubClusterInfo);
-                var flowState = flowsManager.CreateFlowState(workflow.StoredId, flowTimeouts, completed: ForeverTask.Instance);
-                var queueManager = new QueueManager(
-                    workflow.FlowId,
-                    workflow.StoredId,
-                    functionStore.MessageStore,
-                    exceptionThrowingSerializer,
-                    workflow.Effect,
-                    flowState,
-                    unhandledExceptionHandler,
-                    flowTimeouts,
-                    () => DateTime.UtcNow,
-                    SettingsWithDefaults.Default,
-                    StubMessageClearer
-                );
-
-                var queueClient = await queueManager.CreateQueueClient();
-
-                var message = await queueClient.Pull<GoodMessage>(
-                    workflow,
-                    workflow.Effect.CreateNextImplicitId()
-                );
-
+                var message = await workflow.Message<GoodMessage>();
                 return message.Value;
             }
         );
@@ -622,61 +586,36 @@ public abstract class MessagesSubscriptionTests
     {
         var functionStore = await functionStoreTask;
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        var unhandledExceptionHandler = new UnhandledExceptionHandler(unhandledExceptionCatcher.Catch);
         using var functionsRegistry = new FunctionsRegistry(
             functionStore,
             new Settings(unhandledExceptionCatcher.Catch)
         );
 
-        StoredId? storedId = null;
         var rFunc = functionsRegistry.RegisterFunc(
             nameof(RegisteredTimeoutIsRemovedWhenPullingMessage),
             inner: async Task<string> (string _, Workflow workflow) =>
             {
-                storedId = workflow.StoredId;
-                var minimumTimeout = new FlowTimeouts();
-                var flowsManager = new FlowsManager(functionStore, StubMessageClearer, StubClusterInfo);
-                var flowState = flowsManager.CreateFlowState(workflow.StoredId, minimumTimeout, completed: ForeverTask.Instance);
-                var queueManager = new QueueManager(
-                    workflow.FlowId,
-                    workflow.StoredId,
-                    functionStore.MessageStore,
-                    DefaultSerializer.Instance,
-                    workflow.Effect,
-                    flowState,
-                    unhandledExceptionHandler,
-                    minimumTimeout,
-                    () => DateTime.UtcNow,
-                    SettingsWithDefaults.Default,
-                    StubMessageClearer
-                );
-
-
-                var queueClient = await queueManager.CreateQueueClient();
-
-                // Verify timeout is not set before pull
-                minimumTimeout.MinimumTimeout.ShouldBeNull();
-
-                var message = await queueClient.Pull<string>(
-                    workflow,
-                    workflow.Effect.CreateNextImplicitId(),
-                    timeout: TimeSpan.FromMinutes(5)
-                );
-
-                // Verify timeout is removed after successful pull
-                minimumTimeout.MinimumTimeout.ShouldBeNull();
-
+                // Pull a message with a 1-hour timeout (which registers the timeout), then suspend on a 1-day delay.
+                // Once the message is delivered the 1-hour timeout must be removed, leaving the 1-day delay as the
+                // only (minimum) timeout - so the flow is postponed ~1 day out. If the message timeout lingered the
+                // postpone would instead be ~1 hour.
+                var message = await workflow.Message<string>(TimeSpan.FromHours(1));
+                await workflow.Delay(TimeSpan.FromDays(1));
                 return message!;
             }
         );
 
-        var scheduled = await rFunc.Schedule("instanceId", "");
+        await rFunc.Schedule("instanceId", "");
         var messageWriter = rFunc.MessageWriters.For("instanceId".ToFlowInstance());
         await messageWriter.AppendMessage("test message");
 
-        var result = await scheduled.Completion(timeout: TimeSpan.FromSeconds(5));
-        result.ShouldBe("test message");
+        var controlPanel = await rFunc.ControlPanel("instanceId").ShouldNotBeNullAsync();
+        await controlPanel.BusyWaitUntil(
+            c => c.Status == Status.Postponed && c.PostponedUntil > DateTime.UtcNow + TimeSpan.FromHours(12),
+            maxWait: TimeSpan.FromSeconds(10)
+        );
 
+        controlPanel.PostponedUntil!.Value.ShouldBeGreaterThan(DateTime.UtcNow + TimeSpan.FromHours(23));
         unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
 
@@ -685,7 +624,6 @@ public abstract Task PullEnvelopeReturnsEnvelopeWithReceiverAndSender();
     {
         var functionStore = await functionStoreTask;
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        var unhandledExceptionHandler = new UnhandledExceptionHandler(unhandledExceptionCatcher.Catch);
         using var functionsRegistry = new FunctionsRegistry(
             functionStore,
             new Settings(unhandledExceptionCatcher.Catch)
@@ -695,27 +633,9 @@ public abstract Task PullEnvelopeReturnsEnvelopeWithReceiverAndSender();
             nameof(PullEnvelopeReturnsEnvelopeWithReceiverAndSender),
             inner: async Task<string> (string _, Workflow workflow) =>
             {
-
-                var flowTimeouts = new FlowTimeouts();
-                var flowsManager = new FlowsManager(functionStore, StubMessageClearer, StubClusterInfo);
-                var flowState = flowsManager.CreateFlowState(workflow.StoredId, flowTimeouts, completed: ForeverTask.Instance);
-                var queueManager = new QueueManager(
-                    workflow.FlowId,
-                    workflow.StoredId,
-                    functionStore.MessageStore,
-                    DefaultSerializer.Instance,
-                    workflow.Effect,
-                    flowState,
-                    unhandledExceptionHandler,
-                    flowTimeouts,
-                    () => DateTime.UtcNow,
-                    SettingsWithDefaults.Default,
-                    StubMessageClearer
-                );
-
-                var queueClient = await queueManager.CreateQueueClient();
-
-                // Pull envelope for specific receiver
+                // Use the flow's own (production) queue manager - not a hand-rolled instance - to pull the envelope
+                // and read its receiver/sender metadata.
+                var queueClient = await workflow.QueueManager.CreateQueueClient();
                 var envelope = await queueClient.PullEnvelope<string>(
                     workflow,
                     workflow.Effect.CreateNextImplicitId(),
