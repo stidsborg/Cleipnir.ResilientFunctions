@@ -461,6 +461,8 @@ public class SqlGenerator(string tablePrefix)
     // claimed by ITS call. A single UPDATE-then-SELECT cannot distinguish rows claimed by this call from rows
     // already claimed by an earlier call from the same replica, which made two concurrent claimers (e.g. two
     // watchdogs) both restart the same flow.
+    // Restartable flows are the parked ones (postponed/suspended): the batch restart backs the watchdogs, which
+    // must never resurrect a completed flow - e.g. when a message arrives after its target has succeeded.
     private string? _restartExecutionsSelectEligibleSql;
     public StoreCommand RestartExecutionsSelectEligible(IReadOnlyList<StoredId> storedIds)
     {
@@ -479,7 +481,7 @@ public class SqlGenerator(string tablePrefix)
                 owner,
                 effects
             FROM {tablePrefix}
-            WHERE id IN ({{0}}) AND owner IS NULL
+            WHERE id IN ({{0}}) AND owner IS NULL AND status IN ({(int)Status.Postponed}, {(int)Status.Suspended})
             FOR UPDATE;";
 
         var idList = storedIds.Select(id => $"'{id.AsGuid:N}'").Order().StringJoin(", ");

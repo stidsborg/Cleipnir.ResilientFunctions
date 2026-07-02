@@ -2289,4 +2289,76 @@ public abstract class StoreTests
         var secondClaim = await store.RestartExecutionsWithoutMessages([functionId], replicaId);
         secondClaim.ShouldBeEmpty();
     }
+
+    public abstract Task RestartExecutionsDoesNotClaimSucceededFlow();
+    protected async Task RestartExecutionsDoesNotClaimSucceededFlow(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var functionId = TestStoredId.Create();
+        var initialOwner = ReplicaId.NewId();
+
+        await store.CreateFunction(
+            functionId,
+            "humanInstanceId",
+            param: Test.SimpleStoredParameter,
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks,
+            parent: null,
+            owner: initialOwner
+        );
+
+        await store.SucceedFunction(
+            functionId,
+            result: null,
+            timestamp: DateTime.UtcNow.Ticks,
+            expectedReplica: initialOwner,
+            effects: null,
+            messages: null,
+            storageSession: null
+        ).ShouldBeTrueAsync();
+
+        // A message arriving after the flow completed must not resurrect it.
+        var claimed = await store.RestartExecutions([functionId], ReplicaId.NewId());
+        claimed.ShouldBeEmpty();
+
+        var claimedWithoutMessages = await store.RestartExecutionsWithoutMessages([functionId], ReplicaId.NewId());
+        claimedWithoutMessages.ShouldBeEmpty();
+
+        var sf = await store.GetFunction(functionId);
+        sf.ShouldNotBeNull();
+        sf.Status.ShouldBe(Status.Succeeded);
+    }
+
+    public abstract Task RestartExecutionsClaimsSuspendedFlow();
+    protected async Task RestartExecutionsClaimsSuspendedFlow(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var functionId = TestStoredId.Create();
+        var initialOwner = ReplicaId.NewId();
+
+        await store.CreateFunction(
+            functionId,
+            "humanInstanceId",
+            param: Test.SimpleStoredParameter,
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks,
+            parent: null,
+            owner: initialOwner
+        );
+
+        await store.SuspendFunction(
+            functionId,
+            timestamp: DateTime.UtcNow.Ticks,
+            expectedReplica: initialOwner,
+            effects: null,
+            messages: null,
+            storageSession: null
+        ).ShouldBeTrueAsync();
+
+        var newOwner = ReplicaId.NewId();
+        var claimed = await store.RestartExecutions([functionId], newOwner);
+        claimed.Count.ShouldBe(1);
+        claimed[functionId].StoredFlow.OwnerId.ShouldBe(newOwner);
+        claimed[functionId].StoredFlow.Status.ShouldBe(Status.Executing);
+    }
 }

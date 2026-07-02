@@ -277,4 +277,12 @@ public class StoreTests : TestTemplates.StoreTests
     [TestMethod]
     public override Task RestartExecutionsWithoutMessagesDoesNotReturnFlowClaimedByPreviousCall()
         => RestartExecutionsWithoutMessagesDoesNotReturnFlowClaimedByPreviousCall(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task RestartExecutionsDoesNotClaimSucceededFlow()
+        => RestartExecutionsDoesNotClaimSucceededFlow(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task RestartExecutionsClaimsSuspendedFlow()
+        => RestartExecutionsClaimsSuspendedFlow(FunctionStoreFactory.Create());
 }

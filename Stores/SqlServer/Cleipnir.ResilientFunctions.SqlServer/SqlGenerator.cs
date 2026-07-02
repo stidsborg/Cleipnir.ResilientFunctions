@@ -456,6 +456,8 @@ public class SqlGenerator(string tablePrefix)
     private string? _restartExecutionsSql;
     public StoreCommand RestartExecutions(IReadOnlyList<StoredId> storedIds, ReplicaId replicaId)
     {
+        // Restartable flows are the parked ones (postponed/suspended): the batch restart backs the watchdogs, which
+        // must never resurrect a completed flow - e.g. when a message arrives after its target has succeeded.
         _restartExecutionsSql ??= @$"
             UPDATE {tablePrefix}
             SET Status = {(int)Status.Executing},
@@ -474,7 +476,9 @@ public class SqlGenerator(string tablePrefix)
                    inserted.Parent,
                    inserted.Owner,
                    inserted.Effects
-            WHERE Id IN (SELECT CAST(value AS UNIQUEIDENTIFIER) FROM STRING_SPLIT(@Ids, ',')) AND Owner IS NULL;";
+            WHERE Id IN (SELECT CAST(value AS UNIQUEIDENTIFIER) FROM STRING_SPLIT(@Ids, ','))
+              AND Owner IS NULL
+              AND Status IN ({(int)Status.Postponed}, {(int)Status.Suspended});";
 
         var storeCommand = StoreCommand.Create(_restartExecutionsSql);
         storeCommand.AddParameter("@Owner", replicaId.AsGuid);

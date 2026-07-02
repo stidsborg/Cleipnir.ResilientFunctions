@@ -161,6 +161,8 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
                 var state = _states[storedId];
                 if (state.Owner != null)
                     continue; // Skip already owned flows
+                if (state.Status is not (Status.Postponed or Status.Suspended))
+                    continue; // Never resurrect a completed flow - e.g. when a message arrives after it succeeded
 
                 // Restart this flow
                 state.Status = Status.Executing;
@@ -171,7 +173,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
                 restartedIds.Add(storedId);
             }
         }
-        
+
         var effectsDict = await EffectsStore.GetEffectResults(storedIds);
         var messagesDict = await MessageStore.GetMessages(storedIds);
         
@@ -222,6 +224,8 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
                 var state = _states[storedId];
                 if (state.Owner != null)
                     continue; // Skip already owned flows
+                if (state.Status is not (Status.Postponed or Status.Suspended))
+                    continue; // Never resurrect a completed flow - e.g. when a message arrives after it succeeded
 
                 // Restart this flow
                 state.Status = Status.Executing;
