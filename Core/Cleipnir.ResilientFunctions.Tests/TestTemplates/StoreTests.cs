@@ -2234,4 +2234,59 @@ public abstract class StoreTests
         results.ContainsKey(nonExistentFunctionId).ShouldBeFalse();
     }
 
+    public abstract Task RestartExecutionsDoesNotReturnFlowClaimedByPreviousCall();
+    protected async Task RestartExecutionsDoesNotReturnFlowClaimedByPreviousCall(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var functionId = TestStoredId.Create();
+        var replicaId = ReplicaId.NewId();
+
+        await store.CreateFunction(
+            functionId,
+            "humanInstanceId",
+            param: Test.SimpleStoredParameter,
+            postponeUntil: DateTime.UtcNow.Ticks,
+            timestamp: DateTime.UtcNow.Ticks,
+            parent: null,
+            owner: null
+        );
+
+        var firstClaim = await store.RestartExecutions([functionId], replicaId);
+        firstClaim.Count.ShouldBe(1);
+        firstClaim.ContainsKey(functionId).ShouldBeTrue();
+        firstClaim[functionId].StoredFlow.OwnerId.ShouldBe(replicaId);
+        firstClaim[functionId].StoredFlow.Status.ShouldBe(Status.Executing);
+
+        // A flow claimed by an earlier call must not be handed out again - not even to the same replica -
+        // otherwise two concurrent claimers (e.g. two watchdogs) both restart the same flow.
+        var secondClaim = await store.RestartExecutions([functionId], replicaId);
+        secondClaim.ShouldBeEmpty();
+    }
+
+    public abstract Task RestartExecutionsWithoutMessagesDoesNotReturnFlowClaimedByPreviousCall();
+    protected async Task RestartExecutionsWithoutMessagesDoesNotReturnFlowClaimedByPreviousCall(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var functionId = TestStoredId.Create();
+        var replicaId = ReplicaId.NewId();
+
+        await store.CreateFunction(
+            functionId,
+            "humanInstanceId",
+            param: Test.SimpleStoredParameter,
+            postponeUntil: DateTime.UtcNow.Ticks,
+            timestamp: DateTime.UtcNow.Ticks,
+            parent: null,
+            owner: null
+        );
+
+        var firstClaim = await store.RestartExecutionsWithoutMessages([functionId], replicaId);
+        firstClaim.Count.ShouldBe(1);
+        firstClaim.ContainsKey(functionId).ShouldBeTrue();
+        firstClaim[functionId].StoredFlow.OwnerId.ShouldBe(replicaId);
+        firstClaim[functionId].StoredFlow.Status.ShouldBe(Status.Executing);
+
+        var secondClaim = await store.RestartExecutionsWithoutMessages([functionId], replicaId);
+        secondClaim.ShouldBeEmpty();
+    }
 }
