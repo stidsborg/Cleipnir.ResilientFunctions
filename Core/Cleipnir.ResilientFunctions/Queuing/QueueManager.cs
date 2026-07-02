@@ -147,14 +147,34 @@ internal class QueueManager : IDisposable
     /// straight into the delivery pipeline, avoiding a per-flow re-fetch. Ensures the queue manager is initialized
     /// first so the idempotency-key state is loaded before the messages are processed. Idempotent: positions
     /// already processed are skipped by ProcessMessages.
+    ///
+    /// A push that hits a disposed (dying) instance reopens its positions instead of dropping them: the
+    /// MessageWatchdog already marked them as pushed, so a silent drop would strand the messages in the
+    /// ignore-set and lose the flow's wake-up.
     /// </summary>
     public async Task Push(IReadOnlyList<StoredMessage> messages)
     {
-        if (_disposed || messages.Count == 0)
+        if (messages.Count == 0)
             return;
 
+        if (_disposed)
+        {
+            _messageClearer.ReopenPositions(messages.Select(m => m.Position));
+            return;
+        }
+
         if (!_initialized)
-            await Initialize(pushPendingMessages: false);
+        {
+            try
+            {
+                await Initialize(pushPendingMessages: false);
+            }
+            catch (ObjectDisposedException)
+            {
+                _messageClearer.ReopenPositions(messages.Select(m => m.Position));
+                return;
+            }
+        }
 
         await _fetchSemaphore.WaitAsync();
         try
@@ -167,6 +187,10 @@ internal class QueueManager : IDisposable
         finally
         {
             DeliverMessages();
+            // The instance may have been disposed while this push was in flight - reopen whatever it staged so the
+            // messages are not stranded in a dead queue manager.
+            if (_disposed)
+                ReopenUndeliveredStagedMessages();
             _fetchSemaphore.Release();
         }
     }
@@ -372,7 +396,31 @@ internal class QueueManager : IDisposable
         }
     }
 
-    public void Dispose() => _disposed = true;
+    /// <summary>
+    /// Marks the instance dead and reopens the staged-but-undelivered positions: the invocation is finishing
+    /// (suspending or completing), so no subscription will ever consume them here. Reopening lets the
+    /// MessageWatchdog re-fetch them and deliver via a restart instead of leaving them stranded in the
+    /// ignore-set until the (much slower) postponed-watchdog path picks the flow up.
+    /// </summary>
+    public void Dispose()
+    {
+        _disposed = true;
+        ReopenUndeliveredStagedMessages();
+    }
+
+    private void ReopenUndeliveredStagedMessages()
+    {
+        lock (_lock)
+        {
+            if (_toDeliver.Count == 0)
+                return;
+
+            _messageClearer.ReopenPositions(_toDeliver.Select(m => m.Position));
+            foreach (var messageData in _toDeliver)
+                _fetchedPositions.Remove(messageData.Position);
+            _toDeliver.Clear();
+        }
+    }
 
     public record MessageData(
         Envelope Envelope,

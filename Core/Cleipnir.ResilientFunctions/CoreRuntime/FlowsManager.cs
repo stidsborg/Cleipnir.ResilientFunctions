@@ -68,18 +68,15 @@ public class FlowsManager
         List<StoredMessages> notLive = new();
         lock (_lock)
             foreach (var storedMessages in messagesByFlow)
-                if (_dict.TryGetValue(storedMessages.StoredId, out var flowState))
+                if (_dict.TryGetValue(storedMessages.StoredId, out var flowState) && !flowState.Suspended)
                     tasks.Add(flowState.Push(storedMessages.Messages));
                 else
+                    // Not in the dictionary, or a suspended entry lingering there (a suspended flow's parked
+                    // invocation never reaches RemoveFlow by design) - restart the flow to deliver.
                     notLive.Add(storedMessages);
 
-        // The MessageWatchdog optimistically marked all pushed positions; a flow that is not live cannot receive
-        // its messages now, so reopen the positions - stranding them in the ignore-set would let a later-positioned
-        // duplicate consume the idempotency key first once the flow starts.
         if (notLive.Count > 0)
-            _messageClearer.ReopenPositions(
-                notLive.SelectMany(storedMessages => storedMessages.Messages).Select(message => message.Position)
-            );
+            tasks.Add(RestartExecutions(notLive));
 
         return Task.WhenAll(tasks);
     }
@@ -96,20 +93,50 @@ public class FlowsManager
             .GroupBy(m => m.StoredId)
             .ToDictionary(g => g.Key, g => g.ToList());
 
-        var results = await _functionStore
-            .RestartExecutionsWithoutMessages(groups.Keys.ToList(), _clusterInfo.ReplicaId);
+        Dictionary<StoredId, StoredFlowWithEffects> results;
+        try
+        {
+            results = await _functionStore
+                .RestartExecutionsWithoutMessages(groups.Keys.ToList(), _clusterInfo.ReplicaId);
+        }
+        catch
+        {
+            // The claim never happened, but the MessageWatchdog already marked the positions as pushed - reopen
+            // them all so the messages are re-fetched and delivery is retried on a later poll.
+            _messageClearer.ReopenPositions(
+                groups.Values.SelectMany(g => g).SelectMany(sm => sm.Messages).Select(m => m.Position)
+            );
+            throw;
+        }
 
-        // Flows that could not be restarted (already owned/running elsewhere, or no longer present) were never
-        // delivered to here, yet the MessageWatchdog optimistically marked their positions as pushed. Drop those
-        // positions from the clearer's ignore-set so they can be re-fetched - without deleting them from the store,
-        // since the actual owner still needs them.
-        var notRestartedPositions = groups
-            .Where(kv => !results.ContainsKey(kv.Key))
-            .SelectMany(kv => kv.Value)
-            .SelectMany(storedMessages => storedMessages.Messages)
-            .Select(message => message.Position)
-            .ToList();
-        _messageClearer.ReopenPositions(notRestartedPositions);
+        // Flows that could not be claimed were never delivered to, yet the MessageWatchdog optimistically marked
+        // their positions as pushed. Reopen the positions of flows that may become claimable later (executing
+        // elsewhere, or a lost claim race) so their messages are re-fetched - without deleting them from the store.
+        // Completed or deleted flows can never consume their messages; their positions stay in the ignore-set so
+        // they are not pointlessly re-fetched every poll.
+        foreach (var (storedId, storedMessagesList) in groups.Where(kv => !results.ContainsKey(kv.Key)))
+        {
+            StoredFlow? storedFlow;
+            var statusKnown = true;
+            try
+            {
+                storedFlow = await _functionStore.GetFunction(storedId);
+            }
+            catch
+            {
+                // Status unknown - reopen below so delivery is retried rather than the positions being stranded.
+                storedFlow = null;
+                statusKnown = false;
+            }
+
+            var undeliverable = statusKnown && (storedFlow == null || storedFlow.Status is Status.Succeeded or Status.Failed);
+            if (undeliverable)
+                continue;
+
+            _messageClearer.ReopenPositions(
+                storedMessagesList.SelectMany(sm => sm.Messages).Select(m => m.Position)
+            );
+        }
 
         // Resume each restarted flow, supplying the messages we already hold so it does not re-fetch them. The
         // claim + flow snapshot returned by RestartExecutionsWithoutMessages is everything the delegate needs, so
