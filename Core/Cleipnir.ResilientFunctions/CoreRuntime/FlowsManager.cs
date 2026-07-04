@@ -38,7 +38,7 @@ public class FlowsManager
     public FlowExecutionState CreateFlowState(StoredId id, FlowTimeouts timeouts, Task completed)
     {
         lock (_lock)
-            return _dict[id] = new FlowExecutionState(id, subflows: 1, waitingSubflows: 0, timeouts, completed, _messageClearer.ReopenPositions);
+            return _dict[id] = new FlowExecutionState(id, subflows: 1, waitingSubflows: 0, timeouts, completed, _messageClearer);
     }
 
     public void RemoveFlow(StoredId id, FlowExecutionState flowExecutionState)

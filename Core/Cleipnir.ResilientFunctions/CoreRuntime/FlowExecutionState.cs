@@ -1,8 +1,8 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Cleipnir.ResilientFunctions.CoreRuntime.Watchdogs;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Queuing;
@@ -21,7 +21,7 @@ public class FlowExecutionState
 {
     private readonly Lock _lock = new();
     private readonly TaskCompletionSource _suspendedTcs = new();
-    private readonly Action<IEnumerable<long>>? _reopenPositions;
+    private readonly IMessageClearer? _messageClearer;
 
     public StoredId Id { get; }
     public int Subflows { get; private set; }
@@ -47,20 +47,20 @@ public class FlowExecutionState
         }
     }
 
-    public FlowExecutionState(
+    internal FlowExecutionState(
         StoredId id,
         int subflows,
         int waitingSubflows,
         FlowTimeouts timeouts,
         Task completed,
-        Action<IEnumerable<long>>? reopenPositions = null)
+        IMessageClearer? messageClearer = null)
     {
         Id = id;
         Subflows = subflows;
         WaitingSubflows = waitingSubflows;
         Timeouts = timeouts;
         SuspendedTask = _suspendedTcs.Task;
-        _reopenPositions = reopenPositions;
+        _messageClearer = messageClearer;
 
         _ = completed.ContinueWith(_ => Status = FlowStatus.Completed);
     }
@@ -109,7 +109,7 @@ public class FlowExecutionState
             // yet), but the MessageWatchdog already marked the positions as pushed. Reopen them so they are
             // re-fetched and delivered later instead of being stranded in the ignore-set - which would make a
             // later-positioned duplicate consume the idempotency key first.
-            _reopenPositions?.Invoke(messages.Select(m => m.Position));
+            _messageClearer?.ReopenPositions(messages.Select(m => m.Position));
             return Task.CompletedTask;
         }
 
