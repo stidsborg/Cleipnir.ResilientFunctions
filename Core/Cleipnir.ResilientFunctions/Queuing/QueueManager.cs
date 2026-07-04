@@ -163,6 +163,19 @@ internal class QueueManager : IDisposable
             }
         }
 
+        // Empty messages exist only to force a restart and carry nothing to deliver (deserializing one would
+        // poison the queue manager). The only push that can contain them is a restart hand-over - the watchdog
+        // route strips them before delivery - so the restart they were appended to force has happened: delete
+        // them instead of delivering.
+        if (messages.Any(m => m.IsEmpty))
+        {
+            var emptyPositions = messages.Where(m => m.IsEmpty).Select(m => m.Position).ToList();
+            messages = messages.Where(m => !m.IsEmpty).ToList();
+            await _messageClearer.Clear(emptyPositions);
+            if (messages.Count == 0)
+                return;
+        }
+
         await _fetchSemaphore.WaitAsync();
         try
         {

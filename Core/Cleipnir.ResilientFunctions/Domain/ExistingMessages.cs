@@ -39,8 +39,10 @@ public class ExistingMessages
                 )
             ).ToList();
 
+        // Empty messages are restart-pokes without payload - they are never delivered to the flow, so they are
+        // not surfaced here either (and they have no content to deserialize).
         var storedMessages = await _messageStore.GetMessages(_storedId);
-        _receivedMessages = storedMessages.ToList();
+        _receivedMessages = storedMessages.Where(m => !m.IsEmpty).ToList();
         return await GetReceivedMessages();
     }
     

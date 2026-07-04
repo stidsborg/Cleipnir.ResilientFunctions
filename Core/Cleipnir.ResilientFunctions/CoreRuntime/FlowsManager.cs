@@ -52,14 +52,35 @@ public class FlowsManager
     {
         List<Task> tasks = new();
         List<StoredMessages> notLive = new();
+        List<long> emptyPositionsForLiveFlows = new();
         lock (_lock)
             foreach (var storedMessages in messagesByFlow)
                 if (_dict.TryGetValue(storedMessages.StoredId, out var flowState) && !flowState.Suspended)
-                    tasks.Add(flowState.Push(storedMessages.Messages));
+                {
+                    // Empty messages exist only to force a restart and carry nothing to deliver. The flow is live,
+                    // so no restart is needed now - but the message may not be deleted either: the flow could be
+                    // suspending concurrently, and the append's restart guarantee must survive that race. Reopen
+                    // the positions instead, so the empty message is re-fetched and only consumed by an actual
+                    // restart once the flow leaves the live set.
+                    if (storedMessages.Messages.Any(message => message.IsEmpty))
+                    {
+                        emptyPositionsForLiveFlows.AddRange(
+                            storedMessages.Messages.Where(message => message.IsEmpty).Select(message => message.Position)
+                        );
+                        var deliverable = storedMessages.Messages.Where(message => !message.IsEmpty).ToList();
+                        if (deliverable.Count > 0)
+                            tasks.Add(flowState.Push(deliverable));
+                    }
+                    else
+                        tasks.Add(flowState.Push(storedMessages.Messages));
+                }
                 else
                     // Not in the dictionary, or a suspended entry lingering there (a suspended flow's parked
                     // invocation never reaches RemoveFlow by design) - restart the flow to deliver.
                     notLive.Add(storedMessages);
+
+        if (emptyPositionsForLiveFlows.Count > 0)
+            _messageClearer.ReopenPositions(emptyPositionsForLiveFlows);
 
         if (notLive.Count > 0)
             tasks.Add(RestartExecutions(notLive));
@@ -122,13 +143,15 @@ public class FlowsManager
             );
         }
 
-        // Resume each restarted flow, supplying the messages we already hold so it does not re-fetch them. The
-        // claim + flow snapshot returned by RestartExecutionsWithoutMessages is everything the delegate needs, so
-        // no further store round-trip or re-claim is performed.
+        // Resume each restarted flow, supplying the messages we already hold so it does not re-fetch them. Empty
+        // messages exist only to force the restart, so they are excluded from delivery. The claim + flow snapshot
+        // returned by RestartExecutionsWithoutMessages is everything the delegate needs, so no further store
+        // round-trip or re-claim is performed.
         foreach (var (storedId, storedFlowWithEffects) in results)
         {
             var inHandMessages = groups[storedId]
                 .SelectMany(storedMessages => storedMessages.Messages)
+                .Where(message => !message.IsEmpty)
                 .ToList();
 
             var restartedFunction = new RestartedFunction(
@@ -140,5 +163,16 @@ public class FlowsManager
 
             await _restarter!.ScheduleRestart(storedId, restartedFunction, onCompletion: () => { });
         }
+
+        // The restarts the batch's empty messages were appended to force have now happened - delete them from
+        // the store so they are not fetched and acted on again.
+        var restartedEmptyPositions = results.Keys
+            .SelectMany(storedId => groups[storedId])
+            .SelectMany(storedMessages => storedMessages.Messages)
+            .Where(message => message.IsEmpty)
+            .Select(message => message.Position)
+            .ToList();
+        if (restartedEmptyPositions.Count > 0)
+            await _messageClearer.Clear(restartedEmptyPositions);
     }
 }

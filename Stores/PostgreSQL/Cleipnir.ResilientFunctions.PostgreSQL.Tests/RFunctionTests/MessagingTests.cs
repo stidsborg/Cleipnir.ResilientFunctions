@@ -17,4 +17,12 @@ public class MessagingTests : ResilientFunctions.Tests.TestTemplates.FunctionTes
     [TestMethod]
     public override Task ScheduleInvocationWithPublishResultToSpecifiedFunctionId()
         => ScheduleInvocationWithPublishResultToSpecifiedFunctionId(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task EmptyMessagesRestartSuspendedFlowsWithoutDeliveryAndAreRemovedAfterwards()
+        => EmptyMessagesRestartSuspendedFlowsWithoutDeliveryAndAreRemovedAfterwards(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task EmptyMessageIsNotDeliveredToRestartedFlowWhileNonEmptyMessageIs()
+        => EmptyMessageIsNotDeliveredToRestartedFlowWhileNonEmptyMessageIs(FunctionStoreFactory.Create());
 }

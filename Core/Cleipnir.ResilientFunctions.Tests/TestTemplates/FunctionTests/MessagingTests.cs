@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
+using Cleipnir.ResilientFunctions.CoreRuntime.Serialization;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.Helpers;
+using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Tests.Utils;
 using Shouldly;
@@ -114,8 +116,116 @@ public abstract class MessagingTests
         controlPanel.Result.ShouldNotBeNull();
         var functionCompletion = controlPanel.Result;
         functionCompletion.ShouldBe("hello world");
-        
+
         unhandledExceptionHandler.ShouldNotHaveExceptions();
     }
 
+    public abstract Task EmptyMessagesRestartSuspendedFlowsWithoutDeliveryAndAreRemovedAfterwards();
+    public async Task EmptyMessagesRestartSuspendedFlowsWithoutDeliveryAndAreRemovedAfterwards(Task<IFunctionStore> functionStore)
+    {
+        var store = await functionStore;
+
+        var flowType = TestFlowId.Create().Type;
+        var unhandledExceptionHandler = new UnhandledExceptionCatcher();
+        using var functionsRegistry = new FunctionsRegistry(
+            store,
+            new Settings(unhandledExceptionHandler.Catch, messagesPullFrequency: TimeSpan.FromMilliseconds(100))
+        );
+
+        var invocations = new SyncedCounter();
+        var registration = functionsRegistry.RegisterParamless(
+            flowType,
+            inner: async Task (workflow) =>
+            {
+                invocations.Increment();
+                await workflow.Message<string>();
+            }
+        );
+
+        await registration.Schedule("instance1");
+        await registration.Schedule("instance2");
+
+        var controlPanel1 = await registration.ControlPanel("instance1");
+        var controlPanel2 = await registration.ControlPanel("instance2");
+        controlPanel1.ShouldNotBeNull();
+        controlPanel2.ShouldNotBeNull();
+        await controlPanel1.BusyWaitUntil(c => c.Status == Status.Suspended);
+        await controlPanel2.BusyWaitUntil(c => c.Status == Status.Suspended);
+        invocations.Current.ShouldBe(2);
+
+        var storedId1 = registration.MapToStoredId("instance1".ToFlowInstance());
+        var storedId2 = registration.MapToStoredId("instance2".ToFlowInstance());
+        var replicaId = functionsRegistry.ClusterInfo.ReplicaId;
+        await store.MessageStore.AppendMessages([
+            new StoredIdAndMessage(storedId1, StoredMessage.CreateEmpty(replicaId)),
+            new StoredIdAndMessage(storedId2, StoredMessage.CreateEmpty(replicaId))
+        ]);
+
+        // The empty messages restart both flows without being delivered...
+        await BusyWait.Until(() => invocations.Current == 4);
+
+        // ...so both flows suspend on the awaited message again...
+        await controlPanel1.BusyWaitUntil(c => c.Status == Status.Suspended);
+        await controlPanel2.BusyWaitUntil(c => c.Status == Status.Suspended);
+
+        // ...and the empty messages are deleted from the store once the restarts have happened.
+        await BusyWait.Until(async () =>
+            (await store.MessageStore.GetMessages(storedId1)).Count == 0 &&
+            (await store.MessageStore.GetMessages(storedId2)).Count == 0
+        );
+
+        invocations.Current.ShouldBe(4);
+        unhandledExceptionHandler.ShouldNotHaveExceptions();
+    }
+
+    public abstract Task EmptyMessageIsNotDeliveredToRestartedFlowWhileNonEmptyMessageIs();
+    public async Task EmptyMessageIsNotDeliveredToRestartedFlowWhileNonEmptyMessageIs(Task<IFunctionStore> functionStore)
+    {
+        var store = await functionStore;
+
+        var flowId = TestFlowId.Create();
+        var unhandledExceptionHandler = new UnhandledExceptionCatcher();
+        using var functionsRegistry = new FunctionsRegistry(
+            store,
+            new Settings(unhandledExceptionHandler.Catch, messagesPullFrequency: TimeSpan.FromMilliseconds(100))
+        );
+
+        var registration = functionsRegistry.RegisterFunc(
+            flowId.Type,
+            inner: async Task<string> (string _, Workflow workflow) => await workflow.Message<string>()
+        );
+
+        await registration.Schedule(flowId.Instance.Value, "");
+
+        var controlPanel = await registration.ControlPanel(flowId.Instance);
+        controlPanel.ShouldNotBeNull();
+        await controlPanel.BusyWaitUntil(c => c.Status == Status.Suspended);
+
+        var storedId = registration.MapToStoredId(flowId.Instance);
+        var replicaId = functionsRegistry.ClusterInfo.ReplicaId;
+        var serializer = DefaultSerializer.Instance;
+        await store.MessageStore.AppendMessages([
+            new StoredIdAndMessage(storedId, StoredMessage.CreateEmpty(replicaId)),
+            new StoredIdAndMessage(
+                storedId,
+                new StoredMessage(
+                    serializer.Serialize("hello world", typeof(string)),
+                    serializer.SerializeType(typeof(string)),
+                    Position: 0,
+                    Replica: replicaId
+                )
+            )
+        ]);
+
+        // The batch restarts the flow with only the non-empty message delivered.
+        await controlPanel.WaitForCompletion(allowPostponeAndSuspended: true);
+        await controlPanel.Refresh();
+        controlPanel.Status.ShouldBe(Status.Succeeded);
+        controlPanel.Result.ShouldBe("hello world");
+
+        // Both the delivered and the empty message are eventually deleted from the store.
+        await BusyWait.Until(async () => (await store.MessageStore.GetMessages(storedId)).Count == 0);
+
+        unhandledExceptionHandler.ShouldNotHaveExceptions();
+    }
 }
