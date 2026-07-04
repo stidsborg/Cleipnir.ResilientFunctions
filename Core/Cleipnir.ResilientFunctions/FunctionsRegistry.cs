@@ -245,7 +245,7 @@ public class FunctionsRegistry : IDisposable
                 _settings.UtcNow,
                 settings?.ClearChildrenAfterCapture ?? true,
                 _messageClearer,
-                _messageWatchdog.Notify
+                _messageWatchdog
             );
             var flowsManager = _flowsManagers.GetOrCreate(storedType);
             var invoker = new Invoker<TParam, TReturn>(
@@ -333,7 +333,7 @@ public class FunctionsRegistry : IDisposable
                 _settings.UtcNow,
                 settings?.ClearChildrenAfterCapture ?? true,
                 _messageClearer,
-                _messageWatchdog.Notify
+                _messageWatchdog
             );
             var flowsManager = _flowsManagers.GetOrCreate(storedType);
             var invoker = new Invoker<Unit, Unit>(
@@ -421,7 +421,7 @@ public class FunctionsRegistry : IDisposable
                 _settings.UtcNow,
                 settings?.ClearChildrenAfterCapture ?? true,
                 _messageClearer,
-                _messageWatchdog.Notify
+                _messageWatchdog
             );
             var flowsManager = _flowsManagers.GetOrCreate(storedType);
             var rActionInvoker = new Invoker<TParam, Unit>(

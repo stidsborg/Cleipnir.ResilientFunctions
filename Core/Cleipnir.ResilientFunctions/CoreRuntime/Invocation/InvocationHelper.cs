@@ -27,12 +27,12 @@ internal class InvocationHelper<TParam, TReturn>
     private readonly ReplicaId _replicaId;
     private readonly ResultBusyWaiter<TReturn> _resultBusyWaiter;
     private readonly IMessageClearer _messageClearer;
-    private readonly Action _notifyMessagesDelivery;
+    private readonly MessageWatchdog _messageWatchdog;
     public UtcNow UtcNow { get; }
 
     private ISerializer Serializer { get; }
 
-    public InvocationHelper(FlowType flowType, StoredType storedType, ReplicaId replicaId, bool isParamlessFunction, SettingsWithDefaults settings, IFunctionStore functionStore, ShutdownCoordinator shutdownCoordinator, ISerializer serializer, UtcNow utcNow, bool clearChildren, IMessageClearer messageClearer, Action notifyMessagesDelivery)
+    public InvocationHelper(FlowType flowType, StoredType storedType, ReplicaId replicaId, bool isParamlessFunction, SettingsWithDefaults settings, IFunctionStore functionStore, ShutdownCoordinator shutdownCoordinator, ISerializer serializer, UtcNow utcNow, bool clearChildren, IMessageClearer messageClearer, MessageWatchdog messageWatchdog)
     {
         _flowType = flowType;
         _isParamlessFunction = isParamlessFunction;
@@ -46,7 +46,7 @@ internal class InvocationHelper<TParam, TReturn>
         _replicaId = replicaId;
         _functionStore = functionStore;
         _messageClearer = messageClearer;
-        _notifyMessagesDelivery = notifyMessagesDelivery;
+        _messageWatchdog = messageWatchdog;
         _resultBusyWaiter = new ResultBusyWaiter<TReturn>(_functionStore, Serializer);
     }
 
@@ -212,7 +212,7 @@ internal class InvocationHelper<TParam, TReturn>
         await _functionStore.MessageStore.AppendMessages([new StoredIdAndMessage(parent, storedMessage)]);
 
         // Wake the MessageWatchdog so the waiting parent receives the completion now rather than on the next poll.
-        _notifyMessagesDelivery();
+        _messageWatchdog.Notify();
     }
 
     public async Task<RestartedFunction?> RestartFunction(StoredId flowId)
@@ -389,7 +389,7 @@ internal class InvocationHelper<TParam, TReturn>
     }
     
     public MessageWriter CreateMessageWriter(StoredId storedId)
-        => new MessageWriter(storedId, _functionStore.MessageStore, Serializer, _replicaId, _notifyMessagesDelivery);
+        => new MessageWriter(storedId, _functionStore.MessageStore, Serializer, _replicaId, _messageWatchdog.Notify);
 
     public Effect CreateEffect(StoredId storedId, FlowId flowId, IReadOnlyList<StoredEffect> storedEffects, FlowTimeouts flowTimeouts, IStorageSession? storageSession, FlowExecutionState flowExecutionState)
     {
