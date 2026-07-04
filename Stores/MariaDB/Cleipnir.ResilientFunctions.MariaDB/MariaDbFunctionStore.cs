@@ -61,17 +61,15 @@ public class MariaDbFunctionStore : IFunctionStore
                 id CHAR(32) PRIMARY KEY,
                 status INT NOT NULL,
                 expires BIGINT NOT NULL,
-                interrupted BOOLEAN NOT NULL,                
-                param_json LONGBLOB NULL,                                    
+                param_json LONGBLOB NULL,
                 result_json LONGBLOB NULL,
-                exception_json TEXT NULL,                
+                exception_json TEXT NULL,
                 timestamp BIGINT NOT NULL,
                 human_instance_id TEXT NOT NULL,
                 parent CHAR(32) NULL,
                 owner CHAR(32) NULL,
                 effects LONGBLOB NULL,
-                INDEX (expires, id, status),
-                INDEX idx_interrupted (interrupted, id)
+                INDEX (expires, id, status)
             );";
 
         await using var command = new MySqlCommand(_initializeSql, conn);
@@ -328,10 +326,10 @@ public class MariaDbFunctionStore : IFunctionStore
         const int paramIndex = 1;
         const int resultIndex = 3;
         const int exceptionIndex = 4;
-        const int timestampIndex = 7;
-        const int humanInstanceIdIndex = 8;
-        const int parentIndex = 9;
-        const int effectsIndex = 11;
+        const int timestampIndex = 6;
+        const int humanInstanceIdIndex = 7;
+        const int parentIndex = 8;
+        const int effectsIndex = 10;
 
         var flows = new List<(StoredFlow flow, byte[]? effectsBytes, SnapshotStorageSession session)>();
         await using (var selectCommand = _sqlGenerator.RestartExecutionsSelectEligible(storedIds).ToSqlCommand(conn))
@@ -356,7 +354,7 @@ public class MariaDbFunctionStore : IFunctionStore
                 var parent = hasParent ? reader.GetString(parentIndex).ToGuid().ToStoredId() : null;
                 var effectsBytes = hasEffects ? (byte[])reader.GetValue(effectsIndex) : null;
 
-                // The row is read before the claiming UPDATE runs, so status/expires/interrupted/owner reflect the
+                // The row is read before the claiming UPDATE runs, so status/expires/owner reflect the
                 // pre-claim state - report the claimed values the UPDATE is about to write instead.
                 var flow = new StoredFlow(
                     id,
@@ -366,7 +364,6 @@ public class MariaDbFunctionStore : IFunctionStore
                     exception,
                     Expires: 0,
                     timestamp,
-                    Interrupted: false,
                     parent,
                     OwnerId: owner,
                     id.Type
@@ -630,50 +627,6 @@ public class MariaDbFunctionStore : IFunctionStore
         await command.ExecuteNonQueryAsync();
     }
 
-    private string? _interruptSql;
-    public async Task<bool> Interrupt(StoredId storedId)
-    {
-        await using var conn = await CreateOpenConnection(_connectionString);
-        
-        _interruptSql ??= $@"
-            UPDATE {_tablePrefix}
-            SET 
-                interrupted = TRUE,
-                status = 
-                    CASE 
-                        WHEN status = {(int) Status.Suspended} THEN {(int) Status.Postponed}
-                        ELSE status
-                    END,
-                expires = 
-                    CASE
-                        WHEN status = {(int) Status.Postponed} THEN 0
-                        WHEN status = {(int) Status.Suspended} THEN 0
-                        ELSE expires
-                    END
-            WHERE id = ?";
-
-        await using var command = new MySqlCommand(_interruptSql, conn)
-        {
-            Parameters =
-            {
-                new() { Value = storedId.AsGuid.ToString("N") },
-            }
-        };
-        
-        var affectedRows = await command.ExecuteNonQueryAsync();
-        return affectedRows == 1;
-    }
-    
-    public async Task Interrupt(IReadOnlyList<StoredId> storedIds)
-    {
-        if (storedIds.Count == 0)
-            return;
-
-        await using var conn = await CreateOpenConnection(_connectionString);
-        await using var cmd = _sqlGenerator.Interrupt(storedIds).ToSqlCommand(conn);
-        await cmd.ExecuteNonQueryAsync();
-    }
-
     private string? _setParametersSql;
     public async Task<bool> SetParameters(
         StoredId storedId,
@@ -763,13 +716,12 @@ public class MariaDbFunctionStore : IFunctionStore
     {
         await using var conn = await CreateOpenConnection(_connectionString);
         _getFunctionSql ??= $@"
-            SELECT               
-                param_json,             
+            SELECT
+                param_json,
                 status,
-                result_json,             
-                exception_json,               
+                result_json,
+                exception_json,
                 expires,
-                interrupted,
                 timestamp,
                 human_instance_id,
                 parent,
@@ -849,12 +801,11 @@ public class MariaDbFunctionStore : IFunctionStore
         const int resultIndex = 2;
         const int exceptionIndex = 3;
         const int expiresIndex = 4;
-        const int interruptedIndex = 5;
-        const int timestampIndex = 6;
-        const int humanInstanceIdIndex = 7;
-        const int parentIndex = 8;
-        const int ownerIndex = 9;
-        
+        const int timestampIndex = 5;
+        const int humanInstanceIdIndex = 6;
+        const int parentIndex = 7;
+        const int ownerIndex = 8;
+
         while (await reader.ReadAsync())
         {
             var hasParam = !await reader.IsDBNullAsync(paramIndex);
@@ -873,7 +824,6 @@ public class MariaDbFunctionStore : IFunctionStore
                 storedException,
                 Expires: reader.GetInt64(expiresIndex),
                 Timestamp: reader.GetInt64(timestampIndex),
-                Interrupted: reader.GetBoolean(interruptedIndex),
                 ParentId: hasParent ? reader.GetString(parentIndex).ToGuid().ToStoredId() : null,
                 OwnerId: hasOwner ? reader.GetString(ownerIndex).ParseToReplicaId() : null,
                 StoredType: storedId.Type

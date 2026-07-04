@@ -98,7 +98,6 @@ public record StoredFlow(
     StoredException? Exception,
     long Expires,
     long Timestamp,
-    bool Interrupted,
     StoredId? ParentId,
     ReplicaId? OwnerId,
     StoredType StoredType
@@ -212,7 +211,7 @@ public record StoredInputOutput(
     StoredId? Parent
 )
 {
-    public StoredFlow ToStoredFlow(Status status, long expires, long timestamp, bool interrupted, ReplicaId owner)
+    public StoredFlow ToStoredFlow(Status status, long expires, long timestamp, ReplicaId owner)
     {
         return new StoredFlow(
             Id,
@@ -222,7 +221,6 @@ public record StoredInputOutput(
             ExceptionJson != null ? StoredException.Deserialize(ExceptionJson) : null,
             expires,
             timestamp,
-            interrupted,
             Parent,
             owner,
             Id.Type

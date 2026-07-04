@@ -22,12 +22,11 @@ public class ActionRegistration<TParam> : BaseRegistration where TParam : notnul
     public ActionRegistration(
         FlowType flowType,
         StoredType storedType,
-        IFunctionStore functionStore,
         Invoker<TParam, Unit> invoker,
         ControlPanelFactory<TParam> controlPanelFactory,
         MessageWriters messageWriters,
         UtcNow utcNow
-    ) : base(storedType, functionStore, utcNow)
+    ) : base(storedType, utcNow)
     {
         Type = flowType;
         _invoker = invoker;

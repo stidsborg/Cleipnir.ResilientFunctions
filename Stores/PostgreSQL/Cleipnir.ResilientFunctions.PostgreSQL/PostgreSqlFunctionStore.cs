@@ -65,7 +65,6 @@ public class PostgreSqlFunctionStore : IFunctionStore
             CREATE TABLE IF NOT EXISTS {_tableName} (
                 id UUID PRIMARY KEY,
                 expires BIGINT NOT NULL,
-                interrupted BOOLEAN NOT NULL DEFAULT FALSE,
                 status INT NOT NULL DEFAULT {(int) Status.Executing},
                 owner UUID NULL,
                 timestamp BIGINT NOT NULL,
@@ -78,11 +77,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
 
             CREATE INDEX IF NOT EXISTS idx_{_tableName}_expires
             ON {_tableName}(expires, id)
-            WHERE status = {(int) Status.Postponed};
-
-            CREATE INDEX IF NOT EXISTS idx_{_tableName}_interrupted
-            ON {_tableName}(id)
-            WHERE interrupted = TRUE;";
+            WHERE status = {(int) Status.Postponed};";
 
         await using var command = new NpgsqlCommand(_initializeSql, conn);
         await command.ExecuteNonQueryAsync();
@@ -320,19 +315,18 @@ public class PostgreSqlFunctionStore : IFunctionStore
             var hasParameter = !await reader.IsDBNullAsync(1);
             var hasResult = !await reader.IsDBNullAsync(3);
             var hasException = !await reader.IsDBNullAsync(4);
-            var hasParent = !await reader.IsDBNullAsync(9);
-            var hasOwner = !await reader.IsDBNullAsync(10);
+            var hasParent = !await reader.IsDBNullAsync(8);
+            var hasOwner = !await reader.IsDBNullAsync(9);
 
             var param = hasParameter ? (byte[])reader.GetValue(1) : null;
             var status = (Status)reader.GetInt32(2);
             var result = hasResult ? (byte[])reader.GetValue(3) : null;
             var exception = hasException ? JsonSerializer.Deserialize<StoredException>(reader.GetString(4)) : null;
             var expires = reader.GetInt64(5);
-            var interrupted = reader.GetBoolean(6);
-            var timestamp = reader.GetInt64(7);
-            var humanInstanceId = reader.GetString(8);
-            var parent = hasParent ? reader.GetGuid(9).ToStoredId() : null;
-            var ownerId = hasOwner ? new ReplicaId(reader.GetGuid(10)) : null;
+            var timestamp = reader.GetInt64(6);
+            var humanInstanceId = reader.GetString(7);
+            var parent = hasParent ? reader.GetGuid(8).ToStoredId() : null;
+            var ownerId = hasOwner ? new ReplicaId(reader.GetGuid(9)) : null;
 
             flows.Add(new StoredFlow(
                 storedId,
@@ -342,7 +336,6 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 exception,
                 expires,
                 timestamp,
-                interrupted,
                 parent,
                 ownerId,
                 storedId.Type
@@ -623,49 +616,6 @@ public class PostgreSqlFunctionStore : IFunctionStore
         return affectedRows == 1;
     }
 
-    private string? _interruptSql;
-    public async Task<bool> Interrupt(StoredId storedId)
-    {
-        await using var conn = await CreateConnection();
-
-        _interruptSql ??= $@"
-                UPDATE {_tableName}
-                SET 
-                    interrupted = TRUE,
-                    status = 
-                        CASE 
-                            WHEN status = {(int) Status.Suspended} THEN {(int) Status.Postponed}
-                            ELSE status
-                        END,
-                    expires = 
-                        CASE
-                            WHEN status = {(int) Status.Postponed} THEN 0
-                            WHEN status = {(int) Status.Suspended} THEN 0
-                            ELSE expires
-                        END
-                WHERE id = $1";
-        
-        await using var command = new NpgsqlCommand(_interruptSql, conn)
-        {
-            Parameters =
-            {
-                new() { Value = storedId.AsGuid },
-            }
-        };
-        var affectedRows = await command.ExecuteNonQueryAsync();
-        return affectedRows == 1;
-    }
-    
-    public async Task Interrupt(IReadOnlyList<StoredId> storedIds)
-    {
-        if (storedIds.Count == 0)
-            return;
-
-        await using var conn = await CreateConnection();
-        await using var command = _sqlGenerator.Interrupt(storedIds).ToNpgsqlCommand(conn);
-        await command.ExecuteNonQueryAsync();
-    }
-
     private string? _getFunctionStatusSql;
     public async Task<Status?> GetFunctionStatus(StoredId storedId)
     {
@@ -731,7 +681,6 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 result_json,
                 exception_json,
                 expires,
-                interrupted,
                 timestamp,
                 human_instance_id,
                 parent,
@@ -757,31 +706,29 @@ public class PostgreSqlFunctionStore : IFunctionStore
            2  result_json,
            3  exception_json,
            4  expires,
-           5 interrupted,
-           6 timestamp,
-           7 human_instance_id
-           8 parent
-           9 owner
+           5 timestamp,
+           6 human_instance_id
+           7 parent
+           8 owner
          */
         while (await reader.ReadAsync())
         {
             var hasParameter = !await reader.IsDBNullAsync(0);
             var hasResult = !await reader.IsDBNullAsync(2);
             var hasException = !await reader.IsDBNullAsync(3);
-            var hasParent = !await reader.IsDBNullAsync(8);
-            var hasOwner = !await reader.IsDBNullAsync(9);
-            
+            var hasParent = !await reader.IsDBNullAsync(7);
+            var hasOwner = !await reader.IsDBNullAsync(8);
+
             return new StoredFlow(
                 storedId,
-                InstanceId: reader.GetString(7),
+                InstanceId: reader.GetString(6),
                 hasParameter ? (byte[]) reader.GetValue(0) : null,
                 Status: (Status) reader.GetInt32(1),
                 Exception: !hasException ? null : JsonSerializer.Deserialize<StoredException>(reader.GetString(3)),
                 Expires: reader.GetInt64(4),
-                Timestamp: reader.GetInt64(6),
-                Interrupted: reader.GetBoolean(5),
-                ParentId: hasParent ? reader.GetGuid(8).ToStoredId() : null,
-                OwnerId: hasOwner ? reader.GetGuid(9).ToReplicaId() : null,
+                Timestamp: reader.GetInt64(5),
+                ParentId: hasParent ? reader.GetGuid(7).ToStoredId() : null,
+                OwnerId: hasOwner ? reader.GetGuid(8).ToReplicaId() : null,
                 StoredType: storedId.Type
             );
         }

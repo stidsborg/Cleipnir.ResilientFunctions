@@ -290,7 +290,6 @@ public class FunctionsRegistry : IDisposable
             var registration = new FuncRegistration<TParam, TReturn>(
                 flowType,
                 storedType,
-                _functionStore,
                 invoker,
                 controlPanels,
                 messageWriters,
@@ -465,7 +464,6 @@ public class FunctionsRegistry : IDisposable
             var registration = new ActionRegistration<TParam>(
                 flowType,
                 storedType,
-                _functionStore,
                 rActionInvoker,
                 controlPanels,
                 messageWriters,

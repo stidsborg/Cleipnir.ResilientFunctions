@@ -95,10 +95,6 @@ public class StoreTests : TestTemplates.StoreTests
         => RestartingExecutionShouldFailWhenExpectedEpochDoesNotMatch(FunctionStoreFactory.Create());
 
     [TestMethod]
-    public override Task RestartingFunctionShouldSetInterruptedToFalse()
-        => RestartingFunctionShouldSetInterruptedToFalse(FunctionStoreFactory.Create());
-
-    [TestMethod]
     public override Task MessagesCanBeFetchedAfterFunctionWithInitialMessagesHasBeenCreated()
         => MessagesCanBeFetchedAfterFunctionWithInitialMessagesHasBeenCreated(FunctionStoreFactory.Create());
 
@@ -121,26 +117,6 @@ public class StoreTests : TestTemplates.StoreTests
     [TestMethod]
     public override Task EpochIsNotIncrementedOnSuspension()
         => EpochIsNotIncrementedOnSuspension(FunctionStoreFactory.Create());
-
-    [TestMethod]
-    public override Task SuspensionDoesNotSucceedOnExpectedMessagesCountMismatchButPostponesFunction()
-        => SuspensionDoesNotSucceedOnExpectedMessagesCountMismatchButPostponesFunction(FunctionStoreFactory.Create());
-
-    [TestMethod]
-    public override Task FunctionIsStillExecutingOnSuspensionAndInterruptCountMismatch()
-        => FunctionIsStillExecutingOnSuspensionAndInterruptCountMismatch(FunctionStoreFactory.Create());
-
-    [TestMethod]
-    public override Task InterruptCountCanBeIncrementedForExecutingFunction()
-        => InterruptCountCanBeIncrementedForExecutingFunction(FunctionStoreFactory.Create());
-
-    [TestMethod]
-    public override Task NonExecutingFunctionCanBeInterrupted()
-        => NonExecutingFunctionCanBeInterrupted(FunctionStoreFactory.Create());
-
-    [TestMethod]
-    public override Task InterruptCountForNonExistingFunctionIsNull()
-        => InterruptCountForNonExistingFunctionIsNull(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task DefaultStateCanSetAndFetchedAfterwards()
@@ -181,18 +157,6 @@ public class StoreTests : TestTemplates.StoreTests
     [TestMethod]
     public override Task MultipleFunctionsStatusCanBeFetched()
         => MultipleFunctionsStatusCanBeFetched(FunctionStoreFactory.Create());
-
-    [TestMethod]
-    public override Task InterruptedFunctionIsNotPostponedToZeroWhenInterrupted()
-        => InterruptedFunctionIsNotPostponedToZeroWhenInterrupted(FunctionStoreFactory.Create());
-
-    [TestMethod]
-    public override Task InterruptNothingWorks()
-        => InterruptNothingWorks(FunctionStoreFactory.Create());
-
-    [TestMethod]
-    public override Task InterruptedFunctionIsPostponedWhenIgnoringInterruptedFunction()
-        => InterruptedFunctionIsPostponedWhenIgnoringInterruptedFunction(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task FunctionCanBeCreatedWithMessagesAndEffects()

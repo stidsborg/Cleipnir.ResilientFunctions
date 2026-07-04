@@ -116,7 +116,6 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
 
             state.Status = Status.Executing;
             state.Expires = 0;
-            state.Interrupted = false;
             state.Owner = owner;
         }
         var sf = await GetFunction(storedId);
@@ -167,7 +166,6 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
                 // Restart this flow
                 state.Status = Status.Executing;
                 state.Expires = 0;
-                state.Interrupted = false;
                 state.Owner = owner;
 
                 restartedIds.Add(storedId);
@@ -230,7 +228,6 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
                 // Restart this flow
                 state.Status = Status.Executing;
                 state.Expires = 0;
-                state.Interrupted = false;
                 state.Owner = owner;
 
                 restartedIds.Add(storedId);
@@ -358,8 +355,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
             if (state.Owner != expectedReplica) return false.ToTask();
 
             state.Status = Status.Postponed;
-            state.Expires = state.Interrupted ? 0 : postponeUntil;
-            state.Interrupted = false;
+            state.Expires = postponeUntil;
             state.Timestamp = timestamp;
             state.Owner = null;
 
@@ -409,11 +405,10 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
             if (state.Owner != expectedReplica)
                 return false.ToTask();
 
-            state.Status = state.Interrupted ? Status.Postponed : Status.Suspended;
+            state.Status = Status.Suspended;
             state.Expires = 0;
             state.Timestamp = timestamp;
             state.Owner = null;
-            state.Interrupted = false;
 
             return true.ToTask();
         }
@@ -463,30 +458,6 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         }
     }
 
-    public Task<bool> Interrupt(StoredId storedId)
-    {
-        lock (_sync)
-        {
-            if (!_states.TryGetValue(storedId, out var state))
-                return false.ToTask();
-            
-            if (state.Status == Status.Postponed || state.Status == Status.Suspended)
-            {
-                state.Status = Status.Postponed;
-                state.Expires = 0;
-            }
-
-            state.Interrupted = true;
-            return true.ToTask();
-        }
-    }
-
-    public async Task Interrupt(IReadOnlyList<StoredId> storedIds)
-    {
-        foreach (var storedId in storedIds)
-            await Interrupt(storedId);
-    }
-
     public Task<Status?> GetFunctionStatus(StoredId storedId)
     {
         lock (_sync)
@@ -529,7 +500,6 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
                     state.Exception,
                     state.Expires,
                     state.Timestamp,
-                    state.Interrupted,
                     state.Parent,
                     state.Owner,
                     storedId.Type
@@ -609,7 +579,6 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         public Status Status { get; set; }
         public byte[]? Result { get; set; }
         public StoredException? Exception { get; set; }
-        public bool Interrupted { get; set; }
         public long Expires { get; set; }
         public long Timestamp { get; set; }
         public StoredId? Parent { get; set; }

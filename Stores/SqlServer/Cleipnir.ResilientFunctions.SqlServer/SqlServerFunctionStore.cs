@@ -73,7 +73,6 @@ public class SqlServerFunctionStore : IFunctionStore
                 Id UNIQUEIDENTIFIER PRIMARY KEY,
                 Status INT NOT NULL,
                 Expires BIGINT NOT NULL,
-                Interrupted BIT NOT NULL DEFAULT 0,
                 ParamJson VARBINARY(MAX) NULL,
                 ResultJson VARBINARY(MAX) NULL,
                 ExceptionJson NVARCHAR(MAX) NULL,
@@ -96,10 +95,7 @@ public class SqlServerFunctionStore : IFunctionStore
                 WHERE Status = {(int)Status.Postponed};
             CREATE INDEX {_tableName}_idx_Succeeded
                 ON {_tableName} (Id)
-                WHERE Status = {(int)Status.Succeeded};
-            CREATE INDEX {_tableName}_idx_Interrupted
-                ON {_tableName} (Id)
-                WHERE Interrupted = 1;";
+                WHERE Status = {(int)Status.Succeeded};";
 
         await using var command = new SqlCommand(_initializeSql, conn);
         try
@@ -402,13 +398,12 @@ public class SqlServerFunctionStore : IFunctionStore
                 ? null
                 : JsonSerializer.Deserialize<StoredException>(exceptionJson);
             var expires = reader.GetInt64(5);
-            var interrupted = reader.GetBoolean(6);
-            var timestamp = reader.GetInt64(7);
-            var humanInstanceId = reader.GetString(8);
-            var parentId = reader.IsDBNull(9) ? null : reader.GetGuid(9).ToStoredId();
-            var ownerId = reader.IsDBNull(10) ? null : reader.GetGuid(10).ToReplicaId();
-            var hasEffects = !reader.IsDBNull(11);
-            var effectsBytes = hasEffects ? (byte[])reader.GetValue(11) : null;
+            var timestamp = reader.GetInt64(6);
+            var humanInstanceId = reader.GetString(7);
+            var parentId = reader.IsDBNull(8) ? null : reader.GetGuid(8).ToStoredId();
+            var ownerId = reader.IsDBNull(9) ? null : reader.GetGuid(9).ToReplicaId();
+            var hasEffects = !reader.IsDBNull(10);
+            var effectsBytes = hasEffects ? (byte[])reader.GetValue(10) : null;
 
             var flow = new StoredFlow(
                 storedId,
@@ -418,7 +413,6 @@ public class SqlServerFunctionStore : IFunctionStore
                 storedException,
                 expires,
                 timestamp,
-                interrupted,
                 parentId,
                 ownerId,
                 storedId.Type
@@ -690,44 +684,6 @@ public class SqlServerFunctionStore : IFunctionStore
         await command.ExecuteNonQueryAsync();
     }
 
-    private string? _interruptSql;
-    public async Task<bool> Interrupt(StoredId storedId)
-    {
-        await using var conn = await _connFunc();
-        _interruptSql ??= @$"
-                UPDATE {_tableName}
-                SET 
-                    Interrupted = 1,
-                    Status = 
-                        CASE 
-                            WHEN Status = {(int) Status.Suspended} THEN {(int) Status.Postponed}
-                            ELSE Status
-                        END,
-                    Expires = 
-                        CASE
-                            WHEN Status = {(int) Status.Postponed} THEN 0
-                            WHEN Status = {(int) Status.Suspended} THEN 0
-                            ELSE Expires
-                        END
-                WHERE Id = @Id";
-        
-        await using var command = new SqlCommand(_interruptSql, conn);
-        command.Parameters.AddWithValue("@Id", storedId.AsGuid);
-
-        var affectedRows = await command.ExecuteNonQueryAsync();
-        return affectedRows == 1;
-    }
-    
-    public async Task Interrupt(IReadOnlyList<StoredId> storedIds)
-    {
-        if (storedIds.Count == 0)
-            return;
-
-        await using var conn = await _connFunc();
-        await using var cmd = _sqlGenerator.Interrupt(storedIds).ToSqlCommand(conn);
-        await cmd.ExecuteNonQueryAsync();
-    }
-
     private string? _setParametersSql;
     public async Task<bool> SetParameters(
         StoredId storedId,
@@ -810,12 +766,11 @@ public class SqlServerFunctionStore : IFunctionStore
     {
         await using var conn = await _connFunc();
         _getFunctionSql ??= @$"
-            SELECT  ParamJson, 
+            SELECT  ParamJson,
                     Status,
-                    ResultJson, 
+                    ResultJson,
                     ExceptionJson,
                     Expires,
-                    Interrupted,
                     Timestamp,
                     HumanInstanceId,
                     Parent,
@@ -891,11 +846,10 @@ public class SqlServerFunctionStore : IFunctionStore
                     ? null
                     : JsonSerializer.Deserialize<StoredException>(exceptionJson);
                 var expires = reader.GetInt64(4);
-                var interrupted = reader.GetBoolean(5);
-                var timestamp = reader.GetInt64(6);
-                var humanInstanceId = reader.GetString(7);
-                var parentId = reader.IsDBNull(8) ? null : reader.GetGuid(8).ToStoredId();
-                var ownerId = reader.IsDBNull(9) ? null : reader.GetGuid(9).ToReplicaId();
+                var timestamp = reader.GetInt64(5);
+                var humanInstanceId = reader.GetString(6);
+                var parentId = reader.IsDBNull(7) ? null : reader.GetGuid(7).ToStoredId();
+                var ownerId = reader.IsDBNull(8) ? null : reader.GetGuid(8).ToReplicaId();
 
                 return new StoredFlow(
                     storedId,
@@ -905,7 +859,6 @@ public class SqlServerFunctionStore : IFunctionStore
                     storedException,
                     expires,
                     timestamp,
-                    interrupted,
                     parentId,
                     ownerId,
                     storedId.Type

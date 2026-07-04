@@ -28,7 +28,7 @@ public class ParamlessRegistration : BaseRegistration
         ControlPanelFactory controlPanelFactory,
         MessageWriters messageWriters,
         UtcNow utcNow
-    ) : base(storedType, functionStore, utcNow)
+    ) : base(storedType, utcNow)
     {
         Type = flowType;
         _invoker = invoker;

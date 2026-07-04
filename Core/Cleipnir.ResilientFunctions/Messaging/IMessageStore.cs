@@ -10,11 +10,9 @@ public interface IMessageStore
     Task Initialize();
 
     /// <summary>
-    /// Appends the messages to their target flows and interrupts each distinct target so it runs
-    /// immediately and consumes the message (the interrupt is the suspend-race guard and watchdog
-    /// backstop, so the message is never lost even when the target suspends concurrently or is owned
-    /// by another replica). Each message row is written with the target flow's current owner, or the
-    /// publishing replica when the target is not executing.
+    /// Appends the messages to their target flows. Each message row is written with the target flow's
+    /// current owner, or the publishing replica when the target is not executing; delivery is push-based
+    /// via the MessageWatchdog, which also restart-claims not-live targets holding undelivered messages.
     /// </summary>
     Task AppendMessages(IReadOnlyList<StoredIdAndMessage> messages);
 
