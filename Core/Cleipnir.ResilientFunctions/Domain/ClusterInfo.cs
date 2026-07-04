@@ -40,6 +40,16 @@ public class ClusterInfo(ReplicaId replicaId)
         }
     }
 
+    // The leader is the replica with the lowest id - i.e. the replica with offset 0 in the ascendingly ordered replica ids
+    public bool IsLeader
+    {
+        get
+        {
+            lock (_sync)
+                return _replicaCount > 0 && _offset == 0;
+        }
+    }
+
     private readonly Lock _sync = new();
 
     public bool OwnedByThisReplica(StoredId storedId)

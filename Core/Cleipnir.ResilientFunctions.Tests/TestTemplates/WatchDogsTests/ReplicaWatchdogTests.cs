@@ -191,9 +191,11 @@ public abstract class ReplicaWatchdogTests
         var watchdog2 = new ReplicaWatchdog(cluster2, functionStore, heartbeatFrequency: TimeSpan.FromHours(1), utcNow: () => DateTime.UtcNow, unhandledExceptionHandler: default(UnhandledExceptionHandler)!);
         var watchdog3 = new ReplicaWatchdog(cluster3, functionStore, heartbeatFrequency: TimeSpan.FromHours(1), utcNow: () => DateTime.UtcNow, unhandledExceptionHandler: default(UnhandledExceptionHandler)!);
 
+        cluster3.IsLeader.ShouldBeFalse();
         await watchdog3.Initialize();
         cluster3.Offset.ShouldBe((ulong) 0);
         cluster3.ReplicaCount.ShouldBe((ulong) 1);
+        cluster3.IsLeader.ShouldBeTrue();
 
         await watchdog2.Initialize();
         await watchdog3.PerformIteration(utcNowTicks: 0);
@@ -201,7 +203,9 @@ public abstract class ReplicaWatchdogTests
         cluster3.ReplicaCount.ShouldBe((ulong) 2);
         cluster2.Offset.ShouldBe((ulong) 0);
         cluster2.ReplicaCount.ShouldBe((ulong) 2);
-        
+        cluster3.IsLeader.ShouldBeFalse();
+        cluster2.IsLeader.ShouldBeTrue();
+
         await watchdog1.Initialize();
         await watchdog2.PerformIteration(utcNowTicks: 0);
         await watchdog3.PerformIteration(utcNowTicks: 1);
@@ -211,6 +215,9 @@ public abstract class ReplicaWatchdogTests
         cluster2.ReplicaCount.ShouldBe((ulong) 3);
         cluster1.Offset.ShouldBe((ulong) 0);
         cluster1.ReplicaCount.ShouldBe((ulong) 3);
+        cluster3.IsLeader.ShouldBeFalse();
+        cluster2.IsLeader.ShouldBeFalse();
+        cluster1.IsLeader.ShouldBeTrue();
 
         await store.Delete(cluster1.ReplicaId);
         await watchdog3.PerformIteration(utcNowTicks: 1);
@@ -219,11 +226,14 @@ public abstract class ReplicaWatchdogTests
         cluster3.ReplicaCount.ShouldBe((ulong) 2);
         cluster2.Offset.ShouldBe((ulong) 0);
         cluster2.ReplicaCount.ShouldBe((ulong) 2);
-        
+        cluster3.IsLeader.ShouldBeFalse();
+        cluster2.IsLeader.ShouldBeTrue();
+
         await store.Delete(cluster2.ReplicaId);
         await watchdog3.PerformIteration(utcNowTicks: 2);
         cluster3.Offset.ShouldBe((ulong) 0);
         cluster3.ReplicaCount.ShouldBe((ulong) 1);
+        cluster3.IsLeader.ShouldBeTrue();
     }
     
     public abstract Task ActiveReplicasDoNotDeleteEachOther();
