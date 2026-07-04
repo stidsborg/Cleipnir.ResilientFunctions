@@ -226,11 +226,13 @@ internal class InvocationHelper<TParam, TReturn>
 
         // The message snapshot comes straight from the store and can contain empty messages - restart-pokes with
         // nothing to deliver. The restart they were appended to force is happening right now, so delete them and
-        // hand over only the deliverable messages.
+        // hand over only the deliverable messages. The delete is deliberately not awaited so it does not delay
+        // the restart: the clearer retries internally until it lands, and a poke re-fetched before then only
+        // causes a harmless extra restart.
         var messages = restarted.Messages;
         if (messages.Any(m => m.IsEmpty))
         {
-            await _messageClearer.Clear(messages.Where(m => m.IsEmpty).Select(m => m.Position).ToList());
+            _ = _messageClearer.Clear(messages.Where(m => m.IsEmpty).Select(m => m.Position).ToList());
             messages = messages.Where(m => !m.IsEmpty).ToList();
         }
 
