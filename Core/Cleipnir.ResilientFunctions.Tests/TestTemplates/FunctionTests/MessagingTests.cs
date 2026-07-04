@@ -228,4 +228,59 @@ public abstract class MessagingTests
 
         unhandledExceptionHandler.ShouldNotHaveExceptions();
     }
+
+    public abstract Task EmptyMessageIsNotDeliveredWhenFlowIsRestartedViaControlPanel();
+    public async Task EmptyMessageIsNotDeliveredWhenFlowIsRestartedViaControlPanel(Task<IFunctionStore> functionStore)
+    {
+        var store = await functionStore;
+
+        var flowId = TestFlowId.Create();
+        var unhandledExceptionHandler = new UnhandledExceptionCatcher();
+        // Watchdogs are disabled so the pending messages can only reach the flow via the control panel restart's
+        // hand-over (the RestartExecution route) - not via the MessageWatchdog route.
+        using var functionsRegistry = new FunctionsRegistry(
+            store,
+            new Settings(unhandledExceptionHandler.Catch, enableWatchdogs: false)
+        );
+
+        var registration = functionsRegistry.RegisterFunc(
+            flowId.Type,
+            inner: async Task<string> (string _, Workflow workflow) => await workflow.Message<string>()
+        );
+
+        await registration.Schedule(flowId.Instance.Value, "");
+
+        var controlPanel = await registration.ControlPanel(flowId.Instance);
+        controlPanel.ShouldNotBeNull();
+        await controlPanel.BusyWaitUntil(c => c.Status == Status.Suspended);
+
+        var storedId = registration.MapToStoredId(flowId.Instance);
+        var replicaId = functionsRegistry.ClusterInfo.ReplicaId;
+        var serializer = DefaultSerializer.Instance;
+        await store.MessageStore.AppendMessages([
+            new StoredIdAndMessage(storedId, StoredMessage.CreateEmpty(replicaId)),
+            new StoredIdAndMessage(
+                storedId,
+                new StoredMessage(
+                    serializer.Serialize("hello world", typeof(string)),
+                    serializer.SerializeType(typeof(string)),
+                    Position: 0,
+                    Replica: replicaId
+                )
+            )
+        ]);
+
+        await controlPanel.ScheduleRestart();
+
+        // The restarted flow receives only the non-empty message.
+        await controlPanel.WaitForCompletion(allowPostponeAndSuspended: true);
+        await controlPanel.Refresh();
+        controlPanel.Status.ShouldBe(Status.Succeeded);
+        controlPanel.Result.ShouldBe("hello world");
+
+        // The empty message is deleted by the restart hand-over; the delivered one is deleted after delivery.
+        await BusyWait.Until(async () => (await store.MessageStore.GetMessages(storedId)).Count == 0);
+
+        unhandledExceptionHandler.ShouldNotHaveExceptions();
+    }
 }

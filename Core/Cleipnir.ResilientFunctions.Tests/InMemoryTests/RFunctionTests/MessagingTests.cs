@@ -29,4 +29,8 @@ public class MessagingTests : TestTemplates.FunctionTests.MessagingTests
     [TestMethod]
     public override Task EmptyMessageIsNotDeliveredToRestartedFlowWhileNonEmptyMessageIs()
         => EmptyMessageIsNotDeliveredToRestartedFlowWhileNonEmptyMessageIs(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task EmptyMessageIsNotDeliveredWhenFlowIsRestartedViaControlPanel()
+        => EmptyMessageIsNotDeliveredWhenFlowIsRestartedViaControlPanel(FunctionStoreFactory.Create());
 }
