@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.CoreRuntime.Serialization;
@@ -236,23 +237,20 @@ public abstract class MessagingTests
 
         var flowId = TestFlowId.Create();
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
-        // Watchdogs are disabled so the pending messages can only reach the flow via the control panel restart's
-        // hand-over (the RestartExecution route) - not via the MessageWatchdog route.
         using var functionsRegistry = new FunctionsRegistry(
             store,
-            new Settings(unhandledExceptionHandler.Catch, enableWatchdogs: false)
+            new Settings(unhandledExceptionHandler.Catch, messagesPullFrequency: TimeSpan.FromMilliseconds(100))
         );
 
+        var awaitMessage = new SyncedFlag();
         var registration = functionsRegistry.RegisterFunc(
             flowId.Type,
-            inner: async Task<string> (string _, Workflow workflow) => await workflow.Message<string>()
+            inner: async Task<string> (string _, Workflow workflow) =>
+                awaitMessage.IsRaised ? await workflow.Message<string>() : "no message awaited"
         );
 
-        await registration.Schedule(flowId.Instance.Value, "");
-
-        var controlPanel = await registration.ControlPanel(flowId.Instance);
-        controlPanel.ShouldNotBeNull();
-        await controlPanel.BusyWaitUntil(c => c.Status == Status.Suspended);
+        // Complete the flow without it consuming any messages.
+        await registration.Run(flowId.Instance.Value, "");
 
         var storedId = registration.MapToStoredId(flowId.Instance);
         var replicaId = functionsRegistry.ClusterInfo.ReplicaId;
@@ -270,16 +268,29 @@ public abstract class MessagingTests
             )
         ]);
 
-        await controlPanel.ScheduleRestart();
+        // The pending messages must not resurrect the completed flow.
+        await Task.Delay(500);
+        var controlPanel = await registration.ControlPanel(flowId.Instance);
+        controlPanel.ShouldNotBeNull();
+        controlPanel.Status.ShouldBe(Status.Succeeded);
+        controlPanel.Result.ShouldBe("no message awaited");
 
-        // The restarted flow receives only the non-empty message.
+        // An explicit restart does not pull messages itself - the MessageWatchdog delivers the pending non-empty
+        // message to the restarted flow, while the empty message is never delivered.
+        awaitMessage.Raise();
+        await controlPanel.ScheduleRestart();
         await controlPanel.WaitForCompletion(allowPostponeAndSuspended: true);
         await controlPanel.Refresh();
         controlPanel.Status.ShouldBe(Status.Succeeded);
         controlPanel.Result.ShouldBe("hello world");
 
-        // The empty message is deleted by the restart hand-over; the delivered one is deleted after delivery.
-        await BusyWait.Until(async () => (await store.MessageStore.GetMessages(storedId)).Count == 0);
+        // The delivered message is deleted after delivery. The empty message is either consumed by a watchdog
+        // restart along the way (deleted) or remains parked for the completed flow - but is never delivered.
+        await BusyWait.Until(async () =>
+        {
+            var remaining = await store.MessageStore.GetMessages(storedId);
+            return remaining.All(m => m.IsEmpty);
+        });
 
         unhandledExceptionHandler.ShouldNotHaveExceptions();
     }

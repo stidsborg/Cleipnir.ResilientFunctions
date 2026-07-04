@@ -224,22 +224,16 @@ internal class InvocationHelper<TParam, TReturn>
         if (restarted == null)
             return null;
 
-        // The message snapshot comes straight from the store and can contain empty messages - restart-pokes with
-        // nothing to deliver. The restart they were appended to force is happening right now, so delete them and
-        // hand over only the deliverable messages. The delete is deliberately not awaited so it does not delay
-        // the restart: the clearer retries internally until it lands, and a poke re-fetched before then only
-        // causes a harmless extra restart.
-        var messages = restarted.Messages;
-        if (messages.Any(m => m.IsEmpty))
-        {
-            _ = _messageClearer.Clear(messages.Where(m => m.IsEmpty).Select(m => m.Position).ToList());
-            messages = messages.Where(m => !m.IsEmpty).ToList();
-        }
+        // The restart does not pull the flow's messages - message fetching is the MessageWatchdog's sole
+        // responsibility. Release any positions parked while the flow was completed and wake the watchdog, so
+        // pending messages are fetched and pushed to the restarted flow now rather than on the next poll.
+        _messageClearer.ReopenParkedPositions(flowId);
+        _messageWatchdog.Notify();
 
         return new RestartedFunction(
             restarted.StoredFlow,
             restarted.Effects,
-            messages,
+            StoredMessages: [],
             restarted.StorageSession
         );
     }
@@ -427,7 +421,7 @@ internal class InvocationHelper<TParam, TReturn>
         var storedEffects = await _functionStore.EffectsStore.GetEffectResults(storedId);
         return new ExistingEffects(storedId, flowId, _functionStore.EffectsStore, Serializer, storedEffects);
     }
-    public ExistingMessages CreateExistingMessages(FlowId flowId) => new(MapToStoredId(flowId), _functionStore.MessageStore, Serializer);
+    public ExistingMessages CreateExistingMessages(FlowId flowId) => new(MapToStoredId(flowId), _functionStore.MessageStore, Serializer, _replicaId);
 
     public QueueManager CreateQueueManager(FlowId flowId, StoredId storedId, Effect effect, FlowExecutionState flowExecutionState, FlowTimeouts timeouts, UnhandledExceptionHandler unhandledExceptionHandler)
         => new(flowId, storedId, Serializer, effect, flowExecutionState, unhandledExceptionHandler, timeouts, UtcNow, _settings, _messageClearer);

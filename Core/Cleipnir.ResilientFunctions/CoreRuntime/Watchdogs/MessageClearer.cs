@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.Messaging;
+using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.CoreRuntime.Watchdogs;
 
@@ -22,6 +23,9 @@ internal sealed class MessageClearer(
     // Positions pushed to this replica's flows but not yet cleared from the store. Handed to the MessageWatchdog
     // as the ignore-set so they are not re-fetched; trimmed by Clear once their messages are deleted.
     private readonly HashSet<long> _pushedPositions = new();
+    // Positions parked for completed flows, per flow - they stay in the ignore-set so they are not pointlessly
+    // re-fetched every poll, but can be released again should the flow be explicitly re-invoked.
+    private readonly Dictionary<StoredId, List<long>> _parkedPositions = new();
     private readonly Lock _pushedPositionsLock = new();
 
     // Coalescing delete pipeline (see Clear): the first caller starts the drain, callers that arrive while a
@@ -45,6 +49,32 @@ internal sealed class MessageClearer(
         lock (_pushedPositionsLock)
             foreach (var position in positions)
                 _pushedPositions.Remove(position);
+    }
+
+    /// <summary>
+    /// Records positions belonging to a completed flow. They stay in the ignore-set (no re-fetch churn), but are
+    /// remembered per flow so <see cref="ReopenParkedPositions"/> can release them if the flow is re-invoked.
+    /// </summary>
+    public void ParkPositions(StoredId storedId, IReadOnlyList<long> positions)
+    {
+        lock (_pushedPositionsLock)
+            if (_parkedPositions.TryGetValue(storedId, out var existing))
+                existing.AddRange(positions);
+            else
+                _parkedPositions[storedId] = positions.ToList();
+    }
+
+    /// <summary>
+    /// Releases the flow's parked positions from the ignore-set so its messages are fetched and delivered again -
+    /// invoked when a completed flow is explicitly re-invoked (e.g. a control panel restart). Reopening a position
+    /// whose message has since been deleted is a harmless no-op.
+    /// </summary>
+    public void ReopenParkedPositions(StoredId storedId)
+    {
+        lock (_pushedPositionsLock)
+            if (_parkedPositions.Remove(storedId, out var positions))
+                foreach (var position in positions)
+                    _pushedPositions.Remove(position);
     }
 
     /// <summary>Snapshot of the not-yet-cleared positions, passed to the store as the fetch ignore-set.</summary>

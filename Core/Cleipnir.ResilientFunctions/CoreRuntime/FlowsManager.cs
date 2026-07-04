@@ -117,13 +117,22 @@ public class FlowsManager
         }
 
         // Flows that could not be claimed were never delivered to, yet the MessageWatchdog optimistically marked
-        // their positions as pushed. Reopen the positions of flows that may become claimable later (executing
-        // elsewhere, a lost claim race, or a flow that has not been created yet - messages may legally precede
-        // their flow) so their messages are re-fetched - without deleting them from the store. Completed flows
-        // can never consume their messages; their positions stay in the ignore-set so they are not pointlessly
-        // re-fetched every poll.
+        // their positions as pushed. Their positions must leave the pushed-set again: parked per flow when the
+        // flow has completed (kept in the ignore-set until an explicit re-invocation), reopened for re-fetch
+        // otherwise.
         foreach (var (storedId, storedMessagesList) in groups.Where(kv => !results.ContainsKey(kv.Key)))
         {
+            // Park BEFORE reading the status. An explicit re-invocation of a completed flow claims it and then
+            // reopens its parked positions - so whichever side acts second sees the other's write: a park landing
+            // before the restart's reopen is released by that reopen, while a park landing after it also lands
+            // after the claim, making the status read below observe the no-longer-completed flow and release the
+            // park. Checking the status first would leave a window where the restart's reopen misses a park based
+            // on a stale completed-status read, stranding the positions in the ignore-set forever.
+            _messageClearer.ParkPositions(
+                storedId,
+                storedMessagesList.SelectMany(sm => sm.Messages).Select(m => m.Position).ToList()
+            );
+
             StoredFlow? storedFlow;
             try
             {
@@ -131,16 +140,20 @@ public class FlowsManager
             }
             catch
             {
-                // Status unknown - reopen below so delivery is retried rather than the positions being stranded.
+                // Status unknown - release the park below so delivery is retried rather than the positions
+                // being stranded.
                 storedFlow = null;
             }
 
             if (storedFlow != null && storedFlow.Status is Status.Succeeded or Status.Failed)
+                // Completed flows can never consume their messages - the positions stay parked (still in the
+                // ignore-set, so no re-fetch churn) until an explicit re-invocation reopens them.
                 continue;
 
-            _messageClearer.ReopenPositions(
-                storedMessagesList.SelectMany(sm => sm.Messages).Select(m => m.Position)
-            );
+            // The flow may become claimable later (executing elsewhere, a lost claim race, or a flow that has
+            // not been created yet - messages may legally precede their flow): release the park so the messages
+            // are re-fetched - without deleting them from the store.
+            _messageClearer.ReopenParkedPositions(storedId);
         }
 
         // Resume each restarted flow, supplying the messages we already hold so it does not re-fetch them. Empty

@@ -9,12 +9,13 @@ using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.Domain;
 
-public class ExistingMessages 
+public class ExistingMessages
 {
     private readonly StoredId _storedId;
     private List<StoredMessage>? _receivedMessages;
     private readonly IMessageStore _messageStore;
     private readonly ISerializer _serializer;
+    private readonly ReplicaId _publisherReplica;
 
     public Task<IReadOnlyList<MessageAndIdempotencyKey>> MessagesWithIdempotencyKeys => GetReceivedMessages()
         .ContinueWith(t => (IReadOnlyList<MessageAndIdempotencyKey>) t.Result.ToList());
@@ -22,11 +23,12 @@ public class ExistingMessages
         .ContinueWith(t => (IReadOnlyList<object>) t.Result.Select(m => m.Message).ToList());
     public Task<int> Count => GetReceivedMessages().SelectAsync(messages => messages.Count);
 
-    public ExistingMessages(StoredId storedId, IMessageStore messageStore, ISerializer serializer)
+    public ExistingMessages(StoredId storedId, IMessageStore messageStore, ISerializer serializer, ReplicaId publisherReplica)
     {
         _storedId = storedId;
         _messageStore = messageStore;
         _serializer = serializer;
+        _publisherReplica = publisherReplica;
     }
 
     private async Task<List<MessageAndIdempotencyKey>> GetReceivedMessages()
@@ -57,7 +59,9 @@ public class ExistingMessages
     {
         var json = _serializer.Serialize(message, message.GetType());
         var type = _serializer.SerializeType(message.GetType());
-        var storedMessage = new StoredMessage(json, type, Position: 0, Replica: ReplicaId.Empty, IdempotencyKey: idempotencyKey);
+        // Stamped with this replica so the message is routed to this replica's MessageWatchdog - the sole
+        // message-delivery path; a ReplicaId.Empty stamp would make the message invisible to every watchdog.
+        var storedMessage = new StoredMessage(json, type, Position: 0, Replica: _publisherReplica, IdempotencyKey: idempotencyKey);
         await _messageStore.AppendMessages([new StoredIdAndMessage(_storedId, storedMessage)]);
 
         // Invalidate cache so it will be re-fetched with correct positions
@@ -75,7 +79,7 @@ public class ExistingMessages
 
         var json = _serializer.Serialize(message, message.GetType());
         var type = _serializer.SerializeType(message.GetType());
-        await _messageStore.ReplaceMessage(_storedId, storedMessage.Position, new StoredMessage(json, type, Position: storedMessage.Position, Replica: ReplicaId.Empty, IdempotencyKey: idempotencyKey));
+        await _messageStore.ReplaceMessage(_storedId, storedMessage.Position, new StoredMessage(json, type, Position: storedMessage.Position, Replica: _publisherReplica, IdempotencyKey: idempotencyKey));
 
         // Invalidate cache so it will be re-fetched with correct data
         _receivedMessages = null;

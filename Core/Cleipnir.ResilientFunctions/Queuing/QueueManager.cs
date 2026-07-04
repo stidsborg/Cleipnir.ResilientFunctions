@@ -391,13 +391,25 @@ internal class QueueManager : IDisposable
     {
         lock (_lock)
         {
-            if (_toDeliver.Count == 0)
-                return;
+            if (_toDeliver.Count > 0)
+            {
+                _messageClearer.ReopenPositions(_toDeliver.Select(m => m.Position));
+                foreach (var messageData in _toDeliver)
+                    _fetchedPositions.Remove(messageData.Position);
+                _toDeliver.Clear();
+            }
 
-            _messageClearer.ReopenPositions(_toDeliver.Select(m => m.Position));
-            foreach (var messageData in _toDeliver)
-                _fetchedPositions.Remove(messageData.Position);
-            _toDeliver.Clear();
+            // Delivered and idempotency-deduped positions whose store delete has not landed are reopened too:
+            // their markings live in flushless effect state that dies with an incarnation ending without a flush,
+            // and restarts no longer hand the store's messages over - without the reopen such positions would be
+            // stranded in the ignore-set forever. The re-push is idempotent: durably captured positions replay
+            // into the next incarnation's fetched-set and are cleared by its initialization, deduped ones are
+            // deduped again, and reopening an already-deleted position is a no-op.
+            if (_deliveredPositions.Count > 0)
+            {
+                _messageClearer.ReopenPositions(_deliveredPositions.ToList());
+                _deliveredPositions.Clear();
+            }
         }
     }
 

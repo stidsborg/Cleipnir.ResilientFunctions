@@ -251,15 +251,12 @@ public class SqlServerFunctionStore : IFunctionStore
         }
     }
     
-    public async Task<StoredFlowWithEffectsAndMessages?> RestartExecution(StoredId storedId, ReplicaId replicaId)
+    public async Task<StoredFlowWithEffects?> RestartExecution(StoredId storedId, ReplicaId replicaId)
     {
         var restartCommand = _sqlGenerator.RestartExecution(storedId, replicaId);
-        var messagesCommand = _sqlGenerator.GetMessages(storedId, paramPrefix: "Message");
 
         await using var conn = await _connFunc();
-        await using var command = StoreCommand
-            .Merge(restartCommand, messagesCommand)
-            .ToSqlCommand(conn);
+        await using var command = restartCommand.ToSqlCommand(conn);
 
         await using var reader = await command.ExecuteReaderAsync();
         var (sf, effectsBytes) = _sqlGenerator.ReadToStoredFlowWithEffects(storedId, reader);
@@ -285,58 +282,7 @@ public class SqlServerFunctionStore : IFunctionStore
             session.Version = 0;
         }
 
-        await reader.NextResultAsync();
-        var messages = await _sqlGenerator.ReadMessages(reader);
-        var storedMessages = messages.Select(m => SqlServerMessageStore.ConvertToStoredMessage(m.content, m.position, m.replica)).ToList();
-
-        return new StoredFlowWithEffectsAndMessages(sf, effects, storedMessages, session);
-    }
-
-    public async Task<Dictionary<StoredId, StoredFlowWithEffectsAndMessages>> RestartExecutions(
-        IReadOnlyList<StoredId> storedIds,
-        ReplicaId owner)
-    {
-        if (storedIds.Count == 0)
-            return new Dictionary<StoredId, StoredFlowWithEffectsAndMessages>();
-
-        // Execute 2 queries in parallel (restart includes effects inline)
-        var restartTask = RestartFlowsAsync(storedIds, owner);
-        var messagesTask = FetchMessagesAsync(storedIds);
-
-        await Task.WhenAll(restartTask, messagesTask);
-
-        var restartedFlows = await restartTask;
-        var messagesMap = await messagesTask;
-
-        // Build result dictionary - only for successfully restarted flows
-        var result = new Dictionary<StoredId, StoredFlowWithEffectsAndMessages>();
-        foreach (var (flow, effectsBytes, session) in restartedFlows)
-        {
-            var effects = new List<StoredEffect>();
-            if (effectsBytes != null)
-            {
-                var effectsBytesArray = BinaryPacker.Split(effectsBytes);
-                foreach (var effectBytes in effectsBytesArray)
-                {
-                    if (effectBytes != null)
-                    {
-                        var storedEffect = StoredEffect.Deserialize(effectBytes);
-                        effects.Add(storedEffect);
-                        session.Effects[storedEffect.EffectId] = storedEffect;
-                    }
-                }
-            }
-
-            var messages = messagesMap.TryGetValue(flow.StoredId, out var msgs)
-                ? msgs
-                : new List<StoredMessage>();
-
-            result[flow.StoredId] = new StoredFlowWithEffectsAndMessages(
-                flow, effects, messages, session
-            );
-        }
-
-        return result;
+        return new StoredFlowWithEffects(sf, effects, session);
     }
 
     public async Task<Dictionary<StoredId, StoredFlowWithEffects>> RestartExecutionsWithoutMessages(
@@ -425,22 +371,6 @@ public class SqlServerFunctionStore : IFunctionStore
             }
         }
         return flows;
-    }
-
-    private async Task<Dictionary<StoredId, List<StoredMessage>>> FetchMessagesAsync(
-        IReadOnlyList<StoredId> storedIds)
-    {
-        await using var conn = await _connFunc();
-        var storeCommand = _sqlGenerator.GetMessages(storedIds);
-
-        await using var command = storeCommand.ToSqlCommand(conn);
-        await using var reader = await command.ExecuteReaderAsync();
-
-        var messagesDict = await _sqlGenerator.ReadStoredIdsMessages(reader);
-        return messagesDict.ToDictionary(
-            kv => kv.Key,
-            kv => kv.Value.Select(m => SqlServerMessageStore.ConvertToStoredMessage(m.content, m.position, m.replica)).ToList()
-        );
     }
 
     private string? _getExpiredFunctionsSql;

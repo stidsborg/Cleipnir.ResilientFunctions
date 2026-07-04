@@ -21,8 +21,8 @@ internal class PostponedWatchdog
     private readonly TimeSpan _delayStartUp;
     private readonly ClusterInfo _clusterInfo;
     
-    private volatile ImmutableDictionary<StoredType, Tuple<RestartFunction, ScheduleRestartFromWatchdog, AsyncSemaphore>> _flowsDictionary
-        = ImmutableDictionary<StoredType, Tuple<RestartFunction, ScheduleRestartFromWatchdog, AsyncSemaphore>>.Empty;
+    private volatile ImmutableDictionary<StoredType, Tuple<ScheduleRestartFromWatchdog, AsyncSemaphore>> _flowsDictionary
+        = ImmutableDictionary<StoredType, Tuple<ScheduleRestartFromWatchdog, AsyncSemaphore>>.Empty;
     private readonly Lock _sync = new();
     private bool _started;
     
@@ -45,12 +45,11 @@ internal class PostponedWatchdog
     }
 
     public void Register(
-        StoredType storedType, 
-        RestartFunction restartFunction, 
+        StoredType storedType,
         ScheduleRestartFromWatchdog scheduleRestart,
         AsyncSemaphore asyncSemaphore)
     {
-        _flowsDictionary = _flowsDictionary.SetItem(storedType, Tuple.Create(restartFunction, scheduleRestart, asyncSemaphore));
+        _flowsDictionary = _flowsDictionary.SetItem(storedType, Tuple.Create(scheduleRestart, asyncSemaphore));
         
         lock (_sync)
         {
@@ -80,20 +79,21 @@ internal class PostponedWatchdog
                     .ToList();
                 
                 var restarts = await _functionStore
-                    .RestartExecutions(ownedFunctions, _clusterInfo.ReplicaId);
-                
+                    .RestartExecutionsWithoutMessages(ownedFunctions, _clusterInfo.ReplicaId);
+
                 foreach (var id in restarts.Keys)
                 {
-                    var (_, scheduleRestart, asyncSemaphore) = flowsDictionary[id.Type];
-                    var tuple = restarts[id];
-                    var (storedFlow, effects, messages, session) = tuple;
+                    var (scheduleRestart, asyncSemaphore) = flowsDictionary[id.Type];
+                    var (storedFlow, effects, session) = restarts[id];
 
                     var takenLock = await asyncSemaphore.Take();
                     try
                     {
+                        // The restart hands over no messages - message fetching is the MessageWatchdog's sole
+                        // responsibility; any pending messages are pushed to the restarted flow by its poll.
                         await scheduleRestart(
                             id,
-                            new RestartedFunction(storedFlow, effects, messages, session),
+                            new RestartedFunction(storedFlow, effects, StoredMessages: [], session),
                             onCompletion: () =>
                             {
                                 takenLock.Dispose();
