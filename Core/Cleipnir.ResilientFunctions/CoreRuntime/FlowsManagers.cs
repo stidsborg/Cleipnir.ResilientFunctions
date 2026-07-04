@@ -71,6 +71,7 @@ public class FlowsManagers
         // Messages for flow types not (yet) registered on this replica cannot be delivered here. Reopen their
         // positions so delivery is retried on a later poll - the type may simply not have been registered yet
         // (start-up ordering or a rolling deployment).
+        // todo log a warning here
         if (unregistered.Count > 0)
             _messageClearer.ReopenPositions(
                 unregistered.SelectMany(sm => sm.Messages).Select(m => m.Position)
