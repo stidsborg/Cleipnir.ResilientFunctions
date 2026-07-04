@@ -284,13 +284,125 @@ public abstract class MessagingTests
         controlPanel.Status.ShouldBe(Status.Succeeded);
         controlPanel.Result.ShouldBe("hello world");
 
-        // The delivered message is deleted after delivery. The empty message is either consumed by a watchdog
-        // restart along the way (deleted) or remains parked for the completed flow - but is never delivered.
-        await BusyWait.Until(async () =>
-        {
-            var remaining = await store.MessageStore.GetMessages(storedId);
-            return remaining.All(m => m.IsEmpty);
-        });
+        // Both rows end up deleted: the non-empty message is inlined into the completed flow's effect state (and
+        // its row removed), while the empty poke is simply deleted - a completed flow needs no restart.
+        await BusyWait.Until(async () => (await store.MessageStore.GetMessages(storedId)).Count == 0);
+
+        unhandledExceptionHandler.ShouldNotHaveExceptions();
+    }
+
+    public abstract Task PendingMessageIsDeliveredWhenCompletedFlowIsPostponedAndRestartedByWatchdog();
+    public async Task PendingMessageIsDeliveredWhenCompletedFlowIsPostponedAndRestartedByWatchdog(Task<IFunctionStore> functionStore)
+    {
+        var store = await functionStore;
+
+        var flowId = TestFlowId.Create();
+        var unhandledExceptionHandler = new UnhandledExceptionCatcher();
+        using var functionsRegistry = new FunctionsRegistry(
+            store,
+            new Settings(
+                unhandledExceptionHandler.Catch,
+                messagesPullFrequency: TimeSpan.FromMilliseconds(100),
+                watchdogCheckFrequency: TimeSpan.FromMilliseconds(100)
+            )
+        );
+
+        var awaitMessage = new SyncedFlag();
+        var registration = functionsRegistry.RegisterFunc(
+            flowId.Type,
+            inner: async Task<string> (string _, Workflow workflow) =>
+                awaitMessage.IsRaised ? await workflow.Message<string>() : "no message awaited"
+        );
+
+        // Complete the flow without it consuming any messages.
+        await registration.Run(flowId.Instance.Value, "");
+
+        var storedId = registration.MapToStoredId(flowId.Instance);
+        var replicaId = functionsRegistry.ClusterInfo.ReplicaId;
+        var serializer = DefaultSerializer.Instance;
+        await store.MessageStore.AppendMessages([
+            new StoredIdAndMessage(
+                storedId,
+                new StoredMessage(
+                    serializer.Serialize("hello world", typeof(string)),
+                    serializer.SerializeType(typeof(string)),
+                    Position: 0,
+                    Replica: replicaId
+                )
+            )
+        ]);
+
+        // The message is inlined into the completed flow's effect state and its row deleted.
+        await BusyWait.Until(async () => (await store.MessageStore.GetMessages(storedId)).Count == 0);
+
+        // Resurrect the completed flow via Postpone - the PostponedWatchdog's restart path must also hand the
+        // inlined message over (it travels in the effect snapshot, not through any restart-specific channel).
+        awaitMessage.Raise();
+        var controlPanel = await registration.ControlPanel(flowId.Instance);
+        controlPanel.ShouldNotBeNull();
+        await controlPanel.Postpone(DateTime.UtcNow);
+
+        await controlPanel.BusyWaitUntil(c => c.Status == Status.Succeeded);
+        controlPanel.Result.ShouldBe("hello world");
+
+        unhandledExceptionHandler.ShouldNotHaveExceptions();
+    }
+
+    public abstract Task PendingMessageIsDeliveredWhenCompletedFlowIsRestartedOnDifferentReplica();
+    public async Task PendingMessageIsDeliveredWhenCompletedFlowIsRestartedOnDifferentReplica(Task<IFunctionStore> functionStore)
+    {
+        var store = await functionStore;
+
+        var flowId = TestFlowId.Create();
+        var unhandledExceptionHandler = new UnhandledExceptionCatcher();
+        var awaitMessage = new SyncedFlag();
+
+        Func<FunctionsRegistry> createRegistry = () => new FunctionsRegistry(
+            store,
+            new Settings(unhandledExceptionHandler.Catch, messagesPullFrequency: TimeSpan.FromMilliseconds(100))
+        );
+        Func<FunctionsRegistry, FuncRegistration<string, string>> register = registry => registry.RegisterFunc(
+            flowId.Type,
+            inner: async Task<string> (string _, Workflow workflow) =>
+                awaitMessage.IsRaised ? await workflow.Message<string>() : "no message awaited"
+        );
+
+        using var publisherRegistry = createRegistry();
+        var publisherRegistration = register(publisherRegistry);
+
+        // Complete the flow on the publisher replica without it consuming any messages.
+        await publisherRegistration.Run(flowId.Instance.Value, "");
+
+        // Append a message stamped with the publisher replica - its watchdog fetches it, finds the flow
+        // completed and inlines it into the flow's effect state.
+        var storedId = publisherRegistration.MapToStoredId(flowId.Instance);
+        var serializer = DefaultSerializer.Instance;
+        await store.MessageStore.AppendMessages([
+            new StoredIdAndMessage(
+                storedId,
+                new StoredMessage(
+                    serializer.Serialize("hello world", typeof(string)),
+                    serializer.SerializeType(typeof(string)),
+                    Position: 0,
+                    Replica: publisherRegistry.ClusterInfo.ReplicaId
+                )
+            )
+        ]);
+        await BusyWait.Until(async () => (await store.MessageStore.GetMessages(storedId)).Count == 0);
+
+        // Restart the flow from a DIFFERENT replica: the inlined message travels in the effect snapshot the
+        // restart hands over, so delivery does not depend on the publisher replica's in-memory state.
+        using var restartingRegistry = createRegistry();
+        var restartingRegistration = register(restartingRegistry);
+
+        awaitMessage.Raise();
+        var controlPanel = await restartingRegistration.ControlPanel(flowId.Instance);
+        controlPanel.ShouldNotBeNull();
+        await controlPanel.ScheduleRestart();
+        await controlPanel.WaitForCompletion(allowPostponeAndSuspended: true);
+        await controlPanel.Refresh();
+        controlPanel.Status.ShouldBe(Status.Succeeded);
+        controlPanel.Result.ShouldBe("hello world");
 
         unhandledExceptionHandler.ShouldNotHaveExceptions();
     }

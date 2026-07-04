@@ -100,6 +100,10 @@ public class Effect
 
     internal bool TryGet<T>(EffectId effectId, out T? value) => effectResults.TryGet(effectId, out value);
     internal bool TryGet(EffectId effectId, Type type, out object? value) => effectResults.TryGet(effectId, type, out value);
+
+    // Raw StoredEffect access - for reserved entries with serializer-independent encodings (pending messages).
+    internal StoredEffect? GetStoredEffect(EffectId effectId) => effectResults.GetOrValueDefault(effectId);
+    internal void FlushlessSet(StoredEffect storedEffect) => effectResults.FlushlessSet(storedEffect);
     internal T Get<T>(string alias) => Get<T>(
         effectResults.GetEffectId(alias) ?? throw new InvalidOperationException($"Unknown alias: '{alias}'")
     );

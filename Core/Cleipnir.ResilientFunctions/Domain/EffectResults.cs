@@ -162,6 +162,9 @@ internal class EffectResults
             await Flush();
     }
 
+    internal void FlushlessSet(StoredEffect storedEffect)
+        => AddToPending(storedEffect.EffectId, storedEffect, delete: false, clearChildren: false);
+
     internal void FlushlessUpserts(IEnumerable<EffectResult> values)
     {
         var storedEffects = values

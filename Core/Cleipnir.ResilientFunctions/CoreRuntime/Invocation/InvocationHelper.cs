@@ -224,10 +224,10 @@ internal class InvocationHelper<TParam, TReturn>
         if (restarted == null)
             return null;
 
-        // The restart does not pull the flow's messages - message fetching is the MessageWatchdog's sole
-        // responsibility. Release any positions parked while the flow was completed and wake the watchdog, so
-        // pending messages are fetched and pushed to the restarted flow now rather than on the next poll.
-        _messageClearer.ReopenParkedPositions(flowId);
+        // The restart does not pull the flow's messages: store-resident messages are fetched and pushed by the
+        // MessageWatchdog (woken here so they arrive now rather than on the next poll), while messages inlined
+        // into the effect state while the flow was completed travel in the effect snapshot handed over below and
+        // are staged by the QueueManager at initialization.
         _messageWatchdog.Notify();
 
         return new RestartedFunction(
@@ -421,7 +421,7 @@ internal class InvocationHelper<TParam, TReturn>
         var storedEffects = await _functionStore.EffectsStore.GetEffectResults(storedId);
         return new ExistingEffects(storedId, flowId, _functionStore.EffectsStore, Serializer, storedEffects);
     }
-    public ExistingMessages CreateExistingMessages(FlowId flowId) => new(MapToStoredId(flowId), _functionStore.MessageStore, Serializer, _replicaId);
+    public ExistingMessages CreateExistingMessages(FlowId flowId) => new(MapToStoredId(flowId), _functionStore.MessageStore, _functionStore.EffectsStore, Serializer, _replicaId);
 
     public QueueManager CreateQueueManager(FlowId flowId, StoredId storedId, Effect effect, FlowExecutionState flowExecutionState, FlowTimeouts timeouts, UnhandledExceptionHandler unhandledExceptionHandler)
         => new(flowId, storedId, Serializer, effect, flowExecutionState, unhandledExceptionHandler, timeouts, UtcNow, _settings, _messageClearer);

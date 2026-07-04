@@ -33,4 +33,11 @@ public class MessagingTests : TestTemplates.FunctionTests.MessagingTests
     [TestMethod]
     public override Task EmptyMessageIsNotDeliveredWhenFlowIsRestartedViaControlPanel()
         => EmptyMessageIsNotDeliveredWhenFlowIsRestartedViaControlPanel(FunctionStoreFactory.Create());
+    [TestMethod]
+    public override Task PendingMessageIsDeliveredWhenCompletedFlowIsPostponedAndRestartedByWatchdog()
+        => PendingMessageIsDeliveredWhenCompletedFlowIsPostponedAndRestartedByWatchdog(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task PendingMessageIsDeliveredWhenCompletedFlowIsRestartedOnDifferentReplica()
+        => PendingMessageIsDeliveredWhenCompletedFlowIsRestartedOnDifferentReplica(FunctionStoreFactory.Create());
 }

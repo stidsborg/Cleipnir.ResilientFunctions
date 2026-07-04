@@ -41,6 +41,9 @@ internal class QueueManager : IDisposable
     private readonly List<Subscription> _subscriptions = new();
     private readonly HashSet<long> _fetchedPositions = new();
     private readonly HashSet<long> _deliveredPositions = new();
+    // Messages inlined into the pending-messages effect while the flow was completed - staged at initialization
+    // and pruned from the durable entry as they are delivered (see PruneDeliveredPendingMessage).
+    private readonly Dictionary<long, StoredMessage> _pendingInlinedMessages = new();
     private volatile Exception? _thrownException;
     private bool _initialized;
     private volatile bool _disposed;
@@ -100,6 +103,21 @@ internal class QueueManager : IDisposable
                 await _messageClearer.Clear(positions);
                 positions.Clear();
                 _effect.FlushlessUpsert(DeliveredPositionsId, positions, alias: null);
+            }
+
+            // Stage messages that were inlined into the effect state while the flow was completed (their store
+            // rows are deleted, so this entry is their only carrier). ProcessMessages dedups them against the
+            // replayed delivered positions and the persisted idempotency keys; running it here without the fetch
+            // semaphore is safe - pushes acquire the semaphore only after Initialize has completed.
+            var pendingEntry = _effect.GetStoredEffect(PendingMessages.EffectId);
+            if (pendingEntry?.Result is { Length: > 0 } pendingBytes)
+            {
+                var pendingMessages = PendingMessages.Decode(pendingBytes);
+                lock (_lock)
+                    foreach (var pendingMessage in pendingMessages)
+                        _pendingInlinedMessages[pendingMessage.Position] = pendingMessage;
+
+                ProcessMessages(pendingMessages);
             }
 
             _initialized = true;
@@ -260,6 +278,7 @@ internal class QueueManager : IDisposable
                     {
                         _deliveredPositions.Add(position);
                         _effect.FlushlessUpsert(DeliveredPositionsId, _deliveredPositions.ToList(), alias: null);
+                        PruneDeliveredPendingMessage(position);
                     }
                     continue;
                 }
@@ -356,6 +375,9 @@ internal class QueueManager : IDisposable
                             subscription.CaptureMessage(msg)
                                 .Append(EffectResult.Create(DeliveredPositionsId, _deliveredPositions.ToList()))
                         );
+                        // Same pending-change batch as the capture above - the prune, the captured message and
+                        // the delivered position land in one atomic effect write at the next flush.
+                        PruneDeliveredPendingMessage(msg.Position);
 
                         _timeouts.RemoveTimeout(subscription.EffectId);
                         subscription.Tcs.TrySetResult(msg);
@@ -363,6 +385,27 @@ internal class QueueManager : IDisposable
                         return;
                     }
             }
+    }
+
+    // Caller must hold _lock. Removes a delivered (or idempotency-deduped) message from the durable
+    // pending-messages entry so a later incarnation does not re-stage it after the delivered-positions dedup
+    // state has been cleared. Flushless on purpose: dying with an unflushed prune replays the message together
+    // with the equally unflushed delivery - at-least-once, exactly like a store-resident message.
+    private void PruneDeliveredPendingMessage(long position)
+    {
+        if (!_pendingInlinedMessages.Remove(position))
+            return;
+
+        if (_pendingInlinedMessages.Count == 0)
+            _effect.FlushlessClear(PendingMessages.EffectId);
+        else
+            _effect.FlushlessSet(
+                StoredEffect.CreateCompleted(
+                    PendingMessages.EffectId,
+                    PendingMessages.Encode(_pendingInlinedMessages.Values.OrderBy(m => m.Position).ToList()),
+                    alias: null
+                )
+            );
     }
 
     private void FailAllSubscriptions(Exception exception)

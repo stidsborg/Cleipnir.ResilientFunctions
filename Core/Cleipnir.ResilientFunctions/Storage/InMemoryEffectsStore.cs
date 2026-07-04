@@ -1,8 +1,10 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Storage.Session;
 
@@ -13,6 +15,11 @@ public class InMemoryEffectsStore : IEffectsStore
     private readonly Dictionary<StoredId, Dictionary<EffectId, StoredEffect>> _effects = new();
     private readonly Dictionary<StoredId, int> _versions = new();
     private readonly Lock _sync = new();
+
+    // Resolves the flow's current owner for the owner-guard. Invoked OUTSIDE _sync: the function store calls into
+    // this store while holding its own lock (CreateFunction), so taking the function-store lock inside _sync
+    // would invert the lock order.
+    internal Func<StoredId, ReplicaId?>? OwnerLookup { get; set; }
 
     public Task Initialize() => Task.CompletedTask;
 
@@ -32,11 +39,17 @@ public class InMemoryEffectsStore : IEffectsStore
         if (changes.Count == 0)
             return Task.CompletedTask;
 
+        var storageSession = session as SnapshotStorageSession;
+
+        // A null-replica session demands the flow is unowned - the guard for writing to a completed flow's
+        // effects. Checked outside _sync (see OwnerLookup); the residual read-to-write window is covered by the
+        // writer's verify-and-recheck discipline, mirroring the SQL stores' read-owner-then-guarded-write shape.
+        if (storageSession is { ReplicaId: null } && OwnerLookup?.Invoke(storedId) is not null)
+            throw UnexpectedStateException.ConcurrentModification(storedId);
+
         lock (_sync)
         {
-            var storageSession = session as SnapshotStorageSession;
-
-            if (storageSession is { RowExists: true })
+            if (storageSession is { RowExists: true } && storageSession.Version != SnapshotStorageSession.NoVersionCheck)
                 if (_versions.ContainsKey(storedId) && storageSession.Version != _versions[storedId])
                     return Task.CompletedTask;
 

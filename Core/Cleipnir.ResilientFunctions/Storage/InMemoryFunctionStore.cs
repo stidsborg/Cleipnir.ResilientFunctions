@@ -21,6 +21,13 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
     public IMessageStore MessageStore => this;
     private readonly InMemoryEffectsStore _effectsStore = new();
     public IEffectsStore EffectsStore => _effectsStore;
+
+    public InMemoryFunctionStore()
+        => _effectsStore.OwnerLookup = storedId =>
+        {
+            lock (_sync)
+                return _states.TryGetValue(storedId, out var state) ? state.Owner : null;
+        };
     public IReplicaStore ReplicaStore { get; } = new InMemoryReplicaStore();
 
     public Task Initialize() => Task.CompletedTask;
