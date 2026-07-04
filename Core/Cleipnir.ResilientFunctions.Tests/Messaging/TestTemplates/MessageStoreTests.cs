@@ -637,13 +637,12 @@ public abstract class MessageStoreTests
         id2Msgs[0].MessageType.ShouldBe(stringType);
         id2Msgs[0].MessageContent.ShouldBe(msg1.ToJsonByteArray());
 
+        // appending messages no longer interrupts the target flows - the MessageWatchdog push delivers
         var sf1 = await functionStore.GetFunction(id1).ShouldNotBeNullAsync();
-        sf1.Interrupted.ShouldBeTrue();
-        sf1.Expires.ShouldBe(0);
-        
+        sf1.Interrupted.ShouldBeFalse();
+
         var sf2 = await functionStore.GetFunction(id2).ShouldNotBeNullAsync();
-        sf2.Interrupted.ShouldBeTrue();
-        sf2.Expires.ShouldBe(0);
+        sf2.Interrupted.ShouldBeFalse();
     }   
     
     public abstract Task AppendedBatchedMessageCanBeFetchedAgain();
@@ -676,9 +675,9 @@ public abstract class MessageStoreTests
         messages[0].MessageType.ShouldBe(stringType);
         messages[0].MessageContent.ShouldBe(msg.ToJsonByteArray());
 
+        // appending messages no longer interrupts the target flow - the MessageWatchdog push delivers
         var sf = await functionStore.GetFunction(id).ShouldNotBeNullAsync();
-        sf.Interrupted.ShouldBeTrue();
-        sf.Expires.ShouldBe(0);
+        sf.Interrupted.ShouldBeFalse();
     }
     
     public abstract Task AppendedBatchedMessagesWithPositionCanBeFetchedAgain();
@@ -739,11 +738,12 @@ public abstract class MessageStoreTests
         messagesId2[0].MessageType.ShouldBe(stringType);
         messagesId2[0].MessageContent.ToStringFromUtf8Bytes().ShouldBe(msg1String);
 
+        // appending messages no longer interrupts the target flows - the MessageWatchdog push delivers
         var sf1 = await functionStore.GetFunction(id1).ShouldNotBeNullAsync();
-        sf1.Interrupted.ShouldBeTrue();
+        sf1.Interrupted.ShouldBeFalse();
 
         var sf2 = await functionStore.GetFunction(id2).ShouldNotBeNullAsync();
-        sf2.Interrupted.ShouldBeTrue();
+        sf2.Interrupted.ShouldBeFalse();
 
         await messageStore.AppendMessages(
             [
@@ -761,8 +761,7 @@ public abstract class MessageStoreTests
         messagesId2[1].MessageContent.ToStringFromUtf8Bytes().ShouldBe(msg2String);
         
         sf2 = await functionStore.GetFunction(id2).ShouldNotBeNullAsync();
-        sf2.Interrupted.ShouldBeTrue();
-        sf2.Expires.ShouldBe(0);
+        sf2.Interrupted.ShouldBeFalse();
     }  
     
     public abstract Task MessagesForMultipleStoreIdsCanBeFetched();

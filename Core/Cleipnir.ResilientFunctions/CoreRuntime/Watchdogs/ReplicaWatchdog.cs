@@ -90,6 +90,7 @@ internal class ReplicaWatchdog(
             }
 
             await functionStore.RescheduleCrashedFunctions(crashedReplica.ReplicaId);
+            await TakeOverMessages(crashedReplica.ReplicaId, storedReplicas, threshold);
             await ReplicaStore.Delete(crashedReplica.ReplicaId);
             storedReplicas = await ReplicaStore.GetAll();
             offset = CalculateOffset(storedReplicas.Select(sr => sr.ReplicaId), clusterInfo.ReplicaId);
@@ -105,6 +106,28 @@ internal class ReplicaWatchdog(
             await Initialize();
         }
     }
+
+   // Reassigns the crashed replica's message rows to this replica so this replica's MessageWatchdog fetches and
+   // delivers them - without the handover, messages published by the crashed replica to ownerless flows would never
+   // be fetched again. Runs before the crashed replica is deleted from the replica store, so an interrupted
+   // handover is retried on a later iteration.
+   private async Task TakeOverMessages(ReplicaId crashedReplica, IReadOnlyList<StoredReplica> storedReplicas, long heartbeatThreshold)
+   {
+       var liveReplicas = storedReplicas
+           .Where(sr => sr.LatestHeartbeat >= heartbeatThreshold)
+           .Select(sr => sr.ReplicaId)
+           .ToHashSet();
+
+       var orphanedMessages = await functionStore.MessageStore.GetCrashedReplicaMessages(liveReplicas);
+       if (orphanedMessages.Count == 0)
+           return;
+
+       await functionStore.MessageStore.SetReplica(
+           orphanedMessages.Select(m => m.Position),
+           newReplica: clusterInfo.ReplicaId,
+           expectedReplica: crashedReplica
+       );
+   }
 
    public async Task CheckForCrashedFunctions()
    {

@@ -64,8 +64,7 @@ public class PostgreSqlMessageStore : IMessageStore
 
         var commands = messages
             .GroupBy(m => m.StoredId)
-            .Select(g => sqlGenerator.AppendMessages(g.Key, g.Select(m => m.StoredMessage)))
-            .Append(sqlGenerator.Interrupt(messages.Select(m => m.StoredId).Distinct()));
+            .Select(g => sqlGenerator.AppendMessages(g.Key, g.Select(m => m.StoredMessage)));
 
         await using var conn = await CreateConnection();
         await using var batch = commands

@@ -31,7 +31,6 @@ public class FunctionsRegistry : IDisposable
     private volatile bool _disposed;
     private readonly Lock _sync = new();
     private readonly ReplicaWatchdog _replicaWatchdog;
-    private readonly InterruptedWatchdog _interruptedWatchdog;
     private readonly MessageWatchdog _messageWatchdog;
     private readonly MessageClearer _messageClearer;
     private readonly FlowsManagers _flowsManagers;
@@ -70,16 +69,8 @@ public class FunctionsRegistry : IDisposable
             _settings.UnhandledExceptionHandler
         );
 
-        _interruptedWatchdog = new InterruptedWatchdog(
-            _functionStore,
-            _flowsManagers,
-            _shutdownCoordinator,
-            _settings.UnhandledExceptionHandler,
-            _settings.WatchdogCheckFrequency,
-            _settings.DelayStartup,
-            utcNow
-        );
-
+        // The MessageWatchdog is the message-delivery loop, so it runs at the message-pull frequency - the
+        // (slower) watchdog check frequency would make every push-restarted exchange poll-bound.
         _messageWatchdog = new MessageWatchdog(
             _functionStore.MessageStore,
             _flowsManagers,
@@ -87,7 +78,7 @@ public class FunctionsRegistry : IDisposable
             ClusterInfo,
             _shutdownCoordinator,
             _settings.UnhandledExceptionHandler,
-            _settings.WatchdogCheckFrequency,
+            _settings.MessagesPullFrequency,
             _settings.DelayStartup,
             utcNow
         );
@@ -96,7 +87,6 @@ public class FunctionsRegistry : IDisposable
         {
             _replicaWatchdog.Initialize().GetAwaiter().GetResult();
             _ = _replicaWatchdog.Start();
-            _ = Task.Run(_interruptedWatchdog.Start);
             _ = Task.Run(_messageWatchdog.Start);
         }
     }
@@ -254,7 +244,8 @@ public class FunctionsRegistry : IDisposable
                 serializer,
                 _settings.UtcNow,
                 settings?.ClearChildrenAfterCapture ?? true,
-                _messageClearer
+                _messageClearer,
+                _messageWatchdog
             );
             var flowsManager = _flowsManagers.GetOrCreate(storedType);
             var invoker = new Invoker<TParam, TReturn>(
@@ -292,7 +283,8 @@ public class FunctionsRegistry : IDisposable
                 storedType,
                 _functionStore,
                 serializer,
-                ClusterInfo.ReplicaId
+                ClusterInfo.ReplicaId,
+                _messageWatchdog
             );
 
             var registration = new FuncRegistration<TParam, TReturn>(
@@ -340,7 +332,8 @@ public class FunctionsRegistry : IDisposable
                 serializer,
                 _settings.UtcNow,
                 settings?.ClearChildrenAfterCapture ?? true,
-                _messageClearer
+                _messageClearer,
+                _messageWatchdog
             );
             var flowsManager = _flowsManagers.GetOrCreate(storedType);
             var invoker = new Invoker<Unit, Unit>(
@@ -378,7 +371,8 @@ public class FunctionsRegistry : IDisposable
                 storedType,
                 _functionStore,
                 serializer,
-                ClusterInfo.ReplicaId
+                ClusterInfo.ReplicaId,
+                _messageWatchdog
             );
 
             var registration = new ParamlessRegistration(
@@ -426,7 +420,8 @@ public class FunctionsRegistry : IDisposable
                 serializer,
                 _settings.UtcNow,
                 settings?.ClearChildrenAfterCapture ?? true,
-                _messageClearer
+                _messageClearer,
+                _messageWatchdog
             );
             var flowsManager = _flowsManagers.GetOrCreate(storedType);
             var rActionInvoker = new Invoker<TParam, Unit>(
@@ -464,7 +459,8 @@ public class FunctionsRegistry : IDisposable
                 storedType,
                 _functionStore,
                 serializer,
-                ClusterInfo.ReplicaId
+                ClusterInfo.ReplicaId,
+                _messageWatchdog
             );
             var registration = new ActionRegistration<TParam>(
                 flowType,

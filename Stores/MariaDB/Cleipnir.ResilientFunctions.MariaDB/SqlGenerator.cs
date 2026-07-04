@@ -34,16 +34,6 @@ public class SqlGenerator(string tablePrefix)
         return StoreCommand.Create(sql);
     }
 
-    public StoreCommand ResetInterrupted(IEnumerable<StoredId> storedIds)
-    {
-        var sql = @$"
-                UPDATE {tablePrefix}
-                SET interrupted = FALSE
-                WHERE Id IN ({storedIds.Select(id => $"'{id.AsGuid:N}'").StringJoin(", ")});";
-
-        return StoreCommand.Create(sql);
-    }
-
     private string? _getEffectResultsSql;
     public StoreCommand GetEffects(StoredId storedId)
     {
@@ -456,14 +446,17 @@ public class SqlGenerator(string tablePrefix)
         return command;
     }
 
-    private string? _restartExecutionsSql;
-    public StoreCommand RestartExecutions(IReadOnlyList<StoredId> storedIds, ReplicaId replicaId)
+    // The batch restart runs as two commands inside a transaction: this locking SELECT picks the claimable rows
+    // (owner IS NULL) and holds them until the claiming UPDATE commits, so the caller gets back exactly the flows
+    // claimed by ITS call. A single UPDATE-then-SELECT cannot distinguish rows claimed by this call from rows
+    // already claimed by an earlier call from the same replica, which made two concurrent claimers (e.g. two
+    // watchdogs) both restart the same flow.
+    // Restartable flows are the parked ones (postponed/suspended): the batch restart backs the watchdogs, which
+    // must never resurrect a completed flow - e.g. when a message arrives after its target has succeeded.
+    private string? _restartExecutionsSelectEligibleSql;
+    public StoreCommand RestartExecutionsSelectEligible(IReadOnlyList<StoredId> storedIds)
     {
-        _restartExecutionsSql ??= @$"
-            UPDATE {tablePrefix}
-            SET status = {(int)Status.Executing}, expires = 0, interrupted = FALSE, owner = ?
-            WHERE id IN ({{0}}) AND owner IS NULL;
-
+        _restartExecutionsSelectEligibleSql ??= @$"
             SELECT
                 id,
                 param_json,
@@ -478,10 +471,25 @@ public class SqlGenerator(string tablePrefix)
                 owner,
                 effects
             FROM {tablePrefix}
-            WHERE id IN ({{0}});";
+            WHERE id IN ({{0}}) AND owner IS NULL AND status IN ({(int)Status.Postponed}, {(int)Status.Suspended})
+            FOR UPDATE;";
 
-        var idList = storedIds.Select(id => $"'{id.AsGuid:N}'").StringJoin(", ");
-        var sql = string.Format(_restartExecutionsSql, idList);
+        var idList = storedIds.Select(id => $"'{id.AsGuid:N}'").Order().StringJoin(", ");
+        var sql = string.Format(_restartExecutionsSelectEligibleSql, idList);
+
+        return StoreCommand.Create(sql);
+    }
+
+    private string? _restartExecutionsClaimSql;
+    public StoreCommand RestartExecutionsClaim(IReadOnlyList<StoredId> storedIds, ReplicaId replicaId)
+    {
+        _restartExecutionsClaimSql ??= @$"
+            UPDATE {tablePrefix}
+            SET status = {(int)Status.Executing}, expires = 0, interrupted = FALSE, owner = ?
+            WHERE id IN ({{0}}) AND owner IS NULL;";
+
+        var idList = storedIds.Select(id => $"'{id.AsGuid:N}'").Order().StringJoin(", ");
+        var sql = string.Format(_restartExecutionsClaimSql, idList);
 
         var command = StoreCommand.Create(
             sql,

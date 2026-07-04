@@ -52,10 +52,12 @@ public class FlowsManagers
     public Task Push(IReadOnlyList<StoredMessages> messages)
     {
         List<Task> messageDeliveries;
+        List<StoredMessages> unregistered;
         lock (_lock)
         {
-            var notRunning = messages
-                .Where(msg => !_managers.ContainsKey(msg.StoredId.Type));
+            unregistered = messages
+                .Where(msg => !_managers.ContainsKey(msg.StoredId.Type))
+                .ToList();
 
             var running = messages
                 .Where(msg => _managers.ContainsKey(msg.StoredId.Type))
@@ -65,23 +67,17 @@ public class FlowsManagers
 
             messageDeliveries = running;
         }
-        
+
+        // Messages for flow types not (yet) registered on this replica cannot be delivered here. Reopen their
+        // positions so delivery is retried on a later poll - the type may simply not have been registered yet
+        // (start-up ordering or a rolling deployment).
+        // todo log a warning here
+        if (unregistered.Count > 0)
+            _messageClearer.ReopenPositions(
+                unregistered.SelectMany(sm => sm.Messages).Select(m => m.Position)
+            );
+
         return Task.WhenAll(messageDeliveries);
     }
 
-    public IReadOnlyList<StoredId> FilterOwned(IEnumerable<StoredId> ids)
-    {
-        var owned = new List<StoredId>();
-        foreach (var group in ids.GroupBy(id => id.Type))
-            if (TryGet(group.Key) is { } manager)
-                owned.AddRange(manager.FilterOwned(group.ToList()));
-
-        return owned;
-    }
-
-    public void Interrupt(IReadOnlyList<StoredId> ids)
-    {
-        foreach (var group in ids.GroupBy(id => id.Type))
-            TryGet(group.Key)?.Interrupt(group.ToList());
-    }
 }

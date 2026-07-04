@@ -24,7 +24,6 @@ internal class QueueManager : IDisposable
 
     private readonly FlowId _flowId;
     private readonly StoredId _storedId;
-    private readonly IMessageStore _messageStore;
     private readonly ISerializer _serializer;
     private readonly Effect _effect;
     private readonly FlowExecutionState _flowExecutionState;
@@ -49,7 +48,6 @@ internal class QueueManager : IDisposable
     public QueueManager(
         FlowId flowId,
         StoredId storedId,
-        IMessageStore messageStore,
         ISerializer serializer,
         Effect effect,
         FlowExecutionState flowExecutionState,
@@ -63,7 +61,6 @@ internal class QueueManager : IDisposable
     {
         _flowId = flowId;
         _storedId = storedId;
-        _messageStore = messageStore;
         _serializer = serializer;
         _effect = effect;
         _flowExecutionState = flowExecutionState;
@@ -73,6 +70,10 @@ internal class QueueManager : IDisposable
         _settings = settings;
         _messageClearer = messageClearer;
         _idempotencyKeys = new IdempotencyKeys(IdempotencyKeysRoot, _effect, maxIdempotencyKeyCount, maxIdempotencyKeyTtl, utcNow);
+
+        // Attach to the flow state immediately - not first at initialization - so a push arriving before the flow's
+        // first message interaction is processed (Push self-initializes) instead of being dropped by the flow state.
+        flowExecutionState.QueueManager = this;
     }
 
     private async Task Initialize()
@@ -89,6 +90,13 @@ internal class QueueManager : IDisposable
 
             if (_effect.TryGet<List<long>>(DeliveredPositionsId, out var positions) && positions is { Count: > 0 })
             {
+                // Remember the positions a previous incarnation already delivered, so a message fetched before its
+                // Clear deletes it from the store (e.g. the restart's in-hand messages) is skipped by
+                // ProcessMessages rather than delivered a second time.
+                lock (_lock)
+                    foreach (var position in positions)
+                        _fetchedPositions.Add(position);
+
                 await _messageClearer.Clear(positions);
                 positions.Clear();
                 _effect.FlushlessUpsert(DeliveredPositionsId, positions, alias: null);
@@ -96,7 +104,6 @@ internal class QueueManager : IDisposable
 
             _initialized = true;
             _effect.RegisterQueueManager(this);
-            _flowExecutionState.QueueManager = this;
         }
         finally
         {
@@ -111,36 +118,79 @@ internal class QueueManager : IDisposable
         return new QueueClient(this, _serializer, _utcNow);
     }
 
+    // Re-evaluates the already-pushed messages against the current subscriptions. The queue manager no longer reads
+    // from the message store: messages arrive exclusively via Push (the MessageWatchdog poll and the restart
+    // hand-over), so this only flushes whatever has already been staged for delivery.
     public Task FetchMessagesOnce()
-        => _disposed ? Task.CompletedTask : FetchAndNotify();
-
-    internal void Interrupt()
     {
-        if (_disposed)
-            return;
-        _ = FetchMessagesOnce();
+        if (!_disposed)
+            DeliverMessages();
+
+        return Task.CompletedTask;
     }
 
     /// <summary>
-    /// Pushes messages fetched elsewhere (the MessageWatchdog) straight into the delivery pipeline,
-    /// avoiding a per-flow re-fetch. Idempotent: positions already processed are skipped by ProcessMessages.
+    /// Pushes messages fetched elsewhere (the MessageWatchdog, or the in-hand messages handed over on restart)
+    /// straight into the delivery pipeline, avoiding a per-flow re-fetch. Ensures the queue manager is initialized
+    /// first so the idempotency-key state is loaded before the messages are processed. Idempotent: positions
+    /// already processed are skipped by ProcessMessages.
+    ///
+    /// A push that hits a disposed (dying) instance reopens its positions instead of dropping them: the
+    /// MessageWatchdog already marked them as pushed, so a silent drop would strand the messages in the
+    /// ignore-set and lose the flow's wake-up.
     /// </summary>
     public async Task Push(IReadOnlyList<StoredMessage> messages)
     {
-        if (_disposed || messages.Count == 0)
+        if (messages.Count == 0)
             return;
+
+        if (_disposed)
+        {
+            _messageClearer.ReopenPositions(messages.Select(m => m.Position));
+            return;
+        }
+
+        if (!_initialized)
+        {
+            try
+            {
+                await Initialize();
+            }
+            catch (ObjectDisposedException)
+            {
+                _messageClearer.ReopenPositions(messages.Select(m => m.Position));
+                return;
+            }
+        }
 
         await _fetchSemaphore.WaitAsync();
         try
         {
-            if (_thrownException != null)
-                return;
+            if (_thrownException == null)
+                ProcessMessages(messages);
 
-            ProcessMessages(messages);
+            // A poisoned queue manager (message deserialization failed) cannot deliver. Reopen the batch's
+            // unstaged positions so the messages are refetched and handed to a restarted incarnation, whose
+            // subscription then surfaces the failure and fails the flow - otherwise a concurrently suspending
+            // flow would never learn of the poisoned message and both would be stranded.
+            if (_thrownException != null)
+            {
+                List<long> unstagedPositions;
+                lock (_lock)
+                    unstagedPositions = messages
+                        .Select(m => m.Position)
+                        .Where(position => !_fetchedPositions.Contains(position))
+                        .ToList();
+                _messageClearer.ReopenPositions(unstagedPositions);
+            }
         }
         finally
         {
             DeliverMessages();
+            // The instance may have been disposed while this push was in flight - reopen whatever it staged so the
+            // messages are not stranded in a dead queue manager.
+            if (_disposed)
+                ReopenUndeliveredStagedMessages();
             _fetchSemaphore.Release();
         }
     }
@@ -158,7 +208,7 @@ internal class QueueManager : IDisposable
         lock (_lock)
             _subscriptions.Add(subscription);
 
-        await FetchAndNotify();
+        DeliverMessages();
         if (subscription.Tcs.Task.IsCompleted)
             return (await subscription.Tcs.Task)?.Envelope;
 
@@ -184,28 +234,6 @@ internal class QueueManager : IDisposable
 
             await delayCts.CancelAsync();
             delayCts.Dispose();
-        }
-    }
-
-    private async Task FetchAndNotify()
-    {
-        await _fetchSemaphore.WaitAsync();
-        try
-        {
-            if (_thrownException != null)
-                return;
-
-            List<long> skipPositions;
-            lock (_lock)
-                skipPositions = _fetchedPositions.ToList();
-
-            var messages = await _messageStore.GetMessages(_storedId, skipPositions);
-            ProcessMessages(messages);
-        }
-        finally
-        {
-            DeliverMessages();
-            _fetchSemaphore.Release();
         }
     }
 
@@ -246,7 +274,13 @@ internal class QueueManager : IDisposable
                 );
                 lock (_lock)
                 {
-                    _toDeliver.Add(messageData);
+                    // Keep the staged messages position-sorted so delivery order stays append order even when two
+                    // pushers (the MessageWatchdog poll and an initialization-time push) stage batches out of order.
+                    var insertAt = _toDeliver.FindIndex(staged => staged.Position > position);
+                    if (insertAt == -1)
+                        _toDeliver.Add(messageData);
+                    else
+                        _toDeliver.Insert(insertAt, messageData);
                     _fetchedPositions.Add(position);
                 }
             }
@@ -340,7 +374,31 @@ internal class QueueManager : IDisposable
         }
     }
 
-    public void Dispose() => _disposed = true;
+    /// <summary>
+    /// Marks the instance dead and reopens the staged-but-undelivered positions: the invocation is finishing
+    /// (suspending or completing), so no subscription will ever consume them here. Reopening lets the
+    /// MessageWatchdog re-fetch them and deliver via a restart instead of leaving them stranded in the
+    /// ignore-set until the (much slower) postponed-watchdog path picks the flow up.
+    /// </summary>
+    public void Dispose()
+    {
+        _disposed = true;
+        ReopenUndeliveredStagedMessages();
+    }
+
+    private void ReopenUndeliveredStagedMessages()
+    {
+        lock (_lock)
+        {
+            if (_toDeliver.Count == 0)
+                return;
+
+            _messageClearer.ReopenPositions(_toDeliver.Select(m => m.Position));
+            foreach (var messageData in _toDeliver)
+                _fetchedPositions.Remove(messageData.Position);
+            _toDeliver.Clear();
+        }
+    }
 
     public record MessageData(
         Envelope Envelope,

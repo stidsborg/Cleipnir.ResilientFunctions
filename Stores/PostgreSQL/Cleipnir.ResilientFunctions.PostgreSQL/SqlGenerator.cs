@@ -38,16 +38,6 @@ public class SqlGenerator(string tablePrefix)
         return StoreCommand.Create(sql, values: [ storedIds.Select(id => id.AsGuid).ToArray() ]);
     }
 
-    public StoreCommand ResetInterrupted(IEnumerable<StoredId> storedIds)
-    {
-        var sql = @$"
-                UPDATE {tablePrefix}
-                SET interrupted = FALSE
-                WHERE Id = ANY($1)";
-
-        return StoreCommand.Create(sql, values: [ storedIds.Select(id => id.AsGuid).ToArray() ]);
-    }
-
     private string? _getEffectResultsSql;
     public StoreCommand GetEffects(StoredId storedId)
     {
@@ -373,10 +363,12 @@ public class SqlGenerator(string tablePrefix)
     private string? _restartExecutionsSql;
     public StoreCommand RestartExecutions(IReadOnlyList<StoredId> storedIds, ReplicaId replicaId)
     {
+        // Restartable flows are the parked ones (postponed/suspended): the batch restart backs the watchdogs, which
+        // must never resurrect a completed flow - e.g. when a message arrives after its target has succeeded.
         _restartExecutionsSql ??= @$"
             UPDATE {tablePrefix}
             SET status = {(int)Status.Executing}, expires = 0, interrupted = FALSE, owner = $1
-            WHERE id = ANY($2) AND owner IS NULL
+            WHERE id = ANY($2) AND owner IS NULL AND status IN ({(int)Status.Postponed}, {(int)Status.Suspended})
             RETURNING
                 id,
                 param_json,

@@ -1,6 +1,8 @@
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Cleipnir.ResilientFunctions.CoreRuntime.Watchdogs;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Queuing;
@@ -19,6 +21,7 @@ public class FlowExecutionState
 {
     private readonly Lock _lock = new();
     private readonly TaskCompletionSource _suspendedTcs = new();
+    private readonly IMessageClearer? _messageClearer;
 
     public StoredId Id { get; }
     public int Subflows { get; private set; }
@@ -44,18 +47,20 @@ public class FlowExecutionState
         }
     }
 
-    public FlowExecutionState(
+    internal FlowExecutionState(
         StoredId id,
         int subflows,
         int waitingSubflows,
         FlowTimeouts timeouts,
-        Task completed)
+        Task completed,
+        IMessageClearer? messageClearer = null)
     {
         Id = id;
         Subflows = subflows;
         WaitingSubflows = waitingSubflows;
         Timeouts = timeouts;
         SuspendedTask = _suspendedTcs.Task;
+        _messageClearer = messageClearer;
 
         _ = completed.ContinueWith(_ => Status = FlowStatus.Completed);
     }
@@ -95,16 +100,20 @@ public class FlowExecutionState
         return Task.CompletedTask;
     }
 
-    public void Interrupt()
-    {
-        if (Suspended) return;
-        QueueManager?.Interrupt();
-    }
-
     public Task Push(IReadOnlyList<StoredMessage> messages)
     {
-        if (Suspended) return Task.CompletedTask;
-        return QueueManager?.Push(messages) ?? Task.CompletedTask;
+        var queueManager = QueueManager;
+        if (Suspended || queueManager == null)
+        {
+            // The push cannot be delivered (the flow lost the suspend race, or its queue manager is not attached
+            // yet), but the MessageWatchdog already marked the positions as pushed. Reopen them so they are
+            // re-fetched and delivered later instead of being stranded in the ignore-set - which would make a
+            // later-positioned duplicate consume the idempotency key first.
+            _messageClearer?.ReopenPositions(messages.Select(m => m.Position));
+            return Task.CompletedTask;
+        }
+
+        return queueManager.Push(messages);
     }
 
     public bool Suspend()

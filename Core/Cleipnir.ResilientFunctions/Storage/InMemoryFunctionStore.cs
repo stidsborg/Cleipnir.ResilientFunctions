@@ -161,6 +161,8 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
                 var state = _states[storedId];
                 if (state.Owner != null)
                     continue; // Skip already owned flows
+                if (state.Status is not (Status.Postponed or Status.Suspended))
+                    continue; // Never resurrect a completed flow - e.g. when a message arrives after it succeeded
 
                 // Restart this flow
                 state.Status = Status.Executing;
@@ -171,7 +173,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
                 restartedIds.Add(storedId);
             }
         }
-        
+
         var effectsDict = await EffectsStore.GetEffectResults(storedIds);
         var messagesDict = await MessageStore.GetMessages(storedIds);
         
@@ -222,6 +224,8 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
                 var state = _states[storedId];
                 if (state.Owner != null)
                     continue; // Skip already owned flows
+                if (state.Status is not (Status.Postponed or Status.Suspended))
+                    continue; // Never resurrect a completed flow - e.g. when a message arrives after it succeeded
 
                 // Restart this flow
                 state.Status = Status.Executing;
@@ -279,17 +283,6 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
                 .Values
                 .Where(s => s.Timestamp < completedBefore)
                 .Select(s => s.StoredId)
-                .ToList()
-                .CastTo<IReadOnlyList<StoredId>>()
-                .ToTask();
-    }
-
-    public Task<IReadOnlyList<StoredId>> GetInterruptedFunctions()
-    {
-        lock (_sync)
-            return _states
-                .Where(kv => kv.Value.Interrupted)
-                .Select(kv => kv.Key)
                 .ToList()
                 .CastTo<IReadOnlyList<StoredId>>()
                 .ToTask();
@@ -494,18 +487,6 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
             await Interrupt(storedId);
     }
 
-    public Task ResetInterrupted(IReadOnlyList<StoredId> storedIds)
-    {
-        lock (_sync)
-        {
-            foreach (var storedId in storedIds)
-                if (_states.TryGetValue(storedId, out var state))
-                    state.Interrupted = false;
-        }
-
-        return Task.CompletedTask;
-    }
-
     public Task<Status?> GetFunctionStatus(StoredId storedId)
     {
         lock (_sync)
@@ -638,7 +619,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
     
     #region MessageStore
 
-    public async Task AppendMessages(IReadOnlyList<StoredIdAndMessage> messages)
+    public Task AppendMessages(IReadOnlyList<StoredIdAndMessage> messages)
     {
         foreach (var (storedId, storedMessage) in messages)
         {
@@ -651,9 +632,9 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
                 var replica = flowOwner ?? storedMessage.Replica;
                 flowMessages[_nextMessagePosition++] = storedMessage with { Replica = replica };
             }
-
-            await Interrupt(storedId);
         }
+
+        return Task.CompletedTask;
     }
 
 

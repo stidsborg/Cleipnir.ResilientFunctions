@@ -66,10 +66,6 @@ public class SqlServerMessageStore : IMessageStore
             return;
         }
 
-        var storedIds = messages.Select(m => m.StoredId).Distinct().ToList();
-
-        var interuptsSql = _sqlGenerator.Interrupt(storedIds)!;
-
         await using var conn = await CreateConnection();
         var sql = @$"
             INSERT INTO {_tablePrefix}_Messages
@@ -87,13 +83,6 @@ public class SqlServerMessageStore : IMessageStore
             command.Parameters.AddWithValue($"@Content{i}", content);
         }
         await command.ExecuteNonQueryAsync();
-
-        // The interrupt is executed as a separate command - not merged into the insert above - so the
-        // insert's locks are released before the interrupt UPDATE runs. Merging them caused lock contention
-        // that deadlocked tight message-exchange loops (e.g. ping-pong) where two executing flows interrupt
-        // each other (SQL Server's lock-wait is unbounded, so it hung indefinitely).
-        await using var interruptCommand = interuptsSql.ToSqlCommand(conn);
-        await interruptCommand.ExecuteNonQueryAsync();
     }
 
     private string? _replaceMessageSql;

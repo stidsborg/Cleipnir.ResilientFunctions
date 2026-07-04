@@ -96,11 +96,6 @@ public class CrashableFunctionStore : IFunctionStore
             ? Task.FromException<IReadOnlyList<StoredId>>(new TimeoutException())
             : _inner.GetSucceededFunctions(completedBefore);
 
-    public Task<IReadOnlyList<StoredId>> GetInterruptedFunctions()
-        => _crashed
-            ? Task.FromException<IReadOnlyList<StoredId>>(new TimeoutException())
-            : _inner.GetInterruptedFunctions();
-
     public Task<bool> SetFunctionState(
         StoredId storedId, Status status, byte[]? storedParameter,
         byte[]? storedResult, StoredException? storedException, 
@@ -186,7 +181,6 @@ public class CrashableFunctionStore : IFunctionStore
 
     public Task Interrupt(IReadOnlyList<StoredId> storedIds) => _inner.Interrupt(storedIds);
 
-    public Task ResetInterrupted(IReadOnlyList<StoredId> storedIds) => _inner.ResetInterrupted(storedIds);
 
     public Task<bool> SetParameters(StoredId storedId, byte[]? storedParameter, byte[]? storedResult, ReplicaId? expectedReplica)
         => _crashed

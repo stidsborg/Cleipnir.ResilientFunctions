@@ -319,69 +319,73 @@ public class MariaDbFunctionStore : IFunctionStore
         ReplicaId owner)
     {
         await using var conn = await CreateOpenConnection(_connectionString);
-        var storeCommand = _sqlGenerator.RestartExecutions(storedIds, owner);
+        // The locking SELECT and the claiming UPDATE run in one transaction so the selected rows are exactly the
+        // rows this call claims - a plain UPDATE-then-SELECT returns rows already claimed by an earlier call from
+        // the same replica as if they were claimed now, causing two concurrent claimers to restart the same flow.
+        await using var transaction = await conn.BeginTransactionAsync(System.Data.IsolationLevel.ReadCommitted);
 
-        await using var command = storeCommand.ToSqlCommand(conn);
-        await using var reader = await command.ExecuteReaderAsync();
-
-        // Read SELECT results
         const int idIndex = 0;
         const int paramIndex = 1;
-        const int statusIndex = 2;
         const int resultIndex = 3;
         const int exceptionIndex = 4;
-        const int expiresIndex = 5;
-        const int interruptedIndex = 6;
         const int timestampIndex = 7;
         const int humanInstanceIdIndex = 8;
         const int parentIndex = 9;
-        const int ownerIndex = 10;
         const int effectsIndex = 11;
 
         var flows = new List<(StoredFlow flow, byte[]? effectsBytes, SnapshotStorageSession session)>();
-        while (await reader.ReadAsync())
+        await using (var selectCommand = _sqlGenerator.RestartExecutionsSelectEligible(storedIds).ToSqlCommand(conn))
         {
-            var id = reader.GetString(idIndex).ToGuid().ToStoredId();
-            var hasParam = !await reader.IsDBNullAsync(paramIndex);
-            var hasResult = !await reader.IsDBNullAsync(resultIndex);
-            var hasError = !await reader.IsDBNullAsync(exceptionIndex);
-            var hasParent = !await reader.IsDBNullAsync(parentIndex);
-            var hasOwner = !await reader.IsDBNullAsync(ownerIndex);
-            var hasEffects = !await reader.IsDBNullAsync(effectsIndex);
-
-            var param = hasParam ? (byte[])reader.GetValue(paramIndex) : null;
-            var status = (Status)reader.GetInt32(statusIndex);
-            var result = hasResult ? (byte[])reader.GetValue(resultIndex) : null;
-            var exceptionJson = hasError ? reader.GetString(exceptionIndex) : null;
-            var exception = exceptionJson == null ? null : StoredException.Deserialize(exceptionJson);
-            var expires = reader.GetInt64(expiresIndex);
-            var interrupted = reader.GetBoolean(interruptedIndex);
-            var timestamp = reader.GetInt64(timestampIndex);
-            var humanInstanceId = reader.GetString(humanInstanceIdIndex);
-            var parent = hasParent ? reader.GetString(parentIndex).ToGuid().ToStoredId() : null;
-            var ownerId = hasOwner ? reader.GetString(ownerIndex).ToGuid().ToReplicaId() : null;
-            var effectsBytes = hasEffects ? (byte[])reader.GetValue(effectsIndex) : null;
-
-            var flow = new StoredFlow(
-                id,
-                humanInstanceId,
-                param,
-                status,
-                exception,
-                expires,
-                timestamp,
-                interrupted,
-                parent,
-                ownerId,
-                id.Type
-            );
-
-            if (flow.OwnerId == owner)
+            selectCommand.Transaction = transaction;
+            await using var reader = await selectCommand.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
             {
+                var id = reader.GetString(idIndex).ToGuid().ToStoredId();
+                var hasParam = !await reader.IsDBNullAsync(paramIndex);
+                var hasResult = !await reader.IsDBNullAsync(resultIndex);
+                var hasError = !await reader.IsDBNullAsync(exceptionIndex);
+                var hasParent = !await reader.IsDBNullAsync(parentIndex);
+                var hasEffects = !await reader.IsDBNullAsync(effectsIndex);
+
+                var param = hasParam ? (byte[])reader.GetValue(paramIndex) : null;
+                var result = hasResult ? (byte[])reader.GetValue(resultIndex) : null;
+                var exceptionJson = hasError ? reader.GetString(exceptionIndex) : null;
+                var exception = exceptionJson == null ? null : StoredException.Deserialize(exceptionJson);
+                var timestamp = reader.GetInt64(timestampIndex);
+                var humanInstanceId = reader.GetString(humanInstanceIdIndex);
+                var parent = hasParent ? reader.GetString(parentIndex).ToGuid().ToStoredId() : null;
+                var effectsBytes = hasEffects ? (byte[])reader.GetValue(effectsIndex) : null;
+
+                // The row is read before the claiming UPDATE runs, so status/expires/interrupted/owner reflect the
+                // pre-claim state - report the claimed values the UPDATE is about to write instead.
+                var flow = new StoredFlow(
+                    id,
+                    humanInstanceId,
+                    param,
+                    Status.Executing,
+                    exception,
+                    Expires: 0,
+                    timestamp,
+                    Interrupted: false,
+                    parent,
+                    OwnerId: owner,
+                    id.Type
+                );
+
                 var session = new SnapshotStorageSession(owner) { RowExists = true };
                 flows.Add((flow, effectsBytes, session));
             }
         }
+
+        if (flows.Count > 0)
+        {
+            var claimedIds = flows.Select(f => f.flow.StoredId).ToList();
+            await using var claimCommand = _sqlGenerator.RestartExecutionsClaim(claimedIds, owner).ToSqlCommand(conn);
+            claimCommand.Transaction = transaction;
+            await claimCommand.ExecuteNonQueryAsync();
+        }
+
+        await transaction.CommitAsync();
 
         return flows;
     }
@@ -455,27 +459,6 @@ public class MariaDbFunctionStore : IFunctionStore
         }
         
         return ids;
-    }
-
-    public async Task<IReadOnlyList<StoredId>> GetInterruptedFunctions()
-    {
-        var sql = @$"
-            SELECT id
-            FROM {_tablePrefix}
-            WHERE interrupted = TRUE";
-
-        await using var conn = await CreateOpenConnection(_connectionString);
-        await using var command = new MySqlCommand(sql, conn);
-
-        await using var reader = await command.ExecuteReaderAsync();
-        var interruptedIds = new List<StoredId>();
-        while (await reader.ReadAsync())
-        {
-            var storedId = reader.GetString(0).ToGuid().ToStoredId();
-            interruptedIds.Add(storedId);
-        }
-
-        return interruptedIds;
     }
 
     private string? _setFunctionStateSql;
@@ -688,16 +671,6 @@ public class MariaDbFunctionStore : IFunctionStore
 
         await using var conn = await CreateOpenConnection(_connectionString);
         await using var cmd = _sqlGenerator.Interrupt(storedIds).ToSqlCommand(conn);
-        await cmd.ExecuteNonQueryAsync();
-    }
-
-    public async Task ResetInterrupted(IReadOnlyList<StoredId> storedIds)
-    {
-        if (storedIds.Count == 0)
-            return;
-
-        await using var conn = await CreateOpenConnection(_connectionString);
-        await using var cmd = _sqlGenerator.ResetInterrupted(storedIds).ToSqlCommand(conn);
         await cmd.ExecuteNonQueryAsync();
     }
 

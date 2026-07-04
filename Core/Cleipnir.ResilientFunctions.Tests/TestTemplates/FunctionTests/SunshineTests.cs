@@ -351,7 +351,7 @@ public abstract class SunshineTests
                 });
 
 
-        await registration.Run(
+        var scheduled = await registration.Schedule(
             flowInstance: "hello",
             param: "hello",
             initialState: new InitialState(
@@ -359,7 +359,11 @@ public abstract class SunshineTests
                 Effects: [new InitialEffect(Id: 0.ToEffectId(), Value: "InitialEffectValue", Exception: null, Alias: "InitialEffectId")]
             )
         );
-        
+
+        // The initial message is delivered via the MessageWatchdog after a suspend/restart, so wait for completion
+        // tolerantly instead of Run (which throws on the first suspension).
+        await scheduled.Completion(TimeSpan.FromSeconds(10));
+
         initialEffectValue.ShouldBe("InitialEffectValue");
         initialMessageValue.ShouldBe("InitialMessage");
             
@@ -389,7 +393,7 @@ public abstract class SunshineTests
                 });
 
 
-        await registration.Run(
+        var scheduled = await registration.Schedule(
             flowInstance: "hello",
             param: "hello",
             initialState: new InitialState(
@@ -397,7 +401,11 @@ public abstract class SunshineTests
                 Effects: [new InitialEffect(Id: 0.ToEffectId(), Value: "InitialEffectValue", Exception: null, Alias: "InitialEffectId")]
             )
         );
-        
+
+        // The initial message is delivered via the MessageWatchdog after a suspend/restart, so wait for completion
+        // tolerantly instead of Run (which throws on the first suspension).
+        await scheduled.Completion(TimeSpan.FromSeconds(10));
+
         initialEffectValue.ShouldBe("InitialEffectValue");
         initialMessageValue.ShouldBe("InitialMessage");
             
@@ -427,14 +435,18 @@ public abstract class SunshineTests
                 });
 
 
-        await registration.Run(
+        var scheduled = await registration.Schedule(
             flowInstance: "hello",
             initialState: new InitialState(
                 Messages: [new MessageAndIdempotencyKey("InitialMessage")],
                 Effects: [new InitialEffect(Id: 0.ToEffectId(), Value: "InitialEffectValue", Exception: null, Alias: "InitialEffectId")]
             )
         );
-        
+
+        // The initial message is delivered via the MessageWatchdog after a suspend/restart, so wait for completion
+        // tolerantly instead of Run (which throws on the first suspension).
+        await scheduled.Completion(TimeSpan.FromSeconds(10));
+
         initialEffectValue.ShouldBe("InitialEffectValue");
         initialMessageValue.ShouldBe("InitialMessage");
             

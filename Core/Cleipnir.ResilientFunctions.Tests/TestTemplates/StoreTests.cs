@@ -665,54 +665,14 @@ public abstract class StoreTests
         session.ShouldBeNull();
 
         await store.Interrupt(functionId).ShouldBeTrueAsync();
-        (await store.GetInterruptedFunctions()).Any(id => id == functionId).ShouldBeTrue();
+        (await store.GetFunction(functionId)).ShouldNotBeNull().Interrupted.ShouldBeTrue();
 
         await store.RestartExecution(
             functionId,
             owner: ReplicaId.NewId()
         ).ShouldNotBeNullAsync();
 
-        (await store.GetInterruptedFunctions()).Any(id => id == functionId).ShouldBeFalse();
-    }
-
-    public abstract Task ResetInterruptedClearsInterruptedFlag();
-    protected async Task ResetInterruptedClearsInterruptedFlag(Task<IFunctionStore> storeTask)
-    {
-        var store = await storeTask;
-        var functionId1 = TestStoredId.Create();
-        var functionId2 = StoredId.Create(functionId1.Type, Guid.NewGuid().ToString());
-
-        await store.CreateFunction(
-            functionId1,
-            "humanInstanceId1",
-            param: Test.SimpleStoredParameter,
-            postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks,
-            parent: null,
-            owner: null
-        );
-
-        await store.CreateFunction(
-            functionId2,
-            "humanInstanceId2",
-            param: Test.SimpleStoredParameter,
-            postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks,
-            parent: null,
-            owner: null
-        );
-
-        await store.Interrupt(functionId1).ShouldBeTrueAsync();
-        await store.Interrupt(functionId2).ShouldBeTrueAsync();
-
-        (await store.GetInterruptedFunctions()).Count.ShouldBe(2);
-
-        await store.ResetInterrupted([functionId1]);
-
-        var interrupted = await store.GetInterruptedFunctions();
-        interrupted.Count.ShouldBe(1);
-        interrupted.Any(id => id == functionId2).ShouldBeTrue();
-        interrupted.Any(id => id == functionId1).ShouldBeFalse();
+        (await store.GetFunction(functionId)).ShouldNotBeNull().Interrupted.ShouldBeFalse();
     }
 
     public abstract Task MessagesCanBeFetchedAfterFunctionWithInitialMessagesHasBeenCreated();
@@ -1931,183 +1891,6 @@ public abstract class StoreTests
         storedFunction.OwnerId.ShouldBeNull();
     }
 
-    public abstract Task GetInterruptedFunctionsReturnsOnlyInterruptedFunctions();
-    protected async Task GetInterruptedFunctionsReturnsOnlyInterruptedFunctions(Task<IFunctionStore> storeTask)
-    {
-        var store = await storeTask;
-        var functionId1 = TestStoredId.Create();
-        var functionId2 = StoredId.Create(functionId1.Type, Guid.NewGuid().ToString());
-        var functionId3 = StoredId.Create(functionId1.Type, Guid.NewGuid().ToString());
-        var functionId4 = StoredId.Create(functionId1.Type, Guid.NewGuid().ToString());
-
-        // Create 4 functions
-        var session = await store.CreateFunction(
-            functionId1,
-            "humanInstanceId1",
-            param: Test.SimpleStoredParameter,
-            postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks,
-            parent: null,
-            owner: null
-        );
-        session.ShouldBeNull();
-
-        session = await store.CreateFunction(
-            functionId2,
-            "humanInstanceId2",
-            param: Test.SimpleStoredParameter,
-            postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks,
-            parent: null,
-            owner: null
-        );
-        session.ShouldBeNull();
-
-        session = await store.CreateFunction(
-            functionId3,
-            "humanInstanceId3",
-            param: Test.SimpleStoredParameter,
-            postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks,
-            parent: null,
-            owner: null
-        );
-        session.ShouldBeNull();
-
-        session = await store.CreateFunction(
-            functionId4,
-            "humanInstanceId4",
-            param: Test.SimpleStoredParameter,
-            postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks,
-            parent: null,
-            owner: null
-        );
-        session.ShouldBeNull();
-
-        // Interrupt functions 1 and 3
-        await store.Interrupt(functionId1).ShouldBeTrueAsync();
-        await store.Interrupt(functionId3).ShouldBeTrueAsync();
-
-        // Get interrupted functions
-        var interruptedFunctions = await store.GetInterruptedFunctions();
-
-        // Should return only the 2 interrupted functions
-        interruptedFunctions.Count.ShouldBe(2);
-        interruptedFunctions.Any(id => id == functionId1).ShouldBeTrue();
-        interruptedFunctions.Any(id => id == functionId3).ShouldBeTrue();
-        interruptedFunctions.Any(id => id == functionId2).ShouldBeFalse();
-        interruptedFunctions.Any(id => id == functionId4).ShouldBeFalse();
-    }
-
-    public abstract Task GetInterruptedFunctionsReturnsEmptyListWhenNoneExist();
-    protected async Task GetInterruptedFunctionsReturnsEmptyListWhenNoneExist(Task<IFunctionStore> storeTask)
-    {
-        var store = await storeTask;
-
-        var interruptedFunctions = await store.GetInterruptedFunctions();
-        interruptedFunctions.Count.ShouldBe(0);
-    }
-
-    public abstract Task GetInterruptedFunctionsReturnsEmptyListWhenNoneFunctionsAreInterrupted();
-    protected async Task GetInterruptedFunctionsReturnsEmptyListWhenNoneFunctionsAreInterrupted(Task<IFunctionStore> storeTask)
-    {
-        var store = await storeTask;
-        var functionId1 = TestStoredId.Create();
-        var functionId2 = StoredId.Create(functionId1.Type, Guid.NewGuid().ToString());
-
-        var session = await store.CreateFunction(
-            functionId1,
-            "humanInstanceId1",
-            param: Test.SimpleStoredParameter,
-            postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks,
-            parent: null,
-            owner: null
-        );
-        session.ShouldBeNull();
-
-        session = await store.CreateFunction(
-            functionId2,
-            "humanInstanceId2",
-            param: Test.SimpleStoredParameter,
-            postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks,
-            parent: null,
-            owner: null
-        );
-        session.ShouldBeNull();
-
-        // Don't interrupt any functions
-        var interruptedFunctions = await store.GetInterruptedFunctions();
-
-        interruptedFunctions.Count.ShouldBe(0);
-    }
-
-    public abstract Task GetInterruptedFunctionsReturnsIdOnceWhenInterruptedMultipleTimes();
-    protected async Task GetInterruptedFunctionsReturnsIdOnceWhenInterruptedMultipleTimes(Task<IFunctionStore> storeTask)
-    {
-        var store = await storeTask;
-        var functionId = TestStoredId.Create();
-
-        var session = await store.CreateFunction(
-            functionId,
-            "humanInstanceId",
-            param: Test.SimpleStoredParameter,
-            postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks,
-            parent: null,
-            owner: null
-        );
-        session.ShouldBeNull();
-
-        await store.Interrupt(functionId).ShouldBeTrueAsync();
-        await store.Interrupt(functionId).ShouldBeTrueAsync();
-        await store.Interrupt(functionId).ShouldBeTrueAsync();
-
-        var interruptedFunctions = await store.GetInterruptedFunctions();
-        interruptedFunctions.Count.ShouldBe(1);
-        interruptedFunctions.Single().ShouldBe(functionId);
-    }
-
-    public abstract Task GetInterruptedFunctionsIncludesPostponedInterruptedFunction();
-    protected async Task GetInterruptedFunctionsIncludesPostponedInterruptedFunction(Task<IFunctionStore> storeTask)
-    {
-        var store = await storeTask;
-        var executingId = TestStoredId.Create();
-        var postponedId = StoredId.Create(executingId.Type, Guid.NewGuid().ToString());
-
-        var session = await store.CreateFunction(
-            executingId,
-            "humanInstanceId-exec",
-            param: Test.SimpleStoredParameter,
-            postponeUntil: null,
-            timestamp: DateTime.UtcNow.Ticks,
-            parent: null,
-            owner: null
-        );
-        session.ShouldBeNull();
-
-        session = await store.CreateFunction(
-            postponedId,
-            "humanInstanceId-postponed",
-            param: Test.SimpleStoredParameter,
-            postponeUntil: DateTime.UtcNow.Ticks,
-            timestamp: DateTime.UtcNow.Ticks,
-            parent: null,
-            owner: null
-        );
-        session.ShouldBeNull();
-
-        await store.Interrupt(executingId).ShouldBeTrueAsync();
-        await store.Interrupt(postponedId).ShouldBeTrueAsync();
-
-        var interruptedFunctions = await store.GetInterruptedFunctions();
-        interruptedFunctions.Count.ShouldBe(2);
-        interruptedFunctions.Any(id => id == executingId).ShouldBeTrue();
-        interruptedFunctions.Any(id => id == postponedId).ShouldBeTrue();
-    }
-
     public abstract Task GetResultsReturnsResultsForExistingFunctions();
     protected async Task GetResultsReturnsResultsForExistingFunctions(Task<IFunctionStore> storeTask)
     {
@@ -2234,4 +2017,131 @@ public abstract class StoreTests
         results.ContainsKey(nonExistentFunctionId).ShouldBeFalse();
     }
 
+    public abstract Task RestartExecutionsDoesNotReturnFlowClaimedByPreviousCall();
+    protected async Task RestartExecutionsDoesNotReturnFlowClaimedByPreviousCall(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var functionId = TestStoredId.Create();
+        var replicaId = ReplicaId.NewId();
+
+        await store.CreateFunction(
+            functionId,
+            "humanInstanceId",
+            param: Test.SimpleStoredParameter,
+            postponeUntil: DateTime.UtcNow.Ticks,
+            timestamp: DateTime.UtcNow.Ticks,
+            parent: null,
+            owner: null
+        );
+
+        var firstClaim = await store.RestartExecutions([functionId], replicaId);
+        firstClaim.Count.ShouldBe(1);
+        firstClaim.ContainsKey(functionId).ShouldBeTrue();
+        firstClaim[functionId].StoredFlow.OwnerId.ShouldBe(replicaId);
+        firstClaim[functionId].StoredFlow.Status.ShouldBe(Status.Executing);
+
+        // A flow claimed by an earlier call must not be handed out again - not even to the same replica -
+        // otherwise two concurrent claimers (e.g. two watchdogs) both restart the same flow.
+        var secondClaim = await store.RestartExecutions([functionId], replicaId);
+        secondClaim.ShouldBeEmpty();
+    }
+
+    public abstract Task RestartExecutionsWithoutMessagesDoesNotReturnFlowClaimedByPreviousCall();
+    protected async Task RestartExecutionsWithoutMessagesDoesNotReturnFlowClaimedByPreviousCall(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var functionId = TestStoredId.Create();
+        var replicaId = ReplicaId.NewId();
+
+        await store.CreateFunction(
+            functionId,
+            "humanInstanceId",
+            param: Test.SimpleStoredParameter,
+            postponeUntil: DateTime.UtcNow.Ticks,
+            timestamp: DateTime.UtcNow.Ticks,
+            parent: null,
+            owner: null
+        );
+
+        var firstClaim = await store.RestartExecutionsWithoutMessages([functionId], replicaId);
+        firstClaim.Count.ShouldBe(1);
+        firstClaim.ContainsKey(functionId).ShouldBeTrue();
+        firstClaim[functionId].StoredFlow.OwnerId.ShouldBe(replicaId);
+        firstClaim[functionId].StoredFlow.Status.ShouldBe(Status.Executing);
+
+        var secondClaim = await store.RestartExecutionsWithoutMessages([functionId], replicaId);
+        secondClaim.ShouldBeEmpty();
+    }
+
+    public abstract Task RestartExecutionsDoesNotClaimSucceededFlow();
+    protected async Task RestartExecutionsDoesNotClaimSucceededFlow(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var functionId = TestStoredId.Create();
+        var initialOwner = ReplicaId.NewId();
+
+        await store.CreateFunction(
+            functionId,
+            "humanInstanceId",
+            param: Test.SimpleStoredParameter,
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks,
+            parent: null,
+            owner: initialOwner
+        );
+
+        await store.SucceedFunction(
+            functionId,
+            result: null,
+            timestamp: DateTime.UtcNow.Ticks,
+            expectedReplica: initialOwner,
+            effects: null,
+            messages: null,
+            storageSession: null
+        ).ShouldBeTrueAsync();
+
+        // A message arriving after the flow completed must not resurrect it.
+        var claimed = await store.RestartExecutions([functionId], ReplicaId.NewId());
+        claimed.ShouldBeEmpty();
+
+        var claimedWithoutMessages = await store.RestartExecutionsWithoutMessages([functionId], ReplicaId.NewId());
+        claimedWithoutMessages.ShouldBeEmpty();
+
+        var sf = await store.GetFunction(functionId);
+        sf.ShouldNotBeNull();
+        sf.Status.ShouldBe(Status.Succeeded);
+    }
+
+    public abstract Task RestartExecutionsClaimsSuspendedFlow();
+    protected async Task RestartExecutionsClaimsSuspendedFlow(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var functionId = TestStoredId.Create();
+        var initialOwner = ReplicaId.NewId();
+
+        await store.CreateFunction(
+            functionId,
+            "humanInstanceId",
+            param: Test.SimpleStoredParameter,
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks,
+            parent: null,
+            owner: initialOwner
+        );
+
+        await store.SuspendFunction(
+            functionId,
+            timestamp: DateTime.UtcNow.Ticks,
+            expectedReplica: initialOwner,
+            effects: null,
+            messages: null,
+            storageSession: null
+        ).ShouldBeTrueAsync();
+
+        var newOwner = ReplicaId.NewId();
+        var claimed = await store.RestartExecutions([functionId], newOwner);
+        claimed.Count.ShouldBe(1);
+        claimed[functionId].StoredFlow.OwnerId.ShouldBe(newOwner);
+        claimed[functionId].StoredFlow.Status.ShouldBe(Status.Executing);
+    }
 }
