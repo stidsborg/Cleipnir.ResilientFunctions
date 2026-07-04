@@ -12,28 +12,6 @@ namespace Cleipnir.ResilientFunctions.MariaDb;
 
 public class SqlGenerator(string tablePrefix)
 {
-    public StoreCommand Interrupt(IEnumerable<StoredId> storedIds)
-    {
-        var sql = @$"
-                UPDATE {tablePrefix}
-                SET 
-                    interrupted = TRUE,
-                    status = 
-                        CASE 
-                            WHEN status = {(int)Status.Suspended} THEN {(int)Status.Postponed}
-                            ELSE status
-                        END,
-                    expires = 
-                        CASE
-                            WHEN status = {(int)Status.Postponed} THEN 0
-                            WHEN status = {(int)Status.Suspended} THEN 0
-                            ELSE expires
-                        END
-                WHERE Id IN ({storedIds.Select(id => $"'{id.AsGuid:N}'").StringJoin(", ")});";
-
-        return StoreCommand.Create(sql);
-    }
-
     private string? _getEffectResultsSql;
     public StoreCommand GetEffects(StoredId storedId)
     {
@@ -164,9 +142,9 @@ public class SqlGenerator(string tablePrefix)
         {
             _createFunctionSql ??= @$"
                 INSERT IGNORE INTO {tablePrefix}
-                    (id, param_json, status, expires, timestamp, human_instance_id, parent, interrupted, owner)
+                    (id, param_json, status, expires, timestamp, human_instance_id, parent, owner)
                 VALUES
-                    (?, ?, ?, ?, ?, ?, ?, 0, ?);";
+                    (?, ?, ?, ?, ?, ?, ?, ?);";
             sql = _createFunctionSql;
             if (!ignoreDuplicate)
                 sql = sql.Replace("IGNORE ", "");
@@ -186,9 +164,9 @@ public class SqlGenerator(string tablePrefix)
         {
             _createFunctionWithEffectsSql ??= @$"
                 INSERT IGNORE INTO {tablePrefix}
-                    (id, param_json, status, expires, timestamp, human_instance_id, parent, interrupted, owner, effects)
+                    (id, param_json, status, expires, timestamp, human_instance_id, parent, owner, effects)
                 VALUES
-                    (?, ?, ?, ?, ?, ?, ?, 0, ?, ?);";
+                    (?, ?, ?, ?, ?, ?, ?, ?, ?);";
             sql = _createFunctionWithEffectsSql;
             if (!ignoreDuplicate)
                 sql = sql.Replace("IGNORE ", "");
@@ -269,10 +247,9 @@ public class SqlGenerator(string tablePrefix)
             _postponedFunctionSql ??= $@"
                 UPDATE {tablePrefix}
                 SET status = {(int)Status.Postponed},
-                    expires = CASE WHEN interrupted = 1 THEN 0 ELSE ? END,
+                    expires = ?,
                     timestamp = ?,
-                    owner = NULL,
-                    interrupted = 0
+                    owner = NULL
                 WHERE
                     id = ? AND
                     owner = ?";
@@ -292,10 +269,9 @@ public class SqlGenerator(string tablePrefix)
             _postponedFunctionWithEffectsSql ??= $@"
                 UPDATE {tablePrefix}
                 SET status = {(int)Status.Postponed},
-                    expires = CASE WHEN interrupted = 1 THEN 0 ELSE ? END,
+                    expires = ?,
                     timestamp = ?,
                     owner = NULL,
-                    interrupted = 0,
                     effects = ?
                 WHERE
                     id = ? AND
@@ -372,11 +348,10 @@ public class SqlGenerator(string tablePrefix)
         {
             _suspendFunctionSql ??= $@"
                 UPDATE {tablePrefix}
-                SET status = CASE WHEN interrupted = 1 THEN {(int)Status.Postponed} ELSE {(int)Status.Suspended} END,
+                SET status = {(int)Status.Suspended},
                     expires = 0,
                     timestamp = ?,
-                    owner = NULL,
-                    interrupted = 0
+                    owner = NULL
                 WHERE id = ? AND owner = ?";
 
             return StoreCommand.Create(
@@ -392,11 +367,10 @@ public class SqlGenerator(string tablePrefix)
         {
             _suspendFunctionWithEffectsSql ??= $@"
                 UPDATE {tablePrefix}
-                SET status = CASE WHEN interrupted = 1 THEN {(int)Status.Postponed} ELSE {(int)Status.Suspended} END,
+                SET status = {(int)Status.Suspended},
                     expires = 0,
                     timestamp = ?,
                     owner = NULL,
-                    interrupted = 0,
                     effects = ?
                 WHERE id = ? AND owner = ?";
 
@@ -417,7 +391,7 @@ public class SqlGenerator(string tablePrefix)
     {
         _restartExecutionSql ??= @$"
             UPDATE {tablePrefix}
-            SET status = {(int)Status.Executing}, expires = 0, interrupted = FALSE, owner = ?
+            SET status = {(int)Status.Executing}, expires = 0, owner = ?
             WHERE id = ? AND owner IS NULL;
 
             SELECT
@@ -427,7 +401,6 @@ public class SqlGenerator(string tablePrefix)
                 result_json,
                 exception_json,
                 expires,
-                interrupted,
                 timestamp,
                 human_instance_id,
                 parent,
@@ -464,7 +437,6 @@ public class SqlGenerator(string tablePrefix)
                 result_json,
                 exception_json,
                 expires,
-                interrupted,
                 timestamp,
                 human_instance_id,
                 parent,
@@ -485,7 +457,7 @@ public class SqlGenerator(string tablePrefix)
     {
         _restartExecutionsClaimSql ??= @$"
             UPDATE {tablePrefix}
-            SET status = {(int)Status.Executing}, expires = 0, interrupted = FALSE, owner = ?
+            SET status = {(int)Status.Executing}, expires = 0, owner = ?
             WHERE id IN ({{0}}) AND owner IS NULL;";
 
         var idList = storedIds.Select(id => $"'{id.AsGuid:N}'").Order().StringJoin(", ");
@@ -505,11 +477,10 @@ public class SqlGenerator(string tablePrefix)
         const int resultIndex = 3;
         const int exceptionIndex = 4;
         const int expiresIndex = 5;
-        const int interruptedIndex = 6;
-        const int timestampIndex = 7;
-        const int humanInstanceIdIndex = 8;
-        const int parentIndex = 9;
-        const int ownerIndex = 10;
+        const int timestampIndex = 6;
+        const int humanInstanceIdIndex = 7;
+        const int parentIndex = 8;
+        const int ownerIndex = 9;
 
         while (await reader.ReadAsync())
         {
@@ -530,7 +501,6 @@ public class SqlGenerator(string tablePrefix)
                 storedException,
                 Expires: reader.GetInt64(expiresIndex),
                 Timestamp: reader.GetInt64(timestampIndex),
-                Interrupted: reader.GetBoolean(interruptedIndex),
                 ParentId: hasParent ? reader.GetString(parentIndex).ToGuid().ToStoredId() : null,
                 OwnerId: hasOwner ? reader.GetString(ownerIndex).ParseToReplicaId() : null,
                 StoredType: storedId.Type
@@ -548,12 +518,11 @@ public class SqlGenerator(string tablePrefix)
         const int resultIndex = 3;
         const int exceptionIndex = 4;
         const int expiresIndex = 5;
-        const int interruptedIndex = 6;
-        const int timestampIndex = 7;
-        const int humanInstanceIdIndex = 8;
-        const int parentIndex = 9;
-        const int ownerIndex = 10;
-        const int effectsIndex = 11;
+        const int timestampIndex = 6;
+        const int humanInstanceIdIndex = 7;
+        const int parentIndex = 8;
+        const int ownerIndex = 9;
+        const int effectsIndex = 10;
 
         while (await reader.ReadAsync())
         {
@@ -578,7 +547,6 @@ public class SqlGenerator(string tablePrefix)
                 storedException,
                 Expires: reader.GetInt64(expiresIndex),
                 Timestamp: reader.GetInt64(timestampIndex),
-                Interrupted: reader.GetBoolean(interruptedIndex),
                 ParentId: hasParent ? reader.GetString(parentIndex).ToGuid().ToStoredId() : null,
                 OwnerId: hasOwner ? reader.GetString(ownerIndex).ParseToReplicaId() : null,
                 StoredType: storedId.Type

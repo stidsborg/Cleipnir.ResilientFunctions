@@ -16,28 +16,6 @@ namespace Cleipnir.ResilientFunctions.PostgreSQL;
 
 public class SqlGenerator(string tablePrefix)
 {
-    public StoreCommand Interrupt(IEnumerable<StoredId> storedIds)
-    {
-        var sql = @$"
-                UPDATE {tablePrefix}
-                SET
-                    interrupted = TRUE,
-                    status =
-                        CASE
-                            WHEN status = {(int)Status.Suspended} THEN {(int)Status.Postponed}
-                            ELSE status
-                        END,
-                    expires =
-                        CASE
-                            WHEN status = {(int)Status.Postponed} THEN 0
-                            WHEN status = {(int)Status.Suspended} THEN 0
-                            ELSE expires
-                        END
-                WHERE Id = ANY($1)";
-
-        return StoreCommand.Create(sql, values: [ storedIds.Select(id => id.AsGuid).ToArray() ]);
-    }
-
     private string? _getEffectResultsSql;
     public StoreCommand GetEffects(StoredId storedId)
     {
@@ -258,9 +236,8 @@ public class SqlGenerator(string tablePrefix)
         _postponeFunctionSql ??= $@"
             UPDATE {tablePrefix}
             SET status = {(int) Status.Postponed},
-                expires = CASE WHEN interrupted THEN 0 ELSE $1 END,
+                expires = $1,
                 owner = NULL,
-                interrupted = FALSE,
                 timestamp = $4
             WHERE
                 id = $2 AND
@@ -306,10 +283,9 @@ public class SqlGenerator(string tablePrefix)
     {
         _suspendFunctionSql ??= $@"
             UPDATE {tablePrefix}
-            SET status = CASE WHEN interrupted THEN {(int) Status.Postponed} ELSE {(int) Status.Suspended} END,
+            SET status = {(int) Status.Suspended},
                 expires = 0,
                 owner = NULL,
-                interrupted = FALSE,
                 timestamp = $3
             WHERE id = $1 AND owner = $2;";
 
@@ -328,7 +304,7 @@ public class SqlGenerator(string tablePrefix)
     {
         _restartExecutionSql ??= @$"
             UPDATE {tablePrefix}
-            SET status = {(int)Status.Executing}, expires = 0, interrupted = FALSE, owner = $1
+            SET status = {(int)Status.Executing}, expires = 0, owner = $1
             WHERE id = $2 AND owner IS NULL
             RETURNING
                 id,
@@ -337,7 +313,6 @@ public class SqlGenerator(string tablePrefix)
                 result_json,
                 exception_json,
                 expires,
-                interrupted,
                 timestamp,
                 human_instance_id,
                 parent,
@@ -367,7 +342,7 @@ public class SqlGenerator(string tablePrefix)
         // must never resurrect a completed flow - e.g. when a message arrives after its target has succeeded.
         _restartExecutionsSql ??= @$"
             UPDATE {tablePrefix}
-            SET status = {(int)Status.Executing}, expires = 0, interrupted = FALSE, owner = $1
+            SET status = {(int)Status.Executing}, expires = 0, owner = $1
             WHERE id = ANY($2) AND owner IS NULL AND status IN ({(int)Status.Postponed}, {(int)Status.Suspended})
             RETURNING
                 id,
@@ -376,7 +351,6 @@ public class SqlGenerator(string tablePrefix)
                 result_json,
                 exception_json,
                 expires,
-                interrupted,
                 timestamp,
                 human_instance_id,
                 parent,
@@ -399,32 +373,30 @@ public class SqlGenerator(string tablePrefix)
            3  result_json,
            4  exception_json,
            5  expires,
-           6 interrupted,
-           7 timestamp,
-           8 human_instance_id
-           9 parent,
-           10 owner
+           6 timestamp,
+           7 human_instance_id
+           8 parent,
+           9 owner
          */
         while (await reader.ReadAsync())
         {
             var hasParameter = !await reader.IsDBNullAsync(1);
             var hasResult = !await reader.IsDBNullAsync(3);
             var hasException = !await reader.IsDBNullAsync(4);
-            var hasParent = !await reader.IsDBNullAsync(9);
-            var hasOwner = !await reader.IsDBNullAsync(10);
-            
+            var hasParent = !await reader.IsDBNullAsync(8);
+            var hasOwner = !await reader.IsDBNullAsync(9);
+
             var id = reader.GetGuid(0).ToStoredId();
             var param = hasParameter ? (byte[]) reader.GetValue(1) : null;
             var status = (Status) reader.GetInt32(2);
             var result = hasResult ? (byte[]) reader.GetValue(3) : null;
             var exception = hasException ? JsonSerializer.Deserialize<StoredException>(reader.GetString(4)) : null;
             var expires = reader.GetInt64(5);
-            var interrupted = reader.GetBoolean(6);
-            var timestamp = reader.GetInt64(7);
-            var humanInstanceId = reader.GetString(8);
-            var parent = hasParent ? reader.GetGuid(9).ToStoredId() : null;
-            var owner = hasOwner ? new ReplicaId(reader.GetGuid(10)) : null;
-            
+            var timestamp = reader.GetInt64(6);
+            var humanInstanceId = reader.GetString(7);
+            var parent = hasParent ? reader.GetGuid(8).ToStoredId() : null;
+            var owner = hasOwner ? new ReplicaId(reader.GetGuid(9)) : null;
+
             return new StoredFlow(
                 id,
                 humanInstanceId,
@@ -433,7 +405,6 @@ public class SqlGenerator(string tablePrefix)
                 exception,
                 expires,
                 timestamp,
-                interrupted,
                 parent,
                 owner,
                 id.Type

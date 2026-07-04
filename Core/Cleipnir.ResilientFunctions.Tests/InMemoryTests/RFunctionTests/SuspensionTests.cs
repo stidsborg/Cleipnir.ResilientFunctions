@@ -75,26 +75,10 @@ public class SuspensionTests : TestTemplates.FunctionTests.SuspensionTests
     [TestMethod]
     public override Task ChildIsCreatedWithParentsId()
         => ChildIsCreatedWithParentsId(FunctionStoreFactory.Create());
-    
-    [TestMethod]
-    public override Task SuspendedFlowIsRestartedAfterInterrupt()
-        => SuspendedFlowIsRestartedAfterInterrupt(FunctionStoreFactory.Create());
-
-    [TestMethod]
-    public override Task ExecutingFlowIsReExecutedWhenSuspendedAfterInterrupt()
-        => ExecutingFlowIsReExecutedWhenSuspendedAfterInterrupt(FunctionStoreFactory.Create());
-
-    [TestMethod]
-    public override Task InterruptSuspendedFlows()
-        => InterruptSuspendedFlows(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task DelayedFlowIsRestartedOnce()
         => DelayedFlowIsRestartedOnce(FunctionStoreFactory.Create());
-
-    [TestMethod]
-    public override Task InterruptedExecutingFlowIsRestartedOnce()
-        => InterruptedExecutingFlowIsRestartedOnce(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task TwoDelaysFlowCompletesSuccessfully()

@@ -59,18 +59,6 @@ public class SuspensionTests : ResilientFunctions.Tests.TestTemplates.FunctionTe
 
     public override Task ParentCanWaitForBulkScheduledChildren()
         => ParentCanWaitForBulkScheduledChildren(FunctionStoreFactory.Create());
-    
-    [TestMethod]
-    public override Task SuspendedFlowIsRestartedAfterInterrupt()
-        => SuspendedFlowIsRestartedAfterInterrupt(FunctionStoreFactory.Create());
- 
-    [TestMethod]
-    public override Task ExecutingFlowIsReExecutedWhenSuspendedAfterInterrupt()
-        => ExecutingFlowIsReExecutedWhenSuspendedAfterInterrupt(FunctionStoreFactory.Create());
-
-    [TestMethod]
-    public override Task InterruptSuspendedFlows()
-        => InterruptSuspendedFlows(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task ChildIsCreatedWithParentsId()
@@ -79,10 +67,6 @@ public class SuspensionTests : ResilientFunctions.Tests.TestTemplates.FunctionTe
     [TestMethod]
     public override Task DelayedFlowIsRestartedOnce()
         => DelayedFlowIsRestartedOnce(FunctionStoreFactory.Create());
-    
-    [TestMethod]
-    public override Task InterruptedExecutingFlowIsRestartedOnce()
-        => InterruptedExecutingFlowIsRestartedOnce(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task TwoDelaysFlowCompletesSuccessfully()

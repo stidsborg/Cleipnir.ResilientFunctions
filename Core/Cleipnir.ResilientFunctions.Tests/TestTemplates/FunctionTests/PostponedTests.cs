@@ -736,46 +736,4 @@ public abstract class PostponedTests
         
         unhandledExceptionHandler.ShouldNotHaveExceptions();
     }
-    
-    public abstract Task InterruptedFunctionIsRescheduledWhenPostponed();
-    protected async Task InterruptedFunctionIsRescheduledWhenPostponed(Task<IFunctionStore> storeTask)
-    {
-        var store = await storeTask;
-        var testId = TestFlowId.Create();
-        var unhandledExceptionHandler = new UnhandledExceptionCatcher();
-
-        using var functionsRegistry = new FunctionsRegistry
-        (
-            store,
-            new Settings(unhandledExceptionHandler.Catch)
-        );
-
-        var insideFunctionFlag = new SyncedFlag();
-        var mayContinueFlag = new SyncedFlag();
-        var invocations = new SyncedCounter();
-        
-        var registration = functionsRegistry
-            .RegisterParamless(
-                testId.Type,
-                async workflow =>
-                {
-                    invocations.Increment();
-                    insideFunctionFlag.Raise();
-                    await mayContinueFlag.WaitForRaised();
-                    await workflow.Delay(TimeSpan.FromDays(1));
-                });
-
-        await registration.Schedule(testId.Instance);
-
-        await insideFunctionFlag.WaitForRaised();
-        await registration.Interrupt([testId.Instance]);
-        mayContinueFlag.Raise();
-        
-        var controlPanel = await registration.ControlPanel(testId.Instance);
-        controlPanel.ShouldNotBeNull();
-        await controlPanel.BusyWaitUntil(c => c.Status == Status.Postponed);
-
-        await BusyWait.Until(() => invocations.Current == 2);
-        unhandledExceptionHandler.ShouldNotHaveExceptions();
-    }
 }

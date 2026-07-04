@@ -17,31 +17,6 @@ namespace Cleipnir.ResilientFunctions.SqlServer;
 
 public class SqlGenerator(string tablePrefix)
 {
-    private string? _interruptSql;
-    public StoreCommand Interrupt(IEnumerable<StoredId> storedIds)
-    {
-        _interruptSql ??= @$"
-                UPDATE {tablePrefix}
-                SET
-                    Interrupted = 1,
-                    Status =
-                        CASE
-                            WHEN Status = {(int)Status.Suspended} THEN {(int)Status.Postponed}
-                            ELSE Status
-                        END,
-                    Expires =
-                        CASE
-                            WHEN Status = {(int)Status.Postponed} THEN 0
-                            WHEN Status = {(int)Status.Suspended} THEN 0
-                            ELSE Expires
-                        END
-                WHERE Id IN (SELECT CAST(value AS UNIQUEIDENTIFIER) FROM STRING_SPLIT(@Ids, ','));";
-
-        var command = StoreCommand.Create(_interruptSql);
-        command.AddParameter("@Ids", storedIds.ToCommaSeparatedIds());
-        return command;
-    }
-
     public StoreCommand InsertEffects(StoredId storedId, IReadOnlyList<StoredEffectChange> changes, SnapshotStorageSession session, string paramPrefix)
     {
         foreach (var change in changes)
@@ -262,10 +237,9 @@ public class SqlGenerator(string tablePrefix)
             _postponedFunctionSql ??= @$"
                 UPDATE {tablePrefix}
                 SET Status = {(int)Status.Postponed},
-                    Expires = CASE WHEN Interrupted = 1 THEN 0 ELSE @PostponedUntil END,
+                    Expires = @PostponedUntil,
                     Timestamp = @Timestamp,
-                    Owner = NULL,
-                    Interrupted = 0
+                    Owner = NULL
                 WHERE Id = @Id AND Owner = @ExpectedReplica";
 
             var sql = paramPrefix == ""
@@ -285,10 +259,9 @@ public class SqlGenerator(string tablePrefix)
             _postponedFunctionWithEffectsSql ??= @$"
                 UPDATE {tablePrefix}
                 SET Status = {(int)Status.Postponed},
-                    Expires = CASE WHEN Interrupted = 1 THEN 0 ELSE @PostponedUntil END,
+                    Expires = @PostponedUntil,
                     Timestamp = @Timestamp,
                     Owner = NULL,
-                    Interrupted = 0,
                     Effects = @Effects
                 WHERE Id = @Id AND Owner = @ExpectedReplica";
 
@@ -366,11 +339,10 @@ public class SqlGenerator(string tablePrefix)
         {
             _suspendFunctionSql ??= @$"
                     UPDATE {tablePrefix}
-                    SET Status = CASE WHEN Interrupted = 1 THEN {(int)Status.Postponed} ELSE {(int)Status.Suspended} END,
+                    SET Status = {(int)Status.Suspended},
                         Expires = 0,
                         Timestamp = @Timestamp,
-                        Owner = NULL,
-                        Interrupted = 0
+                        Owner = NULL
                     WHERE Id = @Id AND Owner = @ExpectedReplica";
 
             var sql = paramPrefix == ""
@@ -388,11 +360,10 @@ public class SqlGenerator(string tablePrefix)
         {
             _suspendFunctionWithEffectsSql ??= @$"
                     UPDATE {tablePrefix}
-                    SET Status = CASE WHEN Interrupted = 1 THEN {(int)Status.Postponed} ELSE {(int)Status.Suspended} END,
+                    SET Status = {(int)Status.Suspended},
                         Expires = 0,
                         Timestamp = @Timestamp,
                         Owner = NULL,
-                        Interrupted = 0,
                         Effects = @Effects
                     WHERE Id = @Id AND Owner = @ExpectedReplica";
 
@@ -417,7 +388,6 @@ public class SqlGenerator(string tablePrefix)
             UPDATE {tablePrefix}
             SET Status = {(int)Status.Executing},
                 Expires = 0,
-                Interrupted = 0,
                 Owner = @Owner
             OUTPUT inserted.Id,
                    inserted.ParamJson,
@@ -425,7 +395,6 @@ public class SqlGenerator(string tablePrefix)
                    inserted.ResultJson,
                    inserted.ExceptionJson,
                    inserted.Expires,
-                   inserted.Interrupted,
                    inserted.Timestamp,
                    inserted.HumanInstanceId,
                    inserted.Parent,
@@ -449,7 +418,6 @@ public class SqlGenerator(string tablePrefix)
             UPDATE {tablePrefix}
             SET Status = {(int)Status.Executing},
                 Expires = 0,
-                Interrupted = 0,
                 Owner = @Owner
             OUTPUT inserted.Id,
                    inserted.ParamJson,
@@ -457,7 +425,6 @@ public class SqlGenerator(string tablePrefix)
                    inserted.ResultJson,
                    inserted.ExceptionJson,
                    inserted.Expires,
-                   inserted.Interrupted,
                    inserted.Timestamp,
                    inserted.HumanInstanceId,
                    inserted.Parent,
@@ -489,11 +456,10 @@ public class SqlGenerator(string tablePrefix)
                     ? null
                     : JsonSerializer.Deserialize<StoredException>(exceptionJson);
                 var expires = reader.GetInt64(5);
-                var interrupted = reader.GetBoolean(6);
-                var timestamp = reader.GetInt64(7);
-                var humanInstanceId = reader.GetString(8);
-                var parentId = reader.IsDBNull(9) ? null : reader.GetGuid(9).ToStoredId();
-                var ownerId = reader.IsDBNull(10) ? null : reader.GetGuid(10).ToReplicaId();
+                var timestamp = reader.GetInt64(6);
+                var humanInstanceId = reader.GetString(7);
+                var parentId = reader.IsDBNull(8) ? null : reader.GetGuid(8).ToStoredId();
+                var ownerId = reader.IsDBNull(9) ? null : reader.GetGuid(9).ToReplicaId();
 
                 return new StoredFlow(
                     id,
@@ -503,7 +469,6 @@ public class SqlGenerator(string tablePrefix)
                     storedException,
                     expires,
                     timestamp,
-                    interrupted,
                     parentId,
                     ownerId,
                     storedId.Type
@@ -529,13 +494,12 @@ public class SqlGenerator(string tablePrefix)
                     ? null
                     : JsonSerializer.Deserialize<StoredException>(exceptionJson);
                 var expires = reader.GetInt64(5);
-                var interrupted = reader.GetBoolean(6);
-                var timestamp = reader.GetInt64(7);
-                var humanInstanceId = reader.GetString(8);
-                var parentId = reader.IsDBNull(9) ? null : reader.GetGuid(9).ToStoredId();
-                var ownerId = reader.IsDBNull(10) ? null : reader.GetGuid(10).ToReplicaId();
-                var hasEffects = !reader.IsDBNull(11);
-                var effectsBytes = hasEffects ? (byte[])reader.GetValue(11) : null;
+                var timestamp = reader.GetInt64(6);
+                var humanInstanceId = reader.GetString(7);
+                var parentId = reader.IsDBNull(8) ? null : reader.GetGuid(8).ToStoredId();
+                var ownerId = reader.IsDBNull(9) ? null : reader.GetGuid(9).ToReplicaId();
+                var hasEffects = !reader.IsDBNull(10);
+                var effectsBytes = hasEffects ? (byte[])reader.GetValue(10) : null;
 
                 var storedFlow = new StoredFlow(
                     id,
@@ -545,7 +509,6 @@ public class SqlGenerator(string tablePrefix)
                     storedException,
                     expires,
                     timestamp,
-                    interrupted,
                     parentId,
                     ownerId,
                     storedId.Type
@@ -562,8 +525,6 @@ public class SqlGenerator(string tablePrefix)
     {
         if (messages.Count == 0)
             return null;
-
-        var interruptCommand = Interrupt(messages.Select(m => m.StoredId).Distinct().ToList());
 
         // The identity column assigns position. Rows are listed in caller order so identity assignment
         // preserves message order.
@@ -589,7 +550,7 @@ public class SqlGenerator(string tablePrefix)
             appendCommand.AddParameter($"@{prefix}Content{i}", content);
         }
 
-        return StoreCommand.Merge(appendCommand, interruptCommand);
+        return appendCommand;
     }
     
     private string? _getMessagesSql;

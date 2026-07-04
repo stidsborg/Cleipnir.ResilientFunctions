@@ -21,12 +21,11 @@ public class FuncRegistration<TParam, TReturn> : BaseRegistration where TParam :
     public FuncRegistration(
         FlowType flowType,
         StoredType storedType,
-        IFunctionStore functionStore,
         Invoker<TParam, TReturn> invoker,
         ControlPanelFactory<TParam, TReturn> controlPanelFactory,
         MessageWriters messageWriters,
         UtcNow utcNow
-    ) : base(storedType, functionStore, utcNow)
+    ) : base(storedType, utcNow)
     {
         Type = flowType;
         _invoker = invoker;

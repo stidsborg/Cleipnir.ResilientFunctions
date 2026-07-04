@@ -97,9 +97,6 @@ public interface IFunctionStore
     Task<IReadOnlyList<ReplicaId>> GetOwnerReplicas();
     Task RescheduleCrashedFunctions(ReplicaId replicaId);
 
-    Task<bool> Interrupt(StoredId storedId);
-    Task Interrupt(IReadOnlyList<StoredId> storedIds);
-
     Task<Status?> GetFunctionStatus(StoredId storedId);
     Task<IReadOnlyList<StatusAndId>> GetFunctionsStatus(IEnumerable<StoredId> storedIds);
     Task<StoredFlow?> GetFunction(StoredId storedId);
