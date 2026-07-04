@@ -284,7 +284,7 @@ public class FunctionsRegistry : IDisposable
                 _functionStore,
                 serializer,
                 ClusterInfo.ReplicaId,
-                _messageWatchdog.Notify
+                _messageWatchdog
             );
 
             var registration = new FuncRegistration<TParam, TReturn>(
@@ -372,7 +372,7 @@ public class FunctionsRegistry : IDisposable
                 _functionStore,
                 serializer,
                 ClusterInfo.ReplicaId,
-                _messageWatchdog.Notify
+                _messageWatchdog
             );
 
             var registration = new ParamlessRegistration(
@@ -460,7 +460,7 @@ public class FunctionsRegistry : IDisposable
                 _functionStore,
                 serializer,
                 ClusterInfo.ReplicaId,
-                _messageWatchdog.Notify
+                _messageWatchdog
             );
             var registration = new ActionRegistration<TParam>(
                 flowType,
