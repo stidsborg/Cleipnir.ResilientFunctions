@@ -187,13 +187,6 @@ public record StoredFlowWithEffects(
     IStorageSession StorageSession
 );
 
-public record StoredFlowWithEffectsAndMessages(
-    StoredFlow StoredFlow,
-    IReadOnlyList<StoredEffect> Effects,
-    IReadOnlyList<StoredMessage> Messages,
-    IStorageSession StorageSession
-);
-
 public static class StoredEffectExtensions
 {
     public static StoredEffectChange ToStoredChange(this StoredEffect effect, StoredId storedId, CrudOperation operation)

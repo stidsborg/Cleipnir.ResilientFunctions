@@ -16,58 +16,6 @@ namespace Cleipnir.ResilientFunctions.PostgreSQL;
 
 public class SqlGenerator(string tablePrefix)
 {
-    private string? _getEffectResultsSql;
-    public StoreCommand GetEffects(StoredId storedId)
-    {
-        _getEffectResultsSql ??= @$"
-            SELECT id, content, version
-            FROM {tablePrefix}_effects
-            WHERE id = $1;";
-
-        return StoreCommand.Create(
-            _getEffectResultsSql,
-            values: [ storedId.AsGuid ]);
-    }
-    
-    public StoreCommand GetEffects(IEnumerable<StoredId> storedIds)
-    {
-        var sql = @$"
-            SELECT id, content, version
-            FROM {tablePrefix}_effects
-            WHERE id = ANY($1);";
-
-        return StoreCommand.Create(sql, values: [ storedIds.Select(id => id.AsGuid).ToArray() ]);
-    }
-
-    public record StoredEffectsWithSession(IReadOnlyList<StoredEffect> Effects, SnapshotStorageSession Session);
-    public async Task<StoredEffectsWithSession> ReadEffects(NpgsqlDataReader reader, ReplicaId replicaId)
-    {
-        var effects = new List<StoredEffect>();
-        var session = new SnapshotStorageSession(replicaId);
-
-        while (await reader.ReadAsync())
-        {
-            var id = reader.GetGuid(0);
-            var content = (byte[])reader.GetValue(1);
-            var version = reader.GetInt32(2);
-            var effectsBytes = BinaryPacker.Split(content);
-            foreach (var effectBytes in effectsBytes)
-            {
-                if (effectBytes == null)
-                    throw new SerializationException("Unable to deserialize effect");
-
-                var storedEffect = StoredEffect.Deserialize(effectBytes);
-                effects.Add(storedEffect);
-                session.Effects[storedEffect.EffectId] = storedEffect;
-            }
-
-            session.RowExists = true;
-            session.Version = version;
-        }
-
-        return new StoredEffectsWithSession(effects, session);
-    }
-
     public async Task<StoredInputOutput?> ReadStoredFunction(NpgsqlDataReader reader)
     {
         /*
@@ -97,32 +45,6 @@ public class SqlGenerator(string tablePrefix)
 
         return null;
     }
-    public async Task<Dictionary<StoredId, SnapshotStorageSession>> ReadEffectsForIds(NpgsqlDataReader reader, IEnumerable<StoredId> storedIds, ReplicaId owner)
-    {
-        var effects = new Dictionary<StoredId, SnapshotStorageSession>();
-        foreach (var storedId in storedIds)
-            effects[storedId] = new SnapshotStorageSession(owner);
-        
-        while (await reader.ReadAsync())
-        {
-            var id = new StoredId(reader.GetGuid(0));
-            var content = (byte[])reader.GetValue(1);
-            var version = reader.GetInt32(2);
-            
-            var effectsBytes = BinaryPacker.Split(content);
-            var storedEffects = effectsBytes.Select(effectBytes => StoredEffect.Deserialize(effectBytes!)).ToList();
-
-            var session = effects[id];
-            foreach (var storedEffect in storedEffects)
-                session.Effects[storedEffect.EffectId] = storedEffect;
-
-            session.RowExists = true;
-            session.Version = version;
-        }
-
-        return effects;
-    }
-    
     public StoreCommand InsertEffects(StoredId storedId, IReadOnlyList<StoredEffectChange> changes, SnapshotStorageSession session)
     {
         foreach (var change in changes)
@@ -133,12 +55,10 @@ public class SqlGenerator(string tablePrefix)
 
         var content = session.Serialize();
         session.RowExists = true;
+        // Runs in the CreateFunction transaction right after the flow row's INSERT - no owner guard needed.
         return StoreCommand.Create(
-            $@"INSERT INTO {tablePrefix}_effects
-                            (id, content, version)
-                       VALUES
-                            ($1, $2, 0);",
-            [storedId.AsGuid, content]
+            $"UPDATE {tablePrefix} SET effects = $1 WHERE id = $2;",
+            [content, storedId.AsGuid]
         );
     }
     
@@ -316,7 +236,8 @@ public class SqlGenerator(string tablePrefix)
                 timestamp,
                 human_instance_id,
                 parent,
-                owner;";
+                owner,
+                effects;";
 /*
  *  0  id
     1  param_json
@@ -354,7 +275,8 @@ public class SqlGenerator(string tablePrefix)
                 timestamp,
                 human_instance_id,
                 parent,
-                owner;";
+                owner,
+                effects;";
 
         return StoreCommand.Create(
             _restartExecutionsSql,
@@ -591,45 +513,6 @@ public class SqlGenerator(string tablePrefix)
         return StoreCommand.Create(
             sql,
             values: [ newReplica.AsGuid, positions.ToArray(), expectedReplica.AsGuid ]
-        );
-    }
-    
-    public async Task<Dictionary<StoredId, IReadOnlyList<StoredMessage>>> ReadMessagesForMultipleStores(NpgsqlDataReader reader)
-    {
-        var dict = new Dictionary<StoredId, List<StoredMessage>>();
-        while (await reader.ReadAsync())
-        {
-            var id = reader.GetGuid(0).ToStoredId();
-            var position = reader.GetInt64(1);
-            var content = (byte[]) reader.GetValue(2);
-            var replica = await reader.IsDBNullAsync(3) ? (Guid?) null : reader.GetGuid(3);
-            var splitted = BinaryPacker.Split(content, expectedPieces: 5);
-
-            var contentBytes = splitted[0]!;
-            var typeBytes = splitted[1]!;
-            var idempotencyKeyBytes = splitted[2];
-            var senderBytes = splitted[3];
-            var receiverBytes = splitted[4];
-
-            if (!dict.ContainsKey(id))
-                dict[id] = new List<StoredMessage>();
-
-            dict[id].Add(
-                new StoredMessage(
-                    contentBytes,
-                    typeBytes,
-                    position,
-                    replica?.ToReplicaId() ?? ReplicaId.Empty,
-                    idempotencyKeyBytes?.ToStringFromUtf8Bytes(),
-                    senderBytes?.ToStringFromUtf8Bytes(),
-                    receiverBytes?.ToStringFromUtf8Bytes()
-                )
-            );
-        }
-
-        return dict.ToDictionary(
-            kv => kv.Key,
-            kv => (IReadOnlyList<StoredMessage>) kv.Value.OrderBy(b => b.Position).ToList()
         );
     }
     

@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.Messaging;
+using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.CoreRuntime.Watchdogs;
 

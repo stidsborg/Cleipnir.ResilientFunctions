@@ -21,6 +21,13 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
     public IMessageStore MessageStore => this;
     private readonly InMemoryEffectsStore _effectsStore = new();
     public IEffectsStore EffectsStore => _effectsStore;
+
+    public InMemoryFunctionStore()
+        => _effectsStore.OwnerLookup = storedId =>
+        {
+            lock (_sync)
+                return _states.TryGetValue(storedId, out var state) ? state.Owner : null;
+        };
     public IReplicaStore ReplicaStore { get; } = new InMemoryReplicaStore();
 
     public Task Initialize() => Task.CompletedTask;
@@ -103,7 +110,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         return Task.FromResult(insertedCount);
     }
 
-    public virtual async Task<StoredFlowWithEffectsAndMessages?> RestartExecution(StoredId storedId, ReplicaId owner)
+    public virtual async Task<StoredFlowWithEffects?> RestartExecution(StoredId storedId, ReplicaId owner)
     {
         lock (_sync)
         {
@@ -120,7 +127,6 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         }
         var sf = await GetFunction(storedId);
         var effects = await EffectsStore.GetEffectResults(storedId);
-        var messages = await MessageStore.GetMessages(storedId);
 
         var session = new SnapshotStorageSession(owner);
         foreach (var effect in effects)
@@ -132,74 +138,11 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         return
             sf == null
                 ? null
-                : new StoredFlowWithEffectsAndMessages(
+                : new StoredFlowWithEffects(
                     sf,
                     effects,
-                    messages,
                     session
                 );
-    }
-
-    public virtual async Task<Dictionary<StoredId, StoredFlowWithEffectsAndMessages>> RestartExecutions(
-        IReadOnlyList<StoredId> storedIds,
-        ReplicaId owner)
-    {
-        if (storedIds.Count == 0)
-            return new Dictionary<StoredId, StoredFlowWithEffectsAndMessages>();
-
-        var restartedIds = new List<StoredId>();
-
-        // Restart eligible flows
-        lock (_sync)
-        {
-            foreach (var storedId in storedIds)
-            {
-                if (!_states.ContainsKey(storedId))
-                    continue;
-
-                var state = _states[storedId];
-                if (state.Owner != null)
-                    continue; // Skip already owned flows
-                if (state.Status is not (Status.Postponed or Status.Suspended))
-                    continue; // Never resurrect a completed flow - e.g. when a message arrives after it succeeded
-
-                // Restart this flow
-                state.Status = Status.Executing;
-                state.Expires = 0;
-                state.Owner = owner;
-
-                restartedIds.Add(storedId);
-            }
-        }
-
-        var effectsDict = await EffectsStore.GetEffectResults(storedIds);
-        var messagesDict = await MessageStore.GetMessages(storedIds);
-        
-        // Build result dictionary - only for restarted flows
-        var result = new Dictionary<StoredId, StoredFlowWithEffectsAndMessages>();
-        foreach (var storedId in restartedIds)
-        {
-            var sf = await GetFunction(storedId);
-            if (sf == null) continue;
-
-            var effects = effectsDict.TryGetValue(storedId, out var effs)
-                ? effs
-                : new List<StoredEffect>();
-            var messages = messagesDict.TryGetValue(storedId, out var msgs)
-                ? msgs
-                : new List<StoredMessage>();
-
-            var session = new SnapshotStorageSession(owner);
-            foreach (var effect in effects)
-                session.Effects[effect.EffectId] = effect;
-
-            session.Version = _effectsStore.GetVersion(storedId);
-            session.RowExists = effects.Any();
-
-            result[storedId] = new StoredFlowWithEffectsAndMessages(sf, effects, messages, session);
-        }
-
-        return result;
     }
 
     public virtual async Task<Dictionary<StoredId, StoredFlowWithEffects>> RestartExecutionsWithoutMessages(

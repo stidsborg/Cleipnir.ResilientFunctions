@@ -160,12 +160,12 @@ public class StoreTests : ResilientFunctions.Tests.TestTemplates.StoreTests
         => FunctionCanBeCreatedWithEffectsOnly(FunctionStoreFactory.Create());
     
     [TestMethod]
-    public override Task RestartExecutionReturnsEffectsAndMessages()
-        => RestartExecutionReturnsEffectsAndMessages(FunctionStoreFactory.Create());
+    public override Task RestartExecutionReturnsEffects()
+        => RestartExecutionReturnsEffects(FunctionStoreFactory.Create());
     
     [TestMethod]
-    public override Task RestartExecutionWorksWithEmptyEffectsAndMessages()
-        => RestartExecutionWorksWithEmptyEffectsAndMessages(FunctionStoreFactory.Create());
+    public override Task RestartExecutionWorksWithEmptyEffects()
+        => RestartExecutionWorksWithEmptyEffects(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task FunctionOwnedByReplicaIsPostponedAfterRescheduleFunctionsInvocation()
@@ -199,9 +199,6 @@ public class StoreTests : ResilientFunctions.Tests.TestTemplates.StoreTests
     public override Task GetResultsReturnsOnlyExistingFunctionResults()
         => GetResultsReturnsOnlyExistingFunctionResults(FunctionStoreFactory.Create());
 
-    [TestMethod]
-    public override Task RestartExecutionsDoesNotReturnFlowClaimedByPreviousCall()
-        => RestartExecutionsDoesNotReturnFlowClaimedByPreviousCall(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task RestartExecutionsWithoutMessagesDoesNotReturnFlowClaimedByPreviousCall()

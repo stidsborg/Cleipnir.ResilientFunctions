@@ -1362,8 +1362,8 @@ public abstract class StoreTests
         ).ShouldBeNullAsync();
     }
     
-    public abstract Task RestartExecutionReturnsEffectsAndMessages();
-    protected async Task RestartExecutionReturnsEffectsAndMessages(Task<IFunctionStore> storeTask)
+    public abstract Task RestartExecutionReturnsEffects();
+    protected async Task RestartExecutionReturnsEffects(Task<IFunctionStore> storeTask)
     {
         var functionId = TestStoredId.Create();
         
@@ -1403,7 +1403,7 @@ public abstract class StoreTests
             session: null
         );
 
-        var (sf, effects, messages, _) = await store
+        var (sf, effects, _) = await store
             .RestartExecution(
                 functionId,
                 owner: ReplicaId.NewId()
@@ -1413,12 +1413,15 @@ public abstract class StoreTests
         effects.Count.ShouldBe(1);
         effects.Single().EffectId.Id.ShouldBe("Test".GetHashCode());
         effects.Single().Result!.ToStringFromUtf8Bytes().ShouldBe("hallo effect");
+
+        // The restart does not pull messages - the appended message stays in the message store untouched.
+        var messages = await store.MessageStore.GetMessages(functionId);
         messages.Count.ShouldBe(1);
         messages.Single().MessageContent.ToStringFromUtf8Bytes().ShouldBe("hallo message");
     }
-    
-    public abstract Task RestartExecutionWorksWithEmptyEffectsAndMessages();
-    protected async Task RestartExecutionWorksWithEmptyEffectsAndMessages(Task<IFunctionStore> storeTask)
+
+    public abstract Task RestartExecutionWorksWithEmptyEffects();
+    protected async Task RestartExecutionWorksWithEmptyEffects(Task<IFunctionStore> storeTask)
     {
         var functionId = TestStoredId.Create();
         
@@ -1437,7 +1440,7 @@ public abstract class StoreTests
         );
         session.ShouldBeNull();
 
-        var (sf, effects, messages, _) = await store
+        var (sf, effects, _) = await store
             .RestartExecution(
                 functionId,
                 owner
@@ -1445,7 +1448,6 @@ public abstract class StoreTests
 
         sf.StoredId.ShouldBe(functionId);
         effects.Count.ShouldBe(0);
-        messages.Count.ShouldBe(0);
         sf.OwnerId.ShouldBe(owner);
     }
     
@@ -1761,35 +1763,6 @@ public abstract class StoreTests
         results.ContainsKey(nonExistentFunctionId).ShouldBeFalse();
     }
 
-    public abstract Task RestartExecutionsDoesNotReturnFlowClaimedByPreviousCall();
-    protected async Task RestartExecutionsDoesNotReturnFlowClaimedByPreviousCall(Task<IFunctionStore> storeTask)
-    {
-        var store = await storeTask;
-        var functionId = TestStoredId.Create();
-        var replicaId = ReplicaId.NewId();
-
-        await store.CreateFunction(
-            functionId,
-            "humanInstanceId",
-            param: Test.SimpleStoredParameter,
-            postponeUntil: DateTime.UtcNow.Ticks,
-            timestamp: DateTime.UtcNow.Ticks,
-            parent: null,
-            owner: null
-        );
-
-        var firstClaim = await store.RestartExecutions([functionId], replicaId);
-        firstClaim.Count.ShouldBe(1);
-        firstClaim.ContainsKey(functionId).ShouldBeTrue();
-        firstClaim[functionId].StoredFlow.OwnerId.ShouldBe(replicaId);
-        firstClaim[functionId].StoredFlow.Status.ShouldBe(Status.Executing);
-
-        // A flow claimed by an earlier call must not be handed out again - not even to the same replica -
-        // otherwise two concurrent claimers (e.g. two watchdogs) both restart the same flow.
-        var secondClaim = await store.RestartExecutions([functionId], replicaId);
-        secondClaim.ShouldBeEmpty();
-    }
-
     public abstract Task RestartExecutionsWithoutMessagesDoesNotReturnFlowClaimedByPreviousCall();
     protected async Task RestartExecutionsWithoutMessagesDoesNotReturnFlowClaimedByPreviousCall(Task<IFunctionStore> storeTask)
     {
@@ -1845,9 +1818,6 @@ public abstract class StoreTests
         ).ShouldBeTrueAsync();
 
         // A message arriving after the flow completed must not resurrect it.
-        var claimed = await store.RestartExecutions([functionId], ReplicaId.NewId());
-        claimed.ShouldBeEmpty();
-
         var claimedWithoutMessages = await store.RestartExecutionsWithoutMessages([functionId], ReplicaId.NewId());
         claimedWithoutMessages.ShouldBeEmpty();
 
@@ -1883,7 +1853,7 @@ public abstract class StoreTests
         ).ShouldBeTrueAsync();
 
         var newOwner = ReplicaId.NewId();
-        var claimed = await store.RestartExecutions([functionId], newOwner);
+        var claimed = await store.RestartExecutionsWithoutMessages([functionId], newOwner);
         claimed.Count.ShouldBe(1);
         claimed[functionId].StoredFlow.OwnerId.ShouldBe(newOwner);
         claimed[functionId].StoredFlow.Status.ShouldBe(Status.Executing);

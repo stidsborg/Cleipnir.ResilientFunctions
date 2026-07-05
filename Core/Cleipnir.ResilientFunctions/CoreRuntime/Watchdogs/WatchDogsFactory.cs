@@ -9,14 +9,13 @@ namespace Cleipnir.ResilientFunctions.CoreRuntime.Watchdogs;
 internal static class WatchDogsFactory
 {
     public static void CreateAndStart(
-        FlowType flowType, 
+        FlowType flowType,
         StoredType storedType,
         IFunctionStore functionStore,
         PostponedWatchdog postponedWatchdog,
-        RestartFunction restartFunction,
         ScheduleRestartFromWatchdog scheduleRestart,
         SettingsWithDefaults settings,
-        ShutdownCoordinator shutdownCoordinator, 
+        ShutdownCoordinator shutdownCoordinator,
         UtcNow utcNow)
     {
         if (!settings.EnableWatchdogs)
@@ -24,12 +23,11 @@ internal static class WatchDogsFactory
 
         if (settings.WatchdogCheckFrequency == TimeSpan.Zero || settings.WatchdogCheckFrequency == TimeSpan.MaxValue)
             throw new InvalidOperationException(nameof(Settings.WatchdogCheckFrequency) + " is invalid");
-        
+
         var asyncSemaphore = new AsyncSemaphore(settings.MaxParallelRetryInvocations);
 
         postponedWatchdog.Register(
             storedType,
-            restartFunction,
             scheduleRestart,
             asyncSemaphore
         );
