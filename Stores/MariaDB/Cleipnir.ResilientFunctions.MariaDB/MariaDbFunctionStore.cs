@@ -439,9 +439,7 @@ public class MariaDbFunctionStore : IFunctionStore
         IReadOnlyList<StoredMessage>? messages,
         IStorageSession? storageSession)
     {
-        byte[]? effectsBytes = effects.Count > 0
-            ? SnapshotStorageSession.Serialize(effects.ToDictionary(e => e.EffectId))
-            : null;
+        var effectsBytes = BinaryPacker.Pack(effects.Select(e => e.Serialize()).ToArray());
 
         await using var conn = await CreateOpenConnection(_connectionString);
         await using var command = _sqlGenerator
@@ -483,9 +481,7 @@ public class MariaDbFunctionStore : IFunctionStore
         IReadOnlyList<StoredMessage>? messages,
         IStorageSession? storageSession)
     {
-        byte[]? effectsBytes = effects.Count > 0
-            ? SnapshotStorageSession.Serialize(effects.ToDictionary(e => e.EffectId))
-            : null;
+        var effectsBytes = BinaryPacker.Pack(effects.Select(e => e.Serialize()).ToArray());
 
         await using var conn = await CreateOpenConnection(_connectionString);
         await using var command = _sqlGenerator

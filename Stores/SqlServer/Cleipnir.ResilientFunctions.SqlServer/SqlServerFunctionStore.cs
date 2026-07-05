@@ -476,9 +476,7 @@ public class SqlServerFunctionStore : IFunctionStore
         IReadOnlyList<StoredMessage>? messages,
         IStorageSession? storageSession)
     {
-        byte[]? effectsBytes = effects.Count > 0
-            ? SnapshotStorageSession.Serialize(effects.ToDictionary(e => e.EffectId))
-            : null;
+        var effectsBytes = BinaryPacker.Pack(effects.Select(e => e.Serialize()).ToArray());
 
         await using var conn = await _connFunc();
         await using var command = _sqlGenerator
@@ -531,9 +529,7 @@ public class SqlServerFunctionStore : IFunctionStore
         IReadOnlyList<StoredMessage>? messages,
         IStorageSession? storageSession)
     {
-        byte[]? effectsBytes = effects.Count > 0
-            ? SnapshotStorageSession.Serialize(effects.ToDictionary(e => e.EffectId))
-            : null;
+        var effectsBytes = BinaryPacker.Pack(effects.Select(e => e.Serialize()).ToArray());
 
         await using var conn = await _connFunc();
         await using var command = _sqlGenerator

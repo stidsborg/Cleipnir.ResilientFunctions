@@ -418,9 +418,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         IReadOnlyList<StoredMessage>? messages,
         IStorageSession? storageSession)
     {
-        var effectsBytes = effects.Count > 0
-            ? SnapshotStorageSession.Serialize(effects.ToDictionary(e => e.EffectId))
-            : null;
+        var effectsBytes = BinaryPacker.Pack(effects.Select(e => e.Serialize()).ToArray());
 
         await using var conn = await CreateConnection();
         await using var batch = _sqlGenerator.SucceedFunction(
@@ -465,9 +463,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         IReadOnlyList<StoredMessage>? messages,
         IStorageSession? storageSession)
     {
-        var effectsBytes = effects.Count > 0
-            ? SnapshotStorageSession.Serialize(effects.ToDictionary(e => e.EffectId))
-            : null;
+        var effectsBytes = BinaryPacker.Pack(effects.Select(e => e.Serialize()).ToArray());
 
         await using var conn = await CreateConnection();
         await using var batch = _sqlGenerator.FailFunction(
