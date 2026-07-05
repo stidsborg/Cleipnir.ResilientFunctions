@@ -188,49 +188,28 @@ public class SqlGenerator(string tablePrefix)
     }
     
     private string? _succeedFunctionSql;
-    private string? _succeedFunctionWithEffectsSql;
     public StoreCommand SucceedFunction(
         StoredId storedId,
         byte[]? result,
         long timestamp,
         Guid expectedReplica,
-        byte[]? effects = null)
+        byte[] effects)
     {
-        if (effects == null)
-        {
-            _succeedFunctionSql ??= $@"
-                UPDATE {tablePrefix}
-                SET status = {(int)Status.Succeeded}, result_json = ?, timestamp = ?, owner = NULL
-                WHERE id = ?";
+        _succeedFunctionSql ??= $@"
+            UPDATE {tablePrefix}
+            SET status = {(int)Status.Succeeded}, result_json = ?, timestamp = ?, owner = NULL, effects = ?
+            WHERE id = ?";
 
-            return StoreCommand.Create(
-                _succeedFunctionSql,
-                values: [
-                    result ?? (object)DBNull.Value,
-                    timestamp,
-                    storedId.AsGuid.ToString("N"),
-                    expectedReplica.ToString("N"),
-                ]
-            );
-        }
-        else
-        {
-            _succeedFunctionWithEffectsSql ??= $@"
-                UPDATE {tablePrefix}
-                SET status = {(int)Status.Succeeded}, result_json = ?, timestamp = ?, owner = NULL, effects = ?
-                WHERE id = ?";
-
-            return StoreCommand.Create(
-                _succeedFunctionWithEffectsSql,
-                values: [
-                    result ?? (object)DBNull.Value,
-                    timestamp,
-                    effects,
-                    storedId.AsGuid.ToString("N"),
-                    expectedReplica.ToString("N"),
-                ]
-            );
-        }
+        return StoreCommand.Create(
+            _succeedFunctionSql,
+            values: [
+                result ?? (object)DBNull.Value,
+                timestamp,
+                effects,
+                storedId.AsGuid.ToString("N"),
+                expectedReplica.ToString("N"),
+            ]
+        );
     }
     
     private string? _postponedFunctionSql;
@@ -291,53 +270,30 @@ public class SqlGenerator(string tablePrefix)
     }
     
     private string? _failFunctionSql;
-    private string? _failFunctionWithEffectsSql;
     public StoreCommand FailFunction(
         StoredId storedId,
         StoredException storedException,
         long timestamp,
         ReplicaId expectedReplica,
-        byte[]? effects = null)
+        byte[] effects)
     {
-        if (effects == null)
-        {
-            _failFunctionSql ??= $@"
-                UPDATE {tablePrefix}
-                SET status = {(int)Status.Failed}, exception_json = ?, timestamp = ?, owner = NULL
-                WHERE
-                    id = ? AND
-                    owner = ?";
+        _failFunctionSql ??= $@"
+            UPDATE {tablePrefix}
+            SET status = {(int)Status.Failed}, exception_json = ?, timestamp = ?, owner = NULL, effects = ?
+            WHERE
+                id = ? AND
+                owner = ?";
 
-            return StoreCommand.Create(
-                _failFunctionSql,
-                values: [
-                    JsonSerializer.Serialize(storedException),
-                    timestamp,
-                    storedId.AsGuid.ToString("N"),
-                    expectedReplica.AsGuid.ToString("N")
-                ]
-            );
-        }
-        else
-        {
-            _failFunctionWithEffectsSql ??= $@"
-                UPDATE {tablePrefix}
-                SET status = {(int)Status.Failed}, exception_json = ?, timestamp = ?, owner = NULL, effects = ?
-                WHERE
-                    id = ? AND
-                    owner = ?";
-
-            return StoreCommand.Create(
-                _failFunctionWithEffectsSql,
-                values: [
-                    JsonSerializer.Serialize(storedException),
-                    timestamp,
-                    effects,
-                    storedId.AsGuid.ToString("N"),
-                    expectedReplica.AsGuid.ToString("N")
-                ]
-            );
-        }
+        return StoreCommand.Create(
+            _failFunctionSql,
+            values: [
+                JsonSerializer.Serialize(storedException),
+                timestamp,
+                effects,
+                storedId.AsGuid.ToString("N"),
+                expectedReplica.AsGuid.ToString("N")
+            ]
+        );
     }
     
     private string? _suspendFunctionSql;
