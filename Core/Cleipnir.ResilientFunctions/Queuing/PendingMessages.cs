@@ -32,7 +32,7 @@ internal static class PendingMessages
             .Select(messageBytes => DecodeMessage(messageBytes!))
             .ToList();
 
-    private static byte[] EncodeMessage(StoredMessage message)
+    public static byte[] EncodeMessage(StoredMessage message)
         => BinaryPacker.Pack(
             message.MessageContent,
             message.MessageType,
@@ -42,7 +42,7 @@ internal static class PendingMessages
             message.Receiver?.ToUtf8Bytes()
         );
 
-    private static StoredMessage DecodeMessage(byte[] bytes)
+    public static StoredMessage DecodeMessage(byte[] bytes)
     {
         var parts = BinaryPacker.Split(bytes, expectedPieces: 6);
         return new StoredMessage(
