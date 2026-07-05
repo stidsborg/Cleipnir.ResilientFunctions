@@ -180,15 +180,15 @@ public class FlowsManager
     }
 
     /// <summary>
-    /// Persists a completed flow's in-hand messages into its effect state (the reserved pending-messages entry)
-    /// and deletes them from the message store - empty restart-pokes are just deleted (a completed flow needs no
-    /// restart). The effect write demands the flow is unowned (owner IS NULL), so it cannot interleave with a
-    /// claim: a write that succeeds happened before any claim, and that claim's effect snapshot - read after the
-    /// claim on every store - therefore includes the entry. After the verified write the status is re-read; if
-    /// the flow has been resurrected in the meantime (e.g. it was actually suspended at write time), false is
-    /// returned so the caller reopens the positions and normal delivery takes over - the then-redundant entry is
-    /// erased by the incarnation's own flushes or pruned on delivery. Returns true when the messages were inlined
-    /// and their rows deleted.
+    /// Persists a completed flow's in-hand messages into its effect state - one position-keyed child effect per
+    /// message (see <see cref="PendingMessages"/>) - and deletes them from the message store; empty restart-pokes
+    /// are just deleted (a completed flow needs no restart). A later re-invocation stages these children exactly as
+    /// it stages the ones a running incarnation writes. The effect write demands the flow is unowned (owner IS NULL),
+    /// so it cannot interleave with a claim: a write that succeeds happened before any claim, and that claim's effect
+    /// snapshot - read after the claim on every store - therefore includes the children. After the write the status
+    /// is re-read; if the flow has been resurrected in the meantime false is returned so the caller reopens the
+    /// positions and normal delivery takes over - the then-redundant children are pruned on delivery. Returns true
+    /// when the messages were inlined and their rows deleted.
     /// </summary>
     private async Task<bool> TryInlinePendingMessages(StoredId storedId, IReadOnlyList<StoredMessage> messages)
     {
@@ -202,53 +202,8 @@ public class FlowsManager
             var currentRows = await _functionStore.MessageStore.GetMessages(storedId);
             var deliverable = currentRows.Where(m => !m.IsEmpty && inHandPositions.Contains(m.Position)).ToList();
 
-            if (deliverable.Count > 0)
-            {
-                // Merge-write-verify loop: the owner guard does not serialize two concurrent unowned-flow writers
-                // (both pass owner IS NULL), so the merged entry is re-read until this batch's messages are
-                // observed to have survived - a lost update is simply retried.
-                var verified = false;
-                for (var attempt = 0; attempt < 5 && !verified; attempt++)
-                {
-                    var effects = await _functionStore.EffectsStore.GetEffectResults(storedId);
-                    var byPosition = new Dictionary<long, StoredMessage>();
-                    var existingEntry = effects.FirstOrDefault(e => e.EffectId == PendingMessages.EffectId);
-                    if (existingEntry?.Result is { Length: > 0 } existingBytes)
-                        foreach (var pending in PendingMessages.Decode(existingBytes))
-                            byPosition[pending.Position] = pending;
-
-                    if (deliverable.All(m => byPosition.ContainsKey(m.Position)))
-                    {
-                        verified = true;
-                        continue;
-                    }
-
-                    foreach (var message in deliverable)
-                        byPosition[message.Position] = message;
-
-                    var session = new SnapshotStorageSession(replicaId: null)
-                    {
-                        RowExists = true,
-                        Version = SnapshotStorageSession.NoVersionCheck
-                    };
-                    foreach (var effect in effects)
-                        session.Effects[effect.EffectId] = effect;
-
-                    var entry = StoredEffect.CreateCompleted(
-                        PendingMessages.EffectId,
-                        PendingMessages.Encode(byPosition.Values.OrderBy(m => m.Position).ToList()),
-                        alias: null
-                    );
-                    await _functionStore.EffectsStore.SetEffectResult(
-                        storedId,
-                        new StoredEffectChange(storedId, PendingMessages.EffectId, CrudOperation.Insert, entry),
-                        session
-                    );
-                }
-
-                if (!verified)
-                    return false;
-            }
+            if (deliverable.Count > 0 && !await WritePendingChildren(storedId, deliverable))
+                return false;
 
             // Delete the rows only while the flow is still completed - otherwise keep them (caller reopens) and
             // let normal delivery handle them.
@@ -265,5 +220,45 @@ public class FlowsManager
             // caller reopens the positions and the next poll retries.
             return false;
         }
+    }
+
+    /// <summary>
+    /// Writes one position-keyed child effect per message under <see cref="PendingMessages.Root"/>, guarded on the
+    /// flow being unowned. The owner guard does not serialize two concurrent unowned-flow writers (both pass owner
+    /// IS NULL) and every effect write rewrites the whole effect column, so a concurrent writer can clobber this one;
+    /// the snapshot is therefore re-read and re-written until every child is observed to have survived - keying each
+    /// child on its position keeps the re-write idempotent. Returns false if the children did not survive within the
+    /// attempt budget.
+    /// </summary>
+    private async Task<bool> WritePendingChildren(StoredId storedId, IReadOnlyList<StoredMessage> deliverable)
+    {
+        for (var attempt = 0; attempt < 5; attempt++)
+        {
+            var effects = await _functionStore.EffectsStore.GetEffectResults(storedId);
+            var existingIds = effects.Select(e => e.EffectId).ToHashSet();
+            if (deliverable.All(m => existingIds.Contains(PendingMessages.ChildId(m.Position))))
+                return true;
+
+            var session = new SnapshotStorageSession(replicaId: null)
+            {
+                RowExists = true,
+                Version = SnapshotStorageSession.NoVersionCheck
+            };
+            foreach (var effect in effects)
+                session.Effects[effect.EffectId] = effect;
+
+            var changes = deliverable
+                .Select(m => new StoredEffectChange(
+                    storedId,
+                    PendingMessages.ChildId(m.Position),
+                    CrudOperation.Insert,
+                    StoredEffect.CreateCompleted(PendingMessages.ChildId(m.Position), PendingMessages.EncodeMessage(m), alias: null)
+                ))
+                .ToList();
+
+            await _functionStore.EffectsStore.SetEffectResults(storedId, changes, session);
+        }
+
+        return false;
     }
 }

@@ -1,6 +1,4 @@
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
@@ -10,27 +8,24 @@ using Cleipnir.ResilientFunctions.Storage.Utils;
 namespace Cleipnir.ResilientFunctions.Queuing;
 
 /// <summary>
-/// Codec for the reserved pending-messages effect: messages fetched for a flow that had already completed are
-/// inlined into the flow's effect state (and deleted from the message store) so any later re-invocation - on any
-/// replica and via any restart path - finds them in the effect snapshot the restart hands over. The QueueManager
-/// stages them at initialization and prunes each message from the entry when it is delivered.
+/// The reserved received-messages carrier: every not-yet-delivered message is held as a child effect of
+/// <see cref="Root"/>, keyed by its position (<see cref="ChildId"/>). A running incarnation writes these children
+/// as it stages messages; the FlowsManager writes the same children when it inlines messages fetched for an
+/// already-completed flow (and deletes the message-store rows) so any later re-invocation - on any replica and via
+/// any restart path - stages them from the effect snapshot the restart hands over. The QueueManager stages the
+/// children at initialization and deletes each one when its message is delivered.
 ///
-/// The encoding is BinaryPacker-based rather than serializer-based on purpose: the entry is written by the
-/// FlowsManager, which does not know the flow type's (possibly custom) serializer.
+/// Each child's content is the single-message <see cref="EncodeMessage"/> encoding: BinaryPacker-based rather than
+/// serializer-based on purpose, since the FlowsManager writes it without knowing the flow type's (possibly custom)
+/// serializer, and a running incarnation must read back byte-identical content.
 /// </summary>
 internal static class PendingMessages
 {
-    /// <summary>Reserved effect id (same -1 prefix as the QueueManager's other reserved ids).</summary>
-    public static readonly EffectId EffectId = new([-1, 1]);
+    /// <summary>Reserved parent effect id (same -1 prefix as the QueueManager's other reserved ids).</summary>
+    public static readonly EffectId Root = new([-1, 2]);
 
-    public static byte[] Encode(IReadOnlyCollection<StoredMessage> messages)
-        => BinaryPacker.Pack(messages.Select(EncodeMessage).ToArray());
-
-    public static List<StoredMessage> Decode(byte[] bytes)
-        => BinaryPacker
-            .Split(bytes)
-            .Select(messageBytes => DecodeMessage(messageBytes!))
-            .ToList();
+    /// <summary>The child effect id a message at <paramref name="position"/> is stored under.</summary>
+    public static EffectId ChildId(long position) => Root.CreateChild((int)position);
 
     public static byte[] EncodeMessage(StoredMessage message)
         => BinaryPacker.Pack(

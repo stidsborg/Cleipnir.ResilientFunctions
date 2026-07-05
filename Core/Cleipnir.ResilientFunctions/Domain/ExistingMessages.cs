@@ -12,7 +12,7 @@ namespace Cleipnir.ResilientFunctions.Domain;
 
 /// <summary>
 /// A flow's not-yet-delivered messages live in one of two carriers: rows in the message store, or - for messages
-/// that arrived while the flow was completed - the pending-messages entry inlined into the flow's effect state.
+/// that arrived while the flow was completed - per-message child effects inlined into the flow's effect state.
 /// This type surfaces and edits the union of both, so control-panel tooling sees the same pending messages a
 /// restarted flow would receive.
 /// </summary>
@@ -74,22 +74,24 @@ public class ExistingMessages
     private async Task<List<StoredMessage>> GetPendingInlinedMessages()
     {
         var effects = await _effectsStore.GetEffectResults(_storedId);
-        var entry = effects.FirstOrDefault(e => e.EffectId == PendingMessages.EffectId);
-        return entry?.Result is { Length: > 0 } bytes
-            ? PendingMessages.Decode(bytes)
-            : [];
+        return effects
+            .Where(e => PendingMessages.Root.IsChild(e.EffectId) && e.Result is { Length: > 0 })
+            .Select(e => PendingMessages.DecodeMessage(e.Result!))
+            .OrderBy(m => m.Position)
+            .ToList();
     }
 
     public async Task Clear()
     {
         // Deleting the two carriers is not atomic, and a MessageWatchdog holding rows fetched before the truncate
-        // may concurrently move them into the pending-messages entry - delete, then verify after a grace period
+        // may concurrently move them into the pending-messages children - delete, then verify after a grace period
         // and repeat until both carriers are observed empty.
         for (var attempt = 0; attempt < 5; attempt++)
         {
             await _messageStore.Truncate(_storedId);
-            if ((await GetPendingInlinedMessages()).Count > 0)
-                await _effectsStore.DeleteEffectResult(_storedId, PendingMessages.EffectId, storageSession: null);
+            var pending = await GetPendingInlinedMessages();
+            if (pending.Count > 0)
+                await DeletePendingInlinedMessages(pending.Select(m => m.Position));
 
             await Task.Delay(100);
             if ((await GetMergedMessages()).Count == 0)
@@ -142,10 +144,7 @@ public class ExistingMessages
     public async Task Remove(long position)
     {
         await _messageStore.DeleteMessages(positions: [position]);
-
-        var pending = await GetPendingInlinedMessages();
-        if (pending.Any(m => m.Position == position))
-            await WritePendingInlinedMessages(pending.Where(m => m.Position != position).ToList());
+        await _effectsStore.DeleteEffectResult(_storedId, PendingMessages.ChildId(position), storageSession: null);
 
         // Invalidate cache so it will be re-fetched with correct data
         _receivedMessages = null;
@@ -153,24 +152,21 @@ public class ExistingMessages
 
     private async Task UpsertPendingInlinedMessage(StoredMessage message)
     {
-        var byPosition = (await GetPendingInlinedMessages()).ToDictionary(m => m.Position);
-        byPosition[message.Position] = message;
-        await WritePendingInlinedMessages(byPosition.Values.OrderBy(m => m.Position).ToList());
-    }
-
-    private async Task WritePendingInlinedMessages(IReadOnlyList<StoredMessage> messages)
-    {
-        if (messages.Count == 0)
-        {
-            await _effectsStore.DeleteEffectResult(_storedId, PendingMessages.EffectId, storageSession: null);
-            return;
-        }
-
-        var entry = StoredEffect.CreateCompleted(PendingMessages.EffectId, PendingMessages.Encode(messages), alias: null);
+        var childId = PendingMessages.ChildId(message.Position);
+        var entry = StoredEffect.CreateCompleted(childId, PendingMessages.EncodeMessage(message), alias: null);
         await _effectsStore.SetEffectResult(
             _storedId,
-            new StoredEffectChange(_storedId, PendingMessages.EffectId, CrudOperation.Insert, entry),
+            new StoredEffectChange(_storedId, childId, CrudOperation.Insert, entry),
             session: null
         );
+    }
+
+    private async Task DeletePendingInlinedMessages(IEnumerable<long> positions)
+    {
+        var changes = positions
+            .Select(p => new StoredEffectChange(_storedId, PendingMessages.ChildId(p), CrudOperation.Delete, StoredEffect: null))
+            .ToList();
+        if (changes.Count > 0)
+            await _effectsStore.SetEffectResults(_storedId, changes, session: null);
     }
 }

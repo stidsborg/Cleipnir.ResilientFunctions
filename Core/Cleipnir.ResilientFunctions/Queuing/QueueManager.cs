@@ -21,11 +21,8 @@ internal class QueueManager : IDisposable
     private const int ReservedIdPrefix = -1;
     private static readonly EffectId DeliveredPositionsId = new([ReservedIdPrefix, 0]);
     private static readonly EffectId IdempotencyKeysRoot   = new([ReservedIdPrefix, -1]);
-    // Parent of the per-message received-message children (see _pendingMessageChildren). A dedicated id - not
-    // PendingMessages.EffectId - because FlushlessClear cascades to children, and the completed-flow blob lives
-    // at (and is cleared via) PendingMessages.EffectId; keeping the carriers on separate ids stops the blob's
-    // clear from deleting these children.
-    private static readonly EffectId ReceivedMessagesRoot  = new([ReservedIdPrefix, 2]);
+    // The received-messages carrier ([-1,2] and its per-position children) lives in PendingMessages, shared with
+    // the FlowsManager's completed-flow inlining.
 
     private readonly FlowId _flowId;
     private readonly StoredId _storedId;
@@ -46,13 +43,6 @@ internal class QueueManager : IDisposable
     private readonly List<Subscription> _subscriptions = new();
     private readonly HashSet<long> _fetchedPositions = new();
     private readonly HashSet<long> _deliveredPositions = new();
-    // Messages inlined into the pending-messages effect while the flow was completed - staged at initialization
-    // and pruned from the durable entry as they are delivered (see PruneDeliveredPendingMessage).
-    private readonly Dictionary<long, StoredMessage> _pendingInlinedMessages = new();
-    // Received messages captured as individual child effects under ReceivedMessagesRoot (position -> child id).
-    // A child is created the moment a message is staged in ProcessMessages and deleted again when the message is
-    // delivered or deduped - the running-flow analogue of _pendingInlinedMessages' completed-flow blob.
-    private readonly Dictionary<long, EffectId> _pendingMessageChildren = new();
     private volatile Exception? _thrownException;
     private bool _initialized;
     private volatile bool _disposed;
@@ -114,14 +104,17 @@ internal class QueueManager : IDisposable
                 _effect.FlushlessUpsert(DeliveredPositionsId, positions, alias: null);
             }
 
-            // Re-stage the received-message children a prior incarnation left behind: each message it had staged
-            // but not yet delivered persists as its own child effect. A child whose position was already
-            // delivered (replayed above) is pruned rather than re-delivered - the analogue of the delivered-
-            // positions store-row clear above.
+            // Re-stage the received-message children a prior incarnation left behind - whether captured by a
+            // running incarnation or inlined into the effect state while the flow was completed (in which case the
+            // store rows are gone and these children are the messages' only carrier). ProcessMessages dedups them
+            // against the replayed delivered positions and the persisted idempotency keys; running it here without
+            // the fetch semaphore is safe - pushes acquire the semaphore only after Initialize has completed. A
+            // child whose position was already delivered (replayed above) is pruned rather than re-delivered - the
+            // analogue of the delivered-positions store-row clear above.
             var stagedChildren = new List<StoredMessage>();
-            foreach (var childId in _effect.GetChildren(ReceivedMessagesRoot))
+            foreach (var childId in _effect.GetChildren(PendingMessages.Root))
             {
-                var message = PendingMessages.DecodeMessage(_effect.Get<byte[]>(childId));
+                var message = PendingMessages.DecodeMessage(_effect.GetStoredEffect(childId)!.Result!);
 
                 bool alreadyDelivered;
                 lock (_lock)
@@ -132,28 +125,10 @@ internal class QueueManager : IDisposable
                     continue;
                 }
 
-                // Pre-register the child so ProcessMessages re-stages it without creating a second child.
-                lock (_lock)
-                    _pendingMessageChildren[message.Position] = childId;
                 stagedChildren.Add(message);
             }
             if (stagedChildren.Count > 0)
                 ProcessMessages(stagedChildren);
-
-            // Stage messages that were inlined into the effect state while the flow was completed (their store
-            // rows are deleted, so this entry is their only carrier). ProcessMessages dedups them against the
-            // replayed delivered positions and the persisted idempotency keys; running it here without the fetch
-            // semaphore is safe - pushes acquire the semaphore only after Initialize has completed.
-            var pendingEntry = _effect.GetStoredEffect(PendingMessages.EffectId);
-            if (pendingEntry?.Result is { Length: > 0 } pendingBytes)
-            {
-                var pendingMessages = PendingMessages.Decode(pendingBytes);
-                lock (_lock)
-                    foreach (var pendingMessage in pendingMessages)
-                        _pendingInlinedMessages[pendingMessage.Position] = pendingMessage;
-
-                ProcessMessages(pendingMessages);
-            }
 
             _initialized = true;
             _effect.RegisterQueueManager(this);
@@ -340,14 +315,16 @@ internal class QueueManager : IDisposable
                         _toDeliver.Insert(insertAt, messageData);
                     _fetchedPositions.Add(position);
 
-                    // Durably capture the received message as its own child effect the moment it is staged; it is
-                    // deleted again when the message is delivered or idempotency-deduped (PruneDeliveredPendingMessage).
-                    // Flushless, so it costs no I/O and dies with an equally-unflushed delivery - recovery then stays
-                    // store-backed and at-least-once. Skipped when the position already has a child (re-staged from an
-                    // existing child at initialization).
-                    if (!_pendingMessageChildren.ContainsKey(position))
-                        _pendingMessageChildren[position] =
-                            _effect.FlushlessCreateNextChild(ReceivedMessagesRoot, PendingMessages.EncodeMessage(message));
+                    // Durably capture the received message as its own position-keyed child effect the moment it is
+                    // staged; it is deleted again when the message is delivered or idempotency-deduped
+                    // (PruneDeliveredPendingMessage). Flushless, so it costs no I/O and dies with an equally-unflushed
+                    // delivery - recovery then stays store-backed and at-least-once. Raw-encoded, not via the flow
+                    // serializer, so the completed-flow inlining in FlowsManager (which lacks the serializer) writes
+                    // byte-identical children. Skipped when the child already exists - re-staged from the store at
+                    // initialization, or written by that inlining.
+                    var childId = PendingMessages.ChildId(position);
+                    if (_effect.GetStoredEffect(childId) is null)
+                        _effect.FlushlessSet(StoredEffect.CreateCompleted(childId, PendingMessages.EncodeMessage(message), alias: null));
                 }
             }
             catch (Exception e)
@@ -433,32 +410,13 @@ internal class QueueManager : IDisposable
             }
     }
 
-    // Caller must hold _lock. Removes a delivered (or idempotency-deduped) message from its durable carrier - the
-    // per-message child effect (running flow) and/or the completed-flow inline blob - so a later incarnation does
-    // not re-stage it after the delivered-positions dedup state has been cleared. Flushless on purpose: dying with
-    // an unflushed prune replays the message together with the equally unflushed delivery - at-least-once, exactly
-    // like a store-resident message.
+    // Caller must hold _lock. Deletes a delivered (or idempotency-deduped) message's position-keyed child effect so
+    // a later incarnation does not re-stage it after the delivered-positions dedup state has been cleared. Flushless
+    // on purpose: dying with an unflushed prune replays the message together with the equally unflushed delivery -
+    // at-least-once, exactly like a store-resident message. A no-op when no such child exists (e.g. an idempotency-
+    // deduped message that was never staged).
     private void PruneDeliveredPendingMessage(long position)
-    {
-        // Running-flow carrier: the message was captured as its own child effect - delete just that child.
-        if (_pendingMessageChildren.Remove(position, out var childId))
-            _effect.FlushlessClear(childId);
-
-        // Completed-flow carrier: the message came from the inline blob - rewrite the blob without it.
-        if (!_pendingInlinedMessages.Remove(position))
-            return;
-
-        if (_pendingInlinedMessages.Count == 0)
-            _effect.FlushlessClear(PendingMessages.EffectId);
-        else
-            _effect.FlushlessSet(
-                StoredEffect.CreateCompleted(
-                    PendingMessages.EffectId,
-                    PendingMessages.Encode(_pendingInlinedMessages.Values.OrderBy(m => m.Position).ToList()),
-                    alias: null
-                )
-            );
-    }
+        => _effect.FlushlessClear(PendingMessages.ChildId(position));
 
     private void FailAllSubscriptions(Exception exception)
     {
