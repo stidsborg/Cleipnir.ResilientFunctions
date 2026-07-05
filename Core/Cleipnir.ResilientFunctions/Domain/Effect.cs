@@ -117,6 +117,15 @@ public class Effect
     
     internal IReadOnlyList<EffectId> GetChildren(EffectId effectId) => effectResults.GetChildren(effectId);
 
+    /// <summary>
+    /// Finds the next free child slot under <paramref name="parentId"/> (highest existing direct-child index + 1)
+    /// and records <paramref name="content"/> there as a completed effect, returning the created child's EffectId.
+    /// The write is flushless (in-memory only) - call <see cref="Flush"/> to persist. This is a raw append: each
+    /// call adds a new child, so it is not replay-idempotent on its own.
+    /// </summary>
+    public EffectId FlushlessCreateNextChild<T>(EffectId parentId, T content, string? alias = null)
+        => effectResults.FlushlessCreateNextChild(parentId, content, alias);
+
     #region Implicit ids
 
     public Task Capture(Action work, ResiliencyLevel resiliency = ResiliencyLevel.AtLeastOnce)

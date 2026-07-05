@@ -231,7 +231,26 @@ internal class EffectResults
                 .Where(id => id.IsDescendant(parentId))
                 .ToList();
     }
-    
+
+    public EffectId FlushlessCreateNextChild<T>(EffectId parentId, T value, string? alias)
+    {
+        lock (_sync)
+        {
+            // Highest existing direct-child index + 1 (append). Index-selection and reservation
+            // happen under a single lock so concurrent callers cannot pick the same index.
+            var nextIndex = 0;
+            foreach (var id in _effectResults.Keys)
+                if (parentId.IsChild(id) && id.Id >= nextIndex)
+                    nextIndex = id.Id + 1;
+
+            var childId = parentId.CreateChild(nextIndex);
+            var serializedValue = _serializer.Serialize(value!, typeof(T));
+            var storedEffect = StoredEffect.CreateCompleted(childId, serializedValue, alias);
+            AddToPendingCore(childId, storedEffect, delete: false, clearChildren: false);
+            return childId;
+        }
+    }
+
     public async Task InnerCapture(EffectId effectId, string? alias, Func<Task> work, ResiliencyLevel resiliency, EffectContext effectContext)
     {
         EffectContext.SetParent(effectId);
@@ -417,6 +436,12 @@ internal class EffectResults
     private void AddToPending(EffectId effectId, StoredEffect? storedEffect, bool delete, bool clearChildren)
     {
         lock (_sync)
+            AddToPendingCore(effectId, storedEffect, delete, clearChildren);
+    }
+
+    // Assumes _sync is already held by the caller.
+    private void AddToPendingCore(EffectId effectId, StoredEffect? storedEffect, bool delete, bool clearChildren)
+    {
         {
             if (_effectResults.ContainsKey(effectId))
             {
