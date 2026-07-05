@@ -312,8 +312,8 @@ public abstract class StoreCrudTests
         sf.Parameter.ShouldNotBeNull();
     }
 
-    public abstract Task RestartExecutionsWithoutMessagesReturnsEmptyDictionaryWhenNoFlowsAreEligible();
-    public async Task RestartExecutionsWithoutMessagesReturnsEmptyDictionaryWhenNoFlowsAreEligible(Task<IFunctionStore> storeTask)
+    public abstract Task RestartExecutionsReturnsEmptyDictionaryWhenNoFlowsAreEligible();
+    public async Task RestartExecutionsReturnsEmptyDictionaryWhenNoFlowsAreEligible(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
         var storedId1 = TestStoredId.Create();
@@ -342,13 +342,13 @@ public abstract class StoreCrudTests
         );
 
         // Try to restart - should return empty dictionary
-        var result = await store.RestartExecutionsWithoutMessages([storedId1, storedId2], newOwner);
+        var result = await store.RestartExecutions([storedId1, storedId2], newOwner);
 
         result.Count.ShouldBe(0);
     }
 
-    public abstract Task RestartExecutionsWithoutMessagesRestartsMultipleUnownedFlows();
-    public async Task RestartExecutionsWithoutMessagesRestartsMultipleUnownedFlows(Task<IFunctionStore> storeTask)
+    public abstract Task RestartExecutionsRestartsMultipleUnownedFlows();
+    public async Task RestartExecutionsRestartsMultipleUnownedFlows(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
         var storedId1 = TestStoredId.Create();
@@ -386,7 +386,7 @@ public abstract class StoreCrudTests
         );
 
         // Restart all three
-        var result = await store.RestartExecutionsWithoutMessages([storedId1, storedId2, storedId3], owner);
+        var result = await store.RestartExecutions([storedId1, storedId2, storedId3], owner);
 
         // All three should be restarted
         result.Count.ShouldBe(3);
@@ -402,8 +402,8 @@ public abstract class StoreCrudTests
         result[storedId3].StoredFlow.Status.ShouldBe(Status.Executing);
     }
 
-    public abstract Task RestartExecutionsWithoutMessagesRestartsOnlyUnownedFlows();
-    public async Task RestartExecutionsWithoutMessagesRestartsOnlyUnownedFlows(Task<IFunctionStore> storeTask)
+    public abstract Task RestartExecutionsRestartsOnlyUnownedFlows();
+    public async Task RestartExecutionsRestartsOnlyUnownedFlows(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
         var storedId1 = TestStoredId.Create();
@@ -442,7 +442,7 @@ public abstract class StoreCrudTests
         );
 
         // Restart all three - only 1 and 3 should succeed
-        var result = await store.RestartExecutionsWithoutMessages([storedId1, storedId2, storedId3], newOwner);
+        var result = await store.RestartExecutions([storedId1, storedId2, storedId3], newOwner);
 
         result.Count.ShouldBe(2);
         result.ContainsKey(storedId1).ShouldBeTrue();
@@ -453,19 +453,19 @@ public abstract class StoreCrudTests
         result[storedId3].StoredFlow.OwnerId.ShouldBe(newOwner);
     }
 
-    public abstract Task RestartExecutionsWithoutMessagesReturnsEmptyDictionaryForEmptyInput();
-    public async Task RestartExecutionsWithoutMessagesReturnsEmptyDictionaryForEmptyInput(Task<IFunctionStore> storeTask)
+    public abstract Task RestartExecutionsReturnsEmptyDictionaryForEmptyInput();
+    public async Task RestartExecutionsReturnsEmptyDictionaryForEmptyInput(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
         var owner = ReplicaId.NewId();
 
-        var result = await store.RestartExecutionsWithoutMessages([], owner);
+        var result = await store.RestartExecutions([], owner);
 
         result.Count.ShouldBe(0);
     }
 
-    public abstract Task RestartExecutionsWithoutMessagesIncludesExistingEffects();
-    public async Task RestartExecutionsWithoutMessagesIncludesExistingEffects(Task<IFunctionStore> storeTask)
+    public abstract Task RestartExecutionsIncludesExistingEffects();
+    public async Task RestartExecutionsIncludesExistingEffects(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
         var storedId1 = TestStoredId.Create();
@@ -488,7 +488,7 @@ public abstract class StoreCrudTests
             Alias: null
         );
 
-        // Create messages - these must NOT be fetched by RestartExecutionsWithoutMessages
+        // Create messages - these must NOT be fetched by RestartExecutions
         var message1 = new StoredMessage(
             MessageContent: "message1".ToUtf8Bytes(),
             MessageType: "Type1".ToUtf8Bytes(),
@@ -529,7 +529,7 @@ public abstract class StoreCrudTests
         );
 
         // Restart both
-        var result = await store.RestartExecutionsWithoutMessages([storedId1, storedId2], owner);
+        var result = await store.RestartExecutions([storedId1, storedId2], owner);
 
         // Verify both flows returned with their effects
         result.Count.ShouldBe(2);

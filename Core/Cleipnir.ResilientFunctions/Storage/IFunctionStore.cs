@@ -32,7 +32,7 @@ public interface IFunctionStore
     );
     
     Task<StoredFlowWithEffects?> RestartExecution(StoredId storedId, ReplicaId owner);
-    Task<Dictionary<StoredId, StoredFlowWithEffects>> RestartExecutionsWithoutMessages(IReadOnlyList<StoredId> storedIds, ReplicaId owner);
+    Task<Dictionary<StoredId, StoredFlowWithEffects>> RestartExecutions(IReadOnlyList<StoredId> storedIds, ReplicaId owner);
     
     Task<IReadOnlyList<StoredId>> GetExpiredFunctions(long expiresBefore);
     Task<IReadOnlyList<StoredId>> GetSucceededFunctions(long completedBefore);

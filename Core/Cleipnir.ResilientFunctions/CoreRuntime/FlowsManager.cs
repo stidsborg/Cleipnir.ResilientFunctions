@@ -106,7 +106,7 @@ public class FlowsManager
         try
         {
             results = await _functionStore
-                .RestartExecutionsWithoutMessages(groups.Keys.ToList(), _clusterInfo.ReplicaId);
+                .RestartExecutions(groups.Keys.ToList(), _clusterInfo.ReplicaId);
         }
         catch
         {
@@ -148,7 +148,7 @@ public class FlowsManager
 
         // Resume each restarted flow, supplying the messages we already hold so it does not re-fetch them. Empty
         // messages exist only to force the restart, so they are excluded from delivery. The claim + flow snapshot
-        // returned by RestartExecutionsWithoutMessages is everything the delegate needs, so no further store
+        // returned by RestartExecutions is everything the delegate needs, so no further store
         // round-trip or re-claim is performed.
         foreach (var (storedId, storedFlowWithEffects) in results)
         {

@@ -145,7 +145,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
                 );
     }
 
-    public virtual async Task<Dictionary<StoredId, StoredFlowWithEffects>> RestartExecutionsWithoutMessages(
+    public virtual async Task<Dictionary<StoredId, StoredFlowWithEffects>> RestartExecutions(
         IReadOnlyList<StoredId> storedIds,
         ReplicaId owner)
     {

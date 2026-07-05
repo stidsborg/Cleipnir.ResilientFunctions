@@ -79,7 +79,7 @@ internal class PostponedWatchdog
                     .ToList();
                 
                 var restarts = await _functionStore
-                    .RestartExecutionsWithoutMessages(ownedFunctions, _clusterInfo.ReplicaId);
+                    .RestartExecutions(ownedFunctions, _clusterInfo.ReplicaId);
 
                 foreach (var id in restarts.Keys)
                 {
