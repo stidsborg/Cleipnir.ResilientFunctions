@@ -236,7 +236,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         return (effects, session);
     }
 
-    public async Task<Dictionary<StoredId, StoredFlowWithEffects>> RestartExecutionsWithoutMessages(
+    public async Task<Dictionary<StoredId, StoredFlowWithEffects>> RestartExecutions(
         IReadOnlyList<StoredId> storedIds,
         ReplicaId owner)
     {

@@ -225,7 +225,7 @@ public class MariaDbFunctionStore : IFunctionStore
         return new StoredFlowWithEffects(sf, effects, session);
     }
 
-    public async Task<Dictionary<StoredId, StoredFlowWithEffects>> RestartExecutionsWithoutMessages(
+    public async Task<Dictionary<StoredId, StoredFlowWithEffects>> RestartExecutions(
         IReadOnlyList<StoredId> storedIds,
         ReplicaId owner)
     {

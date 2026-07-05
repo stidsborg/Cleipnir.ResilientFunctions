@@ -204,8 +204,8 @@ public class StoreTests : ResilientFunctions.Tests.TestTemplates.StoreTests
 
 
     [TestMethod]
-    public override Task RestartExecutionsWithoutMessagesDoesNotReturnFlowClaimedByPreviousCall()
-        => RestartExecutionsWithoutMessagesDoesNotReturnFlowClaimedByPreviousCall(FunctionStoreFactory.Create());
+    public override Task RestartExecutionsDoesNotReturnFlowClaimedByPreviousCall()
+        => RestartExecutionsDoesNotReturnFlowClaimedByPreviousCall(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task RestartExecutionsDoesNotClaimSucceededFlow()

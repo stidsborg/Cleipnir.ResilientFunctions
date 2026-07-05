@@ -1763,8 +1763,8 @@ public abstract class StoreTests
         results.ContainsKey(nonExistentFunctionId).ShouldBeFalse();
     }
 
-    public abstract Task RestartExecutionsWithoutMessagesDoesNotReturnFlowClaimedByPreviousCall();
-    protected async Task RestartExecutionsWithoutMessagesDoesNotReturnFlowClaimedByPreviousCall(Task<IFunctionStore> storeTask)
+    public abstract Task RestartExecutionsDoesNotReturnFlowClaimedByPreviousCall();
+    protected async Task RestartExecutionsDoesNotReturnFlowClaimedByPreviousCall(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
         var functionId = TestStoredId.Create();
@@ -1780,13 +1780,13 @@ public abstract class StoreTests
             owner: null
         );
 
-        var firstClaim = await store.RestartExecutionsWithoutMessages([functionId], replicaId);
+        var firstClaim = await store.RestartExecutions([functionId], replicaId);
         firstClaim.Count.ShouldBe(1);
         firstClaim.ContainsKey(functionId).ShouldBeTrue();
         firstClaim[functionId].StoredFlow.OwnerId.ShouldBe(replicaId);
         firstClaim[functionId].StoredFlow.Status.ShouldBe(Status.Executing);
 
-        var secondClaim = await store.RestartExecutionsWithoutMessages([functionId], replicaId);
+        var secondClaim = await store.RestartExecutions([functionId], replicaId);
         secondClaim.ShouldBeEmpty();
     }
 
@@ -1818,7 +1818,7 @@ public abstract class StoreTests
         ).ShouldBeTrueAsync();
 
         // A message arriving after the flow completed must not resurrect it.
-        var claimedWithoutMessages = await store.RestartExecutionsWithoutMessages([functionId], ReplicaId.NewId());
+        var claimedWithoutMessages = await store.RestartExecutions([functionId], ReplicaId.NewId());
         claimedWithoutMessages.ShouldBeEmpty();
 
         var sf = await store.GetFunction(functionId);
@@ -1853,7 +1853,7 @@ public abstract class StoreTests
         ).ShouldBeTrueAsync();
 
         var newOwner = ReplicaId.NewId();
-        var claimed = await store.RestartExecutionsWithoutMessages([functionId], newOwner);
+        var claimed = await store.RestartExecutions([functionId], newOwner);
         claimed.Count.ShouldBe(1);
         claimed[functionId].StoredFlow.OwnerId.ShouldBe(newOwner);
         claimed[functionId].StoredFlow.Status.ShouldBe(Status.Executing);

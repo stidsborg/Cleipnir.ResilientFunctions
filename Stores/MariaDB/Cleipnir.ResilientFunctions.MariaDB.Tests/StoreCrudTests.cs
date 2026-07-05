@@ -55,25 +55,25 @@ public class StoreCrudTests : ResilientFunctions.Tests.TestTemplates.StoreCrudTe
 
 
     [TestMethod]
-    public override Task RestartExecutionsWithoutMessagesReturnsEmptyDictionaryWhenNoFlowsAreEligible()
-        => RestartExecutionsWithoutMessagesReturnsEmptyDictionaryWhenNoFlowsAreEligible(FunctionStoreFactory.Create());
+    public override Task RestartExecutionsReturnsEmptyDictionaryWhenNoFlowsAreEligible()
+        => RestartExecutionsReturnsEmptyDictionaryWhenNoFlowsAreEligible(FunctionStoreFactory.Create());
 
 
 
 
     [TestMethod]
-    public override Task RestartExecutionsWithoutMessagesRestartsMultipleUnownedFlows()
-        => RestartExecutionsWithoutMessagesRestartsMultipleUnownedFlows(FunctionStoreFactory.Create());
+    public override Task RestartExecutionsRestartsMultipleUnownedFlows()
+        => RestartExecutionsRestartsMultipleUnownedFlows(FunctionStoreFactory.Create());
 
     [TestMethod]
-    public override Task RestartExecutionsWithoutMessagesRestartsOnlyUnownedFlows()
-        => RestartExecutionsWithoutMessagesRestartsOnlyUnownedFlows(FunctionStoreFactory.Create());
+    public override Task RestartExecutionsRestartsOnlyUnownedFlows()
+        => RestartExecutionsRestartsOnlyUnownedFlows(FunctionStoreFactory.Create());
 
     [TestMethod]
-    public override Task RestartExecutionsWithoutMessagesReturnsEmptyDictionaryForEmptyInput()
-        => RestartExecutionsWithoutMessagesReturnsEmptyDictionaryForEmptyInput(FunctionStoreFactory.Create());
+    public override Task RestartExecutionsReturnsEmptyDictionaryForEmptyInput()
+        => RestartExecutionsReturnsEmptyDictionaryForEmptyInput(FunctionStoreFactory.Create());
 
     [TestMethod]
-    public override Task RestartExecutionsWithoutMessagesIncludesExistingEffects()
-        => RestartExecutionsWithoutMessagesIncludesExistingEffects(FunctionStoreFactory.Create());
+    public override Task RestartExecutionsIncludesExistingEffects()
+        => RestartExecutionsIncludesExistingEffects(FunctionStoreFactory.Create());
 }
