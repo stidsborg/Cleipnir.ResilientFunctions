@@ -261,7 +261,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         byte[]? result,
         long timestamp,
         ReplicaId? expectedReplica,
-        IReadOnlyList<StoredEffect>? effects,
+        IReadOnlyList<StoredEffect> effects,
         IReadOnlyList<StoredMessage>? messages,
         IStorageSession? storageSession)
     {
@@ -271,6 +271,8 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
 
             var state = _states[storedId];
             if (state.Owner != expectedReplica) return false.ToTask();
+
+            PersistEffects(storedId, effects, storageSession);
 
             state.Status = Status.Succeeded;
             state.Result = result;
@@ -311,7 +313,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         StoredException storedException,
         long timestamp,
         ReplicaId? expectedReplica,
-        IReadOnlyList<StoredEffect>? effects,
+        IReadOnlyList<StoredEffect> effects,
         IReadOnlyList<StoredMessage>? messages,
         IStorageSession? storageSession)
     {
@@ -322,6 +324,8 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
             var state = _states[storedId];
             if (state.Owner != expectedReplica) return false.ToTask();
 
+            PersistEffects(storedId, effects, storageSession);
+
             state.Status = Status.Failed;
             state.Exception = storedException;
             state.Timestamp = timestamp;
@@ -329,6 +333,21 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
 
             return true.ToTask();
         }
+    }
+
+    // Persists the terminal effect snapshot alongside the status change, mirroring the SQL stores writing the
+    // effects column in the same UPDATE. Empty snapshots are skipped so a failure path that never built effect
+    // state (e.g. a deserialization failure) does not erase previously flushed effects.
+    private void PersistEffects(StoredId storedId, IReadOnlyList<StoredEffect> effects, IStorageSession? storageSession)
+    {
+        if (effects.Count == 0)
+            return;
+
+        _effectsStore.SetEffectResults(
+            storedId,
+            effects.Select(e => new StoredEffectChange(storedId, e.EffectId, CrudOperation.Insert, e)).ToList(),
+            storageSession
+        );
     }
 
     public Task<bool> SuspendFunction(

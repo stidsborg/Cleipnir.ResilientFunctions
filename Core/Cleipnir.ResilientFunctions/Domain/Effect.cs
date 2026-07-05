@@ -103,6 +103,8 @@ public class Effect
 
     // Raw StoredEffect access - for reserved entries with serializer-independent encodings (pending messages).
     internal StoredEffect? GetStoredEffect(EffectId effectId) => effectResults.GetOrValueDefault(effectId);
+    // The complete current effect snapshot - persisted atomically with the terminal status on succeed/fail.
+    internal IReadOnlyList<StoredEffect> GetAllStoredEffects() => effectResults.GetAllStoredEffects();
     internal void FlushlessSet(StoredEffect storedEffect) => effectResults.FlushlessSet(storedEffect);
     internal T Get<T>(string alias) => Get<T>(
         effectResults.GetEffectId(alias) ?? throw new InvalidOperationException($"Unknown alias: '{alias}'")

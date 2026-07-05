@@ -414,16 +414,21 @@ public class PostgreSqlFunctionStore : IFunctionStore
         byte[]? result,
         long timestamp,
         ReplicaId expectedReplica,
-        IReadOnlyList<StoredEffect>? effects,
+        IReadOnlyList<StoredEffect> effects,
         IReadOnlyList<StoredMessage>? messages,
         IStorageSession? storageSession)
     {
+        var effectsBytes = effects.Count > 0
+            ? SnapshotStorageSession.Serialize(effects.ToDictionary(e => e.EffectId))
+            : null;
+
         await using var conn = await CreateConnection();
         await using var batch = _sqlGenerator.SucceedFunction(
             storedId,
             result,
             timestamp,
-            expectedReplica
+            expectedReplica,
+            effectsBytes
         ).CreateBatch().WithConnection(conn);
 
         var affectedRows = await batch.ExecuteNonQueryAsync();
@@ -456,16 +461,21 @@ public class PostgreSqlFunctionStore : IFunctionStore
         StoredException storedException,
         long timestamp,
         ReplicaId expectedReplica,
-        IReadOnlyList<StoredEffect>? effects,
+        IReadOnlyList<StoredEffect> effects,
         IReadOnlyList<StoredMessage>? messages,
         IStorageSession? storageSession)
     {
+        var effectsBytes = effects.Count > 0
+            ? SnapshotStorageSession.Serialize(effects.ToDictionary(e => e.EffectId))
+            : null;
+
         await using var conn = await CreateConnection();
         await using var batch = _sqlGenerator.FailFunction(
             storedId,
             storedException,
             timestamp,
-            expectedReplica
+            expectedReplica,
+            effectsBytes
         ).CreateBatch().WithConnection(conn);
 
         var affectedRows = await batch.ExecuteNonQueryAsync();

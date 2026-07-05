@@ -110,7 +110,7 @@ public class CrashableFunctionStore : IFunctionStore
         byte[]? result,
         long timestamp,
         ReplicaId expectedReplica,
-        IReadOnlyList<StoredEffect>? effects,
+        IReadOnlyList<StoredEffect> effects,
         IReadOnlyList<StoredMessage>? messages,
         IStorageSession? storageSession
     ) => _crashed
@@ -141,7 +141,7 @@ public class CrashableFunctionStore : IFunctionStore
         StoredException storedException,
         long timestamp,
         ReplicaId expectedReplica,
-        IReadOnlyList<StoredEffect>? effects,
+        IReadOnlyList<StoredEffect> effects,
         IReadOnlyList<StoredMessage>? messages,
         IStorageSession? storageSession
     ) => _crashed

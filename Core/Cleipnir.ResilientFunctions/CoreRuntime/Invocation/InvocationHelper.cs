@@ -102,7 +102,7 @@ internal class InvocationHelper<TParam, TReturn>
     public async Task<TReturn> WaitForFunctionResult(FlowId flowId, StoredId storedId, bool allowPostponedAndSuspended, TimeSpan? maxWait)
         => await _resultBusyWaiter.WaitForFunctionResult(flowId, storedId, allowPostponedAndSuspended, maxWait);
     
-    public async Task PersistFailure(StoredId storedId, FatalWorkflowException exception, TParam param)
+    public async Task PersistFailure(StoredId storedId, FatalWorkflowException exception, TParam param, IReadOnlyList<StoredEffect> effects)
     {
         var storedException = exception.ToStoredException();
 
@@ -111,7 +111,7 @@ internal class InvocationHelper<TParam, TReturn>
             storedException,
             timestamp: UtcNow().Ticks,
             _replicaId,
-            effects: null,
+            effects,
             messages: null,
             storageSession: null
         );
@@ -119,7 +119,7 @@ internal class InvocationHelper<TParam, TReturn>
             throw UnexpectedStateException.ConcurrentModification(storedId);
     }
 
-    public async Task<PersistResultOutcome> PersistResult(StoredId storedId, Result<TReturn> result, TParam param, IStorageSession? storageSession)
+    public async Task<PersistResultOutcome> PersistResult(StoredId storedId, Result<TReturn> result, TParam param, IReadOnlyList<StoredEffect> effects, IStorageSession? storageSession)
     {
         switch (result.Outcome)
         {
@@ -129,7 +129,7 @@ internal class InvocationHelper<TParam, TReturn>
                     result: SerializeResult(result.SucceedWithValue),
                     timestamp: UtcNow().Ticks,
                     _replicaId,
-                    effects: null,
+                    effects,
                     messages: null,
                     storageSession
                 ) ? PersistResultOutcome.Success : PersistResultOutcome.Failed;
@@ -149,7 +149,7 @@ internal class InvocationHelper<TParam, TReturn>
                     storedException: result.Fail!.ToStoredException(),
                     timestamp: UtcNow().Ticks,
                     _replicaId,
-                    effects: null,
+                    effects,
                     messages: null,
                     storageSession
                 ) ? PersistResultOutcome.Success : PersistResultOutcome.Failed;
@@ -273,7 +273,7 @@ internal class InvocationHelper<TParam, TReturn>
                 storedException: FatalWorkflowException.CreateNonGeneric(flowId, e).ToStoredException(),
                 timestamp: UtcNow().Ticks,
                 _replicaId,
-                effects: null,
+                effects: [],
                 messages: null,
                 storageSession: null
             );

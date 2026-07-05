@@ -472,13 +472,13 @@ public class SqlServerFunctionStore : IFunctionStore
         byte[]? result,
         long timestamp,
         ReplicaId expectedReplica,
-        IReadOnlyList<StoredEffect>? effects,
+        IReadOnlyList<StoredEffect> effects,
         IReadOnlyList<StoredMessage>? messages,
         IStorageSession? storageSession)
     {
-        byte[]? effectsBytes = null;
-        if (storageSession is SnapshotStorageSession session && session.Effects.Count > 0)
-            effectsBytes = session.Serialize();
+        byte[]? effectsBytes = effects.Count > 0
+            ? SnapshotStorageSession.Serialize(effects.ToDictionary(e => e.EffectId))
+            : null;
 
         await using var conn = await _connFunc();
         await using var command = _sqlGenerator
@@ -527,13 +527,13 @@ public class SqlServerFunctionStore : IFunctionStore
         StoredException storedException,
         long timestamp,
         ReplicaId expectedReplica,
-        IReadOnlyList<StoredEffect>? effects,
+        IReadOnlyList<StoredEffect> effects,
         IReadOnlyList<StoredMessage>? messages,
         IStorageSession? storageSession)
     {
-        byte[]? effectsBytes = null;
-        if (storageSession is SnapshotStorageSession session && session.Effects.Count > 0)
-            effectsBytes = session.Serialize();
+        byte[]? effectsBytes = effects.Count > 0
+            ? SnapshotStorageSession.Serialize(effects.ToDictionary(e => e.EffectId))
+            : null;
 
         await using var conn = await _connFunc();
         await using var command = _sqlGenerator

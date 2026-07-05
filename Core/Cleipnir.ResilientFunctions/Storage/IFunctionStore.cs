@@ -59,7 +59,7 @@ public interface IFunctionStore
         byte[]? result,
         long timestamp,
         ReplicaId expectedReplica,
-        IReadOnlyList<StoredEffect>? effects,
+        IReadOnlyList<StoredEffect> effects,
         IReadOnlyList<StoredMessage>? messages,
         IStorageSession? storageSession
     );
@@ -79,7 +79,7 @@ public interface IFunctionStore
         StoredException storedException,
         long timestamp,
         ReplicaId expectedReplica,
-        IReadOnlyList<StoredEffect>? effects,
+        IReadOnlyList<StoredEffect> effects,
         IReadOnlyList<StoredMessage>? messages,
         IStorageSession? storageSession
     );

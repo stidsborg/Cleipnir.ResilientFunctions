@@ -104,6 +104,17 @@ internal class EffectResults
             return _effectResults.GetValueOrDefault(effectId)?.StoredEffect;
     }
 
+    // The complete current snapshot of stored effects (pending deletes excluded). Handed to SucceedFunction/
+    // FailFunction so the terminal status and the effect state are persisted together in a single atomic write.
+    public IReadOnlyList<StoredEffect> GetAllStoredEffects()
+    {
+        lock (_sync)
+            return _effectResults.Values
+                .Where(c => c.Operation != CrudOperation.Delete && c.StoredEffect != null)
+                .Select(c => c.StoredEffect!)
+                .ToList();
+    }
+
     public async Task Set(StoredEffect storedEffect, bool flush)
     {
         await FlushOrAddToPending(

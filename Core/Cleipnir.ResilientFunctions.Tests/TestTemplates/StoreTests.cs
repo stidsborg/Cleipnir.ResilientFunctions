@@ -51,7 +51,7 @@ public abstract class StoreTests
             result: resultJson.ToUtf8Bytes(),
             expectedReplica: ReplicaId.Empty,
             timestamp: DateTime.UtcNow.Ticks,
-            effects: null,
+            effects: [],
             messages: null,
             storageSession: null
         ).ShouldBeTrueAsync();
@@ -460,7 +460,7 @@ public abstract class StoreTests
             storedException,
             timestamp: DateTime.UtcNow.Ticks,
             expectedReplica: ReplicaId.Empty,
-            effects: null,
+            effects: [],
             messages: null,
             storageSession: null
         );
@@ -728,7 +728,7 @@ public abstract class StoreTests
             result: null,
             DateTime.UtcNow.Ticks,
             expectedReplica: ReplicaId.Empty,
-            effects: null,
+            effects: [],
             messages: null,
             storageSession: null
         );
@@ -788,7 +788,7 @@ public abstract class StoreTests
             new StoredException("ExceptionMessage", ExceptionStackTrace: null, typeof(Exception).SimpleQualifiedName()),
             timestamp: DateTime.UtcNow.Ticks,
             expectedReplica: ReplicaId.Empty,
-            effects: null,
+            effects: [],
             messages: null,
             storageSession: null
         );
@@ -877,7 +877,7 @@ public abstract class StoreTests
                 result: null,
                 timestamp: timestamp,
                 expectedReplica: ReplicaId.Empty,
-                effects: null,
+                effects: [],
                 messages: null,
                 storageSession: null
             ).ShouldBeTrueAsync();
@@ -1127,7 +1127,7 @@ public abstract class StoreTests
                 result: null,
                 timestamp: timestamp,
                 expectedReplica: ReplicaId.Empty,
-                effects: null,
+                effects: [],
                 messages: null,
                 storageSession: null
             ).ShouldBeTrueAsync();
@@ -1565,7 +1565,7 @@ public abstract class StoreTests
             storedException: new StoredException("SomeMessage", ExceptionStackTrace: null, "SomeExceptionType"),
             timestamp: DateTime.UtcNow.Ticks,
             expectedReplica: ReplicaId.Empty,
-            effects: null,
+            effects: [],
             messages: null,
             storageSession: null
         ).ShouldBeTrueAsync();
@@ -1627,7 +1627,7 @@ public abstract class StoreTests
             result: null,
             timestamp: DateTime.UtcNow.Ticks,
             expectedReplica: ReplicaId.Empty,
-            effects: null,
+            effects: [],
             messages: null,
             storageSession: null
         ).ShouldBeTrueAsync();
@@ -1664,7 +1664,7 @@ public abstract class StoreTests
             result: result1,
             timestamp: DateTime.UtcNow.Ticks,
             expectedReplica: ReplicaId.Empty,
-            effects: null,
+            effects: [],
             messages: null,
             storageSession: null
         ).ShouldBeTrueAsync();
@@ -1685,7 +1685,7 @@ public abstract class StoreTests
             result: result2,
             timestamp: DateTime.UtcNow.Ticks,
             expectedReplica: ReplicaId.Empty,
-            effects: null,
+            effects: [],
             messages: null,
             storageSession: null
         ).ShouldBeTrueAsync();
@@ -1748,7 +1748,7 @@ public abstract class StoreTests
             result: result,
             timestamp: DateTime.UtcNow.Ticks,
             expectedReplica: ReplicaId.Empty,
-            effects: null,
+            effects: [],
             messages: null,
             storageSession: null
         ).ShouldBeTrueAsync();
@@ -1812,7 +1812,7 @@ public abstract class StoreTests
             result: null,
             timestamp: DateTime.UtcNow.Ticks,
             expectedReplica: initialOwner,
-            effects: null,
+            effects: [],
             messages: null,
             storageSession: null
         ).ShouldBeTrueAsync();
