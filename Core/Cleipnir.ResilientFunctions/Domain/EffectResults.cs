@@ -104,9 +104,9 @@ internal class EffectResults
             return _effectResults.GetValueOrDefault(effectId)?.StoredEffect;
     }
 
-    // The complete current snapshot of stored effects (pending deletes excluded). Handed to SucceedFunction/
-    // FailFunction so the terminal status and the effect state are persisted together in a single atomic write.
-    public IReadOnlyList<StoredEffect> GetAllStoredEffects()
+    // The current snapshot of live stored effects - pending deletes and null entries are excluded. Handed to
+    // SucceedFunction/FailFunction so the terminal status and the effect state are persisted together atomically.
+    public IReadOnlyList<StoredEffect> GetStoredEffectsSnapshot()
     {
         lock (_sync)
             return _effectResults.Values

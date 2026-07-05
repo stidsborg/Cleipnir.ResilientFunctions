@@ -75,14 +75,14 @@ public class Invoker<TParam, TReturn> : IFlowRestarter
                 }
                 catch (FatalWorkflowException exception)
                 {
-                    await PersistFailure(storedId, flowId, exception, param, parentWorkflow?.StoredId, workflow.Effect.GetAllStoredEffects());
+                    await PersistFailure(storedId, flowId, exception, param, parentWorkflow?.StoredId, workflow.Effect.GetStoredEffectsSnapshot());
                     tcs.TrySetCanceled();
                     return;
                 }
                 catch (Exception exception)
                 {
                     var fwe = FatalWorkflowException.CreateNonGeneric(flowId, exception);
-                    await PersistFailure(storedId, flowId, fwe, param, parentWorkflow?.StoredId, workflow.Effect.GetAllStoredEffects());
+                    await PersistFailure(storedId, flowId, fwe, param, parentWorkflow?.StoredId, workflow.Effect.GetStoredEffectsSnapshot());
                     tcs.TrySetCanceled();
                     return;
                 }
@@ -173,14 +173,14 @@ public class Invoker<TParam, TReturn> : IFlowRestarter
                 }
                 catch (FatalWorkflowException exception)
                 {
-                    await PersistFailure(storedId, flowId, exception, param, parent, workflow.Effect.GetAllStoredEffects());
+                    await PersistFailure(storedId, flowId, exception, param, parent, workflow.Effect.GetStoredEffectsSnapshot());
                     tcs.TrySetCanceled();
                     return;
                 }
                 catch (Exception exception)
                 {
                     var fwe = FatalWorkflowException.CreateNonGeneric(flowId, exception);
-                    await PersistFailure(storedId, flowId, fwe, param, parent, workflow.Effect.GetAllStoredEffects());
+                    await PersistFailure(storedId, flowId, fwe, param, parent, workflow.Effect.GetStoredEffectsSnapshot());
                     tcs.TrySetCanceled();
                     return;
                 }
@@ -226,8 +226,8 @@ public class Invoker<TParam, TReturn> : IFlowRestarter
                     // *** USER FUNCTION INVOCATION ***
                     result = await inner(param, workflow);
                 }
-                catch (FatalWorkflowException exception) { await PersistFailure(storedId, flowId, exception, param, parent, workflow.Effect.GetAllStoredEffects()); tcs.TrySetCanceled(); throw; }
-                catch (Exception exception) { var fwe = FatalWorkflowException.CreateNonGeneric(flowId, exception); await PersistFailure(storedId, flowId, fwe, param, parent, workflow.Effect.GetAllStoredEffects()); tcs.TrySetCanceled(); throw fwe; }
+                catch (FatalWorkflowException exception) { await PersistFailure(storedId, flowId, exception, param, parent, workflow.Effect.GetStoredEffectsSnapshot()); tcs.TrySetCanceled(); throw; }
+                catch (Exception exception) { var fwe = FatalWorkflowException.CreateNonGeneric(flowId, exception); await PersistFailure(storedId, flowId, fwe, param, parent, workflow.Effect.GetStoredEffectsSnapshot()); tcs.TrySetCanceled(); throw fwe; }
                 finally { disposables.Dispose(); }
 
                 await PersistResultAndEnsureSuccess(storedId, flowId, result, param, parent, workflow, storageSession, allowPostponedOrSuspended: true);
@@ -402,7 +402,7 @@ public class Invoker<TParam, TReturn> : IFlowRestarter
         await workflow.Effect.Flush();
         await _invocationHelper.PublishCompletionMessageToParent(parent, childId: flowId, result);
 
-        var outcome = await _invocationHelper.PersistResult(storedId, result, param, workflow.Effect.GetAllStoredEffects(), storageSession);
+        var outcome = await _invocationHelper.PersistResult(storedId, result, param, workflow.Effect.GetStoredEffectsSnapshot(), storageSession);
         switch (outcome)
         {
             case PersistResultOutcome.Failed:
