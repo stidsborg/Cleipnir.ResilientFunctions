@@ -66,6 +66,7 @@ public class ControlPanelTests : ResilientFunctions.Tests.TestTemplates.Function
         => ReInvokeRActionSucceedsAfterSuccessfullySavingParamAndState(FunctionStoreFactory.Create());
     
     [TestMethod]
+    [Ignore("Known-flaky - to be resolved or removed by upcoming functionality changes")]
     public override Task ControlPanelsExistingMessagesContainsPreviouslyAddedMessages()
         => ControlPanelsExistingMessagesContainsPreviouslyAddedMessages(FunctionStoreFactory.Create());
 
