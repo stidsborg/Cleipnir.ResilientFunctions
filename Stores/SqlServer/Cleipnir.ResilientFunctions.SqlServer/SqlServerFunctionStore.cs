@@ -251,15 +251,15 @@ public class SqlServerFunctionStore : IFunctionStore
         }
     }
     
-    public async Task<StoredFlowWithEffects?> RestartExecution(StoredId storedId, ReplicaId replicaId)
+    public async Task<StoredFlowWithEffects?> ClaimFunction(StoredId storedId, ReplicaId replicaId)
     {
-        var restartCommand = _sqlGenerator.RestartExecution(storedId, replicaId);
+        var restartCommand = _sqlGenerator.ClaimFunction(storedId, replicaId);
 
         await using var conn = await _connFunc();
         await using var command = restartCommand.ToSqlCommand(conn);
 
         await using var reader = await command.ExecuteReaderAsync();
-        var (sf, effectsBytes) = _sqlGenerator.ReadToStoredFlowWithEffects(storedId, reader);
+        var (sf, result, effectsBytes) = _sqlGenerator.ReadToStoredFlowWithEffects(storedId, reader);
         if (sf?.OwnerId != replicaId)
             return null;
 
@@ -282,10 +282,10 @@ public class SqlServerFunctionStore : IFunctionStore
             session.Version = 0;
         }
 
-        return new StoredFlowWithEffects(sf, effects, session);
+        return new StoredFlowWithEffects(sf, effects, result, session);
     }
 
-    public async Task<Dictionary<StoredId, StoredFlowWithEffects>> RestartExecutions(
+    public async Task<Dictionary<StoredId, StoredFlowWithEffects>> ClaimFunctions(
         IReadOnlyList<StoredId> storedIds,
         ReplicaId owner)
     {
@@ -297,7 +297,7 @@ public class SqlServerFunctionStore : IFunctionStore
 
         // Build result dictionary - only for successfully restarted flows
         var result = new Dictionary<StoredId, StoredFlowWithEffects>();
-        foreach (var (flow, effectsBytes, session) in restartedFlows)
+        foreach (var (flow, flowResult, effectsBytes, session) in restartedFlows)
         {
             var effects = new List<StoredEffect>();
             if (effectsBytes != null)
@@ -315,24 +315,24 @@ public class SqlServerFunctionStore : IFunctionStore
             }
 
             result[flow.StoredId] = new StoredFlowWithEffects(
-                flow, effects, session
+                flow, effects, flowResult, session
             );
         }
 
         return result;
     }
 
-    private async Task<List<(StoredFlow flow, byte[]? effectsBytes, SnapshotStorageSession session)>> RestartFlowsAsync(
+    private async Task<List<(StoredFlow flow, byte[]? result, byte[]? effectsBytes, SnapshotStorageSession session)>> RestartFlowsAsync(
         IReadOnlyList<StoredId> storedIds,
         ReplicaId owner)
     {
         await using var conn = await _connFunc();
-        var storeCommand = _sqlGenerator.RestartExecutions(storedIds, owner);
+        var storeCommand = _sqlGenerator.ClaimFunctions(storedIds, owner);
 
         await using var command = storeCommand.ToSqlCommand(conn);
         await using var reader = await command.ExecuteReaderAsync();
 
-        var flows = new List<(StoredFlow flow, byte[]? effectsBytes, SnapshotStorageSession session)>();
+        var flows = new List<(StoredFlow flow, byte[]? result, byte[]? effectsBytes, SnapshotStorageSession session)>();
         while (await reader.ReadAsync())
         {
             var storedId = reader.GetGuid(0).ToStoredId();
@@ -367,7 +367,7 @@ public class SqlServerFunctionStore : IFunctionStore
             if (flow.OwnerId == owner)
             {
                 var session = new SnapshotStorageSession(owner) { RowExists = true };
-                flows.Add((flow, effectsBytes, session));
+                flows.Add((flow, result, effectsBytes, session));
             }
         }
         return flows;
@@ -465,6 +465,45 @@ public class SqlServerFunctionStore : IFunctionStore
 
         var affectedRows = await command.ExecuteNonQueryAsync();
         return affectedRows > 0;
+    }
+
+    public async Task<bool> SetFunction(
+        StoredId storedId,
+        Status status,
+        byte[]? param,
+        byte[]? result,
+        StoredException? exception,
+        long expires,
+        long timestamp,
+        ReplicaId? owner,
+        IReadOnlyList<StoredEffect>? effects,
+        ReplicaId expectedReplica,
+        IStorageSession? storageSession)
+    {
+        var effectsBytes = effects == null
+            ? null
+            : SnapshotStorageSession.Serialize(effects.ToDictionary(e => e.EffectId, e => e));
+
+        await using var conn = await _connFunc();
+        await using var command = _sqlGenerator
+            .SetFunction(storedId, status, param, result, exception, expires, timestamp, owner, effectsBytes, expectedReplica)
+            .ToSqlCommand(conn);
+
+        var affectedRows = await command.ExecuteNonQueryAsync();
+        var success = affectedRows > 0;
+
+        // Keep the caller's session coherent with the just-persisted snapshot, mirroring
+        // SqlServerEffectsStore.SetEffectResults' handling of the session's Effects. Owner-based concurrency means
+        // no session version is tracked, so only the cached effects and RowExists are synchronized.
+        if (success && effects != null && storageSession is SnapshotStorageSession session)
+        {
+            session.Effects.Clear();
+            foreach (var effect in effects)
+                session.Effects[effect.EffectId] = effect;
+            session.RowExists = true;
+        }
+
+        return success;
     }
 
     public async Task<bool> SucceedFunction(

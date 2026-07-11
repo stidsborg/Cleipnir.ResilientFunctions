@@ -219,10 +219,10 @@ public class SqlGenerator(string tablePrefix)
         );
     }
 
-    private string? _restartExecutionSql;
-    public StoreCommand RestartExecution(StoredId storedId, ReplicaId replicaId)
+    private string? _claimFunctionSql;
+    public StoreCommand ClaimFunction(StoredId storedId, ReplicaId replicaId)
     {
-        _restartExecutionSql ??= @$"
+        _claimFunctionSql ??= @$"
             UPDATE {tablePrefix}
             SET status = {(int)Status.Executing}, expires = 0, owner = $1
             WHERE id = $2 AND owner IS NULL
@@ -247,7 +247,7 @@ public class SqlGenerator(string tablePrefix)
     5  parent
  */
         var command = StoreCommand.Create(
-            _restartExecutionSql,
+            _claimFunctionSql,
             values: [
                 replicaId.AsGuid,
                 storedId.AsGuid,
@@ -256,12 +256,12 @@ public class SqlGenerator(string tablePrefix)
         return command;
     }
 
-    private string? _restartExecutionsSql;
-    public StoreCommand RestartExecutions(IReadOnlyList<StoredId> storedIds, ReplicaId replicaId)
+    private string? _claimFunctionsSql;
+    public StoreCommand ClaimFunctions(IReadOnlyList<StoredId> storedIds, ReplicaId replicaId)
     {
         // Restartable flows are the parked ones (postponed/suspended): the batch restart backs the watchdogs, which
         // must never resurrect a completed flow - e.g. when a message arrives after its target has succeeded.
-        _restartExecutionsSql ??= @$"
+        _claimFunctionsSql ??= @$"
             UPDATE {tablePrefix}
             SET status = {(int)Status.Executing}, expires = 0, owner = $1
             WHERE id = ANY($2) AND owner IS NULL AND status IN ({(int)Status.Postponed}, {(int)Status.Suspended})
@@ -279,13 +279,59 @@ public class SqlGenerator(string tablePrefix)
                 effects;";
 
         return StoreCommand.Create(
-            _restartExecutionsSql,
+            _claimFunctionsSql,
             values: [
                 replicaId.AsGuid,
                 storedIds.Select(id => id.AsGuid).ToArray()
             ]);
     }
     
+    // Owner-guarded general state-setter: writes status/expires/timestamp/param/result/exception and the new owner
+    // (NULL releases) in one UPDATE, guarded on the current owner. When effectsBytes is non-null the effects column
+    // is overwritten in the same statement; null leaves it untouched.
+    public StoreCommand SetFunction(
+        StoredId storedId,
+        Status status,
+        byte[]? param,
+        byte[]? result,
+        StoredException? exception,
+        long expires,
+        long timestamp,
+        ReplicaId? owner,
+        byte[]? effectsBytes,
+        ReplicaId expectedReplica)
+    {
+        var values = new List<object>
+        {
+            (int) status,
+            expires,
+            timestamp,
+            param == null ? DBNull.Value : param,
+            result == null ? DBNull.Value : result,
+            exception == null ? (object) DBNull.Value : JsonSerializer.Serialize(exception),
+            owner?.AsGuid ?? (object) DBNull.Value,
+        };
+
+        var effectsClause = "";
+        if (effectsBytes != null)
+        {
+            values.Add(effectsBytes);
+            effectsClause = $", effects = ${values.Count}";
+        }
+
+        values.Add(storedId.AsGuid);
+        var idIndex = values.Count;
+
+        values.Add(expectedReplica.AsGuid);
+
+        var sql = @$"
+            UPDATE {tablePrefix}
+            SET status = $1, expires = $2, timestamp = $3, param_json = $4, result_json = $5, exception_json = $6, owner = $7{effectsClause}
+            WHERE id = ${idIndex} AND owner = ${values.Count}";
+
+        return StoreCommand.Create(sql, values);
+    }
+
     public async Task<StoredFlow?> ReadFunction(StoredId storedId, NpgsqlDataReader reader)
     {
         /*

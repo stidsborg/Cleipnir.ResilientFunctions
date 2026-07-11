@@ -108,7 +108,7 @@ public abstract class StoreTests
         session.ShouldBeNull();
 
         await store
-            .RestartExecution(
+            .ClaimFunction(
                 functionId,
                 owner
             ).ShouldNotBeNullAsync();
@@ -139,7 +139,7 @@ public abstract class StoreTests
         ).ShouldNotBeNullAsync();
         
         await store
-            .RestartExecution(
+            .ClaimFunction(
                 functionId,
                 owner: ReplicaId.NewId()
             ).ShouldBeNullAsync();
@@ -373,7 +373,7 @@ public abstract class StoreTests
         );
         session.ShouldBeNull();
 
-        await store.RestartExecution(functionId, owner: ReplicaId.NewId()).ShouldNotBeNullAsync();
+        await store.ClaimFunction(functionId, owner: ReplicaId.NewId()).ShouldNotBeNullAsync();
 
         var sf = await store.GetFunction(functionId);
         sf.ShouldNotBeNull();
@@ -395,7 +395,7 @@ public abstract class StoreTests
             owner: Guid.NewGuid().ToReplicaId()
         ).ShouldNotBeNullAsync();
 
-        await store.RestartExecution(functionId, owner: ReplicaId.NewId()).ShouldBeNullAsync();
+        await store.ClaimFunction(functionId, owner: ReplicaId.NewId()).ShouldBeNullAsync();
         
         var sf = await store.GetFunction(functionId);
         sf.ShouldNotBeNull();
@@ -636,11 +636,11 @@ public abstract class StoreTests
         );
         session.ShouldBeNull();
 
-        await store.RestartExecution(
+        await store.ClaimFunction(
             functionId,
             owner: ReplicaId.NewId()
         ).ShouldNotBeNullAsync();
-        await store.RestartExecution(
+        await store.ClaimFunction(
             functionId, 
             owner: ReplicaId.NewId()
         ).ShouldBeNullAsync();
@@ -1362,8 +1362,8 @@ public abstract class StoreTests
         ).ShouldBeNullAsync();
     }
     
-    public abstract Task RestartExecutionReturnsEffects();
-    protected async Task RestartExecutionReturnsEffects(Task<IFunctionStore> storeTask)
+    public abstract Task ClaimFunctionReturnsEffects();
+    protected async Task ClaimFunctionReturnsEffects(Task<IFunctionStore> storeTask)
     {
         var functionId = TestStoredId.Create();
         
@@ -1403,8 +1403,8 @@ public abstract class StoreTests
             session: null
         );
 
-        var (sf, effects, _) = await store
-            .RestartExecution(
+        var (sf, effects, _, _) = await store
+            .ClaimFunction(
                 functionId,
                 owner: ReplicaId.NewId()
             ).ShouldNotBeNullAsync();
@@ -1420,8 +1420,8 @@ public abstract class StoreTests
         messages.Single().MessageContent.ToStringFromUtf8Bytes().ShouldBe("hallo message");
     }
 
-    public abstract Task RestartExecutionWorksWithEmptyEffects();
-    protected async Task RestartExecutionWorksWithEmptyEffects(Task<IFunctionStore> storeTask)
+    public abstract Task ClaimFunctionWorksWithEmptyEffects();
+    protected async Task ClaimFunctionWorksWithEmptyEffects(Task<IFunctionStore> storeTask)
     {
         var functionId = TestStoredId.Create();
         
@@ -1440,8 +1440,8 @@ public abstract class StoreTests
         );
         session.ShouldBeNull();
 
-        var (sf, effects, _) = await store
-            .RestartExecution(
+        var (sf, effects, _, _) = await store
+            .ClaimFunction(
                 functionId,
                 owner
             ).ShouldNotBeNullAsync();
@@ -1451,6 +1451,65 @@ public abstract class StoreTests
         sf.OwnerId.ShouldBe(owner);
     }
     
+    public abstract Task ClaimFunctionSurfacesResult();
+    protected async Task ClaimFunctionSurfacesResult(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var functionId = TestStoredId.Create();
+        var owner = ReplicaId.NewId();
+
+        // Create the flow already owned so the effect can be persisted under that owner.
+        var session = await store.CreateFunction(
+            functionId,
+            "humanInstanceId",
+            PARAM.ToJson().ToUtf8Bytes(),
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks,
+            parent: null,
+            owner: owner
+        );
+        session.ShouldNotBeNull();
+
+        await store.EffectsStore.SetEffectResult(
+            functionId,
+            new StoredEffect(
+                "Test".GetHashCode().ToEffectId(),
+                WorkStatus.Completed,
+                "hallo effect".ToUtf8Bytes(),
+                StoredException: null,
+                Alias: null
+            ).ToStoredChange(functionId, Insert),
+            session
+        );
+
+        // Succeed the flow with a known result - this releases ownership (owner -> NULL) and persists the result.
+        var resultBytes = "hallo result".ToUtf8Bytes();
+        await store.SucceedFunction(
+            functionId,
+            result: resultBytes,
+            timestamp: DateTime.UtcNow.Ticks,
+            expectedReplica: owner,
+            effects: null,
+            messages: null,
+            storageSession: session
+        ).ShouldBeTrueAsync();
+
+        // A fresh replica claims the now-unowned, succeeded flow and must see the persisted result.
+        var newOwner = ReplicaId.NewId();
+        var claimed = await store.ClaimFunction(functionId, newOwner).ShouldNotBeNullAsync();
+
+        claimed.Result.ShouldNotBeNull();
+        claimed.Result!.ShouldBe(resultBytes);
+
+        claimed.StoredFlow.StoredId.ShouldBe(functionId);
+        claimed.StoredFlow.OwnerId.ShouldBe(newOwner);
+
+        claimed.Effects.Count.ShouldBe(1);
+        claimed.Effects.Single().EffectId.ShouldBe("Test".GetHashCode().ToEffectId());
+        claimed.Effects.Single().Result!.ToStringFromUtf8Bytes().ShouldBe("hallo effect");
+        claimed.StorageSession.ShouldNotBeNull();
+    }
+
     public abstract Task FunctionOwnedByReplicaIsPostponedAfterRescheduleFunctionsInvocation();
     protected async Task FunctionOwnedByReplicaIsPostponedAfterRescheduleFunctionsInvocation(Task<IFunctionStore> storeTask)
     {
@@ -1763,8 +1822,8 @@ public abstract class StoreTests
         results.ContainsKey(nonExistentFunctionId).ShouldBeFalse();
     }
 
-    public abstract Task RestartExecutionsDoesNotReturnFlowClaimedByPreviousCall();
-    protected async Task RestartExecutionsDoesNotReturnFlowClaimedByPreviousCall(Task<IFunctionStore> storeTask)
+    public abstract Task ClaimFunctionsDoesNotReturnFlowClaimedByPreviousCall();
+    protected async Task ClaimFunctionsDoesNotReturnFlowClaimedByPreviousCall(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
         var functionId = TestStoredId.Create();
@@ -1780,18 +1839,18 @@ public abstract class StoreTests
             owner: null
         );
 
-        var firstClaim = await store.RestartExecutions([functionId], replicaId);
+        var firstClaim = await store.ClaimFunctions([functionId], replicaId);
         firstClaim.Count.ShouldBe(1);
         firstClaim.ContainsKey(functionId).ShouldBeTrue();
         firstClaim[functionId].StoredFlow.OwnerId.ShouldBe(replicaId);
         firstClaim[functionId].StoredFlow.Status.ShouldBe(Status.Executing);
 
-        var secondClaim = await store.RestartExecutions([functionId], replicaId);
+        var secondClaim = await store.ClaimFunctions([functionId], replicaId);
         secondClaim.ShouldBeEmpty();
     }
 
-    public abstract Task RestartExecutionsDoesNotClaimSucceededFlow();
-    protected async Task RestartExecutionsDoesNotClaimSucceededFlow(Task<IFunctionStore> storeTask)
+    public abstract Task ClaimFunctionsDoesNotClaimSucceededFlow();
+    protected async Task ClaimFunctionsDoesNotClaimSucceededFlow(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
         var functionId = TestStoredId.Create();
@@ -1818,7 +1877,7 @@ public abstract class StoreTests
         ).ShouldBeTrueAsync();
 
         // A message arriving after the flow completed must not resurrect it.
-        var claimedWithoutMessages = await store.RestartExecutions([functionId], ReplicaId.NewId());
+        var claimedWithoutMessages = await store.ClaimFunctions([functionId], ReplicaId.NewId());
         claimedWithoutMessages.ShouldBeEmpty();
 
         var sf = await store.GetFunction(functionId);
@@ -1826,8 +1885,8 @@ public abstract class StoreTests
         sf.Status.ShouldBe(Status.Succeeded);
     }
 
-    public abstract Task RestartExecutionsClaimsSuspendedFlow();
-    protected async Task RestartExecutionsClaimsSuspendedFlow(Task<IFunctionStore> storeTask)
+    public abstract Task ClaimFunctionsClaimsSuspendedFlow();
+    protected async Task ClaimFunctionsClaimsSuspendedFlow(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
         var functionId = TestStoredId.Create();
@@ -1853,7 +1912,7 @@ public abstract class StoreTests
         ).ShouldBeTrueAsync();
 
         var newOwner = ReplicaId.NewId();
-        var claimed = await store.RestartExecutions([functionId], newOwner);
+        var claimed = await store.ClaimFunctions([functionId], newOwner);
         claimed.Count.ShouldBe(1);
         claimed[functionId].StoredFlow.OwnerId.ShouldBe(newOwner);
         claimed[functionId].StoredFlow.Status.ShouldBe(Status.Executing);

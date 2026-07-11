@@ -217,7 +217,7 @@ internal class InvocationHelper<TParam, TReturn>
 
     public async Task<RestartedFunction?> RestartFunction(StoredId flowId)
     {
-        var restarted = await _functionStore.RestartExecution(
+        var restarted = await _functionStore.ClaimFunction(
             flowId,
             _replicaId
         );

@@ -614,7 +614,7 @@ public abstract class EffectStoreTests
         );
 
         await store.RescheduleCrashedFunctions(crashingReplicaId);
-        var storageSession2 = await store.RestartExecution(
+        var storageSession2 = await store.ClaimFunction(
             storedId,
             owner: ReplicaId.NewId()
         ).SelectAsync(s => s!.StorageSession);

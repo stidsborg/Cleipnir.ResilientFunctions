@@ -79,12 +79,12 @@ internal class PostponedWatchdog
                     .ToList();
                 
                 var restarts = await _functionStore
-                    .RestartExecutions(ownedFunctions, _clusterInfo.ReplicaId);
+                    .ClaimFunctions(ownedFunctions, _clusterInfo.ReplicaId);
 
                 foreach (var id in restarts.Keys)
                 {
                     var (scheduleRestart, asyncSemaphore) = flowsDictionary[id.Type];
-                    var (storedFlow, effects, session) = restarts[id];
+                    var (storedFlow, effects, _, session) = restarts[id];
 
                     var takenLock = await asyncSemaphore.Take();
                     try

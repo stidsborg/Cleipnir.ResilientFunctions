@@ -195,11 +195,11 @@ public class PostgreSqlFunctionStore : IFunctionStore
         return totalInserted;
     }
 
-    public async Task<StoredFlowWithEffects?> RestartExecution(StoredId storedId, ReplicaId replicaId)
+    public async Task<StoredFlowWithEffects?> ClaimFunction(StoredId storedId, ReplicaId replicaId)
     {
         // The claim UPDATE returns the effects column too, so claim and effect snapshot are a single atomic
         // statement - nothing can interleave between claiming the flow and reading its effects.
-        var restartCommand = _sqlGenerator.RestartExecution(storedId, replicaId);
+        var restartCommand = _sqlGenerator.ClaimFunction(storedId, replicaId);
 
         await using var conn = await CreateConnection();
         await using var command = restartCommand.ToNpgsqlCommand(conn);
@@ -209,13 +209,14 @@ public class PostgreSqlFunctionStore : IFunctionStore
         if (sf == null)
             return null;
 
-        // ReadFunction leaves the reader positioned on the returned row - the effects column is at ordinal 10.
+        // ReadFunction leaves the reader positioned on the returned row - result_json is ordinal 3, effects is 10.
+        var result = await reader.IsDBNullAsync(3) ? null : (byte[])reader.GetValue(3);
         var (effects, session) = ReadEffectsColumn(
             await reader.IsDBNullAsync(10) ? null : (byte[])reader.GetValue(10),
             replicaId
         );
 
-        return new StoredFlowWithEffects(sf, effects, session);
+        return new StoredFlowWithEffects(sf, effects, result, session);
     }
 
     private static (List<StoredEffect> Effects, SnapshotStorageSession Session) ReadEffectsColumn(byte[]? effectsBytes, ReplicaId owner)
@@ -236,7 +237,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         return (effects, session);
     }
 
-    public async Task<Dictionary<StoredId, StoredFlowWithEffects>> RestartExecutions(
+    public async Task<Dictionary<StoredId, StoredFlowWithEffects>> ClaimFunctions(
         IReadOnlyList<StoredId> storedIds,
         ReplicaId owner)
     {
@@ -246,7 +247,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         // The claim UPDATE returns each restarted flow's effects column - claim and effect snapshot are one
         // atomic statement per flow.
         await using var conn = await CreateConnection();
-        var storeCommand = _sqlGenerator.RestartExecutions(storedIds, owner);
+        var storeCommand = _sqlGenerator.ClaimFunctions(storedIds, owner);
 
         await using var command = storeCommand.ToNpgsqlCommand(conn);
         await using var reader = await command.ExecuteReaderAsync();
@@ -256,12 +257,14 @@ public class PostgreSqlFunctionStore : IFunctionStore
         {
             var storedId = reader.GetGuid(0).ToStoredId();
             var hasParameter = !await reader.IsDBNullAsync(1);
+            var hasResult = !await reader.IsDBNullAsync(3);
             var hasException = !await reader.IsDBNullAsync(4);
             var hasParent = !await reader.IsDBNullAsync(8);
             var hasOwner = !await reader.IsDBNullAsync(9);
             var hasEffects = !await reader.IsDBNullAsync(10);
 
             var param = hasParameter ? (byte[])reader.GetValue(1) : null;
+            var flowResult = hasResult ? (byte[])reader.GetValue(3) : null;
             var status = (Status)reader.GetInt32(2);
             var exception = hasException ? JsonSerializer.Deserialize<StoredException>(reader.GetString(4)) : null;
             var expires = reader.GetInt64(5);
@@ -288,7 +291,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 owner
             );
 
-            result[storedId] = new StoredFlowWithEffects(flow, effects, session);
+            result[storedId] = new StoredFlowWithEffects(flow, effects, flowResult, session);
         }
 
         return result;
@@ -407,6 +410,45 @@ public class PostgreSqlFunctionStore : IFunctionStore
             var affectedRows = await command.ExecuteNonQueryAsync();
             return affectedRows == 1;
         }
+    }
+
+    public async Task<bool> SetFunction(
+        StoredId storedId,
+        Status status,
+        byte[]? param,
+        byte[]? result,
+        StoredException? exception,
+        long expires,
+        long timestamp,
+        ReplicaId? owner,
+        IReadOnlyList<StoredEffect>? effects,
+        ReplicaId expectedReplica,
+        IStorageSession? storageSession)
+    {
+        var effectsBytes = effects == null
+            ? null
+            : SnapshotStorageSession.Serialize(effects.ToDictionary(e => e.EffectId, e => e));
+
+        await using var conn = await CreateConnection();
+        await using var command = _sqlGenerator
+            .SetFunction(storedId, status, param, result, exception, expires, timestamp, owner, effectsBytes, expectedReplica)
+            .ToNpgsqlCommand(conn);
+
+        var affectedRows = await command.ExecuteNonQueryAsync();
+        var success = affectedRows == 1;
+
+        // Keep the caller's session coherent with the just-persisted snapshot, mirroring
+        // PostgreSqlEffectsStore.SetEffectResults' handling of the session's Effects. Owner-based concurrency means
+        // no session version is tracked, so only the cached effects and RowExists are synchronized.
+        if (success && effects != null && storageSession is SnapshotStorageSession session)
+        {
+            session.Effects.Clear();
+            foreach (var effect in effects)
+                session.Effects[effect.EffectId] = effect;
+            session.RowExists = true;
+        }
+
+        return success;
     }
 
     public async Task<bool> SucceedFunction(

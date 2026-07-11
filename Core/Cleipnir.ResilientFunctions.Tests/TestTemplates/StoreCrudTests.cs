@@ -5,6 +5,7 @@ using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Storage;
+using Cleipnir.ResilientFunctions.Storage.Session;
 using Cleipnir.ResilientFunctions.Tests.Utils;
 using Shouldly;
 using static Cleipnir.ResilientFunctions.Storage.CrudOperation;
@@ -121,7 +122,7 @@ public abstract class StoreCrudTests
         await store.RescheduleCrashedFunctions(owner);
 
         var newOwner = Guid.NewGuid().ToReplicaId();
-        await store.RestartExecution(StoredId, newOwner);
+        await store.ClaimFunction(StoredId, newOwner);
         
         var storedFunction = await store.GetFunction(StoredId);
         storedFunction.ShouldNotBeNull();
@@ -147,7 +148,7 @@ public abstract class StoreCrudTests
         owners.Single().ShouldBe(owner);
 
         var newOwner = Guid.NewGuid().ToReplicaId();
-        await store.RestartExecution(StoredId, newOwner);
+        await store.ClaimFunction(StoredId, newOwner);
         
         var storedFunction = await store.GetFunction(StoredId);
         storedFunction.ShouldNotBeNull();
@@ -312,8 +313,8 @@ public abstract class StoreCrudTests
         sf.Parameter.ShouldNotBeNull();
     }
 
-    public abstract Task RestartExecutionsReturnsEmptyDictionaryWhenNoFlowsAreEligible();
-    public async Task RestartExecutionsReturnsEmptyDictionaryWhenNoFlowsAreEligible(Task<IFunctionStore> storeTask)
+    public abstract Task ClaimFunctionsReturnsEmptyDictionaryWhenNoFlowsAreEligible();
+    public async Task ClaimFunctionsReturnsEmptyDictionaryWhenNoFlowsAreEligible(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
         var storedId1 = TestStoredId.Create();
@@ -342,13 +343,13 @@ public abstract class StoreCrudTests
         );
 
         // Try to restart - should return empty dictionary
-        var result = await store.RestartExecutions([storedId1, storedId2], newOwner);
+        var result = await store.ClaimFunctions([storedId1, storedId2], newOwner);
 
         result.Count.ShouldBe(0);
     }
 
-    public abstract Task RestartExecutionsRestartsMultipleUnownedFlows();
-    public async Task RestartExecutionsRestartsMultipleUnownedFlows(Task<IFunctionStore> storeTask)
+    public abstract Task ClaimFunctionsRestartsMultipleUnownedFlows();
+    public async Task ClaimFunctionsRestartsMultipleUnownedFlows(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
         var storedId1 = TestStoredId.Create();
@@ -386,7 +387,7 @@ public abstract class StoreCrudTests
         );
 
         // Restart all three
-        var result = await store.RestartExecutions([storedId1, storedId2, storedId3], owner);
+        var result = await store.ClaimFunctions([storedId1, storedId2, storedId3], owner);
 
         // All three should be restarted
         result.Count.ShouldBe(3);
@@ -402,8 +403,8 @@ public abstract class StoreCrudTests
         result[storedId3].StoredFlow.Status.ShouldBe(Status.Executing);
     }
 
-    public abstract Task RestartExecutionsRestartsOnlyUnownedFlows();
-    public async Task RestartExecutionsRestartsOnlyUnownedFlows(Task<IFunctionStore> storeTask)
+    public abstract Task ClaimFunctionsRestartsOnlyUnownedFlows();
+    public async Task ClaimFunctionsRestartsOnlyUnownedFlows(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
         var storedId1 = TestStoredId.Create();
@@ -442,7 +443,7 @@ public abstract class StoreCrudTests
         );
 
         // Restart all three - only 1 and 3 should succeed
-        var result = await store.RestartExecutions([storedId1, storedId2, storedId3], newOwner);
+        var result = await store.ClaimFunctions([storedId1, storedId2, storedId3], newOwner);
 
         result.Count.ShouldBe(2);
         result.ContainsKey(storedId1).ShouldBeTrue();
@@ -453,19 +454,19 @@ public abstract class StoreCrudTests
         result[storedId3].StoredFlow.OwnerId.ShouldBe(newOwner);
     }
 
-    public abstract Task RestartExecutionsReturnsEmptyDictionaryForEmptyInput();
-    public async Task RestartExecutionsReturnsEmptyDictionaryForEmptyInput(Task<IFunctionStore> storeTask)
+    public abstract Task ClaimFunctionsReturnsEmptyDictionaryForEmptyInput();
+    public async Task ClaimFunctionsReturnsEmptyDictionaryForEmptyInput(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
         var owner = ReplicaId.NewId();
 
-        var result = await store.RestartExecutions([], owner);
+        var result = await store.ClaimFunctions([], owner);
 
         result.Count.ShouldBe(0);
     }
 
-    public abstract Task RestartExecutionsIncludesExistingEffects();
-    public async Task RestartExecutionsIncludesExistingEffects(Task<IFunctionStore> storeTask)
+    public abstract Task ClaimFunctionsIncludesExistingEffects();
+    public async Task ClaimFunctionsIncludesExistingEffects(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
         var storedId1 = TestStoredId.Create();
@@ -488,7 +489,7 @@ public abstract class StoreCrudTests
             Alias: null
         );
 
-        // Create messages - these must NOT be fetched by RestartExecutions
+        // Create messages - these must NOT be fetched by ClaimFunctions
         var message1 = new StoredMessage(
             MessageContent: "message1".ToUtf8Bytes(),
             MessageType: "Type1".ToUtf8Bytes(),
@@ -529,7 +530,7 @@ public abstract class StoreCrudTests
         );
 
         // Restart both
-        var result = await store.RestartExecutions([storedId1, storedId2], owner);
+        var result = await store.ClaimFunctions([storedId1, storedId2], owner);
 
         // Verify both flows returned with their effects
         result.Count.ShouldBe(2);
@@ -548,5 +549,258 @@ public abstract class StoreCrudTests
         flow2.Effects.Count.ShouldBe(1);
         flow2.Effects[0].EffectId.ShouldBe("effect2".GetHashCode().ToEffectId());
         flow2.Effects[0].Result.ShouldBe("result2".ToUtf8Bytes());
+    }
+
+    public abstract Task SetFunctionUpdatesStatusOwnerAndEffectsWhenGuardMatches();
+    protected async Task SetFunctionUpdatesStatusOwnerAndEffectsWhenGuardMatches(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var storedId = TestStoredId.Create();
+        var owner = ReplicaId.NewId();
+        var newOwner = ReplicaId.NewId();
+
+        await store.CreateFunction(
+            storedId,
+            "humanInstanceId",
+            Param.ToUtf8Bytes(),
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks,
+            parent: null,
+            owner: owner
+        ).ShouldNotBeNullAsync();
+
+        var effect = StoredEffect.CreateCompleted(1.ToEffectId(), "SomeResult".ToUtf8Bytes(), alias: null);
+
+        var success = await store.SetFunction(
+            storedId,
+            Status.Postponed,
+            param: "UpdatedParam".ToUtf8Bytes(),
+            result: "TheResult".ToUtf8Bytes(),
+            exception: null,
+            expires: 123,
+            timestamp: 456,
+            owner: newOwner,
+            effects: [effect],
+            expectedReplica: owner,
+            storageSession: null
+        );
+        success.ShouldBeTrue();
+
+        var sf = await store.GetFunction(storedId);
+        sf.ShouldNotBeNull();
+        sf.Status.ShouldBe(Status.Postponed);
+        sf.OwnerId.ShouldBe(newOwner);
+        sf.Expires.ShouldBe(123);
+        sf.Timestamp.ShouldBe(456);
+        sf.Parameter.ShouldBe("UpdatedParam".ToUtf8Bytes());
+
+        var results = await store.GetResults([storedId]);
+        results[storedId].ShouldBe("TheResult".ToUtf8Bytes());
+
+        var effects = await store.EffectsStore.GetEffectResults(storedId);
+        effects.Count.ShouldBe(1);
+        effects.Single().EffectId.ShouldBe(1.ToEffectId());
+        effects.Single().Result.ShouldBe("SomeResult".ToUtf8Bytes());
+    }
+
+    public abstract Task SetFunctionReturnsFalseAndNoOpsWhenExpectedReplicaDoesNotMatch();
+    protected async Task SetFunctionReturnsFalseAndNoOpsWhenExpectedReplicaDoesNotMatch(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var storedId = TestStoredId.Create();
+        var owner = ReplicaId.NewId();
+        var wrongReplica = ReplicaId.NewId();
+        var newOwner = ReplicaId.NewId();
+
+        await store.CreateFunction(
+            storedId,
+            "humanInstanceId",
+            Param.ToUtf8Bytes(),
+            postponeUntil: null,
+            timestamp: 100,
+            parent: null,
+            owner: owner
+        ).ShouldNotBeNullAsync();
+
+        var effect = StoredEffect.CreateCompleted(1.ToEffectId(), "SomeResult".ToUtf8Bytes(), alias: null);
+
+        var success = await store.SetFunction(
+            storedId,
+            Status.Succeeded,
+            param: "UpdatedParam".ToUtf8Bytes(),
+            result: "TheResult".ToUtf8Bytes(),
+            exception: null,
+            expires: 123,
+            timestamp: 456,
+            owner: newOwner,
+            effects: [effect],
+            expectedReplica: wrongReplica,
+            storageSession: null
+        );
+        success.ShouldBeFalse();
+
+        // Nothing was updated - the flow is left exactly as it was created.
+        var sf = await store.GetFunction(storedId);
+        sf.ShouldNotBeNull();
+        sf.Status.ShouldBe(Status.Executing);
+        sf.OwnerId.ShouldBe(owner);
+        sf.Parameter.ShouldBe(Param.ToUtf8Bytes());
+
+        var effects = await store.EffectsStore.GetEffectResults(storedId);
+        effects.ShouldBeEmpty();
+    }
+
+    public abstract Task SetFunctionWithNullOwnerReleasesOwnership();
+    protected async Task SetFunctionWithNullOwnerReleasesOwnership(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var storedId = TestStoredId.Create();
+        var owner = ReplicaId.NewId();
+
+        await store.CreateFunction(
+            storedId,
+            "humanInstanceId",
+            Param.ToUtf8Bytes(),
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks,
+            parent: null,
+            owner: owner
+        ).ShouldNotBeNullAsync();
+
+        var success = await store.SetFunction(
+            storedId,
+            Status.Succeeded,
+            param: Param.ToUtf8Bytes(),
+            result: "TheResult".ToUtf8Bytes(),
+            exception: null,
+            expires: 0,
+            timestamp: 789,
+            owner: null,
+            effects: null,
+            expectedReplica: owner,
+            storageSession: null
+        );
+        success.ShouldBeTrue();
+
+        var sf = await store.GetFunction(storedId);
+        sf.ShouldNotBeNull();
+        sf.Status.ShouldBe(Status.Succeeded);
+        sf.OwnerId.ShouldBeNull();
+
+        (await store.GetOwnerReplicas()).ShouldNotContain(owner);
+    }
+
+    public abstract Task SetFunctionWithNullEffectsLeavesEffectsUntouched();
+    protected async Task SetFunctionWithNullEffectsLeavesEffectsUntouched(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var storedId = TestStoredId.Create();
+        var owner = ReplicaId.NewId();
+
+        var existingEffect = StoredEffect.CreateCompleted(7.ToEffectId(), "ExistingResult".ToUtf8Bytes(), alias: null);
+        await store.CreateFunction(
+            storedId,
+            "humanInstanceId",
+            Param.ToUtf8Bytes(),
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks,
+            parent: null,
+            owner: owner,
+            effects: [existingEffect]
+        ).ShouldNotBeNullAsync();
+
+        var success = await store.SetFunction(
+            storedId,
+            Status.Postponed,
+            param: Param.ToUtf8Bytes(),
+            result: null,
+            exception: null,
+            expires: 10,
+            timestamp: 20,
+            owner: owner,
+            effects: null,
+            expectedReplica: owner,
+            storageSession: null
+        );
+        success.ShouldBeTrue();
+
+        var sf = await store.GetFunction(storedId);
+        sf.ShouldNotBeNull();
+        sf.Status.ShouldBe(Status.Postponed);
+
+        // effects: null must leave the effect snapshot untouched.
+        var effects = await store.EffectsStore.GetEffectResults(storedId);
+        effects.Count.ShouldBe(1);
+        effects.Single().EffectId.ShouldBe(7.ToEffectId());
+        effects.Single().Result.ShouldBe("ExistingResult".ToUtf8Bytes());
+    }
+
+    public abstract Task SetFunctionKeepsPassedSessionCoherentWithPersistedEffects();
+    protected async Task SetFunctionKeepsPassedSessionCoherentWithPersistedEffects(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var storedId = TestStoredId.Create();
+        var replica = ReplicaId.NewId();
+
+        // Create the flow unowned with an initial effect so it carries a snapshot/version, then claim it to obtain
+        // the store's owned session (the exact object handed over ClaimFunction -> SetFunction).
+        var initialEffect = StoredEffect.CreateCompleted(1.ToEffectId(), "initial".ToUtf8Bytes(), alias: null);
+        await store.CreateFunction(
+            storedId,
+            "humanInstanceId",
+            Param.ToUtf8Bytes(),
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks,
+            parent: null,
+            owner: null,
+            effects: [initialEffect]
+        );
+
+        var claimed = await store.ClaimFunction(storedId, replica).ShouldNotBeNullAsync();
+        var session = (SnapshotStorageSession) claimed.StorageSession;
+
+        // Wholesale-replace the snapshot via SetFunction, keeping the flow owned by the claiming replica and
+        // threading the claimed session through.
+        var newEffectA = StoredEffect.CreateCompleted(2.ToEffectId(), "two".ToUtf8Bytes(), alias: null);
+        var newEffectB = StoredEffect.CreateCompleted(3.ToEffectId(), "three".ToUtf8Bytes(), alias: null);
+
+        var success = await store.SetFunction(
+            storedId,
+            Status.Executing,
+            param: Param.ToUtf8Bytes(),
+            result: null,
+            exception: null,
+            expires: 0,
+            timestamp: DateTime.UtcNow.Ticks,
+            owner: replica,
+            effects: [newEffectA, newEffectB],
+            expectedReplica: replica,
+            storageSession: session
+        );
+        success.ShouldBeTrue();
+
+        // (b) The threaded session now reflects the persisted snapshot exactly.
+        session.RowExists.ShouldBeTrue();
+        session.Effects.Count.ShouldBe(2);
+        session.Effects.ContainsKey(1.ToEffectId()).ShouldBeFalse();
+        session.Effects[2.ToEffectId()].Result.ShouldBe("two".ToUtf8Bytes());
+        session.Effects[3.ToEffectId()].Result.ShouldBe("three".ToUtf8Bytes());
+
+        // The persisted snapshot matches too.
+        var persisted = await store.EffectsStore.GetEffectResults(storedId);
+        persisted.Count.ShouldBe(2);
+        persisted.Select(e => e.EffectId).ShouldBe([2.ToEffectId(), 3.ToEffectId()], ignoreOrder: true);
+
+        // A subsequent effect write reusing the SAME session must NOT be rejected by a stale version - i.e. the
+        // session stayed in lockstep with the store's effect version/owner concurrency.
+        var followUpEffect = StoredEffect.CreateCompleted(4.ToEffectId(), "four".ToUtf8Bytes(), alias: null);
+        await store.EffectsStore.SetEffectResult(
+            storedId,
+            followUpEffect.ToStoredChange(storedId, Insert),
+            session
+        );
+
+        var afterFollowUp = await store.EffectsStore.GetEffectResults(storedId);
+        afterFollowUp.Select(e => e.EffectId).ShouldContain(4.ToEffectId());
     }
 }

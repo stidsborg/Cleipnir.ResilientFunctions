@@ -163,12 +163,16 @@ public class StoreTests : ResilientFunctions.Tests.TestTemplates.StoreTests
         => FunctionCanBeCreatedWithEffectsOnly(FunctionStoreFactory.Create());
     
     [TestMethod]
-    public override Task RestartExecutionReturnsEffects()
-        => RestartExecutionReturnsEffects(FunctionStoreFactory.Create());
+    public override Task ClaimFunctionReturnsEffects()
+        => ClaimFunctionReturnsEffects(FunctionStoreFactory.Create());
     
     [TestMethod]
-    public override Task RestartExecutionWorksWithEmptyEffects()
-        => RestartExecutionWorksWithEmptyEffects(FunctionStoreFactory.Create());
+    public override Task ClaimFunctionWorksWithEmptyEffects()
+        => ClaimFunctionWorksWithEmptyEffects(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task ClaimFunctionSurfacesResult()
+        => ClaimFunctionSurfacesResult(FunctionStoreFactory.Create());
     
     [TestMethod]
     public override Task FunctionOwnedByReplicaIsPostponedAfterRescheduleFunctionsInvocation()
@@ -204,14 +208,14 @@ public class StoreTests : ResilientFunctions.Tests.TestTemplates.StoreTests
 
 
     [TestMethod]
-    public override Task RestartExecutionsDoesNotReturnFlowClaimedByPreviousCall()
-        => RestartExecutionsDoesNotReturnFlowClaimedByPreviousCall(FunctionStoreFactory.Create());
+    public override Task ClaimFunctionsDoesNotReturnFlowClaimedByPreviousCall()
+        => ClaimFunctionsDoesNotReturnFlowClaimedByPreviousCall(FunctionStoreFactory.Create());
 
     [TestMethod]
-    public override Task RestartExecutionsDoesNotClaimSucceededFlow()
-        => RestartExecutionsDoesNotClaimSucceededFlow(FunctionStoreFactory.Create());
+    public override Task ClaimFunctionsDoesNotClaimSucceededFlow()
+        => ClaimFunctionsDoesNotClaimSucceededFlow(FunctionStoreFactory.Create());
 
     [TestMethod]
-    public override Task RestartExecutionsClaimsSuspendedFlow()
-        => RestartExecutionsClaimsSuspendedFlow(FunctionStoreFactory.Create());
+    public override Task ClaimFunctionsClaimsSuspendedFlow()
+        => ClaimFunctionsClaimsSuspendedFlow(FunctionStoreFactory.Create());
 }

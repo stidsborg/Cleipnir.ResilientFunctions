@@ -55,25 +55,45 @@ public class StoreCrudTests : ResilientFunctions.Tests.TestTemplates.StoreCrudTe
 
 
     [TestMethod]
-    public override Task RestartExecutionsReturnsEmptyDictionaryWhenNoFlowsAreEligible()
-        => RestartExecutionsReturnsEmptyDictionaryWhenNoFlowsAreEligible(FunctionStoreFactory.Create());
+    public override Task ClaimFunctionsReturnsEmptyDictionaryWhenNoFlowsAreEligible()
+        => ClaimFunctionsReturnsEmptyDictionaryWhenNoFlowsAreEligible(FunctionStoreFactory.Create());
 
 
 
 
     [TestMethod]
-    public override Task RestartExecutionsRestartsMultipleUnownedFlows()
-        => RestartExecutionsRestartsMultipleUnownedFlows(FunctionStoreFactory.Create());
+    public override Task ClaimFunctionsRestartsMultipleUnownedFlows()
+        => ClaimFunctionsRestartsMultipleUnownedFlows(FunctionStoreFactory.Create());
 
     [TestMethod]
-    public override Task RestartExecutionsRestartsOnlyUnownedFlows()
-        => RestartExecutionsRestartsOnlyUnownedFlows(FunctionStoreFactory.Create());
+    public override Task ClaimFunctionsRestartsOnlyUnownedFlows()
+        => ClaimFunctionsRestartsOnlyUnownedFlows(FunctionStoreFactory.Create());
 
     [TestMethod]
-    public override Task RestartExecutionsReturnsEmptyDictionaryForEmptyInput()
-        => RestartExecutionsReturnsEmptyDictionaryForEmptyInput(FunctionStoreFactory.Create());
+    public override Task ClaimFunctionsReturnsEmptyDictionaryForEmptyInput()
+        => ClaimFunctionsReturnsEmptyDictionaryForEmptyInput(FunctionStoreFactory.Create());
 
     [TestMethod]
-    public override Task RestartExecutionsIncludesExistingEffects()
-        => RestartExecutionsIncludesExistingEffects(FunctionStoreFactory.Create());
+    public override Task ClaimFunctionsIncludesExistingEffects()
+        => ClaimFunctionsIncludesExistingEffects(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task SetFunctionUpdatesStatusOwnerAndEffectsWhenGuardMatches()
+        => SetFunctionUpdatesStatusOwnerAndEffectsWhenGuardMatches(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task SetFunctionReturnsFalseAndNoOpsWhenExpectedReplicaDoesNotMatch()
+        => SetFunctionReturnsFalseAndNoOpsWhenExpectedReplicaDoesNotMatch(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task SetFunctionWithNullOwnerReleasesOwnership()
+        => SetFunctionWithNullOwnerReleasesOwnership(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task SetFunctionWithNullEffectsLeavesEffectsUntouched()
+        => SetFunctionWithNullEffectsLeavesEffectsUntouched(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task SetFunctionKeepsPassedSessionCoherentWithPersistedEffects()
+        => SetFunctionKeepsPassedSessionCoherentWithPersistedEffects(FunctionStoreFactory.Create());
 }

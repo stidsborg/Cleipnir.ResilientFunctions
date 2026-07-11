@@ -386,10 +386,10 @@ public class SqlGenerator(string tablePrefix)
         }
     }
 
-    private string? _restartExecutionSql;
-    public StoreCommand RestartExecution(StoredId storedId, ReplicaId replicaId)
+    private string? _claimFunctionSql;
+    public StoreCommand ClaimFunction(StoredId storedId, ReplicaId replicaId)
     {
-        _restartExecutionSql ??= @$"
+        _claimFunctionSql ??= @$"
             UPDATE {tablePrefix}
             SET status = {(int)Status.Executing}, expires = 0, owner = ?
             WHERE id = ? AND owner IS NULL;
@@ -410,7 +410,7 @@ public class SqlGenerator(string tablePrefix)
             WHERE id = ?;";
 
         var command = StoreCommand.Create(
-            _restartExecutionSql,
+            _claimFunctionSql,
             values: [
                 replicaId.AsGuid.ToString("N"),
                 storedId.AsGuid.ToString("N"),
@@ -426,10 +426,10 @@ public class SqlGenerator(string tablePrefix)
     // watchdogs) both restart the same flow.
     // Restartable flows are the parked ones (postponed/suspended): the batch restart backs the watchdogs, which
     // must never resurrect a completed flow - e.g. when a message arrives after its target has succeeded.
-    private string? _restartExecutionsSelectEligibleSql;
-    public StoreCommand RestartExecutionsSelectEligible(IReadOnlyList<StoredId> storedIds)
+    private string? _claimFunctionsSelectEligibleSql;
+    public StoreCommand ClaimFunctionsSelectEligible(IReadOnlyList<StoredId> storedIds)
     {
-        _restartExecutionsSelectEligibleSql ??= @$"
+        _claimFunctionsSelectEligibleSql ??= @$"
             SELECT
                 id,
                 param_json,
@@ -447,21 +447,21 @@ public class SqlGenerator(string tablePrefix)
             FOR UPDATE;";
 
         var idList = storedIds.Select(id => $"'{id.AsGuid:N}'").Order().StringJoin(", ");
-        var sql = string.Format(_restartExecutionsSelectEligibleSql, idList);
+        var sql = string.Format(_claimFunctionsSelectEligibleSql, idList);
 
         return StoreCommand.Create(sql);
     }
 
-    private string? _restartExecutionsClaimSql;
-    public StoreCommand RestartExecutionsClaim(IReadOnlyList<StoredId> storedIds, ReplicaId replicaId)
+    private string? _claimFunctionsClaimSql;
+    public StoreCommand ClaimFunctionsClaim(IReadOnlyList<StoredId> storedIds, ReplicaId replicaId)
     {
-        _restartExecutionsClaimSql ??= @$"
+        _claimFunctionsClaimSql ??= @$"
             UPDATE {tablePrefix}
             SET status = {(int)Status.Executing}, expires = 0, owner = ?
             WHERE id IN ({{0}}) AND owner IS NULL;";
 
         var idList = storedIds.Select(id => $"'{id.AsGuid:N}'").Order().StringJoin(", ");
-        var sql = string.Format(_restartExecutionsClaimSql, idList);
+        var sql = string.Format(_claimFunctionsClaimSql, idList);
 
         var command = StoreCommand.Create(
             sql,
@@ -469,6 +469,56 @@ public class SqlGenerator(string tablePrefix)
         return command;
     }
     
+    // Owner-guarded general state-setter: writes status/expires/timestamp/param/result/exception and the new owner
+    // (NULL releases) in one UPDATE, guarded on the current owner. When effectsBytes is non-null the effects column
+    // is overwritten in the same statement; null leaves it untouched.
+    public StoreCommand SetFunction(
+        StoredId storedId,
+        Status status,
+        byte[]? param,
+        byte[]? result,
+        StoredException? exception,
+        long expires,
+        long timestamp,
+        ReplicaId? owner,
+        byte[]? effectsBytes,
+        ReplicaId expectedReplica)
+    {
+        var values = new List<object>
+        {
+            (int) status,
+            expires,
+            timestamp,
+            param ?? (object) DBNull.Value,
+            result ?? (object) DBNull.Value,
+            exception == null ? (object) DBNull.Value : JsonSerializer.Serialize(exception),
+            owner == null ? (object) DBNull.Value : owner.AsGuid.ToString("N"),
+        };
+
+        var effectsClause = "";
+        if (effectsBytes != null)
+        {
+            effectsClause = ", effects = ?";
+            values.Add(effectsBytes);
+        }
+
+        values.Add(storedId.AsGuid.ToString("N"));
+        values.Add(expectedReplica.AsGuid.ToString("N"));
+
+        var sql = @$"
+            UPDATE {tablePrefix}
+            SET status = ?,
+                expires = ?,
+                timestamp = ?,
+                param_json = ?,
+                result_json = ?,
+                exception_json = ?,
+                owner = ?{effectsClause}
+            WHERE id = ? AND owner = ?";
+
+        return StoreCommand.Create(sql, values);
+    }
+
     public async Task<StoredFlow?> ReadToStoredFunction(StoredId storedId, MySqlDataReader reader)
     {
         const int idIndex = 0;
@@ -510,7 +560,7 @@ public class SqlGenerator(string tablePrefix)
         return null;
     }
 
-    public async Task<(StoredFlow?, byte[]?)> ReadToStoredFunctionWithEffects(StoredId storedId, MySqlDataReader reader)
+    public async Task<(StoredFlow?, byte[]? result, byte[]? effectsBytes)> ReadToStoredFunctionWithEffects(StoredId storedId, MySqlDataReader reader)
     {
         const int idIndex = 0;
         const int paramIndex = 1;
@@ -537,6 +587,7 @@ public class SqlGenerator(string tablePrefix)
                 ? JsonSerializer.Deserialize<StoredException>(reader.GetString(exceptionIndex))
                 : null;
 
+            var result = hasResult ? (byte[])reader.GetValue(resultIndex) : null;
             var effectsBytes = hasEffects ? (byte[])reader.GetValue(effectsIndex) : null;
 
             var storedFlow = new StoredFlow(
@@ -552,10 +603,10 @@ public class SqlGenerator(string tablePrefix)
                 StoredType: storedId.Type
             );
 
-            return (storedFlow, effectsBytes);
+            return (storedFlow, result, effectsBytes);
         }
 
-        return (null, null);
+        return (null, null, null);
     }
     
     public StoreCommand AppendMessages(IReadOnlyList<StoredIdAndMessage> messages)

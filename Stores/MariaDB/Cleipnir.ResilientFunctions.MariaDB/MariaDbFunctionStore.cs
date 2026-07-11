@@ -187,9 +187,9 @@ public class MariaDbFunctionStore : IFunctionStore
         return totalInserted;
     }
     
-    public async Task<StoredFlowWithEffects?> RestartExecution(StoredId storedId, ReplicaId replicaId)
+    public async Task<StoredFlowWithEffects?> ClaimFunction(StoredId storedId, ReplicaId replicaId)
     {
-        var restartCommand = _sqlGenerator.RestartExecution(storedId, replicaId);
+        var restartCommand = _sqlGenerator.ClaimFunction(storedId, replicaId);
 
         await using var conn = await CreateOpenConnection(_connectionString);
         await using var command = restartCommand.ToSqlCommand(conn);
@@ -198,7 +198,7 @@ public class MariaDbFunctionStore : IFunctionStore
         if (reader.RecordsAffected != 1)
             return null;
 
-        var (sf, effectsBytes) = await _sqlGenerator.ReadToStoredFunctionWithEffects(storedId, reader);
+        var (sf, result, effectsBytes) = await _sqlGenerator.ReadToStoredFunctionWithEffects(storedId, reader);
         if (sf?.OwnerId != replicaId)
             return null;
 
@@ -222,10 +222,10 @@ public class MariaDbFunctionStore : IFunctionStore
             }
         }
 
-        return new StoredFlowWithEffects(sf, effects, session);
+        return new StoredFlowWithEffects(sf, effects, result, session);
     }
 
-    public async Task<Dictionary<StoredId, StoredFlowWithEffects>> RestartExecutions(
+    public async Task<Dictionary<StoredId, StoredFlowWithEffects>> ClaimFunctions(
         IReadOnlyList<StoredId> storedIds,
         ReplicaId owner)
     {
@@ -237,7 +237,7 @@ public class MariaDbFunctionStore : IFunctionStore
 
         // Build result dictionary - only for successfully restarted flows
         var result = new Dictionary<StoredId, StoredFlowWithEffects>();
-        foreach (var (flow, effectsBytes, session) in restartedFlows)
+        foreach (var (flow, flowResult, effectsBytes, session) in restartedFlows)
         {
             var effects = new List<StoredEffect>();
             if (effectsBytes != null)
@@ -255,14 +255,14 @@ public class MariaDbFunctionStore : IFunctionStore
             }
 
             result[flow.StoredId] = new StoredFlowWithEffects(
-                flow, effects, session
+                flow, effects, flowResult, session
             );
         }
 
         return result;
     }
 
-    private async Task<List<(StoredFlow flow, byte[]? effectsBytes, SnapshotStorageSession session)>> RestartFlowsAsync(
+    private async Task<List<(StoredFlow flow, byte[]? result, byte[]? effectsBytes, SnapshotStorageSession session)>> RestartFlowsAsync(
         IReadOnlyList<StoredId> storedIds,
         ReplicaId owner)
     {
@@ -281,8 +281,8 @@ public class MariaDbFunctionStore : IFunctionStore
         const int parentIndex = 8;
         const int effectsIndex = 10;
 
-        var flows = new List<(StoredFlow flow, byte[]? effectsBytes, SnapshotStorageSession session)>();
-        await using (var selectCommand = _sqlGenerator.RestartExecutionsSelectEligible(storedIds).ToSqlCommand(conn))
+        var flows = new List<(StoredFlow flow, byte[]? result, byte[]? effectsBytes, SnapshotStorageSession session)>();
+        await using (var selectCommand = _sqlGenerator.ClaimFunctionsSelectEligible(storedIds).ToSqlCommand(conn))
         {
             selectCommand.Transaction = transaction;
             await using var reader = await selectCommand.ExecuteReaderAsync();
@@ -320,14 +320,14 @@ public class MariaDbFunctionStore : IFunctionStore
                 );
 
                 var session = new SnapshotStorageSession(owner) { RowExists = true };
-                flows.Add((flow, effectsBytes, session));
+                flows.Add((flow, result, effectsBytes, session));
             }
         }
 
         if (flows.Count > 0)
         {
             var claimedIds = flows.Select(f => f.flow.StoredId).ToList();
-            await using var claimCommand = _sqlGenerator.RestartExecutionsClaim(claimedIds, owner).ToSqlCommand(conn);
+            await using var claimCommand = _sqlGenerator.ClaimFunctionsClaim(claimedIds, owner).ToSqlCommand(conn);
             claimCommand.Transaction = transaction;
             await claimCommand.ExecuteNonQueryAsync();
         }
@@ -428,6 +428,45 @@ public class MariaDbFunctionStore : IFunctionStore
 
         var affectedRows = await command.ExecuteNonQueryAsync();
         return affectedRows == 1;
+    }
+
+    public async Task<bool> SetFunction(
+        StoredId storedId,
+        Status status,
+        byte[]? param,
+        byte[]? result,
+        StoredException? exception,
+        long expires,
+        long timestamp,
+        ReplicaId? owner,
+        IReadOnlyList<StoredEffect>? effects,
+        ReplicaId expectedReplica,
+        IStorageSession? storageSession)
+    {
+        var effectsBytes = effects == null
+            ? null
+            : SnapshotStorageSession.Serialize(effects.ToDictionary(e => e.EffectId, e => e));
+
+        await using var conn = await CreateOpenConnection(_connectionString);
+        await using var command = _sqlGenerator
+            .SetFunction(storedId, status, param, result, exception, expires, timestamp, owner, effectsBytes, expectedReplica)
+            .ToSqlCommand(conn);
+
+        var affectedRows = await command.ExecuteNonQueryAsync();
+        var success = affectedRows == 1;
+
+        // Keep the caller's session coherent with the just-persisted snapshot, mirroring
+        // MariaDbEffectsStore.SetEffectResults' handling of the session's Effects. Owner-based concurrency means
+        // no session version is tracked, so only the cached effects and RowExists are synchronized.
+        if (success && effects != null && storageSession is SnapshotStorageSession session)
+        {
+            session.Effects.Clear();
+            foreach (var effect in effects)
+                session.Effects[effect.EffectId] = effect;
+            session.RowExists = true;
+        }
+
+        return success;
     }
 
     public async Task<bool> SucceedFunction(

@@ -110,8 +110,9 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         return Task.FromResult(insertedCount);
     }
 
-    public virtual async Task<StoredFlowWithEffects?> RestartExecution(StoredId storedId, ReplicaId owner)
+    public virtual async Task<StoredFlowWithEffects?> ClaimFunction(StoredId storedId, ReplicaId owner)
     {
+        byte[]? result;
         lock (_sync)
         {
             if (!_states.ContainsKey(storedId))
@@ -124,6 +125,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
             state.Status = Status.Executing;
             state.Expires = 0;
             state.Owner = owner;
+            result = state.Result;
         }
         var sf = await GetFunction(storedId);
         var effects = await EffectsStore.GetEffectResults(storedId);
@@ -141,11 +143,12 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
                 : new StoredFlowWithEffects(
                     sf,
                     effects,
+                    result,
                     session
                 );
     }
 
-    public virtual async Task<Dictionary<StoredId, StoredFlowWithEffects>> RestartExecutions(
+    public virtual async Task<Dictionary<StoredId, StoredFlowWithEffects>> ClaimFunctions(
         IReadOnlyList<StoredId> storedIds,
         ReplicaId owner)
     {
@@ -178,6 +181,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         }
 
         var effectsDict = await EffectsStore.GetEffectResults(storedIds);
+        var resultsById = await GetResults(restartedIds);
 
         // Build result dictionary - only for restarted flows
         var result = new Dictionary<StoredId, StoredFlowWithEffects>();
@@ -197,7 +201,8 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
             session.Version = _effectsStore.GetVersion(storedId);
             session.RowExists = effects.Any();
 
-            result[storedId] = new StoredFlowWithEffects(sf, effects, session);
+            var flowResult = resultsById.TryGetValue(storedId, out var r) ? r : null;
+            result[storedId] = new StoredFlowWithEffects(sf, effects, flowResult, session);
         }
 
         return result;
@@ -254,6 +259,60 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
 
             return true.ToTask();
         }
+    }
+
+    public Task<bool> SetFunction(
+        StoredId storedId,
+        Status status,
+        byte[]? param,
+        byte[]? result,
+        StoredException? exception,
+        long expires,
+        long timestamp,
+        ReplicaId? owner,
+        IReadOnlyList<StoredEffect>? effects,
+        ReplicaId expectedReplica,
+        IStorageSession? storageSession)
+    {
+        lock (_sync)
+        {
+            if (!_states.ContainsKey(storedId))
+                return false.ToTask();
+
+            var state = _states[storedId];
+            if (state.Owner != expectedReplica)
+                return false.ToTask();
+
+            state.Status = status;
+            state.Param = param;
+            state.Result = result;
+            state.Exception = exception;
+            state.Expires = expires;
+            state.Timestamp = timestamp;
+            state.Owner = owner;
+        }
+
+        // null effects leave the snapshot untouched; a non-null list overwrites it. The owner guard above already
+        // enforced ownership, so the effects overwrite runs unconditionally here.
+        if (effects != null)
+        {
+            _effectsStore.ReplaceEffects(storedId, effects);
+
+            // Keep the caller's session coherent with the persisted snapshot, mirroring
+            // InMemoryEffectsStore.SetEffectResults: replace its cached effects, mark the row present and advance
+            // the version in lockstep with ReplaceEffects' _versions bump so a later session-based write is not
+            // rejected by a stale version.
+            if (storageSession is SnapshotStorageSession session)
+            {
+                session.Effects.Clear();
+                foreach (var effect in effects)
+                    session.Effects[effect.EffectId] = effect;
+                session.RowExists = true;
+                session.Version++;
+            }
+        }
+
+        return true.ToTask();
     }
 
     public Task<bool> SucceedFunction(

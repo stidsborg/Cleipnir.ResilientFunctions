@@ -106,6 +106,22 @@ public class InMemoryEffectsStore : IEffectsStore
         return Task.CompletedTask;
     }
 
+    // Replaces the flow's entire effect snapshot with the supplied list (used by the owner-guarded SetFunction,
+    // whose guard is enforced by the function store itself). Bumps the version so any lingering snapshot session
+    // fails its version check on a later write.
+    internal void ReplaceEffects(StoredId storedId, IReadOnlyList<StoredEffect> effects)
+    {
+        lock (_sync)
+        {
+            var dict = new Dictionary<EffectId, StoredEffect>();
+            foreach (var effect in effects)
+                dict[effect.EffectId] = effect;
+
+            _effects[storedId] = dict;
+            _versions[storedId] = _versions.GetValueOrDefault(storedId, 0) + 1;
+        }
+    }
+
     public int GetVersion(StoredId storedId)
     {
         lock (_sync)

@@ -184,6 +184,7 @@ public record IdWithParam(StoredId StoredId, string HumanInstanceId, byte[]? Par
 public record StoredFlowWithEffects(
     StoredFlow StoredFlow,
     IReadOnlyList<StoredEffect> Effects,
+    byte[]? Result,
     IStorageSession StorageSession
 );
 

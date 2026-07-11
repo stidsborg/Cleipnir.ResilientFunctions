@@ -31,8 +31,8 @@ public interface IFunctionStore
         StoredId? parent
     );
     
-    Task<StoredFlowWithEffects?> RestartExecution(StoredId storedId, ReplicaId owner);
-    Task<Dictionary<StoredId, StoredFlowWithEffects>> RestartExecutions(IReadOnlyList<StoredId> storedIds, ReplicaId owner);
+    Task<StoredFlowWithEffects?> ClaimFunction(StoredId storedId, ReplicaId owner);
+    Task<Dictionary<StoredId, StoredFlowWithEffects>> ClaimFunctions(IReadOnlyList<StoredId> storedIds, ReplicaId owner);
     
     Task<IReadOnlyList<StoredId>> GetExpiredFunctions(long expiresBefore);
     Task<IReadOnlyList<StoredId>> GetSucceededFunctions(long completedBefore);
@@ -52,6 +52,40 @@ public interface IFunctionStore
         StoredException? storedException,
         long expires,
         ReplicaId? expectedReplica
+    );
+
+    /// <summary>
+    /// Owner-guarded general state-setter used by a replica that currently owns a flow to atomically move it to a
+    /// target <paramref name="status"/>, write an updated effect snapshot and set/release ownership. The write only
+    /// lands while the flow's owner column still equals <paramref name="expectedReplica"/>; on a guard mismatch
+    /// nothing is written and false is returned. The caller must already own the flow (claim it first), which is
+    /// why <paramref name="expectedReplica"/> is required.
+    /// <para>
+    /// <paramref name="owner"/> is the new owner value written to the row - null releases the flow (owner → NULL).
+    /// <paramref name="effects"/> null leaves the effects column untouched; non-null overwrites the effect snapshot
+    /// with the supplied list. <paramref name="param"/>, <paramref name="result"/> and <paramref name="exception"/>
+    /// are always written to the supplied value (null included).
+    /// </para>
+    /// <para>
+    /// <paramref name="storageSession"/> is the store's opaque forward-carried per-flow context (typically the one
+    /// handed back by <see cref="ClaimFunction"/>). When supplied together with a non-null <paramref name="effects"/>
+    /// snapshot, it is kept coherent with the just-persisted snapshot so it can be reused for later effect writes;
+    /// null disables session threading.
+    /// </para>
+    /// </summary>
+    /// <returns>True iff the guard matched and the row was updated; otherwise false.</returns>
+    Task<bool> SetFunction(
+        StoredId storedId,
+        Status status,
+        byte[]? param,
+        byte[]? result,
+        StoredException? exception,
+        long expires,
+        long timestamp,
+        ReplicaId? owner,
+        IReadOnlyList<StoredEffect>? effects,
+        ReplicaId expectedReplica,
+        IStorageSession? storageSession
     );
 
     Task<bool> SucceedFunction(

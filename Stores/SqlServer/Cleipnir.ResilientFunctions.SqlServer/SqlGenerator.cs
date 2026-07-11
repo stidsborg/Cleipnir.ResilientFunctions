@@ -381,10 +381,10 @@ public class SqlGenerator(string tablePrefix)
         }
     }
 
-    private string? _restartExecutionSql;
-    public StoreCommand RestartExecution(StoredId storedId, ReplicaId replicaId)
+    private string? _claimFunctionSql;
+    public StoreCommand ClaimFunction(StoredId storedId, ReplicaId replicaId)
     {
-        _restartExecutionSql ??= @$"
+        _claimFunctionSql ??= @$"
             UPDATE {tablePrefix}
             SET Status = {(int)Status.Executing},
                 Expires = 0,
@@ -402,19 +402,19 @@ public class SqlGenerator(string tablePrefix)
                    inserted.Effects
             WHERE Id = @Id AND Owner IS NULL;";
 
-        var storeCommand = StoreCommand.Create(_restartExecutionSql);
+        var storeCommand = StoreCommand.Create(_claimFunctionSql);
         storeCommand.AddParameter("@Owner", replicaId.AsGuid);
         storeCommand.AddParameter("@Id", storedId.AsGuid);
 
         return storeCommand;
     }
 
-    private string? _restartExecutionsSql;
-    public StoreCommand RestartExecutions(IReadOnlyList<StoredId> storedIds, ReplicaId replicaId)
+    private string? _claimFunctionsSql;
+    public StoreCommand ClaimFunctions(IReadOnlyList<StoredId> storedIds, ReplicaId replicaId)
     {
         // Restartable flows are the parked ones (postponed/suspended): the batch restart backs the watchdogs, which
         // must never resurrect a completed flow - e.g. when a message arrives after its target has succeeded.
-        _restartExecutionsSql ??= @$"
+        _claimFunctionsSql ??= @$"
             UPDATE {tablePrefix}
             SET Status = {(int)Status.Executing},
                 Expires = 0,
@@ -434,13 +434,57 @@ public class SqlGenerator(string tablePrefix)
               AND Owner IS NULL
               AND Status IN ({(int)Status.Postponed}, {(int)Status.Suspended});";
 
-        var storeCommand = StoreCommand.Create(_restartExecutionsSql);
+        var storeCommand = StoreCommand.Create(_claimFunctionsSql);
         storeCommand.AddParameter("@Owner", replicaId.AsGuid);
         storeCommand.AddParameter("@Ids", storedIds.ToCommaSeparatedIds());
 
         return storeCommand;
     }
     
+    // Owner-guarded general state-setter: writes status/expires/timestamp/param/result/exception and the new owner
+    // (NULL releases) in one UPDATE, guarded on the current owner. When effectsBytes is non-null the Effects column
+    // is overwritten in the same statement; null leaves it untouched.
+    public StoreCommand SetFunction(
+        StoredId storedId,
+        Status status,
+        byte[]? param,
+        byte[]? result,
+        StoredException? exception,
+        long expires,
+        long timestamp,
+        ReplicaId? owner,
+        byte[]? effectsBytes,
+        ReplicaId expectedReplica)
+    {
+        var effectsClause = effectsBytes != null ? ", Effects = @Effects" : "";
+
+        var sql = @$"
+            UPDATE {tablePrefix}
+            SET Status = @Status,
+                Expires = @Expires,
+                Timestamp = @Timestamp,
+                ParamJson = @ParamJson,
+                ResultJson = @ResultJson,
+                ExceptionJson = @ExceptionJson,
+                Owner = @Owner{effectsClause}
+            WHERE Id = @Id AND Owner = @ExpectedReplica";
+
+        var command = StoreCommand.Create(sql);
+        command.AddParameter("@Status", (int) status);
+        command.AddParameter("@Expires", expires);
+        command.AddParameter("@Timestamp", timestamp);
+        command.AddParameter("@ParamJson", param ?? SqlBinary.Null);
+        command.AddParameter("@ResultJson", result ?? SqlBinary.Null);
+        command.AddParameter("@ExceptionJson", exception == null ? (object) DBNull.Value : JsonSerializer.Serialize(exception));
+        command.AddParameter("@Owner", owner?.AsGuid ?? (object) DBNull.Value);
+        if (effectsBytes != null)
+            command.AddParameter("@Effects", effectsBytes);
+        command.AddParameter("@Id", storedId.AsGuid);
+        command.AddParameter("@ExpectedReplica", expectedReplica.AsGuid);
+
+        return command;
+    }
+
     public StoredFlow? ReadToStoredFlow(StoredId storedId, SqlDataReader reader)
     {
         while (reader.HasRows)
@@ -479,7 +523,7 @@ public class SqlGenerator(string tablePrefix)
         return null;
     }
 
-    public (StoredFlow?, byte[]?) ReadToStoredFlowWithEffects(StoredId storedId, SqlDataReader reader)
+    public (StoredFlow?, byte[]? result, byte[]? effectsBytes) ReadToStoredFlowWithEffects(StoredId storedId, SqlDataReader reader)
     {
         while (reader.HasRows)
         {
@@ -514,11 +558,11 @@ public class SqlGenerator(string tablePrefix)
                     storedId.Type
                 );
 
-                return (storedFlow, effectsBytes);
+                return (storedFlow, result, effectsBytes);
             }
         }
 
-        return (null, null);
+        return (null, null, null);
     }
     
     public StoreCommand? AppendMessages(IReadOnlyList<StoredIdAndMessage> messages, string prefix = "")

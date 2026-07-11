@@ -53,15 +53,15 @@ public class CrashableFunctionStore : IFunctionStore
             ? Task.FromException<int>(new TimeoutException())
             : _inner.BulkScheduleFunctions(functionsWithParam, parent);
 
-    public Task<StoredFlowWithEffects?> RestartExecution(StoredId storedId, ReplicaId replicaId)
+    public Task<StoredFlowWithEffects?> ClaimFunction(StoredId storedId, ReplicaId replicaId)
         => _crashed
             ? Task.FromException<StoredFlowWithEffects?>(new TimeoutException())
-            : _inner.RestartExecution(storedId, replicaId);
+            : _inner.ClaimFunction(storedId, replicaId);
 
-    public Task<Dictionary<StoredId, StoredFlowWithEffects>> RestartExecutions(IReadOnlyList<StoredId> storedIds, ReplicaId owner)
+    public Task<Dictionary<StoredId, StoredFlowWithEffects>> ClaimFunctions(IReadOnlyList<StoredId> storedIds, ReplicaId owner)
         => _crashed
             ? Task.FromException<Dictionary<StoredId, StoredFlowWithEffects>>(new TimeoutException())
-            : _inner.RestartExecutions(storedIds, owner);
+            : _inner.ClaimFunctions(storedIds, owner);
 
     public Task<IReadOnlyList<StoredId>> GetExpiredFunctions(long expiresBefore)
         => _crashed
@@ -91,6 +91,22 @@ public class CrashableFunctionStore : IFunctionStore
                 storedException, expires, 
                 expectedReplica
             );
+
+    public Task<bool> SetFunction(
+        StoredId storedId,
+        Status status,
+        byte[]? param,
+        byte[]? result,
+        StoredException? exception,
+        long expires,
+        long timestamp,
+        ReplicaId? owner,
+        IReadOnlyList<StoredEffect>? effects,
+        ReplicaId expectedReplica,
+        IStorageSession? storageSession
+    ) => _crashed
+        ? Task.FromException<bool>(new TimeoutException())
+        : _inner.SetFunction(storedId, status, param, result, exception, expires, timestamp, owner, effects, expectedReplica, storageSession);
 
     public Task<bool> SucceedFunction(
         StoredId storedId,
