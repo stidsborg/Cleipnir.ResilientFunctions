@@ -126,8 +126,7 @@ public class SqlServerFunctionStore : IFunctionStore
         long timestamp,
         StoredId? parent,
         ReplicaId? owner,
-        IReadOnlyList<StoredEffect>? effects = null,
-        IReadOnlyList<StoredMessage>? messages = null
+        IReadOnlyList<StoredEffect>? effects = null
     )
     {
         await using var conn = await _connFunc();
@@ -158,26 +157,8 @@ public class SqlServerFunctionStore : IFunctionStore
                     effects: effectsBytes
                 );
 
-            if (messages?.Any() ?? false)
-            {
-                var messagesCommand = _sqlGenerator.AppendMessages(
-                    messages.Select(msg => new StoredIdAndMessage(storedId, msg)).ToList(),
-                    prefix: "Message"
-                );
-                storeCommand = storeCommand.Merge(messagesCommand);
-            }
-
             await using var command = storeCommand.ToSqlCommand(conn);
-            if (messages?.Any() != true)
-            {
-                await command.ExecuteNonQueryAsync();
-                return owner == null ? null : session;
-            }
-
-            await using var transaction = conn.BeginTransaction();
-            command.Transaction = transaction;
             await command.ExecuteNonQueryAsync();
-            await transaction.CommitAsync();
             return owner == null ? null : session;
         }
         catch (SqlException sqlException) when (sqlException.Number == SqlError.UNIQUENESS_VIOLATION)

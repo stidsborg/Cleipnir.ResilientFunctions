@@ -42,8 +42,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         long timestamp,
         StoredId? parent,
         ReplicaId? owner,
-        IReadOnlyList<StoredEffect>? effects = null,
-        IReadOnlyList<StoredMessage>? messages = null)
+        IReadOnlyList<StoredEffect>? effects = null)
     {
         lock (_sync)
         {
@@ -65,10 +64,6 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
             };
             if (!_messages.ContainsKey(storedId)) //messages can already have been added - i.e. paramless started by received message
                 _messages[storedId] = new Dictionary<long, StoredMessage>();
-
-            if (messages != null)
-                for (var i = 0; i < messages.Count; i++)
-                    _messages[storedId][i] = messages[i];                
 
             var session = owner == null ? null : new SnapshotStorageSession(owner);
 

@@ -1193,10 +1193,13 @@ public abstract class StoreTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             effects: [effect1, effect2],
-            messages: [message1, message2],
             owner: null
         );
         session.ShouldBeNull();
+        await store.MessageStore.AppendMessages([
+            new StoredIdAndMessage(storedId, message1),
+            new StoredIdAndMessage(storedId, message2)
+        ]);
 
         var effectResults = await store.EffectsStore.GetEffectResults(storedId);
         effectResults.Count.ShouldBe(2);
@@ -1221,18 +1224,17 @@ public abstract class StoreTests
         
         //idempotency check
         await store.CreateFunction(
-            storedId, 
+            storedId,
             "humanInstanceId",
-            paramJson.ToUtf8Bytes(), 
+            paramJson.ToUtf8Bytes(),
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             effects: [effect1, effect2],
-            messages: [message1, message2],
             owner: null
         ).ShouldBeNullAsync();
     }
-    
+
     public abstract Task FunctionCanBeCreatedWithMessagesOnly();
     protected async Task FunctionCanBeCreatedWithMessagesOnly(Task<IFunctionStore> storeTask)
     {
@@ -1264,10 +1266,13 @@ public abstract class StoreTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             effects: null,
-            messages: [message1, message2],
             owner: null
         );
         session.ShouldBeNull();
+        await store.MessageStore.AppendMessages([
+            new StoredIdAndMessage(storedId, message1),
+            new StoredIdAndMessage(storedId, message2)
+        ]);
 
         var effectResults = await store.EffectsStore.GetEffectResults(storedId);
         effectResults.Count.ShouldBe(0);
@@ -1286,18 +1291,17 @@ public abstract class StoreTests
         
         //idempotency check
         await store.CreateFunction(
-            storedId, 
+            storedId,
             "humanInstanceId",
-            paramJson.ToUtf8Bytes(), 
+            paramJson.ToUtf8Bytes(),
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             effects: null,
-            messages: [message1, message2],
             owner: null
         ).ShouldBeNullAsync();
     }
-    
+
     public abstract Task FunctionCanBeCreatedWithEffectsOnly();
     protected async Task FunctionCanBeCreatedWithEffectsOnly(Task<IFunctionStore> storeTask)
     {
@@ -1331,7 +1335,6 @@ public abstract class StoreTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             effects: [effect1, effect2],
-            messages: null,
             owner: null
         );
         session.ShouldBeNull();
@@ -1350,18 +1353,17 @@ public abstract class StoreTests
         
         //idempotency check
         await store.CreateFunction(
-            storedId, 
+            storedId,
             "humanInstanceId",
-            paramJson.ToUtf8Bytes(), 
+            paramJson.ToUtf8Bytes(),
             postponeUntil: null,
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             effects: [effect1, effect2],
-            messages: null,
             owner: null
         ).ShouldBeNullAsync();
     }
-    
+
     public abstract Task RestartExecutionReturnsEffects();
     protected async Task RestartExecutionReturnsEffects(Task<IFunctionStore> storeTask)
     {
