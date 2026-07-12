@@ -69,13 +69,15 @@ internal class InvocationHelper<TParam, TReturn>
         {
             var storedParameter = SerializeParameter(param);
             var utcNowTicks = UtcNow().Ticks;
-            var effects = initialState == null
+
+            // Initial messages are inlined into the flow's effect state (at PendingMessages.EffectId) rather than
+            // written to the message store: the QueueManager stages and delivers them at initialization exactly as
+            // it does for messages inlined while a flow was completed. This keeps them out of the watchdog-visible
+            // message-store rows entirely.
+            IReadOnlyList<StoredEffect>? effects = initialState == null
                 ? null
-                : MapInitialEffects(initialState.Effects, flowId);
-            var messages = initialState == null
-                ? null
-                : MapInitialMessages(initialState.Messages);
-            
+                : MapInitialEffectsAndMessages(initialState, flowId);
+
             var storageState = await _functionStore.CreateFunction(
                 storedId,
                 humanInstanceId,
@@ -85,7 +87,7 @@ internal class InvocationHelper<TParam, TReturn>
                 parent,
                 owner: scheduleAt == null ? owner : null,
                 effects,
-                messages
+                messages: null
             );
 
             var created = storageState != null;
@@ -472,6 +474,21 @@ internal class InvocationHelper<TParam, TReturn>
         return parentWorkflow;
     }
     
+    /// <summary>
+    /// Maps a flow's initial state to the effects persisted at creation: the user-supplied initial effects plus - when
+    /// the flow is created with initial messages - a single pending-messages effect carrying those messages (see
+    /// <see cref="MapInitialMessagesToEffect"/>). Used both to persist the effects (CreateFunction) and to seed the
+    /// invocation's in-memory effect state, so the two stay identical and the QueueManager finds the inlined messages.
+    /// </summary>
+    public IReadOnlyList<StoredEffect> MapInitialEffectsAndMessages(InitialState initialState, FlowId flowId)
+    {
+        var initialEffects = MapInitialEffects(initialState.Effects, flowId);
+        var initialMessagesEffect = MapInitialMessagesToEffect(initialState.Messages);
+        return initialMessagesEffect == null
+            ? initialEffects
+            : [..initialEffects, initialMessagesEffect];
+    }
+
     public IReadOnlyList<StoredEffect> MapInitialEffects(IEnumerable<InitialEffect> initialEffects, FlowId flowId)
     => initialEffects
         .Select(e =>
@@ -497,13 +514,36 @@ internal class InvocationHelper<TParam, TReturn>
             );
         }).ToList();
 
-    public IReadOnlyList<StoredMessage> MapInitialMessages(IEnumerable<MessageAndIdempotencyKey> initialMessages)
-        => initialMessages.Select(m =>
-        {
-            var content = Serializer.Serialize(m.Message, m.Message.GetType());
-            var type = Serializer.SerializeType(m.Message.GetType());
-            return new StoredMessage(content, type, Position: 0, Replica: _replicaId, IdempotencyKey: m.IdempotencyKey);
-        }).ToList();
+    /// <summary>
+    /// Encodes the flow's initial messages into a single pending-messages effect (<see cref="PendingMessages.EffectId"/>)
+    /// so they live in the flow's effect state instead of as message-store rows. The QueueManager stages and delivers
+    /// them at initialization - the same path it uses for messages inlined while a flow was completed. Returns null
+    /// when there are no initial messages.
+    ///
+    /// Positions are assigned from the negative range (-count..-1, in caller order): the QueueManager keys delivery,
+    /// dedup and store-row clearing on position, but these messages never become store rows. The store only ever
+    /// issues non-negative positions, so a negative position can never collide with a real message - the delete the
+    /// message-clearer eventually issues for a delivered initial message matches no row, and no real message is ever
+    /// skipped as already-seen. The -count..-1 ordering makes ascending-position delivery preserve FIFO order.
+    /// </summary>
+    public StoredEffect? MapInitialMessagesToEffect(IEnumerable<MessageAndIdempotencyKey> initialMessages)
+    {
+        var messages = initialMessages.ToList();
+        if (messages.Count == 0)
+            return null;
+
+        var count = messages.Count;
+        var storedMessages = messages
+            .Select((m, i) =>
+            {
+                var content = Serializer.Serialize(m.Message, m.Message.GetType());
+                var type = Serializer.SerializeType(m.Message.GetType());
+                return new StoredMessage(content, type, Position: i - count, Replica: ReplicaId.Empty, IdempotencyKey: m.IdempotencyKey);
+            })
+            .ToList();
+
+        return StoredEffect.CreateCompleted(PendingMessages.EffectId, PendingMessages.Encode(storedMessages), alias: null);
+    }
 
     internal IReadOnlyList<StoredMessage> AddPositionsToMessages(IReadOnlyList<StoredMessage> messages)
     {
