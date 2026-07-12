@@ -282,7 +282,7 @@ public class Invoker<TParam, TReturn> : IFlowRestarter
             var effect = _invocationHelper.CreateEffect(
                 storedId,
                 flowId,
-                initialState == null ? [] : _invocationHelper.MapInitialEffects(initialState.Effects, flowId),
+                initialState == null ? [] : _invocationHelper.MapInitialEffectsAndMessages(initialState, flowId),
                 flowTimeouts,
                 storageSession,
                 flowState
