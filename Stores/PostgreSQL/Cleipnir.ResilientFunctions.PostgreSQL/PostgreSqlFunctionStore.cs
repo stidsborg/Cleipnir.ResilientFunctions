@@ -107,11 +107,10 @@ public class PostgreSqlFunctionStore : IFunctionStore
         long timestamp,
         StoredId? parent,
         ReplicaId? owner,
-        IReadOnlyList<StoredEffect>? effects = null,
-        IReadOnlyList<StoredMessage>? messages = null
+        IReadOnlyList<StoredEffect>? effects = null
         )
     {
-        if (effects == null && messages == null)
+        if (effects == null)
         {
             await using var conn = await CreateConnection();
             await using var batch = _sqlGenerator.CreateFunction(
@@ -153,12 +152,6 @@ public class PostgreSqlFunctionStore : IFunctionStore
                         storedId,
                         changes: effects.Select(e => new StoredEffectChange(storedId, e.EffectId, CrudOperation.Insert, e)).ToList(),
                         session
-                    )
-                );
-
-            if (messages?.Any() ?? false)
-                commands.AddRange(_sqlGenerator.AppendMessages(
-                        messages.Select(msg => new StoredIdAndMessage(storedId, msg)).ToList()
                     )
                 );
 

@@ -513,9 +513,9 @@ public abstract class StoreCrudTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: null,
-            effects: [effect1],
-            messages: [message1]
+            effects: [effect1]
         );
+        await store.MessageStore.AppendMessages([new StoredIdAndMessage(storedId1, message1)]);
         await store.CreateFunction(
             storedId2,
             "instance2",
@@ -524,9 +524,9 @@ public abstract class StoreCrudTests
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: null,
-            effects: [effect2],
-            messages: [message2]
+            effects: [effect2]
         );
+        await store.MessageStore.AppendMessages([new StoredIdAndMessage(storedId2, message2)]);
 
         // Restart both
         var result = await store.RestartExecutions([storedId1, storedId2], owner);

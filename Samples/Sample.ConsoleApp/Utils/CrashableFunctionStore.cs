@@ -32,8 +32,7 @@ public class CrashableFunctionStore : IFunctionStore
         long timestamp,
         StoredId? parent,
         ReplicaId? owner,
-        IReadOnlyList<StoredEffect>? effects = null,
-        IReadOnlyList<StoredMessage>? messages = null
+        IReadOnlyList<StoredEffect>? effects = null
     ) => _crashed
         ? Task.FromException<IStorageSession?>(new TimeoutException())
         : _inner.CreateFunction(
@@ -44,8 +43,7 @@ public class CrashableFunctionStore : IFunctionStore
             timestamp,
             parent,
             owner,
-            effects,
-            messages
+            effects
         );
 
     public Task<int> BulkScheduleFunctions(IEnumerable<IdWithParam> functionsWithParam, StoredId? parent)

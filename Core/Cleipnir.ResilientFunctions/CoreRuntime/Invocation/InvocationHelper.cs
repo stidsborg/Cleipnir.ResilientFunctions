@@ -86,8 +86,7 @@ internal class InvocationHelper<TParam, TReturn>
                 timestamp: utcNowTicks,
                 parent,
                 owner: scheduleAt == null ? owner : null,
-                effects,
-                messages: null
+                effects
             );
 
             var created = storageState != null;

@@ -22,8 +22,7 @@ public interface IFunctionStore
         long timestamp,
         StoredId? parent,
         ReplicaId? owner,
-        IReadOnlyList<StoredEffect>? effects = null,
-        IReadOnlyList<StoredMessage>? messages = null
+        IReadOnlyList<StoredEffect>? effects = null
     );
     
     Task<int> BulkScheduleFunctions(

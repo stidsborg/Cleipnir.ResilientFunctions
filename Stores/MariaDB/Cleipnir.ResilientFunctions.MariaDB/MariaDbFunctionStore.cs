@@ -98,10 +98,9 @@ public class MariaDbFunctionStore : IFunctionStore
         long timestamp,
         StoredId? parent,
         ReplicaId? owner,
-        IReadOnlyList<StoredEffect>? effects = null,
-        IReadOnlyList<StoredMessage>? messages = null)
+        IReadOnlyList<StoredEffect>? effects = null)
     {
-        var session = new SnapshotStorageSession(owner ?? ReplicaId.Empty) 
+        var session = new SnapshotStorageSession(owner ?? ReplicaId.Empty)
             { RowExists = true };
 
         // Serialize effects if present
@@ -113,41 +112,15 @@ public class MariaDbFunctionStore : IFunctionStore
             effectsBytes = session.Serialize();
         }
 
-        if (messages == null || !messages.Any())
-        {
-            await using var conn = await CreateOpenConnection(_connectionString);
-            await using var command = _sqlGenerator
-                .CreateFunction(storedId, humanInstanceId, param, postponeUntil, timestamp, parent, owner, ignoreDuplicate: true, effects: effectsBytes)
-                .ToSqlCommand(conn);
-            var affectedRows = await command.ExecuteNonQueryAsync();
-            if (affectedRows != 1 || owner == null)
-                return null;
+        await using var conn = await CreateOpenConnection(_connectionString);
+        await using var command = _sqlGenerator
+            .CreateFunction(storedId, humanInstanceId, param, postponeUntil, timestamp, parent, owner, ignoreDuplicate: true, effects: effectsBytes)
+            .ToSqlCommand(conn);
+        var affectedRows = await command.ExecuteNonQueryAsync();
+        if (affectedRows != 1 || owner == null)
+            return null;
 
-            return session;
-        }
-        else
-        {
-            var storeCommand = _sqlGenerator.CreateFunction(storedId, humanInstanceId, param, postponeUntil, timestamp, parent, owner, ignoreDuplicate: false, effects: effectsBytes);
-
-            var messagesCommand = _sqlGenerator.AppendMessages(
-                messages.Select(msg => new StoredIdAndMessage(storedId, msg)).ToList()
-            );
-            storeCommand = storeCommand.Merge(messagesCommand);
-
-            await using var conn = await CreateOpenConnection(_connectionString);
-            await using var command = storeCommand.ToSqlCommand(conn);
-
-            try
-            {
-                await command.ExecuteNonQueryAsync();
-            }
-            catch (MySqlException ex) when (ex.Number == 1062)
-            {
-                return null;
-            }
-
-            return owner == null ? null : session;
-        }
+        return session;
     }
 
     public async Task<int> BulkScheduleFunctions(IEnumerable<IdWithParam> functionsWithParam, StoredId? parent)
