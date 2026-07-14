@@ -160,44 +160,6 @@ public class MariaDbFunctionStore : IFunctionStore
         return totalInserted;
     }
     
-    public async Task<StoredFlowWithEffects?> RestartExecution(StoredId storedId, ReplicaId replicaId)
-    {
-        var restartCommand = _sqlGenerator.RestartExecution(storedId, replicaId);
-
-        await using var conn = await CreateOpenConnection(_connectionString);
-        await using var command = restartCommand.ToSqlCommand(conn);
-
-        var reader = await command.ExecuteReaderAsync();
-        if (reader.RecordsAffected != 1)
-            return null;
-
-        var (sf, effectsBytes) = await _sqlGenerator.ReadToStoredFunctionWithEffects(storedId, reader);
-        if (sf?.OwnerId != replicaId)
-            return null;
-
-        // Deserialize effects
-        var session = new SnapshotStorageSession(replicaId)
-        {
-            RowExists = true
-        };
-        var effects = new List<StoredEffect>();
-        if (effectsBytes != null)
-        {
-            var effectsBytesArray = BinaryPacker.Split(effectsBytes);
-            foreach (var effectBytes in effectsBytesArray)
-            {
-                if (effectBytes != null)
-                {
-                    var effect = StoredEffect.Deserialize(effectBytes);
-                    effects.Add(effect);
-                    session.Effects[effect.EffectId] = effect;
-                }
-            }
-        }
-
-        return new StoredFlowWithEffects(sf, effects, session);
-    }
-
     public async Task<Dictionary<StoredId, StoredFlowWithEffects>> RestartExecutions(
         IReadOnlyList<StoredId> storedIds,
         ReplicaId owner)

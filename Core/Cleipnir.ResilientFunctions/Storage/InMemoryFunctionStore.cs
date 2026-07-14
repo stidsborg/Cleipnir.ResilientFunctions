@@ -105,41 +105,6 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         return Task.FromResult(insertedCount);
     }
 
-    public virtual async Task<StoredFlowWithEffects?> RestartExecution(StoredId storedId, ReplicaId owner)
-    {
-        lock (_sync)
-        {
-            if (!_states.ContainsKey(storedId))
-                return null;
-
-            var state = _states[storedId];
-            if (state.Owner != null)
-                return null;
-
-            state.Status = Status.Executing;
-            state.Expires = 0;
-            state.Owner = owner;
-        }
-        var sf = await GetFunction(storedId);
-        var effects = await EffectsStore.GetEffectResults(storedId);
-
-        var session = new SnapshotStorageSession(owner);
-        foreach (var effect in effects)
-            session.Effects[effect.EffectId] = effect;
-
-        session.Version = _effectsStore.GetVersion(storedId);
-        session.RowExists = effects.Any();
-
-        return
-            sf == null
-                ? null
-                : new StoredFlowWithEffects(
-                    sf,
-                    effects,
-                    session
-                );
-    }
-
     public virtual async Task<Dictionary<StoredId, StoredFlowWithEffects>> RestartExecutions(
         IReadOnlyList<StoredId> storedIds,
         ReplicaId owner)

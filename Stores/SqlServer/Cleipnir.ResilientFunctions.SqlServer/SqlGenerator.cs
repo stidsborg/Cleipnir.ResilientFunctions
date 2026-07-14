@@ -381,34 +381,6 @@ public class SqlGenerator(string tablePrefix)
         }
     }
 
-    private string? _restartExecutionSql;
-    public StoreCommand RestartExecution(StoredId storedId, ReplicaId replicaId)
-    {
-        _restartExecutionSql ??= @$"
-            UPDATE {tablePrefix}
-            SET Status = {(int)Status.Executing},
-                Expires = 0,
-                Owner = @Owner
-            OUTPUT inserted.Id,
-                   inserted.ParamJson,
-                   inserted.Status,
-                   inserted.ResultJson,
-                   inserted.ExceptionJson,
-                   inserted.Expires,
-                   inserted.Timestamp,
-                   inserted.HumanInstanceId,
-                   inserted.Parent,
-                   inserted.Owner,
-                   inserted.Effects
-            WHERE Id = @Id AND Owner IS NULL;";
-
-        var storeCommand = StoreCommand.Create(_restartExecutionSql);
-        storeCommand.AddParameter("@Owner", replicaId.AsGuid);
-        storeCommand.AddParameter("@Id", storedId.AsGuid);
-
-        return storeCommand;
-    }
-
     private string? _restartExecutionsSql;
     public StoreCommand RestartExecutions(IReadOnlyList<StoredId> storedIds, ReplicaId replicaId)
     {
@@ -479,48 +451,6 @@ public class SqlGenerator(string tablePrefix)
         return null;
     }
 
-    public (StoredFlow?, byte[]?) ReadToStoredFlowWithEffects(StoredId storedId, SqlDataReader reader)
-    {
-        while (reader.HasRows)
-        {
-            while (reader.Read())
-            {
-                var id = reader.GetGuid(0).ToStoredId();
-                var parameter = reader.IsDBNull(1) ? null : (byte[])reader.GetValue(1);
-                var status = (Status)reader.GetInt32(2);
-                var result = reader.IsDBNull(3) ? null : (byte[])reader.GetValue(3);
-                var exceptionJson = reader.IsDBNull(4) ? null : reader.GetString(4);
-                var storedException = exceptionJson == null
-                    ? null
-                    : JsonSerializer.Deserialize<StoredException>(exceptionJson);
-                var expires = reader.GetInt64(5);
-                var timestamp = reader.GetInt64(6);
-                var humanInstanceId = reader.GetString(7);
-                var parentId = reader.IsDBNull(8) ? null : reader.GetGuid(8).ToStoredId();
-                var ownerId = reader.IsDBNull(9) ? null : reader.GetGuid(9).ToReplicaId();
-                var hasEffects = !reader.IsDBNull(10);
-                var effectsBytes = hasEffects ? (byte[])reader.GetValue(10) : null;
-
-                var storedFlow = new StoredFlow(
-                    id,
-                    humanInstanceId,
-                    parameter,
-                    status,
-                    storedException,
-                    expires,
-                    timestamp,
-                    parentId,
-                    ownerId,
-                    storedId.Type
-                );
-
-                return (storedFlow, effectsBytes);
-            }
-        }
-
-        return (null, null);
-    }
-    
     public StoreCommand? AppendMessages(IReadOnlyList<StoredIdAndMessage> messages, string prefix = "")
     {
         if (messages.Count == 0)

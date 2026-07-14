@@ -232,40 +232,6 @@ public class SqlServerFunctionStore : IFunctionStore
         }
     }
     
-    public async Task<StoredFlowWithEffects?> RestartExecution(StoredId storedId, ReplicaId replicaId)
-    {
-        var restartCommand = _sqlGenerator.RestartExecution(storedId, replicaId);
-
-        await using var conn = await _connFunc();
-        await using var command = restartCommand.ToSqlCommand(conn);
-
-        await using var reader = await command.ExecuteReaderAsync();
-        var (sf, effectsBytes) = _sqlGenerator.ReadToStoredFlowWithEffects(storedId, reader);
-        if (sf?.OwnerId != replicaId)
-            return null;
-
-        var session = new SnapshotStorageSession(replicaId);
-        var effects = new List<StoredEffect>();
-        if (effectsBytes != null)
-        {
-            var effectsBytesArray = BinaryPacker.Split(effectsBytes);
-            foreach (var effectBytes in effectsBytesArray)
-            {
-                if (effectBytes == null)
-                    throw new SerializationException("Unable to deserialize effect");
-
-                var storedEffect = StoredEffect.Deserialize(effectBytes);
-                effects.Add(storedEffect);
-                session.Effects[storedEffect.EffectId] = storedEffect;
-            }
-
-            session.RowExists = true;
-            session.Version = 0;
-        }
-
-        return new StoredFlowWithEffects(sf, effects, session);
-    }
-
     public async Task<Dictionary<StoredId, StoredFlowWithEffects>> RestartExecutions(
         IReadOnlyList<StoredId> storedIds,
         ReplicaId owner)

@@ -366,7 +366,7 @@ public abstract class StoreTests
             functionId,
             "humanInstanceId",
             "hello world".ToJson().ToUtf8Bytes(),
-            postponeUntil: null,
+            postponeUntil: 0,
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: null
@@ -629,7 +629,7 @@ public abstract class StoreTests
             functionId,
             "humanInstanceId",
             storedParameter.ToUtf8Bytes(),
-            postponeUntil: null,
+            postponeUntil: 0,
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: null
@@ -1376,7 +1376,7 @@ public abstract class StoreTests
             functionId,
             "humanInstanceId",
             paramJson.ToUtf8Bytes(),
-            postponeUntil: null,
+            postponeUntil: 0,
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: null
@@ -1435,7 +1435,7 @@ public abstract class StoreTests
             functionId,
             "humanInstanceId",
             paramJson.ToUtf8Bytes(),
-            postponeUntil: null,
+            postponeUntil: 0,
             timestamp: DateTime.UtcNow.Ticks,
             parent: null,
             owner: null

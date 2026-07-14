@@ -188,29 +188,6 @@ public class PostgreSqlFunctionStore : IFunctionStore
         return totalInserted;
     }
 
-    public async Task<StoredFlowWithEffects?> RestartExecution(StoredId storedId, ReplicaId replicaId)
-    {
-        // The claim UPDATE returns the effects column too, so claim and effect snapshot are a single atomic
-        // statement - nothing can interleave between claiming the flow and reading its effects.
-        var restartCommand = _sqlGenerator.RestartExecution(storedId, replicaId);
-
-        await using var conn = await CreateConnection();
-        await using var command = restartCommand.ToNpgsqlCommand(conn);
-
-        await using var reader = await command.ExecuteReaderAsync();
-        var sf = await _sqlGenerator.ReadFunction(storedId, reader);
-        if (sf == null)
-            return null;
-
-        // ReadFunction leaves the reader positioned on the returned row - the effects column is at ordinal 10.
-        var (effects, session) = ReadEffectsColumn(
-            await reader.IsDBNullAsync(10) ? null : (byte[])reader.GetValue(10),
-            replicaId
-        );
-
-        return new StoredFlowWithEffects(sf, effects, session);
-    }
-
     private static (List<StoredEffect> Effects, SnapshotStorageSession Session) ReadEffectsColumn(byte[]? effectsBytes, ReplicaId owner)
     {
         var effects = new List<StoredEffect>();

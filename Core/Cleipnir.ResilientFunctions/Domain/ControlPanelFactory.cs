@@ -10,19 +10,17 @@ public class ControlPanelFactory
 {
     private readonly FlowType _flowType;
     private readonly StoredType _storedType;
-    private readonly Invoker<Unit, Unit> _invoker;
     private readonly InvocationHelper<Unit, Unit> _invocationHelper;
     private readonly UtcNow _utcNow;
 
-    internal ControlPanelFactory(FlowType flowType, StoredType storedType, Invoker<Unit, Unit> invoker, InvocationHelper<Unit, Unit> invocationHelper, UtcNow utcNow)
+    internal ControlPanelFactory(FlowType flowType, StoredType storedType, InvocationHelper<Unit, Unit> invocationHelper, UtcNow utcNow)
     {
-        _invoker = invoker;
         _invocationHelper = invocationHelper;
         _flowType = flowType;
         _storedType = storedType;
         _utcNow = utcNow;
     }
-    
+
     public async Task<ControlPanel?> Create(FlowInstance flowInstance)
     {
         var flowId = new FlowId(_flowType, flowInstance);
@@ -33,7 +31,6 @@ public class ControlPanelFactory
 
         var existingEffects = await _invocationHelper.CreateExistingEffects(flowId);
         return new ControlPanel(
-            _invoker,
             _invocationHelper,
             flowId,
             storedId,
@@ -53,19 +50,17 @@ public class ControlPanelFactory<TParam> where TParam : notnull
 {
     private readonly FlowType _flowType;
     private readonly StoredType _storedType;
-    private readonly Invoker<TParam, Unit> _invoker;
     private readonly InvocationHelper<TParam, Unit> _invocationHelper;
     private readonly UtcNow _utcNow;
 
-    internal ControlPanelFactory(FlowType flowType, StoredType storedType, Invoker<TParam, Unit> invoker, InvocationHelper<TParam, Unit> invocationHelper, UtcNow utcNow)
+    internal ControlPanelFactory(FlowType flowType, StoredType storedType, InvocationHelper<TParam, Unit> invocationHelper, UtcNow utcNow)
     {
-        _invoker = invoker;
         _invocationHelper = invocationHelper;
         _flowType = flowType;
         _storedType = storedType;
         _utcNow = utcNow;
     }
-    
+
     public async Task<ControlPanel<TParam>?> Create(FlowInstance flowInstance)
     {
         var flowId = new FlowId(_flowType, flowInstance);
@@ -76,7 +71,6 @@ public class ControlPanelFactory<TParam> where TParam : notnull
 
         var existingEffects = await _invocationHelper.CreateExistingEffects(flowId);
         return new ControlPanel<TParam>(
-            _invoker,
             _invocationHelper,
             flowId,
             storedId,
@@ -96,13 +90,11 @@ public class ControlPanelFactory<TParam, TReturn> where TParam : notnull
 {
     private readonly FlowType _flowType;
     private readonly StoredType _storedType;
-    private readonly Invoker<TParam, TReturn> _invoker;
     private readonly InvocationHelper<TParam, TReturn> _invocationHelper;
     private readonly UtcNow _utcNow;
 
-    internal ControlPanelFactory(FlowType flowType, StoredType storedType, Invoker<TParam, TReturn> invoker, InvocationHelper<TParam, TReturn> invocationHelper, UtcNow utcNow)
+    internal ControlPanelFactory(FlowType flowType, StoredType storedType, InvocationHelper<TParam, TReturn> invocationHelper, UtcNow utcNow)
     {
-        _invoker = invoker;
         _invocationHelper = invocationHelper;
         _flowType = flowType;
         _storedType = storedType;
@@ -119,7 +111,6 @@ public class ControlPanelFactory<TParam, TReturn> where TParam : notnull
 
         var existingEffects = await _invocationHelper.CreateExistingEffects(flowId);
         return new ControlPanel<TParam, TReturn>(
-            _invoker,
             _invocationHelper,
             flowId,
             storedId,
