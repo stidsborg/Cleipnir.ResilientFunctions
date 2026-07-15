@@ -16,7 +16,7 @@ internal class EffectResults
     private readonly FlowId _flowId;
     private readonly StoredId _storedId;
     private readonly IReadOnlyList<StoredEffect> _existingEffects;
-    private readonly IEffectsStore _effectsStore;
+    private readonly IFunctionStore _functionStore;
     private readonly ISerializer _serializer;
     private readonly IStorageSession? _storageSession;
     private readonly bool _clearChildren;
@@ -41,7 +41,7 @@ internal class EffectResults
         FlowId flowId,
         StoredId storedId,
         IReadOnlyList<StoredEffect> existingEffects,
-        IEffectsStore effectsStore,
+        IFunctionStore functionStore,
         ISerializer serializer,
         IStorageSession? storageSession,
         bool clearChildren)
@@ -49,7 +49,7 @@ internal class EffectResults
         _flowId = flowId;
         _storedId = storedId;
         _existingEffects = existingEffects;
-        _effectsStore = effectsStore;
+        _functionStore = functionStore;
         _serializer = serializer;
         _storageSession = storageSession;
         _clearChildren = clearChildren;
@@ -508,7 +508,7 @@ internal class EffectResults
                     )
                 ).ToList();
             
-            await _effectsStore.SetEffectResults(_storedId, changes, _storageSession);
+            await _functionStore.SetEffectResults(_storedId, changes, _storageSession);
             
             lock (_sync)
                 foreach (var pendingChange in pendingChanges)

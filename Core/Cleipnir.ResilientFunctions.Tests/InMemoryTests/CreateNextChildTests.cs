@@ -22,7 +22,7 @@ public class CreateNextChildTests
             TestFlowId.Create(),
             storedId,
             existingEffects,
-            new InMemoryFunctionStore().EffectsStore,
+            new InMemoryFunctionStore(),
             DefaultSerializer.Instance,
             storageSession: null,
             clearChildren: true

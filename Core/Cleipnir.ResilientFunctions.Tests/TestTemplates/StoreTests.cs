@@ -844,7 +844,7 @@ public abstract class StoreTests
         var functionId = TestStoredId.Create();
         
         var store = await storeTask;
-        var effectsStore = store.EffectsStore;
+        var effectsStore = store;
         var session = await store.CreateFunction(
             functionId,
             "humanInstanceId",
@@ -1215,7 +1215,7 @@ public abstract class StoreTests
             new StoredIdAndMessage(storedId, message2)
         ]);
 
-        var effectResults = await store.EffectsStore.GetEffectResults(storedId);
+        var effectResults = await store.GetEffectResults(storedId);
         effectResults.Count.ShouldBe(2);
         var effectResult1 = effectResults.Single(r => r.EffectId.Id == "SomeEffect1".GetHashCode());
         effectResult1.EffectId.ShouldBe(new EffectId(["SomeEffect1".GetHashCode()]));
@@ -1288,7 +1288,7 @@ public abstract class StoreTests
             new StoredIdAndMessage(storedId, message2)
         ]);
 
-        var effectResults = await store.EffectsStore.GetEffectResults(storedId);
+        var effectResults = await store.GetEffectResults(storedId);
         effectResults.Count.ShouldBe(0);
 
         var messages = await store.MessageStore.GetMessages(storedId);
@@ -1353,7 +1353,7 @@ public abstract class StoreTests
         );
         session.ShouldBeNull();
 
-        var effectResults = await store.EffectsStore.GetEffectResults(storedId);
+        var effectResults = await store.GetEffectResults(storedId);
         effectResults.Count.ShouldBe(2);
         var effectResult1 = effectResults.Single(r => r.EffectId.Id == "SomeEffect1".GetHashCode());
         effectResult1.EffectId.ShouldBe(new EffectId(["SomeEffect1".GetHashCode()]));
@@ -1407,7 +1407,7 @@ public abstract class StoreTests
             )
         );
 
-        await store.EffectsStore.SetEffectResult(
+        await store.SetEffectResult(
             functionId,
             new StoredEffect(
                 "Test".GetHashCode().ToEffectId(),

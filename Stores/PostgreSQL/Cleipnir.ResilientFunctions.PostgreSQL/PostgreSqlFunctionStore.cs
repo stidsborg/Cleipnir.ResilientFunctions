@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Storage;
@@ -24,8 +25,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
     private readonly PostgreSqlMessageStore _messageStore;
     public IMessageStore MessageStore => _messageStore;
     
-    private readonly PostgreSqlEffectsStore _effectsStore;
-    public IEffectsStore EffectsStore => _effectsStore;
+    private readonly PostgresCommandExecutor _commandExecutor;
 
     private readonly PostgreSqlDbReplicaStore _replicaStore;
     public IReplicaStore ReplicaStore => _replicaStore;
@@ -39,7 +39,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         _sqlGenerator = new SqlGenerator(_tableName);
 
         _messageStore = new PostgreSqlMessageStore(connectionString, _sqlGenerator, _tableName);
-        _effectsStore = new PostgreSqlEffectsStore(connectionString, _tableName);
+        _commandExecutor = new PostgresCommandExecutor(connectionString);
         _typeStore = new PostgreSqlTypeStore(connectionString, _tableName);
         _replicaStore = new PostgreSqlDbReplicaStore(connectionString, _tableName);
     }
@@ -58,7 +58,6 @@ public class PostgreSqlFunctionStore : IFunctionStore
             return;
 
         await _messageStore.Initialize();
-        await _effectsStore.Initialize();
         await _typeStore.Initialize();
         await _replicaStore.Initialize();
         await using var conn = await CreateConnection();
@@ -89,7 +88,6 @@ public class PostgreSqlFunctionStore : IFunctionStore
     public async Task TruncateTables()
     {
         await _messageStore.TruncateTable();
-        await _effectsStore.Truncate();
         await _typeStore.Truncate();
         await _replicaStore.Truncate();
 
@@ -598,7 +596,6 @@ public class PostgreSqlFunctionStore : IFunctionStore
     public async Task<bool> DeleteFunction(StoredId storedId)
     {
         await _messageStore.Truncate(storedId);
-        await _effectsStore.Remove(storedId);
 
         return await DeleteStoredFunction(storedId);
     }
@@ -635,6 +632,54 @@ public class PostgreSqlFunctionStore : IFunctionStore
         }
 
         return results;
+    }
+
+    // Effects live in the 'effects' column on the flows row - writes are guarded by the flow's owner column,
+    // so there is no separate table or version machinery.
+    public async Task SetEffectResults(StoredId storedId, IReadOnlyList<StoredEffectChange> changes, IStorageSession? session)
+    {
+        if (changes.Count == 0)
+            return;
+
+        var owner = default(ReplicaId);
+        var existingEffects = new Dictionary<EffectId, StoredEffect>();
+        var snapshotSession = session as SnapshotStorageSession;
+        if (snapshotSession != null)
+        {
+            existingEffects = snapshotSession.Effects;
+            owner = snapshotSession.ReplicaId;
+        }
+        else
+        {
+            // Single read gets both the existing effects and the owner to guard the write on.
+            var storedFlow = await GetFunction(storedId);
+            foreach (var e in storedFlow?.Effects ?? [])
+                existingEffects[e.EffectId] = e;
+            owner = storedFlow?.OwnerId;
+        }
+
+        foreach (var change in changes)
+            if (change.Operation == CrudOperation.Delete)
+                existingEffects.Remove(change.EffectId);
+            else
+                existingEffects[change.EffectId] = change.StoredEffect!;
+
+        var content = SnapshotStorageSession.Serialize(existingEffects);
+
+        var command =
+            owner != null
+                ? StoreCommand.Create(
+                    $"UPDATE {_tableName} SET effects = $1 WHERE id = $2 AND owner = $3",
+                    [content, storedId.AsGuid, owner.AsGuid]
+                )
+                : StoreCommand.Create(
+                    $"UPDATE {_tableName} SET effects = $1 WHERE id = $2 AND owner IS NULL",
+                    [content, storedId.AsGuid]
+                );
+
+        var affectedRows = await _commandExecutor.ExecuteNonQuery(command);
+        if (affectedRows == 0)
+            throw UnexpectedStateException.ConcurrentModification(storedId);
     }
 
     private string? _deleteFunctionSql;

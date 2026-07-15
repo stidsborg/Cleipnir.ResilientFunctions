@@ -27,9 +27,6 @@ public class EffectStoreTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.
     public override Task DeleteFunctionIdDeletesAllRelatedEffects()
         => DeleteFunctionIdDeletesAllRelatedEffects(FunctionStoreFactory.Create());
 
-    [TestMethod]
-    public override Task TruncateDeletesAllEffects()
-        => TruncateDeletesAllEffects(FunctionStoreFactory.Create());
     
     [TestMethod]
     public override Task BulkInsertTest()

@@ -26,7 +26,7 @@ public abstract class EffectStoreTests
             parent: null,
             owner: ReplicaId.NewId()
         );
-        var store = functionStore.EffectsStore;
+        var store = functionStore;
         
         var storedEffect1 = new StoredEffect(
             1.ToEffectId(),
@@ -85,7 +85,7 @@ public abstract class EffectStoreTests
             parent: null,
             owner: ReplicaId.NewId()
         );
-        var store = functionStore.EffectsStore;
+        var store = functionStore;
         var effect = new StoredEffect(
             1.ToEffectId(),
             WorkStatus.Started,
@@ -127,7 +127,7 @@ public abstract class EffectStoreTests
             parent: null,
             owner: ReplicaId.NewId()
         );
-        var store = functionStore.EffectsStore;
+        var store = functionStore;
         var storedException = new StoredException(
             "Some Exception Message",
             "SomeStackTrace",
@@ -169,7 +169,7 @@ public abstract class EffectStoreTests
             parent: null,
             owner: ReplicaId.NewId()
         );
-        var store = functionStore.EffectsStore;
+        var store = functionStore;
         var storedEffect1 = new StoredEffect(
             1.ToEffectId(),
             WorkStatus.Started,
@@ -233,7 +233,7 @@ public abstract class EffectStoreTests
             parent: null,
             owner: ReplicaId.NewId()
         );
-        var store = functionStore.EffectsStore;
+        var store = functionStore;
 
         var storedEffect1 = new StoredEffect(
             1.ToEffectId(),
@@ -259,7 +259,7 @@ public abstract class EffectStoreTests
             .SelectAsync(sas => sas.Count() == 2)
             .ShouldBeTrueAsync();
 
-        await store.Remove(functionId);
+        await store.DeleteFunction(functionId);
 
         await store
             .GetEffectResults(functionId)
@@ -271,65 +271,7 @@ public abstract class EffectStoreTests
             .SelectAsync(e => e.Any())
             .ShouldBeTrueAsync();
     }
-    
-    public abstract Task TruncateDeletesAllEffects();
-    protected async Task TruncateDeletesAllEffects(Task<IFunctionStore> storeTask)
-    {
-        var functionId = TestStoredId.Create();
-        var otherFunctionId = TestStoredId.Create();
-        var functionStore = await storeTask;
-        await functionStore.CreateFunction(
-            functionId,
-            "HumanInstanceId",
-            param: null,
-            postponeUntil: null,
-            timestamp: 0,
-            parent: null,
-            owner: ReplicaId.NewId()
-        );
-        await functionStore.CreateFunction(
-            otherFunctionId,
-            "OtherInstanceId",
-            param: null,
-            postponeUntil: null,
-            timestamp: 0,
-            parent: null,
-            owner: ReplicaId.NewId()
-        );
-        var store = functionStore.EffectsStore;
 
-        var storedEffect1 = new StoredEffect(
-            1.ToEffectId(),
-            WorkStatus.Started,
-            Result: null,
-            StoredException: null,
-            Alias: null
-        );
-        var storedEffect2 = new StoredEffect(
-            2.ToEffectId(),
-            WorkStatus.Completed,
-            Result: null,
-            StoredException: null,
-            Alias: null
-        );
-
-        await store.SetEffectResult(functionId, storedEffect1.ToStoredChange(functionId, Insert), session: null);
-        await store.SetEffectResult(functionId, storedEffect2.ToStoredChange(functionId, Insert), session: null);
-        await store.SetEffectResult(otherFunctionId, storedEffect1.ToStoredChange(otherFunctionId, Insert), session: null);
-
-        await store.Truncate();
-
-        await store
-            .GetEffectResults(functionId)
-            .SelectAsync(e => e.Any())
-            .ShouldBeFalseAsync();
-
-        await store
-            .GetEffectResults(otherFunctionId)
-            .SelectAsync(e => e.Any())
-            .ShouldBeFalseAsync();
-    }
-    
     public abstract Task BulkInsertTest();
     protected async Task BulkInsertTest(Task<IFunctionStore> storeTask)
     {
@@ -344,7 +286,7 @@ public abstract class EffectStoreTests
             parent: null,
             owner: ReplicaId.NewId()
         );
-        var store = functionStore.EffectsStore;
+        var store = functionStore;
         var storedEffect1 = new StoredEffect(
             1.ToEffectId(),
             WorkStatus.Started,
@@ -388,7 +330,7 @@ public abstract class EffectStoreTests
             parent: null,
             owner: ReplicaId.NewId()
         );
-        var store = functionStore.EffectsStore;
+        var store = functionStore;
         var storedEffect1 = new StoredEffect(
             1.ToEffectId(),
             WorkStatus.Started,
@@ -442,7 +384,7 @@ public abstract class EffectStoreTests
             parent: null,
             owner: ReplicaId.NewId()
         );
-        var store = functionStore.EffectsStore;
+        var store = functionStore;
         var storedEffect1 = new StoredEffect(
             1.ToEffectId(),
             WorkStatus.Started,
@@ -490,7 +432,7 @@ public abstract class EffectStoreTests
             parent: null,
             owner: ReplicaId.NewId()
         );
-        var store = functionStore.EffectsStore;
+        var store = functionStore;
         await store.SetEffectResults(
             storedId,
             changes: [],
@@ -522,7 +464,7 @@ public abstract class EffectStoreTests
             parent: null,
             owner: ReplicaId.NewId()
         );
-        var store = functionStore.EffectsStore;
+        var store = functionStore;
         var storedEffect1 = new StoredEffect(
             1.ToEffectId(),
             WorkStatus.Started,
@@ -560,7 +502,7 @@ public abstract class EffectStoreTests
     protected async Task OverwriteExistingEffectWorks(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var effectStore = store.EffectsStore;
+        var effectStore = store;
         var storedId = TestStoredId.Create();
         var storageSession = await store.CreateFunction(
             storedId,
@@ -600,7 +542,7 @@ public abstract class EffectStoreTests
     protected async Task StoreCanHandleMultipleEffectsWithSameIdOnDifferentSessions(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var effectStore = store.EffectsStore;
+        var effectStore = store;
         var storedId = TestStoredId.Create();
         var crashingReplicaId = ReplicaId.NewId();
         var storageSession1 = await store.CreateFunction(
@@ -664,7 +606,7 @@ public abstract class EffectStoreTests
     protected async Task MultipleSequentialUpdatesWithoutRefresh(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var effectStore = store.EffectsStore;
+        var effectStore = store;
         var storedId = TestStoredId.Create();
 
         // Create initial session
@@ -692,7 +634,7 @@ public abstract class EffectStoreTests
     protected async Task StoreHandlesLargeNumberOfEffects(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var effectStore = store.EffectsStore;
+        var effectStore = store;
         var storedId = TestStoredId.Create();
 
         // Create initial session
@@ -736,7 +678,7 @@ public abstract class EffectStoreTests
             parent: null,
             owner: ReplicaId.NewId()
         );
-        var store = functionStore.EffectsStore;
+        var store = functionStore;
 
         // Create effects with various edge cases
         var effectWithNullResult = new StoredEffect(
@@ -805,7 +747,7 @@ public abstract class EffectStoreTests
     protected async Task MixedInsertUpdateDeleteInSequence(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        var effectStore = store.EffectsStore;
+        var effectStore = store;
         var storedId = TestStoredId.Create();
 
         // Create initial session
@@ -863,7 +805,7 @@ public abstract class EffectStoreTests
             parent: null,
             owner: ReplicaId.NewId()
         );
-        var store = functionStore.EffectsStore;
+        var store = functionStore;
 
         // Create effect with alias
         var effectWithAlias = new StoredEffect(

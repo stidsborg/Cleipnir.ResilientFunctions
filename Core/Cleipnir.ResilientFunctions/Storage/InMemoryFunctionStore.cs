@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Storage.Session;
@@ -19,16 +20,12 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
 
     public ITypeStore TypeStore { get; } = new InMemoryTypeStore();
     public IMessageStore MessageStore => this;
-    private readonly InMemoryEffectsStore _effectsStore = new();
-    public IEffectsStore EffectsStore => _effectsStore;
-
-    public InMemoryFunctionStore()
-        => _effectsStore.OwnerLookup = storedId =>
-        {
-            lock (_sync)
-                return _states.TryGetValue(storedId, out var state) ? state.Owner : null;
-        };
     public IReplicaStore ReplicaStore { get; } = new InMemoryReplicaStore();
+
+    // Effects live per flow, guarded by the flow's owner and an optimistic version - both under the same _sync lock
+    // as _states, so there is no cross-object lock ordering (the former OwnerLookup callback) to manage.
+    private readonly Dictionary<StoredId, Dictionary<EffectId, StoredEffect>> _effects = new();
+    private readonly Dictionary<StoredId, int> _effectVersions = new();
 
     public Task Initialize() => Task.CompletedTask;
 
@@ -68,10 +65,11 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
             var session = owner == null ? null : new SnapshotStorageSession(owner);
 
             if (effects?.Any() ?? false)
-                _effectsStore
-                    .SetEffectResults(storedId, effects.Select(e => new StoredEffectChange(storedId, e.EffectId, Operation: CrudOperation.Insert, e)).ToList(), session: session)
-                    .GetAwaiter()
-                    .GetResult();
+                SetEffectResultsUnderLock(
+                    storedId,
+                    effects.Select(e => new StoredEffectChange(storedId, e.EffectId, CrudOperation.Insert, e)).ToList(),
+                    session
+                );
 
             return Task.FromResult<IStorageSession?>(session);
         }
@@ -137,8 +135,6 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
             }
         }
 
-        var effectsDict = await EffectsStore.GetEffectResults(storedIds);
-
         // Build result dictionary - only for restarted flows
         var result = new Dictionary<StoredId, StoredFlowWithEffects>();
         foreach (var storedId in restartedIds)
@@ -146,15 +142,13 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
             var sf = await GetFunction(storedId);
             if (sf == null) continue;
 
-            var effects = effectsDict.TryGetValue(storedId, out var effs)
-                ? effs
-                : new List<StoredEffect>();
+            var effects = sf.Effects ?? new List<StoredEffect>();
 
             var session = new SnapshotStorageSession(owner);
             foreach (var effect in effects)
                 session.Effects[effect.EffectId] = effect;
 
-            session.Version = _effectsStore.GetVersion(storedId);
+            session.Version = GetEffectVersion(storedId);
             session.RowExists = effects.Any();
 
             result[storedId] = new StoredFlowWithEffects(sf, effects, session);
@@ -313,17 +307,19 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         return toReturn;
     }
 
-    public virtual async Task<StoredFlow?> GetFunction(StoredId storedId)
+    public virtual Task<StoredFlow?> GetFunction(StoredId storedId)
     {
-        StoredFlow flow;
         lock (_sync)
         {
             if (!_states.ContainsKey(storedId))
-                return null;
+                return Task.FromResult<StoredFlow?>(null);
 
             var state = _states[storedId];
+            var effects = _effects.TryGetValue(storedId, out var effs)
+                ? effs.Values.ToList()
+                : new List<StoredEffect>();
 
-            flow = new StoredFlow(
+            var flow = new StoredFlow(
                 storedId,
                 state.HumanInstanceId,
                 state.Param,
@@ -333,12 +329,11 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
                 state.Timestamp,
                 state.Parent,
                 state.Owner,
-                storedId.Type
+                storedId.Type,
+                effects
             );
+            return Task.FromResult<StoredFlow?>(flow);
         }
-
-        var effects = await EffectsStore.GetEffectResults(storedId);
-        return flow with { Effects = effects };
     }
 
     public Task<IReadOnlyList<StoredId>> GetInstances(StoredType storedType, Status status)
@@ -380,7 +375,8 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         lock (_sync)
         {
             _messages.Remove(storedId);
-            _effectsStore.Remove(storedId);
+            _effects.Remove(storedId);
+            _effectVersions.Remove(storedId);
 
             return _states.Remove(storedId).ToTask();
         }
@@ -401,6 +397,62 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
 
             return results.CastTo<IReadOnlyDictionary<StoredId, byte[]?>>().ToTask();
         }
+    }
+
+    public Task SetEffectResults(StoredId storedId, IReadOnlyList<StoredEffectChange> changes, IStorageSession? session)
+    {
+        if (changes.Count == 0)
+            return Task.CompletedTask;
+
+        lock (_sync)
+            SetEffectResultsUnderLock(storedId, changes, session as SnapshotStorageSession);
+
+        return Task.CompletedTask;
+    }
+
+    // Assumes _sync is already held by the caller (public SetEffectResults and CreateFunction both hold it).
+    private void SetEffectResultsUnderLock(StoredId storedId, IReadOnlyList<StoredEffectChange> changes, SnapshotStorageSession? storageSession)
+    {
+        // A null-replica session demands the flow is unowned - the guard for writing to a completed flow's effects.
+        if (storageSession is { ReplicaId: null } &&
+            _states.TryGetValue(storedId, out var ownerState) && ownerState.Owner is not null)
+            throw UnexpectedStateException.ConcurrentModification(storedId);
+
+        if (storageSession is { RowExists: true } && storageSession.Version != SnapshotStorageSession.NoVersionCheck)
+            if (_effectVersions.ContainsKey(storedId) && storageSession.Version != _effectVersions[storedId])
+                return;
+
+        if (storageSession is { RowExists: false } && _effects.ContainsKey(storedId))
+            return;
+
+        if (!_effects.ContainsKey(storedId))
+        {
+            _effects[storedId] = new Dictionary<EffectId, StoredEffect>();
+            _effectVersions[storedId] = 0;
+        }
+
+        foreach (var change in changes.Where(c => c.Operation != CrudOperation.Delete))
+            _effects[storedId][change.EffectId] = change.StoredEffect!;
+        foreach (var change in changes.Where(c => c.Operation == CrudOperation.Delete))
+            _effects[storedId].Remove(change.EffectId);
+
+        _effectVersions[storedId]++;
+        if (storageSession != null)
+        {
+            storageSession.Version++;
+            storageSession.RowExists = true;
+            foreach (var change in changes)
+                if (change.Operation == CrudOperation.Delete)
+                    storageSession.Effects.Remove(change.EffectId);
+                else
+                    storageSession.Effects[change.EffectId] = change.StoredEffect!;
+        }
+    }
+
+    private int GetEffectVersion(StoredId storedId)
+    {
+        lock (_sync)
+            return _effectVersions.GetValueOrDefault(storedId, 0);
     }
 
     private class InnerState

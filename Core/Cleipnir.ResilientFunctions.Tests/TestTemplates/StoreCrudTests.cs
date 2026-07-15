@@ -170,12 +170,12 @@ public abstract class StoreCrudTests
         );
         session.ShouldBeNull();
 
-        await store.EffectsStore.SetEffectResult(
+        await store.SetEffectResult(
             storedId,
             StoredEffect.CreateCompleted(1.ToEffectId(), "SomeStateJson".ToUtf8Bytes(), alias: null).ToStoredChange(storedId, Insert),
             session: null
         );
-        await store.EffectsStore.SetEffectResult(
+        await store.SetEffectResult(
             storedId,
             new StoredEffect(2.ToEffectId(), WorkStatus.Completed, Result: null, StoredException: null, Alias: null).ToStoredChange(storedId, Insert),
             session: null
@@ -185,7 +185,7 @@ public abstract class StoreCrudTests
         await store.DeleteFunction(storedId);
 
         await store.GetFunction(storedId).ShouldBeNullAsync();
-        await store.EffectsStore.GetEffectResults(storedId).ShouldBeEmptyAsync();
+        await store.GetEffectResults(storedId).ShouldBeEmptyAsync();
         await store.MessageStore.GetMessages(storedId).ShouldBeEmptyAsync();
     }
     
@@ -218,12 +218,12 @@ public abstract class StoreCrudTests
         before.Effects.ShouldNotBeNull();
         before.Effects!.ShouldBeEmpty();
 
-        await store.EffectsStore.SetEffectResult(
+        await store.SetEffectResult(
             storedId,
             StoredEffect.CreateCompleted(1.ToEffectId(), "SomeStateJson".ToUtf8Bytes(), alias: null).ToStoredChange(storedId, Insert),
             session: null
         );
-        await store.EffectsStore.SetEffectResult(
+        await store.SetEffectResult(
             storedId,
             StoredEffect.CreateStarted(2.ToEffectId(), alias: "some-alias").ToStoredChange(storedId, Insert),
             session: null

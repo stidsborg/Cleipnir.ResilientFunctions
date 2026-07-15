@@ -18,27 +18,16 @@ public class CrashableFunctionStore : IFunctionStore
     public ITypeStore TypeStore => _crashed ? throw new TimeoutException() : _inner.TypeStore;
     public IMessageStore MessageStore => _crashed ? throw new TimeoutException() : _inner.MessageStore;
 
-    private readonly CrashableEffectStore _crashableEffectStore;
-    public IEffectsStore EffectsStore => _crashableEffectStore;
     public IReplicaStore ReplicaStore => _crashed ? throw new TimeoutException() : _inner.ReplicaStore;
 
     public CrashableFunctionStore(IFunctionStore inner)
     {
         _inner = inner;
-        _crashableEffectStore = new CrashableEffectStore(inner.EffectsStore);
     }
 
-    public void Crash()
-    {
-        _crashed = true;
-        _crashableEffectStore.Crashed = true;
-    }
+    public void Crash() => _crashed = true;
 
-    public void FixCrash()
-    {
-        _crashed = false;
-        _crashableEffectStore.Crashed = false;
-    } 
+    public void FixCrash() => _crashed = false;
 
     public Task Initialize() => Task.CompletedTask;
 
@@ -157,6 +146,11 @@ public class CrashableFunctionStore : IFunctionStore
         => _crashed
             ? Task.FromException<IReadOnlyDictionary<StoredId, byte[]?>>(new TimeoutException())
             : _inner.GetResults(storedIds);
+
+    public Task SetEffectResults(StoredId storedId, IReadOnlyList<StoredEffectChange> changes, IStorageSession? session)
+        => _crashed
+            ? Task.FromException(new TimeoutException())
+            : _inner.SetEffectResults(storedId, changes, session);
 
     public IFunctionStore WithPrefix(string prefix) => _inner.WithPrefix(prefix);
 }

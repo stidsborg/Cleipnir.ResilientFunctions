@@ -38,7 +38,7 @@ public class PrintEffectsTests
             TestFlowId.Create(),
             storedId,
             existingEffects,
-            new InMemoryFunctionStore().EffectsStore,
+            new InMemoryFunctionStore(),
             DefaultSerializer.Instance,
             storageSession: null,
             clearChildren: true
@@ -70,7 +70,7 @@ public class PrintEffectsTests
             TestFlowId.Create(),
             storedId,
             existingEffects,
-            new InMemoryFunctionStore().EffectsStore,
+            new InMemoryFunctionStore(),
             DefaultSerializer.Instance,
             storageSession: null,
             clearChildren: true
@@ -106,7 +106,7 @@ public class PrintEffectsTests
             TestFlowId.Create(),
             storedId,
             existingEffects,
-            new InMemoryFunctionStore().EffectsStore,
+            new InMemoryFunctionStore(),
             DefaultSerializer.Instance,
             storageSession: null,
             clearChildren: true
@@ -138,7 +138,7 @@ public class PrintEffectsTests
             TestFlowId.Create(),
             storedId,
             existingEffects,
-            new InMemoryFunctionStore().EffectsStore,
+            new InMemoryFunctionStore(),
             DefaultSerializer.Instance,
             storageSession: null,
             clearChildren: true
@@ -184,7 +184,7 @@ public class PrintEffectsTests
             TestFlowId.Create(),
             storedId,
             existingEffects,
-            new InMemoryFunctionStore().EffectsStore,
+            new InMemoryFunctionStore(),
             DefaultSerializer.Instance,
             storageSession: null,
             clearChildren: true
@@ -240,7 +240,7 @@ public class PrintEffectsTests
             TestFlowId.Create(),
             storedId,
             existingEffects,
-            new InMemoryFunctionStore().EffectsStore,
+            new InMemoryFunctionStore(),
             DefaultSerializer.Instance,
             storageSession: null,
             clearChildren: true
@@ -290,7 +290,7 @@ public class PrintEffectsTests
             TestFlowId.Create(),
             storedId,
             existingEffects,
-            new InMemoryFunctionStore().EffectsStore,
+            new InMemoryFunctionStore(),
             DefaultSerializer.Instance,
             storageSession: null,
             clearChildren: true
@@ -325,7 +325,7 @@ public class PrintEffectsTests
             TestFlowId.Create(),
             storedId,
             existingEffects,
-            new InMemoryFunctionStore().EffectsStore,
+            new InMemoryFunctionStore(),
             DefaultSerializer.Instance,
             storageSession: null,
             clearChildren: true
@@ -360,7 +360,7 @@ public class PrintEffectsTests
             TestFlowId.Create(),
             storedId,
             existingEffects,
-            new InMemoryFunctionStore().EffectsStore,
+            new InMemoryFunctionStore(),
             DefaultSerializer.Instance,
             storageSession: null,
             clearChildren: false
@@ -393,7 +393,7 @@ public class PrintEffectsTests
             TestFlowId.Create(),
             storedId,
             existingEffects,
-            new InMemoryFunctionStore().EffectsStore,
+            new InMemoryFunctionStore(),
             DefaultSerializer.Instance,
             storageSession: null,
             clearChildren: false

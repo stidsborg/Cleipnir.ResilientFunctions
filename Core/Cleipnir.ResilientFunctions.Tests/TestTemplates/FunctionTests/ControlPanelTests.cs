@@ -51,13 +51,13 @@ public abstract class ControlPanelTests
             .ShouldBeAsync(0);
 
         await store
-            .EffectsStore
+            
             .GetEffectResults(storedId)
             .SelectAsync(effects => effects.Count())
             .ShouldBeAsync(0);
 
         await store
-            .EffectsStore
+            
             .GetEffectResults(storedId)
             .SelectAsync(states => states.Count())
             .ShouldBeAsync(0);
@@ -101,13 +101,13 @@ public abstract class ControlPanelTests
             .ShouldBeAsync(0);
 
         await store
-            .EffectsStore
+            
             .GetEffectResults(storedId)
             .SelectAsync(effects => effects.Count())
             .ShouldBeAsync(0);
 
         await store
-            .EffectsStore
+            
             .GetEffectResults(storedId)
             .SelectAsync(states => states.Count())
             .ShouldBeAsync(0);
@@ -1074,7 +1074,7 @@ public abstract class ControlPanelTests
 
         await controlPanel.Effects.AllIds;
 
-        await store.EffectsStore.SetEffectResult(
+        await store.SetEffectResult(
             rAction.MapToStoredId(functionId.Instance),
             new StoredEffect(
                 "SomeId".GetHashCode().ToEffectId(),
@@ -1112,7 +1112,7 @@ public abstract class ControlPanelTests
 
         await controlPanel.Effects.AllIds;
 
-        await store.EffectsStore.SetEffectResult(
+        await store.SetEffectResult(
             rAction.MapToStoredId(functionId.Instance),
             new StoredEffect(
                 "SomeId".GetHashCode().ToEffectId(),
@@ -1258,7 +1258,7 @@ public abstract class ControlPanelTests
             .SelectAsync(msgs => msgs.Count == 0)
             .ShouldBeTrueAsync();
 
-        await store.EffectsStore
+        await store
             .GetEffectResults(storedId)
             .SelectAsync(e => e.Any())
             .ShouldBeFalseAsync();
