@@ -22,8 +22,7 @@ public abstract class ScheduleReInvocationTests
         using var functionsRegistry = new FunctionsRegistry(
             store,
             new Settings(
-                unhandledExceptionCatcher.Catch,
-                enableWatchdogs: false
+                unhandledExceptionCatcher.Catch
             )
         );
         var syncedParameter = new Synced<string>();
@@ -74,8 +73,7 @@ public abstract class ScheduleReInvocationTests
         using var functionsRegistry = new FunctionsRegistry(
             store,
             new Settings(
-                unhandledExceptionCatcher.Catch,
-                enableWatchdogs: false
+                unhandledExceptionCatcher.Catch
             )
         );
 

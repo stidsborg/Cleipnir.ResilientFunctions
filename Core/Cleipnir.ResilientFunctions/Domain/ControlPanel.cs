@@ -12,7 +12,6 @@ namespace Cleipnir.ResilientFunctions.Domain;
 public class ControlPanel : BaseControlPanel<Unit, Unit>  
 {
     internal ControlPanel(
-        Invoker<Unit, Unit> invoker,
         InvocationHelper<Unit, Unit> invocationHelper,
         FlowId flowId, StoredId storedId,
         ReplicaId? ownerReplica,
@@ -22,7 +21,7 @@ public class ControlPanel : BaseControlPanel<Unit, Unit>
         FatalWorkflowException? fatalWorkflowException,
         UtcNow utcNow
     ) : base(
-        invoker, invocationHelper,
+        invocationHelper,
         flowId, storedId, ownerReplica, status,
         expires, innerParam: Unit.Instance, innerResult: Unit.Instance, effects,
         messages, fatalWorkflowException,
@@ -31,31 +30,13 @@ public class ControlPanel : BaseControlPanel<Unit, Unit>
 
     public Task Succeed() => InnerSucceed(result: Unit.Instance);
     
-    public async Task BusyWaitUntil(Func<ControlPanel, bool> predicate, TimeSpan? maxWait = null, TimeSpan? checkFrequency = null)
-    {
-        if (predicate(this))
-            return;
-        
-        maxWait ??= TimeSpan.FromSeconds(10);
-        checkFrequency ??= TimeSpan.FromMilliseconds(250);
-        
-        var stopWatch = Stopwatch.StartNew();
-        do
-        {
-            await Task.Delay(checkFrequency.Value);
-            await Refresh();
-            if (predicate(this))
-                return;
-        } while (stopWatch.Elapsed < maxWait);
-        
-        throw new TimeoutException("Predicate was not meet before max wait for reached");
-    }
+    public Task BusyWaitUntil(Func<ControlPanel, bool> predicate, TimeSpan? maxWait = null, TimeSpan? checkFrequency = null)
+        => BusyWaitUntil(() => predicate(this), maxWait, checkFrequency);
 }
 
 public class ControlPanel<TParam> : BaseControlPanel<TParam, Unit> where TParam : notnull  
 {
     internal ControlPanel(
-        Invoker<TParam, Unit> invoker,
         InvocationHelper<TParam, Unit> invocationHelper,
         FlowId flowId, StoredId storedId,
         ReplicaId? ownerReplica,
@@ -65,7 +46,7 @@ public class ControlPanel<TParam> : BaseControlPanel<TParam, Unit> where TParam 
         FatalWorkflowException? fatalWorkflowException,
         UtcNow utcNow
     ) : base(
-        invoker, invocationHelper,
+        invocationHelper,
         flowId, storedId, ownerReplica, status,
         expires, innerParam, innerResult: Unit.Instance, effects,
         messages, fatalWorkflowException,
@@ -80,31 +61,13 @@ public class ControlPanel<TParam> : BaseControlPanel<TParam, Unit> where TParam 
     
     public Task Succeed() => InnerSucceed(result: Unit.Instance);
     
-    public async Task BusyWaitUntil(Func<ControlPanel<TParam>, bool> predicate, TimeSpan? maxWait = null, TimeSpan? checkFrequency = null)
-    {
-        if (predicate(this))
-            return;
-        
-        maxWait ??= TimeSpan.FromSeconds(10);
-        checkFrequency ??= TimeSpan.FromMilliseconds(250);
-        
-        var stopWatch = Stopwatch.StartNew();
-        do
-        {
-            await Task.Delay(checkFrequency.Value);
-            await Refresh();
-            if (predicate(this))
-                return;
-        } while (stopWatch.Elapsed < maxWait);
-        
-        throw new TimeoutException("Predicate was not meet before max wait for reached");
-    }
+    public Task BusyWaitUntil(Func<ControlPanel<TParam>, bool> predicate, TimeSpan? maxWait = null, TimeSpan? checkFrequency = null)
+        => BusyWaitUntil(() => predicate(this), maxWait, checkFrequency);
 }
 
 public class ControlPanel<TParam, TReturn> : BaseControlPanel<TParam, TReturn> where TParam : notnull
 {
     internal ControlPanel(
-        Invoker<TParam, TReturn> invoker,
         InvocationHelper<TParam, TReturn> invocationHelper,
         FlowId flowId, StoredId storedId, ReplicaId? ownerReplica, Status status,
         long expires, TParam innerParam,
@@ -113,7 +76,7 @@ public class ControlPanel<TParam, TReturn> : BaseControlPanel<TParam, TReturn> w
         FatalWorkflowException? fatalWorkflowException,
         UtcNow utcNow
     ) : base(
-        invoker, invocationHelper,
+        invocationHelper,
         flowId, storedId, ownerReplica, status, expires,
         innerParam, innerResult, effects, messages,
         fatalWorkflowException,
@@ -129,35 +92,16 @@ public class ControlPanel<TParam, TReturn> : BaseControlPanel<TParam, TReturn> w
         set => InnerParam = value;
     }
     
-    public async Task BusyWaitUntil(Func<ControlPanel<TParam, TReturn>, bool> predicate, TimeSpan? maxWait = null, TimeSpan? checkFrequency = null)
-    {
-        if (predicate(this))
-            return;
-        
-        maxWait ??= TimeSpan.FromSeconds(10);
-        checkFrequency ??= TimeSpan.FromMilliseconds(250);
-        
-        var stopWatch = Stopwatch.StartNew();
-        do
-        {
-            await Task.Delay(checkFrequency.Value);
-            await Refresh();
-            if (predicate(this))
-                return;
-        } while (stopWatch.Elapsed < maxWait);
-        
-        throw new TimeoutException("Predicate was not meet before max wait for reached");
-    }
+    public Task BusyWaitUntil(Func<ControlPanel<TParam, TReturn>, bool> predicate, TimeSpan? maxWait = null, TimeSpan? checkFrequency = null)
+        => BusyWaitUntil(() => predicate(this), maxWait, checkFrequency);
 }
 
-public abstract class BaseControlPanel<TParam, TReturn> 
+public abstract class BaseControlPanel<TParam, TReturn>
 {
-    private readonly Invoker<TParam, TReturn> _invoker;
     private readonly InvocationHelper<TParam, TReturn> _invocationHelper;
     private bool _innerParamChanged;
 
     internal BaseControlPanel(
-        Invoker<TParam, TReturn> invoker,
         InvocationHelper<TParam, TReturn> invocationHelper,
         FlowId flowId,
         StoredId storedId,
@@ -171,7 +115,6 @@ public abstract class BaseControlPanel<TParam, TReturn>
         FatalWorkflowException? fatalWorkflowException,
         UtcNow utcNow)
     {
-        _invoker = invoker;
         _invocationHelper = invocationHelper;
         FlowId = flowId;
         StoredId = storedId;
@@ -305,18 +248,65 @@ public abstract class BaseControlPanel<TParam, TReturn>
     {
         if (clearFailures)
             await ClearFailures();
-            
+
         if (_innerParamChanged)
             await SaveChanges();
 
-        var innerScheduled = await _invoker.ScheduleRestart(StoredId);
+        // An explicit restart marks the flow immediately eligible for restart: set it to Postponed with expiry 0
+        // (GetExpiredFunctions returns expires <= now && Postponed). A watchdog then claims it via RestartExecutions
+        // and runs it - so restart requires a running watchdog. Guard on owner-is-null (expectedReplica: null) to
+        // match the removed singular claim's WHERE owner IS NULL - a restartable flow is always unowned, and
+        // OwnerReplica is not refreshed so it cannot be relied on here.
+        var success = await _invocationHelper.SetFunctionState(
+            StoredId, Status.Postponed,
+            InnerParam,
+            result: default,
+            expires: 0,
+            exception: null,
+            expectedReplicaId: null
+        );
+        if (!success)
+            throw UnexpectedStateException.ConcurrentModification(FlowId);
+
+        Status = Status.Postponed;
+        PostponedUntil = RestartMarker;
+        _innerParamChanged = false;
+
+        // Wait for a watchdog to pick up the restart (the flow leaves the Postponed/expiry-0 marker state) so callers
+        // observe real progress rather than the transient postponed state - e.g. a subsequent WaitForCompletion.
+        await BusyWaitUntil(() => PostponedUntil != RestartMarker);
+
+        var innerScheduled = _invocationHelper.CreateInnerScheduled([FlowId], parentWorkflow: null, detach: null);
 
         if (refresh)
             await Refresh();
 
         return innerScheduled.ToScheduledWithResult();
     }
-    
+
+    // The Postponed/expiry-0 state ScheduleRestart writes to mark a flow for immediate watchdog restart.
+    private static readonly DateTime RestartMarker = new(0, DateTimeKind.Utc);
+
+    private protected async Task BusyWaitUntil(Func<bool> predicate, TimeSpan? maxWait = null, TimeSpan? checkFrequency = null)
+    {
+        if (predicate())
+            return;
+
+        maxWait ??= TimeSpan.FromSeconds(10);
+        checkFrequency ??= TimeSpan.FromMilliseconds(250);
+
+        var stopWatch = Stopwatch.StartNew();
+        do
+        {
+            await Task.Delay(checkFrequency.Value);
+            await Refresh();
+            if (predicate())
+                return;
+        } while (stopWatch.Elapsed < maxWait);
+
+        throw new TimeoutException("Predicate was not meet before max wait for reached");
+    }
+
     public async Task Refresh()
     {
         var sf = await _invocationHelper.GetFunction(StoredId, FlowId);

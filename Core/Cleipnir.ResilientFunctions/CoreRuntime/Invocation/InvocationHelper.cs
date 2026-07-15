@@ -216,29 +216,6 @@ internal class InvocationHelper<TParam, TReturn>
         _messageWatchdog.Notify();
     }
 
-    public async Task<RestartedFunction?> RestartFunction(StoredId flowId)
-    {
-        var restarted = await _functionStore.RestartExecution(
-            flowId,
-            _replicaId
-        );
-        if (restarted == null)
-            return null;
-
-        // The restart does not pull the flow's messages: store-resident messages are fetched and pushed by the
-        // MessageWatchdog (woken here so they arrive now rather than on the next poll), while messages inlined
-        // into the effect state while the flow was completed travel in the effect snapshot handed over below and
-        // are staged by the QueueManager at initialization.
-        _messageWatchdog.Notify();
-
-        return new RestartedFunction(
-            restarted.StoredFlow,
-            restarted.Effects,
-            StoredMessages: [],
-            restarted.StorageSession
-        );
-    }
-    
     public async Task<PreparedReInvocation> PrepareForReInvocation(StoredId storedId, RestartedFunction restartedFunction)
     {
         var (sf, effects, messages, storageSession) = restartedFunction;

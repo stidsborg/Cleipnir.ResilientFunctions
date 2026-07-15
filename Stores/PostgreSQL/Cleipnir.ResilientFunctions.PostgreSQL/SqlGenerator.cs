@@ -219,43 +219,6 @@ public class SqlGenerator(string tablePrefix)
         );
     }
 
-    private string? _restartExecutionSql;
-    public StoreCommand RestartExecution(StoredId storedId, ReplicaId replicaId)
-    {
-        _restartExecutionSql ??= @$"
-            UPDATE {tablePrefix}
-            SET status = {(int)Status.Executing}, expires = 0, owner = $1
-            WHERE id = $2 AND owner IS NULL
-            RETURNING
-                id,
-                param_json,
-                status,
-                result_json,
-                exception_json,
-                expires,
-                timestamp,
-                human_instance_id,
-                parent,
-                owner,
-                effects;";
-/*
- *  0  id
-    1  param_json
-    2  result_json
-    3  exception_json
-    4  human_instance_id
-    5  parent
- */
-        var command = StoreCommand.Create(
-            _restartExecutionSql,
-            values: [
-                replicaId.AsGuid,
-                storedId.AsGuid,
-            ]);
-
-        return command;
-    }
-
     private string? _restartExecutionsSql;
     public StoreCommand RestartExecutions(IReadOnlyList<StoredId> storedIds, ReplicaId replicaId)
     {
@@ -286,56 +249,6 @@ public class SqlGenerator(string tablePrefix)
             ]);
     }
     
-    public async Task<StoredFlow?> ReadFunction(StoredId storedId, NpgsqlDataReader reader)
-    {
-        /*
-           0  id
-           1  param_json,
-           2  status,
-           3  result_json,
-           4  exception_json,
-           5  expires,
-           6 timestamp,
-           7 human_instance_id
-           8 parent,
-           9 owner
-         */
-        while (await reader.ReadAsync())
-        {
-            var hasParameter = !await reader.IsDBNullAsync(1);
-            var hasResult = !await reader.IsDBNullAsync(3);
-            var hasException = !await reader.IsDBNullAsync(4);
-            var hasParent = !await reader.IsDBNullAsync(8);
-            var hasOwner = !await reader.IsDBNullAsync(9);
-
-            var id = reader.GetGuid(0).ToStoredId();
-            var param = hasParameter ? (byte[]) reader.GetValue(1) : null;
-            var status = (Status) reader.GetInt32(2);
-            var result = hasResult ? (byte[]) reader.GetValue(3) : null;
-            var exception = hasException ? JsonSerializer.Deserialize<StoredException>(reader.GetString(4)) : null;
-            var expires = reader.GetInt64(5);
-            var timestamp = reader.GetInt64(6);
-            var humanInstanceId = reader.GetString(7);
-            var parent = hasParent ? reader.GetGuid(8).ToStoredId() : null;
-            var owner = hasOwner ? new ReplicaId(reader.GetGuid(9)) : null;
-
-            return new StoredFlow(
-                id,
-                humanInstanceId,
-                param,
-                status,
-                exception,
-                expires,
-                timestamp,
-                parent,
-                owner,
-                id.Type
-            );
-        }
-
-        return null;
-    } 
-
     private string? _appendMessagesSql;
     public StoreCommand AppendMessages(StoredId storedId, IEnumerable<StoredMessage> messages)
     {

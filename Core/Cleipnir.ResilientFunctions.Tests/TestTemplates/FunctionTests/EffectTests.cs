@@ -812,7 +812,7 @@ public abstract class EffectTests
         
         var store = await storeTask;
         var flowId = TestFlowId.Create();
-        using var registry = new FunctionsRegistry(store, new Settings(utcNow: () => utcNow, enableWatchdogs: false));
+        using var registry = new FunctionsRegistry(store, new Settings(utcNow: () => utcNow));
         var syncedCounter = new SyncedCounter();
 
         var retryPolicy = RetryPolicy.Create(suspendThreshold: TimeSpan.Zero, initialInterval: TimeSpan.FromSeconds(1), backoffCoefficient: 1);
@@ -858,7 +858,7 @@ public abstract class EffectTests
 
         var store = await storeTask;
         var flowId = TestFlowId.Create();
-        using var registry = new FunctionsRegistry(store, new Settings(utcNow: () => utcNow, enableWatchdogs: false));
+        using var registry = new FunctionsRegistry(store, new Settings(utcNow: () => utcNow));
         var syncedCounter = new SyncedCounter();
 
         var retryPolicy = RetryPolicy.Create(suspendThreshold: TimeSpan.Zero, initialInterval: TimeSpan.FromSeconds(1), backoffCoefficient: 1);

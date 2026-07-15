@@ -151,61 +151,6 @@ public class Invoker<TParam, TReturn> : IFlowRestarter
     public Task<InnerScheduled<TReturn>> BulkSchedule(IEnumerable<BulkWork<TParam>> instances, bool? detach = null)
         => _invocationHelper.BulkSchedule(instances.ToList(), detach);
 
-    public async Task<InnerScheduled<TReturn>> ScheduleRestart(StoredId storedId)
-    {
-        var tcs = new TaskCompletionSource<TReturn>();
-        var (inner, param, humanInstanceId, workflow, disposables, queueManager, flowState, timeouts, parent, storageSession) = await PrepareForReInvocation(storedId, tcs.Task);
-        var flowId = new FlowId(_flowType, humanInstanceId);
-
-        _ = flowState.SuspendedTask.ContinueWith(_ => tcs.TrySetException(new InvocationSuspendedException(flowId)));
-        _ = Task.Run(async () =>
-        {
-            EffectContext.Reset();
-            CurrentFlow._workflow.Value = workflow;
-
-            try
-            {
-                Result<TReturn> result;
-                try
-                {
-                    // *** USER FUNCTION INVOCATION ***
-                    result = await inner(param, workflow);
-                }
-                catch (FatalWorkflowException exception)
-                {
-                    await PersistFailure(storedId, flowId, exception, param, parent);
-                    tcs.TrySetCanceled();
-                    return;
-                }
-                catch (Exception exception)
-                {
-                    var fwe = FatalWorkflowException.CreateNonGeneric(flowId, exception);
-                    await PersistFailure(storedId, flowId, fwe, param, parent);
-                    tcs.TrySetCanceled();
-                    return;
-                }
-                finally{ disposables.Dispose(); }
-
-                await PersistResultAndEnsureSuccess(storedId, flowId, result, param, parent, workflow, storageSession, allowPostponedOrSuspended: true);
-                if (result.Succeed)
-                    tcs.TrySetResult(result.SucceedWithValue!);
-                else
-                    tcs.TrySetCanceled();
-            }
-            catch (Exception exception)
-            {
-                _unhandledExceptionHandler.Invoke(_flowType, exception);
-                tcs.TrySetException(exception);
-            }
-            finally
-            {
-                _flowsManager.RemoveFlow(storedId, flowState);
-            }
-        });
-
-        return _invocationHelper.CreateInnerScheduled([flowId], parentWorkflow: null, detach: null, tcs.Task);
-    }
-
     internal async Task ScheduleRestart(StoredId storedId, RestartedFunction rf, Action onCompletion)
     {
         var tcs = new TaskCompletionSource<TReturn>();
@@ -313,15 +258,6 @@ public class Invoker<TParam, TReturn> : IFlowRestarter
         }
     }
     private record PreparedInvocation(bool Persisted, Workflow Workflow, IDisposable Disposables, QueueManager QueueManager, FlowExecutionState FlowExecutionState, FlowTimeouts FlowTimeouts, IStorageSession? StorageSession = null);
-
-    private async Task<PreparedReInvocation> PrepareForReInvocation(StoredId storedId, Task completed)
-    {
-        var restartedFunction = await _invocationHelper.RestartFunction(storedId);
-        if (restartedFunction == null)
-            throw UnexpectedStateException.ConcurrentModification(storedId);
-
-        return await PrepareForReInvocation(storedId, restartedFunction, completed);
-    }
 
     private async Task<PreparedReInvocation> PrepareForReInvocation(StoredId storedId, RestartedFunction restartedFunction, Task completed)
     {

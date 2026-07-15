@@ -23,8 +23,7 @@ public abstract class ReInvocationTests
         using var functionsRegistry = new FunctionsRegistry(
             store,
             new Settings(
-                unhandledExceptionCatcher.Catch,
-                enableWatchdogs: false
+                unhandledExceptionCatcher.Catch
             )
         );
         var syncedParameter = new Synced<string>();
@@ -69,8 +68,7 @@ public abstract class ReInvocationTests
         using var functionsRegistry = new FunctionsRegistry(
             store,
             new Settings(
-                unhandledExceptionCatcher.Catch,
-                enableWatchdogs: false
+                unhandledExceptionCatcher.Catch
             )
         );
 
@@ -118,8 +116,7 @@ public abstract class ReInvocationTests
         using var functionsRegistry = new FunctionsRegistry(
             store,
             new Settings(
-                unhandledExceptionCatcher.Catch,
-                enableWatchdogs: false
+                unhandledExceptionCatcher.Catch
             )
         );
 
@@ -168,8 +165,7 @@ public abstract class ReInvocationTests
         using var functionsRegistry = new FunctionsRegistry(
             store,
             new Settings(
-                unhandledExceptionCatcher.Catch,
-                enableWatchdogs: false
+                unhandledExceptionCatcher.Catch
             )
         );
 
@@ -214,8 +210,7 @@ public abstract class ReInvocationTests
         using var functionsRegistry = new FunctionsRegistry(
             store,
             new Settings(
-                unhandledExceptionCatcher.Catch,
-                enableWatchdogs: false
+                unhandledExceptionCatcher.Catch
             )
         );
 

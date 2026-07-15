@@ -273,7 +273,6 @@ public class FunctionsRegistry : IDisposable
             var controlPanels = new ControlPanelFactory<TParam, TReturn>(
                 flowType,
                 storedType,
-                invoker,
                 invocationHelper,
                 _settings.UtcNow
             );
@@ -359,7 +358,6 @@ public class FunctionsRegistry : IDisposable
             var controlPanels = new ControlPanelFactory(
                 flowType,
                 storedType,
-                invoker,
                 invocationHelper,
                 _settings.UtcNow
             );
@@ -446,7 +444,6 @@ public class FunctionsRegistry : IDisposable
             var controlPanels = new ControlPanelFactory<TParam>(
                 flowType,
                 storedType,
-                rActionInvoker,
                 invocationHelper,
                 _settings.UtcNow
             );

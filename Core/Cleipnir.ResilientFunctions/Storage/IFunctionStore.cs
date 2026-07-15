@@ -30,7 +30,6 @@ public interface IFunctionStore
         StoredId? parent
     );
     
-    Task<StoredFlowWithEffects?> RestartExecution(StoredId storedId, ReplicaId owner);
     Task<Dictionary<StoredId, StoredFlowWithEffects>> RestartExecutions(IReadOnlyList<StoredId> storedIds, ReplicaId owner);
     
     Task<IReadOnlyList<StoredId>> GetExpiredFunctions(long expiresBefore);

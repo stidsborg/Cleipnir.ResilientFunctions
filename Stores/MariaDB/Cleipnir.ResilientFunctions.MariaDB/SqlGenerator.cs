@@ -386,39 +386,6 @@ public class SqlGenerator(string tablePrefix)
         }
     }
 
-    private string? _restartExecutionSql;
-    public StoreCommand RestartExecution(StoredId storedId, ReplicaId replicaId)
-    {
-        _restartExecutionSql ??= @$"
-            UPDATE {tablePrefix}
-            SET status = {(int)Status.Executing}, expires = 0, owner = ?
-            WHERE id = ? AND owner IS NULL;
-
-            SELECT
-                id,
-                param_json,
-                status,
-                result_json,
-                exception_json,
-                expires,
-                timestamp,
-                human_instance_id,
-                parent,
-                owner,
-                effects
-            FROM {tablePrefix}
-            WHERE id = ?;";
-
-        var command = StoreCommand.Create(
-            _restartExecutionSql,
-            values: [
-                replicaId.AsGuid.ToString("N"),
-                storedId.AsGuid.ToString("N"),
-                storedId.AsGuid.ToString("N"),
-            ]);
-        return command;
-    }
-
     // The batch restart runs as two commands inside a transaction: this locking SELECT picks the claimable rows
     // (owner IS NULL) and holds them until the claiming UPDATE commits, so the caller gets back exactly the flows
     // claimed by ITS call. A single UPDATE-then-SELECT cannot distinguish rows claimed by this call from rows
@@ -510,54 +477,6 @@ public class SqlGenerator(string tablePrefix)
         return null;
     }
 
-    public async Task<(StoredFlow?, byte[]?)> ReadToStoredFunctionWithEffects(StoredId storedId, MySqlDataReader reader)
-    {
-        const int idIndex = 0;
-        const int paramIndex = 1;
-        const int statusIndex = 2;
-        const int resultIndex = 3;
-        const int exceptionIndex = 4;
-        const int expiresIndex = 5;
-        const int timestampIndex = 6;
-        const int humanInstanceIdIndex = 7;
-        const int parentIndex = 8;
-        const int ownerIndex = 9;
-        const int effectsIndex = 10;
-
-        while (await reader.ReadAsync())
-        {
-            var id = reader.GetString(idIndex).ToGuid().ToStoredId();
-            var hasParam = !await reader.IsDBNullAsync(paramIndex);
-            var hasResult = !await reader.IsDBNullAsync(resultIndex);
-            var hasError = !await reader.IsDBNullAsync(exceptionIndex);
-            var hasParent = !await reader.IsDBNullAsync(parentIndex);
-            var hasOwner = !await reader.IsDBNullAsync(ownerIndex);
-            var hasEffects = !await reader.IsDBNullAsync(effectsIndex);
-            var storedException = hasError
-                ? JsonSerializer.Deserialize<StoredException>(reader.GetString(exceptionIndex))
-                : null;
-
-            var effectsBytes = hasEffects ? (byte[])reader.GetValue(effectsIndex) : null;
-
-            var storedFlow = new StoredFlow(
-                id,
-                InstanceId: reader.GetString(humanInstanceIdIndex),
-                hasParam ? (byte[])reader.GetValue(paramIndex) : null,
-                Status: (Status)reader.GetInt32(statusIndex),
-                storedException,
-                Expires: reader.GetInt64(expiresIndex),
-                Timestamp: reader.GetInt64(timestampIndex),
-                ParentId: hasParent ? reader.GetString(parentIndex).ToGuid().ToStoredId() : null,
-                OwnerId: hasOwner ? reader.GetString(ownerIndex).ParseToReplicaId() : null,
-                StoredType: storedId.Type
-            );
-
-            return (storedFlow, effectsBytes);
-        }
-
-        return (null, null);
-    }
-    
     public StoreCommand AppendMessages(IReadOnlyList<StoredIdAndMessage> messages)
     {
         // The AUTO_INCREMENT column assigns position. Rows are listed in caller order so the assignment
