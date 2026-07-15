@@ -68,9 +68,9 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 status INT NOT NULL DEFAULT {(int) Status.Executing},
                 owner UUID NULL,
                 timestamp BIGINT NOT NULL,
-                param_json BYTEA NULL,
-                result_json BYTEA NULL,
-                exception_json TEXT NULL,
+                param BYTEA NULL,
+                result BYTEA NULL,
+                exception TEXT NULL,
                 human_instance_id TEXT NOT NULL,
                 parent UUID NULL,
                 effects BYTEA NULL
@@ -332,7 +332,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         {
             _setFunctionStateSqlMainWithoutReplica ??= $@"
                 UPDATE {_tableName}
-                SET status = $1, expires = $2, param_json = $3, result_json = $4, exception_json = $5
+                SET status = $1, expires = $2, param = $3, result = $4, exception = $5
                 WHERE id = $6 AND owner IS NULL";
 
             await using var command = new NpgsqlCommand(_setFunctionStateSqlMainWithoutReplica, conn)
@@ -355,7 +355,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         {
             _setFunctionStateSqlMain ??= $@"
                 UPDATE {_tableName}
-                SET status = $1, expires = $2, param_json = $3, result_json = $4, exception_json = $5
+                SET status = $1, expires = $2, param = $3, result = $4, exception = $5
                 WHERE id = $6 AND owner = $7";
 
             await using var command = new NpgsqlCommand(_setFunctionStateSqlMain, conn)
@@ -517,10 +517,10 @@ public class PostgreSqlFunctionStore : IFunctionStore
         await using var conn = await CreateConnection();
         _getFunctionSql ??= $@"
             SELECT
-                param_json,
+                param,
                 status,
-                result_json,
-                exception_json,
+                result,
+                exception,
                 expires,
                 timestamp,
                 human_instance_id,
@@ -543,10 +543,10 @@ public class PostgreSqlFunctionStore : IFunctionStore
     private async Task<StoredFlow?> ReadToStoredFunction(StoredId storedId, NpgsqlDataReader reader)
     {
         /*
-           0  param_json,
+           0  param,
            1  status,
-           2  result_json,
-           3  exception_json,
+           2  result,
+           3  exception,
            4  expires,
            5 timestamp,
            6 human_instance_id
@@ -613,7 +613,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
             return new Dictionary<StoredId, byte[]?>();
 
         var sql = @$"
-            SELECT id, result_json
+            SELECT id, result
             FROM {_tableName}
             WHERE id = ANY($1)";
 

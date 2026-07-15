@@ -20,9 +20,9 @@ public class SqlGenerator(string tablePrefix)
     {
         /*
            0  id
-           1  param_json
-           2  result_json
-           3  exception_json
+           1  param
+           2  result
+           3  exception
            4  human_instance_id
            5  parent
          */
@@ -79,7 +79,7 @@ public class SqlGenerator(string tablePrefix)
         {
             _createFunctionWithConflictSql ??= @$"
                 INSERT INTO {tablePrefix}
-                    (id, status, expires, owner, timestamp, param_json, result_json, exception_json, human_instance_id, parent)
+                    (id, status, expires, owner, timestamp, param, result, exception, human_instance_id, parent)
                 VALUES
                     ($1, $2, $3, $4, $5, $6, NULL, NULL, $7, $8)
                 ON CONFLICT DO NOTHING";
@@ -102,7 +102,7 @@ public class SqlGenerator(string tablePrefix)
         {
             _createFunctionSql ??= @$"
                 INSERT INTO {tablePrefix}
-                    (id, status, expires, owner, timestamp, param_json, result_json, exception_json, human_instance_id, parent)
+                    (id, status, expires, owner, timestamp, param, result, exception, human_instance_id, parent)
                 VALUES
                     ($1, $2, $3, $4, $5, $6, NULL, NULL, $7, $8)";
 
@@ -135,8 +135,8 @@ public class SqlGenerator(string tablePrefix)
         _setStatusSql ??= $@"
             UPDATE {tablePrefix}
             SET status = $1,
-                result_json = $2,
-                exception_json = $3,
+                result = $2,
+                exception = $3,
                 expires = $4,
                 timestamp = $5,
                 owner = NULL
@@ -168,10 +168,10 @@ public class SqlGenerator(string tablePrefix)
             WHERE id = ANY($2) AND owner IS NULL AND status IN ({(int)Status.Postponed}, {(int)Status.Suspended})
             RETURNING
                 id,
-                param_json,
+                param,
                 status,
-                result_json,
-                exception_json,
+                result,
+                exception,
                 expires,
                 timestamp,
                 human_instance_id,
@@ -403,7 +403,7 @@ public class SqlGenerator(string tablePrefix)
         {
             _setParametersSqlWithoutReplica ??= $@"
                 UPDATE {tablePrefix}
-                SET param_json = $1, result_json = $2
+                SET param = $1, result = $2
                 WHERE id = $3 AND owner IS NULL";
 
             return StoreCommand.Create(
@@ -419,7 +419,7 @@ public class SqlGenerator(string tablePrefix)
         {
             _setParametersSql ??= $@"
                 UPDATE {tablePrefix}
-                SET param_json = $1, result_json = $2
+                SET param = $1, result = $2
                 WHERE id = $3 AND owner = $4";
 
             return StoreCommand.Create(
@@ -439,7 +439,7 @@ public class SqlGenerator(string tablePrefix)
     {
         _bulkScheduleFunctionsSql ??= @$"
             INSERT INTO {tablePrefix}
-                (id, status, expires, timestamp, param_json, result_json, exception_json, human_instance_id, parent)
+                (id, status, expires, timestamp, param, result, exception, human_instance_id, parent)
             VALUES
                 ($1, {(int) Status.Postponed}, 0, 0, $2, NULL, NULL, $3, $4)
             ON CONFLICT DO NOTHING";
