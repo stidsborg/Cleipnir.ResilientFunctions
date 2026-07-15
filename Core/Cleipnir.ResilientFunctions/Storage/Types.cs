@@ -100,7 +100,8 @@ public record StoredFlow(
     long Timestamp,
     StoredId? ParentId,
     ReplicaId? OwnerId,
-    StoredType StoredType
+    StoredType StoredType,
+    IReadOnlyList<StoredEffect>? Effects = null
 );
 
 public record StoredException(string ExceptionMessage, string? ExceptionStackTrace, string ExceptionType)

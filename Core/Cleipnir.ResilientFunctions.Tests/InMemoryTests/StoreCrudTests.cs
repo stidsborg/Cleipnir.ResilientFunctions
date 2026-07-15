@@ -38,7 +38,11 @@ public class StoreCrudTests : TestTemplates.StoreCrudTests
 
     [TestMethod]
     public override Task NonExistingFunctionCanBeDeleted()
-        => NonExistingFunctionCanBeDeleted(FunctionStoreFactory.Create());    
+        => NonExistingFunctionCanBeDeleted(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task GetFunctionReturnsEffects()
+        => GetFunctionReturnsEffects(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task ParameterAndStateCanBeUpdatedOnExistingFunction()

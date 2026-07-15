@@ -530,7 +530,8 @@ public class MariaDbFunctionStore : IFunctionStore
                 timestamp,
                 human_instance_id,
                 parent,
-                owner
+                owner,
+                effects
             FROM {_tablePrefix}
             WHERE id = ?;";
         await using var command = new MySqlCommand(_getFunctionSql, conn)
@@ -610,6 +611,7 @@ public class MariaDbFunctionStore : IFunctionStore
         const int humanInstanceIdIndex = 6;
         const int parentIndex = 7;
         const int ownerIndex = 8;
+        const int effectsIndex = 9;
 
         while (await reader.ReadAsync())
         {
@@ -618,6 +620,7 @@ public class MariaDbFunctionStore : IFunctionStore
             var hasError = !await reader.IsDBNullAsync(exceptionIndex);
             var hasParent = !await reader.IsDBNullAsync(parentIndex);
             var hasOwner = !await reader.IsDBNullAsync(ownerIndex);
+            var hasEffects = !await reader.IsDBNullAsync(effectsIndex);
             var storedException = hasError
                 ? JsonSerializer.Deserialize<StoredException>(reader.GetString(exceptionIndex))
                 : null;
@@ -631,11 +634,24 @@ public class MariaDbFunctionStore : IFunctionStore
                 Timestamp: reader.GetInt64(timestampIndex),
                 ParentId: hasParent ? reader.GetString(parentIndex).ToGuid().ToStoredId() : null,
                 OwnerId: hasOwner ? reader.GetString(ownerIndex).ParseToReplicaId() : null,
-                StoredType: storedId.Type
+                StoredType: storedId.Type,
+                Effects: DeserializeEffects(hasEffects ? (byte[]) reader.GetValue(effectsIndex) : null)
             );
         }
 
         return null;
+    }
+
+    private static IReadOnlyList<StoredEffect> DeserializeEffects(byte[]? effectsBytes)
+    {
+        if (effectsBytes == null)
+            return [];
+
+        var effects = new List<StoredEffect>();
+        foreach (var effectBytes in BinaryPacker.Split(effectsBytes))
+            effects.Add(StoredEffect.Deserialize(effectBytes!));
+
+        return effects;
     }
     
     public async Task<bool> DeleteFunction(StoredId storedId)
