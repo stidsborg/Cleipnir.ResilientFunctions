@@ -85,52 +85,18 @@ public class CrashableFunctionStore : IFunctionStore
                 expectedReplica
             );
 
-    public Task<bool> SucceedFunction(
+    public Task<bool> SetStatus(
         StoredId storedId,
+        Status status,
         byte[]? result,
+        StoredException? storedException,
+        long expires,
         long timestamp,
         ReplicaId expectedReplica,
-        IReadOnlyList<StoredEffect>? effects,
-        IReadOnlyList<StoredMessage>? messages,
         IStorageSession? storageSession
     ) => _crashed
         ? Task.FromException<bool>(new TimeoutException())
-        : _inner.SucceedFunction(storedId, result, timestamp, expectedReplica, effects, messages, storageSession);
-
-    public Task<bool> PostponeFunction(
-        StoredId storedId,
-        long postponeUntil,
-        long timestamp,
-        ReplicaId expectedReplica,
-        IReadOnlyList<StoredEffect>? effects,
-        IReadOnlyList<StoredMessage>? messages,
-        IStorageSession? storageSession
-    ) => _crashed
-        ? Task.FromException<bool>(new TimeoutException())
-        : _inner.PostponeFunction(storedId, postponeUntil, timestamp, expectedReplica, effects, messages, storageSession); 
-
-    public Task<bool> FailFunction(
-        StoredId storedId,
-        StoredException storedException,
-        long timestamp,
-        ReplicaId expectedReplica,
-        IReadOnlyList<StoredEffect>? effects,
-        IReadOnlyList<StoredMessage>? messages,
-        IStorageSession? storageSession
-    ) => _crashed
-        ? Task.FromException<bool>(new TimeoutException())
-        : _inner.FailFunction(storedId, storedException, timestamp, expectedReplica, effects, messages, storageSession);
-
-    public Task<bool> SuspendFunction(
-        StoredId storedId,
-        long timestamp,
-        ReplicaId expectedReplica,
-        IReadOnlyList<StoredEffect>? effects,
-        IReadOnlyList<StoredMessage>? messages,
-        IStorageSession? storageSession
-    ) => _crashed
-            ? Task.FromException<bool>(new TimeoutException())
-            : _inner.SuspendFunction(storedId, timestamp, expectedReplica, effects, messages, storageSession);
+        : _inner.SetStatus(storedId, status, result, storedException, expires, timestamp, expectedReplica, storageSession);
 
     public Task<IReadOnlyList<ReplicaId>> GetOwnerReplicas()
         => _crashed

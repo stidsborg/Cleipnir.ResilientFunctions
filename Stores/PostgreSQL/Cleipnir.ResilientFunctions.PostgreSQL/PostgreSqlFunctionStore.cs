@@ -379,82 +379,27 @@ public class PostgreSqlFunctionStore : IFunctionStore
         }
     }
 
-    public async Task<bool> SucceedFunction(
+    public async Task<bool> SetStatus(
         StoredId storedId,
+        Status status,
         byte[]? result,
+        StoredException? storedException,
+        long expires,
         long timestamp,
         ReplicaId expectedReplica,
-        IReadOnlyList<StoredEffect>? effects,
-        IReadOnlyList<StoredMessage>? messages,
         IStorageSession? storageSession)
     {
         await using var conn = await CreateConnection();
-        await using var batch = _sqlGenerator.SucceedFunction(
+        await using var command = _sqlGenerator.SetStatus(
             storedId,
+            status,
             result,
-            timestamp,
-            expectedReplica
-        ).CreateBatch().WithConnection(conn);
-
-        var affectedRows = await batch.ExecuteNonQueryAsync();
-        return affectedRows == 1;
-    }
-    
-    public async Task<bool> PostponeFunction(
-        StoredId storedId,
-        long postponeUntil,
-        long timestamp,
-        ReplicaId expectedReplica,
-        IReadOnlyList<StoredEffect>? effects,
-        IReadOnlyList<StoredMessage>? messages,
-        IStorageSession? storageSession)
-    {
-        await using var conn = await CreateConnection();
-        await using var command = _sqlGenerator.PostponeFunction(
-            storedId,
-            postponeUntil,
+            storedException,
+            expires,
             timestamp,
             expectedReplica
         ).ToNpgsqlCommand(conn);
 
-        var affectedRows = await command.ExecuteNonQueryAsync();
-        return affectedRows == 1;
-    }
-    
-    public async Task<bool> FailFunction(
-        StoredId storedId,
-        StoredException storedException,
-        long timestamp,
-        ReplicaId expectedReplica,
-        IReadOnlyList<StoredEffect>? effects,
-        IReadOnlyList<StoredMessage>? messages,
-        IStorageSession? storageSession)
-    {
-        await using var conn = await CreateConnection();
-        await using var batch = _sqlGenerator.FailFunction(
-            storedId,
-            storedException,
-            timestamp,
-            expectedReplica
-        ).CreateBatch().WithConnection(conn);
-
-        var affectedRows = await batch.ExecuteNonQueryAsync();
-        return affectedRows == 1;
-    }
-    
-    public async Task<bool> SuspendFunction(
-        StoredId storedId,
-        long timestamp,
-        ReplicaId expectedReplica,
-        IReadOnlyList<StoredEffect>? effects,
-        IReadOnlyList<StoredMessage>? messages,
-        IStorageSession? storageSession)
-    {
-        await using var conn = await CreateConnection();
-
-        await using var command = _sqlGenerator
-            .SuspendFunction(storedId, timestamp, expectedReplica)
-            .ToNpgsqlCommand(conn);
         var affectedRows = await command.ExecuteNonQueryAsync();
         return affectedRows == 1;
     }

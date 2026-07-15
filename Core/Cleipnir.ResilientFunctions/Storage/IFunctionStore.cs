@@ -52,42 +52,25 @@ public interface IFunctionStore
         ReplicaId? expectedReplica
     );
 
-    Task<bool> SucceedFunction(
+    /// <summary>
+    /// Transitions a function out of the Executing state into a terminal-or-parked status
+    /// (Succeeded, Failed, Postponed or Suspended), releasing ownership. Consolidates the former
+    /// SucceedFunction/FailFunction/PostponeFunction/SuspendFunction methods.
+    /// <para>
+    /// <paramref name="result"/> is only relevant for <see cref="Status.Succeeded"/>,
+    /// <paramref name="storedException"/> only for <see cref="Status.Failed"/>, and
+    /// <paramref name="expires"/> is the postpone-until timestamp for <see cref="Status.Postponed"/>
+    /// (0 for the other statuses).
+    /// </para>
+    /// </summary>
+    Task<bool> SetStatus(
         StoredId storedId,
+        Status status,
         byte[]? result,
+        StoredException? storedException,
+        long expires,
         long timestamp,
         ReplicaId expectedReplica,
-        IReadOnlyList<StoredEffect>? effects,
-        IReadOnlyList<StoredMessage>? messages,
-        IStorageSession? storageSession
-    );
-    
-    Task<bool> PostponeFunction(
-        StoredId storedId,
-        long postponeUntil,
-        long timestamp,
-        ReplicaId expectedReplica,
-        IReadOnlyList<StoredEffect>? effects,
-        IReadOnlyList<StoredMessage>? messages,
-        IStorageSession? storageSession
-    );
-    
-    Task<bool> FailFunction(
-        StoredId storedId,
-        StoredException storedException,
-        long timestamp,
-        ReplicaId expectedReplica,
-        IReadOnlyList<StoredEffect>? effects,
-        IReadOnlyList<StoredMessage>? messages,
-        IStorageSession? storageSession
-    );
-    
-    Task<bool> SuspendFunction(
-        StoredId storedId,
-        long timestamp,
-        ReplicaId expectedReplica,
-        IReadOnlyList<StoredEffect>? effects,
-        IReadOnlyList<StoredMessage>? messages,
         IStorageSession? storageSession
     );
 
