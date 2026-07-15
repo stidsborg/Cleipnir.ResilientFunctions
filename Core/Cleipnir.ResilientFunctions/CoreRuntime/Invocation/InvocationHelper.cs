@@ -384,13 +384,11 @@ internal class InvocationHelper<TParam, TReturn>
 
     public Effect CreateEffect(StoredId storedId, FlowId flowId, IReadOnlyList<StoredEffect> storedEffects, FlowTimeouts flowTimeouts, IStorageSession? storageSession, FlowExecutionState flowExecutionState)
     {
-        var effectsStore = _functionStore.EffectsStore;
-
         var effectResults = new EffectResults(
             flowId,
             storedId,
             storedEffects,
-            effectsStore,
+            _functionStore,
             Serializer,
             storageSession,
             _clearChildren
@@ -403,10 +401,10 @@ internal class InvocationHelper<TParam, TReturn>
     public async Task<ExistingEffects> CreateExistingEffects(FlowId flowId)
     {
         var storedId = MapToStoredId(flowId);
-        var storedEffects = await _functionStore.EffectsStore.GetEffectResults(storedId);
-        return new ExistingEffects(storedId, flowId, _functionStore.EffectsStore, Serializer, storedEffects);
+        var storedEffects = (await _functionStore.GetFunction(storedId))?.Effects ?? [];
+        return new ExistingEffects(storedId, flowId, _functionStore, Serializer, storedEffects);
     }
-    public ExistingMessages CreateExistingMessages(FlowId flowId) => new(MapToStoredId(flowId), _functionStore.MessageStore, _functionStore.EffectsStore, Serializer, _replicaId);
+    public ExistingMessages CreateExistingMessages(FlowId flowId) => new(MapToStoredId(flowId), _functionStore.MessageStore, _functionStore, Serializer, _replicaId);
 
     public QueueManager CreateQueueManager(FlowId flowId, StoredId storedId, Effect effect, FlowExecutionState flowExecutionState, FlowTimeouts timeouts, UnhandledExceptionHandler unhandledExceptionHandler)
         => new(flowId, storedId, Serializer, effect, flowExecutionState, unhandledExceptionHandler, timeouts, UtcNow, _settings, _messageClearer);

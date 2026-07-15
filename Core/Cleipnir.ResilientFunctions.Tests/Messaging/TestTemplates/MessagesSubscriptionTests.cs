@@ -134,7 +134,7 @@ public abstract class MessagesSubscriptionTests
         var result = await scheduled.Completion(TimeSpan.FromSeconds(5));
         result.ShouldBe("first,second,third");
 
-        var results = await functionStore.EffectsStore.GetEffectResults([storedId!]);
+        var results = await functionStore.GetEffectResults([storedId!]);
         var x = results.Values.Single();
         Console.WriteLine(x);
 

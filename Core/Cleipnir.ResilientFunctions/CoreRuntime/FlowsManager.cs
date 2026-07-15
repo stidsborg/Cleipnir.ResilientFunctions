@@ -210,7 +210,7 @@ public class FlowsManager
                 var verified = false;
                 for (var attempt = 0; attempt < 5 && !verified; attempt++)
                 {
-                    var effects = await _functionStore.EffectsStore.GetEffectResults(storedId);
+                    var effects = (await _functionStore.GetFunction(storedId))?.Effects ?? [];
                     var byPosition = new Dictionary<long, StoredMessage>();
                     var existingEntry = effects.FirstOrDefault(e => e.EffectId == PendingMessages.EffectId);
                     if (existingEntry?.Result is { Length: > 0 } existingBytes)
@@ -239,7 +239,7 @@ public class FlowsManager
                         PendingMessages.Encode(byPosition.Values.OrderBy(m => m.Position).ToList()),
                         alias: null
                     );
-                    await _functionStore.EffectsStore.SetEffectResult(
+                    await _functionStore.SetEffectResult(
                         storedId,
                         new StoredEffectChange(storedId, PendingMessages.EffectId, CrudOperation.Insert, entry),
                         session

@@ -10,7 +10,6 @@ public interface IFunctionStore
 {
     public ITypeStore TypeStore { get; }
     public IMessageStore MessageStore { get; }
-    public IEffectsStore EffectsStore { get; }
     public IReplicaStore ReplicaStore { get; }
     public Task Initialize();
     
@@ -85,4 +84,16 @@ public interface IFunctionStore
 
     IFunctionStore WithPrefix(string prefix);
     Task<IReadOnlyDictionary<StoredId, byte[]?>> GetResults(IEnumerable<StoredId> storedIds);
+
+    // Effects live in the 'effects' column on the flows row - writes are guarded by the flow's owner column.
+    // Reads go through GetFunction (StoredFlow.Effects); there is deliberately no separate effect-read method.
+    Task SetEffectResult(StoredId storedId, StoredEffectChange storedEffectChange, IStorageSession? session)
+        => SetEffectResults(storedId, changes: [storedEffectChange], session);
+    Task SetEffectResults(StoredId storedId, IReadOnlyList<StoredEffectChange> changes, IStorageSession? session);
+    Task DeleteEffectResult(StoredId storedId, EffectId effectId, IStorageSession? storageSession)
+        => SetEffectResults(
+            storedId,
+            changes: [new StoredEffectChange(storedId, effectId, CrudOperation.Delete, StoredEffect: null)],
+            storageSession
+        );
 }

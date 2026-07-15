@@ -21,7 +21,7 @@ public class ExistingMessages
     private readonly StoredId _storedId;
     private List<StoredMessage>? _receivedMessages;
     private readonly IMessageStore _messageStore;
-    private readonly IEffectsStore _effectsStore;
+    private readonly IFunctionStore _functionStore;
     private readonly ISerializer _serializer;
     private readonly ReplicaId _publisherReplica;
 
@@ -31,11 +31,11 @@ public class ExistingMessages
         .ContinueWith(t => (IReadOnlyList<object>) t.Result.Select(m => m.Message).ToList());
     public Task<int> Count => GetReceivedMessages().SelectAsync(messages => messages.Count);
 
-    public ExistingMessages(StoredId storedId, IMessageStore messageStore, IEffectsStore effectsStore, ISerializer serializer, ReplicaId publisherReplica)
+    public ExistingMessages(StoredId storedId, IMessageStore messageStore, IFunctionStore functionStore, ISerializer serializer, ReplicaId publisherReplica)
     {
         _storedId = storedId;
         _messageStore = messageStore;
-        _effectsStore = effectsStore;
+        _functionStore = functionStore;
         _serializer = serializer;
         _publisherReplica = publisherReplica;
     }
@@ -73,7 +73,7 @@ public class ExistingMessages
 
     private async Task<List<StoredMessage>> GetPendingInlinedMessages()
     {
-        var effects = await _effectsStore.GetEffectResults(_storedId);
+        var effects = (await _functionStore.GetFunction(_storedId))?.Effects ?? [];
         var entry = effects.FirstOrDefault(e => e.EffectId == PendingMessages.EffectId);
         return entry?.Result is { Length: > 0 } bytes
             ? PendingMessages.Decode(bytes)
@@ -89,7 +89,7 @@ public class ExistingMessages
         {
             await _messageStore.Truncate(_storedId);
             if ((await GetPendingInlinedMessages()).Count > 0)
-                await _effectsStore.DeleteEffectResult(_storedId, PendingMessages.EffectId, storageSession: null);
+                await _functionStore.DeleteEffectResult(_storedId, PendingMessages.EffectId, storageSession: null);
 
             await Task.Delay(100);
             if ((await GetMergedMessages()).Count == 0)
@@ -162,12 +162,12 @@ public class ExistingMessages
     {
         if (messages.Count == 0)
         {
-            await _effectsStore.DeleteEffectResult(_storedId, PendingMessages.EffectId, storageSession: null);
+            await _functionStore.DeleteEffectResult(_storedId, PendingMessages.EffectId, storageSession: null);
             return;
         }
 
         var entry = StoredEffect.CreateCompleted(PendingMessages.EffectId, PendingMessages.Encode(messages), alias: null);
-        await _effectsStore.SetEffectResult(
+        await _functionStore.SetEffectResult(
             _storedId,
             new StoredEffectChange(_storedId, PendingMessages.EffectId, CrudOperation.Insert, entry),
             session: null

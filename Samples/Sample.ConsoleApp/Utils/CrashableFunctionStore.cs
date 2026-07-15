@@ -15,7 +15,6 @@ public class CrashableFunctionStore : IFunctionStore
     
     public ITypeStore TypeStore => _inner.TypeStore;
     public IMessageStore MessageStore => _inner.MessageStore;
-    public IEffectsStore EffectsStore => _inner.EffectsStore;
     public IReplicaStore ReplicaStore => _inner.ReplicaStore;
 
     public CrashableFunctionStore(IFunctionStore inner) => _inner = inner;
@@ -132,6 +131,11 @@ public class CrashableFunctionStore : IFunctionStore
         => _crashed
             ? Task.FromException<IReadOnlyDictionary<StoredId, byte[]?>>(new TimeoutException())
             : _inner.GetResults(storedIds);
+
+    public Task SetEffectResults(StoredId storedId, IReadOnlyList<StoredEffectChange> changes, IStorageSession? session)
+        => _crashed
+            ? Task.FromException(new TimeoutException())
+            : _inner.SetEffectResults(storedId, changes, session);
 
     public IFunctionStore WithPrefix(string prefix)
         => _inner.WithPrefix(prefix);

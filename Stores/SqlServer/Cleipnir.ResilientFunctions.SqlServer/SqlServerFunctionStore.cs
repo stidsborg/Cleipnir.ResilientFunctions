@@ -7,6 +7,7 @@ using System.Runtime.Serialization;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Storage;
@@ -22,11 +23,10 @@ public class SqlServerFunctionStore : IFunctionStore
     private readonly string _tableName;
     private readonly string _connectionString;
     
-    private readonly SqlServerEffectsStore _effectsStore;
+    private readonly SqlServerCommandExecutor _commandExecutor;
     private readonly SqlServerMessageStore _messageStore;
     private readonly SqlServerTypeStore _typeStore;
 
-    public IEffectsStore EffectsStore => _effectsStore;
     public ITypeStore TypeStore => _typeStore;
     public IMessageStore MessageStore => _messageStore;
     private readonly SqlServerReplicaStore _replicaStore;
@@ -42,7 +42,7 @@ public class SqlServerFunctionStore : IFunctionStore
 
         _connFunc = CreateConnection(connectionString);
         _messageStore = new SqlServerMessageStore(connectionString, _sqlGenerator, _tableName);
-        _effectsStore = new SqlServerEffectsStore(connectionString, _tableName);
+        _commandExecutor = new SqlServerCommandExecutor(connectionString);
         _typeStore = new SqlServerTypeStore(connectionString, _tableName);
         _replicaStore = new SqlServerReplicaStore(connectionString, _tableName);
     }
@@ -64,7 +64,6 @@ public class SqlServerFunctionStore : IFunctionStore
             return;
 
         await _messageStore.Initialize();
-        await _effectsStore.Initialize();
         await _typeStore.Initialize();
         await _replicaStore.Initialize();
         await using var conn = await _connFunc();
@@ -108,7 +107,6 @@ public class SqlServerFunctionStore : IFunctionStore
     public async Task TruncateTables()
     {
         await _messageStore.TruncateTable();
-        await _effectsStore.Truncate();
         await _typeStore.Truncate();
         await _replicaStore.Truncate();
         
@@ -683,10 +681,58 @@ public class SqlServerFunctionStore : IFunctionStore
         return effects;
     }
     
+    // Effects live in the 'Effects' column on the flows row - writes are guarded by the flow's owner column.
+    public async Task SetEffectResults(StoredId storedId, IReadOnlyList<StoredEffectChange> changes, IStorageSession? session)
+    {
+        if (changes.Count == 0)
+            return;
+
+        var owner = default(ReplicaId);
+        var existingEffects = new Dictionary<EffectId, StoredEffect>();
+        var snapshotSession = session as SnapshotStorageSession;
+        if (snapshotSession != null)
+        {
+            existingEffects = snapshotSession.Effects;
+            owner = snapshotSession.ReplicaId;
+        }
+        else
+        {
+            // Single read gets both the existing effects and the owner to guard the write on.
+            var storedFlow = await GetFunction(storedId);
+            foreach (var e in storedFlow?.Effects ?? [])
+                existingEffects[e.EffectId] = e;
+            owner = storedFlow?.OwnerId;
+        }
+
+        foreach (var change in changes)
+            if (change.Operation == CrudOperation.Delete)
+                existingEffects.Remove(change.EffectId);
+            else
+                existingEffects[change.EffectId] = change.StoredEffect!;
+
+        var content = SnapshotStorageSession.Serialize(existingEffects);
+
+        var command = owner != null
+            ? StoreCommand.Create(
+                $"UPDATE {_tableName} SET Effects = @Effects WHERE Id = @Id AND Owner = @Owner"
+            )
+            : StoreCommand.Create(
+                $"UPDATE {_tableName} SET Effects = @Effects WHERE Id = @Id AND Owner IS NULL"
+            );
+
+        command.AddParameter("@Effects", content);
+        command.AddParameter("@Id", storedId.AsGuid);
+        if (owner != null)
+            command.AddParameter("@Owner", owner.AsGuid);
+
+        var affectedRows = await _commandExecutor.ExecuteNonQuery(command);
+        if (affectedRows == 0)
+            throw UnexpectedStateException.ConcurrentModification(storedId);
+    }
+
     public async Task<bool> DeleteFunction(StoredId storedId)
     {
         await _messageStore.Truncate(storedId);
-        await _effectsStore.Remove(storedId);
 
         return await DeleteStoredFunction(storedId);
     }
