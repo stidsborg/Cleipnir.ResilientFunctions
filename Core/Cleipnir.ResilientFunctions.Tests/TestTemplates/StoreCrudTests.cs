@@ -196,6 +196,53 @@ public abstract class StoreCrudTests
         await store.DeleteFunction(StoredId);
     }
 
+    public abstract Task GetFunctionReturnsEffects();
+    public async Task GetFunctionReturnsEffects(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var storedId = TestStoredId.Create();
+        var session = await store.CreateFunction(
+            storedId,
+            "humanInstanceId",
+            Param.ToUtf8Bytes(),
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks,
+            parent: null,
+            owner: null
+        );
+        session.ShouldBeNull();
+
+        // Freshly created function has no effects yet - GetFunction returns a non-null, empty effects collection
+        var before = await store.GetFunction(storedId);
+        before.ShouldNotBeNull();
+        before.Effects.ShouldNotBeNull();
+        before.Effects!.ShouldBeEmpty();
+
+        await store.EffectsStore.SetEffectResult(
+            storedId,
+            StoredEffect.CreateCompleted(1.ToEffectId(), "SomeStateJson".ToUtf8Bytes(), alias: null).ToStoredChange(storedId, Insert),
+            session: null
+        );
+        await store.EffectsStore.SetEffectResult(
+            storedId,
+            StoredEffect.CreateStarted(2.ToEffectId(), alias: "some-alias").ToStoredChange(storedId, Insert),
+            session: null
+        );
+
+        var after = await store.GetFunction(storedId);
+        after.ShouldNotBeNull();
+        after.Effects.ShouldNotBeNull();
+        after.Effects!.Count.ShouldBe(2);
+
+        var effect1 = after.Effects.Single(e => e.EffectId == 1.ToEffectId());
+        effect1.WorkStatus.ShouldBe(WorkStatus.Completed);
+        effect1.Result.ShouldBe("SomeStateJson".ToUtf8Bytes());
+
+        var effect2 = after.Effects.Single(e => e.EffectId == 2.ToEffectId());
+        effect2.WorkStatus.ShouldBe(WorkStatus.Started);
+        effect2.Alias.ShouldBe("some-alias");
+    }
+
     public abstract Task ParameterAndStateCanBeUpdatedOnExistingFunction();
     public async Task ParameterAndStateCanBeUpdatedOnExistingFunction(Task<IFunctionStore> storeTask)
     {

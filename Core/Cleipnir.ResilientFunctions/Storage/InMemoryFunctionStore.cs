@@ -313,30 +313,32 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         return toReturn;
     }
 
-    public virtual Task<StoredFlow?> GetFunction(StoredId storedId)
+    public virtual async Task<StoredFlow?> GetFunction(StoredId storedId)
     {
+        StoredFlow flow;
         lock (_sync)
         {
             if (!_states.ContainsKey(storedId))
-                return default(StoredFlow).ToTask();
+                return null;
 
             var state = _states[storedId];
 
-            return new StoredFlow(
-                    storedId,
-                    state.HumanInstanceId,
-                    state.Param,
-                    state.Status,
-                    state.Exception,
-                    state.Expires,
-                    state.Timestamp,
-                    state.Parent,
-                    state.Owner,
-                    storedId.Type
-                )
-                .ToNullable()
-                .ToTask();
+            flow = new StoredFlow(
+                storedId,
+                state.HumanInstanceId,
+                state.Param,
+                state.Status,
+                state.Exception,
+                state.Expires,
+                state.Timestamp,
+                state.Parent,
+                state.Owner,
+                storedId.Type
+            );
         }
+
+        var effects = await EffectsStore.GetEffectResults(storedId);
+        return flow with { Effects = effects };
     }
 
     public Task<IReadOnlyList<StoredId>> GetInstances(StoredType storedType, Status status)

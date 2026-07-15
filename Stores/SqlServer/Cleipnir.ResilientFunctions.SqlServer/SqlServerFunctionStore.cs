@@ -573,7 +573,8 @@ public class SqlServerFunctionStore : IFunctionStore
                     Timestamp,
                     HumanInstanceId,
                     Parent,
-                    Owner
+                    Owner,
+                    Effects
             FROM {_tableName}
             WHERE Id = @Id";
         
@@ -649,6 +650,7 @@ public class SqlServerFunctionStore : IFunctionStore
                 var humanInstanceId = reader.GetString(6);
                 var parentId = reader.IsDBNull(7) ? null : reader.GetGuid(7).ToStoredId();
                 var ownerId = reader.IsDBNull(8) ? null : reader.GetGuid(8).ToReplicaId();
+                var effects = DeserializeEffects(reader.IsDBNull(9) ? null : (byte[]) reader.GetValue(9));
 
                 return new StoredFlow(
                     storedId,
@@ -660,12 +662,25 @@ public class SqlServerFunctionStore : IFunctionStore
                     timestamp,
                     parentId,
                     ownerId,
-                    storedId.Type
+                    storedId.Type,
+                    effects
                 );
             }
         }
 
         return default;
+    }
+
+    private static IReadOnlyList<StoredEffect> DeserializeEffects(byte[]? effectsBytes)
+    {
+        if (effectsBytes == null)
+            return [];
+
+        var effects = new List<StoredEffect>();
+        foreach (var effectBytes in BinaryPacker.Split(effectsBytes))
+            effects.Add(StoredEffect.Deserialize(effectBytes!));
+
+        return effects;
     }
     
     public async Task<bool> DeleteFunction(StoredId storedId)

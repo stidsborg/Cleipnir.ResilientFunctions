@@ -39,6 +39,10 @@ public class StoreCrudTests : ResilientFunctions.Tests.TestTemplates.StoreCrudTe
         => NonExistingFunctionCanBeDeleted(FunctionStoreFactory.Create());
 
     [TestMethod]
+    public override Task GetFunctionReturnsEffects()
+        => GetFunctionReturnsEffects(FunctionStoreFactory.Create());
+
+    [TestMethod]
     public override Task ParameterAndStateCanBeUpdatedOnExistingFunction()
         => ParameterAndStateCanBeUpdatedOnExistingFunction(FunctionStoreFactory.Create());
     

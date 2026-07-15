@@ -527,7 +527,8 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 timestamp,
                 human_instance_id,
                 parent,
-                owner
+                owner,
+                effects
             FROM {_tableName}
             WHERE id = $1;";
         await using var command = new NpgsqlCommand(_getFunctionSql, conn)
@@ -553,6 +554,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
            6 human_instance_id
            7 parent
            8 owner
+           9 effects
          */
         while (await reader.ReadAsync())
         {
@@ -561,6 +563,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
             var hasException = !await reader.IsDBNullAsync(3);
             var hasParent = !await reader.IsDBNullAsync(7);
             var hasOwner = !await reader.IsDBNullAsync(8);
+            var hasEffects = !await reader.IsDBNullAsync(9);
 
             return new StoredFlow(
                 storedId,
@@ -572,11 +575,24 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 Timestamp: reader.GetInt64(5),
                 ParentId: hasParent ? reader.GetGuid(7).ToStoredId() : null,
                 OwnerId: hasOwner ? reader.GetGuid(8).ToReplicaId() : null,
-                StoredType: storedId.Type
+                StoredType: storedId.Type,
+                Effects: DeserializeEffects(hasEffects ? (byte[]) reader.GetValue(9) : null)
             );
         }
 
         return null;
+    }
+
+    private static IReadOnlyList<StoredEffect> DeserializeEffects(byte[]? effectsBytes)
+    {
+        if (effectsBytes == null)
+            return [];
+
+        var effects = new List<StoredEffect>();
+        foreach (var effectBytes in BinaryPacker.Split(effectsBytes))
+            effects.Add(StoredEffect.Deserialize(effectBytes!));
+
+        return effects;
     }
     
     public async Task<bool> DeleteFunction(StoredId storedId)
