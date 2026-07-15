@@ -414,13 +414,14 @@ public class SqlServerFunctionStore : IFunctionStore
         return affectedRows > 0;
     }
 
-    public async Task<bool> SucceedFunction(
+    public async Task<bool> SetStatus(
         StoredId storedId,
+        Status status,
         byte[]? result,
+        StoredException? storedException,
+        long expires,
         long timestamp,
         ReplicaId expectedReplica,
-        IReadOnlyList<StoredEffect>? effects,
-        IReadOnlyList<StoredMessage>? messages,
         IStorageSession? storageSession)
     {
         byte[]? effectsBytes = null;
@@ -429,91 +430,12 @@ public class SqlServerFunctionStore : IFunctionStore
 
         await using var conn = await _connFunc();
         await using var command = _sqlGenerator
-            .SucceedFunction(
+            .SetStatus(
                 storedId,
+                status,
                 result,
-                timestamp,
-                expectedReplica,
-                paramPrefix: "",
-                effects: effectsBytes
-            ).ToSqlCommand(conn);
-
-        var affectedRows = await command.ExecuteNonQueryAsync();
-        return affectedRows > 0;
-    }
-    
-    public async Task<bool> PostponeFunction(
-        StoredId storedId,
-        long postponeUntil,
-        long timestamp,
-        ReplicaId expectedReplica,
-        IReadOnlyList<StoredEffect>? effects,
-        IReadOnlyList<StoredMessage>? messages,
-        IStorageSession? storageSession)
-    {
-        byte[]? effectsBytes = null;
-        if (storageSession is SnapshotStorageSession session && session.Effects.Count > 0)
-            effectsBytes = session.Serialize();
-
-        await using var conn = await _connFunc();
-        await using var command = _sqlGenerator.PostponeFunction(
-            storedId,
-            postponeUntil,
-            timestamp,
-            expectedReplica,
-            paramPrefix: "",
-            effects: effectsBytes
-        ).ToSqlCommand(conn);
-
-        var affectedRows = await command.ExecuteNonQueryAsync();
-        return affectedRows > 0;
-    }
-    
-    public async Task<bool> FailFunction(
-        StoredId storedId,
-        StoredException storedException,
-        long timestamp,
-        ReplicaId expectedReplica,
-        IReadOnlyList<StoredEffect>? effects,
-        IReadOnlyList<StoredMessage>? messages,
-        IStorageSession? storageSession)
-    {
-        byte[]? effectsBytes = null;
-        if (storageSession is SnapshotStorageSession session && session.Effects.Count > 0)
-            effectsBytes = session.Serialize();
-
-        await using var conn = await _connFunc();
-        await using var command = _sqlGenerator
-            .FailFunction(
-                storedId,
                 storedException,
-                timestamp,
-                expectedReplica,
-                paramPrefix: "",
-                effects: effectsBytes
-            ).ToSqlCommand(conn);
-
-
-        var affectedRows = await command.ExecuteNonQueryAsync();
-        return affectedRows > 0;
-    }
-    
-    public async Task<bool> SuspendFunction(
-        StoredId storedId,
-        long timestamp,
-        ReplicaId expectedReplica,
-        IReadOnlyList<StoredEffect>? effects,
-        IReadOnlyList<StoredMessage>? messages,
-        IStorageSession? storageSession)
-    {
-        byte[]? effectsBytes = null;
-        if (storageSession is SnapshotStorageSession session && session.Effects.Count > 0)
-            effectsBytes = session.Serialize();
-
-        await using var conn = await _connFunc();
-        await using var command = _sqlGenerator
-            .SuspendFunction(
-                storedId,
+                expires,
                 timestamp,
                 expectedReplica,
                 paramPrefix: "",

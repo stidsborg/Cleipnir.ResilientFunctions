@@ -216,13 +216,14 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         }
     }
 
-    public Task<bool> SucceedFunction(
+    public Task<bool> SetStatus(
         StoredId storedId,
+        Status status,
         byte[]? result,
+        StoredException? storedException,
+        long expires,
         long timestamp,
-        ReplicaId? expectedReplica,
-        IReadOnlyList<StoredEffect>? effects,
-        IReadOnlyList<StoredMessage>? messages,
+        ReplicaId expectedReplica,
         IStorageSession? storageSession)
     {
         lock (_sync)
@@ -232,84 +233,10 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
             var state = _states[storedId];
             if (state.Owner != expectedReplica) return false.ToTask();
 
-            state.Status = Status.Succeeded;
+            state.Status = status;
             state.Result = result;
-            state.Timestamp = timestamp;
-            state.Owner = null;
-
-            return true.ToTask();
-        }
-    }
-
-    public Task<bool> PostponeFunction(
-        StoredId storedId,
-        long postponeUntil,
-        long timestamp,
-        ReplicaId? expectedReplica,
-        IReadOnlyList<StoredEffect>? effects,
-        IReadOnlyList<StoredMessage>? messages,
-        IStorageSession? storageSession)
-    {
-        lock (_sync)
-        {
-            if (!_states.ContainsKey(storedId)) return false.ToTask();
-
-            var state = _states[storedId];
-            if (state.Owner != expectedReplica) return false.ToTask();
-
-            state.Status = Status.Postponed;
-            state.Expires = postponeUntil;
-            state.Timestamp = timestamp;
-            state.Owner = null;
-
-            return true.ToTask();
-        }
-    }
-
-    public Task<bool> FailFunction(
-        StoredId storedId,
-        StoredException storedException,
-        long timestamp,
-        ReplicaId? expectedReplica,
-        IReadOnlyList<StoredEffect>? effects,
-        IReadOnlyList<StoredMessage>? messages,
-        IStorageSession? storageSession)
-    {
-        lock (_sync)
-        {
-            if (!_states.ContainsKey(storedId)) return false.ToTask();
-
-            var state = _states[storedId];
-            if (state.Owner != expectedReplica) return false.ToTask();
-
-            state.Status = Status.Failed;
             state.Exception = storedException;
-            state.Timestamp = timestamp;
-            state.Owner = null;
-
-            return true.ToTask();
-        }
-    }
-
-    public Task<bool> SuspendFunction(
-        StoredId storedId,
-        long timestamp,
-        ReplicaId? expectedReplica,
-        IReadOnlyList<StoredEffect>? effects,
-        IReadOnlyList<StoredMessage>? messages,
-        IStorageSession? storageSession)
-    {
-        lock (_sync)
-        {
-            if (!_states.ContainsKey(storedId))
-                return false.ToTask();
-
-            var state = _states[storedId];
-            if (state.Owner != expectedReplica)
-                return false.ToTask();
-
-            state.Status = Status.Suspended;
-            state.Expires = 0;
+            state.Expires = expires;
             state.Timestamp = timestamp;
             state.Owner = null;
 

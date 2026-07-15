@@ -103,13 +103,14 @@ public class DelayedStartUpTests
             parent: null,
             owner: ReplicaId.Empty
         );
-        await store.PostponeFunction(
+        await store.SetStatus(
             registration.MapToStoredId(functionId.Instance),
-            postponeUntil: 0,
+            Status.Postponed,
+            result: null,
+            storedException: null,
+            expires: 0,
             timestamp: DateTime.UtcNow.Ticks,
             expectedReplica: ReplicaId.Empty,
-            effects: null,
-            messages: null,
             storageSession: null
         ).ShouldBeTrueAsync();
         
@@ -142,13 +143,14 @@ public class DelayedStartUpTests
             parent: null,
             owner: ReplicaId.Empty
         );
-        await store.PostponeFunction(
+        await store.SetStatus(
             registration.MapToStoredId(functionId.Instance),
-            postponeUntil: 0,
+            Status.Postponed,
+            result: null,
+            storedException: null,
+            expires: 0,
             timestamp: DateTime.UtcNow.Ticks,
             expectedReplica: ReplicaId.Empty,
-            effects: null,
-            messages: null,
             storageSession: null
         );
 

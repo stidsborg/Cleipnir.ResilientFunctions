@@ -36,13 +36,14 @@ public static class PostponedTest
                 parent: null,
                 owner: ReplicaId.Empty
             );
-            await store.PostponeFunction(
+            await store.SetStatus(
                 StoredId.Create(storedType, i.ToString()),
-                postponeUntil: start.Ticks,
+                Status.Postponed,
+                result: null,
+                storedException: null,
+                expires: start.Ticks,
                 timestamp: DateTime.UtcNow.Ticks,
                 expectedReplica: ReplicaId.Empty,
-                effects: null,
-                messages: null,
                 storageSession: null
             );
         }

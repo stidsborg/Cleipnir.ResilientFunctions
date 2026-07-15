@@ -183,202 +183,64 @@ public class SqlGenerator(string tablePrefix)
         return command;
     }
 
-    private string? _succeedFunctionSql;
-    private string? _succeedFunctionWithEffectsSql;
-    public StoreCommand SucceedFunction(StoredId storedId, byte[]? result, long timestamp, ReplicaId expectedReplica, string paramPrefix, byte[]? effects = null)
+    private string? _setStatusSql;
+    private string? _setStatusWithEffectsSql;
+    public StoreCommand SetStatus(
+        StoredId storedId,
+        Status status,
+        byte[]? result,
+        StoredException? storedException,
+        long expires,
+        long timestamp,
+        ReplicaId expectedReplica,
+        string paramPrefix,
+        byte[]? effects = null)
     {
+        string sqlTemplate;
         if (effects == null)
         {
-            _succeedFunctionSql ??= @$"
+            _setStatusSql ??= @$"
                 UPDATE {tablePrefix}
-                SET Status = {(int)Status.Succeeded}, ResultJson = @ResultJson, Timestamp = @Timestamp, Owner = NULL
-                WHERE Id = @Id AND Owner = @ExpectedReplica";
-
-            var sql = paramPrefix == ""
-                ? _succeedFunctionSql
-                : _succeedFunctionSql.Replace("@", $"@{paramPrefix}");
-
-            var command = StoreCommand.Create(sql);
-            command.AddParameter($"@{paramPrefix}ResultJson", result ?? SqlBinary.Null);
-            command.AddParameter($"@{paramPrefix}Timestamp", timestamp);
-            command.AddParameter($"@{paramPrefix}Id", storedId.AsGuid);
-            command.AddParameter($"@{paramPrefix}ExpectedReplica", expectedReplica.AsGuid);
-
-            return command;
-        }
-        else
-        {
-            _succeedFunctionWithEffectsSql ??= @$"
-                UPDATE {tablePrefix}
-                SET Status = {(int)Status.Succeeded}, ResultJson = @ResultJson, Timestamp = @Timestamp, Owner = NULL, Effects = @Effects
-                WHERE Id = @Id AND Owner = @ExpectedReplica";
-
-            var sql = paramPrefix == ""
-                ? _succeedFunctionWithEffectsSql
-                : _succeedFunctionWithEffectsSql.Replace("@", $"@{paramPrefix}");
-
-            var command = StoreCommand.Create(sql);
-            command.AddParameter($"@{paramPrefix}ResultJson", result ?? SqlBinary.Null);
-            command.AddParameter($"@{paramPrefix}Timestamp", timestamp);
-            command.AddParameter($"@{paramPrefix}Effects", effects);
-            command.AddParameter($"@{paramPrefix}Id", storedId.AsGuid);
-            command.AddParameter($"@{paramPrefix}ExpectedReplica", expectedReplica.AsGuid);
-
-            return command;
-        }
-    }
-    
-    private string? _postponedFunctionSql;
-    private string? _postponedFunctionWithEffectsSql;
-    public StoreCommand PostponeFunction(StoredId storedId, long postponeUntil, long timestamp, ReplicaId expectedReplica, string paramPrefix, byte[]? effects = null)
-    {
-        if (effects == null)
-        {
-            _postponedFunctionSql ??= @$"
-                UPDATE {tablePrefix}
-                SET Status = {(int)Status.Postponed},
-                    Expires = @PostponedUntil,
+                SET Status = @Status,
+                    ResultJson = @ResultJson,
+                    ExceptionJson = @ExceptionJson,
+                    Expires = @Expires,
                     Timestamp = @Timestamp,
                     Owner = NULL
                 WHERE Id = @Id AND Owner = @ExpectedReplica";
-
-            var sql = paramPrefix == ""
-                ? _postponedFunctionSql
-                : _postponedFunctionSql.Replace("@", $"@{paramPrefix}");
-
-            var command = StoreCommand.Create(sql);
-            command.AddParameter($"@{paramPrefix}PostponedUntil", postponeUntil);
-            command.AddParameter($"@{paramPrefix}Timestamp", timestamp);
-            command.AddParameter($"@{paramPrefix}Id", storedId.AsGuid);
-            command.AddParameter($"@{paramPrefix}ExpectedReplica", expectedReplica.AsGuid);
-
-            return command;
+            sqlTemplate = _setStatusSql;
         }
         else
         {
-            _postponedFunctionWithEffectsSql ??= @$"
+            _setStatusWithEffectsSql ??= @$"
                 UPDATE {tablePrefix}
-                SET Status = {(int)Status.Postponed},
-                    Expires = @PostponedUntil,
+                SET Status = @Status,
+                    ResultJson = @ResultJson,
+                    ExceptionJson = @ExceptionJson,
+                    Expires = @Expires,
                     Timestamp = @Timestamp,
                     Owner = NULL,
                     Effects = @Effects
                 WHERE Id = @Id AND Owner = @ExpectedReplica";
+            sqlTemplate = _setStatusWithEffectsSql;
+        }
 
-            var sql = paramPrefix == ""
-                ? _postponedFunctionWithEffectsSql
-                : _postponedFunctionWithEffectsSql.Replace("@", $"@{paramPrefix}");
+        var sql = paramPrefix == ""
+            ? sqlTemplate
+            : sqlTemplate.Replace("@", $"@{paramPrefix}");
 
-            var command = StoreCommand.Create(sql);
-            command.AddParameter($"@{paramPrefix}PostponedUntil", postponeUntil);
-            command.AddParameter($"@{paramPrefix}Timestamp", timestamp);
+        var command = StoreCommand.Create(sql);
+        command.AddParameter($"@{paramPrefix}Status", (int) status);
+        command.AddParameter($"@{paramPrefix}ResultJson", result ?? SqlBinary.Null);
+        command.AddParameter($"@{paramPrefix}ExceptionJson", storedException == null ? (object) DBNull.Value : JsonSerializer.Serialize(storedException));
+        command.AddParameter($"@{paramPrefix}Expires", expires);
+        command.AddParameter($"@{paramPrefix}Timestamp", timestamp);
+        if (effects != null)
             command.AddParameter($"@{paramPrefix}Effects", effects);
-            command.AddParameter($"@{paramPrefix}Id", storedId.AsGuid);
-            command.AddParameter($"@{paramPrefix}ExpectedReplica", expectedReplica.AsGuid);
+        command.AddParameter($"@{paramPrefix}Id", storedId.AsGuid);
+        command.AddParameter($"@{paramPrefix}ExpectedReplica", expectedReplica.AsGuid);
 
-            return command;
-        }
-    }
-
-    private string? _failFunctionSql;
-    private string? _failFunctionWithEffectsSql;
-    public StoreCommand FailFunction(StoredId storedId, StoredException storedException, long timestamp, ReplicaId expectedReplica, string paramPrefix, byte[]? effects = null)
-    {
-        if (effects == null)
-        {
-            _failFunctionSql ??= @$"
-                UPDATE {tablePrefix}
-                SET Status = {(int)Status.Failed}, ExceptionJson = @ExceptionJson, Timestamp = @timestamp, Owner = NULL
-                WHERE Id = @Id AND Owner = @ExpectedReplica";
-
-            var sql = paramPrefix == ""
-                ? _failFunctionSql
-                : _failFunctionSql.Replace("@", $"@{paramPrefix}");
-
-            var command = StoreCommand.Create(sql);
-            command.AddParameter($"@{paramPrefix}ExceptionJson", JsonSerializer.Serialize(storedException));
-            command.AddParameter($"@{paramPrefix}Timestamp", timestamp);
-            command.AddParameter($"@{paramPrefix}Id", storedId.AsGuid);
-            command.AddParameter($"@{paramPrefix}ExpectedReplica", expectedReplica.AsGuid);
-
-            return command;
-        }
-        else
-        {
-            _failFunctionWithEffectsSql ??= @$"
-                UPDATE {tablePrefix}
-                SET Status = {(int)Status.Failed}, ExceptionJson = @ExceptionJson, Timestamp = @timestamp, Owner = NULL, Effects = @Effects
-                WHERE Id = @Id AND Owner = @ExpectedReplica";
-
-            var sql = paramPrefix == ""
-                ? _failFunctionWithEffectsSql
-                : _failFunctionWithEffectsSql.Replace("@", $"@{paramPrefix}");
-
-            var command = StoreCommand.Create(sql);
-            command.AddParameter($"@{paramPrefix}ExceptionJson", JsonSerializer.Serialize(storedException));
-            command.AddParameter($"@{paramPrefix}Timestamp", timestamp);
-            command.AddParameter($"@{paramPrefix}Effects", effects);
-            command.AddParameter($"@{paramPrefix}Id", storedId.AsGuid);
-            command.AddParameter($"@{paramPrefix}ExpectedReplica", expectedReplica.AsGuid);
-
-            return command;
-        }
-    }
-    
-    private string? _suspendFunctionSql;
-    private string? _suspendFunctionWithEffectsSql;
-    public StoreCommand SuspendFunction(
-        StoredId storedId,
-        long timestamp,
-        ReplicaId expectedReplica,
-        string paramPrefix,
-        byte[]? effects = null
-        )
-    {
-        if (effects == null)
-        {
-            _suspendFunctionSql ??= @$"
-                    UPDATE {tablePrefix}
-                    SET Status = {(int)Status.Suspended},
-                        Expires = 0,
-                        Timestamp = @Timestamp,
-                        Owner = NULL
-                    WHERE Id = @Id AND Owner = @ExpectedReplica";
-
-            var sql = paramPrefix == ""
-                ? _suspendFunctionSql
-                : _suspendFunctionSql.Replace("@", $"@{paramPrefix}");
-
-            var command = StoreCommand.Create(sql);
-            command.AddParameter($"@{paramPrefix}Timestamp", timestamp);
-            command.AddParameter($"@{paramPrefix}Id", storedId.AsGuid);
-            command.AddParameter($"@{paramPrefix}ExpectedReplica", expectedReplica.AsGuid);
-
-            return command;
-        }
-        else
-        {
-            _suspendFunctionWithEffectsSql ??= @$"
-                    UPDATE {tablePrefix}
-                    SET Status = {(int)Status.Suspended},
-                        Expires = 0,
-                        Timestamp = @Timestamp,
-                        Owner = NULL,
-                        Effects = @Effects
-                    WHERE Id = @Id AND Owner = @ExpectedReplica";
-
-            var sql = paramPrefix == ""
-                ? _suspendFunctionWithEffectsSql
-                : _suspendFunctionWithEffectsSql.Replace("@", $"@{paramPrefix}");
-
-            var command = StoreCommand.Create(sql);
-            command.AddParameter($"@{paramPrefix}Timestamp", timestamp);
-            command.AddParameter($"@{paramPrefix}Effects", effects);
-            command.AddParameter($"@{paramPrefix}Id", storedId.AsGuid);
-            command.AddParameter($"@{paramPrefix}ExpectedReplica", expectedReplica.AsGuid);
-
-            return command;
-        }
+        return command;
     }
 
     private string? _restartExecutionsSql;

@@ -122,99 +122,37 @@ public class SqlGenerator(string tablePrefix)
         }
     }
     
-    private string? _succeedFunctionSql;
-    public IEnumerable<StoreCommand> SucceedFunction(
+    private string? _setStatusSql;
+    public StoreCommand SetStatus(
         StoredId storedId,
+        Status status,
         byte[]? result,
+        StoredException? storedException,
+        long expires,
         long timestamp,
         ReplicaId expectedReplica)
     {
-        _succeedFunctionSql ??= $@"
+        _setStatusSql ??= $@"
             UPDATE {tablePrefix}
-            SET status = {(int) Status.Succeeded}, owner = NULL, timestamp = $3, result_json = $4
-            WHERE id = $1 AND owner = $2";
+            SET status = $1,
+                result_json = $2,
+                exception_json = $3,
+                expires = $4,
+                timestamp = $5,
+                owner = NULL
+            WHERE id = $6 AND owner = $7";
 
-        yield return StoreCommand.Create(
-            _succeedFunctionSql,
+        return StoreCommand.Create(
+            _setStatusSql,
             values:
             [
-                storedId.AsGuid,
-                expectedReplica.AsGuid,
-                timestamp,
+                (int) status,
                 result == null ? DBNull.Value : result,
-            ]
-        );
-    }
-    
-    private string? _postponeFunctionSql;
-    public StoreCommand PostponeFunction(
-        StoredId storedId,
-        long postponeUntil,
-        long timestamp,
-        ReplicaId expectedReplica)
-    {
-        _postponeFunctionSql ??= $@"
-            UPDATE {tablePrefix}
-            SET status = {(int) Status.Postponed},
-                expires = $1,
-                owner = NULL,
-                timestamp = $4
-            WHERE
-                id = $2 AND
-                owner = $3;";
-
-        return StoreCommand.Create(
-            _postponeFunctionSql,
-            values: [
-                postponeUntil,
+                storedException == null ? DBNull.Value : JsonSerializer.Serialize(storedException),
+                expires,
+                timestamp,
                 storedId.AsGuid,
                 expectedReplica.AsGuid,
-                timestamp,
-            ]
-        );
-    }
-    
-    private string? _failFunctionSql;
-    public IEnumerable<StoreCommand> FailFunction(
-        StoredId storedId,
-        StoredException storedException,
-        long timestamp,
-        ReplicaId expectedReplica)
-    {
-        _failFunctionSql ??= $@"
-            UPDATE {tablePrefix}
-            SET status = {(int) Status.Failed}, owner = NULL, timestamp = $3, exception_json = $4
-            WHERE id = $1 AND owner = $2";
-
-        yield return StoreCommand.Create(
-            _failFunctionSql,
-            values:
-            [
-                storedId.AsGuid,
-                expectedReplica.AsGuid,
-                timestamp,
-                JsonSerializer.Serialize(storedException)
-            ]
-        );
-    }
-    
-    private string? _suspendFunctionSql;
-    public StoreCommand SuspendFunction(StoredId storedId, long timestamp, ReplicaId expectedReplica)
-    {
-        _suspendFunctionSql ??= $@"
-            UPDATE {tablePrefix}
-            SET status = {(int) Status.Suspended},
-                expires = 0,
-                owner = NULL,
-                timestamp = $3
-            WHERE id = $1 AND owner = $2;";
-
-        return StoreCommand.Create(
-            _suspendFunctionSql,
-            values: [
-                storedId.AsGuid,
-                expectedReplica.AsGuid,
-                timestamp,
             ]
         );
     }

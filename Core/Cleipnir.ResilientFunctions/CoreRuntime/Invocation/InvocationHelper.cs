@@ -107,13 +107,14 @@ internal class InvocationHelper<TParam, TReturn>
     {
         var storedException = exception.ToStoredException();
 
-        var success = await _functionStore.FailFunction(
+        var success = await _functionStore.SetStatus(
             storedId,
+            Status.Failed,
+            result: null,
             storedException,
+            expires: 0,
             timestamp: UtcNow().Ticks,
             _replicaId,
-            effects: null,
-            messages: null,
             storageSession: null
         );
         if (!success)
@@ -125,42 +126,47 @@ internal class InvocationHelper<TParam, TReturn>
         switch (result.Outcome)
         {
             case Outcome.Succeed:
-                return await _functionStore.SucceedFunction(
+                return await _functionStore.SetStatus(
                     storedId,
+                    Status.Succeeded,
                     result: SerializeResult(result.SucceedWithValue),
+                    storedException: null,
+                    expires: 0,
                     timestamp: UtcNow().Ticks,
                     _replicaId,
-                    effects: null,
-                    messages: null,
                     storageSession
                 ) ? PersistResultOutcome.Success : PersistResultOutcome.Failed;
             case Outcome.Postpone:
-                return await _functionStore.PostponeFunction(
+                return await _functionStore.SetStatus(
                     storedId,
-                    postponeUntil: result.Postpone!.DateTime.Ticks,
+                    Status.Postponed,
+                    result: null,
+                    storedException: null,
+                    expires: result.Postpone!.DateTime.Ticks,
                     timestamp: UtcNow().Ticks,
                     _replicaId,
-                    effects: null,
-                    messages: null,
                     storageSession
                 ) ? PersistResultOutcome.Success : PersistResultOutcome.Success;
             case Outcome.Fail:
-                return await _functionStore.FailFunction(
+                return await _functionStore.SetStatus(
                     storedId,
+                    Status.Failed,
+                    result: null,
                     storedException: result.Fail!.ToStoredException(),
+                    expires: 0,
                     timestamp: UtcNow().Ticks,
                     _replicaId,
-                    effects: null,
-                    messages: null,
                     storageSession
                 ) ? PersistResultOutcome.Success : PersistResultOutcome.Failed;
             case Outcome.Suspend:
-                return await _functionStore.SuspendFunction(
+                return await _functionStore.SetStatus(
                     storedId,
+                    Status.Suspended,
+                    result: null,
+                    storedException: null,
+                    expires: 0,
                     timestamp: UtcNow().Ticks,
                     _replicaId,
-                    effects: null,
-                    messages: null,
                     storageSession
                 ) ? PersistResultOutcome.Success : PersistResultOutcome.Reschedule;
             default:
@@ -246,13 +252,14 @@ internal class InvocationHelper<TParam, TReturn>
             if (sf == null)
                 throw UnexpectedStateException.NotFound(flowId);
             
-            await _functionStore.FailFunction(
+            await _functionStore.SetStatus(
                 storedId,
+                Status.Failed,
+                result: null,
                 storedException: FatalWorkflowException.CreateNonGeneric(flowId, e).ToStoredException(),
+                expires: 0,
                 timestamp: UtcNow().Ticks,
                 _replicaId,
-                effects: null,
-                messages: null,
                 storageSession: null
             );
             throw;
@@ -529,13 +536,14 @@ internal class InvocationHelper<TParam, TReturn>
 
     public async Task<bool> Reschedule(StoredId id, TParam param)
     {
-        return await _functionStore.PostponeFunction(
+        return await _functionStore.SetStatus(
             id,
-            postponeUntil: 0,
+            Status.Postponed,
+            result: null,
+            storedException: null,
+            expires: 0,
             timestamp: UtcNow().Ticks,
             _replicaId,
-            effects: null,
-            messages: null,
             storageSession: null
         );
     }

@@ -46,13 +46,14 @@ public abstract class StoreTests
 
         const string result = "hello world";
         var resultJson = result.ToJson();
-        await store.SucceedFunction(
+        await store.SetStatus(
             functionId,
+            Status.Succeeded,
             result: resultJson.ToUtf8Bytes(),
-            expectedReplica: ReplicaId.Empty,
+            storedException: null,
+            expires: 0,
             timestamp: DateTime.UtcNow.Ticks,
-            effects: null,
-            messages: null,
+            expectedReplica: ReplicaId.Empty,
             storageSession: null
         ).ShouldBeTrueAsync();
             
@@ -225,13 +226,14 @@ public abstract class StoreTests
             owner: ReplicaId.Empty
         ).ShouldNotBeNullAsync();
 
-        await store.PostponeFunction(
+        await store.SetStatus(
             functionId,
-            postponeUntil: nowTicks,
+            Status.Postponed,
+            result: null,
+            storedException: null,
+            expires: nowTicks,
             timestamp: DateTime.UtcNow.Ticks,
             expectedReplica: ReplicaId.Empty,
-            effects: null,
-            messages: null,
             storageSession: null
         ).ShouldBeTrueAsync();
         
@@ -261,13 +263,14 @@ public abstract class StoreTests
             owner: ReplicaId.Empty
         ).ShouldNotBeNullAsync();
 
-        await store.PostponeFunction(
+        await store.SetStatus(
             functionId,
-            postponeUntil: nowTicks,
+            Status.Postponed,
+            result: null,
+            storedException: null,
+            expires: nowTicks,
             timestamp: DateTime.UtcNow.Ticks,
             expectedReplica: ReplicaId.Empty,
-            effects: null,
-            messages: null,
             storageSession: null
         ).ShouldBeTrueAsync();
         
@@ -297,13 +300,14 @@ public abstract class StoreTests
             owner: ReplicaId.Empty
         ).ShouldNotBeNullAsync();
 
-        await store.PostponeFunction(
+        await store.SetStatus(
             functionId,
-            postponeUntil: nowTicks,
+            Status.Postponed,
+            result: null,
+            storedException: null,
+            expires: nowTicks,
             timestamp: DateTime.UtcNow.Ticks,
             expectedReplica: ReplicaId.NewId(),
-            effects: null,
-            messages: null,
             storageSession: null
         ).ShouldBeFalseAsync();
 
@@ -455,13 +459,14 @@ public abstract class StoreTests
             ExceptionType: typeof(Exception).SimpleQualifiedName()
         );
         
-        await store.FailFunction(
+        await store.SetStatus(
             storedId,
-            storedException,
+            Status.Failed,
+            result: null,
+            storedException: storedException,
+            expires: 0,
             timestamp: DateTime.UtcNow.Ticks,
             expectedReplica: ReplicaId.Empty,
-            effects: null,
-            messages: null,
             storageSession: null
         );
 
@@ -581,12 +586,14 @@ public abstract class StoreTests
             owner: ReplicaId.Empty
         ).ShouldNotBeNullAsync();
 
-        await store.SuspendFunction(
+        await store.SetStatus(
             functionId,
+            Status.Suspended,
+            result: null,
+            storedException: null,
+            expires: 0,
             timestamp: DateTime.UtcNow.Ticks,
             expectedReplica: ReplicaId.Empty,
-            effects: null,
-            messages: null,
             storageSession: null
         ).ShouldBeAsync(true);
 
@@ -723,13 +730,14 @@ public abstract class StoreTests
             owner: ReplicaId.Empty
         ).ShouldNotBeNullAsync();
 
-        await store.SucceedFunction(
+        await store.SetStatus(
             functionId,
+            Status.Succeeded,
             result: null,
-            DateTime.UtcNow.Ticks,
+            storedException: null,
+            expires: 0,
+            timestamp: DateTime.UtcNow.Ticks,
             expectedReplica: ReplicaId.Empty,
-            effects: null,
-            messages: null,
             storageSession: null
         );
         
@@ -753,13 +761,14 @@ public abstract class StoreTests
             owner: ReplicaId.Empty
         ).ShouldNotBeNullAsync();
 
-        await store.PostponeFunction(
+        await store.SetStatus(
             functionId,
-            postponeUntil: DateTime.UtcNow.Ticks,
+            Status.Postponed,
+            result: null,
+            storedException: null,
+            expires: DateTime.UtcNow.Ticks,
             timestamp: DateTime.UtcNow.Ticks,
             expectedReplica: ReplicaId.Empty,
-            effects: null,
-            messages: null,
             storageSession: null
         );
         
@@ -783,13 +792,14 @@ public abstract class StoreTests
             owner: ReplicaId.Empty
         ).ShouldNotBeNullAsync();
 
-        await store.FailFunction(
+        await store.SetStatus(
             functionId,
-            new StoredException("ExceptionMessage", ExceptionStackTrace: null, typeof(Exception).SimpleQualifiedName()),
+            Status.Failed,
+            result: null,
+            storedException: new StoredException("ExceptionMessage", ExceptionStackTrace: null, typeof(Exception).SimpleQualifiedName()),
+            expires: 0,
             timestamp: DateTime.UtcNow.Ticks,
             expectedReplica: ReplicaId.Empty,
-            effects: null,
-            messages: null,
             storageSession: null
         );
         
@@ -813,12 +823,14 @@ public abstract class StoreTests
             owner: ReplicaId.Empty
         ).ShouldNotBeNullAsync();
 
-        await store.SuspendFunction(
+        await store.SetStatus(
             functionId,
+            Status.Suspended,
+            result: null,
+            storedException: null,
+            expires: 0,
             timestamp: DateTime.UtcNow.Ticks,
             expectedReplica: ReplicaId.Empty,
-            effects: null,
-            messages: null,
             storageSession: null
         );
         
@@ -872,13 +884,14 @@ public abstract class StoreTests
                 owner: ReplicaId.Empty
             ).ShouldNotBeNullAsync();
 
-            await store.SucceedFunction(
+            await store.SetStatus(
                 functionId,
+                Status.Succeeded,
                 result: null,
+                storedException: null,
+                expires: 0,
                 timestamp: timestamp,
                 expectedReplica: ReplicaId.Empty,
-                effects: null,
-                messages: null,
                 storageSession: null
             ).ShouldBeTrueAsync();
         }
@@ -1122,13 +1135,14 @@ public abstract class StoreTests
                 owner: ReplicaId.Empty
             ).ShouldNotBeNullAsync();
 
-            await store.SucceedFunction(
+            await store.SetStatus(
                 functionId,
+                Status.Succeeded,
                 result: null,
+                storedException: null,
+                expires: 0,
                 timestamp: timestamp,
                 expectedReplica: ReplicaId.Empty,
-                effects: null,
-                messages: null,
                 storageSession: null
             ).ShouldBeTrueAsync();
         }
@@ -1532,12 +1546,14 @@ public abstract class StoreTests
             owner: ReplicaId.Empty
         ).ShouldNotBeNullAsync();
 
-        await store.SuspendFunction(
+        await store.SetStatus(
             functionId,
+            Status.Suspended,
+            result: null,
+            storedException: null,
+            expires: 0,
             timestamp: DateTime.UtcNow.Ticks,
             expectedReplica: ReplicaId.Empty,
-            effects: null,
-            messages: null,
             storageSession: null
         ).ShouldBeTrueAsync();
         
@@ -1562,13 +1578,14 @@ public abstract class StoreTests
             owner: ReplicaId.Empty
         ).ShouldNotBeNullAsync();
 
-        await store.FailFunction(
+        await store.SetStatus(
             functionId,
+            Status.Failed,
+            result: null,
             storedException: new StoredException("SomeMessage", ExceptionStackTrace: null, "SomeExceptionType"),
+            expires: 0,
             timestamp: DateTime.UtcNow.Ticks,
             expectedReplica: ReplicaId.Empty,
-            effects: null,
-            messages: null,
             storageSession: null
         ).ShouldBeTrueAsync();
         
@@ -1593,13 +1610,14 @@ public abstract class StoreTests
             owner: ReplicaId.Empty
         ).ShouldNotBeNullAsync();
 
-        await store.PostponeFunction(
+        await store.SetStatus(
             functionId,
-            postponeUntil: DateTime.UtcNow.Ticks,
+            Status.Postponed,
+            result: null,
+            storedException: null,
+            expires: DateTime.UtcNow.Ticks,
             timestamp: DateTime.UtcNow.Ticks,
             expectedReplica: ReplicaId.Empty,
-            effects: null,
-            messages: null,
             storageSession: null
         ).ShouldBeTrueAsync();
         
@@ -1624,13 +1642,14 @@ public abstract class StoreTests
             owner: ReplicaId.Empty
         ).ShouldNotBeNullAsync();
 
-        await store.SucceedFunction(
+        await store.SetStatus(
             functionId,
+            Status.Succeeded,
             result: null,
+            storedException: null,
+            expires: 0,
             timestamp: DateTime.UtcNow.Ticks,
             expectedReplica: ReplicaId.Empty,
-            effects: null,
-            messages: null,
             storageSession: null
         ).ShouldBeTrueAsync();
         
@@ -1661,13 +1680,14 @@ public abstract class StoreTests
             owner: ReplicaId.Empty
         ).ShouldNotBeNullAsync();
 
-        await store.SucceedFunction(
+        await store.SetStatus(
             functionId1,
+            Status.Succeeded,
             result: result1,
+            storedException: null,
+            expires: 0,
             timestamp: DateTime.UtcNow.Ticks,
             expectedReplica: ReplicaId.Empty,
-            effects: null,
-            messages: null,
             storageSession: null
         ).ShouldBeTrueAsync();
 
@@ -1682,13 +1702,14 @@ public abstract class StoreTests
             owner: ReplicaId.Empty
         ).ShouldNotBeNullAsync();
 
-        await store.SucceedFunction(
+        await store.SetStatus(
             functionId2,
+            Status.Succeeded,
             result: result2,
+            storedException: null,
+            expires: 0,
             timestamp: DateTime.UtcNow.Ticks,
             expectedReplica: ReplicaId.Empty,
-            effects: null,
-            messages: null,
             storageSession: null
         ).ShouldBeTrueAsync();
 
@@ -1745,13 +1766,14 @@ public abstract class StoreTests
             owner: ReplicaId.Empty
         ).ShouldNotBeNullAsync();
 
-        await store.SucceedFunction(
+        await store.SetStatus(
             existingFunctionId,
+            Status.Succeeded,
             result: result,
+            storedException: null,
+            expires: 0,
             timestamp: DateTime.UtcNow.Ticks,
             expectedReplica: ReplicaId.Empty,
-            effects: null,
-            messages: null,
             storageSession: null
         ).ShouldBeTrueAsync();
 
@@ -1809,13 +1831,14 @@ public abstract class StoreTests
             owner: initialOwner
         );
 
-        await store.SucceedFunction(
+        await store.SetStatus(
             functionId,
+            Status.Succeeded,
             result: null,
+            storedException: null,
+            expires: 0,
             timestamp: DateTime.UtcNow.Ticks,
             expectedReplica: initialOwner,
-            effects: null,
-            messages: null,
             storageSession: null
         ).ShouldBeTrueAsync();
 
@@ -1845,12 +1868,14 @@ public abstract class StoreTests
             owner: initialOwner
         );
 
-        await store.SuspendFunction(
+        await store.SetStatus(
             functionId,
+            Status.Suspended,
+            result: null,
+            storedException: null,
+            expires: 0,
             timestamp: DateTime.UtcNow.Ticks,
             expectedReplica: initialOwner,
-            effects: null,
-            messages: null,
             storageSession: null
         ).ShouldBeTrueAsync();
 

@@ -553,13 +553,14 @@ public abstract class PostponedTests
             owner: ReplicaId.Empty
         ).ShouldNotBeNullAsync();
 
-        await store.PostponeFunction(
+        await store.SetStatus(
             storedId,
-            postponeUntil: DateTime.UtcNow.AddDays(-1).Ticks,
+            Status.Postponed,
+            result: null,
+            storedException: null,
+            expires: DateTime.UtcNow.AddDays(-1).Ticks,
             timestamp: DateTime.UtcNow.Ticks,
             expectedReplica: ReplicaId.Empty,
-            effects: null,
-            messages: null,
             storageSession: null
         ).ShouldBeTrueAsync();
         

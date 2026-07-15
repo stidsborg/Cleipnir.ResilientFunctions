@@ -174,13 +174,14 @@ public class RFunctionsShutdownTests
             owner: Guid.Empty.ToReplicaId()
         ).ShouldNotBeNullAsync();
 
-        await store.PostponeFunction(
+        await store.SetStatus(
             registration.MapToStoredId(functionId.Instance),
-            postponeUntil: DateTime.UtcNow.AddDays(-1).Ticks,
+            Status.Postponed,
+            result: null,
+            storedException: null,
+            expires: DateTime.UtcNow.AddDays(-1).Ticks,
             timestamp: DateTime.UtcNow.Ticks,
-            Guid.Empty.ToReplicaId(),
-            effects: null,
-            messages: null,
+            expectedReplica: Guid.Empty.ToReplicaId(),
             storageSession: null
         ).ShouldBeTrueAsync();
 
