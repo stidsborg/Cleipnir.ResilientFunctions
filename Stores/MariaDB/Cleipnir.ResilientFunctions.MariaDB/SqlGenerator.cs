@@ -142,7 +142,7 @@ public class SqlGenerator(string tablePrefix)
         {
             _createFunctionSql ??= @$"
                 INSERT IGNORE INTO {tablePrefix}
-                    (id, param_json, status, expires, timestamp, human_instance_id, parent, owner)
+                    (id, param, status, expires, timestamp, human_instance_id, parent, owner)
                 VALUES
                     (?, ?, ?, ?, ?, ?, ?, ?);";
             sql = _createFunctionSql;
@@ -164,7 +164,7 @@ public class SqlGenerator(string tablePrefix)
         {
             _createFunctionWithEffectsSql ??= @$"
                 INSERT IGNORE INTO {tablePrefix}
-                    (id, param_json, status, expires, timestamp, human_instance_id, parent, owner, effects)
+                    (id, param, status, expires, timestamp, human_instance_id, parent, owner, effects)
                 VALUES
                     (?, ?, ?, ?, ?, ?, ?, ?, ?);";
             sql = _createFunctionWithEffectsSql;
@@ -204,8 +204,8 @@ public class SqlGenerator(string tablePrefix)
             _setStatusSql ??= $@"
                 UPDATE {tablePrefix}
                 SET status = ?,
-                    result_json = ?,
-                    exception_json = ?,
+                    result = ?,
+                    exception = ?,
                     expires = ?,
                     timestamp = ?,
                     owner = NULL
@@ -229,8 +229,8 @@ public class SqlGenerator(string tablePrefix)
             _setStatusWithEffectsSql ??= $@"
                 UPDATE {tablePrefix}
                 SET status = ?,
-                    result_json = ?,
-                    exception_json = ?,
+                    result = ?,
+                    exception = ?,
                     expires = ?,
                     timestamp = ?,
                     owner = NULL,
@@ -266,10 +266,10 @@ public class SqlGenerator(string tablePrefix)
         _restartExecutionsSelectEligibleSql ??= @$"
             SELECT
                 id,
-                param_json,
+                param,
                 status,
-                result_json,
-                exception_json,
+                result,
+                exception,
                 expires,
                 timestamp,
                 human_instance_id,

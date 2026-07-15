@@ -60,9 +60,9 @@ public class MariaDbFunctionStore : IFunctionStore
                 id CHAR(32) PRIMARY KEY,
                 status INT NOT NULL,
                 expires BIGINT NOT NULL,
-                param_json LONGBLOB NULL,
-                result_json LONGBLOB NULL,
-                exception_json TEXT NULL,
+                param LONGBLOB NULL,
+                result LONGBLOB NULL,
+                exception TEXT NULL,
                 timestamp BIGINT NOT NULL,
                 human_instance_id TEXT NOT NULL,
                 parent CHAR(32) NULL,
@@ -125,7 +125,7 @@ public class MariaDbFunctionStore : IFunctionStore
     {
         var insertSql = @$"
             INSERT IGNORE INTO {_tablePrefix}
-              (id, param_json, status, expires, timestamp, human_instance_id, parent, owner)
+              (id, param, status, expires, timestamp, human_instance_id, parent, owner)
             VALUES
                     ";
 
@@ -338,9 +338,9 @@ public class MariaDbFunctionStore : IFunctionStore
         _setFunctionStateSql ??= $@"
             UPDATE {_tablePrefix}
             SET status = ?, 
-                param_json = ?,  
-                result_json = ?,  
-                exception_json = ?, expires = ?
+                param = ?,  
+                result = ?,  
+                exception = ?, expires = ?
             WHERE id = ?";
         
         var sql = expectedReplica == null
@@ -440,8 +440,8 @@ public class MariaDbFunctionStore : IFunctionStore
 
         _setParametersSql ??= $@"
             UPDATE {_tablePrefix}
-            SET param_json = ?,  
-                result_json = ?
+            SET param = ?,  
+                result = ?
             WHERE 
                 id = ?";
 
@@ -520,10 +520,10 @@ public class MariaDbFunctionStore : IFunctionStore
         await using var conn = await CreateOpenConnection(_connectionString);
         _getFunctionSql ??= $@"
             SELECT
-                param_json,
+                param,
                 status,
-                result_json,
-                exception_json,
+                result,
+                exception,
                 expires,
                 timestamp,
                 human_instance_id,
@@ -722,7 +722,7 @@ public class MariaDbFunctionStore : IFunctionStore
             return new Dictionary<StoredId, byte[]?>();
 
         var sql = @$"
-            SELECT id, result_json
+            SELECT id, result
             FROM {_tablePrefix}
             WHERE id IN ({inSql})";
 

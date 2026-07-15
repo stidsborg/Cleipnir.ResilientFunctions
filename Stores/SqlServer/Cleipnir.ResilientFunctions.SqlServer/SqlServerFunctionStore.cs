@@ -72,9 +72,9 @@ public class SqlServerFunctionStore : IFunctionStore
                 Id UNIQUEIDENTIFIER PRIMARY KEY,
                 Status INT NOT NULL,
                 Expires BIGINT NOT NULL,
-                ParamJson VARBINARY(MAX) NULL,
-                ResultJson VARBINARY(MAX) NULL,
-                ExceptionJson NVARCHAR(MAX) NULL,
+                Param VARBINARY(MAX) NULL,
+                Result VARBINARY(MAX) NULL,
+                Exception NVARCHAR(MAX) NULL,
                 HumanInstanceId NVARCHAR(MAX) NOT NULL,
                 Timestamp BIGINT NOT NULL,
                 Parent UNIQUEIDENTIFIER NULL,
@@ -177,7 +177,7 @@ public class SqlServerFunctionStore : IFunctionStore
             var createTempTableSql = @"
             CREATE TABLE #FunctionsToInsert (
                 Id UNIQUEIDENTIFIER NOT NULL,
-                ParamJson VARBINARY(MAX) NULL,
+                Param VARBINARY(MAX) NULL,
                 HumanInstanceId NVARCHAR(MAX) NOT NULL
             );";
 
@@ -188,7 +188,7 @@ public class SqlServerFunctionStore : IFunctionStore
         // Prepare DataTable
         var dataTable = new DataTable();
         dataTable.Columns.Add("Id", typeof(Guid));
-        dataTable.Columns.Add("ParamJson", typeof(byte[]));
+        dataTable.Columns.Add("Param", typeof(byte[]));
         dataTable.Columns.Add("HumanInstanceId", typeof(string));
 
         foreach (var f in functions)
@@ -201,7 +201,7 @@ public class SqlServerFunctionStore : IFunctionStore
         {
             bulkCopy.DestinationTableName = "#FunctionsToInsert";
             bulkCopy.ColumnMappings.Add("Id", "Id");
-            bulkCopy.ColumnMappings.Add("ParamJson", "ParamJson");
+            bulkCopy.ColumnMappings.Add("Param", "Param");
             bulkCopy.ColumnMappings.Add("HumanInstanceId", "HumanInstanceId");
             await bulkCopy.WriteToServerAsync(dataTable);
         }
@@ -209,10 +209,10 @@ public class SqlServerFunctionStore : IFunctionStore
         {
             // Insert from temp table to actual table (handles duplicates)
             var insertSql = $@"
-            INSERT INTO {_tableName} (Id, ParamJson, Status, Owner, Expires, Timestamp, HumanInstanceId, Parent)
+            INSERT INTO {_tableName} (Id, Param, Status, Owner, Expires, Timestamp, HumanInstanceId, Parent)
             SELECT
                 t.Id,
-                t.ParamJson,
+                t.Param,
                 {(int)Status.Postponed},
                 NULL,
                 0,
@@ -389,9 +389,9 @@ public class SqlServerFunctionStore : IFunctionStore
             UPDATE {_tableName}
             SET
                 Status = @Status,
-                ParamJson = @ParamJson,             
-                ResultJson = @ResultJson,
-                ExceptionJson = @ExceptionJson,
+                Param = @Param,             
+                Result = @Result,
+                Exception = @Exception,
                 Expires = @Expires
             WHERE Id = @Id";
         
@@ -401,10 +401,10 @@ public class SqlServerFunctionStore : IFunctionStore
         
         await using var command = new SqlCommand(sql, conn);
         command.Parameters.AddWithValue("@Status", (int) status);
-        command.Parameters.AddWithValue("@ParamJson", param == null ? SqlBinary.Null : param);
-        command.Parameters.AddWithValue("@ResultJson", result == null ? SqlBinary.Null : result);
+        command.Parameters.AddWithValue("@Param", param == null ? SqlBinary.Null : param);
+        command.Parameters.AddWithValue("@Result", result == null ? SqlBinary.Null : result);
         var exceptionJson = storedException == null ? null : JsonSerializer.Serialize(storedException);
-        command.Parameters.AddWithValue("@ExceptionJson", exceptionJson ?? (object) DBNull.Value);
+        command.Parameters.AddWithValue("@Exception", exceptionJson ?? (object) DBNull.Value);
         command.Parameters.AddWithValue("@Expires", expires);
         command.Parameters.AddWithValue("@Id", storedId.AsGuid);
 
@@ -491,8 +491,8 @@ public class SqlServerFunctionStore : IFunctionStore
         
         _setParametersSql ??= @$"
             UPDATE {_tableName}
-            SET ParamJson = @ParamJson,  
-                ResultJson = @ResultJson
+            SET Param = @Param,  
+                Result = @Result
             WHERE Id = @Id";
         
         var sql = expectedReplica == null
@@ -500,8 +500,8 @@ public class SqlServerFunctionStore : IFunctionStore
             : _setParametersSql + $" AND Owner = '{expectedReplica.AsGuid}'";
 
         await using var command = new SqlCommand(sql, conn);
-        command.Parameters.AddWithValue("@ParamJson", param == null ? SqlBinary.Null : param);
-        command.Parameters.AddWithValue("@ResultJson", result == null ? SqlBinary.Null : result);
+        command.Parameters.AddWithValue("@Param", param == null ? SqlBinary.Null : param);
+        command.Parameters.AddWithValue("@Result", result == null ? SqlBinary.Null : result);
         command.Parameters.AddWithValue("@Id", storedId.AsGuid);
 
         var affectedRows = await command.ExecuteNonQueryAsync();
@@ -563,10 +563,10 @@ public class SqlServerFunctionStore : IFunctionStore
     {
         await using var conn = await _connFunc();
         _getFunctionSql ??= @$"
-            SELECT  ParamJson,
+            SELECT  Param,
                     Status,
-                    ResultJson,
-                    ExceptionJson,
+                    Result,
+                    Exception,
                     Expires,
                     Timestamp,
                     HumanInstanceId,
@@ -747,7 +747,7 @@ public class SqlServerFunctionStore : IFunctionStore
             return new Dictionary<StoredId, byte[]?>();
         
         var sql = @$"
-            SELECT Id, ResultJson
+            SELECT Id, Result
             FROM {_tableName}
             WHERE Id IN ({inSql})";
 

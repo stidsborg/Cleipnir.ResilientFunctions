@@ -143,7 +143,7 @@ public class SqlGenerator(string tablePrefix)
         _createFunctionSql ??= @$"
                     INSERT INTO {tablePrefix}(
                         Id,
-                        ParamJson,
+                        Param,
                         Status,
                         Expires,
                         Timestamp,
@@ -155,7 +155,7 @@ public class SqlGenerator(string tablePrefix)
                     VALUES
                     (
                         @Id,
-                        @ParamJson,
+                        @Param,
                         @Status,
                         @Expires,
                         @Timestamp,
@@ -172,7 +172,7 @@ public class SqlGenerator(string tablePrefix)
         var command = StoreCommand.Create(sql);
         command.AddParameter($"@{paramPrefix}Id", storedId.AsGuid);
         command.AddParameter($"@{paramPrefix}Status", (int)(postponeUntil == null ? Status.Executing : Status.Postponed));
-        command.AddParameter($"@{paramPrefix}ParamJson", param == null ? SqlBinary.Null : param);
+        command.AddParameter($"@{paramPrefix}Param", param == null ? SqlBinary.Null : param);
         command.AddParameter($"@{paramPrefix}Expires", postponeUntil ?? 0);
         command.AddParameter($"@{paramPrefix}HumanInstanceId", humanInstanceId.Value);
         command.AddParameter($"@{paramPrefix}Timestamp", timestamp);
@@ -202,8 +202,8 @@ public class SqlGenerator(string tablePrefix)
             _setStatusSql ??= @$"
                 UPDATE {tablePrefix}
                 SET Status = @Status,
-                    ResultJson = @ResultJson,
-                    ExceptionJson = @ExceptionJson,
+                    Result = @Result,
+                    Exception = @Exception,
                     Expires = @Expires,
                     Timestamp = @Timestamp,
                     Owner = NULL
@@ -215,8 +215,8 @@ public class SqlGenerator(string tablePrefix)
             _setStatusWithEffectsSql ??= @$"
                 UPDATE {tablePrefix}
                 SET Status = @Status,
-                    ResultJson = @ResultJson,
-                    ExceptionJson = @ExceptionJson,
+                    Result = @Result,
+                    Exception = @Exception,
                     Expires = @Expires,
                     Timestamp = @Timestamp,
                     Owner = NULL,
@@ -231,8 +231,8 @@ public class SqlGenerator(string tablePrefix)
 
         var command = StoreCommand.Create(sql);
         command.AddParameter($"@{paramPrefix}Status", (int) status);
-        command.AddParameter($"@{paramPrefix}ResultJson", result ?? SqlBinary.Null);
-        command.AddParameter($"@{paramPrefix}ExceptionJson", storedException == null ? (object) DBNull.Value : JsonSerializer.Serialize(storedException));
+        command.AddParameter($"@{paramPrefix}Result", result ?? SqlBinary.Null);
+        command.AddParameter($"@{paramPrefix}Exception", storedException == null ? (object) DBNull.Value : JsonSerializer.Serialize(storedException));
         command.AddParameter($"@{paramPrefix}Expires", expires);
         command.AddParameter($"@{paramPrefix}Timestamp", timestamp);
         if (effects != null)
@@ -254,10 +254,10 @@ public class SqlGenerator(string tablePrefix)
                 Expires = 0,
                 Owner = @Owner
             OUTPUT inserted.Id,
-                   inserted.ParamJson,
+                   inserted.Param,
                    inserted.Status,
-                   inserted.ResultJson,
-                   inserted.ExceptionJson,
+                   inserted.Result,
+                   inserted.Exception,
                    inserted.Expires,
                    inserted.Timestamp,
                    inserted.HumanInstanceId,
