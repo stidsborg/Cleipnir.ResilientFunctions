@@ -2,8 +2,10 @@
 using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Storage;
+using Cleipnir.ResilientFunctions.Storage.Session;
 using Cleipnir.ResilientFunctions.Tests.Utils;
 using Shouldly;
 using static Cleipnir.ResilientFunctions.Storage.CrudOperation;
@@ -828,5 +830,228 @@ public abstract class EffectStoreTests
         retrievedEffect.WorkStatus.ShouldBe(effectWithAlias.WorkStatus);
         retrievedEffect.Result!.ToStringFromUtf8Bytes().ShouldBe("Hello World");
         retrievedEffect.Alias.ShouldBe("MyAlias");
+    }
+
+    public abstract Task UnownedSessionWriteFailsAfterInterleavedClaim();
+    protected async Task UnownedSessionWriteFailsAfterInterleavedClaim(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var storedId = TestStoredId.Create();
+        await store.CreateFunction(
+            storedId,
+            "SomeInstanceId",
+            param: null,
+            postponeUntil: 0,
+            timestamp: 0,
+            parent: null,
+            owner: null
+        );
+
+        // Load an unowned snapshot of the (empty) effects before any claim happens
+        var preClaimFlow = await store.GetFunction(storedId);
+        preClaimFlow.ShouldNotBeNull();
+        var staleSession = new SnapshotStorageSession(replicaId: null) { Version = preClaimFlow!.Version };
+        foreach (var effect in preClaimFlow.Effects ?? [])
+            staleSession.Effects[effect.EffectId] = effect;
+
+        // Interleaved claim -> the incarnation writes an effect -> completes (owner is null again)
+        var owner = ReplicaId.NewId();
+        var restarted = await store.RestartExecution(storedId, owner);
+        restarted.ShouldNotBeNull();
+        var incarnationEffect = new StoredEffect(1.ToEffectId(), WorkStatus.Completed, "incarnation".ToUtf8Bytes(), StoredException: null, Alias: null);
+        await store.SetEffectResult(storedId, incarnationEffect.ToStoredChange(storedId, Insert), restarted!.StorageSession);
+        await store.SetStatus(storedId, Status.Succeeded, result: null, storedException: null, expires: 0, timestamp: 0, expectedReplica: owner, storageSession: restarted.StorageSession);
+
+        // The stale pre-claim snapshot passes the owner IS NULL guard but must fail the version guard -
+        // otherwise it would erase the incarnation's effect
+        var staleEffect = new StoredEffect(2.ToEffectId(), WorkStatus.Completed, "stale".ToUtf8Bytes(), StoredException: null, Alias: null);
+        await Should.ThrowAsync<UnexpectedStateException>(() =>
+            store.SetEffectResult(storedId, staleEffect.ToStoredChange(storedId, Insert), staleSession)
+        );
+
+        var effects = await store.GetEffectResults(storedId);
+        effects.Single().EffectId.ShouldBe(incarnationEffect.EffectId);
+    }
+
+    public abstract Task UnownedSessionWriteFailsWhenFlowIsOwned();
+    protected async Task UnownedSessionWriteFailsWhenFlowIsOwned(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var storedId = TestStoredId.Create();
+        await store.CreateFunction(
+            storedId,
+            "SomeInstanceId",
+            param: null,
+            postponeUntil: null,
+            timestamp: 0,
+            parent: null,
+            owner: ReplicaId.NewId()
+        );
+
+        var flow = await store.GetFunction(storedId);
+        flow.ShouldNotBeNull();
+        var unownedSession = new SnapshotStorageSession(replicaId: null) { Version = flow!.Version };
+
+        var effect = new StoredEffect(1.ToEffectId(), WorkStatus.Completed, Result: null, StoredException: null, Alias: null);
+        await Should.ThrowAsync<UnexpectedStateException>(() =>
+            store.SetEffectResult(storedId, effect.ToStoredChange(storedId, Insert), unownedSession)
+        );
+
+        await store.GetEffectResults(storedId).SelectAsync(e => e.Any()).ShouldBeFalseAsync();
+    }
+
+    public abstract Task UnownedSessionWriteSucceedsAndBumpsVersion();
+    protected async Task UnownedSessionWriteSucceedsAndBumpsVersion(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var storedId = TestStoredId.Create();
+        await store.CreateFunction(
+            storedId,
+            "SomeInstanceId",
+            param: null,
+            postponeUntil: 0,
+            timestamp: 0,
+            parent: null,
+            owner: null
+        );
+
+        var flow = await store.GetFunction(storedId);
+        flow.ShouldNotBeNull();
+        var session = new SnapshotStorageSession(replicaId: null) { Version = flow!.Version };
+
+        // Consecutive writes through the same session succeed - the session's version tracks the store's bump
+        var effect1 = new StoredEffect(1.ToEffectId(), WorkStatus.Completed, Result: null, StoredException: null, Alias: null);
+        await store.SetEffectResult(storedId, effect1.ToStoredChange(storedId, Insert), session);
+        var effect2 = new StoredEffect(2.ToEffectId(), WorkStatus.Completed, Result: null, StoredException: null, Alias: null);
+        await store.SetEffectResult(storedId, effect2.ToStoredChange(storedId, Insert), session);
+
+        // A second snapshot holding the original version is now stale and must fail
+        var staleSession = new SnapshotStorageSession(replicaId: null) { Version = flow.Version };
+        var effect3 = new StoredEffect(3.ToEffectId(), WorkStatus.Completed, Result: null, StoredException: null, Alias: null);
+        await Should.ThrowAsync<UnexpectedStateException>(() =>
+            store.SetEffectResult(storedId, effect3.ToStoredChange(storedId, Insert), staleSession)
+        );
+
+        var effects = await store.GetEffectResults(storedId);
+        effects.Count.ShouldBe(2);
+        effects.Any(e => e.EffectId == effect1.EffectId).ShouldBeTrue();
+        effects.Any(e => e.EffectId == effect2.EffectId).ShouldBeTrue();
+    }
+
+    public abstract Task ConcurrentNullSessionWritesDoNotLoseUpdates();
+    protected async Task ConcurrentNullSessionWritesDoNotLoseUpdates(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var storedId = TestStoredId.Create();
+        await store.CreateFunction(
+            storedId,
+            "SomeInstanceId",
+            param: null,
+            postponeUntil: 0,
+            timestamp: 0,
+            parent: null,
+            owner: null
+        );
+
+        // 4 writers x 10 distinct inserts against the unowned flow - the version guard turns interleaved
+        // read-modify-writes into retryable conflicts instead of lost updates
+        const int writers = 4;
+        const int insertsPerWriter = 10;
+        var tasks = Enumerable.Range(0, writers).Select(writer => Task.Run(async () =>
+        {
+            for (var i = 0; i < insertsPerWriter; i++)
+            {
+                var effect = new StoredEffect(
+                    (writer * insertsPerWriter + i).ToEffectId(),
+                    WorkStatus.Completed,
+                    Result: null,
+                    StoredException: null,
+                    Alias: null
+                );
+                for (var attempt = 0; ; attempt++)
+                {
+                    try
+                    {
+                        await store.SetEffectResult(storedId, effect.ToStoredChange(storedId, Insert), session: null);
+                        break;
+                    }
+                    catch (UnexpectedStateException) when (attempt < 100)
+                    {
+                        // version conflict - retry
+                    }
+                }
+            }
+        })).ToList();
+        await Task.WhenAll(tasks);
+
+        var effects = await store.GetEffectResults(storedId);
+        effects.Count.ShouldBe(writers * insertsPerWriter);
+    }
+
+    public abstract Task NullSessionWriteToOwnedFlowDoesNotBlockOwnedWrites();
+    protected async Task NullSessionWriteToOwnedFlowDoesNotBlockOwnedWrites(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var storedId = TestStoredId.Create();
+        var owner = ReplicaId.NewId();
+        var session = await store.CreateFunction(
+            storedId,
+            "SomeInstanceId",
+            param: null,
+            postponeUntil: null,
+            timestamp: 0,
+            parent: null,
+            owner: owner
+        );
+        session.ShouldNotBeNull();
+
+        var effectA = new StoredEffect(1.ToEffectId(), WorkStatus.Completed, Result: null, StoredException: null, Alias: null);
+        await store.SetEffectResult(storedId, effectA.ToStoredChange(storedId, Insert), session);
+
+        // A session-less write to the owned flow is guarded by the current owner and must not affect the
+        // owned session's subsequent writes (the owned path never consults the version)
+        var effectB = new StoredEffect(2.ToEffectId(), WorkStatus.Completed, Result: null, StoredException: null, Alias: null);
+        await store.SetEffectResult(storedId, effectB.ToStoredChange(storedId, Insert), session: null);
+
+        var effectC = new StoredEffect(3.ToEffectId(), WorkStatus.Completed, Result: null, StoredException: null, Alias: null);
+        await store.SetEffectResult(storedId, effectC.ToStoredChange(storedId, Insert), session);
+
+        // effectB is deliberately unasserted: the owned snapshot is authoritative, so stores may or may not
+        // retain the interleaved session-less write
+        var effects = await store.GetEffectResults(storedId);
+        effects.Any(e => e.EffectId == effectA.EffectId).ShouldBeTrue();
+        effects.Any(e => e.EffectId == effectC.EffectId).ShouldBeTrue();
+    }
+
+    public abstract Task OwnedSessionWriteFailsAfterOwnerChanged();
+    protected async Task OwnedSessionWriteFailsAfterOwnerChanged(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var storedId = TestStoredId.Create();
+        var owner = ReplicaId.NewId();
+        var session = await store.CreateFunction(
+            storedId,
+            "SomeInstanceId",
+            param: null,
+            postponeUntil: null,
+            timestamp: 0,
+            parent: null,
+            owner: owner
+        );
+        session.ShouldNotBeNull();
+
+        var effectA = new StoredEffect(1.ToEffectId(), WorkStatus.Completed, Result: null, StoredException: null, Alias: null);
+        await store.SetEffectResult(storedId, effectA.ToStoredChange(storedId, Insert), session);
+
+        await store.SetStatus(storedId, Status.Succeeded, result: null, storedException: null, expires: 0, timestamp: 0, expectedReplica: owner, storageSession: session);
+
+        // The completed flow is unowned - a late flush from the superseded owned session must be rejected
+        var effectB = new StoredEffect(2.ToEffectId(), WorkStatus.Completed, Result: null, StoredException: null, Alias: null);
+        await Should.ThrowAsync<UnexpectedStateException>(() =>
+            store.SetEffectResult(storedId, effectB.ToStoredChange(storedId, Insert), session)
+        );
+
+        var effects = await store.GetEffectResults(storedId);
+        effects.Single().EffectId.ShouldBe(effectA.EffectId);
     }
 }

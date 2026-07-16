@@ -79,7 +79,8 @@ public class SqlServerFunctionStore : IFunctionStore
                 Timestamp BIGINT NOT NULL,
                 Parent UNIQUEIDENTIFIER NULL,
                 Owner UNIQUEIDENTIFIER NULL,
-                Effects VARBINARY(MAX) NULL
+                Effects VARBINARY(MAX) NULL,
+                Version INT NOT NULL DEFAULT 0
             );
             CREATE INDEX {_tableName}_idx_Executing
                 ON {_tableName} (Expires, Id)
@@ -131,7 +132,7 @@ public class SqlServerFunctionStore : IFunctionStore
 
         try
         {
-            var session = new SnapshotStorageSession(owner ?? ReplicaId.Empty) { RowExists = true };
+            var session = new SnapshotStorageSession(owner ?? ReplicaId.Empty);
 
             // Serialize effects if present
             byte[]? effectsBytes = null;
@@ -311,7 +312,7 @@ public class SqlServerFunctionStore : IFunctionStore
 
             if (flow.OwnerId == owner)
             {
-                var session = new SnapshotStorageSession(owner) { RowExists = true };
+                var session = new SnapshotStorageSession(owner);
                 flows.Add((flow, effectsBytes, session));
             }
         }
@@ -572,7 +573,8 @@ public class SqlServerFunctionStore : IFunctionStore
                     HumanInstanceId,
                     Parent,
                     Owner,
-                    Effects
+                    Effects,
+                    Version
             FROM {_tableName}
             WHERE Id = @Id";
         
@@ -649,6 +651,7 @@ public class SqlServerFunctionStore : IFunctionStore
                 var parentId = reader.IsDBNull(7) ? null : reader.GetGuid(7).ToStoredId();
                 var ownerId = reader.IsDBNull(8) ? null : reader.GetGuid(8).ToReplicaId();
                 var effects = DeserializeEffects(reader.IsDBNull(9) ? null : (byte[]) reader.GetValue(9));
+                var version = reader.GetInt32(10);
 
                 return new StoredFlow(
                     storedId,
@@ -661,7 +664,8 @@ public class SqlServerFunctionStore : IFunctionStore
                     parentId,
                     ownerId,
                     storedId.Type,
-                    effects
+                    effects,
+                    version
                 );
             }
         }
@@ -681,27 +685,32 @@ public class SqlServerFunctionStore : IFunctionStore
         return effects;
     }
     
-    // Effects live in the 'Effects' column on the flows row - writes are guarded by the flow's owner column.
+    // Effects live in the 'Effects' column on the flows row. Owned writes are guarded by the owner column alone;
+    // unowned writes (null-owner session or no session) are additionally guarded by the version column, which is
+    // bumped by every claim and every unowned write - see IFunctionStore.SetEffectResults.
     public async Task SetEffectResults(StoredId storedId, IReadOnlyList<StoredEffectChange> changes, IStorageSession? session)
     {
         if (changes.Count == 0)
             return;
 
         var owner = default(ReplicaId);
+        var version = 0;
         var existingEffects = new Dictionary<EffectId, StoredEffect>();
         var snapshotSession = session as SnapshotStorageSession;
         if (snapshotSession != null)
         {
             existingEffects = snapshotSession.Effects;
             owner = snapshotSession.ReplicaId;
+            version = snapshotSession.Version;
         }
         else
         {
-            // Single read gets both the existing effects and the owner to guard the write on.
+            // Single read gets the existing effects plus the owner and version to guard the write on.
             var storedFlow = await GetFunction(storedId);
             foreach (var e in storedFlow?.Effects ?? [])
                 existingEffects[e.EffectId] = e;
             owner = storedFlow?.OwnerId;
+            version = storedFlow?.Version ?? 0;
         }
 
         foreach (var change in changes)
@@ -717,17 +726,22 @@ public class SqlServerFunctionStore : IFunctionStore
                 $"UPDATE {_tableName} SET Effects = @Effects WHERE Id = @Id AND Owner = @Owner"
             )
             : StoreCommand.Create(
-                $"UPDATE {_tableName} SET Effects = @Effects WHERE Id = @Id AND Owner IS NULL"
+                $"UPDATE {_tableName} SET Effects = @Effects, Version = Version + 1 WHERE Id = @Id AND Owner IS NULL AND Version = @Version"
             );
 
         command.AddParameter("@Effects", content);
         command.AddParameter("@Id", storedId.AsGuid);
         if (owner != null)
             command.AddParameter("@Owner", owner.AsGuid);
+        else
+            command.AddParameter("@Version", version);
 
         var affectedRows = await _commandExecutor.ExecuteNonQuery(command);
         if (affectedRows == 0)
             throw UnexpectedStateException.ConcurrentModification(storedId);
+
+        if (snapshotSession is { ReplicaId: null })
+            snapshotSession.Version++;
     }
 
     public async Task<bool> DeleteFunction(StoredId storedId)

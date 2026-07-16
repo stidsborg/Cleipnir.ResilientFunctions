@@ -130,6 +130,9 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
                 state.Status = Status.Executing;
                 state.Expires = 0;
                 state.Owner = owner;
+                // Claims bump the effect version so an unowned writer holding a pre-claim snapshot fails its
+                // version guard instead of overwriting whatever this incarnation writes.
+                _effectVersions[storedId] = _effectVersions.GetValueOrDefault(storedId, 0) + 1;
 
                 restartedIds.Add(storedId);
             }
@@ -147,9 +150,6 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
             var session = new SnapshotStorageSession(owner);
             foreach (var effect in effects)
                 session.Effects[effect.EffectId] = effect;
-
-            session.Version = GetEffectVersion(storedId);
-            session.RowExists = effects.Any();
 
             result[storedId] = new StoredFlowWithEffects(sf, effects, session);
         }
@@ -330,7 +330,8 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
                 state.Parent,
                 state.Owner,
                 storedId.Type,
-                effects
+                effects,
+                Version: _effectVersions.GetValueOrDefault(storedId, 0)
             );
             return Task.FromResult<StoredFlow?>(flow);
         }
@@ -413,46 +414,48 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
     // Assumes _sync is already held by the caller (public SetEffectResults and CreateFunction both hold it).
     private void SetEffectResultsUnderLock(StoredId storedId, IReadOnlyList<StoredEffectChange> changes, SnapshotStorageSession? storageSession)
     {
-        // A null-replica session demands the flow is unowned - the guard for writing to a completed flow's effects.
-        if (storageSession is { ReplicaId: null } &&
-            _states.TryGetValue(storedId, out var ownerState) && ownerState.Owner is not null)
+        var owner = _states.TryGetValue(storedId, out var ownerState) ? ownerState.Owner : null;
+        if (storageSession is { ReplicaId: null })
+        {
+            // An unowned session demands the flow is unowned and that its effects are unchanged since the
+            // session's snapshot was loaded (the version is bumped by every claim and every unowned write) - the
+            // guard for whole-column writes to a completed flow's effects.
+            if (owner is not null)
+                throw UnexpectedStateException.ConcurrentModification(storedId);
+            if (storageSession.Version != _effectVersions.GetValueOrDefault(storedId, 0))
+                throw UnexpectedStateException.ConcurrentModification(storedId);
+        }
+        else if (storageSession is { ReplicaId: not null } && !storageSession.ReplicaId.Equals(owner))
+        {
+            // An owned session only writes while its replica still owns the flow - mirrors the SQL stores' owner
+            // guard, rejecting late flushes from a superseded incarnation.
             throw UnexpectedStateException.ConcurrentModification(storedId);
-
-        if (storageSession is { RowExists: true } && storageSession.Version != SnapshotStorageSession.NoVersionCheck)
-            if (_effectVersions.ContainsKey(storedId) && storageSession.Version != _effectVersions[storedId])
-                return;
-
-        if (storageSession is { RowExists: false } && _effects.ContainsKey(storedId))
-            return;
+        }
 
         if (!_effects.ContainsKey(storedId))
-        {
             _effects[storedId] = new Dictionary<EffectId, StoredEffect>();
-            _effectVersions[storedId] = 0;
-        }
 
         foreach (var change in changes.Where(c => c.Operation != CrudOperation.Delete))
             _effects[storedId][change.EffectId] = change.StoredEffect!;
         foreach (var change in changes.Where(c => c.Operation == CrudOperation.Delete))
             _effects[storedId].Remove(change.EffectId);
 
-        _effectVersions[storedId]++;
+        // Only writes to unowned flows move the version - owned writes are serialized by the owner guard alone.
+        // An owned session cannot reach this point with a null owner (the owner guard above throws), so checking
+        // the flow's owner alone matches the SQL stores' owner IS NULL update form.
+        if (owner == null)
+            _effectVersions[storedId] = _effectVersions.GetValueOrDefault(storedId, 0) + 1;
+
         if (storageSession != null)
         {
-            storageSession.Version++;
-            storageSession.RowExists = true;
+            if (storageSession.ReplicaId == null)
+                storageSession.Version++;
             foreach (var change in changes)
                 if (change.Operation == CrudOperation.Delete)
                     storageSession.Effects.Remove(change.EffectId);
                 else
                     storageSession.Effects[change.EffectId] = change.StoredEffect!;
         }
-    }
-
-    private int GetEffectVersion(StoredId storedId)
-    {
-        lock (_sync)
-            return _effectVersions.GetValueOrDefault(storedId, 0);
     }
 
     private class InnerState

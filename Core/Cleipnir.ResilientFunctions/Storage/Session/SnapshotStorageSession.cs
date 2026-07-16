@@ -8,13 +8,6 @@ namespace Cleipnir.ResilientFunctions.Storage.Session;
 public class SnapshotStorageSession(ReplicaId? replicaId) : IStorageSession
 {
     /// <summary>
-    /// Sentinel for <see cref="Version"/> disabling the version comparison in stores that use it - the write is
-    /// then guarded solely by the owner comparison (used by writers without a version snapshot, e.g. the
-    /// pending-message inlining of completed flows).
-    /// </summary>
-    public const int NoVersionCheck = -1;
-
-    /// <summary>
     /// The owner the effect write is conditioned on: the write only succeeds while the flow's owner column still
     /// has this value. Null demands that the flow is unowned (owner IS NULL) - the guard used when writing to a
     /// completed flow's effects, so a concurrent claim makes the write fail instead of being silently overwritten
@@ -23,8 +16,15 @@ public class SnapshotStorageSession(ReplicaId? replicaId) : IStorageSession
     public ReplicaId? ReplicaId { get; private init; } = replicaId;
 
     public Dictionary<EffectId, StoredEffect> Effects { get; } = new();
+
+    /// <summary>
+    /// The flow's effect version at the time <see cref="Effects"/> was loaded. Only honored when
+    /// <see cref="ReplicaId"/> is null: unowned writes serialize the whole effects column from the in-memory
+    /// snapshot, so the store additionally guards on the version (bumped by every unowned write and every claim)
+    /// to prove nothing changed since the load - otherwise the write fails with a concurrent-modification error.
+    /// Owned writes are already serialized by the owner guard and ignore the version.
+    /// </summary>
     public int Version { get; set; }
-    public bool RowExists { get; set; }
 
     public byte[] Serialize() => Serialize(Effects);
 

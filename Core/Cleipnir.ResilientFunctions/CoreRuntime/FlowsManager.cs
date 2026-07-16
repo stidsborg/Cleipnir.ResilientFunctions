@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.CoreRuntime.Watchdogs;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Queuing;
 using Cleipnir.ResilientFunctions.Storage;
@@ -182,13 +183,14 @@ public class FlowsManager
     /// <summary>
     /// Persists a completed flow's in-hand messages into its effect state (the reserved pending-messages entry)
     /// and deletes them from the message store - empty restart-pokes are just deleted (a completed flow needs no
-    /// restart). The effect write demands the flow is unowned (owner IS NULL), so it cannot interleave with a
-    /// claim: a write that succeeds happened before any claim, and that claim's effect snapshot - read after the
-    /// claim on every store - therefore includes the entry. After the verified write the status is re-read; if
-    /// the flow has been resurrected in the meantime (e.g. it was actually suspended at write time), false is
-    /// returned so the caller reopens the positions and normal delivery takes over - the then-redundant entry is
-    /// erased by the incarnation's own flushes or pruned on delivery. Returns true when the messages were inlined
-    /// and their rows deleted.
+    /// restart). The effect write demands the flow is unowned (owner IS NULL) and that its effect version still
+    /// matches the read the merged entry was computed from - the version is bumped by every claim and every
+    /// unowned write, so a write that succeeds is provably based on the flow's current effect state: no claim ran
+    /// in between (any later claim's snapshot therefore includes the entry) and no concurrently written effect is
+    /// overwritten. After the verified write the status is re-read; if the flow has been resurrected in the
+    /// meantime (e.g. via control-panel restart), false is returned so the caller reopens the positions and
+    /// normal delivery takes over - the then-redundant entry is erased by the incarnation's own flushes or pruned
+    /// on delivery. Returns true when the messages were inlined and their rows deleted.
     /// </summary>
     private async Task<bool> TryInlinePendingMessages(StoredId storedId, IReadOnlyList<StoredMessage> messages)
     {
@@ -204,13 +206,18 @@ public class FlowsManager
 
             if (deliverable.Count > 0)
             {
-                // Merge-write-verify loop: the owner guard does not serialize two concurrent unowned-flow writers
-                // (both pass owner IS NULL), so the merged entry is re-read until this batch's messages are
-                // observed to have survived - a lost update is simply retried.
+                // Merge-write-verify loop: the version guard serializes unowned writers against each other and
+                // against claims, so a conflicting write simply fails and the merge is retried from a fresh read.
+                // The initial containment check doubles as the fast path when another writer already inlined this
+                // batch's messages.
                 var verified = false;
                 for (var attempt = 0; attempt < 5 && !verified; attempt++)
                 {
-                    var effects = (await _functionStore.GetFunction(storedId))?.Effects ?? [];
+                    var storedFlowSnapshot = await _functionStore.GetFunction(storedId);
+                    if (storedFlowSnapshot == null || storedFlowSnapshot.Status is not (Status.Succeeded or Status.Failed))
+                        return false;
+
+                    var effects = storedFlowSnapshot.Effects ?? [];
                     var byPosition = new Dictionary<long, StoredMessage>();
                     var existingEntry = effects.FirstOrDefault(e => e.EffectId == PendingMessages.EffectId);
                     if (existingEntry?.Result is { Length: > 0 } existingBytes)
@@ -228,8 +235,7 @@ public class FlowsManager
 
                     var session = new SnapshotStorageSession(replicaId: null)
                     {
-                        RowExists = true,
-                        Version = SnapshotStorageSession.NoVersionCheck
+                        Version = storedFlowSnapshot.Version
                     };
                     foreach (var effect in effects)
                         session.Effects[effect.EffectId] = effect;
@@ -239,11 +245,19 @@ public class FlowsManager
                         PendingMessages.Encode(byPosition.Values.OrderBy(m => m.Position).ToList()),
                         alias: null
                     );
-                    await _functionStore.SetEffectResult(
-                        storedId,
-                        new StoredEffectChange(storedId, PendingMessages.EffectId, CrudOperation.Insert, entry),
-                        session
-                    );
+                    try
+                    {
+                        await _functionStore.SetEffectResult(
+                            storedId,
+                            new StoredEffectChange(storedId, PendingMessages.EffectId, CrudOperation.Insert, entry),
+                            session
+                        );
+                    }
+                    catch (UnexpectedStateException)
+                    {
+                        // Version or owner guard failed - another writer or a claim got in between; retry from a
+                        // fresh read.
+                    }
                 }
 
                 if (!verified)

@@ -85,8 +85,15 @@ public interface IFunctionStore
     IFunctionStore WithPrefix(string prefix);
     Task<IReadOnlyDictionary<StoredId, byte[]?>> GetResults(IEnumerable<StoredId> storedIds);
 
-    // Effects live in the 'effects' column on the flows row - writes are guarded by the flow's owner column.
-    // Reads go through GetFunction (StoredFlow.Effects); there is deliberately no separate effect-read method.
+    // Effects live in the 'effects' column on the flows row. Reads go through GetFunction (StoredFlow.Effects);
+    // there is deliberately no separate effect-read method. Writes come in three modes:
+    // - owned session (SnapshotStorageSession with ReplicaId): the session's snapshot is serialized and written
+    //   guarded by the owner column alone - the claim protocol serializes these writes.
+    // - unowned session (SnapshotStorageSession with null ReplicaId): the snapshot write is guarded by
+    //   owner IS NULL and the flow's effect version (see SnapshotStorageSession.Version).
+    // - null session: the store itself atomically reads owner/version/effects, applies the changes and writes
+    //   guarded by both read values - used when no loaded snapshot exists (e.g. control-panel writes).
+    // A failed guard throws UnexpectedStateException.ConcurrentModification in every mode.
     Task SetEffectResult(StoredId storedId, StoredEffectChange storedEffectChange, IStorageSession? session)
         => SetEffectResults(storedId, changes: [storedEffectChange], session);
     Task SetEffectResults(StoredId storedId, IReadOnlyList<StoredEffectChange> changes, IStorageSession? session);

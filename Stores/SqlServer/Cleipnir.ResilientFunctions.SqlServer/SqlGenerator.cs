@@ -17,117 +17,6 @@ namespace Cleipnir.ResilientFunctions.SqlServer;
 
 public class SqlGenerator(string tablePrefix)
 {
-    public StoreCommand InsertEffects(StoredId storedId, IReadOnlyList<StoredEffectChange> changes, SnapshotStorageSession session, string paramPrefix)
-    {
-        foreach (var change in changes)
-            if (change.Operation == CrudOperation.Delete)
-                session.Effects.Remove(change.EffectId);
-            else
-                session.Effects[change.EffectId] = change.StoredEffect!;
-
-        var content = session.Serialize();
-        session.RowExists = true;
-        var updateSql = $@"UPDATE {tablePrefix}
-                       SET Effects = @{paramPrefix}Content
-                       WHERE Id = @{paramPrefix}Id;";
-        var updateCommand = StoreCommand.Create(updateSql);
-        updateCommand.AddParameter($"@{paramPrefix}Id", storedId.AsGuid);
-        updateCommand.AddParameter($"@{paramPrefix}Content", content);
-        return updateCommand;
-    }
-    
-    private string? _getEffectsSql;
-    public StoreCommand GetEffects(StoredId storedId, string paramPrefix = "")
-    {
-        _getEffectsSql ??= @$"
-            SELECT Id, Effects
-            FROM {tablePrefix}
-            WHERE Id = @Id";
-
-        var sql = _getEffectsSql;
-        if (paramPrefix != "")
-            sql = sql.Replace("@", $"@{paramPrefix}");
-
-        var command = StoreCommand.Create(sql);
-        command.AddParameter($"@{paramPrefix}Id", storedId.AsGuid);
-        return command;
-    }
-
-    public record StoredEffectsWithSession(IReadOnlyList<StoredEffect> Effects, SnapshotStorageSession Session);
-    public async Task<StoredEffectsWithSession> ReadEffects(SqlDataReader reader, ReplicaId replicaId)
-    {
-        var effects = new List<StoredEffect>();
-        var session = new SnapshotStorageSession(replicaId);
-
-        while (reader.HasRows && await reader.ReadAsync())
-        {
-            var id = reader.GetGuid(0);
-            var hasEffects = !await reader.IsDBNullAsync(1);
-
-            if (hasEffects)
-            {
-                var content = (byte[])reader.GetValue(1);
-                var effectsBytes = BinaryPacker.Split(content);
-                foreach (var effectBytes in effectsBytes)
-                {
-                    if (effectBytes == null)
-                        throw new SerializationException("Unable to deserialize effect");
-
-                    var storedEffect = StoredEffect.Deserialize(effectBytes);
-                    effects.Add(storedEffect);
-                    session.Effects[storedEffect.EffectId] = storedEffect;
-                }
-
-                session.RowExists = true;
-                session.Version = 0;
-            }
-        }
-
-        return new StoredEffectsWithSession(effects, session);
-    }
-    
-    private string? _getEffectsBulkSql;
-    public StoreCommand GetEffects(IEnumerable<StoredId> storedIds)
-    {
-        _getEffectsBulkSql ??= @$"
-            SELECT Id, Effects
-            FROM {tablePrefix}
-            WHERE Id IN (SELECT CAST(value AS UNIQUEIDENTIFIER) FROM STRING_SPLIT(@Ids, ','))";
-
-        var command = StoreCommand.Create(_getEffectsBulkSql);
-        command.AddParameter("@Ids", storedIds.ToCommaSeparatedIds());
-        return command;
-    }
-
-    public async Task<Dictionary<StoredId, SnapshotStorageSession>> ReadEffectsForMultipleStoredIds(SqlDataReader reader, IEnumerable<StoredId> storedIds, ReplicaId ownerId)
-    {
-        var effects = new Dictionary<StoredId, SnapshotStorageSession>();
-        foreach (var storedId in storedIds)
-            effects[storedId] = new SnapshotStorageSession(ownerId);
-
-        while (reader.HasRows && await reader.ReadAsync())
-        {
-            var id = reader.GetGuid(0).ToStoredId();
-            var hasEffects = !await reader.IsDBNullAsync(1);
-
-            if (hasEffects)
-            {
-                var content = (byte[])reader.GetValue(1);
-                var effectsBytes = BinaryPacker.Split(content);
-                var storedEffects = effectsBytes.Select(effectBytes => StoredEffect.Deserialize(effectBytes!)).ToList();
-
-                var session = effects[id];
-                foreach (var storedEffect in storedEffects)
-                    session.Effects[storedEffect.EffectId] = storedEffect;
-
-                session.RowExists = true;
-                session.Version = 0;
-            }
-        }
-
-        return effects;
-    }
-    
     private string? _createFunctionSql;
     public StoreCommand CreateFunction(
         StoredId storedId,
@@ -248,11 +137,14 @@ public class SqlGenerator(string tablePrefix)
     {
         // Restartable flows are the parked ones (postponed/suspended): the batch restart backs the watchdogs, which
         // must never resurrect a completed flow - e.g. when a message arrives after its target has succeeded.
+        // The claim bumps the effect version so an unowned writer holding a pre-claim snapshot fails its version
+        // guard instead of overwriting whatever the claimed incarnation writes.
         _restartExecutionsSql ??= @$"
             UPDATE {tablePrefix}
             SET Status = {(int)Status.Executing},
                 Expires = 0,
-                Owner = @Owner
+                Owner = @Owner,
+                Version = Version + 1
             OUTPUT inserted.Id,
                    inserted.Param,
                    inserted.Status,
