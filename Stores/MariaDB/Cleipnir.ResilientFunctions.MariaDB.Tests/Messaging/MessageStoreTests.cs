@@ -78,10 +78,6 @@ public class MessageStoreTests :  ResilientFunctions.Tests.Messaging.TestTemplat
         => AppendedBatchedMessagesWithPositionCanBeFetchedAgain(FunctionStoreFactory.Create());
 
     [TestMethod]
-    public override Task MessagesForMultipleStoreIdsCanBeFetched()
-        => MessagesForMultipleStoreIdsCanBeFetched(FunctionStoreFactory.Create());
-
-    [TestMethod]
     public override Task DeleteMessagesRemovesMessagesAtSpecifiedPositions()
         => DeleteMessagesRemovesMessagesAtSpecifiedPositions(FunctionStoreFactory.Create());
 

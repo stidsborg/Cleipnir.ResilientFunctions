@@ -743,56 +743,6 @@ public abstract class MessageStoreTests
         messagesId2[1].MessageContent.ToStringFromUtf8Bytes().ShouldBe(msg2String);
     }
     
-    public abstract Task MessagesForMultipleStoreIdsCanBeFetched();
-    protected async Task MessagesForMultipleStoreIdsCanBeFetched(Task<IFunctionStore> functionStoreTask)
-    {
-        var functionStore = await functionStoreTask;
-        var id1 = TestStoredId.Create();
-        var id2 = TestStoredId.Create();
-
-        var session = await functionStore.CreateFunction(
-            id1,
-            "humanInstanceId",
-            Test.SimpleStoredParameter,
-            postponeUntil: long.MaxValue,
-            timestamp: DateTime.UtcNow.Ticks,
-            parent: null,
-            owner: null
-        );
-        session.ShouldBeNull();
-        session = await functionStore.CreateFunction(
-            id2,
-            "humanInstanceId",
-            Test.SimpleStoredParameter,
-            postponeUntil: long.MaxValue,
-            timestamp: DateTime.UtcNow.Ticks,
-            parent: null,
-            owner: null
-        );
-        session.ShouldBeNull();
-
-        var messageStore = functionStore.MessageStore;
-        var msg1 = "Hello";
-        var msg2 = "World!";
-        var stringType = typeof(string).SimpleQualifiedName().ToUtf8Bytes();
-        await messageStore.AppendMessage(id1, new StoredMessage(msg1.ToJsonByteArray(), stringType, Replica: ReplicaId.Empty, Position: 0));
-        await messageStore.AppendMessage(id1, new StoredMessage(msg2.ToJsonByteArray(), stringType, Replica: ReplicaId.Empty, Position: 0));
-        await messageStore.AppendMessage(id2, new StoredMessage(msg1.ToJsonByteArray(), stringType, Replica: ReplicaId.Empty, Position: 0));
-        await messageStore.AppendMessage(id2, new StoredMessage(msg2.ToJsonByteArray(), stringType, Replica: ReplicaId.Empty, Position: 0));
-        
-        var messages = await messageStore.GetMessages([id1, id2]);
-        messages.Count.ShouldBe(2);
-        var messageId1 = messages[id1];
-        messageId1.Count.ShouldBe(2);
-        messageId1[0].MessageContent.ToStringFromUtf8Bytes().DeserializeFromJsonTo<string>().ShouldBe("Hello");
-        messageId1[1].MessageContent.ToStringFromUtf8Bytes().DeserializeFromJsonTo<string>().ShouldBe("World!");
-
-        var messageId2 = messages[id2];
-        messageId2.Count.ShouldBe(2);
-        messageId2[0].MessageContent.ToStringFromUtf8Bytes().DeserializeFromJsonTo<string>().ShouldBe("Hello");
-        messageId2[1].MessageContent.ToStringFromUtf8Bytes().DeserializeFromJsonTo<string>().ShouldBe("World!");
-    }
-
     public abstract Task DeleteMessagesRemovesMessagesAtSpecifiedPositions();
     protected async Task DeleteMessagesRemovesMessagesAtSpecifiedPositions(Task<IFunctionStore> functionStoreTask)
     {
@@ -1166,10 +1116,6 @@ public abstract class MessageStoreTests
         idleMessages[0].Replica.ShouldBe(publisher);          // "b" - fallback
         idleMessages[1].Replica.ShouldBe(ReplicaId.Empty);    // "c" - empty fallback
         idleMessages[2].Replica.ShouldBe(publisher);          // "e" - fallback
-
-        // multi-storedId fetch path round-trips the resolved replica
-        var byStoredId = await messageStore.GetMessages([executingFlow, idleFlow]);
-        byStoredId[executingFlow].ShouldAllBe(m => m.Replica == owner);
 
         // replacing a message re-resolves: executing target keeps its owner ...
         await messageStore.ReplaceMessage(

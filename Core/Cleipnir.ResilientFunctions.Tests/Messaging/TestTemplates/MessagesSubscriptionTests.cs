@@ -324,7 +324,7 @@ public abstract class MessagesSubscriptionTests
                 await messageWriter.AppendMessage((iteration + i).ToString(), idempotencyKey: ((iteration + i) % 50).ToString());
 
         await BusyWait.Until(() => storedId != null);
-        await BusyWait.Until(async () => await functionStore.MessageStore.GetMessages([storedId!]).SelectAsync(m => m[storedId!].Count) == 0, maxWait: TimeSpan.FromSeconds(30));
+        await BusyWait.Until(async () => await functionStore.MessageStore.GetMessages(storedId!).SelectAsync(m => m.Count) == 0, maxWait: TimeSpan.FromSeconds(30));
         await messageWriter.AppendMessage("stop");
 
         // Wait for completion

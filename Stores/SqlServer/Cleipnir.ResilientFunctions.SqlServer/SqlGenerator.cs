@@ -391,20 +391,6 @@ public class SqlGenerator(string tablePrefix)
         return messages;
     }
 
-    private string? _getMessagesBulkSql;
-    public StoreCommand GetMessages(IEnumerable<StoredId> storedIds)
-    {
-        _getMessagesBulkSql ??= @$"
-            SELECT Id, Position, Content, Replica
-            FROM {tablePrefix}_Messages
-            WHERE Id IN (SELECT CAST(value AS UNIQUEIDENTIFIER) FROM STRING_SPLIT(@Ids, ','))
-            ORDER BY Position;";
-
-        var command = StoreCommand.Create(_getMessagesBulkSql);
-        command.AddParameter("@Ids", storedIds.ToCommaSeparatedIds());
-        return command;
-    }
-
     private string? _getMessagesForReplicaSql;
     public StoreCommand GetMessagesForReplica(ReplicaId replicaId, IReadOnlyList<long> ignorePositions)
     {

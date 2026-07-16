@@ -29,7 +29,6 @@ public interface IMessageStore
 
     Task<IReadOnlyList<StoredMessage>> GetMessages(StoredId storedId);
     Task<IReadOnlyList<StoredMessage>> GetMessages(StoredId storedId, IReadOnlyList<long> skipPositions);
-    Task<Dictionary<StoredId, List<StoredMessage>>> GetMessages(IEnumerable<StoredId> storedIds);
 
     /// <summary>
     /// Returns the undelivered messages whose replica equals the provided replica, grouped by target flow.

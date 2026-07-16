@@ -475,18 +475,6 @@ public class SqlGenerator(string tablePrefix)
         return command;
     }
 
-    public StoreCommand GetMessages(IEnumerable<StoredId> storedIds)
-    {
-        var sql = @$"
-            SELECT id, position, content, replica
-            FROM {tablePrefix}_messages
-            WHERE id IN ({storedIds.Select(id => $"'{id.AsGuid:N}'").StringJoin(", ")})
-            ORDER BY position;";
-
-        var command = StoreCommand.Create(sql);
-        return command;
-    }
-
     public async Task<Dictionary<StoredId, List<(byte[] content, long position, string? replica)>>> ReadStoredIdsMessages(MySqlDataReader reader)
     {
         var messages = new Dictionary<StoredId, List<(byte[] content, long position, string? replica)>>();

@@ -308,18 +308,6 @@ public class SqlGenerator(string tablePrefix)
         return messages;
     }
 
-    public StoreCommand GetMessages(IEnumerable<StoredId> storedIds)
-    {
-        var sql = @$"
-            SELECT id, position, content, replica
-            FROM {tablePrefix}_messages
-            WHERE id = ANY($1)
-            ORDER BY position;";
-
-        var storeCommand = StoreCommand.Create(sql, values: [ storedIds.Select(id => id.AsGuid).ToArray() ]);
-        return storeCommand;
-    }
-
     public StoreCommand GetMessagesForReplica(ReplicaId replicaId, IReadOnlyList<long> ignorePositions)
     {
         var sql = @$"
