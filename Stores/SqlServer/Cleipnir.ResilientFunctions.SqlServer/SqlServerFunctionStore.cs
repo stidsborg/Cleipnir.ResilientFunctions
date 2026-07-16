@@ -132,7 +132,7 @@ public class SqlServerFunctionStore : IFunctionStore
 
         try
         {
-            var session = new SnapshotStorageSession(owner ?? ReplicaId.Empty);
+            var session = new SnapshotStorageSession(owner);
 
             // Serialize effects if present
             byte[]? effectsBytes = null;

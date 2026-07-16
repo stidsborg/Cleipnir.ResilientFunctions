@@ -144,7 +144,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 ignoreConflict: false
             ));
             
-            var session = new SnapshotStorageSession(owner ?? ReplicaId.Empty);
+            var session = new SnapshotStorageSession(owner);
             if (effects?.Any() ?? false)
                 commands.AddRange(
                     _sqlGenerator.InsertEffects(
