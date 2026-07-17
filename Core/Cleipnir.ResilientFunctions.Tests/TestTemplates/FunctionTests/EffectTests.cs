@@ -313,6 +313,7 @@ public abstract class EffectTests
     {  
         var store = await storeTask;
         var storedId = TestStoredId.Create();
+        var owner = ReplicaId.NewId();
         var session = await store.CreateFunction(
             storedId,
             "SomeInstance",
@@ -320,7 +321,7 @@ public abstract class EffectTests
             postponeUntil: null,
             timestamp: 0,
             parent: null,
-            owner: ReplicaId.NewId()
+            owner
         );
         var effectResults = new EffectResults(
             TestFlowId.Create(),
@@ -328,6 +329,7 @@ public abstract class EffectTests
             await store.GetEffectResults(storedId),
             store,
             DefaultSerializer.Instance,
+            owner,
             session,
             clearChildren: true
         );
@@ -376,6 +378,7 @@ public abstract class EffectTests
             new List<StoredEffect> { existingEffect },
             store,
             DefaultSerializer.Instance,
+            owner: null,
             storageSession: null,
             clearChildren: true
         );
@@ -628,6 +631,7 @@ public abstract class EffectTests
     {  
         var store = await storeTask;
         var storedId = TestStoredId.Create();
+        var owner = ReplicaId.NewId();
         var session = await store.CreateFunction(
             storedId,
             "SomeInstance",
@@ -635,7 +639,7 @@ public abstract class EffectTests
             postponeUntil: null,
             timestamp: 0,
             parent: null,
-            owner: ReplicaId.NewId()
+            owner
         );
         var effectStore = store;
         var effectResults = new EffectResults(
@@ -644,6 +648,7 @@ public abstract class EffectTests
             new List<StoredEffect>(),
             effectStore,
             DefaultSerializer.Instance,
+            owner,
             session,
             clearChildren: true
         );
@@ -691,6 +696,7 @@ public abstract class EffectTests
     {  
         var store = await storeTask;
         var storedId = TestStoredId.Create();
+        var owner = ReplicaId.NewId();
         var session = await store.CreateFunction(
             storedId,
             "SomeInstance",
@@ -698,7 +704,7 @@ public abstract class EffectTests
             postponeUntil: null,
             timestamp: 0,
             parent: null,
-            owner: ReplicaId.NewId()
+            owner
         );
 
         var effectStore = store;
@@ -708,6 +714,7 @@ public abstract class EffectTests
             new List<StoredEffect>(),
             effectStore,
             DefaultSerializer.Instance,
+            owner,
             session,
             clearChildren: true
         );
@@ -773,6 +780,7 @@ public abstract class EffectTests
     {  
         var store = await storeTask;
         var storedId = TestStoredId.Create();
+        var owner = ReplicaId.NewId();
         var session = await store.CreateFunction(
             storedId,
             "SomeInstance",
@@ -780,7 +788,7 @@ public abstract class EffectTests
             postponeUntil: null,
             timestamp: 0,
             parent: null,
-            owner: ReplicaId.NewId()
+            owner
         );
         var effectStore = store;
         var effectResults = new EffectResults(
@@ -789,6 +797,7 @@ public abstract class EffectTests
             await effectStore.GetEffectResults(storedId),
             effectStore,
             DefaultSerializer.Instance,
+            owner,
             session,
             clearChildren: true
         );
@@ -1344,6 +1353,7 @@ public abstract class EffectTests
     {
         var store = await storeTask;
         var storedId = TestStoredId.Create();
+        var owner = ReplicaId.NewId();
         var session = await store.CreateFunction(
             storedId,
             "SomeInstance",
@@ -1351,7 +1361,7 @@ public abstract class EffectTests
             postponeUntil: null,
             timestamp: 0,
             parent: null,
-            owner: ReplicaId.NewId()
+            owner
         );
         var effectResults = new EffectResults(
             TestFlowId.Create(),
@@ -1359,6 +1369,7 @@ public abstract class EffectTests
             await store.GetEffectResults(storedId),
             store,
             DefaultSerializer.Instance,
+            owner,
             session,
             clearChildren: true
         );
@@ -1391,6 +1402,7 @@ public abstract class EffectTests
     {
         var store = await storeTask;
         var storedId = TestStoredId.Create();
+        var owner = ReplicaId.NewId();
         var session = await store.CreateFunction(
             storedId,
             "SomeInstance",
@@ -1398,7 +1410,7 @@ public abstract class EffectTests
             postponeUntil: null,
             timestamp: 0,
             parent: null,
-            owner: ReplicaId.NewId()
+            owner
         );
         var effectResults = new EffectResults(
             TestFlowId.Create(),
@@ -1406,6 +1418,7 @@ public abstract class EffectTests
             await store.GetEffectResults(storedId),
             store,
             DefaultSerializer.Instance,
+            owner,
             session,
             clearChildren: true
         );
@@ -1422,6 +1435,7 @@ public abstract class EffectTests
     {
         var store = await storeTask;
         var storedId = TestStoredId.Create();
+        var owner = ReplicaId.NewId();
         var session = await store.CreateFunction(
             storedId,
             "SomeInstance",
@@ -1429,7 +1443,7 @@ public abstract class EffectTests
             postponeUntil: null,
             timestamp: 0,
             parent: null,
-            owner: ReplicaId.NewId()
+            owner
         );
         var effectResults = new EffectResults(
             TestFlowId.Create(),
@@ -1437,6 +1451,7 @@ public abstract class EffectTests
             await store.GetEffectResults(storedId),
             store,
             DefaultSerializer.Instance,
+            owner,
             session,
             clearChildren: true
         );
@@ -1551,6 +1566,7 @@ public abstract class EffectTests
     {
         var store = await storeTask;
         var storedId = TestStoredId.Create();
+        var owner = ReplicaId.NewId();
         var session = await store.CreateFunction(
             storedId,
             "SomeInstance",
@@ -1558,7 +1574,7 @@ public abstract class EffectTests
             postponeUntil: null,
             timestamp: 0,
             parent: null,
-            owner: ReplicaId.NewId()
+            owner
         );
         var effectStore = store;
         var effectResults = new EffectResults(
@@ -1567,6 +1583,7 @@ public abstract class EffectTests
             new List<StoredEffect>(),
             effectStore,
             DefaultSerializer.Instance,
+            owner,
             session,
             clearChildren: true
         );
@@ -1593,6 +1610,7 @@ public abstract class EffectTests
     {
         var store = await storeTask;
         var storedId = TestStoredId.Create();
+        var owner = ReplicaId.NewId();
         var session = await store.CreateFunction(
             storedId,
             "SomeInstance",
@@ -1600,7 +1618,7 @@ public abstract class EffectTests
             postponeUntil: null,
             timestamp: 0,
             parent: null,
-            owner: ReplicaId.NewId()
+            owner
         );
         var effectStore = store;
         var effectResults = new EffectResults(
@@ -1609,6 +1627,7 @@ public abstract class EffectTests
             new List<StoredEffect>(),
             effectStore,
             DefaultSerializer.Instance,
+            owner,
             session,
             clearChildren: true
         );

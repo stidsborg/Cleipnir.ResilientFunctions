@@ -233,7 +233,7 @@ public class FlowsManager
                     foreach (var message in deliverable)
                         byPosition[message.Position] = message;
 
-                    var session = new SnapshotStorageSession(replicaId: null)
+                    var session = new SnapshotStorageSession
                     {
                         Version = storedFlowSnapshot.Version
                     };
@@ -250,6 +250,7 @@ public class FlowsManager
                         await _functionStore.SetEffectResult(
                             storedId,
                             new StoredEffectChange(storedId, PendingMessages.EffectId, CrudOperation.Insert, entry),
+                            owner: null,
                             session
                         );
                     }

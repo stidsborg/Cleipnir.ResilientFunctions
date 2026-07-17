@@ -62,12 +62,13 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
             if (!_messages.ContainsKey(storedId)) //messages can already have been added - i.e. paramless started by received message
                 _messages[storedId] = new Dictionary<long, StoredMessage>();
 
-            var session = owner == null ? null : new SnapshotStorageSession(owner);
+            var session = owner == null ? null : new SnapshotStorageSession();
 
             if (effects?.Any() ?? false)
                 SetEffectResultsUnderLock(
                     storedId,
                     effects.Select(e => new StoredEffectChange(storedId, e.EffectId, CrudOperation.Insert, e)).ToList(),
+                    owner,
                     session
                 );
 
@@ -147,7 +148,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
 
             var effects = sf.Effects ?? new List<StoredEffect>();
 
-            var session = new SnapshotStorageSession(owner);
+            var session = new SnapshotStorageSession();
             foreach (var effect in effects)
                 session.Effects[effect.EffectId] = effect;
 
@@ -400,24 +401,24 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         }
     }
 
-    public Task SetEffectResults(StoredId storedId, IReadOnlyList<StoredEffectChange> changes, IStorageSession? session)
+    public Task SetEffectResults(StoredId storedId, IReadOnlyList<StoredEffectChange> changes, ReplicaId? owner, IStorageSession? session)
     {
         if (changes.Count == 0)
             return Task.CompletedTask;
 
         lock (_sync)
-            SetEffectResultsUnderLock(storedId, changes, session as SnapshotStorageSession);
+            SetEffectResultsUnderLock(storedId, changes, owner, session as SnapshotStorageSession);
 
         return Task.CompletedTask;
     }
 
     // Assumes _sync is already held by the caller (public SetEffectResults and CreateFunction both hold it).
-    private void SetEffectResultsUnderLock(StoredId storedId, IReadOnlyList<StoredEffectChange> changes, SnapshotStorageSession? storageSession)
+    private void SetEffectResultsUnderLock(StoredId storedId, IReadOnlyList<StoredEffectChange> changes, ReplicaId? sessionOwner, SnapshotStorageSession? storageSession)
     {
         var owner = _states.TryGetValue(storedId, out var ownerState) ? ownerState.Owner : null;
-        if (storageSession is { ReplicaId: null })
+        if (storageSession != null && sessionOwner == null)
         {
-            // An unowned session demands the flow is unowned and that its effects are unchanged since the
+            // An unowned write demands the flow is unowned and that its effects are unchanged since the
             // session's snapshot was loaded (the version is bumped by every claim and every unowned write) - the
             // guard for whole-column writes to a completed flow's effects.
             if (owner is not null)
@@ -425,9 +426,9 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
             if (storageSession.Version != _effectVersions.GetValueOrDefault(storedId, 0))
                 throw UnexpectedStateException.ConcurrentModification(storedId);
         }
-        else if (storageSession is { ReplicaId: not null } && !storageSession.ReplicaId.Equals(owner))
+        else if (storageSession != null && sessionOwner != null && !sessionOwner.Equals(owner))
         {
-            // An owned session only writes while its replica still owns the flow - mirrors the SQL stores' owner
+            // An owned write only succeeds while its replica still owns the flow - mirrors the SQL stores' owner
             // guard, rejecting late flushes from a superseded incarnation.
             throw UnexpectedStateException.ConcurrentModification(storedId);
         }
@@ -448,7 +449,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
 
         if (storageSession != null)
         {
-            if (storageSession.ReplicaId == null)
+            if (sessionOwner == null)
                 storageSession.Version++;
             foreach (var change in changes)
                 if (change.Operation == CrudOperation.Delete)

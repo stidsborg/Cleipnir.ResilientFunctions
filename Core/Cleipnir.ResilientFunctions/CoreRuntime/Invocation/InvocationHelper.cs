@@ -390,6 +390,7 @@ internal class InvocationHelper<TParam, TReturn>
             storedEffects,
             _functionStore,
             Serializer,
+            owner: _replicaId,
             storageSession,
             _clearChildren
         );

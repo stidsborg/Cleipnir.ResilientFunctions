@@ -856,7 +856,7 @@ public abstract class StoreTests
         );
         session.ShouldBeNull();
 
-        await effectsStore.SetEffectResult(functionId, new StoredEffect(0.ToEffectId(), WorkStatus.Completed, "some default state".ToUtf8Bytes(), StoredException: null, Alias: null).ToStoredChange(functionId, Insert), session: null);
+        await effectsStore.SetEffectResult(functionId, new StoredEffect(0.ToEffectId(), WorkStatus.Completed, "some default state".ToUtf8Bytes(), StoredException: null, Alias: null).ToStoredChange(functionId, Insert), owner: null, session: null);
 
         var storedEffects = await effectsStore.GetEffectResults(functionId);
         storedEffects.Count.ShouldBe(1);
@@ -1416,7 +1416,7 @@ public abstract class StoreTests
                 StoredException: null,
                 Alias: null
                 ).ToStoredChange(functionId, Insert),
-            session: null
+            owner: null, session: null
         );
 
         var (sf, effects, _) = await store

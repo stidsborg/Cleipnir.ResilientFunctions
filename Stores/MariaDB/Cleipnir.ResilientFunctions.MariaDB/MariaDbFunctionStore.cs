@@ -99,7 +99,7 @@ public class MariaDbFunctionStore : IFunctionStore
         ReplicaId? owner,
         IReadOnlyList<StoredEffect>? effects = null)
     {
-        var session = new SnapshotStorageSession(owner);
+        var session = new SnapshotStorageSession();
 
         // Serialize effects if present
         byte[]? effectsBytes = null;
@@ -252,7 +252,7 @@ public class MariaDbFunctionStore : IFunctionStore
                     id.Type
                 );
 
-                var session = new SnapshotStorageSession(owner);
+                var session = new SnapshotStorageSession();
                 flows.Add((flow, effectsBytes, session));
             }
         }
@@ -658,19 +658,17 @@ public class MariaDbFunctionStore : IFunctionStore
     // Effects live in the 'effects' column on the flows row. Owned writes are guarded by the owner column alone;
     // unowned writes (null-owner session or no session) are additionally guarded by the version column, which is
     // bumped by every claim and every unowned write - see IFunctionStore.SetEffectResults.
-    public async Task SetEffectResults(StoredId storedId, IReadOnlyList<StoredEffectChange> changes, IStorageSession? session)
+    public async Task SetEffectResults(StoredId storedId, IReadOnlyList<StoredEffectChange> changes, ReplicaId? owner, IStorageSession? session)
     {
         if (changes.Count == 0)
             return;
 
-        var owner = default(ReplicaId);
         var version = 0;
         var existingEffects = new Dictionary<EffectId, StoredEffect>();
         var snapshotSession = session as SnapshotStorageSession;
         if (snapshotSession != null)
         {
             existingEffects = snapshotSession.Effects;
-            owner = snapshotSession.ReplicaId;
             version = snapshotSession.Version;
         }
         else
@@ -713,7 +711,7 @@ public class MariaDbFunctionStore : IFunctionStore
         if (affectedRows == 0)
             throw UnexpectedStateException.ConcurrentModification(storedId);
 
-        if (snapshotSession is { ReplicaId: null })
+        if (snapshotSession != null && owner == null)
             snapshotSession.Version++;
     }
 

@@ -86,21 +86,27 @@ public interface IFunctionStore
     Task<IReadOnlyDictionary<StoredId, byte[]?>> GetResults(IEnumerable<StoredId> storedIds);
 
     // Effects live in the 'effects' column on the flows row. Reads go through GetFunction (StoredFlow.Effects);
-    // there is deliberately no separate effect-read method. Writes come in three modes:
-    // - owned session (SnapshotStorageSession with ReplicaId): the session's snapshot is serialized and written
+    // there is deliberately no separate effect-read method. The owner argument is the owner the write is
+    // conditioned on: the write only succeeds while the flow's owner column still has this value. Null demands
+    // that the flow is unowned (owner IS NULL) - the guard used when writing to a completed flow's effects, so
+    // a concurrent claim makes the write fail instead of being silently overwritten by the claimant's later
+    // flushes. Writes come in three modes:
+    // - owned write (session with non-null owner): the session's snapshot is serialized and written
     //   guarded by the owner column alone - the claim protocol serializes these writes.
-    // - unowned session (SnapshotStorageSession with null ReplicaId): the snapshot write is guarded by
+    // - unowned write (session with null owner): the snapshot write is guarded by
     //   owner IS NULL and the flow's effect version (see SnapshotStorageSession.Version).
     // - null session: the store itself atomically reads owner/version/effects, applies the changes and writes
-    //   guarded by both read values - used when no loaded snapshot exists (e.g. control-panel writes).
+    //   guarded by both read values - used when no loaded snapshot exists (e.g. control-panel writes); the
+    //   owner argument is ignored.
     // A failed guard throws UnexpectedStateException.ConcurrentModification in every mode.
-    Task SetEffectResult(StoredId storedId, StoredEffectChange storedEffectChange, IStorageSession? session)
-        => SetEffectResults(storedId, changes: [storedEffectChange], session);
-    Task SetEffectResults(StoredId storedId, IReadOnlyList<StoredEffectChange> changes, IStorageSession? session);
-    Task DeleteEffectResult(StoredId storedId, EffectId effectId, IStorageSession? storageSession)
+    Task SetEffectResult(StoredId storedId, StoredEffectChange storedEffectChange, ReplicaId? owner, IStorageSession? session)
+        => SetEffectResults(storedId, changes: [storedEffectChange], owner, session);
+    Task SetEffectResults(StoredId storedId, IReadOnlyList<StoredEffectChange> changes, ReplicaId? owner, IStorageSession? session);
+    Task DeleteEffectResult(StoredId storedId, EffectId effectId, ReplicaId? owner, IStorageSession? storageSession)
         => SetEffectResults(
             storedId,
             changes: [new StoredEffectChange(storedId, effectId, CrudOperation.Delete, StoredEffect: null)],
+            owner,
             storageSession
         );
 }

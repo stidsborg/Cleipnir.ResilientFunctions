@@ -1083,7 +1083,7 @@ public abstract class ControlPanelTests
                 StoredException: null,
                 Alias: null
             ).ToStoredChange(rAction.MapToStoredId(functionId.Instance), Insert),
-            session: null
+            owner: null, session: null
         );
 
         await controlPanel.Effects.HasValue("SomeId".GetHashCode()).ShouldBeFalseAsync();
@@ -1121,7 +1121,7 @@ public abstract class ControlPanelTests
                 StoredException: null,
                 Alias: null
             ).ToStoredChange(rAction.MapToStoredId(functionId.Instance), Insert),
-            session: null
+            owner: null, session: null
         );
 
         await controlPanel.Effects.HasValue("SomeId".GetHashCode()).ShouldBeFalseAsync();

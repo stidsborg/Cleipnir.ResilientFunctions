@@ -173,12 +173,12 @@ public abstract class StoreCrudTests
         await store.SetEffectResult(
             storedId,
             StoredEffect.CreateCompleted(1.ToEffectId(), "SomeStateJson".ToUtf8Bytes(), alias: null).ToStoredChange(storedId, Insert),
-            session: null
+            owner: null, session: null
         );
         await store.SetEffectResult(
             storedId,
             new StoredEffect(2.ToEffectId(), WorkStatus.Completed, Result: null, StoredException: null, Alias: null).ToStoredChange(storedId, Insert),
-            session: null
+            owner: null, session: null
         );
         await store.MessageStore.AppendMessage(storedId, new StoredMessage("SomeJson".ToUtf8Bytes(), "SomeType".ToUtf8Bytes(), Replica: ReplicaId.Empty, Position: 0));
 
@@ -221,12 +221,12 @@ public abstract class StoreCrudTests
         await store.SetEffectResult(
             storedId,
             StoredEffect.CreateCompleted(1.ToEffectId(), "SomeStateJson".ToUtf8Bytes(), alias: null).ToStoredChange(storedId, Insert),
-            session: null
+            owner: null, session: null
         );
         await store.SetEffectResult(
             storedId,
             StoredEffect.CreateStarted(2.ToEffectId(), alias: "some-alias").ToStoredChange(storedId, Insert),
-            session: null
+            owner: null, session: null
         );
 
         var after = await store.GetFunction(storedId);

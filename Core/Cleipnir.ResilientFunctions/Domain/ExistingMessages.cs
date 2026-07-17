@@ -89,7 +89,7 @@ public class ExistingMessages
         {
             await _messageStore.Truncate(_storedId);
             if ((await GetPendingInlinedMessages()).Count > 0)
-                await _functionStore.DeleteEffectResult(_storedId, PendingMessages.EffectId, storageSession: null);
+                await _functionStore.DeleteEffectResult(_storedId, PendingMessages.EffectId, owner: null, storageSession: null);
 
             await Task.Delay(100);
             if ((await GetMergedMessages()).Count == 0)
@@ -162,7 +162,7 @@ public class ExistingMessages
     {
         if (messages.Count == 0)
         {
-            await _functionStore.DeleteEffectResult(_storedId, PendingMessages.EffectId, storageSession: null);
+            await _functionStore.DeleteEffectResult(_storedId, PendingMessages.EffectId, owner: null, storageSession: null);
             return;
         }
 
@@ -170,6 +170,7 @@ public class ExistingMessages
         await _functionStore.SetEffectResult(
             _storedId,
             new StoredEffectChange(_storedId, PendingMessages.EffectId, CrudOperation.Insert, entry),
+            owner: null,
             session: null
         );
     }
