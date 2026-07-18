@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
@@ -619,12 +620,17 @@ public abstract class ControlPanelTests
                 }
                 else
                 {
+                    // Collect locally and publish at the end: a legal mid-flow suspend/replay must not leave a
+                    // partial incarnation's messages behind in the asserted list.
+                    var received = new List<string>();
                     for (var i = 0; i < 2; i++)
                     {
                         var msg = await workflow.Message<string>();
-                        syncedList.Add(msg);
-                    } 
-                        
+                        received.Add(msg);
+                    }
+
+                    syncedList.Clear();
+                    syncedList.AddRange(received);
                 }
             }
         );
