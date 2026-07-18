@@ -512,14 +512,20 @@ internal class EffectResults
                 ).ToList();
             
             await _functionStore.SetEffectResults(_storedId, changes, _owner, _storageSession);
-            
+
             lock (_sync)
                 foreach (var pendingChange in pendingChanges)
                 {
+                    // Only mark clean what was actually persisted: a concurrent flushless write during the store
+                    // write above replaces the dictionary entry with a newer record - that newer change was not
+                    // part of this flush and must stay pending, not be cleaned (or removed) by id alone.
+                    if (!_effectResults.TryGetValue(pendingChange.Id, out var current) || !ReferenceEquals(current, pendingChange))
+                        continue;
+
                     if (pendingChange.Operation == CrudOperation.Delete)
                         _effectResults.Remove(pendingChange.Id);
                     else
-                        _effectResults[pendingChange.Id] = _effectResults[pendingChange.Id] with
+                        _effectResults[pendingChange.Id] = pendingChange with
                         {
                             Existing = true,
                             Operation = null
