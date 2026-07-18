@@ -423,10 +423,6 @@ public class SqlServerFunctionStore : IFunctionStore
         ReplicaId expectedReplica,
         IStorageSession? storageSession)
     {
-        byte[]? effectsBytes = null;
-        if (storageSession is SnapshotStorageSession session && session.Effects.Count > 0)
-            effectsBytes = session.Serialize();
-
         await using var conn = await _connFunc();
         await using var command = _sqlGenerator
             .SetStatus(
@@ -437,8 +433,7 @@ public class SqlServerFunctionStore : IFunctionStore
                 expires,
                 timestamp,
                 expectedReplica,
-                paramPrefix: "",
-                effects: effectsBytes
+                paramPrefix: ""
             ).ToSqlCommand(conn);
 
         var affectedRows = await command.ExecuteNonQueryAsync();

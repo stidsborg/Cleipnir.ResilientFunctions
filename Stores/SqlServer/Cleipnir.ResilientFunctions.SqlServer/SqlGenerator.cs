@@ -73,7 +73,6 @@ public class SqlGenerator(string tablePrefix)
     }
 
     private string? _setStatusSql;
-    private string? _setStatusWithEffectsSql;
     public StoreCommand SetStatus(
         StoredId storedId,
         Status status,
@@ -82,41 +81,21 @@ public class SqlGenerator(string tablePrefix)
         long expires,
         long timestamp,
         ReplicaId expectedReplica,
-        string paramPrefix,
-        byte[]? effects = null)
+        string paramPrefix)
     {
-        string sqlTemplate;
-        if (effects == null)
-        {
-            _setStatusSql ??= @$"
-                UPDATE {tablePrefix}
-                SET Status = @Status,
-                    Result = @Result,
-                    Exception = @Exception,
-                    Expires = @Expires,
-                    Timestamp = @Timestamp,
-                    Owner = NULL
-                WHERE Id = @Id AND Owner = @ExpectedReplica";
-            sqlTemplate = _setStatusSql;
-        }
-        else
-        {
-            _setStatusWithEffectsSql ??= @$"
-                UPDATE {tablePrefix}
-                SET Status = @Status,
-                    Result = @Result,
-                    Exception = @Exception,
-                    Expires = @Expires,
-                    Timestamp = @Timestamp,
-                    Owner = NULL,
-                    Effects = @Effects
-                WHERE Id = @Id AND Owner = @ExpectedReplica";
-            sqlTemplate = _setStatusWithEffectsSql;
-        }
+        _setStatusSql ??= @$"
+            UPDATE {tablePrefix}
+            SET Status = @Status,
+                Result = @Result,
+                Exception = @Exception,
+                Expires = @Expires,
+                Timestamp = @Timestamp,
+                Owner = NULL
+            WHERE Id = @Id AND Owner = @ExpectedReplica";
 
         var sql = paramPrefix == ""
-            ? sqlTemplate
-            : sqlTemplate.Replace("@", $"@{paramPrefix}");
+            ? _setStatusSql
+            : _setStatusSql.Replace("@", $"@{paramPrefix}");
 
         var command = StoreCommand.Create(sql);
         command.AddParameter($"@{paramPrefix}Status", (int) status);
@@ -124,8 +103,6 @@ public class SqlGenerator(string tablePrefix)
         command.AddParameter($"@{paramPrefix}Exception", storedException == null ? (object) DBNull.Value : JsonSerializer.Serialize(storedException));
         command.AddParameter($"@{paramPrefix}Expires", expires);
         command.AddParameter($"@{paramPrefix}Timestamp", timestamp);
-        if (effects != null)
-            command.AddParameter($"@{paramPrefix}Effects", effects);
         command.AddParameter($"@{paramPrefix}Id", storedId.AsGuid);
         command.AddParameter($"@{paramPrefix}ExpectedReplica", expectedReplica.AsGuid);
 

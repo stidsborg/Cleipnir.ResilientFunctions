@@ -373,13 +373,9 @@ public class MariaDbFunctionStore : IFunctionStore
         ReplicaId expectedReplica,
         IStorageSession? storageSession)
     {
-        byte[]? effectsBytes = null;
-        if (storageSession is SnapshotStorageSession session && session.Effects.Count > 0)
-            effectsBytes = session.Serialize();
-
         await using var conn = await CreateOpenConnection(_connectionString);
         await using var command = _sqlGenerator
-            .SetStatus(storedId, status, result, storedException, expires, timestamp, expectedReplica, effectsBytes)
+            .SetStatus(storedId, status, result, storedException, expires, timestamp, expectedReplica)
             .ToSqlCommand(conn);
 
         var affectedRows = await command.ExecuteNonQueryAsync();

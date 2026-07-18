@@ -99,4 +99,8 @@ public class EffectStoreTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.
     [TestMethod]
     public override Task OwnedSessionWriteFailsAfterOwnerChanged()
         => OwnedSessionWriteFailsAfterOwnerChanged(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task SetStatusDoesNotPersistUnflushedSessionEffects()
+        => SetStatusDoesNotPersistUnflushedSessionEffects(FunctionStoreFactory.Create());
 }

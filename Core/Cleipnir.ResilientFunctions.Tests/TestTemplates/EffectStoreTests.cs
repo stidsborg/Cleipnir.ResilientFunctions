@@ -1059,4 +1059,50 @@ public abstract class EffectStoreTests
         var effects = await store.GetEffectResults(storedId);
         effects.Single().EffectId.ShouldBe(effectA.EffectId);
     }
+
+    public abstract Task SetStatusDoesNotPersistUnflushedSessionEffects();
+    protected async Task SetStatusDoesNotPersistUnflushedSessionEffects(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+
+        // Effect persistence flows exclusively through the serialized SetEffectResults flush - a status
+        // transition must not write the session's effect snapshot, for terminal and parked statuses alike.
+        foreach (var status in new[] { Status.Succeeded, Status.Postponed })
+        {
+            var storedId = TestStoredId.Create();
+            var owner = ReplicaId.NewId();
+            var session = await store.CreateFunction(
+                storedId,
+                "SomeInstanceId",
+                param: null,
+                postponeUntil: null,
+                timestamp: 0,
+                parent: null,
+                owner: owner
+            );
+            session.ShouldNotBeNull();
+
+            var flushed = new StoredEffect(1.ToEffectId(), WorkStatus.Completed, Result: null, StoredException: null, Alias: null);
+            await store.SetEffectResult(storedId, flushed.ToStoredChange(storedId, Insert), owner, session);
+
+            // Placed in the session but never flushed - the status write must not persist it
+            var unflushed = new StoredEffect(2.ToEffectId(), WorkStatus.Completed, Result: null, StoredException: null, Alias: null);
+            ((SnapshotStorageSession) session).Effects[unflushed.EffectId] = unflushed;
+
+            var success = await store.SetStatus(
+                storedId,
+                status,
+                result: null,
+                storedException: null,
+                expires: 0,
+                timestamp: 0,
+                expectedReplica: owner,
+                storageSession: session
+            );
+            success.ShouldBeTrue();
+
+            var effects = await store.GetEffectResults(storedId);
+            effects.Single().EffectId.ShouldBe(flushed.EffectId);
+        }
+    }
 }
