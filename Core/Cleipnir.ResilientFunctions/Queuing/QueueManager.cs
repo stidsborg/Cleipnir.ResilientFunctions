@@ -322,6 +322,17 @@ internal class QueueManager : IDisposable
                 {
                     lock (_lock)
                     {
+                        // Disposal reopens and clears the delivered-positions set, and the dying incarnation's
+                        // flush runs AFTER disposal - recording this drop now would overwrite the pending
+                        // delivered-positions list with a nearly-empty one, durably erasing the incarnation's
+                        // delivered markings while their reopened rows live on to be redelivered. Reopen the
+                        // position instead so the next incarnation re-fetches and re-dedups the message.
+                        if (_disposed)
+                        {
+                            _messageClearer.ReopenPositions([position]);
+                            continue;
+                        }
+
                         // Synthetic (negative) positions stay out of the durable delivered-positions list: they
                         // have no row to clear, and child indexes may be reused after pruning - a persisted
                         // synthetic would falsely dedup a later message that lands on the same index. The child
@@ -347,6 +358,14 @@ internal class QueueManager : IDisposable
                 );
                 lock (_lock)
                 {
+                    // See the disposed-guard in the idempotency-drop path above: a disposed instance must not
+                    // stage or record anything - its state has been reopened and its flush is imminent.
+                    if (_disposed)
+                    {
+                        _messageClearer.ReopenPositions([position]);
+                        continue;
+                    }
+
                     // Keep the staged messages position-sorted so delivery order stays append order even when two
                     // pushers (the MessageWatchdog poll and an initialization-time push) stage batches out of order.
                     var insertAt = _toDeliver.FindIndex(staged => staged.Position > position);
@@ -422,6 +441,12 @@ internal class QueueManager : IDisposable
     private void DeliverMessages()
     {
         lock (_lock)
+        {
+            // A disposed instance must not deliver: the capture and delivered-position recording would leak into
+            // the dying incarnation's imminent flush while the flow itself never processes the message.
+            if (_disposed)
+                return;
+
             for (var subscriptionIndex = 0; subscriptionIndex < _subscriptions.Count; subscriptionIndex++)
             {
                 var subscription = _subscriptions[subscriptionIndex];
@@ -450,6 +475,7 @@ internal class QueueManager : IDisposable
                         return;
                     }
             }
+        }
     }
 
     // Caller must hold _lock. Removes a delivered (or idempotency-deduped) message from its durable carrier - the
