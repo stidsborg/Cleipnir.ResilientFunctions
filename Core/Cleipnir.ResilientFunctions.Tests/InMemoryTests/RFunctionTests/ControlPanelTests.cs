@@ -75,6 +75,10 @@ public class ControlPanelTests : TestTemplates.FunctionTests.ControlPanelTests
         => ExistingMessagesCanBeReplacedUsingControlPanel(Utils.CreateInMemoryFunctionStoreTask());
 
     [TestMethod]
+    public override Task AppendedMessageCanBeReplacedInPlace()
+        => AppendedMessageCanBeReplacedInPlace(Utils.CreateInMemoryFunctionStoreTask());
+
+    [TestMethod]
     public override Task ExistingMessagesAreNotAffectedByControlPanelSaveChangesInvocation()
         => ExistingMessagesAreNotAffectedByControlPanelSaveChangesInvocation(Utils.CreateInMemoryFunctionStoreTask());
 

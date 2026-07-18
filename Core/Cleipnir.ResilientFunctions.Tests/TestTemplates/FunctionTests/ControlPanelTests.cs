@@ -663,7 +663,62 @@ public abstract class ControlPanelTests
 
         unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
-    
+
+    public abstract Task AppendedMessageCanBeReplacedInPlace();
+    protected async Task AppendedMessageCanBeReplacedInPlace(Task<IFunctionStore> storeTask)
+    {
+        var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
+
+        var store = await storeTask;
+        var functionId = TestFlowId.Create();
+        var (flowType, flowInstance) = functionId;
+        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
+
+        var first = true;
+        var syncedList = new SyncedList<string>();
+        var rAction = functionsRegistry.RegisterAction(
+            flowType,
+            async Task(string param, Workflow workflow) =>
+            {
+                if (first)
+                {
+                    first = false;
+                    return;
+                }
+
+                var received = new List<string>();
+                for (var i = 0; i < 2; i++)
+                    received.Add(await workflow.Message<string>());
+
+                syncedList.Clear();
+                syncedList.AddRange(received);
+            }
+        );
+
+        await rAction.Run(flowInstance.Value, param: "param");
+
+        var controlPanel = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
+        var existingMessages = controlPanel.Messages;
+        await existingMessages.Append("hello to you", "1");
+        await existingMessages.Append("hello from me", "2");
+        await existingMessages.Replace(1, "hello universe", "3");
+
+        var messages = await existingMessages.MessagesWithIdempotencyKeys;
+        messages.Count.ShouldBe(2);
+        messages[0].Message.ShouldBe("hello to you");
+        messages[0].IdempotencyKey.ShouldBe("1");
+        messages[1].Message.ShouldBe("hello universe");
+        messages[1].IdempotencyKey.ShouldBe("3");
+
+        await controlPanel.ScheduleRestart().Completion();
+
+        syncedList.Count.ShouldBe(2);
+        syncedList[0].ShouldBe("hello to you");
+        syncedList[1].ShouldBe("hello universe");
+
+        unhandledExceptionCatcher.ShouldNotHaveExceptions();
+    }
+
     public abstract Task ExistingMessagesAreNotAffectedByControlPanelSaveChangesInvocation();
     protected async Task ExistingMessagesAreNotAffectedByControlPanelSaveChangesInvocation(Task<IFunctionStore> storeTask)
     {

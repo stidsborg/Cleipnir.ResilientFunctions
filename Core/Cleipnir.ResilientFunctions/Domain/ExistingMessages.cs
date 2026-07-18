@@ -169,15 +169,64 @@ public class ExistingMessages
            || effectId.IsDescendant(QueueManager.ReceivedMessagesRoot)
            || effectId.IsDescendant(QueueManager.IdempotencyKeysRoot);
 
-    public async Task Append<T>(T message, string? idempotencyKey = null) where T : notnull
+    public Task Append<T>(T message, string? idempotencyKey = null) where T : notnull
+        => WriteReceivedMessageChild(
+            EncodeRowlessMessage(message, idempotencyKey),
+            chooseChildId: effects =>
+            {
+                var nextIndex = 0;
+                foreach (var effect in effects)
+                    if (QueueManager.ReceivedMessagesRoot.IsChild(effect.EffectId) && effect.EffectId.Id >= nextIndex)
+                        nextIndex = effect.EffectId.Id + 1;
+                return QueueManager.ReceivedMessagesRoot.CreateChild(nextIndex);
+            }
+        );
+
+    /// <summary>
+    /// Replaces the message at the provided position in the merged view. Only messages appended directly into
+    /// the flow's effect state can be replaced - they have no store row a concurrent inliner could resurrect
+    /// stale content from, and replacing the child in place preserves the message's delivery order. Row-backed
+    /// messages must be removed and re-appended instead.
+    /// </summary>
+    /// <param name="position">Index of the message in the merged view</param>
+    /// <param name="message">Replacement message</param>
+    /// <param name="idempotencyKey">Replacement idempotency key</param>
+    public async Task Replace<T>(int position, T message, string? idempotencyKey = null) where T : notnull
+    {
+        if (_receivedMessages is null)
+            await GetReceivedMessages();
+
+        var storedMessage = _receivedMessages!.OrderBy(m => m.Position).Skip(position).FirstOrDefault();
+        if (storedMessage == null)
+            throw new ArgumentException($"Cannot replace non-existing message. Position '{position}' is larger than or equal to length '{_receivedMessages!.Count}'", nameof(position));
+        if (storedMessage.RowBacked)
+            throw new InvalidOperationException(
+                "Only messages appended directly into the flow's effect state can be replaced - remove and re-append the message instead"
+            );
+
+        var childId = QueueManager.ReceivedMessagesRoot.CreateChild((int) (storedMessage.Position - long.MinValue));
+        await WriteReceivedMessageChild(
+            EncodeRowlessMessage(message, idempotencyKey),
+            chooseChildId: effects => effects.Any(e => e.EffectId == childId)
+                ? childId
+                // The child disappeared since the merged view was read (delivered by a concurrent incarnation or
+                // removed by other tooling) - recreating it would resurrect a consumed message.
+                : throw UnexpectedStateException.ConcurrentModification(_storedId)
+        );
+    }
+
+    // Row-less: the message is written directly into the flow's effect state as a received-message child and
+    // never touches the message store - the QueueManager assigns it a synthetic position at staging.
+    private byte[] EncodeRowlessMessage<T>(T message, string? idempotencyKey) where T : notnull
     {
         var json = _serializer.Serialize(message, message.GetType());
         var type = _serializer.SerializeType(message.GetType());
-        // Row-less: the message is written directly into the flow's effect state as a received-message child and
-        // never touches the message store - the QueueManager assigns it a synthetic position at staging.
         var storedMessage = new StoredMessage(json, type, Position: 0, Replica: ReplicaId.Empty, IdempotencyKey: idempotencyKey) { RowBacked = false };
-        var encoded = PendingMessages.EncodeMessage(storedMessage);
+        return PendingMessages.EncodeMessage(storedMessage);
+    }
 
+    private async Task WriteReceivedMessageChild(byte[] encodedMessage, Func<IReadOnlyList<StoredEffect>, EffectId> chooseChildId)
+    {
         for (var attempt = 0; ; attempt++)
         {
             var storedFlow = await _functionStore.GetFunction(_storedId);
@@ -185,13 +234,8 @@ public class ExistingMessages
                 throw UnexpectedStateException.NotFound(_storedId);
 
             var effects = storedFlow.Effects ?? [];
-            var nextIndex = 0;
-            foreach (var effect in effects)
-                if (QueueManager.ReceivedMessagesRoot.IsChild(effect.EffectId) && effect.EffectId.Id >= nextIndex)
-                    nextIndex = effect.EffectId.Id + 1;
-
-            var childId = QueueManager.ReceivedMessagesRoot.CreateChild(nextIndex);
-            var entry = StoredEffect.CreateCompleted(childId, _serializer.Serialize(encoded, typeof(byte[])), alias: null);
+            var childId = chooseChildId(effects);
+            var entry = StoredEffect.CreateCompleted(childId, _serializer.Serialize(encodedMessage, typeof(byte[])), alias: null);
             var session = new SnapshotStorageSession { Version = storedFlow.Version };
             foreach (var effect in effects)
                 session.Effects[effect.EffectId] = effect;
@@ -211,7 +255,7 @@ public class ExistingMessages
             catch (UnexpectedStateException) when (attempt < 5)
             {
                 // Version or owner guard failed - another writer or a claim got in between; retry from a fresh
-                // read (which also re-computes the next child index).
+                // read (which also re-evaluates the target child id).
             }
         }
     }
