@@ -80,7 +80,6 @@ public class SqlGenerator(string tablePrefix)
     }
     
     private string? _setStatusSql;
-    private string? _setStatusWithEffectsSql;
     public StoreCommand SetStatus(
         StoredId storedId,
         Status status,
@@ -88,61 +87,30 @@ public class SqlGenerator(string tablePrefix)
         StoredException? storedException,
         long expires,
         long timestamp,
-        ReplicaId expectedReplica,
-        byte[]? effects = null)
+        ReplicaId expectedReplica)
     {
-        if (effects == null)
-        {
-            _setStatusSql ??= $@"
-                UPDATE {tablePrefix}
-                SET status = ?,
-                    result = ?,
-                    exception = ?,
-                    expires = ?,
-                    timestamp = ?,
-                    owner = NULL
-                WHERE id = ? AND owner = ?";
+        _setStatusSql ??= $@"
+            UPDATE {tablePrefix}
+            SET status = ?,
+                result = ?,
+                exception = ?,
+                expires = ?,
+                timestamp = ?,
+                owner = NULL
+            WHERE id = ? AND owner = ?";
 
-            return StoreCommand.Create(
-                _setStatusSql,
-                values: [
-                    (int) status,
-                    result ?? (object) DBNull.Value,
-                    storedException == null ? (object) DBNull.Value : JsonSerializer.Serialize(storedException),
-                    expires,
-                    timestamp,
-                    storedId.AsGuid.ToString("N"),
-                    expectedReplica.AsGuid.ToString("N"),
-                ]
-            );
-        }
-        else
-        {
-            _setStatusWithEffectsSql ??= $@"
-                UPDATE {tablePrefix}
-                SET status = ?,
-                    result = ?,
-                    exception = ?,
-                    expires = ?,
-                    timestamp = ?,
-                    owner = NULL,
-                    effects = ?
-                WHERE id = ? AND owner = ?";
-
-            return StoreCommand.Create(
-                _setStatusWithEffectsSql,
-                values: [
-                    (int) status,
-                    result ?? (object) DBNull.Value,
-                    storedException == null ? (object) DBNull.Value : JsonSerializer.Serialize(storedException),
-                    expires,
-                    timestamp,
-                    effects,
-                    storedId.AsGuid.ToString("N"),
-                    expectedReplica.AsGuid.ToString("N"),
-                ]
-            );
-        }
+        return StoreCommand.Create(
+            _setStatusSql,
+            values: [
+                (int) status,
+                result ?? (object) DBNull.Value,
+                storedException == null ? (object) DBNull.Value : JsonSerializer.Serialize(storedException),
+                expires,
+                timestamp,
+                storedId.AsGuid.ToString("N"),
+                expectedReplica.AsGuid.ToString("N"),
+            ]
+        );
     }
 
     // The batch restart runs as two commands inside a transaction: this locking SELECT picks the claimable rows

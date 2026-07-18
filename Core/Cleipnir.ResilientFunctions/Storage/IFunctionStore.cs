@@ -61,6 +61,13 @@ public interface IFunctionStore
     /// <paramref name="expires"/> is the postpone-until timestamp for <see cref="Status.Postponed"/>
     /// (0 for the other statuses).
     /// </para>
+    /// <para>
+    /// Implementations must NOT persist <paramref name="storageSession"/>'s effect snapshot as part of the
+    /// status write: effect persistence flows exclusively through the serialized flush
+    /// (<see cref="SetEffectResults"/>), which the runtime performs before every status transition. Writing
+    /// the session snapshot here would re-write potentially stale effect state outside the flush
+    /// serialization, clobbering concurrently flushed writes.
+    /// </para>
     /// </summary>
     Task<bool> SetStatus(
         StoredId storedId,
