@@ -9,6 +9,13 @@ namespace Cleipnir.ResilientFunctions.Messaging;
 
 public record StoredMessage(byte[] MessageContent, byte[] MessageType, long Position, ReplicaId Replica, string? IdempotencyKey = null, string? Sender = null, string? Receiver = null)
 {
+    /// <summary>
+    /// False for messages without a backing message-store row (e.g. appended via the control panel directly
+    /// into the flow's effect state). Row-less messages have no store identity: the QueueManager assigns them a
+    /// synthetic negative position at staging, and they never participate in row clearing or push dedup.
+    /// </summary>
+    public bool RowBacked { get; init; } = true;
+
     public object DefaultDeserialize() => JsonSerializer.Deserialize(MessageContent, Type.GetType(MessageType.ToStringFromUtf8Bytes(), throwOnError: true)!)!; //todo remove
 
     /// <summary>

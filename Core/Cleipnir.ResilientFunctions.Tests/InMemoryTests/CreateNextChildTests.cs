@@ -24,6 +24,7 @@ public class CreateNextChildTests
             existingEffects,
             new InMemoryFunctionStore(),
             DefaultSerializer.Instance,
+            owner: null,
             storageSession: null,
             clearChildren: true
         );

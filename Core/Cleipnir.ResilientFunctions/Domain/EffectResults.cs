@@ -18,6 +18,7 @@ internal class EffectResults
     private readonly IReadOnlyList<StoredEffect> _existingEffects;
     private readonly IFunctionStore _functionStore;
     private readonly ISerializer _serializer;
+    private readonly ReplicaId? _owner;
     private readonly IStorageSession? _storageSession;
     private readonly bool _clearChildren;
 
@@ -43,6 +44,7 @@ internal class EffectResults
         IReadOnlyList<StoredEffect> existingEffects,
         IFunctionStore functionStore,
         ISerializer serializer,
+        ReplicaId? owner,
         IStorageSession? storageSession,
         bool clearChildren)
     {
@@ -51,6 +53,7 @@ internal class EffectResults
         _existingEffects = existingEffects;
         _functionStore = functionStore;
         _serializer = serializer;
+        _owner = owner;
         _storageSession = storageSession;
         _clearChildren = clearChildren;
 
@@ -508,15 +511,21 @@ internal class EffectResults
                     )
                 ).ToList();
             
-            await _functionStore.SetEffectResults(_storedId, changes, _storageSession);
-            
+            await _functionStore.SetEffectResults(_storedId, changes, _owner, _storageSession);
+
             lock (_sync)
                 foreach (var pendingChange in pendingChanges)
                 {
+                    // Only mark clean what was actually persisted: a concurrent flushless write during the store
+                    // write above replaces the dictionary entry with a newer record - that newer change was not
+                    // part of this flush and must stay pending, not be cleaned (or removed) by id alone.
+                    if (!_effectResults.TryGetValue(pendingChange.Id, out var current) || !ReferenceEquals(current, pendingChange))
+                        continue;
+
                     if (pendingChange.Operation == CrudOperation.Delete)
                         _effectResults.Remove(pendingChange.Id);
                     else
-                        _effectResults[pendingChange.Id] = _effectResults[pendingChange.Id] with
+                        _effectResults[pendingChange.Id] = pendingChange with
                         {
                             Existing = true,
                             Operation = null

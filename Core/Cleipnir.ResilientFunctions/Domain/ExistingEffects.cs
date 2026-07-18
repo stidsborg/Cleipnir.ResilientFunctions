@@ -92,7 +92,7 @@ public class ExistingEffects(StoredId storedId, FlowId flowId, IFunctionStore fu
     public async Task Remove(EffectId effectId)
     {
         var storedEffects = await GetStoredEffects();
-        await functionStore.DeleteEffectResult(storedId, effectId, storageSession: null);
+        await functionStore.DeleteEffectResult(storedId, effectId, owner: null, storageSession: null);
         storedEffects.Remove(effectId);
     }
 
@@ -103,7 +103,7 @@ public class ExistingEffects(StoredId storedId, FlowId flowId, IFunctionStore fu
             ? CrudOperation.Update
             : CrudOperation.Insert;
         var change = new StoredEffectChange(storedId, storedEffect.EffectId, crudOperation, storedEffect);
-        await functionStore.SetEffectResult(storedId, change, session: null);
+        await functionStore.SetEffectResult(storedId, change, owner: null, session: null);
         storedEffects[storedEffect.EffectId] = storedEffect;
     }
 

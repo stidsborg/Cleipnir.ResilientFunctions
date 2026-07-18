@@ -68,6 +68,7 @@ public class MariaDbFunctionStore : IFunctionStore
                 parent CHAR(32) NULL,
                 owner CHAR(32) NULL,
                 effects LONGBLOB NULL,
+                version INT NOT NULL DEFAULT 0,
                 INDEX (expires, id, status)
             );";
 
@@ -98,8 +99,7 @@ public class MariaDbFunctionStore : IFunctionStore
         ReplicaId? owner,
         IReadOnlyList<StoredEffect>? effects = null)
     {
-        var session = new SnapshotStorageSession(owner ?? ReplicaId.Empty)
-            { RowExists = true };
+        var session = new SnapshotStorageSession();
 
         // Serialize effects if present
         byte[]? effectsBytes = null;
@@ -252,7 +252,7 @@ public class MariaDbFunctionStore : IFunctionStore
                     id.Type
                 );
 
-                var session = new SnapshotStorageSession(owner) { RowExists = true };
+                var session = new SnapshotStorageSession();
                 flows.Add((flow, effectsBytes, session));
             }
         }
@@ -373,13 +373,9 @@ public class MariaDbFunctionStore : IFunctionStore
         ReplicaId expectedReplica,
         IStorageSession? storageSession)
     {
-        byte[]? effectsBytes = null;
-        if (storageSession is SnapshotStorageSession session && session.Effects.Count > 0)
-            effectsBytes = session.Serialize();
-
         await using var conn = await CreateOpenConnection(_connectionString);
         await using var command = _sqlGenerator
-            .SetStatus(storedId, status, result, storedException, expires, timestamp, expectedReplica, effectsBytes)
+            .SetStatus(storedId, status, result, storedException, expires, timestamp, expectedReplica)
             .ToSqlCommand(conn);
 
         var affectedRows = await command.ExecuteNonQueryAsync();
@@ -529,7 +525,8 @@ public class MariaDbFunctionStore : IFunctionStore
                 human_instance_id,
                 parent,
                 owner,
-                effects
+                effects,
+                version
             FROM {_tablePrefix}
             WHERE id = ?;";
         await using var command = new MySqlCommand(_getFunctionSql, conn)
@@ -610,6 +607,7 @@ public class MariaDbFunctionStore : IFunctionStore
         const int parentIndex = 7;
         const int ownerIndex = 8;
         const int effectsIndex = 9;
+        const int versionIndex = 10;
 
         while (await reader.ReadAsync())
         {
@@ -633,7 +631,8 @@ public class MariaDbFunctionStore : IFunctionStore
                 ParentId: hasParent ? reader.GetString(parentIndex).ToGuid().ToStoredId() : null,
                 OwnerId: hasOwner ? reader.GetString(ownerIndex).ParseToReplicaId() : null,
                 StoredType: storedId.Type,
-                Effects: DeserializeEffects(hasEffects ? (byte[]) reader.GetValue(effectsIndex) : null)
+                Effects: DeserializeEffects(hasEffects ? (byte[]) reader.GetValue(effectsIndex) : null),
+                Version: reader.GetInt32(versionIndex)
             );
         }
 
@@ -652,27 +651,30 @@ public class MariaDbFunctionStore : IFunctionStore
         return effects;
     }
     
-    // Effects live in the 'effects' column on the flows row - writes are guarded by the flow's owner column.
-    public async Task SetEffectResults(StoredId storedId, IReadOnlyList<StoredEffectChange> changes, IStorageSession? session)
+    // Effects live in the 'effects' column on the flows row. Owned writes are guarded by the owner column alone;
+    // unowned writes (null-owner session or no session) are additionally guarded by the version column, which is
+    // bumped by every claim and every unowned write - see IFunctionStore.SetEffectResults.
+    public async Task SetEffectResults(StoredId storedId, IReadOnlyList<StoredEffectChange> changes, ReplicaId? owner, IStorageSession? session)
     {
         if (changes.Count == 0)
             return;
 
-        var owner = default(ReplicaId);
+        var version = 0;
         var existingEffects = new Dictionary<EffectId, StoredEffect>();
         var snapshotSession = session as SnapshotStorageSession;
         if (snapshotSession != null)
         {
             existingEffects = snapshotSession.Effects;
-            owner = snapshotSession.ReplicaId;
+            version = snapshotSession.Version;
         }
         else
         {
-            // Single read gets both the existing effects and the owner to guard the write on.
+            // Single read gets the existing effects plus the owner and version to guard the write on.
             var storedFlow = await GetFunction(storedId);
             foreach (var e in storedFlow?.Effects ?? [])
                 existingEffects[e.EffectId] = e;
             owner = storedFlow?.OwnerId;
+            version = storedFlow?.Version ?? 0;
         }
 
         foreach (var change in changes)
@@ -693,16 +695,20 @@ public class MariaDbFunctionStore : IFunctionStore
                         owner.AsGuid.ToString("N")
                     ])
                 : StoreCommand.Create(
-                    $@"UPDATE {_tablePrefix} SET effects = ? WHERE id = ? AND owner IS NULL",
+                    $@"UPDATE {_tablePrefix} SET effects = ?, version = version + 1 WHERE id = ? AND owner IS NULL AND version = ?",
                     [
                         content,
-                        storedId.AsGuid.ToString("N")
+                        storedId.AsGuid.ToString("N"),
+                        version
                     ]
                 );
 
         var affectedRows = await _commandExecutor.ExecuteNonQuery(command);
         if (affectedRows == 0)
             throw UnexpectedStateException.ConcurrentModification(storedId);
+
+        if (snapshotSession != null && owner == null)
+            snapshotSession.Version++;
     }
 
     public async Task<bool> DeleteFunction(StoredId storedId)

@@ -101,7 +101,8 @@ public record StoredFlow(
     StoredId? ParentId,
     ReplicaId? OwnerId,
     StoredType StoredType,
-    IReadOnlyList<StoredEffect>? Effects = null
+    IReadOnlyList<StoredEffect>? Effects = null,
+    int Version = 0
 );
 
 public record StoredException(string ExceptionMessage, string? ExceptionStackTrace, string ExceptionType)

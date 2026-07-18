@@ -40,6 +40,7 @@ public class PrintEffectsTests
             existingEffects,
             new InMemoryFunctionStore(),
             DefaultSerializer.Instance,
+            owner: null,
             storageSession: null,
             clearChildren: true
         );
@@ -72,6 +73,7 @@ public class PrintEffectsTests
             existingEffects,
             new InMemoryFunctionStore(),
             DefaultSerializer.Instance,
+            owner: null,
             storageSession: null,
             clearChildren: true
         );
@@ -108,6 +110,7 @@ public class PrintEffectsTests
             existingEffects,
             new InMemoryFunctionStore(),
             DefaultSerializer.Instance,
+            owner: null,
             storageSession: null,
             clearChildren: true
         );
@@ -140,6 +143,7 @@ public class PrintEffectsTests
             existingEffects,
             new InMemoryFunctionStore(),
             DefaultSerializer.Instance,
+            owner: null,
             storageSession: null,
             clearChildren: true
         );
@@ -186,6 +190,7 @@ public class PrintEffectsTests
             existingEffects,
             new InMemoryFunctionStore(),
             DefaultSerializer.Instance,
+            owner: null,
             storageSession: null,
             clearChildren: true
         );
@@ -242,6 +247,7 @@ public class PrintEffectsTests
             existingEffects,
             new InMemoryFunctionStore(),
             DefaultSerializer.Instance,
+            owner: null,
             storageSession: null,
             clearChildren: true
         );
@@ -292,6 +298,7 @@ public class PrintEffectsTests
             existingEffects,
             new InMemoryFunctionStore(),
             DefaultSerializer.Instance,
+            owner: null,
             storageSession: null,
             clearChildren: true
         );
@@ -327,6 +334,7 @@ public class PrintEffectsTests
             existingEffects,
             new InMemoryFunctionStore(),
             DefaultSerializer.Instance,
+            owner: null,
             storageSession: null,
             clearChildren: true
         );
@@ -362,6 +370,7 @@ public class PrintEffectsTests
             existingEffects,
             new InMemoryFunctionStore(),
             DefaultSerializer.Instance,
+            owner: null,
             storageSession: null,
             clearChildren: false
         );
@@ -395,6 +404,7 @@ public class PrintEffectsTests
             existingEffects,
             new InMemoryFunctionStore(),
             DefaultSerializer.Instance,
+            owner: null,
             storageSession: null,
             clearChildren: false
         );

@@ -2,8 +2,10 @@
 using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Storage;
+using Cleipnir.ResilientFunctions.Storage.Session;
 using Cleipnir.ResilientFunctions.Tests.Utils;
 using Shouldly;
 using static Cleipnir.ResilientFunctions.Storage.CrudOperation;
@@ -47,7 +49,7 @@ public abstract class EffectStoreTests
             .SelectAsync(l => l.Any())
             .ShouldBeFalseAsync();
         
-        await store.SetEffectResult(functionId, storedEffect1.ToStoredChange(functionId, Insert), session: null);
+        await store.SetEffectResult(functionId, storedEffect1.ToStoredChange(functionId, Insert), owner: null, session: null);
 
         var storedEffects = await store
             .GetEffectResults(functionId);
@@ -55,16 +57,16 @@ public abstract class EffectStoreTests
         var se = storedEffects[0];
         se.ShouldBe(storedEffect1);
 
-        await store.SetEffectResult(functionId, storedEffect2.ToStoredChange(functionId, Insert), session: null);
+        await store.SetEffectResult(functionId, storedEffect2.ToStoredChange(functionId, Insert), owner: null, session: null);
         storedEffects = await store.GetEffectResults(functionId);
         storedEffects.Count.ShouldBe(2);
         storedEffects.Any(s => s == storedEffect1).ShouldBeTrue();
         storedEffects.Any(s => s == storedEffect2).ShouldBeTrue();
 
-        await store.SetEffectResult(functionId, storedEffect2.ToStoredChange(functionId, Update), session: null);
+        await store.SetEffectResult(functionId, storedEffect2.ToStoredChange(functionId, Update), owner: null, session: null);
         await store.GetEffectResults(functionId);
 
-        await store.SetEffectResult(functionId, storedEffect2.ToStoredChange(functionId, Update), session: null);
+        await store.SetEffectResult(functionId, storedEffect2.ToStoredChange(functionId, Update), owner: null, session: null);
         storedEffects = await store.GetEffectResults(functionId);
         storedEffects.Count.ShouldBe(2);
         storedEffects.Any(s => s == storedEffect1).ShouldBeTrue();
@@ -98,12 +100,12 @@ public abstract class EffectStoreTests
             .SelectAsync(r => r.Any())
             .ShouldBeFalseAsync();
 
-        await store.SetEffectResult(functionId, effect.ToStoredChange(functionId, Insert), session: null);
+        await store.SetEffectResult(functionId, effect.ToStoredChange(functionId, Insert), owner: null, session: null);
         var storedEffect = await store.GetEffectResults(functionId).SelectAsync(r => r.Single());
         storedEffect.ShouldBe(effect);
 
         effect = effect with { WorkStatus = WorkStatus.Completed, Result = "Hello World".ToUtf8Bytes() };
-        await store.SetEffectResult(functionId, effect.ToStoredChange(functionId, Update), session: null);
+        await store.SetEffectResult(functionId, effect.ToStoredChange(functionId, Update), owner: null, session: null);
         storedEffect = await store.GetEffectResults(functionId).SelectAsync(r => r.Single());
 
         storedEffect.EffectId.ShouldBe(effect.EffectId);
@@ -145,12 +147,12 @@ public abstract class EffectStoreTests
             .SelectAsync(r => r.Any())
             .ShouldBeFalseAsync();
 
-        await store.SetEffectResult(functionId, storedEffect.ToStoredChange(functionId, Insert), session: null);
+        await store.SetEffectResult(functionId, storedEffect.ToStoredChange(functionId, Insert), owner: null, session: null);
         var effect = await store.GetEffectResults(functionId).SelectAsync(r => r.Single());
         effect.ShouldBe(storedEffect);
 
         storedEffect = storedEffect with { WorkStatus = WorkStatus.Completed, StoredException = storedException };
-        await store.SetEffectResult(functionId, storedEffect.ToStoredChange(functionId, Update), session: null);
+        await store.SetEffectResult(functionId, storedEffect.ToStoredChange(functionId, Update), owner: null, session: null);
         effect = await store.GetEffectResults(functionId).SelectAsync(r => r.Single());
         effect.ShouldBe(storedEffect);
     }
@@ -184,25 +186,25 @@ public abstract class EffectStoreTests
             StoredException: null,
             Alias: null
         );
-        await store.SetEffectResult(functionId, storedEffect1.ToStoredChange(functionId, Insert), session: null);
-        await store.SetEffectResult(functionId, storedEffect2.ToStoredChange(functionId, Insert), session: null);
+        await store.SetEffectResult(functionId, storedEffect1.ToStoredChange(functionId, Insert), owner: null, session: null);
+        await store.SetEffectResult(functionId, storedEffect2.ToStoredChange(functionId, Insert), owner: null, session: null);
 
         await store
             .GetEffectResults(functionId)
             .SelectAsync(sas => sas.Count() == 2)
             .ShouldBeTrueAsync();
 
-        await store.DeleteEffectResult(functionId, storedEffect2.EffectId, storageSession: null);
+        await store.DeleteEffectResult(functionId, storedEffect2.EffectId, owner: null, storageSession: null);
         var storedEffects = await store.GetEffectResults(functionId);
         storedEffects.Count.ShouldBe(1);
         storedEffects[0].EffectId.ShouldBe(storedEffect1.EffectId);
 
-        await store.DeleteEffectResult(functionId, storedEffect2.EffectId, storageSession: null);
+        await store.DeleteEffectResult(functionId, storedEffect2.EffectId, owner: null, storageSession: null);
         storedEffects = await store.GetEffectResults(functionId);
         storedEffects.Count.ShouldBe(1);
         storedEffects[0].EffectId.ShouldBe(storedEffect1.EffectId);
 
-        await store.DeleteEffectResult(functionId, storedEffect1.EffectId, storageSession: null);
+        await store.DeleteEffectResult(functionId, storedEffect1.EffectId, owner: null, storageSession: null);
         await store
             .GetEffectResults(functionId)
             .SelectAsync(sas => sas.Any())
@@ -250,9 +252,9 @@ public abstract class EffectStoreTests
             Alias: null
         );
 
-        await store.SetEffectResult(functionId, storedEffect1.ToStoredChange(functionId, Insert), session: null);
-        await store.SetEffectResult(functionId, storedEffect2.ToStoredChange(functionId, Insert), session: null);
-        await store.SetEffectResult(otherFunctionId, storedEffect1.ToStoredChange(otherFunctionId, Insert), session: null);
+        await store.SetEffectResult(functionId, storedEffect1.ToStoredChange(functionId, Insert), owner: null, session: null);
+        await store.SetEffectResult(functionId, storedEffect2.ToStoredChange(functionId, Insert), owner: null, session: null);
+        await store.SetEffectResult(otherFunctionId, storedEffect1.ToStoredChange(otherFunctionId, Insert), owner: null, session: null);
 
         await store
             .GetEffectResults(functionId)
@@ -305,7 +307,7 @@ public abstract class EffectStoreTests
         await store.SetEffectResults(
             storedId,
             [storedEffect1.ToStoredChange(storedId, Insert), storedEffect2.ToStoredChange(storedId, Insert)],
-            session: null
+            owner: null, session: null
         );
 
         var effects = await store.GetEffectResults(storedId);
@@ -353,7 +355,7 @@ public abstract class EffectStoreTests
             Alias: null
         );
 
-        await store.SetEffectResults(storedId, [storedEffect1.ToStoredChange(storedId, Insert), storedEffect2.ToStoredChange(storedId, Insert)], session: null);
+        await store.SetEffectResults(storedId, [storedEffect1.ToStoredChange(storedId, Insert), storedEffect2.ToStoredChange(storedId, Insert)], owner: null, session: null);
         await store.SetEffectResults(
             storedId,
             changes: [
@@ -361,7 +363,7 @@ public abstract class EffectStoreTests
                 StoredEffectChange.CreateDelete(storedId, storedEffect1.EffectId),
                 StoredEffectChange.CreateDelete(storedId, storedEffect2.EffectId)
             ],
-            session: null
+            owner: null, session: null
         );
 
         var effects = await store.GetEffectResults(storedId);
@@ -403,7 +405,7 @@ public abstract class EffectStoreTests
         await store.SetEffectResults(
             storedId,
             changes: [storedEffect1.ToStoredChange(storedId, Insert), storedEffect2.ToStoredChange(storedId, Insert)],
-            session: null
+            owner: null, session: null
         );
         await store.SetEffectResults(
             storedId,
@@ -411,7 +413,7 @@ public abstract class EffectStoreTests
                 StoredEffectChange.CreateDelete(storedId, storedEffect1.EffectId),
                 StoredEffectChange.CreateDelete(storedId, storedEffect2.EffectId)
             ],
-            session: null
+            owner: null, session: null
         );
 
         var effects = await store.GetEffectResults(storedId);
@@ -436,7 +438,7 @@ public abstract class EffectStoreTests
         await store.SetEffectResults(
             storedId,
             changes: [],
-            session: null
+            owner: null, session: null
         );
     }
     
@@ -480,10 +482,10 @@ public abstract class EffectStoreTests
             Alias: null
         );
 
-        await store.SetEffectResult(id1, storedEffect1.ToStoredChange(id1, Insert), session: null);
-        await store.SetEffectResult(id1, storedEffect2.ToStoredChange(id1, Insert), session: null);
-        await store.SetEffectResult(id2, storedEffect1.ToStoredChange(id2, Insert), session: null);
-        await store.SetEffectResult(id2, storedEffect2.ToStoredChange(id2, Insert), session: null);
+        await store.SetEffectResult(id1, storedEffect1.ToStoredChange(id1, Insert), owner: null, session: null);
+        await store.SetEffectResult(id1, storedEffect2.ToStoredChange(id1, Insert), owner: null, session: null);
+        await store.SetEffectResult(id2, storedEffect1.ToStoredChange(id2, Insert), owner: null, session: null);
+        await store.SetEffectResult(id2, storedEffect2.ToStoredChange(id2, Insert), owner: null, session: null);
 
         var results = await store.GetEffectResults([id1, id2]);
         results.Count.ShouldBe(2);
@@ -504,6 +506,7 @@ public abstract class EffectStoreTests
         var store = await storeTask;
         var effectStore = store;
         var storedId = TestStoredId.Create();
+        var owner = ReplicaId.NewId();
         var storageSession = await store.CreateFunction(
             storedId,
             "SomeInstanceId",
@@ -511,7 +514,7 @@ public abstract class EffectStoreTests
             postponeUntil: null,
             timestamp: 0,
             parent: null,
-            owner: ReplicaId.NewId()
+            owner
         );
         
         var storedEffect1 = new StoredEffect(
@@ -529,8 +532,8 @@ public abstract class EffectStoreTests
             Alias: null
         );
 
-        await effectStore.SetEffectResult(storedId, storedEffect1.ToStoredChange(storedId, Insert), storageSession);
-        await effectStore.SetEffectResult(storedId, storedEffect2.ToStoredChange(storedId, Update), storageSession);
+        await effectStore.SetEffectResult(storedId, storedEffect1.ToStoredChange(storedId, Insert), owner, storageSession);
+        await effectStore.SetEffectResult(storedId, storedEffect2.ToStoredChange(storedId, Update), owner, storageSession);
 
         var storedEffects = await effectStore.GetEffectResults(storedId);
         var storedEffect = storedEffects.Single();
@@ -556,9 +559,10 @@ public abstract class EffectStoreTests
         );
 
         await store.RescheduleCrashedFunctions(crashingReplicaId);
+        var newOwner = ReplicaId.NewId();
         var storageSession2 = await store.RestartExecution(
             storedId,
-            owner: ReplicaId.NewId()
+            newOwner
         ).SelectAsync(s => s!.StorageSession);
         
         var storedEffect1 = new StoredEffect(
@@ -578,7 +582,7 @@ public abstract class EffectStoreTests
         
         try
         {
-            await effectStore.SetEffectResult(storedId, storedEffect1.ToStoredChange(storedId, Insert), storageSession1);
+            await effectStore.SetEffectResult(storedId, storedEffect1.ToStoredChange(storedId, Insert), crashingReplicaId, storageSession1);
         }
         catch (Exception)
         {
@@ -588,7 +592,7 @@ public abstract class EffectStoreTests
         try
         {
             await effectStore.SetEffectResult(storedId, storedEffect2.ToStoredChange(storedId, Insert),
-                storageSession2);
+                newOwner, storageSession2);
         }
         catch (Exception)
         {
@@ -610,17 +614,18 @@ public abstract class EffectStoreTests
         var storedId = TestStoredId.Create();
 
         // Create initial session
-        var session = await store.CreateFunction(storedId, "instance", null, null, 0, null, ReplicaId.NewId());
+        var owner = ReplicaId.NewId();
+        var session = await store.CreateFunction(storedId, "instance", null, null, 0, null, owner);
 
         // Sequential updates - each should increment version properly
         var effect1 = new StoredEffect(1.ToEffectId(), WorkStatus.Completed, "result1".ToUtf8Bytes(), null, Alias: null);
-        await effectStore.SetEffectResult(storedId, effect1.ToStoredChange(storedId, Insert), session);
+        await effectStore.SetEffectResult(storedId, effect1.ToStoredChange(storedId, Insert), owner, session);
 
         var effect2 = new StoredEffect(2.ToEffectId(), WorkStatus.Completed, "result2".ToUtf8Bytes(), null, Alias: null);
-        await effectStore.SetEffectResult(storedId, effect2.ToStoredChange(storedId, Insert), session);
+        await effectStore.SetEffectResult(storedId, effect2.ToStoredChange(storedId, Insert), owner, session);
 
         var effect3 = new StoredEffect(3.ToEffectId(), WorkStatus.Completed, "result3".ToUtf8Bytes(), null, Alias: null);
-        await effectStore.SetEffectResult(storedId, effect3.ToStoredChange(storedId, Insert), session);
+        await effectStore.SetEffectResult(storedId, effect3.ToStoredChange(storedId, Insert), owner, session);
 
         // Verify all three effects were persisted
         var effects = await effectStore.GetEffectResults(storedId);
@@ -638,7 +643,8 @@ public abstract class EffectStoreTests
         var storedId = TestStoredId.Create();
 
         // Create initial session
-        var session = await store.CreateFunction(storedId, "instance", null, null, 0, null, ReplicaId.NewId());
+        var owner = ReplicaId.NewId();
+        var session = await store.CreateFunction(storedId, "instance", null, null, 0, null, owner);
 
         // Insert 100 effects
         const int effectCount = 100;
@@ -651,7 +657,7 @@ public abstract class EffectStoreTests
                 null,
                 Alias: null
             );
-            await effectStore.SetEffectResult(storedId, effect.ToStoredChange(storedId, Insert), session);
+            await effectStore.SetEffectResult(storedId, effect.ToStoredChange(storedId, Insert), owner, session);
         }
 
         // Verify all effects were persisted
@@ -718,10 +724,10 @@ public abstract class EffectStoreTests
         );
 
         // Insert all effects
-        await store.SetEffectResult(storedId, effectWithNullResult.ToStoredChange(storedId, Insert), null);
-        await store.SetEffectResult(storedId, effectWithLargeResult.ToStoredChange(storedId, Insert), null);
-        await store.SetEffectResult(storedId, effectWithException.ToStoredChange(storedId, Insert), null);
-        await store.SetEffectResult(storedId, effectWithSpecialChars.ToStoredChange(storedId, Insert), null);
+        await store.SetEffectResult(storedId, effectWithNullResult.ToStoredChange(storedId, Insert), owner: null, session: null);
+        await store.SetEffectResult(storedId, effectWithLargeResult.ToStoredChange(storedId, Insert), owner: null, session: null);
+        await store.SetEffectResult(storedId, effectWithException.ToStoredChange(storedId, Insert), owner: null, session: null);
+        await store.SetEffectResult(storedId, effectWithSpecialChars.ToStoredChange(storedId, Insert), owner: null, session: null);
 
         // Retrieve and verify
         var effects = await store.GetEffectResults(storedId);
@@ -751,33 +757,34 @@ public abstract class EffectStoreTests
         var storedId = TestStoredId.Create();
 
         // Create initial session
-        var session = await store.CreateFunction(storedId, "instance", null, null, 0, null, ReplicaId.NewId());
+        var owner = ReplicaId.NewId();
+        var session = await store.CreateFunction(storedId, "instance", null, null, 0, null, owner);
 
         // INSERT effect1
         var effect1 = new StoredEffect(1.ToEffectId(), WorkStatus.Started, null, null, Alias: null);
-        await effectStore.SetEffectResult(storedId, effect1.ToStoredChange(storedId, Insert), session);
+        await effectStore.SetEffectResult(storedId, effect1.ToStoredChange(storedId, Insert), owner, session);
 
         // UPDATE effect1
         effect1 = effect1 with { WorkStatus = WorkStatus.Completed, Result = "done".ToUtf8Bytes() };
-        await effectStore.SetEffectResult(storedId, effect1.ToStoredChange(storedId, Update), session);
+        await effectStore.SetEffectResult(storedId, effect1.ToStoredChange(storedId, Update), owner, session);
 
         // DELETE effect2 (doesn't exist - should be no-op)
-        await effectStore.DeleteEffectResult(storedId, 2.ToEffectId(), session);
+        await effectStore.DeleteEffectResult(storedId, 2.ToEffectId(), owner, session);
 
         // INSERT effect3
         var effect3 = new StoredEffect(3.ToEffectId(), WorkStatus.Completed, null, null, Alias: null);
-        await effectStore.SetEffectResult(storedId, effect3.ToStoredChange(storedId, Insert), session);
+        await effectStore.SetEffectResult(storedId, effect3.ToStoredChange(storedId, Insert), owner, session);
 
         // UPDATE effect1 again
         effect1 = effect1 with { Result = "done2".ToUtf8Bytes() };
-        await effectStore.SetEffectResult(storedId, effect1.ToStoredChange(storedId, Update), session);
+        await effectStore.SetEffectResult(storedId, effect1.ToStoredChange(storedId, Update), owner, session);
 
         // INSERT effect2
         var effect2 = new StoredEffect(2.ToEffectId(), WorkStatus.Started, null, null, Alias: null);
-        await effectStore.SetEffectResult(storedId, effect2.ToStoredChange(storedId, Insert), session);
+        await effectStore.SetEffectResult(storedId, effect2.ToStoredChange(storedId, Insert), owner, session);
 
         // DELETE effect3
-        await effectStore.DeleteEffectResult(storedId, effect3.EffectId, session);
+        await effectStore.DeleteEffectResult(storedId, effect3.EffectId, owner, session);
 
         // Verify final state: effect1 (updated) and effect2 should exist, effect3 should be deleted
         var effects = await effectStore.GetEffectResults(storedId);
@@ -817,7 +824,7 @@ public abstract class EffectStoreTests
         );
 
         // Persist effect
-        await store.SetEffectResult(functionId, effectWithAlias.ToStoredChange(functionId, Insert), session: null);
+        await store.SetEffectResult(functionId, effectWithAlias.ToStoredChange(functionId, Insert), owner: null, session: null);
 
         // Fetch effect
         var storedEffects = await store.GetEffectResults(functionId);
@@ -828,5 +835,274 @@ public abstract class EffectStoreTests
         retrievedEffect.WorkStatus.ShouldBe(effectWithAlias.WorkStatus);
         retrievedEffect.Result!.ToStringFromUtf8Bytes().ShouldBe("Hello World");
         retrievedEffect.Alias.ShouldBe("MyAlias");
+    }
+
+    public abstract Task UnownedSessionWriteFailsAfterInterleavedClaim();
+    protected async Task UnownedSessionWriteFailsAfterInterleavedClaim(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var storedId = TestStoredId.Create();
+        await store.CreateFunction(
+            storedId,
+            "SomeInstanceId",
+            param: null,
+            postponeUntil: 0,
+            timestamp: 0,
+            parent: null,
+            owner: null
+        );
+
+        // Load an unowned snapshot of the (empty) effects before any claim happens
+        var preClaimFlow = await store.GetFunction(storedId);
+        preClaimFlow.ShouldNotBeNull();
+        var staleSession = new SnapshotStorageSession { Version = preClaimFlow!.Version };
+        foreach (var effect in preClaimFlow.Effects ?? [])
+            staleSession.Effects[effect.EffectId] = effect;
+
+        // Interleaved claim -> the incarnation writes an effect -> completes (owner is null again)
+        var owner = ReplicaId.NewId();
+        var restarted = await store.RestartExecution(storedId, owner);
+        restarted.ShouldNotBeNull();
+        var incarnationEffect = new StoredEffect(1.ToEffectId(), WorkStatus.Completed, "incarnation".ToUtf8Bytes(), StoredException: null, Alias: null);
+        await store.SetEffectResult(storedId, incarnationEffect.ToStoredChange(storedId, Insert), owner, restarted!.StorageSession);
+        await store.SetStatus(storedId, Status.Succeeded, result: null, storedException: null, expires: 0, timestamp: 0, expectedReplica: owner, storageSession: restarted.StorageSession);
+
+        // The stale pre-claim snapshot passes the owner IS NULL guard but must fail the version guard -
+        // otherwise it would erase the incarnation's effect
+        var staleEffect = new StoredEffect(2.ToEffectId(), WorkStatus.Completed, "stale".ToUtf8Bytes(), StoredException: null, Alias: null);
+        await Should.ThrowAsync<UnexpectedStateException>(() =>
+            store.SetEffectResult(storedId, staleEffect.ToStoredChange(storedId, Insert), owner: null, staleSession)
+        );
+
+        var effects = await store.GetEffectResults(storedId);
+        effects.Single().EffectId.ShouldBe(incarnationEffect.EffectId);
+    }
+
+    public abstract Task UnownedSessionWriteFailsWhenFlowIsOwned();
+    protected async Task UnownedSessionWriteFailsWhenFlowIsOwned(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var storedId = TestStoredId.Create();
+        await store.CreateFunction(
+            storedId,
+            "SomeInstanceId",
+            param: null,
+            postponeUntil: null,
+            timestamp: 0,
+            parent: null,
+            owner: ReplicaId.NewId()
+        );
+
+        var flow = await store.GetFunction(storedId);
+        flow.ShouldNotBeNull();
+        var unownedSession = new SnapshotStorageSession { Version = flow!.Version };
+
+        var effect = new StoredEffect(1.ToEffectId(), WorkStatus.Completed, Result: null, StoredException: null, Alias: null);
+        await Should.ThrowAsync<UnexpectedStateException>(() =>
+            store.SetEffectResult(storedId, effect.ToStoredChange(storedId, Insert), owner: null, unownedSession)
+        );
+
+        await store.GetEffectResults(storedId).SelectAsync(e => e.Any()).ShouldBeFalseAsync();
+    }
+
+    public abstract Task UnownedSessionWriteSucceedsAndBumpsVersion();
+    protected async Task UnownedSessionWriteSucceedsAndBumpsVersion(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var storedId = TestStoredId.Create();
+        await store.CreateFunction(
+            storedId,
+            "SomeInstanceId",
+            param: null,
+            postponeUntil: 0,
+            timestamp: 0,
+            parent: null,
+            owner: null
+        );
+
+        var flow = await store.GetFunction(storedId);
+        flow.ShouldNotBeNull();
+        var session = new SnapshotStorageSession { Version = flow!.Version };
+
+        // Consecutive writes through the same session succeed - the session's version tracks the store's bump
+        var effect1 = new StoredEffect(1.ToEffectId(), WorkStatus.Completed, Result: null, StoredException: null, Alias: null);
+        await store.SetEffectResult(storedId, effect1.ToStoredChange(storedId, Insert), owner: null, session);
+        var effect2 = new StoredEffect(2.ToEffectId(), WorkStatus.Completed, Result: null, StoredException: null, Alias: null);
+        await store.SetEffectResult(storedId, effect2.ToStoredChange(storedId, Insert), owner: null, session);
+
+        // A second snapshot holding the original version is now stale and must fail
+        var staleSession = new SnapshotStorageSession { Version = flow.Version };
+        var effect3 = new StoredEffect(3.ToEffectId(), WorkStatus.Completed, Result: null, StoredException: null, Alias: null);
+        await Should.ThrowAsync<UnexpectedStateException>(() =>
+            store.SetEffectResult(storedId, effect3.ToStoredChange(storedId, Insert), owner: null, staleSession)
+        );
+
+        var effects = await store.GetEffectResults(storedId);
+        effects.Count.ShouldBe(2);
+        effects.Any(e => e.EffectId == effect1.EffectId).ShouldBeTrue();
+        effects.Any(e => e.EffectId == effect2.EffectId).ShouldBeTrue();
+    }
+
+    public abstract Task ConcurrentNullSessionWritesDoNotLoseUpdates();
+    protected async Task ConcurrentNullSessionWritesDoNotLoseUpdates(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var storedId = TestStoredId.Create();
+        await store.CreateFunction(
+            storedId,
+            "SomeInstanceId",
+            param: null,
+            postponeUntil: 0,
+            timestamp: 0,
+            parent: null,
+            owner: null
+        );
+
+        // 4 writers x 10 distinct inserts against the unowned flow - the version guard turns interleaved
+        // read-modify-writes into retryable conflicts instead of lost updates
+        const int writers = 4;
+        const int insertsPerWriter = 10;
+        var tasks = Enumerable.Range(0, writers).Select(writer => Task.Run(async () =>
+        {
+            for (var i = 0; i < insertsPerWriter; i++)
+            {
+                var effect = new StoredEffect(
+                    (writer * insertsPerWriter + i).ToEffectId(),
+                    WorkStatus.Completed,
+                    Result: null,
+                    StoredException: null,
+                    Alias: null
+                );
+                for (var attempt = 0; ; attempt++)
+                {
+                    try
+                    {
+                        await store.SetEffectResult(storedId, effect.ToStoredChange(storedId, Insert), owner: null, session: null);
+                        break;
+                    }
+                    catch (UnexpectedStateException) when (attempt < 100)
+                    {
+                        // version conflict - retry
+                    }
+                }
+            }
+        })).ToList();
+        await Task.WhenAll(tasks);
+
+        var effects = await store.GetEffectResults(storedId);
+        effects.Count.ShouldBe(writers * insertsPerWriter);
+    }
+
+    public abstract Task NullSessionWriteToOwnedFlowDoesNotBlockOwnedWrites();
+    protected async Task NullSessionWriteToOwnedFlowDoesNotBlockOwnedWrites(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var storedId = TestStoredId.Create();
+        var owner = ReplicaId.NewId();
+        var session = await store.CreateFunction(
+            storedId,
+            "SomeInstanceId",
+            param: null,
+            postponeUntil: null,
+            timestamp: 0,
+            parent: null,
+            owner: owner
+        );
+        session.ShouldNotBeNull();
+
+        var effectA = new StoredEffect(1.ToEffectId(), WorkStatus.Completed, Result: null, StoredException: null, Alias: null);
+        await store.SetEffectResult(storedId, effectA.ToStoredChange(storedId, Insert), owner, session);
+
+        // A session-less write to the owned flow is guarded by the current owner and must not affect the
+        // owned session's subsequent writes (the owned path never consults the version)
+        var effectB = new StoredEffect(2.ToEffectId(), WorkStatus.Completed, Result: null, StoredException: null, Alias: null);
+        await store.SetEffectResult(storedId, effectB.ToStoredChange(storedId, Insert), owner: null, session: null);
+
+        var effectC = new StoredEffect(3.ToEffectId(), WorkStatus.Completed, Result: null, StoredException: null, Alias: null);
+        await store.SetEffectResult(storedId, effectC.ToStoredChange(storedId, Insert), owner, session);
+
+        // effectB is deliberately unasserted: the owned snapshot is authoritative, so stores may or may not
+        // retain the interleaved session-less write
+        var effects = await store.GetEffectResults(storedId);
+        effects.Any(e => e.EffectId == effectA.EffectId).ShouldBeTrue();
+        effects.Any(e => e.EffectId == effectC.EffectId).ShouldBeTrue();
+    }
+
+    public abstract Task OwnedSessionWriteFailsAfterOwnerChanged();
+    protected async Task OwnedSessionWriteFailsAfterOwnerChanged(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+        var storedId = TestStoredId.Create();
+        var owner = ReplicaId.NewId();
+        var session = await store.CreateFunction(
+            storedId,
+            "SomeInstanceId",
+            param: null,
+            postponeUntil: null,
+            timestamp: 0,
+            parent: null,
+            owner: owner
+        );
+        session.ShouldNotBeNull();
+
+        var effectA = new StoredEffect(1.ToEffectId(), WorkStatus.Completed, Result: null, StoredException: null, Alias: null);
+        await store.SetEffectResult(storedId, effectA.ToStoredChange(storedId, Insert), owner, session);
+
+        await store.SetStatus(storedId, Status.Succeeded, result: null, storedException: null, expires: 0, timestamp: 0, expectedReplica: owner, storageSession: session);
+
+        // The completed flow is unowned - a late flush from the superseded owned session must be rejected
+        var effectB = new StoredEffect(2.ToEffectId(), WorkStatus.Completed, Result: null, StoredException: null, Alias: null);
+        await Should.ThrowAsync<UnexpectedStateException>(() =>
+            store.SetEffectResult(storedId, effectB.ToStoredChange(storedId, Insert), owner, session)
+        );
+
+        var effects = await store.GetEffectResults(storedId);
+        effects.Single().EffectId.ShouldBe(effectA.EffectId);
+    }
+
+    public abstract Task SetStatusDoesNotPersistUnflushedSessionEffects();
+    protected async Task SetStatusDoesNotPersistUnflushedSessionEffects(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask;
+
+        // Effect persistence flows exclusively through the serialized SetEffectResults flush - a status
+        // transition must not write the session's effect snapshot, for terminal and parked statuses alike.
+        foreach (var status in new[] { Status.Succeeded, Status.Postponed })
+        {
+            var storedId = TestStoredId.Create();
+            var owner = ReplicaId.NewId();
+            var session = await store.CreateFunction(
+                storedId,
+                "SomeInstanceId",
+                param: null,
+                postponeUntil: null,
+                timestamp: 0,
+                parent: null,
+                owner: owner
+            );
+            session.ShouldNotBeNull();
+
+            var flushed = new StoredEffect(1.ToEffectId(), WorkStatus.Completed, Result: null, StoredException: null, Alias: null);
+            await store.SetEffectResult(storedId, flushed.ToStoredChange(storedId, Insert), owner, session);
+
+            // Placed in the session but never flushed - the status write must not persist it
+            var unflushed = new StoredEffect(2.ToEffectId(), WorkStatus.Completed, Result: null, StoredException: null, Alias: null);
+            ((SnapshotStorageSession) session).Effects[unflushed.EffectId] = unflushed;
+
+            var success = await store.SetStatus(
+                storedId,
+                status,
+                result: null,
+                storedException: null,
+                expires: 0,
+                timestamp: 0,
+                expectedReplica: owner,
+                storageSession: session
+            );
+            success.ShouldBeTrue();
+
+            var effects = await store.GetEffectResults(storedId);
+            effects.Single().EffectId.ShouldBe(flushed.EffectId);
+        }
     }
 }

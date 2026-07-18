@@ -54,7 +54,6 @@ public class SqlGenerator(string tablePrefix)
                 session.Effects[change.EffectId] = change.StoredEffect!;
 
         var content = session.Serialize();
-        session.RowExists = true;
         // Runs in the CreateFunction transaction right after the flow row's INSERT - no owner guard needed.
         return StoreCommand.Create(
             $"UPDATE {tablePrefix} SET effects = $1 WHERE id = $2;",
@@ -162,9 +161,11 @@ public class SqlGenerator(string tablePrefix)
     {
         // Restartable flows are the parked ones (postponed/suspended): the batch restart backs the watchdogs, which
         // must never resurrect a completed flow - e.g. when a message arrives after its target has succeeded.
+        // The claim bumps the effect version so an unowned writer holding a pre-claim snapshot fails its version
+        // guard instead of overwriting whatever the claimed incarnation writes.
         _restartExecutionsSql ??= @$"
             UPDATE {tablePrefix}
-            SET status = {(int)Status.Executing}, expires = 0, owner = $1
+            SET status = {(int)Status.Executing}, expires = 0, owner = $1, version = version + 1
             WHERE id = ANY($2) AND owner IS NULL AND status IN ({(int)Status.Postponed}, {(int)Status.Suspended})
             RETURNING
                 id,

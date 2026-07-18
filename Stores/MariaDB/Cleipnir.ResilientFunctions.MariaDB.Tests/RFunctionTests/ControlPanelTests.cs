@@ -74,6 +74,10 @@ public class ControlPanelTests : ResilientFunctions.Tests.TestTemplates.Function
         => ExistingMessagesCanBeReplacedUsingControlPanel(FunctionStoreFactory.Create());
 
     [TestMethod]
+    public override Task AppendedMessageCanBeReplacedInPlace()
+        => AppendedMessageCanBeReplacedInPlace(FunctionStoreFactory.Create());
+
+    [TestMethod]
     public override Task ExistingMessagesAreNotAffectedByControlPanelSaveChangesInvocation()
         => ExistingMessagesAreNotAffectedByControlPanelSaveChangesInvocation(FunctionStoreFactory.Create());
 

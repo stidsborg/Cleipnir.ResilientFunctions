@@ -74,38 +74,6 @@ public class PostgreSqlMessageStore : IMessageStore
         await batch.ExecuteNonQueryAsync();
     }
 
-    private string? _replaceMessageSql;
-    public async Task<bool> ReplaceMessage(StoredId storedId, long position, StoredMessage storedMessage)
-    {
-        await using var conn = await CreateConnection();
-        _replaceMessageSql ??= @$"
-                UPDATE {tablePrefix}_messages
-                SET replica = COALESCE((SELECT owner FROM {tablePrefix} WHERE id = $1), $2), content = $3
-                WHERE id = $1 AND position = $4";
-
-        var (messageJson, messageType, _, replica, idempotencyKey, sender, receiver) = storedMessage;
-        var content = BinaryPacker.Pack(
-            messageJson,
-            messageType,
-            idempotencyKey?.ToUtf8Bytes(),
-            sender?.ToUtf8Bytes(),
-            receiver?.ToUtf8Bytes()
-        );
-        var command = new NpgsqlCommand(_replaceMessageSql, conn)
-        {
-            Parameters =
-            {
-                new() {Value = storedId.AsGuid},
-                new() {Value = replica.AsGuid},
-                new() {Value = content},
-                new() {Value = position},
-            }
-        };
-
-        var affectedRows = await command.ExecuteNonQueryAsync();
-        return affectedRows == 1;
-    }
-
     public async Task DeleteMessages(IReadOnlyList<long> positions)
     {
         if (positions.Count == 0)

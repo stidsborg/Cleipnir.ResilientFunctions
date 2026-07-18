@@ -15,18 +15,6 @@ public class MessageStoreTests :  ResilientFunctions.Tests.Messaging.TestTemplat
         => AppendedMessagesUsingBulkMethodCanBeFetchedAgain(FunctionStoreFactory.Create());
     
     [TestMethod]
-    public override Task EventsCanBeReplaced()
-        => EventsCanBeReplaced(FunctionStoreFactory.Create());
-
-    [TestMethod]
-    public override Task EventsAreReplacedWhenCountIsAsExpected()
-        => EventsAreReplacedWhenCountIsAsExpected(FunctionStoreFactory.Create());
-
-    [TestMethod]
-    public override Task EventsAreNotReplacedWhenPositionIsNotAsExpected()
-        => EventsAreNotReplacedWhenPositionIsNotAsExpected(FunctionStoreFactory.Create());
-
-    [TestMethod]
     public override Task SkippedMessagesAreNotFetched()
         => SkippedMessagesAreNotFetched(FunctionStoreFactory.Create());
 

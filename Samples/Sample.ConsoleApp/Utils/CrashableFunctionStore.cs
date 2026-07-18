@@ -132,10 +132,10 @@ public class CrashableFunctionStore : IFunctionStore
             ? Task.FromException<IReadOnlyDictionary<StoredId, byte[]?>>(new TimeoutException())
             : _inner.GetResults(storedIds);
 
-    public Task SetEffectResults(StoredId storedId, IReadOnlyList<StoredEffectChange> changes, IStorageSession? session)
+    public Task SetEffectResults(StoredId storedId, IReadOnlyList<StoredEffectChange> changes, ReplicaId? owner, IStorageSession? session)
         => _crashed
             ? Task.FromException(new TimeoutException())
-            : _inner.SetEffectResults(storedId, changes, session);
+            : _inner.SetEffectResults(storedId, changes, owner, session);
 
     public IFunctionStore WithPrefix(string prefix)
         => _inner.WithPrefix(prefix);

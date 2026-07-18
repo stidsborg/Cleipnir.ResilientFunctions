@@ -73,7 +73,8 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 exception TEXT NULL,
                 human_instance_id TEXT NOT NULL,
                 parent UUID NULL,
-                effects BYTEA NULL
+                effects BYTEA NULL,
+                version INT NOT NULL DEFAULT 0
             ) WITH (fillfactor = 80);
 
             CREATE INDEX IF NOT EXISTS idx_{_tableName}_expires
@@ -123,10 +124,10 @@ public class PostgreSqlFunctionStore : IFunctionStore
             ).CreateBatch().WithConnection(conn);
 
             var affectedRows = await batch.ExecuteNonQueryAsync();
-            if (affectedRows != 1 || owner == null) 
+            if (affectedRows != 1 || owner == null)
                 return null;
-            
-            return new SnapshotStorageSession(owner);
+
+            return new SnapshotStorageSession();
         }
 
         try
@@ -143,7 +144,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 ignoreConflict: false
             ));
             
-            var session = new SnapshotStorageSession(owner ?? ReplicaId.Empty);
+            var session = new SnapshotStorageSession();
             if (effects?.Any() ?? false)
                 commands.AddRange(
                     _sqlGenerator.InsertEffects(
@@ -186,10 +187,10 @@ public class PostgreSqlFunctionStore : IFunctionStore
         return totalInserted;
     }
 
-    private static (List<StoredEffect> Effects, SnapshotStorageSession Session) ReadEffectsColumn(byte[]? effectsBytes, ReplicaId owner)
+    private static (List<StoredEffect> Effects, SnapshotStorageSession Session) ReadEffectsColumn(byte[]? effectsBytes)
     {
         var effects = new List<StoredEffect>();
-        var session = new SnapshotStorageSession(owner) { RowExists = true };
+        var session = new SnapshotStorageSession();
 
         if (effectsBytes == null)
             return (effects, session);
@@ -251,10 +252,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 storedId.Type
             );
 
-            var (effects, session) = ReadEffectsColumn(
-                hasEffects ? (byte[])reader.GetValue(10) : null,
-                owner
-            );
+            var (effects, session) = ReadEffectsColumn(hasEffects ? (byte[])reader.GetValue(10) : null);
 
             result[storedId] = new StoredFlowWithEffects(flow, effects, session);
         }
@@ -526,7 +524,8 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 human_instance_id,
                 parent,
                 owner,
-                effects
+                effects,
+                version
             FROM {_tableName}
             WHERE id = $1;";
         await using var command = new NpgsqlCommand(_getFunctionSql, conn)
@@ -553,6 +552,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
            7 parent
            8 owner
            9 effects
+           10 version
          */
         while (await reader.ReadAsync())
         {
@@ -574,7 +574,8 @@ public class PostgreSqlFunctionStore : IFunctionStore
                 ParentId: hasParent ? reader.GetGuid(7).ToStoredId() : null,
                 OwnerId: hasOwner ? reader.GetGuid(8).ToReplicaId() : null,
                 StoredType: storedId.Type,
-                Effects: DeserializeEffects(hasEffects ? (byte[]) reader.GetValue(9) : null)
+                Effects: DeserializeEffects(hasEffects ? (byte[]) reader.GetValue(9) : null),
+                Version: reader.GetInt32(10)
             );
         }
 
@@ -634,28 +635,30 @@ public class PostgreSqlFunctionStore : IFunctionStore
         return results;
     }
 
-    // Effects live in the 'effects' column on the flows row - writes are guarded by the flow's owner column,
-    // so there is no separate table or version machinery.
-    public async Task SetEffectResults(StoredId storedId, IReadOnlyList<StoredEffectChange> changes, IStorageSession? session)
+    // Effects live in the 'effects' column on the flows row. Owned writes are guarded by the owner column alone;
+    // unowned writes (null-owner session or no session) are additionally guarded by the version column, which is
+    // bumped by every claim and every unowned write - see IFunctionStore.SetEffectResults.
+    public async Task SetEffectResults(StoredId storedId, IReadOnlyList<StoredEffectChange> changes, ReplicaId? owner, IStorageSession? session)
     {
         if (changes.Count == 0)
             return;
 
-        var owner = default(ReplicaId);
+        var version = 0;
         var existingEffects = new Dictionary<EffectId, StoredEffect>();
         var snapshotSession = session as SnapshotStorageSession;
         if (snapshotSession != null)
         {
             existingEffects = snapshotSession.Effects;
-            owner = snapshotSession.ReplicaId;
+            version = snapshotSession.Version;
         }
         else
         {
-            // Single read gets both the existing effects and the owner to guard the write on.
+            // Single read gets the existing effects plus the owner and version to guard the write on.
             var storedFlow = await GetFunction(storedId);
             foreach (var e in storedFlow?.Effects ?? [])
                 existingEffects[e.EffectId] = e;
             owner = storedFlow?.OwnerId;
+            version = storedFlow?.Version ?? 0;
         }
 
         foreach (var change in changes)
@@ -673,13 +676,16 @@ public class PostgreSqlFunctionStore : IFunctionStore
                     [content, storedId.AsGuid, owner.AsGuid]
                 )
                 : StoreCommand.Create(
-                    $"UPDATE {_tableName} SET effects = $1 WHERE id = $2 AND owner IS NULL",
-                    [content, storedId.AsGuid]
+                    $"UPDATE {_tableName} SET effects = $1, version = version + 1 WHERE id = $2 AND owner IS NULL AND version = $3",
+                    [content, storedId.AsGuid, version]
                 );
 
         var affectedRows = await _commandExecutor.ExecuteNonQuery(command);
         if (affectedRows == 0)
             throw UnexpectedStateException.ConcurrentModification(storedId);
+
+        if (snapshotSession != null && owner == null)
+            snapshotSession.Version++;
     }
 
     private string? _deleteFunctionSql;

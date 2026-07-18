@@ -75,4 +75,32 @@ public class EffectStoreTests : Cleipnir.ResilientFunctions.Tests.TestTemplates.
     [TestMethod]
     public override Task EffectWithAliasCanBePersistedAndFetched()
         => EffectWithAliasCanBePersistedAndFetched(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task UnownedSessionWriteFailsAfterInterleavedClaim()
+        => UnownedSessionWriteFailsAfterInterleavedClaim(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task UnownedSessionWriteFailsWhenFlowIsOwned()
+        => UnownedSessionWriteFailsWhenFlowIsOwned(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task UnownedSessionWriteSucceedsAndBumpsVersion()
+        => UnownedSessionWriteSucceedsAndBumpsVersion(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task ConcurrentNullSessionWritesDoNotLoseUpdates()
+        => ConcurrentNullSessionWritesDoNotLoseUpdates(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task NullSessionWriteToOwnedFlowDoesNotBlockOwnedWrites()
+        => NullSessionWriteToOwnedFlowDoesNotBlockOwnedWrites(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task OwnedSessionWriteFailsAfterOwnerChanged()
+        => OwnedSessionWriteFailsAfterOwnerChanged(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task SetStatusDoesNotPersistUnflushedSessionEffects()
+        => SetStatusDoesNotPersistUnflushedSessionEffects(FunctionStoreFactory.Create());
 }
