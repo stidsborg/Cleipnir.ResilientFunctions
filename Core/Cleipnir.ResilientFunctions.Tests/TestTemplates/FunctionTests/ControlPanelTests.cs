@@ -581,7 +581,8 @@ public abstract class ControlPanelTests
         var messages = await existingMessages.AsObjects;
         messages.Count.ShouldBe(1);
         messages[0].ShouldBe("param");
-        await existingMessages.Replace(0, "hello");
+        await existingMessages.Clear();
+        await existingMessages.Append("hello");
 
         await controlPanel.Refresh();
         var receivedMessages = await controlPanel

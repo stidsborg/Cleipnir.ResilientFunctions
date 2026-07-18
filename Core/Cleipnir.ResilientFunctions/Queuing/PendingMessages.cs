@@ -32,11 +32,13 @@ internal static class PendingMessages
             .Select(messageBytes => DecodeMessage(messageBytes!))
             .ToList();
 
+    // A message without a backing store row (e.g. appended via the control panel directly into the flow's effect
+    // state) encodes a null position piece - it has no store identity to clear or dedup against.
     public static byte[] EncodeMessage(StoredMessage message)
         => BinaryPacker.Pack(
             message.MessageContent,
             message.MessageType,
-            BitConverter.GetBytes(message.Position),
+            message.RowBacked ? BitConverter.GetBytes(message.Position) : null,
             message.IdempotencyKey?.ToUtf8Bytes(),
             message.Sender?.ToUtf8Bytes(),
             message.Receiver?.ToUtf8Bytes()
@@ -48,11 +50,11 @@ internal static class PendingMessages
         return new StoredMessage(
             MessageContent: parts[0]!,
             MessageType: parts[1]!,
-            Position: BitConverter.ToInt64(parts[2]!),
+            Position: parts[2] == null ? 0 : BitConverter.ToInt64(parts[2]!),
             Replica: ReplicaId.Empty,
             IdempotencyKey: parts[3]?.ToStringFromUtf8Bytes(),
             Sender: parts[4]?.ToStringFromUtf8Bytes(),
             Receiver: parts[5]?.ToStringFromUtf8Bytes()
-        );
+        ) { RowBacked = parts[2] != null };
     }
 }

@@ -16,8 +16,6 @@ public interface IMessageStore
     /// </summary>
     Task AppendMessages(IReadOnlyList<StoredIdAndMessage> messages);
 
-    Task<bool> ReplaceMessage(StoredId storedId, long position, StoredMessage storedMessage);
-
     /// <summary>
     /// Deletes the messages at the given positions regardless of which flow they belong to. Positions are
     /// globally unique (identity values), so no <see cref="StoredId"/> is needed - allowing handled messages

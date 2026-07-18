@@ -495,19 +495,6 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
     }
 
 
-    public Task<bool> ReplaceMessage(StoredId storedId, long position, StoredMessage storedMessage)
-    {
-        lock (_sync)
-        {
-            if (!_messages.TryGetValue(storedId, out var messages) || !messages.ContainsKey(position))
-                return false.ToTask();
-
-            var owner = (_states.TryGetValue(storedId, out var state) ? state.Owner : null) ?? storedMessage.Replica;
-            messages[position] = storedMessage with { Replica = owner };
-            return true.ToTask();
-        }
-    }
-
     public Task DeleteMessages(IReadOnlyList<long> positions)
     {
         lock (_sync)

@@ -85,34 +85,6 @@ public class SqlServerMessageStore : IMessageStore
         await command.ExecuteNonQueryAsync();
     }
 
-    private string? _replaceMessageSql;
-    public async Task<bool> ReplaceMessage(StoredId storedId, long position, StoredMessage storedMessage)
-    {
-        await using var conn = await CreateConnection();
-
-        _replaceMessageSql ??= @$"
-            UPDATE {_tablePrefix}_Messages
-            SET Replica = COALESCE((SELECT Owner FROM {_tablePrefix} WHERE Id = @Id), @Replica), Content = @Content
-            WHERE Id = @Id AND Position = @Position";
-
-        var (messageJson, messageType, _, replica, idempotencyKey, sender, receiver) = storedMessage;
-        var content = BinaryPacker.Pack(
-            messageJson,
-            messageType,
-            idempotencyKey?.ToUtf8Bytes(),
-            sender?.ToUtf8Bytes(),
-            receiver?.ToUtf8Bytes()
-        );
-        await using var command = new SqlCommand(_replaceMessageSql, conn);
-        command.Parameters.AddWithValue("@Id", storedId.AsGuid);
-        command.Parameters.AddWithValue("@Position", position);
-        command.Parameters.AddWithValue("@Replica", replica.AsGuid);
-        command.Parameters.AddWithValue("@Content", content);
-        
-        var affectedRows = await command.ExecuteNonQueryAsync();
-        return affectedRows == 1;
-    }
-
     public async Task DeleteMessages(IReadOnlyList<long> positions)
     {
         if (positions.Count == 0)
