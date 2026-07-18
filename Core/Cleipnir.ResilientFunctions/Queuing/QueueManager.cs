@@ -19,13 +19,15 @@ public delegate bool MessagePredicate(Envelope envelope);
 internal class QueueManager : IDisposable
 {
     private const int ReservedIdPrefix = -1;
-    private static readonly EffectId DeliveredPositionsId = new([ReservedIdPrefix, 0]);
-    private static readonly EffectId IdempotencyKeysRoot   = new([ReservedIdPrefix, -1]);
+    // Internal rather than private: ExistingMessages (control-panel tooling) addresses the same reserved entries
+    // when editing a flow's message state from outside the flow.
+    internal static readonly EffectId DeliveredPositionsId = new([ReservedIdPrefix, 0]);
+    internal static readonly EffectId IdempotencyKeysRoot   = new([ReservedIdPrefix, -1]);
     // Parent of the per-message received-message children (see _pendingMessageChildren). A dedicated id - not
     // PendingMessages.EffectId - because FlushlessClear cascades to children, and the completed-flow blob lives
     // at (and is cleared via) PendingMessages.EffectId; keeping the carriers on separate ids stops the blob's
     // clear from deleting these children.
-    private static readonly EffectId ReceivedMessagesRoot  = new([ReservedIdPrefix, 2]);
+    internal static readonly EffectId ReceivedMessagesRoot  = new([ReservedIdPrefix, 2]);
 
     private readonly FlowId _flowId;
     private readonly StoredId _storedId;
@@ -122,6 +124,13 @@ internal class QueueManager : IDisposable
             foreach (var childId in _effect.GetChildren(ReceivedMessagesRoot))
             {
                 var message = PendingMessages.DecodeMessage(_effect.Get<byte[]>(childId));
+
+                // A row-less child (control-panel authored) has no store position - assign a synthetic negative
+                // one derived from the child index. It is unique (child indexes are), sorts row-less messages in
+                // child order before any store row, and every store-facing use of it (row delete, ignore-set) is
+                // a harmless no-op since no row can ever carry a negative position.
+                if (!message.RowBacked)
+                    message = message with { Position = long.MinValue + childId.Id };
 
                 bool alreadyDelivered;
                 lock (_lock)
@@ -313,8 +322,15 @@ internal class QueueManager : IDisposable
                 {
                     lock (_lock)
                     {
-                        _deliveredPositions.Add(position);
-                        _effect.FlushlessUpsert(DeliveredPositionsId, _deliveredPositions.ToList(), alias: null);
+                        // Synthetic (negative) positions stay out of the durable delivered-positions list: they
+                        // have no row to clear, and child indexes may be reused after pruning - a persisted
+                        // synthetic would falsely dedup a later message that lands on the same index. The child
+                        // prune below is their durable record instead.
+                        if (position >= 0)
+                        {
+                            _deliveredPositions.Add(position);
+                            _effect.FlushlessUpsert(DeliveredPositionsId, _deliveredPositions.ToList(), alias: null);
+                        }
                         PruneDeliveredPendingMessage(position);
                     }
                     continue;
@@ -414,7 +430,10 @@ internal class QueueManager : IDisposable
                     {
                         var msg = _toDeliver[matchIndex];
                         _toDeliver.RemoveAt(matchIndex);
-                        _deliveredPositions.Add(msg.Position);
+                        // Synthetic (negative) positions stay out of the durable delivered-positions list - see
+                        // the equivalent guard in ProcessMessages; the child prune below is their durable record.
+                        if (msg.Position >= 0)
+                            _deliveredPositions.Add(msg.Position);
                         _subscriptions.RemoveAt(subscriptionIndex);
 
                         _effect.FlushlessUpserts(

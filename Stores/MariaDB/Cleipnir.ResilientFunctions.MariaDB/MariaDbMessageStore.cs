@@ -61,38 +61,6 @@ public class MariaDbMessageStore : IMessageStore
         await appendCommand.ExecuteNonQueryAsync();
     }
 
-    private string? _replaceMessageSql;
-    public async Task<bool> ReplaceMessage(StoredId storedId, long position, StoredMessage storedMessage)
-    {
-        await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
-        var (messageJson, messageType, _, replica, idempotencyKey, sender, receiver) = storedMessage;
-
-        _replaceMessageSql ??= @$"
-                UPDATE {_tablePrefix}_messages
-                SET replica = COALESCE((SELECT owner FROM {_tablePrefix} WHERE id = ?), ?), content = ?
-                WHERE id = ? AND position = ?";
-        var content = BinaryPacker.Pack(
-            messageJson,
-            messageType,
-            idempotencyKey?.ToUtf8Bytes(),
-            sender?.ToUtf8Bytes(),
-            receiver?.ToUtf8Bytes()
-        );
-        await using var command = new MySqlCommand(_replaceMessageSql, conn)
-        {
-            Parameters =
-            {
-                new() {Value = storedId.AsGuid.ToString("N")},
-                new() {Value = replica.AsGuid.ToString("N")},
-                new() {Value = content},
-                new() {Value = storedId.AsGuid.ToString("N")},
-                new() {Value = position}
-            }
-        };
-        var affectedRows = await command.ExecuteNonQueryAsync();
-        return affectedRows == 1;
-    }
-
     public async Task DeleteMessages(IReadOnlyList<long> positions)
     {
         if (positions.Count == 0)

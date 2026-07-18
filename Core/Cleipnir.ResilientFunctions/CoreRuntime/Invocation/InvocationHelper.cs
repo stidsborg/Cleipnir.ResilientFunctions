@@ -405,7 +405,7 @@ internal class InvocationHelper<TParam, TReturn>
         var storedEffects = (await _functionStore.GetFunction(storedId))?.Effects ?? [];
         return new ExistingEffects(storedId, flowId, _functionStore, Serializer, storedEffects);
     }
-    public ExistingMessages CreateExistingMessages(FlowId flowId) => new(MapToStoredId(flowId), _functionStore.MessageStore, _functionStore, Serializer, _replicaId);
+    public ExistingMessages CreateExistingMessages(FlowId flowId) => new(MapToStoredId(flowId), _functionStore.MessageStore, _functionStore, Serializer);
 
     public QueueManager CreateQueueManager(FlowId flowId, StoredId storedId, Effect effect, FlowExecutionState flowExecutionState, FlowTimeouts timeouts, UnhandledExceptionHandler unhandledExceptionHandler)
         => new(flowId, storedId, Serializer, effect, flowExecutionState, unhandledExceptionHandler, timeouts, UtcNow, _settings, _messageClearer);
