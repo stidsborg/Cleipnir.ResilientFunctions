@@ -81,26 +81,21 @@ public class FlowExecutionState
 
     public void SubflowCompleted()
     {
-        bool arm;
         lock (_lock)
-        {
             Subflows--;
-            arm = Subflows == WaitingSubflows && !Suspended;
-        }
-        if (arm)
-            ArmSuspensionTimer();
+
+        // The completed subflow may have been the last one running - the two transitions towards
+        // Subflows == WaitingSubflows (a subflow completing or starting to wait) each check afterwards,
+        // so every entry into the fully-waiting state is observed by whoever caused it.
+        ArmSuspensionTimerIfFullyWaiting();
     }
 
     public void SubflowWaiting()
     {
-        bool arm;
         lock (_lock)
-        {
             WaitingSubflows++;
-            arm = Subflows == WaitingSubflows && !Suspended;
-        }
-        if (arm)
-            ArmSuspensionTimer();
+
+        ArmSuspensionTimerIfFullyWaiting();
     }
 
     public Task ResumeSubflow()
@@ -175,8 +170,14 @@ public class FlowExecutionState
     // Fires once the flow has been fully waiting (all subflows waiting) for the configured max-wait duration.
     // Suspension is always safe whenever the flow is fully waiting: every waiting subflow's wake-up trigger
     // (registered timeout or message) outlives the suspension decision, so the flow can always be restarted.
-    private void ArmSuspensionTimer()
-        => _ = Task.Delay(_maxWait).ContinueWith(_ => TrySuspend());
+    private void ArmSuspensionTimerIfFullyWaiting()
+    {
+        lock (_lock)
+            if (Subflows != WaitingSubflows || Suspended)
+                return;
+
+        _ = Task.Delay(_maxWait).ContinueWith(_ => TrySuspend());
+    }
 
     private void TrySuspend()
     {
