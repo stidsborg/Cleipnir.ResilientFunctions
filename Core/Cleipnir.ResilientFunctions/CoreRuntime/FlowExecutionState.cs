@@ -132,11 +132,11 @@ public class FlowExecutionState
         Timeouts.AddTimeout(timeoutId, expiry);
         SubflowWaiting();
 
-        while (!SuspendedTask.IsCompleted)
+        // Sleeps until expiry, woken early when the flow suspends. Looped only because Task.Delay rejects
+        // spans beyond MaxDelayStep - distant expiries sleep in steps.
+        while (!SuspendedTask.IsCompleted && utcNow() < expiry)
         {
             var delay = expiry - utcNow();
-            if (delay <= TimeSpan.Zero)
-                break;
             await Task.WhenAny(Task.Delay(delay < MaxDelayStep ? delay : MaxDelayStep), SuspendedTask);
         }
 
