@@ -60,9 +60,6 @@ public class Invoker<TParam, TReturn> : IFlowRestarter
 
         CurrentFlow._workflow.Value = workflow;
 
-        _ = flowState.SuspendedTask.ContinueWith(_ =>
-            PersistSuspension(storedId, flowId, param, parentWorkflow?.StoredId, workflow, storageSession, disposables, tcs)
-        );
         _ = Task.Run(async () =>
         {
             EffectContext.Reset();
@@ -159,17 +156,6 @@ public class Invoker<TParam, TReturn> : IFlowRestarter
         var (inner, param, humanInstanceId, workflow, disposables, queueManager, flowState, timeouts, parent, storageSession) = await PrepareForReInvocation(storedId, rf, tcs.Task);
         var flowId = new FlowId(_flowType, humanInstanceId);
 
-        _ = flowState.SuspendedTask.ContinueWith(async _ =>
-        {
-            try
-            {
-                await PersistSuspension(storedId, flowId, param, parent, workflow, storageSession, disposables, tcs);
-            }
-            finally
-            {
-                onCompletion(); //releases the restart-throttling semaphore slot (e.g. PostponedWatchdog)
-            }
-        });
         _ = Task.Run(async () =>
         {
             EffectContext.Reset();
@@ -343,33 +329,6 @@ public class Invoker<TParam, TReturn> : IFlowRestarter
     {
         await _invocationHelper.PublishCompletionMessageToParent(parent, childId: flowId, result: Fail.WithException(exception));
         await _invocationHelper.PersistFailure(storedId, exception, param);
-    }
-
-    /// <summary>
-    /// Invoked when the flow's FlowExecutionState decides to suspend (all subflows waiting for the configured
-    /// max-wait). The invocation's threads are parked forever, so tear-down and persistence happen here instead
-    /// of in the invocation body: the minimum registered timeout determines suspend vs postpone.
-    /// </summary>
-    private async Task PersistSuspension(StoredId storedId, FlowId flowId, TParam param, StoredId? parent, Workflow workflow, IStorageSession? storageSession, IDisposable disposables, TaskCompletionSource<TReturn> tcs)
-    {
-        try
-        {
-            disposables.Dispose(); //same dispose-before-flush order as the normal completion path
-
-            var minTimeout = workflow.Effect.FlowTimeouts.MinimumTimeout;
-            var result = minTimeout == null
-                ? Suspend.Invocation.ToResult<TReturn>()
-                : Postpone.Until(minTimeout.Value).ToResult<TReturn>();
-
-            await PersistResultAndEnsureSuccess(storedId, flowId, result, param, parent, workflow, storageSession, allowPostponedOrSuspended: true);
-
-            tcs.TrySetException(new InvocationSuspendedException(flowId));
-        }
-        catch (Exception exception)
-        {
-            _unhandledExceptionHandler.Invoke(_flowType, exception);
-            tcs.TrySetException(exception);
-        }
     }
 
     private async Task PersistResultAndEnsureSuccess(StoredId storedId, FlowId flowId, Result<TReturn> result, TParam param, StoredId? parent, Workflow workflow, IStorageSession? storageSession, bool allowPostponedOrSuspended = false)
