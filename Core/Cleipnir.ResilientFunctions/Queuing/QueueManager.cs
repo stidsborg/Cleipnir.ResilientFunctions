@@ -292,7 +292,7 @@ internal class QueueManager : IDisposable
         if (timeout != null)
         {
             _timeouts.AddTimeout(messageId, timeout.Value);
-            ArmSubscriptionTimeout(subscription, timeout.Value, messageId, delayCts.Token);
+            ArmSubscriptionTimeout(subscription, timeout.Value, delayCts.Token);
         }
 
         _flowExecutionState.SubflowWaiting();
@@ -304,6 +304,11 @@ internal class QueueManager : IDisposable
         finally
         {
             await _flowExecutionState.ResumeSubflow();
+
+            // Only removed after passing the resume gate: a suspension overtaking the wake-up must still find
+            // the timeout registered, so it postpones to it instead of suspending without a wake-up trigger.
+            if (timeout != null)
+                _timeouts.RemoveTimeout(messageId);
 
             await delayCts.CancelAsync();
             delayCts.Dispose();
@@ -406,20 +411,20 @@ internal class QueueManager : IDisposable
     }
 
     // Task.Delay is bounded, so a distant user-timeout sleeps in steps - ExpireSubscription re-arms until due.
-    private void ArmSubscriptionTimeout(Subscription subscription, DateTime timeout, EffectId id, CancellationToken cancellationToken)
+    private void ArmSubscriptionTimeout(Subscription subscription, DateTime timeout, CancellationToken cancellationToken)
     {
         var delay = timeout - _utcNow();
         if (delay > MaxDelayStep)
             delay = MaxDelayStep;
         _ = Task.Delay(delay.RoundUpToZero(), cancellationToken)
-            .ContinueWith(_ => ExpireSubscription(subscription, timeout, id, cancellationToken), TaskContinuationOptions.OnlyOnRanToCompletion);
+            .ContinueWith(_ => ExpireSubscription(subscription, timeout, cancellationToken), TaskContinuationOptions.OnlyOnRanToCompletion);
     }
 
-    private void ExpireSubscription(Subscription subscription, DateTime timeout, EffectId id, CancellationToken cancellationToken)
+    private void ExpireSubscription(Subscription subscription, DateTime timeout, CancellationToken cancellationToken)
     {
         if (_utcNow() < timeout)
         {
-            ArmSubscriptionTimeout(subscription, timeout, id, cancellationToken); //bounded sleep-step elapsed before the timeout was due
+            ArmSubscriptionTimeout(subscription, timeout, cancellationToken); //bounded sleep-step elapsed before the timeout was due
             return;
         }
 
@@ -427,13 +432,12 @@ internal class QueueManager : IDisposable
             if (!_subscriptions.Remove(subscription)) //has the subscription been resolved
                 return;
 
-        // Sealed against the suspension decision: a flow that has decided to suspend must not have its timeout
-        // removed or its waiter woken - the parked subflow is abandoned and the registered timeout becomes the
-        // postpone-until target instead.
+        // Sealed against the suspension decision: a flow that has decided to suspend must not have its waiter
+        // woken - the parked subflow is abandoned and its still-registered timeout becomes the postpone-until
+        // target (the woken subflow removes the timeout itself, after passing the resume gate).
         _flowExecutionState.TryResolve(() =>
         {
             _effect.FlushlessUpserts(subscription.CaptureMessage(null));
-            _timeouts.RemoveTimeout(id);
             subscription.Tcs.TrySetResult(null);
         });
     }
@@ -499,7 +503,6 @@ internal class QueueManager : IDisposable
                             // the delivered position land in one atomic effect write at the next flush.
                             PruneDeliveredPendingMessage(msg.Position);
 
-                            _timeouts.RemoveTimeout(subscription.EffectId);
                             subscription.Tcs.TrySetResult(msg);
                         });
                         if (!delivered)

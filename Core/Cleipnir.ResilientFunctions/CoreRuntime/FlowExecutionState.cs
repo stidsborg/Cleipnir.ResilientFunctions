@@ -28,11 +28,6 @@ public class FlowExecutionState
     private readonly TaskCompletionSource _suspendedTcs = new();
     private readonly IMessageClearer? _messageClearer;
     private readonly TimeSpan _maxWait;
-    // Bumped by every resolution (TryResolve). A suspension timer only suspends when no resolution has run
-    // since the fully-waiting observation it was armed on: a resolution may have consumed a parked strand's
-    // wake-up trigger (e.g. a message-timeout capturing null and removing its timeout) before the strand
-    // resumes - suspending on that stale observation would strand the flow with nothing to ever restart it.
-    private int _resolutionCount;
 
     public StoredId Id { get; }
     public int Subflows { get; private set; }
@@ -86,28 +81,26 @@ public class FlowExecutionState
 
     public void SubflowCompleted()
     {
-        var resolutions = -1;
+        bool arm;
         lock (_lock)
         {
             Subflows--;
-            if (Subflows == WaitingSubflows && !Suspended)
-                resolutions = _resolutionCount;
+            arm = Subflows == WaitingSubflows && !Suspended;
         }
-        if (resolutions != -1)
-            ArmSuspensionTimer(resolutions);
+        if (arm)
+            ArmSuspensionTimer();
     }
 
     public void SubflowWaiting()
     {
-        var resolutions = -1;
+        bool arm;
         lock (_lock)
         {
             WaitingSubflows++;
-            if (Subflows == WaitingSubflows && !Suspended)
-                resolutions = _resolutionCount;
+            arm = Subflows == WaitingSubflows && !Suspended;
         }
-        if (resolutions != -1)
-            ArmSuspensionTimer(resolutions);
+        if (arm)
+            ArmSuspensionTimer();
     }
 
     public Task ResumeSubflow()
@@ -140,14 +133,15 @@ public class FlowExecutionState
 
         await ResumeSubflow(); //parks forever when the flow suspended while waiting
 
+        // Only removed after passing the resume gate: a suspension overtaking the wake-up must still find the
+        // timeout registered, so it postpones to it instead of suspending without any way to be woken again.
         Timeouts.RemoveTimeout(timeoutId);
     }
 
     /// <summary>
     /// Runs the provided resolution (waking a waiting subflow with its result) atomically with respect to the
     /// suspension decision: once the flow has decided to suspend nothing may be resumed, so the resolution is
-    /// rejected - and a resolution that runs invalidates any armed suspension attempt, since the resolved
-    /// subflow is about to resume.
+    /// rejected.
     /// </summary>
     public bool TryResolve(Action resolution)
     {
@@ -156,7 +150,6 @@ public class FlowExecutionState
             if (Suspended)
                 return false;
 
-            _resolutionCount++;
             resolution();
         }
 
@@ -180,15 +173,16 @@ public class FlowExecutionState
     }
 
     // Fires once the flow has been fully waiting (all subflows waiting) for the configured max-wait duration.
-    // The resolution count is captured atomically with the fully-waiting observation the timer is armed on.
-    private void ArmSuspensionTimer(int resolutions)
-        => _ = Task.Delay(_maxWait).ContinueWith(_ => TrySuspend(resolutions));
+    // Suspension is always safe whenever the flow is fully waiting: every waiting subflow's wake-up trigger
+    // (registered timeout or message) outlives the suspension decision, so the flow can always be restarted.
+    private void ArmSuspensionTimer()
+        => _ = Task.Delay(_maxWait).ContinueWith(_ => TrySuspend());
 
-    private void TrySuspend(int resolutions)
+    private void TrySuspend()
     {
         lock (_lock)
         {
-            if (_resolutionCount != resolutions || Subflows != WaitingSubflows || Suspended || _status == FlowStatus.Completed)
+            if (Subflows != WaitingSubflows || Suspended || _status == FlowStatus.Completed)
                 return;
 
             Suspended = true;
