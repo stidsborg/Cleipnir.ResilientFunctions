@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
-using Cleipnir.ResilientFunctions.Domain.Exceptions.Commands;
 using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Queuing;
@@ -40,19 +39,23 @@ public class Workflow
         {
             var expiry = (await Effect.CreateOrGet(timeoutId, until.ToUniversalTime().Ticks, alias, flush: false))
                 .ToDateTime();
-            
+
             var now = _utcNow();
             if (now > expiry)
                 return;
-            
-            Effect.FlowTimeouts.AddTimeout(timeoutId, expiry);
+
             if (suspend)
-                throw new SuspendInvocationException();
+            {
+                //waits until expiry - or parks forever if the flow suspends first (restarted by watchdog at expiry)
+                await Effect.FlowExecutionState.WaitUntil(timeoutId, expiry, _utcNow);
+                return;
+            }
 
             //do in-memory wait
+            Effect.FlowTimeouts.AddTimeout(timeoutId, expiry);
             var delay = expiry - now;
             await Task.Delay(delay);
-            Effect.FlowTimeouts.RemoveTimeout(timeoutId);    
+            Effect.FlowTimeouts.RemoveTimeout(timeoutId);
         }
 
         return Inner();
@@ -102,6 +105,12 @@ public class Workflow
 
     public Task AppendMessage(object msg, string? idempotencyKey = null) => MessageWriter.AppendMessage(msg, idempotencyKey);
 
+    /// <summary>
+    /// Runs the provided work as a parallel subflow. Note: the invoking flow is not counted as waiting while it
+    /// awaits the returned task, so a parallel subflow that suspends (message wait, delay or retry-suspension)
+    /// keeps a root awaiting it running forever - await suspending subflows only via the flow's own framework
+    /// waits (messages/delays), or keep parallel work non-suspending.
+    /// </summary>
     public Task<T> Parallelle<T>(Func<Task<T>> work) => Effect.RunParallelle(work);
 
     public string ExecutionTree()

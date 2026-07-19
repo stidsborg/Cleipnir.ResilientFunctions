@@ -1,8 +1,10 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Watchdogs;
+using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Queuing;
@@ -13,15 +15,20 @@ namespace Cleipnir.ResilientFunctions.CoreRuntime;
 public enum FlowStatus
 {
     Running = 0,
-    Waiting = 1,
+    Suspending = 1,
     Completed = 2
 }
 
 public class FlowExecutionState
 {
+    // Task.Delay's upper bound - longer waits sleep in steps and re-check.
+    private static readonly TimeSpan MaxDelayStep = TimeSpan.FromMilliseconds(int.MaxValue);
+
     private readonly Lock _lock = new();
     private readonly TaskCompletionSource _suspendedTcs = new();
     private readonly IMessageClearer? _messageClearer;
+    private readonly TimeSpan _maxWait;
+    private int _epoch;
 
     public StoredId Id { get; }
     public int Subflows { get; private set; }
@@ -53,6 +60,7 @@ public class FlowExecutionState
         int waitingSubflows,
         FlowTimeouts timeouts,
         Task completed,
+        TimeSpan maxWait = default,
         IMessageClearer? messageClearer = null)
     {
         Id = id;
@@ -60,33 +68,45 @@ public class FlowExecutionState
         WaitingSubflows = waitingSubflows;
         Timeouts = timeouts;
         SuspendedTask = _suspendedTcs.Task;
+        _maxWait = maxWait;
         _messageClearer = messageClearer;
 
         _ = completed.ContinueWith(_ => Status = FlowStatus.Completed);
     }
 
-    public bool Waiting()
-    {
-        lock (_lock)
-            return Subflows == WaitingSubflows;
-    }
-
     public void SubflowStarted()
     {
         lock (_lock)
+        {
             Subflows++;
+            _epoch++;
+        }
     }
 
     public void SubflowCompleted()
     {
+        var epoch = -1;
         lock (_lock)
+        {
             Subflows--;
+            if (Subflows == WaitingSubflows && !Suspended)
+                epoch = _epoch;
+        }
+        if (epoch != -1)
+            ArmSuspensionTimer(epoch);
     }
 
     public void SubflowWaiting()
     {
+        var epoch = -1;
         lock (_lock)
+        {
             WaitingSubflows++;
+            if (Subflows == WaitingSubflows && !Suspended)
+                epoch = _epoch;
+        }
+        if (epoch != -1)
+            ArmSuspensionTimer(epoch);
     }
 
     public Task ResumeSubflow()
@@ -95,9 +115,54 @@ public class FlowExecutionState
             if (Suspended)
                 return ForeverTask.Instance;
             else
+            {
                 WaitingSubflows--;
+                _epoch++;
+            }
 
         return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Waits until the provided expiry - or parks forever if the flow suspends first. The timeout is registered
+    /// so it becomes the postpone-until target should the flow suspend while waiting.
+    /// </summary>
+    public async Task WaitUntil(EffectId timeoutId, DateTime expiry, UtcNow utcNow)
+    {
+        Timeouts.AddTimeout(timeoutId, expiry);
+        SubflowWaiting();
+
+        while (!SuspendedTask.IsCompleted)
+        {
+            var delay = expiry - utcNow();
+            if (delay <= TimeSpan.Zero)
+                break;
+            await Task.WhenAny(Task.Delay(delay < MaxDelayStep ? delay : MaxDelayStep), SuspendedTask);
+        }
+
+        await ResumeSubflow(); //parks forever when the flow suspended while waiting
+
+        Timeouts.RemoveTimeout(timeoutId);
+    }
+
+    /// <summary>
+    /// Runs the provided resolution (waking a waiting subflow with its result) atomically with respect to the
+    /// suspension decision: once the flow has decided to suspend nothing may be resumed, so the resolution is
+    /// rejected - and a resolution that runs invalidates any armed suspension attempt, since the resolved
+    /// subflow is about to resume.
+    /// </summary>
+    public bool TryResolve(Action resolution)
+    {
+        lock (_lock)
+        {
+            if (Suspended)
+                return false;
+
+            _epoch++;
+            resolution();
+        }
+
+        return true;
     }
 
     public Task Push(IReadOnlyList<StoredMessage> messages)
@@ -116,15 +181,22 @@ public class FlowExecutionState
         return queueManager.Push(messages);
     }
 
-    public bool Suspend()
+    // Fires once the flow has been fully waiting (all subflows waiting) for the configured max-wait duration.
+    // The epoch guards against stale timers: any resumed or started subflow bumps it, invalidating the attempt.
+    private void ArmSuspensionTimer(int epoch)
+        => _ = Task.Delay(_maxWait).ContinueWith(_ => TrySuspend(epoch));
+
+    private void TrySuspend(int epoch)
     {
         lock (_lock)
-            if (Subflows == WaitingSubflows)
-                Suspended = true;
-            else
-                return false;
-        
+        {
+            if (_epoch != epoch || Subflows != WaitingSubflows || Suspended || _status == FlowStatus.Completed)
+                return;
+
+            Suspended = true;
+            _status = FlowStatus.Suspending;
+        }
+
         _suspendedTcs.TrySetResult();
-        return true;
     }
 }
