@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Watchdogs;
@@ -26,7 +25,6 @@ public class FlowExecutionState
 
     private readonly Lock _lock = new();
     private readonly TaskCompletionSource _suspendedTcs = new();
-    private readonly IMessageClearer? _messageClearer;
     private readonly TimeSpan _maxWait;
 
     public StoredId Id { get; }
@@ -62,8 +60,7 @@ public class FlowExecutionState
         int waitingSubflows,
         FlowTimeouts timeouts,
         Task completed,
-        TimeSpan maxWait = default,
-        IMessageClearer? messageClearer = null)
+        TimeSpan maxWait = default)
     {
         Id = id;
         Subflows = subflows;
@@ -71,7 +68,6 @@ public class FlowExecutionState
         Timeouts = timeouts;
         SuspendedTask = _suspendedTcs.Task;
         _maxWait = maxWait;
-        _messageClearer = messageClearer;
 
         Completed = completed.ContinueWith(_ => Status = FlowStatus.Completed);
     }
@@ -160,21 +156,11 @@ public class FlowExecutionState
     /// </summary>
     public async Task<bool> Push(IReadOnlyList<StoredMessage> messages)
     {
-        var queueManager = QueueManager;
         if (Suspended)
             return false;
 
-        if (queueManager == null)
-        {
-            // The push arrived before the queue manager was attached (the flow state is registered first during
-            // preparation), but the MessageWatchdog already marked the positions as pushed. Reopen them so they
-            // are re-fetched and delivered on a later poll instead of being stranded in the ignore-set - waiting
-            // for the just-started flow to complete would hold the messages hostage for its entire invocation.
-            _messageClearer?.ReopenPositions(messages.Select(m => m.Position));
-            return true;
-        }
-
-        await queueManager.Push(messages);
+        //never null: the flow only becomes reachable (FlowsManager.AddFlow) after the queue manager is attached
+        await QueueManager!.Push(messages);
         return true;
     }
 

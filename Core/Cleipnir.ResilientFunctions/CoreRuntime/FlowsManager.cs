@@ -40,9 +40,16 @@ public class FlowsManager
     internal void SetRestarter(IFlowRestarter restarter) => _restarter = restarter;
 
     public FlowExecutionState CreateFlowState(StoredId id, FlowTimeouts timeouts, Task completed, TimeSpan maxWait)
+        => new(id, subflows: 1, waitingSubflows: 0, timeouts, completed, maxWait);
+
+    /// <summary>
+    /// Registers the flow as live so pushes are routed to it. Called as the final preparation step - after the
+    /// queue manager has been attached - so a flow reachable through the dictionary always has one.
+    /// </summary>
+    public void AddFlow(FlowExecutionState flowExecutionState)
     {
         lock (_lock)
-            return _dict[id] = new FlowExecutionState(id, subflows: 1, waitingSubflows: 0, timeouts, completed, maxWait, _messageClearer);
+            _dict[flowExecutionState.Id] = flowExecutionState;
     }
 
     public void RemoveFlow(StoredId id, FlowExecutionState flowExecutionState)
