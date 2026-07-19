@@ -78,9 +78,13 @@ public class FlowsManager
                     else
                         tasks.Add(flowState.Push(storedMessages.Messages));
                 }
+                else if (flowState != null)
+                    // The flow has decided to suspend but its persistence and tear-down are still in flight -
+                    // wait for the invocation to complete, then restart it with the messages still in hand,
+                    // instead of bouncing them through a position-reopen and a later watchdog poll.
+                    tasks.Add(DeliverAfterSuspensionCompletes(flowState, storedMessages));
                 else
-                    // Not in the dictionary, or a suspended entry lingering there (a suspended flow's parked
-                    // invocation never reaches RemoveFlow by design) - restart the flow to deliver.
+                    // Not in the dictionary - restart the flow to deliver.
                     notLive.Add(storedMessages);
 
         if (emptyPositionsForLiveFlows.Count > 0)
@@ -90,6 +94,12 @@ public class FlowsManager
             tasks.Add(RestartExecutions(notLive));
 
         return Task.WhenAll(tasks);
+    }
+
+    private async Task DeliverAfterSuspensionCompletes(FlowExecutionState flowState, StoredMessages storedMessages)
+    {
+        await flowState.Completed;
+        await RestartExecutions([storedMessages]);
     }
 
     /// <summary>

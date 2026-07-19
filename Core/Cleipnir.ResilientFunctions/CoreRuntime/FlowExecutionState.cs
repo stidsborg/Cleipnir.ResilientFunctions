@@ -36,6 +36,9 @@ public class FlowExecutionState
     internal QueueManager? QueueManager { get; set; }
     public bool Suspended { get; private set; }
     public Task SuspendedTask { get; }
+    // Completes - never faults - when the invocation has ended for any outcome; for suspension that is after
+    // the Suspended/Postponed status has been persisted and the incarnation is restartable.
+    public Task Completed { get; }
 
     private FlowStatus _status = FlowStatus.Running;
     public FlowStatus Status
@@ -70,7 +73,7 @@ public class FlowExecutionState
         _maxWait = maxWait;
         _messageClearer = messageClearer;
 
-        _ = completed.ContinueWith(_ => Status = FlowStatus.Completed);
+        Completed = completed.ContinueWith(_ => Status = FlowStatus.Completed);
     }
 
     public void SubflowStarted()
