@@ -28,7 +28,11 @@ public class FlowExecutionState
     private readonly TaskCompletionSource _suspendedTcs = new();
     private readonly IMessageClearer? _messageClearer;
     private readonly TimeSpan _maxWait;
-    private int _epoch;
+    // Bumped by every resolution (TryResolve). A suspension timer only suspends when no resolution has run
+    // since the fully-waiting observation it was armed on: a resolution may have consumed a parked strand's
+    // wake-up trigger (e.g. a message-timeout capturing null and removing its timeout) before the strand
+    // resumes - suspending on that stale observation would strand the flow with nothing to ever restart it.
+    private int _resolutionCount;
 
     public StoredId Id { get; }
     public int Subflows { get; private set; }
@@ -77,36 +81,33 @@ public class FlowExecutionState
     public void SubflowStarted()
     {
         lock (_lock)
-        {
             Subflows++;
-            _epoch++;
-        }
     }
 
     public void SubflowCompleted()
     {
-        var epoch = -1;
+        var resolutions = -1;
         lock (_lock)
         {
             Subflows--;
             if (Subflows == WaitingSubflows && !Suspended)
-                epoch = _epoch;
+                resolutions = _resolutionCount;
         }
-        if (epoch != -1)
-            ArmSuspensionTimer(epoch);
+        if (resolutions != -1)
+            ArmSuspensionTimer(resolutions);
     }
 
     public void SubflowWaiting()
     {
-        var epoch = -1;
+        var resolutions = -1;
         lock (_lock)
         {
             WaitingSubflows++;
             if (Subflows == WaitingSubflows && !Suspended)
-                epoch = _epoch;
+                resolutions = _resolutionCount;
         }
-        if (epoch != -1)
-            ArmSuspensionTimer(epoch);
+        if (resolutions != -1)
+            ArmSuspensionTimer(resolutions);
     }
 
     public Task ResumeSubflow()
@@ -115,10 +116,7 @@ public class FlowExecutionState
             if (Suspended)
                 return ForeverTask.Instance;
             else
-            {
                 WaitingSubflows--;
-                _epoch++;
-            }
 
         return Task.CompletedTask;
     }
@@ -158,7 +156,7 @@ public class FlowExecutionState
             if (Suspended)
                 return false;
 
-            _epoch++;
+            _resolutionCount++;
             resolution();
         }
 
@@ -182,15 +180,15 @@ public class FlowExecutionState
     }
 
     // Fires once the flow has been fully waiting (all subflows waiting) for the configured max-wait duration.
-    // The epoch guards against stale timers: any resumed or started subflow bumps it, invalidating the attempt.
-    private void ArmSuspensionTimer(int epoch)
-        => _ = Task.Delay(_maxWait).ContinueWith(_ => TrySuspend(epoch));
+    // The resolution count is captured atomically with the fully-waiting observation the timer is armed on.
+    private void ArmSuspensionTimer(int resolutions)
+        => _ = Task.Delay(_maxWait).ContinueWith(_ => TrySuspend(resolutions));
 
-    private void TrySuspend(int epoch)
+    private void TrySuspend(int resolutions)
     {
         lock (_lock)
         {
-            if (_epoch != epoch || Subflows != WaitingSubflows || Suspended || _status == FlowStatus.Completed)
+            if (_resolutionCount != resolutions || Subflows != WaitingSubflows || Suspended || _status == FlowStatus.Completed)
                 return;
 
             Suspended = true;
