@@ -20,7 +20,7 @@ public class ParamlessRegistration : BaseRegistration
     public MessageWriters MessageWriters { get; }
     private readonly IFunctionStore _functionStore;
 
-    public ParamlessRegistration(
+    internal ParamlessRegistration(
         FlowType flowType,
         StoredType storedType,
         IFunctionStore functionStore,

@@ -18,7 +18,7 @@ public class FuncRegistration<TParam, TReturn> : BaseRegistration where TParam :
     private readonly ControlPanelFactory<TParam,TReturn> _controlPanelFactory;
     public MessageWriters MessageWriters { get; }
 
-    public FuncRegistration(
+    internal FuncRegistration(
         FlowType flowType,
         StoredType storedType,
         Invoker<TParam, TReturn> invoker,

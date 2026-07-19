@@ -115,7 +115,7 @@ public class FunctionsRegistry : IDisposable
     );
     
     // ** W. RESULT ** //
-    public FuncRegistration<TParam, TReturn> RegisterFunc<TParam, TReturn>(
+    internal FuncRegistration<TParam, TReturn> RegisterFunc<TParam, TReturn>(
         FlowType flowType,
         Func<TParam, Task<Result<TReturn>>> inner,
         LocalSettings? settings = null
@@ -154,7 +154,7 @@ public class FunctionsRegistry : IDisposable
         );
     
     // ** W. RESULT ** //
-    public ActionRegistration<TParam> RegisterAction<TParam>(
+    internal ActionRegistration<TParam> RegisterAction<TParam>(
         FlowType flowType,
         Func<TParam, Task<Result<Unit>>> inner,
         LocalSettings? settings = null
@@ -169,8 +169,8 @@ public class FunctionsRegistry : IDisposable
 
     #region Paramless overloads
 
-    // ** PARAMLESS ** //   
-    public ParamlessRegistration RegisterParamless(
+    // ** PARAMLESS ** //
+    internal ParamlessRegistration RegisterParamless(
         FlowType flowType,
         Func<Task<Result<Unit>>> inner,
         LocalSettings? settings = null
@@ -180,7 +180,7 @@ public class FunctionsRegistry : IDisposable
         settings
     );
         
-    public ParamlessRegistration RegisterParamless(
+    internal ParamlessRegistration RegisterParamless(
         FlowType flowType,
         Func<Workflow, Task<Result<Unit>>> inner,
         LocalSettings? settings = null
@@ -212,8 +212,8 @@ public class FunctionsRegistry : IDisposable
 
     #endregion
     
-    // ** ASYNC W. RESULT AND WORKFLOW ** //   
-    public FuncRegistration<TParam, TReturn> RegisterFunc<TParam, TReturn>(
+    // ** ASYNC W. RESULT AND WORKFLOW ** //
+    internal FuncRegistration<TParam, TReturn> RegisterFunc<TParam, TReturn>(
         FlowType flowType,
         Func<TParam, Workflow, Task<Result<TReturn>>> inner,
         LocalSettings? settings = null
@@ -385,7 +385,7 @@ public class FunctionsRegistry : IDisposable
         }
     }
     
-    public ActionRegistration<TParam> RegisterAction<TParam>(
+    internal ActionRegistration<TParam> RegisterAction<TParam>(
         FlowType flowType,
         Func<TParam, Workflow, Task<Result<Unit>>> inner,
         LocalSettings? settings = null

@@ -11,7 +11,7 @@ using Cleipnir.ResilientFunctions.Storage.Session;
 
 namespace Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 
-public class Invoker<TParam, TReturn> : IFlowRestarter
+internal class Invoker<TParam, TReturn> : IFlowRestarter
 {
     private readonly FlowType _flowType;
     private readonly StoredType _storedType;

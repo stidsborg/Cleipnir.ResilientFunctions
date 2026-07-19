@@ -19,7 +19,7 @@ public class ActionRegistration<TParam> : BaseRegistration where TParam : notnul
 
     public MessageWriters MessageWriters { get; }
 
-    public ActionRegistration(
+    internal ActionRegistration(
         FlowType flowType,
         StoredType storedType,
         Invoker<TParam, Unit> invoker,
