@@ -40,9 +40,16 @@ public class FlowsManager
     internal void SetRestarter(IFlowRestarter restarter) => _restarter = restarter;
 
     public FlowExecutionState CreateFlowState(StoredId id, FlowTimeouts timeouts, Task completed, TimeSpan maxWait)
+        => new(id, subflows: 1, waitingSubflows: 0, timeouts, completed, maxWait);
+
+    /// <summary>
+    /// Registers the flow as live so pushes are routed to it. Called as the final preparation step - after the
+    /// queue manager has been attached - so a flow reachable through the dictionary always has one.
+    /// </summary>
+    public void AddFlow(FlowExecutionState flowExecutionState)
     {
         lock (_lock)
-            return _dict[id] = new FlowExecutionState(id, subflows: 1, waitingSubflows: 0, timeouts, completed, maxWait, _messageClearer);
+            _dict[flowExecutionState.Id] = flowExecutionState;
     }
 
     public void RemoveFlow(StoredId id, FlowExecutionState flowExecutionState)
@@ -59,28 +66,27 @@ public class FlowsManager
         List<long> emptyPositionsForLiveFlows = new();
         lock (_lock)
             foreach (var storedMessages in messagesByFlow)
-                if (_dict.TryGetValue(storedMessages.StoredId, out var flowState) && !flowState.Suspended)
+                if (_dict.TryGetValue(storedMessages.StoredId, out var flowState))
                 {
                     // Empty messages exist only to force a restart and carry nothing to deliver. The flow is live,
                     // so no restart is needed now - but the message may not be deleted either: the flow could be
                     // suspending concurrently, and the append's restart guarantee must survive that race. Reopen
                     // the positions instead, so the empty message is re-fetched and only consumed by an actual
                     // restart once the flow leaves the live set.
-                    if (storedMessages.Messages.Any(message => message.IsEmpty))
+                    if (!flowState.Suspended && storedMessages.Messages.Any(message => message.IsEmpty))
                     {
                         emptyPositionsForLiveFlows.AddRange(
                             storedMessages.Messages.Where(message => message.IsEmpty).Select(message => message.Position)
                         );
                         var deliverable = storedMessages.Messages.Where(message => !message.IsEmpty).ToList();
                         if (deliverable.Count > 0)
-                            tasks.Add(flowState.Push(deliverable));
+                            tasks.Add(DeliverToFlow(flowState, storedMessages with { Messages = deliverable }));
                     }
                     else
-                        tasks.Add(flowState.Push(storedMessages.Messages));
+                        tasks.Add(DeliverToFlow(flowState, storedMessages));
                 }
                 else
-                    // Not in the dictionary, or a suspended entry lingering there (a suspended flow's parked
-                    // invocation never reaches RemoveFlow by design) - restart the flow to deliver.
+                    // Not in the dictionary - restart the flow to deliver.
                     notLive.Add(storedMessages);
 
         if (emptyPositionsForLiveFlows.Count > 0)
@@ -90,6 +96,19 @@ public class FlowsManager
             tasks.Add(RestartExecutions(notLive));
 
         return Task.WhenAll(tasks);
+    }
+
+    // Delivers to the live flow - unless it has decided to suspend (whether observed upfront or lost as a race
+    // during delivery), in which case the delivery waits for the invocation to complete (the suspension status
+    // is persisted by then) and restarts the flow with the messages still in hand, instead of bouncing them
+    // through a position-reopen and a later watchdog poll.
+    private async Task DeliverToFlow(FlowExecutionState flowState, StoredMessages storedMessages)
+    {
+        if (await flowState.Push(storedMessages.Messages))
+            return;
+
+        await flowState.Completed;
+        await RestartExecutions([storedMessages]);
     }
 
     /// <summary>

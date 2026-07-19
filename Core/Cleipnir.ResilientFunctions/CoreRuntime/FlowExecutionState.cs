@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Watchdogs;
@@ -26,7 +25,6 @@ public class FlowExecutionState
 
     private readonly Lock _lock = new();
     private readonly TaskCompletionSource _suspendedTcs = new();
-    private readonly IMessageClearer? _messageClearer;
     private readonly TimeSpan _maxWait;
 
     public StoredId Id { get; }
@@ -36,6 +34,9 @@ public class FlowExecutionState
     internal QueueManager? QueueManager { get; set; }
     public bool Suspended { get; private set; }
     public Task SuspendedTask { get; }
+    // Completes - never faults - when the invocation has ended for any outcome; for suspension that is after
+    // the Suspended/Postponed status has been persisted and the incarnation is restartable.
+    public Task Completed { get; }
 
     private FlowStatus _status = FlowStatus.Running;
     public FlowStatus Status
@@ -59,8 +60,7 @@ public class FlowExecutionState
         int waitingSubflows,
         FlowTimeouts timeouts,
         Task completed,
-        TimeSpan maxWait = default,
-        IMessageClearer? messageClearer = null)
+        TimeSpan maxWait = default)
     {
         Id = id;
         Subflows = subflows;
@@ -68,9 +68,8 @@ public class FlowExecutionState
         Timeouts = timeouts;
         SuspendedTask = _suspendedTcs.Task;
         _maxWait = maxWait;
-        _messageClearer = messageClearer;
 
-        _ = completed.ContinueWith(_ => Status = FlowStatus.Completed);
+        Completed = completed.ContinueWith(_ => Status = FlowStatus.Completed);
     }
 
     public void SubflowStarted()
@@ -151,20 +150,18 @@ public class FlowExecutionState
         return true;
     }
 
-    public Task Push(IReadOnlyList<StoredMessage> messages)
+    /// <summary>
+    /// Routes the pushed messages to the attached queue manager. Returns false when the flow has decided to
+    /// suspend - the caller awaits <see cref="Completed"/> and restarts the flow with the messages in hand.
+    /// </summary>
+    public async Task<bool> Push(IReadOnlyList<StoredMessage> messages)
     {
-        var queueManager = QueueManager;
-        if (Suspended || queueManager == null)
-        {
-            // The push cannot be delivered (the flow lost the suspend race, or its queue manager is not attached
-            // yet), but the MessageWatchdog already marked the positions as pushed. Reopen them so they are
-            // re-fetched and delivered later instead of being stranded in the ignore-set - which would make a
-            // later-positioned duplicate consume the idempotency key first.
-            _messageClearer?.ReopenPositions(messages.Select(m => m.Position));
-            return Task.CompletedTask;
-        }
+        if (Suspended)
+            return false;
 
-        return queueManager.Push(messages);
+        //never null: the flow only becomes reachable (FlowsManager.AddFlow) after the queue manager is attached
+        await QueueManager!.Push(messages);
+        return true;
     }
 
     // Fires once the flow has been fully waiting (all subflows waiting) for the configured max-wait duration.

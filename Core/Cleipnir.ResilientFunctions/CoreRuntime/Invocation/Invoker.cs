@@ -191,7 +191,6 @@ public class Invoker<TParam, TReturn> : IFlowRestarter
     {
         var disposables = new List<IDisposable>(capacity: 3);
         var success = false;
-        FlowExecutionState? flowState = null;
         try
         {
             var (persisted, runningFunction, storageSession) =
@@ -221,7 +220,7 @@ public class Invoker<TParam, TReturn> : IFlowRestarter
                 );
 
             var flowTimeouts = new FlowTimeouts();
-            flowState = _flowsManager.CreateFlowState(storedId, flowTimeouts, completed, _invocationHelper.MessagesDefaultMaxWaitForCompletion);
+            var flowState = _flowsManager.CreateFlowState(storedId, flowTimeouts, completed, _invocationHelper.MessagesDefaultMaxWaitForCompletion);
 
             var effect = _invocationHelper.CreateEffect(
                 storedId,
@@ -236,6 +235,10 @@ public class Invoker<TParam, TReturn> : IFlowRestarter
             disposables.Add(queueManager);
             var messageWriter = _invocationHelper.CreateMessageWriter(storedId);
             var workflow = new Workflow(flowId, storedId, effect, queueManager, _invocationHelper.UtcNow, messageWriter);
+
+            // Registered last: a flow reachable through the FlowsManager always has its queue manager attached,
+            // and a failed preparation leaves nothing behind.
+            _flowsManager.AddFlow(flowState);
 
             return new PreparedInvocation(
                 persisted,
@@ -253,14 +256,7 @@ public class Invoker<TParam, TReturn> : IFlowRestarter
         }
         finally
         {
-            if (!success)
-            {
-                Disposable.Combine(disposables).Dispose();
-                // A failed preparation must not leave the just-registered flow state behind: it would keep
-                // routing pushes to a dead queue manager instead of the restart path.
-                if (flowState != null)
-                    _flowsManager.RemoveFlow(storedId, flowState);
-            }
+            if (!success) Disposable.Combine(disposables).Dispose();
         }
     }
     private record PreparedInvocation(bool Persisted, Workflow Workflow, IDisposable Disposables, QueueManager QueueManager, FlowExecutionState FlowExecutionState, FlowTimeouts FlowTimeouts, IStorageSession? StorageSession = null);
@@ -268,7 +264,6 @@ public class Invoker<TParam, TReturn> : IFlowRestarter
     private async Task<PreparedReInvocation> PrepareForReInvocation(StoredId storedId, RestartedFunction restartedFunction, Task completed)
     {
         var disposables = new List<IDisposable>(capacity: 3);
-        FlowExecutionState? flowState = null;
         try
         {
             var (flowId, param, effects, storedMessages, runningFunction, parent, storageSession) =
@@ -278,7 +273,7 @@ public class Invoker<TParam, TReturn> : IFlowRestarter
             disposables.Add(isWorkflowRunningDisposable);
             
             var flowTimeouts = new FlowTimeouts();
-            flowState = _flowsManager.CreateFlowState(storedId, flowTimeouts, completed, _invocationHelper.MessagesDefaultMaxWaitForCompletion);
+            var flowState = _flowsManager.CreateFlowState(storedId, flowTimeouts, completed, _invocationHelper.MessagesDefaultMaxWaitForCompletion);
 
             var effect = _invocationHelper.CreateEffect(storedId, flowId, effects, flowTimeouts, storageSession, flowState);
 
@@ -301,6 +296,10 @@ public class Invoker<TParam, TReturn> : IFlowRestarter
                 messageWriter
             );
 
+            // Registered last: a flow reachable through the FlowsManager always has its queue manager attached,
+            // and a failed preparation leaves nothing behind.
+            _flowsManager.AddFlow(flowState);
+
             return new PreparedReInvocation(
                 _inner,
                 param!, //todo implement param null case
@@ -317,10 +316,6 @@ public class Invoker<TParam, TReturn> : IFlowRestarter
         catch(Exception)
         {
             Disposable.Combine(disposables).Dispose();
-            // A failed preparation must not leave the just-registered flow state behind: it would keep
-            // routing pushes to a dead queue manager instead of the restart path.
-            if (flowState != null)
-                _flowsManager.RemoveFlow(storedId, flowState);
             throw;
         }
     }
