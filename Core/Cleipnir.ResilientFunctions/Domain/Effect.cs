@@ -37,6 +37,7 @@ public class Effect
 
     internal IEnumerable<EffectId> EffectIds => effectResults.EffectIds;
     internal FlowTimeouts FlowTimeouts => flowTimeouts;
+    internal FlowExecutionState FlowExecutionState => _flowExecutionState;
 
     internal WorkStatus? GetStatus(int id)
     {

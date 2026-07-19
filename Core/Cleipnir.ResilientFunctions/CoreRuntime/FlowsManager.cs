@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -38,10 +39,10 @@ public class FlowsManager
     /// </summary>
     internal void SetRestarter(IFlowRestarter restarter) => _restarter = restarter;
 
-    public FlowExecutionState CreateFlowState(StoredId id, FlowTimeouts timeouts, Task completed)
+    public FlowExecutionState CreateFlowState(StoredId id, FlowTimeouts timeouts, Task completed, TimeSpan maxWait)
     {
         lock (_lock)
-            return _dict[id] = new FlowExecutionState(id, subflows: 1, waitingSubflows: 0, timeouts, completed, _messageClearer);
+            return _dict[id] = new FlowExecutionState(id, subflows: 1, waitingSubflows: 0, timeouts, completed, maxWait, _messageClearer);
     }
 
     public void RemoveFlow(StoredId id, FlowExecutionState flowExecutionState)

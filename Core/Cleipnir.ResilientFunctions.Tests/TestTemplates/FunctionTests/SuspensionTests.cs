@@ -5,7 +5,6 @@ using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
-using Cleipnir.ResilientFunctions.Domain.Exceptions.Commands;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Tests.Utils;
@@ -32,7 +31,7 @@ public abstract class SuspensionTests
 
         var rAction = functionsRegistry.RegisterAction(
             flowType,
-            Task<Result<Unit>> (string _) => throw new SuspendInvocationException()
+            Task<Result<Unit>> (string _) => Suspend.Invocation.ToResult<Unit>().ToTask()
         );
 
         await Should.ThrowAsync<InvocationSuspendedException>(

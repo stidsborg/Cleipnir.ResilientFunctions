@@ -4,7 +4,6 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Serialization;
-using Cleipnir.ResilientFunctions.Domain.Exceptions.Commands;
 using Cleipnir.ResilientFunctions.Queuing;
 using Cleipnir.ResilientFunctions.Storage;
 using Cleipnir.ResilientFunctions.Storage.Session;
@@ -280,10 +279,6 @@ internal class EffectResults
         {
             await work();
         }
-        catch (SuspendInvocationException)
-        {
-            throw;
-        }
         catch (FatalWorkflowException exception)
         {
             var storedException = exception.ToStoredException();
@@ -358,10 +353,6 @@ internal class EffectResults
         try
         {
             result = await work();
-        }
-        catch (SuspendInvocationException)
-        {
-            throw;
         }
         catch (FatalWorkflowException exception)
         {

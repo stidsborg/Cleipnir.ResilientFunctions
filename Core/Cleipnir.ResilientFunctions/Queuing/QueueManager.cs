@@ -7,7 +7,6 @@ using Cleipnir.ResilientFunctions.CoreRuntime;
 using Cleipnir.ResilientFunctions.CoreRuntime.Serialization;
 using Cleipnir.ResilientFunctions.CoreRuntime.Watchdogs;
 using Cleipnir.ResilientFunctions.Domain;
-using Cleipnir.ResilientFunctions.Domain.Exceptions.Commands;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Storage;
@@ -37,8 +36,10 @@ internal class QueueManager : IDisposable
     private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
     private readonly FlowTimeouts _timeouts;
     private readonly UtcNow _utcNow;
-    private readonly SettingsWithDefaults _settings;
     private readonly IMessageClearer _messageClearer;
+
+    // Task.Delay's upper bound - longer waits sleep in steps and re-check.
+    private static readonly TimeSpan MaxDelayStep = TimeSpan.FromMilliseconds(int.MaxValue);
     private readonly IdempotencyKeys _idempotencyKeys;
 
     private readonly SemaphoreSlim _initializeSemaphore = new(1);
@@ -68,7 +69,6 @@ internal class QueueManager : IDisposable
         UnhandledExceptionHandler unhandledExceptionHandler,
         FlowTimeouts timeouts,
         UtcNow utcNow,
-        SettingsWithDefaults settings,
         IMessageClearer messageClearer,
         int maxIdempotencyKeyCount = 100,
         TimeSpan? maxIdempotencyKeyTtl = null)
@@ -81,7 +81,6 @@ internal class QueueManager : IDisposable
         _unhandledExceptionHandler = unhandledExceptionHandler;
         _timeouts = timeouts;
         _utcNow = utcNow;
-        _settings = settings;
         _messageClearer = messageClearer;
         _idempotencyKeys = new IdempotencyKeys(IdempotencyKeysRoot, _effect, maxIdempotencyKeyCount, maxIdempotencyKeyTtl, utcNow);
 
@@ -275,15 +274,26 @@ internal class QueueManager : IDisposable
         if (subscription.Tcs.Task.IsCompleted)
             return (await subscription.Tcs.Task)?.Envelope;
 
-        if (timeout != null)
-            _timeouts.AddTimeout(messageId, timeout.Value);
+        if (timeout != null && _utcNow() >= timeout.Value)
+        {
+            // The user-timeout has already expired (e.g. replay after a suspension) - resolve with no message
+            // immediately instead of waiting.
+            bool removed;
+            lock (_lock)
+                removed = _subscriptions.Remove(subscription);
+            if (!removed) //a delivery won the race
+                return (await subscription.Tcs.Task)?.Envelope;
 
-        var now = _utcNow();
-        var maxWaitAt = now + _settings.MessagesDefaultMaxWaitForCompletion;
+            _effect.FlushlessUpserts(subscription.CaptureMessage(null));
+            return null;
+        }
+
         var delayCts = new CancellationTokenSource();
-        var fireAt = timeout.HasValue && timeout.Value < maxWaitAt ? timeout.Value : maxWaitAt;
-        _ = Task.Delay((fireAt - now).RoundUpToZero(), delayCts.Token)
-            .ContinueWith(_ => ExpireSubscription(subscription, timeout, messageId), TaskContinuationOptions.OnlyOnRanToCompletion);
+        if (timeout != null)
+        {
+            _timeouts.AddTimeout(messageId, timeout.Value);
+            ArmSubscriptionTimeout(subscription, timeout.Value, delayCts.Token);
+        }
 
         _flowExecutionState.SubflowWaiting();
         try
@@ -294,6 +304,11 @@ internal class QueueManager : IDisposable
         finally
         {
             await _flowExecutionState.ResumeSubflow();
+
+            // Only removed after passing the resume gate: a suspension overtaking the wake-up must still find
+            // the timeout registered, so it postpones to it instead of suspending without a wake-up trigger.
+            if (timeout != null)
+                _timeouts.RemoveTimeout(messageId);
 
             await delayCts.CancelAsync();
             delayCts.Dispose();
@@ -395,22 +410,36 @@ internal class QueueManager : IDisposable
         }
     }
 
-    private void ExpireSubscription(Subscription subscription, DateTime? timeout, EffectId id)
+    // Task.Delay is bounded, so a distant user-timeout sleeps in steps - ExpireSubscription re-arms until due.
+    private void ArmSubscriptionTimeout(Subscription subscription, DateTime timeout, CancellationToken cancellationToken)
     {
+        var delay = timeout - _utcNow();
+        if (delay > MaxDelayStep)
+            delay = MaxDelayStep;
+        _ = Task.Delay(delay.RoundUpToZero(), cancellationToken)
+            .ContinueWith(_ => ExpireSubscription(subscription, timeout, cancellationToken), TaskContinuationOptions.OnlyOnRanToCompletion);
+    }
+
+    private void ExpireSubscription(Subscription subscription, DateTime timeout, CancellationToken cancellationToken)
+    {
+        if (_utcNow() < timeout)
+        {
+            ArmSubscriptionTimeout(subscription, timeout, cancellationToken); //bounded sleep-step elapsed before the timeout was due
+            return;
+        }
+
         lock (_lock)
             if (!_subscriptions.Remove(subscription)) //has the subscription been resolved
                 return;
 
-        if (timeout.HasValue && _utcNow() >= timeout.Value)
+        // Sealed against the suspension decision: a flow that has decided to suspend must not have its waiter
+        // woken - the parked subflow is abandoned and its still-registered timeout becomes the postpone-until
+        // target (the woken subflow removes the timeout itself, after passing the resume gate).
+        _flowExecutionState.TryResolve(() =>
         {
             _effect.FlushlessUpserts(subscription.CaptureMessage(null));
-            _timeouts.RemoveTimeout(id);
             subscription.Tcs.TrySetResult(null);
-        }
-        else
-        {
-            subscription.Tcs.TrySetException(new SuspendInvocationException());
-        }
+        });
     }
 
     public async Task AfterFlush()
@@ -453,24 +482,32 @@ internal class QueueManager : IDisposable
                 for (var matchIndex = 0; matchIndex < _toDeliver.Count; matchIndex++)
                     if (subscription.Predicate(_toDeliver[matchIndex].Envelope))
                     {
-                        var msg = _toDeliver[matchIndex];
-                        _toDeliver.RemoveAt(matchIndex);
-                        // Synthetic (negative) positions stay out of the durable delivered-positions list - see
-                        // the equivalent guard in ProcessMessages; the child prune below is their durable record.
-                        if (msg.Position >= 0)
-                            _deliveredPositions.Add(msg.Position);
-                        _subscriptions.RemoveAt(subscriptionIndex);
+                        var index = matchIndex;
+                        // Sealed against the suspension decision: a suspended flow must not consume the message -
+                        // it stays staged and is reopened at dispose so a restarted incarnation delivers it.
+                        var delivered = _flowExecutionState.TryResolve(() =>
+                        {
+                            var msg = _toDeliver[index];
+                            _toDeliver.RemoveAt(index);
+                            // Synthetic (negative) positions stay out of the durable delivered-positions list - see
+                            // the equivalent guard in ProcessMessages; the child prune below is their durable record.
+                            if (msg.Position >= 0)
+                                _deliveredPositions.Add(msg.Position);
+                            _subscriptions.RemoveAt(subscriptionIndex);
 
-                        _effect.FlushlessUpserts(
-                            subscription.CaptureMessage(msg)
-                                .Append(EffectResult.Create(DeliveredPositionsId, _deliveredPositions.ToList()))
-                        );
-                        // Same pending-change batch as the capture above - the prune, the captured message and
-                        // the delivered position land in one atomic effect write at the next flush.
-                        PruneDeliveredPendingMessage(msg.Position);
+                            _effect.FlushlessUpserts(
+                                subscription.CaptureMessage(msg)
+                                    .Append(EffectResult.Create(DeliveredPositionsId, _deliveredPositions.ToList()))
+                            );
+                            // Same pending-change batch as the capture above - the prune, the captured message and
+                            // the delivered position land in one atomic effect write at the next flush.
+                            PruneDeliveredPendingMessage(msg.Position);
 
-                        _timeouts.RemoveTimeout(subscription.EffectId);
-                        subscription.Tcs.TrySetResult(msg);
+                            subscription.Tcs.TrySetResult(msg);
+                        });
+                        if (!delivered)
+                            return;
+
                         DeliverMessages();
                         return;
                     }

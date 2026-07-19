@@ -60,7 +60,6 @@ public class Invoker<TParam, TReturn> : IFlowRestarter
 
         CurrentFlow._workflow.Value = workflow;
 
-        _ = flowState.SuspendedTask.ContinueWith(_ => tcs.TrySetException(new InvocationSuspendedException(flowId)));
         _ = Task.Run(async () =>
         {
             EffectContext.Reset();
@@ -157,7 +156,6 @@ public class Invoker<TParam, TReturn> : IFlowRestarter
         var (inner, param, humanInstanceId, workflow, disposables, queueManager, flowState, timeouts, parent, storageSession) = await PrepareForReInvocation(storedId, rf, tcs.Task);
         var flowId = new FlowId(_flowType, humanInstanceId);
 
-        _ = flowState.SuspendedTask.ContinueWith(_ => tcs.TrySetException(new InvocationSuspendedException(flowId)));
         _ = Task.Run(async () =>
         {
             EffectContext.Reset();
@@ -193,6 +191,7 @@ public class Invoker<TParam, TReturn> : IFlowRestarter
     {
         var disposables = new List<IDisposable>(capacity: 3);
         var success = false;
+        FlowExecutionState? flowState = null;
         try
         {
             var (persisted, runningFunction, storageSession) =
@@ -222,7 +221,7 @@ public class Invoker<TParam, TReturn> : IFlowRestarter
                 );
 
             var flowTimeouts = new FlowTimeouts();
-            var flowState = _flowsManager.CreateFlowState(storedId, flowTimeouts, completed);
+            flowState = _flowsManager.CreateFlowState(storedId, flowTimeouts, completed, _invocationHelper.MessagesDefaultMaxWaitForCompletion);
 
             var effect = _invocationHelper.CreateEffect(
                 storedId,
@@ -254,7 +253,14 @@ public class Invoker<TParam, TReturn> : IFlowRestarter
         }
         finally
         {
-            if (!success) Disposable.Combine(disposables).Dispose();
+            if (!success)
+            {
+                Disposable.Combine(disposables).Dispose();
+                // A failed preparation must not leave the just-registered flow state behind: it would keep
+                // routing pushes to a dead queue manager instead of the restart path.
+                if (flowState != null)
+                    _flowsManager.RemoveFlow(storedId, flowState);
+            }
         }
     }
     private record PreparedInvocation(bool Persisted, Workflow Workflow, IDisposable Disposables, QueueManager QueueManager, FlowExecutionState FlowExecutionState, FlowTimeouts FlowTimeouts, IStorageSession? StorageSession = null);
@@ -262,16 +268,17 @@ public class Invoker<TParam, TReturn> : IFlowRestarter
     private async Task<PreparedReInvocation> PrepareForReInvocation(StoredId storedId, RestartedFunction restartedFunction, Task completed)
     {
         var disposables = new List<IDisposable>(capacity: 3);
+        FlowExecutionState? flowState = null;
         try
         {
-            var (flowId, param, effects, storedMessages, runningFunction, parent, storageSession) = 
+            var (flowId, param, effects, storedMessages, runningFunction, parent, storageSession) =
                 await _invocationHelper.PrepareForReInvocation(storedId, restartedFunction);
             disposables.Add(runningFunction);
             var isWorkflowRunningDisposable = new PropertyDisposable();
             disposables.Add(isWorkflowRunningDisposable);
             
             var flowTimeouts = new FlowTimeouts();
-            var flowState = _flowsManager.CreateFlowState(storedId, flowTimeouts, completed);
+            flowState = _flowsManager.CreateFlowState(storedId, flowTimeouts, completed, _invocationHelper.MessagesDefaultMaxWaitForCompletion);
 
             var effect = _invocationHelper.CreateEffect(storedId, flowId, effects, flowTimeouts, storageSession, flowState);
 
@@ -310,6 +317,10 @@ public class Invoker<TParam, TReturn> : IFlowRestarter
         catch(Exception)
         {
             Disposable.Combine(disposables).Dispose();
+            // A failed preparation must not leave the just-registered flow state behind: it would keep
+            // routing pushes to a dead queue manager instead of the restart path.
+            if (flowState != null)
+                _flowsManager.RemoveFlow(storedId, flowState);
             throw;
         }
     }
