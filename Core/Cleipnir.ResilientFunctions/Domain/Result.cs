@@ -3,13 +3,13 @@ using Cleipnir.ResilientFunctions.Helpers;
 
 namespace Cleipnir.ResilientFunctions.Domain;
 
-public static class Succeed
+internal static class Succeed
 {
     public static Result<T> WithValue<T>(T value) => new Result<T>(value);
     public static Result<Unit> WithUnit { get; } = new Result<Unit>(Unit.Instance);
 }
 
-public class Fail
+internal class Fail
 {
     public FatalWorkflowException Exception { get; } 
     
@@ -30,7 +30,7 @@ public class Fail
     public Result<T> ToResult<T>() => new(Exception);
 }
 
-public class Postpone
+internal class Postpone
 {
     public DateTime DateTime { get; }
 
@@ -42,14 +42,14 @@ public class Postpone
     public static Postpone Until(DateTime dateTime) => new(dateTime.ToUniversalTime());
 }
 
-public class Suspend
+internal class Suspend
 {
     public static Suspend Invocation { get; } = new();
     
     public Result<T> ToResult<T>() => new Result<T>(this);
 }
 
-public class Result<T>
+internal class Result<T>
 {
     public Outcome Outcome { get; }
     public bool Succeed { get; }
@@ -87,7 +87,7 @@ public class Result<T>
     public static implicit operator Result<T>(Suspend suspend) => new Result<T>(suspend);
 }
 
-public enum Outcome
+internal enum Outcome
 {
     Succeed = 1,
     Postpone = 2,
