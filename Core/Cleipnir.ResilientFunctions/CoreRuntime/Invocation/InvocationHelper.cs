@@ -505,22 +505,35 @@ internal class InvocationHelper<TParam, TReturn>
     /// supplied in is the order they arrive in.
     /// </summary>
     public IReadOnlyList<StoredEffect> MapInitialMessagesToEffects(IEnumerable<MessageAndIdempotencyKey> initialMessages)
-        => initialMessages
-            .Select((m, index) =>
-            {
-                var content = Serializer.Serialize(m.Message, m.Message.GetType());
-                var type = Serializer.SerializeType(m.Message.GetType());
-                var encodedMessage = PendingMessages.EncodeMessage(
-                    new ReceivedMessage(content, type, Position: null, IdempotencyKey: m.IdempotencyKey)
-                );
+    {
+        // A message staged from its own child is admitted on sight, so duplicate idempotency keys are resolved
+        // here rather than at delivery: the whole batch is in hand at creation, so the first message per key wins
+        // and the rest never become children at all. Messages without a key are always distinct.
+        var claimedIdempotencyKeys = new HashSet<string>();
+        var effects = new List<StoredEffect>();
 
-                return StoredEffect.CreateCompleted(
-                    QueueManager.ReceivedMessagesRoot.CreateChild(index),
+        foreach (var message in initialMessages)
+        {
+            if (message.IdempotencyKey is not null && !claimedIdempotencyKeys.Add(message.IdempotencyKey))
+                continue;
+
+            var content = Serializer.Serialize(message.Message, message.Message.GetType());
+            var type = Serializer.SerializeType(message.Message.GetType());
+            var encodedMessage = PendingMessages.EncodeMessage(
+                new ReceivedMessage(content, type, Position: null, IdempotencyKey: message.IdempotencyKey)
+            );
+
+            effects.Add(
+                StoredEffect.CreateCompleted(
+                    QueueManager.ReceivedMessagesRoot.CreateChild(effects.Count),
                     Serializer.Serialize(encodedMessage, typeof(byte[])),
                     alias: null
-                );
-            })
-            .ToList();
+                )
+            );
+        }
+
+        return effects;
+    }
 
     internal IReadOnlyList<StoredMessage> AddPositionsToMessages(IReadOnlyList<StoredMessage> messages)
     {
