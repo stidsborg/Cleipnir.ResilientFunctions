@@ -26,6 +26,10 @@ public class FlowExecutionState
     private readonly Lock _lock = new();
     private readonly TaskCompletionSource _suspendedTcs = new();
     private readonly TimeSpan _maxWait;
+    // Resolutions committed through TryResolve whose woken waiter has not yet acted on them. The waiter still
+    // counts as waiting until it passes the resume gate, so this is what blocks TrySuspend from suspending away
+    // an already-consumed wake-up (the message would be durably delivered while the flow never processes it).
+    private int _pendingWakeups;
 
     public StoredId Id { get; }
     public int Subflows { get; private set; }
@@ -135,7 +139,10 @@ public class FlowExecutionState
     /// <summary>
     /// Runs the provided resolution (waking a waiting subflow with its result) atomically with respect to the
     /// suspension decision: once the flow has decided to suspend nothing may be resumed, so the resolution is
-    /// rejected.
+    /// rejected. A committed resolution registers a pending wake-up, which blocks suspension until the woken
+    /// waiter has consumed it (<see cref="ResumeResolvedSubflow"/> / <see cref="WakeupConsumed"/>) - otherwise
+    /// the suspension timer could still observe the waiter as waiting and suspend away an already-delivered
+    /// message.
     /// </summary>
     public bool TryResolve(Action resolution)
     {
@@ -145,9 +152,34 @@ public class FlowExecutionState
                 return false;
 
             resolution();
+            _pendingWakeups++;
         }
 
         return true;
+    }
+
+    /// <summary>
+    /// Consumes a committed resolution's pending wake-up for a subflow that was never parked (it observed the
+    /// resolved result before declaring itself waiting).
+    /// </summary>
+    public void WakeupConsumed()
+    {
+        lock (_lock)
+            _pendingWakeups--;
+    }
+
+    /// <summary>
+    /// Resumes a subflow woken by a committed resolution: leaves the waiting state and consumes the pending
+    /// wake-up in one step. Unlike <see cref="ResumeSubflow"/> this never parks - the pending wake-up has
+    /// blocked suspension since the resolution committed, so the flow cannot have suspended in between.
+    /// </summary>
+    public void ResumeResolvedSubflow()
+    {
+        lock (_lock)
+        {
+            WaitingSubflows--;
+            _pendingWakeups--;
+        }
     }
 
     /// <summary>
@@ -165,8 +197,10 @@ public class FlowExecutionState
     }
 
     // Fires once the flow has been fully waiting (all subflows waiting) for the configured max-wait duration.
-    // Suspension is always safe whenever the flow is fully waiting: every waiting subflow's wake-up trigger
-    // (registered timeout or message) outlives the suspension decision, so the flow can always be restarted.
+    // Suspension is safe whenever the flow is fully waiting with no pending wake-ups: every still-waiting
+    // subflow's wake-up trigger (registered timeout or message) outlives the suspension decision, so the flow
+    // can always be restarted. A committed-but-unconsumed resolution has no surviving trigger - its message is
+    // already recorded as delivered - which is why TrySuspend refuses while one is pending.
     private void ArmSuspensionTimerIfFullyWaiting()
     {
         lock (_lock)
@@ -180,7 +214,7 @@ public class FlowExecutionState
     {
         lock (_lock)
         {
-            if (Subflows != WaitingSubflows || Suspended || _status == FlowStatus.Completed)
+            if (Subflows != WaitingSubflows || _pendingWakeups != 0 || Suspended || _status == FlowStatus.Completed)
                 return;
 
             Suspended = true;
