@@ -23,10 +23,10 @@ internal static class PendingMessages
     /// <summary>Reserved effect id (same -1 prefix as the QueueManager's other reserved ids).</summary>
     public static readonly EffectId EffectId = new([-1, 1]);
 
-    public static byte[] Encode(IReadOnlyCollection<ReceivedMessage> messages)
+    public static byte[] Encode(IReadOnlyCollection<IncomingMessage> messages)
         => BinaryPacker.Pack(messages.Select(EncodeMessage).ToArray());
 
-    public static List<ReceivedMessage> Decode(byte[] bytes)
+    public static List<IncomingMessage> Decode(byte[] bytes)
         => BinaryPacker
             .Split(bytes)
             .Select(messageBytes => DecodeMessage(messageBytes!))
@@ -34,7 +34,7 @@ internal static class PendingMessages
 
     // A message without a backing store row (e.g. appended via the control panel directly into the flow's effect
     // state) encodes a null position piece - it has no store identity to clear or dedup against.
-    public static byte[] EncodeMessage(ReceivedMessage message)
+    public static byte[] EncodeMessage(IncomingMessage message)
         => BinaryPacker.Pack(
             message.MessageContent,
             message.MessageType,
@@ -44,10 +44,10 @@ internal static class PendingMessages
             message.Receiver?.ToUtf8Bytes()
         );
 
-    public static ReceivedMessage DecodeMessage(byte[] bytes)
+    public static IncomingMessage DecodeMessage(byte[] bytes)
     {
         var parts = BinaryPacker.Split(bytes, expectedPieces: 6);
-        return new ReceivedMessage(
+        return new IncomingMessage(
             MessageContent: parts[0]!,
             MessageType: parts[1]!,
             Position: parts[2] == null ? null : BitConverter.ToInt64(parts[2]!),

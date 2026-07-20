@@ -70,7 +70,7 @@ internal class InvocationHelper<TParam, TReturn>
             var storedParameter = SerializeParameter(param);
             var utcNowTicks = UtcNow().Ticks;
 
-            // Initial messages are written into the flow's effect state as received-message children rather than as
+            // Initial messages are written into the flow's effect state as staged-message children rather than as
             // message-store rows: the QueueManager stages and delivers them at initialization exactly as it does for
             // control-panel appended messages. This keeps them out of the watchdog-visible message-store rows
             // entirely.
@@ -460,7 +460,7 @@ internal class InvocationHelper<TParam, TReturn>
     
     /// <summary>
     /// Maps a flow's initial state to the effects persisted at creation: the user-supplied initial effects plus one
-    /// received-message child per initial message (see <see cref="MapInitialMessagesToEffects"/>). Used both to
+    /// staged-message child per initial message (see <see cref="MapInitialMessagesToEffects"/>). Used both to
     /// persist the effects (CreateFunction) and to seed the invocation's in-memory effect state, so the two stay
     /// identical and the QueueManager finds the messages.
     /// </summary>
@@ -497,8 +497,8 @@ internal class InvocationHelper<TParam, TReturn>
         }).ToList();
 
     /// <summary>
-    /// Encodes the flow's initial messages as received-message children (under
-    /// <see cref="QueueManager.ReceivedMessagesRoot"/>) so they live in the flow's effect state instead of as
+    /// Encodes the flow's initial messages as staged-message children (under
+    /// <see cref="QueueManager.StagedMessagesRoot"/>) so they live in the flow's effect state instead of as
     /// message-store rows. They are written exactly as control-panel appended messages are: row-less, carrying no
     /// store position at all - there is no row for one to address. The QueueManager stages them from their children
     /// at initialization and delivers them ahead of any store-backed message in child order, so the order they were
@@ -520,12 +520,12 @@ internal class InvocationHelper<TParam, TReturn>
             var content = Serializer.Serialize(message.Message, message.Message.GetType());
             var type = Serializer.SerializeType(message.Message.GetType());
             var encodedMessage = PendingMessages.EncodeMessage(
-                new ReceivedMessage(content, type, Position: null, IdempotencyKey: message.IdempotencyKey)
+                new IncomingMessage(content, type, Position: null, IdempotencyKey: message.IdempotencyKey)
             );
 
             effects.Add(
                 StoredEffect.CreateCompleted(
-                    QueueManager.ReceivedMessagesRoot.CreateChild(effects.Count),
+                    QueueManager.StagedMessagesRoot.CreateChild(effects.Count),
                     Serializer.Serialize(encodedMessage, typeof(byte[])),
                     alias: null
                 )

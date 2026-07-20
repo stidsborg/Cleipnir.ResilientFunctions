@@ -22,11 +22,11 @@ internal class QueueManager : IDisposable
     // when editing a flow's message state from outside the flow.
     internal static readonly EffectId DeliveredPositionsId = new([ReservedIdPrefix, 0]);
     internal static readonly EffectId IdempotencyKeysRoot   = new([ReservedIdPrefix, -1]);
-    // Parent of the per-message received-message children (see _pendingMessageChildren). A dedicated id - not
+    // Parent of the per-message staged-message children (admitted-but-undelivered messages). A dedicated id - not
     // PendingMessages.EffectId - because FlushlessClear cascades to children, and the completed-flow blob lives
     // at (and is cleared via) PendingMessages.EffectId; keeping the carriers on separate ids stops the blob's
     // clear from deleting these children.
-    internal static readonly EffectId ReceivedMessagesRoot  = new([ReservedIdPrefix, 2]);
+    internal static readonly EffectId StagedMessagesRoot  = new([ReservedIdPrefix, 2]);
     // The value written whenever the delivered-positions entry is emptied. Shared rather than allocated per write:
     // the upsert serializes it eagerly and never retains the instance, and TryGet always hands back a freshly
     // deserialized list - so no caller can reach this one. Never add to it.
@@ -49,14 +49,14 @@ internal class QueueManager : IDisposable
     private readonly SemaphoreSlim _initializeSemaphore = new(1);
     private readonly SemaphoreSlim _fetchSemaphore = new(1);
     private readonly Lock _lock = new();
-    private readonly List<MessageData> _toDeliver = new();
+    private readonly List<StagedMessage> _toDeliver = new();
     private readonly List<Subscription> _subscriptions = new();
     private readonly HashSet<long> _fetchedPositions = new();
     private readonly HashSet<long> _deliveredPositions = new();
     // Messages inlined into the pending-messages effect while the flow was completed - staged at initialization
-    // and pruned from the durable entry as they are delivered (see PruneDeliveredPendingMessage). Kept in the
+    // and pruned from the durable entry as they are delivered (see PruneDeliveredMessage). Kept in the
     // entry's own (position-ascending) order, so a rewrite re-encodes the list as-is.
-    private readonly List<ReceivedMessage> _pendingInlinedMessages = new();
+    private readonly List<IncomingMessage> _pendingInlinedMessages = new();
     private volatile Exception? _thrownException;
     private bool _initialized;
     private volatile bool _disposed;
@@ -116,12 +116,12 @@ internal class QueueManager : IDisposable
                 _effect.FlushlessUpsert(DeliveredPositionsId, NoDeliveredPositions, alias: null);
             }
 
-            // Re-stage the received-message children a prior incarnation left behind: each message it had staged
+            // Re-stage the staged-message children a prior incarnation left behind: each message it had staged
             // but not yet delivered persists as its own child effect. A child whose position was already
             // delivered (replayed above) is pruned rather than re-delivered - the analogue of the delivered-
             // positions store-row clear above.
-            var stagedChildren = new List<ReceivedMessage>();
-            foreach (var childId in _effect.GetChildren(ReceivedMessagesRoot))
+            var stagedChildren = new List<IncomingMessage>();
+            foreach (var childId in _effect.GetChildren(StagedMessagesRoot))
             {
                 // The child travels with the message: it is the identity of a row-less (control-panel authored)
                 // message, which has no store position at all, and it stops ProcessMessages from creating a
@@ -227,7 +227,7 @@ internal class QueueManager : IDisposable
         try
         {
             if (_thrownException == null)
-                ProcessMessages(messages.Select(ReceivedMessage.From).ToList());
+                ProcessMessages(messages.Select(IncomingMessage.From).ToList());
 
             // A poisoned queue manager (message deserialization failed) cannot deliver. Reopen the batch's
             // unstaged positions so the messages are refetched and handed to a restarted incarnation, whose
@@ -259,7 +259,7 @@ internal class QueueManager : IDisposable
         MessagePredicate predicate,
         DateTime? timeout,
         EffectId messageId,
-        Func<MessageData?, IEnumerable<EffectResult>> captureMessage)
+        Func<StagedMessage?, IEnumerable<EffectResult>> captureMessage)
     {
         if (_thrownException is { } pre)
             throw pre;
@@ -324,7 +324,7 @@ internal class QueueManager : IDisposable
 
     // Caller must hold _fetchSemaphore. Deserializes, dedups by idempotency-key and by already-fetched
     // position (so pushes are idempotent), and stages messages for delivery.
-    private void ProcessMessages(IReadOnlyList<ReceivedMessage> messages)
+    private void ProcessMessages(IReadOnlyList<IncomingMessage> messages)
     {
         foreach (var message in messages)
         {
@@ -367,7 +367,7 @@ internal class QueueManager : IDisposable
                         }
 
                         RecordDeliveredStoreRow(position);
-                        PruneDeliveredPendingMessage(message.ChildId, position);
+                        PruneDeliveredMessage(message.ChildId, position);
                     }
                     continue;
                 }
@@ -383,15 +383,15 @@ internal class QueueManager : IDisposable
                         continue;
                     }
 
-                    // Durably capture the received message as its own child effect the moment it is staged; it is
-                    // deleted again when the message is delivered or idempotency-deduped (PruneDeliveredPendingMessage).
+                    // Durably capture the message as its own child effect the moment it is staged; it is
+                    // deleted again when the message is delivered or idempotency-deduped (PruneDeliveredMessage).
                     // Flushless, so it costs no I/O and dies with an equally-unflushed delivery - recovery then stays
                     // store-backed and at-least-once. A message re-staged from an existing child reuses it rather
                     // than creating a second one.
                     var childId = message.ChildId;
                     if (childId is null)
                     {
-                        childId = NextReceivedMessageChildId();
+                        childId = NextStagedMessageChildId();
 
                         // One upsert for the message and the key that admitted it: neither can become durable
                         // without the other, so a recorded key always has its message behind it.
@@ -402,7 +402,7 @@ internal class QueueManager : IDisposable
                         );
                     }
 
-                    var messageData = new MessageData(
+                    var stagedMessage = new StagedMessage(
                         envelope,
                         position,
                         childId,
@@ -414,11 +414,11 @@ internal class QueueManager : IDisposable
 
                     // Keep the staged messages in delivery order even when two pushers (the MessageWatchdog poll
                     // and an initialization-time push) stage batches out of order.
-                    var insertAt = _toDeliver.FindIndex(staged => CompareDeliveryOrder(staged, messageData) > 0);
+                    var insertAt = _toDeliver.FindIndex(staged => CompareDeliveryOrder(staged, stagedMessage) > 0);
                     if (insertAt == -1)
-                        _toDeliver.Add(messageData);
+                        _toDeliver.Add(stagedMessage);
                     else
-                        _toDeliver.Insert(insertAt, messageData);
+                        _toDeliver.Insert(insertAt, stagedMessage);
 
                     if (position is { } fetchedPosition)
                         _fetchedPositions.Add(fetchedPosition);
@@ -524,7 +524,7 @@ internal class QueueManager : IDisposable
                             );
                             // Same pending-change batch as the capture above - the prune, the captured message and
                             // the delivered position land in one atomic effect write at the next flush.
-                            PruneDeliveredPendingMessage(msg.ChildId, msg.Position);
+                            PruneDeliveredMessage(msg.ChildId, msg.Position);
 
                             subscription.Tcs.TrySetResult(msg);
                         });
@@ -543,7 +543,7 @@ internal class QueueManager : IDisposable
     // not re-stage it after the delivered-positions dedup state has been cleared. Flushless on purpose: dying with
     // an unflushed prune replays the message together with the equally unflushed delivery - at-least-once, exactly
     // like a store-resident message.
-    private void PruneDeliveredPendingMessage(EffectId? childId, long? position)
+    private void PruneDeliveredMessage(EffectId? childId, long? position)
     {
         // Running-flow carrier: the message was captured as its own child effect - delete just that child. A push
         // dropped on its idempotency key never reached staging, so it has no child to delete.
@@ -606,8 +606,8 @@ internal class QueueManager : IDisposable
                 // Only store-addressed messages take part: a row-less message has no row to reopen and never
                 // entered the fetched set - its child effect is its carrier and survives on its own.
                 var stagedPositions = _toDeliver
-                    .Where(messageData => messageData.Position is not null)
-                    .Select(messageData => messageData.Position!.Value)
+                    .Where(stagedMessage => stagedMessage.Position is not null)
+                    .Select(stagedMessage => stagedMessage.Position!.Value)
                     .ToList();
 
                 _messageClearer.ReopenPositions(stagedPositions);
@@ -630,7 +630,13 @@ internal class QueueManager : IDisposable
         }
     }
 
-    public record MessageData(
+    /// <summary>
+    /// A message past the admission gate (fetched-position dedup and idempotency-key claim), staged for delivery
+    /// and waiting for a matching subscription. Deliberately carries no idempotency key: the key belongs to
+    /// admission, which is behind it - its durable child effect (<see cref="ChildId"/>) was written together with
+    /// the key that admitted it.
+    /// </summary>
+    public record StagedMessage(
         Envelope Envelope,
         long? Position,
         EffectId ChildId,
@@ -644,7 +650,7 @@ internal class QueueManager : IDisposable
     // messages by position. A comparison rather than a sortable pseudo-position - a row-less message genuinely has
     // no position, and any value invented for one here would have to be filtered back out of every store-facing
     // path it reached.
-    private static int CompareDeliveryOrder(MessageData left, MessageData right)
+    private static int CompareDeliveryOrder(StagedMessage left, StagedMessage right)
     {
         if (left.Position is { } leftPosition && right.Position is { } rightPosition)
             return leftPosition.CompareTo(rightPosition);
@@ -672,18 +678,18 @@ internal class QueueManager : IDisposable
 
     // The id FlushlessCreateNextChild would append at, without writing - the message is instead written together
     // with the idempotency entry that admitted it, in a single upsert.
-    private EffectId NextReceivedMessageChildId()
+    private EffectId NextStagedMessageChildId()
     {
         var nextIndex = 0;
-        foreach (var childId in _effect.GetChildren(ReceivedMessagesRoot))
+        foreach (var childId in _effect.GetChildren(StagedMessagesRoot))
             if (childId.Id >= nextIndex)
                 nextIndex = childId.Id + 1;
 
-        return ReceivedMessagesRoot.CreateChild(nextIndex);
+        return StagedMessagesRoot.CreateChild(nextIndex);
     }
 
-    private record Subscription(EffectId EffectId, MessagePredicate Predicate, Func<MessageData?, IEnumerable<EffectResult>> CaptureMessage)
+    private record Subscription(EffectId EffectId, MessagePredicate Predicate, Func<StagedMessage?, IEnumerable<EffectResult>> CaptureMessage)
     {
-        public TaskCompletionSource<MessageData?> Tcs { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public TaskCompletionSource<StagedMessage?> Tcs { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
     }
 }

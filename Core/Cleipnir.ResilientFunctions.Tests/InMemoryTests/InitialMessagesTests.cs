@@ -13,7 +13,7 @@ namespace Cleipnir.ResilientFunctions.Tests.InMemoryTests;
 [TestClass]
 public class InitialMessagesTests
 {
-    // Initial messages are written straight into the flow's effect state as received-message children and are
+    // Initial messages are written straight into the flow's effect state as staged-message children and are
     // admitted on sight when staged, so duplicate idempotency keys are resolved when the children are created -
     // the first message per key wins. Messages without a key are always distinct.
     [TestMethod]
