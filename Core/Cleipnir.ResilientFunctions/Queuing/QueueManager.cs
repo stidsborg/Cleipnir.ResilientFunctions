@@ -27,6 +27,10 @@ internal class QueueManager : IDisposable
     // at (and is cleared via) PendingMessages.EffectId; keeping the carriers on separate ids stops the blob's
     // clear from deleting these children.
     internal static readonly EffectId ReceivedMessagesRoot  = new([ReservedIdPrefix, 2]);
+    // The value written whenever the delivered-positions entry is emptied. Shared rather than allocated per write:
+    // the upsert serializes it eagerly and never retains the instance, and TryGet always hands back a freshly
+    // deserialized list - so no caller can reach this one. Never add to it.
+    private static readonly List<long> NoDeliveredPositions = new();
 
     private readonly FlowId _flowId;
     private readonly StoredId _storedId;
@@ -108,8 +112,8 @@ internal class QueueManager : IDisposable
                         _fetchedPositions.Add(position);
 
                 await _messageClearer.Clear(positions);
-                positions.Clear();
-                _effect.FlushlessUpsert(DeliveredPositionsId, positions, alias: null);
+
+                _effect.FlushlessUpsert(DeliveredPositionsId, NoDeliveredPositions, alias: null);
             }
 
             // Re-stage the received-message children a prior incarnation left behind: each message it had staged
@@ -474,8 +478,7 @@ internal class QueueManager : IDisposable
                 return;
 
             await _messageClearer.Clear(deliveredPositions);
-            deliveredPositions.Clear();
-            _effect.FlushlessUpsert(DeliveredPositionsId, deliveredPositions, alias: null);
+            _effect.FlushlessUpsert(DeliveredPositionsId, NoDeliveredPositions, alias: null);
         }
         catch (Exception exception)
         {
