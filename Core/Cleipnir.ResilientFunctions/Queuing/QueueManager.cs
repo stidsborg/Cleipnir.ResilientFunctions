@@ -272,7 +272,10 @@ internal class QueueManager : IDisposable
 
         DeliverMessages();
         if (subscription.Tcs.Task.IsCompleted)
+        {
+            _flowExecutionState.WakeupConsumed();
             return (await subscription.Tcs.Task)?.Envelope;
+        }
 
         if (timeout != null && _utcNow() >= timeout.Value)
         {
@@ -282,7 +285,10 @@ internal class QueueManager : IDisposable
             lock (_lock)
                 removed = _subscriptions.Remove(subscription);
             if (!removed) //a delivery won the race
+            {
+                _flowExecutionState.WakeupConsumed();
                 return (await subscription.Tcs.Task)?.Envelope;
+            }
 
             _effect.FlushlessUpserts(subscription.CaptureMessage(null));
             return null;
@@ -298,15 +304,18 @@ internal class QueueManager : IDisposable
         _flowExecutionState.SubflowWaiting();
         try
         {
+            // Completes only via a committed TryResolve resolution (delivery, expiry or failure) - a flow that
+            // decided to suspend first leaves the task unresolved and this thread parked forever.
             var msgData = await subscription.Tcs.Task;
             return msgData?.Envelope;
         }
         finally
         {
-            await _flowExecutionState.ResumeSubflow();
+            _flowExecutionState.ResumeResolvedSubflow();
 
-            // Only removed after passing the resume gate: a suspension overtaking the wake-up must still find
-            // the timeout registered, so it postpones to it instead of suspending without a wake-up trigger.
+            // Only removed after passing the resume gate: an unresolved waiter never removes its timeout, so a
+            // suspension that overtook the wake-up still finds it registered and postpones to it instead of
+            // suspending without a wake-up trigger.
             if (timeout != null)
                 _timeouts.RemoveTimeout(messageId);
 
@@ -546,9 +555,12 @@ internal class QueueManager : IDisposable
     {
         lock (_lock)
         {
-            foreach (var sub in _subscriptions)
-                sub.Tcs.TrySetException(exception);
-            _subscriptions.Clear();
+            // Sealed against the suspension decision like every other resolution: a flow that has decided to
+            // suspend keeps its waiters parked and learns of the poisoned message via the reopened positions
+            // instead. Rejected subscriptions stay in the list - the incarnation is dying either way.
+            foreach (var sub in _subscriptions.ToList())
+                if (_flowExecutionState.TryResolve(() => sub.Tcs.TrySetException(exception)))
+                    _subscriptions.Remove(sub);
         }
     }
 
