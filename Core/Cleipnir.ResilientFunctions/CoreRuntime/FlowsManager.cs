@@ -238,11 +238,11 @@ public class FlowsManager
                         return false;
 
                     var effects = storedFlowSnapshot.Effects ?? [];
-                    var byPosition = new Dictionary<long, StoredMessage>();
+                    var byPosition = new Dictionary<long, ReceivedMessage>();
                     var existingEntry = effects.FirstOrDefault(e => e.EffectId == PendingMessages.EffectId);
                     if (existingEntry?.Result is { Length: > 0 } existingBytes)
                         foreach (var pending in PendingMessages.Decode(existingBytes))
-                            byPosition[pending.Position] = pending;
+                            byPosition[pending.Position!.Value] = pending;
 
                     if (deliverable.All(m => byPosition.ContainsKey(m.Position)))
                     {
@@ -251,7 +251,7 @@ public class FlowsManager
                     }
 
                     foreach (var message in deliverable)
-                        byPosition[message.Position] = message;
+                        byPosition[message.Position] = ReceivedMessage.From(message);
 
                     var session = new SnapshotStorageSession
                     {

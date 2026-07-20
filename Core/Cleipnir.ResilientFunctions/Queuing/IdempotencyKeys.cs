@@ -7,6 +7,13 @@ using Cleipnir.ResilientFunctions.Domain;
 
 namespace Cleipnir.ResilientFunctions.Queuing;
 
+/// <summary>
+/// The keys a flow has already accepted a message under. An entry knows nothing about where its message came from -
+/// no position, no message identity: <see cref="Reserve"/> hands back the effect entry recording the key, and the
+/// caller writes it in the same upsert as the message it admitted. The two are therefore durable together, which is
+/// what makes the identity unnecessary - a recorded key always has its message persisted behind it, so a message
+/// that comes back around is re-staged from that message rather than re-checked against its own key.
+/// </summary>
 internal class IdempotencyKeys(EffectId rootId, Effect effect, int maxCount, TimeSpan? keyTtl, UtcNow utcNow)
 {
     private int _nextId;
@@ -16,50 +23,50 @@ internal class IdempotencyKeys(EffectId rootId, Effect effect, int maxCount, Tim
     public void Initialize()
     {
         var children = effect.GetChildren(rootId);
-       
+
         foreach (var childId in children)
         {
-            var value = effect.Get<Tuple<long, string, long?>>(childId);
+            var value = effect.Get<Tuple<string, long?>>(childId);
             _dictionary[childId.Id] = Entry.FromTuple(value);
             _nextId = Math.Max(_nextId, childId.Id + 1);
         }
-        
+
         CleanUp();
     }
 
-    public bool Add(string idempotencyKey, long position)
+    /// <summary>
+    /// Claims the key for a message about to be staged and returns the effect entry recording it - which the caller
+    /// must write together with that message. Null when the key is already held, meaning the message is a duplicate.
+    /// </summary>
+    public EffectResult? Reserve(string idempotencyKey)
     {
         CleanUp();
 
         var entry = new Entry(
-            position,
             idempotencyKey,
             keyTtl == null ? null : utcNow().Ticks + keyTtl.Value.Ticks
         );
         int id;
         lock (_lock)
         {
-            if (_dictionary.Any(e => e.Value.IdempotencyKey == idempotencyKey && e.Value.Position == position))
-                return true;
-            if (_dictionary.Any(e => e.Value.IdempotencyKey == idempotencyKey))
-                return false;
-            
+            if (_dictionary.Values.Any(e => e.IdempotencyKey == idempotencyKey))
+                return null;
+
             id = _nextId++;
             _dictionary[id] = entry;
         }
 
-        effect.FlushlessUpsert(rootId.CreateChild(id), entry.ToTuple(), alias: null);
-        return true;
+        return EffectResult.Create(rootId.CreateChild(id), entry.ToTuple());
     }
 
     private void Remove(int id)
     {
         lock (_lock)
             _dictionary.Remove(id);
-        
+
         effect.FlushlessClear(rootId.CreateChild(id));
     }
-    
+
     private void CleanUp()
     {
         var now = utcNow().Ticks;
@@ -69,18 +76,18 @@ internal class IdempotencyKeys(EffectId rootId, Effect effect, int maxCount, Tim
                 .Where(kv => kv.Value.Ttl.HasValue && kv.Value.Ttl < now)
                 .Select(kv => kv.Key)
                 .ToList();
-        
+
         foreach (var id in toRemove)
             Remove(id);
 
-        while (_dictionary.Count > maxCount) 
+        while (_dictionary.Count > maxCount)
             Remove(_dictionary.Keys.Min());
     }
 
-    private record Entry(long Position, string IdempotencyKey, long? Ttl)
+    private record Entry(string IdempotencyKey, long? Ttl)
     {
-        public Tuple<long, string, long?> ToTuple() => new(Position, IdempotencyKey, Ttl);
+        public Tuple<string, long?> ToTuple() => new(IdempotencyKey, Ttl);
 
-        public static Entry FromTuple(Tuple<long, string, long?> tuple) => new Entry(tuple.Item1, tuple.Item2, tuple.Item3);
+        public static Entry FromTuple(Tuple<string, long?> tuple) => new Entry(tuple.Item1, tuple.Item2);
     }
 }

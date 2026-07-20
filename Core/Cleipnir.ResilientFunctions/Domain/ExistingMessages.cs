@@ -94,7 +94,7 @@ public class ExistingMessages
     {
         var entry = effects.FirstOrDefault(e => e.EffectId == PendingMessages.EffectId);
         return entry?.Result is { Length: > 0 } bytes
-            ? PendingMessages.Decode(bytes)
+            ? PendingMessages.Decode(bytes).Select(m => m.ToStoredMessage()).ToList()
             : [];
     }
 
@@ -107,7 +107,7 @@ public class ExistingMessages
                 continue;
 
             var encoded = (byte[]) _serializer.Deserialize(effect.Result, typeof(byte[]));
-            var message = PendingMessages.DecodeMessage(encoded);
+            var message = PendingMessages.DecodeMessage(encoded).ToStoredMessage();
             // Same synthetic-position formula as the QueueManager's staging - keeps the view, delivery order and
             // Remove addressing consistent.
             if (!message.RowBacked)
@@ -221,8 +221,8 @@ public class ExistingMessages
     {
         var json = _serializer.Serialize(message, message.GetType());
         var type = _serializer.SerializeType(message.GetType());
-        var storedMessage = new StoredMessage(json, type, Position: 0, Replica: ReplicaId.Empty, IdempotencyKey: idempotencyKey) { RowBacked = false };
-        return PendingMessages.EncodeMessage(storedMessage);
+        var receivedMessage = new ReceivedMessage(json, type, Position: null, IdempotencyKey: idempotencyKey);
+        return PendingMessages.EncodeMessage(receivedMessage);
     }
 
     private async Task WriteReceivedMessageChild(byte[] encodedMessage, Func<IReadOnlyList<StoredEffect>, EffectId> chooseChildId)
@@ -293,7 +293,11 @@ public class ExistingMessages
             return;
         }
 
-        var entry = StoredEffect.CreateCompleted(PendingMessages.EffectId, PendingMessages.Encode(messages), alias: null);
+        var entry = StoredEffect.CreateCompleted(
+            PendingMessages.EffectId,
+            PendingMessages.Encode(messages.Select(ReceivedMessage.From).ToList()),
+            alias: null
+        );
         await _functionStore.SetEffectResult(
             _storedId,
             new StoredEffectChange(_storedId, PendingMessages.EffectId, CrudOperation.Insert, entry),

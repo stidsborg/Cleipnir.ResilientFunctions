@@ -23,10 +23,10 @@ internal static class PendingMessages
     /// <summary>Reserved effect id (same -1 prefix as the QueueManager's other reserved ids).</summary>
     public static readonly EffectId EffectId = new([-1, 1]);
 
-    public static byte[] Encode(IReadOnlyCollection<StoredMessage> messages)
+    public static byte[] Encode(IReadOnlyCollection<ReceivedMessage> messages)
         => BinaryPacker.Pack(messages.Select(EncodeMessage).ToArray());
 
-    public static List<StoredMessage> Decode(byte[] bytes)
+    public static List<ReceivedMessage> Decode(byte[] bytes)
         => BinaryPacker
             .Split(bytes)
             .Select(messageBytes => DecodeMessage(messageBytes!))
@@ -34,27 +34,26 @@ internal static class PendingMessages
 
     // A message without a backing store row (e.g. appended via the control panel directly into the flow's effect
     // state) encodes a null position piece - it has no store identity to clear or dedup against.
-    public static byte[] EncodeMessage(StoredMessage message)
+    public static byte[] EncodeMessage(ReceivedMessage message)
         => BinaryPacker.Pack(
             message.MessageContent,
             message.MessageType,
-            message.RowBacked ? BitConverter.GetBytes(message.Position) : null,
+            message.Position is { } position ? BitConverter.GetBytes(position) : null,
             message.IdempotencyKey?.ToUtf8Bytes(),
             message.Sender?.ToUtf8Bytes(),
             message.Receiver?.ToUtf8Bytes()
         );
 
-    public static StoredMessage DecodeMessage(byte[] bytes)
+    public static ReceivedMessage DecodeMessage(byte[] bytes)
     {
         var parts = BinaryPacker.Split(bytes, expectedPieces: 6);
-        return new StoredMessage(
+        return new ReceivedMessage(
             MessageContent: parts[0]!,
             MessageType: parts[1]!,
-            Position: parts[2] == null ? 0 : BitConverter.ToInt64(parts[2]!),
-            Replica: ReplicaId.Empty,
+            Position: parts[2] == null ? null : BitConverter.ToInt64(parts[2]!),
             IdempotencyKey: parts[3]?.ToStringFromUtf8Bytes(),
             Sender: parts[4]?.ToStringFromUtf8Bytes(),
             Receiver: parts[5]?.ToStringFromUtf8Bytes()
-        ) { RowBacked = parts[2] != null };
+        );
     }
 }
