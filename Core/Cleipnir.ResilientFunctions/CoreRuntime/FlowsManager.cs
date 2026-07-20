@@ -238,7 +238,7 @@ public class FlowsManager
                         return false;
 
                     var effects = storedFlowSnapshot.Effects ?? [];
-                    var byPosition = new Dictionary<long, ReceivedMessage>();
+                    var byPosition = new Dictionary<long, IncomingMessage>();
                     var existingEntry = effects.FirstOrDefault(e => e.EffectId == PendingMessages.EffectId);
                     if (existingEntry?.Result is { Length: > 0 } existingBytes)
                         foreach (var pending in PendingMessages.Decode(existingBytes))
@@ -251,7 +251,7 @@ public class FlowsManager
                     }
 
                     foreach (var message in deliverable)
-                        byPosition[message.Position] = ReceivedMessage.From(message);
+                        byPosition[message.Position] = IncomingMessage.From(message);
 
                     var session = new SnapshotStorageSession
                     {

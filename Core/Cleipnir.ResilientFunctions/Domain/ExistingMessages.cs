@@ -14,11 +14,11 @@ namespace Cleipnir.ResilientFunctions.Domain;
 
 /// <summary>
 /// A flow's not-yet-delivered messages live in three carriers: rows in the message store, per-message
-/// received-message children under the queue manager's reserved root, and - for messages that arrived while the
+/// staged-message children under the queue manager's reserved root, and - for messages that arrived while the
 /// flow was completed - the pending-messages entry inlined into the flow's effect state. This type surfaces the
 /// union of all three, so control-panel tooling sees the same pending messages a restarted flow would receive.
 ///
-/// Edits are effect-state-only: appended messages are written directly as row-less received-message children
+/// Edits are effect-state-only: appended messages are written directly as row-less staged-message children
 /// (never as store rows), so they cannot race the MessageWatchdog's row-to-effect inlining. Effect writes are
 /// version-guarded, serializing them against concurrent inliner writes and claims. Consequently edits require
 /// the flow to be unowned - editing a currently-executing flow fails with a concurrent-modification error.
@@ -26,16 +26,16 @@ namespace Cleipnir.ResilientFunctions.Domain;
 public class ExistingMessages
 {
     private readonly StoredId _storedId;
-    private List<StoredMessage>? _receivedMessages;
+    private List<StoredMessage>? _pendingMessages;
     private readonly IMessageStore _messageStore;
     private readonly IFunctionStore _functionStore;
     private readonly ISerializer _serializer;
 
-    public Task<IReadOnlyList<MessageAndIdempotencyKey>> MessagesWithIdempotencyKeys => GetReceivedMessages()
+    public Task<IReadOnlyList<MessageAndIdempotencyKey>> MessagesWithIdempotencyKeys => GetPendingMessages()
         .ContinueWith(t => (IReadOnlyList<MessageAndIdempotencyKey>) t.Result.ToList());
-    public Task<IReadOnlyList<object>> AsObjects => GetReceivedMessages()
+    public Task<IReadOnlyList<object>> AsObjects => GetPendingMessages()
         .ContinueWith(t => (IReadOnlyList<object>) t.Result.Select(m => m.Message).ToList());
-    public Task<int> Count => GetReceivedMessages().SelectAsync(messages => messages.Count);
+    public Task<int> Count => GetPendingMessages().SelectAsync(messages => messages.Count);
 
     public ExistingMessages(StoredId storedId, IMessageStore messageStore, IFunctionStore functionStore, ISerializer serializer)
     {
@@ -45,18 +45,18 @@ public class ExistingMessages
         _serializer = serializer;
     }
 
-    private async Task<List<MessageAndIdempotencyKey>> GetReceivedMessages()
+    private async Task<List<MessageAndIdempotencyKey>> GetPendingMessages()
     {
-        if (_receivedMessages is not null)
-            return _receivedMessages.Select(m =>
+        if (_pendingMessages is not null)
+            return _pendingMessages.Select(m =>
                 new MessageAndIdempotencyKey(
                     _serializer.Deserialize(m.MessageContent, _serializer.ResolveType(m.MessageType)!),
                     m.IdempotencyKey
                 )
             ).ToList();
 
-        _receivedMessages = await GetMergedMessages();
-        return await GetReceivedMessages();
+        _pendingMessages = await GetMergedMessages();
+        return await GetPendingMessages();
     }
 
     // The union of all carriers, ordered by position. Row-less children carry the same synthetic negative
@@ -72,7 +72,7 @@ public class ExistingMessages
         foreach (var pending in DecodePendingInlinedMessages(effects))
             byPosition[pending.Position] = pending;
 
-        foreach (var message in DecodeReceivedMessageChildren(effects))
+        foreach (var message in DecodeStagedMessageChildren(effects))
             byPosition.TryAdd(message.Position, message);
 
         // Empty messages are restart-pokes without payload - they are never delivered to the flow, so they are
@@ -98,12 +98,12 @@ public class ExistingMessages
             : [];
     }
 
-    private List<StoredMessage> DecodeReceivedMessageChildren(IReadOnlyList<StoredEffect> effects)
+    private List<StoredMessage> DecodeStagedMessageChildren(IReadOnlyList<StoredEffect> effects)
     {
         var messages = new List<StoredMessage>();
         foreach (var effect in effects)
         {
-            if (!QueueManager.ReceivedMessagesRoot.IsChild(effect.EffectId) || effect.Result == null)
+            if (!QueueManager.StagedMessagesRoot.IsChild(effect.EffectId) || effect.Result == null)
                 continue;
 
             var encoded = (byte[]) _serializer.Deserialize(effect.Result, typeof(byte[]));
@@ -160,25 +160,25 @@ public class ExistingMessages
                 break;
         }
 
-        _receivedMessages = null;
+        _pendingMessages = null;
     }
 
     private static bool IsMessageStateEffect(EffectId effectId)
         => effectId == PendingMessages.EffectId
            || effectId == QueueManager.DeliveredPositionsId
-           || effectId.IsDescendant(QueueManager.ReceivedMessagesRoot)
+           || effectId.IsDescendant(QueueManager.StagedMessagesRoot)
            || effectId.IsDescendant(QueueManager.IdempotencyKeysRoot);
 
     public Task Append<T>(T message, string? idempotencyKey = null) where T : notnull
-        => WriteReceivedMessageChild(
+        => WriteStagedMessageChild(
             EncodeRowlessMessage(message, idempotencyKey),
             chooseChildId: effects =>
             {
                 var nextIndex = 0;
                 foreach (var effect in effects)
-                    if (QueueManager.ReceivedMessagesRoot.IsChild(effect.EffectId) && effect.EffectId.Id >= nextIndex)
+                    if (QueueManager.StagedMessagesRoot.IsChild(effect.EffectId) && effect.EffectId.Id >= nextIndex)
                         nextIndex = effect.EffectId.Id + 1;
-                return QueueManager.ReceivedMessagesRoot.CreateChild(nextIndex);
+                return QueueManager.StagedMessagesRoot.CreateChild(nextIndex);
             }
         );
 
@@ -193,19 +193,19 @@ public class ExistingMessages
     /// <param name="idempotencyKey">Replacement idempotency key</param>
     public async Task Replace<T>(int position, T message, string? idempotencyKey = null) where T : notnull
     {
-        if (_receivedMessages is null)
-            await GetReceivedMessages();
+        if (_pendingMessages is null)
+            await GetPendingMessages();
 
-        var storedMessage = _receivedMessages!.OrderBy(m => m.Position).Skip(position).FirstOrDefault();
+        var storedMessage = _pendingMessages!.OrderBy(m => m.Position).Skip(position).FirstOrDefault();
         if (storedMessage == null)
-            throw new ArgumentException($"Cannot replace non-existing message. Position '{position}' is larger than or equal to length '{_receivedMessages!.Count}'", nameof(position));
+            throw new ArgumentException($"Cannot replace non-existing message. Position '{position}' is larger than or equal to length '{_pendingMessages!.Count}'", nameof(position));
         if (storedMessage.RowBacked)
             throw new InvalidOperationException(
                 "Only messages appended directly into the flow's effect state can be replaced - remove and re-append the message instead"
             );
 
-        var childId = QueueManager.ReceivedMessagesRoot.CreateChild((int) (storedMessage.Position - long.MinValue));
-        await WriteReceivedMessageChild(
+        var childId = QueueManager.StagedMessagesRoot.CreateChild((int) (storedMessage.Position - long.MinValue));
+        await WriteStagedMessageChild(
             EncodeRowlessMessage(message, idempotencyKey),
             chooseChildId: effects => effects.Any(e => e.EffectId == childId)
                 ? childId
@@ -215,17 +215,17 @@ public class ExistingMessages
         );
     }
 
-    // Row-less: the message is written directly into the flow's effect state as a received-message child and
+    // Row-less: the message is written directly into the flow's effect state as a staged-message child and
     // never touches the message store - the QueueManager assigns it a synthetic position at staging.
     private byte[] EncodeRowlessMessage<T>(T message, string? idempotencyKey) where T : notnull
     {
         var json = _serializer.Serialize(message, message.GetType());
         var type = _serializer.SerializeType(message.GetType());
-        var receivedMessage = new ReceivedMessage(json, type, Position: null, IdempotencyKey: idempotencyKey);
-        return PendingMessages.EncodeMessage(receivedMessage);
+        var incomingMessage = new IncomingMessage(json, type, Position: null, IdempotencyKey: idempotencyKey);
+        return PendingMessages.EncodeMessage(incomingMessage);
     }
 
-    private async Task WriteReceivedMessageChild(byte[] encodedMessage, Func<IReadOnlyList<StoredEffect>, EffectId> chooseChildId)
+    private async Task WriteStagedMessageChild(byte[] encodedMessage, Func<IReadOnlyList<StoredEffect>, EffectId> chooseChildId)
     {
         for (var attempt = 0; ; attempt++)
         {
@@ -249,7 +249,7 @@ public class ExistingMessages
                     session
                 );
 
-                _receivedMessages = null;
+                _pendingMessages = null;
                 return;
             }
             catch (UnexpectedStateException) when (attempt < 5)
@@ -268,8 +268,8 @@ public class ExistingMessages
     {
         if (position < 0)
         {
-            // A synthetic position addresses a row-less received-message child - delete the child effect itself.
-            var childId = QueueManager.ReceivedMessagesRoot.CreateChild((int) (position - long.MinValue));
+            // A synthetic position addresses a row-less staged-message child - delete the child effect itself.
+            var childId = QueueManager.StagedMessagesRoot.CreateChild((int) (position - long.MinValue));
             await _functionStore.DeleteEffectResult(_storedId, childId, owner: null, storageSession: null);
         }
         else
@@ -282,7 +282,7 @@ public class ExistingMessages
         }
 
         // Invalidate cache so it will be re-fetched with correct data
-        _receivedMessages = null;
+        _pendingMessages = null;
     }
 
     private async Task WritePendingInlinedMessages(IReadOnlyList<StoredMessage> messages)
@@ -295,7 +295,7 @@ public class ExistingMessages
 
         var entry = StoredEffect.CreateCompleted(
             PendingMessages.EffectId,
-            PendingMessages.Encode(messages.Select(ReceivedMessage.From).ToList()),
+            PendingMessages.Encode(messages.Select(IncomingMessage.From).ToList()),
             alias: null
         );
         await _functionStore.SetEffectResult(
