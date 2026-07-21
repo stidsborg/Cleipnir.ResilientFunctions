@@ -195,20 +195,22 @@ internal class QueueManager : IDisposable
     /// already processed are skipped by ProcessMessages. Both routes strip empty (restart-poke) messages before
     /// handing over, so every message arriving here carries a deliverable payload.
     ///
-    /// A push that hits a disposed (dying) instance reopens its positions instead of dropping them: the
-    /// MessageWatchdog already marked them as pushed, so a silent drop would strand the messages in the
-    /// ignore-set and lose the flow's wake-up.
+    /// Returns true once the batch has been taken over (staged, delivered or deduped): the queue manager now owns
+    /// the messages, and its own dispose path reopens anything left undelivered. Returns false when the batch could
+    /// not be handled - the instance was disposed (the flow is finishing) or poisoned (a message failed to
+    /// deserialize) - so the caller reopens the batch's positions and lets the MessageWatchdog re-fetch and
+    /// re-deliver them (the MessageWatchdog already marked them pushed, so a silent drop would strand them in the
+    /// ignore-set and lose the flow's wake-up). The caller reopens the whole batch: reopen is idempotent, so
+    /// re-reopening a message this push already staged (its durable child effect survives) is harmless, and the
+    /// next incarnation dedups the re-fetched row against the re-staged child.
     /// </summary>
-    public async Task Push(IReadOnlyList<StoredMessage> messages)
+    public async Task<bool> Push(IReadOnlyList<PushedMessage> messages)
     {
         if (messages.Count == 0)
-            return;
+            return true;
 
         if (_disposed)
-        {
-            _messageClearer.ReopenPositions(messages.Select(m => m.Position));
-            return;
-        }
+            return false;
 
         if (!_initialized)
         {
@@ -218,8 +220,7 @@ internal class QueueManager : IDisposable
             }
             catch (ObjectDisposedException)
             {
-                _messageClearer.ReopenPositions(messages.Select(m => m.Position));
-                return;
+                return false;
             }
         }
 
@@ -229,20 +230,12 @@ internal class QueueManager : IDisposable
             if (_thrownException == null)
                 ProcessMessages(messages.Select(IncomingMessage.From).ToList());
 
-            // A poisoned queue manager (message deserialization failed) cannot deliver. Reopen the batch's
-            // unstaged positions so the messages are refetched and handed to a restarted incarnation, whose
-            // subscription then surfaces the failure and fails the flow - otherwise a concurrently suspending
-            // flow would never learn of the poisoned message and both would be stranded.
-            if (_thrownException != null)
-            {
-                List<long> unstagedPositions;
-                lock (_lock)
-                    unstagedPositions = messages
-                        .Select(m => m.Position)
-                        .Where(position => !_fetchedPositions.Contains(position))
-                        .ToList();
-                _messageClearer.ReopenPositions(unstagedPositions);
-            }
+            // Poisoned (a message failed to deserialize) or disposed while this push was in flight: the batch was
+            // not taken over here. Report it so the caller reopens the whole batch - the messages are then
+            // refetched and handed to a restarted incarnation, whose subscription surfaces a poisoned message and
+            // fails the flow (otherwise a concurrently suspending flow would never learn of it and both would be
+            // stranded).
+            return _thrownException == null && !_disposed;
         }
         finally
         {
@@ -355,16 +348,14 @@ internal class QueueManager : IDisposable
                 {
                     lock (_lock)
                     {
-                        // Disposal reopens and clears the delivered-positions set, and the dying incarnation's
-                        // flush runs AFTER disposal - recording this drop now would overwrite the pending
-                        // delivered-positions list with a nearly-empty one, durably erasing the incarnation's
-                        // delivered markings while their reopened rows live on to be redelivered. Reopen the
-                        // position instead so the next incarnation re-fetches and re-dedups the message.
+                        // A disposed instance must not record a drop: disposal has already reopened and cleared the
+                        // delivered-positions set and its flush runs AFTER disposal, so recording now would overwrite
+                        // the pending list with a nearly-empty one, durably erasing the incarnation's delivered
+                        // markings while their reopened rows live on to be redelivered. Skip instead - Push reports
+                        // the batch unhandled and the caller reopens the whole batch, so the next incarnation
+                        // re-fetches and re-dedups the message.
                         if (_disposed)
-                        {
-                            ReopenStoreRow(position);
                             continue;
-                        }
 
                         RecordDeliveredStoreRow(position);
                         PruneDeliveredMessage(message.ChildId, position);
@@ -375,13 +366,11 @@ internal class QueueManager : IDisposable
                 var envelope = new Envelope(msg, receiver, sender);
                 lock (_lock)
                 {
-                    // See the disposed-guard in the idempotency-drop path above: a disposed instance must not
-                    // stage or record anything - its state has been reopened and its flush is imminent.
+                    // See the disposed-guard in the idempotency-drop path above: a disposed instance must not stage
+                    // or record anything - its state has been reopened and its flush is imminent. Skip and let the
+                    // caller's whole-batch reopen recover the message.
                     if (_disposed)
-                    {
-                        ReopenStoreRow(position);
                         continue;
-                    }
 
                     // Durably capture the message as its own child effect the moment it is staged; it is
                     // deleted again when the message is delivered or idempotency-deduped (PruneDeliveredMessage).
@@ -668,12 +657,6 @@ internal class QueueManager : IDisposable
 
         _deliveredPositions.Add(storePosition);
         _effect.FlushlessUpsert(DeliveredPositionsId, _deliveredPositions.ToList(), alias: null);
-    }
-
-    private void ReopenStoreRow(long? position)
-    {
-        if (position is { } storePosition)
-            _messageClearer.ReopenPositions([storePosition]);
     }
 
     // The id FlushlessCreateNextChild would append at, without writing - the message is instead written together
