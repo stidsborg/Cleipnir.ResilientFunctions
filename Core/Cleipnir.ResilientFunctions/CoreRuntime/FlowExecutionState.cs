@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Watchdogs;
@@ -16,6 +17,23 @@ public enum FlowStatus
     Running = 0,
     Suspending = 1,
     Completed = 2
+}
+
+/// <summary>
+/// The outcome of routing a push to a flow, telling the caller which recovery to run:
+/// <list type="bullet">
+/// <item><see cref="Delivered"/> - the queue manager took the batch over; nothing more to do.</item>
+/// <item><see cref="Suspended"/> - the flow has decided to suspend; the caller awaits completion and restarts it
+/// with the messages still in hand.</item>
+/// <item><see cref="NotHandled"/> - the queue manager could not take the batch (disposed or poisoned); the caller
+/// reopens the batch's positions so the MessageWatchdog re-fetches and re-delivers them.</item>
+/// </list>
+/// </summary>
+public enum PushOutcome
+{
+    Delivered = 0,
+    Suspended = 1,
+    NotHandled = 2
 }
 
 public class FlowExecutionState
@@ -183,17 +201,18 @@ public class FlowExecutionState
     }
 
     /// <summary>
-    /// Routes the pushed messages to the attached queue manager. Returns false when the flow has decided to
-    /// suspend - the caller awaits <see cref="Completed"/> and restarts the flow with the messages in hand.
+    /// Routes the pushed messages to the attached queue manager and reports the recovery the caller should run -
+    /// see <see cref="PushOutcome"/>. The flow is checked for suspension upfront (restart with the messages in hand)
+    /// and the queue manager reports whether it took the batch over (delivered) or could not (not handled - reopen).
     /// </summary>
-    public async Task<bool> Push(IReadOnlyList<StoredMessage> messages)
+    public async Task<PushOutcome> Push(IReadOnlyList<StoredMessage> messages)
     {
         if (Suspended)
-            return false;
+            return PushOutcome.Suspended;
 
         //never null: the flow only becomes reachable (FlowsManager.AddFlow) after the queue manager is attached
-        await QueueManager!.Push(messages);
-        return true;
+        var handled = await QueueManager!.Push(messages.Select(PushedMessage.From).ToList());
+        return handled ? PushOutcome.Delivered : PushOutcome.NotHandled;
     }
 
     // Fires once the flow has been fully waiting (all subflows waiting) for the configured max-wait duration.

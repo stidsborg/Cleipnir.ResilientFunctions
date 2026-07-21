@@ -98,17 +98,27 @@ public class FlowsManager
         return Task.WhenAll(tasks);
     }
 
-    // Delivers to the live flow - unless it has decided to suspend (whether observed upfront or lost as a race
-    // during delivery), in which case the delivery waits for the invocation to complete (the suspension status
-    // is persisted by then) and restarts the flow with the messages still in hand, instead of bouncing them
-    // through a position-reopen and a later watchdog poll.
+    // Delivers to the live flow. If it has decided to suspend (whether observed upfront or lost as a race during
+    // delivery), the delivery waits for the invocation to complete (the suspension status is persisted by then) and
+    // restarts the flow with the messages still in hand, instead of bouncing them through a position-reopen and a
+    // later watchdog poll. If the queue manager could not take the batch over (disposed or poisoned), its positions
+    // are reopened so the MessageWatchdog re-fetches and re-delivers them.
     private async Task DeliverToFlow(FlowExecutionState flowState, StoredMessages storedMessages)
     {
-        if (await flowState.Push(storedMessages.Messages))
-            return;
+        switch (await flowState.Push(storedMessages.Messages))
+        {
+            case PushOutcome.Delivered:
+                return;
 
-        await flowState.Completed;
-        await RestartExecutions([storedMessages]);
+            case PushOutcome.NotHandled:
+                _messageClearer.ReopenPositions(storedMessages.Messages.Select(m => m.Position));
+                return;
+
+            case PushOutcome.Suspended:
+                await flowState.Completed;
+                await RestartExecutions([storedMessages]);
+                return;
+        }
     }
 
     /// <summary>

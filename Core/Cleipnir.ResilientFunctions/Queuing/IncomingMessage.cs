@@ -40,6 +40,16 @@ internal record IncomingMessage(
             message.Receiver
         );
 
+    public static IncomingMessage From(PushedMessage message)
+        => new(
+            message.MessageContent,
+            message.MessageType,
+            message.Position,
+            message.IdempotencyKey,
+            message.Sender,
+            message.Receiver
+        );
+
     public StoredMessage ToStoredMessage()
         => new(
             MessageContent,

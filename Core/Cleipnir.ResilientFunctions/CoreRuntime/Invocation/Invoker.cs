@@ -282,8 +282,10 @@ public class Invoker<TParam, TReturn> : IFlowRestarter
 
             // Deliver the in-hand messages handed over by the restart straight into the queue manager's pipeline so
             // the flow does not have to re-fetch them from the store. Push initializes the queue manager first, which
-            // loads the idempotency-key state before these messages are processed.
-            await queueManager.Push(storedMessages);
+            // loads the idempotency-key state before these messages are processed. A batch the queue manager could
+            // not take over (disposed or poisoned) has its positions reopened so the MessageWatchdog re-fetches them.
+            if (!await queueManager.Push(storedMessages.Select(PushedMessage.From).ToList()))
+                _invocationHelper.ReopenPositions(storedMessages.Select(m => m.Position));
 
             var messageWriter = _invocationHelper.CreateMessageWriter(storedId);
 

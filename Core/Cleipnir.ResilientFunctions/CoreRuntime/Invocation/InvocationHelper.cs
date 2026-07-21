@@ -410,6 +410,10 @@ internal class InvocationHelper<TParam, TReturn>
     public QueueManager CreateQueueManager(FlowId flowId, StoredId storedId, Effect effect, FlowExecutionState flowExecutionState, FlowTimeouts timeouts, UnhandledExceptionHandler unhandledExceptionHandler)
         => new(flowId, storedId, Serializer, effect, flowExecutionState, unhandledExceptionHandler, timeouts, UtcNow, _messageClearer);
 
+    // Reopens the positions of an in-hand push the queue manager could not take over (disposed or poisoned), so the
+    // MessageWatchdog re-fetches and re-delivers them instead of leaving them stranded in the ignore-set.
+    public void ReopenPositions(IEnumerable<long> positions) => _messageClearer.ReopenPositions(positions);
+
     internal TimeSpan MessagesDefaultMaxWaitForCompletion => _settings.MessagesDefaultMaxWaitForCompletion;
 
     public StoredId MapToStoredId(FlowId flowId) => StoredId.Create(_storedType, flowId.Instance.Value);
