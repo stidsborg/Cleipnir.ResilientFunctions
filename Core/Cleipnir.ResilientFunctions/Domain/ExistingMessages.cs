@@ -59,11 +59,11 @@ public class ExistingMessages
         return await GetPendingMessages();
     }
 
-    // The union of all carriers, ordered by position. Row-less children carry the same synthetic negative
-    // positions the QueueManager assigns at staging, so the view shows the exact delivery order: control-panel
-    // appended messages first (in child order), then row-backed messages by store position. Positions of the
-    // row-backed carriers are disjoint by construction (inlining deletes the row); should both transiently hold
-    // a position, the store row wins.
+    // The union of all carriers, ordered by position. Row-backed children take their positions from the staged-
+    // positions entry; row-less children get synthetic negative positions, so the view shows the exact delivery
+    // order: control-panel appended messages first (in child order), then row-backed messages by store position.
+    // Positions of the row-backed carriers are disjoint by construction (inlining deletes the row); should both
+    // transiently hold a position, the store row wins.
     private async Task<List<StoredMessage>> GetMergedMessages()
     {
         var effects = (await _functionStore.GetFunction(_storedId))?.Effects ?? [];
@@ -94,12 +94,13 @@ public class ExistingMessages
     {
         var entry = effects.FirstOrDefault(e => e.EffectId == PendingMessages.EffectId);
         return entry?.Result is { Length: > 0 } bytes
-            ? PendingMessages.Decode(bytes).Select(m => m.ToStoredMessage()).ToList()
+            ? PendingMessages.Decode(bytes).Select(kv => kv.Value.ToStoredMessage(kv.Key)).ToList()
             : [];
     }
 
     private List<StoredMessage> DecodeStagedMessageChildren(IReadOnlyList<StoredEffect> effects)
     {
+        var stagedPositions = DecodeStagedPositions(effects);
         var messages = new List<StoredMessage>();
         foreach (var effect in effects)
         {
@@ -107,15 +108,25 @@ public class ExistingMessages
                 continue;
 
             var encoded = (byte[]) _serializer.Deserialize(effect.Result, typeof(byte[]));
-            var message = PendingMessages.DecodeMessage(encoded).ToStoredMessage();
-            // Same synthetic-position formula as the QueueManager's staging - keeps the view, delivery order and
+            var incomingMessage = PendingMessages.DecodeMessage(encoded);
+            // A row-backed child's position lives in the staged-positions entry; a row-less child gets a
+            // synthetic negative position derived from its child index - keeps the view, delivery order and
             // Remove addressing consistent.
-            if (!message.RowBacked)
-                message = message with { Position = long.MinValue + effect.EffectId.Id };
+            var message = stagedPositions.TryGetValue(effect.EffectId.Id, out var storePosition)
+                ? incomingMessage.ToStoredMessage(storePosition)
+                : incomingMessage.ToStoredMessage(position: null) with { Position = long.MinValue + effect.EffectId.Id };
             messages.Add(message);
         }
 
         return messages;
+    }
+
+    private Dictionary<int, long> DecodeStagedPositions(IReadOnlyList<StoredEffect> effects)
+    {
+        var entry = effects.FirstOrDefault(e => e.EffectId == QueueManager.StagedPositionsId);
+        return entry?.Result is { Length: > 0 } bytes
+            ? QueueManager.ParseStagedPositions((List<long>) _serializer.Deserialize(bytes, typeof(List<long>)))
+            : new Dictionary<int, long>();
     }
 
     public async Task Clear()
@@ -166,6 +177,7 @@ public class ExistingMessages
     private static bool IsMessageStateEffect(EffectId effectId)
         => effectId == PendingMessages.EffectId
            || effectId == QueueManager.DeliveredPositionsId
+           || effectId == QueueManager.StagedPositionsId
            || effectId.IsDescendant(QueueManager.StagedMessagesRoot)
            || effectId.IsDescendant(QueueManager.IdempotencyKeysRoot);
 
@@ -221,7 +233,7 @@ public class ExistingMessages
     {
         var json = _serializer.Serialize(message, message.GetType());
         var type = _serializer.SerializeType(message.GetType());
-        var incomingMessage = new IncomingMessage(json, type, Position: null, IdempotencyKey: idempotencyKey);
+        var incomingMessage = new IncomingMessage(json, type, IdempotencyKey: idempotencyKey);
         return PendingMessages.EncodeMessage(incomingMessage);
     }
 
@@ -295,7 +307,7 @@ public class ExistingMessages
 
         var entry = StoredEffect.CreateCompleted(
             PendingMessages.EffectId,
-            PendingMessages.Encode(messages.Select(IncomingMessage.From).ToList()),
+            PendingMessages.Encode(messages.ToDictionary(m => m.Position, IncomingMessage.From)),
             alias: null
         );
         await _functionStore.SetEffectResult(

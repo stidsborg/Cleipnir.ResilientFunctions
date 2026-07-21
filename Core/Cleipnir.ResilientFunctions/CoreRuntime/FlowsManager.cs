@@ -241,8 +241,8 @@ public class FlowsManager
                     var byPosition = new Dictionary<long, IncomingMessage>();
                     var existingEntry = effects.FirstOrDefault(e => e.EffectId == PendingMessages.EffectId);
                     if (existingEntry?.Result is { Length: > 0 } existingBytes)
-                        foreach (var pending in PendingMessages.Decode(existingBytes))
-                            byPosition[pending.Position!.Value] = pending;
+                        foreach (var (position, pending) in PendingMessages.Decode(existingBytes))
+                            byPosition[position] = pending;
 
                     if (deliverable.All(m => byPosition.ContainsKey(m.Position)))
                     {
@@ -262,7 +262,7 @@ public class FlowsManager
 
                     var entry = StoredEffect.CreateCompleted(
                         PendingMessages.EffectId,
-                        PendingMessages.Encode(byPosition.Values.OrderBy(m => m.Position).ToList()),
+                        PendingMessages.Encode(byPosition),
                         alias: null
                     );
                     try

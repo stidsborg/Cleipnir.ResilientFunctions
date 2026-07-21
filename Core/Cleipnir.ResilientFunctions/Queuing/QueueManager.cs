@@ -27,6 +27,11 @@ internal class QueueManager : IDisposable
     // at (and is cleared via) PendingMessages.EffectId; keeping the carriers on separate ids stops the blob's
     // clear from deleting these children.
     internal static readonly EffectId StagedMessagesRoot  = new([ReservedIdPrefix, 2]);
+    // Store positions of the row-backed staged-message children, as flattened (childIndex, position) pairs. Kept
+    // out of the child payloads on purpose: a position is the address of a message-store row, not part of the
+    // message - the payloads stay position-free and this entry alone links the durable children to their rows
+    // (re-push dedup, delivered-row clearing and dispose-reopen across incarnations).
+    internal static readonly EffectId StagedPositionsId = new([ReservedIdPrefix, 3]);
     // The value written whenever the delivered-positions entry is emptied. Shared rather than allocated per write:
     // the upsert serializes it eagerly and never retains the instance, and TryGet always hands back a freshly
     // deserialized list - so no caller can reach this one. Never add to it.
@@ -48,15 +53,23 @@ internal class QueueManager : IDisposable
 
     private readonly SemaphoreSlim _initializeSemaphore = new(1);
     private readonly SemaphoreSlim _fetchSemaphore = new(1);
+    // Serializes the queue manager's multi-entry mutations (staging, delivery, initialization) against effect
+    // flushes: Flush holds this lock across its pending-change snapshot and store write, so everything such a
+    // mutation writes as separate flushless calls (child + staged position + idempotency key; capture + delivered
+    // position + carrier prunes) lands in a flush either wholly or not at all. Single-batch writes are
+    // snapshot-atomic on their own and need not take it.
+    private SemaphoreSlim FlushLock => _effect.FlushLock;
     private readonly Lock _lock = new();
     private readonly List<StagedMessage> _toDeliver = new();
     private readonly List<Subscription> _subscriptions = new();
     private readonly HashSet<long> _fetchedPositions = new();
     private readonly HashSet<long> _deliveredPositions = new();
+    // Mirror of the StagedPositionsId entry: childIndex -> position of the store row the child was staged from.
+    private readonly Dictionary<int, long> _stagedPositions = new();
     // Messages inlined into the pending-messages effect while the flow was completed - staged at initialization
-    // and pruned from the durable entry as they are delivered (see PruneDeliveredMessage). Kept in the
-    // entry's own (position-ascending) order, so a rewrite re-encodes the list as-is.
-    private readonly List<IncomingMessage> _pendingInlinedMessages = new();
+    // and pruned from the durable entry as they are delivered (see PruneDeliveredMessage). Keyed by the position
+    // of the (since deleted) store row each message was inlined from - the identity a rewrite re-encodes under.
+    private readonly Dictionary<long, IncomingMessage> _pendingInlinedMessages = new();
     private volatile Exception? _thrownException;
     private bool _initialized;
     private volatile bool _disposed;
@@ -100,65 +113,90 @@ internal class QueueManager : IDisposable
             if (_initialized)
                 return;
 
-            _idempotencyKeys.Initialize();
-
-            if (_effect.TryGet<List<long>>(DeliveredPositionsId, out var positions) && positions is { Count: > 0 })
+            // Under the flush lock: initialization replays, prunes and stages across several entries, and a
+            // concurrent flush must capture those writes all-or-nothing.
+            await FlushLock.WaitAsync();
+            try
             {
-                // Remember the positions a previous incarnation already delivered, so a message fetched before its
-                // Clear deletes it from the store (e.g. the restart's in-hand messages) is skipped by
-                // ProcessMessages rather than delivered a second time.
-                lock (_lock)
-                    foreach (var position in positions)
-                        _fetchedPositions.Add(position);
+                _idempotencyKeys.Initialize();
 
-                await _messageClearer.Clear(positions);
-
-                _effect.FlushlessUpsert(DeliveredPositionsId, NoDeliveredPositions, alias: null);
-            }
-
-            // Re-stage the staged-message children a prior incarnation left behind: each message it had staged
-            // but not yet delivered persists as its own child effect. A child whose position was already
-            // delivered (replayed above) is pruned rather than re-delivered - the analogue of the delivered-
-            // positions store-row clear above.
-            var stagedChildren = new List<IncomingMessage>();
-            foreach (var childId in _effect.GetChildren(StagedMessagesRoot))
-            {
-                // The child travels with the message: it is the identity of a row-less (control-panel authored)
-                // message, which has no store position at all, and it stops ProcessMessages from creating a
-                // second child for a message that already has one.
-                var message = PendingMessages.DecodeMessage(_effect.Get<byte[]>(childId)) with { ChildId = childId };
-
-                // Only a store-addressed child can have been delivered by a prior incarnation - the replayed
-                // delivered positions are store positions, so a row-less message can never match one.
-                if (message.Position is { } position)
+                if (_effect.TryGet<List<long>>(DeliveredPositionsId, out var positions) && positions is { Count: > 0 })
                 {
-                    bool alreadyDelivered;
+                    // Remember the positions a previous incarnation already delivered, so a message fetched before its
+                    // Clear deletes it from the store (e.g. the restart's in-hand messages) is skipped by
+                    // ProcessMessages rather than delivered a second time.
                     lock (_lock)
-                        alreadyDelivered = _fetchedPositions.Contains(position);
-                    if (alreadyDelivered)
-                    {
-                        _effect.FlushlessClear(childId);
-                        continue;
-                    }
+                        foreach (var position in positions)
+                            _fetchedPositions.Add(position);
+
+                    await _messageClearer.Clear(positions);
+
+                    _effect.FlushlessUpsert(DeliveredPositionsId, NoDeliveredPositions, alias: null);
                 }
 
-                stagedChildren.Add(message);
+                // The positions of the rows a prior incarnation's staged children were staged from - the child
+                // payloads themselves are position-free.
+                if (_effect.TryGet<List<long>>(StagedPositionsId, out var stagedPositions) && stagedPositions != null)
+                    lock (_lock)
+                        foreach (var (childIndex, position) in ParseStagedPositions(stagedPositions))
+                            _stagedPositions[childIndex] = position;
+
+                // Re-stage the staged-message children a prior incarnation left behind: each message it had staged
+                // but not yet delivered persists as its own child effect. A child whose position was already
+                // delivered (replayed above) is pruned rather than re-delivered - the analogue of the delivered-
+                // positions store-row clear above.
+                var stagedChildren = new List<(IncomingMessage Message, long? Position)>();
+                foreach (var childId in _effect.GetChildren(StagedMessagesRoot))
+                {
+                    // The child travels with the message: it is the identity of a row-less (control-panel authored)
+                    // message, which has no store position at all, and it stops ProcessMessages from creating a
+                    // second child for a message that already has one.
+                    var message = PendingMessages.DecodeMessage(_effect.Get<byte[]>(childId)) with { ChildId = childId };
+
+                    // Only a store-addressed child can have been delivered by a prior incarnation - the replayed
+                    // delivered positions are store positions, so a row-less message can never match one.
+                    long? childPosition;
+                    bool alreadyDelivered;
+                    lock (_lock)
+                    {
+                        childPosition = _stagedPositions.TryGetValue(childId.Id, out var storePosition) ? storePosition : null;
+                        alreadyDelivered = childPosition is { } position && _fetchedPositions.Contains(position);
+                    }
+                    if (alreadyDelivered)
+                    {
+                        lock (_lock)
+                            PruneDeliveredMessage(childId, position: null);
+                        continue;
+                    }
+
+                    stagedChildren.Add((message, childPosition));
+                }
+                if (stagedChildren.Count > 0)
+                    ProcessMessages(stagedChildren);
+
+                // Stage messages that were inlined into the effect state while the flow was completed (their store
+                // rows are deleted, so this entry is their only carrier). ProcessMessages dedups them against the
+                // replayed delivered positions and the persisted idempotency keys; running it here without the fetch
+                // semaphore is safe - pushes acquire the semaphore only after Initialize has completed.
+                var pendingEntry = _effect.GetStoredEffect(PendingMessages.EffectId);
+                if (pendingEntry?.Result is { Length: > 0 } pendingBytes)
+                {
+                    var pendingMessages = PendingMessages.Decode(pendingBytes);
+                    lock (_lock)
+                        foreach (var (position, message) in pendingMessages)
+                            _pendingInlinedMessages[position] = message;
+
+                    ProcessMessages(
+                        pendingMessages
+                            .OrderBy(kv => kv.Key)
+                            .Select(kv => (kv.Value, (long?)kv.Key))
+                            .ToList()
+                    );
+                }
             }
-            if (stagedChildren.Count > 0)
-                ProcessMessages(stagedChildren);
-
-            // Stage messages that were inlined into the effect state while the flow was completed (their store
-            // rows are deleted, so this entry is their only carrier). ProcessMessages dedups them against the
-            // replayed delivered positions and the persisted idempotency keys; running it here without the fetch
-            // semaphore is safe - pushes acquire the semaphore only after Initialize has completed.
-            var pendingEntry = _effect.GetStoredEffect(PendingMessages.EffectId);
-            if (pendingEntry?.Result is { Length: > 0 } pendingBytes)
+            finally
             {
-                var pendingMessages = PendingMessages.Decode(pendingBytes);
-                lock (_lock)
-                    _pendingInlinedMessages.AddRange(pendingMessages);
-
-                ProcessMessages(pendingMessages);
+                FlushLock.Release();
             }
 
             _initialized = true;
@@ -180,12 +218,20 @@ internal class QueueManager : IDisposable
     // Re-evaluates the already-pushed messages against the current subscriptions. The queue manager no longer reads
     // from the message store: messages arrive exclusively via Push (the MessageWatchdog poll and the restart
     // hand-over), so this only flushes whatever has already been staged for delivery.
-    public Task FetchMessagesOnce()
+    public async Task FetchMessagesOnce()
     {
-        if (!_disposed)
-            DeliverMessages();
+        if (_disposed)
+            return;
 
-        return Task.CompletedTask;
+        await FlushLock.WaitAsync();
+        try
+        {
+            DeliverMessages();
+        }
+        finally
+        {
+            FlushLock.Release();
+        }
     }
 
     /// <summary>
@@ -226,31 +272,42 @@ internal class QueueManager : IDisposable
         await _fetchSemaphore.WaitAsync();
         try
         {
-            if (_thrownException == null)
-                ProcessMessages(messages.Select(IncomingMessage.From).ToList());
-
-            // A poisoned queue manager (message deserialization failed) cannot deliver. Reopen the batch's
-            // unstaged positions so the messages are refetched and handed to a restarted incarnation, whose
-            // subscription then surfaces the failure and fails the flow - otherwise a concurrently suspending
-            // flow would never learn of the poisoned message and both would be stranded.
-            if (_thrownException != null)
+            // Under the flush lock: staging writes several related entries (the message's child, its staged
+            // position and the idempotency key that admitted it) and delivery several more - a concurrent flush
+            // must capture each mutation all-or-nothing.
+            await FlushLock.WaitAsync();
+            try
             {
-                List<long> unstagedPositions;
-                lock (_lock)
-                    unstagedPositions = messages
-                        .Select(m => m.Position)
-                        .Where(position => !_fetchedPositions.Contains(position))
-                        .ToList();
-                _messageClearer.ReopenPositions(unstagedPositions);
+                if (_thrownException == null)
+                    ProcessMessages(messages.Select(m => (IncomingMessage.From(m), (long?)m.Position)).ToList());
+
+                // A poisoned queue manager (message deserialization failed) cannot deliver. Reopen the batch's
+                // unstaged positions so the messages are refetched and handed to a restarted incarnation, whose
+                // subscription then surfaces the failure and fails the flow - otherwise a concurrently suspending
+                // flow would never learn of the poisoned message and both would be stranded.
+                if (_thrownException != null)
+                {
+                    List<long> unstagedPositions;
+                    lock (_lock)
+                        unstagedPositions = messages
+                            .Select(m => m.Position)
+                            .Where(position => !_fetchedPositions.Contains(position))
+                            .ToList();
+                    _messageClearer.ReopenPositions(unstagedPositions);
+                }
+            }
+            finally
+            {
+                DeliverMessages();
+                // The instance may have been disposed while this push was in flight - reopen whatever it staged so the
+                // messages are not stranded in a dead queue manager.
+                if (_disposed)
+                    ReopenUndeliveredStagedMessages();
+                FlushLock.Release();
             }
         }
         finally
         {
-            DeliverMessages();
-            // The instance may have been disposed while this push was in flight - reopen whatever it staged so the
-            // messages are not stranded in a dead queue manager.
-            if (_disposed)
-                ReopenUndeliveredStagedMessages();
             _fetchSemaphore.Release();
         }
     }
@@ -265,10 +322,19 @@ internal class QueueManager : IDisposable
             throw pre;
 
         var subscription = new Subscription(messageId, predicate, captureMessage);
-        lock (_lock)
-            _subscriptions.Add(subscription);
+        await FlushLock.WaitAsync();
+        try
+        {
+            lock (_lock)
+                _subscriptions.Add(subscription);
 
-        DeliverMessages();
+            DeliverMessages();
+        }
+        finally
+        {
+            FlushLock.Release();
+        }
+
         if (subscription.Tcs.Task.IsCompleted)
         {
             _flowExecutionState.WakeupConsumed();
@@ -322,13 +388,13 @@ internal class QueueManager : IDisposable
         }
     }
 
-    // Caller must hold _fetchSemaphore. Deserializes, dedups by idempotency-key and by already-fetched
-    // position (so pushes are idempotent), and stages messages for delivery.
-    private void ProcessMessages(IReadOnlyList<IncomingMessage> messages)
+    // Caller must hold the flush lock - and, outside initialization, _fetchSemaphore. Deserializes, dedups by
+    // idempotency-key and by already-fetched position (so pushes are idempotent), and stages messages for delivery.
+    private void ProcessMessages(IReadOnlyList<(IncomingMessage Message, long? Position)> messages)
     {
-        foreach (var message in messages)
+        foreach (var (message, position) in messages)
         {
-            var (messageContent, messageType, position, idempotencyKey, sender, receiver) = message;
+            var (messageContent, messageType, idempotencyKey, sender, receiver) = message;
 
             // Push dedup is store-row dedup: only a message addressing a store row can be pushed twice, so a
             // row-less message has nothing to dedup against here.
@@ -393,13 +459,22 @@ internal class QueueManager : IDisposable
                     {
                         childId = NextStagedMessageChildId();
 
-                        // One upsert for the message and the key that admitted it: neither can become durable
-                        // without the other, so a recorded key always has its message behind it.
-                        _effect.FlushlessUpserts(
-                            idempotencyEntry is null
-                                ? [EffectResult.Create(childId, PendingMessages.EncodeMessage(message))]
-                                : [EffectResult.Create(childId, PendingMessages.EncodeMessage(message)), idempotencyEntry]
-                        );
+                        // One upsert for the message, the position of the row it was staged from and the key that
+                        // admitted it: none can become durable without the others, so a durable child always has
+                        // its row position and its admitting key recorded alongside it.
+                        var results = new List<EffectResult>
+                        {
+                            EffectResult.Create(childId, PendingMessages.EncodeMessage(message))
+                        };
+                        if (position is { } storePosition)
+                        {
+                            _stagedPositions[childId.Id] = storePosition;
+                            results.Add(EffectResult.Create(StagedPositionsId, FlattenedStagedPositions()));
+                        }
+                        if (idempotencyEntry is not null)
+                            results.Add(idempotencyEntry);
+
+                        _effect.FlushlessUpserts(results);
                     }
 
                     var stagedMessage = new StagedMessage(
@@ -490,6 +565,8 @@ internal class QueueManager : IDisposable
         }
     }
 
+    // Caller must hold the flush lock: a delivery writes the capture, the delivered position and the carrier
+    // prunes as separate flushless calls, and a concurrent flush must capture them all-or-nothing.
     private void DeliverMessages()
     {
         lock (_lock)
@@ -545,21 +622,24 @@ internal class QueueManager : IDisposable
     // like a store-resident message.
     private void PruneDeliveredMessage(EffectId? childId, long? position)
     {
-        // Running-flow carrier: the message was captured as its own child effect - delete just that child. A push
-        // dropped on its idempotency key never reached staging, so it has no child to delete.
+        // Running-flow carrier: the message was captured as its own child effect - delete just that child (and
+        // its staged-position entry, when it had a backing row). A push dropped on its idempotency key never
+        // reached staging, so it has no child to delete.
         if (childId is not null)
+        {
             _effect.FlushlessClear(childId);
+            if (_stagedPositions.Remove(childId.Id))
+                _effect.FlushlessUpsert(StagedPositionsId, FlattenedStagedPositions(), alias: null);
+        }
 
         // Completed-flow carrier: the message came from the inline blob - rewrite the blob without it. Every blob
-        // entry addresses a store row, so a row-less message is never one of them.
+        // entry is keyed by the position of the row it was inlined from, so a row-less message is never one of them.
         if (position is not { } inlinedPosition)
             return;
 
-        var index = _pendingInlinedMessages.FindIndex(m => m.Position == inlinedPosition);
-        if (index == -1)
+        if (!_pendingInlinedMessages.Remove(inlinedPosition))
             return;
 
-        _pendingInlinedMessages.RemoveAt(index);
         if (_pendingInlinedMessages.Count == 0)
             _effect.FlushlessClear(PendingMessages.EffectId);
         else
@@ -674,6 +754,30 @@ internal class QueueManager : IDisposable
     {
         if (position is { } storePosition)
             _messageClearer.ReopenPositions([storePosition]);
+    }
+
+    // Decodes the StagedPositionsId entry's flattened (childIndex, position) pairs.
+    internal static Dictionary<int, long> ParseStagedPositions(List<long> flattened)
+    {
+        var positions = new Dictionary<int, long>();
+        for (var i = 0; i + 1 < flattened.Count; i += 2)
+            positions[(int)flattened[i]] = flattened[i + 1];
+
+        return positions;
+    }
+
+    // Caller must hold _lock. The StagedPositionsId entry's encoding: flattened (childIndex, position) pairs -
+    // a shape every serializer already handles (the delivered-positions entry is a List<long> too).
+    private List<long> FlattenedStagedPositions()
+    {
+        var flattened = new List<long>(capacity: _stagedPositions.Count * 2);
+        foreach (var (childIndex, position) in _stagedPositions)
+        {
+            flattened.Add(childIndex);
+            flattened.Add(position);
+        }
+
+        return flattened;
     }
 
     // The id FlushlessCreateNextChild would append at, without writing - the message is instead written together
