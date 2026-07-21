@@ -520,7 +520,7 @@ internal class InvocationHelper<TParam, TReturn>
             var content = Serializer.Serialize(message.Message, message.Message.GetType());
             var type = Serializer.SerializeType(message.Message.GetType());
             var encodedMessage = PendingMessages.EncodeMessage(
-                new IncomingMessage(content, type, Position: null, IdempotencyKey: message.IdempotencyKey)
+                new IncomingMessage(content, type, IdempotencyKey: message.IdempotencyKey)
             );
 
             effects.Add(

@@ -304,6 +304,7 @@ public class Effect
     }
 
     internal void RegisterQueueManager(QueueManager queueManager) => effectResults.QueueManager = queueManager;
+    internal System.Threading.SemaphoreSlim FlushLock => effectResults.FlushLock;
 
     internal string ExecutionTree() => EffectPrinter.Print(effectResults);
 

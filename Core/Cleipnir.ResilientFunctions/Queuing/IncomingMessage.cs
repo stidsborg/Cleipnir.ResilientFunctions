@@ -4,22 +4,22 @@ using Cleipnir.ResilientFunctions.Messaging;
 namespace Cleipnir.ResilientFunctions.Queuing;
 
 /// <summary>
-/// A message arriving at the queue manager's delivery pipeline - the slice of <see cref="StoredMessage"/> the
-/// pipeline and the durable message carriers use. Incoming is pre-admission: the QueueManager's gate
+/// A message arriving at the queue manager's delivery pipeline - the payload slice of <see cref="StoredMessage"/>
+/// the pipeline and the durable message carriers use. Incoming is pre-admission: the QueueManager's gate
 /// (fetched-position dedup and idempotency-key claim) decides whether the message becomes a
 /// <see cref="QueueManager.StagedMessage"/> waiting for a subscription or is dropped. A message re-staged from its
-/// own child effect (<see cref="ChildId"/>) has already passed the gate and skips it. The store row's replica is
-/// deliberately absent: by the time a message reaches the QueueManager it has already been fetched, and messages
-/// living purely in effect state never had a replica to begin with.
+/// own child effect (<see cref="ChildId"/>) has already passed the gate and skips it.
 ///
-/// A null <see cref="Position"/> marks a message without a backing message-store row (e.g. appended via the control
-/// panel directly into the flow's effect state). Such a message has no store identity, so the QueueManager assigns
-/// it a synthetic negative position at staging and it never participates in row clearing or push dedup.
+/// Deliberately position-free (and replica-free): a position is the address of a message-store row, not part of
+/// the message, so it travels alongside the payload at runtime and is persisted separately - the
+/// <see cref="QueueManager.StagedPositionsId"/> entry links each row-backed staged child to its row, and the
+/// pending-messages blob files each inlined message under the position of the row it came from. A message with no
+/// backing row (e.g. appended via the control panel directly into the flow's effect state) simply has no position
+/// anywhere and never participates in row clearing or push dedup.
 /// </summary>
 internal record IncomingMessage(
     byte[] MessageContent,
     byte[] MessageType,
-    long? Position,
     string? IdempotencyKey = null,
     string? Sender = null,
     string? Receiver = null)
@@ -34,20 +34,19 @@ internal record IncomingMessage(
         => new(
             message.MessageContent,
             message.MessageType,
-            message.RowBacked ? message.Position : null,
             message.IdempotencyKey,
             message.Sender,
             message.Receiver
         );
 
-    public StoredMessage ToStoredMessage()
+    public StoredMessage ToStoredMessage(long? position)
         => new(
             MessageContent,
             MessageType,
-            Position ?? 0,
+            position ?? 0,
             ReplicaId.Empty,
             IdempotencyKey,
             Sender,
             Receiver
-        ) { RowBacked = Position is not null };
+        ) { RowBacked = position is not null };
 }

@@ -479,6 +479,12 @@ internal class EffectResults
     }
     
     private readonly SemaphoreSlim _flushSync = new(initialCount: 1, maxCount: 1);
+
+    // The gate the QueueManager's multi-entry mutations take (see QueueManager.FlushLock): Flush holds it across
+    // the pending-change snapshot and the store write, so a mutation serialized behind it is captured by a flush
+    // either wholly or not at all.
+    internal SemaphoreSlim FlushLock => _flushSync;
+
     public async Task Flush()
     {
         await _flushSync.WaitAsync();
