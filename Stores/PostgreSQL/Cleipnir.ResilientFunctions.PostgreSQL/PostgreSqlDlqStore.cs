@@ -58,13 +58,12 @@ public class PostgreSqlDlqStore : IDlqStore
         if (messages.Count == 0)
             return;
 
-        // The identity column assigns the dlq position. unnest WITH ORDINALITY expands the parameter arrays
-        // into rows in parallel; ORDER BY ord makes the identity assignment follow caller order.
+        // The identity column assigns the dlq position; unnest produces the rows in array order, so the
+        // positions follow caller order.
         _appendSql ??= @$"
             INSERT INTO {_tablePrefix}_dlq (id, content)
             SELECT id, content
-            FROM unnest($1::uuid[], $2::bytea[]) WITH ORDINALITY AS t(id, content, ord)
-            ORDER BY ord;";
+            FROM unnest($1::uuid[], $2::bytea[]) AS t(id, content);";
 
         var ids = messages.Select(m => m.StoredId.AsGuid).ToArray();
         var contents = messages
