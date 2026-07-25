@@ -193,7 +193,11 @@ public class FlowExecutionState
             return false;
 
         //never null: the flow only becomes reachable (FlowsManager.AddFlow) after the queue manager is attached
-        await QueueManager!.Push(messages.Select(IncomingMessage.From).ToList());
+        var queueManager = QueueManager!;
+        // Deserialized at the pipeline boundary - messages failing deserialization are dead lettered here and
+        // never enter the delivery pipeline.
+        var (deserializedMessages, _) = await queueManager.MessageDeserializer.Deserialize(messages.Select(IncomingMessage.From).ToList());
+        await queueManager.Push(deserializedMessages);
         return true;
     }
 

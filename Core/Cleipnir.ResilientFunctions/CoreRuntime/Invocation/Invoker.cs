@@ -284,8 +284,10 @@ public class Invoker<TParam, TReturn> : IFlowRestarter
 
             // Deliver the in-hand messages handed over by the restart straight into the queue manager's pipeline so
             // the flow does not have to re-fetch them from the store. Initialization above has loaded the
-            // idempotency-key state, so these messages are deduped against it.
-            await queueManager.Push(storedMessages.Select(IncomingMessage.From).ToList());
+            // idempotency-key state, so these messages are deduped against it. Deserialization happens here at
+            // the pipeline boundary - messages failing it are dead lettered instead of being pushed.
+            var (deserializedMessages, _) = await queueManager.MessageDeserializer.Deserialize(storedMessages.Select(IncomingMessage.From).ToList());
+            await queueManager.Push(deserializedMessages);
 
             var messageWriter = _invocationHelper.CreateMessageWriter(storedId);
 

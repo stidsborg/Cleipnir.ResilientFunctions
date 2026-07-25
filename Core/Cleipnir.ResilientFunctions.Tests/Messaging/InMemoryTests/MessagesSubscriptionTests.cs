@@ -52,8 +52,8 @@ public class MessagesSubscriptionTests : TestTemplates.MessagesSubscriptionTests
         => QueueClientSupportsMultiFlowMessageExchange(FunctionStoreFactory.Create());
 
     [TestMethod]
-    public override Task QueueManagerFailsOnMessageDeserializationError()
-        => QueueManagerFailsOnMessageDeserializationError(FunctionStoreFactory.Create());
+    public override Task UndeserializableMessageIsMovedToDeadLetterQueue()
+        => UndeserializableMessageIsMovedToDeadLetterQueue(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task RegisteredTimeoutIsRemovedWhenPullingMessage()
