@@ -199,14 +199,14 @@ internal class QueueManager : IDisposable
     /// MessageWatchdog already marked them as pushed, so a silent drop would strand the messages in the
     /// ignore-set and lose the flow's wake-up.
     /// </summary>
-    public async Task Push(IReadOnlyList<StoredMessage> messages)
+    public async Task Push(IReadOnlyList<IncomingMessage> messages)
     {
         if (messages.Count == 0)
             return;
 
         if (_disposed)
         {
-            _messageClearer.ReopenPositions(messages.Select(m => m.Position));
+            ReopenStoreRows(messages);
             return;
         }
 
@@ -218,7 +218,7 @@ internal class QueueManager : IDisposable
             }
             catch (ObjectDisposedException)
             {
-                _messageClearer.ReopenPositions(messages.Select(m => m.Position));
+                ReopenStoreRows(messages);
                 return;
             }
         }
@@ -227,7 +227,7 @@ internal class QueueManager : IDisposable
         try
         {
             if (_thrownException == null)
-                ProcessMessages(messages.Select(IncomingMessage.From).ToList());
+                ProcessMessages(messages);
 
             // A poisoned queue manager (message deserialization failed) cannot deliver. Reopen the batch's
             // unstaged positions so the messages are refetched and handed to a restarted incarnation, whose
@@ -237,8 +237,7 @@ internal class QueueManager : IDisposable
             {
                 List<long> unstagedPositions;
                 lock (_lock)
-                    unstagedPositions = messages
-                        .Select(m => m.Position)
+                    unstagedPositions = StoreRowPositions(messages)
                         .Where(position => !_fetchedPositions.Contains(position))
                         .ToList();
                 _messageClearer.ReopenPositions(unstagedPositions);
@@ -675,6 +674,13 @@ internal class QueueManager : IDisposable
         if (position is { } storePosition)
             _messageClearer.ReopenPositions([storePosition]);
     }
+
+    private void ReopenStoreRows(IReadOnlyList<IncomingMessage> messages)
+        => _messageClearer.ReopenPositions(StoreRowPositions(messages));
+
+    // Only store-addressed messages have a row to reopen - a row-less message has no store identity at all.
+    private static IEnumerable<long> StoreRowPositions(IReadOnlyList<IncomingMessage> messages)
+        => messages.Where(m => m.Position is not null).Select(m => m.Position!.Value);
 
     // The id FlushlessCreateNextChild would append at, without writing - the message is instead written together
     // with the idempotency entry that admitted it, in a single upsert.
