@@ -135,6 +135,7 @@ public class EffectFlushConcurrencyTests
 
         public ITypeStore TypeStore => inner.TypeStore;
         public IMessageStore MessageStore => inner.MessageStore;
+        public IDlqStore DlqStore => inner.DlqStore;
         public IReplicaStore ReplicaStore => inner.ReplicaStore;
         public Task Initialize() => inner.Initialize();
 
