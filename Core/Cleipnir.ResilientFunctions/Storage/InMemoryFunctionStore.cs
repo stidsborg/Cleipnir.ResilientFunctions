@@ -20,6 +20,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
 
     public ITypeStore TypeStore { get; } = new InMemoryTypeStore();
     public IMessageStore MessageStore => this;
+    public IDlqStore DlqStore { get; } = new InMemoryDlqStore();
     public IReplicaStore ReplicaStore { get; } = new InMemoryReplicaStore();
 
     // Effects live per flow, guarded by the flow's owner and an optimistic version - both under the same _sync lock

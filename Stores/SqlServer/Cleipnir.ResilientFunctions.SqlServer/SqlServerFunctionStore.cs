@@ -29,6 +29,8 @@ public class SqlServerFunctionStore : IFunctionStore
 
     public ITypeStore TypeStore => _typeStore;
     public IMessageStore MessageStore => _messageStore;
+    private readonly SqlServerDlqStore _dlqStore;
+    public IDlqStore DlqStore => _dlqStore;
     private readonly SqlServerReplicaStore _replicaStore;
     public IReplicaStore ReplicaStore => _replicaStore;
 
@@ -42,6 +44,7 @@ public class SqlServerFunctionStore : IFunctionStore
 
         _connFunc = CreateConnection(connectionString);
         _messageStore = new SqlServerMessageStore(connectionString, _sqlGenerator, _tableName);
+        _dlqStore = new SqlServerDlqStore(connectionString, _tableName);
         _commandExecutor = new SqlServerCommandExecutor(connectionString);
         _typeStore = new SqlServerTypeStore(connectionString, _tableName);
         _replicaStore = new SqlServerReplicaStore(connectionString, _tableName);
@@ -64,6 +67,7 @@ public class SqlServerFunctionStore : IFunctionStore
             return;
 
         await _messageStore.Initialize();
+        await _dlqStore.Initialize();
         await _typeStore.Initialize();
         await _replicaStore.Initialize();
         await using var conn = await _connFunc();
@@ -108,6 +112,7 @@ public class SqlServerFunctionStore : IFunctionStore
     public async Task TruncateTables()
     {
         await _messageStore.TruncateTable();
+        await _dlqStore.TruncateTable();
         await _typeStore.Truncate();
         await _replicaStore.Truncate();
         

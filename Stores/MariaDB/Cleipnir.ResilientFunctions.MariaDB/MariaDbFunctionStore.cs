@@ -20,7 +20,10 @@ public class MariaDbFunctionStore : IFunctionStore
 
     private readonly MariaDbMessageStore _messageStore;
     public IMessageStore MessageStore => _messageStore;
-    
+
+    private readonly MariaDbDlqStore _dlqStore;
+    public IDlqStore DlqStore => _dlqStore;
+
     private readonly MariaDbCommandExecutor _commandExecutor;
 
     private readonly MariaDbTypeStore _typeStore;
@@ -40,6 +43,7 @@ public class MariaDbFunctionStore : IFunctionStore
         _sqlGenerator = new SqlGenerator(tablePrefix);
 
         _messageStore = new MariaDbMessageStore(connectionString, _sqlGenerator, tablePrefix);
+        _dlqStore = new MariaDbDlqStore(connectionString, tablePrefix);
         _commandExecutor = new MariaDbCommandExecutor(connectionString);
         _typeStore = new MariaDbTypeStore(connectionString, tablePrefix);
         _replicaStore = new MariaDbReplicaStore(connectionString, tablePrefix);
@@ -52,6 +56,7 @@ public class MariaDbFunctionStore : IFunctionStore
             return;
 
         await MessageStore.Initialize();
+        await _dlqStore.Initialize();
         await _typeStore.Initialize();
         await _replicaStore.Initialize();
         await using var conn = await CreateOpenConnection(_connectionString);
@@ -80,6 +85,7 @@ public class MariaDbFunctionStore : IFunctionStore
     public async Task TruncateTables()
     {
         await _messageStore.TruncateTable();
+        await _dlqStore.TruncateTable();
         await _typeStore.Truncate();
         await _replicaStore.Truncate();
         

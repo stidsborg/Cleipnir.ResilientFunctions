@@ -27,6 +27,7 @@ public class FunctionsRegistry : IDisposable
     private readonly StoredTypes _storedTypes;
     
     public ClusterInfo ClusterInfo { get; }
+    public DlqManager DeadLetterQueue { get; }
     
     private volatile bool _disposed;
     private readonly Lock _sync = new();
@@ -48,6 +49,7 @@ public class FunctionsRegistry : IDisposable
             _settings.WatchdogCheckFrequency
         );
         ClusterInfo = new ClusterInfo(ReplicaId.NewId());
+        DeadLetterQueue = new DlqManager(_functionStore.DlqStore);
 
         _flowsManagers = new FlowsManagers(_functionStore, _messageClearer, ClusterInfo);
 

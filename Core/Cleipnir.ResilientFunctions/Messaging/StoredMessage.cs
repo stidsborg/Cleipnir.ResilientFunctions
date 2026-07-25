@@ -29,6 +29,15 @@ public record StoredMessage(byte[] MessageContent, byte[] MessageType, long Posi
 
 public record StoredIdAndMessage(StoredId StoredId, StoredMessage StoredMessage);
 public record StoredMessages(StoredId StoredId, List<StoredMessage> Messages);
+
+/// <summary>
+/// A message parked on the dead letter queue. <paramref name="DlqPosition"/> is the message's identity in the
+/// dead letter queue table - the handle used when deleting or redriving. The inner message's
+/// <see cref="StoredMessage.Position"/> is set from the same dlq row identity (a message's position is always
+/// the identity of the row it currently lives in); the position the message had in the message store before it
+/// was dead lettered is not retained.
+/// </summary>
+public record StoredDlqMessage(StoredId StoredId, long DlqPosition, StoredMessage Message);
 public static class StoredIdAndMessageExtensions
 {
     public static StoredIdAndMessage ToStoredIdAndMessage(this StoredMessage storedMessage, StoredId storedId) 
