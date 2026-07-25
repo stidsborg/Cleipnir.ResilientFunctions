@@ -635,7 +635,7 @@ public abstract Task PullEnvelopeReturnsEnvelopeWithReceiverAndSender();
             {
                 // Use the flow's own (production) queue manager - not a hand-rolled instance - to pull the envelope
                 // and read its receiver/sender metadata.
-                var queueClient = await workflow.QueueManager.CreateQueueClient();
+                var queueClient = workflow.QueueManager.CreateQueueClient();
                 var envelope = await queueClient.PullEnvelope<string>(
                     workflow,
                     workflow.Effect.CreateNextImplicitId(),
