@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Watchdogs;
@@ -192,7 +193,7 @@ public class FlowExecutionState
             return false;
 
         //never null: the flow only becomes reachable (FlowsManager.AddFlow) after the queue manager is attached
-        await QueueManager!.Push(messages);
+        await QueueManager!.Push(messages.Select(IncomingMessage.From).ToList());
         return true;
     }
 
