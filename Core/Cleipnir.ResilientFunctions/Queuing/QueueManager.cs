@@ -46,7 +46,6 @@ internal class QueueManager : IDisposable
     private static readonly TimeSpan MaxDelayStep = TimeSpan.FromMilliseconds(int.MaxValue);
     private readonly IdempotencyKeys _idempotencyKeys;
 
-    private readonly SemaphoreSlim _initializeSemaphore = new(1);
     private readonly SemaphoreSlim _fetchSemaphore = new(1);
     private readonly Lock _lock = new();
     private readonly List<StagedMessage> _toDeliver = new();
@@ -58,7 +57,6 @@ internal class QueueManager : IDisposable
     // entry's own (position-ascending) order, so a rewrite re-encodes the list as-is.
     private readonly List<IncomingMessage> _pendingInlinedMessages = new();
     private volatile Exception? _thrownException;
-    private bool _initialized;
     private volatile bool _disposed;
 
     public QueueManager(
@@ -85,97 +83,85 @@ internal class QueueManager : IDisposable
         _messageClearer = messageClearer;
         _idempotencyKeys = new IdempotencyKeys(IdempotencyKeysRoot, _effect, maxIdempotencyKeyCount, maxIdempotencyKeyTtl, utcNow);
 
-        // Attach to the flow state immediately - not first at initialization - so a push arriving before the flow's
-        // first message interaction is processed (Push self-initializes) instead of being dropped by the flow state.
+        // Attach to the flow state at construction: the flow only becomes reachable for pushes
+        // (FlowsManager.AddFlow) after Initialize has run, so a push can never reach an unattached - or an
+        // uninitialized - queue manager.
         flowExecutionState.QueueManager = this;
     }
 
-    private async Task Initialize()
+    /// <summary>
+    /// Loads the persisted queue state - the delivered positions, staged-message children and inlined pending
+    /// messages a prior incarnation left behind - into the delivery pipeline. Called exactly once, by the creating
+    /// invoker, immediately after construction and before the flow is made reachable or handed any messages: no
+    /// other member has to guard against an uninitialized instance.
+    /// </summary>
+    public async Task Initialize()
     {
-        await _initializeSemaphore.WaitAsync();
-        try
+        _idempotencyKeys.Initialize();
+
+        if (_effect.TryGet<List<long>>(DeliveredPositionsId, out var positions) && positions is { Count: > 0 })
         {
-            if (_disposed)
-                throw new ObjectDisposedException($"{nameof(QueueManager)} has already been disposed");
-            if (_initialized)
-                return;
+            // Remember the positions a previous incarnation already delivered, so a message fetched before its
+            // Clear deletes it from the store (e.g. the restart's in-hand messages) is skipped by
+            // ProcessMessages rather than delivered a second time.
+            lock (_lock)
+                foreach (var position in positions)
+                    _fetchedPositions.Add(position);
 
-            _idempotencyKeys.Initialize();
+            await _messageClearer.Clear(positions);
 
-            if (_effect.TryGet<List<long>>(DeliveredPositionsId, out var positions) && positions is { Count: > 0 })
+            _effect.FlushlessUpsert(DeliveredPositionsId, NoDeliveredPositions, alias: null);
+        }
+
+        // Re-stage the staged-message children a prior incarnation left behind: each message it had staged
+        // but not yet delivered persists as its own child effect. A child whose position was already
+        // delivered (replayed above) is pruned rather than re-delivered - the analogue of the delivered-
+        // positions store-row clear above.
+        var stagedChildren = new List<IncomingMessage>();
+        foreach (var childId in _effect.GetChildren(StagedMessagesRoot))
+        {
+            // The child travels with the message: it is the identity of a row-less (control-panel authored)
+            // message, which has no store position at all, and it stops ProcessMessages from creating a
+            // second child for a message that already has one.
+            var message = PendingMessages.DecodeMessage(_effect.Get<byte[]>(childId)) with { ChildId = childId };
+
+            // Only a store-addressed child can have been delivered by a prior incarnation - the replayed
+            // delivered positions are store positions, so a row-less message can never match one.
+            if (message.Position is { } position)
             {
-                // Remember the positions a previous incarnation already delivered, so a message fetched before its
-                // Clear deletes it from the store (e.g. the restart's in-hand messages) is skipped by
-                // ProcessMessages rather than delivered a second time.
+                bool alreadyDelivered;
                 lock (_lock)
-                    foreach (var position in positions)
-                        _fetchedPositions.Add(position);
-
-                await _messageClearer.Clear(positions);
-
-                _effect.FlushlessUpsert(DeliveredPositionsId, NoDeliveredPositions, alias: null);
-            }
-
-            // Re-stage the staged-message children a prior incarnation left behind: each message it had staged
-            // but not yet delivered persists as its own child effect. A child whose position was already
-            // delivered (replayed above) is pruned rather than re-delivered - the analogue of the delivered-
-            // positions store-row clear above.
-            var stagedChildren = new List<IncomingMessage>();
-            foreach (var childId in _effect.GetChildren(StagedMessagesRoot))
-            {
-                // The child travels with the message: it is the identity of a row-less (control-panel authored)
-                // message, which has no store position at all, and it stops ProcessMessages from creating a
-                // second child for a message that already has one.
-                var message = PendingMessages.DecodeMessage(_effect.Get<byte[]>(childId)) with { ChildId = childId };
-
-                // Only a store-addressed child can have been delivered by a prior incarnation - the replayed
-                // delivered positions are store positions, so a row-less message can never match one.
-                if (message.Position is { } position)
+                    alreadyDelivered = _fetchedPositions.Contains(position);
+                if (alreadyDelivered)
                 {
-                    bool alreadyDelivered;
-                    lock (_lock)
-                        alreadyDelivered = _fetchedPositions.Contains(position);
-                    if (alreadyDelivered)
-                    {
-                        _effect.FlushlessClear(childId);
-                        continue;
-                    }
+                    _effect.FlushlessClear(childId);
+                    continue;
                 }
-
-                stagedChildren.Add(message);
-            }
-            if (stagedChildren.Count > 0)
-                ProcessMessages(stagedChildren);
-
-            // Stage messages that were inlined into the effect state while the flow was completed (their store
-            // rows are deleted, so this entry is their only carrier). ProcessMessages dedups them against the
-            // replayed delivered positions and the persisted idempotency keys; running it here without the fetch
-            // semaphore is safe - pushes acquire the semaphore only after Initialize has completed.
-            var pendingEntry = _effect.GetStoredEffect(PendingMessages.EffectId);
-            if (pendingEntry?.Result is { Length: > 0 } pendingBytes)
-            {
-                var pendingMessages = PendingMessages.Decode(pendingBytes);
-                lock (_lock)
-                    _pendingInlinedMessages.AddRange(pendingMessages);
-
-                ProcessMessages(pendingMessages);
             }
 
-            _initialized = true;
-            _effect.RegisterQueueManager(this);
+            stagedChildren.Add(message);
         }
-        finally
+        if (stagedChildren.Count > 0)
+            ProcessMessages(stagedChildren);
+
+        // Stage messages that were inlined into the effect state while the flow was completed (their store
+        // rows are deleted, so this entry is their only carrier). ProcessMessages dedups them against the
+        // replayed delivered positions and the persisted idempotency keys; running it here without the fetch
+        // semaphore is safe - nothing can push before initialization has completed.
+        var pendingEntry = _effect.GetStoredEffect(PendingMessages.EffectId);
+        if (pendingEntry?.Result is { Length: > 0 } pendingBytes)
         {
-            _initializeSemaphore.Release();
+            var pendingMessages = PendingMessages.Decode(pendingBytes);
+            lock (_lock)
+                _pendingInlinedMessages.AddRange(pendingMessages);
+
+            ProcessMessages(pendingMessages);
         }
+
+        _effect.RegisterQueueManager(this);
     }
 
-    public async Task<QueueClient> CreateQueueClient()
-    {
-        if (!_initialized)
-            await Initialize();
-        return new QueueClient(this, _serializer, _utcNow);
-    }
+    public QueueClient CreateQueueClient() => new(this, _serializer, _utcNow);
 
     // Re-evaluates the already-pushed messages against the current subscriptions. The queue manager no longer reads
     // from the message store: messages arrive exclusively via Push (the MessageWatchdog poll and the restart
@@ -190,10 +176,9 @@ internal class QueueManager : IDisposable
 
     /// <summary>
     /// Pushes messages fetched elsewhere (the MessageWatchdog, or the in-hand messages handed over on restart)
-    /// straight into the delivery pipeline, avoiding a per-flow re-fetch. Ensures the queue manager is initialized
-    /// first so the idempotency-key state is loaded before the messages are processed. Idempotent: positions
-    /// already processed are skipped by ProcessMessages. Both routes strip empty (restart-poke) messages before
-    /// handing over, so every message arriving here carries a deliverable payload.
+    /// straight into the delivery pipeline, avoiding a per-flow re-fetch. Idempotent: positions already processed
+    /// are skipped by ProcessMessages. Both routes strip empty (restart-poke) messages before handing over, so
+    /// every message arriving here carries a deliverable payload.
     ///
     /// A push that hits a disposed (dying) instance reopens its positions instead of dropping them: the
     /// MessageWatchdog already marked them as pushed, so a silent drop would strand the messages in the
@@ -208,19 +193,6 @@ internal class QueueManager : IDisposable
         {
             ReopenStoreRows(messages);
             return;
-        }
-
-        if (!_initialized)
-        {
-            try
-            {
-                await Initialize();
-            }
-            catch (ObjectDisposedException)
-            {
-                ReopenStoreRows(messages);
-                return;
-            }
         }
 
         await _fetchSemaphore.WaitAsync();
