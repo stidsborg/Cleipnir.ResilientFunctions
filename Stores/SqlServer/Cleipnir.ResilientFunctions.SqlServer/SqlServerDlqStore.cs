@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Helpers;
@@ -54,30 +55,25 @@ public class SqlServerDlqStore : IDlqStore
         if (messages.Count == 0)
             return;
 
-        if (messages.Count > 300)
+        // Bulk load instead of a parameterized multi-row INSERT - no parameter or row-count limits, so no
+        // chunking. Rows are streamed in caller order, so the identity column assigns dlq positions accordingly.
+        // The column mappings matter: without them SqlBulkCopy maps by ordinal, colliding with the identity
+        // Position column.
+        var table = new DataTable();
+        table.Columns.Add("Id", typeof(Guid));
+        table.Columns.Add("Content", typeof(byte[]));
+        foreach (var (storedId, (messageContent, messageType, _, _, idempotencyKey, sender, receiver)) in messages)
         {
-            foreach (var chunk in messages.Chunk(300))
-                await Append(chunk);
-
-            return;
+            var content = BinaryPacker.Pack(messageContent, messageType, idempotencyKey?.ToUtf8Bytes(), sender?.ToUtf8Bytes(), receiver?.ToUtf8Bytes());
+            table.Rows.Add(storedId.AsGuid, content);
         }
 
         await using var conn = await CreateConnection();
-        var sql = @$"
-            INSERT INTO {_tablePrefix}_Dlq
-                (Id, Content)
-            VALUES
-                 {messages.Select((_, i) => $"(@Id{i}, @Content{i})").StringJoin($",{Environment.NewLine}")};";
-
-        await using var command = new SqlCommand(sql, conn);
-        for (var i = 0; i < messages.Count; i++)
-        {
-            var (storedId, (messageContent, messageType, _, _, idempotencyKey, sender, receiver)) = messages[i];
-            var content = BinaryPacker.Pack(messageContent, messageType, idempotencyKey?.ToUtf8Bytes(), sender?.ToUtf8Bytes(), receiver?.ToUtf8Bytes());
-            command.Parameters.AddWithValue($"@Id{i}", storedId.AsGuid);
-            command.Parameters.AddWithValue($"@Content{i}", content);
-        }
-        await command.ExecuteNonQueryAsync();
+        using var bulkCopy = new SqlBulkCopy(conn);
+        bulkCopy.DestinationTableName = $"{_tablePrefix}_Dlq";
+        bulkCopy.ColumnMappings.Add("Id", "Id");
+        bulkCopy.ColumnMappings.Add("Content", "Content");
+        await bulkCopy.WriteToServerAsync(table);
     }
 
     private string? _getAllMessagesSql;
