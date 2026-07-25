@@ -30,7 +30,6 @@ public class SqlServerDlqStore : IDlqStore
         CREATE TABLE {_tablePrefix}_Dlq (
             Position BIGINT IDENTITY(1,1) PRIMARY KEY,
             Id UNIQUEIDENTIFIER NOT NULL,
-            PreviousPosition BIGINT NOT NULL,
             Content VARBINARY(MAX) NOT NULL
         );
         CREATE INDEX {_tablePrefix}_Dlq_Id ON {_tablePrefix}_Dlq (Id);";
@@ -66,17 +65,16 @@ public class SqlServerDlqStore : IDlqStore
         await using var conn = await CreateConnection();
         var sql = @$"
             INSERT INTO {_tablePrefix}_Dlq
-                (Id, PreviousPosition, Content)
+                (Id, Content)
             VALUES
-                 {messages.Select((_, i) => $"(@Id{i}, @PreviousPosition{i}, @Content{i})").StringJoin($",{Environment.NewLine}")};";
+                 {messages.Select((_, i) => $"(@Id{i}, @Content{i})").StringJoin($",{Environment.NewLine}")};";
 
         await using var command = new SqlCommand(sql, conn);
         for (var i = 0; i < messages.Count; i++)
         {
-            var (storedId, (messageContent, messageType, position, _, idempotencyKey, sender, receiver)) = messages[i];
+            var (storedId, (messageContent, messageType, _, _, idempotencyKey, sender, receiver)) = messages[i];
             var content = BinaryPacker.Pack(messageContent, messageType, idempotencyKey?.ToUtf8Bytes(), sender?.ToUtf8Bytes(), receiver?.ToUtf8Bytes());
             command.Parameters.AddWithValue($"@Id{i}", storedId.AsGuid);
-            command.Parameters.AddWithValue($"@PreviousPosition{i}", position);
             command.Parameters.AddWithValue($"@Content{i}", content);
         }
         await command.ExecuteNonQueryAsync();
@@ -87,7 +85,7 @@ public class SqlServerDlqStore : IDlqStore
     {
         await using var conn = await CreateConnection();
         _getAllMessagesSql ??= @$"
-            SELECT Id, Position, PreviousPosition, Content
+            SELECT Id, Position, Content
             FROM {_tablePrefix}_Dlq
             ORDER BY Position;";
 
@@ -102,7 +100,7 @@ public class SqlServerDlqStore : IDlqStore
 
         await using var conn = await CreateConnection();
         var sql = @$"
-            SELECT Id, Position, PreviousPosition, Content
+            SELECT Id, Position, Content
             FROM {_tablePrefix}_Dlq
             WHERE Id IN ({storedIds.Select((_, i) => $"@Id{i}").StringJoin(", ")})
             ORDER BY Position;";
@@ -122,9 +120,8 @@ public class SqlServerDlqStore : IDlqStore
         {
             var storedId = new StoredId(reader.GetGuid(0));
             var position = reader.GetInt64(1);
-            var previousPosition = reader.GetInt64(2);
-            var content = (byte[])reader.GetValue(3);
-            var storedMessage = SqlServerMessageStore.ConvertToStoredMessage(content, previousPosition, replica: null);
+            var content = (byte[])reader.GetValue(2);
+            var storedMessage = SqlServerMessageStore.ConvertToStoredMessage(content, position, replica: null);
             messages.Add(new StoredDlqMessage(storedId, position, storedMessage));
         }
 

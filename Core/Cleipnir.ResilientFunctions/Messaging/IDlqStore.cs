@@ -10,8 +10,8 @@ public interface IDlqStore
 
     /// <summary>
     /// Appends the messages to the dead letter queue. Each row is assigned a globally unique dlq position
-    /// (identity value) in caller order; the message's previous message-store position is persisted alongside
-    /// the content for informational purposes.
+    /// (identity value) in caller order; the messages' incoming <see cref="StoredMessage.Position"/> values are
+    /// not persisted - fetched messages carry their dlq position instead.
     /// </summary>
     Task Append(IReadOnlyList<StoredIdAndMessage> messages);
 

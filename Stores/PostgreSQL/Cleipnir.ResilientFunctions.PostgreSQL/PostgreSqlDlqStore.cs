@@ -35,7 +35,6 @@ public class PostgreSqlDlqStore : IDlqStore
             CREATE TABLE IF NOT EXISTS {_tablePrefix}_dlq (
                 position BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
                 id UUID NOT NULL,
-                previous_position BIGINT NOT NULL,
                 content BYTEA NOT NULL
             );
             CREATE INDEX IF NOT EXISTS {_tablePrefix}_dlq_id_idx ON {_tablePrefix}_dlq (id);";
@@ -62,13 +61,12 @@ public class PostgreSqlDlqStore : IDlqStore
         // The identity column assigns the dlq position. unnest WITH ORDINALITY expands the parameter arrays
         // into rows in parallel; ORDER BY ord makes the identity assignment follow caller order.
         _appendSql ??= @$"
-            INSERT INTO {_tablePrefix}_dlq (id, previous_position, content)
-            SELECT id, previous_position, content
-            FROM unnest($1::uuid[], $2::bigint[], $3::bytea[]) WITH ORDINALITY AS t(id, previous_position, content, ord)
+            INSERT INTO {_tablePrefix}_dlq (id, content)
+            SELECT id, content
+            FROM unnest($1::uuid[], $2::bytea[]) WITH ORDINALITY AS t(id, content, ord)
             ORDER BY ord;";
 
         var ids = messages.Select(m => m.StoredId.AsGuid).ToArray();
-        var previousPositions = messages.Select(m => m.StoredMessage.Position).ToArray();
         var contents = messages
             .Select(m => BinaryPacker.Pack(
                 m.StoredMessage.MessageContent,
@@ -85,7 +83,6 @@ public class PostgreSqlDlqStore : IDlqStore
             Parameters =
             {
                 new() { Value = ids },
-                new() { Value = previousPositions },
                 new() { Value = contents }
             }
         };
@@ -97,7 +94,7 @@ public class PostgreSqlDlqStore : IDlqStore
     {
         await using var conn = await CreateConnection();
         _getAllMessagesSql ??= @$"
-            SELECT id, position, previous_position, content
+            SELECT id, position, content
             FROM {_tablePrefix}_dlq
             ORDER BY position;";
 
@@ -113,7 +110,7 @@ public class PostgreSqlDlqStore : IDlqStore
 
         await using var conn = await CreateConnection();
         _getMessagesSql ??= @$"
-            SELECT id, position, previous_position, content
+            SELECT id, position, content
             FROM {_tablePrefix}_dlq
             WHERE id = ANY($1)
             ORDER BY position;";
@@ -136,9 +133,8 @@ public class PostgreSqlDlqStore : IDlqStore
         {
             var storedId = new StoredId(reader.GetGuid(0));
             var position = reader.GetInt64(1);
-            var previousPosition = reader.GetInt64(2);
-            var content = (byte[])reader.GetValue(3);
-            var storedMessage = PostgreSqlMessageStore.ConvertToStoredMessage(content, previousPosition, replica: null);
+            var content = (byte[])reader.GetValue(2);
+            var storedMessage = PostgreSqlMessageStore.ConvertToStoredMessage(content, position, replica: null);
             messages.Add(new StoredDlqMessage(storedId, position, storedMessage));
         }
 

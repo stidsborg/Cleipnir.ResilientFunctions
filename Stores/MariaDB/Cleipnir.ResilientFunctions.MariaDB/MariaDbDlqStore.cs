@@ -25,7 +25,6 @@ public class MariaDbDlqStore : IDlqStore
             CREATE TABLE IF NOT EXISTS {_tablePrefix}_dlq (
                 position BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
                 id CHAR(32) NOT NULL,
-                previous_position BIGINT NOT NULL,
                 content LONGBLOB NOT NULL,
                 INDEX {_tablePrefix}_dlq_id_idx (id)
             );";
@@ -48,8 +47,8 @@ public class MariaDbDlqStore : IDlqStore
             return;
 
         var sql = @$"
-            INSERT INTO {_tablePrefix}_dlq (id, previous_position, content)
-            VALUES {messages.Select(_ => "(?, ?, ?)").StringJoin($",{Environment.NewLine}")};";
+            INSERT INTO {_tablePrefix}_dlq (id, content)
+            VALUES {messages.Select(_ => "(?, ?)").StringJoin($",{Environment.NewLine}")};";
 
         await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
         await using var command = new MySqlCommand(sql, conn);
@@ -63,7 +62,6 @@ public class MariaDbDlqStore : IDlqStore
                 storedMessage.Receiver?.ToUtf8Bytes()
             );
             command.Parameters.Add(new() { Value = storedId.AsGuid.ToString("N") });
-            command.Parameters.Add(new() { Value = storedMessage.Position });
             command.Parameters.Add(new() { Value = content });
         }
         await command.ExecuteNonQueryAsync();
@@ -74,7 +72,7 @@ public class MariaDbDlqStore : IDlqStore
     {
         await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
         _getAllMessagesSql ??= @$"
-            SELECT id, position, previous_position, content
+            SELECT id, position, content
             FROM {_tablePrefix}_dlq
             ORDER BY position;";
 
@@ -88,7 +86,7 @@ public class MariaDbDlqStore : IDlqStore
             return new List<StoredDlqMessage>();
 
         var sql = @$"
-            SELECT id, position, previous_position, content
+            SELECT id, position, content
             FROM {_tablePrefix}_dlq
             WHERE id IN ({storedIds.Select(_ => "?").StringJoin(", ")})
             ORDER BY position;";
@@ -109,9 +107,8 @@ public class MariaDbDlqStore : IDlqStore
         {
             var storedId = new StoredId(Guid.Parse(reader.GetString(0)));
             var position = reader.GetInt64(1);
-            var previousPosition = reader.GetInt64(2);
-            var content = (byte[])reader.GetValue(3);
-            var storedMessage = MariaDbMessageStore.ConvertToStoredMessage(content, previousPosition, replica: null);
+            var content = (byte[])reader.GetValue(2);
+            var storedMessage = MariaDbMessageStore.ConvertToStoredMessage(content, position, replica: null);
             messages.Add(new StoredDlqMessage(storedId, position, storedMessage));
         }
 

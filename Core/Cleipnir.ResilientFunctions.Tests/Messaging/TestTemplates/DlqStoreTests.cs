@@ -19,8 +19,8 @@ public abstract class DlqStoreTests
         var dlqStore = functionStore.DlqStore;
         var storedId = TestStoredId.Create();
 
-        var msg1 = CreateMessage("hello world", previousPosition: 123, idempotencyKey: "idempotencyKey1", sender: "sender1", receiver: "receiver1");
-        var msg2 = CreateMessage("hello universe", previousPosition: 124);
+        var msg1 = CreateMessage("hello world", position: 123, idempotencyKey: "idempotencyKey1", sender: "sender1", receiver: "receiver1");
+        var msg2 = CreateMessage("hello universe", position: 124);
 
         await dlqStore.Append([msg1.ToStoredIdAndMessage(storedId), msg2.ToStoredIdAndMessage(storedId)]);
 
@@ -29,14 +29,14 @@ public abstract class DlqStoreTests
 
         messages[0].StoredId.ShouldBe(storedId);
         messages[0].Message.DefaultDeserialize().ShouldBe("hello world");
-        messages[0].Message.Position.ShouldBe(123); //the previous message store position
+        messages[0].Message.Position.ShouldBe(messages[0].DlqPosition); //the incoming position is not persisted - the dlq position takes its place
         messages[0].Message.IdempotencyKey.ShouldBe("idempotencyKey1");
         messages[0].Message.Sender.ShouldBe("sender1");
         messages[0].Message.Receiver.ShouldBe("receiver1");
 
         messages[1].StoredId.ShouldBe(storedId);
         messages[1].Message.DefaultDeserialize().ShouldBe("hello universe");
-        messages[1].Message.Position.ShouldBe(124);
+        messages[1].Message.Position.ShouldBe(messages[1].DlqPosition);
         messages[1].Message.IdempotencyKey.ShouldBeNull();
         messages[1].Message.Sender.ShouldBeNull();
         messages[1].Message.Receiver.ShouldBeNull();
@@ -54,10 +54,10 @@ public abstract class DlqStoreTests
         var storedId3 = TestStoredId.Create();
 
         await dlqStore.Append([
-            CreateMessage("msg1", previousPosition: 1).ToStoredIdAndMessage(storedId1),
-            CreateMessage("msg2", previousPosition: 2).ToStoredIdAndMessage(storedId2),
-            CreateMessage("msg3", previousPosition: 3).ToStoredIdAndMessage(storedId3),
-            CreateMessage("msg4", previousPosition: 4).ToStoredIdAndMessage(storedId1)
+            CreateMessage("msg1", position: 1).ToStoredIdAndMessage(storedId1),
+            CreateMessage("msg2", position: 2).ToStoredIdAndMessage(storedId2),
+            CreateMessage("msg3", position: 3).ToStoredIdAndMessage(storedId3),
+            CreateMessage("msg4", position: 4).ToStoredIdAndMessage(storedId1)
         ]);
 
         var messages = await dlqStore.GetMessages([storedId1, storedId3]);
@@ -81,9 +81,9 @@ public abstract class DlqStoreTests
         var storedId = TestStoredId.Create();
 
         await dlqStore.Append([
-            CreateMessage("msg1", previousPosition: 1).ToStoredIdAndMessage(storedId),
-            CreateMessage("msg2", previousPosition: 2).ToStoredIdAndMessage(storedId),
-            CreateMessage("msg3", previousPosition: 3).ToStoredIdAndMessage(storedId)
+            CreateMessage("msg1", position: 1).ToStoredIdAndMessage(storedId),
+            CreateMessage("msg2", position: 2).ToStoredIdAndMessage(storedId),
+            CreateMessage("msg3", position: 3).ToStoredIdAndMessage(storedId)
         ]);
 
         var messages = await dlqStore.GetMessages();
@@ -115,7 +115,7 @@ public abstract class DlqStoreTests
         var dlqStore = functionStore.DlqStore;
         var storedId = TestStoredId.Create();
 
-        await dlqStore.Append([CreateMessage("msg1", previousPosition: 1).ToStoredIdAndMessage(storedId)]);
+        await dlqStore.Append([CreateMessage("msg1", position: 1).ToStoredIdAndMessage(storedId)]);
 
         await dlqStore.Delete([]);
         await dlqStore.Delete([999_999]);
@@ -123,11 +123,11 @@ public abstract class DlqStoreTests
         (await dlqStore.GetMessages()).Count.ShouldBe(1);
     }
 
-    private static StoredMessage CreateMessage(string content, long previousPosition, string? idempotencyKey = null, string? sender = null, string? receiver = null)
+    private static StoredMessage CreateMessage(string content, long position, string? idempotencyKey = null, string? sender = null, string? receiver = null)
         => new(
             content.ToJson().ToUtf8Bytes(),
             content.GetType().SimpleQualifiedName().ToUtf8Bytes(),
-            previousPosition,
+            position,
             ReplicaId.Empty,
             idempotencyKey,
             sender,

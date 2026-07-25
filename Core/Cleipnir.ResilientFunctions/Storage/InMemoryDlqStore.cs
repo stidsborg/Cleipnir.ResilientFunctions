@@ -29,7 +29,7 @@ public class InMemoryDlqStore : IDlqStore
         lock (_sync)
             return _messages
                 .OrderBy(kv => kv.Key)
-                .Select(kv => new StoredDlqMessage(kv.Value.StoredId, DlqPosition: kv.Key, kv.Value.StoredMessage))
+                .Select(kv => new StoredDlqMessage(kv.Value.StoredId, DlqPosition: kv.Key, kv.Value.StoredMessage with { Position = kv.Key }))
                 .ToList()
                 .CastTo<IReadOnlyList<StoredDlqMessage>>()
                 .ToTask();
@@ -42,7 +42,7 @@ public class InMemoryDlqStore : IDlqStore
             return _messages
                 .Where(kv => ids.Contains(kv.Value.StoredId))
                 .OrderBy(kv => kv.Key)
-                .Select(kv => new StoredDlqMessage(kv.Value.StoredId, DlqPosition: kv.Key, kv.Value.StoredMessage))
+                .Select(kv => new StoredDlqMessage(kv.Value.StoredId, DlqPosition: kv.Key, kv.Value.StoredMessage with { Position = kv.Key }))
                 .ToList()
                 .CastTo<IReadOnlyList<StoredDlqMessage>>()
                 .ToTask();
