@@ -208,15 +208,21 @@ internal class QueueManager
     /// Invariant on return: every handled message has been added to the flow's effect state - in memory only,
     /// deliberately unflushed for performance; it is persisted with the flow's next flush, after which the store
     /// row is deleted (<see cref="AfterFlush"/>) - and every subscription the batch resolved has resumed its
-    /// waiter, so the flow's waiting-subflow accounting reflects the deliveries. Idempotent: positions already
-    /// processed are skipped by ProcessMessages.
+    /// waiter, so the flow's waiting-subflow accounting reflects the deliveries. The flow cannot suspend while
+    /// the push is running: a suspension falling due mid-push is deferred to the push's drain
+    /// (FlowExecutionState.TrySuspend), so an accepted push always completes against a live flow. Idempotent:
+    /// positions already processed are skipped by ProcessMessages.
+    ///
+    /// Returns the dead lettered messages' store positions. Dead lettering is terminal - the message is in the
+    /// dlq and its row deleted - and, unlike every other handling, NOT idempotent to redo: a caller re-handing
+    /// the batch to the restart path must exclude these messages, or the dlq receives a duplicate entry.
     /// </summary>
-    public async Task Push(IReadOnlyList<StoredMessage> messages)
+    public async Task<IReadOnlyList<long>> Push(IReadOnlyList<StoredMessage> messages)
     {
         if (messages.Count == 0)
-            return;
+            return [];
 
-        var (deserialized, _) = await _messageDeserializer.Deserialize(
+        var (deserialized, deadLettered) = await _messageDeserializer.Deserialize(
             messages.Select(IncomingMessage.From).ToList()
         );
 
@@ -233,6 +239,10 @@ internal class QueueManager
 
         // The subscriptions this push resolved have resumed their waiters before the push reports done.
         await _flowExecutionState.WhenWakeupsConsumed();
+
+        return deadLettered.Count == 0
+            ? []
+            : deadLettered.Where(m => m.Position is not null).Select(m => m.Position!.Value).ToList();
     }
 
     public async Task<Envelope?> Subscribe(

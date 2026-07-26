@@ -100,15 +100,18 @@ public class FlowsManager
 
     // Delivers to the live flow - unless it no longer accepts pushes (it has decided to suspend or its
     // invocation is ending), in which case the delivery waits for the invocation to complete (the final status
-    // is persisted by then) and restarts the flow with the messages still in hand, instead of bouncing them
-    // through a position-reopen and a later watchdog poll.
+    // is persisted by then) and restarts the flow with the unhandled messages still in hand, instead of
+    // bouncing them through a position-reopen and a later watchdog poll. Messages the refused push already
+    // handled terminally (dead lettered) are excluded by the push itself - and when nothing remains there is
+    // nothing to redeliver, so no restart is needed either.
     private async Task DeliverToFlow(FlowExecutionState flowState, StoredMessages storedMessages)
     {
-        if (await flowState.Push(storedMessages.Messages))
+        var undelivered = await flowState.Push(storedMessages.Messages);
+        if (undelivered is null || undelivered.Count == 0)
             return;
 
         await flowState.Completed;
-        await RestartExecutions([storedMessages]);
+        await RestartExecutions([storedMessages with { Messages = undelivered.ToList() }]);
     }
 
     /// <summary>

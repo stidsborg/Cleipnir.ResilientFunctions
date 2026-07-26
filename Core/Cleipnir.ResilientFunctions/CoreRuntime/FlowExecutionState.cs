@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Watchdogs;
@@ -37,6 +38,9 @@ public class FlowExecutionState
     // final persistence, so everything a push stages is included in the incarnation's last flush.
     private int _activePushes;
     private bool _pushesClosed;
+    // Set when a due suspension was refused solely because a push was in flight - the last draining push
+    // retries it, since no waiting-state transition (the normal re-arm trigger) may ever come.
+    private bool _suspendDeferredByPush;
     private readonly TaskCompletionSource _pushesDrainedTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
     public StoredId Id { get; }
@@ -223,41 +227,62 @@ public class FlowExecutionState
     }
 
     /// <summary>
-    /// Routes the pushed messages to the attached queue manager. Returns false when the flow does not accept
-    /// the push - it has decided to suspend or its invocation is ending (<see cref="ClosePushes"/>), whether
-    /// observed upfront or entered while the push was in flight - the caller then awaits <see cref="Completed"/>
-    /// and restarts the flow with the messages in hand. The in-flight re-check is what redelivers a message
-    /// whose delivery was sealed away by a concurrent suspension decision: the restart's incarnation finds it
-    /// re-staged (its child effect was persisted with the suspension) and delivers it on replay.
+    /// Routes the pushed messages to the attached queue manager. Returns null when the flow accepted the push.
+    /// Otherwise the flow does not accept it - it has decided to suspend (observable only at entry: a suspension
+    /// due mid-push is deferred to the push's drain, so an accepted push always runs to completion on a live
+    /// flow) or its invocation is ending (<see cref="ClosePushes"/>) - and the returned messages are the ones
+    /// the caller must hand to the restart path (awaiting <see cref="Completed"/> first). Messages the push dead
+    /// lettered are excluded from the returned list - dead lettering is terminal and re-handing one would
+    /// duplicate its dlq entry; every other handling is idempotent under the restart's re-push.
     /// </summary>
-    public async Task<bool> Push(IReadOnlyList<StoredMessage> messages)
+    public async Task<IReadOnlyList<StoredMessage>?> Push(IReadOnlyList<StoredMessage> messages)
     {
         lock (_lock)
         {
             if (Suspended || _pushesClosed)
-                return false;
+                return messages;
             _activePushes++;
         }
 
+        IReadOnlyList<long> deadLetteredPositions = [];
+        var accepted = false;
         try
         {
             //never null: the flow only becomes reachable (FlowsManager.AddFlow) after the queue manager is attached
             // The push deserializes at the pipeline boundary - messages failing deserialization are dead lettered
             // there and never enter the delivery pipeline.
-            await QueueManager!.Push(messages);
+            deadLetteredPositions = await QueueManager!.Push(messages);
         }
         finally
         {
+            bool retryDeferredSuspend;
             lock (_lock)
             {
                 _activePushes--;
                 if (_pushesClosed && _activePushes == 0)
                     _pushesDrainedTcs.TrySetResult();
+
+                // Decided atomically with the drain: a suspension deferred to this push can only commit after
+                // the lock is released, i.e. after the push has already been accepted - and such a suspension
+                // strands nothing, since the completed push's deliveries are consumed and its staged messages
+                // are persisted (as child effects) by the suspension's own flush.
+                accepted = !Suspended && !_pushesClosed;
+
+                retryDeferredSuspend = _suspendDeferredByPush && _activePushes == 0;
+                if (retryDeferredSuspend)
+                    _suspendDeferredByPush = false;
             }
+
+            if (retryDeferredSuspend)
+                TrySuspend();
         }
 
-        lock (_lock)
-            return !Suspended && !_pushesClosed;
+        if (accepted)
+            return null;
+
+        return deadLetteredPositions.Count == 0
+            ? messages
+            : messages.Where(message => !deadLetteredPositions.Contains(message.Position)).ToList();
     }
 
     /// <summary>
@@ -298,6 +323,15 @@ public class FlowExecutionState
         {
             if (Subflows != WaitingSubflows || _pendingWakeups != 0 || Suspended || _status == FlowStatus.Completed)
                 return;
+
+            // The push invariant: while messages are being pushed and the subscriptions they resolve resumed,
+            // the flow cannot suspend. Defer the otherwise-due suspension to the last draining push - a push
+            // that changed no waiting state would never re-arm the suspension timer.
+            if (_activePushes != 0)
+            {
+                _suspendDeferredByPush = true;
+                return;
+            }
 
             Suspended = true;
             _status = FlowStatus.Suspending;
