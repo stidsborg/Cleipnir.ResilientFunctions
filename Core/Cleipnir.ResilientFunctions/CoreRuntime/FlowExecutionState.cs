@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Watchdogs;
@@ -31,6 +30,14 @@ public class FlowExecutionState
     // counts as waiting until it passes the resume gate, so this is what blocks TrySuspend from suspending away
     // an already-consumed wake-up (the message would be durably delivered while the flow never processes it).
     private int _pendingWakeups;
+    // Completes the pending WhenWakeupsConsumed waiters when _pendingWakeups drops to zero. Allocated lazily -
+    // only a push that actually resolved subscriptions ever waits.
+    private TaskCompletionSource? _wakeupsConsumedTcs;
+    // Pushes currently inside the queue manager. ClosePushes waits for them to drain before the invocation's
+    // final persistence, so everything a push stages is included in the incarnation's last flush.
+    private int _activePushes;
+    private bool _pushesClosed;
+    private readonly TaskCompletionSource _pushesDrainedTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
     public StoredId Id { get; }
     public int Subflows { get; private set; }
@@ -166,7 +173,10 @@ public class FlowExecutionState
     public void WakeupConsumed()
     {
         lock (_lock)
+        {
             _pendingWakeups--;
+            SignalIfAllWakeupsConsumed();
+        }
     }
 
     /// <summary>
@@ -180,25 +190,92 @@ public class FlowExecutionState
         {
             WaitingSubflows--;
             _pendingWakeups--;
+            SignalIfAllWakeupsConsumed();
+        }
+    }
+
+    // Caller must hold _lock.
+    private void SignalIfAllWakeupsConsumed()
+    {
+        if (_pendingWakeups != 0 || _wakeupsConsumedTcs is null)
+            return;
+
+        _wakeupsConsumedTcs.TrySetResult();
+        _wakeupsConsumedTcs = null;
+    }
+
+    /// <summary>
+    /// Completes once every committed wake-up has been consumed - each resolved subscription's waiter has passed
+    /// its resume gate. Awaited by the queue manager's push, whose invariant is that it only returns after the
+    /// subscriptions it resolved have actually resumed: the flow's waiting-subflow accounting then reflects the
+    /// delivery, so a suspension decision after the push observes the woken subflows as running.
+    /// </summary>
+    public Task WhenWakeupsConsumed()
+    {
+        lock (_lock)
+        {
+            if (_pendingWakeups == 0)
+                return Task.CompletedTask;
+
+            _wakeupsConsumedTcs ??= new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            return _wakeupsConsumedTcs.Task;
         }
     }
 
     /// <summary>
-    /// Routes the pushed messages to the attached queue manager. Returns false when the flow has decided to
-    /// suspend - the caller awaits <see cref="Completed"/> and restarts the flow with the messages in hand.
+    /// Routes the pushed messages to the attached queue manager. Returns false when the flow does not accept
+    /// the push - it has decided to suspend or its invocation is ending (<see cref="ClosePushes"/>), whether
+    /// observed upfront or entered while the push was in flight - the caller then awaits <see cref="Completed"/>
+    /// and restarts the flow with the messages in hand. The in-flight re-check is what redelivers a message
+    /// whose delivery was sealed away by a concurrent suspension decision: the restart's incarnation finds it
+    /// re-staged (its child effect was persisted with the suspension) and delivers it on replay.
     /// </summary>
     public async Task<bool> Push(IReadOnlyList<StoredMessage> messages)
     {
-        if (Suspended)
-            return false;
+        lock (_lock)
+        {
+            if (Suspended || _pushesClosed)
+                return false;
+            _activePushes++;
+        }
 
-        //never null: the flow only becomes reachable (FlowsManager.AddFlow) after the queue manager is attached
-        var queueManager = QueueManager!;
-        // Deserialized at the pipeline boundary - messages failing deserialization are dead lettered here and
-        // never enter the delivery pipeline.
-        var (deserializedMessages, _) = await queueManager.MessageDeserializer.Deserialize(messages.Select(IncomingMessage.From).ToList());
-        await queueManager.Push(deserializedMessages);
-        return true;
+        try
+        {
+            //never null: the flow only becomes reachable (FlowsManager.AddFlow) after the queue manager is attached
+            // The push deserializes at the pipeline boundary - messages failing deserialization are dead lettered
+            // there and never enter the delivery pipeline.
+            await QueueManager!.Push(messages);
+        }
+        finally
+        {
+            lock (_lock)
+            {
+                _activePushes--;
+                if (_pushesClosed && _activePushes == 0)
+                    _pushesDrainedTcs.TrySetResult();
+            }
+        }
+
+        lock (_lock)
+            return !Suspended && !_pushesClosed;
+    }
+
+    /// <summary>
+    /// Stops accepting pushes and completes once the in-flight ones have drained. Awaited by the ending
+    /// invocation before its final persistence, making teardown - like every other state change - arbitrated
+    /// here: no push ever spans the final flush, so everything a completed push staged is persisted with the
+    /// flow. Pushes refused from then on take the restart path instead (see <see cref="Push"/>).
+    /// </summary>
+    public Task ClosePushes()
+    {
+        lock (_lock)
+        {
+            _pushesClosed = true;
+            if (_activePushes == 0)
+                _pushesDrainedTcs.TrySetResult();
+        }
+
+        return _pushesDrainedTcs.Task;
     }
 
     // Fires once the flow has been fully waiting (all subflows waiting) for the configured max-wait duration.

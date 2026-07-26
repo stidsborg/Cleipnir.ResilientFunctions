@@ -15,7 +15,7 @@ namespace Cleipnir.ResilientFunctions.Queuing;
 
 public delegate bool MessagePredicate(Envelope envelope);
 
-internal class QueueManager : IDisposable
+internal class QueueManager
 {
     private const int ReservedIdPrefix = -1;
     // Internal rather than private: ExistingMessages (control-panel tooling) addresses the same reserved entries
@@ -56,9 +56,11 @@ internal class QueueManager : IDisposable
     // and pruned from the durable entry as they are delivered (see PruneDeliveredMessage). Kept in the
     // entry's own (position-ascending) order, so a rewrite re-encodes the list as-is.
     private readonly List<IncomingMessage> _pendingInlinedMessages = new();
-    private volatile bool _disposed;
+    // The delivered positions whose markings the in-progress flush is persisting (copied at BeforeFlush) -
+    // their store rows are deleted at AfterFlush.
+    private List<long>? _positionsCoveredByFlush;
 
-    public MessageDeserializer MessageDeserializer { get; }
+    private readonly MessageDeserializer _messageDeserializer;
 
     public QueueManager(
         FlowId flowId,
@@ -74,7 +76,7 @@ internal class QueueManager : IDisposable
         int maxIdempotencyKeyCount = 100,
         TimeSpan? maxIdempotencyKeyTtl = null)
     {
-        MessageDeserializer = messageDeserializer;
+        _messageDeserializer = messageDeserializer;
         _flowId = flowId;
         _storedId = storedId;
         _serializer = serializer;
@@ -142,7 +144,7 @@ internal class QueueManager : IDisposable
 
             // Dead lettered on deserialization failure like any other arrival; the child carrier is cleared
             // alongside the dlq move so the message is not re-staged - and re-dead-lettered - on every restart.
-            var payload = await MessageDeserializer.DeserializeOrDeadLetter(message);
+            var payload = await _messageDeserializer.DeserializeOrDeadLetter(message);
             if (payload is null)
             {
                 _effect.FlushlessClear(childId);
@@ -175,7 +177,7 @@ internal class QueueManager : IDisposable
 
             // The blob is a dead lettered message's only carrier - prune it so the message is not re-staged - and
             // re-dead-lettered - on every restart.
-            var (deserialized, deadLettered) = await MessageDeserializer.Deserialize(pendingMessages);
+            var (deserialized, deadLettered) = await _messageDeserializer.Deserialize(pendingMessages);
             lock (_lock)
                 foreach (var deadLetter in deadLettered)
                     PruneDeliveredMessage(childId: null, deadLetter.Position);
@@ -193,49 +195,44 @@ internal class QueueManager : IDisposable
     // hand-over), so this only flushes whatever has already been staged for delivery.
     public Task FetchMessagesOnce()
     {
-        if (!_disposed)
-            DeliverMessages();
-
+        DeliverMessages();
         return Task.CompletedTask;
     }
 
     /// <summary>
     /// Pushes messages fetched elsewhere (the MessageWatchdog, or the in-hand messages handed over on restart)
-    /// straight into the delivery pipeline, avoiding a per-flow re-fetch. The messages were deserialized at the
-    /// pipeline boundary (<see cref="Queuing.MessageDeserializer"/>), which dead letters the undeserializable
-    /// ones - so every message arriving here carries a deliverable payload; empty (restart-poke) messages are
-    /// equally stripped by both routes before handing over. Idempotent: positions already processed are skipped
-    /// by ProcessMessages.
+    /// straight into the delivery pipeline, avoiding a per-flow re-fetch. The messages are deserialized here - at
+    /// the pipeline boundary - and the undeserializable ones are dead lettered instead of pushed; empty
+    /// (restart-poke) messages are stripped by both routes before handing over.
     ///
-    /// A push that hits a disposed (dying) instance reopens its positions instead of dropping them: the
-    /// MessageWatchdog already marked them as pushed, so a silent drop would strand the messages in the
-    /// ignore-set and lose the flow's wake-up.
+    /// Invariant on return: every handled message has been added to the flow's effect state - in memory only,
+    /// deliberately unflushed for performance; it is persisted with the flow's next flush, after which the store
+    /// row is deleted (<see cref="AfterFlush"/>) - and every subscription the batch resolved has resumed its
+    /// waiter, so the flow's waiting-subflow accounting reflects the deliveries. Idempotent: positions already
+    /// processed are skipped by ProcessMessages.
     /// </summary>
-    public async Task Push(IReadOnlyList<DeserializedMessage> messages)
+    public async Task Push(IReadOnlyList<StoredMessage> messages)
     {
         if (messages.Count == 0)
             return;
 
-        if (_disposed)
-        {
-            ReopenStoreRows(messages);
-            return;
-        }
+        var (deserialized, _) = await _messageDeserializer.Deserialize(
+            messages.Select(IncomingMessage.From).ToList()
+        );
 
         await _fetchSemaphore.WaitAsync();
         try
         {
-            ProcessMessages(messages);
+            ProcessMessages(deserialized);
         }
         finally
         {
             DeliverMessages();
-            // The instance may have been disposed while this push was in flight - reopen whatever it staged so the
-            // messages are not stranded in a dead queue manager.
-            if (_disposed)
-                ReopenUndeliveredStagedMessages();
             _fetchSemaphore.Release();
         }
+
+        // The subscriptions this push resolved have resumed their waiters before the push reports done.
+        await _flowExecutionState.WhenWakeupsConsumed();
     }
 
     public async Task<Envelope?> Subscribe(
@@ -330,17 +327,6 @@ internal class QueueManager : IDisposable
                 {
                     lock (_lock)
                     {
-                        // Disposal reopens and clears the delivered-positions set, and the dying incarnation's
-                        // flush runs AFTER disposal - recording this drop now would overwrite the pending
-                        // delivered-positions list with a nearly-empty one, durably erasing the incarnation's
-                        // delivered markings while their reopened rows live on to be redelivered. Reopen the
-                        // position instead so the next incarnation re-fetches and re-dedups the message.
-                        if (_disposed)
-                        {
-                            ReopenStoreRow(position);
-                            continue;
-                        }
-
                         RecordDeliveredStoreRow(position);
                         // A gate message never has a child carrier - the prune only targets the completed-flow
                         // inline blob, when the message came from there.
@@ -357,14 +343,6 @@ internal class QueueManager : IDisposable
                 var envelope = new Envelope(msg, receiver, sender);
                 lock (_lock)
                 {
-                    // See the disposed-guard in the idempotency-drop path above: a disposed instance must not
-                    // stage or record anything - its state has been reopened and its flush is imminent.
-                    if (_disposed)
-                    {
-                        ReopenStoreRow(position);
-                        continue;
-                    }
-
                     // Durably capture the message as its own child effect the moment it is staged; it is
                     // deleted again when the message is delivered or idempotency-deduped (PruneDeliveredMessage).
                     // Flushless, so it costs no I/O and dies with an equally-unflushed delivery - recovery then stays
@@ -453,27 +431,45 @@ internal class QueueManager : IDisposable
         });
     }
 
+    /// <summary>
+    /// Called by the flush, before it snapshots the pending changes. Copies the delivered-positions set as the
+    /// watermark of what the flush is about to persist: every marking write happens under <c>_lock</c>, so
+    /// everything in the set here was fully written - together with its delivery capture - before the flush's
+    /// snapshot. A delivery landing mid-flush enters the set after this copy and simply waits one more flush.
+    /// </summary>
+    public void BeforeFlush()
+    {
+        lock (_lock)
+            _positionsCoveredByFlush = _deliveredPositions.ToList();
+    }
+
+    /// <summary>
+    /// Called by the flush after its store write, still under the flush lock (so BeforeFlush/AfterFlush cycles
+    /// never overlap). The watermarked positions' delivered-markings are now provably durable, so their store
+    /// rows are deleted outright - no inspection of effect state needed. The positions leave the in-memory set
+    /// only after the rows are gone: a failed delete keeps them in the set, and the next flush retries.
+    /// </summary>
     public async Task AfterFlush()
     {
-        await _fetchSemaphore.WaitAsync();
+        List<long>? covered;
+        lock (_lock)
+        {
+            covered = _positionsCoveredByFlush;
+            _positionsCoveredByFlush = null;
+        }
+
+        if (covered is not { Count: > 0 })
+            return;
+
         try
         {
-            if (!_effect.TryGet<List<long>>(DeliveredPositionsId, out var deliveredPositions) || deliveredPositions is null)
-                return;
-
-            if (deliveredPositions.Count == 0 || _effect.IsDirty(DeliveredPositionsId))
-                return;
-
-            await _messageClearer.Clear(deliveredPositions);
-            _effect.FlushlessUpsert(DeliveredPositionsId, NoDeliveredPositions, alias: null);
+            await _messageClearer.Clear(covered);
+            lock (_lock)
+                _deliveredPositions.ExceptWith(covered);
         }
         catch (Exception exception)
         {
             _unhandledExceptionHandler.Invoke(_flowId.Type, exception);
-        }
-        finally
-        {
-            _fetchSemaphore.Release();
         }
     }
 
@@ -481,11 +477,6 @@ internal class QueueManager : IDisposable
     {
         lock (_lock)
         {
-            // A disposed instance must not deliver: the capture and delivered-position recording would leak into
-            // the dying incarnation's imminent flush while the flow itself never processes the message.
-            if (_disposed)
-                return;
-
             for (var subscriptionIndex = 0; subscriptionIndex < _subscriptions.Count; subscriptionIndex++)
             {
                 var subscription = _subscriptions[subscriptionIndex];
@@ -494,7 +485,9 @@ internal class QueueManager : IDisposable
                     {
                         var index = matchIndex;
                         // Sealed against the suspension decision: a suspended flow must not consume the message -
-                        // it stays staged and is reopened at dispose so a restarted incarnation delivers it.
+                        // it stays staged, durably carried by its child effect, and the in-flight push hands its
+                        // batch to the restart path (FlowExecutionState.Push returns false), so a restarted
+                        // incarnation re-stages and delivers it.
                         var delivered = _flowExecutionState.TryResolve(() =>
                         {
                             var msg = _toDeliver[index];
@@ -560,51 +553,6 @@ internal class QueueManager : IDisposable
     }
 
     /// <summary>
-    /// Marks the instance dead and reopens the staged-but-undelivered positions: the invocation is finishing
-    /// (suspending or completing), so no subscription will ever consume them here. Reopening lets the
-    /// MessageWatchdog re-fetch them and deliver via a restart instead of leaving them stranded in the
-    /// ignore-set until the (much slower) postponed-watchdog path picks the flow up.
-    /// </summary>
-    public void Dispose()
-    {
-        _disposed = true;
-        ReopenUndeliveredStagedMessages();
-    }
-
-    private void ReopenUndeliveredStagedMessages()
-    {
-        lock (_lock)
-        {
-            if (_toDeliver.Count > 0)
-            {
-                // Only store-addressed messages take part: a row-less message has no row to reopen and never
-                // entered the fetched set - its child effect is its carrier and survives on its own.
-                var stagedPositions = _toDeliver
-                    .Where(stagedMessage => stagedMessage.Position is not null)
-                    .Select(stagedMessage => stagedMessage.Position!.Value)
-                    .ToList();
-
-                _messageClearer.ReopenPositions(stagedPositions);
-                foreach (var stagedPosition in stagedPositions)
-                    _fetchedPositions.Remove(stagedPosition);
-                _toDeliver.Clear();
-            }
-
-            // Delivered and idempotency-deduped positions whose store delete has not landed are reopened too:
-            // their markings live in flushless effect state that dies with an incarnation ending without a flush,
-            // and restarts no longer hand the store's messages over - without the reopen such positions would be
-            // stranded in the ignore-set forever. The re-push is idempotent: durably captured positions replay
-            // into the next incarnation's fetched-set and are cleared by its initialization, deduped ones are
-            // deduped again, and reopening an already-deleted position is a no-op.
-            if (_deliveredPositions.Count > 0)
-            {
-                _messageClearer.ReopenPositions(_deliveredPositions.ToList());
-                _deliveredPositions.Clear();
-            }
-        }
-    }
-
-    /// <summary>
     /// A message past the admission gate (fetched-position dedup and idempotency-key claim), staged for delivery
     /// and waiting for a matching subscription. Deliberately carries no idempotency key: the key belongs to
     /// admission, which is behind it - its durable child effect (<see cref="ChildId"/>) was written together with
@@ -649,12 +597,6 @@ internal class QueueManager : IDisposable
         if (position is { } storePosition)
             _messageClearer.ReopenPositions([storePosition]);
     }
-
-    // Only store-addressed messages have a row to reopen - a row-less message has no store identity at all.
-    private void ReopenStoreRows(IReadOnlyList<DeserializedMessage> messages)
-        => _messageClearer.ReopenPositions(
-            messages.Where(m => m.Position is not null).Select(m => m.Position!.Value)
-        );
 
     // The id FlushlessCreateNextChild would append at, without writing - the message is instead written together
     // with the idempotency entry that admitted it, in a single upsert.

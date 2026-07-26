@@ -69,8 +69,18 @@ public class Invoker<TParam, TReturn> : IFlowRestarter
                 Result<TReturn> result;
                 try
                 {
-                    // *** USER FUNCTION INVOCATION ***
-                    result = await _inner(param, workflow);
+                    try
+                    {
+                        // *** USER FUNCTION INVOCATION ***
+                        result = await _inner(param, workflow);
+                    }
+                    finally
+                    {
+                        // Refuse further pushes and drain the in-flight ones before the invocation's final
+                        // persistence (result, failure or suspension) - whatever a push staged is thereby
+                        // always included in the incarnation's last flush.
+                        await flowState.ClosePushes();
+                    }
                 }
                 catch (FatalWorkflowException exception)
                 {
@@ -167,7 +177,10 @@ public class Invoker<TParam, TReturn> : IFlowRestarter
                 try
                 {
                     // *** USER FUNCTION INVOCATION ***
-                    result = await inner(param, workflow);
+                    // Pushes are refused and drained (ClosePushes) before the final persistence - whatever a
+                    // push staged is thereby always included in the incarnation's last flush.
+                    try { result = await inner(param, workflow); }
+                    finally { await flowState.ClosePushes(); }
                 }
                 catch (FatalWorkflowException exception) { await PersistFailure(storedId, flowId, exception, param, parent); tcs.TrySetCanceled(); throw; }
                 catch (Exception exception) { var fwe = FatalWorkflowException.CreateNonGeneric(flowId, exception); await PersistFailure(storedId, flowId, fwe, param, parent); tcs.TrySetCanceled(); throw fwe; }
@@ -232,7 +245,6 @@ public class Invoker<TParam, TReturn> : IFlowRestarter
             );
 
             var queueManager = _invocationHelper.CreateQueueManager(flowId, storedId, effect, flowState, flowTimeouts, _unhandledExceptionHandler);
-            disposables.Add(queueManager);
             await queueManager.Initialize();
             var messageWriter = _invocationHelper.CreateMessageWriter(storedId);
             var workflow = new Workflow(flowId, storedId, effect, queueManager, _invocationHelper.UtcNow, messageWriter);
@@ -279,15 +291,13 @@ public class Invoker<TParam, TReturn> : IFlowRestarter
             var effect = _invocationHelper.CreateEffect(storedId, flowId, effects, flowTimeouts, storageSession, flowState);
 
             var queueManager = _invocationHelper.CreateQueueManager(flowId, storedId, effect, flowState, flowTimeouts, _unhandledExceptionHandler);
-            disposables.Add(queueManager);
             await queueManager.Initialize();
 
             // Deliver the in-hand messages handed over by the restart straight into the queue manager's pipeline so
             // the flow does not have to re-fetch them from the store. Initialization above has loaded the
-            // idempotency-key state, so these messages are deduped against it. Deserialization happens here at
-            // the pipeline boundary - messages failing it are dead lettered instead of being pushed.
-            var (deserializedMessages, _) = await queueManager.MessageDeserializer.Deserialize(storedMessages.Select(IncomingMessage.From).ToList());
-            await queueManager.Push(deserializedMessages);
+            // idempotency-key state, so these messages are deduped against it. The push deserializes them at the
+            // pipeline boundary - messages failing it are dead lettered instead of being pushed.
+            await queueManager.Push(storedMessages);
 
             var messageWriter = _invocationHelper.CreateMessageWriter(storedId);
 

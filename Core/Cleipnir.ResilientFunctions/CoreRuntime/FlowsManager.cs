@@ -98,8 +98,8 @@ public class FlowsManager
         return Task.WhenAll(tasks);
     }
 
-    // Delivers to the live flow - unless it has decided to suspend (whether observed upfront or lost as a race
-    // during delivery), in which case the delivery waits for the invocation to complete (the suspension status
+    // Delivers to the live flow - unless it no longer accepts pushes (it has decided to suspend or its
+    // invocation is ending), in which case the delivery waits for the invocation to complete (the final status
     // is persisted by then) and restarts the flow with the messages still in hand, instead of bouncing them
     // through a position-reopen and a later watchdog poll.
     private async Task DeliverToFlow(FlowExecutionState flowState, StoredMessages storedMessages)
