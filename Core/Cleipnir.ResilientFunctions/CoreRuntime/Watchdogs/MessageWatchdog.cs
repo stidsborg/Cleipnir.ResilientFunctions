@@ -73,10 +73,9 @@ internal class MessageWatchdog(
     /// marks them pushed so the next poll skips them, and routes each group to its flow type's manager - delivering
     /// to live flows and claiming/restarting the rest. Every marked position is afterwards either cleared by its
     /// handling (the message is deleted from the store) or reopened here for a retry on a later poll - the push
-    /// returns the positions it could not handle, and a failed push has its whole batch reopened conservatively:
-    /// over-reopening is safe, as re-pushes are idempotent (deduped by position) and a terminally handled
-    /// message's row is already deleted, so its re-fetch finds nothing. Deferring the reopens until the push has
-    /// completed is free, since this loop is the ignore-set's only reader and it does not fetch again before then.
+    /// returns the positions it could not handle and never throws, so no position is ever stranded in the
+    /// ignore-set. Deferring the reopens until the push has completed is free, since this loop is the
+    /// ignore-set's only reader and it does not fetch again before then.
     /// </summary>
     public async Task PushOnce()
     {
@@ -86,16 +85,9 @@ internal class MessageWatchdog(
         if (messageGroups.Count == 0)
             return;
 
-        var positions = messageGroups.SelectMany(group => group.Messages).Select(message => message.Position).ToList();
-        messageClearer.MarkPushed(positions);
-        try
-        {
-            messageClearer.ReopenPositions(await flowsManagers.Push(messageGroups));
-        }
-        catch
-        {
-            messageClearer.ReopenPositions(positions);
-            throw;
-        }
+        messageClearer.MarkPushed(
+            messageGroups.SelectMany(group => group.Messages).Select(message => message.Position)
+        );
+        messageClearer.ReopenPositions(await flowsManagers.Push(messageGroups));
     }
 }

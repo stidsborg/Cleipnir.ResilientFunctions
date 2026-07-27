@@ -1,9 +1,11 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Watchdogs;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Storage;
 
@@ -22,14 +24,20 @@ public class FlowsManagers
     private readonly IFunctionStore _functionStore;
     private readonly MessageClearer _messageClearer;
     private readonly ClusterInfo _clusterInfo;
+    private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
 
     private readonly Lock _lock = new();
 
-    internal FlowsManagers(IFunctionStore functionStore, MessageClearer messageClearer, ClusterInfo clusterInfo)
+    internal FlowsManagers(
+        IFunctionStore functionStore,
+        MessageClearer messageClearer,
+        ClusterInfo clusterInfo,
+        UnhandledExceptionHandler unhandledExceptionHandler)
     {
         _functionStore = functionStore;
         _messageClearer = messageClearer;
         _clusterInfo = clusterInfo;
+        _unhandledExceptionHandler = unhandledExceptionHandler;
     }
 
     public FlowsManager GetOrCreate(StoredType storedType)
@@ -52,7 +60,10 @@ public class FlowsManagers
     /// <summary>
     /// Routes each flow's fetched messages to its type's manager. Returns the positions that were not handled,
     /// for the MessageWatchdog to reopen so delivery is retried on a later poll (see
-    /// <see cref="FlowsManager.Push"/>).
+    /// <see cref="FlowsManager.Push"/>). Never throws: a failed delivery leaves its positions neither cleared
+    /// (handled terminally) nor returned, so the failure is reported and the entire batch returned for retry
+    /// instead - over-reopening is safe, as re-pushes are idempotent (deduped by position) and a terminally
+    /// handled message's row is already deleted, so its re-fetch finds nothing.
     /// </summary>
     public async Task<IReadOnlyList<long>> Push(IReadOnlyList<StoredMessages> messages)
     {
@@ -79,8 +90,18 @@ public class FlowsManagers
             .Select(m => m.Position)
             .ToList();
 
-        foreach (var positions in await Task.WhenAll(messageDeliveries))
-            toReopen.AddRange(positions);
+        try
+        {
+            foreach (var positions in await Task.WhenAll(messageDeliveries))
+                toReopen.AddRange(positions);
+        }
+        catch (Exception exception)
+        {
+            _unhandledExceptionHandler.Invoke(
+                new FrameworkException("Message delivery failed - the batch is retried on a later poll", exception)
+            );
+            return messages.SelectMany(sm => sm.Messages).Select(m => m.Position).ToList();
+        }
 
         return toReopen;
     }

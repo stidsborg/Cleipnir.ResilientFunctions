@@ -125,8 +125,8 @@ public class FlowsManager
     /// flow - together with the in-hand messages - to the <see cref="ScheduleRestartFromWatchdog"/> delegate so it
     /// resumes executing. Returns the positions of flows that could not be claimed, for the MessageWatchdog to
     /// reopen (dropped from the ignore-set without deleting them from the store, since their actual owner still
-    /// needs them). An exception - from the claim call or anything after - reaches the watchdog too, which then
-    /// reopens the entire fetched batch instead.
+    /// needs them). An exception - from the claim call or anything after - is turned into a whole-batch retry at
+    /// the <see cref="FlowsManagers"/> boundary, whose Push never throws.
     /// </summary>
     public async Task<IReadOnlyList<long>> RestartExecutions(IEnumerable<StoredMessages> messages)
     {

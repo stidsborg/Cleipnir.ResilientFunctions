@@ -51,7 +51,7 @@ public class FunctionsRegistry : IDisposable
         ClusterInfo = new ClusterInfo(ReplicaId.NewId());
         DeadLetterQueue = new DlqManager(_functionStore.DlqStore);
 
-        _flowsManagers = new FlowsManagers(_functionStore, _messageClearer, ClusterInfo);
+        _flowsManagers = new FlowsManagers(_functionStore, _messageClearer, ClusterInfo, _settings.UnhandledExceptionHandler);
 
         _postponedWatchdog = new PostponedWatchdog(
             _functionStore,
