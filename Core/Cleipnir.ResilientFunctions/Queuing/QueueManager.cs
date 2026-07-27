@@ -190,15 +190,6 @@ internal class QueueManager
 
     public QueueClient CreateQueueClient() => new(this, _serializer, _utcNow);
 
-    // Re-evaluates the already-pushed messages against the current subscriptions. The queue manager no longer reads
-    // from the message store: messages arrive exclusively via Push (the MessageWatchdog poll and the restart
-    // hand-over), so this only flushes whatever has already been staged for delivery.
-    public Task FetchMessagesOnce()
-    {
-        DeliverMessages();
-        return Task.CompletedTask;
-    }
-
     /// <summary>
     /// Pushes messages fetched elsewhere (the MessageWatchdog, or the in-hand messages handed over on restart)
     /// straight into the delivery pipeline, avoiding a per-flow re-fetch. The messages are deserialized here - at
