@@ -380,10 +380,11 @@ internal class QueueManager
             }
             catch (Exception e)
             {
-                // Staging is in-memory bookkeeping plus payload re-serialization, so a failure here is a
-                // framework or serializer bug - not an undeserializable message (those are dead lettered at the
-                // pipeline boundary before reaching this point). Report it and reopen the message's position so
-                // it is re-fetched and retried rather than stranded in the ignore-set.
+                // Staging is in-memory bookkeeping only, and the serializer is trusted not to throw here
+                // (undeserializable messages are dead lettered at the pipeline boundary, and serializers are
+                // shielded via decoration - see ErrorHandlingDecorator) - so an exception is strictly a
+                // framework bug. Report it and reopen the message's position so it is re-fetched and retried
+                // rather than stranded in the ignore-set.
                 _unhandledExceptionHandler.Invoke(_flowId.Type, e);
                 ReopenStoreRow(position);
             }
