@@ -207,11 +207,13 @@ internal class QueueManager
     ///
     /// Invariant on return: every handled message has been added to the flow's effect state - in memory only,
     /// deliberately unflushed for performance; it is persisted with the flow's next flush, after which the store
-    /// row is deleted (<see cref="AfterFlush"/>) - and every subscription the batch resolved has resumed its
-    /// waiter, so the flow's waiting-subflow accounting reflects the deliveries. The flow cannot suspend while
-    /// the push is running: a suspension falling due mid-push is deferred to the push's drain
-    /// (FlowExecutionState.TrySuspend), so an accepted push always completes against a live flow. Idempotent:
-    /// positions already processed are skipped by ProcessMessages.
+    /// row is deleted (<see cref="AfterFlush"/>) - and every subscription the batch resolved has had its subflow
+    /// marked running: the delivery commit performs the resume accounting on the waiter's behalf
+    /// (FlowExecutionState.ResumeResolvedSubflow), so the waiting-subflow accounting reflects the deliveries
+    /// synchronously, with no waiting required here. The flow cannot suspend while the push is running: a
+    /// suspension falling due mid-push is deferred to the push's drain (FlowExecutionState.TrySuspend), so an
+    /// accepted push always completes against a live flow. Idempotent: positions already processed are skipped
+    /// by ProcessMessages.
     ///
     /// Returns the dead lettered messages' store positions. Dead lettering is terminal - the message is in the
     /// dlq and its row deleted - and, unlike every other handling, NOT idempotent to redo: a caller re-handing
@@ -237,9 +239,6 @@ internal class QueueManager
             _fetchSemaphore.Release();
         }
 
-        // The subscriptions this push resolved have resumed their waiters before the push reports done.
-        await _flowExecutionState.WhenWakeupsConsumed();
-
         return deadLettered.Count == 0
             ? []
             : deadLettered.Where(m => m.Position is not null).Select(m => m.Position!.Value).ToList();
@@ -256,11 +255,9 @@ internal class QueueManager
             _subscriptions.Add(subscription);
 
         DeliverMessages();
+        // Resolved before ever waiting - the waiting accounting was never touched, so there is nothing to resume.
         if (subscription.Tcs.Task.IsCompleted)
-        {
-            _flowExecutionState.WakeupConsumed();
             return (await subscription.Tcs.Task)?.Envelope;
-        }
 
         if (timeout != null && _utcNow() >= timeout.Value)
         {
@@ -269,38 +266,46 @@ internal class QueueManager
             bool removed;
             lock (_lock)
                 removed = _subscriptions.Remove(subscription);
-            if (!removed) //a delivery won the race
-            {
-                _flowExecutionState.WakeupConsumed();
+            if (!removed) //a delivery won the race - again before the subflow ever entered the waiting state
                 return (await subscription.Tcs.Task)?.Envelope;
-            }
 
             _effect.FlushlessUpserts(subscription.CaptureMessage(null));
             return null;
         }
 
         var delayCts = new CancellationTokenSource();
-        if (timeout != null)
-        {
-            _timeouts.AddTimeout(messageId, timeout.Value);
-            ArmSubscriptionTimeout(subscription, timeout.Value, delayCts.Token);
-        }
-
-        _flowExecutionState.SubflowWaiting();
         try
         {
+            if (timeout != null)
+            {
+                _timeouts.AddTimeout(messageId, timeout.Value);
+                ArmSubscriptionTimeout(subscription, timeout.Value, delayCts.Token);
+            }
+
+            // Enter the waiting state atomically with the resolution commits: a commit that sees the mark
+            // performs the resume accounting itself, and a subscription resolved between the delivery attempt
+            // above and this point never enters the waiting state at all.
+            var waiting = _flowExecutionState.TryEnterWaiting(markWaitingUnlessResolved: () =>
+            {
+                if (subscription.Tcs.Task.IsCompleted)
+                    return false;
+                subscription.OwnerWaiting = true;
+                return true;
+            });
+            if (!waiting)
+                return (await subscription.Tcs.Task)?.Envelope;
+
             // Completes only via a committed TryResolve resolution (delivery, expiry or failure) - a flow that
-            // decided to suspend first leaves the task unresolved and this thread parked forever.
+            // decided to suspend first leaves the task unresolved and this thread parked forever. The commit has
+            // already marked this subflow running, so no accounting remains to be done here.
             var msgData = await subscription.Tcs.Task;
             return msgData?.Envelope;
         }
         finally
         {
-            _flowExecutionState.ResumeResolvedSubflow();
-
-            // Only removed after passing the resume gate: an unresolved waiter never removes its timeout, so a
-            // suspension that overtook the wake-up still finds it registered and postpones to it instead of
-            // suspending without a wake-up trigger.
+            // Safe to remove eagerly: an unresolved waiter never reaches this point (it stays parked), and a
+            // resolved one was accounted running at its commit - a suspension can no longer overtake the
+            // wake-up and depend on this timeout as its postpone-until target.
             if (timeout != null)
                 _timeouts.RemoveTimeout(messageId);
 
@@ -437,6 +442,14 @@ internal class QueueManager
         _flowExecutionState.TryResolve(() =>
         {
             _effect.FlushlessUpserts(subscription.CaptureMessage(null));
+
+            // See DeliverMessages: the commit resumes the parked owner's accounting itself.
+            if (subscription.OwnerWaiting)
+            {
+                subscription.OwnerWaiting = false;
+                _flowExecutionState.ResumeResolvedSubflow();
+            }
+
             subscription.Tcs.TrySetResult(null);
         });
     }
@@ -515,6 +528,15 @@ internal class QueueManager
                             // Same pending-change batch as the capture above - the prune, the captured message and
                             // the delivered position land in one atomic effect write at the next flush.
                             PruneDeliveredMessage(msg.ChildId, msg.Position);
+
+                            // The commit performs the resume accounting on the parked owner's behalf - a
+                            // subscription resolved before its owner entered the waiting state has nothing to
+                            // resume (the owner observes the result and never waits).
+                            if (subscription.OwnerWaiting)
+                            {
+                                subscription.OwnerWaiting = false;
+                                _flowExecutionState.ResumeResolvedSubflow();
+                            }
 
                             subscription.Tcs.TrySetResult(msg);
                         });
@@ -623,5 +645,9 @@ internal class QueueManager
     private record Subscription(EffectId EffectId, MessagePredicate Predicate, Func<StagedMessage?, IEnumerable<EffectResult>> CaptureMessage)
     {
         public TaskCompletionSource<StagedMessage?> Tcs { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        // True while the owner is parked in the waiting state - set and consumed under the flow-state lock
+        // (TryEnterWaiting / the TryResolve resolution), so a commit either sees the mark and resumes the
+        // subflow itself or the owner sees the resolved result and never waits.
+        public bool OwnerWaiting { get; set; }
     }
 }
