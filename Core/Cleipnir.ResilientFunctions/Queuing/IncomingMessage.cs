@@ -8,9 +8,9 @@ namespace Cleipnir.ResilientFunctions.Queuing;
 /// pipeline and the durable message carriers use. Incoming is pre-admission: the QueueManager's gate
 /// (fetched-position dedup and idempotency-key claim) decides whether the message becomes a
 /// <see cref="QueueManager.StagedMessage"/> waiting for a subscription or is dropped. A message re-staged from its
-/// own child effect (<see cref="ChildId"/>) has already passed the gate and skips it. The store row's replica is
-/// deliberately absent: by the time a message reaches the QueueManager it has already been fetched, and messages
-/// living purely in effect state never had a replica to begin with.
+/// own child effect has already passed the gate and is staged directly at initialization. The store row's replica
+/// is deliberately absent: by the time a message reaches the QueueManager it has already been fetched, and
+/// messages living purely in effect state never had a replica to begin with.
 ///
 /// A null <see cref="Position"/> marks a message without a backing message-store row (e.g. appended via the control
 /// panel directly into the flow's effect state). Such a message has no store identity, so the QueueManager assigns
@@ -24,12 +24,6 @@ internal record IncomingMessage(
     string? Sender = null,
     string? Receiver = null)
 {
-    /// <summary>
-    /// The staged-message child this message was re-staged from, when it has one. Runtime-only - never part of
-    /// the encoded payload. Row-less messages are identified by it in place of a store position.
-    /// </summary>
-    public EffectId? ChildId { get; init; }
-
     public static IncomingMessage From(StoredMessage message)
         => new(
             message.MessageContent,

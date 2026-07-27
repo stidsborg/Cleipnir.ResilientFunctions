@@ -15,7 +15,7 @@ namespace Cleipnir.ResilientFunctions.Queuing;
 
 public delegate bool MessagePredicate(Envelope envelope);
 
-internal class QueueManager : IDisposable
+internal class QueueManager
 {
     private const int ReservedIdPrefix = -1;
     // Internal rather than private: ExistingMessages (control-panel tooling) addresses the same reserved entries
@@ -56,8 +56,11 @@ internal class QueueManager : IDisposable
     // and pruned from the durable entry as they are delivered (see PruneDeliveredMessage). Kept in the
     // entry's own (position-ascending) order, so a rewrite re-encodes the list as-is.
     private readonly List<IncomingMessage> _pendingInlinedMessages = new();
-    private volatile Exception? _thrownException;
-    private volatile bool _disposed;
+    // The delivered positions whose markings the in-progress flush is persisting (copied at BeforeFlush) -
+    // their store rows are deleted at AfterFlush.
+    private List<long>? _positionsCoveredByFlush;
+
+    private readonly MessageDeserializer _messageDeserializer;
 
     public QueueManager(
         FlowId flowId,
@@ -69,9 +72,11 @@ internal class QueueManager : IDisposable
         FlowTimeouts timeouts,
         UtcNow utcNow,
         IMessageClearer messageClearer,
+        MessageDeserializer messageDeserializer,
         int maxIdempotencyKeyCount = 100,
         TimeSpan? maxIdempotencyKeyTtl = null)
     {
+        _messageDeserializer = messageDeserializer;
         _flowId = flowId;
         _storedId = storedId;
         _serializer = serializer;
@@ -116,14 +121,12 @@ internal class QueueManager : IDisposable
         // Re-stage the staged-message children a prior incarnation left behind: each message it had staged
         // but not yet delivered persists as its own child effect. A child whose position was already
         // delivered (replayed above) is pruned rather than re-delivered - the analogue of the delivered-
-        // positions store-row clear above.
-        var stagedChildren = new List<IncomingMessage>();
+        // positions store-row clear above. A child message has already passed the admission gate (it was
+        // written in the same upsert as the key that admitted it), so it is staged directly rather than via
+        // ProcessMessages - re-checking its idempotency key would only dedup it against its own entry.
         foreach (var childId in _effect.GetChildren(StagedMessagesRoot))
         {
-            // The child travels with the message: it is the identity of a row-less (control-panel authored)
-            // message, which has no store position at all, and it stops ProcessMessages from creating a
-            // second child for a message that already has one.
-            var message = PendingMessages.DecodeMessage(_effect.Get<byte[]>(childId)) with { ChildId = childId };
+            var message = PendingMessages.DecodeMessage(_effect.Get<byte[]>(childId));
 
             // Only a store-addressed child can have been delivered by a prior incarnation - the replayed
             // delivered positions are store positions, so a row-less message can never match one.
@@ -139,10 +142,27 @@ internal class QueueManager : IDisposable
                 }
             }
 
-            stagedChildren.Add(message);
+            // Dead lettered on deserialization failure like any other arrival; the child carrier is cleared
+            // alongside the dlq move so the message is not re-staged - and re-dead-lettered - on every restart.
+            var payload = await _messageDeserializer.DeserializeOrDeadLetter(message);
+            if (payload is null)
+            {
+                _effect.FlushlessClear(childId);
+                continue;
+            }
+
+            var stagedMessage = new StagedMessage(
+                new Envelope(payload, message.Receiver, message.Sender),
+                message.Position,
+                childId,
+                message.MessageContent,
+                message.MessageType,
+                message.Receiver,
+                message.Sender
+            );
+            lock (_lock)
+                Stage(stagedMessage);
         }
-        if (stagedChildren.Count > 0)
-            ProcessMessages(stagedChildren);
 
         // Stage messages that were inlined into the effect state while the flow was completed (their store
         // rows are deleted, so this entry is their only carrier). ProcessMessages dedups them against the
@@ -155,7 +175,14 @@ internal class QueueManager : IDisposable
             lock (_lock)
                 _pendingInlinedMessages.AddRange(pendingMessages);
 
-            ProcessMessages(pendingMessages);
+            // The blob is a dead lettered message's only carrier - prune it so the message is not re-staged - and
+            // re-dead-lettered - on every restart.
+            var (deserialized, deadLettered) = await _messageDeserializer.Deserialize(pendingMessages);
+            lock (_lock)
+                foreach (var deadLetter in deadLettered)
+                    PruneDeliveredMessage(childId: null, deadLetter.Position);
+
+            ProcessMessages(deserialized);
         }
 
         _effect.RegisterQueueManager(this);
@@ -163,67 +190,49 @@ internal class QueueManager : IDisposable
 
     public QueueClient CreateQueueClient() => new(this, _serializer, _utcNow);
 
-    // Re-evaluates the already-pushed messages against the current subscriptions. The queue manager no longer reads
-    // from the message store: messages arrive exclusively via Push (the MessageWatchdog poll and the restart
-    // hand-over), so this only flushes whatever has already been staged for delivery.
-    public Task FetchMessagesOnce()
-    {
-        if (!_disposed)
-            DeliverMessages();
-
-        return Task.CompletedTask;
-    }
-
     /// <summary>
     /// Pushes messages fetched elsewhere (the MessageWatchdog, or the in-hand messages handed over on restart)
-    /// straight into the delivery pipeline, avoiding a per-flow re-fetch. Idempotent: positions already processed
-    /// are skipped by ProcessMessages. Both routes strip empty (restart-poke) messages before handing over, so
-    /// every message arriving here carries a deliverable payload.
+    /// straight into the delivery pipeline, avoiding a per-flow re-fetch. The messages are deserialized here - at
+    /// the pipeline boundary - and the undeserializable ones are dead lettered instead of pushed; empty
+    /// (restart-poke) messages are stripped by both routes before handing over.
     ///
-    /// A push that hits a disposed (dying) instance reopens its positions instead of dropping them: the
-    /// MessageWatchdog already marked them as pushed, so a silent drop would strand the messages in the
-    /// ignore-set and lose the flow's wake-up.
+    /// Invariant on return: every handled message has been added to the flow's effect state - in memory only,
+    /// deliberately unflushed for performance; it is persisted with the flow's next flush, after which the store
+    /// row is deleted (<see cref="AfterFlush"/>) - and every subscription the batch resolved has had its subflow
+    /// marked running: the delivery commit performs the resume accounting on the waiter's behalf
+    /// (FlowExecutionState.ResumeResolvedSubflow), so the waiting-subflow accounting reflects the deliveries
+    /// synchronously, with no waiting required here. The flow cannot suspend while the push is running: a
+    /// suspension falling due mid-push is deferred to the push's drain (FlowExecutionState.TrySuspend), so an
+    /// accepted push always completes against a live flow. Idempotent: positions already processed are skipped
+    /// by ProcessMessages.
+    ///
+    /// Returns the dead lettered messages' store positions. Dead lettering is terminal - the message is in the
+    /// dlq and its row deleted - and, unlike every other handling, NOT idempotent to redo: a caller re-handing
+    /// the batch to the restart path must exclude these messages, or the dlq receives a duplicate entry.
     /// </summary>
-    public async Task Push(IReadOnlyList<IncomingMessage> messages)
+    public async Task<IReadOnlyList<long>> Push(IReadOnlyList<StoredMessage> messages)
     {
         if (messages.Count == 0)
-            return;
+            return [];
 
-        if (_disposed)
-        {
-            ReopenStoreRows(messages);
-            return;
-        }
+        var (deserialized, deadLettered) = await _messageDeserializer.Deserialize(
+            messages.Select(IncomingMessage.From).ToList()
+        );
 
         await _fetchSemaphore.WaitAsync();
         try
         {
-            if (_thrownException == null)
-                ProcessMessages(messages);
-
-            // A poisoned queue manager (message deserialization failed) cannot deliver. Reopen the batch's
-            // unstaged positions so the messages are refetched and handed to a restarted incarnation, whose
-            // subscription then surfaces the failure and fails the flow - otherwise a concurrently suspending
-            // flow would never learn of the poisoned message and both would be stranded.
-            if (_thrownException != null)
-            {
-                List<long> unstagedPositions;
-                lock (_lock)
-                    unstagedPositions = StoreRowPositions(messages)
-                        .Where(position => !_fetchedPositions.Contains(position))
-                        .ToList();
-                _messageClearer.ReopenPositions(unstagedPositions);
-            }
+            ProcessMessages(deserialized);
         }
         finally
         {
             DeliverMessages();
-            // The instance may have been disposed while this push was in flight - reopen whatever it staged so the
-            // messages are not stranded in a dead queue manager.
-            if (_disposed)
-                ReopenUndeliveredStagedMessages();
             _fetchSemaphore.Release();
         }
+
+        return deadLettered.Count == 0
+            ? []
+            : deadLettered.Where(m => m.Position is not null).Select(m => m.Position!.Value).ToList();
     }
 
     public async Task<Envelope?> Subscribe(
@@ -232,19 +241,14 @@ internal class QueueManager : IDisposable
         EffectId messageId,
         Func<StagedMessage?, IEnumerable<EffectResult>> captureMessage)
     {
-        if (_thrownException is { } pre)
-            throw pre;
-
         var subscription = new Subscription(messageId, predicate, captureMessage);
         lock (_lock)
             _subscriptions.Add(subscription);
 
         DeliverMessages();
+        // Resolved before ever waiting - the waiting accounting was never touched, so there is nothing to resume.
         if (subscription.Tcs.Task.IsCompleted)
-        {
-            _flowExecutionState.WakeupConsumed();
             return (await subscription.Tcs.Task)?.Envelope;
-        }
 
         if (timeout != null && _utcNow() >= timeout.Value)
         {
@@ -253,38 +257,46 @@ internal class QueueManager : IDisposable
             bool removed;
             lock (_lock)
                 removed = _subscriptions.Remove(subscription);
-            if (!removed) //a delivery won the race
-            {
-                _flowExecutionState.WakeupConsumed();
+            if (!removed) //a delivery won the race - again before the subflow ever entered the waiting state
                 return (await subscription.Tcs.Task)?.Envelope;
-            }
 
             _effect.FlushlessUpserts(subscription.CaptureMessage(null));
             return null;
         }
 
         var delayCts = new CancellationTokenSource();
-        if (timeout != null)
-        {
-            _timeouts.AddTimeout(messageId, timeout.Value);
-            ArmSubscriptionTimeout(subscription, timeout.Value, delayCts.Token);
-        }
-
-        _flowExecutionState.SubflowWaiting();
         try
         {
+            if (timeout != null)
+            {
+                _timeouts.AddTimeout(messageId, timeout.Value);
+                ArmSubscriptionTimeout(subscription, timeout.Value, delayCts.Token);
+            }
+
+            // Enter the waiting state atomically with the resolution commits: a commit that sees the mark
+            // performs the resume accounting itself, and a subscription resolved between the delivery attempt
+            // above and this point never enters the waiting state at all.
+            var waiting = _flowExecutionState.TryEnterWaiting(markWaitingUnlessResolved: () =>
+            {
+                if (subscription.Tcs.Task.IsCompleted)
+                    return false;
+                subscription.OwnerWaiting = true;
+                return true;
+            });
+            if (!waiting)
+                return (await subscription.Tcs.Task)?.Envelope;
+
             // Completes only via a committed TryResolve resolution (delivery, expiry or failure) - a flow that
-            // decided to suspend first leaves the task unresolved and this thread parked forever.
+            // decided to suspend first leaves the task unresolved and this thread parked forever. The commit has
+            // already marked this subflow running, so no accounting remains to be done here.
             var msgData = await subscription.Tcs.Task;
             return msgData?.Envelope;
         }
         finally
         {
-            _flowExecutionState.ResumeResolvedSubflow();
-
-            // Only removed after passing the resume gate: an unresolved waiter never removes its timeout, so a
-            // suspension that overtook the wake-up still finds it registered and postpones to it instead of
-            // suspending without a wake-up trigger.
+            // Safe to remove eagerly: an unresolved waiter never reaches this point (it stays parked), and a
+            // resolved one was accounted running at its commit - a suspension can no longer overtake the
+            // wake-up and depend on this timeout as its postpone-until target.
             if (timeout != null)
                 _timeouts.RemoveTimeout(messageId);
 
@@ -293,13 +305,16 @@ internal class QueueManager : IDisposable
         }
     }
 
-    // Caller must hold _fetchSemaphore. Deserializes, dedups by idempotency-key and by already-fetched
-    // position (so pushes are idempotent), and stages messages for delivery.
-    private void ProcessMessages(IReadOnlyList<IncomingMessage> messages)
+    // Caller must hold _fetchSemaphore. Dedups by idempotency-key and by already-fetched position (so pushes are
+    // idempotent), and stages messages for delivery. Deserialization already happened at the pipeline boundary
+    // (MessageDeserializer), which dead lettered the messages that failed it - and the serializer is trusted not
+    // to throw on serialization (shielded via decoration, see ErrorHandlingDecorator), so staging is in-memory
+    // bookkeeping that cannot fail; an exception escaping here is a framework bug and propagates to the caller.
+    private void ProcessMessages(IReadOnlyList<DeserializedMessage> messages)
     {
         foreach (var message in messages)
         {
-            var (messageContent, messageType, position, idempotencyKey, sender, receiver) = message;
+            var (msg, position, idempotencyKey, sender, receiver) = message;
 
             // Push dedup is store-row dedup: only a message addressing a store row can be pushed twice, so a
             // row-less message has nothing to dedup against here.
@@ -312,97 +327,72 @@ internal class QueueManager : IDisposable
                     continue;
             }
 
-            try
+            var idempotencyEntry = idempotencyKey != null ? _idempotencyKeys.Reserve(idempotencyKey) : null;
+
+            if (idempotencyKey != null && idempotencyEntry is null)
             {
-                var msg = _serializer.Deserialize(messageContent, _serializer.ResolveType(messageType)!);
-
-                // A message re-staged from its own child is not re-checked: its key was written in the same upsert
-                // as the child itself, so a child that survived to be re-read has its key recorded alongside it.
-                // Re-checking would only dedup the message against its own entry.
-                var claimsIdempotencyKey = idempotencyKey != null && message.ChildId is null;
-                var idempotencyEntry = claimsIdempotencyKey ? _idempotencyKeys.Reserve(idempotencyKey!) : null;
-
-                if (claimsIdempotencyKey && idempotencyEntry is null)
-                {
-                    lock (_lock)
-                    {
-                        // Disposal reopens and clears the delivered-positions set, and the dying incarnation's
-                        // flush runs AFTER disposal - recording this drop now would overwrite the pending
-                        // delivered-positions list with a nearly-empty one, durably erasing the incarnation's
-                        // delivered markings while their reopened rows live on to be redelivered. Reopen the
-                        // position instead so the next incarnation re-fetches and re-dedups the message.
-                        if (_disposed)
-                        {
-                            ReopenStoreRow(position);
-                            continue;
-                        }
-
-                        RecordDeliveredStoreRow(position);
-                        PruneDeliveredMessage(message.ChildId, position);
-                    }
-                    continue;
-                }
-
-                var envelope = new Envelope(msg, receiver, sender);
                 lock (_lock)
                 {
-                    // See the disposed-guard in the idempotency-drop path above: a disposed instance must not
-                    // stage or record anything - its state has been reopened and its flush is imminent.
-                    if (_disposed)
-                    {
-                        ReopenStoreRow(position);
-                        continue;
-                    }
-
-                    // Durably capture the message as its own child effect the moment it is staged; it is
-                    // deleted again when the message is delivered or idempotency-deduped (PruneDeliveredMessage).
-                    // Flushless, so it costs no I/O and dies with an equally-unflushed delivery - recovery then stays
-                    // store-backed and at-least-once. A message re-staged from an existing child reuses it rather
-                    // than creating a second one.
-                    var childId = message.ChildId;
-                    if (childId is null)
-                    {
-                        childId = NextStagedMessageChildId();
-
-                        // One upsert for the message and the key that admitted it: neither can become durable
-                        // without the other, so a recorded key always has its message behind it.
-                        _effect.FlushlessUpserts(
-                            idempotencyEntry is null
-                                ? [EffectResult.Create(childId, PendingMessages.EncodeMessage(message))]
-                                : [EffectResult.Create(childId, PendingMessages.EncodeMessage(message)), idempotencyEntry]
-                        );
-                    }
-
-                    var stagedMessage = new StagedMessage(
-                        envelope,
-                        position,
-                        childId,
-                        messageContent,
-                        messageType,
-                        receiver,
-                        sender
-                    );
-
-                    // Keep the staged messages in delivery order even when two pushers (the MessageWatchdog poll
-                    // and an initialization-time push) stage batches out of order.
-                    var insertAt = _toDeliver.FindIndex(staged => CompareDeliveryOrder(staged, stagedMessage) > 0);
-                    if (insertAt == -1)
-                        _toDeliver.Add(stagedMessage);
-                    else
-                        _toDeliver.Insert(insertAt, stagedMessage);
-
-                    if (position is { } fetchedPosition)
-                        _fetchedPositions.Add(fetchedPosition);
+                    RecordDeliveredStoreRow(position);
+                    // A gate message never has a child carrier - the prune only targets the completed-flow
+                    // inline blob, when the message came from there.
+                    PruneDeliveredMessage(childId: null, position);
                 }
+                continue;
             }
-            catch (Exception e)
+
+            // The serialized bytes travel no further than the pipeline boundary - re-serialize the payload
+            // for the durable carriers (the staged-message child and the delivered-message capture).
+            var messageContent = _serializer.Serialize(msg, msg.GetType());
+            var messageType = _serializer.SerializeType(msg.GetType());
+
+            var envelope = new Envelope(msg, receiver, sender);
+            lock (_lock)
             {
-                _unhandledExceptionHandler.Invoke(_flowId.Type, e);
-                _thrownException = e;
-                FailAllSubscriptions(e);
-                return;
+                // Durably capture the message as its own child effect the moment it is staged; it is
+                // deleted again when the message is delivered or idempotency-deduped (PruneDeliveredMessage).
+                // Flushless, so it costs no I/O and dies with an equally-unflushed delivery - recovery then stays
+                // store-backed and at-least-once.
+                var childId = NextStagedMessageChildId();
+                var encodedMessage = PendingMessages.EncodeMessage(
+                    new IncomingMessage(messageContent, messageType, position, idempotencyKey, sender, receiver)
+                );
+
+                // One upsert for the message and the key that admitted it: neither can become durable
+                // without the other, so a recorded key always has its message behind it.
+                _effect.FlushlessUpserts(
+                    idempotencyEntry is null
+                        ? [EffectResult.Create(childId, encodedMessage)]
+                        : [EffectResult.Create(childId, encodedMessage), idempotencyEntry]
+                );
+
+                var stagedMessage = new StagedMessage(
+                    envelope,
+                    position,
+                    childId,
+                    messageContent,
+                    messageType,
+                    receiver,
+                    sender
+                );
+                Stage(stagedMessage);
             }
         }
+    }
+
+    // Caller must hold _lock. Inserts the message into the delivery queue - kept in delivery order even when
+    // two pushers (the MessageWatchdog poll and an initialization-time push) stage batches out of order - and
+    // records its store position as fetched, so later pushes of the same row are deduped.
+    private void Stage(StagedMessage stagedMessage)
+    {
+        var insertAt = _toDeliver.FindIndex(staged => CompareDeliveryOrder(staged, stagedMessage) > 0);
+        if (insertAt == -1)
+            _toDeliver.Add(stagedMessage);
+        else
+            _toDeliver.Insert(insertAt, stagedMessage);
+
+        if (stagedMessage.Position is { } fetchedPosition)
+            _fetchedPositions.Add(fetchedPosition);
     }
 
     // Task.Delay is bounded, so a distant user-timeout sleeps in steps - ExpireSubscription re-arms until due.
@@ -433,31 +423,57 @@ internal class QueueManager : IDisposable
         _flowExecutionState.TryResolve(() =>
         {
             _effect.FlushlessUpserts(subscription.CaptureMessage(null));
+
+            // See DeliverMessages: the commit resumes the parked owner's accounting itself.
+            if (subscription.OwnerWaiting)
+            {
+                subscription.OwnerWaiting = false;
+                _flowExecutionState.ResumeResolvedSubflow();
+            }
+
             subscription.Tcs.TrySetResult(null);
         });
     }
 
+    /// <summary>
+    /// Called by the flush, before it snapshots the pending changes. Copies the delivered-positions set as the
+    /// watermark of what the flush is about to persist: every marking write happens under <c>_lock</c>, so
+    /// everything in the set here was fully written - together with its delivery capture - before the flush's
+    /// snapshot. A delivery landing mid-flush enters the set after this copy and simply waits one more flush.
+    /// </summary>
+    public void BeforeFlush()
+    {
+        lock (_lock)
+            _positionsCoveredByFlush = _deliveredPositions.ToList();
+    }
+
+    /// <summary>
+    /// Called by the flush after its store write, still under the flush lock (so BeforeFlush/AfterFlush cycles
+    /// never overlap). The watermarked positions' delivered-markings are now provably durable, so their store
+    /// rows are deleted outright - no inspection of effect state needed. The positions leave the in-memory set
+    /// only after the rows are gone: a failed delete keeps them in the set, and the next flush retries.
+    /// </summary>
     public async Task AfterFlush()
     {
-        await _fetchSemaphore.WaitAsync();
+        List<long>? covered;
+        lock (_lock)
+        {
+            covered = _positionsCoveredByFlush;
+            _positionsCoveredByFlush = null;
+        }
+
+        if (covered is not { Count: > 0 })
+            return;
+
         try
         {
-            if (!_effect.TryGet<List<long>>(DeliveredPositionsId, out var deliveredPositions) || deliveredPositions is null)
-                return;
-
-            if (deliveredPositions.Count == 0 || _effect.IsDirty(DeliveredPositionsId))
-                return;
-
-            await _messageClearer.Clear(deliveredPositions);
-            _effect.FlushlessUpsert(DeliveredPositionsId, NoDeliveredPositions, alias: null);
+            await _messageClearer.Clear(covered);
+            lock (_lock)
+                _deliveredPositions.ExceptWith(covered);
         }
         catch (Exception exception)
         {
             _unhandledExceptionHandler.Invoke(_flowId.Type, exception);
-        }
-        finally
-        {
-            _fetchSemaphore.Release();
         }
     }
 
@@ -465,11 +481,6 @@ internal class QueueManager : IDisposable
     {
         lock (_lock)
         {
-            // A disposed instance must not deliver: the capture and delivered-position recording would leak into
-            // the dying incarnation's imminent flush while the flow itself never processes the message.
-            if (_disposed)
-                return;
-
             for (var subscriptionIndex = 0; subscriptionIndex < _subscriptions.Count; subscriptionIndex++)
             {
                 var subscription = _subscriptions[subscriptionIndex];
@@ -478,7 +489,9 @@ internal class QueueManager : IDisposable
                     {
                         var index = matchIndex;
                         // Sealed against the suspension decision: a suspended flow must not consume the message -
-                        // it stays staged and is reopened at dispose so a restarted incarnation delivers it.
+                        // it stays staged, durably carried by its child effect, and the in-flight push hands its
+                        // batch to the restart path (FlowExecutionState.Push returns false), so a restarted
+                        // incarnation re-stages and delivers it.
                         var delivered = _flowExecutionState.TryResolve(() =>
                         {
                             var msg = _toDeliver[index];
@@ -496,6 +509,15 @@ internal class QueueManager : IDisposable
                             // Same pending-change batch as the capture above - the prune, the captured message and
                             // the delivered position land in one atomic effect write at the next flush.
                             PruneDeliveredMessage(msg.ChildId, msg.Position);
+
+                            // The commit performs the resume accounting on the parked owner's behalf - a
+                            // subscription resolved before its owner entered the waiting state has nothing to
+                            // resume (the owner observes the result and never waits).
+                            if (subscription.OwnerWaiting)
+                            {
+                                subscription.OwnerWaiting = false;
+                                _flowExecutionState.ResumeResolvedSubflow();
+                            }
 
                             subscription.Tcs.TrySetResult(msg);
                         });
@@ -543,64 +565,6 @@ internal class QueueManager : IDisposable
             );
     }
 
-    private void FailAllSubscriptions(Exception exception)
-    {
-        lock (_lock)
-        {
-            // Sealed against the suspension decision like every other resolution: a flow that has decided to
-            // suspend keeps its waiters parked and learns of the poisoned message via the reopened positions
-            // instead. Rejected subscriptions stay in the list - the incarnation is dying either way.
-            foreach (var sub in _subscriptions.ToList())
-                if (_flowExecutionState.TryResolve(() => sub.Tcs.TrySetException(exception)))
-                    _subscriptions.Remove(sub);
-        }
-    }
-
-    /// <summary>
-    /// Marks the instance dead and reopens the staged-but-undelivered positions: the invocation is finishing
-    /// (suspending or completing), so no subscription will ever consume them here. Reopening lets the
-    /// MessageWatchdog re-fetch them and deliver via a restart instead of leaving them stranded in the
-    /// ignore-set until the (much slower) postponed-watchdog path picks the flow up.
-    /// </summary>
-    public void Dispose()
-    {
-        _disposed = true;
-        ReopenUndeliveredStagedMessages();
-    }
-
-    private void ReopenUndeliveredStagedMessages()
-    {
-        lock (_lock)
-        {
-            if (_toDeliver.Count > 0)
-            {
-                // Only store-addressed messages take part: a row-less message has no row to reopen and never
-                // entered the fetched set - its child effect is its carrier and survives on its own.
-                var stagedPositions = _toDeliver
-                    .Where(stagedMessage => stagedMessage.Position is not null)
-                    .Select(stagedMessage => stagedMessage.Position!.Value)
-                    .ToList();
-
-                _messageClearer.ReopenPositions(stagedPositions);
-                foreach (var stagedPosition in stagedPositions)
-                    _fetchedPositions.Remove(stagedPosition);
-                _toDeliver.Clear();
-            }
-
-            // Delivered and idempotency-deduped positions whose store delete has not landed are reopened too:
-            // their markings live in flushless effect state that dies with an incarnation ending without a flush,
-            // and restarts no longer hand the store's messages over - without the reopen such positions would be
-            // stranded in the ignore-set forever. The re-push is idempotent: durably captured positions replay
-            // into the next incarnation's fetched-set and are cleared by its initialization, deduped ones are
-            // deduped again, and reopening an already-deleted position is a no-op.
-            if (_deliveredPositions.Count > 0)
-            {
-                _messageClearer.ReopenPositions(_deliveredPositions.ToList());
-                _deliveredPositions.Clear();
-            }
-        }
-    }
-
     /// <summary>
     /// A message past the admission gate (fetched-position dedup and idempotency-key claim), staged for delivery
     /// and waiting for a matching subscription. Deliberately carries no idempotency key: the key belongs to
@@ -641,19 +605,6 @@ internal class QueueManager : IDisposable
         _effect.FlushlessUpsert(DeliveredPositionsId, _deliveredPositions.ToList(), alias: null);
     }
 
-    private void ReopenStoreRow(long? position)
-    {
-        if (position is { } storePosition)
-            _messageClearer.ReopenPositions([storePosition]);
-    }
-
-    private void ReopenStoreRows(IReadOnlyList<IncomingMessage> messages)
-        => _messageClearer.ReopenPositions(StoreRowPositions(messages));
-
-    // Only store-addressed messages have a row to reopen - a row-less message has no store identity at all.
-    private static IEnumerable<long> StoreRowPositions(IReadOnlyList<IncomingMessage> messages)
-        => messages.Where(m => m.Position is not null).Select(m => m.Position!.Value);
-
     // The id FlushlessCreateNextChild would append at, without writing - the message is instead written together
     // with the idempotency entry that admitted it, in a single upsert.
     private EffectId NextStagedMessageChildId()
@@ -669,5 +620,9 @@ internal class QueueManager : IDisposable
     private record Subscription(EffectId EffectId, MessagePredicate Predicate, Func<StagedMessage?, IEnumerable<EffectResult>> CaptureMessage)
     {
         public TaskCompletionSource<StagedMessage?> Tcs { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        // True while the owner is parked in the waiting state - set and consumed under the flow-state lock
+        // (TryEnterWaiting / the TryResolve resolution), so a commit either sees the mark and resumes the
+        // subflow itself or the owner sees the resolved result and never waits.
+        public bool OwnerWaiting { get; set; }
     }
 }

@@ -542,8 +542,8 @@ public abstract class MessagesSubscriptionTests
         unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
 
-    public abstract Task QueueManagerFailsOnMessageDeserializationError();
-    protected async Task QueueManagerFailsOnMessageDeserializationError(Task<IFunctionStore> functionStoreTask)
+    public abstract Task UndeserializableMessageIsMovedToDeadLetterQueue();
+    protected async Task UndeserializableMessageIsMovedToDeadLetterQueue(Task<IFunctionStore> functionStoreTask)
     {
         var functionStore = await functionStoreTask;
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
@@ -554,7 +554,7 @@ public abstract class MessagesSubscriptionTests
         );
 
         var rFunc = functionsRegistry.RegisterFunc(
-            nameof(QueueManagerFailsOnMessageDeserializationError),
+            nameof(UndeserializableMessageIsMovedToDeadLetterQueue),
             inner: async Task<string> (string _, Workflow workflow) =>
             {
                 var message = await workflow.Message<GoodMessage>();
@@ -562,15 +562,20 @@ public abstract class MessagesSubscriptionTests
             }
         );
 
-        await rFunc.Schedule("instanceId", "");
+        var scheduled = await rFunc.Schedule("instanceId", "");
         var messageWriter = rFunc.MessageWriters.For("instanceId".ToFlowInstance());
+        var storedId = rFunc.MapToStoredId("instanceId".ToFlowInstance());
 
         await messageWriter.AppendMessage(new BadMessage("will-fail"), idempotencyKey: "bad-message");
 
-        var controlPanel = await rFunc.ControlPanel("instanceId").ShouldNotBeNullAsync();
-        await controlPanel.BusyWaitUntil(c => c.Status == Status.Failed, maxWait: TimeSpan.FromSeconds(10));
+        // The bad message must be dead lettered: appended to the dlq store and deleted from the message store.
+        await BusyWait.Until(async () => await functionStore.DlqStore.GetMessages([storedId]).SelectAsync(m => m.Count) == 1, maxWait: TimeSpan.FromSeconds(10));
+        await BusyWait.Until(async () => await functionStore.MessageStore.GetMessages(storedId).SelectAsync(m => m.Count) == 0);
 
-        controlPanel.Status.ShouldBe(Status.Failed);
+        // The flow is not poisoned by the dead lettered message - a subsequent good message completes it.
+        await messageWriter.AppendMessage(new GoodMessage("good"));
+        var result = await scheduled.Completion(timeout: TimeSpan.FromSeconds(10));
+        result.ShouldBe("good");
 
         unhandledExceptionCatcher.ThrownExceptions.Count.ShouldBeGreaterThanOrEqualTo(1);
         var deserializationException = unhandledExceptionCatcher.ThrownExceptions

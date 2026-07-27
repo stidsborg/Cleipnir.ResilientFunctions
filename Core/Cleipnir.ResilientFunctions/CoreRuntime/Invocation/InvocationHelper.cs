@@ -408,7 +408,18 @@ internal class InvocationHelper<TParam, TReturn>
     public ExistingMessages CreateExistingMessages(FlowId flowId) => new(MapToStoredId(flowId), _functionStore.MessageStore, _functionStore, Serializer);
 
     public QueueManager CreateQueueManager(FlowId flowId, StoredId storedId, Effect effect, FlowExecutionState flowExecutionState, FlowTimeouts timeouts, UnhandledExceptionHandler unhandledExceptionHandler)
-        => new(flowId, storedId, Serializer, effect, flowExecutionState, unhandledExceptionHandler, timeouts, UtcNow, _messageClearer);
+        => new(
+            flowId,
+            storedId,
+            Serializer,
+            effect,
+            flowExecutionState,
+            unhandledExceptionHandler,
+            timeouts,
+            UtcNow,
+            _messageClearer,
+            new MessageDeserializer(flowId, storedId, Serializer, _functionStore.DlqStore, _messageClearer, unhandledExceptionHandler)
+        );
 
     internal TimeSpan MessagesDefaultMaxWaitForCompletion => _settings.MessagesDefaultMaxWaitForCompletion;
 

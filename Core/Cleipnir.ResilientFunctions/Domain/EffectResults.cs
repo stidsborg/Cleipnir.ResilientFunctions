@@ -485,6 +485,10 @@ internal class EffectResults
 
         try
         {
+            // Everything the queue manager has written when this returns is included in the snapshot below -
+            // BeforeFlush marks the queue manager's watermark: what a completed flush has provably persisted.
+            QueueManager?.BeforeFlush();
+
             IReadOnlyList<PendingEffectChange> pendingChanges;
             lock (_sync)
                 pendingChanges = _effectResults.Values.Where(r => r.Operation != null).ToList();
@@ -522,14 +526,16 @@ internal class EffectResults
                             Operation = null
                         };
                 }
+
+            // Still under the flush lock, so BeforeFlush/AfterFlush cycles never overlap: a later flush cannot
+            // reset the queue manager's watermark before this one has acted on it. Flushless writes are not
+            // blocked - they do not take the flush lock.
+            await (QueueManager?.AfterFlush() ?? Task.CompletedTask);
         }
-        
         finally
         {
             _flushSync.Release();
         }
-        
-        await (QueueManager?.AfterFlush() ?? Task.CompletedTask);
     }
 
     public bool IsDirty(EffectId effectId)

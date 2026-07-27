@@ -51,8 +51,8 @@ public class MessagesSubscriptionTests : Cleipnir.ResilientFunctions.Tests.Messa
         => QueueClientSupportsMultiFlowMessageExchange(FunctionStoreFactory.Create());
 
     [TestMethod]
-    public override Task QueueManagerFailsOnMessageDeserializationError()
-        => QueueManagerFailsOnMessageDeserializationError(FunctionStoreFactory.Create());
+    public override Task UndeserializableMessageIsMovedToDeadLetterQueue()
+        => UndeserializableMessageIsMovedToDeadLetterQueue(FunctionStoreFactory.Create());
 
     [TestMethod]
     public override Task RegisteredTimeoutIsRemovedWhenPullingMessage()

@@ -11,32 +11,46 @@ namespace Cleipnir.ResilientFunctions.Tests.InMemoryTests;
 [TestClass]
 public class FlowExecutionStateTests
 {
-    private static FlowExecutionState CreateState() => new(
+    private static FlowExecutionState CreateState(TimeSpan? maxWait = null) => new(
         new StoredId(Guid.NewGuid()),
         subflows: 1,
         waitingSubflows: 0,
         new FlowTimeouts(),
         completed: new TaskCompletionSource().Task,
-        maxWait: TimeSpan.Zero
+        maxWait: maxWait ?? TimeSpan.Zero
     );
 
     [TestMethod]
-    public async Task CommittedResolutionBlocksSuspensionUntilWaiterHasResumed()
+    public async Task SubflowResolvedBeforeParkingNeverEntersTheWaitingState()
     {
         var state = CreateState();
 
         state.TryResolve(() => { }).ShouldBeTrue(); //a delivery commits before the subflow declares its wait
-        state.SubflowWaiting(); //arms the zero-max-wait suspension timer
 
-        await Task.Delay(100); //give the armed suspension timer every chance to fire
+        //the owner observes the resolution while entering the waiting state - and must not enter it
+        state.TryEnterWaiting(markWaitingUnlessResolved: () => false).ShouldBeFalse();
+        state.WaitingSubflows.ShouldBe(0);
 
-        state.Suspended.ShouldBeFalse(); //the pending wake-up must block suspension
+        await Task.Delay(100); //the suspension timer was never armed - the flow is not fully waiting
 
-        state.ResumeResolvedSubflow();
+        state.Suspended.ShouldBeFalse();
 
-        //with the wake-up consumed the flow is again suspendable once fully waiting
+        //the subflow processes its message and waits again - now the flow is fully waiting and suspendable
         state.SubflowWaiting();
         await BusyWait.Until(() => state.Suspended);
+    }
+
+    [TestMethod]
+    public void ResolutionMarksTheParkedSubflowRunningAtCommit()
+    {
+        var state = CreateState(maxWait: TimeSpan.FromMinutes(1)); //the suspension timer never fires in-test
+
+        state.TryEnterWaiting(markWaitingUnlessResolved: () => true).ShouldBeTrue();
+        state.WaitingSubflows.ShouldBe(1);
+
+        //the commit performs the resume accounting itself - before any waiter thread has run
+        state.TryResolve(() => state.ResumeResolvedSubflow()).ShouldBeTrue();
+        state.WaitingSubflows.ShouldBe(0);
     }
 
     [TestMethod]
