@@ -41,6 +41,11 @@ internal sealed class MessageClearer(
                 _pushedPositions.Add(position);
     }
 
+    /// <summary>
+    /// Drops positions back out of the ignore-set - without deleting their messages from the store - so they are
+    /// re-fetched and their delivery retried on a later poll. Called by the MessageWatchdog only (the
+    /// ignore-set's owner), with the positions its push could not handle.
+    /// </summary>
     public void ReopenPositions(IEnumerable<long> positions)
     {
         lock (_pushedPositionsLock)

@@ -59,23 +59,29 @@ public class FlowsManager
               _dict.Remove(id);
     }
 
-    public Task Push(IReadOnlyList<StoredMessages> messagesByFlow)
+    /// <summary>
+    /// Routes each flow's fetched messages - delivering to live flows and claiming/restarting the rest. Returns
+    /// the positions that were not handled and must be reopened (re-fetched on a later poll); the reopening itself
+    /// is the MessageWatchdog's job, performed once the whole push has completed - safe to defer, since the
+    /// watchdog's loop is the ignore-set's only reader and it does not fetch again until this call has returned.
+    /// </summary>
+    public async Task<IReadOnlyList<long>> Push(IReadOnlyList<StoredMessages> messagesByFlow)
     {
-        List<Task> tasks = new();
+        List<Task<IReadOnlyList<long>>> tasks = new();
         List<StoredMessages> notLive = new();
-        List<long> emptyPositionsForLiveFlows = new();
+        List<long> toReopen = new();
         lock (_lock)
             foreach (var storedMessages in messagesByFlow)
                 if (_dict.TryGetValue(storedMessages.StoredId, out var flowState))
                 {
                     // Empty messages exist only to force a restart and carry nothing to deliver. The flow is live,
                     // so no restart is needed now - but the message may not be deleted either: the flow could be
-                    // suspending concurrently, and the append's restart guarantee must survive that race. Reopen
-                    // the positions instead, so the empty message is re-fetched and only consumed by an actual
-                    // restart once the flow leaves the live set.
+                    // suspending concurrently, and the append's restart guarantee must survive that race. Return
+                    // the positions for reopening instead, so the empty message is re-fetched and only consumed by
+                    // an actual restart once the flow leaves the live set.
                     if (!flowState.Suspended && storedMessages.Messages.Any(message => message.IsEmpty))
                     {
-                        emptyPositionsForLiveFlows.AddRange(
+                        toReopen.AddRange(
                             storedMessages.Messages.Where(message => message.IsEmpty).Select(message => message.Position)
                         );
                         var deliverable = storedMessages.Messages.Where(message => !message.IsEmpty).ToList();
@@ -89,13 +95,13 @@ public class FlowsManager
                     // Not in the dictionary - restart the flow to deliver.
                     notLive.Add(storedMessages);
 
-        if (emptyPositionsForLiveFlows.Count > 0)
-            _messageClearer.ReopenPositions(emptyPositionsForLiveFlows);
-
         if (notLive.Count > 0)
             tasks.Add(RestartExecutions(notLive));
 
-        return Task.WhenAll(tasks);
+        foreach (var positions in await Task.WhenAll(tasks))
+            toReopen.AddRange(positions);
+
+        return toReopen;
     }
 
     // Delivers to the live flow - unless it no longer accepts pushes (it has decided to suspend or its
@@ -104,50 +110,40 @@ public class FlowsManager
     // bouncing them through a position-reopen and a later watchdog poll. Messages the refused push already
     // handled terminally (dead lettered) are excluded by the push itself - and when nothing remains there is
     // nothing to redeliver, so no restart is needed either.
-    private async Task DeliverToFlow(FlowExecutionState flowState, StoredMessages storedMessages)
+    private async Task<IReadOnlyList<long>> DeliverToFlow(FlowExecutionState flowState, StoredMessages storedMessages)
     {
         var undelivered = await flowState.Push(storedMessages.Messages);
         if (undelivered is null || undelivered.Count == 0)
-            return;
+            return [];
 
         await flowState.Completed;
-        await RestartExecutions([storedMessages with { Messages = undelivered.ToList() }]);
+        return await RestartExecutions([storedMessages with { Messages = undelivered.ToList() }]);
     }
 
     /// <summary>
     /// Restarts (claims for this replica) the targeted flows that are not already owned, then hands each restarted
     /// flow - together with the in-hand messages - to the <see cref="ScheduleRestartFromWatchdog"/> delegate so it
-    /// resumes executing. Flows that could not be claimed have their positions reopened in the message clearer
-    /// (dropped from the ignore-set without deleting them from the store, since their actual owner still needs them).
+    /// resumes executing. Returns the positions of flows that could not be claimed, for the MessageWatchdog to
+    /// reopen (dropped from the ignore-set without deleting them from the store, since their actual owner still
+    /// needs them). An exception - from the claim call or anything after - reaches the watchdog too, which then
+    /// reopens the entire fetched batch instead.
     /// </summary>
-    public async Task RestartExecutions(IEnumerable<StoredMessages> messages)
+    public async Task<IReadOnlyList<long>> RestartExecutions(IEnumerable<StoredMessages> messages)
     {
         var groups = messages
             .GroupBy(m => m.StoredId)
             .ToDictionary(g => g.Key, g => g.ToList());
 
-        Dictionary<StoredId, StoredFlowWithEffects> results;
-        try
-        {
-            results = await _functionStore
-                .RestartExecutions(groups.Keys.ToList(), _clusterInfo.ReplicaId);
-        }
-        catch
-        {
-            // The claim never happened, but the MessageWatchdog already marked the positions as pushed - reopen
-            // them all so the messages are re-fetched and delivery is retried on a later poll.
-            _messageClearer.ReopenPositions(
-                groups.Values.SelectMany(g => g).SelectMany(sm => sm.Messages).Select(m => m.Position)
-            );
-            throw;
-        }
+        var results = await _functionStore
+            .RestartExecutions(groups.Keys.ToList(), _clusterInfo.ReplicaId);
 
         // Flows that could not be claimed were never delivered to, yet the MessageWatchdog optimistically marked
         // their positions as pushed. Completed flows can never consume their messages - inline them into the
         // flow's effect state (and delete the rows) so any later re-invocation, on any replica and via any
         // restart path, finds them in the effect snapshot the restart hands over. All other flows may become
         // claimable later (executing elsewhere, a lost claim race, or a flow that has not been created yet -
-        // messages may legally precede their flow): reopen their positions so the messages are re-fetched.
+        // messages may legally precede their flow): return their positions so the messages are re-fetched.
+        var toReopen = new List<long>();
         foreach (var (storedId, storedMessagesList) in groups.Where(kv => !results.ContainsKey(kv.Key)))
         {
             var flowMessages = storedMessagesList.SelectMany(sm => sm.Messages).ToList();
@@ -159,7 +155,7 @@ public class FlowsManager
             }
             catch
             {
-                // Status unknown - reopen below so delivery is retried rather than the positions being stranded.
+                // Status unknown - treat the flow as retriable (reopened below) instead of failing the whole batch.
                 storedFlow = null;
             }
 
@@ -167,7 +163,7 @@ public class FlowsManager
                 if (await TryInlinePendingMessages(storedId, flowMessages))
                     continue;
 
-            _messageClearer.ReopenPositions(flowMessages.Select(m => m.Position));
+            toReopen.AddRange(flowMessages.Select(m => m.Position));
         }
 
         // Resume each restarted flow, supplying the messages we already hold so it does not re-fetch them. Empty
@@ -201,6 +197,8 @@ public class FlowsManager
             .ToList();
         if (restartedEmptyPositions.Count > 0)
             await _messageClearer.Clear(restartedEmptyPositions);
+
+        return toReopen;
     }
 
     /// <summary>

@@ -49,9 +49,14 @@ public class FlowsManagers
             return _managers.GetValueOrDefault(storedType);
     }
 
-    public Task Push(IReadOnlyList<StoredMessages> messages)
+    /// <summary>
+    /// Routes each flow's fetched messages to its type's manager. Returns the positions that were not handled,
+    /// for the MessageWatchdog to reopen so delivery is retried on a later poll (see
+    /// <see cref="FlowsManager.Push"/>).
+    /// </summary>
+    public async Task<IReadOnlyList<long>> Push(IReadOnlyList<StoredMessages> messages)
     {
-        List<Task> messageDeliveries;
+        List<Task<IReadOnlyList<long>>> messageDeliveries;
         List<StoredMessages> unregistered;
         lock (_lock)
         {
@@ -59,25 +64,25 @@ public class FlowsManagers
                 .Where(msg => !_managers.ContainsKey(msg.StoredId.Type))
                 .ToList();
 
-            var running = messages
+            messageDeliveries = messages
                 .Where(msg => _managers.ContainsKey(msg.StoredId.Type))
                 .GroupBy(msg => msg.StoredId.Type)
                 .Select(g => _managers[g.Key].Push(g.ToList()))
                 .ToList();
-
-            messageDeliveries = running;
         }
 
-        // Messages for flow types not (yet) registered on this replica cannot be delivered here. Reopen their
-        // positions so delivery is retried on a later poll - the type may simply not have been registered yet
-        // (start-up ordering or a rolling deployment).
+        // Messages for flow types not (yet) registered on this replica cannot be delivered here - the type may
+        // simply not have been registered yet (start-up ordering or a rolling deployment).
         // todo log a warning here
-        if (unregistered.Count > 0)
-            _messageClearer.ReopenPositions(
-                unregistered.SelectMany(sm => sm.Messages).Select(m => m.Position)
-            );
+        var toReopen = unregistered
+            .SelectMany(sm => sm.Messages)
+            .Select(m => m.Position)
+            .ToList();
 
-        return Task.WhenAll(messageDeliveries);
+        foreach (var positions in await Task.WhenAll(messageDeliveries))
+            toReopen.AddRange(positions);
+
+        return toReopen;
     }
 
 }
