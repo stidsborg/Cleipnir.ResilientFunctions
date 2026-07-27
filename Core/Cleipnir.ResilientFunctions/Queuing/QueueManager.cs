@@ -307,7 +307,9 @@ internal class QueueManager
 
     // Caller must hold _fetchSemaphore. Dedups by idempotency-key and by already-fetched position (so pushes are
     // idempotent), and stages messages for delivery. Deserialization already happened at the pipeline boundary
-    // (MessageDeserializer), which dead lettered the messages that failed it.
+    // (MessageDeserializer), which dead lettered the messages that failed it - and the serializer is trusted not
+    // to throw on serialization (shielded via decoration, see ErrorHandlingDecorator), so staging is in-memory
+    // bookkeeping that cannot fail; an exception escaping here is a framework bug and propagates to the caller.
     private void ProcessMessages(IReadOnlyList<DeserializedMessage> messages)
     {
         foreach (var message in messages)
@@ -325,68 +327,55 @@ internal class QueueManager
                     continue;
             }
 
-            try
+            var idempotencyEntry = idempotencyKey != null ? _idempotencyKeys.Reserve(idempotencyKey) : null;
+
+            if (idempotencyKey != null && idempotencyEntry is null)
             {
-                var idempotencyEntry = idempotencyKey != null ? _idempotencyKeys.Reserve(idempotencyKey) : null;
-
-                if (idempotencyKey != null && idempotencyEntry is null)
-                {
-                    lock (_lock)
-                    {
-                        RecordDeliveredStoreRow(position);
-                        // A gate message never has a child carrier - the prune only targets the completed-flow
-                        // inline blob, when the message came from there.
-                        PruneDeliveredMessage(childId: null, position);
-                    }
-                    continue;
-                }
-
-                // The serialized bytes travel no further than the pipeline boundary - re-serialize the payload
-                // for the durable carriers (the staged-message child and the delivered-message capture).
-                var messageContent = _serializer.Serialize(msg, msg.GetType());
-                var messageType = _serializer.SerializeType(msg.GetType());
-
-                var envelope = new Envelope(msg, receiver, sender);
                 lock (_lock)
                 {
-                    // Durably capture the message as its own child effect the moment it is staged; it is
-                    // deleted again when the message is delivered or idempotency-deduped (PruneDeliveredMessage).
-                    // Flushless, so it costs no I/O and dies with an equally-unflushed delivery - recovery then stays
-                    // store-backed and at-least-once.
-                    var childId = NextStagedMessageChildId();
-                    var encodedMessage = PendingMessages.EncodeMessage(
-                        new IncomingMessage(messageContent, messageType, position, idempotencyKey, sender, receiver)
-                    );
-
-                    // One upsert for the message and the key that admitted it: neither can become durable
-                    // without the other, so a recorded key always has its message behind it.
-                    _effect.FlushlessUpserts(
-                        idempotencyEntry is null
-                            ? [EffectResult.Create(childId, encodedMessage)]
-                            : [EffectResult.Create(childId, encodedMessage), idempotencyEntry]
-                    );
-
-                    var stagedMessage = new StagedMessage(
-                        envelope,
-                        position,
-                        childId,
-                        messageContent,
-                        messageType,
-                        receiver,
-                        sender
-                    );
-                    Stage(stagedMessage);
+                    RecordDeliveredStoreRow(position);
+                    // A gate message never has a child carrier - the prune only targets the completed-flow
+                    // inline blob, when the message came from there.
+                    PruneDeliveredMessage(childId: null, position);
                 }
+                continue;
             }
-            catch (Exception e)
+
+            // The serialized bytes travel no further than the pipeline boundary - re-serialize the payload
+            // for the durable carriers (the staged-message child and the delivered-message capture).
+            var messageContent = _serializer.Serialize(msg, msg.GetType());
+            var messageType = _serializer.SerializeType(msg.GetType());
+
+            var envelope = new Envelope(msg, receiver, sender);
+            lock (_lock)
             {
-                // Staging is in-memory bookkeeping only, and the serializer is trusted not to throw here
-                // (undeserializable messages are dead lettered at the pipeline boundary, and serializers are
-                // shielded via decoration - see ErrorHandlingDecorator) - so an exception is strictly a
-                // framework bug. Report it and reopen the message's position so it is re-fetched and retried
-                // rather than stranded in the ignore-set.
-                _unhandledExceptionHandler.Invoke(_flowId.Type, e);
-                ReopenStoreRow(position);
+                // Durably capture the message as its own child effect the moment it is staged; it is
+                // deleted again when the message is delivered or idempotency-deduped (PruneDeliveredMessage).
+                // Flushless, so it costs no I/O and dies with an equally-unflushed delivery - recovery then stays
+                // store-backed and at-least-once.
+                var childId = NextStagedMessageChildId();
+                var encodedMessage = PendingMessages.EncodeMessage(
+                    new IncomingMessage(messageContent, messageType, position, idempotencyKey, sender, receiver)
+                );
+
+                // One upsert for the message and the key that admitted it: neither can become durable
+                // without the other, so a recorded key always has its message behind it.
+                _effect.FlushlessUpserts(
+                    idempotencyEntry is null
+                        ? [EffectResult.Create(childId, encodedMessage)]
+                        : [EffectResult.Create(childId, encodedMessage), idempotencyEntry]
+                );
+
+                var stagedMessage = new StagedMessage(
+                    envelope,
+                    position,
+                    childId,
+                    messageContent,
+                    messageType,
+                    receiver,
+                    sender
+                );
+                Stage(stagedMessage);
             }
         }
     }
@@ -614,12 +603,6 @@ internal class QueueManager
 
         _deliveredPositions.Add(storePosition);
         _effect.FlushlessUpsert(DeliveredPositionsId, _deliveredPositions.ToList(), alias: null);
-    }
-
-    private void ReopenStoreRow(long? position)
-    {
-        if (position is { } storePosition)
-            _messageClearer.ReopenPositions([storePosition]);
     }
 
     // The id FlushlessCreateNextChild would append at, without writing - the message is instead written together
