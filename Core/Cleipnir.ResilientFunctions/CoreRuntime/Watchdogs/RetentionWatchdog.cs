@@ -14,7 +14,6 @@ internal class RetentionWatchdog
     private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
     private readonly ShutdownCoordinator _shutdownCoordinator;
     private readonly TimeSpan _cleanUpFrequency;
-    private readonly TimeSpan _delayStartUp;
     private readonly TimeSpan _retentionPeriod;
     private readonly FlowType _flowType;
     private readonly StoredType _storedType;
@@ -26,7 +25,6 @@ internal class RetentionWatchdog
         StoredType storedType,
         IFunctionStore functionStore,
         TimeSpan cleanUpFrequency,
-        TimeSpan delayStartUp,
         TimeSpan retentionPeriod,
         UnhandledExceptionHandler unhandledExceptionHandler,
         ShutdownCoordinator shutdownCoordinator,
@@ -38,7 +36,6 @@ internal class RetentionWatchdog
         _unhandledExceptionHandler = unhandledExceptionHandler;
         _shutdownCoordinator = shutdownCoordinator;
         _cleanUpFrequency = cleanUpFrequency;
-        _delayStartUp = delayStartUp;
         _retentionPeriod = retentionPeriod;
         _utcNow = utcNow;
     }
@@ -46,7 +43,6 @@ internal class RetentionWatchdog
     public async Task Start()
     {
         if (_retentionPeriod == TimeSpan.MaxValue) return;
-        await Task.Delay(_delayStartUp);
 
         Start:
         try

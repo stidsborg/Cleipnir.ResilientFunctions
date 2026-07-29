@@ -27,8 +27,7 @@ public abstract class PostponedTests
                 (
                     crashableStore,
                     new Settings(
-                        unhandledExceptionHandler.Catch,
-                        enableWatchdogs: false
+                        unhandledExceptionHandler.Catch
                     )
                 );
             var rFunc = functionsRegistry.RegisterFunc<string, string>(
@@ -39,8 +38,10 @@ public abstract class PostponedTests
             await Should.ThrowAsync<InvocationPostponedException>(() =>
                 rFunc(param, param)
             );
-            crashableStore.Crash();
+            // Asserted before the crash - afterwards the registry's watchdogs hit the crashed store and record
+            // framework exceptions that have nothing to do with the invocation under test.
             unhandledExceptionHandler.ThrownExceptions.Count.ShouldBe(0);
+            crashableStore.Crash();
         }
         {
             var unhandledExceptionHandler = new UnhandledExceptionCatcher();
@@ -78,8 +79,7 @@ public abstract class PostponedTests
             (
                 store,
                 new Settings(
-                    unhandledExceptionHandler.Catch,
-                    enableWatchdogs: false
+                    unhandledExceptionHandler.Catch
                 )
             );
             var rAction = functionsRegistry.RegisterAction(
@@ -122,9 +122,7 @@ public abstract class PostponedTests
             using var functionsRegistry = new FunctionsRegistry
             (
                 crashableStore,
-                new Settings(
-                    enableWatchdogs: false
-                )
+                new Settings()
             );
             var rFunc = functionsRegistry
                 .RegisterAction(functionId.Type, Task<Result<Unit>> (string _) => Postpone.Until(DateTime.UtcNow.AddMilliseconds(1_000)).ToUnitResult.ToTask())

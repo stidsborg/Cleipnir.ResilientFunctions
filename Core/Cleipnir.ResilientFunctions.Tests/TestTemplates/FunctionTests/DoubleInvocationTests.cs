@@ -25,8 +25,7 @@ public abstract class DoubleInvocationTests
         (
             store,
             new Settings(
-                unhandledExceptionHandler.Catch,
-                enableWatchdogs: false
+                unhandledExceptionHandler.Catch
             )
         );
         var rFunc = functionsRegistry.RegisterFunc(
@@ -61,8 +60,7 @@ public abstract class DoubleInvocationTests
         (
             store,
             new Settings(
-                unhandledExceptionHandler.Catch,
-                enableWatchdogs: false
+                unhandledExceptionHandler.Catch
             )
         );
         var rFunc = functionsRegistry.RegisterFunc(
@@ -92,8 +90,7 @@ public abstract class DoubleInvocationTests
         (
             store,
             new Settings(
-                unhandledExceptionHandler.Catch,
-                enableWatchdogs: false
+                unhandledExceptionHandler.Catch
             )
         );
         var rFunc = functionsRegistry.RegisterFunc(
@@ -123,8 +120,7 @@ public abstract class DoubleInvocationTests
         (
             store,
             new Settings(
-                unhandledExceptionHandler.Catch,
-                enableWatchdogs: false
+                unhandledExceptionHandler.Catch
             )
         );
         var rFunc = functionsRegistry.RegisterFunc(

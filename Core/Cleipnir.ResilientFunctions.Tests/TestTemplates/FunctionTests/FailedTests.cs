@@ -36,8 +36,7 @@ public abstract class FailedTests
             (
                 store,
                 new Settings(
-                    unhandledExceptionHandler.Catch,
-                    enableWatchdogs: false
+                    unhandledExceptionHandler.Catch
                 )
             );
             var actionRegistration = functionsRegistry
@@ -105,8 +104,7 @@ public abstract class FailedTests
             (
                 store,
                 new Settings(
-                    unhandledExceptionHandler.Catch,
-                    enableWatchdogs: false
+                    unhandledExceptionHandler.Catch
                 )
             );
             var nonCompletingFunctionsRegistry = functionsRegistry
@@ -165,8 +163,7 @@ public abstract class FailedTests
             (
                 store,
                 new Settings(
-                    unhandledExceptionHandler.Catch,
-                    enableWatchdogs: false
+                    unhandledExceptionHandler.Catch
                 )
             );
             var nonCompletingFunctionsRegistry = functionsRegistry 
@@ -260,7 +257,7 @@ public abstract class FailedTests
         {
             using var functionsRegistry = new FunctionsRegistry(
                 store,
-                new Settings(unhandledExceptionHandler.Catch, enableWatchdogs: false)
+                new Settings(unhandledExceptionHandler.Catch)
             );
             var nonCompletingFunctionsRegistry = functionsRegistry 
                 .RegisterAction(
