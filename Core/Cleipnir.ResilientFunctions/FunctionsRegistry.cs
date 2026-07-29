@@ -58,8 +58,7 @@ public class FunctionsRegistry : IDisposable
             _shutdownCoordinator,
             _settings.UnhandledExceptionHandler,
             _settings.WatchdogCheckFrequency,
-            _settings.DelayStartup,
-            ClusterInfo, 
+            ClusterInfo,
             utcNow
         );
         
@@ -67,7 +66,7 @@ public class FunctionsRegistry : IDisposable
             ClusterInfo, 
             functionStore, 
             heartbeatFrequency: _settings.ReplicaHeartbeatFrequency, 
-            utcNow, 
+            utcNow,
             _settings.UnhandledExceptionHandler
         );
 
@@ -81,16 +80,12 @@ public class FunctionsRegistry : IDisposable
             _shutdownCoordinator,
             _settings.UnhandledExceptionHandler,
             _settings.MessagesPullFrequency,
-            _settings.DelayStartup,
             utcNow
         );
 
-        if (_settings.EnableWatchdogs)
-        {
-            _replicaWatchdog.Initialize().GetAwaiter().GetResult();
-            _ = _replicaWatchdog.Start();
-            _ = Task.Run(_messageWatchdog.Start);
-        }
+        _replicaWatchdog.Initialize().GetAwaiter().GetResult();
+        _ = _replicaWatchdog.Start();
+        _ = Task.Run(_messageWatchdog.Start);
     }
 
     #region Func overloads

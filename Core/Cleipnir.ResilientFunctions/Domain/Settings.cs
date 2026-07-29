@@ -10,9 +10,7 @@ public class Settings
     internal Action<FrameworkException>? UnhandledExceptionHandler { get; }
     internal TimeSpan? RetentionPeriod { get; }
     internal TimeSpan? RetentionCleanUpFrequency { get; }
-    internal bool? EnableWatchdogs { get; }
     internal TimeSpan? WatchdogCheckFrequency { get; }
-    internal TimeSpan? DelayStartup { get; }
     internal int? MaxParallelRetryInvocations { get; }
     internal TimeSpan? MessagesPullFrequency { get; }
     internal TimeSpan? MessagesDefaultMaxWaitForCompletion { get; }
@@ -24,11 +22,9 @@ public class Settings
         Action<FrameworkException>? unhandledExceptionHandler = null, 
         TimeSpan? retentionPeriod = null,
         TimeSpan? retentionCleanUpFrequency = null,
-        bool? enableWatchdogs = null,
         TimeSpan? watchdogCheckFrequency = null,
         TimeSpan? messagesPullFrequency = null,
         TimeSpan? messagesDefaultMaxWaitForCompletion = null,
-        TimeSpan? delayStartup = null, 
         int? maxParallelRetryInvocations = null, 
         ISerializer? serializer = null,
         UtcNow? utcNow = null,
@@ -37,9 +33,7 @@ public class Settings
         UnhandledExceptionHandler = unhandledExceptionHandler;
         RetentionPeriod = retentionPeriod;
         RetentionCleanUpFrequency = retentionCleanUpFrequency;
-        EnableWatchdogs = enableWatchdogs;
         WatchdogCheckFrequency = watchdogCheckFrequency;
-        DelayStartup = delayStartup;
         MaxParallelRetryInvocations = maxParallelRetryInvocations;
         Serializer = serializer;
         MessagesPullFrequency = messagesPullFrequency;
@@ -56,11 +50,9 @@ public record SettingsWithDefaults(
     UnhandledExceptionHandler UnhandledExceptionHandler,
     TimeSpan RetentionPeriod,
     TimeSpan RetentionCleanUpFrequency,
-    bool EnableWatchdogs,
     TimeSpan WatchdogCheckFrequency,
     TimeSpan MessagesPullFrequency,
     TimeSpan MessagesDefaultMaxWaitForCompletion,
-    TimeSpan DelayStartup,
     int MaxParallelRetryInvocations,
     ISerializer Serializer,
     UtcNow UtcNow,
@@ -76,11 +68,9 @@ public record SettingsWithDefaults(
                 : new UnhandledExceptionHandler(child.UnhandledExceptionHandler),
             child.RetentionPeriod ?? RetentionPeriod,
             child.RetentionCleanUpFrequency ?? RetentionCleanUpFrequency,
-            child.EnableWatchdogs ?? EnableWatchdogs,
             child.WatchdogCheckFrequency ?? WatchdogCheckFrequency,
             child.MessagesPullFrequency ?? MessagesPullFrequency,
             child.MessagesDefaultMaxWaitForCompletion ?? MessagesDefaultMaxWaitForCompletion,
-            child.DelayStartup ?? DelayStartup,
             child.MaxParallelRetryInvocations ?? MaxParallelRetryInvocations,
             child.Serializer ?? Serializer,
             child.UtcNow ?? (() => DateTime.UtcNow),
@@ -95,7 +85,6 @@ public record SettingsWithDefaults(
         return this with
         {
             RetentionPeriod = child.RetentionPeriod ?? RetentionPeriod, 
-            EnableWatchdogs = child.EnableWatchdogs ?? EnableWatchdogs, 
             MessagesDefaultMaxWaitForCompletion = child.MessagesDefaultMaxWaitForCompletion ?? MessagesDefaultMaxWaitForCompletion, 
             MaxParallelRetryInvocations = child.MaxParallelRetryInvocations ?? MaxParallelRetryInvocations
         };
@@ -106,11 +95,9 @@ public record SettingsWithDefaults(
             UnhandledExceptionHandler: new UnhandledExceptionHandler(_ => {}),
             RetentionPeriod: TimeSpan.MaxValue,
             RetentionCleanUpFrequency: TimeSpan.FromHours(1),
-            EnableWatchdogs: true,
             WatchdogCheckFrequency: TimeSpan.FromSeconds(1),
             MessagesPullFrequency: TimeSpan.FromMilliseconds(250),
             MessagesDefaultMaxWaitForCompletion: TimeSpan.Zero, 
-            DelayStartup: TimeSpan.FromSeconds(0),
             MaxParallelRetryInvocations: 1000,
             Serializer: DefaultSerializer.Instance,
             UtcNow: () => DateTime.UtcNow,

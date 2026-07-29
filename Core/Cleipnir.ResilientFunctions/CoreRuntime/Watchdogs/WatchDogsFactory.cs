@@ -18,9 +18,6 @@ internal static class WatchDogsFactory
         ShutdownCoordinator shutdownCoordinator,
         UtcNow utcNow)
     {
-        if (!settings.EnableWatchdogs)
-            return;
-
         if (settings.WatchdogCheckFrequency == TimeSpan.Zero || settings.WatchdogCheckFrequency == TimeSpan.MaxValue)
             throw new InvalidOperationException(nameof(Settings.WatchdogCheckFrequency) + " is invalid");
 
@@ -37,7 +34,6 @@ internal static class WatchDogsFactory
             storedType,
             functionStore,
             settings.RetentionCleanUpFrequency,
-            settings.DelayStartup,
             settings.RetentionPeriod,
             settings.UnhandledExceptionHandler,
             shutdownCoordinator,

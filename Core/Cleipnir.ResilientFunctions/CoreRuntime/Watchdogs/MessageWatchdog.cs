@@ -17,7 +17,6 @@ internal class MessageWatchdog(
     ShutdownCoordinator shutdownCoordinator,
     UnhandledExceptionHandler unhandledExceptionHandler,
     TimeSpan checkFrequency,
-    TimeSpan delayStartUp,
     UtcNow utcNow)
 {
     private volatile TaskCompletionSource _wakeSignal = NewWakeSignal();
@@ -33,8 +32,6 @@ internal class MessageWatchdog(
 
     public async Task Start()
     {
-        await Task.Delay(delayStartUp);
-
         Start:
         try
         {

@@ -18,7 +18,6 @@ internal class PostponedWatchdog
     private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
 
     private readonly TimeSpan _checkFrequency;
-    private readonly TimeSpan _delayStartUp;
     private readonly ClusterInfo _clusterInfo;
     
     private volatile ImmutableDictionary<StoredType, Tuple<ScheduleRestartFromWatchdog, AsyncSemaphore>> _flowsDictionary
@@ -31,7 +30,7 @@ internal class PostponedWatchdog
     public PostponedWatchdog(
         IFunctionStore functionStore,
         ShutdownCoordinator shutdownCoordinator, UnhandledExceptionHandler unhandledExceptionHandler, 
-        TimeSpan checkFrequency, TimeSpan delayStartUp,
+        TimeSpan checkFrequency,
         ClusterInfo clusterInfo,
         UtcNow utcNow)
     {
@@ -39,7 +38,6 @@ internal class PostponedWatchdog
         _shutdownCoordinator = shutdownCoordinator;
         _unhandledExceptionHandler = unhandledExceptionHandler;
         _checkFrequency = checkFrequency;
-        _delayStartUp = delayStartUp;
         _clusterInfo = clusterInfo;
         _utcNow = utcNow;
     }
@@ -62,8 +60,6 @@ internal class PostponedWatchdog
 
     private async Task Start()
     {
-        await Task.Delay(_delayStartUp);
-
         Start:
         try
         {
