@@ -23,7 +23,7 @@ public abstract class SuspensionTests
         var functionId = TestFlowId.Create();
         var (flowType, flowInstance) = functionId;
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
-        using var functionsRegistry = new FunctionsRegistry
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart
         (
             store,
             new Settings(unhandledExceptionHandler.Catch, watchdogCheckFrequency: TimeSpan.FromSeconds(60))
@@ -56,7 +56,7 @@ public abstract class SuspensionTests
         var functionId = TestFlowId.Create();
         var (typeId, instanceId) = functionId;
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
-        using var functionsRegistry = new FunctionsRegistry
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart
         (
             store,
             new Settings(unhandledExceptionHandler.Catch, watchdogCheckFrequency: TimeSpan.FromSeconds(60))
@@ -90,7 +90,7 @@ public abstract class SuspensionTests
         var (flowType, flowInstance) = functionId;
 
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
-        using var functionsRegistry = new FunctionsRegistry
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart
         (
             store,
             new Settings(unhandledExceptionHandler.Catch)
@@ -133,7 +133,7 @@ public abstract class SuspensionTests
         var (flowType, flowInstance) = functionId;
 
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
-        using var functionsRegistry = new FunctionsRegistry
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart
         (
             store,
             new Settings(unhandledExceptionHandler.Catch)
@@ -177,7 +177,7 @@ public abstract class SuspensionTests
         var functionId = new FlowId(flowType, flowInstance);
         
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
-        using var functionsRegistry = new FunctionsRegistry
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart
         (
             store,
             new Settings(unhandledExceptionHandler.Catch)
@@ -213,7 +213,7 @@ public abstract class SuspensionTests
         var flowInstance = "flowInstance";
 
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
-        using var functionsRegistry = new FunctionsRegistry
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart
         (
             store,
             new Settings(unhandledExceptionHandler.Catch)
@@ -258,7 +258,7 @@ public abstract class SuspensionTests
         var (flowType, flowInstance) = functionId;
 
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
-        using var functionsRegistry = new FunctionsRegistry
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart
         (
             store,
             new Settings(unhandledExceptionHandler.Catch)
@@ -303,7 +303,7 @@ public abstract class SuspensionTests
         var (flowType, flowInstance) = functionId;
 
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
-        using var functionsRegistry = new FunctionsRegistry
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart
         (
             store,
             new Settings(unhandledExceptionHandler.Catch)
@@ -339,7 +339,7 @@ public abstract class SuspensionTests
         var parentFunctionId = new FlowId($"ParentFunction{Guid.NewGuid()}", Guid.NewGuid().ToString());
 
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
-        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler.Catch));
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionHandler.Catch));
 
         var child = functionsRegistry.RegisterFunc(
             flowType: $"ChildFunction{Guid.NewGuid()}",
@@ -400,7 +400,7 @@ public abstract class SuspensionTests
         var parentFunctionId = new FlowId($"ParentFunction{Guid.NewGuid()}", Guid.NewGuid().ToString());
 
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
-        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler.Catch));
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionHandler.Catch));
         
         var child = functionsRegistry.RegisterFunc(
             flowType: $"ChildFunction{Guid.NewGuid()}",
@@ -425,7 +425,7 @@ public abstract class SuspensionTests
         var parentFunctionId = new FlowId($"ParentFunction{Guid.NewGuid()}", Guid.NewGuid().ToString());
 
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
-        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler.Catch));
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionHandler.Catch));
         
         var child = functionsRegistry.RegisterAction(
             flowType: $"ChildFunction{Guid.NewGuid()}",
@@ -448,7 +448,7 @@ public abstract class SuspensionTests
         var parentFunctionId = new FlowId($"ParentFunction{Guid.NewGuid()}", Guid.NewGuid().ToString());
 
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
-        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler.Catch));
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionHandler.Catch));
         
         var child = functionsRegistry.RegisterAction(
             flowType: $"ChildFunction{Guid.NewGuid()}",
@@ -474,7 +474,7 @@ public abstract class SuspensionTests
         var parentFunctionId = new FlowId($"ParentFunction{Guid.NewGuid()}", Guid.NewGuid().ToString());
         const int numberOfChildren = 100;
         
-        using var functionsRegistry = new FunctionsRegistry(
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             store,
             new Settings(watchdogCheckFrequency: TimeSpan.FromMilliseconds(100))
         );
@@ -530,7 +530,7 @@ public abstract class SuspensionTests
     {
         var store = await storeTask;
         var parentId = new FlowId($"ParentFlow{Guid.NewGuid()}", Guid.NewGuid().ToString());
-        using var functionsRegistry = new FunctionsRegistry(store);
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store);
         
         var child = functionsRegistry.RegisterFunc(
             flowType: $"ChildFlow{Guid.NewGuid()}",
@@ -558,7 +558,7 @@ public abstract class SuspensionTests
     {
         var store = await storeTask;
         var parentId = new FlowId($"ParentFlow{Guid.NewGuid()}", Guid.NewGuid().ToString());
-        using var functionsRegistry = new FunctionsRegistry(store);
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store);
 
         FuncRegistration<string, string>? parent = null;
         var child = functionsRegistry.RegisterFunc(
@@ -591,7 +591,7 @@ public abstract class SuspensionTests
         var (flowType, flowInstance) = id;
 
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
-        using var functionsRegistry = new FunctionsRegistry
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart
         (
             store,
             new Settings(unhandledExceptionHandler.Catch)
@@ -629,7 +629,7 @@ public abstract class SuspensionTests
         var (flowType, flowInstance) = id;
 
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
-        using var functionsRegistry = new FunctionsRegistry
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart
         (
             store,
             new Settings(unhandledExceptionHandler.Catch)
@@ -669,7 +669,7 @@ public abstract class SuspensionTests
         var (flowType, flowInstance) = id;
 
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
-        using var functionsRegistry = new FunctionsRegistry
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart
         (
             store,
             new Settings(unhandledExceptionHandler.Catch)

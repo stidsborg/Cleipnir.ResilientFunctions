@@ -15,7 +15,7 @@ public abstract class AtLeastOnceWorkStatusAndResultTests
     public async Task AtLeastOnceWorkIsExecutedMultipleTimesWhenNotCompleted(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        using var functionsRegistry = new FunctionsRegistry(store, new Settings(watchdogCheckFrequency: TimeSpan.FromMilliseconds(100)));
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(watchdogCheckFrequency: TimeSpan.FromMilliseconds(100)));
         var counter = new SyncedCounter();
         var functionId = TestFlowId.Create();
         var (flowType, flowInstance) = functionId;
@@ -48,7 +48,7 @@ public abstract class AtLeastOnceWorkStatusAndResultTests
     public async Task AtLeastOnceWorkWithCallIdIsExecutedMultipleTimesWhenNotCompleted(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        using var functionsRegistry = new FunctionsRegistry(store, new Settings(watchdogCheckFrequency: TimeSpan.FromMilliseconds(100)));
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(watchdogCheckFrequency: TimeSpan.FromMilliseconds(100)));
         var counter = new SyncedCounter();
         var functionId = TestFlowId.Create();
         var (flowType, flowInstance) = functionId;
@@ -89,7 +89,7 @@ public abstract class AtLeastOnceWorkStatusAndResultTests
     public async Task AtLeastOnceWorkWithCallIdAndGenericResultIsExecutedMultipleTimesWhenNotCompleted(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        using var functionsRegistry = new FunctionsRegistry(store, new Settings(watchdogCheckFrequency: TimeSpan.FromMilliseconds(100)));
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(watchdogCheckFrequency: TimeSpan.FromMilliseconds(100)));
         var counter = new SyncedCounter();
         var functionId = TestFlowId.Create();
         var (flowType, flowInstance) = functionId;
@@ -135,7 +135,7 @@ public abstract class AtLeastOnceWorkStatusAndResultTests
         var functionId = TestFlowId.Create();
         var (flowType, flowInstance) = functionId;
         
-        using var functionsRegistry = new FunctionsRegistry(store);
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store);
         var counter = new SyncedCounter();
         
         var rAction = functionsRegistry.RegisterAction(
@@ -158,7 +158,7 @@ public abstract class AtLeastOnceWorkStatusAndResultTests
     public async Task CompletedAtLeastOnceWorkWithCallIdIsNotExecutedMultipleTimes(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        using var functionsRegistry = new FunctionsRegistry(store);
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store);
         var counter = new SyncedCounter();
         var functionId = TestFlowId.Create();
         var (flowType, flowInstance) = functionId;

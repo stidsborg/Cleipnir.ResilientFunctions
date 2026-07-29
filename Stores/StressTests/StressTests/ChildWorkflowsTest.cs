@@ -21,7 +21,7 @@ public static class ChildWorkflowsTest
         var stopWatch = new Stopwatch();
         stopWatch.Start();
         
-        using var functionsRegistry = new FunctionsRegistry(
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             store,
             new Settings(unhandledExceptionHandler: Console.WriteLine)
         );

@@ -17,7 +17,7 @@ internal static class Program
         for (var i = 0; i < 100; i++)
         {
             var store = new InMemoryFunctionStore();
-            var functions = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler: Console.WriteLine));
+            var functions = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionHandler: Console.WriteLine));
 
             var rFunc = functions.RegisterParamless(
                 flowType: "Fun",

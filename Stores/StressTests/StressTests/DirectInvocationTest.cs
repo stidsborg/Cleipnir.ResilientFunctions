@@ -15,7 +15,7 @@ public class DirectInvocationTest
         var store = await helper.CreateFunctionStore();
         
         Console.WriteLine("DIRECT_INVOCATION_TEST: Starting now...");
-        using var functionsRegistry = new FunctionsRegistry(
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             store,
             new Settings(
                 unhandledExceptionHandler: Console.WriteLine
@@ -39,7 +39,7 @@ public class DirectInvocationTest
             }
         );
         
-        using var functionsRegistry2 = new FunctionsRegistry(
+        using var functionsRegistry2 = await FunctionsRegistry.CreateAndStart(
             store,
             new Settings(unhandledExceptionHandler: Console.WriteLine)
         );

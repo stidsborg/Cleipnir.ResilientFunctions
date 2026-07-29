@@ -21,7 +21,7 @@ public abstract class EffectTests
     public async Task SunshineActionTest(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        using var functionsRegistry = new FunctionsRegistry(store);
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store);
         var flowId = TestFlowId.Create();
         var (flowType, flowInstance) = flowId;
         var syncedCounter = new SyncedCounter();
@@ -59,7 +59,7 @@ public abstract class EffectTests
     public async Task SunshineAsyncActionTest(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        using var functionsRegistry = new FunctionsRegistry(store);
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store);
         var flowId = TestFlowId.Create();
         var (flowType, flowInstance) = flowId;
         var syncedCounter = new SyncedCounter();
@@ -96,7 +96,7 @@ public abstract class EffectTests
     public async Task SunshineFuncTest(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        using var functionsRegistry = new FunctionsRegistry(store);
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store);
         var flowId = TestFlowId.Create();
         var (flowType, flowInstance) = flowId;
         var syncedCounter = new SyncedCounter();
@@ -141,7 +141,7 @@ public abstract class EffectTests
     public async Task SunshineAsyncFuncTest(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        using var functionsRegistry = new FunctionsRegistry(store);
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store);
         var flowId = TestFlowId.Create();
         var (flowType, flowInstance) = flowId;
         var syncedCounter = new SyncedCounter();
@@ -186,7 +186,7 @@ public abstract class EffectTests
     public async Task FuncWithNullValueTest(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        using var functionsRegistry = new FunctionsRegistry(store);
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store);
         var flowId = TestFlowId.Create();
         var (flowType, flowInstance) = flowId;
         var registration = functionsRegistry.RegisterParamless(
@@ -211,7 +211,7 @@ public abstract class EffectTests
     public async Task ExceptionThrowingActionTest(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        using var functionsRegistry = new FunctionsRegistry(store);
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store);
         var flowId = TestFlowId.Create();
         var (flowType, flowInstance) = flowId;
         var syncedCounter = new SyncedCounter();
@@ -258,7 +258,7 @@ public abstract class EffectTests
     public async Task TaskWhenAnyFuncTest(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        using var functionsRegistry = new FunctionsRegistry(store);
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store);
         var flowId = TestFlowId.Create();
         var (flowType, flowInstance) = flowId;
         var rAction = functionsRegistry.RegisterFunc(
@@ -285,7 +285,7 @@ public abstract class EffectTests
     public async Task TaskWhenAllFuncTest(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        using var functionsRegistry = new FunctionsRegistry(store);
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store);
         var flowId = TestFlowId.Create();
         var (flowType, flowInstance) = flowId;
         var rAction = functionsRegistry.RegisterFunc(
@@ -397,7 +397,7 @@ public abstract class EffectTests
     public async Task SubEffectHasImplicitContext(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        using var functionsRegistry = new FunctionsRegistry(store);
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store);
         var flowId = TestFlowId.Create();
         var (flowType, flowInstance) = flowId;
         var readFlag = new SyncedFlag();
@@ -448,7 +448,7 @@ public abstract class EffectTests
     public async Task SubEffectHasExplicitContext(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        using var functionsRegistry = new FunctionsRegistry(store);
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store);
         var flowId = TestFlowId.Create();
         var (flowType, flowInstance) = flowId;
         var readFlag = new SyncedFlag();
@@ -499,7 +499,7 @@ public abstract class EffectTests
     public async Task EffectsHasCorrectlyOrderedIds(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        using var functionsRegistry = new FunctionsRegistry(store);
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store);
         var flowId = TestFlowId.Create();
         var (flowType, flowInstance) = flowId;
         var rAction = functionsRegistry.RegisterParamless(
@@ -564,7 +564,7 @@ public abstract class EffectTests
     public async Task ExceptionThrownInsideEffectBecomesFatalWorkflowException(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        using var functionsRegistry = new FunctionsRegistry(store);
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store);
         var flowId = TestFlowId.Create();
         var (flowType, flowInstance) = flowId;
         var rAction = functionsRegistry.RegisterFunc<string, bool>(
@@ -597,7 +597,7 @@ public abstract class EffectTests
     public async Task ExceptionThrownInsideEffectStaysFatalWorkflowException(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        using var functionsRegistry = new FunctionsRegistry(store);
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store);
         var flowId = TestFlowId.Create();
         var (flowType, flowInstance) = flowId;
         var rAction = functionsRegistry.RegisterParamless(
@@ -742,7 +742,7 @@ public abstract class EffectTests
         var someEffectIdValue = Guid.NewGuid();
 
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        var registry = new FunctionsRegistry(store, settings: new Settings(unhandledExceptionHandler: unhandledExceptionCatcher.Catch));
+        var registry = await FunctionsRegistry.CreateAndStart(store, settings: new Settings(unhandledExceptionHandler: unhandledExceptionCatcher.Catch));
 
         var writtenEffectFlag = new SyncedFlag();
         var continueFlag = new SyncedFlag();
@@ -821,7 +821,7 @@ public abstract class EffectTests
         
         var store = await storeTask;
         var flowId = TestFlowId.Create();
-        using var registry = new FunctionsRegistry(store, new Settings(utcNow: () => utcNow));
+        using var registry = await FunctionsRegistry.CreateAndStart(store, new Settings(utcNow: () => utcNow));
         var syncedCounter = new SyncedCounter();
 
         var retryPolicy = RetryPolicy.Create(suspendThreshold: TimeSpan.Zero, initialInterval: TimeSpan.FromSeconds(1), backoffCoefficient: 1);
@@ -867,7 +867,7 @@ public abstract class EffectTests
 
         var store = await storeTask;
         var flowId = TestFlowId.Create();
-        using var registry = new FunctionsRegistry(store, new Settings(utcNow: () => utcNow));
+        using var registry = await FunctionsRegistry.CreateAndStart(store, new Settings(utcNow: () => utcNow));
         var syncedCounter = new SyncedCounter();
 
         var retryPolicy = RetryPolicy.Create(suspendThreshold: TimeSpan.Zero, initialInterval: TimeSpan.FromSeconds(1), backoffCoefficient: 1);
@@ -912,7 +912,7 @@ public abstract class EffectTests
     {
         var store = await storeTask;
         var flowId = TestFlowId.Create();
-        using var registry = new FunctionsRegistry(store);
+        using var registry = await FunctionsRegistry.CreateAndStart(store);
         var syncedCounter = new SyncedCounter();
 
         var retryPolicy = RetryPolicy.Create(suspendThreshold: TimeSpan.MaxValue, initialInterval: TimeSpan.FromMilliseconds(100), backoffCoefficient: 1);
@@ -946,7 +946,7 @@ public abstract class EffectTests
     {
         var store = await storeTask;
         var flowId = TestFlowId.Create();
-        using var registry = new FunctionsRegistry(store);
+        using var registry = await FunctionsRegistry.CreateAndStart(store);
         var syncedCounter = new SyncedCounter();
 
         var retryPolicy = RetryPolicy.Create(
@@ -995,7 +995,7 @@ public abstract class EffectTests
         var store = await storeTask;
         var id = TestFlowId.Create();
      
-        using var registry = new FunctionsRegistry(store, new Settings(watchdogCheckFrequency: TimeSpan.FromMilliseconds(10)));
+        using var registry = await FunctionsRegistry.CreateAndStart(store, new Settings(watchdogCheckFrequency: TimeSpan.FromMilliseconds(10)));
         var iterations = new List<int>();
         var flag = new Synced<int>();
         var registration = registry.RegisterParamless(
@@ -1108,7 +1108,7 @@ public abstract class EffectTests
         var readFlag = new SyncedFlag();
         var continueFlag = new SyncedFlag();
 
-        using var registry = new FunctionsRegistry(store, new Settings(watchdogCheckFrequency: TimeSpan.FromMilliseconds(10)));
+        using var registry = await FunctionsRegistry.CreateAndStart(store, new Settings(watchdogCheckFrequency: TimeSpan.FromMilliseconds(10)));
         var registration = registry.RegisterParamless(
             id.Type,
             inner: async workflow =>
@@ -1148,7 +1148,7 @@ public abstract class EffectTests
         var readFlag = new SyncedFlag();
         var continueFlag = new SyncedFlag();
 
-        using var registry = new FunctionsRegistry(store, new Settings(watchdogCheckFrequency: TimeSpan.FromMilliseconds(10)));
+        using var registry = await FunctionsRegistry.CreateAndStart(store, new Settings(watchdogCheckFrequency: TimeSpan.FromMilliseconds(10)));
         var registration = registry.RegisterParamless(
             id.Type,
             inner: async workflow =>
@@ -1187,7 +1187,7 @@ public abstract class EffectTests
         var store = await storeTask;
         var id = TestFlowId.Create();
 
-        using var registry = new FunctionsRegistry(store);
+        using var registry = await FunctionsRegistry.CreateAndStart(store);
         var registration = registry.RegisterFunc(
             id.Type,
             async Task<int> (string param, Workflow workflow) =>
@@ -1220,7 +1220,7 @@ public abstract class EffectTests
         var id = TestFlowId.Create();
         var syncedCounter = new SyncedCounter();
 
-        using var registry = new FunctionsRegistry(store);
+        using var registry = await FunctionsRegistry.CreateAndStart(store);
         var registration = registry.RegisterFunc(
             id.Type,
             async Task<int> (string param, Workflow workflow) =>
@@ -1258,7 +1258,7 @@ public abstract class EffectTests
         var store = await storeTask;
         var id = TestFlowId.Create();
 
-        using var registry = new FunctionsRegistry(store);
+        using var registry = await FunctionsRegistry.CreateAndStart(store);
         var registration = registry.RegisterFunc(
             id.Type,
             async Task<List<string>> (string param, Workflow workflow) =>
@@ -1291,7 +1291,7 @@ public abstract class EffectTests
         var store = await storeTask;
         var id = TestFlowId.Create();
 
-        using var registry = new FunctionsRegistry(store);
+        using var registry = await FunctionsRegistry.CreateAndStart(store);
         var registration = registry.RegisterFunc(
             id.Type,
             async Task<int> (string param, Workflow workflow) =>
@@ -1326,7 +1326,7 @@ public abstract class EffectTests
         var store = await storeTask;
         var id = TestFlowId.Create();
 
-        using var registry = new FunctionsRegistry(store);
+        using var registry = await FunctionsRegistry.CreateAndStart(store);
         var registration = registry.RegisterFunc(
             id.Type,
             async Task<int> (string param, Workflow workflow) =>
@@ -1486,7 +1486,7 @@ public abstract class EffectTests
     public async Task RunParallelleTest(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        using var functionsRegistry = new FunctionsRegistry(store);
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store);
         var flowId = TestFlowId.Create();
         var (flowType, flowInstance) = flowId;
         var syncedCounter = new SyncedCounter();
@@ -1539,7 +1539,7 @@ public abstract class EffectTests
     public async Task UtcNowEffectSunshineTest(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        using var functionsRegistry = new FunctionsRegistry(store);
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store);
         var flowId = TestFlowId.Create();
         var (flowType, flowInstance) = flowId;
 

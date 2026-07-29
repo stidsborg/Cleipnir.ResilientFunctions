@@ -69,7 +69,7 @@ public class InMemorySunshineTests
     private async Task ExecuteFunc(Func<FunctionsRegistry, Func<string, Task<string>>, FuncRegistration<string, string>> createRegistration)
     {
         var store = new InMemoryFunctionStore();
-        using var rFunctions = new FunctionsRegistry(store);
+        using var rFunctions = await FunctionsRegistry.CreateAndStart(store);
 
         var syncedParam = new Synced<string>();
         var toReturn = "returned";
@@ -170,7 +170,7 @@ public class InMemorySunshineTests
     private async Task ExecuteAction(Func<FunctionsRegistry, Func<string, Task>, ActionRegistration<string>> createRegistration)
     {
         var store = new InMemoryFunctionStore();
-        using var rFunctions = new FunctionsRegistry(store);
+        using var rFunctions = await FunctionsRegistry.CreateAndStart(store);
 
         var syncedParam = new Synced<string>();
         // ReSharper disable once AccessToModifiedClosure

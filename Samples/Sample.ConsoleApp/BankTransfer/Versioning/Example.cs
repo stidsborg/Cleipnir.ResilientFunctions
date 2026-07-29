@@ -9,7 +9,7 @@ public static class Example
 {
     public static async Task Perform()
     {
-        var functionsRegistry = new FunctionsRegistry(new InMemoryFunctionStore());
+        var functionsRegistry = await FunctionsRegistry.CreateAndStart(new InMemoryFunctionStore());
 
         var transferSaga = new TransferSagaV1(functionsRegistry);
         var transfer = new Transfer(

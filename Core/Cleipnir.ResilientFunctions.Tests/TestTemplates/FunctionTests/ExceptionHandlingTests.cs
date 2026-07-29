@@ -14,7 +14,7 @@ public abstract class ExceptionHandlingTests
     {
         var store = await storeTask;
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionCatcher.Catch));
 
         var rFunc = functionsRegistry.RegisterFunc<string, string>( //explicit generic parameters to satisfy Rider-ide
             "typeId".ToFlowType(),
@@ -30,7 +30,7 @@ public abstract class ExceptionHandlingTests
     {
         var store = new InMemoryFunctionStore();
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionCatcher.Catch));
 
         var rFunc = functionsRegistry.RegisterFunc( 
             "typeId".ToFlowType(),
@@ -46,7 +46,7 @@ public abstract class ExceptionHandlingTests
     {
         var store = new InMemoryFunctionStore();
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionCatcher.Catch));
 
         var rFunc = functionsRegistry
             .RegisterAction(
@@ -64,7 +64,7 @@ public abstract class ExceptionHandlingTests
     {
         var store = new InMemoryFunctionStore();
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionCatcher.Catch));
 
         var rFunc = functionsRegistry
             .RegisterAction(

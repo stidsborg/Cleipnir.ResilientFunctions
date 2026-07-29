@@ -15,7 +15,7 @@ public class RActionRegistrationTests
     [TestMethod]
     public async Task ConstructedFuncInvokeCanBeCreatedAndInvoked()
     {
-        using var rFunctions = CreateRFunctions();
+        using var rFunctions = await CreateRFunctions();
         var rAction = rFunctions
             .RegisterAction<string>(_flowType, InnerAction)
             .Run;
@@ -24,5 +24,5 @@ public class RActionRegistrationTests
     }
     
     private Task InnerAction(string param) => Task.CompletedTask;
-    private FunctionsRegistry CreateRFunctions() => new(new InMemoryFunctionStore());
+    private Task<FunctionsRegistry> CreateRFunctions() => FunctionsRegistry.CreateAndStart(new InMemoryFunctionStore());
 }

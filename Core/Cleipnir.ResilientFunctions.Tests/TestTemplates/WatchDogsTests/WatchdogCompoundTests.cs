@@ -27,7 +27,7 @@ public abstract class WatchdogCompoundTests
             var crashableStore = store.ToCrashableFunctionStore();
             var paramTcs = new TaskCompletionSource<Param>();
 
-            using var functionsRegistry = new FunctionsRegistry(
+            using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
                 crashableStore,
                 new Settings(
                     unhandledExceptionCatcher.Catch,
@@ -55,7 +55,7 @@ public abstract class WatchdogCompoundTests
             var crashableStore = store.ToCrashableFunctionStore();
             var paramTcs = new TaskCompletionSource<Param>();
 
-            using var functionsRegistry = new FunctionsRegistry(
+            using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
                 crashableStore,
                 new Settings(
                     unhandledExceptionCatcher.Catch,
@@ -79,7 +79,7 @@ public abstract class WatchdogCompoundTests
             //third invocation crashes
             var crashableStore = store.ToCrashableFunctionStore();
             var paramTcs = new TaskCompletionSource<Param>();
-            using var functionsRegistry = new FunctionsRegistry(
+            using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
                 crashableStore,
                 new Settings(
                     unhandledExceptionCatcher.Catch,
@@ -101,7 +101,7 @@ public abstract class WatchdogCompoundTests
         }
         {
             //fourth invocation succeeds
-            using var functionsRegistry = new FunctionsRegistry(
+            using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
                 store,
                 new Settings(
                     unhandledExceptionCatcher.Catch,
@@ -137,7 +137,7 @@ public abstract class WatchdogCompoundTests
         {
             var crashableStore = store.ToCrashableFunctionStore();
             var tcs = new TaskCompletionSource<Param>();
-            using var functionsRegistry = new FunctionsRegistry(
+            using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
                 crashableStore,
                 new Settings(
                     unhandledExceptionCatcher.Catch,
@@ -165,7 +165,7 @@ public abstract class WatchdogCompoundTests
             var crashableStore = store.ToCrashableFunctionStore();
             var paramTcs = new TaskCompletionSource<Param>();
             
-            using var functionsRegistry = new FunctionsRegistry(
+            using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
                 crashableStore,
                 new Settings(
                     unhandledExceptionCatcher.Catch,
@@ -192,7 +192,7 @@ public abstract class WatchdogCompoundTests
             var crashableStore = store.ToCrashableFunctionStore();
             var invocationStarted = new TaskCompletionSource();
             var paramTcs = new TaskCompletionSource<Param>();
-            using var functionsRegistry = new FunctionsRegistry(
+            using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
                 crashableStore,
                 new Settings(
                     unhandledExceptionCatcher.Catch,
@@ -216,7 +216,7 @@ public abstract class WatchdogCompoundTests
         //fourth invocation succeeds
         {
             var paramTcs = new TaskCompletionSource<Param>();
-            using var functionsRegistry = new FunctionsRegistry(
+            using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
                 store,
                 new Settings(
                     unhandledExceptionCatcher.Catch,
@@ -247,7 +247,7 @@ public abstract class WatchdogCompoundTests
         var (flowType, _) = functionId;
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         
-        using var functionsRegistry = new FunctionsRegistry(
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             store,
             new Settings(
                 unhandledExceptionCatcher.Catch,
@@ -275,7 +275,7 @@ public abstract class WatchdogCompoundTests
         var (flowType, _) = testId;
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         
-        using var functionsRegistry = new FunctionsRegistry(
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             store,
             new Settings(
                 unhandledExceptionCatcher.Catch,

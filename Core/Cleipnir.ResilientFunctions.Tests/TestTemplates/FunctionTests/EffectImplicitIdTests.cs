@@ -16,7 +16,7 @@ public abstract class EffectImplicitIdTests
     public async Task SunshineActionTest(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        using var functionsRegistry = new FunctionsRegistry(store);
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store);
         var flowId = TestFlowId.Create();
         var (flowType, flowInstance) = flowId;
         var syncedCounter = new SyncedCounter();
@@ -51,7 +51,7 @@ public abstract class EffectImplicitIdTests
     public async Task SunshineAsyncActionTest(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        using var functionsRegistry = new FunctionsRegistry(store);
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store);
         var flowId = TestFlowId.Create();
         var (flowType, flowInstance) = flowId;
         var syncedCounter = new SyncedCounter();
@@ -86,7 +86,7 @@ public abstract class EffectImplicitIdTests
     public async Task SunshineFuncTest(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        using var functionsRegistry = new FunctionsRegistry(store);
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store);
         var flowId = TestFlowId.Create();
         var (flowType, flowInstance) = flowId;
         var syncedCounter = new SyncedCounter();
@@ -130,7 +130,7 @@ public abstract class EffectImplicitIdTests
     public async Task SunshineAsyncFuncTest(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        using var functionsRegistry = new FunctionsRegistry(store);
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store);
         var flowId = TestFlowId.Create();
         var (flowType, flowInstance) = flowId;
         var syncedCounter = new SyncedCounter();
@@ -174,7 +174,7 @@ public abstract class EffectImplicitIdTests
     public async Task ExceptionThrowingActionTest(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        using var functionsRegistry = new FunctionsRegistry(store);
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store);
         var flowId = TestFlowId.Create();
         var (flowType, flowInstance) = flowId;
         var syncedCounter = new SyncedCounter();
@@ -220,7 +220,7 @@ public abstract class EffectImplicitIdTests
     public async Task TaskWhenAnyFuncTest(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        using var functionsRegistry = new FunctionsRegistry(store);
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store);
         var flowId = TestFlowId.Create();
         var (flowType, flowInstance) = flowId;
         var rAction = functionsRegistry.RegisterFunc(
@@ -246,7 +246,7 @@ public abstract class EffectImplicitIdTests
     public async Task TaskWhenAllFuncTest(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        using var functionsRegistry = new FunctionsRegistry(store);
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store);
         var flowId = TestFlowId.Create();
         var (flowType, flowInstance) = flowId;
         var rAction = functionsRegistry.RegisterFunc(
@@ -272,7 +272,7 @@ public abstract class EffectImplicitIdTests
     public async Task MultipleEffectsTest(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        using var functionsRegistry = new FunctionsRegistry(store);
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store);
         var flowId = TestFlowId.Create();
         var (flowType, flowInstance) = flowId;
         var registration = functionsRegistry.RegisterAction(

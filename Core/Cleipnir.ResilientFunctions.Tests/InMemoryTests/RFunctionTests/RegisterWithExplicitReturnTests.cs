@@ -13,7 +13,7 @@ public class RegisterWithExplicitReturnTests
     [TestMethod]
     public async Task FuncWithExplicitReturnIsInvokedSuccessfully()
     {
-        using var rFunctions = new FunctionsRegistry(new InMemoryFunctionStore());
+        using var rFunctions = await FunctionsRegistry.CreateAndStart(new InMemoryFunctionStore());
         var syncedParam = new Synced<string>();
         var rFunc = rFunctions.RegisterFunc<string, string>(
             "flowType".ToFlowType(),
@@ -32,7 +32,7 @@ public class RegisterWithExplicitReturnTests
     [TestMethod]
     public async Task FuncWithStateAndExplicitReturnIsInvokedSuccessfully()
     {
-        using var rFunctions = new FunctionsRegistry(new InMemoryFunctionStore());
+        using var rFunctions = await FunctionsRegistry.CreateAndStart(new InMemoryFunctionStore());
         var syncedParam = new Synced<string>();
         var rFunc = rFunctions.RegisterFunc<string, string>(
             "flowType".ToFlowType(),
@@ -52,7 +52,7 @@ public class RegisterWithExplicitReturnTests
     [TestMethod]
     public async Task ActionWithExplicitReturnIsInvokedSuccessfully()
     {
-        using var rFunctions = new FunctionsRegistry(new InMemoryFunctionStore());
+        using var rFunctions = await FunctionsRegistry.CreateAndStart(new InMemoryFunctionStore());
         var syncedParam = new Synced<string>();
         var rAction = rFunctions
             .RegisterAction<string>(
@@ -72,7 +72,7 @@ public class RegisterWithExplicitReturnTests
     [TestMethod]
     public async Task ActionWithStateAndExplicitReturnIsInvokedSuccessfully()
     {
-        using var rFunctions = new FunctionsRegistry(new InMemoryFunctionStore());
+        using var rFunctions = await FunctionsRegistry.CreateAndStart(new InMemoryFunctionStore());
         var syncedParam = new Synced<string>();
         var rAction = rFunctions
             .RegisterAction<string>(

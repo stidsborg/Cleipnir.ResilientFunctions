@@ -21,7 +21,7 @@ public abstract class DoubleInvocationTests
         var (flowType, flowInstance) = functionId;
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         var syncTask = new TaskCompletionSource();
-        var functionsRegistry = new FunctionsRegistry
+        var functionsRegistry = await FunctionsRegistry.CreateAndStart
         (
             store,
             new Settings(
@@ -56,7 +56,7 @@ public abstract class DoubleInvocationTests
         var functionId = TestFlowId.Create();
         var (flowType, flowInstance) = functionId;
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
-        var functionsRegistry = new FunctionsRegistry
+        var functionsRegistry = await FunctionsRegistry.CreateAndStart
         (
             store,
             new Settings(
@@ -86,7 +86,7 @@ public abstract class DoubleInvocationTests
         var functionId = TestFlowId.Create();
         var (flowType, flowInstance) = functionId;
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
-        var functionsRegistry = new FunctionsRegistry
+        var functionsRegistry = await FunctionsRegistry.CreateAndStart
         (
             store,
             new Settings(
@@ -116,7 +116,7 @@ public abstract class DoubleInvocationTests
         var functionId = TestFlowId.Create();
         var (flowType, flowInstance) = functionId;
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
-        var functionsRegistry = new FunctionsRegistry
+        var functionsRegistry = await FunctionsRegistry.CreateAndStart
         (
             store,
             new Settings(

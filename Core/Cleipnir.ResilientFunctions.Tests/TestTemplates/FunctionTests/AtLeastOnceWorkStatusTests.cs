@@ -15,7 +15,7 @@ public abstract class AtLeastOnceWorkStatusTests
     public async Task AtLeastOnceWorkIsExecutedMultipleTimesWhenNotCompleted(Task<IFunctionStore> functionStoreTask)
     {
         var store = await functionStoreTask;
-        using var functionsRegistry = new FunctionsRegistry(store, new Settings(watchdogCheckFrequency: TimeSpan.FromMilliseconds(100)));
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(watchdogCheckFrequency: TimeSpan.FromMilliseconds(100)));
         var counter = new SyncedCounter();
         var functionId = TestFlowId.Create();
         var (flowType, flowInstance) = functionId;
@@ -49,7 +49,7 @@ public abstract class AtLeastOnceWorkStatusTests
     public async Task AtLeastOnceWorkWithCallIdIsExecutedMultipleTimesWhenNotCompleted(Task<IFunctionStore> functionStoreTask)
     {
         var store = await functionStoreTask;
-        using var functionsRegistry = new FunctionsRegistry(store, new Settings(watchdogCheckFrequency: TimeSpan.FromMilliseconds(100)));
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(watchdogCheckFrequency: TimeSpan.FromMilliseconds(100)));
         var counter = new SyncedCounter();
         var functionId = TestFlowId.Create();
         var (flowType, flowInstance) = functionId;
@@ -84,7 +84,7 @@ public abstract class AtLeastOnceWorkStatusTests
     public async Task CompletedAtLeastOnceWorkIsNotExecutedMultipleTimes(Task<IFunctionStore> functionStoreTask)
     {
         var store = await functionStoreTask;
-        using var functionsRegistry = new FunctionsRegistry(store);
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store);
         var counter = new SyncedCounter();
         var functionId = TestFlowId.Create();
         var (flowType, flowInstance) = functionId;
@@ -108,7 +108,7 @@ public abstract class AtLeastOnceWorkStatusTests
     public async Task CompletedAtLeastOnceWorkWithCallIdIsNotExecutedMultipleTimes(Task<IFunctionStore> functionStoreTask)
     {
         var store = await functionStoreTask;
-        using var functionsRegistry = new FunctionsRegistry(store);
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store);
         var counter = new SyncedCounter();
         var functionId = TestFlowId.Create();
         var (flowType, flowInstance) = functionId;

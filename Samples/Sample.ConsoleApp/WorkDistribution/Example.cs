@@ -52,7 +52,7 @@ public static class Example
         Console.WriteLine("Started: " + store.GetType().Name);
         
         await store.Initialize();
-        var registry = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler: Console.WriteLine));
+        var registry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionHandler: Console.WriteLine));
         
         var processOrder = registry.RegisterAction<string>(
             "ProcessOrder",

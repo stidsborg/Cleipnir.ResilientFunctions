@@ -22,9 +22,7 @@ internal class PostponedWatchdog
     
     private volatile ImmutableDictionary<StoredType, Tuple<ScheduleRestartFromWatchdog, AsyncSemaphore>> _flowsDictionary
         = ImmutableDictionary<StoredType, Tuple<ScheduleRestartFromWatchdog, AsyncSemaphore>>.Empty;
-    private readonly Lock _sync = new();
-    private bool _started;
-    
+
     private readonly UtcNow _utcNow;
 
     public PostponedWatchdog(
@@ -48,17 +46,15 @@ internal class PostponedWatchdog
         AsyncSemaphore asyncSemaphore)
     {
         _flowsDictionary = _flowsDictionary.SetItem(storedType, Tuple.Create(scheduleRestart, asyncSemaphore));
-        
-        lock (_sync)
-        {
-            if (!_started)
-                Task.Run(Start);    
-            
-            _started = true;
-        }
     }
 
-    private async Task Start()
+    /// <summary>
+    /// Started by the FunctionsRegistry once - never at registration time: the loop shards by cluster offset and
+    /// claims flows for this replica, both of which require the replica to have joined the cluster first.
+    /// </summary>
+    public void Start() => Task.Run(Run);
+
+    private async Task Run()
     {
         Start:
         try

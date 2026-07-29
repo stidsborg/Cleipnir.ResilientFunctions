@@ -18,7 +18,7 @@ public abstract class WorkflowMessageTests
     {
         var store = await functionStoreTask;
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
-        using var functionsRegistry = new FunctionsRegistry(
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             store,
             new Settings(unhandledExceptionHandler.Catch)
         );
@@ -49,7 +49,7 @@ public abstract class WorkflowMessageTests
     {
         var store = await functionStoreTask;
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
-        using var functionsRegistry = new FunctionsRegistry(
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             store,
             new Settings(unhandledExceptionHandler.Catch)
         );
@@ -83,7 +83,7 @@ public abstract class WorkflowMessageTests
     {
         var store = await functionStoreTask;
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
-        using var functionsRegistry = new FunctionsRegistry(
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             store,
             new Settings(unhandledExceptionHandler.Catch)
         );
@@ -114,7 +114,7 @@ public abstract class WorkflowMessageTests
     {
         var store = await functionStoreTask;
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
-        using var functionsRegistry = new FunctionsRegistry(
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             store,
             new Settings(unhandledExceptionHandler.Catch)
         );
@@ -150,7 +150,7 @@ public abstract class WorkflowMessageTests
     {
         var store = await functionStoreTask;
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
-        using var functionsRegistry = new FunctionsRegistry(
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             store,
             new Settings(unhandledExceptionHandler.Catch)
         );
@@ -181,7 +181,7 @@ public abstract class WorkflowMessageTests
     {
         var store = await functionStoreTask;
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
-        using var functionsRegistry = new FunctionsRegistry(
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             store,
             new Settings(unhandledExceptionHandler.Catch)
         );
@@ -217,7 +217,7 @@ public abstract class WorkflowMessageTests
     {
         var store = await functionStoreTask;
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
-        using var functionsRegistry = new FunctionsRegistry(
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             store,
             new Settings(unhandledExceptionHandler.Catch)
         );
@@ -249,7 +249,7 @@ public abstract class WorkflowMessageTests
     {
         var store = await functionStoreTask;
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
-        using var functionsRegistry = new FunctionsRegistry(
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             store,
             new Settings(unhandledExceptionHandler.Catch)
         );
@@ -282,7 +282,7 @@ public abstract class WorkflowMessageTests
     {
         var store = await functionStoreTask;
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
-        using var functionsRegistry = new FunctionsRegistry(
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             store,
             new Settings(unhandledExceptionHandler.Catch)
         );
@@ -314,7 +314,7 @@ public abstract class WorkflowMessageTests
     {
         var store = await functionStoreTask;
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
-        using var functionsRegistry = new FunctionsRegistry(
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             store,
             new Settings(unhandledExceptionHandler.Catch)
         );
@@ -351,7 +351,7 @@ public abstract class WorkflowMessageTests
     {
         var store = await functionStoreTask;
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
-        using var functionsRegistry = new FunctionsRegistry(
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             store,
             new Settings(unhandledExceptionHandler.Catch)
         );
@@ -383,7 +383,7 @@ public abstract class WorkflowMessageTests
     {
         var store = await functionStoreTask;
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
-        using var functionsRegistry = new FunctionsRegistry(
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             store,
             new Settings(unhandledExceptionHandler.Catch)
         );
@@ -420,7 +420,7 @@ public abstract class WorkflowMessageTests
     {
         var store = await functionStoreTask;
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
-        using var functionsRegistry = new FunctionsRegistry(
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             store,
             new Settings(unhandledExceptionHandler.Catch)
         );
@@ -476,7 +476,7 @@ public abstract class WorkflowMessageTests
     {
         var store = await functionStoreTask;
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
-        using var functionsRegistry = new FunctionsRegistry(
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             store,
             new Settings(unhandledExceptionHandler.Catch)
         );
@@ -510,7 +510,7 @@ public abstract class WorkflowMessageTests
     {
         var store = await functionStoreTask;
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
-        using var functionsRegistry = new FunctionsRegistry(
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             store,
             new Settings(unhandledExceptionHandler.Catch)
         );
@@ -544,7 +544,7 @@ public abstract class WorkflowMessageTests
     {
         var store = await functionStoreTask;
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
-        using var functionsRegistry = new FunctionsRegistry(
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             store,
             new Settings(unhandledExceptionHandler.Catch)
         );
@@ -579,7 +579,7 @@ public abstract class WorkflowMessageTests
     {
         var store = await functionStoreTask;
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
-        using var functionsRegistry = new FunctionsRegistry(
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             store,
             new Settings(unhandledExceptionHandler.Catch)
         );

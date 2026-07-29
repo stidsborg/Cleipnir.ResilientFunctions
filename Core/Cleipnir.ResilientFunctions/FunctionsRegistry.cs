@@ -36,7 +36,7 @@ public class FunctionsRegistry : IDisposable
     private readonly MessageClearer _messageClearer;
     private readonly FlowsManagers _flowsManagers;
 
-    public FunctionsRegistry(IFunctionStore functionStore, Settings? settings = null)
+    private FunctionsRegistry(IFunctionStore functionStore, Settings? settings = null)
     {
         _functionStore = functionStore;
         _storedTypes = new StoredTypes(functionStore.TypeStore);
@@ -83,8 +83,43 @@ public class FunctionsRegistry : IDisposable
             utcNow
         );
 
-        _replicaWatchdog.Initialize().GetAwaiter().GetResult();
-        _ = _replicaWatchdog.Start();
+    }
+
+    /// <summary>
+    /// Creates a <see cref="FunctionsRegistry"/> and starts its background processing - cluster membership,
+    /// message delivery and crash/postponed recovery. Flow types can still be registered on the returned
+    /// registry; messages for types registered later are redelivered once the type appears.
+    /// </summary>
+    public static async Task<FunctionsRegistry> CreateAndStart(IFunctionStore functionStore, Settings? settings = null)
+    {
+        var registry = new FunctionsRegistry(functionStore, settings);
+        await registry.Start();
+        return registry;
+    }
+
+    /// <summary>
+    /// Creates a <see cref="FunctionsRegistry"/>, invokes <paramref name="setup"/> to register the application's
+    /// flow types and only then starts background processing - guaranteeing that no message delivery or restart
+    /// occurs before all the types registered in <paramref name="setup"/> are known. Returns the registry together
+    /// with <paramref name="setup"/>'s return value, so the typed registrations escape to the caller.
+    /// </summary>
+    public static async Task<(FunctionsRegistry Registry, T Flows)> CreateAndStart<T>(
+        IFunctionStore functionStore,
+        Settings? settings,
+        Func<FunctionsRegistry, T> setup)
+    {
+        var registry = new FunctionsRegistry(functionStore, settings);
+        var flows = setup(registry);
+        await registry.Start();
+        return (registry, flows);
+    }
+
+    private async Task Start()
+    {
+        // The replica must join the cluster (replica insert + offset calculation) before any loop that shards
+        // by cluster offset or claims flows for this replica is allowed to run.
+        await _replicaWatchdog.Start();
+        _postponedWatchdog.Start();
         _ = Task.Run(_messageWatchdog.Start);
     }
 

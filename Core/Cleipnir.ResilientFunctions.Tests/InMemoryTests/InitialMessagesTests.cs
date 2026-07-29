@@ -23,7 +23,7 @@ public class InitialMessagesTests
         var flowId = TestFlowId.Create();
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
 
-        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionCatcher.Catch));
 
         var registration = functionsRegistry.RegisterFunc(
             flowId.Type,

@@ -14,13 +14,13 @@ public static class BrandExample
     public static async Task Do()
     {
         await Version1();
-        Version2();
+        await Version2();
     }
     
     private static async Task Version1()
     {
         var crashableStore = new CrashableFunctionStore(Store);
-        using var functionsRegistry = new FunctionsRegistry(crashableStore);
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(crashableStore);
 
         var rAction = functionsRegistry.RegisterAction(
             "SaveOrder",
@@ -37,9 +37,9 @@ public static class BrandExample
         crashableStore.Crash();
     }
 
-    private static void Version2()
+    private static async Task Version2()
     {
-        using var functionsRegistry = new FunctionsRegistry(
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             Store, 
             new Settings(
                 unhandledExceptionHandler: Console.WriteLine

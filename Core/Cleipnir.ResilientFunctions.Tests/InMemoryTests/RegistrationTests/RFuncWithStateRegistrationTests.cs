@@ -17,7 +17,7 @@ public class RFuncWithStateRegistrationTests
     [TestMethod]
     public async Task ConstructedFuncInvokeCanBeCreatedAndInvoked()
     {
-        using var rFunctions = CreateRFunctions();
+        using var rFunctions = await CreateRFunctions();
         var rFunc = rFunctions
             .RegisterFunc<string, string>(
                 _flowType,
@@ -33,7 +33,7 @@ public class RFuncWithStateRegistrationTests
     public async Task ConstructedFuncWithCustomSerializerCanBeCreatedAndInvoked()
     {
         var serializer = new Serializer();
-        using var rFunctions = new FunctionsRegistry(
+        using var rFunctions = await FunctionsRegistry.CreateAndStart(
             new InMemoryFunctionStore(),
             settings: new Settings(serializer: serializer)
         );
@@ -50,7 +50,7 @@ public class RFuncWithStateRegistrationTests
         await Task.CompletedTask;
         return param.ToUpper();
     }
-    private FunctionsRegistry CreateRFunctions() => new(new InMemoryFunctionStore());
+    private Task<FunctionsRegistry> CreateRFunctions() => FunctionsRegistry.CreateAndStart(new InMemoryFunctionStore());
 
     private class Serializer : ISerializer
     {

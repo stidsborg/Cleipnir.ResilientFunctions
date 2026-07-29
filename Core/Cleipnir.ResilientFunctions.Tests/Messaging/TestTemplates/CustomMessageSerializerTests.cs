@@ -20,7 +20,7 @@ public abstract class CustomMessageSerializerTests
     {
         var flowId = TestFlowId.Create();
         var functionStore = await functionStoreTask;
-        var registry = new FunctionsRegistry(
+        var registry = await FunctionsRegistry.CreateAndStart(
             functionStore,
             new Settings(serializer: new EventSerializer())
         );

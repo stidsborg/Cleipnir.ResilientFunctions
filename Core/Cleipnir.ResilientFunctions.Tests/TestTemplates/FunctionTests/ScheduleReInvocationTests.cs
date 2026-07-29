@@ -19,7 +19,7 @@ public abstract class ScheduleReInvocationTests
         var functionType = TestFlowId.Create().Type;
         var flag = new SyncedFlag();
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var functionsRegistry = new FunctionsRegistry(
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             store,
             new Settings(
                 unhandledExceptionCatcher.Catch
@@ -70,7 +70,7 @@ public abstract class ScheduleReInvocationTests
         var (flowType, flowInstance) = functionId;
         var flag = new SyncedFlag();
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var functionsRegistry = new FunctionsRegistry(
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             store,
             new Settings(
                 unhandledExceptionCatcher.Catch
