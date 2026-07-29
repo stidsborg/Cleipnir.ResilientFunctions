@@ -12,7 +12,7 @@ public class Example
     public static async Task Perform()
     {
         var store = new InMemoryFunctionStore();
-        var functions = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler: Console.WriteLine));
+        var functions = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionHandler: Console.WriteLine));
 
         var rFunc = functions.RegisterAction<string>(
             flowType: "DelaySuspension",

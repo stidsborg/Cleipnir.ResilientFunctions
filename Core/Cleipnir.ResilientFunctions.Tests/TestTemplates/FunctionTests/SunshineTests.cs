@@ -29,7 +29,7 @@ public abstract class SunshineTests
 
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
 
-        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler.Catch));
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionHandler.Catch));
 
         var reg = functionsRegistry
             .RegisterFunc(
@@ -61,7 +61,7 @@ public abstract class SunshineTests
         var flowType = TestFlowId.Create().Type;
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
 
-        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler.Catch));
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionHandler.Catch));
         var flag = new SyncedFlag();
         var reg = functionsRegistry.RegisterParamless(
             flowType,
@@ -94,7 +94,7 @@ public abstract class SunshineTests
         var flowType = TestFlowId.Create().Type;
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
 
-        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler.Catch));
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionHandler.Catch));
         var flag = new SyncedFlag();
         var reg = functionsRegistry
             .RegisterParamless(
@@ -128,7 +128,7 @@ public abstract class SunshineTests
         var flowType = nameof(SunshineScenarioAction).ToFlowType();
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
 
-        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler.Catch));
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionHandler.Catch));
         var reg = functionsRegistry
             .RegisterAction(
                 flowType,
@@ -152,7 +152,7 @@ public abstract class SunshineTests
         var store = await storeTask;
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         FlowType flowType = "SomeFunctionType";
-        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionCatcher.Catch));
 
         var rFunc = functionsRegistry.RegisterFunc(
             flowType,
@@ -170,7 +170,7 @@ public abstract class SunshineTests
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         var functionId = TestFlowId.Create();
         {
-            using var functionsRegistry = new FunctionsRegistry(
+            using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
                 store,
                 new Settings(
                     unhandledExceptionCatcher.Catch
@@ -186,7 +186,7 @@ public abstract class SunshineTests
         }
 
         {
-            using var functionsRegistry = new FunctionsRegistry(
+            using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
                 store,
                 new Settings(
                     unhandledExceptionCatcher.Catch,
@@ -212,7 +212,7 @@ public abstract class SunshineTests
 
         var functionId = TestFlowId.Create();
 
-        using var functionsRegistry = new FunctionsRegistry(store);
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store);
 
         var invoke = functionsRegistry.RegisterParamless(
             functionId.Type,
@@ -240,7 +240,7 @@ public abstract class SunshineTests
         
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
 
-        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler.Catch));
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionHandler.Catch));
 
         FlowId? flowId = null;
         var reg = functionsRegistry
@@ -265,7 +265,7 @@ public abstract class SunshineTests
         var (type, instance) = TestFlowId.Create();
         
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
-        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler.Catch));
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionHandler.Catch));
 
         StoredId? storedId = null;
         var reg = functionsRegistry
@@ -291,7 +291,7 @@ public abstract class SunshineTests
         var (type, instance) = TestFlowId.Create();
         
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
-        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler.Catch));
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionHandler.Catch));
 
         var postponed = false;
         
@@ -327,7 +327,7 @@ public abstract class SunshineTests
 
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
 
-        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler.Catch));
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionHandler.Catch));
 
         string? initialEffectValue = null;
         string? initialMessageValue = null;
@@ -370,7 +370,7 @@ public abstract class SunshineTests
 
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
 
-        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler.Catch));
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionHandler.Catch));
 
         string? initialEffectValue = null;
         string? initialMessageValue = null;
@@ -412,7 +412,7 @@ public abstract class SunshineTests
 
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
 
-        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler.Catch));
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionHandler.Catch));
 
         string? initialEffectValue = null;
         string? initialMessageValue = null;
@@ -453,7 +453,7 @@ public abstract class SunshineTests
 
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
 
-        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler.Catch));
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionHandler.Catch));
 
         WorkStatus? workStatus = null;
 
@@ -489,7 +489,7 @@ public abstract class SunshineTests
 
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
 
-        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler.Catch));
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionHandler.Catch));
         
         var registration = functionsRegistry
             .RegisterParamless(
@@ -528,7 +528,7 @@ public abstract class SunshineTests
         var flowId = TestFlowId.Create(); 
 
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
-        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler.Catch));
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionHandler.Catch));
         
         var insideFlag = new SyncedFlag();
         var completeFlag = new SyncedFlag();

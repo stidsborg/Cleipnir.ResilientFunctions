@@ -29,7 +29,7 @@ public abstract class MessagesTests
     {
         var functionStore = await functionStoreTask;
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var functionsRegistry = new FunctionsRegistry(
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             functionStore,
             CreateSettings(unhandledExceptionCatcher.Catch)
         );
@@ -56,7 +56,7 @@ public abstract class MessagesTests
     {
         var functionStore = await functionStoreTask;
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var functionsRegistry = new FunctionsRegistry(
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             functionStore,
             CreateSettings(unhandledExceptionCatcher.Catch)
         );
@@ -80,7 +80,7 @@ public abstract class MessagesTests
     {
         var functionStore = await functionStoreTask;
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var functionsRegistry = new FunctionsRegistry(
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             functionStore,
             CreateSettings(unhandledExceptionCatcher.Catch)
         );
@@ -110,7 +110,7 @@ public abstract class MessagesTests
     {
         var functionStore = await functionStoreTask;
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var functionsRegistry = new FunctionsRegistry(
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             functionStore,
             CreateSettings(unhandledExceptionCatcher.Catch)
         );
@@ -139,7 +139,7 @@ public abstract class MessagesTests
     {
         var functionStore = await functionStoreTask;
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var functionsRegistry = new FunctionsRegistry(
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             functionStore,
             CreateSettings(unhandledExceptionCatcher.Catch)
         );
@@ -165,7 +165,7 @@ public abstract class MessagesTests
     {
         var functionStore = await functionStoreTask;
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var functionsRegistry = new FunctionsRegistry(
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             functionStore,
             CreateSettings(unhandledExceptionCatcher.Catch)
         );
@@ -199,7 +199,7 @@ public abstract class MessagesTests
     {
         var functionStore = await functionStoreTask;
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var functionsRegistry = new FunctionsRegistry(
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             functionStore,
             CreateSettings(unhandledExceptionCatcher.Catch)
         );
@@ -234,7 +234,7 @@ public abstract class MessagesTests
         var flowType = TestFlowId.Create().Type;
         var functionStore = await functionStoreTask;
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var registry = new FunctionsRegistry(functionStore, CreateSettings(unhandledExceptionCatcher.Catch));
+        using var registry = await FunctionsRegistry.CreateAndStart(functionStore, CreateSettings(unhandledExceptionCatcher.Catch));
 
         var registration = registry.RegisterParamless(
             flowType,
@@ -268,7 +268,7 @@ public abstract class MessagesTests
         var flowType = TestFlowId.Create().Type;
         var functionStore = await functionStoreTask;
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var registry = new FunctionsRegistry(functionStore, CreateSettings(unhandledExceptionCatcher.Catch));
+        using var registry = await FunctionsRegistry.CreateAndStart(functionStore, CreateSettings(unhandledExceptionCatcher.Catch));
         var messages = new List<string>();
         var registration = registry.RegisterParamless(
             flowType,
@@ -314,7 +314,7 @@ public abstract class MessagesTests
         functionStore = functionStore.WithPrefix("pingpong" + Guid.NewGuid().ToString("N"));
         await functionStore.Initialize();
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var registry = new FunctionsRegistry(functionStore, CreateSettings(unhandledExceptionCatcher.Catch, messagesPullFrequency: TimeSpan.FromMilliseconds(10)));
+        using var registry = await FunctionsRegistry.CreateAndStart(functionStore, CreateSettings(unhandledExceptionCatcher.Catch, messagesPullFrequency: TimeSpan.FromMilliseconds(10)));
         ParamlessRegistration pongRegistration = null!;
         ParamlessRegistration pingRegistration = null!;
 

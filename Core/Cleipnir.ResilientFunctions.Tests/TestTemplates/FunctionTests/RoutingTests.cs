@@ -19,7 +19,7 @@ public abstract class RoutingTests
         var (flowType, flowInstance) = functionId;
         
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var functionsRegistry = new FunctionsRegistry(
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             store, 
             new Settings(unhandledExceptionCatcher.Catch)
         );
@@ -58,7 +58,7 @@ public abstract class RoutingTests
         var (flowType, flowInstance) = functionId;
         
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var functionsRegistry = new FunctionsRegistry(
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             store, 
             new Settings(unhandledExceptionCatcher.Catch)
         );
@@ -97,7 +97,7 @@ public abstract class RoutingTests
         var (flowType, flowInstance) = functionId;
         
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var functionsRegistry = new FunctionsRegistry(
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             store, 
             new Settings(unhandledExceptionCatcher.Catch)
         );
@@ -138,7 +138,7 @@ public abstract class RoutingTests
         var (flowType, flowInstance) = functionId;
         
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var functionsRegistry = new FunctionsRegistry(
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             store, 
             new Settings(unhandledExceptionCatcher.Catch)
         );
@@ -177,7 +177,7 @@ public abstract class RoutingTests
         var (flowType, flowInstance) = functionId;
         
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var functionsRegistry = new FunctionsRegistry(
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             store, 
             new Settings(unhandledExceptionCatcher.Catch)
         );

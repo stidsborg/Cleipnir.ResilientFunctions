@@ -376,8 +376,8 @@ public abstract class ReplicaWatchdogTests
         var flowId = TestFlowId.Create();
         var (flowType, flowInstance) = flowId;
 
-        using var crashingRegistry = new FunctionsRegistry(functionStore);
-        using var overtakingRegistry = new FunctionsRegistry(functionStore);
+        using var crashingRegistry = await FunctionsRegistry.CreateAndStart(functionStore);
+        using var overtakingRegistry = await FunctionsRegistry.CreateAndStart(functionStore);
 
         var insideTest1 = new SyncedFlag();
         var insideTest2 = new SyncedFlag();

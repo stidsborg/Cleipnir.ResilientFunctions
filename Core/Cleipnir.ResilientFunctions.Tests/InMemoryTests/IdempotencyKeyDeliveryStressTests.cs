@@ -28,7 +28,7 @@ public class IdempotencyKeyDeliveryStressTests
         {
             var functionStore = await Utils.CreateInMemoryFunctionStoreTask();
             var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-            using var functionsRegistry = new FunctionsRegistry(
+            using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
                 functionStore,
                 new Settings(unhandledExceptionCatcher.Catch, watchdogCheckFrequency: TimeSpan.FromMilliseconds(20))
             );

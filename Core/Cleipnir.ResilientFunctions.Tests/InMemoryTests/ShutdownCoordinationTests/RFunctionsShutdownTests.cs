@@ -17,7 +17,7 @@ public class RFunctionsShutdownTests
     {
         var flowType = "flowType".ToFlowType();
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var functionsRegistry = new FunctionsRegistry(
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             new InMemoryFunctionStore(),
             new Settings(
                 unhandledExceptionCatcher.Catch,
@@ -58,7 +58,7 @@ public class RFunctionsShutdownTests
     {
         var flowType = "flowType".ToFlowType();
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var functionsRegistry = new FunctionsRegistry(
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             new InMemoryFunctionStore(),
             new Settings(
                 unhandledExceptionCatcher.Catch,
@@ -92,7 +92,7 @@ public class RFunctionsShutdownTests
         var functionId = new FlowId("someFunctionType", "someflowInstance");
         
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var functionsRegistry = new FunctionsRegistry(
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             store,
             new Settings(
                 unhandledExceptionCatcher.Catch,
@@ -143,7 +143,7 @@ public class RFunctionsShutdownTests
         var storedParameter = "".ToJson();
         
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var functionsRegistry = new FunctionsRegistry(
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             store,
             new Settings(
                 unhandledExceptionCatcher.Catch,
@@ -203,7 +203,7 @@ public class RFunctionsShutdownTests
         var flowType = "flowType".ToFlowType();
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         var store = new InMemoryFunctionStore();
-        using var functionsRegistry = new FunctionsRegistry(
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             store,
             new Settings(
                 unhandledExceptionCatcher.Catch,

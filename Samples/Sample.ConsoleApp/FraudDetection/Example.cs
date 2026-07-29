@@ -14,7 +14,7 @@ public static class Example
     {
         var store = new InMemoryFunctionStore();
         
-        var functions = new FunctionsRegistry(
+        var functions = await FunctionsRegistry.CreateAndStart(
             store,
             new Settings(unhandledExceptionHandler: Console.WriteLine)
         );
@@ -49,7 +49,7 @@ public static class Example
         
         var store = new InMemoryFunctionStore();
         
-        var functions = new FunctionsRegistry(
+        var functions = await FunctionsRegistry.CreateAndStart(
             store,
             new Settings(unhandledExceptionHandler: Console.WriteLine)
         );

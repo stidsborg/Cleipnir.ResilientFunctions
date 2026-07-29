@@ -20,7 +20,7 @@ public static class PaymentProviderExample
     private static async Task Version1()
     {
         var crashableStore = new CrashableFunctionStore(Store);
-        using var functionsRegistry = new FunctionsRegistry(crashableStore);
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(crashableStore);
 
         var rAction = functionsRegistry.RegisterAction(
             "SaveOrder",
@@ -41,7 +41,7 @@ public static class PaymentProviderExample
 
     private static async Task Version2()
     {
-        using var functionsRegistry = new FunctionsRegistry(
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             Store, 
             new Settings(
                 unhandledExceptionHandler: Console.WriteLine

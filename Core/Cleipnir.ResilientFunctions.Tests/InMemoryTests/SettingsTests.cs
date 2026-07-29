@@ -1,5 +1,6 @@
 using System;
 using System.Reflection;
+using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Storage;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -11,13 +12,13 @@ namespace Cleipnir.ResilientFunctions.Tests.InMemoryTests;
 public class SettingsTests
 {
     [TestMethod]
-    public void ReplicaHeartbeatFrequencySettingIsUsedInFunctionsRegistry()
+    public async Task ReplicaHeartbeatFrequencySettingIsUsedInFunctionsRegistry()
     {
         var heartbeatFrequency = TimeSpan.FromSeconds(123);
         var settings = new Settings(replicaHeartbeatFrequency: heartbeatFrequency);
         var functionStore = new InMemoryFunctionStore();
         
-        var functionsRegistry = new FunctionsRegistry(functionStore, settings);
+        var functionsRegistry = await FunctionsRegistry.CreateAndStart(functionStore, settings);
 
         var replicaWatchdog = (CoreRuntime.Watchdogs.ReplicaWatchdog) typeof(FunctionsRegistry)
             .GetField("_replicaWatchdog", BindingFlags.Instance | BindingFlags.NonPublic)!

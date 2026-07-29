@@ -23,7 +23,7 @@ public abstract class CrashedTests
         const string param = "test";
         {
             var crashableStore = store.ToCrashableFunctionStore();
-            var registry = new FunctionsRegistry(crashableStore);
+            var registry = await FunctionsRegistry.CreateAndStart(crashableStore);
             var func = registry
                 .RegisterFunc(
                     flowType,
@@ -34,7 +34,7 @@ public abstract class CrashedTests
             crashableStore.Crash();
         }
         {
-            using var functionsRegistry = new FunctionsRegistry(store);
+            using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store);
             var registration = functionsRegistry
                 .RegisterFunc(
                     flowType,
@@ -63,7 +63,7 @@ public abstract class CrashedTests
         const string param = "test";
         {
             var crashableStore = store.ToCrashableFunctionStore();
-            using var nonCompletingFunctionsRegistry = new FunctionsRegistry(crashableStore);
+            using var nonCompletingFunctionsRegistry = await FunctionsRegistry.CreateAndStart(crashableStore);
 
             await nonCompletingFunctionsRegistry.RegisterAction(
                 flowType,
@@ -72,7 +72,7 @@ public abstract class CrashedTests
             crashableStore.Crash();
         }
         {
-            using var functionsRegistry = new FunctionsRegistry(store);
+            using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store);
 
             var registration = functionsRegistry
                 .RegisterAction(

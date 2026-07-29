@@ -12,9 +12,9 @@ namespace Cleipnir.ResilientFunctions.Tests.InMemoryTests.RFunctionTests;
 public class DuplicateRegistrationTests
 {
     [TestMethod]
-    public void ReRegistrationRFuncWithIncompatibleTypeThrowsException()
+    public async Task ReRegistrationRFuncWithIncompatibleTypeThrowsException()
     {
-        using var rFunctions = new FunctionsRegistry(new InMemoryFunctionStore());
+        using var rFunctions = await FunctionsRegistry.CreateAndStart(new InMemoryFunctionStore());
         _ = rFunctions.RegisterFunc(
             "SomeFunctionType",
             Task<Result<string>>(string param) => Succeed.WithValue(param.ToUpper()).ToTask()
@@ -29,9 +29,9 @@ public class DuplicateRegistrationTests
     }
     
     [TestMethod]
-    public void ReRegistrationRFuncSucceedsWhenArgumentsAreIdentical()
+    public async Task ReRegistrationRFuncSucceedsWhenArgumentsAreIdentical()
     {
-        using var rFunctions = new FunctionsRegistry(new InMemoryFunctionStore());
+        using var rFunctions = await FunctionsRegistry.CreateAndStart(new InMemoryFunctionStore());
         _ = rFunctions.RegisterFunc(
             "SomeFunctionType",
             Task<Result<string>>(string param) => Succeed.WithValue(param.ToUpper()).ToTask()
@@ -44,9 +44,9 @@ public class DuplicateRegistrationTests
     }
     
     [TestMethod]
-    public void ReRegistrationRActionSucceedsWhenArgumentsAreIdentical()
+    public async Task ReRegistrationRActionSucceedsWhenArgumentsAreIdentical()
     {
-        using var rFunctions = new FunctionsRegistry(new InMemoryFunctionStore());
+        using var rFunctions = await FunctionsRegistry.CreateAndStart(new InMemoryFunctionStore());
         _ = rFunctions.RegisterFunc(
             "SomeFunctionType",
             Task<Result<Unit>>(string _) => Succeed.WithUnit.ToTask()
@@ -59,9 +59,9 @@ public class DuplicateRegistrationTests
     }
 
     [TestMethod]
-    public void ReRegistrationRActionWithIncompatibleTypeThrowsException()
+    public async Task ReRegistrationRActionWithIncompatibleTypeThrowsException()
     {
-        using var rFunctions = new FunctionsRegistry(new InMemoryFunctionStore());
+        using var rFunctions = await FunctionsRegistry.CreateAndStart(new InMemoryFunctionStore());
         _ = rFunctions.RegisterFunc(
             "SomeFunctionType",
             Task<Result<Unit>>(string _) => Succeed.WithUnit.ToTask()
@@ -76,9 +76,9 @@ public class DuplicateRegistrationTests
     }
     
     [TestMethod]
-    public void ReRegistrationFromFuncToActionThrowsArgumentException()
+    public async Task ReRegistrationFromFuncToActionThrowsArgumentException()
     {
-        using var rFunctions = new FunctionsRegistry(new InMemoryFunctionStore());
+        using var rFunctions = await FunctionsRegistry.CreateAndStart(new InMemoryFunctionStore());
         _ = rFunctions.RegisterFunc(
             "SomeFunctionType",
             Task<Result<Unit>>(string _) => Succeed.WithUnit.ToTask()

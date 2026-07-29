@@ -23,7 +23,7 @@ public abstract class PostponedTests
         {
             var unhandledExceptionHandler = new UnhandledExceptionCatcher();
             var crashableStore = new CrashableFunctionStore(store);
-            using var functionsRegistry = new FunctionsRegistry
+            using var functionsRegistry = await FunctionsRegistry.CreateAndStart
                 (
                     crashableStore,
                     new Settings(
@@ -45,7 +45,7 @@ public abstract class PostponedTests
         }
         {
             var unhandledExceptionHandler = new UnhandledExceptionCatcher();
-            using var functionsRegistry = new FunctionsRegistry(
+            using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
                 store,
                 new Settings(
                     unhandledExceptionHandler.Catch,
@@ -75,7 +75,7 @@ public abstract class PostponedTests
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         const string param = "test";
         {
-            using var functionsRegistry = new FunctionsRegistry
+            using var functionsRegistry = await FunctionsRegistry.CreateAndStart
             (
                 store,
                 new Settings(
@@ -91,7 +91,7 @@ public abstract class PostponedTests
             unhandledExceptionHandler.ShouldNotHaveExceptions();
         }
         {
-            using var functionsRegistry = new FunctionsRegistry(
+            using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
                 store,
                 new Settings(
                     unhandledExceptionHandler.Catch,
@@ -119,7 +119,7 @@ public abstract class PostponedTests
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         {
             var crashableStore = new CrashableFunctionStore(store);
-            using var functionsRegistry = new FunctionsRegistry
+            using var functionsRegistry = await FunctionsRegistry.CreateAndStart
             (
                 crashableStore,
                 new Settings()
@@ -134,7 +134,7 @@ public abstract class PostponedTests
         }
         {
             var crashableStore = new CrashableFunctionStore(store);
-            using var functionsRegistry = new FunctionsRegistry
+            using var functionsRegistry = await FunctionsRegistry.CreateAndStart
             (
                 crashableStore,
                 new Settings(
@@ -155,7 +155,7 @@ public abstract class PostponedTests
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         var store = await storeTask;
         var flowType = nameof(ThrownPostponeExceptionResultsInPostponedAction);
-        using var functionsRegistry = new FunctionsRegistry(
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             store,
             new Settings(unhandledExceptionHandler: unhandledExceptionCatcher.Catch)
         );
@@ -248,7 +248,7 @@ public abstract class PostponedTests
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         var store = await storeTask;
         var flowType = nameof(ThrownPostponeExceptionResultsInPostponedActionWithState);
-        using var functionsRegistry = new FunctionsRegistry(
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             store,
             new Settings(unhandledExceptionHandler: unhandledExceptionCatcher.Catch)
         );
@@ -338,7 +338,7 @@ public abstract class PostponedTests
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         var store = await storeTask;
         var flowType = TestFlowId.Create().Type;
-        using var functionsRegistry = new FunctionsRegistry(
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             store,
             new Settings(unhandledExceptionHandler: unhandledExceptionCatcher.Catch)
         );
@@ -437,7 +437,7 @@ public abstract class PostponedTests
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         var store = await storeTask;
         var flowType = TestFlowId.Create().Type;
-        using var functionsRegistry = new FunctionsRegistry(
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             store,
             new Settings(unhandledExceptionHandler: unhandledExceptionCatcher.Catch)
         );
@@ -561,7 +561,7 @@ public abstract class PostponedTests
             storageSession: null
         ).ShouldBeTrueAsync();
         
-        using var functionsRegistry = new FunctionsRegistry(
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             store,
             new Settings(
                 unhandledExceptionHandler: unhandledExceptionCatcher.Catch,
@@ -593,7 +593,7 @@ public abstract class PostponedTests
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         var flag = new SyncedFlag();
 
-        using var functionsRegistry = new FunctionsRegistry
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart
         (
             store,
             new Settings(unhandledExceptionHandler.Catch)
@@ -637,7 +637,7 @@ public abstract class PostponedTests
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         var flag = new SyncedFlag();
 
-        using var functionsRegistry = new FunctionsRegistry
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart
         (
             store,
             new Settings(
@@ -682,7 +682,7 @@ public abstract class PostponedTests
         var functionId = TestFlowId.Create();
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
 
-        using var functionsRegistry = new FunctionsRegistry
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart
         (
             store,
             new Settings(
@@ -710,7 +710,7 @@ public abstract class PostponedTests
         var functionId = TestFlowId.Create();
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
 
-        using var functionsRegistry = new FunctionsRegistry
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart
         (
             store,
             new Settings(

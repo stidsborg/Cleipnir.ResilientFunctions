@@ -18,7 +18,7 @@ public static class LongRunningStressfulTest
         stopWatch.Start();
 
         {
-            using var functionsRegistry1 = new FunctionsRegistry(
+            using var functionsRegistry1 = await FunctionsRegistry.CreateAndStart(
                 store,
                 new Settings(unhandledExceptionHandler: e =>
                 {

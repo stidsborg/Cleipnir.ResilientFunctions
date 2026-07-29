@@ -18,7 +18,7 @@ public abstract class ScheduledInvocationTests
         var functionId = new FlowId(flowType, flowInstance);
         
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionCatcher.Catch));
         var reg = functionsRegistry.RegisterFunc(
             flowType,
             (string _) => NeverCompletingTask.OfType<Result<string>>()
@@ -44,7 +44,7 @@ public abstract class ScheduledInvocationTests
         var functionId = new FlowId(flowType, flowInstance);
         
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionCatcher.Catch));
         var reg = functionsRegistry.RegisterFunc(
                 flowType,
                 (string _) => NeverCompletingTask.OfType<Result<string>>()
@@ -70,7 +70,7 @@ public abstract class ScheduledInvocationTests
         var functionId = new FlowId(flowType, flowInstance);
         
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionCatcher.Catch));
         var reg = functionsRegistry.RegisterAction(
             flowType,
             (string _) => NeverCompletingTask.OfType<Result<Unit>>()
@@ -96,7 +96,7 @@ public abstract class ScheduledInvocationTests
         var functionId = new FlowId(flowType, flowInstance);
         
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionCatcher.Catch));
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionCatcher.Catch));
         var reg = functionsRegistry.RegisterFunc(
             flowType,
             (string _) => NeverCompletingTask.OfType<Result<Unit>>()

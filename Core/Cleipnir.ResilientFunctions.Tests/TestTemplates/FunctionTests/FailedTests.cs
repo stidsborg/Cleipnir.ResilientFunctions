@@ -32,7 +32,7 @@ public abstract class FailedTests
         var (flowType, flowInstance) = functionId;
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         {
-            using var functionsRegistry = new FunctionsRegistry
+            using var functionsRegistry = await FunctionsRegistry.CreateAndStart
             (
                 store,
                 new Settings(
@@ -54,7 +54,7 @@ public abstract class FailedTests
         }
         {
             var flag = new SyncedFlag();
-            using var functionsRegistry = new FunctionsRegistry(
+            using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
                 store,
                 new Settings(
                     unhandledExceptionHandler.Catch,
@@ -100,7 +100,7 @@ public abstract class FailedTests
         var flowType = callerMemberName.ToFlowType();
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         {
-            using var functionsRegistry = new FunctionsRegistry
+            using var functionsRegistry = await FunctionsRegistry.CreateAndStart
             (
                 store,
                 new Settings(
@@ -121,7 +121,7 @@ public abstract class FailedTests
         }
         {
             var flag = new SyncedFlag();
-            using var functionsRegistry = new FunctionsRegistry(
+            using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
                     store,
                     new Settings(
                         unhandledExceptionHandler.Catch,
@@ -159,7 +159,7 @@ public abstract class FailedTests
         var (flowType, flowInstance) = functionId;
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         {
-            using var functionsRegistry = new FunctionsRegistry
+            using var functionsRegistry = await FunctionsRegistry.CreateAndStart
             (
                 store,
                 new Settings(
@@ -177,7 +177,7 @@ public abstract class FailedTests
         }
         {
             var flag = new SyncedFlag();
-            using var functionsRegistry = new FunctionsRegistry(
+            using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
                 store,
                 new Settings(
                     unhandledExceptionHandler.Catch,
@@ -212,7 +212,7 @@ public abstract class FailedTests
         var flowType = nameof(ExceptionThrowingActionIsNotCompletedByWatchDog).ToFlowType();
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         var flag = new SyncedFlag();
-        using var functionsRegistry = new FunctionsRegistry(
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             store,
             new Settings(
                 unhandledExceptionHandler.Catch,
@@ -255,7 +255,7 @@ public abstract class FailedTests
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         const string param = "test";
         {
-            using var functionsRegistry = new FunctionsRegistry(
+            using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
                 store,
                 new Settings(unhandledExceptionHandler.Catch)
             );
@@ -272,7 +272,7 @@ public abstract class FailedTests
         }
         {
             var flag = new SyncedFlag();
-            using var functionsRegistry = new FunctionsRegistry(
+            using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
                 store,
                 new Settings(unhandledExceptionHandler.Catch)
             );

@@ -21,7 +21,7 @@ public abstract class MessagingTests
         var store = await functionStore;
         
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
-        using var functionsRegistry = new FunctionsRegistry(
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             store,
             new Settings(unhandledExceptionHandler.Catch)
         );
@@ -55,7 +55,7 @@ public abstract class MessagingTests
 
         var functionId = TestFlowId.Create();
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
-        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler.Catch));
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionHandler.Catch));
 
         var rAction = functionsRegistry.RegisterFunc(
             functionId.Type,
@@ -82,7 +82,7 @@ public abstract class MessagingTests
         var childFunctionId = TestFlowId.Create();
         
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
-        using var functionsRegistry = new FunctionsRegistry(store, new Settings(unhandledExceptionHandler.Catch));
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionHandler.Catch));
 
         FuncRegistration<string, string>? parent = null;
         
@@ -128,7 +128,7 @@ public abstract class MessagingTests
 
         var flowType = TestFlowId.Create().Type;
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
-        using var functionsRegistry = new FunctionsRegistry(
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             store,
             new Settings(unhandledExceptionHandler.Catch, messagesPullFrequency: TimeSpan.FromMilliseconds(100))
         );
@@ -186,7 +186,7 @@ public abstract class MessagingTests
 
         var flowId = TestFlowId.Create();
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
-        using var functionsRegistry = new FunctionsRegistry(
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             store,
             new Settings(unhandledExceptionHandler.Catch, messagesPullFrequency: TimeSpan.FromMilliseconds(100))
         );
@@ -237,7 +237,7 @@ public abstract class MessagingTests
 
         var flowId = TestFlowId.Create();
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
-        using var functionsRegistry = new FunctionsRegistry(
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             store,
             new Settings(unhandledExceptionHandler.Catch, messagesPullFrequency: TimeSpan.FromMilliseconds(100))
         );
@@ -298,7 +298,7 @@ public abstract class MessagingTests
 
         var flowId = TestFlowId.Create();
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
-        using var functionsRegistry = new FunctionsRegistry(
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             store,
             new Settings(
                 unhandledExceptionHandler.Catch,
@@ -357,7 +357,7 @@ public abstract class MessagingTests
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         var awaitMessage = new SyncedFlag();
 
-        Func<FunctionsRegistry> createRegistry = () => new FunctionsRegistry(
+        Func<Task<FunctionsRegistry>> createRegistry = () => FunctionsRegistry.CreateAndStart(
             store,
             new Settings(unhandledExceptionHandler.Catch, messagesPullFrequency: TimeSpan.FromMilliseconds(100))
         );
@@ -367,7 +367,7 @@ public abstract class MessagingTests
                 awaitMessage.IsRaised ? await workflow.Message<string>() : "no message awaited"
         );
 
-        using var publisherRegistry = createRegistry();
+        using var publisherRegistry = await createRegistry();
         var publisherRegistration = register(publisherRegistry);
 
         // Complete the flow on the publisher replica without it consuming any messages.
@@ -392,7 +392,7 @@ public abstract class MessagingTests
 
         // Restart the flow from a DIFFERENT replica: the inlined message travels in the effect snapshot the
         // restart hands over, so delivery does not depend on the publisher replica's in-memory state.
-        using var restartingRegistry = createRegistry();
+        using var restartingRegistry = await createRegistry();
         var restartingRegistration = register(restartingRegistry);
 
         awaitMessage.Raise();

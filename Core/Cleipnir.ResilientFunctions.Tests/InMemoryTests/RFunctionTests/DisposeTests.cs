@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Storage;
@@ -11,9 +12,9 @@ namespace Cleipnir.ResilientFunctions.Tests.InMemoryTests.RFunctionTests;
 public class DisposeTests
 {
     [TestMethod]
-    public void RegisteringFunctionOnDisposedRFunctionsThrowsException()
+    public async Task RegisteringFunctionOnDisposedRFunctionsThrowsException()
     {
-        var rFunctions = new FunctionsRegistry(new InMemoryFunctionStore());
+        var rFunctions = await FunctionsRegistry.CreateAndStart(new InMemoryFunctionStore());
         rFunctions.Dispose();
 
         Should.Throw<ObjectDisposedException>(() =>

@@ -22,7 +22,7 @@ public static class BulkInsertionTest
         
         var bag = new ConcurrentBag<int>();
         
-        using var functionsRegistry1 = new FunctionsRegistry(
+        using var functionsRegistry1 = await FunctionsRegistry.CreateAndStart(
             store,
             new Settings(unhandledExceptionHandler: Console.WriteLine)
         );
@@ -35,7 +35,7 @@ public static class BulkInsertionTest
             }
         );
         
-        using var functionsRegistry2 = new FunctionsRegistry(
+        using var functionsRegistry2 = await FunctionsRegistry.CreateAndStart(
             store,
             new Settings(unhandledExceptionHandler: Console.WriteLine)
         );
@@ -48,7 +48,7 @@ public static class BulkInsertionTest
             }
         );
         
-        using var functionsRegistry3 = new FunctionsRegistry(
+        using var functionsRegistry3 = await FunctionsRegistry.CreateAndStart(
             store,
             new Settings(unhandledExceptionHandler: Console.WriteLine)
         );

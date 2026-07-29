@@ -77,7 +77,7 @@ public abstract class MessagesSubscriptionTests
     {
         var functionStore = await functionStoreTask;
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var functionsRegistry = new FunctionsRegistry(
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             functionStore,
             new Settings(unhandledExceptionCatcher.Catch)
         );
@@ -102,7 +102,7 @@ public abstract class MessagesSubscriptionTests
     {
         var functionStore = await functionStoreTask;
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var functionsRegistry = new FunctionsRegistry(
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             functionStore,
             new Settings(unhandledExceptionCatcher.Catch, watchdogCheckFrequency: TimeSpan.FromMilliseconds(100))
         );
@@ -146,7 +146,7 @@ public abstract class MessagesSubscriptionTests
     {
         var functionStore = await functionStoreTask;
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var functionsRegistry = new FunctionsRegistry(
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             functionStore,
             new Settings(unhandledExceptionCatcher.Catch)
         );
@@ -179,7 +179,7 @@ public abstract class MessagesSubscriptionTests
     {
         var functionStore = await functionStoreTask;
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var functionsRegistry = new FunctionsRegistry(
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             functionStore,
             new Settings(unhandledExceptionCatcher.Catch)
         );
@@ -230,7 +230,7 @@ public abstract class MessagesSubscriptionTests
     {
         var functionStore = await functionStoreTask;
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var functionsRegistry = new FunctionsRegistry(
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             functionStore,
             new Settings(unhandledExceptionCatcher.Catch)
         );
@@ -278,7 +278,7 @@ public abstract class MessagesSubscriptionTests
     {
         var functionStore = await functionStoreTask;
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var functionsRegistry = new FunctionsRegistry(
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             functionStore,
             new Settings(unhandledExceptionCatcher.Catch, watchdogCheckFrequency: TimeSpan.FromMilliseconds(100))
         );
@@ -352,7 +352,7 @@ public abstract class MessagesSubscriptionTests
     {
         var functionStore = await functionStoreTask;
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var functionsRegistry = new FunctionsRegistry(
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             functionStore,
             new Settings(unhandledExceptionCatcher.Catch)
         );
@@ -402,7 +402,7 @@ public abstract class MessagesSubscriptionTests
         var functionStore = await functionStoreTask;
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         // Use default serializer to ensure serialization works correctly
-        using var functionsRegistry = new FunctionsRegistry(
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             functionStore,
             new Settings(unhandledExceptionCatcher.Catch, messagesDefaultMaxWaitForCompletion: TimeSpan.FromMinutes(1))
         );
@@ -441,7 +441,7 @@ public abstract class MessagesSubscriptionTests
     {
         var functionStore = await functionStoreTask;
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var functionsRegistry = new FunctionsRegistry(
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             functionStore,
             new Settings(unhandledExceptionCatcher.Catch)
         );
@@ -484,7 +484,7 @@ public abstract class MessagesSubscriptionTests
         await functionStore.Initialize();
 
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var functionsRegistry = new FunctionsRegistry(
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             functionStore,
             new Settings(unhandledExceptionCatcher.Catch, messagesPullFrequency: TimeSpan.FromMilliseconds(10))
         );
@@ -548,7 +548,7 @@ public abstract class MessagesSubscriptionTests
         var functionStore = await functionStoreTask;
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         var exceptionThrowingSerializer = new ExceptionThrowingEventSerializer(typeof(BadMessage));
-        using var functionsRegistry = new FunctionsRegistry(
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             functionStore,
             new Settings(unhandledExceptionCatcher.Catch, serializer: exceptionThrowingSerializer)
         );
@@ -591,7 +591,7 @@ public abstract class MessagesSubscriptionTests
     {
         var functionStore = await functionStoreTask;
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var functionsRegistry = new FunctionsRegistry(
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             functionStore,
             new Settings(unhandledExceptionCatcher.Catch)
         );
@@ -629,7 +629,7 @@ public abstract Task PullEnvelopeReturnsEnvelopeWithReceiverAndSender();
     {
         var functionStore = await functionStoreTask;
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var functionsRegistry = new FunctionsRegistry(
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             functionStore,
             new Settings(unhandledExceptionCatcher.Catch)
         );

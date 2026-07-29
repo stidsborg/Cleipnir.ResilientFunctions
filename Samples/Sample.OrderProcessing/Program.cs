@@ -17,7 +17,7 @@ internal static class Program
         var store = new PostgreSqlFunctionStore(connStr);
         await store.Initialize();
         await store.TruncateTables();
-        var functionsRegistry = new FunctionsRegistry(
+        var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             store,
             new Settings(
                 unhandledExceptionHandler: e => Log.Logger.Error(e, "Unhandled framework exception occured")
