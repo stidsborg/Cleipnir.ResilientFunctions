@@ -81,17 +81,17 @@ public class DlqManager
     // the watchdog's ignore-set.
     private async Task Move(IReadOnlyList<StoredMessages> undeliverable)
     {
-        var expired = undeliverable
+        var nonEmpty = undeliverable
             .SelectMany(sm => sm.Messages.Where(m => !m.IsEmpty).Select(m => new StoredIdAndMessage(sm.StoredId, m)))
             .ToList();
 
-        if (expired.Count > 0)
+        if (nonEmpty.Count > 0)
         {
-            await _dlqStore.Append(expired);
-            var storedTypes = expired.Select(m => m.StoredId.Type.Value).Distinct().ToList();
+            await _dlqStore.Append(nonEmpty);
+            var storedTypes = nonEmpty.Select(m => m.StoredId.Type.Value).Distinct().ToList();
             _unhandledExceptionHandler.Invoke(
                 new FrameworkException(
-                    $"Moved {expired.Count} message(s) to the dead letter queue - their flow types (stored types: [{string.Join(", ", storedTypes)}]) were not registered on this replica"
+                    $"Moved {nonEmpty.Count} message(s) to the dead letter queue - their flow types (stored types: [{string.Join(", ", storedTypes)}]) were not registered on this replica"
                 )
             );
         }
