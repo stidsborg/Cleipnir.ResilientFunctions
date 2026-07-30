@@ -49,9 +49,19 @@ public class FunctionsRegistry : IDisposable
             _settings.WatchdogCheckFrequency
         );
         ClusterInfo = new ClusterInfo(ReplicaId.NewId());
-        DeadLetterQueue = new DlqManager(_functionStore.DlqStore);
+        DeadLetterQueue = new DlqManager(
+            _functionStore.DlqStore,
+            _messageClearer,
+            _settings.UnhandledExceptionHandler,
+            _settings.UnregisteredFlowTypesGracePeriod
+        );
 
-        _flowsManagers = new FlowsManagers(_functionStore, _messageClearer, ClusterInfo);
+        _flowsManagers = new FlowsManagers(
+            _functionStore,
+            _messageClearer,
+            ClusterInfo,
+            DeadLetterQueue
+        );
 
         _postponedWatchdog = new PostponedWatchdog(
             _functionStore,
@@ -87,8 +97,10 @@ public class FunctionsRegistry : IDisposable
 
     /// <summary>
     /// Creates a <see cref="FunctionsRegistry"/> and starts its background processing - cluster membership,
-    /// message delivery and crash/postponed recovery. Flow types can still be registered on the returned
-    /// registry; messages for types registered later are redelivered once the type appears.
+    /// message delivery and crash/postponed recovery. All flow types must be registered at creation time (before
+    /// their messages are fetched) - prefer the setup-overload, which guarantees this. Messages fetched for types
+    /// not registered on this replica are held for <see cref="Settings"/>' UnregisteredFlowTypesGracePeriod and
+    /// then moved to the dead letter queue.
     /// </summary>
     public static async Task<FunctionsRegistry> CreateAndStart(IFunctionStore functionStore, Settings? settings = null)
     {

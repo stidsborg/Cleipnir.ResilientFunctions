@@ -17,18 +17,20 @@ public class Settings
     internal ISerializer? Serializer { get; }
     internal UtcNow? UtcNow { get; }
     internal TimeSpan? ReplicaHeartbeatFrequency { get; }
+    internal TimeSpan? UnregisteredFlowTypesGracePeriod { get; }
 
     public Settings(
-        Action<FrameworkException>? unhandledExceptionHandler = null, 
+        Action<FrameworkException>? unhandledExceptionHandler = null,
         TimeSpan? retentionPeriod = null,
         TimeSpan? retentionCleanUpFrequency = null,
         TimeSpan? watchdogCheckFrequency = null,
         TimeSpan? messagesPullFrequency = null,
         TimeSpan? messagesDefaultMaxWaitForCompletion = null,
-        int? maxParallelRetryInvocations = null, 
+        int? maxParallelRetryInvocations = null,
         ISerializer? serializer = null,
         UtcNow? utcNow = null,
-        TimeSpan? replicaHeartbeatFrequency = null)
+        TimeSpan? replicaHeartbeatFrequency = null,
+        TimeSpan? unregisteredFlowTypesGracePeriod = null)
     {
         UnhandledExceptionHandler = unhandledExceptionHandler;
         RetentionPeriod = retentionPeriod;
@@ -41,8 +43,9 @@ public class Settings
         UtcNow = utcNow;
         if (replicaHeartbeatFrequency.HasValue && replicaHeartbeatFrequency.Value < TimeSpan.Zero)
             throw new ArgumentOutOfRangeException("ReplicaHeartbeatFrequency must be greater than zero");
-        
+
         ReplicaHeartbeatFrequency = replicaHeartbeatFrequency;
+        UnregisteredFlowTypesGracePeriod = unregisteredFlowTypesGracePeriod;
     }
 }
 
@@ -56,7 +59,8 @@ public record SettingsWithDefaults(
     int MaxParallelRetryInvocations,
     ISerializer Serializer,
     UtcNow UtcNow,
-    TimeSpan ReplicaHeartbeatFrequency)
+    TimeSpan ReplicaHeartbeatFrequency,
+    TimeSpan UnregisteredFlowTypesGracePeriod)
 {
     public SettingsWithDefaults Merge(Settings? child)
     {
@@ -74,7 +78,8 @@ public record SettingsWithDefaults(
             child.MaxParallelRetryInvocations ?? MaxParallelRetryInvocations,
             child.Serializer ?? Serializer,
             child.UtcNow ?? (() => DateTime.UtcNow),
-            child.ReplicaHeartbeatFrequency ?? ReplicaHeartbeatFrequency
+            child.ReplicaHeartbeatFrequency ?? ReplicaHeartbeatFrequency,
+            child.UnregisteredFlowTypesGracePeriod ?? UnregisteredFlowTypesGracePeriod
         );
     }
     
@@ -101,6 +106,7 @@ public record SettingsWithDefaults(
             MaxParallelRetryInvocations: 1000,
             Serializer: DefaultSerializer.Instance,
             UtcNow: () => DateTime.UtcNow,
-            ReplicaHeartbeatFrequency: TimeSpan.FromSeconds(1)
+            ReplicaHeartbeatFrequency: TimeSpan.FromSeconds(1),
+            UnregisteredFlowTypesGracePeriod: TimeSpan.FromMinutes(10)
         );
 }

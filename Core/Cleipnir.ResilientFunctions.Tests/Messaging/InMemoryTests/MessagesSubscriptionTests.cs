@@ -62,4 +62,12 @@ public class MessagesSubscriptionTests : TestTemplates.MessagesSubscriptionTests
     [TestMethod]
     public override Task PullEnvelopeReturnsEnvelopeWithReceiverAndSender()
         => PullEnvelopeReturnsEnvelopeWithReceiverAndSender(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task MessageForUnregisteredFlowTypeIsDeadLetteredAfterGracePeriod()
+        => MessageForUnregisteredFlowTypeIsDeadLetteredAfterGracePeriod(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task HeldMessageForUnregisteredFlowTypeIsDeliveredByReplicaWithTypeRegistered()
+        => HeldMessageForUnregisteredFlowTypeIsDeliveredByReplicaWithTypeRegistered(FunctionStoreFactory.Create());
 }
