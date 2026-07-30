@@ -20,17 +20,20 @@ public class DlqManager
     private readonly IMessageStore _messageStore;
     private readonly IMessageClearer _messageClearer;
     private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
+    private readonly TimeSpan _unregisteredFlowTypesGracePeriod;
 
     internal DlqManager(
         IDlqStore dlqStore,
         IMessageStore messageStore,
         IMessageClearer messageClearer,
-        UnhandledExceptionHandler unhandledExceptionHandler)
+        UnhandledExceptionHandler unhandledExceptionHandler,
+        TimeSpan unregisteredFlowTypesGracePeriod)
     {
         _dlqStore = dlqStore;
         _messageStore = messageStore;
         _messageClearer = messageClearer;
         _unhandledExceptionHandler = unhandledExceptionHandler;
+        _unregisteredFlowTypesGracePeriod = unregisteredFlowTypesGracePeriod;
     }
 
     public Task Append(IReadOnlyList<StoredIdAndMessage> messages) => _dlqStore.Append(messages);
@@ -41,7 +44,7 @@ public class DlqManager
     public Task Delete(IReadOnlyList<long> positions) => _dlqStore.Delete(positions);
 
     /// <summary>
-    /// Holds the undeliverable messages for <paramref name="timeout"/> and then moves them to the dead letter
+    /// Holds the undeliverable messages for the configured grace period and then moves them to the dead letter
     /// queue. The messages' positions stay marked as pushed throughout the hold, so they are fetched exactly once
     /// - a message is either held here or in delivery, never both. Because flow types are only registered at
     /// registry-creation time, an undeliverable message can never become deliverable on this replica: the hold
@@ -49,12 +52,12 @@ public class DlqManager
     /// after which the messages are re-assigned to a replica that may have the type registered. Empty
     /// restart-pokes carry nothing to redrive and are simply deleted.
     /// </summary>
-    internal void MoveToDlqAfter(IReadOnlyList<StoredMessages> undeliverable, TimeSpan timeout)
-        => _ = HoldThenMove(undeliverable, timeout);
+    internal void MoveToDlqAfterGracePeriod(IReadOnlyList<StoredMessages> undeliverable)
+        => _ = HoldThenMove(undeliverable);
 
-    private async Task HoldThenMove(IReadOnlyList<StoredMessages> undeliverable, TimeSpan timeout)
+    private async Task HoldThenMove(IReadOnlyList<StoredMessages> undeliverable)
     {
-        await Task.Delay(timeout);
+        await Task.Delay(_unregisteredFlowTypesGracePeriod);
 
         while (true)
         {

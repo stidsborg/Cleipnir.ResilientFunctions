@@ -25,7 +25,6 @@ public class FlowsManagers
     private readonly MessageClearer _messageClearer;
     private readonly ClusterInfo _clusterInfo;
     private readonly DlqManager _dlqManager;
-    private readonly TimeSpan _unregisteredFlowTypesGracePeriod;
 
     private readonly Lock _lock = new();
 
@@ -33,14 +32,12 @@ public class FlowsManagers
         IFunctionStore functionStore,
         MessageClearer messageClearer,
         ClusterInfo clusterInfo,
-        DlqManager dlqManager,
-        TimeSpan unregisteredFlowTypesGracePeriod)
+        DlqManager dlqManager)
     {
         _functionStore = functionStore;
         _messageClearer = messageClearer;
         _clusterInfo = clusterInfo;
         _dlqManager = dlqManager;
-        _unregisteredFlowTypesGracePeriod = unregisteredFlowTypesGracePeriod;
     }
 
     public FlowsManager GetOrCreate(StoredType storedType)
@@ -86,7 +83,7 @@ public class FlowsManagers
         // the in-memory hold, after which the messages are re-assigned to a replica that may have the type
         // registered.
         if (unregistered.Count > 0)
-            _dlqManager.MoveToDlqAfter(unregistered, _unregisteredFlowTypesGracePeriod);
+            _dlqManager.MoveToDlqAfterGracePeriod(unregistered);
 
         return Task.WhenAll(messageDeliveries);
     }

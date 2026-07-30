@@ -53,15 +53,15 @@ public class FunctionsRegistry : IDisposable
             _functionStore.DlqStore,
             _functionStore.MessageStore,
             _messageClearer,
-            _settings.UnhandledExceptionHandler
+            _settings.UnhandledExceptionHandler,
+            _settings.UnregisteredFlowTypesGracePeriod
         );
 
         _flowsManagers = new FlowsManagers(
             _functionStore,
             _messageClearer,
             ClusterInfo,
-            DeadLetterQueue,
-            _settings.UnregisteredFlowTypesGracePeriod
+            DeadLetterQueue
         );
 
         _postponedWatchdog = new PostponedWatchdog(
