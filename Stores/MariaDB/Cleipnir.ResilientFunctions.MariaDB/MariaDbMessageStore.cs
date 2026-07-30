@@ -80,14 +80,26 @@ public class MariaDbMessageStore : IMessageStore
     public async Task Truncate(StoredId storedId)
     {
         await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
-        _truncateSql ??= @$"    
+        _truncateSql ??= @$"
                 DELETE FROM {_tablePrefix}_messages
                 WHERE id = ?";
-        
-        await using var command = new MySqlCommand(_truncateSql, conn);
-        command.Parameters.Add(new() { Value = storedId.AsGuid.ToString("N") });
-        
-        await command.ExecuteNonQueryAsync();
+
+        while (true)
+        {
+            await using var command = new MySqlCommand(_truncateSql, conn);
+            command.Parameters.Add(new() { Value = storedId.AsGuid.ToString("N") });
+
+            try
+            {
+                await command.ExecuteNonQueryAsync();
+                return;
+            }
+            catch (MySqlException e) when (e.ErrorCode == MySqlErrorCode.LockDeadlock)
+            {
+                // Deadlock victim against a concurrent delete on the same rows (e.g. the MessageClearer's
+                // position-deletes) - the competing transaction has finished, so the statement simply retries.
+            }
+        }
     }
 
     public async Task<IReadOnlyList<StoredMessage>> GetMessages(StoredId storedId)
