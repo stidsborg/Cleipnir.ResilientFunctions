@@ -51,7 +51,6 @@ public class FunctionsRegistry : IDisposable
         ClusterInfo = new ClusterInfo(ReplicaId.NewId());
         DeadLetterQueue = new DlqManager(
             _functionStore.DlqStore,
-            _functionStore.MessageStore,
             _messageClearer,
             _settings.UnhandledExceptionHandler,
             _settings.UnregisteredFlowTypesGracePeriod

@@ -17,20 +17,17 @@ namespace Cleipnir.ResilientFunctions.Messaging;
 public class DlqManager
 {
     private readonly IDlqStore _dlqStore;
-    private readonly IMessageStore _messageStore;
     private readonly IMessageClearer _messageClearer;
     private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
     private readonly TimeSpan _unregisteredFlowTypesGracePeriod;
 
     internal DlqManager(
         IDlqStore dlqStore,
-        IMessageStore messageStore,
         IMessageClearer messageClearer,
         UnhandledExceptionHandler unhandledExceptionHandler,
         TimeSpan unregisteredFlowTypesGracePeriod)
     {
         _dlqStore = dlqStore;
-        _messageStore = messageStore;
         _messageClearer = messageClearer;
         _unhandledExceptionHandler = unhandledExceptionHandler;
         _unregisteredFlowTypesGracePeriod = unregisteredFlowTypesGracePeriod;
@@ -79,24 +76,14 @@ public class DlqManager
         }
     }
 
-    // Dead letters from the store's CURRENT rows, not the held copies: control-panel tooling may have replaced
-    // (stale content) or deleted rows during the hold - a deleted row must stay deleted and a replaced row must
-    // be dead lettered with its fresh content. Dlq append before row delete, so a crash in between dead letters
-    // the messages a second time rather than losing them. The final Clear covers every held position: it deletes
-    // the surviving rows and trims all the positions from the watchdog's ignore-set (already-gone rows no-op).
+    // Dlq append before row delete, so a crash in between dead letters the messages a second time rather than
+    // losing them. The final Clear covers every held position: it deletes the rows and trims the positions from
+    // the watchdog's ignore-set.
     private async Task Move(IReadOnlyList<StoredMessages> undeliverable)
     {
-        var expired = new List<StoredIdAndMessage>();
-        foreach (var storedMessages in undeliverable)
-        {
-            var heldPositions = storedMessages.Messages.Select(m => m.Position).ToHashSet();
-            var currentRows = await _messageStore.GetMessages(storedMessages.StoredId);
-            expired.AddRange(
-                currentRows
-                    .Where(m => !m.IsEmpty && heldPositions.Contains(m.Position))
-                    .Select(m => new StoredIdAndMessage(storedMessages.StoredId, m))
-            );
-        }
+        var expired = undeliverable
+            .SelectMany(sm => sm.Messages.Where(m => !m.IsEmpty).Select(m => new StoredIdAndMessage(sm.StoredId, m)))
+            .ToList();
 
         if (expired.Count > 0)
         {
