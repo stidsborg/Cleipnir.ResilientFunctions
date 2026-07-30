@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -13,23 +14,33 @@ namespace Cleipnir.ResilientFunctions.CoreRuntime;
 /// Holds one <see cref="FlowsManager"/> per <see cref="StoredType"/> so each manager is concerned with a single
 /// flow type only. Registration obtains its type's manager through <see cref="GetOrCreate"/>; the watchdogs call
 /// the routing methods below, which group the incoming ids by <see cref="StoredId.Type"/> and dispatch to the
-/// matching per-type manager. Ids for types not registered on this replica are ignored.
+/// matching per-type manager. Ids for types not registered on this replica are held for a grace period and then
+/// dead lettered.
 /// </summary>
 public class FlowsManagers
 {
     private readonly Dictionary<StoredType, FlowsManager> _managers = new();
-    
+
     private readonly IFunctionStore _functionStore;
     private readonly MessageClearer _messageClearer;
     private readonly ClusterInfo _clusterInfo;
+    private readonly DlqManager _dlqManager;
+    private readonly TimeSpan _unregisteredFlowTypesGracePeriod;
 
     private readonly Lock _lock = new();
 
-    internal FlowsManagers(IFunctionStore functionStore, MessageClearer messageClearer, ClusterInfo clusterInfo)
+    internal FlowsManagers(
+        IFunctionStore functionStore,
+        MessageClearer messageClearer,
+        ClusterInfo clusterInfo,
+        DlqManager dlqManager,
+        TimeSpan unregisteredFlowTypesGracePeriod)
     {
         _functionStore = functionStore;
         _messageClearer = messageClearer;
         _clusterInfo = clusterInfo;
+        _dlqManager = dlqManager;
+        _unregisteredFlowTypesGracePeriod = unregisteredFlowTypesGracePeriod;
     }
 
     public FlowsManager GetOrCreate(StoredType storedType)
@@ -68,16 +79,15 @@ public class FlowsManagers
             messageDeliveries = running;
         }
 
-        // Messages for flow types not (yet) registered on this replica cannot be delivered here. Reopen their
-        // positions so delivery is retried on a later poll - the type may simply not have been registered yet
-        // (start-up ordering or a rolling deployment).
-        // todo log a warning here
+        // Messages for flow types not registered on this replica can never be delivered here - flow types are
+        // only registered at registry-creation time. Their positions stay marked as pushed (so they are not
+        // re-fetched) while the DlqManager holds them and then dead letters them once the grace period expires.
+        // The grace period gives a rolling deployment time to recycle this replica: a process restart discards
+        // the in-memory hold, after which the messages are re-assigned to a replica that may have the type
+        // registered.
         if (unregistered.Count > 0)
-            _messageClearer.ReopenPositions(
-                unregistered.SelectMany(sm => sm.Messages).Select(m => m.Position)
-            );
+            _dlqManager.MoveToDlqAfter(unregistered, _unregisteredFlowTypesGracePeriod);
 
         return Task.WhenAll(messageDeliveries);
     }
-
 }

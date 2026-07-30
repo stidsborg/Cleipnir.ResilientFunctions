@@ -661,6 +661,93 @@ public abstract Task PullEnvelopeReturnsEnvelopeWithReceiverAndSender();
         unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
 
+    public abstract Task MessageForUnregisteredFlowTypeIsDeadLetteredAfterGracePeriod();
+    protected async Task MessageForUnregisteredFlowTypeIsDeadLetteredAfterGracePeriod(Task<IFunctionStore> functionStoreTask)
+    {
+        var functionStore = await functionStoreTask;
+        var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
+            functionStore,
+            new Settings(unhandledExceptionCatcher.Catch, unregisteredFlowTypesGracePeriod: TimeSpan.FromMilliseconds(100))
+        );
+
+        // A message assigned to this replica whose flow type is never registered on it.
+        var storedType = await new StoredTypes(functionStore.TypeStore)
+            .InsertOrGet(nameof(MessageForUnregisteredFlowTypeIsDeadLetteredAfterGracePeriod));
+        var storedId = StoredId.Create(storedType, "instanceId");
+        var storedMessage = new StoredMessage(
+            "hello world".ToJson().ToUtf8Bytes(),
+            typeof(string).SimpleQualifiedName().ToUtf8Bytes(),
+            Position: 0,
+            Replica: functionsRegistry.ClusterInfo.ReplicaId
+        );
+        await functionStore.MessageStore.AppendMessages([new StoredIdAndMessage(storedId, storedMessage)]);
+
+        // Once the grace period expires the message must be dead lettered: appended to the dlq store and deleted
+        // from the message store.
+        await BusyWait.Until(async () => await functionStore.DlqStore.GetMessages([storedId]).SelectAsync(m => m.Count) == 1, maxWait: TimeSpan.FromSeconds(10));
+        await BusyWait.Until(async () => await functionStore.MessageStore.GetMessages(storedId).SelectAsync(m => m.Count) == 0);
+
+        var dlqMessages = await functionStore.DlqStore.GetMessages([storedId]);
+        dlqMessages.Single().Message.DefaultDeserialize().ShouldBe("hello world");
+
+        unhandledExceptionCatcher.ThrownExceptions
+            .Any(e => e.Message.Contains("dead letter queue"))
+            .ShouldBeTrue();
+    }
+
+    public abstract Task HeldMessageForUnregisteredFlowTypeIsDeliveredByReplicaWithTypeRegistered();
+    protected async Task HeldMessageForUnregisteredFlowTypeIsDeliveredByReplicaWithTypeRegistered(Task<IFunctionStore> functionStoreTask)
+    {
+        var functionStore = await functionStoreTask;
+        var flowType = nameof(HeldMessageForUnregisteredFlowTypeIsDeliveredByReplicaWithTypeRegistered);
+
+        // A replica without the flow type fetches and holds the message - within the (default) grace period it
+        // must neither deliver nor dead letter it.
+        var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
+        var registryWithoutType = await FunctionsRegistry.CreateAndStart(
+            functionStore,
+            new Settings(unhandledExceptionCatcher.Catch)
+        );
+
+        var storedType = await new StoredTypes(functionStore.TypeStore).InsertOrGet(flowType);
+        var storedId = StoredId.Create(storedType, "instanceId");
+        var storedMessage = new StoredMessage(
+            "hello world".ToJson().ToUtf8Bytes(),
+            typeof(string).SimpleQualifiedName().ToUtf8Bytes(),
+            Position: 0,
+            Replica: registryWithoutType.ClusterInfo.ReplicaId
+        );
+        await functionStore.MessageStore.AppendMessages([new StoredIdAndMessage(storedId, storedMessage)]);
+
+        // Give the replica several poll cycles to fetch and hold the message - it must not be dead lettered.
+        await Task.Delay(1_000);
+        (await functionStore.DlqStore.GetMessages([storedId])).ShouldBeEmpty();
+        unhandledExceptionCatcher.ShouldNotHaveExceptions();
+
+        // Shut the replica down - as a rolling deployment would - discarding the hold. A replica with the flow
+        // type registered at creation time takes over the shut-down replica's messages and delivers.
+        registryWithoutType.Dispose();
+
+        var unhandledExceptionCatcher2 = new UnhandledExceptionCatcher();
+        var (registryWithType, rFunc) = await FunctionsRegistry.CreateAndStart(
+            functionStore,
+            new Settings(unhandledExceptionCatcher2.Catch),
+            setup: r => r.RegisterFunc(
+                flowType,
+                inner: async Task<string> (string _, Workflow workflow) => await workflow.Message<string>()
+            )
+        );
+        using var _ = registryWithType;
+
+        var scheduled = await rFunc.Schedule("instanceId", "");
+        var result = await scheduled.Completion(timeout: TimeSpan.FromSeconds(20));
+        result.ShouldBe("hello world");
+
+        (await functionStore.DlqStore.GetMessages([storedId])).ShouldBeEmpty();
+        unhandledExceptionCatcher2.ShouldNotHaveExceptions();
+    }
+
     private record GoodMessage(string Value);
     private record BadMessage(string Value);
 

@@ -61,4 +61,12 @@ public class MessagesSubscriptionTests : Cleipnir.ResilientFunctions.Tests.Messa
     [TestMethod]
     public override Task PullEnvelopeReturnsEnvelopeWithReceiverAndSender()
         => PullEnvelopeReturnsEnvelopeWithReceiverAndSender(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task MessageForUnregisteredFlowTypeIsDeadLetteredAfterGracePeriod()
+        => MessageForUnregisteredFlowTypeIsDeadLetteredAfterGracePeriod(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task HeldMessageForUnregisteredFlowTypeIsDeliveredByReplicaWithTypeRegistered()
+        => HeldMessageForUnregisteredFlowTypeIsDeliveredByReplicaWithTypeRegistered(FunctionStoreFactory.Create());
 }
