@@ -11,10 +11,11 @@ public interface IMessageStore
 
     /// <summary>
     /// Appends the messages to their target flows. Each message row is written with the target flow's
-    /// current owner, or the publishing replica when the target is not executing; delivery is push-based
-    /// via the MessageWatchdog, which also restart-claims not-live targets holding undelivered messages.
+    /// current owner, or the message's publisher replica when the target is not executing; delivery is
+    /// push-based via the MessageWatchdog, which also restart-claims not-live targets holding undelivered
+    /// messages. Positions are assigned by the store in caller order.
     /// </summary>
-    Task AppendMessages(IReadOnlyList<StoredIdAndMessage> messages);
+    Task AppendMessages(IReadOnlyList<StoredIdAndSerializedMessage> messages);
 
     /// <summary>
     /// Deletes the messages at the given positions regardless of which flow they belong to. Positions are

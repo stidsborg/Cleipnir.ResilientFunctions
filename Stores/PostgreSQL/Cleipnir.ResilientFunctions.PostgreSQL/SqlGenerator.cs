@@ -4,6 +4,7 @@ using System.Linq;
 using System.Runtime.Serialization;
 using System.Text.Json;
 using System.Threading.Tasks;
+using Cleipnir.ResilientFunctions.CoreRuntime.Serialization;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
@@ -189,7 +190,7 @@ public class SqlGenerator(string tablePrefix)
     }
     
     private string? _appendMessagesSql;
-    public StoreCommand AppendMessages(StoredId storedId, IEnumerable<StoredMessage> messages)
+    public StoreCommand AppendMessages(StoredId storedId, IEnumerable<SerializedMessageWithReplicaId> messages)
     {
         // position is assigned by the table's identity column. unnest($2::bytea[], $3::uuid[]) WITH ORDINALITY
         // expands the content/fallback-replica parameters into rows in parallel; ORDER BY ord makes the identity
@@ -204,15 +205,15 @@ public class SqlGenerator(string tablePrefix)
         var materialized = messages.ToList();
         var contents = materialized
             .Select(m => BinaryPacker.Pack(
-                m.MessageContent,
-                m.MessageType,
-                m.IdempotencyKey?.ToUtf8Bytes(),
-                m.Sender?.ToUtf8Bytes(),
-                m.Receiver?.ToUtf8Bytes()
+                m.Message.Content,
+                m.Message.Type,
+                m.Message.IdempotencyKey?.ToUtf8Bytes(),
+                m.Message.Sender?.ToUtf8Bytes(),
+                m.Message.Receiver?.ToUtf8Bytes()
             ))
             .ToArray();
         var replicas = materialized
-            .Select(m => m.Replica.AsGuid)
+            .Select(m => m.ReplicaId.AsGuid)
             .ToArray();
 
         return StoreCommand.Create(
@@ -227,7 +228,7 @@ public class SqlGenerator(string tablePrefix)
 
     // The identity column assigns position. Rows are listed in caller order so identity assignment preserves
     // message order.
-    public StoreCommand AppendMessages(IReadOnlyList<StoredIdAndMessage> messages)
+    public StoreCommand AppendMessages(IReadOnlyList<StoredIdAndSerializedMessage> messages)
     {
         // replica is each message's target flow owner, falling back to the publisher's replica when the target
         // flow is not executing. The ordinal column preserves caller order so the identity column assigns
@@ -245,10 +246,10 @@ public class SqlGenerator(string tablePrefix)
 
         var command = StoreCommand.Create(sql);
 
-        foreach (var (storedId, (messageContent, messageType, _, replica, idempotencyKey, sender, receiver)) in messages)
+        foreach (var (storedId, ((messageContent, messageType, idempotencyKey, sender, receiver), replicaId)) in messages)
         {
             command.AddParameter(storedId.AsGuid);
-            command.AddParameter(replica.AsGuid);
+            command.AddParameter(replicaId.AsGuid);
             var content = BinaryPacker.Pack(
                 messageContent,
                 messageType,

@@ -477,9 +477,9 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
     
     #region MessageStore
 
-    public Task AppendMessages(IReadOnlyList<StoredIdAndMessage> messages)
+    public Task AppendMessages(IReadOnlyList<StoredIdAndSerializedMessage> messages)
     {
-        foreach (var (storedId, storedMessage) in messages)
+        foreach (var (storedId, (message, replicaId)) in messages)
         {
             lock (_sync)
             {
@@ -487,8 +487,16 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
                     flowMessages = _messages[storedId] = new Dictionary<long, StoredMessage>();
 
                 var flowOwner = _states.TryGetValue(storedId, out var state) ? state.Owner : null;
-                var replica = flowOwner ?? storedMessage.Replica;
-                flowMessages[_nextMessagePosition++] = storedMessage with { Replica = replica };
+                var replica = flowOwner ?? replicaId;
+                flowMessages[_nextMessagePosition++] = new StoredMessage(
+                    message.Content,
+                    message.Type,
+                    Position: 0,
+                    replica,
+                    message.IdempotencyKey,
+                    message.Sender,
+                    message.Receiver
+                );
             }
         }
 

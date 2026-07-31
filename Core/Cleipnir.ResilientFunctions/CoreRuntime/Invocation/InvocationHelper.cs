@@ -215,8 +215,8 @@ internal class InvocationHelper<TParam, TReturn>
 
         var content = Serializer.Serialize(msg, msg.GetType());
         var type = Serializer.SerializeType(msg.GetType());
-        var storedMessage = new StoredMessage(content, type, Position: 0, IdempotencyKey: $"FlowCompleted:{childId}", Replica: _replicaId);
-        await _functionStore.MessageStore.AppendMessages([new StoredIdAndMessage(parent, storedMessage)]);
+        var serializedMessage = new SerializedMessage(content, type, IdempotencyKey: $"FlowCompleted:{childId}", Sender: null, Receiver: null);
+        await _functionStore.MessageStore.AppendMessages([new StoredIdAndSerializedMessage(parent, new SerializedMessageWithReplicaId(serializedMessage, _replicaId))]);
 
         // Wake the MessageWatchdog so the waiting parent receives the completion now rather than on the next poll.
         _messageWatchdog.Notify();

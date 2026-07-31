@@ -53,7 +53,7 @@ public class SqlServerMessageStore : IMessageStore
         await command.ExecuteNonQueryAsync();
     }
 
-    public async Task AppendMessages(IReadOnlyList<StoredIdAndMessage> messages)
+    public async Task AppendMessages(IReadOnlyList<StoredIdAndSerializedMessage> messages)
     {
         if (messages.Count == 0)
             return;
@@ -76,10 +76,10 @@ public class SqlServerMessageStore : IMessageStore
         await using var command = new SqlCommand(sql, conn);
         for (var i = 0; i < messages.Count; i++)
         {
-            var (storedId, (messageContent, messageType, _, replica, idempotencyKey, sender, receiver)) = messages[i];
+            var (storedId, ((messageContent, messageType, idempotencyKey, sender, receiver), replicaId)) = messages[i];
             var content = BinaryPacker.Pack(messageContent, messageType, idempotencyKey?.ToUtf8Bytes(), sender?.ToUtf8Bytes(), receiver?.ToUtf8Bytes());
             command.Parameters.AddWithValue($"@Id{i}", storedId.AsGuid);
-            command.Parameters.AddWithValue($"@Replica{i}", replica.AsGuid);
+            command.Parameters.AddWithValue($"@Replica{i}", replicaId.AsGuid);
             command.Parameters.AddWithValue($"@Content{i}", content);
         }
         await command.ExecuteNonQueryAsync();

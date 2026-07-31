@@ -48,7 +48,7 @@ public class MariaDbMessageStore : IMessageStore
     }
 
 
-    public async Task AppendMessages(IReadOnlyList<StoredIdAndMessage> messages)
+    public async Task AppendMessages(IReadOnlyList<StoredIdAndSerializedMessage> messages)
     {
         if (messages.Count == 0)
             return;

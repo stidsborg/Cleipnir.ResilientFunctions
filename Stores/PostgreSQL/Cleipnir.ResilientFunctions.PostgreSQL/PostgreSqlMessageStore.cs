@@ -57,14 +57,14 @@ public class PostgreSqlMessageStore : IMessageStore
         await command.ExecuteNonQueryAsync();
     }
 
-    public async Task AppendMessages(IReadOnlyList<StoredIdAndMessage> messages)
+    public async Task AppendMessages(IReadOnlyList<StoredIdAndSerializedMessage> messages)
     {
         if (messages.Count == 0)
             return;
 
         var commands = messages
             .GroupBy(m => m.StoredId)
-            .Select(g => sqlGenerator.AppendMessages(g.Key, g.Select(m => m.StoredMessage)));
+            .Select(g => sqlGenerator.AppendMessages(g.Key, g.Select(m => m.Message)));
 
         await using var conn = await CreateConnection();
         await using var batch = commands

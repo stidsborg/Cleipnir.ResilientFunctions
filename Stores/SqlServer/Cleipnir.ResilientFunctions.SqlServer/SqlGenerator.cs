@@ -182,7 +182,7 @@ public class SqlGenerator(string tablePrefix)
         return null;
     }
 
-    public StoreCommand? AppendMessages(IReadOnlyList<StoredIdAndMessage> messages, string prefix = "")
+    public StoreCommand? AppendMessages(IReadOnlyList<StoredIdAndSerializedMessage> messages, string prefix = "")
     {
         if (messages.Count == 0)
             return null;
@@ -198,7 +198,7 @@ public class SqlGenerator(string tablePrefix)
         var appendCommand = StoreCommand.Create(sql);
         for (var i = 0; i < messages.Count; i++)
         {
-            var (storedId, (messageContent, messageType, _, replica, idempotencyKey, sender, receiver)) = messages[i];
+            var (storedId, ((messageContent, messageType, idempotencyKey, sender, receiver), replicaId)) = messages[i];
             var content = BinaryPacker.Pack(
                 messageContent,
                 messageType,
@@ -207,7 +207,7 @@ public class SqlGenerator(string tablePrefix)
                 receiver?.ToUtf8Bytes()
             );
             appendCommand.AddParameter($"@{prefix}Id{i}", storedId.AsGuid);
-            appendCommand.AddParameter($"@{prefix}Replica{i}", replica.AsGuid);
+            appendCommand.AddParameter($"@{prefix}Replica{i}", replicaId.AsGuid);
             appendCommand.AddParameter($"@{prefix}Content{i}", content);
         }
 

@@ -158,8 +158,8 @@ public abstract class MessagingTests
         var storedId2 = registration.MapToStoredId("instance2".ToFlowInstance());
         var replicaId = functionsRegistry.ClusterInfo.ReplicaId;
         await store.MessageStore.AppendMessages([
-            new StoredIdAndMessage(storedId1, StoredMessage.CreateEmpty(replicaId)),
-            new StoredIdAndMessage(storedId2, StoredMessage.CreateEmpty(replicaId))
+            StoredMessage.CreateEmpty(replicaId).ToStoredIdAndSerializedMessage(storedId1),
+            StoredMessage.CreateEmpty(replicaId).ToStoredIdAndSerializedMessage(storedId2)
         ]);
 
         // The empty messages restart both flows without being delivered...
@@ -206,16 +206,13 @@ public abstract class MessagingTests
         var replicaId = functionsRegistry.ClusterInfo.ReplicaId;
         var serializer = DefaultSerializer.Instance;
         await store.MessageStore.AppendMessages([
-            new StoredIdAndMessage(storedId, StoredMessage.CreateEmpty(replicaId)),
-            new StoredIdAndMessage(
-                storedId,
-                new StoredMessage(
-                    serializer.Serialize("hello world", typeof(string)),
-                    serializer.SerializeType(typeof(string)),
-                    Position: 0,
-                    Replica: replicaId
-                )
-            )
+            StoredMessage.CreateEmpty(replicaId).ToStoredIdAndSerializedMessage(storedId),
+            new StoredMessage(
+                serializer.Serialize("hello world", typeof(string)),
+                serializer.SerializeType(typeof(string)),
+                Position: 0,
+                Replica: replicaId
+            ).ToStoredIdAndSerializedMessage(storedId)
         ]);
 
         // The batch restarts the flow with only the non-empty message delivered.
@@ -256,16 +253,13 @@ public abstract class MessagingTests
         var replicaId = functionsRegistry.ClusterInfo.ReplicaId;
         var serializer = DefaultSerializer.Instance;
         await store.MessageStore.AppendMessages([
-            new StoredIdAndMessage(storedId, StoredMessage.CreateEmpty(replicaId)),
-            new StoredIdAndMessage(
-                storedId,
-                new StoredMessage(
-                    serializer.Serialize("hello world", typeof(string)),
-                    serializer.SerializeType(typeof(string)),
-                    Position: 0,
-                    Replica: replicaId
-                )
-            )
+            StoredMessage.CreateEmpty(replicaId).ToStoredIdAndSerializedMessage(storedId),
+            new StoredMessage(
+                serializer.Serialize("hello world", typeof(string)),
+                serializer.SerializeType(typeof(string)),
+                Position: 0,
+                Replica: replicaId
+            ).ToStoredIdAndSerializedMessage(storedId)
         ]);
 
         // The pending messages must not resurrect the completed flow.
@@ -321,15 +315,12 @@ public abstract class MessagingTests
         var replicaId = functionsRegistry.ClusterInfo.ReplicaId;
         var serializer = DefaultSerializer.Instance;
         await store.MessageStore.AppendMessages([
-            new StoredIdAndMessage(
-                storedId,
-                new StoredMessage(
-                    serializer.Serialize("hello world", typeof(string)),
-                    serializer.SerializeType(typeof(string)),
-                    Position: 0,
-                    Replica: replicaId
-                )
-            )
+            new StoredMessage(
+                serializer.Serialize("hello world", typeof(string)),
+                serializer.SerializeType(typeof(string)),
+                Position: 0,
+                Replica: replicaId
+            ).ToStoredIdAndSerializedMessage(storedId)
         ]);
 
         // The message is inlined into the completed flow's effect state and its row deleted.
@@ -378,15 +369,12 @@ public abstract class MessagingTests
         var storedId = publisherRegistration.MapToStoredId(flowId.Instance);
         var serializer = DefaultSerializer.Instance;
         await store.MessageStore.AppendMessages([
-            new StoredIdAndMessage(
-                storedId,
-                new StoredMessage(
-                    serializer.Serialize("hello world", typeof(string)),
-                    serializer.SerializeType(typeof(string)),
-                    Position: 0,
-                    Replica: publisherRegistry.ClusterInfo.ReplicaId
-                )
-            )
+            new StoredMessage(
+                serializer.Serialize("hello world", typeof(string)),
+                serializer.SerializeType(typeof(string)),
+                Position: 0,
+                Replica: publisherRegistry.ClusterInfo.ReplicaId
+            ).ToStoredIdAndSerializedMessage(storedId)
         ]);
         await BusyWait.Until(async () => (await store.MessageStore.GetMessages(storedId)).Count == 0);
 
