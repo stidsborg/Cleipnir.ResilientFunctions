@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Security.Cryptography;
+using System.IO.Hashing;
 using System.Threading;
 using Cleipnir.ResilientFunctions.Storage;
 
@@ -110,9 +110,7 @@ public class ClusterInfo(ReplicaId replicaId)
         Span<byte> buffer = stackalloc byte[32];
         storedId.AsGuid.TryWriteBytes(buffer);
         replicaId.AsGuid.TryWriteBytes(buffer[16..]);
-        Span<byte> hash = stackalloc byte[SHA256.HashSizeInBytes];
-        SHA256.HashData(buffer, hash);
-        return BitConverter.ToUInt64(hash);
+        return XxHash3.HashToUInt64(buffer);
     }
 
     public override string ToString() => $"{ReplicaId.AsGuid} ({Offset}/{ReplicaCount} count)";
