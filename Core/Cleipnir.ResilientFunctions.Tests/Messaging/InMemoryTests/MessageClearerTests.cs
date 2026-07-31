@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime;
+using Cleipnir.ResilientFunctions.CoreRuntime.Serialization;
 using Cleipnir.ResilientFunctions.CoreRuntime.Watchdogs;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
@@ -120,9 +121,9 @@ public class MessageClearerTests
         var storedId = TestStoredId.Create();
 
         await messageStore.AppendMessages([
-            Message().ToStoredIdAndSerializedMessage(storedId),
-            Message().ToStoredIdAndSerializedMessage(storedId),
-            Message().ToStoredIdAndSerializedMessage(storedId)
+            Message().ToSerializedMessage(storedId),
+            Message().ToSerializedMessage(storedId),
+            Message().ToSerializedMessage(storedId)
         ]);
         var positions = (await messageStore.GetMessages(storedId)).Select(m => m.Position).ToList();
         positions.Count.ShouldBe(3);
@@ -165,7 +166,7 @@ public class MessageClearerTests
         }
 
         public Task Initialize() => throw new NotSupportedException();
-        public Task AppendMessages(IReadOnlyList<StoredIdAndSerializedMessage> messages) => throw new NotSupportedException();
+        public Task AppendMessages(IReadOnlyList<SerializedMessageWithReplicaId> messages) => throw new NotSupportedException();
         public Task<bool> ReplaceMessage(StoredId storedId, long position, StoredMessage storedMessage) => throw new NotSupportedException();
         public Task Truncate(StoredId storedId) => throw new NotSupportedException();
         public Task<IReadOnlyList<StoredMessage>> GetMessages(StoredId storedId) => throw new NotSupportedException();

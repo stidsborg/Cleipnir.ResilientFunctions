@@ -1,5 +1,6 @@
 using System.Runtime.Serialization;
 using System.Text.Json;
+using Cleipnir.ResilientFunctions.CoreRuntime.Serialization;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
@@ -206,7 +207,7 @@ public class SqlGenerator(string tablePrefix)
         return null;
     }
 
-    public StoreCommand AppendMessages(IReadOnlyList<StoredIdAndSerializedMessage> messages)
+    public StoreCommand AppendMessages(IReadOnlyList<SerializedMessageWithReplicaId> messages)
     {
         // The AUTO_INCREMENT column assigns position. Rows are listed in caller order so the assignment
         // preserves message order.
@@ -217,7 +218,7 @@ public class SqlGenerator(string tablePrefix)
                  {$"(?, COALESCE((SELECT owner FROM {tablePrefix} WHERE id = ?), ?), ?)".Replicate(messages.Count).StringJoin($",{Environment.NewLine}")};";
 
         var command = StoreCommand.Create(sql);
-        foreach (var (storedId, ((messageContent, messageType, idempotencyKey, sender, receiver), replicaId)) in messages)
+        foreach (var ((storedId, messageContent, messageType, idempotencyKey, sender, receiver), replicaId) in messages)
         {
             command.AddParameter(storedId.AsGuid.ToString("N"));
             command.AddParameter(storedId.AsGuid.ToString("N"));

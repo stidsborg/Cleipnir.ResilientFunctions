@@ -491,9 +491,9 @@ public abstract class MessageStoreTests
         var msg2 = "World";
         var stringType = typeof(string).SimpleQualifiedName().ToUtf8Bytes();
         await messageStore.AppendMessage(id1, new StoredMessage("ignore".ToJsonByteArray(), stringType, Replica: ReplicaId.Empty, Position: 0));
-        var storedMsg1 = new StoredMessage(msg1.ToJsonByteArray(), stringType, Replica: ReplicaId.Empty, Position: 0, IdempotencyKey: "1").ToStoredIdAndSerializedMessage(id1);
-        var storedMsg2 = new StoredMessage(msg2.ToJsonByteArray(), stringType, Replica: ReplicaId.Empty, Position: 0, IdempotencyKey: "2").ToStoredIdAndSerializedMessage(id1);
-        var storedMsg3 = new StoredMessage(msg1.ToJsonByteArray(), stringType, Replica: ReplicaId.Empty, Position: 0, IdempotencyKey: "3").ToStoredIdAndSerializedMessage(id2);
+        var storedMsg1 = new StoredMessage(msg1.ToJsonByteArray(), stringType, Replica: ReplicaId.Empty, Position: 0, IdempotencyKey: "1").ToSerializedMessage(id1);
+        var storedMsg2 = new StoredMessage(msg2.ToJsonByteArray(), stringType, Replica: ReplicaId.Empty, Position: 0, IdempotencyKey: "2").ToSerializedMessage(id1);
+        var storedMsg3 = new StoredMessage(msg1.ToJsonByteArray(), stringType, Replica: ReplicaId.Empty, Position: 0, IdempotencyKey: "3").ToSerializedMessage(id2);
         await messageStore.AppendMessages([storedMsg1, storedMsg2, storedMsg3]);
 
         var id1Msgs = await messageStore.GetMessages(id1);
@@ -533,7 +533,7 @@ public abstract class MessageStoreTests
         var msg = "Hello World!";
         var stringType = typeof(string).SimpleQualifiedName().ToUtf8Bytes();
         await messageStore.AppendMessages(
-            [new StoredMessage(msg.ToJsonByteArray(), stringType, Replica: ReplicaId.Empty, Position: 0, IdempotencyKey: "1").ToStoredIdAndSerializedMessage(id)]
+            [new StoredMessage(msg.ToJsonByteArray(), stringType, Replica: ReplicaId.Empty, Position: 0, IdempotencyKey: "1").ToSerializedMessage(id)]
         );
 
         var messages = await messageStore.GetMessages(id);
@@ -580,9 +580,9 @@ public abstract class MessageStoreTests
         
         await messageStore.AppendMessages(
             [
-                msg1.ToStoredIdAndSerializedMessage(id1),
-                msg1.ToStoredIdAndSerializedMessage(id2),
-                msg2.ToStoredIdAndSerializedMessage(id1),
+                msg1.ToSerializedMessage(id1),
+                msg1.ToSerializedMessage(id2),
+                msg2.ToSerializedMessage(id1),
             ]
         );
 
@@ -603,7 +603,7 @@ public abstract class MessageStoreTests
 
         await messageStore.AppendMessages(
             [
-                msg2.ToStoredIdAndSerializedMessage(id2)
+                msg2.ToSerializedMessage(id2)
             ]
         );
         
@@ -1027,8 +1027,8 @@ public abstract class MessageStoreTests
 
         // bulk append resolves per target flow
         await messageStore.AppendMessages([
-            new StoredMessage("d".ToJson().ToUtf8Bytes(), stringType, Position: 0, Replica: publisher).ToStoredIdAndSerializedMessage(executingFlow),
-            new StoredMessage("e".ToJson().ToUtf8Bytes(), stringType, Position: 0, Replica: publisher).ToStoredIdAndSerializedMessage(idleFlow),
+            new StoredMessage("d".ToJson().ToUtf8Bytes(), stringType, Position: 0, Replica: publisher).ToSerializedMessage(executingFlow),
+            new StoredMessage("e".ToJson().ToUtf8Bytes(), stringType, Position: 0, Replica: publisher).ToSerializedMessage(idleFlow),
         ]);
 
         var executingMessages = (await messageStore.GetMessages(executingFlow)).ToList();

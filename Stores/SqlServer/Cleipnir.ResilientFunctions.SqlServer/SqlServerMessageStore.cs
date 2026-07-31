@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Cleipnir.ResilientFunctions.CoreRuntime.Serialization;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
@@ -53,7 +54,7 @@ public class SqlServerMessageStore : IMessageStore
         await command.ExecuteNonQueryAsync();
     }
 
-    public async Task AppendMessages(IReadOnlyList<StoredIdAndSerializedMessage> messages)
+    public async Task AppendMessages(IReadOnlyList<SerializedMessageWithReplicaId> messages)
     {
         if (messages.Count == 0)
             return;
@@ -76,7 +77,7 @@ public class SqlServerMessageStore : IMessageStore
         await using var command = new SqlCommand(sql, conn);
         for (var i = 0; i < messages.Count; i++)
         {
-            var (storedId, ((messageContent, messageType, idempotencyKey, sender, receiver), replicaId)) = messages[i];
+            var ((storedId, messageContent, messageType, idempotencyKey, sender, receiver), replicaId) = messages[i];
             var content = BinaryPacker.Pack(messageContent, messageType, idempotencyKey?.ToUtf8Bytes(), sender?.ToUtf8Bytes(), receiver?.ToUtf8Bytes());
             command.Parameters.AddWithValue($"@Id{i}", storedId.AsGuid);
             command.Parameters.AddWithValue($"@Replica{i}", replicaId.AsGuid);

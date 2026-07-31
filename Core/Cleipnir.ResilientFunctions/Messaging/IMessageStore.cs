@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Threading.Tasks;
+using Cleipnir.ResilientFunctions.CoreRuntime.Serialization;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Storage;
 
@@ -15,7 +16,7 @@ public interface IMessageStore
     /// push-based via the MessageWatchdog, which also restart-claims not-live targets holding undelivered
     /// messages. Positions are assigned by the store in caller order.
     /// </summary>
-    Task AppendMessages(IReadOnlyList<StoredIdAndSerializedMessage> messages);
+    Task AppendMessages(IReadOnlyList<SerializedMessageWithReplicaId> messages);
 
     /// <summary>
     /// Deletes the messages at the given positions regardless of which flow they belong to. Positions are
