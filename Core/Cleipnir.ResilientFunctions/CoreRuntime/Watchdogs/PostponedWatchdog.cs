@@ -67,7 +67,7 @@ internal class PostponedWatchdog
                 var flowsDictionary = _flowsDictionary;     
                 var ownedFunctions = eligibleFunctions
                     .Where(id => flowsDictionary.ContainsKey(id.Type))
-                    .Where(s => s.AsULong % _clusterInfo.ReplicaCount == _clusterInfo.Offset)
+                    .Where(_clusterInfo.OwnedByThisReplica)
                     .ToList();
                 
                 var restarts = await _functionStore
