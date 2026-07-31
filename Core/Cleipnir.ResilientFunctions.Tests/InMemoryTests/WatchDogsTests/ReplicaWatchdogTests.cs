@@ -51,6 +51,10 @@ public class ReplicaWatchdogTests : TestTemplates.WatchDogsTests.ReplicaWatchdog
         => WorkIsDividedBetweenReplicas(FunctionStoreFactory.Create());
 
     [TestMethod]
+    public override Task ResponsibleReplicaMatchesOwningReplica()
+        => ResponsibleReplicaMatchesOwningReplica(FunctionStoreFactory.Create());
+
+    [TestMethod]
     public override Task ReplicaCrashedFunctionIsTakenOverByOtherReplica()
         => ReplicaCrashedFunctionIsTakenOverByOtherReplica(FunctionStoreFactory.Create());
 

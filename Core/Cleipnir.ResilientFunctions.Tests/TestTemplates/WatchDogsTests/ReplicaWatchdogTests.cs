@@ -365,8 +365,52 @@ public abstract class ReplicaWatchdogTests
         clusterInfo.Offset = 2;
         owned = storedIds.Select(clusterInfo.OwnedByThisReplica).ToList();
         owned.Any().ShouldBeTrue();
-        
+
         return Task.CompletedTask;
+    }
+
+    public abstract Task ResponsibleReplicaMatchesOwningReplica();
+    public async Task ResponsibleReplicaMatchesOwningReplica(Task<IFunctionStore> storeTask)
+    {
+        var store = await WithRandomPrefix(storeTask);
+
+        var cluster1 = new ClusterInfo(Guid.Parse("10000000-0000-0000-0000-000000000000").ToReplicaId());
+        var cluster2 = new ClusterInfo(Guid.Parse("20000000-0000-0000-0000-000000000000").ToReplicaId());
+        var cluster3 = new ClusterInfo(Guid.Parse("30000000-0000-0000-0000-000000000000").ToReplicaId());
+
+        var watchdog1 = new ReplicaWatchdog(cluster1, store, heartbeatFrequency: TimeSpan.FromHours(1), utcNow: () => DateTime.UtcNow, unhandledExceptionHandler: default(UnhandledExceptionHandler)!);
+        var watchdog2 = new ReplicaWatchdog(cluster2, store, heartbeatFrequency: TimeSpan.FromHours(1), utcNow: () => DateTime.UtcNow, unhandledExceptionHandler: default(UnhandledExceptionHandler)!);
+        var watchdog3 = new ReplicaWatchdog(cluster3, store, heartbeatFrequency: TimeSpan.FromHours(1), utcNow: () => DateTime.UtcNow, unhandledExceptionHandler: default(UnhandledExceptionHandler)!);
+
+        await watchdog1.Initialize();
+        await watchdog2.Initialize();
+        await watchdog3.Initialize();
+
+        // Give every replica the full cluster view.
+        await watchdog1.PerformIteration(utcNowTicks: 0);
+        await watchdog2.PerformIteration(utcNowTicks: 0);
+        await watchdog3.PerformIteration(utcNowTicks: 0);
+
+        var clusters = new[] { cluster1, cluster2, cluster3 };
+        var storedType = 0.ToUshort().ToStoredType();
+        var storedIds = Enumerable
+            .Range(0, 25)
+            .Select(i => StoredId.Create(storedType, i.ToString()))
+            .ToList();
+
+        foreach (var storedId in storedIds)
+        {
+            // All replicas agree on the responsible replica...
+            var responsible = cluster1.ResponsibleReplica(storedId);
+            cluster2.ResponsibleReplica(storedId).ShouldBe(responsible);
+            cluster3.ResponsibleReplica(storedId).ShouldBe(responsible);
+
+            // ...and it is exactly the replica which considers itself the owner.
+            clusters.Single(c => c.OwnedByThisReplica(storedId)).ReplicaId.ShouldBe(responsible);
+        }
+
+        // Every replica is responsible for some of the ids.
+        storedIds.Select(cluster1.ResponsibleReplica).Distinct().Count().ShouldBe(3);
     }
     
     public abstract Task ReplicaCrashedFunctionIsTakenOverByOtherReplica();

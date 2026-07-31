@@ -44,6 +44,7 @@ internal class ReplicaWatchdog(
         
         clusterInfo.ReplicaCount = (ulong) replicas.Count;
         clusterInfo.Offset = (ulong) offset.Value;
+        clusterInfo.Replicas = replicas.Select(sr => sr.ReplicaId).ToList();
         _initialized = true;
     }
 
@@ -100,6 +101,7 @@ internal class ReplicaWatchdog(
         {
             clusterInfo.Offset = (ulong) offset.Value;
             clusterInfo.ReplicaCount = (ulong) storedReplicas.Count;
+            clusterInfo.Replicas = storedReplicas.Select(sr => sr.ReplicaId).ToList();
         }
         else
         {
