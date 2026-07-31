@@ -33,6 +33,7 @@ public class FunctionsRegistry : IDisposable
     private readonly Lock _sync = new();
     private readonly ReplicaWatchdog _replicaWatchdog;
     private readonly MessageWatchdog _messageWatchdog;
+    private readonly MessagesSender _messagesSender;
     private readonly MessageClearer _messageClearer;
     private readonly FlowsManagers _flowsManagers;
 
@@ -93,6 +94,12 @@ public class FunctionsRegistry : IDisposable
             utcNow
         );
 
+        _messagesSender = new MessagesSender(
+            _functionStore,
+            _settings.Serializer.DecorateWithErrorHandling(),
+            ClusterInfo,
+            _messageWatchdog
+        );
     }
 
     /// <summary>
@@ -289,7 +296,7 @@ public class FunctionsRegistry : IDisposable
                 _settings.UtcNow,
                 settings?.ClearChildrenAfterCapture ?? true,
                 _messageClearer,
-                _messageWatchdog
+                _messagesSender
             );
             var flowsManager = _flowsManagers.GetOrCreate(storedType);
             var invoker = new Invoker<TParam, TReturn>(
@@ -321,13 +328,7 @@ public class FunctionsRegistry : IDisposable
                 _settings.UtcNow
             );
 
-            var messageWriters = new MessageWriters(
-                storedType,
-                _functionStore,
-                serializer,
-                ClusterInfo.ReplicaId,
-                _messageWatchdog
-            );
+            var messageWriters = new MessageWriters(storedType, _messagesSender);
 
             var registration = new FuncRegistration<TParam, TReturn>(
                 flowType,
@@ -374,7 +375,7 @@ public class FunctionsRegistry : IDisposable
                 _settings.UtcNow,
                 settings?.ClearChildrenAfterCapture ?? true,
                 _messageClearer,
-                _messageWatchdog
+                _messagesSender
             );
             var flowsManager = _flowsManagers.GetOrCreate(storedType);
             var invoker = new Invoker<Unit, Unit>(
@@ -406,13 +407,7 @@ public class FunctionsRegistry : IDisposable
                 _settings.UtcNow
             );
 
-            var messageWriters = new MessageWriters(
-                storedType,
-                _functionStore,
-                serializer,
-                ClusterInfo.ReplicaId,
-                _messageWatchdog
-            );
+            var messageWriters = new MessageWriters(storedType, _messagesSender);
 
             var registration = new ParamlessRegistration(
                 flowType,
@@ -460,7 +455,7 @@ public class FunctionsRegistry : IDisposable
                 _settings.UtcNow,
                 settings?.ClearChildrenAfterCapture ?? true,
                 _messageClearer,
-                _messageWatchdog
+                _messagesSender
             );
             var flowsManager = _flowsManagers.GetOrCreate(storedType);
             var rActionInvoker = new Invoker<TParam, Unit>(
@@ -492,13 +487,7 @@ public class FunctionsRegistry : IDisposable
                 _settings.UtcNow
             );
 
-            var messageWriters = new MessageWriters(
-                storedType,
-                _functionStore,
-                serializer,
-                ClusterInfo.ReplicaId,
-                _messageWatchdog
-            );
+            var messageWriters = new MessageWriters(storedType, _messagesSender);
             var registration = new ActionRegistration<TParam>(
                 flowType,
                 storedType,

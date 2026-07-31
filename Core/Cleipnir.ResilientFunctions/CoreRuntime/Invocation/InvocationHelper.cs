@@ -27,12 +27,12 @@ internal class InvocationHelper<TParam, TReturn>
     private readonly ReplicaId _replicaId;
     private readonly ResultBusyWaiter<TReturn> _resultBusyWaiter;
     private readonly IMessageClearer _messageClearer;
-    private readonly MessageWatchdog _messageWatchdog;
+    private readonly MessagesSender _messagesSender;
     public UtcNow UtcNow { get; }
 
     private ISerializer Serializer { get; }
 
-    public InvocationHelper(FlowType flowType, StoredType storedType, ReplicaId replicaId, bool isParamlessFunction, SettingsWithDefaults settings, IFunctionStore functionStore, ShutdownCoordinator shutdownCoordinator, ISerializer serializer, UtcNow utcNow, bool clearChildren, IMessageClearer messageClearer, MessageWatchdog messageWatchdog)
+    public InvocationHelper(FlowType flowType, StoredType storedType, ReplicaId replicaId, bool isParamlessFunction, SettingsWithDefaults settings, IFunctionStore functionStore, ShutdownCoordinator shutdownCoordinator, ISerializer serializer, UtcNow utcNow, bool clearChildren, IMessageClearer messageClearer, MessagesSender messagesSender)
     {
         _flowType = flowType;
         _isParamlessFunction = isParamlessFunction;
@@ -46,7 +46,7 @@ internal class InvocationHelper<TParam, TReturn>
         _replicaId = replicaId;
         _functionStore = functionStore;
         _messageClearer = messageClearer;
-        _messageWatchdog = messageWatchdog;
+        _messagesSender = messagesSender;
         _resultBusyWaiter = new ResultBusyWaiter<TReturn>(_functionStore, Serializer);
     }
 
@@ -213,13 +213,7 @@ internal class InvocationHelper<TParam, TReturn>
         if (msg == null)
             return;
 
-        var content = Serializer.Serialize(msg, msg.GetType());
-        var type = Serializer.SerializeType(msg.GetType());
-        var serializedMessage = new SerializedMessage(parent, content, type, IdempotencyKey: $"FlowCompleted:{childId}", Sender: null, Receiver: null);
-        await _functionStore.MessageStore.AppendMessages([new SerializedMessageWithReplicaId(serializedMessage, _replicaId)]);
-
-        // Wake the MessageWatchdog so the waiting parent receives the completion now rather than on the next poll.
-        _messageWatchdog.Notify();
+        await _messagesSender.AppendMessage(parent, msg, idempotencyKey: $"FlowCompleted:{childId}");
     }
 
     public async Task<PreparedReInvocation> PrepareForReInvocation(StoredId storedId, RestartedFunction restartedFunction)
@@ -380,7 +374,7 @@ internal class InvocationHelper<TParam, TReturn>
     }
     
     public MessageWriter CreateMessageWriter(StoredId storedId)
-        => new MessageWriter(storedId, _functionStore.MessageStore, Serializer, _replicaId, _messageWatchdog);
+        => new MessageWriter(storedId, _messagesSender);
 
     public Effect CreateEffect(StoredId storedId, FlowId flowId, IReadOnlyList<StoredEffect> storedEffects, FlowTimeouts flowTimeouts, IStorageSession? storageSession, FlowExecutionState flowExecutionState)
     {
