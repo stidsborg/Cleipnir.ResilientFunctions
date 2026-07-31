@@ -66,4 +66,8 @@ public class MessagesSubscriptionTests : Cleipnir.ResilientFunctions.Tests.Messa
     [TestMethod]
     public override Task HeldMessageForUnregisteredFlowTypeIsDeliveredByReplicaWithTypeRegistered()
         => HeldMessageForUnregisteredFlowTypeIsDeliveredByReplicaWithTypeRegistered(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task DeadLetteredMessagesCanBeRedriven()
+        => DeadLetteredMessagesCanBeRedriven(FunctionStoreFactory.Create());
 }

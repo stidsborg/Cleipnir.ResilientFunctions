@@ -748,6 +748,52 @@ public abstract Task PullEnvelopeReturnsEnvelopeWithReceiverAndSender();
         unhandledExceptionCatcher2.ShouldNotHaveExceptions();
     }
 
+    public abstract Task DeadLetteredMessagesCanBeRedriven();
+    protected async Task DeadLetteredMessagesCanBeRedriven(Task<IFunctionStore> functionStoreTask)
+    {
+        var functionStore = await functionStoreTask;
+        var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
+            functionStore,
+            new Settings(unhandledExceptionCatcher.Catch)
+        );
+
+        var rFunc = functionsRegistry.RegisterFunc(
+            nameof(DeadLetteredMessagesCanBeRedriven),
+            inner: async Task<string> (string _, Workflow workflow) => await workflow.Message<string>()
+        );
+
+        var scheduled1 = await rFunc.Schedule("instance1", "");
+        var scheduled2 = await rFunc.Schedule("instance2", "");
+        var storedId1 = rFunc.MapToStoredId("instance1".ToFlowInstance());
+        var storedId2 = rFunc.MapToStoredId("instance2".ToFlowInstance());
+        var otherStoredId = rFunc.MapToStoredId("otherInstance".ToFlowInstance());
+
+        StoredMessage CreateDlqMessage(string content) => new(
+            content.ToJson().ToUtf8Bytes(),
+            typeof(string).SimpleQualifiedName().ToUtf8Bytes(),
+            Position: 0,
+            Replica: ReplicaId.Empty
+        );
+        await functionStore.DlqStore.Append([
+            CreateDlqMessage("msg1").ToStoredIdAndMessage(storedId1),
+            CreateDlqMessage("msg2").ToStoredIdAndMessage(storedId2),
+            CreateDlqMessage("msg3").ToStoredIdAndMessage(otherStoredId)
+        ]);
+
+        // The redriven messages must be delivered to their waiting flows, completing them.
+        await functionsRegistry.DeadLetterQueue.Redrive([storedId1, storedId2]);
+
+        (await scheduled1.Completion(timeout: TimeSpan.FromSeconds(10))).ShouldBe("msg1");
+        (await scheduled2.Completion(timeout: TimeSpan.FromSeconds(10))).ShouldBe("msg2");
+
+        // Only the redriven flows' messages leave the dead letter queue.
+        (await functionStore.DlqStore.GetMessages([storedId1, storedId2])).ShouldBeEmpty();
+        (await functionStore.DlqStore.GetMessages([otherStoredId])).Count.ShouldBe(1);
+
+        unhandledExceptionCatcher.ShouldNotHaveExceptions();
+    }
+
     private record GoodMessage(string Value);
     private record BadMessage(string Value);
 

@@ -49,8 +49,11 @@ public class FunctionsRegistry : IDisposable
             _settings.WatchdogCheckFrequency
         );
         ClusterInfo = new ClusterInfo(ReplicaId.NewId());
+        // The message-writer factory resolves lazily so the writers observe _messageWatchdog, which is created
+        // after the DlqManager (the watchdog depends on FlowsManagers, which depends on the DlqManager).
         DeadLetterQueue = new DlqManager(
             _functionStore.DlqStore,
+            storedId => new MessageWriter(storedId, _functionStore.MessageStore, _settings.Serializer, ClusterInfo.ReplicaId, _messageWatchdog),
             _messageClearer,
             _settings.UnhandledExceptionHandler,
             _settings.UnregisteredFlowTypesGracePeriod
