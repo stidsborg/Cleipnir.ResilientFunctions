@@ -228,7 +228,7 @@ public class SqlGenerator(string tablePrefix)
 
     // The identity column assigns position. Rows are listed in caller order so identity assignment preserves
     // message order.
-    public StoreCommand AppendMessages(IReadOnlyList<StoredIdAndSerializedMessage> messages)
+    public StoreCommand AppendMessages(IReadOnlyList<SerializedMessageWithReplicaId> messages)
     {
         // replica is each message's target flow owner, falling back to the publisher's replica when the target
         // flow is not executing. The ordinal column preserves caller order so the identity column assigns
@@ -246,7 +246,7 @@ public class SqlGenerator(string tablePrefix)
 
         var command = StoreCommand.Create(sql);
 
-        foreach (var (storedId, ((messageContent, messageType, idempotencyKey, sender, receiver), replicaId)) in messages)
+        foreach (var ((storedId, messageContent, messageType, idempotencyKey, sender, receiver), replicaId) in messages)
         {
             command.AddParameter(storedId.AsGuid);
             command.AddParameter(replicaId.AsGuid);

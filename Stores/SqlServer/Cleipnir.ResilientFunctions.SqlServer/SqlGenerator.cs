@@ -5,6 +5,7 @@ using System.Linq;
 using System.Runtime.Serialization;
 using System.Text.Json;
 using System.Threading.Tasks;
+using Cleipnir.ResilientFunctions.CoreRuntime.Serialization;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
@@ -182,7 +183,7 @@ public class SqlGenerator(string tablePrefix)
         return null;
     }
 
-    public StoreCommand? AppendMessages(IReadOnlyList<StoredIdAndSerializedMessage> messages, string prefix = "")
+    public StoreCommand? AppendMessages(IReadOnlyList<SerializedMessageWithReplicaId> messages, string prefix = "")
     {
         if (messages.Count == 0)
             return null;
@@ -198,7 +199,7 @@ public class SqlGenerator(string tablePrefix)
         var appendCommand = StoreCommand.Create(sql);
         for (var i = 0; i < messages.Count; i++)
         {
-            var (storedId, ((messageContent, messageType, idempotencyKey, sender, receiver), replicaId)) = messages[i];
+            var ((storedId, messageContent, messageType, idempotencyKey, sender, receiver), replicaId) = messages[i];
             var content = BinaryPacker.Pack(
                 messageContent,
                 messageType,

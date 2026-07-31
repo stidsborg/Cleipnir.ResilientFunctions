@@ -1,4 +1,5 @@
 ﻿using System;
+using Cleipnir.ResilientFunctions.CoreRuntime.Serialization;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.MariaDB.StoreCommand;
@@ -48,7 +49,7 @@ public class MariaDbMessageStore : IMessageStore
     }
 
 
-    public async Task AppendMessages(IReadOnlyList<StoredIdAndSerializedMessage> messages)
+    public async Task AppendMessages(IReadOnlyList<SerializedMessageWithReplicaId> messages)
     {
         if (messages.Count == 0)
             return;

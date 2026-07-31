@@ -681,7 +681,7 @@ public abstract Task PullEnvelopeReturnsEnvelopeWithReceiverAndSender();
             Position: 0,
             Replica: functionsRegistry.ClusterInfo.ReplicaId
         );
-        await functionStore.MessageStore.AppendMessages([storedMessage.ToStoredIdAndSerializedMessage(storedId)]);
+        await functionStore.MessageStore.AppendMessages([storedMessage.ToSerializedMessage(storedId)]);
 
         // Once the grace period expires the message must be dead lettered: appended to the dlq store and deleted
         // from the message store.
@@ -718,7 +718,7 @@ public abstract Task PullEnvelopeReturnsEnvelopeWithReceiverAndSender();
             Position: 0,
             Replica: registryWithoutType.ClusterInfo.ReplicaId
         );
-        await functionStore.MessageStore.AppendMessages([storedMessage.ToStoredIdAndSerializedMessage(storedId)]);
+        await functionStore.MessageStore.AppendMessages([storedMessage.ToSerializedMessage(storedId)]);
 
         // Give the replica several poll cycles to fetch and hold the message - it must not be dead lettered.
         await Task.Delay(1_000);

@@ -562,7 +562,7 @@ public abstract class StoreCrudTests
             owner: null,
             effects: [effect1]
         );
-        await store.MessageStore.AppendMessages([message1.ToStoredIdAndSerializedMessage(storedId1)]);
+        await store.MessageStore.AppendMessages([message1.ToSerializedMessage(storedId1)]);
         await store.CreateFunction(
             storedId2,
             "instance2",
@@ -573,7 +573,7 @@ public abstract class StoreCrudTests
             owner: null,
             effects: [effect2]
         );
-        await store.MessageStore.AppendMessages([message2.ToStoredIdAndSerializedMessage(storedId2)]);
+        await store.MessageStore.AppendMessages([message2.ToSerializedMessage(storedId2)]);
 
         // Restart both
         var result = await store.RestartExecutions([storedId1, storedId2], owner);

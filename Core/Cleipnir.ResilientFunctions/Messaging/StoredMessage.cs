@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text.Json;
-using Cleipnir.ResilientFunctions.CoreRuntime.Serialization;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Storage;
@@ -29,7 +28,6 @@ public record StoredMessage(byte[] MessageContent, byte[] MessageType, long Posi
 }
 
 public record StoredIdAndMessage(StoredId StoredId, StoredMessage StoredMessage);
-public record StoredIdAndSerializedMessage(StoredId StoredId, SerializedMessageWithReplicaId Message);
 public record StoredMessages(StoredId StoredId, List<StoredMessage> Messages);
 
 /// <summary>

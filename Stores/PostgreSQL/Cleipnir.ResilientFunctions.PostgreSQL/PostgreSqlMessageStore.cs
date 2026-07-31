@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Cleipnir.ResilientFunctions.CoreRuntime.Serialization;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
@@ -57,14 +58,14 @@ public class PostgreSqlMessageStore : IMessageStore
         await command.ExecuteNonQueryAsync();
     }
 
-    public async Task AppendMessages(IReadOnlyList<StoredIdAndSerializedMessage> messages)
+    public async Task AppendMessages(IReadOnlyList<SerializedMessageWithReplicaId> messages)
     {
         if (messages.Count == 0)
             return;
 
         var commands = messages
-            .GroupBy(m => m.StoredId)
-            .Select(g => sqlGenerator.AppendMessages(g.Key, g.Select(m => m.Message)));
+            .GroupBy(m => m.Message.StoredId)
+            .Select(g => sqlGenerator.AppendMessages(g.Key, g));
 
         await using var conn = await CreateConnection();
         await using var batch = commands

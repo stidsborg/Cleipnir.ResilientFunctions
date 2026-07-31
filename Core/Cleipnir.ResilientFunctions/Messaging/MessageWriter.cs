@@ -28,8 +28,8 @@ public class MessageWriter
         var eventJson = _eventSerializer.Serialize(message, message.GetType());
         var eventType = _eventSerializer.SerializeType(message.GetType());
 
-        var serializedMessage = new SerializedMessage(eventJson, eventType, IdempotencyKey: idempotencyKey, Sender: sender, Receiver: receiver);
-        await _messageStore.AppendMessages([new StoredIdAndSerializedMessage(_storedId, new SerializedMessageWithReplicaId(serializedMessage, _publisherReplica))]);
+        var serializedMessage = new SerializedMessage(_storedId, eventJson, eventType, IdempotencyKey: idempotencyKey, Sender: sender, Receiver: receiver);
+        await _messageStore.AppendMessages([new SerializedMessageWithReplicaId(serializedMessage, _publisherReplica)]);
 
         // Wake the MessageWatchdog so the appended message is delivered now rather than on the next poll.
         _messageWatchdog?.Notify();

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Cleipnir.ResilientFunctions.CoreRuntime.Serialization;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.Helpers;
@@ -477,10 +478,11 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
     
     #region MessageStore
 
-    public Task AppendMessages(IReadOnlyList<StoredIdAndSerializedMessage> messages)
+    public Task AppendMessages(IReadOnlyList<SerializedMessageWithReplicaId> messages)
     {
-        foreach (var (storedId, (message, replicaId)) in messages)
+        foreach (var (message, replicaId) in messages)
         {
+            var storedId = message.StoredId;
             lock (_sync)
             {
                 if (!_messages.TryGetValue(storedId, out var flowMessages))

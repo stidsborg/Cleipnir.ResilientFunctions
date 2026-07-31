@@ -44,17 +44,17 @@ public class MessageWriters
 
     public async Task AppendMessages(IReadOnlyList<BatchedMessage> messages)
     {
-        var storedIdAndMessages = new List<StoredIdAndSerializedMessage>(messages.Count);
+        var serializedMessages = new List<SerializedMessageWithReplicaId>(messages.Count);
         foreach (var (instance, message, idempotencyKey) in messages)
         {
             var storedId = StoredId.Create(_storedType, instance.Value);
             var content = _serializer.Serialize(message, message.GetType());
             var type = _serializer.SerializeType(message.GetType());
-            var serializedMessage = new SerializedMessage(content, type, IdempotencyKey: idempotencyKey, Sender: null, Receiver: null);
-            storedIdAndMessages.Add(new StoredIdAndSerializedMessage(storedId, new SerializedMessageWithReplicaId(serializedMessage, _publisherReplica)));
+            var serializedMessage = new SerializedMessage(storedId, content, type, IdempotencyKey: idempotencyKey, Sender: null, Receiver: null);
+            serializedMessages.Add(new SerializedMessageWithReplicaId(serializedMessage, _publisherReplica));
         }
 
-        await _functionStore.MessageStore.AppendMessages(storedIdAndMessages);
+        await _functionStore.MessageStore.AppendMessages(serializedMessages);
 
         // Wake the MessageWatchdog so the appended messages are delivered now rather than on the next poll.
         _messageWatchdog?.Notify();
