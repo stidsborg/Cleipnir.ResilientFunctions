@@ -1211,8 +1211,8 @@ public abstract class StoreTests
         );
         session.ShouldBeNull();
         await store.MessageStore.AppendMessages([
-            new StoredIdAndMessage(storedId, message1),
-            new StoredIdAndMessage(storedId, message2)
+            message1.ToStoredIdAndSerializedMessage(storedId),
+            message2.ToStoredIdAndSerializedMessage(storedId)
         ]);
 
         var effectResults = await store.GetEffectResults(storedId);
@@ -1284,8 +1284,8 @@ public abstract class StoreTests
         );
         session.ShouldBeNull();
         await store.MessageStore.AppendMessages([
-            new StoredIdAndMessage(storedId, message1),
-            new StoredIdAndMessage(storedId, message2)
+            message1.ToStoredIdAndSerializedMessage(storedId),
+            message2.ToStoredIdAndSerializedMessage(storedId)
         ]);
 
         var effectResults = await store.GetEffectResults(storedId);

@@ -19,8 +19,7 @@ public class SerializationTests
         Parent @event = new Child("Hello World");
         var content = serializer.Serialize(@event, @event.GetType());
         var type = serializer.SerializeType(@event.GetType());
-        var serialized = new SerializedMessage(content, type);
-        var deserialized = serializer.Deserialize(serialized.Content, serializer.ResolveType(serialized.Type)!);
+        var deserialized = serializer.Deserialize(content, serializer.ResolveType(type)!);
         if (deserialized is not Child child)
             throw new Exception("Expected event to be of child-type");
 

@@ -44,14 +44,14 @@ public class MessageWriters
 
     public async Task AppendMessages(IReadOnlyList<BatchedMessage> messages)
     {
-        var storedIdAndMessages = new List<StoredIdAndMessage>(messages.Count);
+        var storedIdAndMessages = new List<StoredIdAndSerializedMessage>(messages.Count);
         foreach (var (instance, message, idempotencyKey) in messages)
         {
             var storedId = StoredId.Create(_storedType, instance.Value);
             var content = _serializer.Serialize(message, message.GetType());
             var type = _serializer.SerializeType(message.GetType());
-            var storedMessage = new StoredMessage(content, type, Position: 0, Replica: _publisherReplica, IdempotencyKey: idempotencyKey);
-            storedIdAndMessages.Add(new StoredIdAndMessage(storedId,storedMessage));
+            var serializedMessage = new SerializedMessage(content, type, IdempotencyKey: idempotencyKey, Sender: null, Receiver: null);
+            storedIdAndMessages.Add(new StoredIdAndSerializedMessage(storedId, new SerializedMessageWithReplicaId(serializedMessage, _publisherReplica)));
         }
 
         await _functionStore.MessageStore.AppendMessages(storedIdAndMessages);

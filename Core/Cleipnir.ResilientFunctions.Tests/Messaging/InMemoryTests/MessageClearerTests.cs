@@ -120,9 +120,9 @@ public class MessageClearerTests
         var storedId = TestStoredId.Create();
 
         await messageStore.AppendMessages([
-            new StoredIdAndMessage(storedId, Message()),
-            new StoredIdAndMessage(storedId, Message()),
-            new StoredIdAndMessage(storedId, Message())
+            Message().ToStoredIdAndSerializedMessage(storedId),
+            Message().ToStoredIdAndSerializedMessage(storedId),
+            Message().ToStoredIdAndSerializedMessage(storedId)
         ]);
         var positions = (await messageStore.GetMessages(storedId)).Select(m => m.Position).ToList();
         positions.Count.ShouldBe(3);
@@ -165,7 +165,7 @@ public class MessageClearerTests
         }
 
         public Task Initialize() => throw new NotSupportedException();
-        public Task AppendMessages(IReadOnlyList<StoredIdAndMessage> messages) => throw new NotSupportedException();
+        public Task AppendMessages(IReadOnlyList<StoredIdAndSerializedMessage> messages) => throw new NotSupportedException();
         public Task<bool> ReplaceMessage(StoredId storedId, long position, StoredMessage storedMessage) => throw new NotSupportedException();
         public Task Truncate(StoredId storedId) => throw new NotSupportedException();
         public Task<IReadOnlyList<StoredMessage>> GetMessages(StoredId storedId) => throw new NotSupportedException();

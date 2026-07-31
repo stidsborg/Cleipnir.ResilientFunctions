@@ -206,7 +206,7 @@ public class SqlGenerator(string tablePrefix)
         return null;
     }
 
-    public StoreCommand AppendMessages(IReadOnlyList<StoredIdAndMessage> messages)
+    public StoreCommand AppendMessages(IReadOnlyList<StoredIdAndSerializedMessage> messages)
     {
         // The AUTO_INCREMENT column assigns position. Rows are listed in caller order so the assignment
         // preserves message order.
@@ -217,11 +217,11 @@ public class SqlGenerator(string tablePrefix)
                  {$"(?, COALESCE((SELECT owner FROM {tablePrefix} WHERE id = ?), ?), ?)".Replicate(messages.Count).StringJoin($",{Environment.NewLine}")};";
 
         var command = StoreCommand.Create(sql);
-        foreach (var (storedId, (messageContent, messageType, _, replica, idempotencyKey, sender, receiver)) in messages)
+        foreach (var (storedId, ((messageContent, messageType, idempotencyKey, sender, receiver), replicaId)) in messages)
         {
             command.AddParameter(storedId.AsGuid.ToString("N"));
             command.AddParameter(storedId.AsGuid.ToString("N"));
-            command.AddParameter(replica.AsGuid.ToString("N"));
+            command.AddParameter(replicaId.AsGuid.ToString("N"));
             var content = BinaryPacker.Pack(
                 messageContent,
                 messageType,
