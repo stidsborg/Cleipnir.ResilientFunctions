@@ -55,6 +55,10 @@ public class ReplicaWatchdogTests : TestTemplates.WatchDogsTests.ReplicaWatchdog
         => ResponsibleReplicaMatchesOwningReplica(FunctionStoreFactory.Create());
 
     [TestMethod]
+    public override Task ClusterChangeOnlyRemapsIdsOwnedByAffectedReplica()
+        => ClusterChangeOnlyRemapsIdsOwnedByAffectedReplica(FunctionStoreFactory.Create());
+
+    [TestMethod]
     public override Task ReplicaCrashedFunctionIsTakenOverByOtherReplica()
         => ReplicaCrashedFunctionIsTakenOverByOtherReplica(FunctionStoreFactory.Create());
 

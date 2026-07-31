@@ -340,31 +340,62 @@ public abstract class ReplicaWatchdogTests
     public abstract Task WorkIsDividedBetweenReplicas();
     public Task WorkIsDividedBetweenReplicas(Task<IFunctionStore> _)
     {
-        var replicaId1 = ReplicaId.NewId();
-        var clusterInfo = new ClusterInfo(replicaId1)
+        var replicaIds = new[]
         {
-            ReplicaCount = 3
+            Guid.Parse("10000000-0000-0000-0000-000000000000").ToReplicaId(),
+            Guid.Parse("20000000-0000-0000-0000-000000000000").ToReplicaId(),
+            Guid.Parse("30000000-0000-0000-0000-000000000000").ToReplicaId()
         };
 
         var storedType = 0.ToUshort().ToStoredType();
         var storedIds = Enumerable
-            .Range(0, 10)
+            .Range(0, 25)
             .Select(i => StoredId.Create(storedType, i.ToString()))
             .ToList();
 
-        //offset 0
-        var owned = storedIds.Select(clusterInfo.OwnedByThisReplica).ToList();
-        owned.Any().ShouldBeTrue();
-        
-        //offset 1
-        clusterInfo.Offset = 1;
-        owned = storedIds.Select(clusterInfo.OwnedByThisReplica).ToList();
-        owned.Any().ShouldBeTrue();
-        
-        //offset 2
-        clusterInfo.Offset = 2;
-        owned = storedIds.Select(clusterInfo.OwnedByThisReplica).ToList();
-        owned.Any().ShouldBeTrue();
+        foreach (var replicaId in replicaIds)
+        {
+            var clusterInfo = new ClusterInfo(replicaId) { Replicas = replicaIds };
+            storedIds.Any(clusterInfo.OwnedByThisReplica).ShouldBeTrue();
+        }
+
+        return Task.CompletedTask;
+    }
+
+    public abstract Task ClusterChangeOnlyRemapsIdsOwnedByAffectedReplica();
+    public Task ClusterChangeOnlyRemapsIdsOwnedByAffectedReplica(Task<IFunctionStore> _)
+    {
+        var replicaIds = new[]
+        {
+            Guid.Parse("10000000-0000-0000-0000-000000000000").ToReplicaId(),
+            Guid.Parse("20000000-0000-0000-0000-000000000000").ToReplicaId(),
+            Guid.Parse("30000000-0000-0000-0000-000000000000").ToReplicaId()
+        };
+
+        var storedType = 0.ToUshort().ToStoredType();
+        var storedIds = Enumerable
+            .Range(0, 100)
+            .Select(i => StoredId.Create(storedType, i.ToString()))
+            .ToList();
+
+        var clusterInfo = new ClusterInfo(replicaIds[0]) { Replicas = replicaIds };
+        var responsibleBefore = storedIds.ToDictionary(id => id, clusterInfo.ResponsibleReplica);
+
+        // when a replica leaves only the ids it was responsible for are remapped
+        clusterInfo.Replicas = [replicaIds[0], replicaIds[1]];
+        foreach (var storedId in storedIds.Where(id => responsibleBefore[id] != replicaIds[2]))
+            clusterInfo.ResponsibleReplica(storedId).ShouldBe(responsibleBefore[storedId]);
+
+        // when a replica joins ids are only remapped to the joining replica
+        var joiningReplica = Guid.Parse("40000000-0000-0000-0000-000000000000").ToReplicaId();
+        clusterInfo.Replicas = [..replicaIds, joiningReplica];
+        foreach (var storedId in storedIds)
+        {
+            var responsible = clusterInfo.ResponsibleReplica(storedId);
+            if (responsible != joiningReplica)
+                responsible.ShouldBe(responsibleBefore[storedId]);
+        }
+        storedIds.Count(id => clusterInfo.ResponsibleReplica(id) == joiningReplica).ShouldBeGreaterThan(0);
 
         return Task.CompletedTask;
     }

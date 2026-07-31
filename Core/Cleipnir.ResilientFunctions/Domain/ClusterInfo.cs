@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Cryptography;
-using System.Text;
 using System.Threading;
 using Cleipnir.ResilientFunctions.Storage;
 
@@ -76,14 +75,12 @@ public class ClusterInfo(ReplicaId replicaId)
     private readonly Lock _sync = new();
 
     public bool OwnedByThisReplica(StoredId storedId)
-    {
-        var owner = Hash(storedId) % ReplicaCount;
-        return Offset == owner;
-    }
+        => ResponsibleReplica(storedId) == ReplicaId;
 
     /// <summary>
-    /// Maps the provided id to the replica responsible for it - the same hash-modulo-replica-count sharding over
-    /// the ascendingly ordered replica ids that <see cref="OwnedByThisReplica"/> uses.
+    /// Maps the provided id to the replica responsible for it using rendezvous (highest-random-weight) hashing -
+    /// each replica is scored by hashing the id together with the replica's id and the highest score wins. Thus,
+    /// a membership change only remaps the ids scored highest by the joining/leaving replica (~1/n of all ids).
     /// </summary>
     public ReplicaId ResponsibleReplica(StoredId storedId)
     {
@@ -91,15 +88,31 @@ public class ClusterInfo(ReplicaId replicaId)
         if (replicas.Count == 0)
             throw new InvalidOperationException("Cannot map to responsible replica - cluster membership has not been initialized");
 
-        return replicas[(int)(Hash(storedId) % (ulong)replicas.Count)];
+        // Ties are broken by strict comparison - the earliest replica in the ascendingly ordered list wins,
+        // so all replicas agree on the responsible replica.
+        var responsible = replicas[0];
+        var maxScore = Score(storedId, responsible);
+        for (var i = 1; i < replicas.Count; i++)
+        {
+            var score = Score(storedId, replicas[i]);
+            if (score > maxScore)
+            {
+                maxScore = score;
+                responsible = replicas[i];
+            }
+        }
+
+        return responsible;
     }
 
-    private static ulong Hash(StoredId storedId)
+    private static ulong Score(StoredId storedId, ReplicaId replicaId)
     {
-        var serializedStoredId = storedId.Serialize();
-        using var sha256 = SHA256.Create();
-        var hashBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(serializedStoredId));
-        return BitConverter.ToUInt64(hashBytes);
+        Span<byte> buffer = stackalloc byte[32];
+        storedId.AsGuid.TryWriteBytes(buffer);
+        replicaId.AsGuid.TryWriteBytes(buffer[16..]);
+        Span<byte> hash = stackalloc byte[SHA256.HashSizeInBytes];
+        SHA256.HashData(buffer, hash);
+        return BitConverter.ToUInt64(hash);
     }
 
     public override string ToString() => $"{ReplicaId.AsGuid} ({Offset}/{ReplicaCount} count)";
