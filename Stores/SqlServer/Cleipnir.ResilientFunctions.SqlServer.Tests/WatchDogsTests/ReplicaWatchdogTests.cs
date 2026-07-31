@@ -53,6 +53,10 @@ public class ReplicaWatchdogTests : ResilientFunctions.Tests.TestTemplates.Watch
     [TestMethod]
     public override Task ResponsibleReplicaMatchesOwningReplica()
         => ResponsibleReplicaMatchesOwningReplica(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task ClusterChangeOnlyRemapsIdsOwnedByAffectedReplica()
+        => ClusterChangeOnlyRemapsIdsOwnedByAffectedReplica(FunctionStoreFactory.Create());
     
     [TestMethod]
     public override Task ReplicaCrashedFunctionIsTakenOverByOtherReplica()
