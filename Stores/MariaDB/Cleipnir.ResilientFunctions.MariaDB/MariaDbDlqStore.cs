@@ -108,8 +108,16 @@ public class MariaDbDlqStore : IDlqStore
             var storedId = new StoredId(Guid.Parse(reader.GetString(0)));
             var position = reader.GetInt64(1);
             var content = (byte[])reader.GetValue(2);
-            var storedMessage = MariaDbMessageStore.ConvertToStoredMessage(content, position, replica: null);
-            messages.Add(new StoredDlqMessage(storedId, position, storedMessage));
+            var arrs = BinaryPacker.Split(content, expectedPieces: 5);
+            messages.Add(new StoredDlqMessage(
+                storedId,
+                position,
+                MessageContent: arrs[0]!,
+                MessageType: arrs[1]!,
+                IdempotencyKey: arrs[2]?.ToStringFromUtf8Bytes(),
+                Sender: arrs[3]?.ToStringFromUtf8Bytes(),
+                Receiver: arrs[4]?.ToStringFromUtf8Bytes()
+            ));
         }
 
         return messages;

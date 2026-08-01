@@ -32,9 +32,7 @@ public class DlqManager
         _unhandledExceptionHandler = unhandledExceptionHandler;
         _unregisteredFlowTypesGracePeriod = unregisteredFlowTypesGracePeriod;
     }
-
-    public Task Append(IReadOnlyList<StoredIdAndMessage> messages) => _dlqStore.Append(messages);
-
+    
     public Task<IReadOnlyList<StoredDlqMessage>> GetMessages() => _dlqStore.GetMessages();
     public Task<IReadOnlyList<StoredDlqMessage>> GetMessages(IReadOnlyList<StoredId> storedIds) => _dlqStore.GetMessages(storedIds);
 

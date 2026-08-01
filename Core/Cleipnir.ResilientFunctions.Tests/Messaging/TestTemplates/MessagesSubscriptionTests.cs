@@ -679,7 +679,7 @@ public abstract Task PullEnvelopeReturnsEnvelopeWithReceiverAndSender();
         await BusyWait.Until(async () => await functionStore.MessageStore.GetMessages(storedId).SelectAsync(m => m.Count) == 0);
 
         var dlqMessages = await functionStore.DlqStore.GetMessages([storedId]);
-        dlqMessages.Single().Message.DefaultDeserialize().ShouldBe("hello world");
+        dlqMessages.Single().DefaultDeserialize().ShouldBe("hello world");
 
         unhandledExceptionCatcher.ThrownExceptions
             .Any(e => e.Message.Contains("dead letter queue"))
