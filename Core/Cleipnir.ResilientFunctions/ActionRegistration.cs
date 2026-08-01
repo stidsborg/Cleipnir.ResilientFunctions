@@ -17,7 +17,7 @@ public class ActionRegistration<TParam> : BaseRegistration where TParam : notnul
     private readonly ControlPanelFactory<TParam> _controlPanelFactory;
     public FlowType Type { get; }
 
-    public MessageWriters MessageWriters { get; }
+    private readonly MessageWriters _messageWriters;
 
     public ActionRegistration(
         FlowType flowType,
@@ -31,7 +31,7 @@ public class ActionRegistration<TParam> : BaseRegistration where TParam : notnul
         Type = flowType;
         _invoker = invoker;
         _controlPanelFactory = controlPanelFactory;
-        MessageWriters = messageWriters;
+        _messageWriters = messageWriters;
     }
 
     public async Task Run(FlowInstance flowInstance, TParam param, InitialState? initialState = null)
@@ -56,9 +56,11 @@ public class ActionRegistration<TParam> : BaseRegistration where TParam : notnul
     public async Task SendMessage<T>(
         FlowInstance flowInstance,
         T message,
-        string? idempotencyKey = null
-    ) where T : class => await MessageWriters.For(flowInstance).AppendMessage(message, idempotencyKey);
+        string? idempotencyKey = null,
+        string? sender = null,
+        string? receiver = null
+    ) where T : class => await _messageWriters.For(flowInstance).AppendMessage(message, idempotencyKey, sender, receiver);
 
     public async Task SendMessages(IReadOnlyList<BatchedMessage> messages)
-        => await MessageWriters.AppendMessages(messages);
+        => await _messageWriters.AppendMessages(messages);
 }

@@ -64,18 +64,17 @@ public class IdempotencyKeyDeliveryStressTests
             );
 
             var scheduled = await rFunc.Schedule("instanceId", "");
-            var messageWriter = rFunc.MessageWriters.For("instanceId".ToFlowInstance());
             for (var iteration = 0; iteration < 100; iteration += 10)
                 for (var repeat = 0; repeat < 2; repeat++)
                     for (var i = 0; i < 10; i++)
-                        await messageWriter.AppendMessage((iteration + i).ToString(), idempotencyKey: ((iteration + i) % 50).ToString());
+                        await rFunc.SendMessage("instanceId", (iteration + i).ToString(), idempotencyKey: ((iteration + i) % 50).ToString());
 
             await BusyWait.Until(() => storedId != null);
             await BusyWait.Until(
                 async () => await functionStore.MessageStore.GetMessages([storedId!]).SelectAsync(m => m[storedId!].Count) == 0,
                 maxWait: TimeSpan.FromSeconds(30)
             );
-            await messageWriter.AppendMessage("stop");
+            await rFunc.SendMessage("instanceId", "stop");
 
             var result = await scheduled.Completion(timeout: TimeSpan.FromSeconds(30));
             var receivedMessages = result.Split(',').Select(int.Parse).OrderBy(x => x).ToList();

@@ -59,14 +59,10 @@ public static class Example
             );
         var rFunc = registration.Run;
 
-        var messageWriters = registration.MessageWriters;
         MessageBroker.Subscribe(async @event =>
         {
             if (@event is CreditCheckOutcome creditCheckOutcome)
-            {
-                var writer = messageWriters.For(creditCheckOutcome.LoanApplicationId.ToStoredId(registration.StoredType));
-                await writer.AppendMessage(creditCheckOutcome);
-            }
+                await registration.SendMessage(creditCheckOutcome.LoanApplicationId, creditCheckOutcome);
         });
         
         var loanApplication = new LoanApplication(

@@ -31,7 +31,7 @@ public abstract class CustomMessageSerializerTests
         );
 
         var scheduled = await registration.Schedule(flowId.Instance);
-        await registration.MessageWriters.For(flowId.Instance).AppendMessage("hello world");
+        await registration.SendMessage(flowId.Instance, "hello world", create: false);
         
         await scheduled.Completion();
         EventSerializer.EventToDeserialize.Any().ShouldBeTrue();
