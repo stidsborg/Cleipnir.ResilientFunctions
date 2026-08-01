@@ -1,7 +1,7 @@
 ﻿using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Storage;
 
-namespace Cleipnir.ResilientFunctions.CoreRuntime.Serialization;
+namespace Cleipnir.ResilientFunctions.Messaging;
 
 public record SerializedMessage(
     StoredId StoredId,
