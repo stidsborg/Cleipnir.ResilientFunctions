@@ -195,7 +195,7 @@ public abstract class SuspensionTests
             () => rFunc.Run(flowInstance, "hello world")
         );
 
-        await rFunc.SendMessage(flowInstance.ToFlowInstance(), "hello universe");
+        await rFunc.SendMessage(flowInstance, "hello universe");
         
         await BusyWait.Until(
             () => store.GetFunction(rFunc.MapToStoredId(functionId.Instance)).SelectAsync(sf => sf?.Status == Status.Succeeded)
@@ -230,7 +230,7 @@ public abstract class SuspensionTests
             registration.Run(flowInstance, "hello world")
         );
 
-        await registration.SendMessage(flowInstance.ToFlowInstance(), "hello universe");
+        await registration.SendMessage(flowInstance, "hello universe");
 
         var controlPanel = await registration.ControlPanel(flowInstance);
         controlPanel.ShouldNotBeNull();

@@ -67,12 +67,12 @@ public static class Example
             {
                 case TransactionApproved transactionApproved:
                 {
-                    await registration.SendMessage(transactionApproved.Transaction.Id.ToFlowInstance(), transactionApproved);
+                    await registration.SendMessage(transactionApproved.Transaction.Id, transactionApproved);
                     break;
                 }
                 case TransactionDeclined transactionDeclined:
                 {
-                    await registration.SendMessage(transactionDeclined.Transaction.Id.ToFlowInstance(), transactionDeclined);
+                    await registration.SendMessage(transactionDeclined.Transaction.Id, transactionDeclined);
                     break;
                 }
             }
