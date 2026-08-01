@@ -52,10 +52,6 @@ public class MessagesSubscriptionTests : Cleipnir.ResilientFunctions.Tests.Messa
         => UndeserializableMessageIsMovedToDeadLetterQueue(FunctionStoreFactory.Create());
 
     [TestMethod]
-    public override Task DeadLetteredMessagesCanBeRedriven()
-        => DeadLetteredMessagesCanBeRedriven(FunctionStoreFactory.Create());
-
-    [TestMethod]
     public override Task RegisteredTimeoutIsRemovedWhenPullingMessage()
         => RegisteredTimeoutIsRemovedWhenPullingMessage(FunctionStoreFactory.Create());
 

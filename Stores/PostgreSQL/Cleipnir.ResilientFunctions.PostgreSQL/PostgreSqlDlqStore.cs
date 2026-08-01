@@ -89,15 +89,24 @@ public class PostgreSqlDlqStore : IDlqStore
     }
 
     private string? _getAllMessagesSql;
-    public async Task<IReadOnlyList<StoredDlqMessage>> GetMessages()
+    public async Task<IReadOnlyList<StoredDlqMessage>> GetMessages(long? offset = null, int limit = 1_000)
     {
         await using var conn = await CreateConnection();
         _getAllMessagesSql ??= @$"
             SELECT id, position, content
             FROM {_tablePrefix}_dlq
-            ORDER BY position;";
+            WHERE position > $1
+            ORDER BY position
+            LIMIT $2;";
 
-        await using var command = new NpgsqlCommand(_getAllMessagesSql, conn);
+        await using var command = new NpgsqlCommand(_getAllMessagesSql, conn)
+        {
+            Parameters =
+            {
+                new() { Value = offset ?? -1 },
+                new() { Value = limit }
+            }
+        };
         return await ReadDlqMessages(command);
     }
 

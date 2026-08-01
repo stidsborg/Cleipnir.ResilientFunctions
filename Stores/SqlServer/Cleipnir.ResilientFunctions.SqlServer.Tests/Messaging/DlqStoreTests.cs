@@ -11,6 +11,10 @@ public class DlqStoreTests : Cleipnir.ResilientFunctions.Tests.Messaging.TestTem
         => AppendedDlqMessagesCanBeFetchedAgain(FunctionStoreFactory.Create());
 
     [TestMethod]
+    public override Task MessagesCanBePagedThroughUsingOffsetAndLimit()
+        => MessagesCanBePagedThroughUsingOffsetAndLimit(FunctionStoreFactory.Create());
+
+    [TestMethod]
     public override Task MessagesForProvidedStoredIdsAreFetched()
         => MessagesForProvidedStoredIdsAreFetched(FunctionStoreFactory.Create());
 

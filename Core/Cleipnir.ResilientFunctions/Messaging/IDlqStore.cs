@@ -15,7 +15,12 @@ public interface IDlqStore
     /// </summary>
     Task Append(IReadOnlyList<StoredIdAndMessage> messages);
 
-    Task<IReadOnlyList<StoredDlqMessage>> GetMessages();
+    /// <summary>
+    /// Fetches at most <paramref name="limit"/> dead lettered messages ordered by dlq position, starting after
+    /// the <paramref name="offset"/> dlq position (exclusive) or at the beginning of the queue when omitted.
+    /// Page through the queue by passing the last returned position as the next offset.
+    /// </summary>
+    Task<IReadOnlyList<StoredDlqMessage>> GetMessages(long? offset = null, int limit = 1_000);
     Task<IReadOnlyList<StoredDlqMessage>> GetMessages(IReadOnlyList<StoredId> storedIds);
 
     /// <summary>
