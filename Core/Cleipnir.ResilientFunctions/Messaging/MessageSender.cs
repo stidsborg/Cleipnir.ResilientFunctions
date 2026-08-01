@@ -15,7 +15,7 @@ namespace Cleipnir.ResilientFunctions.Messaging;
 /// (<see cref="ClusterInfo.ResponsibleReplica"/>), sharding delivery work across the cluster. An explicit
 /// replica can also be provided per append.
 /// </summary>
-internal class MessagesSender(
+internal class MessageSender(
     IFunctionStore functionStore,
     ISerializer serializer,
     ClusterInfo clusterInfo,
@@ -33,30 +33,30 @@ internal class MessagesSender(
     /// Appends the message stamped with this node's own replica id - the publishing replica delivers it itself,
     /// woken immediately by the notify below.
     /// </summary>
-    public async Task AppendMessage(StoredId storedId, object message, string? idempotencyKey = null, string? sender = null, string? receiver = null)
-        => await AppendMessage(storedId, message, clusterInfo.ReplicaId, idempotencyKey, sender, receiver);
+    public async Task SendMessage(StoredId storedId, object message, string? idempotencyKey = null, string? sender = null, string? receiver = null)
+        => await SendMessage(storedId, message, clusterInfo.ReplicaId, idempotencyKey, sender, receiver);
 
     /// <summary>
     /// Appends the message stamped with the provided replica instead of the target flow's responsible replica.
     /// </summary>
-    public async Task AppendMessage(StoredId storedId, object message, ReplicaId replicaId, string? idempotencyKey = null, string? sender = null, string? receiver = null)
-        => await AppendMessages([new SerializedMessageWithReplicaId(Serialize(storedId, message, idempotencyKey, sender, receiver), replicaId)]);
+    public async Task SendMessage(StoredId storedId, object message, ReplicaId replicaId, string? idempotencyKey = null, string? sender = null, string? receiver = null)
+        => await SendMessages([new SerializedMessageWithReplicaId(Serialize(storedId, message, idempotencyKey, sender, receiver), replicaId)]);
 
-    public async Task AppendMessages(StoredType storedType, IReadOnlyList<BatchedMessage> messages)
-        => await AppendMessages(
+    public async Task SendMessages(StoredType storedType, IReadOnlyList<BatchedMessage> messages)
+        => await SendMessages(
             messages
                 .Select(m => Serialize(StoredId.Create(storedType, m.Instance.Value), m.Message, m.IdempotencyKey))
                 .ToList()
         );
 
-    public async Task AppendMessages(IReadOnlyList<SerializedMessage> messages)
-        => await AppendMessages(
+    public async Task SendMessages(IReadOnlyList<SerializedMessage> messages)
+        => await SendMessages(
             messages
                 .Select(m => new SerializedMessageWithReplicaId(m, clusterInfo.ResponsibleReplica(m.StoredId)))
                 .ToList()
         );
 
-    public async Task AppendMessages(IReadOnlyList<SerializedMessageWithReplicaId> messages)
+    public async Task SendMessages(IReadOnlyList<SerializedMessageWithReplicaId> messages)
     {
         if (messages.Count == 0)
             return;

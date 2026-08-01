@@ -246,7 +246,7 @@ public class Invoker<TParam, TReturn> : IFlowRestarter
 
             var queueManager = _invocationHelper.CreateQueueManager(flowId, storedId, effect, flowState, flowTimeouts, _unhandledExceptionHandler);
             await queueManager.Initialize();
-            var workflow = new Workflow(flowId, storedId, effect, queueManager, _invocationHelper.UtcNow, _invocationHelper.MessagesSender);
+            var workflow = new Workflow(flowId, storedId, effect, queueManager, _invocationHelper.UtcNow, _invocationHelper.MessageSender);
 
             // Registered last: a flow reachable through the FlowsManager always has its queue manager attached,
             // and a failed preparation leaves nothing behind.
@@ -304,7 +304,7 @@ public class Invoker<TParam, TReturn> : IFlowRestarter
                 effect,
                 queueManager,
                 _invocationHelper.UtcNow,
-                _invocationHelper.MessagesSender
+                _invocationHelper.MessageSender
             );
 
             // Registered last: a flow reachable through the FlowsManager always has its queue manager attached,

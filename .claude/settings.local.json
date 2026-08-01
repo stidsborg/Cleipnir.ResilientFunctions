@@ -64,7 +64,8 @@
       "Bash(sed -n '23,29p' Samples/Sample.ConsoleApp/Versioning/BrandExample.cs)",
       "Bash(echo \"no-match-or-error rc=$?\")",
       "Bash(echo \"rc=$?\")",
-      "Bash(echo \"---rc=$?---\")"
+      "Bash(echo \"---rc=$?---\")",
+      "Bash(perl -0pi -e ' *)"
     ],
     "deny": [],
     "ask": []

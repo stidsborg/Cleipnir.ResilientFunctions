@@ -16,18 +16,18 @@ public class Workflow
 
     private readonly QueueManager _queueManager;
     private readonly UtcNow _utcNow;
-    private readonly MessagesSender _messagesSender;
+    private readonly MessageSender _messageSender;
 
     internal QueueManager QueueManager => _queueManager;
 
-    internal Workflow(FlowId flowId, StoredId storedId, Effect effect, QueueManager queueManager, UtcNow utcNow, MessagesSender messagesSender)
+    internal Workflow(FlowId flowId, StoredId storedId, Effect effect, QueueManager queueManager, UtcNow utcNow, MessageSender messageSender)
     {
         FlowId = flowId;
         StoredId = storedId;
         Effect = effect;
         _queueManager = queueManager;
         _utcNow = utcNow;
-        _messagesSender = messagesSender;
+        _messageSender = messageSender;
     }
 
     public Task Delay(TimeSpan @for, bool suspend = true, string? alias = null) => Delay(until: _utcNow() + @for, suspend, alias);
@@ -97,7 +97,7 @@ public class Workflow
         return _queueManager.CreateQueueClient().Pull<T>(this, effectId, waitFor, filter);
     }
 
-    public Task AppendMessage(object msg, string? idempotencyKey = null) => _messagesSender.AppendMessage(StoredId, msg, idempotencyKey);
+    public Task AppendMessage(object msg, string? idempotencyKey = null) => _messageSender.SendMessage(StoredId, msg, idempotencyKey);
 
     /// <summary>
     /// Runs the provided work as a parallel subflow. Note: the invoking flow is not counted as waiting while it

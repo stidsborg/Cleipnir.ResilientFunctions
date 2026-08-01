@@ -27,12 +27,12 @@ internal class InvocationHelper<TParam, TReturn>
     private readonly ReplicaId _replicaId;
     private readonly ResultBusyWaiter<TReturn> _resultBusyWaiter;
     private readonly IMessageClearer _messageClearer;
-    private readonly MessagesSender _messagesSender;
+    private readonly MessageSender _messageSender;
     public UtcNow UtcNow { get; }
 
     private ISerializer Serializer { get; }
 
-    public InvocationHelper(FlowType flowType, StoredType storedType, ReplicaId replicaId, bool isParamlessFunction, SettingsWithDefaults settings, IFunctionStore functionStore, ShutdownCoordinator shutdownCoordinator, ISerializer serializer, UtcNow utcNow, bool clearChildren, IMessageClearer messageClearer, MessagesSender messagesSender)
+    public InvocationHelper(FlowType flowType, StoredType storedType, ReplicaId replicaId, bool isParamlessFunction, SettingsWithDefaults settings, IFunctionStore functionStore, ShutdownCoordinator shutdownCoordinator, ISerializer serializer, UtcNow utcNow, bool clearChildren, IMessageClearer messageClearer, MessageSender messageSender)
     {
         _flowType = flowType;
         _isParamlessFunction = isParamlessFunction;
@@ -46,7 +46,7 @@ internal class InvocationHelper<TParam, TReturn>
         _replicaId = replicaId;
         _functionStore = functionStore;
         _messageClearer = messageClearer;
-        _messagesSender = messagesSender;
+        _messageSender = messageSender;
         _resultBusyWaiter = new ResultBusyWaiter<TReturn>(_functionStore, Serializer);
     }
 
@@ -213,7 +213,7 @@ internal class InvocationHelper<TParam, TReturn>
         if (msg == null)
             return;
 
-        await _messagesSender.AppendMessage(parent, msg, idempotencyKey: $"FlowCompleted:{childId}");
+        await _messageSender.SendMessage(parent, msg, idempotencyKey: $"FlowCompleted:{childId}");
     }
 
     public async Task<PreparedReInvocation> PrepareForReInvocation(StoredId storedId, RestartedFunction restartedFunction)
@@ -373,7 +373,7 @@ internal class InvocationHelper<TParam, TReturn>
         );
     }
     
-    public MessagesSender MessagesSender => _messagesSender;
+    public MessageSender MessageSender => _messageSender;
 
     public Effect CreateEffect(StoredId storedId, FlowId flowId, IReadOnlyList<StoredEffect> storedEffects, FlowTimeouts flowTimeouts, IStorageSession? storageSession, FlowExecutionState flowExecutionState)
     {

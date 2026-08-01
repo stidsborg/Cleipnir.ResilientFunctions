@@ -33,7 +33,7 @@ public class FunctionsRegistry : IDisposable
     private readonly Lock _sync = new();
     private readonly ReplicaWatchdog _replicaWatchdog;
     private readonly MessageWatchdog _messageWatchdog;
-    private readonly MessagesSender _messagesSender;
+    private readonly MessageSender _messageSender;
     private readonly MessageClearer _messageClearer;
     private readonly FlowsManagers _flowsManagers;
 
@@ -94,7 +94,7 @@ public class FunctionsRegistry : IDisposable
             utcNow
         );
 
-        _messagesSender = new MessagesSender(
+        _messageSender = new MessageSender(
             _functionStore,
             _settings.Serializer.DecorateWithErrorHandling(),
             ClusterInfo,
@@ -296,7 +296,7 @@ public class FunctionsRegistry : IDisposable
                 _settings.UtcNow,
                 settings?.ClearChildrenAfterCapture ?? true,
                 _messageClearer,
-                _messagesSender
+                _messageSender
             );
             var flowsManager = _flowsManagers.GetOrCreate(storedType);
             var invoker = new Invoker<TParam, TReturn>(
@@ -333,7 +333,7 @@ public class FunctionsRegistry : IDisposable
                 storedType,
                 invoker,
                 controlPanels,
-                _messagesSender,
+                _messageSender,
                 _settings.UtcNow
             );
             _functions[flowType] = registration;
@@ -373,7 +373,7 @@ public class FunctionsRegistry : IDisposable
                 _settings.UtcNow,
                 settings?.ClearChildrenAfterCapture ?? true,
                 _messageClearer,
-                _messagesSender
+                _messageSender
             );
             var flowsManager = _flowsManagers.GetOrCreate(storedType);
             var invoker = new Invoker<Unit, Unit>(
@@ -411,7 +411,7 @@ public class FunctionsRegistry : IDisposable
                 _functionStore,
                 invoker,
                 controlPanels,
-                _messagesSender,
+                _messageSender,
                 _settings.UtcNow
             );
             _functions[flowType] = registration;
@@ -451,7 +451,7 @@ public class FunctionsRegistry : IDisposable
                 _settings.UtcNow,
                 settings?.ClearChildrenAfterCapture ?? true,
                 _messageClearer,
-                _messagesSender
+                _messageSender
             );
             var flowsManager = _flowsManagers.GetOrCreate(storedType);
             var rActionInvoker = new Invoker<TParam, Unit>(
@@ -488,7 +488,7 @@ public class FunctionsRegistry : IDisposable
                 storedType,
                 rActionInvoker,
                 controlPanels,
-                _messagesSender,
+                _messageSender,
                 _settings.UtcNow
             );
             _functions[flowType] = registration;

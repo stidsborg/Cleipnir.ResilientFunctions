@@ -17,7 +17,7 @@ public class ParamlessRegistration : BaseRegistration
     private readonly ControlPanelFactory _controlPanelFactory;
     public FlowType Type { get; }
 
-    private readonly MessagesSender _messagesSender;
+    private readonly MessageSender _messageSender;
     private readonly IFunctionStore _functionStore;
 
     internal ParamlessRegistration(
@@ -26,14 +26,14 @@ public class ParamlessRegistration : BaseRegistration
         IFunctionStore functionStore,
         Invoker<Unit, Unit> invoker,
         ControlPanelFactory controlPanelFactory,
-        MessagesSender messagesSender,
+        MessageSender messageSender,
         UtcNow utcNow
     ) : base(storedType, utcNow)
     {
         Type = flowType;
         _invoker = invoker;
         _controlPanelFactory = controlPanelFactory;
-        _messagesSender = messagesSender;
+        _messageSender = messageSender;
         _functionStore = functionStore;
     }
 
@@ -71,9 +71,9 @@ public class ParamlessRegistration : BaseRegistration
                 await Schedule(flowInstance);
         }
 
-        await _messagesSender.AppendMessage(MapToStoredId(flowInstance), message, idempotencyKey, sender, receiver);
+        await _messageSender.SendMessage(MapToStoredId(flowInstance), message, idempotencyKey, sender, receiver);
     }
 
     public async Task SendMessages(IReadOnlyList<BatchedMessage> messages)
-        => await _messagesSender.AppendMessages(StoredType, messages);
+        => await _messageSender.SendMessages(StoredType, messages);
 }
