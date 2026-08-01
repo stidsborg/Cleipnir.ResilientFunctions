@@ -44,6 +44,42 @@ public abstract class DlqStoreTests
         (messages[0].Position < messages[1].Position).ShouldBeTrue();
     }
 
+    public abstract Task MessagesCanBePagedThroughUsingOffsetAndLimit();
+    protected async Task MessagesCanBePagedThroughUsingOffsetAndLimit(Task<IFunctionStore> functionStoreTask)
+    {
+        var functionStore = await functionStoreTask;
+        var dlqStore = functionStore.DlqStore;
+        var storedId = TestStoredId.Create();
+
+        await dlqStore.Append(
+            Enumerable
+                .Range(0, 5)
+                .Select(i => CreateMessage($"msg{i}", position: i).ToStoredIdAndMessage(storedId))
+                .ToList()
+        );
+
+        var firstPage = await dlqStore.GetMessages(limit: 2);
+        firstPage.Count.ShouldBe(2);
+        firstPage[0].DefaultDeserialize().ShouldBe("msg0");
+        firstPage[1].DefaultDeserialize().ShouldBe("msg1");
+
+        //the offset is exclusive - paging is done by passing the last returned position as the next offset
+        var secondPage = await dlqStore.GetMessages(offset: firstPage[1].Position, limit: 2);
+        secondPage.Count.ShouldBe(2);
+        secondPage[0].DefaultDeserialize().ShouldBe("msg2");
+        secondPage[1].DefaultDeserialize().ShouldBe("msg3");
+
+        var thirdPage = await dlqStore.GetMessages(offset: secondPage[1].Position, limit: 2);
+        thirdPage.Count.ShouldBe(1);
+        thirdPage[0].DefaultDeserialize().ShouldBe("msg4");
+
+        (await dlqStore.GetMessages(offset: thirdPage[0].Position)).ShouldBeEmpty();
+
+        var fromFirstMessage = await dlqStore.GetMessages(offset: firstPage[0].Position);
+        fromFirstMessage.Count.ShouldBe(4);
+        fromFirstMessage[0].DefaultDeserialize().ShouldBe("msg1");
+    }
+
     public abstract Task MessagesForProvidedStoredIdsAreFetched();
     protected async Task MessagesForProvidedStoredIdsAreFetched(Task<IFunctionStore> functionStoreTask)
     {

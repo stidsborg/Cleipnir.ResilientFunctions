@@ -12,6 +12,10 @@ public class DlqStoreTests : TestTemplates.DlqStoreTests
         => AppendedDlqMessagesCanBeFetchedAgain(FunctionStoreFactory.Create());
 
     [TestMethod]
+    public override Task MessagesCanBePagedThroughUsingOffsetAndLimit()
+        => MessagesCanBePagedThroughUsingOffsetAndLimit(FunctionStoreFactory.Create());
+
+    [TestMethod]
     public override Task MessagesForProvidedStoredIdsAreFetched()
         => MessagesForProvidedStoredIdsAreFetched(FunctionStoreFactory.Create());
 

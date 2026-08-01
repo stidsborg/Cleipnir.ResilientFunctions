@@ -40,7 +40,13 @@ public class DlqManager
         _unregisteredFlowTypesGracePeriod = unregisteredFlowTypesGracePeriod;
     }
 
-    public Task<IReadOnlyList<StoredDlqMessage>> GetMessages() => _dlqStore.GetMessages();
+    /// <summary>
+    /// Fetches at most <paramref name="limit"/> dead lettered messages ordered by dlq position, starting after
+    /// the <paramref name="offset"/> dlq position (exclusive) or at the beginning of the queue when omitted.
+    /// Page through the queue by passing the last returned position as the next offset.
+    /// </summary>
+    public Task<IReadOnlyList<StoredDlqMessage>> GetMessages(long? offset = null, int limit = 1_000)
+        => _dlqStore.GetMessages(offset, limit);
     public Task<IReadOnlyList<StoredDlqMessage>> GetMessages(IReadOnlyList<StoredId> storedIds) => _dlqStore.GetMessages(storedIds);
 
     public Task Delete(IReadOnlyList<long> positions) => _dlqStore.Delete(positions);

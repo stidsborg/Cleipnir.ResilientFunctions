@@ -24,11 +24,13 @@ public class InMemoryDlqStore : IDlqStore
         return Task.CompletedTask;
     }
 
-    public Task<IReadOnlyList<StoredDlqMessage>> GetMessages()
+    public Task<IReadOnlyList<StoredDlqMessage>> GetMessages(long? offset = null, int limit = 1_000)
     {
         lock (_sync)
             return _messages
+                .Where(kv => kv.Key > (offset ?? -1))
                 .OrderBy(kv => kv.Key)
+                .Take(limit)
                 .Select(kv => ToDlqMessage(kv.Key, kv.Value))
                 .ToList()
                 .CastTo<IReadOnlyList<StoredDlqMessage>>()

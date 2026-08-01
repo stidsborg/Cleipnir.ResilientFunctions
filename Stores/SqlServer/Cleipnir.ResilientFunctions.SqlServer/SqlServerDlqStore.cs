@@ -77,15 +77,19 @@ public class SqlServerDlqStore : IDlqStore
     }
 
     private string? _getAllMessagesSql;
-    public async Task<IReadOnlyList<StoredDlqMessage>> GetMessages()
+    public async Task<IReadOnlyList<StoredDlqMessage>> GetMessages(long? offset = null, int limit = 1_000)
     {
         await using var conn = await CreateConnection();
         _getAllMessagesSql ??= @$"
-            SELECT Id, Position, Content
+            SELECT TOP (@Limit) Id, Position, Content
             FROM {_tablePrefix}_Dlq
+            WHERE Position > @Offset
             ORDER BY Position;";
 
         await using var command = new SqlCommand(_getAllMessagesSql, conn);
+        command.Parameters.AddWithValue("@Limit", limit);
+        command.Parameters.AddWithValue("@Offset", offset ?? -1);
+
         return await ReadDlqMessages(command);
     }
 

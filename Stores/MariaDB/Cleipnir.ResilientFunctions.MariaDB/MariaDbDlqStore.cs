@@ -68,15 +68,20 @@ public class MariaDbDlqStore : IDlqStore
     }
 
     private string? _getAllMessagesSql;
-    public async Task<IReadOnlyList<StoredDlqMessage>> GetMessages()
+    public async Task<IReadOnlyList<StoredDlqMessage>> GetMessages(long? offset = null, int limit = 1_000)
     {
         await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
         _getAllMessagesSql ??= @$"
             SELECT id, position, content
             FROM {_tablePrefix}_dlq
-            ORDER BY position;";
+            WHERE position > ?
+            ORDER BY position
+            LIMIT ?;";
 
         await using var command = new MySqlCommand(_getAllMessagesSql, conn);
+        command.Parameters.Add(new() { Value = offset ?? -1 });
+        command.Parameters.Add(new() { Value = limit });
+
         return await ReadDlqMessages(command);
     }
 
