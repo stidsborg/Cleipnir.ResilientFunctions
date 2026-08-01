@@ -373,8 +373,7 @@ internal class InvocationHelper<TParam, TReturn>
         );
     }
     
-    public MessageWriter CreateMessageWriter(StoredId storedId)
-        => new MessageWriter(storedId, _messagesSender);
+    public MessagesSender MessagesSender => _messagesSender;
 
     public Effect CreateEffect(StoredId storedId, FlowId flowId, IReadOnlyList<StoredEffect> storedEffects, FlowTimeouts flowTimeouts, IStorageSession? storageSession, FlowExecutionState flowExecutionState)
     {

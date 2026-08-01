@@ -328,14 +328,12 @@ public class FunctionsRegistry : IDisposable
                 _settings.UtcNow
             );
 
-            var messageWriters = new MessageWriters(storedType, _messagesSender);
-
             var registration = new FuncRegistration<TParam, TReturn>(
                 flowType,
                 storedType,
                 invoker,
                 controlPanels,
-                messageWriters,
+                _messagesSender,
                 _settings.UtcNow
             );
             _functions[flowType] = registration;
@@ -407,15 +405,13 @@ public class FunctionsRegistry : IDisposable
                 _settings.UtcNow
             );
 
-            var messageWriters = new MessageWriters(storedType, _messagesSender);
-
             var registration = new ParamlessRegistration(
                 flowType,
                 storedType,
                 _functionStore,
                 invoker,
                 controlPanels,
-                messageWriters,
+                _messagesSender,
                 _settings.UtcNow
             );
             _functions[flowType] = registration;
@@ -487,13 +483,12 @@ public class FunctionsRegistry : IDisposable
                 _settings.UtcNow
             );
 
-            var messageWriters = new MessageWriters(storedType, _messagesSender);
             var registration = new ActionRegistration<TParam>(
                 flowType,
                 storedType,
                 rActionInvoker,
                 controlPanels,
-                messageWriters,
+                _messagesSender,
                 _settings.UtcNow
             );
             _functions[flowType] = registration;

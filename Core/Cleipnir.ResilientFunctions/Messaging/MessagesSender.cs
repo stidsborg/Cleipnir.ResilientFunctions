@@ -42,6 +42,13 @@ internal class MessagesSender(
     public async Task AppendMessage(StoredId storedId, object message, ReplicaId replicaId, string? idempotencyKey = null, string? sender = null, string? receiver = null)
         => await AppendMessages([new SerializedMessageWithReplicaId(Serialize(storedId, message, idempotencyKey, sender, receiver), replicaId)]);
 
+    public async Task AppendMessages(StoredType storedType, IReadOnlyList<BatchedMessage> messages)
+        => await AppendMessages(
+            messages
+                .Select(m => Serialize(StoredId.Create(storedType, m.Instance.Value), m.Message, m.IdempotencyKey))
+                .ToList()
+        );
+
     public async Task AppendMessages(IReadOnlyList<SerializedMessage> messages)
         => await AppendMessages(
             messages
