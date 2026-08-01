@@ -50,8 +50,12 @@ public class FunctionsRegistry : IDisposable
             _settings.WatchdogCheckFrequency
         );
         ClusterInfo = new ClusterInfo(ReplicaId.NewId());
+        // The message-sender resolves lazily: it is created after the DlqManager, which the MessageWatchdog it
+        // notifies transitively depends on (watchdog -> FlowsManagers -> DlqManager).
         DeadLetterQueue = new DlqManager(
             _functionStore.DlqStore,
+            () => _messageSender!,
+            _storedTypes,
             _messageClearer,
             _settings.UnhandledExceptionHandler,
             _settings.UnregisteredFlowTypesGracePeriod

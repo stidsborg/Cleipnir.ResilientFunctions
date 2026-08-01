@@ -15,6 +15,10 @@ public class DlqStoreTests : Cleipnir.ResilientFunctions.Tests.Messaging.TestTem
         => MessagesForProvidedStoredIdsAreFetched(FunctionStoreFactory.Create());
 
     [TestMethod]
+    public override Task MessagesAtProvidedPositionsAreFetched()
+        => MessagesAtProvidedPositionsAreFetched(FunctionStoreFactory.Create());
+
+    [TestMethod]
     public override Task DeletedDlqMessagesAreRemoved()
         => DeletedDlqMessagesAreRemoved(FunctionStoreFactory.Create());
 

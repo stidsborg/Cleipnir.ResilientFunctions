@@ -124,6 +124,29 @@ public class PostgreSqlDlqStore : IDlqStore
         return await ReadDlqMessages(command);
     }
 
+    private string? _getMessagesAtPositionsSql;
+    public async Task<IReadOnlyList<StoredDlqMessage>> GetMessages(IReadOnlyList<long> positions)
+    {
+        if (positions.Count == 0)
+            return new List<StoredDlqMessage>();
+
+        await using var conn = await CreateConnection();
+        _getMessagesAtPositionsSql ??= @$"
+            SELECT id, position, content
+            FROM {_tablePrefix}_dlq
+            WHERE position = ANY($1)
+            ORDER BY position;";
+
+        await using var command = new NpgsqlCommand(_getMessagesAtPositionsSql, conn)
+        {
+            Parameters =
+            {
+                new() { Value = positions.ToArray() }
+            }
+        };
+        return await ReadDlqMessages(command);
+    }
+
     private static async Task<IReadOnlyList<StoredDlqMessage>> ReadDlqMessages(NpgsqlCommand command)
     {
         var messages = new List<StoredDlqMessage>();
