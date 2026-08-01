@@ -16,14 +16,14 @@ public class FuncRegistration<TParam, TReturn> : BaseRegistration where TParam :
 
     private readonly Invoker<TParam, TReturn> _invoker;
     private readonly ControlPanelFactory<TParam,TReturn> _controlPanelFactory;
-    private readonly MessageWriters _messageWriters;
+    private readonly MessagesSender _messagesSender;
 
-    public FuncRegistration(
+    internal FuncRegistration(
         FlowType flowType,
         StoredType storedType,
         Invoker<TParam, TReturn> invoker,
         ControlPanelFactory<TParam, TReturn> controlPanelFactory,
-        MessageWriters messageWriters,
+        MessagesSender messagesSender,
         UtcNow utcNow
     ) : base(storedType, utcNow)
     {
@@ -31,7 +31,7 @@ public class FuncRegistration<TParam, TReturn> : BaseRegistration where TParam :
         _invoker = invoker;
 
         _controlPanelFactory = controlPanelFactory;
-        _messageWriters = messageWriters;
+        _messagesSender = messagesSender;
     }
 
     public async Task<TReturn> Run(FlowInstance flowInstance, TParam param, InitialState? initialState = null)
@@ -59,8 +59,8 @@ public class FuncRegistration<TParam, TReturn> : BaseRegistration where TParam :
         string? idempotencyKey = null,
         string? sender = null,
         string? receiver = null
-    ) where T : class => await _messageWriters.For(flowInstance).AppendMessage(message, idempotencyKey, sender, receiver);
+    ) where T : class => await _messagesSender.AppendMessage(MapToStoredId(flowInstance), message, idempotencyKey, sender, receiver);
 
     public async Task SendMessages(IReadOnlyList<BatchedMessage> messages)
-        => await _messageWriters.AppendMessages(messages);
+        => await _messagesSender.AppendMessages(StoredType, messages);
 }

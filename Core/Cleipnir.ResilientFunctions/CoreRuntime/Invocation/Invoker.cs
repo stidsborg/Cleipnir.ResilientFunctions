@@ -246,8 +246,7 @@ public class Invoker<TParam, TReturn> : IFlowRestarter
 
             var queueManager = _invocationHelper.CreateQueueManager(flowId, storedId, effect, flowState, flowTimeouts, _unhandledExceptionHandler);
             await queueManager.Initialize();
-            var messageWriter = _invocationHelper.CreateMessageWriter(storedId);
-            var workflow = new Workflow(flowId, storedId, effect, queueManager, _invocationHelper.UtcNow, messageWriter);
+            var workflow = new Workflow(flowId, storedId, effect, queueManager, _invocationHelper.UtcNow, _invocationHelper.MessagesSender);
 
             // Registered last: a flow reachable through the FlowsManager always has its queue manager attached,
             // and a failed preparation leaves nothing behind.
@@ -299,15 +298,13 @@ public class Invoker<TParam, TReturn> : IFlowRestarter
             // pipeline boundary - messages failing it are dead lettered instead of being pushed.
             await queueManager.Push(storedMessages);
 
-            var messageWriter = _invocationHelper.CreateMessageWriter(storedId);
-
             var workflow = new Workflow(
                 flowId,
                 storedId,
                 effect,
                 queueManager,
                 _invocationHelper.UtcNow,
-                messageWriter
+                _invocationHelper.MessagesSender
             );
 
             // Registered last: a flow reachable through the FlowsManager always has its queue manager attached,
