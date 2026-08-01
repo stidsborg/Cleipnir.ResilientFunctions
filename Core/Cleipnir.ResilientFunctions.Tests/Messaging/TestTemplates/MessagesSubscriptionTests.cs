@@ -88,8 +88,7 @@ public abstract class MessagesSubscriptionTests
         );
 
         var scheduled = await rFunc.Schedule("instanceId", "");
-        var messageWriter = rFunc.MessageWriters.For("instanceId".ToFlowInstance());
-        await messageWriter.AppendMessage("test message");
+        await rFunc.SendMessage("instanceId", "test message");
 
         var result = await scheduled.Completion(timeout: TimeSpan.FromSeconds(5));
         result.ShouldBe("test message");
@@ -126,10 +125,9 @@ public abstract class MessagesSubscriptionTests
         );
 
         var scheduled = await rFunc.Schedule("instanceId", "");
-        var messageWriter = rFunc.MessageWriters.For("instanceId".ToFlowInstance());
-        await messageWriter.AppendMessage("first");
-        await messageWriter.AppendMessage("second");
-        await messageWriter.AppendMessage("third");
+        await rFunc.SendMessage("instanceId", "first");
+        await rFunc.SendMessage("instanceId", "second");
+        await rFunc.SendMessage("instanceId", "third");
 
         var result = await scheduled.Completion(TimeSpan.FromSeconds(5));
         result.ShouldBe("first,second,third");
@@ -205,14 +203,13 @@ public abstract class MessagesSubscriptionTests
         );
 
         var scheduled = await rFunc.Schedule("instanceId", "");
-        var messageWriter = rFunc.MessageWriters.For("instanceId".ToFlowInstance());
 
         // Send 5 messages
-        await messageWriter.AppendMessage("message1");
-        await messageWriter.AppendMessage("message2");
-        await messageWriter.AppendMessage("message3");
-        await messageWriter.AppendMessage("message4");
-        await messageWriter.AppendMessage("message5");
+        await rFunc.SendMessage("instanceId", "message1");
+        await rFunc.SendMessage("instanceId", "message2");
+        await rFunc.SendMessage("instanceId", "message3");
+        await rFunc.SendMessage("instanceId", "message4");
+        await rFunc.SendMessage("instanceId", "message5");
 
         // Give FetchMessages background task time to fetch the messages
         await Task.Delay(TimeSpan.FromSeconds(1.5));
@@ -250,11 +247,10 @@ public abstract class MessagesSubscriptionTests
         );
 
         var scheduled = await rFunc.Schedule("instanceId", "");
-        var messageWriter = rFunc.MessageWriters.For("instanceId".ToFlowInstance());
 
         // Append two messages with the same idempotency key
-        await messageWriter.AppendMessage("first message", idempotencyKey: "duplicate-key");
-        await messageWriter.AppendMessage("second message", idempotencyKey: "duplicate-key");
+        await rFunc.SendMessage("instanceId", "first message", idempotencyKey: "duplicate-key");
+        await rFunc.SendMessage("instanceId", "second message", idempotencyKey: "duplicate-key");
 
         await scheduled.Completion();
         
@@ -317,15 +313,14 @@ public abstract class MessagesSubscriptionTests
 
         // Schedule the function first
         var scheduled = await rFunc.Schedule("instanceId", "");
-        var messageWriter = rFunc.MessageWriters.For("instanceId".ToFlowInstance());
         for (var iteration = 0; iteration < 100; iteration += 10)
             for (var repeat = 0; repeat < 2; repeat++)
                 for (var i = 0; i < 10; i++)
-                await messageWriter.AppendMessage((iteration + i).ToString(), idempotencyKey: ((iteration + i) % 50).ToString());
+                await rFunc.SendMessage("instanceId", (iteration + i).ToString(), idempotencyKey: ((iteration + i) % 50).ToString());
 
         await BusyWait.Until(() => storedId != null);
         await BusyWait.Until(async () => await functionStore.MessageStore.GetMessages([storedId!]).SelectAsync(m => m[storedId!].Count) == 0, maxWait: TimeSpan.FromSeconds(30));
-        await messageWriter.AppendMessage("stop");
+        await rFunc.SendMessage("instanceId", "stop");
 
         // Wait for completion
         var result = await scheduled.Completion(timeout: TimeSpan.FromSeconds(30));
@@ -379,15 +374,14 @@ public abstract class MessagesSubscriptionTests
         );
 
         var scheduled = await rFunc.Schedule("instanceId", "");
-        var messageWriter = rFunc.MessageWriters.For("instanceId".ToFlowInstance());
 
         // Send mixed messages - odd and even
-        await messageWriter.AppendMessage("odd-1");
-        await messageWriter.AppendMessage("even-2");
-        await messageWriter.AppendMessage("odd-3");
-        await messageWriter.AppendMessage("even-4");
-        await messageWriter.AppendMessage("odd-5");
-        await messageWriter.AppendMessage("even-6");
+        await rFunc.SendMessage("instanceId", "odd-1");
+        await rFunc.SendMessage("instanceId", "even-2");
+        await rFunc.SendMessage("instanceId", "odd-3");
+        await rFunc.SendMessage("instanceId", "even-4");
+        await rFunc.SendMessage("instanceId", "odd-5");
+        await rFunc.SendMessage("instanceId", "even-6");
 
         var result = await scheduled.Completion(timeout: TimeSpan.FromSeconds(5));
         // Should only receive the even messages, filtered out the odd ones
@@ -421,11 +415,10 @@ public abstract class MessagesSubscriptionTests
         );
 
         var scheduled = await rFunc.Schedule("instanceId", "");
-        var messageWriter = rFunc.MessageWriters.For("instanceId".ToFlowInstance());
 
-        await messageWriter.AppendMessage("hello");
-        await messageWriter.AppendMessage(new WrappedInt(42));
-        await messageWriter.AppendMessage(new TestRecord("world"));
+        await rFunc.SendMessage("instanceId", "hello");
+        await rFunc.SendMessage("instanceId", new WrappedInt(42));
+        await rFunc.SendMessage("instanceId", new TestRecord("world"));
 
         var result = await scheduled.Completion(timeout: TimeSpan.FromSeconds(10));
         result.ShouldBe("hello,42,world");
@@ -563,17 +556,16 @@ public abstract class MessagesSubscriptionTests
         );
 
         var scheduled = await rFunc.Schedule("instanceId", "");
-        var messageWriter = rFunc.MessageWriters.For("instanceId".ToFlowInstance());
         var storedId = rFunc.MapToStoredId("instanceId".ToFlowInstance());
 
-        await messageWriter.AppendMessage(new BadMessage("will-fail"), idempotencyKey: "bad-message");
+        await rFunc.SendMessage("instanceId", new BadMessage("will-fail"), idempotencyKey: "bad-message");
 
         // The bad message must be dead lettered: appended to the dlq store and deleted from the message store.
         await BusyWait.Until(async () => await functionStore.DlqStore.GetMessages([storedId]).SelectAsync(m => m.Count) == 1, maxWait: TimeSpan.FromSeconds(10));
         await BusyWait.Until(async () => await functionStore.MessageStore.GetMessages(storedId).SelectAsync(m => m.Count) == 0);
 
         // The flow is not poisoned by the dead lettered message - a subsequent good message completes it.
-        await messageWriter.AppendMessage(new GoodMessage("good"));
+        await rFunc.SendMessage("instanceId", new GoodMessage("good"));
         var result = await scheduled.Completion(timeout: TimeSpan.FromSeconds(10));
         result.ShouldBe("good");
 
@@ -611,8 +603,7 @@ public abstract class MessagesSubscriptionTests
         );
 
         await rFunc.Schedule("instanceId", "");
-        var messageWriter = rFunc.MessageWriters.For("instanceId".ToFlowInstance());
-        await messageWriter.AppendMessage("test message");
+        await rFunc.SendMessage("instanceId", "test message");
 
         var controlPanel = await rFunc.ControlPanel("instanceId").ShouldNotBeNullAsync();
         await controlPanel.BusyWaitUntil(
@@ -652,8 +643,7 @@ public abstract Task PullEnvelopeReturnsEnvelopeWithReceiverAndSender();
         );
 
         var scheduled = await rFunc.Schedule("instanceId", "");
-        var messageWriter = rFunc.MessageWriters.For("instanceId".ToFlowInstance());
-        await messageWriter.AppendMessage("test message", receiver: "receiver1", sender: "sender1");
+        await rFunc.SendMessage("instanceId", "test message", receiver: "receiver1", sender: "sender1");
 
         var result = await scheduled.Completion(timeout: TimeSpan.FromSeconds(5));
         result.ShouldBe("test message|receiver1|sender1");

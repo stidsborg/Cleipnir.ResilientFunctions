@@ -42,8 +42,7 @@ public abstract class MessagesTests
 
         var scheduled = await rFunc.Schedule("instanceId", "");
 
-        var messageWriter = rFunc.MessageWriters.For("instanceId".ToFlowInstance());
-        await messageWriter.AppendMessage("hello world");
+        await rFunc.SendMessage("instanceId", "hello world");
 
         var result = await scheduled.Completion(timeout: TimeSpan.FromSeconds(5));
         result.ShouldBe("hello world");
@@ -125,8 +124,7 @@ public abstract class MessagesTests
         );
 
         var scheduled = await rFunc.Schedule("instanceId", "");
-        var messageWriter = rFunc.MessageWriters.For("instanceId".ToFlowInstance());
-        await messageWriter.AppendMessage("Hello");
+        await rFunc.SendMessage("instanceId", "Hello");
 
         var result = await scheduled.Completion(timeout: TimeSpan.FromSeconds(5));
         result.ShouldBe("Hello");
@@ -151,8 +149,7 @@ public abstract class MessagesTests
         );
 
         var scheduled = await rFunc.Schedule("instanceId", "");
-        var messageWriter = rFunc.MessageWriters.For("instanceId".ToFlowInstance());
-        await messageWriter.AppendMessage("1");
+        await rFunc.SendMessage("instanceId", "1");
 
         var result = await scheduled.Completion(timeout: TimeSpan.FromSeconds(5));
         result.ShouldBe("1");
@@ -181,11 +178,10 @@ public abstract class MessagesTests
         );
 
         var scheduled = await rFunc.Schedule("instanceId", "");
-        var messageWriter = rFunc.MessageWriters.For("instanceId".ToFlowInstance());
 
-        await messageWriter.AppendMessage("hello world", idempotencyKey: "1");
-        await messageWriter.AppendMessage("hello world", idempotencyKey: "1");
-        await messageWriter.AppendMessage("hello universe");
+        await rFunc.SendMessage("instanceId", "hello world", idempotencyKey: "1");
+        await rFunc.SendMessage("instanceId", "hello world", idempotencyKey: "1");
+        await rFunc.SendMessage("instanceId", "hello universe");
 
         var result = await scheduled.Completion(timeout: TimeSpan.FromSeconds(5));
         result.Item1.ShouldBe("hello world");
@@ -215,11 +211,10 @@ public abstract class MessagesTests
         );
 
         var scheduled = await rFunc.Schedule("instanceId", "");
-        var messageWriter = rFunc.MessageWriters.For("instanceId".ToFlowInstance());
 
-        await messageWriter.AppendMessage("hello world", "1");
-        await messageWriter.AppendMessage("hello world", "1");
-        await messageWriter.AppendMessage("hello universe");
+        await rFunc.SendMessage("instanceId", "hello world", "1");
+        await rFunc.SendMessage("instanceId", "hello world", "1");
+        await rFunc.SendMessage("instanceId", "hello universe");
 
         var result = await scheduled.Completion(TimeSpan.FromSeconds(5));
         result.ShouldBe("hello world,hello universe");

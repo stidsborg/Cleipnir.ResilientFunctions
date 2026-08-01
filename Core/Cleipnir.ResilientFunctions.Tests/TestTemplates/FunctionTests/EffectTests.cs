@@ -1021,7 +1021,6 @@ public abstract class EffectTests
         await registration.Schedule(id.Instance);
 
         var cp = await registration.ControlPanel(id.Instance).ShouldNotBeNullAsync();
-        var messageWriter = registration.MessageWriters.For(id.Instance);
         var effectStore = store;
         var storedId = registration.MapToStoredId(id.Instance);
 
@@ -1088,7 +1087,7 @@ public abstract class EffectTests
                 throw new Exception($"Effect assertion failed at i={i}. {await DumpAsync($"effect-assertions i={i}")}", ex);
             }
 
-            await messageWriter.AppendMessage(i.ToString());
+            await registration.SendMessage(id.Instance, i.ToString(), create: false);
         }
 
         await WaitAsync("Status == Succeeded (final)", async () => { await cp.Refresh(); return cp.Status == Status.Succeeded; });

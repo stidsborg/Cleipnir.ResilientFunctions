@@ -37,8 +37,7 @@ public abstract class MessagingTests
 
         await controlPanel.BusyWaitUntil(c => c.Status == Status.Suspended);
         
-        var messagesWriter = rAction.MessageWriters.For("instanceId".ToFlowInstance());
-        await messagesWriter.AppendMessage("hello world");
+        await rAction.SendMessage("instanceId", "hello world");
 
         await controlPanel.WaitForCompletion(allowPostponeAndSuspended: true);
         await controlPanel.Refresh();
@@ -89,9 +88,7 @@ public abstract class MessagingTests
         var child = functionsRegistry.RegisterAction(
             childFunctionId.Type,
             inner: Task (string _) => parent!
-                .MessageWriters
-                .For(parentFunctionId.Instance)
-                .AppendMessage("hello world")
+                .SendMessage(parentFunctionId.Instance, "hello world")
         );
 
         parent = functionsRegistry.RegisterFunc(

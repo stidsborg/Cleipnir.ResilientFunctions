@@ -117,8 +117,7 @@ public abstract class SuspensionTests
 
         await Task.Delay(250);
 
-        var messagesWriter = rFunc.MessageWriters.For(flowInstance); 
-        await messagesWriter.AppendMessage("hello multiverse");
+        await rFunc.SendMessage(flowInstance, "hello multiverse");
 
         await BusyWait.Until(() => invocations == 2);
         
@@ -160,8 +159,7 @@ public abstract class SuspensionTests
 
         await Task.Delay(250);
 
-        var messagesWriter = rFunc.MessageWriters.For(flowInstance); 
-        await messagesWriter.AppendMessage("hello multiverse");
+        await rFunc.SendMessage(flowInstance, "hello multiverse");
 
         await BusyWait.Until(() => invocations == 2);
         
@@ -197,7 +195,7 @@ public abstract class SuspensionTests
             () => rFunc.Run(flowInstance, "hello world")
         );
 
-        await rFunc.MessageWriters.For(flowInstance.ToFlowInstance()).AppendMessage("hello universe");
+        await rFunc.SendMessage(flowInstance, "hello universe");
         
         await BusyWait.Until(
             () => store.GetFunction(rFunc.MapToStoredId(functionId.Instance)).SelectAsync(sf => sf?.Status == Status.Succeeded)
@@ -232,8 +230,7 @@ public abstract class SuspensionTests
             registration.Run(flowInstance, "hello world")
         );
 
-        var messagesWriter = registration.MessageWriters.For(flowInstance.ToFlowInstance());
-        await messagesWriter.AppendMessage("hello universe");
+        await registration.SendMessage(flowInstance, "hello universe");
 
         var controlPanel = await registration.ControlPanel(flowInstance);
         controlPanel.ShouldNotBeNull();
@@ -277,8 +274,7 @@ public abstract class SuspensionTests
             registration.Run(flowInstance.Value, "hello world")
         );
 
-        var messagesWriter = registration.MessageWriters.For(flowInstance);
-        await messagesWriter.AppendMessage("hello universe");
+        await registration.SendMessage(flowInstance, "hello universe");
 
         var controlPanel = await registration.ControlPanel(flowInstance);
         controlPanel.ShouldNotBeNull();
@@ -483,9 +479,11 @@ public abstract class SuspensionTests
         var child = functionsRegistry.RegisterAction(
             $"ChildFunction{Guid.NewGuid()}",
             inner: (string param) =>
-                parent!.MessageWriters
-                    .For(parentFunctionId.Instance)
-                    .AppendMessage(param, idempotencyKey: $"ChildFunction{Guid.NewGuid()}")
+                parent!.SendMessage(
+                    parentFunctionId.Instance,
+                    param,
+                    idempotencyKey: $"ChildFunction{Guid.NewGuid()}"
+                )
         );
 
         parent = functionsRegistry.RegisterFunc(

@@ -934,9 +934,7 @@ public abstract class ControlPanelTests
         );
 
         await rAction.Run(flowInstance.Value, param: "param");
-        await rAction.MessageWriters
-            .For(flowInstance.Value.ToFlowInstance())
-            .AppendMessage("hello world", idempotencyKey: "first");
+        await rAction.SendMessage(flowInstance, "hello world", idempotencyKey: "first");
             
         var controlPanel = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
         var existingMessages = controlPanel.Messages;

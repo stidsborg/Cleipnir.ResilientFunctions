@@ -17,7 +17,7 @@ public class ParamlessRegistration : BaseRegistration
     private readonly ControlPanelFactory _controlPanelFactory;
     public FlowType Type { get; }
 
-    public MessageWriters MessageWriters { get; }
+    private readonly MessageWriters _messageWriters;
     private readonly IFunctionStore _functionStore;
 
     public ParamlessRegistration(
@@ -33,7 +33,7 @@ public class ParamlessRegistration : BaseRegistration
         Type = flowType;
         _invoker = invoker;
         _controlPanelFactory = controlPanelFactory;
-        MessageWriters = messageWriters;
+        _messageWriters = messageWriters;
         _functionStore = functionStore;
     }
 
@@ -60,7 +60,9 @@ public class ParamlessRegistration : BaseRegistration
         FlowInstance flowInstance,
         T message,
         bool create = true,
-        string? idempotencyKey = null) where T : class
+        string? idempotencyKey = null,
+        string? sender = null,
+        string? receiver = null) where T : class
     {
         if (create)
         {
@@ -69,9 +71,9 @@ public class ParamlessRegistration : BaseRegistration
                 await Schedule(flowInstance);
         }
 
-        await MessageWriters.For(flowInstance).AppendMessage(message, idempotencyKey);
+        await _messageWriters.For(flowInstance).AppendMessage(message, idempotencyKey, sender, receiver);
     }
 
     public async Task SendMessages(IReadOnlyList<BatchedMessage> messages)
-        => await MessageWriters.AppendMessages(messages);
+        => await _messageWriters.AppendMessages(messages);
 }
