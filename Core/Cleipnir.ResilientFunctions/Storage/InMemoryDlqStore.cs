@@ -29,7 +29,7 @@ public class InMemoryDlqStore : IDlqStore
         lock (_sync)
             return _messages
                 .OrderBy(kv => kv.Key)
-                .Select(kv => new StoredDlqMessage(kv.Value.StoredId, DlqPosition: kv.Key, kv.Value.StoredMessage with { Position = kv.Key }))
+                .Select(kv => ToDlqMessage(kv.Key, kv.Value))
                 .ToList()
                 .CastTo<IReadOnlyList<StoredDlqMessage>>()
                 .ToTask();
@@ -42,10 +42,24 @@ public class InMemoryDlqStore : IDlqStore
             return _messages
                 .Where(kv => ids.Contains(kv.Value.StoredId))
                 .OrderBy(kv => kv.Key)
-                .Select(kv => new StoredDlqMessage(kv.Value.StoredId, DlqPosition: kv.Key, kv.Value.StoredMessage with { Position = kv.Key }))
+                .Select(kv => ToDlqMessage(kv.Key, kv.Value))
                 .ToList()
                 .CastTo<IReadOnlyList<StoredDlqMessage>>()
                 .ToTask();
+    }
+
+    private static StoredDlqMessage ToDlqMessage(long position, StoredIdAndMessage stored)
+    {
+        var (storedId, message) = stored;
+        return new StoredDlqMessage(
+            storedId,
+            position,
+            message.MessageContent,
+            message.MessageType,
+            message.IdempotencyKey,
+            message.Sender,
+            message.Receiver
+        );
     }
 
     public Task Delete(IReadOnlyList<long> positions)

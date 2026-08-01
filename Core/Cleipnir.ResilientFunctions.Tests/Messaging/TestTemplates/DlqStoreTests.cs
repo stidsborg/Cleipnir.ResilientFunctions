@@ -28,20 +28,19 @@ public abstract class DlqStoreTests
         messages.Count.ShouldBe(2);
 
         messages[0].StoredId.ShouldBe(storedId);
-        messages[0].Message.DefaultDeserialize().ShouldBe("hello world");
-        messages[0].Message.Position.ShouldBe(messages[0].DlqPosition); //the incoming position is not persisted - the dlq position takes its place
-        messages[0].Message.IdempotencyKey.ShouldBe("idempotencyKey1");
-        messages[0].Message.Sender.ShouldBe("sender1");
-        messages[0].Message.Receiver.ShouldBe("receiver1");
+        messages[0].DefaultDeserialize().ShouldBe("hello world");
+        messages[0].Position.ShouldNotBe(123); //the incoming position is not persisted - the dlq position takes its place
+        messages[0].IdempotencyKey.ShouldBe("idempotencyKey1");
+        messages[0].Sender.ShouldBe("sender1");
+        messages[0].Receiver.ShouldBe("receiver1");
 
         messages[1].StoredId.ShouldBe(storedId);
-        messages[1].Message.DefaultDeserialize().ShouldBe("hello universe");
-        messages[1].Message.Position.ShouldBe(messages[1].DlqPosition);
-        messages[1].Message.IdempotencyKey.ShouldBeNull();
-        messages[1].Message.Sender.ShouldBeNull();
-        messages[1].Message.Receiver.ShouldBeNull();
+        messages[1].DefaultDeserialize().ShouldBe("hello universe");
+        messages[1].IdempotencyKey.ShouldBeNull();
+        messages[1].Sender.ShouldBeNull();
+        messages[1].Receiver.ShouldBeNull();
 
-        (messages[0].DlqPosition < messages[1].DlqPosition).ShouldBeTrue();
+        (messages[0].Position < messages[1].Position).ShouldBeTrue();
     }
 
     public abstract Task MessagesForProvidedStoredIdsAreFetched();
@@ -66,11 +65,11 @@ public abstract class DlqStoreTests
 
         var storedId1Messages = messages.Where(m => m.StoredId == storedId1).ToList();
         storedId1Messages.Count.ShouldBe(2);
-        storedId1Messages[0].Message.DefaultDeserialize().ShouldBe("msg1");
-        storedId1Messages[1].Message.DefaultDeserialize().ShouldBe("msg4");
-        (storedId1Messages[0].DlqPosition < storedId1Messages[1].DlqPosition).ShouldBeTrue();
+        storedId1Messages[0].DefaultDeserialize().ShouldBe("msg1");
+        storedId1Messages[1].DefaultDeserialize().ShouldBe("msg4");
+        (storedId1Messages[0].Position < storedId1Messages[1].Position).ShouldBeTrue();
 
-        messages.Single(m => m.StoredId == storedId3).Message.DefaultDeserialize().ShouldBe("msg3");
+        messages.Single(m => m.StoredId == storedId3).DefaultDeserialize().ShouldBe("msg3");
     }
 
     public abstract Task DeletedDlqMessagesAreRemoved();
@@ -89,12 +88,12 @@ public abstract class DlqStoreTests
         var messages = await dlqStore.GetMessages();
         messages.Count.ShouldBe(3);
 
-        await dlqStore.Delete([messages[0].DlqPosition, messages[2].DlqPosition]);
+        await dlqStore.Delete([messages[0].Position, messages[2].Position]);
 
         var remaining = await dlqStore.GetMessages();
         remaining.Count.ShouldBe(1);
-        remaining.Single().DlqPosition.ShouldBe(messages[1].DlqPosition);
-        remaining.Single().Message.DefaultDeserialize().ShouldBe("msg2");
+        remaining.Single().Position.ShouldBe(messages[1].Position);
+        remaining.Single().DefaultDeserialize().ShouldBe("msg2");
     }
 
     public abstract Task FetchingEmptyDeadLetterQueueReturnsEmptyList();
