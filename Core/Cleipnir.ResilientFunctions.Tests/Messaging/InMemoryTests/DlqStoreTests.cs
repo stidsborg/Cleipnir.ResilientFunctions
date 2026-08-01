@@ -16,6 +16,10 @@ public class DlqStoreTests : TestTemplates.DlqStoreTests
         => MessagesForProvidedStoredIdsAreFetched(FunctionStoreFactory.Create());
 
     [TestMethod]
+    public override Task MessagesAtProvidedPositionsAreFetched()
+        => MessagesAtProvidedPositionsAreFetched(FunctionStoreFactory.Create());
+
+    [TestMethod]
     public override Task DeletedDlqMessagesAreRemoved()
         => DeletedDlqMessagesAreRemoved(FunctionStoreFactory.Create());
 

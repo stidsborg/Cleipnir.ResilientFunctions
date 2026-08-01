@@ -738,6 +738,62 @@ public abstract Task PullEnvelopeReturnsEnvelopeWithReceiverAndSender();
         unhandledExceptionCatcher2.ShouldNotHaveExceptions();
     }
 
+    public abstract Task DeadLetteredMessagesCanBeRedriven();
+    protected async Task DeadLetteredMessagesCanBeRedriven(Task<IFunctionStore> functionStoreTask)
+    {
+        var functionStore = await functionStoreTask;
+        var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
+            functionStore,
+            new Settings(unhandledExceptionCatcher.Catch)
+        );
+
+        var flowType = nameof(DeadLetteredMessagesCanBeRedriven).ToFlowType();
+        var rFunc = functionsRegistry.RegisterFunc(
+            flowType,
+            inner: async Task<string> (string _, Workflow workflow) => await workflow.Message<string>()
+        );
+
+        var scheduledByPosition = await rFunc.Schedule("byPosition", "");
+        var scheduledByStoredId = await rFunc.Schedule("byStoredId", "");
+        var scheduledByFlowId = await rFunc.Schedule("byFlowId", "");
+        var byPositionId = rFunc.MapToStoredId("byPosition".ToFlowInstance());
+        var byStoredIdId = rFunc.MapToStoredId("byStoredId".ToFlowInstance());
+        var byFlowIdId = rFunc.MapToStoredId("byFlowId".ToFlowInstance());
+        var untouchedId = rFunc.MapToStoredId("untouched".ToFlowInstance());
+
+        StoredMessage CreateDlqMessage(string content) => new(
+            content.ToJson().ToUtf8Bytes(),
+            typeof(string).SimpleQualifiedName().ToUtf8Bytes(),
+            Position: 0,
+            Replica: ReplicaId.Empty
+        );
+        await functionStore.DlqStore.Append([
+            CreateDlqMessage("byPositionMsg").ToStoredIdAndMessage(byPositionId),
+            CreateDlqMessage("byStoredIdMsg").ToStoredIdAndMessage(byStoredIdId),
+            CreateDlqMessage("byFlowIdMsg").ToStoredIdAndMessage(byFlowIdId),
+            CreateDlqMessage("untouchedMsg").ToStoredIdAndMessage(untouchedId)
+        ]);
+
+        var dlq = functionsRegistry.DeadLetterQueue;
+        var byPositionMessage = (await dlq.GetMessages([byPositionId])).Single();
+
+        // Redriven messages must be delivered to their waiting flows, completing them.
+        await dlq.Redrive([byPositionMessage.Position]);
+        await dlq.Redrive([byStoredIdId]);
+        await dlq.Redrive([new FlowId(flowType, "byFlowId")]);
+
+        (await scheduledByPosition.Completion(timeout: TimeSpan.FromSeconds(10))).ShouldBe("byPositionMsg");
+        (await scheduledByStoredId.Completion(timeout: TimeSpan.FromSeconds(10))).ShouldBe("byStoredIdMsg");
+        (await scheduledByFlowId.Completion(timeout: TimeSpan.FromSeconds(10))).ShouldBe("byFlowIdMsg");
+
+        // Only the redriven messages leave the dead letter queue.
+        (await dlq.GetMessages([byPositionId, byStoredIdId, byFlowIdId])).ShouldBeEmpty();
+        (await dlq.GetMessages([untouchedId])).Single().DefaultDeserialize().ShouldBe("untouchedMsg");
+
+        unhandledExceptionCatcher.ShouldNotHaveExceptions();
+    }
+
     private record GoodMessage(string Value);
     private record BadMessage(string Value);
 

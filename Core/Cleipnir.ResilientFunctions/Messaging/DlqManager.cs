@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime;
 using Cleipnir.ResilientFunctions.CoreRuntime.Watchdogs;
+using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.Storage;
 
@@ -11,32 +12,92 @@ namespace Cleipnir.ResilientFunctions.Messaging;
 
 /// <summary>
 /// Facade over the dead letter queue used both by the framework itself and by external users inspecting,
-/// removing or (eventually) redriving dead lettered messages. Obtained from
+/// removing or redriving dead lettered messages. Obtained from
 /// <see cref="FunctionsRegistry.DeadLetterQueue"/>.
 /// </summary>
 public class DlqManager
 {
     private readonly IDlqStore _dlqStore;
+    private readonly Func<MessageSender> _messageSender;
+    private readonly StoredTypes _storedTypes;
     private readonly IMessageClearer _messageClearer;
     private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
     private readonly TimeSpan _unregisteredFlowTypesGracePeriod;
 
     internal DlqManager(
         IDlqStore dlqStore,
+        Func<MessageSender> messageSender,
+        StoredTypes storedTypes,
         IMessageClearer messageClearer,
         UnhandledExceptionHandler unhandledExceptionHandler,
         TimeSpan unregisteredFlowTypesGracePeriod)
     {
         _dlqStore = dlqStore;
+        _messageSender = messageSender;
+        _storedTypes = storedTypes;
         _messageClearer = messageClearer;
         _unhandledExceptionHandler = unhandledExceptionHandler;
         _unregisteredFlowTypesGracePeriod = unregisteredFlowTypesGracePeriod;
     }
-    
+
     public Task<IReadOnlyList<StoredDlqMessage>> GetMessages() => _dlqStore.GetMessages();
     public Task<IReadOnlyList<StoredDlqMessage>> GetMessages(IReadOnlyList<StoredId> storedIds) => _dlqStore.GetMessages(storedIds);
 
     public Task Delete(IReadOnlyList<long> positions) => _dlqStore.Delete(positions);
+
+    /// <summary>
+    /// Redrives the dead lettered messages at the provided dlq positions.
+    /// </summary>
+    public async Task Redrive(IReadOnlyList<long> positions)
+        => await Redrive(await _dlqStore.GetMessages(positions));
+
+    /// <summary>
+    /// Redrives all the dead lettered messages belonging to the provided flows.
+    /// </summary>
+    public async Task Redrive(IReadOnlyList<StoredId> storedIds)
+        => await Redrive(await _dlqStore.GetMessages(storedIds));
+
+    /// <summary>
+    /// Redrives all the dead lettered messages belonging to the provided flows.
+    /// </summary>
+    public async Task Redrive(IReadOnlyList<FlowId> flowIds)
+    {
+        var storedIds = new List<StoredId>(flowIds.Count);
+        foreach (var flowId in flowIds)
+        {
+            var storedType = await _storedTypes.InsertOrGet(flowId.Type);
+            storedIds.Add(StoredId.Create(storedType, flowId.Instance.Value));
+        }
+
+        await Redrive(storedIds);
+    }
+
+    /// <summary>
+    /// Moves the messages back into the message store, so they are delivered to their flows again. Each message
+    /// is stamped with its flow's responsible replica - the original publisher replica is not retained - so the
+    /// redelivery work is sharded across the cluster. Message-store append happens before the dlq delete, so a
+    /// crash in between redrives the messages a second time rather than losing them.
+    /// </summary>
+    private async Task Redrive(IReadOnlyList<StoredDlqMessage> dlqMessages)
+    {
+        if (dlqMessages.Count == 0)
+            return;
+
+        await _messageSender().SendMessages(
+            dlqMessages
+                .Select(m => new SerializedMessage(
+                    m.StoredId,
+                    m.MessageContent,
+                    m.MessageType,
+                    m.IdempotencyKey,
+                    m.Sender,
+                    m.Receiver
+                ))
+                .ToList()
+        );
+
+        await _dlqStore.Delete(dlqMessages.Select(m => m.Position).ToList());
+    }
 
     /// <summary>
     /// Holds the undeliverable messages for the configured grace period and then moves them to the dead letter

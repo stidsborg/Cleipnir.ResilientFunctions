@@ -56,6 +56,10 @@ public class MessagesSubscriptionTests : TestTemplates.MessagesSubscriptionTests
         => UndeserializableMessageIsMovedToDeadLetterQueue(FunctionStoreFactory.Create());
 
     [TestMethod]
+    public override Task DeadLetteredMessagesCanBeRedriven()
+        => DeadLetteredMessagesCanBeRedriven(FunctionStoreFactory.Create());
+
+    [TestMethod]
     public override Task RegisteredTimeoutIsRemovedWhenPullingMessage()
         => RegisteredTimeoutIsRemovedWhenPullingMessage(FunctionStoreFactory.Create());
 

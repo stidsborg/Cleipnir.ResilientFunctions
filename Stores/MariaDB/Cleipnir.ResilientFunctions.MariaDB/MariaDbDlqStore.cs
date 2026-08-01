@@ -99,6 +99,24 @@ public class MariaDbDlqStore : IDlqStore
         return await ReadDlqMessages(command);
     }
 
+    public async Task<IReadOnlyList<StoredDlqMessage>> GetMessages(IReadOnlyList<long> positions)
+    {
+        if (positions.Count == 0)
+            return new List<StoredDlqMessage>();
+
+        var sql = @$"
+            SELECT id, position, content
+            FROM {_tablePrefix}_dlq
+            WHERE FIND_IN_SET(position, ?) > 0
+            ORDER BY position;";
+
+        await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
+        await using var command = new MySqlCommand(sql, conn);
+        command.Parameters.Add(new() { Value = string.Join(",", positions) });
+
+        return await ReadDlqMessages(command);
+    }
+
     private static async Task<IReadOnlyList<StoredDlqMessage>> ReadDlqMessages(MySqlCommand command)
     {
         var messages = new List<StoredDlqMessage>();

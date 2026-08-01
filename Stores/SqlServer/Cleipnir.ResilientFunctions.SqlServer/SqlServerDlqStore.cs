@@ -108,6 +108,24 @@ public class SqlServerDlqStore : IDlqStore
         return await ReadDlqMessages(command);
     }
 
+    public async Task<IReadOnlyList<StoredDlqMessage>> GetMessages(IReadOnlyList<long> positions)
+    {
+        if (positions.Count == 0)
+            return new List<StoredDlqMessage>();
+
+        await using var conn = await CreateConnection();
+        var sql = @$"
+            SELECT Id, Position, Content
+            FROM {_tablePrefix}_Dlq
+            WHERE Position IN (SELECT CAST(value AS BIGINT) FROM STRING_SPLIT(@Positions, ','))
+            ORDER BY Position;";
+
+        await using var command = new SqlCommand(sql, conn);
+        command.Parameters.AddWithValue("@Positions", string.Join(",", positions));
+
+        return await ReadDlqMessages(command);
+    }
+
     private static async Task<IReadOnlyList<StoredDlqMessage>> ReadDlqMessages(SqlCommand command)
     {
         var messages = new List<StoredDlqMessage>();

@@ -19,6 +19,12 @@ public interface IDlqStore
     Task<IReadOnlyList<StoredDlqMessage>> GetMessages(IReadOnlyList<StoredId> storedIds);
 
     /// <summary>
+    /// Fetches the messages at the given dlq positions regardless of which flow they belong to. Positions
+    /// without a matching row are silently skipped.
+    /// </summary>
+    Task<IReadOnlyList<StoredDlqMessage>> GetMessages(IReadOnlyList<long> positions);
+
+    /// <summary>
     /// Deletes the messages at the given dlq positions regardless of which flow they belong to. Dlq positions
     /// are globally unique (identity values), so no <see cref="StoredId"/> is needed.
     /// </summary>

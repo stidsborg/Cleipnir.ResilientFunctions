@@ -48,6 +48,19 @@ public class InMemoryDlqStore : IDlqStore
                 .ToTask();
     }
 
+    public Task<IReadOnlyList<StoredDlqMessage>> GetMessages(IReadOnlyList<long> positions)
+    {
+        var positionsToFetch = positions.ToHashSet();
+        lock (_sync)
+            return _messages
+                .Where(kv => positionsToFetch.Contains(kv.Key))
+                .OrderBy(kv => kv.Key)
+                .Select(kv => ToDlqMessage(kv.Key, kv.Value))
+                .ToList()
+                .CastTo<IReadOnlyList<StoredDlqMessage>>()
+                .ToTask();
+    }
+
     private static StoredDlqMessage ToDlqMessage(long position, StoredIdAndMessage stored)
     {
         var (storedId, message) = stored;
