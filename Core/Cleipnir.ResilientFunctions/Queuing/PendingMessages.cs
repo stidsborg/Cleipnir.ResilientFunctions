@@ -10,40 +10,18 @@ using Cleipnir.ResilientFunctions.Storage.Utils;
 namespace Cleipnir.ResilientFunctions.Queuing;
 
 /// <summary>
-/// Codec for the reserved pending-messages effect: messages fetched for a flow that had already completed are
-/// inlined into the flow's effect state (and deleted from the message store) so any later re-invocation - on any
-/// replica and via any restart path - finds them in the effect snapshot the restart hands over. The QueueManager
-/// stages them at initialization and prunes each message from the entry when it is delivered.
+/// Codec for the per-message effect carriers: a staged-message child effect (an admitted-but-undelivered
+/// message captured under <see cref="QueueManager.StagedMessagesRoot"/>) carries its message encoded with this
+/// codec - whether staged by the QueueManager, supplied as an initial message at flow creation or appended via
+/// the control panel.
 ///
-/// The encoding is BinaryPacker-based rather than serializer-based on purpose: the entry is written by the
-/// FlowsManager, which does not know the flow type's (possibly custom) serializer.
+/// The encoding is BinaryPacker-based rather than serializer-based on purpose: the carriers are also decoded
+/// outside the flow, by tooling that does not know the flow type's (possibly custom) serializer. The store
+/// row's replica is deliberately not encoded: by the time a message reaches an effect carrier it has already
+/// been fetched, and row-less messages never had a replica to begin with.
 /// </summary>
 internal static class PendingMessages
 {
-    /// <summary>Reserved effect id (same -1 prefix as the QueueManager's other reserved ids).</summary>
-    public static readonly EffectId EffectId = new([-1, 1]);
-
-    public static byte[] Encode(IReadOnlyCollection<StoredMessage> messages)
-        => BinaryPacker.Pack(messages.Select(EncodeMessage).ToArray());
-
-    public static List<StoredMessage> Decode(byte[] bytes, StoredId storedId)
-        => BinaryPacker
-            .Split(bytes)
-            .Select(messageBytes => DecodeMessage(messageBytes!, storedId))
-            .ToList();
-
-    // The store row's replica is deliberately not encoded: by the time a message reaches an effect carrier it
-    // has already been fetched, and row-less messages never had a replica to begin with.
-    public static byte[] EncodeMessage(StoredMessage message)
-        => EncodeMessage(
-            message.MessageContent,
-            message.MessageType,
-            message.RowBacked ? message.Position : null,
-            message.IdempotencyKey,
-            message.Sender,
-            message.Receiver
-        );
-
     // A message without a backing store row (e.g. appended via the control panel directly into the flow's effect
     // state) encodes a null position piece - it has no store identity to clear or dedup against.
     public static byte[] EncodeMessage(

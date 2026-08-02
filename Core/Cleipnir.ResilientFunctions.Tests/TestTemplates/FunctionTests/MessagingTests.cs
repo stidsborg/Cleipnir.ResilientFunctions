@@ -292,17 +292,21 @@ public abstract class MessagingTests
         controlPanel.Status.ShouldBe(Status.Succeeded);
         controlPanel.Result.ShouldBe("no message awaited");
 
-        // An explicit restart does not pull messages itself - the MessageWatchdog delivers the pending non-empty
-        // message to the restarted flow, while the empty message is never delivered.
+        // Both rows end up deleted: the non-empty message is dead lettered (the flow is completed), while the
+        // empty poke is simply deleted - a completed flow needs no restart.
+        await BusyWait.Until(async () => (await store.MessageStore.GetMessages(storedId)).Count == 0);
+        (await functionsRegistry.DeadLetterQueue.GetMessages([storedId])).Count.ShouldBe(1);
+
+        // An explicit restart does not pull messages itself and a dead lettered message is not delivered on its
+        // own - redriving it moves it back into the message store, from where the MessageWatchdog delivers it to
+        // the restarted flow. The empty message is gone for good and never delivered.
         awaitMessage.Raise();
         await controlPanel.ScheduleRestart();
-        await controlPanel.WaitForCompletion(allowPostponeAndSuspended: true);
-        await controlPanel.Refresh();
-        controlPanel.Status.ShouldBe(Status.Succeeded);
+        await functionsRegistry.DeadLetterQueue.Redrive([storedId]);
+        await controlPanel.BusyWaitUntil(c => c.Status == Status.Succeeded);
         controlPanel.Result.ShouldBe("hello world");
 
-        // Both rows end up deleted: the non-empty message is inlined into the completed flow's effect state (and
-        // its row removed), while the empty poke is simply deleted - a completed flow needs no restart.
+        (await functionsRegistry.DeadLetterQueue.GetMessages([storedId])).ShouldBeEmpty();
         await BusyWait.Until(async () => (await store.MessageStore.GetMessages(storedId)).Count == 0);
 
         unhandledExceptionHandler.ShouldNotHaveExceptions();
@@ -350,15 +354,17 @@ public abstract class MessagingTests
             ).ToSerializedMessage()
         ]);
 
-        // The message is inlined into the completed flow's effect state and its row deleted.
+        // The message is dead lettered (the flow is completed) and its row deleted.
         await BusyWait.Until(async () => (await store.MessageStore.GetMessages(storedId)).Count == 0);
+        (await functionsRegistry.DeadLetterQueue.GetMessages([storedId])).Count.ShouldBe(1);
 
-        // Resurrect the completed flow via Postpone - the PostponedWatchdog's restart path must also hand the
-        // inlined message over (it travels in the effect snapshot, not through any restart-specific channel).
+        // Resurrect the completed flow via Postpone - the PostponedWatchdog restarts it - and redrive the dead
+        // lettered message so the MessageWatchdog delivers it to the resurrected flow.
         awaitMessage.Raise();
         var controlPanel = await registration.ControlPanel(flowId.Instance);
         controlPanel.ShouldNotBeNull();
         await controlPanel.Postpone(DateTime.UtcNow);
+        await functionsRegistry.DeadLetterQueue.Redrive([storedId]);
 
         await controlPanel.BusyWaitUntil(c => c.Status == Status.Succeeded);
         controlPanel.Result.ShouldBe("hello world");
@@ -393,7 +399,7 @@ public abstract class MessagingTests
         await publisherRegistration.Run(flowId.Instance.Value, "");
 
         // Append a message stamped with the publisher replica - its watchdog fetches it, finds the flow
-        // completed and inlines it into the flow's effect state.
+        // completed and dead letters it.
         var storedId = publisherRegistration.MapToStoredId(flowId.Instance);
         var serializer = DefaultSerializer.Instance;
         await store.MessageStore.AppendMessages([
@@ -406,9 +412,11 @@ public abstract class MessagingTests
             ).ToSerializedMessage()
         ]);
         await BusyWait.Until(async () => (await store.MessageStore.GetMessages(storedId)).Count == 0);
+        (await publisherRegistry.DeadLetterQueue.GetMessages([storedId])).Count.ShouldBe(1);
 
-        // Restart the flow from a DIFFERENT replica: the inlined message travels in the effect snapshot the
-        // restart hands over, so delivery does not depend on the publisher replica's in-memory state.
+        // Restart the flow from a DIFFERENT replica and redrive the dead lettered message from there too: the
+        // dead letter queue is shared store state, so delivery does not depend on the publisher replica's
+        // in-memory state.
         FuncRegistration<string, string> restartingRegistration = null!;
         using var restartingRegistry = await createRegistry(r => { restartingRegistration = register(r); });
 
@@ -416,9 +424,8 @@ public abstract class MessagingTests
         var controlPanel = await restartingRegistration.ControlPanel(flowId.Instance);
         controlPanel.ShouldNotBeNull();
         await controlPanel.ScheduleRestart();
-        await controlPanel.WaitForCompletion(allowPostponeAndSuspended: true);
-        await controlPanel.Refresh();
-        controlPanel.Status.ShouldBe(Status.Succeeded);
+        await restartingRegistry.DeadLetterQueue.Redrive([storedId]);
+        await controlPanel.BusyWaitUntil(c => c.Status == Status.Succeeded);
         controlPanel.Result.ShouldBe("hello world");
 
         unhandledExceptionHandler.ShouldNotHaveExceptions();

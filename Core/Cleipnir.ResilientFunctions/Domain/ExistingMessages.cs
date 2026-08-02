@@ -15,13 +15,14 @@ namespace Cleipnir.ResilientFunctions.Domain;
 /// <summary>
 /// A flow's not-yet-delivered messages live in three carriers: rows in the message store, per-message
 /// staged-message children under the queue manager's reserved root, and - for messages that arrived while the
-/// flow was completed - the pending-messages entry inlined into the flow's effect state. This type surfaces the
-/// union of all three, so control-panel tooling sees the same pending messages a restarted flow would receive.
+/// flow was completed - the flow's rows in the dead letter queue. This type surfaces the union of all three, so
+/// control-panel tooling sees the messages that are still around for the flow. Note that dead lettered messages
+/// are NOT delivered to a restarted flow unless they are explicitly redriven (see DlqManager).
 ///
 /// Edits are effect-state-only: appended messages are written directly as row-less staged-message children
-/// (never as store rows), so they cannot race the MessageWatchdog's row-to-effect inlining. Effect writes are
-/// version-guarded, serializing them against concurrent inliner writes and claims. Consequently edits require
-/// the flow to be unowned - editing a currently-executing flow fails with a concurrent-modification error.
+/// (never as store rows), so they cannot race the MessageWatchdog's fetch-and-push cycle. Effect writes are
+/// version-guarded, serializing them against claims. Consequently edits require the flow to be unowned -
+/// editing a currently-executing flow fails with a concurrent-modification error.
 /// </summary>
 public class ExistingMessages
 {
@@ -60,17 +61,17 @@ public class ExistingMessages
     }
 
     // The union of all carriers, ordered by position. Row-less children carry the same synthetic negative
-    // positions the QueueManager assigns at staging, so the view shows the exact delivery order: control-panel
-    // appended messages first (in child order), then row-backed messages by store position. Positions of the
-    // row-backed carriers are disjoint by construction (inlining deletes the row); should both transiently hold
-    // a position, the store row wins.
+    // positions the QueueManager assigns at staging, so control-panel appended messages come first (in child
+    // order), then the position-addressed carriers. Dead lettered messages are keyed by their dlq position,
+    // which lives in its own sequence - their order relative to still-live store rows is therefore approximate,
+    // and on a cross-sequence position clash the store row wins.
     private async Task<List<StoredMessage>> GetMergedMessages()
     {
         var effects = (await _functionStore.GetFunction(_storedId))?.Effects ?? [];
 
         var byPosition = new Dictionary<long, StoredMessage>();
-        foreach (var pending in DecodePendingInlinedMessages(effects))
-            byPosition[pending.Position] = pending;
+        foreach (var deadLettered in await GetDeadLetteredMessages())
+            byPosition[deadLettered.Position] = deadLettered;
 
         foreach (var message in DecodeStagedMessageChildren(effects))
             byPosition.TryAdd(message.Position, message);
@@ -84,18 +85,23 @@ public class ExistingMessages
         return byPosition.Values.OrderBy(m => m.Position).ToList();
     }
 
-    private async Task<List<StoredMessage>> GetPendingInlinedMessages()
+    // The flow's dead lettered messages, mapped onto the store-message shape the merged view is built from -
+    // their Position is the dlq position (the dlq row's identity), which Remove and Clear address them by.
+    private async Task<List<StoredMessage>> GetDeadLetteredMessages()
     {
-        var effects = (await _functionStore.GetFunction(_storedId))?.Effects ?? [];
-        return DecodePendingInlinedMessages(effects);
-    }
-
-    private List<StoredMessage> DecodePendingInlinedMessages(IReadOnlyList<StoredEffect> effects)
-    {
-        var entry = effects.FirstOrDefault(e => e.EffectId == PendingMessages.EffectId);
-        return entry?.Result is { Length: > 0 } bytes
-            ? PendingMessages.Decode(bytes, _storedId)
-            : [];
+        var dlqMessages = await _functionStore.DlqStore.GetMessages([_storedId]);
+        return dlqMessages
+            .Select(m => new StoredMessage(
+                _storedId,
+                m.MessageContent,
+                m.MessageType,
+                m.Position,
+                Replica: ReplicaId.Empty,
+                m.IdempotencyKey,
+                m.Sender,
+                m.Receiver
+            ))
+            .ToList();
     }
 
     private List<StoredMessage> DecodeStagedMessageChildren(IReadOnlyList<StoredEffect> effects)
@@ -121,13 +127,17 @@ public class ExistingMessages
     public async Task Clear()
     {
         // Deleting the carriers is not atomic, and a MessageWatchdog holding rows fetched before the truncate
-        // may concurrently move them into the pending-messages entry - delete, then verify after a grace period
+        // may concurrently move them into the dead letter queue - delete, then verify after a grace period
         // and repeat until all carriers are observed empty. Besides the message carriers the flow's message
         // bookkeeping (delivered positions and idempotency keys) is wiped too, so messages re-appended with a
         // previously used idempotency key are not silently deduped away.
         for (var attempt = 0; attempt < 5; attempt++)
         {
             await _messageStore.Truncate(_storedId);
+
+            var dlqMessages = await _functionStore.DlqStore.GetMessages([_storedId]);
+            if (dlqMessages.Count > 0)
+                await _functionStore.DlqStore.Delete(dlqMessages.Select(m => m.Position).ToList());
 
             var storedFlow = await _functionStore.GetFunction(_storedId);
             if (storedFlow == null)
@@ -164,8 +174,7 @@ public class ExistingMessages
     }
 
     private static bool IsMessageStateEffect(EffectId effectId)
-        => effectId == PendingMessages.EffectId
-           || effectId == QueueManager.DeliveredPositionsId
+        => effectId == QueueManager.DeliveredPositionsId
            || effectId.IsDescendant(QueueManager.StagedMessagesRoot)
            || effectId.IsDescendant(QueueManager.IdempotencyKeysRoot);
 
@@ -275,33 +284,17 @@ public class ExistingMessages
         {
             await _messageStore.DeleteMessages(positions: [position]);
 
-            var pending = await GetPendingInlinedMessages();
-            if (pending.Any(m => m.Position == position))
-                await WritePendingInlinedMessages(pending.Where(m => m.Position != position).ToList());
+            // The position may address a dead lettered message rather than a store row - dlq positions live in
+            // their own sequence, so only rows provably belonging to this flow are deleted from the dlq.
+            var dlqPositions = (await _functionStore.DlqStore.GetMessages([_storedId]))
+                .Where(m => m.Position == position)
+                .Select(m => m.Position)
+                .ToList();
+            if (dlqPositions.Count > 0)
+                await _functionStore.DlqStore.Delete(dlqPositions);
         }
 
         // Invalidate cache so it will be re-fetched with correct data
         _pendingMessages = null;
-    }
-
-    private async Task WritePendingInlinedMessages(IReadOnlyList<StoredMessage> messages)
-    {
-        if (messages.Count == 0)
-        {
-            await _functionStore.DeleteEffectResult(_storedId, PendingMessages.EffectId, owner: null, storageSession: null);
-            return;
-        }
-
-        var entry = StoredEffect.CreateCompleted(
-            PendingMessages.EffectId,
-            PendingMessages.Encode(messages),
-            alias: null
-        );
-        await _functionStore.SetEffectResult(
-            _storedId,
-            new StoredEffectChange(_storedId, PendingMessages.EffectId, CrudOperation.Insert, entry),
-            owner: null,
-            session: null
-        );
     }
 }

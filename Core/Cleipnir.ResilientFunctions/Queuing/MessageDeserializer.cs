@@ -27,35 +27,10 @@ internal class MessageDeserializer(
     IMessageClearer messageClearer,
     UnhandledExceptionHandler unhandledExceptionHandler)
 {
-    public async Task<DeserializedMessages> Deserialize(IReadOnlyList<StoredMessage> messages)
-    {
-        var deserialized = new List<IncomingMessage>(messages.Count);
-        List<StoredMessage>? deadLettered = null;
-
-        foreach (var message in messages)
-        {
-            try
-            {
-                var payload = serializer.Deserialize(message.MessageContent, serializer.ResolveType(message.MessageType)!);
-                deserialized.Add(ToIncomingMessage(payload, message));
-            }
-            catch (Exception exception)
-            {
-                ReportDeserializationFailure(message.StoredId, exception);
-                (deadLettered ??= new List<StoredMessage>()).Add(message);
-            }
-        }
-
-        if (deadLettered is not null)
-            await MoveToDlq(deadLettered);
-
-        return new DeserializedMessages(deserialized, deadLettered ?? []);
-    }
-
     /// <summary>
-    /// Deserializes a single message, dead lettering it on failure exactly like <see cref="Deserialize"/> does.
-    /// Returns the object-form message, or null when it was dead lettered - a caller staging from an in-flow
-    /// carrier (a staged-message child effect) must then clear that carrier.
+    /// Deserializes a single message, dead lettering it on failure. Returns the object-form message, or null
+    /// when it was dead lettered - a caller staging from an in-flow carrier (a staged-message child effect)
+    /// must then clear that carrier.
     /// </summary>
     public async Task<IncomingMessage?> DeserializeOrDeadLetter(StoredMessage message)
     {
@@ -92,7 +67,7 @@ internal class MessageDeserializer(
         await dlqStore.Append(messages);
 
         // Row deletes come after the dlq append has landed - a crash in between re-fetches and re-dead-letters
-        // the message rather than losing it. Row-less messages (control-panel appended or completed-flow inlined)
+        // the message rather than losing it. Row-less messages (e.g. control-panel appended)
         // have no row to delete; their in-flow carrier is pruned by the caller instead.
         var rowBackedPositions = messages
             .Where(message => message.RowBacked)
@@ -102,8 +77,3 @@ internal class MessageDeserializer(
             await messageClearer.Clear(rowBackedPositions);
     }
 }
-
-internal record DeserializedMessages(
-    IReadOnlyList<IncomingMessage> Messages,
-    IReadOnlyList<StoredMessage> DeadLettered
-);
