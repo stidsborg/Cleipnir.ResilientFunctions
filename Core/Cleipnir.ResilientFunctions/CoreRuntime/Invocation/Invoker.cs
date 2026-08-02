@@ -294,8 +294,8 @@ public class Invoker<TParam, TReturn> : IFlowRestarter
 
             // Deliver the in-hand messages handed over by the restart straight into the queue manager's pipeline so
             // the flow does not have to re-fetch them from the store. Initialization above has loaded the
-            // idempotency-key state, so these messages are deduped against it. The push deserializes them at the
-            // pipeline boundary - messages failing it are dead lettered instead of being pushed.
+            // idempotency-key state, so these messages are deduped against it. The messages were deserialized -
+            // and failures dead lettered - at the fetch boundary, so the hand-over is delivery-ready.
             await queueManager.Push(storedMessages);
 
             var workflow = new Workflow(

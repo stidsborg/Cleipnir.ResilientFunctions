@@ -32,7 +32,7 @@ internal class InvocationHelper<TParam, TReturn>
 
     private ISerializer Serializer { get; }
 
-    public InvocationHelper(FlowType flowType, StoredType storedType, ReplicaId replicaId, bool isParamlessFunction, SettingsWithDefaults settings, IFunctionStore functionStore, ShutdownCoordinator shutdownCoordinator, ISerializer serializer, UtcNow utcNow, bool clearChildren, IMessageClearer messageClearer, MessageSender messageSender)
+    public InvocationHelper(FlowType flowType, StoredType storedType, ReplicaId replicaId, bool isParamlessFunction, SettingsWithDefaults settings, IFunctionStore functionStore, ShutdownCoordinator shutdownCoordinator, ISerializer serializer, UtcNow utcNow, bool clearChildren, IMessageClearer messageClearer, MessageSender messageSender, MessageDeserializer messageDeserializer)
     {
         _flowType = flowType;
         _isParamlessFunction = isParamlessFunction;
@@ -48,7 +48,12 @@ internal class InvocationHelper<TParam, TReturn>
         _messageClearer = messageClearer;
         _messageSender = messageSender;
         _resultBusyWaiter = new ResultBusyWaiter<TReturn>(_functionStore, Serializer);
+        _messageDeserializer = messageDeserializer;
     }
+
+    // The registry-wide deserializer - handed to every flow's QueueManager, which passes its own stored id per
+    // call.
+    private readonly MessageDeserializer _messageDeserializer;
 
     public record PersistedInStoreResult(bool Created, IDisposable RunningFunction, IStorageSession? StorageSession);
     public async Task<PersistedInStoreResult> PersistFunctionInStore(
@@ -269,7 +274,7 @@ internal class InvocationHelper<TParam, TReturn>
         FlowId FlowId,
         TParam? Param,
         IReadOnlyList<StoredEffect> Effects,
-        IReadOnlyList<StoredMessage> Messages,
+        IReadOnlyList<IncomingMessage> Messages,
         IDisposable RunningFunction,
         StoredId? Parent,
         IStorageSession? StorageSession
@@ -411,7 +416,7 @@ internal class InvocationHelper<TParam, TReturn>
             timeouts,
             UtcNow,
             _messageClearer,
-            new MessageDeserializer(flowId, storedId, Serializer, _functionStore.DlqStore, _messageClearer, unhandledExceptionHandler)
+            _messageDeserializer
         );
 
     internal TimeSpan MessagesDefaultMaxWaitForCompletion => _settings.MessagesDefaultMaxWaitForCompletion;
@@ -524,7 +529,7 @@ internal class InvocationHelper<TParam, TReturn>
             var content = Serializer.Serialize(message.Message, message.Message.GetType());
             var type = Serializer.SerializeType(message.Message.GetType());
             var encodedMessage = PendingMessages.EncodeMessage(
-                new IncomingMessage(content, type, Position: null, IdempotencyKey: message.IdempotencyKey)
+                content, type, position: null, idempotencyKey: message.IdempotencyKey
             );
 
             effects.Add(

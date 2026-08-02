@@ -59,16 +59,16 @@ public class FlowsManager
               _dict.Remove(id);
     }
 
-    public Task Push(IReadOnlyList<StoredMessage> messages)
+    internal Task Push(IReadOnlyList<IncomingMessage> messages)
     {
         List<Task> tasks = new();
-        List<StoredMessage> notLive = new();
+        List<IncomingMessage> notLive = new();
         List<long> emptyPositionsForLiveFlows = new();
         lock (_lock)
+            // The first point that genuinely needs per-flow batches - the pipeline is flat until here.
             foreach (var flowGroup in messages.GroupBy(message => message.StoredId))
             {
-                var storedId = flowGroup.Key;
-                if (!_dict.TryGetValue(storedId, out var flowState))
+                if (!_dict.TryGetValue(flowGroup.Key, out var flowState))
                 {
                     // Not in the dictionary - restart the flow to deliver.
                     notLive.AddRange(flowGroup);
@@ -85,7 +85,7 @@ public class FlowsManager
                 if (!flowState.Suspended && flowMessages.Any(message => message.IsEmpty))
                 {
                     emptyPositionsForLiveFlows.AddRange(
-                        flowMessages.Where(message => message.IsEmpty).Select(message => message.Position)
+                        flowMessages.Where(message => message.IsEmpty).Select(message => message.Position!.Value)
                     );
                     var deliverable = flowMessages.Where(message => !message.IsEmpty).ToList();
                     if (deliverable.Count > 0)
@@ -106,14 +106,14 @@ public class FlowsManager
 
     // Delivers to the live flow - unless it no longer accepts pushes (it has decided to suspend or its
     // invocation is ending), in which case the delivery waits for the invocation to complete (the final status
-    // is persisted by then) and restarts the flow with the unhandled messages still in hand, instead of
-    // bouncing them through a position-reopen and a later watchdog poll. Messages the refused push already
-    // handled terminally (dead lettered) are excluded by the push itself - and when nothing remains there is
-    // nothing to redeliver, so no restart is needed either.
-    private async Task DeliverToFlow(FlowExecutionState flowState, IReadOnlyList<StoredMessage> messages)
+    // is persisted by then) and restarts the flow with the messages still in hand, instead of bouncing them
+    // through a position-reopen and a later watchdog poll. A suspended flow's batch may still contain empty
+    // messages: the refusal happens at the push's entry, so they never reach the queue manager and ride to the
+    // restart, which consumes them.
+    private async Task DeliverToFlow(FlowExecutionState flowState, IReadOnlyList<IncomingMessage> messages)
     {
         var undelivered = await flowState.Push(messages);
-        if (undelivered is null || undelivered.Count == 0)
+        if (undelivered is null)
             return;
 
         await flowState.Completed;
@@ -126,7 +126,7 @@ public class FlowsManager
     /// resumes executing. Flows that could not be claimed have their positions reopened in the message clearer
     /// (dropped from the ignore-set without deleting them from the store, since their actual owner still needs them).
     /// </summary>
-    public async Task RestartExecutions(IReadOnlyList<StoredMessage> messages)
+    internal async Task RestartExecutions(IReadOnlyList<IncomingMessage> messages)
     {
         var groups = messages
             .GroupBy(m => m.StoredId)
@@ -142,7 +142,7 @@ public class FlowsManager
         {
             // The claim never happened, but the MessageWatchdog already marked the positions as pushed - reopen
             // them all so the messages are re-fetched and delivery is retried on a later poll.
-            _messageClearer.ReopenPositions(messages.Select(m => m.Position));
+            _messageClearer.ReopenPositions(messages.Select(m => m.Position!.Value));
             throw;
         }
 
@@ -154,6 +154,10 @@ public class FlowsManager
         // messages may legally precede their flow): reopen their positions so the messages are re-fetched.
         foreach (var (storedId, flowMessages) in groups.Where(kv => !results.ContainsKey(kv.Key)))
         {
+            // Fetched messages always address a store row, so every position is present.
+            var deliverablePositions = flowMessages.Where(m => !m.IsEmpty).Select(m => m.Position!.Value).ToList();
+            var allPositions = flowMessages.Select(m => m.Position!.Value).ToList();
+
             StoredFlow? storedFlow;
             try
             {
@@ -166,10 +170,10 @@ public class FlowsManager
             }
 
             if (storedFlow != null && storedFlow.Status is Status.Succeeded or Status.Failed)
-                if (await TryInlinePendingMessages(storedId, flowMessages))
+                if (await TryInlinePendingMessages(storedId, deliverablePositions, allPositions))
                     continue;
 
-            _messageClearer.ReopenPositions(flowMessages.Select(m => m.Position));
+            _messageClearer.ReopenPositions(allPositions);
         }
 
         // Resume each restarted flow, supplying the messages we already hold so it does not re-fetch them. Empty
@@ -197,7 +201,7 @@ public class FlowsManager
         var restartedEmptyPositions = results.Keys
             .SelectMany(storedId => groups[storedId])
             .Where(message => message.IsEmpty)
-            .Select(message => message.Position)
+            .Select(message => message.Position!.Value)
             .ToList();
         if (restartedEmptyPositions.Count > 0)
             await _messageClearer.Clear(restartedEmptyPositions);
@@ -215,7 +219,7 @@ public class FlowsManager
     /// normal delivery takes over - the then-redundant entry is erased by the incarnation's own flushes or pruned
     /// on delivery. Returns true when the messages were inlined and their rows deleted.
     /// </summary>
-    private async Task<bool> TryInlinePendingMessages(StoredId storedId, IReadOnlyList<StoredMessage> messages)
+    private async Task<bool> TryInlinePendingMessages(StoredId storedId, IReadOnlyList<long> deliverablePositions, IReadOnlyList<long> allPositions)
     {
         try
         {
@@ -223,7 +227,7 @@ public class FlowsManager
             // replaced (stale content) or deleted (Clear/Remove) rows since the fetch - a deleted row must stay
             // deleted and a replaced row must be inlined with its fresh content. In-hand positions whose rows are
             // gone are still cleared below, which trims them from the ignore-set (the row delete is a no-op).
-            var inHandPositions = messages.Where(m => !m.IsEmpty).Select(m => m.Position).ToHashSet();
+            var inHandPositions = deliverablePositions.ToHashSet();
             var currentRows = await _functionStore.MessageStore.GetMessages(storedId);
             var deliverable = currentRows.Where(m => !m.IsEmpty && inHandPositions.Contains(m.Position)).ToList();
 
@@ -241,11 +245,11 @@ public class FlowsManager
                         return false;
 
                     var effects = storedFlowSnapshot.Effects ?? [];
-                    var byPosition = new Dictionary<long, IncomingMessage>();
+                    var byPosition = new Dictionary<long, StoredMessage>();
                     var existingEntry = effects.FirstOrDefault(e => e.EffectId == PendingMessages.EffectId);
                     if (existingEntry?.Result is { Length: > 0 } existingBytes)
-                        foreach (var pending in PendingMessages.Decode(existingBytes))
-                            byPosition[pending.Position!.Value] = pending;
+                        foreach (var pending in PendingMessages.Decode(existingBytes, storedId))
+                            byPosition[pending.Position] = pending;
 
                     if (deliverable.All(m => byPosition.ContainsKey(m.Position)))
                     {
@@ -254,7 +258,7 @@ public class FlowsManager
                     }
 
                     foreach (var message in deliverable)
-                        byPosition[message.Position] = IncomingMessage.From(message);
+                        byPosition[message.Position] = message;
 
                     var session = new SnapshotStorageSession
                     {
@@ -294,7 +298,7 @@ public class FlowsManager
             if (storedFlow == null || storedFlow.Status is not (Status.Succeeded or Status.Failed))
                 return false;
 
-            await _messageClearer.Clear(messages.Select(m => m.Position).ToList());
+            await _messageClearer.Clear(allPositions);
             return true;
         }
         catch

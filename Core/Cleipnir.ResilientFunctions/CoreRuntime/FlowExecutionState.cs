@@ -202,11 +202,11 @@ public class FlowExecutionState
     /// Otherwise the flow does not accept it - it has decided to suspend (observable only at entry: a suspension
     /// due mid-push is deferred to the push's drain, so an accepted push always runs to completion on a live
     /// flow) or its invocation is ending (<see cref="ClosePushes"/>) - and the returned messages are the ones
-    /// the caller must hand to the restart path (awaiting <see cref="Completed"/> first). Messages the push dead
-    /// lettered are excluded from the returned list - dead lettering is terminal and re-handing one would
-    /// duplicate its dlq entry; every other handling is idempotent under the restart's re-push.
+    /// the caller must hand to the restart path (awaiting <see cref="Completed"/> first). Safe to re-hand
+    /// wholesale: dead lettering happened at the fetch boundary, before the pipeline, and every handling in the
+    /// pipeline itself is idempotent under the restart's re-push.
     /// </summary>
-    public async Task<IReadOnlyList<StoredMessage>?> Push(IReadOnlyList<StoredMessage> messages)
+    internal async Task<IReadOnlyList<IncomingMessage>?> Push(IReadOnlyList<IncomingMessage> messages)
     {
         lock (_lock)
         {
@@ -215,14 +215,11 @@ public class FlowExecutionState
             _activePushes++;
         }
 
-        IReadOnlyList<long> deadLetteredPositions = [];
         var accepted = false;
         try
         {
             //never null: the flow only becomes reachable (FlowsManager.AddFlow) after the queue manager is attached
-            // The push deserializes at the pipeline boundary - messages failing deserialization are dead lettered
-            // there and never enter the delivery pipeline.
-            deadLetteredPositions = await QueueManager!.Push(messages);
+            await QueueManager!.Push(messages);
         }
         finally
         {
@@ -248,12 +245,7 @@ public class FlowExecutionState
                 TrySuspend();
         }
 
-        if (accepted)
-            return null;
-
-        return deadLetteredPositions.Count == 0
-            ? messages
-            : messages.Where(message => !deadLetteredPositions.Contains(message.Position)).ToList();
+        return accepted ? null : messages;
     }
 
     /// <summary>

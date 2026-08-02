@@ -55,7 +55,7 @@ internal class QueueManager
     // Messages inlined into the pending-messages effect while the flow was completed - staged at initialization
     // and pruned from the durable entry as they are delivered (see PruneDeliveredMessage). Kept in the
     // entry's own (position-ascending) order, so a rewrite re-encodes the list as-is.
-    private readonly List<IncomingMessage> _pendingInlinedMessages = new();
+    private readonly List<StoredMessage> _pendingInlinedMessages = new();
     // The delivered positions whose markings the in-progress flush is persisting (copied at BeforeFlush) -
     // their store rows are deleted at AfterFlush.
     private List<long>? _positionsCoveredByFlush;
@@ -126,15 +126,15 @@ internal class QueueManager
         // ProcessMessages - re-checking its idempotency key would only dedup it against its own entry.
         foreach (var childId in _effect.GetChildren(StagedMessagesRoot))
         {
-            var message = PendingMessages.DecodeMessage(_effect.Get<byte[]>(childId));
+            var message = PendingMessages.DecodeMessage(_effect.Get<byte[]>(childId), _storedId);
 
             // Only a store-addressed child can have been delivered by a prior incarnation - the replayed
             // delivered positions are store positions, so a row-less message can never match one.
-            if (message.Position is { } position)
+            if (message.RowBacked)
             {
                 bool alreadyDelivered;
                 lock (_lock)
-                    alreadyDelivered = _fetchedPositions.Contains(position);
+                    alreadyDelivered = _fetchedPositions.Contains(message.Position);
                 if (alreadyDelivered)
                 {
                     _effect.FlushlessClear(childId);
@@ -144,16 +144,17 @@ internal class QueueManager
 
             // Dead lettered on deserialization failure like any other arrival; the child carrier is cleared
             // alongside the dlq move so the message is not re-staged - and re-dead-lettered - on every restart.
-            var payload = await _messageDeserializer.DeserializeOrDeadLetter(message);
-            if (payload is null)
+            var incomingMessage = await _messageDeserializer.DeserializeOrDeadLetter(message);
+            if (incomingMessage is null)
             {
                 _effect.FlushlessClear(childId);
                 continue;
             }
 
             var stagedMessage = new StagedMessage(
-                new Envelope(payload, message.Receiver, message.Sender),
-                message.Position,
+                //never empty: the deserializer produced it from an actual payload
+                new Envelope(incomingMessage.Content!, message.Receiver, message.Sender),
+                incomingMessage.Position,
                 childId,
                 message.MessageContent,
                 message.MessageType,
@@ -171,7 +172,7 @@ internal class QueueManager
         var pendingEntry = _effect.GetStoredEffect(PendingMessages.EffectId);
         if (pendingEntry?.Result is { Length: > 0 } pendingBytes)
         {
-            var pendingMessages = PendingMessages.Decode(pendingBytes);
+            var pendingMessages = PendingMessages.Decode(pendingBytes, _storedId);
             lock (_lock)
                 _pendingInlinedMessages.AddRange(pendingMessages);
 
@@ -192,9 +193,9 @@ internal class QueueManager
 
     /// <summary>
     /// Pushes messages fetched elsewhere (the MessageWatchdog, or the in-hand messages handed over on restart)
-    /// straight into the delivery pipeline, avoiding a per-flow re-fetch. The messages are deserialized here - at
-    /// the pipeline boundary - and the undeserializable ones are dead lettered instead of pushed; empty
-    /// (restart-poke) messages are stripped by both routes before handing over.
+    /// straight into the delivery pipeline, avoiding a per-flow re-fetch. The messages were deserialized - and
+    /// the undeserializable ones dead lettered - at the fetch boundary (MessageWatchdog), so every message here
+    /// is deliverable; empty (restart-poke) messages are stripped by both routes before handing over.
     ///
     /// Invariant on return: every handled message has been added to the flow's effect state - in memory only,
     /// deliberately unflushed for performance; it is persisted with the flow's next flush, after which the store
@@ -205,34 +206,22 @@ internal class QueueManager
     /// suspension falling due mid-push is deferred to the push's drain (FlowExecutionState.TrySuspend), so an
     /// accepted push always completes against a live flow. Idempotent: positions already processed are skipped
     /// by ProcessMessages.
-    ///
-    /// Returns the dead lettered messages' store positions. Dead lettering is terminal - the message is in the
-    /// dlq and its row deleted - and, unlike every other handling, NOT idempotent to redo: a caller re-handing
-    /// the batch to the restart path must exclude these messages, or the dlq receives a duplicate entry.
     /// </summary>
-    public async Task<IReadOnlyList<long>> Push(IReadOnlyList<StoredMessage> messages)
+    public async Task Push(IReadOnlyList<IncomingMessage> messages)
     {
         if (messages.Count == 0)
-            return [];
-
-        var (deserialized, deadLettered) = await _messageDeserializer.Deserialize(
-            messages.Select(IncomingMessage.From).ToList()
-        );
+            return;
 
         await _fetchSemaphore.WaitAsync();
         try
         {
-            ProcessMessages(deserialized);
+            ProcessMessages(messages);
         }
         finally
         {
             DeliverMessages();
             _fetchSemaphore.Release();
         }
-
-        return deadLettered.Count == 0
-            ? []
-            : deadLettered.Where(m => m.Position is not null).Select(m => m.Position!.Value).ToList();
     }
 
     public async Task<Envelope?> Subscribe(
@@ -310,11 +299,15 @@ internal class QueueManager
     // (MessageDeserializer), which dead lettered the messages that failed it - and the serializer is trusted not
     // to throw on serialization (shielded via decoration, see ErrorHandlingDecorator), so staging is in-memory
     // bookkeeping that cannot fail; an exception escaping here is a framework bug and propagates to the caller.
-    private void ProcessMessages(IReadOnlyList<DeserializedMessage> messages)
+    private void ProcessMessages(IReadOnlyList<IncomingMessage> messages)
     {
         foreach (var message in messages)
         {
-            var (msg, position, idempotencyKey, sender, receiver) = message;
+            var (_, content, position, idempotencyKey, sender, receiver) = message;
+            // Empty restart-pokes are stripped by both hand-over routes before reaching the queue manager -
+            // there is nothing to deliver, so one slipping through is simply skipped.
+            if (content is null)
+                continue;
 
             // Push dedup is store-row dedup: only a message addressing a store row can be pushed twice, so a
             // row-less message has nothing to dedup against here.
@@ -341,12 +334,12 @@ internal class QueueManager
                 continue;
             }
 
-            // The serialized bytes travel no further than the pipeline boundary - re-serialize the payload
-            // for the durable carriers (the staged-message child and the delivered-message capture).
-            var messageContent = _serializer.Serialize(msg, msg.GetType());
-            var messageType = _serializer.SerializeType(msg.GetType());
+            // The pipeline is object-form - this is the single point where the payload is serialized, for the
+            // durable carriers (the staged-message child and the delivered-message capture).
+            var messageContent = _serializer.Serialize(content, content.GetType());
+            var messageType = _serializer.SerializeType(content.GetType());
 
-            var envelope = new Envelope(msg, receiver, sender);
+            var envelope = new Envelope(content, receiver, sender);
             lock (_lock)
             {
                 // Durably capture the message as its own child effect the moment it is staged; it is
@@ -355,7 +348,7 @@ internal class QueueManager
                 // store-backed and at-least-once.
                 var childId = NextStagedMessageChildId();
                 var encodedMessage = PendingMessages.EncodeMessage(
-                    new IncomingMessage(messageContent, messageType, position, idempotencyKey, sender, receiver)
+                    messageContent, messageType, position, idempotencyKey, sender, receiver
                 );
 
                 // One upsert for the message and the key that admitted it: neither can become durable
