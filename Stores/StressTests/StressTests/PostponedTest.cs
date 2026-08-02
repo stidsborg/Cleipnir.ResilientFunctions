@@ -56,11 +56,14 @@ public static class PostponedTest
             new Settings(
                 unhandledExceptionHandler: Console.WriteLine,
                 watchdogCheckFrequency: TimeSpan.FromSeconds(1)
-            )
-        );
-        functionsRegistry1.RegisterFunc(
-            nameof(PostponedTest),
-            Task<int> (string param) => 1.ToTask() 
+            ),
+            r =>
+            {
+                r.RegisterFunc(
+                    nameof(PostponedTest),
+                    Task<int> (string param) => 1.ToTask()
+                );
+            }
         );
 
         using var functionsRegistry2 = await FunctionsRegistry.CreateAndStart(
@@ -68,11 +71,14 @@ public static class PostponedTest
             new Settings(
                 unhandledExceptionHandler: Console.WriteLine,
                 watchdogCheckFrequency: TimeSpan.FromSeconds(1)
-            )
-        );
-        functionsRegistry2.RegisterFunc(
-            nameof(PostponedTest),
-            Task<int> (string param) => 2.ToTask()
+            ),
+            r =>
+            {
+                r.RegisterFunc(
+                    nameof(PostponedTest),
+                    Task<int> (string param) => 2.ToTask()
+                );
+            }
         );
 
         Console.WriteLine("POSTPONED_TEST: Waiting for invocations to begin");

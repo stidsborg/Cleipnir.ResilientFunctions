@@ -27,21 +27,26 @@ public abstract class WatchdogCompoundTests
             var crashableStore = store.ToCrashableFunctionStore();
             var paramTcs = new TaskCompletionSource<Param>();
 
+            FuncRegistration<Param, string> registration = null!;
             using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
                 crashableStore,
                 new Settings(
                     unhandledExceptionCatcher.Catch,
                     watchdogCheckFrequency: TimeSpan.FromMilliseconds(100)
-                )
-            );
-            var rFunc = functionsRegistry.RegisterFunc(
-                flowType,
-                (Param p) =>
+                ),
+                r =>
                 {
-                    Task.Run(() => paramTcs.TrySetResult(p));
-                    return NeverCompletingTask.OfType<Result<string>>();
+                    registration = r.RegisterFunc(
+                        flowType,
+                        (Param p) =>
+                        {
+                            Task.Run(() => paramTcs.TrySetResult(p));
+                            return NeverCompletingTask.OfType<Result<string>>();
+                        }
+                    );
                 }
-            ).Run;
+            );
+            var rFunc = registration.Run;
 
             _ = rFunc(functionId.Instance.Value, param);
 
@@ -60,16 +65,19 @@ public abstract class WatchdogCompoundTests
                 new Settings(
                     unhandledExceptionCatcher.Catch,
                     watchdogCheckFrequency: TimeSpan.FromMilliseconds(100)
-                )
-            );
-            _ = functionsRegistry.RegisterFunc(
-                flowType,
-                (Param p) =>
+                ),
+                r =>
                 {
-                    Task.Run(() => paramTcs.TrySetResult(p));
-                    return Postpone.Until(DateTime.UtcNow.AddMilliseconds(100)).ToResult<string>().ToTask();
-                });
-            
+                    _ = r.RegisterFunc(
+                        flowType,
+                        (Param p) =>
+                        {
+                            Task.Run(() => paramTcs.TrySetResult(p));
+                            return Postpone.Until(DateTime.UtcNow.AddMilliseconds(100)).ToResult<string>().ToTask();
+                        });
+                }
+            );
+
             await crashableStore.AfterPostponeFunctionFlag.WaitForRaised();
             crashableStore.Crash();
             await Task.Yield();
@@ -84,14 +92,17 @@ public abstract class WatchdogCompoundTests
                 new Settings(
                     unhandledExceptionCatcher.Catch,
                     watchdogCheckFrequency: TimeSpan.FromMilliseconds(100)
-                )
-            );
-            _ = functionsRegistry.RegisterFunc(
-                flowType,
-                (Param p) =>
+                ),
+                r =>
                 {
-                    Task.Run(() => paramTcs.TrySetResult(p));
-                    return NeverCompletingTask.OfType<string>();
+                    _ = r.RegisterFunc(
+                        flowType,
+                        (Param p) =>
+                        {
+                            Task.Run(() => paramTcs.TrySetResult(p));
+                            return NeverCompletingTask.OfType<string>();
+                        }
+                    );
                 }
             );
 
@@ -101,16 +112,20 @@ public abstract class WatchdogCompoundTests
         }
         {
             //fourth invocation succeeds
+            FuncRegistration<Param, string> registration = null!;
             using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
                 store,
                 new Settings(
                     unhandledExceptionCatcher.Catch,
                     watchdogCheckFrequency: TimeSpan.FromMilliseconds(100)
-                )
-            );
-            var registration = functionsRegistry.RegisterFunc(
-                flowType,
-                (Param p) => $"{p.Id}-{p.Value}".ToTask()
+                ),
+                r =>
+                {
+                    registration = r.RegisterFunc(
+                        flowType,
+                        (Param p) => $"{p.Id}-{p.Value}".ToTask()
+                    );
+                }
             );
 
             var storedId = registration.MapToStoredId(functionId.Instance);
@@ -137,22 +152,26 @@ public abstract class WatchdogCompoundTests
         {
             var crashableStore = store.ToCrashableFunctionStore();
             var tcs = new TaskCompletionSource<Param>();
+            ActionRegistration<Param> registration = null!;
             using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
                 crashableStore,
                 new Settings(
                     unhandledExceptionCatcher.Catch,
                     watchdogCheckFrequency: TimeSpan.FromMilliseconds(100)
-                )
+                ),
+                r =>
+                {
+                    registration = r
+                        .RegisterAction(
+                            flowType,
+                            inner: (Param p) =>
+                            {
+                                tcs.TrySetResult(p);
+                                return NeverCompletingTask.OfVoidType;
+                            });
+                }
             );
-            var rAction = functionsRegistry
-                .RegisterAction(
-                    flowType,
-                    inner: (Param p) =>
-                    {
-                        tcs.TrySetResult(p);
-                        return NeverCompletingTask.OfVoidType;
-                    })
-                .Run;
+            var rAction = registration.Run;
             
             _ = rAction(functionId.Instance.Value, param);
             var actualParam = await tcs.Task;
@@ -170,17 +189,20 @@ public abstract class WatchdogCompoundTests
                 new Settings(
                     unhandledExceptionCatcher.Catch,
                     watchdogCheckFrequency: TimeSpan.FromMilliseconds(100)
-                )
+                ),
+                r =>
+                {
+                    _ = r
+                        .RegisterAction(
+                            flowType,
+                            inner: (Param p) =>
+                            {
+                                Task.Run(() => paramTcs.TrySetResult(p));
+                                return Postpone.Until(DateTime.UtcNow.AddMilliseconds(100)).ToUnitResult.ToTask();
+                            }
+                        );
+                }
             );
-            _ = functionsRegistry
-                .RegisterAction(
-                    flowType,
-                    inner: (Param p) =>
-                    {
-                        Task.Run(() => paramTcs.TrySetResult(p));
-                        return Postpone.Until(DateTime.UtcNow.AddMilliseconds(100)).ToUnitResult.ToTask();
-                    }
-                );
 
             await crashableStore.AfterPostponeFunctionFlag.WaitForRaised();
             crashableStore.Crash();
@@ -197,15 +219,18 @@ public abstract class WatchdogCompoundTests
                 new Settings(
                     unhandledExceptionCatcher.Catch,
                     watchdogCheckFrequency: TimeSpan.FromMilliseconds(100)
-                )
-            );
-            _ = functionsRegistry.RegisterAction(
-                flowType,
-                (Param p) =>
+                ),
+                r =>
                 {
-                    Task.Run(() => paramTcs.TrySetResult(p));
-                    Task.Run(invocationStarted.SetResult);
-                    return NeverCompletingTask.OfVoidType;
+                    _ = r.RegisterAction(
+                        flowType,
+                        (Param p) =>
+                        {
+                            Task.Run(() => paramTcs.TrySetResult(p));
+                            Task.Run(invocationStarted.SetResult);
+                            return NeverCompletingTask.OfVoidType;
+                        }
+                    );
                 }
             );
 
@@ -216,18 +241,22 @@ public abstract class WatchdogCompoundTests
         //fourth invocation succeeds
         {
             var paramTcs = new TaskCompletionSource<Param>();
+            ActionRegistration<Param> registration = null!;
             using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
                 store,
                 new Settings(
                     unhandledExceptionCatcher.Catch,
                     watchdogCheckFrequency: TimeSpan.FromMilliseconds(100)
-                )
+                ),
+                r =>
+                {
+                    registration = r
+                        .RegisterAction(
+                            flowType,
+                        (Param p) => Task.Run(() => paramTcs.TrySetResult(p))
+                        );
+                }
             );
-            var registration = functionsRegistry
-                .RegisterAction(
-                    flowType,
-                (Param p) => Task.Run(() => paramTcs.TrySetResult(p))
-                );
 
             await BusyWait.Until(async () =>
                 await store.GetFunction(registration.MapToStoredId(functionId.Instance)).Map(sf => sf!.Status) == Status.Succeeded
@@ -247,17 +276,21 @@ public abstract class WatchdogCompoundTests
         var (flowType, _) = functionId;
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         
+        ActionRegistration<string> registration = null!;
         using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             store,
             new Settings(
                 unhandledExceptionCatcher.Catch,
                 watchdogCheckFrequency: TimeSpan.FromMilliseconds(100),
                 retentionPeriod: TimeSpan.FromMilliseconds(100)
-            )
-        );
-        var registration = functionsRegistry.RegisterAction(
-            flowType,
-            inner: (string _, Workflow _) => Task.CompletedTask
+            ),
+            r =>
+            {
+                registration = r.RegisterAction(
+                    flowType,
+                    inner: (string _, Workflow _) => Task.CompletedTask
+                );
+            }
         );
 
         await registration.Run(functionId.Instance.Value, "SomeParam");
@@ -275,21 +308,24 @@ public abstract class WatchdogCompoundTests
         var (flowType, _) = testId;
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         
+        FuncRegistration<string, FlowId> registration = null!;
         using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             store,
             new Settings(
                 unhandledExceptionCatcher.Catch,
                 watchdogCheckFrequency: TimeSpan.FromMilliseconds(100),
                 retentionPeriod: TimeSpan.FromMilliseconds(100)
-            )
-        );
-        
-        var registration = functionsRegistry.RegisterFunc(
-            flowType,
-            inner: async Task<FlowId> (string _, Workflow workflow) =>
+            ),
+            r =>
             {
-                await workflow.Message<string>();
-                return workflow.FlowId;
+                registration = r.RegisterFunc(
+                    flowType,
+                    inner: async Task<FlowId> (string _, Workflow workflow) =>
+                    {
+                        await workflow.Message<string>();
+                        return workflow.FlowId;
+                    }
+                );
             }
         );
 

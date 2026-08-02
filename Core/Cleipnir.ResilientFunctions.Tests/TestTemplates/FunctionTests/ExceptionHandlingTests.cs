@@ -14,12 +14,20 @@ public abstract class ExceptionHandlingTests
     {
         var store = await storeTask;
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionCatcher.Catch));
+        FuncRegistration<string, string> registration = null!;
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
+            store,
+            new Settings(unhandledExceptionCatcher.Catch),
+            r =>
+            {
+                registration = r.RegisterFunc<string, string>( //explicit generic parameters to satisfy Rider-ide
+                    "typeId".ToFlowType(),
+                    Task<string> (string param) => throw new ArithmeticException("Division by zero")
+                );
+            }
+        );
 
-        var rFunc = functionsRegistry.RegisterFunc<string, string>( //explicit generic parameters to satisfy Rider-ide
-            "typeId".ToFlowType(),
-            Task<string> (string param) => throw new ArithmeticException("Division by zero")
-        ).Run;
+        var rFunc = registration.Run;
         
         await Should.ThrowAsync<FatalWorkflowException<ArithmeticException>>(async () => await rFunc("instanceId", "hello"));
         await Should.ThrowAsync<FatalWorkflowException<ArithmeticException>>(async () => await rFunc("instanceId", "hello"));
@@ -30,12 +38,20 @@ public abstract class ExceptionHandlingTests
     {
         var store = new InMemoryFunctionStore();
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionCatcher.Catch));
+        FuncRegistration<string, string> registration = null!;
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
+            store,
+            new Settings(unhandledExceptionCatcher.Catch),
+            r =>
+            {
+                registration = r.RegisterFunc(
+                    "typeId".ToFlowType(),
+                    Task<string> (string param) => throw new ArithmeticException("Division by zero")
+                );
+            }
+        );
 
-        var rFunc = functionsRegistry.RegisterFunc( 
-            "typeId".ToFlowType(),
-            Task<string> (string param) => throw new ArithmeticException("Division by zero")
-        ).Run;
+        var rFunc = registration.Run;
         
         await Should.ThrowAsync<FatalWorkflowException<ArithmeticException>>(async () => await rFunc("instanceId", "hello"));
         await Should.ThrowAsync<FatalWorkflowException<ArithmeticException>>(async () => await rFunc("instanceId", "hello"));
@@ -46,13 +62,21 @@ public abstract class ExceptionHandlingTests
     {
         var store = new InMemoryFunctionStore();
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionCatcher.Catch));
+        ActionRegistration<string> registration = null!;
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
+            store,
+            new Settings(unhandledExceptionCatcher.Catch),
+            r =>
+            {
+                registration = r
+                    .RegisterAction(
+                        "typeId".ToFlowType(),
+                        Task (string _) => throw new ArithmeticException("Division by zero")
+                    );
+            }
+        );
 
-        var rFunc = functionsRegistry
-            .RegisterAction(
-                "typeId".ToFlowType(),
-                Task (string _) => throw new ArithmeticException("Division by zero")
-            )
+        var rFunc = registration
             .Run;
 
         await Should.ThrowAsync<FatalWorkflowException<ArithmeticException>>(async () => await rFunc("instanceId", "hello"));
@@ -64,13 +88,21 @@ public abstract class ExceptionHandlingTests
     {
         var store = new InMemoryFunctionStore();
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionCatcher.Catch));
+        ActionRegistration<string> registration = null!;
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
+            store,
+            new Settings(unhandledExceptionCatcher.Catch),
+            r =>
+            {
+                registration = r
+                    .RegisterAction(
+                        "typeId".ToFlowType(),
+                        Task (string _) => throw new ArithmeticException("Division by zero")
+                    );
+            }
+        );
 
-        var rFunc = functionsRegistry
-            .RegisterAction(
-                "typeId".ToFlowType(),
-                Task (string _) => throw new ArithmeticException("Division by zero")
-            )
+        var rFunc = registration
             .Run;
 
         await Should.ThrowAsync<FatalWorkflowException<ArithmeticException>>(async () => await rFunc("instanceId", "hello"));

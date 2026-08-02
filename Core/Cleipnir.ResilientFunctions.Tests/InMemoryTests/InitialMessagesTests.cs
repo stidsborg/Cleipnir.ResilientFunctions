@@ -23,23 +23,29 @@ public class InitialMessagesTests
         var flowId = TestFlowId.Create();
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
 
-        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionCatcher.Catch));
-
-        var registration = functionsRegistry.RegisterFunc(
-            flowId.Type,
-            async Task<string> (string _, Workflow workflow) =>
+        FuncRegistration<string, string> registration = null!;
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
+            store,
+            new Settings(unhandledExceptionCatcher.Catch),
+            r =>
             {
-                var received = new List<string>();
-                while (true)
-                {
-                    var message = await workflow.Message<string>(TimeSpan.FromMilliseconds(250));
-                    if (message is null)
-                        break;
+                registration = r.RegisterFunc(
+                    flowId.Type,
+                    async Task<string> (string _, Workflow workflow) =>
+                    {
+                        var received = new List<string>();
+                        while (true)
+                        {
+                            var message = await workflow.Message<string>(TimeSpan.FromMilliseconds(250));
+                            if (message is null)
+                                break;
 
-                    received.Add(message);
-                }
+                            received.Add(message);
+                        }
 
-                return string.Join(",", received);
+                        return string.Join(",", received);
+                    }
+                );
             }
         );
 

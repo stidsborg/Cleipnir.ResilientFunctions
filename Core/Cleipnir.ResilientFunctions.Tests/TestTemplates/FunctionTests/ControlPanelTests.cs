@@ -25,16 +25,19 @@ public abstract class ControlPanelTests
         var store = await storeTask;
         var functionId = TestFlowId.Create();
         var (flowType, flowInstance) = functionId;
-        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionCatcher.Catch));
-        var rAction = functionsRegistry.RegisterAction(
-            flowType,
-            async (string _, Workflow workflow) =>
-            {
-                await workflow.Effect.CreateOrGet("alias", 123);
-                await workflow.AppendMessage("Message");
-            }
-        );
-        
+        ActionRegistration<string> rAction = null!;
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionCatcher.Catch), r =>
+        {
+            rAction = r.RegisterAction(
+                flowType,
+                async (string _, Workflow workflow) =>
+                {
+                    await workflow.Effect.CreateOrGet("alias", 123);
+                    await workflow.AppendMessage("Message");
+                }
+            );
+        });
+
         await rAction.Run(flowInstance.Value, "");
 
         var controlPanel = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
@@ -75,16 +78,19 @@ public abstract class ControlPanelTests
         var functionId = TestFlowId.Create();
         var (flowType, flowInstance) = functionId;
         
-        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionCatcher.Catch));
-        var rFunc = functionsRegistry.RegisterFunc(
-            flowType,
-            async Task<string>(string _, Workflow workflow) =>
-            {
-                await workflow.Effect.CreateOrGet("alias", 123);
-                await workflow.AppendMessage("Message");
-                return "hello";
-            });
-        
+        FuncRegistration<string, string> rFunc = null!;
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionCatcher.Catch), r =>
+        {
+            rFunc = r.RegisterFunc(
+                flowType,
+                async Task<string>(string _, Workflow workflow) =>
+                {
+                    await workflow.Effect.CreateOrGet("alias", 123);
+                    await workflow.AppendMessage("Message");
+                    return "hello";
+                });
+        });
+
         await rFunc.Run(flowInstance.Value, "");
 
         var controlPanel = await rFunc.ControlPanel(flowInstance).ShouldNotBeNullAsync();
@@ -125,11 +131,14 @@ public abstract class ControlPanelTests
         var functionId = TestFlowId.Create();
         var (flowType, flowInstance) = functionId;
         
-        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionCatcher.Catch));
-        var rAction = functionsRegistry.RegisterAction(
-            flowType,
-            Task (string _) => throw new InvalidOperationException("oh no")
-        );
+        ActionRegistration<string> rAction = null!;
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionCatcher.Catch), r =>
+        {
+            rAction = r.RegisterAction(
+                flowType,
+                Task (string _) => throw new InvalidOperationException("oh no")
+            );
+        });
 
         await Should.ThrowAsync<Exception>(() => rAction.Run(flowInstance.Value, ""));
 
@@ -163,11 +172,14 @@ public abstract class ControlPanelTests
         var functionId = TestFlowId.Create();
         var (flowType, flowInstance) = functionId;
         
-        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionCatcher.Catch));
-        var rFunc = functionsRegistry.RegisterFunc<string, string>(
-            flowType,
-            Task<string> (_) => throw new InvalidOperationException("oh no")
-        );
+        FuncRegistration<string, string> rFunc = null!;
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionCatcher.Catch), r =>
+        {
+            rFunc = r.RegisterFunc<string, string>(
+                flowType,
+                Task<string> (_) => throw new InvalidOperationException("oh no")
+            );
+        });
 
         await Should.ThrowAsync<Exception>(() => rFunc.Run(flowInstance.Value, ""));
 
@@ -201,11 +213,14 @@ public abstract class ControlPanelTests
         var functionId = TestFlowId.Create();
         var (flowType, flowInstance) = functionId;
         
-        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionCatcher.Catch));
-        var rAction = functionsRegistry.RegisterAction(
-            flowType,
-            Task (string _, Workflow workflow) => workflow.Delay(TimeSpan.FromMinutes(1))
-        );
+        ActionRegistration<string> rAction = null!;
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionCatcher.Catch), r =>
+        {
+            rAction = r.RegisterAction(
+                flowType,
+                Task (string _, Workflow workflow) => workflow.Delay(TimeSpan.FromMinutes(1))
+            );
+        });
         
         await Should.ThrowAsync<Exception>(() => rAction.Run(flowInstance.Value, ""));
 
@@ -236,15 +251,18 @@ public abstract class ControlPanelTests
         var functionId = TestFlowId.Create();
         var (flowType, flowInstance) = functionId;
         
-        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionCatcher.Catch));
-        var rFunc = functionsRegistry.RegisterFunc<string, string>(
-            flowType,
-            async Task<string> (string _, Workflow workflow) =>
-            {
-                await workflow.Delay(TimeSpan.FromSeconds(10));
-                return "Ok";
-            }
-        );
+        FuncRegistration<string, string> rFunc = null!;
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionCatcher.Catch), r =>
+        {
+            rFunc = r.RegisterFunc<string, string>(
+                flowType,
+                async Task<string> (string _, Workflow workflow) =>
+                {
+                    await workflow.Delay(TimeSpan.FromSeconds(10));
+                    return "Ok";
+                }
+            );
+        });
         
         await Should.ThrowAsync<Exception>(() => rFunc.Run(flowInstance.Value, ""));
 
@@ -275,11 +293,14 @@ public abstract class ControlPanelTests
         var functionId = TestFlowId.Create();
         var (flowType, flowInstance) = functionId;
         
-        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionCatcher.Catch));
-        var rAction = functionsRegistry.RegisterAction(
-            flowType,
-            Task (string _) => throw new InvalidOperationException("oh no")
-        );
+        ActionRegistration<string> rAction = null!;
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionCatcher.Catch), r =>
+        {
+            rAction = r.RegisterAction(
+                flowType,
+                Task (string _) => throw new InvalidOperationException("oh no")
+            );
+        });
 
         await Should.ThrowAsync<Exception>(() => rAction.Run(flowInstance.Value, ""));
 
@@ -309,11 +330,14 @@ public abstract class ControlPanelTests
         var functionId = TestFlowId.Create();
         var (flowType, flowInstance) = functionId;
         
-        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionCatcher.Catch));
-        var paramlessRegistration = functionsRegistry.RegisterParamless(
-            flowType,
-            inner: Task () => throw new InvalidOperationException("oh no")
-        );
+        ParamlessRegistration paramlessRegistration = null!;
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionCatcher.Catch), r =>
+        {
+            paramlessRegistration = r.RegisterParamless(
+                flowType,
+                inner: Task () => throw new InvalidOperationException("oh no")
+            );
+        });
 
         await Should.ThrowAsync<Exception>(() => paramlessRegistration.Run(flowInstance.Value));
 
@@ -343,11 +367,14 @@ public abstract class ControlPanelTests
         var functionId = TestFlowId.Create();
         var (flowType, flowInstance) = functionId;
         
-        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionCatcher.Catch));
-        var rFunc = functionsRegistry.RegisterFunc<string, string>(
-            flowType,
-            Task<string> (_) => throw new InvalidOperationException("oh no")
-        );
+        FuncRegistration<string, string> rFunc = null!;
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionCatcher.Catch), r =>
+        {
+            rFunc = r.RegisterFunc<string, string>(
+                flowType,
+                Task<string> (_) => throw new InvalidOperationException("oh no")
+            );
+        });
 
         await Should.ThrowAsync<Exception>(() => rFunc.Run(flowInstance.Value, ""));
 
@@ -382,11 +409,14 @@ public abstract class ControlPanelTests
         var store = await storeTask;
         var functionId = TestFlowId.Create();
         var (flowType, flowInstance) = functionId;
-        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionCatcher.Catch));
-        var rAction = functionsRegistry.RegisterFunc(
-            flowType,
-            Task<string> (string param) => param.ToTask()
-        );
+        FuncRegistration<string, string> rAction = null!;
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionCatcher.Catch), r =>
+        {
+            rAction = r.RegisterFunc(
+                flowType,
+                Task<string> (string param) => param.ToTask()
+            );
+        });
 
         await rAction.Run(flowInstance.Value, param: "first");
 
@@ -414,11 +444,14 @@ public abstract class ControlPanelTests
         var store = await storeTask;
         var functionId = TestFlowId.Create();
         var (flowType, flowInstance) = functionId;
-        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionCatcher.Catch));
-        var rAction = functionsRegistry.RegisterAction(
-            flowType,
-            inner: Task (string param, Workflow workflow) => Task.CompletedTask 
-        );
+        ActionRegistration<string> rAction = null!;
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionCatcher.Catch), r =>
+        {
+            rAction = r.RegisterAction(
+                flowType,
+                inner: Task (string param, Workflow workflow) => Task.CompletedTask
+            );
+        });
 
         await rAction.Run(flowInstance.Value, param: "first");
 
@@ -450,15 +483,18 @@ public abstract class ControlPanelTests
         var store = await storeTask;
         var functionId = TestFlowId.Create();
         var (flowType, flowInstance) = functionId;
-        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionCatcher.Catch));
         var flag = new SyncedFlag();
-        var rFunc = functionsRegistry.RegisterFunc(
-            flowType,
-            async Task<string> (string param) =>
-            {
-                await flag.WaitForRaised();
-                return param;
-            });
+        FuncRegistration<string, string> rFunc = null!;
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionCatcher.Catch), r =>
+        {
+            rFunc = r.RegisterFunc(
+                flowType,
+                async Task<string> (string param) =>
+                {
+                    await flag.WaitForRaised();
+                    return param;
+                });
+        });
 
         await rFunc.Schedule(flowInstance.Value, param: "param");
 
@@ -486,12 +522,15 @@ public abstract class ControlPanelTests
         var store = await storeTask;
         var functionId = TestFlowId.Create();
         var (flowType, flowInstance) = functionId;
-        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionCatcher.Catch));
         var flag = new SyncedFlag();
-        var rAction = functionsRegistry.RegisterAction(
-            flowType,
-            Task(string param) => flag.WaitForRaised()
-        );
+        ActionRegistration<string> rAction = null!;
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionCatcher.Catch), r =>
+        {
+            rAction = r.RegisterAction(
+                flowType,
+                Task(string param) => flag.WaitForRaised()
+            );
+        });
 
         await rAction.Schedule(flowInstance.Value, param: "param");
 
@@ -516,12 +555,14 @@ public abstract class ControlPanelTests
         var store = await storeTask;
         var functionId = TestFlowId.Create();
         var (flowType, flowInstance) = functionId;
-        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionCatcher.Catch));
-
-        var rAction = functionsRegistry.RegisterFunc(
-            flowType,
-            Task<string> (string param) => param.ToTask()
-        );
+        FuncRegistration<string, string> rAction = null!;
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionCatcher.Catch), r =>
+        {
+            rAction = r.RegisterFunc(
+                flowType,
+                Task<string> (string param) => param.ToTask()
+            );
+        });
 
         await rAction.Run(flowInstance.Value, param: "param");
 
@@ -540,12 +581,14 @@ public abstract class ControlPanelTests
         var store = await storeTask;
         var functionId = TestFlowId.Create();
         var (flowType, flowInstance) = functionId;
-        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionCatcher.Catch));
-
-        var rAction = functionsRegistry.RegisterAction(
-            flowType,
-            Task (string _) => Task.CompletedTask
-        );
+        ActionRegistration<string> rAction = null!;
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionCatcher.Catch), r =>
+        {
+            rAction = r.RegisterAction(
+                flowType,
+                Task (string _) => Task.CompletedTask
+            );
+        });
 
         await rAction.Run(flowInstance.Value, param: "param");
 
@@ -564,15 +607,17 @@ public abstract class ControlPanelTests
         var store = await storeTask;
         var functionId = TestFlowId.Create();
         var (flowType, flowInstance) = functionId;
-        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionCatcher.Catch));
-        
-        var rAction = functionsRegistry.RegisterAction(
-            flowType,
-            async Task(string param, Workflow workflow) =>
-            {
-                await workflow.AppendMessage(param);
-            }
-        );
+        ActionRegistration<string> rAction = null!;
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionCatcher.Catch), r =>
+        {
+            rAction = r.RegisterAction(
+                flowType,
+                async Task(string param, Workflow workflow) =>
+                {
+                    await workflow.AppendMessage(param);
+                }
+            );
+        });
 
         await rAction.Run(flowInstance.Value, param: "param");
 
@@ -603,38 +648,40 @@ public abstract class ControlPanelTests
         var store = await storeTask;
         var functionId = TestFlowId.Create();
         var (flowType, flowInstance) = functionId;
-        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionCatcher.Catch));
-
         var first = true;
         var invocationCount = new SyncedCounter();
         var syncedList = new SyncedList<string>();
-        var rAction = functionsRegistry.RegisterAction(
-            flowType,
-            async Task(string param, Workflow workflow) =>
-            {
-                if (first)
+        ActionRegistration<string> rAction = null!;
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionCatcher.Catch), r =>
+        {
+            rAction = r.RegisterAction(
+                flowType,
+                async Task(string param, Workflow workflow) =>
                 {
-                    invocationCount.Increment();
-                    first = false;
-                    await workflow.AppendMessage("hello world", idempotencyKey: "1");
-                    await workflow.AppendMessage("hello universe", idempotencyKey: "2");
-                }
-                else
-                {
-                    // Collect locally and publish at the end: a legal mid-flow suspend/replay must not leave a
-                    // partial incarnation's messages behind in the asserted list.
-                    var received = new List<string>();
-                    for (var i = 0; i < 2; i++)
+                    if (first)
                     {
-                        var msg = await workflow.Message<string>();
-                        received.Add(msg);
+                        invocationCount.Increment();
+                        first = false;
+                        await workflow.AppendMessage("hello world", idempotencyKey: "1");
+                        await workflow.AppendMessage("hello universe", idempotencyKey: "2");
                     }
+                    else
+                    {
+                        // Collect locally and publish at the end: a legal mid-flow suspend/replay must not leave a
+                        // partial incarnation's messages behind in the asserted list.
+                        var received = new List<string>();
+                        for (var i = 0; i < 2; i++)
+                        {
+                            var msg = await workflow.Message<string>();
+                            received.Add(msg);
+                        }
 
-                    syncedList.Clear();
-                    syncedList.AddRange(received);
+                        syncedList.Clear();
+                        syncedList.AddRange(received);
+                    }
                 }
-            }
-        );
+            );
+        });
 
         await rAction.Run(flowInstance.Value, param: "param");
 
@@ -672,28 +719,30 @@ public abstract class ControlPanelTests
         var store = await storeTask;
         var functionId = TestFlowId.Create();
         var (flowType, flowInstance) = functionId;
-        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionCatcher.Catch));
-
         var first = true;
         var syncedList = new SyncedList<string>();
-        var rAction = functionsRegistry.RegisterAction(
-            flowType,
-            async Task(string param, Workflow workflow) =>
-            {
-                if (first)
+        ActionRegistration<string> rAction = null!;
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionCatcher.Catch), r =>
+        {
+            rAction = r.RegisterAction(
+                flowType,
+                async Task(string param, Workflow workflow) =>
                 {
-                    first = false;
-                    return;
+                    if (first)
+                    {
+                        first = false;
+                        return;
+                    }
+
+                    var received = new List<string>();
+                    for (var i = 0; i < 2; i++)
+                        received.Add(await workflow.Message<string>());
+
+                    syncedList.Clear();
+                    syncedList.AddRange(received);
                 }
-
-                var received = new List<string>();
-                for (var i = 0; i < 2; i++)
-                    received.Add(await workflow.Message<string>());
-
-                syncedList.Clear();
-                syncedList.AddRange(received);
-            }
-        );
+            );
+        });
 
         await rAction.Run(flowInstance.Value, param: "param");
 
@@ -727,21 +776,23 @@ public abstract class ControlPanelTests
         var store = await storeTask;
         var functionId = TestFlowId.Create();
         var (flowType, flowInstance) = functionId;
-        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionCatcher.Catch));
-
         var first = true;
-        var rAction = functionsRegistry.RegisterAction(
-            flowType,
-            async Task(string param, Workflow workflow) =>
-            {
-                if (first)
+        ActionRegistration<string> rAction = null!;
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionCatcher.Catch), r =>
+        {
+            rAction = r.RegisterAction(
+                flowType,
+                async Task(string param, Workflow workflow) =>
                 {
-                    first = false;
-                    await workflow.AppendMessage("hello world", idempotencyKey: "1");
-                    await workflow.AppendMessage("hello universe", idempotencyKey: "2");
+                    if (first)
+                    {
+                        first = false;
+                        await workflow.AppendMessage("hello world", idempotencyKey: "1");
+                        await workflow.AppendMessage("hello universe", idempotencyKey: "2");
+                    }
                 }
-            }
-        );
+            );
+        });
 
         await rAction.Run(flowInstance.Value, param: "param");
 
@@ -768,12 +819,14 @@ public abstract class ControlPanelTests
         var store = await storeTask;
         var functionId = TestFlowId.Create();
         var (flowType, flowInstance) = functionId;
-        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionCatcher.Catch));
-        
-        var rAction = functionsRegistry.RegisterAction(
-            flowType,
-            Task(string param, Workflow workflow) => Task.Delay(1)
-        );
+        ActionRegistration<string> rAction = null!;
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionCatcher.Catch), r =>
+        {
+            rAction = r.RegisterAction(
+                flowType,
+                Task(string param, Workflow workflow) => Task.Delay(1)
+            );
+        });
 
         await rAction.Run(flowInstance.Value, param: "param");
         await store.MessageStore.AppendMessage(
@@ -803,12 +856,14 @@ public abstract class ControlPanelTests
         var store = await storeTask;
         var functionId = TestFlowId.Create();
         var (flowType, flowInstance) = functionId;
-        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionCatcher.Catch));
-        
-        var rAction = functionsRegistry.RegisterAction(
-            flowType,
-            Task(string param, Workflow workflow) => Task.Delay(1)
-        );
+        ActionRegistration<string> rAction = null!;
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionCatcher.Catch), r =>
+        {
+            rAction = r.RegisterAction(
+                flowType,
+                Task(string param, Workflow workflow) => Task.Delay(1)
+            );
+        });
 
         await rAction.Run(flowInstance.Value, param: "param");
         await store.MessageStore.AppendMessage(
@@ -843,12 +898,14 @@ public abstract class ControlPanelTests
         var store = await storeTask;
         var functionId = TestFlowId.Create();
         var (flowType, flowInstance) = functionId;
-        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionCatcher.Catch));
-        
-        var rAction = functionsRegistry.RegisterAction(
-            flowType,
-            Task(string param, Workflow workflow) => Task.Delay(1)
-        );
+        ActionRegistration<string> rAction = null!;
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionCatcher.Catch), r =>
+        {
+            rAction = r.RegisterAction(
+                flowType,
+                Task(string param, Workflow workflow) => Task.Delay(1)
+            );
+        });
 
         await rAction.Run(flowInstance.Value, param: "param");
         await store.MessageStore.AppendMessage(
@@ -878,12 +935,14 @@ public abstract class ControlPanelTests
         var store = await storeTask;
         var functionId = TestFlowId.Create();
         var (flowType, flowInstance) = functionId;
-        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionCatcher.Catch));
-        
-        var rAction = functionsRegistry.RegisterAction(
-            flowType,
-            Task(string param, Workflow workflow) => Task.Delay(1)
-        );
+        ActionRegistration<string> rAction = null!;
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionCatcher.Catch), r =>
+        {
+            rAction = r.RegisterAction(
+                flowType,
+                Task(string param, Workflow workflow) => Task.Delay(1)
+            );
+        });
 
         await rAction.Run(flowInstance.Value, param: "param");
         await store.MessageStore.AppendMessage(
@@ -918,12 +977,14 @@ public abstract class ControlPanelTests
         var store = await storeTask;
         var functionId = TestFlowId.Create();
         var (flowType, flowInstance) = functionId;
-        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionCatcher.Catch));
-        
-        var rAction = functionsRegistry.RegisterAction(
-            flowType,
-            Task(string param, Workflow workflow) => Task.CompletedTask
-        );
+        ActionRegistration<string> rAction = null!;
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionCatcher.Catch), r =>
+        {
+            rAction = r.RegisterAction(
+                flowType,
+                Task(string param, Workflow workflow) => Task.CompletedTask
+            );
+        });
 
         await rAction.Run(flowInstance.Value, param: "param");
         await rAction.SendMessage(flowInstance, "hello world", idempotencyKey: "first");
@@ -955,13 +1016,15 @@ public abstract class ControlPanelTests
         var store = await storeTask;
         var functionId = TestFlowId.Create();
         var (flowType, flowInstance) = functionId;
-        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionCatcher.Catch));
-        
-        var rFunc = functionsRegistry.RegisterFunc(
-            flowType,
-            Task<string> (string param, Workflow workflow) 
-                => workflow.Effect.Capture(() => "EffectResult")
-        );
+        FuncRegistration<string, string> rFunc = null!;
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionCatcher.Catch), r =>
+        {
+            rFunc = r.RegisterFunc(
+                flowType,
+                Task<string> (string param, Workflow workflow)
+                    => workflow.Effect.Capture(() => "EffectResult")
+            );
+        });
 
         var result = await rFunc.Run(flowInstance.Value, param: "param");
         result.ShouldBe("EffectResult");
@@ -984,16 +1047,18 @@ public abstract class ControlPanelTests
         var store = await storeTask;
         var functionId = TestFlowId.Create();
         var (flowType, flowInstance) = functionId;
-        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionCatcher.Catch));
         var runEffect = false;
-        
-        var rAction = functionsRegistry.RegisterAction(
-            flowType,
-            Task (string param, Workflow workflow) 
-                => runEffect 
-                    ? workflow.Effect.Capture(() => {}, ResiliencyLevel.AtMostOnce)
-                    : Task.CompletedTask
-        );
+        ActionRegistration<string> rAction = null!;
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionCatcher.Catch), r =>
+        {
+            rAction = r.RegisterAction(
+                flowType,
+                Task (string param, Workflow workflow)
+                    => runEffect
+                        ? workflow.Effect.Capture(() => {}, ResiliencyLevel.AtMostOnce)
+                        : Task.CompletedTask
+            );
+        });
 
         await rAction.Run(flowInstance.Value, param: "param");
         
@@ -1014,12 +1079,14 @@ public abstract class ControlPanelTests
         var store = await storeTask;
         var functionId = TestFlowId.Create();
         var (flowType, flowInstance) = functionId;
-        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionCatcher.Catch));
-
-        var rAction = functionsRegistry.RegisterParamless(
-            flowType,
-            Task (workflow) => workflow.Effect.Capture(() => 123)
-        );
+        ParamlessRegistration rAction = null!;
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionCatcher.Catch), r =>
+        {
+            rAction = r.RegisterParamless(
+                flowType,
+                Task (workflow) => workflow.Effect.Capture(() => 123)
+            );
+        });
 
         await rAction.Run(flowInstance.Value);
         
@@ -1041,13 +1108,15 @@ public abstract class ControlPanelTests
         var store = await storeTask;
         var functionId = TestFlowId.Create();
         var (flowType, flowInstance) = functionId;
-        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionCatcher.Catch));
-
-        var rFunc = functionsRegistry.RegisterAction(
-            flowType,
-            Task (string param, Workflow workflow) 
-                => workflow.Effect.Capture(() => throw new InvalidOperationException("oh no"))
-        );
+        ActionRegistration<string> rFunc = null!;
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionCatcher.Catch), r =>
+        {
+            rFunc = r.RegisterAction(
+                flowType,
+                Task (string param, Workflow workflow)
+                    => workflow.Effect.Capture(() => throw new InvalidOperationException("oh no"))
+            );
+        });
 
         await Should.ThrowAsync<Exception>(rFunc.Run(flowInstance.Value, param: "param"));
         
@@ -1070,17 +1139,19 @@ public abstract class ControlPanelTests
         var functionId = TestFlowId.Create();
         var (flowType, flowInstance) = functionId;
         var syncedCounter = new SyncedCounter();
-        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionCatcher.Catch));
-
-        var rFunc = functionsRegistry.RegisterFunc(
-            flowType,
-            Task<string> (string param, Workflow workflow) =>
-                workflow.Effect.Capture(() =>
-                {
-                    syncedCounter++;
-                    return "EffectResult";
-                })
-        );
+        FuncRegistration<string, string> rFunc = null!;
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionCatcher.Catch), r =>
+        {
+            rFunc = r.RegisterFunc(
+                flowType,
+                Task<string> (string param, Workflow workflow) =>
+                    workflow.Effect.Capture(() =>
+                    {
+                        syncedCounter++;
+                        return "EffectResult";
+                    })
+            );
+        });
 
         var result = await rFunc.Run(flowInstance.Value, param: "param");
         result.ShouldBe("EffectResult");
@@ -1113,12 +1184,14 @@ public abstract class ControlPanelTests
         var store = await storeTask;
         var functionId = TestFlowId.Create();
         var (flowType, flowInstance) = functionId;
-        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionCatcher.Catch));
-
-        var rAction = functionsRegistry.RegisterAction(
-            flowType,
-            (string _, Workflow _) => Task.CompletedTask
-        );
+        ActionRegistration<string> rAction = null!;
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionCatcher.Catch), r =>
+        {
+            rAction = r.RegisterAction(
+                flowType,
+                (string _, Workflow _) => Task.CompletedTask
+            );
+        });
         await rAction.Run(flowInstance.Value, param: "param");
         
         var controlPanel = await rAction.ControlPanel(flowInstance.Value);
@@ -1151,12 +1224,14 @@ public abstract class ControlPanelTests
         var store = await storeTask;
         var functionId = TestFlowId.Create();
         var (flowType, flowInstance) = functionId;
-        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionCatcher.Catch));
-
-        var rAction = functionsRegistry.RegisterAction(
-            flowType,
-            (string _, Workflow _) => Task.CompletedTask
-        );
+        ActionRegistration<string> rAction = null!;
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionCatcher.Catch), r =>
+        {
+            rAction = r.RegisterAction(
+                flowType,
+                (string _, Workflow _) => Task.CompletedTask
+            );
+        });
         await rAction.Run(flowInstance.Value, param: "param");
         
         var controlPanel = await rAction.ControlPanel(flowInstance.Value);
@@ -1189,12 +1264,14 @@ public abstract class ControlPanelTests
         var store = await storeTask;
         var functionId = TestFlowId.Create();
         var (flowType, flowInstance) = functionId;
-        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionCatcher.Catch));
-
-        var rAction = functionsRegistry.RegisterAction(
-            flowType,
-            (string _, Workflow _) => Task.CompletedTask
-        );
+        ActionRegistration<string> rAction = null!;
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionCatcher.Catch), r =>
+        {
+            rAction = r.RegisterAction(
+                flowType,
+                (string _, Workflow _) => Task.CompletedTask
+            );
+        });
         await rAction.Run(flowInstance.Value, param: "param");
         
         var firstControlPanel = await rAction.ControlPanel(flowInstance.Value);
@@ -1222,17 +1299,19 @@ public abstract class ControlPanelTests
         var functionId = TestFlowId.Create();
         var (flowType, flowInstance) = functionId;
         var syncedCounter = new SyncedCounter();
-        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionCatcher.Catch));
-
-        var rFunc = functionsRegistry.RegisterFunc(
-            flowType,
-            Task<string> (string param, Workflow workflow) =>
-                workflow.Effect.Capture(() =>
-                {
-                    syncedCounter++;
-                    return "EffectResult";
-                })
-        );
+        FuncRegistration<string, string> rFunc = null!;
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionCatcher.Catch), r =>
+        {
+            rFunc = r.RegisterFunc(
+                flowType,
+                Task<string> (string param, Workflow workflow) =>
+                    workflow.Effect.Capture(() =>
+                    {
+                        syncedCounter++;
+                        return "EffectResult";
+                    })
+            );
+        });
 
         var result = await rFunc.Run(flowInstance.Value, param: "param");
         result.ShouldBe("EffectResult");
@@ -1255,12 +1334,14 @@ public abstract class ControlPanelTests
         var store = await storeTask;
         var functionId = TestFlowId.Create();
         var (flowType, flowInstance) = functionId;
-        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionCatcher.Catch));
-        
-        var rAction = functionsRegistry.RegisterFunc<string, string>(
-            flowType,
-            inner: param => param.ToTask()
-        );
+        FuncRegistration<string, string> rAction = null!;
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionCatcher.Catch), r =>
+        {
+            rAction = r.RegisterFunc<string, string>(
+                flowType,
+                inner: param => param.ToTask()
+            );
+        });
 
         await rAction.Run(flowInstance.Value, param: "param");
 
@@ -1286,12 +1367,14 @@ public abstract class ControlPanelTests
         var store = await storeTask;
         var functionId = TestFlowId.Create();
         var (flowType, flowInstance) = functionId;
-        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionCatcher.Catch));
-
-        var registration = functionsRegistry.RegisterParamless(
-            flowType,
-            inner: () => Task.CompletedTask
-        );
+        ParamlessRegistration registration = null!;
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionCatcher.Catch), r =>
+        {
+            registration = r.RegisterParamless(
+                flowType,
+                inner: () => Task.CompletedTask
+            );
+        });
 
         await registration.Run(flowInstance.Value);
 
@@ -1326,25 +1409,27 @@ public abstract class ControlPanelTests
         var store = await storeTask;
         var functionId = TestFlowId.Create();
         var (flowType, flowInstance) = functionId;
-        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionCatcher.Catch));
-
         var retryPolicy = RetryPolicy.CreateConstantDelay(
             interval: TimeSpan.FromMilliseconds(10),
             maximumAttempts: 1,
             suspendThreshold: TimeSpan.FromMinutes(5)
         );
         var shouldFail = true;
-        var registration = functionsRegistry.RegisterParamless(
-            flowType,
-            inner: async workflow =>
-            {
-                await workflow.Effect.Capture(() =>
+        ParamlessRegistration registration = null!;
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionCatcher.Catch), r =>
+        {
+            registration = r.RegisterParamless(
+                flowType,
+                inner: async workflow =>
                 {
-                    if (shouldFail)
-                        throw new TimeoutException("Timeout!");
-                }, retryPolicy);
-            } 
-        );
+                    await workflow.Effect.Capture(() =>
+                    {
+                        if (shouldFail)
+                            throw new TimeoutException("Timeout!");
+                    }, retryPolicy);
+                }
+            );
+        });
 
         try
         {

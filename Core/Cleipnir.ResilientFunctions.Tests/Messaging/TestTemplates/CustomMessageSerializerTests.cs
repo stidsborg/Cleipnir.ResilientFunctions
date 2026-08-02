@@ -20,14 +20,17 @@ public abstract class CustomMessageSerializerTests
     {
         var flowId = TestFlowId.Create();
         var functionStore = await functionStoreTask;
+        ParamlessRegistration registration = null!;
         var registry = await FunctionsRegistry.CreateAndStart(
             functionStore,
-            new Settings(serializer: new EventSerializer())
-        );
-
-        var registration = registry.RegisterParamless(
-            flowId.Type,
-            inner: workflow => workflow.Message<string>()
+            new Settings(serializer: new EventSerializer()),
+            r =>
+            {
+                registration = r.RegisterParamless(
+                    flowId.Type,
+                    inner: workflow => workflow.Message<string>()
+                );
+            }
         );
 
         var scheduled = await registration.Schedule(flowId.Instance);

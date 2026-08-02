@@ -19,21 +19,24 @@ public abstract class RoutingTests
         var (flowType, flowInstance) = functionId;
         
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
-            store, 
-            new Settings(unhandledExceptionCatcher.Catch)
-        );
-
         var syncedFlag = new SyncedFlag();
         var syncedValue = new Synced<string>();
-        
-        var registration = functionsRegistry.RegisterParamless(
-            flowType,
-            inner: async workflow =>
+
+        ParamlessRegistration registration = null!;
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
+            store,
+            new Settings(unhandledExceptionCatcher.Catch),
+            r =>
             {
-                var someMessage = await workflow.Message<SomeMessage>();
-                syncedValue.Value = someMessage.Value;
-                syncedFlag.Raise();
+                registration = r.RegisterParamless(
+                    flowType,
+                    inner: async workflow =>
+                    {
+                        var someMessage = await workflow.Message<SomeMessage>();
+                        syncedValue.Value = someMessage.Value;
+                        syncedFlag.Raise();
+                    }
+                );
             }
         );
 
@@ -58,21 +61,24 @@ public abstract class RoutingTests
         var (flowType, flowInstance) = functionId;
         
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
-            store, 
-            new Settings(unhandledExceptionCatcher.Catch)
-        );
-
         var syncedFlag = new SyncedFlag();
         var syncedValue = new Synced<string>();
-        
-        var registration = functionsRegistry.RegisterAction(
-            flowType,
-            inner: async (string _, Workflow workflow) =>
+
+        ActionRegistration<string> registration = null!;
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
+            store,
+            new Settings(unhandledExceptionCatcher.Catch),
+            r =>
             {
-                var someMessage = await workflow.Message<SomeMessage>();
-                syncedValue.Value = someMessage.Value;
-                syncedFlag.Raise();
+                registration = r.RegisterAction(
+                    flowType,
+                    inner: async (string _, Workflow workflow) =>
+                    {
+                        var someMessage = await workflow.Message<SomeMessage>();
+                        syncedValue.Value = someMessage.Value;
+                        syncedFlag.Raise();
+                    }
+                );
             }
         );
 
@@ -97,23 +103,26 @@ public abstract class RoutingTests
         var (flowType, flowInstance) = functionId;
         
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
-            store, 
-            new Settings(unhandledExceptionCatcher.Catch)
-        );
-
         var syncedFlag = new SyncedFlag();
         var syncedValue = new Synced<string>();
-        
-        var registration = functionsRegistry.RegisterFunc(
-            flowType,
-            inner: async Task<string> (string _, Workflow workflow) =>
+
+        FuncRegistration<string, string> registration = null!;
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
+            store,
+            new Settings(unhandledExceptionCatcher.Catch),
+            r =>
             {
-                var someMessage = await workflow.Message<SomeMessage>();
-                syncedValue.Value = someMessage.Value;
-                syncedFlag.Raise();
-                
-                return "SomeResult";
+                registration = r.RegisterFunc(
+                    flowType,
+                    inner: async Task<string> (string _, Workflow workflow) =>
+                    {
+                        var someMessage = await workflow.Message<SomeMessage>();
+                        syncedValue.Value = someMessage.Value;
+                        syncedFlag.Raise();
+
+                        return "SomeResult";
+                    }
+                );
             }
         );
 
@@ -138,21 +147,24 @@ public abstract class RoutingTests
         var (flowType, flowInstance) = functionId;
         
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
-            store, 
-            new Settings(unhandledExceptionCatcher.Catch)
-        );
-
         var syncedFlag = new SyncedFlag();
         var syncedValue = new Synced<string>();
-        
-        var registration = functionsRegistry.RegisterParamless(
-            flowType,
-            inner: async workflow =>
+
+        ParamlessRegistration registration = null!;
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
+            store,
+            new Settings(unhandledExceptionCatcher.Catch),
+            r =>
             {
-                var someMessage = await workflow.Message<SomeMessage>();
-                syncedValue.Value = someMessage.Value;
-                syncedFlag.Raise();
+                registration = r.RegisterParamless(
+                    flowType,
+                    inner: async workflow =>
+                    {
+                        var someMessage = await workflow.Message<SomeMessage>();
+                        syncedValue.Value = someMessage.Value;
+                        syncedFlag.Raise();
+                    }
+                );
             }
         );
 
@@ -177,21 +189,24 @@ public abstract class RoutingTests
         var (flowType, flowInstance) = functionId;
         
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
-            store, 
-            new Settings(unhandledExceptionCatcher.Catch)
-        );
-
         var syncedFlag = new SyncedFlag();
         var syncedValue = new Synced<string>();
 
-        var registration = functionsRegistry.RegisterParamless(
-            flowType,
-            inner: async (workflow) =>
+        ParamlessRegistration registration = null!;
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
+            store,
+            new Settings(unhandledExceptionCatcher.Catch),
+            r =>
             {
-                var someMessage = await workflow.Message<SomeMessage>();
-                syncedValue.Value = someMessage.Value;
-                syncedFlag.Raise();
+                registration = r.RegisterParamless(
+                    flowType,
+                    inner: async (workflow) =>
+                    {
+                        var someMessage = await workflow.Message<SomeMessage>();
+                        syncedValue.Value = someMessage.Value;
+                        syncedFlag.Raise();
+                    }
+                );
             }
         );
 

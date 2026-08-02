@@ -20,28 +20,32 @@ public abstract class ReInvocationTests
         const string functionType = "someFunctionType";
         var flag = new SyncedFlag();
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
+        var syncedParameter = new Synced<string>();
+
+        ActionRegistration<string> rFunc = null!;
         using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             store,
             new Settings(
                 unhandledExceptionCatcher.Catch
-            )
+            ),
+            r =>
+            {
+                rFunc = r
+                    .RegisterAction(
+                        functionType, Task (string s) =>
+                        {
+                            if (flag.Position == FlagPosition.Lowered)
+                            {
+                                flag.Raise();
+                                throw new InvalidOperationException("oh no");
+                            }
+
+                            syncedParameter.Value = s;
+                            return Task.CompletedTask;
+                        }
+                    );
+            }
         );
-        var syncedParameter = new Synced<string>();
-
-        var rFunc = functionsRegistry
-            .RegisterAction(
-                functionType, Task (string s) =>
-                {
-                    if (flag.Position == FlagPosition.Lowered)
-                    {
-                        flag.Raise();
-                        throw new InvalidOperationException("oh no");
-                    }
-
-                    syncedParameter.Value = s;
-                    return Task.CompletedTask;
-                }
-            );
 
         await Should.ThrowAsync<Exception>(() => rFunc.Run("something", "something"));
 
@@ -65,26 +69,30 @@ public abstract class ReInvocationTests
         var (flowType, flowInstance) = functionId;
         var flag = new SyncedFlag();
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
+        var syncedParam = new Synced<string>();
+
+        ActionRegistration<string> rAction = null!;
         using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             store,
             new Settings(
                 unhandledExceptionCatcher.Catch
-            )
-        );
-
-        var syncedParam = new Synced<string>();
-        var rAction = functionsRegistry.RegisterAction<string>(
-            flowType,
-            param =>
+            ),
+            r =>
             {
-                if (flag.Position == FlagPosition.Lowered)
-                {
-                    flag.Raise();
-                    throw new InvalidOperationException("oh no");
-                }
+                rAction = r.RegisterAction<string>(
+                    flowType,
+                    param =>
+                    {
+                        if (flag.Position == FlagPosition.Lowered)
+                        {
+                            flag.Raise();
+                            throw new InvalidOperationException("oh no");
+                        }
 
-                syncedParam.Value = param;
-                return Task.CompletedTask;
+                        syncedParam.Value = param;
+                        return Task.CompletedTask;
+                    }
+                );
             }
         );
 
@@ -113,26 +121,30 @@ public abstract class ReInvocationTests
         var (flowType, flowInstance) = functionId;
         var flag = new SyncedFlag();
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
+        var syncedValue = new Synced<string>();
+
+        ActionRegistration<string> rAction = null!;
         using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             store,
             new Settings(
                 unhandledExceptionCatcher.Catch
-            )
-        );
-
-        var syncedValue = new Synced<string>();
-        var rAction = functionsRegistry.RegisterAction<string>(
-            flowType,
-            (param, workflow) =>
+            ),
+            r =>
             {
-                if (flag.Position == FlagPosition.Lowered)
-                {
-                    flag.Raise();
-                    throw new InvalidOperationException("oh no");
-                }
+                rAction = r.RegisterAction<string>(
+                    flowType,
+                    (param, workflow) =>
+                    {
+                        if (flag.Position == FlagPosition.Lowered)
+                        {
+                            flag.Raise();
+                            throw new InvalidOperationException("oh no");
+                        }
 
-                syncedValue.Value = param;
-                return Task.CompletedTask;
+                        syncedValue.Value = param;
+                        return Task.CompletedTask;
+                    }
+                );
             }
         );
 
@@ -162,24 +174,27 @@ public abstract class ReInvocationTests
         var (flowType, flowInstance) = functionId;
         var flag = new SyncedFlag();
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
+        FuncRegistration<string, string> rFunc = null!;
         using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             store,
             new Settings(
                 unhandledExceptionCatcher.Catch
-            )
-        );
-
-        var rFunc = functionsRegistry.RegisterFunc<string, string>(
-            flowType,
-            async s =>
+            ),
+            r =>
             {
-                await Task.CompletedTask;
-                if (flag.Position == FlagPosition.Lowered)
-                {
-                    flag.Raise();
-                    throw new InvalidOperationException("oh no");
-                }
-                return s;
+                rFunc = r.RegisterFunc<string, string>(
+                    flowType,
+                    async s =>
+                    {
+                        await Task.CompletedTask;
+                        if (flag.Position == FlagPosition.Lowered)
+                        {
+                            flag.Raise();
+                            throw new InvalidOperationException("oh no");
+                        }
+                        return s;
+                    }
+                );
             }
         );
 
@@ -207,16 +222,19 @@ public abstract class ReInvocationTests
         var functionId = TestFlowId.Create();
         var (flowType, flowInstance) = functionId;
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
+        ActionRegistration<string> rAction = null!;
         using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             store,
             new Settings(
                 unhandledExceptionCatcher.Catch
-            )
-        );
-
-        var rAction = functionsRegistry.RegisterAction(
-            flowType,
-            (string _) => Task.CompletedTask
+            ),
+            r =>
+            {
+                rAction = r.RegisterAction(
+                    flowType,
+                    (string _) => Task.CompletedTask
+                );
+            }
         );
 
         await rAction.Run(flowInstance.Value, "");

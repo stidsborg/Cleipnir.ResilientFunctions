@@ -13,16 +13,23 @@ public class RegisterWithExplicitReturnTests
     [TestMethod]
     public async Task FuncWithExplicitReturnIsInvokedSuccessfully()
     {
-        using var rFunctions = await FunctionsRegistry.CreateAndStart(new InMemoryFunctionStore());
         var syncedParam = new Synced<string>();
-        var rFunc = rFunctions.RegisterFunc<string, string>(
-            "flowType".ToFlowType(),
-            inner: async param =>
+        FuncRegistration<string, string> registration = null!;
+        using var rFunctions = await FunctionsRegistry.CreateAndStart(
+            new InMemoryFunctionStore(),
+            r =>
             {
-                await Task.CompletedTask;
-                syncedParam.Value = param;
-                return Succeed.WithValue(param.ToUpper());
-            }).Run;
+                registration = r.RegisterFunc<string, string>(
+                    "flowType".ToFlowType(),
+                    inner: async param =>
+                    {
+                        await Task.CompletedTask;
+                        syncedParam.Value = param;
+                        return Succeed.WithValue(param.ToUpper());
+                    });
+            }
+        );
+        var rFunc = registration.Run;
 
         var result = await rFunc("", "hello world");
         syncedParam.Value.ShouldBe("hello world");
@@ -32,17 +39,24 @@ public class RegisterWithExplicitReturnTests
     [TestMethod]
     public async Task FuncWithStateAndExplicitReturnIsInvokedSuccessfully()
     {
-        using var rFunctions = await FunctionsRegistry.CreateAndStart(new InMemoryFunctionStore());
         var syncedParam = new Synced<string>();
-        var rFunc = rFunctions.RegisterFunc<string, string>(
-            "flowType".ToFlowType(),
-            inner: async (param, state) =>
+        FuncRegistration<string, string> registration = null!;
+        using var rFunctions = await FunctionsRegistry.CreateAndStart(
+            new InMemoryFunctionStore(),
+            r =>
             {
-                await Task.CompletedTask;
-                
-                syncedParam.Value = param;
-                return Succeed.WithValue(param.ToUpper());
-            }).Run;
+                registration = r.RegisterFunc<string, string>(
+                    "flowType".ToFlowType(),
+                    inner: async (param, state) =>
+                    {
+                        await Task.CompletedTask;
+
+                        syncedParam.Value = param;
+                        return Succeed.WithValue(param.ToUpper());
+                    });
+            }
+        );
+        var rFunc = registration.Run;
 
         var result = await rFunc("", "hello world");
         syncedParam.Value.ShouldBe("hello world");
@@ -52,18 +66,24 @@ public class RegisterWithExplicitReturnTests
     [TestMethod]
     public async Task ActionWithExplicitReturnIsInvokedSuccessfully()
     {
-        using var rFunctions = await FunctionsRegistry.CreateAndStart(new InMemoryFunctionStore());
         var syncedParam = new Synced<string>();
-        var rAction = rFunctions
-            .RegisterAction<string>(
-                "flowType".ToFlowType(),
-                inner: async param =>
-                {
-                    await Task.CompletedTask;
-                    syncedParam.Value = param;
-                    return Succeed.WithUnit;
-                })
-            .Run;
+        ActionRegistration<string> registration = null!;
+        using var rFunctions = await FunctionsRegistry.CreateAndStart(
+            new InMemoryFunctionStore(),
+            r =>
+            {
+                registration = r
+                    .RegisterAction<string>(
+                        "flowType".ToFlowType(),
+                        inner: async param =>
+                        {
+                            await Task.CompletedTask;
+                            syncedParam.Value = param;
+                            return Succeed.WithUnit;
+                        });
+            }
+        );
+        var rAction = registration.Run;
 
         await rAction("", "hello world");
         syncedParam.Value.ShouldBe("hello world");
@@ -72,18 +92,24 @@ public class RegisterWithExplicitReturnTests
     [TestMethod]
     public async Task ActionWithStateAndExplicitReturnIsInvokedSuccessfully()
     {
-        using var rFunctions = await FunctionsRegistry.CreateAndStart(new InMemoryFunctionStore());
         var syncedParam = new Synced<string>();
-        var rAction = rFunctions
-            .RegisterAction<string>(
-                "flowType".ToFlowType(),
-                inner: async (param, workflow) =>
-                {
-                    await Task.CompletedTask;
-                    syncedParam.Value = param;
-                    return Succeed.WithUnit;
-                })
-            .Run;
+        ActionRegistration<string> registration = null!;
+        using var rFunctions = await FunctionsRegistry.CreateAndStart(
+            new InMemoryFunctionStore(),
+            r =>
+            {
+                registration = r
+                    .RegisterAction<string>(
+                        "flowType".ToFlowType(),
+                        inner: async (param, workflow) =>
+                        {
+                            await Task.CompletedTask;
+                            syncedParam.Value = param;
+                            return Succeed.WithUnit;
+                        });
+            }
+        );
+        var rAction = registration.Run;
 
         await rAction("", "hello world");
         syncedParam.Value.ShouldBe("hello world");

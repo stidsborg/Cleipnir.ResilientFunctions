@@ -20,16 +20,23 @@ public static class BrandExample
     private static async Task Version1()
     {
         var crashableStore = new CrashableFunctionStore(Store);
-        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(crashableStore);
-
-        var rAction = functionsRegistry.RegisterAction(
-            "SaveOrder",
-            async Task (OrderV1 order) =>
+        ActionRegistration<OrderV1> registration = null!;
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
+            crashableStore,
+            functions =>
             {
-                await NeverCompletingTask.OfVoidType;
-                await SaveToDatabase(order);
-            }).Schedule;
-        
+                registration = functions.RegisterAction(
+                    "SaveOrder",
+                    async Task (OrderV1 order) =>
+                    {
+                        await NeverCompletingTask.OfVoidType;
+                        await SaveToDatabase(order);
+                    });
+            }
+        );
+
+        var rAction = registration.Schedule;
+
         await rAction(
             "order1",
             new OrderV1("order#1")
@@ -40,28 +47,30 @@ public static class BrandExample
     private static async Task Version2()
     {
         using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
-            Store, 
+            Store,
             new Settings(
                 unhandledExceptionHandler: Console.WriteLine
-            )
-        );
-
-        functionsRegistry.RegisterAction(
-            "SaveOrder",
-            async Task(Order order) =>
+            ),
+            functions =>
             {
-                var o = order switch
-                {
-                    OrderV1 orderV1 => new OrderV2(orderV1.OrderNumber, Brand.Microsoft),
-                    OrderV2 orderV2 => orderV2,
-                    _ => throw new ArgumentOutOfRangeException(nameof(order))
-                };
+                functions.RegisterAction(
+                    "SaveOrder",
+                    async Task(Order order) =>
+                    {
+                        var o = order switch
+                        {
+                            OrderV1 orderV1 => new OrderV2(orderV1.OrderNumber, Brand.Microsoft),
+                            OrderV2 orderV2 => orderV2,
+                            _ => throw new ArgumentOutOfRangeException(nameof(order))
+                        };
 
-                await SaveToDatabase(o);
-                Console.WriteLine($"Completed order of type: '{order.GetType().Name}'");
+                        await SaveToDatabase(o);
+                        Console.WriteLine($"Completed order of type: '{order.GetType().Name}'");
+                    }
+                );
             }
         );
-        
+
         Console.ReadLine();
     }
 

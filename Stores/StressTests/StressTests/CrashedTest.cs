@@ -47,11 +47,14 @@ public static class CrashedTest
             new Settings(
                 unhandledExceptionHandler: Console.WriteLine,
                 watchdogCheckFrequency: TimeSpan.FromMilliseconds(50)
-            )
-        );
-        var _ = functionsRegistry.RegisterAction(
-            flowType,
-            Task (string param) => Task.CompletedTask
+            ),
+            r =>
+            {
+                var _ = r.RegisterAction(
+                    flowType,
+                    Task (string param) => Task.CompletedTask
+                );
+            }
         );
         
         using var functionsRegistry2 = await FunctionsRegistry.CreateAndStart(
@@ -59,11 +62,14 @@ public static class CrashedTest
             new Settings(
                 unhandledExceptionHandler: Console.WriteLine,
                 watchdogCheckFrequency: TimeSpan.FromMilliseconds(50)
-            )
-        );
-        functionsRegistry2.RegisterAction(
-            flowType,
-            Task (string param) => Task.CompletedTask
+            ),
+            r =>
+            {
+                r.RegisterAction(
+                    flowType,
+                    Task (string param) => Task.CompletedTask
+                );
+            }
         );
 
         var executionAverageSpeed = await 

@@ -23,15 +23,18 @@ public abstract class SuspensionTests
         var functionId = TestFlowId.Create();
         var (flowType, flowInstance) = functionId;
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
+        ActionRegistration<string> rAction = null!;
         using var functionsRegistry = await FunctionsRegistry.CreateAndStart
         (
             store,
-            new Settings(unhandledExceptionHandler.Catch, watchdogCheckFrequency: TimeSpan.FromSeconds(60))
-        );
-
-        var rAction = functionsRegistry.RegisterAction(
-            flowType,
-            Task<Result<Unit>> (string _) => Suspend.Invocation.ToResult<Unit>().ToTask()
+            new Settings(unhandledExceptionHandler.Catch, watchdogCheckFrequency: TimeSpan.FromSeconds(60)),
+            r =>
+            {
+                rAction = r.RegisterAction(
+                    flowType,
+                    Task<Result<Unit>> (string _) => Suspend.Invocation.ToResult<Unit>().ToTask()
+                );
+            }
         );
 
         await Should.ThrowAsync<InvocationSuspendedException>(
@@ -56,15 +59,18 @@ public abstract class SuspensionTests
         var functionId = TestFlowId.Create();
         var (typeId, instanceId) = functionId;
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
+        FuncRegistration<string, string> rFunc = null!;
         using var functionsRegistry = await FunctionsRegistry.CreateAndStart
         (
             store,
-            new Settings(unhandledExceptionHandler.Catch, watchdogCheckFrequency: TimeSpan.FromSeconds(60))
-        );
-        
-        var rFunc = functionsRegistry.RegisterFunc(
-            typeId,
-            Task<Result<string>>(string _) => Suspend.Invocation.ToResult<string>().ToTask()
+            new Settings(unhandledExceptionHandler.Catch, watchdogCheckFrequency: TimeSpan.FromSeconds(60)),
+            r =>
+            {
+                rFunc = r.RegisterFunc(
+                    typeId,
+                    Task<Result<string>>(string _) => Suspend.Invocation.ToResult<string>().ToTask()
+                );
+            }
         );
 
         await Should.ThrowAsync<InvocationSuspendedException>(
@@ -90,26 +96,29 @@ public abstract class SuspensionTests
         var (flowType, flowInstance) = functionId;
 
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
+        var invocations = 0;
+        FuncRegistration<string, string> rFunc = null!;
         using var functionsRegistry = await FunctionsRegistry.CreateAndStart
         (
             store,
-            new Settings(unhandledExceptionHandler.Catch)
-        );
-
-        var invocations = 0;
-        var rFunc = functionsRegistry.RegisterFunc(
-            flowType,
-            Task<Result<string>> (string _) =>
+            new Settings(unhandledExceptionHandler.Catch),
+            r =>
             {
-                if (invocations == 0)
-                {
-                    invocations++;
-                    return Suspend.Invocation.ToResult<string>().ToTask();
-                }
+                rFunc = r.RegisterFunc(
+                    flowType,
+                    Task<Result<string>> (string _) =>
+                    {
+                        if (invocations == 0)
+                        {
+                            invocations++;
+                            return Suspend.Invocation.ToResult<string>().ToTask();
+                        }
 
-                invocations++;
-                return Succeed.WithValue("completed").ToTask();
-            });
+                        invocations++;
+                        return Succeed.WithValue("completed").ToTask();
+                    });
+            }
+        );
 
         await Should.ThrowAsync<InvocationSuspendedException>(
             () => rFunc.Run(flowInstance.Value, "hello world")
@@ -132,26 +141,29 @@ public abstract class SuspensionTests
         var (flowType, flowInstance) = functionId;
 
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
+        var invocations = 0;
+        FuncRegistration<string, string> rFunc = null!;
         using var functionsRegistry = await FunctionsRegistry.CreateAndStart
         (
             store,
-            new Settings(unhandledExceptionHandler.Catch)
-        );
-
-        var invocations = 0;
-        var rFunc = functionsRegistry.RegisterFunc(
-            flowType,
-            Task<Result<string>> (string _) =>
+            new Settings(unhandledExceptionHandler.Catch),
+            r =>
             {
-                if (invocations == 0)
-                {
-                    invocations++;
-                    return Postpone.Until(DateTime.UtcNow.AddHours(1)).ToResult<string>().ToTask();
-                }
+                rFunc = r.RegisterFunc(
+                    flowType,
+                    Task<Result<string>> (string _) =>
+                    {
+                        if (invocations == 0)
+                        {
+                            invocations++;
+                            return Postpone.Until(DateTime.UtcNow.AddHours(1)).ToResult<string>().ToTask();
+                        }
 
-                invocations++;
-                return Succeed.WithValue("completed").ToTask();
-            });
+                        invocations++;
+                        return Succeed.WithValue("completed").ToTask();
+                    });
+            }
+        );
 
         await Should.ThrowAsync<InvocationPostponedException>(
             () => rFunc.Run(flowInstance.Value, "hello world")
@@ -175,21 +187,24 @@ public abstract class SuspensionTests
         var functionId = new FlowId(flowType, flowInstance);
         
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
+        var flag = new SyncedFlag();
+        FuncRegistration<string, string> rFunc = null!;
         using var functionsRegistry = await FunctionsRegistry.CreateAndStart
         (
             store,
-            new Settings(unhandledExceptionHandler.Catch)
-        );
-
-        var flag = new SyncedFlag();
-        var rFunc = functionsRegistry.RegisterFunc<string, string>(
-            flowType,
-            Task<Result<string>> (_) =>
+            new Settings(unhandledExceptionHandler.Catch),
+            r =>
             {
-                if (flag.IsRaised) return Succeed.WithValue("success").ToTask();
-                flag.Raise();
-                return Suspend.Invocation.ToResult<string>().ToTask();
-            });
+                rFunc = r.RegisterFunc<string, string>(
+                    flowType,
+                    Task<Result<string>> (_) =>
+                    {
+                        if (flag.IsRaised) return Succeed.WithValue("success").ToTask();
+                        flag.Raise();
+                        return Suspend.Invocation.ToResult<string>().ToTask();
+                    });
+            }
+        );
 
         await Should.ThrowAsync<InvocationSuspendedException>(
             () => rFunc.Run(flowInstance, "hello world")
@@ -211,18 +226,21 @@ public abstract class SuspensionTests
         var flowInstance = "flowInstance";
 
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
+        FuncRegistration<string, string> registration = null!;
         using var functionsRegistry = await FunctionsRegistry.CreateAndStart
         (
             store,
-            new Settings(unhandledExceptionHandler.Catch)
-        );
-
-        var registration = functionsRegistry.RegisterFunc(
-            nameof(SuspendedFunctionIsAutomaticallyReInvokedWhenEligibleAndWriteHasTrueBoolFlag),
-            async Task<string> (string param, Workflow workflow) =>
+            new Settings(unhandledExceptionHandler.Catch),
+            r =>
             {
-                var next = await workflow.Message<string>();
-                return next;
+                registration = r.RegisterFunc(
+                    nameof(SuspendedFunctionIsAutomaticallyReInvokedWhenEligibleAndWriteHasTrueBoolFlag),
+                    async Task<string> (string param, Workflow workflow) =>
+                    {
+                        var next = await workflow.Message<string>();
+                        return next;
+                    }
+                );
             }
         );
 
@@ -255,18 +273,21 @@ public abstract class SuspensionTests
         var (flowType, flowInstance) = functionId;
 
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
+        FuncRegistration<string, string> registration = null!;
         using var functionsRegistry = await FunctionsRegistry.CreateAndStart
         (
             store,
-            new Settings(unhandledExceptionHandler.Catch)
-        );
-
-        var registration = functionsRegistry.RegisterFunc(
-            flowType,
-            async Task<string> (string param, Workflow workflow) =>
+            new Settings(unhandledExceptionHandler.Catch),
+            r =>
             {
-                var next = await workflow.Message<string>();
-                return next;
+                registration = r.RegisterFunc(
+                    flowType,
+                    async Task<string> (string param, Workflow workflow) =>
+                    {
+                        var next = await workflow.Message<string>();
+                        return next;
+                    }
+                );
             }
         );
 
@@ -299,20 +320,23 @@ public abstract class SuspensionTests
         var (flowType, flowInstance) = functionId;
 
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
+        var syncedValue = new Synced<string>();
+
+        ParamlessRegistration registration = null!;
         using var functionsRegistry = await FunctionsRegistry.CreateAndStart
         (
             store,
-            new Settings(unhandledExceptionHandler.Catch)
-        );
-
-        var syncedValue = new Synced<string>();
-        
-        var registration = functionsRegistry.RegisterParamless(
-            flowType,
-            inner: async Task (workflow) =>
+            new Settings(unhandledExceptionHandler.Catch),
+            r =>
             {
-                var msg = await workflow.Message<string>();
-                syncedValue.Value = msg;
+                registration = r.RegisterParamless(
+                    flowType,
+                    inner: async Task (workflow) =>
+                    {
+                        var msg = await workflow.Message<string>();
+                        syncedValue.Value = msg;
+                    }
+                );
             }
         );
 
@@ -335,26 +359,33 @@ public abstract class SuspensionTests
         var parentFunctionId = new FlowId($"ParentFunction{Guid.NewGuid()}", Guid.NewGuid().ToString());
 
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
-        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionHandler.Catch));
-
-        var child = functionsRegistry.RegisterFunc(
-            flowType: $"ChildFunction{Guid.NewGuid()}",
-            inner: Task<string> (string param) => param.ToUpper().ToTask()
-        );
-
-        var parent = functionsRegistry.RegisterFunc(
-            parentFunctionId.Type,
-            async Task<string> (string param, Workflow workflow) =>
+        FuncRegistration<string, string> child = null!;
+        FuncRegistration<string, string> parent = null!;
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
+            store,
+            new Settings(unhandledExceptionHandler.Catch),
+            r =>
             {
-                var words = param.Split(" ");
-
-                var scheduled = await child.BulkSchedule(
-                    words.Select(word => new BulkWork<string>($"Child#{word}", word))
+                child = r.RegisterFunc(
+                    flowType: $"ChildFunction{Guid.NewGuid()}",
+                    inner: Task<string> (string param) => param.ToUpper().ToTask()
                 );
 
-                var results = await scheduled.Completion();
-                return results.StringJoin(" ");
-            });
+                parent = r.RegisterFunc(
+                    parentFunctionId.Type,
+                    async Task<string> (string param, Workflow workflow) =>
+                    {
+                        var words = param.Split(" ");
+
+                        var scheduled = await child.BulkSchedule(
+                            words.Select(word => new BulkWork<string>($"Child#{word}", word))
+                        );
+
+                        var results = await scheduled.Completion();
+                        return results.StringJoin(" ");
+                    });
+            }
+        );
 
         var param = "hello world and universe";
         try
@@ -396,16 +427,22 @@ public abstract class SuspensionTests
         var parentFunctionId = new FlowId($"ParentFunction{Guid.NewGuid()}", Guid.NewGuid().ToString());
 
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
-        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionHandler.Catch));
-        
-        var child = functionsRegistry.RegisterFunc(
-            flowType: $"ChildFunction{Guid.NewGuid()}",
-            inner: (string param) => param.ToUpper().ToTask()
-        );
+        FuncRegistration<string, string> parent = null!;
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
+            store,
+            new Settings(unhandledExceptionHandler.Catch),
+            r =>
+            {
+                var child = r.RegisterFunc(
+                    flowType: $"ChildFunction{Guid.NewGuid()}",
+                    inner: (string param) => param.ToUpper().ToTask()
+                );
 
-        var parent = functionsRegistry.RegisterFunc(
-            parentFunctionId.Type,
-            inner: Task<string> (string param) => child.Schedule("SomeChildInstance#1", param).Completion()
+                parent = r.RegisterFunc(
+                    parentFunctionId.Type,
+                    inner: Task<string> (string param) => child.Schedule("SomeChildInstance#1", param).Completion()
+                );
+            }
         );
 
         var parentResult = await parent.Schedule(parentFunctionId.Instance.Value, param: "hello").Completion();
@@ -421,16 +458,22 @@ public abstract class SuspensionTests
         var parentFunctionId = new FlowId($"ParentFunction{Guid.NewGuid()}", Guid.NewGuid().ToString());
 
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
-        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionHandler.Catch));
-        
-        var child = functionsRegistry.RegisterAction(
-            flowType: $"ChildFunction{Guid.NewGuid()}",
-            inner: (string _) => Task.Delay(100)
-        );
+        ActionRegistration<string> parent = null!;
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
+            store,
+            new Settings(unhandledExceptionHandler.Catch),
+            r =>
+            {
+                var child = r.RegisterAction(
+                    flowType: $"ChildFunction{Guid.NewGuid()}",
+                    inner: (string _) => Task.Delay(100)
+                );
 
-        var parent = functionsRegistry.RegisterAction(
-            parentFunctionId.Type,
-            inner: Task (string param) => child.Schedule("SomeChildInstance#1", param).Completion()
+                parent = r.RegisterAction(
+                    parentFunctionId.Type,
+                    inner: Task (string param) => child.Schedule("SomeChildInstance#1", param).Completion()
+                );
+            }
         );
 
         await parent.Schedule(parentFunctionId.Instance.Value, param: "hello").Completion(timeout: TimeSpan.FromSeconds(100));
@@ -444,16 +487,22 @@ public abstract class SuspensionTests
         var parentFunctionId = new FlowId($"ParentFunction{Guid.NewGuid()}", Guid.NewGuid().ToString());
 
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
-        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionHandler.Catch));
-        
-        var child = functionsRegistry.RegisterAction(
-            flowType: $"ChildFunction{Guid.NewGuid()}",
-            inner: (string _) => throw new InvalidOperationException("oh no")
-        );
+        ActionRegistration<string> parent = null!;
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
+            store,
+            new Settings(unhandledExceptionHandler.Catch),
+            r =>
+            {
+                var child = r.RegisterAction(
+                    flowType: $"ChildFunction{Guid.NewGuid()}",
+                    inner: (string _) => throw new InvalidOperationException("oh no")
+                );
 
-        var parent = functionsRegistry.RegisterAction(
-            parentFunctionId.Type,
-            inner: Task (string param) => child.Schedule("SomeChildInstance#1", param).Completion()
+                parent = r.RegisterAction(
+                    parentFunctionId.Type,
+                    inner: Task (string param) => child.Schedule("SomeChildInstance#1", param).Completion()
+                );
+            }
         );
         
         await Should.ThrowAsync<FatalWorkflowException>(
@@ -470,40 +519,42 @@ public abstract class SuspensionTests
         var parentFunctionId = new FlowId($"ParentFunction{Guid.NewGuid()}", Guid.NewGuid().ToString());
         const int numberOfChildren = 100;
         
+        FuncRegistration<string, List<string>> parent = null!;
         using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             store,
-            new Settings(watchdogCheckFrequency: TimeSpan.FromMilliseconds(100))
-        );
-
-        FuncRegistration<string, List<string>>? parent = null;
-        var child = functionsRegistry.RegisterAction(
-            $"ChildFunction{Guid.NewGuid()}",
-            inner: (string param) =>
-                parent!.SendMessage(
-                    parentFunctionId.Instance,
-                    param,
-                    idempotencyKey: $"ChildFunction{Guid.NewGuid()}"
-                )
-        );
-
-        parent = functionsRegistry.RegisterFunc(
-            parentFunctionId.Type,
-            inner: async Task<List<string>> (string param, Workflow workflow) =>
+            new Settings(watchdogCheckFrequency: TimeSpan.FromMilliseconds(100)),
+            r =>
             {
-                await workflow.Effect.Capture(async () =>
-                {
-                    for (var i = 0; i < numberOfChildren; i++)
-                        await child.Schedule($"SomeChildInstance#{i}", i.ToString(), detach: true);
-                });
+                var child = r.RegisterAction(
+                    $"ChildFunction{Guid.NewGuid()}",
+                    inner: (string param) =>
+                        parent!.SendMessage(
+                            parentFunctionId.Instance,
+                            param,
+                            idempotencyKey: $"ChildFunction{Guid.NewGuid()}"
+                        )
+                );
 
-                var messages = new List<string>();
-                for (var i = 0; i < numberOfChildren; i++)
-                {
-                    var msg = await workflow.Message<string>();
-                    messages.Add(msg);
-                }
+                parent = r.RegisterFunc(
+                    parentFunctionId.Type,
+                    inner: async Task<List<string>> (string param, Workflow workflow) =>
+                    {
+                        await workflow.Effect.Capture(async () =>
+                        {
+                            for (var i = 0; i < numberOfChildren; i++)
+                                await child.Schedule($"SomeChildInstance#{i}", i.ToString(), detach: true);
+                        });
 
-                return messages;
+                        var messages = new List<string>();
+                        for (var i = 0; i < numberOfChildren; i++)
+                        {
+                            var msg = await workflow.Message<string>();
+                            messages.Add(msg);
+                        }
+
+                        return messages;
+                    }
+                );
             }
         );
 
@@ -528,22 +579,27 @@ public abstract class SuspensionTests
     {
         var store = await storeTask;
         var parentId = new FlowId($"ParentFlow{Guid.NewGuid()}", Guid.NewGuid().ToString());
-        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store);
-        
-        var child = functionsRegistry.RegisterFunc(
-            flowType: $"ChildFlow{Guid.NewGuid()}",
-            inner: (string param) => param.ToUpper().ToTask()
-        );
-
-        var parent = functionsRegistry.RegisterFunc(
-            parentId.Type,
-            inner: async Task<string> (string param) =>
+        FuncRegistration<string, string> parent = null!;
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
+            store,
+            r =>
             {
-                var results = await child.BulkSchedule(
-                    param.Split(" ").Select((s, i) => new BulkWork<string>(i.ToString(), s))
-                ).Completion();
+                var child = r.RegisterFunc(
+                    flowType: $"ChildFlow{Guid.NewGuid()}",
+                    inner: (string param) => param.ToUpper().ToTask()
+                );
 
-                return results.StringJoin(" ");
+                parent = r.RegisterFunc(
+                    parentId.Type,
+                    inner: async Task<string> (string param) =>
+                    {
+                        var results = await child.BulkSchedule(
+                            param.Split(" ").Select((s, i) => new BulkWork<string>(i.ToString(), s))
+                        ).Completion();
+
+                        return results.StringJoin(" ");
+                    }
+                );
             }
         );
 
@@ -556,18 +612,23 @@ public abstract class SuspensionTests
     {
         var store = await storeTask;
         var parentId = new FlowId($"ParentFlow{Guid.NewGuid()}", Guid.NewGuid().ToString());
-        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store);
+        FuncRegistration<string, string> parent = null!;
+        FuncRegistration<string, string> child = null!;
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
+            store,
+            r =>
+            {
+                child = r.RegisterFunc(
+                    flowType: $"ChildFlow{Guid.NewGuid()}",
+                    inner: (string param) => param.ToUpper().ToTask()
+                );
 
-        FuncRegistration<string, string>? parent = null;
-        var child = functionsRegistry.RegisterFunc(
-            flowType: $"ChildFlow{Guid.NewGuid()}",
-            inner: (string param) => param.ToUpper().ToTask()
-        );
-
-        parent = functionsRegistry.RegisterFunc(
-            parentId.Type,
-            inner: async Task<string> (string param) =>
-                await child.Schedule("Child", param).Completion()
+                parent = r.RegisterFunc(
+                    parentId.Type,
+                    inner: async Task<string> (string param) =>
+                        await child.Schedule("Child", param).Completion()
+                );
+            }
         );
 
         var result = await parent.Schedule(parentId.Instance, "hello world").Completion();
@@ -589,19 +650,22 @@ public abstract class SuspensionTests
         var (flowType, flowInstance) = id;
 
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
+        var syncedCounter = new SyncedCounter();
+        ParamlessRegistration registration = null!;
         using var functionsRegistry = await FunctionsRegistry.CreateAndStart
         (
             store,
-            new Settings(unhandledExceptionHandler.Catch)
-        );
-        
-        var syncedCounter = new SyncedCounter();
-        var registration = functionsRegistry.RegisterParamless(
-            flowType,
-            inner: async Task (workflow) =>
+            new Settings(unhandledExceptionHandler.Catch),
+            r =>
             {
-                syncedCounter.Increment();
-                await workflow.Delay(TimeSpan.FromMilliseconds(100));
+                registration = r.RegisterParamless(
+                    flowType,
+                    inner: async Task (workflow) =>
+                    {
+                        syncedCounter.Increment();
+                        await workflow.Delay(TimeSpan.FromMilliseconds(100));
+                    }
+                );
             }
         );
 
@@ -627,20 +691,23 @@ public abstract class SuspensionTests
         var (flowType, flowInstance) = id;
 
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
+        var counter = new SyncedCounter();
+        ParamlessRegistration registration = null!;
         using var functionsRegistry = await FunctionsRegistry.CreateAndStart
         (
             store,
-            new Settings(unhandledExceptionHandler.Catch)
-        );
-
-        var counter = new SyncedCounter();
-        var registration = functionsRegistry.RegisterParamless(
-            flowType,
-            inner: async Task (workflow) =>
+            new Settings(unhandledExceptionHandler.Catch),
+            r =>
             {
-                counter.Increment();
-                await workflow.Delay(TimeSpan.FromMilliseconds(100), alias: "first");
-                await workflow.Delay(TimeSpan.FromMilliseconds(100), alias: "second");
+                registration = r.RegisterParamless(
+                    flowType,
+                    inner: async Task (workflow) =>
+                    {
+                        counter.Increment();
+                        await workflow.Delay(TimeSpan.FromMilliseconds(100), alias: "first");
+                        await workflow.Delay(TimeSpan.FromMilliseconds(100), alias: "second");
+                    }
+                );
             }
         );
 
@@ -667,17 +734,20 @@ public abstract class SuspensionTests
         var (flowType, flowInstance) = id;
 
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
+        ParamlessRegistration registration = null!;
         using var functionsRegistry = await FunctionsRegistry.CreateAndStart
         (
             store,
-            new Settings(unhandledExceptionHandler.Catch)
-        );
-
-        var registration = functionsRegistry.RegisterParamless(
-            flowType,
-            inner: async Task (workflow) =>
+            new Settings(unhandledExceptionHandler.Catch),
+            r =>
             {
-                await workflow.Delay(TimeSpan.FromMilliseconds(100), suspend: false);
+                registration = r.RegisterParamless(
+                    flowType,
+                    inner: async Task (workflow) =>
+                    {
+                        await workflow.Delay(TimeSpan.FromMilliseconds(100), suspend: false);
+                    }
+                );
             }
         );
 

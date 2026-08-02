@@ -89,6 +89,10 @@ Functions are registered using `FunctionsRegistry` and can be:
 - **Functions**: `RegisterFunc()` for value-returning functions
 - **Parameterless**: `RegisterParamless()` for functions without input parameters
 
+All flow types must be registered in the setup delegate passed to `FunctionsRegistry.CreateAndStart` - the
+registry is sealed once started and registering afterwards throws `InvalidOperationException`. This is what
+lets the message-delivery path read the registered-types map without synchronization.
+
 The framework supports both direct function invocation and message-based workflows using `workflow.Messages` for event-driven scenarios.
 - never run docker compose assume it is running in the background
 - do not change white spaces for non affected code

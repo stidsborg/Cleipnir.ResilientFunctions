@@ -15,25 +15,32 @@ public abstract class AtLeastOnceWorkStatusTests
     public async Task AtLeastOnceWorkIsExecutedMultipleTimesWhenNotCompleted(Task<IFunctionStore> functionStoreTask)
     {
         var store = await functionStoreTask;
-        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(watchdogCheckFrequency: TimeSpan.FromMilliseconds(100)));
         var counter = new SyncedCounter();
         var functionId = TestFlowId.Create();
         var (flowType, flowInstance) = functionId;
-        
-        var rAction = functionsRegistry.RegisterAction(
-            flowType,
-            async Task(string param, Workflow workflow) =>
+
+        ActionRegistration<string> rAction = null!;
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
+            store,
+            new Settings(watchdogCheckFrequency: TimeSpan.FromMilliseconds(100)),
+            r =>
             {
-                await workflow.Effect
-                    .Capture(
-                        async () =>
-                        {
-                            counter.Increment();
-                            if (counter.Current == 1)
-                                await workflow.Delay(TimeSpan.FromMilliseconds(500));
-                        }
-                    );
-            });
+                rAction = r.RegisterAction(
+                    flowType,
+                    async Task(string param, Workflow workflow) =>
+                    {
+                        await workflow.Effect
+                            .Capture(
+                                async () =>
+                                {
+                                    counter.Increment();
+                                    if (counter.Current == 1)
+                                        await workflow.Delay(TimeSpan.FromMilliseconds(500));
+                                }
+                            );
+                    });
+            }
+        );
 
         await rAction.Schedule(flowInstance.ToString(), "hello");
 
@@ -49,26 +56,33 @@ public abstract class AtLeastOnceWorkStatusTests
     public async Task AtLeastOnceWorkWithCallIdIsExecutedMultipleTimesWhenNotCompleted(Task<IFunctionStore> functionStoreTask)
     {
         var store = await functionStoreTask;
-        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(watchdogCheckFrequency: TimeSpan.FromMilliseconds(100)));
         var counter = new SyncedCounter();
         var functionId = TestFlowId.Create();
         var (flowType, flowInstance) = functionId;
-        
-        var rAction = functionsRegistry.RegisterAction(
-            flowType,
-            async Task(string param, Workflow workflow) =>
+
+        ActionRegistration<string> rAction = null!;
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
+            store,
+            new Settings(watchdogCheckFrequency: TimeSpan.FromMilliseconds(100)),
+            r =>
             {
-                await workflow.Effect
-                    .Capture(
-                        async () =>
-                        {
-                            counter.Increment();
-                            if (counter.Current == 1)
-                                await workflow.Delay(TimeSpan.FromMilliseconds(500));
-                            return Task.CompletedTask;
-                        }
-                    );
-            });
+                rAction = r.RegisterAction(
+                    flowType,
+                    async Task(string param, Workflow workflow) =>
+                    {
+                        await workflow.Effect
+                            .Capture(
+                                async () =>
+                                {
+                                    counter.Increment();
+                                    if (counter.Current == 1)
+                                        await workflow.Delay(TimeSpan.FromMilliseconds(500));
+                                    return Task.CompletedTask;
+                                }
+                            );
+                    });
+            }
+        );
 
         await rAction.Schedule(flowInstance.ToString(), "hello");
 
@@ -84,19 +98,25 @@ public abstract class AtLeastOnceWorkStatusTests
     public async Task CompletedAtLeastOnceWorkIsNotExecutedMultipleTimes(Task<IFunctionStore> functionStoreTask)
     {
         var store = await functionStoreTask;
-        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store);
         var counter = new SyncedCounter();
         var functionId = TestFlowId.Create();
         var (flowType, flowInstance) = functionId;
-        
-        var rAction = functionsRegistry.RegisterAction(
-            flowType,
-            async Task(string param, Workflow workflow) =>
+
+        ActionRegistration<string> rAction = null!;
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
+            store,
+            r =>
             {
-                await workflow.Effect
-                    .Capture(
-                        () => { counter.Increment(); return Task.CompletedTask; });
-            });
+                rAction = r.RegisterAction(
+                    flowType,
+                    async Task(string param, Workflow workflow) =>
+                    {
+                        await workflow.Effect
+                            .Capture(
+                                () => { counter.Increment(); return Task.CompletedTask; });
+                    });
+            }
+        );
 
         await rAction.Run(flowInstance.ToString(), "hello");
         await rAction.ControlPanel(flowInstance).Result!.ScheduleRestart().Completion();
@@ -108,19 +128,25 @@ public abstract class AtLeastOnceWorkStatusTests
     public async Task CompletedAtLeastOnceWorkWithCallIdIsNotExecutedMultipleTimes(Task<IFunctionStore> functionStoreTask)
     {
         var store = await functionStoreTask;
-        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store);
         var counter = new SyncedCounter();
         var functionId = TestFlowId.Create();
         var (flowType, flowInstance) = functionId;
-        
-        var rAction = functionsRegistry.RegisterAction(
-            flowType,
-            async Task(string param, Workflow workflow) =>
+
+        ActionRegistration<string> rAction = null!;
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
+            store,
+            r =>
             {
-                await workflow.Effect
-                    .Capture(
-                        () => { counter.Increment(); return Task.CompletedTask; });
-            });
+                rAction = r.RegisterAction(
+                    flowType,
+                    async Task(string param, Workflow workflow) =>
+                    {
+                        await workflow.Effect
+                            .Capture(
+                                () => { counter.Increment(); return Task.CompletedTask; });
+                    });
+            }
+        );
 
         await rAction.Run(flowInstance.ToString(), "hello");
         await rAction.ControlPanel(flowInstance).Result!.ScheduleRestart().Completion();

@@ -22,23 +22,27 @@ public static class TimeoutSuspensionTest
 
         var executionTimes = new ConcurrentBag<TimeSpan>();
         
+        ParamlessRegistration registration = null!;
         using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             store,
-            new Settings(unhandledExceptionHandler: Console.WriteLine)
-        );        
-        var registration = functionsRegistry.RegisterParamless(
-            "TimeoutSuspensionTest",
-            async Task (workflow) =>
+            new Settings(unhandledExceptionHandler: Console.WriteLine),
+            r =>
             {
-                var functionStopWatch = Stopwatch.StartNew();
-                try
-                {
-                    await workflow.Message<string>(waitFor: TimeSpan.FromSeconds(30));
-                }
-                finally
-                {
-                    executionTimes.Add(functionStopWatch.Elapsed);
-                }
+                registration = r.RegisterParamless(
+                    "TimeoutSuspensionTest",
+                    async Task (workflow) =>
+                    {
+                        var functionStopWatch = Stopwatch.StartNew();
+                        try
+                        {
+                            await workflow.Message<string>(waitFor: TimeSpan.FromSeconds(30));
+                        }
+                        finally
+                        {
+                            executionTimes.Add(functionStopWatch.Elapsed);
+                        }
+                    }
+                );
             }
         );
         

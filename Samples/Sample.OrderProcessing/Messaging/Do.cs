@@ -5,7 +5,7 @@ namespace Sample.OrderProcessing.Messaging;
 
 public static class Do
 {
-    public static async Task Execute(FunctionsRegistry functionsRegistry)
+    public static ActionRegistration<Order> Register(FunctionsRegistry functionsRegistry)
     {
         var messageBroker = new Bus();
         var emailService = new EmailServiceStub(messageBroker);
@@ -44,6 +44,11 @@ public static class Do
             }
         });
 
+        return rAction;
+    }
+
+    public static async Task Execute(ActionRegistration<Order> rAction)
+    {
         var order = new Order(
             OrderId: "MK-4321",
             CustomerId: Guid.NewGuid(),

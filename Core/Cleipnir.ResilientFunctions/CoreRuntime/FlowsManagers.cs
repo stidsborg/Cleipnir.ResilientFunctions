@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Watchdogs;
 using Cleipnir.ResilientFunctions.Domain;
@@ -15,6 +14,10 @@ namespace Cleipnir.ResilientFunctions.CoreRuntime;
 /// types not registered on this replica are held for the dlq grace period instead of being pushed. Registration
 /// obtains its type's manager through <see cref="GetOrCreate"/>; <see cref="Push"/> groups the
 /// already-deserialized batches by <see cref="StoredId.Type"/> and dispatches to the matching per-type manager.
+///
+/// The dictionary is unsynchronized because it is write-once-then-read-only: every <see cref="GetOrCreate"/> call
+/// happens in the setup delegate FunctionsRegistry.CreateAndStart runs before it starts - and seals - the registry,
+/// so all inserts complete before the MessageWatchdog that reads it is ever launched.
 /// </summary>
 public class FlowsManagers
 {
@@ -23,8 +26,6 @@ public class FlowsManagers
     private readonly IFunctionStore _functionStore;
     private readonly MessageClearer _messageClearer;
     private readonly ClusterInfo _clusterInfo;
-
-    private readonly Lock _lock = new();
 
     internal FlowsManagers(
         IFunctionStore functionStore,
@@ -38,34 +39,24 @@ public class FlowsManagers
 
     public FlowsManager GetOrCreate(StoredType storedType)
     {
-        lock (_lock)
-        {
-            if (_managers.TryGetValue(storedType, out var existing))
-                return existing;
+        if (_managers.TryGetValue(storedType, out var existing))
+            return existing;
 
-            return _managers[storedType] = new FlowsManager(_functionStore, _messageClearer, _clusterInfo);
-        }
+        return _managers[storedType] = new FlowsManager(_functionStore, _messageClearer, _clusterInfo);
     }
 
     /// <summary>
     /// True when the flow type is registered on this replica.
     /// </summary>
-    internal bool IsRegistered(StoredType storedType)
-    {
-        lock (_lock)
-            return _managers.ContainsKey(storedType);
-    }
+    internal bool IsRegistered(StoredType storedType) => _managers.ContainsKey(storedType);
 
     // Every message here belongs to a registered type: the MessageWatchdog checked IsRegistered - against this
     // same dictionary - before deserializing, so the manager lookup cannot miss.
     internal Task Push(IReadOnlyList<IncomingMessage> messages)
     {
-        List<(FlowsManager Manager, List<IncomingMessage> Messages)> registered;
-        lock (_lock)
-            registered = messages
-                .GroupBy(msg => msg.StoredId.Type)
-                .Select(g => (_managers[g.Key], g.ToList()))
-                .ToList();
+        var registered = messages
+            .GroupBy(msg => msg.StoredId.Type)
+            .Select(g => (Manager: _managers[g.Key], Messages: g.ToList()));
 
         return Task.WhenAll(registered.Select(pair => pair.Manager.Push(pair.Messages)));
     }

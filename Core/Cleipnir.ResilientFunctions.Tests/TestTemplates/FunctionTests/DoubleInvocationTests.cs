@@ -21,16 +21,20 @@ public abstract class DoubleInvocationTests
         var (flowType, flowInstance) = functionId;
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         var syncTask = new TaskCompletionSource();
+        FuncRegistration<string, string> rFunc = null!;
         var functionsRegistry = await FunctionsRegistry.CreateAndStart
         (
             store,
             new Settings(
                 unhandledExceptionHandler.Catch
-            )
-        );
-        var rFunc = functionsRegistry.RegisterFunc(
-            flowType,
-            (string input) => syncTask.Task.ContinueWith(_ => input)
+            ),
+            r =>
+            {
+                rFunc = r.RegisterFunc(
+                    flowType,
+                    (string input) => syncTask.Task.ContinueWith(_ => input)
+                );
+            }
         );
         
         var invocationTask = rFunc.Run(flowInstance.Value, param: "Hallo World");
@@ -56,16 +60,20 @@ public abstract class DoubleInvocationTests
         var functionId = TestFlowId.Create();
         var (flowType, flowInstance) = functionId;
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
+        FuncRegistration<string, string> rFunc = null!;
         var functionsRegistry = await FunctionsRegistry.CreateAndStart
         (
             store,
             new Settings(
                 unhandledExceptionHandler.Catch
-            )
-        );
-        var rFunc = functionsRegistry.RegisterFunc(
-            flowType,
-            (string input) => Suspend.Invocation.ToResult<string>().ToTask()
+            ),
+            r =>
+            {
+                rFunc = r.RegisterFunc(
+                    flowType,
+                    (string input) => Suspend.Invocation.ToResult<string>().ToTask()
+                );
+            }
         );
         
         await Safe.Try(() => rFunc.Run(flowInstance.Value, param: "Hallo World"));
@@ -86,16 +94,20 @@ public abstract class DoubleInvocationTests
         var functionId = TestFlowId.Create();
         var (flowType, flowInstance) = functionId;
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
+        FuncRegistration<string, string> rFunc = null!;
         var functionsRegistry = await FunctionsRegistry.CreateAndStart
         (
             store,
             new Settings(
                 unhandledExceptionHandler.Catch
-            )
-        );
-        var rFunc = functionsRegistry.RegisterFunc(
-            flowType,
-            (string input) => Postpone.Until(DateTime.UtcNow.AddMilliseconds(100_000)).ToResult<string>().ToTask()
+            ),
+            r =>
+            {
+                rFunc = r.RegisterFunc(
+                    flowType,
+                    (string input) => Postpone.Until(DateTime.UtcNow.AddMilliseconds(100_000)).ToResult<string>().ToTask()
+                );
+            }
         );
         
         await Safe.Try(() => rFunc.Run(flowInstance.Value, param: "Hallo World"));
@@ -116,16 +128,20 @@ public abstract class DoubleInvocationTests
         var functionId = TestFlowId.Create();
         var (flowType, flowInstance) = functionId;
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
+        FuncRegistration<string, string> rFunc = null!;
         var functionsRegistry = await FunctionsRegistry.CreateAndStart
         (
             store,
             new Settings(
                 unhandledExceptionHandler.Catch
-            )
-        );
-        var rFunc = functionsRegistry.RegisterFunc(
-            flowType,
-            (string input) => Fail.WithException(new InvalidOperationException("Oh no")).ToResult<string>().ToTask()
+            ),
+            r =>
+            {
+                rFunc = r.RegisterFunc(
+                    flowType,
+                    (string input) => Fail.WithException(new InvalidOperationException("Oh no")).ToResult<string>().ToTask()
+                );
+            }
         );
 
         await Safe.Try(() => rFunc.Run(flowInstance.Value, param: "Hallo World"));

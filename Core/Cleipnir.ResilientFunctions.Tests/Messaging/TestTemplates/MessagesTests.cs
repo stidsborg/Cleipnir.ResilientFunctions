@@ -29,15 +29,18 @@ public abstract class MessagesTests
     {
         var functionStore = await functionStoreTask;
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
+        FuncRegistration<string, string> rFunc = null!;
         using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             functionStore,
-            CreateSettings(unhandledExceptionCatcher.Catch)
-        );
-
-        var rFunc = functionsRegistry.RegisterFunc(
-            nameof(MessagesSunshineScenario),
-            inner: async Task<string> (string _, Workflow workflow)
-                => await workflow.Message<string>()
+            CreateSettings(unhandledExceptionCatcher.Catch),
+            r =>
+            {
+                rFunc = r.RegisterFunc(
+                    nameof(MessagesSunshineScenario),
+                    inner: async Task<string> (string _, Workflow workflow)
+                        => await workflow.Message<string>()
+                );
+            }
         );
 
         var scheduled = await rFunc.Schedule("instanceId", "");
@@ -55,15 +58,18 @@ public abstract class MessagesTests
     {
         var functionStore = await functionStoreTask;
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
+        FuncRegistration<string, string?> rFunc = null!;
         using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             functionStore,
-            CreateSettings(unhandledExceptionCatcher.Catch)
-        );
-
-        var rFunc = functionsRegistry.RegisterFunc(
-            nameof(QueueClientReturnsNullAfterTimeout),
-            inner: async Task<string?> (string _, Workflow workflow)
-                => await workflow.Message<string>(TimeSpan.FromMilliseconds(100))
+            CreateSettings(unhandledExceptionCatcher.Catch),
+            r =>
+            {
+                rFunc = r.RegisterFunc(
+                    nameof(QueueClientReturnsNullAfterTimeout),
+                    inner: async Task<string?> (string _, Workflow workflow)
+                        => await workflow.Message<string>(TimeSpan.FromMilliseconds(100))
+                );
+            }
         );
 
         var scheduled = await rFunc.Schedule("instanceId", "");
@@ -79,20 +85,23 @@ public abstract class MessagesTests
     {
         var functionStore = await functionStoreTask;
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
+        FuncRegistration<string, string> rFunc = null!;
         using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             functionStore,
-            CreateSettings(unhandledExceptionCatcher.Catch)
-        );
-
-        var rFunc = functionsRegistry.RegisterFunc(
-            nameof(MessagesFirstOfTypesReturnsNoneForFirstOfTypesOnTimeout),
-            inner: async Task<string> (string _, Workflow workflow) =>
+            CreateSettings(unhandledExceptionCatcher.Catch),
+            r =>
             {
-                var message = await workflow.Message<object>(
-                    filter: m => m is string or int,
-                    waitFor: TimeSpan.Zero
+                rFunc = r.RegisterFunc(
+                    nameof(MessagesFirstOfTypesReturnsNoneForFirstOfTypesOnTimeout),
+                    inner: async Task<string> (string _, Workflow workflow) =>
+                    {
+                        var message = await workflow.Message<object>(
+                            filter: m => m is string or int,
+                            waitFor: TimeSpan.Zero
+                        );
+                        return message == null ? "NONE" : message.ToString()!;
+                    }
                 );
-                return message == null ? "NONE" : message.ToString()!;
             }
         );
 
@@ -109,17 +118,20 @@ public abstract class MessagesTests
     {
         var functionStore = await functionStoreTask;
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
+        FuncRegistration<string, string> rFunc = null!;
         using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             functionStore,
-            CreateSettings(unhandledExceptionCatcher.Catch)
-        );
-
-        var rFunc = functionsRegistry.RegisterFunc(
-            nameof(MessagesFirstOfTypesReturnsFirstForFirstOfTypesOnFirst),
-            inner: async Task<string> (string _, Workflow workflow) =>
+            CreateSettings(unhandledExceptionCatcher.Catch),
+            r =>
             {
-                var message = await workflow.Message<object>(filter: m => m is string or int);
-                return message.ToString()!;
+                rFunc = r.RegisterFunc(
+                    nameof(MessagesFirstOfTypesReturnsFirstForFirstOfTypesOnFirst),
+                    inner: async Task<string> (string _, Workflow workflow) =>
+                    {
+                        var message = await workflow.Message<object>(filter: m => m is string or int);
+                        return message.ToString()!;
+                    }
+                );
             }
         );
 
@@ -137,15 +149,18 @@ public abstract class MessagesTests
     {
         var functionStore = await functionStoreTask;
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
+        FuncRegistration<string, string> rFunc = null!;
         using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             functionStore,
-            CreateSettings(unhandledExceptionCatcher.Catch)
-        );
-
-        var rFunc = functionsRegistry.RegisterFunc(
-            nameof(MessagesFirstOfTypesReturnsSecondForFirstOfTypesOnSecond),
-            inner: async Task<string> (string _, Workflow workflow)
-                => await workflow.Message<string>()
+            CreateSettings(unhandledExceptionCatcher.Catch),
+            r =>
+            {
+                rFunc = r.RegisterFunc(
+                    nameof(MessagesFirstOfTypesReturnsSecondForFirstOfTypesOnSecond),
+                    inner: async Task<string> (string _, Workflow workflow)
+                        => await workflow.Message<string>()
+                );
+            }
         );
 
         var scheduled = await rFunc.Schedule("instanceId", "");
@@ -162,18 +177,21 @@ public abstract class MessagesTests
     {
         var functionStore = await functionStoreTask;
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
+        FuncRegistration<string, Tuple<string, string>> rFunc = null!;
         using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             functionStore,
-            CreateSettings(unhandledExceptionCatcher.Catch)
-        );
-
-        var rFunc = functionsRegistry.RegisterFunc(
-            nameof(SecondEventWithExistingIdempotencyKeyIsIgnored),
-            inner: async Task<Tuple<string, string>> (string _, Workflow workflow) =>
+            CreateSettings(unhandledExceptionCatcher.Catch),
+            r =>
             {
-                var message1 = await workflow.Message<string>();
-                var message2 = await workflow.Message<string>();
-                return Tuple.Create(message1, message2);
+                rFunc = r.RegisterFunc(
+                    nameof(SecondEventWithExistingIdempotencyKeyIsIgnored),
+                    inner: async Task<Tuple<string, string>> (string _, Workflow workflow) =>
+                    {
+                        var message1 = await workflow.Message<string>();
+                        var message2 = await workflow.Message<string>();
+                        return Tuple.Create(message1, message2);
+                    }
+                );
             }
         );
 
@@ -195,18 +213,21 @@ public abstract class MessagesTests
     {
         var functionStore = await functionStoreTask;
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
+        FuncRegistration<string, string> rFunc = null!;
         using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             functionStore,
-            CreateSettings(unhandledExceptionCatcher.Catch)
-        );
-
-        var rFunc = functionsRegistry.RegisterFunc(
-            nameof(QueueClientCanPullMultipleMessages),
-            inner: async Task<string> (string _, Workflow workflow) =>
+            CreateSettings(unhandledExceptionCatcher.Catch),
+            r =>
             {
-                var message1 = await workflow.Message<string>();
-                var message2 = await workflow.Message<string>();
-                return $"{message1},{message2}";
+                rFunc = r.RegisterFunc(
+                    nameof(QueueClientCanPullMultipleMessages),
+                    inner: async Task<string> (string _, Workflow workflow) =>
+                    {
+                        var message1 = await workflow.Message<string>();
+                        var message2 = await workflow.Message<string>();
+                        return $"{message1},{message2}";
+                    }
+                );
             }
         );
 
@@ -229,15 +250,17 @@ public abstract class MessagesTests
         var flowType = TestFlowId.Create().Type;
         var functionStore = await functionStoreTask;
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var registry = await FunctionsRegistry.CreateAndStart(functionStore, CreateSettings(unhandledExceptionCatcher.Catch));
-
-        var registration = registry.RegisterParamless(
-            flowType,
-            async Task (workflow) =>
-            {
-                await workflow.Message<string>();
-            }
-        );
+        ParamlessRegistration registration = null!;
+        using var registry = await FunctionsRegistry.CreateAndStart(functionStore, CreateSettings(unhandledExceptionCatcher.Catch), r =>
+        {
+            registration = r.RegisterParamless(
+                flowType,
+                async Task (workflow) =>
+                {
+                    await workflow.Message<string>();
+                }
+            );
+        });
 
         await registration.Schedule("Instance#1");
         await registration.Schedule("Instance#2");
@@ -263,21 +286,24 @@ public abstract class MessagesTests
         var flowType = TestFlowId.Create().Type;
         var functionStore = await functionStoreTask;
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var registry = await FunctionsRegistry.CreateAndStart(functionStore, CreateSettings(unhandledExceptionCatcher.Catch));
         var messages = new List<string>();
-        var registration = registry.RegisterParamless(
-            flowType,
-            async Task (workflow) =>
-            {
-                while (true)
+        ParamlessRegistration registration = null!;
+        using var registry = await FunctionsRegistry.CreateAndStart(functionStore, CreateSettings(unhandledExceptionCatcher.Catch), r =>
+        {
+            registration = r.RegisterParamless(
+                flowType,
+                async Task (workflow) =>
                 {
-                    var message = await workflow.Message<object>();
-                    if (message is string s)
-                        await workflow.Effect.Capture(() => messages.Add(s));
-                    else
-                        return;
-                }
-            });
+                    while (true)
+                    {
+                        var message = await workflow.Message<object>();
+                        if (message is string s)
+                            await workflow.Effect.Capture(() => messages.Add(s));
+                        else
+                            return;
+                    }
+                });
+        });
 
         var instanceId = "Instance#1";
 
@@ -309,31 +335,32 @@ public abstract class MessagesTests
         functionStore = functionStore.WithPrefix("pingpong" + Guid.NewGuid().ToString("N"));
         await functionStore.Initialize();
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var registry = await FunctionsRegistry.CreateAndStart(functionStore, CreateSettings(unhandledExceptionCatcher.Catch, messagesPullFrequency: TimeSpan.FromMilliseconds(10)));
         ParamlessRegistration pongRegistration = null!;
         ParamlessRegistration pingRegistration = null!;
-
-        pingRegistration = registry.RegisterParamless(
-            "PingFlow",
-            async Task (workflow) =>
-            {
-                for (var i = 0; i < 10; i++)
+        using var registry = await FunctionsRegistry.CreateAndStart(functionStore, CreateSettings(unhandledExceptionCatcher.Catch, messagesPullFrequency: TimeSpan.FromMilliseconds(10)), r =>
+        {
+            pingRegistration = r.RegisterParamless(
+                "PingFlow",
+                async Task (workflow) =>
                 {
-                    await pongRegistration.SendMessage("Pong", new Ping(i), idempotencyKey: $"Pong{i}");
-                    await workflow.Message<Pong>(filter: pong => pong.Number == i);
-                }
-            });
+                    for (var i = 0; i < 10; i++)
+                    {
+                        await pongRegistration.SendMessage("Pong", new Ping(i), idempotencyKey: $"Pong{i}");
+                        await workflow.Message<Pong>(filter: pong => pong.Number == i);
+                    }
+                });
 
-        pongRegistration = registry.RegisterParamless(
-            "PongFlow",
-            async Task (workflow) =>
-            {
-                for (var i = 0; i < 10; i++)
+            pongRegistration = r.RegisterParamless(
+                "PongFlow",
+                async Task (workflow) =>
                 {
-                    await workflow.Message<Ping>(filter: ping => ping.Number == i);
-                    await pingRegistration.SendMessage("Ping", new Pong(i), idempotencyKey: $"Ping{i}");
-                }
-            });
+                    for (var i = 0; i < 10; i++)
+                    {
+                        await workflow.Message<Ping>(filter: ping => ping.Number == i);
+                        await pingRegistration.SendMessage("Ping", new Pong(i), idempotencyKey: $"Ping{i}");
+                    }
+                });
+        });
 
         await pongRegistration.Schedule("Pong");
         await pingRegistration.Schedule("Ping");

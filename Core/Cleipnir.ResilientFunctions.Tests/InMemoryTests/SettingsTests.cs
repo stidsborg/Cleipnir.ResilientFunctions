@@ -18,7 +18,7 @@ public class SettingsTests
         var settings = new Settings(replicaHeartbeatFrequency: heartbeatFrequency);
         var functionStore = new InMemoryFunctionStore();
         
-        var functionsRegistry = await FunctionsRegistry.CreateAndStart(functionStore, settings);
+        var functionsRegistry = await FunctionsRegistry.CreateAndStart(functionStore, settings, _ => { });
 
         var replicaWatchdog = (CoreRuntime.Watchdogs.ReplicaWatchdog) typeof(FunctionsRegistry)
             .GetField("_replicaWatchdog", BindingFlags.Instance | BindingFlags.NonPublic)!

@@ -14,7 +14,7 @@ public class DisposeTests
     [TestMethod]
     public async Task RegisteringFunctionOnDisposedRFunctionsThrowsException()
     {
-        var rFunctions = await FunctionsRegistry.CreateAndStart(new InMemoryFunctionStore());
+        var rFunctions = await FunctionsRegistry.CreateAndStart(new InMemoryFunctionStore(), _ => { });
         rFunctions.Dispose();
 
         Should.Throw<ObjectDisposedException>(() =>

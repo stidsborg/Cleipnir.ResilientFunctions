@@ -15,49 +15,57 @@ public class DirectInvocationTest
         var store = await helper.CreateFunctionStore();
         
         Console.WriteLine("DIRECT_INVOCATION_TEST: Starting now...");
+        FuncRegistration<string, string> rFunc1 = null!;
         using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             store,
             new Settings(
                 unhandledExceptionHandler: Console.WriteLine
-            )
-        );
-        var rFunc1 = functionsRegistry.RegisterFunc(
-            "DirectInvocationTest",
-            async Task<string> (string param, Workflow workflow) =>
+            ),
+            r =>
             {
-                try
-                {
-                    await workflow.AppendMessage(param);
+                rFunc1 = r.RegisterFunc(
+                    "DirectInvocationTest",
+                    async Task<string> (string param, Workflow workflow) =>
+                    {
+                        try
+                        {
+                            await workflow.AppendMessage(param);
 
-                    return await workflow.Message<string>();
-                }
-                catch (Exception exception)
-                {
-                    Console.WriteLine(exception);
-                    throw;
-                }
+                            return await workflow.Message<string>();
+                        }
+                        catch (Exception exception)
+                        {
+                            Console.WriteLine(exception);
+                            throw;
+                        }
+                    }
+                );
             }
         );
         
+        FuncRegistration<string, string> rFunc2 = null!;
         using var functionsRegistry2 = await FunctionsRegistry.CreateAndStart(
             store,
-            new Settings(unhandledExceptionHandler: Console.WriteLine)
-        );
-        var rFunc2 = functionsRegistry2.RegisterFunc(
-            "DirectInvocationTest",
-            async Task<string> (string param, Workflow workflow) =>
+            new Settings(unhandledExceptionHandler: Console.WriteLine),
+            r =>
             {
-                try
-                {
-                    await workflow.AppendMessage(param);
+                rFunc2 = r.RegisterFunc(
+                    "DirectInvocationTest",
+                    async Task<string> (string param, Workflow workflow) =>
+                    {
+                        try
+                        {
+                            await workflow.AppendMessage(param);
 
-                    return await workflow.Message<string>();
-                }
-                catch (Exception exception)
-                {
-                    Console.WriteLine(exception);
-                    throw;
-                }
+                            return await workflow.Message<string>();
+                        }
+                        catch (Exception exception)
+                        {
+                            Console.WriteLine(exception);
+                            throw;
+                        }
+                    }
+                );
             }
         );
 

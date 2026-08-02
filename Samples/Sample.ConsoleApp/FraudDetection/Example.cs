@@ -14,16 +14,16 @@ public static class Example
     {
         var store = new InMemoryFunctionStore();
         
-        var functions = await FunctionsRegistry.CreateAndStart(
+        var (functions, registration) = await FunctionsRegistry.CreateAndStart(
             store,
-            new Settings(unhandledExceptionHandler: Console.WriteLine)
-        );
-
-        var rFunc = functions
-            .RegisterFunc<Transaction, bool>(
+            new Settings(unhandledExceptionHandler: Console.WriteLine),
+            registry => registry.RegisterFunc<Transaction, bool>(
                 "FraudDetection",
                 Saga.StartFraudDetection
-            ).Run;
+            )
+        );
+
+        var rFunc = registration.Run;
 
         var transaction = new Transaction(
             Id: "someId",
@@ -49,16 +49,14 @@ public static class Example
         
         var store = new InMemoryFunctionStore();
         
-        var functions = await FunctionsRegistry.CreateAndStart(
+        var (functions, registration) = await FunctionsRegistry.CreateAndStart(
             store,
-            new Settings(unhandledExceptionHandler: Console.WriteLine)
-        );
-
-        var registration = functions
-            .RegisterFunc<Transaction, bool>(
+            new Settings(unhandledExceptionHandler: Console.WriteLine),
+            registry => registry.RegisterFunc<Transaction, bool>(
                 "FraudDetection",
                 Saga.StartFraudDetection
-            );
+            )
+        );
         var rFunc = registration.Run;
 
         MessageBroker.Subscribe(async events =>

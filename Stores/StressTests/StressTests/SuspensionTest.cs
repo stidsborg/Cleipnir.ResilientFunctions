@@ -21,16 +21,20 @@ public static class SuspensionTest
         var stopWatch = new Stopwatch();
         stopWatch.Start();
         
+        ActionRegistration<string> registration = null!;
         using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             store,
-            new Settings(unhandledExceptionHandler: Console.WriteLine)
-        );        
-        var registration = functionsRegistry.RegisterAction(
-            "SuspensionTest",
-            async Task (string param, Workflow workflow) =>
+            new Settings(unhandledExceptionHandler: Console.WriteLine),
+            r =>
             {
-                await workflow.Message<object>();;
-                await workflow.Effect.Capture(() => param);
+                registration = r.RegisterAction(
+                    "SuspensionTest",
+                    async Task (string param, Workflow workflow) =>
+                    {
+                        await workflow.Message<object>();;
+                        await workflow.Effect.Capture(() => param);
+                    }
+                );
             }
         );
         

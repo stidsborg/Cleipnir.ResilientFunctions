@@ -52,16 +52,22 @@ public static class Example
         Console.WriteLine("Started: " + store.GetType().Name);
         
         await store.Initialize();
-        var registry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionHandler: Console.WriteLine));
-        
-        var processOrder = registry.RegisterAction<string>(
-            "ProcessOrder",
-            ProcessOrder.Execute
-        );
-        ProcessOrders.ProcessOrder = processOrder;
-        var processOrders = registry.RegisterAction<List<string>>(
-            "ProcessOrders",
-            ProcessOrders.Execute
+        ActionRegistration<List<string>> processOrders = null!;
+        var registry = await FunctionsRegistry.CreateAndStart(
+            store,
+            new Settings(unhandledExceptionHandler: Console.WriteLine),
+            functions =>
+            {
+                var processOrder = functions.RegisterAction<string>(
+                    "ProcessOrder",
+                    ProcessOrder.Execute
+                );
+                ProcessOrders.ProcessOrder = processOrder;
+                processOrders = functions.RegisterAction<List<string>>(
+                    "ProcessOrders",
+                    ProcessOrders.Execute
+                );
+            }
         );
         
         var orderIds = Enumerable

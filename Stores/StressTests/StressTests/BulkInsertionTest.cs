@@ -24,40 +24,49 @@ public static class BulkInsertionTest
         
         using var functionsRegistry1 = await FunctionsRegistry.CreateAndStart(
             store,
-            new Settings(unhandledExceptionHandler: Console.WriteLine)
-        );
-        functionsRegistry1.RegisterAction(
-            flowType,
-            Task (string param) =>
+            new Settings(unhandledExceptionHandler: Console.WriteLine),
+            r =>
             {
-                bag.Add(1);
-                return Task.CompletedTask;
+                r.RegisterAction(
+                    flowType,
+                    Task (string param) =>
+                    {
+                        bag.Add(1);
+                        return Task.CompletedTask;
+                    }
+                );
             }
         );
         
         using var functionsRegistry2 = await FunctionsRegistry.CreateAndStart(
             store,
-            new Settings(unhandledExceptionHandler: Console.WriteLine)
-        );
-        functionsRegistry2.RegisterAction(
-            flowType,
-            Task (string param) =>
+            new Settings(unhandledExceptionHandler: Console.WriteLine),
+            r =>
             {
-                bag.Add(2);
-                return Task.CompletedTask;
+                r.RegisterAction(
+                    flowType,
+                    Task (string param) =>
+                    {
+                        bag.Add(2);
+                        return Task.CompletedTask;
+                    }
+                );
             }
         );
         
         using var functionsRegistry3 = await FunctionsRegistry.CreateAndStart(
             store,
-            new Settings(unhandledExceptionHandler: Console.WriteLine)
-        );
-        functionsRegistry3.RegisterAction(
-            flowType,
-            Task (string param) =>
+            new Settings(unhandledExceptionHandler: Console.WriteLine),
+            r =>
             {
-                bag.Add(3);
-                return Task.CompletedTask;
+                r.RegisterAction(
+                    flowType,
+                    Task (string param) =>
+                    {
+                        bag.Add(3);
+                        return Task.CompletedTask;
+                    }
+                );
             }
         );
         

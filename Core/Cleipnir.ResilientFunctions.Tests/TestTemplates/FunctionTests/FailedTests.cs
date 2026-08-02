@@ -32,21 +32,25 @@ public abstract class FailedTests
         var (flowType, flowInstance) = functionId;
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         {
+            ActionRegistration<string> actionRegistration = null!;
             using var functionsRegistry = await FunctionsRegistry.CreateAndStart
             (
                 store,
                 new Settings(
                     unhandledExceptionHandler.Catch
-                )
+                ),
+                r =>
+                {
+                    actionRegistration = r
+                        .RegisterAction(
+                            flowType,
+                            (string _) =>
+                                throwUnhandledException
+                                    ? throw new InvalidOperationException()
+                                    : Task.FromException(new InvalidOperationException())
+                        );
+                }
             );
-            var actionRegistration = functionsRegistry
-                .RegisterAction(
-                    flowType,
-                    (string _) =>
-                        throwUnhandledException
-                            ? throw new InvalidOperationException()
-                            : Task.FromException(new InvalidOperationException())
-                );
 
             await Should.ThrowAsync<FatalWorkflowException>(async () => await actionRegistration.Run(flowInstance.ToString(), Param));
             var sf = await store.GetFunction(actionRegistration.MapToStoredId(functionId.Instance));
@@ -54,19 +58,23 @@ public abstract class FailedTests
         }
         {
             var flag = new SyncedFlag();
+            FuncRegistration<string, string> rFunc = null!;
             using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
                 store,
                 new Settings(
                     unhandledExceptionHandler.Catch,
                     watchdogCheckFrequency: TimeSpan.FromMilliseconds(1_000)
-                )
-            );
-            var rFunc = functionsRegistry.RegisterFunc(
-                flowType,
-                (string s) =>
+                ),
+                r =>
                 {
-                    flag.Raise();
-                    return s.ToUpper().ToTask();
+                    rFunc = r.RegisterFunc(
+                        flowType,
+                        (string s) =>
+                        {
+                            flag.Raise();
+                            return s.ToUpper().ToTask();
+                        }
+                    );
                 }
             );
             await Task.Delay(250);
@@ -100,41 +108,49 @@ public abstract class FailedTests
         var flowType = callerMemberName.ToFlowType();
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         {
+            ActionRegistration<string> registration = null!;
             using var functionsRegistry = await FunctionsRegistry.CreateAndStart
             (
                 store,
                 new Settings(
                     unhandledExceptionHandler.Catch
-                )
+                ),
+                r =>
+                {
+                    registration = r
+                        .RegisterAction(
+                            flowType,
+                            (string _) =>
+                                throwUnhandledException
+                                    ? throw new InvalidOperationException()
+                                    : Task.FromException(new InvalidOperationException())
+                        );
+                }
             );
-            var nonCompletingFunctionsRegistry = functionsRegistry
-                .RegisterAction(
-                    flowType,
-                    (string _) =>
-                        throwUnhandledException
-                            ? throw new InvalidOperationException()
-                            : Task.FromException(new InvalidOperationException())
-                )
-                .Run;
+            var nonCompletingFunctionsRegistry = registration.Run;
 
             await Should.ThrowAsync<Exception>(() => nonCompletingFunctionsRegistry(Param, Param));
         }
         {
             var flag = new SyncedFlag();
+            ActionRegistration<string> rAction = null!;
             using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
                     store,
                     new Settings(
                         unhandledExceptionHandler.Catch,
                         watchdogCheckFrequency: TimeSpan.FromMilliseconds(100)
-                    )
+                    ),
+                    r =>
+                    {
+                        rAction = r.RegisterAction(flowType,
+                            (string _) =>
+                            {
+                                flag.Raise();
+                                return Task.CompletedTask;
+                            }
+                        );
+                    }
                 );
-            var rAction = functionsRegistry.RegisterAction(flowType,
-                (string _) =>
-                {
-                    flag.Raise();
-                    return Task.CompletedTask;
-                }
-            );
 
             await Task.Delay(250);
             flag.Position.ShouldBe(Lowered);
@@ -159,39 +175,47 @@ public abstract class FailedTests
         var (flowType, flowInstance) = functionId;
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         {
+            ActionRegistration<string> registration = null!;
             using var functionsRegistry = await FunctionsRegistry.CreateAndStart
             (
                 store,
                 new Settings(
                     unhandledExceptionHandler.Catch
-                )
+                ),
+                r =>
+                {
+                    registration = r
+                        .RegisterAction(
+                            flowType,
+                            (string _) => Task.FromException(new InvalidOperationException())
+                        );
+                }
             );
-            var nonCompletingFunctionsRegistry = functionsRegistry 
-                .RegisterAction(
-                    flowType,
-                    (string _) => Task.FromException(new InvalidOperationException())
-                )
-                .Run;
+            var nonCompletingFunctionsRegistry = registration.Run;
 
             await Should.ThrowAsync<Exception>(nonCompletingFunctionsRegistry(flowInstance.ToString(), Param));
         }
         {
             var flag = new SyncedFlag();
+            ActionRegistration<string> rFunc = null!;
             using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
                 store,
                 new Settings(
                     unhandledExceptionHandler.Catch,
                     watchdogCheckFrequency: TimeSpan.FromMilliseconds(100)
-                )
+                ),
+                r =>
+                {
+                    rFunc = r
+                        .RegisterAction(
+                            flowType,
+                            inner: (string _) =>
+                            {
+                                flag.Raise();
+                                return Task.CompletedTask;
+                            });
+                }
             );
-            var rFunc = functionsRegistry
-                .RegisterAction(
-                    flowType,
-                    inner: (string _) =>
-                    {
-                        flag.Raise();
-                        return Task.CompletedTask;
-                    });
             await Task.Delay(250);
             flag.Position.ShouldBe(Lowered);
 
@@ -212,21 +236,25 @@ public abstract class FailedTests
         var flowType = nameof(ExceptionThrowingActionIsNotCompletedByWatchDog).ToFlowType();
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         var flag = new SyncedFlag();
+        ActionRegistration<string> registration = null!;
         using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             store,
             new Settings(
                 unhandledExceptionHandler.Catch,
                 watchdogCheckFrequency: TimeSpan.FromMilliseconds(2)
-            )
+            ),
+            r =>
+            {
+                registration = r
+                    .RegisterAction(
+                        flowType,
+                        inner: (string _) =>
+                        {
+                            flag.Raise();
+                            return Task.CompletedTask;
+                        });
+            }
         );
-        var registration = functionsRegistry
-            .RegisterAction(
-                flowType,
-                inner: (string _) =>
-                {
-                    flag.Raise();
-                    return Task.CompletedTask;
-                });
         await Task.Delay(100);
         flag.Position.ShouldBe(Lowered);
 
@@ -255,33 +283,42 @@ public abstract class FailedTests
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         const string param = "test";
         {
+            ActionRegistration<string> registration = null!;
             using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
                 store,
-                new Settings(unhandledExceptionHandler.Catch)
+                new Settings(unhandledExceptionHandler.Catch),
+                r =>
+                {
+                    registration = r
+                        .RegisterAction(
+                            flowType,
+                            (string _) =>
+                                throwUnhandledException
+                                    ? throw new InvalidOperationException()
+                                    : Task.FromException(new InvalidOperationException())
+                        );
+                }
             );
-            var nonCompletingFunctionsRegistry = functionsRegistry 
-                .RegisterAction(
-                    flowType,
-                    (string _) =>
-                        throwUnhandledException
-                            ? throw new InvalidOperationException()
-                            : Task.FromException(new InvalidOperationException())
-                ).Run;
+            var nonCompletingFunctionsRegistry = registration.Run;
 
             await Should.ThrowAsync<Exception>(() => nonCompletingFunctionsRegistry(flowInstance.ToString(), param));
         }
         {
             var flag = new SyncedFlag();
+            ActionRegistration<string> rFunc = null!;
             using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
                 store,
-                new Settings(unhandledExceptionHandler.Catch)
-            );
-            var rFunc = functionsRegistry.RegisterAction(
-                flowType,
-                (string _) =>
+                new Settings(unhandledExceptionHandler.Catch),
+                r =>
                 {
-                    flag.Raise();
-                    return Succeed.WithUnit.ToTask();
+                    rFunc = r.RegisterAction(
+                        flowType,
+                        (string _) =>
+                        {
+                            flag.Raise();
+                            return Succeed.WithUnit.ToTask();
+                        }
+                    );
                 }
             );
 

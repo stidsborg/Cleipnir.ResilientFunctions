@@ -12,11 +12,13 @@ public static class HelloWorldExample
     public static async Task Do()
     {
         var store = new InMemoryFunctionStore();
-        var functions = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionHandler: Console.WriteLine));
-
-        var registration = functions.RegisterFunc(
-            flowType: "HelloWorld",
-            inner: (string param) => param.ToUpper().ToTask()
+        var (functions, registration) = await FunctionsRegistry.CreateAndStart(
+            store,
+            new Settings(unhandledExceptionHandler: Console.WriteLine),
+            registry => registry.RegisterFunc(
+                flowType: "HelloWorld",
+                inner: (string param) => param.ToUpper().ToTask()
+            )
         );
 
         var returned = await registration.Run(flowInstance: "", param: "hello world");
