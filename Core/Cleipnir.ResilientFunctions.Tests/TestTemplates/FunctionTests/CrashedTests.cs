@@ -23,23 +23,36 @@ public abstract class CrashedTests
         const string param = "test";
         {
             var crashableStore = store.ToCrashableFunctionStore();
-            var registry = await FunctionsRegistry.CreateAndStart(crashableStore);
-            var func = registry
-                .RegisterFunc(
-                    flowType,
-                    (string _) => NeverCompletingTask.OfType<string>()
-                ).Schedule;
+            FuncRegistration<string, string> registration = null!;
+            var registry = await FunctionsRegistry.CreateAndStart(
+                crashableStore,
+                r =>
+                {
+                    registration = r
+                        .RegisterFunc(
+                            flowType,
+                            (string _) => NeverCompletingTask.OfType<string>()
+                        );
+                }
+            );
+            var func = registration.Schedule;
 
             await func(flowInstance.Value, param);
             crashableStore.Crash();
         }
         {
-            using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store);
-            var registration = functionsRegistry
-                .RegisterFunc(
-                    flowType,
-                    (string s) => s.ToUpper().ToTask()
-                );
+            FuncRegistration<string, string> registration = null!;
+            using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
+                store,
+                r =>
+                {
+                    registration = r
+                        .RegisterFunc(
+                            flowType,
+                            (string s) => s.ToUpper().ToTask()
+                        );
+                }
+            );
             var rFunc = registration.Run;
             
             await BusyWait.Until(
@@ -63,22 +76,35 @@ public abstract class CrashedTests
         const string param = "test";
         {
             var crashableStore = store.ToCrashableFunctionStore();
-            using var nonCompletingFunctionsRegistry = await FunctionsRegistry.CreateAndStart(crashableStore);
+            ActionRegistration<string> registration = null!;
+            using var nonCompletingFunctionsRegistry = await FunctionsRegistry.CreateAndStart(
+                crashableStore,
+                r =>
+                {
+                    registration = r.RegisterAction(
+                        flowType,
+                        (string _) => NeverCompletingTask.OfVoidType
+                    );
+                }
+            );
 
-            await nonCompletingFunctionsRegistry.RegisterAction(
-                flowType,
-                (string _) => NeverCompletingTask.OfVoidType
-            ).Schedule(flowInstance, param);
+            await registration.Schedule(flowInstance, param);
             crashableStore.Crash();
         }
         {
-            using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store);
+            ActionRegistration<string> registration = null!;
+            using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
+                store,
+                r =>
+                {
+                    registration = r
+                        .RegisterAction(
+                            flowType,
+                            (string _) => Task.CompletedTask
+                        );
+                }
+            );
 
-            var registration = functionsRegistry
-                .RegisterAction(
-                    flowType,
-                    (string _) => Task.CompletedTask
-                );
             var rAction = registration.Run;
             
             await BusyWait.Until(

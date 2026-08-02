@@ -16,17 +16,23 @@ public abstract class EffectImplicitIdTests
     public async Task SunshineActionTest(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store);
         var flowId = TestFlowId.Create();
         var (flowType, flowInstance) = flowId;
         var syncedCounter = new SyncedCounter();
-        var rAction = functionsRegistry.RegisterAction(
-            flowType,
-            async Task(string param, Workflow workflow) =>
+        ActionRegistration<string> rAction = null!;
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
+            store,
+            r =>
             {
-                var effect = workflow.Effect;
-                await effect.Capture(syncedCounter.Increment);
-            });
+                rAction = r.RegisterAction(
+                    flowType,
+                    async Task(string param, Workflow workflow) =>
+                    {
+                        var effect = workflow.Effect;
+                        await effect.Capture(syncedCounter.Increment);
+                    });
+            }
+        );
 
         await rAction.Schedule(flowInstance.ToString(), "hello");
 
@@ -51,17 +57,23 @@ public abstract class EffectImplicitIdTests
     public async Task SunshineAsyncActionTest(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store);
         var flowId = TestFlowId.Create();
         var (flowType, flowInstance) = flowId;
         var syncedCounter = new SyncedCounter();
-        var rAction = functionsRegistry.RegisterAction(
-            flowType,
-            async Task(string param, Workflow workflow) =>
+        ActionRegistration<string> rAction = null!;
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
+            store,
+            r =>
             {
-                var effect = workflow.Effect;
-                await effect.Capture(() => { syncedCounter.Increment(); return Task.CompletedTask; });
-            });
+                rAction = r.RegisterAction(
+                    flowType,
+                    async Task(string param, Workflow workflow) =>
+                    {
+                        var effect = workflow.Effect;
+                        await effect.Capture(() => { syncedCounter.Increment(); return Task.CompletedTask; });
+                    });
+            }
+        );
 
         await rAction.Schedule(flowInstance.ToString(), "hello");
 
@@ -86,22 +98,28 @@ public abstract class EffectImplicitIdTests
     public async Task SunshineFuncTest(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store);
         var flowId = TestFlowId.Create();
         var (flowType, flowInstance) = flowId;
         var syncedCounter = new SyncedCounter();
-        var rAction = functionsRegistry.RegisterAction(
-            flowType,
-            async Task(string param, Workflow workflow) =>
+        ActionRegistration<string> rAction = null!;
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
+            store,
+            r =>
             {
-                var effect = workflow.Effect;
-                await effect.Capture(
-                    () =>
+                rAction = r.RegisterAction(
+                    flowType,
+                    async Task(string param, Workflow workflow) =>
                     {
-                        syncedCounter.Increment();
-                        return param;
+                        var effect = workflow.Effect;
+                        await effect.Capture(
+                            () =>
+                            {
+                                syncedCounter.Increment();
+                                return param;
+                            });
                     });
-            });
+            }
+        );
 
         await rAction.Schedule(flowInstance.ToString(), param: "hello");
 
@@ -130,22 +148,28 @@ public abstract class EffectImplicitIdTests
     public async Task SunshineAsyncFuncTest(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store);
         var flowId = TestFlowId.Create();
         var (flowType, flowInstance) = flowId;
         var syncedCounter = new SyncedCounter();
-        var rAction = functionsRegistry.RegisterAction(
-            flowType,
-            async Task(string param, Workflow workflow) =>
+        ActionRegistration<string> rAction = null!;
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
+            store,
+            r =>
             {
-                var effect = workflow.Effect;
-                await effect.Capture(
-                    work: () =>
+                rAction = r.RegisterAction(
+                    flowType,
+                    async Task(string param, Workflow workflow) =>
                     {
-                        syncedCounter.Increment();
-                        return param.ToTask();
+                        var effect = workflow.Effect;
+                        await effect.Capture(
+                            work: () =>
+                            {
+                                syncedCounter.Increment();
+                                return param.ToTask();
+                            });
                     });
-            });
+            }
+        );
 
         await rAction.Schedule(flowInstance.ToString(), param: "hello");
 
@@ -174,22 +198,28 @@ public abstract class EffectImplicitIdTests
     public async Task ExceptionThrowingActionTest(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store);
         var flowId = TestFlowId.Create();
         var (flowType, flowInstance) = flowId;
         var syncedCounter = new SyncedCounter();
-        var rAction = functionsRegistry.RegisterAction(
-            flowType,
-            async Task(string param, Workflow workflow) =>
+        ActionRegistration<string> rAction = null!;
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
+            store,
+            r =>
             {
-                var effect = workflow.Effect;
-                await effect.Capture(
-                    work: () =>
+                rAction = r.RegisterAction(
+                    flowType,
+                    async Task(string param, Workflow workflow) =>
                     {
-                        syncedCounter.Increment();
-                        throw new InvalidOperationException("oh no");
+                        var effect = workflow.Effect;
+                        await effect.Capture(
+                            work: () =>
+                            {
+                                syncedCounter.Increment();
+                                throw new InvalidOperationException("oh no");
+                            });
                     });
-            });
+            }
+        );
 
         await rAction.Schedule(flowInstance.ToString(), "hello");
 
@@ -220,18 +250,24 @@ public abstract class EffectImplicitIdTests
     public async Task TaskWhenAnyFuncTest(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store);
         var flowId = TestFlowId.Create();
         var (flowType, flowInstance) = flowId;
-        var rAction = functionsRegistry.RegisterFunc(
-            flowType,
-            async Task<int> (string param, Workflow workflow) =>
+        FuncRegistration<string, int> rAction = null!;
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
+            store,
+            r =>
             {
-                var effect = workflow.Effect;
-                var t1 = new Task<int>(() => 1);
-                var t2 = Task.FromResult(2);
-                return await effect.Capture(async () => await await Task.WhenAny(t1, t2));
-            });
+                rAction = r.RegisterFunc(
+                    flowType,
+                    async Task<int> (string param, Workflow workflow) =>
+                    {
+                        var effect = workflow.Effect;
+                        var t1 = new Task<int>(() => 1);
+                        var t2 = Task.FromResult(2);
+                        return await effect.Capture(async () => await await Task.WhenAny(t1, t2));
+                    });
+            }
+        );
 
         var result = await rAction.Run(flowInstance.ToString(), param: "hello");
         result.ShouldBe(2);
@@ -246,18 +282,24 @@ public abstract class EffectImplicitIdTests
     public async Task TaskWhenAllFuncTest(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store);
         var flowId = TestFlowId.Create();
         var (flowType, flowInstance) = flowId;
-        var rAction = functionsRegistry.RegisterFunc(
-            flowType,
-            async Task<int[]> (string param, Workflow workflow) =>
+        FuncRegistration<string, int[]> rAction = null!;
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
+            store,
+            r =>
             {
-                var effect = workflow.Effect;
-                var t1 = Task.FromResult(1);
-                var t2 = Task.FromResult(2);
-                return await effect.Capture(() =>Task.WhenAll(t1, t2));
-            });
+                rAction = r.RegisterFunc(
+                    flowType,
+                    async Task<int[]> (string param, Workflow workflow) =>
+                    {
+                        var effect = workflow.Effect;
+                        var t1 = Task.FromResult(1);
+                        var t2 = Task.FromResult(2);
+                        return await effect.Capture(() =>Task.WhenAll(t1, t2));
+                    });
+            }
+        );
 
         var result = await rAction.Run(flowInstance.ToString(), param: "hello");
         result.ShouldBe(new [] { 1, 2 });
@@ -272,17 +314,23 @@ public abstract class EffectImplicitIdTests
     public async Task MultipleEffectsTest(Task<IFunctionStore> storeTask)
     {
         var store = await storeTask;
-        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store);
         var flowId = TestFlowId.Create();
         var (flowType, flowInstance) = flowId;
-        var registration = functionsRegistry.RegisterAction(
-            flowType,
-            async Task(string _, Workflow workflow) =>
+        ActionRegistration<string> registration = null!;
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
+            store,
+            r =>
             {
-                var effect = workflow.Effect;
-                await effect.Capture(() => "0");
-                await effect.Capture(() => "1");
-            });
+                registration = r.RegisterAction(
+                    flowType,
+                    async Task(string _, Workflow workflow) =>
+                    {
+                        var effect = workflow.Effect;
+                        await effect.Capture(() => "0");
+                        await effect.Capture(() => "1");
+                    });
+            }
+        );
 
         await registration.Run(flowInstance.ToString(), "hello");
         

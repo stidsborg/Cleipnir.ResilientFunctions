@@ -20,18 +20,25 @@ public static class PaymentProviderExample
     private static async Task Version1()
     {
         var crashableStore = new CrashableFunctionStore(Store);
-        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(crashableStore);
-
-        var rAction = functionsRegistry.RegisterAction(
-            "SaveOrder",
-            async Task (Order order) =>
+        ActionRegistration<Order> registration = null!;
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
+            crashableStore,
+            functions =>
             {
-                await PaymentProviderV1.Reserve(order.TransactionId);
-                await PaymentProviderV1.Capture(order.TransactionId);
-                await NeverCompletingTask.OfVoidType;
-                await SaveToDatabase(order);
-            }).Schedule;
-        
+                registration = functions.RegisterAction(
+                    "SaveOrder",
+                    async Task (Order order) =>
+                    {
+                        await PaymentProviderV1.Reserve(order.TransactionId);
+                        await PaymentProviderV1.Capture(order.TransactionId);
+                        await NeverCompletingTask.OfVoidType;
+                        await SaveToDatabase(order);
+                    });
+            }
+        );
+
+        var rAction = registration.Schedule;
+
         await rAction(
             "order1",
             new Order(Version: 1, OrderNumber: "order#1", TransactionId: Guid.NewGuid())
@@ -41,32 +48,37 @@ public static class PaymentProviderExample
 
     private static async Task Version2()
     {
+        ActionRegistration<Order> registration = null!;
         using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
-            Store, 
+            Store,
             new Settings(
                 unhandledExceptionHandler: Console.WriteLine
-            )
+            ),
+            functions =>
+            {
+                registration = functions.RegisterAction(
+                    "SaveOrder",
+                    async Task(Order order) =>
+                    {
+                        if (order.Version == 1)
+                        {
+                            await PaymentProviderV1.Reserve(order.TransactionId);
+                            await PaymentProviderV1.Capture(order.TransactionId);
+                        }
+                        else // (order.Version == 2)
+                        {
+                            await PaymentProviderV2.Reserve(order.TransactionId);
+                            await PaymentProviderV2.Capture(order.TransactionId);
+                        }
+
+                        await SaveToDatabase(order);
+                        Console.WriteLine($"Completed order of type: '{order.GetType().Name}'");
+                    }
+                );
+            }
         );
 
-        var rAction = functionsRegistry.RegisterAction(
-            "SaveOrder",
-            async Task(Order order) =>
-            {
-                if (order.Version == 1)
-                {
-                    await PaymentProviderV1.Reserve(order.TransactionId);
-                    await PaymentProviderV1.Capture(order.TransactionId);
-                }
-                else // (order.Version == 2)
-                {
-                    await PaymentProviderV2.Reserve(order.TransactionId);
-                    await PaymentProviderV2.Capture(order.TransactionId);
-                }
-
-                await SaveToDatabase(order);
-                Console.WriteLine($"Completed order of type: '{order.GetType().Name}'");
-            }
-        ).Schedule;
+        var rAction = registration.Schedule;
 
         Console.WriteLine("Press enter to invoke V2");
         Console.ReadLine();

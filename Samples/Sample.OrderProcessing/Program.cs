@@ -17,15 +17,16 @@ internal static class Program
         var store = new PostgreSqlFunctionStore(connStr);
         await store.Initialize();
         await store.TruncateTables();
-        var functionsRegistry = await FunctionsRegistry.CreateAndStart(
+        var (functionsRegistry, orderProcessing) = await FunctionsRegistry.CreateAndStart(
             store,
             new Settings(
                 unhandledExceptionHandler: e => Log.Logger.Error(e, "Unhandled framework exception occured")
-            )
+            ),
+            registry => Messaging.Do.Register(registry)
         );
-        
-        //await Rpc.Do.Execute(rFunctions);
-        await Messaging.Do.Execute(functionsRegistry);
+
+        //for the rpc variant instead: register with `registry => Rpc.Do.Register(registry)` above and run Rpc.Do.Execute here
+        await Messaging.Do.Execute(orderProcessing);
         Console.WriteLine("Press enter to exit");
         Console.ReadLine();
     }

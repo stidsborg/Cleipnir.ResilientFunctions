@@ -18,13 +18,19 @@ public class RActionWithStateRegistrationTests
     [TestMethod]
     public async Task ConstructedFuncInvokeCanBeCreatedAndInvoked()
     {
-        using var rFunctions = await FunctionsRegistry.CreateAndStart(new InMemoryFunctionStore());
-        var rAction = rFunctions
-            .RegisterAction<string>(
-                _flowType,
-                InnerAction
-            )
-            .Run;
+        ActionRegistration<string> registration = null!;
+        using var rFunctions = await FunctionsRegistry.CreateAndStart(
+            new InMemoryFunctionStore(),
+            r =>
+            {
+                registration = r
+                    .RegisterAction<string>(
+                        _flowType,
+                        InnerAction
+                    );
+            }
+        );
+        var rAction = registration.Run;
 
         await rAction(flowInstance, "hello world");
     }
@@ -33,8 +39,13 @@ public class RActionWithStateRegistrationTests
     public async Task ConstructedFuncWithCustomSerializerCanBeCreatedAndInvoked()
     {
         var serializer = new Serializer();
-        using var rFunctions = await FunctionsRegistry.CreateAndStart(new InMemoryFunctionStore(), new Settings(serializer: serializer));
-        var rAction = rFunctions.RegisterAction<string>(_flowType, InnerAction).Run;
+        ActionRegistration<string> registration = null!;
+        using var rFunctions = await FunctionsRegistry.CreateAndStart(
+            new InMemoryFunctionStore(),
+            new Settings(serializer: serializer),
+            r => { registration = r.RegisterAction<string>(_flowType, InnerAction); }
+        );
+        var rAction = registration.Run;
 
         await rAction(flowInstance, "hello world");
         serializer.Invoked.ShouldBeTrue();

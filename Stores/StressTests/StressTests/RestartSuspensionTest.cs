@@ -20,16 +20,20 @@ public static class RestartSuspensionTest
         var stopWatch = new Stopwatch();
         stopWatch.Start();
         
+        ParamlessRegistration registration = null!;
         using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             store,
-            new Settings(unhandledExceptionHandler: Console.WriteLine)
-        );        
-        var registration = functionsRegistry.RegisterParamless(
-            "SuspensionTest",
-            async Task (workflow) =>
+            new Settings(unhandledExceptionHandler: Console.WriteLine),
+            r =>
             {
-                await workflow.Message<object>();
-                await workflow.Effect.Capture(() => Guid.NewGuid());
+                registration = r.RegisterParamless(
+                    "SuspensionTest",
+                    async Task (workflow) =>
+                    {
+                        await workflow.Message<object>();
+                        await workflow.Effect.Capture(() => Guid.NewGuid());
+                    }
+                );
             }
         );
         

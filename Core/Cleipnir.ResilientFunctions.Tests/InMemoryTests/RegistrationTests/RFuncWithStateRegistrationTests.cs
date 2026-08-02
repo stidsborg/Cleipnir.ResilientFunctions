@@ -17,13 +17,18 @@ public class RFuncWithStateRegistrationTests
     [TestMethod]
     public async Task ConstructedFuncInvokeCanBeCreatedAndInvoked()
     {
-        using var rFunctions = await CreateRFunctions();
-        var rFunc = rFunctions
-            .RegisterFunc<string, string>(
-                _flowType,
-                InnerFunc
-            )
-            .Run;
+        FuncRegistration<string, string> registration = null!;
+        using var rFunctions = await CreateRFunctions(
+            r =>
+            {
+                registration = r
+                    .RegisterFunc<string, string>(
+                        _flowType,
+                        InnerFunc
+                    );
+            }
+        );
+        var rFunc = registration.Run;
 
         var result = await rFunc(flowInstance, "hello world");
         result.ShouldBe("HELLO WORLD");
@@ -33,12 +38,14 @@ public class RFuncWithStateRegistrationTests
     public async Task ConstructedFuncWithCustomSerializerCanBeCreatedAndInvoked()
     {
         var serializer = new Serializer();
+        FuncRegistration<string, string> registration = null!;
         using var rFunctions = await FunctionsRegistry.CreateAndStart(
             new InMemoryFunctionStore(),
-            settings: new Settings(serializer: serializer)
+            settings: new Settings(serializer: serializer),
+            setup: r => { registration = r.RegisterFunc<string, string>(_flowType, InnerFunc); }
         );
         
-        var rFunc = rFunctions.RegisterFunc<string, string>(_flowType, InnerFunc).Run;
+        var rFunc = registration.Run;
 
         var result = await rFunc(flowInstance, "hello world");
         result.ShouldBe("HELLO WORLD");
@@ -50,7 +57,8 @@ public class RFuncWithStateRegistrationTests
         await Task.CompletedTask;
         return param.ToUpper();
     }
-    private Task<FunctionsRegistry> CreateRFunctions() => FunctionsRegistry.CreateAndStart(new InMemoryFunctionStore());
+    private Task<FunctionsRegistry> CreateRFunctions(Action<FunctionsRegistry> setup)
+        => FunctionsRegistry.CreateAndStart(new InMemoryFunctionStore(), setup);
 
     private class Serializer : ISerializer
     {

@@ -69,16 +69,22 @@ public class InMemorySunshineTests
     private async Task ExecuteFunc(Func<FunctionsRegistry, Func<string, Task<string>>, FuncRegistration<string, string>> createRegistration)
     {
         var store = new InMemoryFunctionStore();
-        using var rFunctions = await FunctionsRegistry.CreateAndStart(store);
 
         var syncedParam = new Synced<string>();
         var toReturn = "returned";
-        // ReSharper disable once AccessToModifiedClosure
-        var registration = createRegistration(rFunctions, param =>
-        {
-            syncedParam.Value = param;
-            return toReturn.ToTask();
-        });
+        FuncRegistration<string, string> registration = null!;
+        using var rFunctions = await FunctionsRegistry.CreateAndStart(
+            store,
+            r =>
+            {
+                // ReSharper disable once AccessToModifiedClosure
+                registration = createRegistration(r, param =>
+                {
+                    syncedParam.Value = param;
+                    return toReturn.ToTask();
+                });
+            }
+        );
 
         var returned = await registration.Run("id1", "hello world");
         returned.ShouldBe(toReturn);
@@ -170,15 +176,21 @@ public class InMemorySunshineTests
     private async Task ExecuteAction(Func<FunctionsRegistry, Func<string, Task>, ActionRegistration<string>> createRegistration)
     {
         var store = new InMemoryFunctionStore();
-        using var rFunctions = await FunctionsRegistry.CreateAndStart(store);
 
         var syncedParam = new Synced<string>();
-        // ReSharper disable once AccessToModifiedClosure
-        var registration = createRegistration(rFunctions, param =>
-        {
-            syncedParam.Value = param;
-            return Task.CompletedTask;
-        });
+        ActionRegistration<string> registration = null!;
+        using var rFunctions = await FunctionsRegistry.CreateAndStart(
+            store,
+            r =>
+            {
+                // ReSharper disable once AccessToModifiedClosure
+                registration = createRegistration(r, param =>
+                {
+                    syncedParam.Value = param;
+                    return Task.CompletedTask;
+                });
+            }
+        );
 
         await registration.Run("id1", "hello world");
         syncedParam.Value.ShouldBe("hello world");

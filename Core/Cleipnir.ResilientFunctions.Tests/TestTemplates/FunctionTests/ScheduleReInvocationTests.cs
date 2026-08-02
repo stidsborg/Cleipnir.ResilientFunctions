@@ -19,29 +19,33 @@ public abstract class ScheduleReInvocationTests
         var functionType = TestFlowId.Create().Type;
         var flag = new SyncedFlag();
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
+        var syncedParameter = new Synced<string>();
+
+        ActionRegistration<string> rFunc = null!;
         using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             store,
             new Settings(
                 unhandledExceptionCatcher.Catch
-            )
+            ),
+            r =>
+            {
+                rFunc = r
+                    .RegisterAction(
+                        functionType,
+                        inner: async (string s) =>
+                        {
+                            await Task.CompletedTask;
+                            if (flag.Position == FlagPosition.Lowered)
+                            {
+                                flag.Raise();
+                                throw new InvalidOperationException("oh no");
+                            }
+
+                            syncedParameter.Value = s;
+                        }
+                    );
+            }
         );
-        var syncedParameter = new Synced<string>();
-
-        var rFunc = functionsRegistry
-            .RegisterAction(
-                functionType,
-                inner: async (string s) =>
-                {
-                    await Task.CompletedTask;
-                    if (flag.Position == FlagPosition.Lowered)
-                    {
-                        flag.Raise();
-                        throw new InvalidOperationException("oh no");
-                    }
-
-                    syncedParameter.Value = s;
-                }
-            );
 
         await Should.ThrowAsync<Exception>(() => rFunc.Run("something", "something"));
 
@@ -70,24 +74,27 @@ public abstract class ScheduleReInvocationTests
         var (flowType, flowInstance) = functionId;
         var flag = new SyncedFlag();
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
+        FuncRegistration<string, string> rFunc = null!;
         using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             store,
             new Settings(
                 unhandledExceptionCatcher.Catch
-            )
-        );
-
-        var rFunc = functionsRegistry.RegisterFunc<string, string>(
-            flowType,
-            async s =>
+            ),
+            r =>
             {
-                await Task.CompletedTask;
-                if (flag.Position == FlagPosition.Lowered)
-                {
-                    flag.Raise();
-                    throw new InvalidOperationException("oh no");
-                }
-                return s;
+                rFunc = r.RegisterFunc<string, string>(
+                    flowType,
+                    async s =>
+                    {
+                        await Task.CompletedTask;
+                        if (flag.Position == FlagPosition.Lowered)
+                        {
+                            flag.Raise();
+                            throw new InvalidOperationException("oh no");
+                        }
+                        return s;
+                    }
+                );
             }
         );
 

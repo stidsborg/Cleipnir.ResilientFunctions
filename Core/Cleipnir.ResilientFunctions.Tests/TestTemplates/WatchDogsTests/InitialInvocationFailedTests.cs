@@ -18,14 +18,20 @@ public abstract class InitialInvocationFailedTests
         var functionId = TestFlowId.Create();
 
         var flag = new SyncedFlag();
-        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store);
-        var registration = functionsRegistry.RegisterAction(
-            functionId.Type,
-            Task (string param) =>
+        ActionRegistration<string> registration = null!;
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
+            store,
+            r =>
             {
-                flag.Raise();
-                return Task.CompletedTask;
-            });
+                registration = r.RegisterAction(
+                    functionId.Type,
+                    Task (string param) =>
+                    {
+                        flag.Raise();
+                        return Task.CompletedTask;
+                    });
+            }
+        );
 
         await store.CreateFunction(
             registration.MapToStoredId(functionId.Instance), 
@@ -51,14 +57,20 @@ public abstract class InitialInvocationFailedTests
         var functionId = TestFlowId.Create();
 
         var flag = new SyncedFlag();
-        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store);
-        var registration = functionsRegistry.RegisterAction<string>(
-            functionId.Type,
-            Task (string param) =>
+        ActionRegistration<string> registration = null!;
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
+            store,
+            r =>
             {
-                flag.Raise();
-                return Task.CompletedTask;
-            });
+                registration = r.RegisterAction<string>(
+                    functionId.Type,
+                    Task (string param) =>
+                    {
+                        flag.Raise();
+                        return Task.CompletedTask;
+                    });
+            }
+        );
 
         await store.CreateFunction(
             registration.MapToStoredId(functionId.Instance), 
@@ -84,14 +96,20 @@ public abstract class InitialInvocationFailedTests
         var functionId = TestFlowId.Create();
 
         var flag = new SyncedFlag();
-        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store);
-        var registration = functionsRegistry.RegisterFunc(
-            functionId.Type,
-            Task<string> (string param) =>
+        FuncRegistration<string, string> registration = null!;
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
+            store,
+            r =>
             {
-                flag.Raise();
-                return param.ToUpper().ToTask();
-            });
+                registration = r.RegisterFunc(
+                    functionId.Type,
+                    Task<string> (string param) =>
+                    {
+                        flag.Raise();
+                        return param.ToUpper().ToTask();
+                    });
+            }
+        );
 
         await store.CreateFunction(
             registration.MapToStoredId(functionId.Instance), 
@@ -122,14 +140,20 @@ public abstract class InitialInvocationFailedTests
         var functionId = TestFlowId.Create();
 
         var flag = new SyncedFlag();
-        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store);
-        var registration = functionsRegistry.RegisterFunc(
-            functionId.Type,
-            Task<string> (string param) =>
+        FuncRegistration<string, string> registration = null!;
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
+            store,
+            r =>
             {
-                flag.Raise();
-                return param.ToUpper().ToTask();
-            });
+                registration = r.RegisterFunc(
+                    functionId.Type,
+                    Task<string> (string param) =>
+                    {
+                        flag.Raise();
+                        return param.ToUpper().ToTask();
+                    });
+            }
+        );
 
         await store.CreateFunction(
             registration.MapToStoredId(functionId.Instance), 

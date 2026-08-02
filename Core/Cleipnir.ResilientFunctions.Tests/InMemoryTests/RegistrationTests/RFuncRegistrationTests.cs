@@ -17,13 +17,12 @@ public class RFuncRegistrationTests
     [TestMethod]
     public async Task ConstructedFuncInvokeCanBeCreatedAndInvoked()
     {
-        using var rFunctions = await FunctionsRegistry.CreateAndStart(new InMemoryFunctionStore());
-        var rFunc = rFunctions
-            .RegisterFunc<string, string>(
-                _flowType,
-                InnerFunc
-            )
-            .Run;
+        FuncRegistration<string, string> registration = null!;
+        using var rFunctions = await FunctionsRegistry.CreateAndStart(
+            new InMemoryFunctionStore(),
+            r => { registration = r.RegisterFunc<string, string>(_flowType, InnerFunc); }
+        );
+        var rFunc = registration.Run;
 
         var result = await rFunc(flowInstance, "hello world");
         result.ShouldBe("HELLO WORLD");
@@ -33,9 +32,14 @@ public class RFuncRegistrationTests
     public async Task ConstructedFuncWithCustomSerializerCanBeCreatedAndInvoked()
     {
         var serializer = new Serializer();
-        using var rFunctions = await FunctionsRegistry.CreateAndStart(new InMemoryFunctionStore(), new Settings(serializer: serializer));
-        
-        var rFunc = rFunctions.RegisterFunc<string, string>(_flowType, InnerFunc).Run;
+        FuncRegistration<string, string> registration = null!;
+        using var rFunctions = await FunctionsRegistry.CreateAndStart(
+            new InMemoryFunctionStore(),
+            new Settings(serializer: serializer),
+            r => { registration = r.RegisterFunc<string, string>(_flowType, InnerFunc); }
+        );
+
+        var rFunc = registration.Run;
 
         var result = await rFunc(flowInstance, "hello world");
         result.ShouldBe("HELLO WORLD");

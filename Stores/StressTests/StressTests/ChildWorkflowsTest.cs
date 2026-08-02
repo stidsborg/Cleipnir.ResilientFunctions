@@ -21,26 +21,30 @@ public static class ChildWorkflowsTest
         var stopWatch = new Stopwatch();
         stopWatch.Start();
         
+        var parentFunctionId = new FlowId(parentFlowType, "Parent");
+
+        ActionRegistration<string> parentRegistration = null!;
         using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             store,
-            new Settings(unhandledExceptionHandler: Console.WriteLine)
-        );
-        var parentFunctionId = new FlowId(parentFlowType, "Parent");
-        
-        var childRegistration = functionsRegistry.RegisterAction(
-            childFlowType,
-            Task (string param) => Task.CompletedTask
-        );
-        var parentRegistration = functionsRegistry.RegisterAction(
-            parentFunctionId.Type,
-            async Task (string param, Workflow workflow) =>
-                await childRegistration
-                    .BulkSchedule(
-                        Enumerable
-                            .Range(0, testSize)
-                            .Select(i => new BulkWork<string>(i.ToString(), i.ToString()))
-                    )
-                    .Completion()
+            new Settings(unhandledExceptionHandler: Console.WriteLine),
+            r =>
+            {
+                var childRegistration = r.RegisterAction(
+                    childFlowType,
+                    Task (string param) => Task.CompletedTask
+                );
+                parentRegistration = r.RegisterAction(
+                    parentFunctionId.Type,
+                    async Task (string param, Workflow workflow) =>
+                        await childRegistration
+                            .BulkSchedule(
+                                Enumerable
+                                    .Range(0, testSize)
+                                    .Select(i => new BulkWork<string>(i.ToString(), i.ToString()))
+                            )
+                            .Completion()
+                );
+            }
         );
         
         Console.WriteLine("CHILD_WORKFLOWS_TEST: Starting parent-invocation");

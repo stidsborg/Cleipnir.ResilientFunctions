@@ -29,13 +29,18 @@ public abstract class SunshineTests
 
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
 
-        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionHandler.Catch));
-
-        var reg = functionsRegistry
-            .RegisterFunc(
-                flowType,
-                (string s) => ToUpper(s)
-            );
+        FuncRegistration<string, string> reg = null!;
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
+            store,
+            new Settings(unhandledExceptionHandler.Catch),
+            r =>
+            {
+                reg = r.RegisterFunc(
+                    flowType,
+                    (string s) => ToUpper(s)
+                );
+            }
+        );
         var rFunc = reg.Run;
 
         var result = await rFunc("hello", "hello");
@@ -61,15 +66,22 @@ public abstract class SunshineTests
         var flowType = TestFlowId.Create().Type;
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
 
-        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionHandler.Catch));
         var flag = new SyncedFlag();
-        var reg = functionsRegistry.RegisterParamless(
-            flowType,
-            inner: () =>
+        ParamlessRegistration reg = null!;
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
+            store,
+            new Settings(unhandledExceptionHandler.Catch),
+            r =>
             {
-                flag.Raise();
-                return Task.CompletedTask;
-            });
+                reg = r.RegisterParamless(
+                    flowType,
+                    inner: () =>
+                    {
+                        flag.Raise();
+                        return Task.CompletedTask;
+                    });
+            }
+        );
         var invoke = reg.Run;
 
         await invoke("SomeInstanceId");
@@ -94,16 +106,22 @@ public abstract class SunshineTests
         var flowType = TestFlowId.Create().Type;
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
 
-        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionHandler.Catch));
         var flag = new SyncedFlag();
-        var reg = functionsRegistry
-            .RegisterParamless(
-                flowType,
-                inner: () =>
-                {
-                    flag.Raise();
-                    return Succeed.WithUnit.ToTask();
-                });
+        ParamlessRegistration reg = null!;
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
+            store,
+            new Settings(unhandledExceptionHandler.Catch),
+            r =>
+            {
+                reg = r.RegisterParamless(
+                    flowType,
+                    inner: () =>
+                    {
+                        flag.Raise();
+                        return Succeed.WithUnit.ToTask();
+                    });
+            }
+        );
         var invoke = reg.Run;
 
         await invoke("SomeInstanceId");
@@ -128,12 +146,18 @@ public abstract class SunshineTests
         var flowType = nameof(SunshineScenarioAction).ToFlowType();
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
 
-        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionHandler.Catch));
-        var reg = functionsRegistry
-            .RegisterAction(
-                flowType,
-                (string _) => Task.Delay(10)
-            );
+        ActionRegistration<string> reg = null!;
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
+            store,
+            new Settings(unhandledExceptionHandler.Catch),
+            r =>
+            {
+                reg = r.RegisterAction(
+                    flowType,
+                    (string _) => Task.Delay(10)
+                );
+            }
+        );
         var rAction = reg.Run;
 
         await rAction("hello", "hello");
@@ -152,12 +176,20 @@ public abstract class SunshineTests
         var store = await storeTask;
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         FlowType flowType = "SomeFunctionType";
-        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionCatcher.Catch));
+        FuncRegistration<string, string?> reg = null!;
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
+            store,
+            new Settings(unhandledExceptionCatcher.Catch),
+            r =>
+            {
+                reg = r.RegisterFunc(
+                    flowType,
+                    (string s) => default(string).ToTask()
+                );
+            }
+        );
 
-        var rFunc = functionsRegistry.RegisterFunc(
-            flowType,
-            (string s) => default(string).ToTask()
-        ).Run;
+        var rFunc = reg.Run;
 
         var result = await rFunc("hello world", "hello world");
         result.ShouldBeNull();
@@ -170,35 +202,43 @@ public abstract class SunshineTests
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         var functionId = TestFlowId.Create();
         {
+            ActionRegistration<string> reg = null!;
             using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
                 store,
                 new Settings(
                     unhandledExceptionCatcher.Catch
-                )
+                ),
+                r =>
+                {
+                    reg = r.RegisterAction(
+                        functionId.Type,
+                        inner: (string _) => Task.CompletedTask
+                    );
+                }
             );
-        
-            var rFunc = functionsRegistry.RegisterAction(
-                functionId.Type,
-                inner: (string _) => Task.CompletedTask
-            ).Run;
+
+            var rFunc = reg.Run;
 
             await rFunc("hello world", "hello world");
         }
 
         {
+            ActionRegistration<string> reg = null!;
             using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
                 store,
                 new Settings(
                     unhandledExceptionCatcher.Catch,
                     retentionPeriod: TimeSpan.Zero
-                )
+                ),
+                r =>
+                {
+                    reg = r.RegisterAction(
+                        functionId.Type,
+                        inner: (string _) => Task.CompletedTask
+                    );
+                }
             );
 
-            var reg = functionsRegistry.RegisterAction(
-                functionId.Type,
-                inner: (string _) => Task.CompletedTask
-            );
-            
             await BusyWait.Until(async () => await store.GetFunction(reg.MapToStoredId(functionId.Instance)) is null);
         }
         
@@ -212,18 +252,25 @@ public abstract class SunshineTests
 
         var functionId = TestFlowId.Create();
 
-        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store);
-
-        var invoke = functionsRegistry.RegisterParamless(
-            functionId.Type,
-            inner: workflow =>
+        ParamlessRegistration reg = null!;
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
+            store,
+            r =>
             {
-                store.Crash();
-                workflow.Effect.Contains("test".GetHashCode());
-                store.FixCrash();
-                return Task.CompletedTask;
+                reg = r.RegisterParamless(
+                    functionId.Type,
+                    inner: workflow =>
+                    {
+                        store.Crash();
+                        workflow.Effect.Contains("test".GetHashCode());
+                        store.FixCrash();
+                        return Task.CompletedTask;
+                    }
+                );
             }
-        ).Run;
+        );
+
+        var invoke = reg.Run;
 
         // The invocation completing is the assertion: the store is crashed for the duration of the Effect-lookup,
         // so it only succeeds if the lookup is served from in-memory effect state. No unhandled-exception assertion
@@ -240,18 +287,23 @@ public abstract class SunshineTests
         
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
 
-        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionHandler.Catch));
-
         FlowId? flowId = null;
-        var reg = functionsRegistry
-            .RegisterParamless(
-                flowType,
-                workflow =>
-                {
-                    flowId = workflow.FlowId;
-                    return Task.CompletedTask;
-                }
-            );
+        ParamlessRegistration reg = null!;
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
+            store,
+            new Settings(unhandledExceptionHandler.Catch),
+            r =>
+            {
+                reg = r.RegisterParamless(
+                    flowType,
+                    workflow =>
+                    {
+                        flowId = workflow.FlowId;
+                        return Task.CompletedTask;
+                    }
+                );
+            }
+        );
         await reg.Run(flowInstance);
             
         flowId.ShouldBe(new FlowId(flowType, flowInstance));
@@ -265,18 +317,23 @@ public abstract class SunshineTests
         var (type, instance) = TestFlowId.Create();
         
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
-        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionHandler.Catch));
-
         StoredId? storedId = null;
-        var reg = functionsRegistry
-            .RegisterParamless(
-                type,
-                inner: () =>
-                {
-                    storedId = CurrentFlow.StoredId;
-                    return Task.CompletedTask;
-                }
-            );
+        ParamlessRegistration reg = null!;
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
+            store,
+            new Settings(unhandledExceptionHandler.Catch),
+            r =>
+            {
+                reg = r.RegisterParamless(
+                    type,
+                    inner: () =>
+                    {
+                        storedId = CurrentFlow.StoredId;
+                        return Task.CompletedTask;
+                    }
+                );
+            }
+        );
         await reg.Run(instance);
         
             
@@ -291,26 +348,31 @@ public abstract class SunshineTests
         var (type, instance) = TestFlowId.Create();
         
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
-        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionHandler.Catch));
-
         var postponed = false;
-        
+
         StoredId? storedId = null;
-        var reg = functionsRegistry
-            .RegisterParamless(
-                type,
-                inner: () =>
-                {
-                    if (!postponed)
+        ParamlessRegistration reg = null!;
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
+            store,
+            new Settings(unhandledExceptionHandler.Catch),
+            r =>
+            {
+                reg = r.RegisterParamless(
+                    type,
+                    inner: () =>
                     {
-                        postponed = true;
-                        return Postpone.Until(DateTime.UtcNow.AddMilliseconds(100)).ToUnitResult.ToTask();
+                        if (!postponed)
+                        {
+                            postponed = true;
+                            return Postpone.Until(DateTime.UtcNow.AddMilliseconds(100)).ToUnitResult.ToTask();
+                        }
+
+                        storedId = CurrentFlow.StoredId;
+                        return Succeed.WithUnit.ToTask();
                     }
-                        
-                    storedId = CurrentFlow.StoredId;
-                    return Succeed.WithUnit.ToTask();
-                }
-            );
+                );
+            }
+        );
         await reg.Schedule(instance);
 
         await BusyWait.Until(() => storedId != null);
@@ -327,20 +389,25 @@ public abstract class SunshineTests
 
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
 
-        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionHandler.Catch));
-
         string? initialEffectValue = null;
         string? initialMessageValue = null;
-        
-        var registration = functionsRegistry
-            .RegisterFunc(
-                flowId.Type,
-                async (string s, Workflow workflow) =>
-                {
-                    initialEffectValue = workflow.Effect.Get<string>("InitialEffectId");
-                    initialMessageValue = await workflow.Message<string>();
-                    return s;
-                });
+
+        FuncRegistration<string, string> registration = null!;
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
+            store,
+            new Settings(unhandledExceptionHandler.Catch),
+            r =>
+            {
+                registration = r.RegisterFunc(
+                    flowId.Type,
+                    async (string s, Workflow workflow) =>
+                    {
+                        initialEffectValue = workflow.Effect.Get<string>("InitialEffectId");
+                        initialMessageValue = await workflow.Message<string>();
+                        return s;
+                    });
+            }
+        );
 
 
         var scheduled = await registration.Schedule(
@@ -370,19 +437,24 @@ public abstract class SunshineTests
 
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
 
-        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionHandler.Catch));
-
         string? initialEffectValue = null;
         string? initialMessageValue = null;
-        
-        var registration = functionsRegistry
-            .RegisterAction(
-                flowId.Type,
-                async (string _, Workflow workflow) =>
-                {
-                    initialEffectValue = workflow.Effect.Get<string>("InitialEffectId");
-                    initialMessageValue = await workflow.Message<string>();
-                });
+
+        ActionRegistration<string> registration = null!;
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
+            store,
+            new Settings(unhandledExceptionHandler.Catch),
+            r =>
+            {
+                registration = r.RegisterAction(
+                    flowId.Type,
+                    async (string _, Workflow workflow) =>
+                    {
+                        initialEffectValue = workflow.Effect.Get<string>("InitialEffectId");
+                        initialMessageValue = await workflow.Message<string>();
+                    });
+            }
+        );
 
 
         var scheduled = await registration.Schedule(
@@ -412,19 +484,24 @@ public abstract class SunshineTests
 
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
 
-        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionHandler.Catch));
-
         string? initialEffectValue = null;
         string? initialMessageValue = null;
-        
-        var registration = functionsRegistry
-            .RegisterParamless(
-                flowId.Type,
-                async (Workflow workflow) =>
-                {
-                    initialEffectValue = workflow.Effect.Get<string>("InitialEffectId");
-                    initialMessageValue = await workflow.Message<string>();
-                });
+
+        ParamlessRegistration registration = null!;
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
+            store,
+            new Settings(unhandledExceptionHandler.Catch),
+            r =>
+            {
+                registration = r.RegisterParamless(
+                    flowId.Type,
+                    async (Workflow workflow) =>
+                    {
+                        initialEffectValue = workflow.Effect.Get<string>("InitialEffectId");
+                        initialMessageValue = await workflow.Message<string>();
+                    });
+            }
+        );
 
 
         var scheduled = await registration.Schedule(
@@ -453,19 +530,24 @@ public abstract class SunshineTests
 
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
 
-        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionHandler.Catch));
-
         WorkStatus? workStatus = null;
 
-        var registration = functionsRegistry
-            .RegisterParamless(
-                flowId.Type, 
-                workflow =>
-                {
-                    workStatus = workflow.Effect.GetStatus("InitialEffectId".GetHashCode());
-                    return Task.CompletedTask;
-                }
-            );
+        ParamlessRegistration registration = null!;
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
+            store,
+            new Settings(unhandledExceptionHandler.Catch),
+            r =>
+            {
+                registration = r.RegisterParamless(
+                    flowId.Type,
+                    workflow =>
+                    {
+                        workStatus = workflow.Effect.GetStatus("InitialEffectId".GetHashCode());
+                        return Task.CompletedTask;
+                    }
+                );
+            }
+        );
 
 
         await registration.Run(
@@ -489,16 +571,21 @@ public abstract class SunshineTests
 
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
 
-        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionHandler.Catch));
-        
-        var registration = functionsRegistry
-            .RegisterParamless(
-                flowId.Type,
-                async workflow =>
-                {
-                    await workflow.Effect.Capture(() => {});
-                }
-            );
+        ParamlessRegistration registration = null!;
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
+            store,
+            new Settings(unhandledExceptionHandler.Catch),
+            r =>
+            {
+                registration = r.RegisterParamless(
+                    flowId.Type,
+                    async workflow =>
+                    {
+                        await workflow.Effect.Capture(() => {});
+                    }
+                );
+            }
+        );
 
 
         try
@@ -528,19 +615,24 @@ public abstract class SunshineTests
         var flowId = TestFlowId.Create(); 
 
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
-        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionHandler.Catch));
-        
         var insideFlag = new SyncedFlag();
         var completeFlag = new SyncedFlag();
-        var registration = functionsRegistry
-            .RegisterAction(
-                flowId.Type,
-                inner: async Task (string _) =>
-                {
-                    insideFlag.Raise();
-                    await completeFlag.WaitForRaised();
-                }
-            );
+        ActionRegistration<string> registration = null!;
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
+            store,
+            new Settings(unhandledExceptionHandler.Catch),
+            r =>
+            {
+                registration = r.RegisterAction(
+                    flowId.Type,
+                    inner: async Task (string _) =>
+                    {
+                        insideFlag.Raise();
+                        await completeFlag.WaitForRaised();
+                    }
+                );
+            }
+        );
         var flowTask = registration.Run(flowId.Instance, "param");
         await insideFlag.WaitForRaised();
 

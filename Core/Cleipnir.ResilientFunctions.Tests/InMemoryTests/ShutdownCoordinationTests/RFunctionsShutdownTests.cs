@@ -17,25 +17,30 @@ public class RFunctionsShutdownTests
     {
         var flowType = "flowType".ToFlowType();
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
+        var insideRFuncFlag = new SyncedFlag();
+        var completeRFuncFlag = new SyncedFlag();
+
+        ActionRegistration<string> registration = null!;
         using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             new InMemoryFunctionStore(),
             new Settings(
                 unhandledExceptionCatcher.Catch,
                 watchdogCheckFrequency: TimeSpan.FromMilliseconds(10)
-            )
+            ),
+            r =>
+            {
+                registration = r.RegisterAction(
+                    flowType,
+                    async (string _) =>
+                    {
+                        insideRFuncFlag.Raise();
+                        await completeRFuncFlag.WaitForRaised();
+                    }
+                );
+            }
         );
 
-        var insideRFuncFlag = new SyncedFlag();
-        var completeRFuncFlag = new SyncedFlag();
-
-        var rAction = functionsRegistry.RegisterAction(
-            flowType,
-            async (string _) =>
-            {
-                insideRFuncFlag.Raise();
-                await completeRFuncFlag.WaitForRaised();
-            }
-        ).Run;
+        var rAction = registration.Run;
 
         var rFuncTask1 = rAction("1", "1");
         var rFuncTask2 = rAction("2", "2");
@@ -58,24 +63,29 @@ public class RFunctionsShutdownTests
     {
         var flowType = "flowType".ToFlowType();
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
+        var insideRFuncFlag = new SyncedFlag();
+
+        FuncRegistration<string, Unit> registration = null!;
         using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             new InMemoryFunctionStore(),
             new Settings(
                 unhandledExceptionCatcher.Catch,
                 watchdogCheckFrequency: TimeSpan.FromMilliseconds(10)
-            )
+            ),
+            r =>
+            {
+                registration = r.RegisterFunc(
+                    flowType,
+                     (string _) =>
+                    {
+                        insideRFuncFlag.Raise();
+                        return NeverCompletingTask.OfType<Result<Unit>>();
+                    }
+                );
+            }
         );
 
-        var insideRFuncFlag = new SyncedFlag();
-
-        var rFunc = functionsRegistry.RegisterFunc(
-            flowType,
-             (string _) =>
-            {
-                insideRFuncFlag.Raise();
-                return NeverCompletingTask.OfType<Result<Unit>>();
-            }
-        ).Run;
+        var rFunc = registration.Run;
 
         _ = rFunc("1", "1");
 
@@ -92,23 +102,26 @@ public class RFunctionsShutdownTests
         var functionId = new FlowId("someFunctionType", "someflowInstance");
         
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
+        var insideRFuncFlag = new SyncedFlag();
+        var completeRFuncFlag = new SyncedFlag();
+
+        ActionRegistration<string> registration = null!;
         using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             store,
             new Settings(
                 unhandledExceptionCatcher.Catch,
                 watchdogCheckFrequency: TimeSpan.FromMilliseconds(10)
-            )
-        );
-
-        var insideRFuncFlag = new SyncedFlag();
-        var completeRFuncFlag = new SyncedFlag();
-
-        var registration = functionsRegistry.RegisterAction(
-            functionId.Type,
-            async (string _) =>
+            ),
+            r =>
             {
-                insideRFuncFlag.Raise();
-                await completeRFuncFlag.WaitForRaised();
+                registration = r.RegisterAction(
+                    functionId.Type,
+                    async (string _) =>
+                    {
+                        insideRFuncFlag.Raise();
+                        await completeRFuncFlag.WaitForRaised();
+                    }
+                );
             }
         );
         
@@ -143,24 +156,27 @@ public class RFunctionsShutdownTests
         var storedParameter = "".ToJson();
         
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
+        var insideRFuncFlag = new SyncedFlag();
+        var completeRFuncFlag = new SyncedFlag();
+
+        ActionRegistration<string> registration = null!;
         using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             store,
             new Settings(
                 unhandledExceptionCatcher.Catch,
                 watchdogCheckFrequency: TimeSpan.FromMilliseconds(100)
-            )
-        );
-
-        var insideRFuncFlag = new SyncedFlag();
-        var completeRFuncFlag = new SyncedFlag();
-
-        var registration = functionsRegistry.RegisterAction(
-            functionId.Type,
-            async (string _) =>
+            ),
+            r =>
             {
-                insideRFuncFlag.Raise();
-                await completeRFuncFlag.WaitForRaised();
-                return Succeed.WithUnit;
+                registration = r.RegisterAction(
+                    functionId.Type,
+                    async (string _) =>
+                    {
+                        insideRFuncFlag.Raise();
+                        await completeRFuncFlag.WaitForRaised();
+                        return Succeed.WithUnit;
+                    }
+                );
             }
         );
         
@@ -203,22 +219,25 @@ public class RFunctionsShutdownTests
         var flowType = "flowType".ToFlowType();
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         var store = new InMemoryFunctionStore();
+        var counter = new SyncedCounter();
+
+        ActionRegistration<string> registration = null!;
         using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             store,
             new Settings(
                 unhandledExceptionCatcher.Catch,
                 watchdogCheckFrequency: TimeSpan.FromMilliseconds(10)
-            )
-        );
-
-        var counter = new SyncedCounter();
-
-        var registration = functionsRegistry.RegisterAction(
-            flowType,
-            Task<Result<Unit>> (string _) =>
+            ),
+            r =>
             {
-                counter.Increment();
-                return Postpone.Until(DateTime.UtcNow.AddMilliseconds(500)).ToUnitResult.ToTask();
+                registration = r.RegisterAction(
+                    flowType,
+                    Task<Result<Unit>> (string _) =>
+                    {
+                        counter.Increment();
+                        return Postpone.Until(DateTime.UtcNow.AddMilliseconds(500)).ToUnitResult.ToTask();
+                    }
+                );
             }
         );
         var rAction = registration.Run;

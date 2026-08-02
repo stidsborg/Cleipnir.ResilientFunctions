@@ -18,28 +18,32 @@ public static class LongRunningStressfulTest
         stopWatch.Start();
 
         {
+            ParamlessRegistration actionRegistration = null!;
             using var functionsRegistry1 = await FunctionsRegistry.CreateAndStart(
                 store,
                 new Settings(unhandledExceptionHandler: e =>
                 {
                     Console.WriteLine(e);
                     Environment.Exit(1);
-                }, maxParallelRetryInvocations: testSize * 2)
-            );
-            var actionRegistration = functionsRegistry1.RegisterParamless(
-                "LongRunningStressfulTest",
-                async Task (workflow) =>
+                }, maxParallelRetryInvocations: testSize * 2),
+                r =>
                 {
-                    var effect = workflow.Effect;
-                    while (true)
-                    {
-                        for (var i = 0; i < 100; i++)
+                    actionRegistration = r.RegisterParamless(
+                        "LongRunningStressfulTest",
+                        async Task (workflow) =>
                         {
-                            await effect.Capture(() => i);
-                            await Task.Delay(10);
-                        }
-                    }
-                });
+                            var effect = workflow.Effect;
+                            while (true)
+                            {
+                                for (var i = 0; i < 100; i++)
+                                {
+                                    await effect.Capture(() => i);
+                                    await Task.Delay(10);
+                                }
+                            }
+                        });
+                }
+            );
         
             Console.WriteLine("LONGRUNNING_TEST: Initializing");
             var flowInstances = Enumerable

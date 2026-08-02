@@ -451,24 +451,35 @@ public abstract class ReplicaWatchdogTests
         var flowId = TestFlowId.Create();
         var (flowType, flowInstance) = flowId;
 
-        using var crashingRegistry = await FunctionsRegistry.CreateAndStart(functionStore);
-        using var overtakingRegistry = await FunctionsRegistry.CreateAndStart(functionStore);
-
         var insideTest1 = new SyncedFlag();
         var insideTest2 = new SyncedFlag();
         var testCompletedFlag = new SyncedFlag();
-        
-        var testRegistration1 = crashingRegistry.RegisterParamless(flowType, async workflow =>
-        {
-            insideTest1.Raise();
-            await testCompletedFlag.WaitForRaised();
-        });
-        
-        var testRegistration2 = overtakingRegistry.RegisterParamless(flowType, async workflow =>
-        {
-            insideTest2.Raise();
-            await testCompletedFlag.WaitForRaised();
-        });
+
+        ParamlessRegistration testRegistration1 = null!;
+        ParamlessRegistration testRegistration2 = null!;
+
+        using var crashingRegistry = await FunctionsRegistry.CreateAndStart(
+            functionStore,
+            r =>
+            {
+                testRegistration1 = r.RegisterParamless(flowType, async workflow =>
+                {
+                    insideTest1.Raise();
+                    await testCompletedFlag.WaitForRaised();
+                });
+            }
+        );
+        using var overtakingRegistry = await FunctionsRegistry.CreateAndStart(
+            functionStore,
+            r =>
+            {
+                testRegistration2 = r.RegisterParamless(flowType, async workflow =>
+                {
+                    insideTest2.Raise();
+                    await testCompletedFlag.WaitForRaised();
+                });
+            }
+        );
 
         await testRegistration1.Schedule(flowInstance);
         await insideTest1.WaitForRaised();

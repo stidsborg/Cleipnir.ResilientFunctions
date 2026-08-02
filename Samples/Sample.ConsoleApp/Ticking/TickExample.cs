@@ -16,22 +16,24 @@ public static class TickExample
         var store = new PostgreSqlFunctionStore(connectionString, "tickering_flow");
         await store.Initialize();
         
-        var registry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionHandler: Console.WriteLine));
-        
-        var registration = registry.RegisterAction(
-            flowType: "Tick",
-            inner: async (string param, Workflow workflow) =>
-            {
-                var i = await workflow.Effect.CreateOrGet("alias", 0);
-                
-                while (true)
+        var (registry, registration) = await FunctionsRegistry.CreateAndStart(
+            store,
+            new Settings(unhandledExceptionHandler: Console.WriteLine),
+            functions => functions.RegisterAction(
+                flowType: "Tick",
+                inner: async (string param, Workflow workflow) =>
                 {
-                    await Task.Delay(1_000);
-                    Console.WriteLine($"[{param}]: #{i} ticked...");
-                    i++;
-                    await workflow.Effect.Upsert("alias", i);
+                    var i = await workflow.Effect.CreateOrGet("alias", 0);
+
+                    while (true)
+                    {
+                        await Task.Delay(1_000);
+                        Console.WriteLine($"[{param}]: #{i} ticked...");
+                        i++;
+                        await workflow.Effect.Upsert("alias", i);
+                    }
                 }
-            }
+            )
         );
 
         await registration.Run(flowInstance: "TICKER1", param: "TICKER1");

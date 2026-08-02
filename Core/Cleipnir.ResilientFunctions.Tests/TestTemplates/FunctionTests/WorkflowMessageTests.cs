@@ -18,17 +18,20 @@ public abstract class WorkflowMessageTests
     {
         var store = await functionStoreTask;
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
+        FuncRegistration<string, string> registration = null!;
         using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             store,
-            new Settings(unhandledExceptionHandler.Catch)
-        );
-
-        var registration = functionsRegistry.RegisterFunc(
-            nameof(WorkflowMessagePullsMessageSuccessfully),
-            async Task<string> (string _, Workflow workflow) =>
+            new Settings(unhandledExceptionHandler.Catch),
+            r =>
             {
-                var message = await workflow.Message<string>();
-                return message;
+                registration = r.RegisterFunc(
+                    nameof(WorkflowMessagePullsMessageSuccessfully),
+                    async Task<string> (string _, Workflow workflow) =>
+                    {
+                        var message = await workflow.Message<string>();
+                        return message;
+                    }
+                );
             }
         );
 
@@ -49,17 +52,20 @@ public abstract class WorkflowMessageTests
     {
         var store = await functionStoreTask;
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
+        FuncRegistration<string, string> registration = null!;
         using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             store,
-            new Settings(unhandledExceptionHandler.Catch)
-        );
-
-        var registration = functionsRegistry.RegisterFunc(
-            nameof(WorkflowMessagePullsFirstMessageWhenMultipleMessagesExist),
-            async Task<string> (string _, Workflow workflow) =>
+            new Settings(unhandledExceptionHandler.Catch),
+            r =>
             {
-                var message = await workflow.Message<string>();
-                return message;
+                registration = r.RegisterFunc(
+                    nameof(WorkflowMessagePullsFirstMessageWhenMultipleMessagesExist),
+                    async Task<string> (string _, Workflow workflow) =>
+                    {
+                        var message = await workflow.Message<string>();
+                        return message;
+                    }
+                );
             }
         );
 
@@ -83,17 +89,20 @@ public abstract class WorkflowMessageTests
     {
         var store = await functionStoreTask;
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
+        FuncRegistration<string, string?> registration = null!;
         using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             store,
-            new Settings(unhandledExceptionHandler.Catch)
-        );
-
-        var registration = functionsRegistry.RegisterFunc(
-            nameof(WorkflowMessageWithDateTimeReturnsMessageBeforeTimeout),
-            async Task<string?> (string _, Workflow workflow) =>
+            new Settings(unhandledExceptionHandler.Catch),
+            r =>
             {
-                var message = await workflow.Message<string>(DateTime.UtcNow.AddSeconds(10));
-                return message;
+                registration = r.RegisterFunc(
+                    nameof(WorkflowMessageWithDateTimeReturnsMessageBeforeTimeout),
+                    async Task<string?> (string _, Workflow workflow) =>
+                    {
+                        var message = await workflow.Message<string>(DateTime.UtcNow.AddSeconds(10));
+                        return message;
+                    }
+                );
             }
         );
 
@@ -114,17 +123,20 @@ public abstract class WorkflowMessageTests
     {
         var store = await functionStoreTask;
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
+        FuncRegistration<string, string?> registration = null!;
         using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             store,
-            new Settings(unhandledExceptionHandler.Catch)
-        );
-
-        var registration = functionsRegistry.RegisterFunc(
-            nameof(WorkflowMessageWithDateTimeReturnsNullOnTimeout),
-            async Task<string?> (string _, Workflow workflow) =>
+            new Settings(unhandledExceptionHandler.Catch),
+            r =>
             {
-                var message = await workflow.Message<string>(DateTime.UtcNow.AddMilliseconds(100));
-                return message;
+                registration = r.RegisterFunc(
+                    nameof(WorkflowMessageWithDateTimeReturnsNullOnTimeout),
+                    async Task<string?> (string _, Workflow workflow) =>
+                    {
+                        var message = await workflow.Message<string>(DateTime.UtcNow.AddMilliseconds(100));
+                        return message;
+                    }
+                );
             }
         );
 
@@ -150,17 +162,20 @@ public abstract class WorkflowMessageTests
     {
         var store = await functionStoreTask;
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
+        FuncRegistration<string, string?> registration = null!;
         using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             store,
-            new Settings(unhandledExceptionHandler.Catch)
-        );
-
-        var registration = functionsRegistry.RegisterFunc(
-            nameof(WorkflowMessageWithTimeSpanReturnsMessageBeforeTimeout),
-            async Task<string?> (string _, Workflow workflow) =>
+            new Settings(unhandledExceptionHandler.Catch),
+            r =>
             {
-                var message = await workflow.Message<string>(TimeSpan.FromSeconds(10));
-                return message;
+                registration = r.RegisterFunc(
+                    nameof(WorkflowMessageWithTimeSpanReturnsMessageBeforeTimeout),
+                    async Task<string?> (string _, Workflow workflow) =>
+                    {
+                        var message = await workflow.Message<string>(TimeSpan.FromSeconds(10));
+                        return message;
+                    }
+                );
             }
         );
 
@@ -181,17 +196,20 @@ public abstract class WorkflowMessageTests
     {
         var store = await functionStoreTask;
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
+        FuncRegistration<string, string?> registration = null!;
         using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             store,
-            new Settings(unhandledExceptionHandler.Catch)
-        );
-
-        var registration = functionsRegistry.RegisterFunc(
-            nameof(WorkflowMessageWithTimeSpanReturnsNullOnTimeout),
-            async Task<string?> (string _, Workflow workflow) =>
+            new Settings(unhandledExceptionHandler.Catch),
+            r =>
             {
-                var message = await workflow.Message<string>(TimeSpan.FromMilliseconds(100));
-                return message;
+                registration = r.RegisterFunc(
+                    nameof(WorkflowMessageWithTimeSpanReturnsNullOnTimeout),
+                    async Task<string?> (string _, Workflow workflow) =>
+                    {
+                        var message = await workflow.Message<string>(TimeSpan.FromMilliseconds(100));
+                        return message;
+                    }
+                );
             }
         );
 
@@ -217,17 +235,20 @@ public abstract class WorkflowMessageTests
     {
         var store = await functionStoreTask;
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
+        FuncRegistration<string, string> registration = null!;
         using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             store,
-            new Settings(unhandledExceptionHandler.Catch)
-        );
-
-        var registration = functionsRegistry.RegisterFunc(
-            nameof(WorkflowMessageWithFilterReturnsMatchingMessage),
-            async Task<string> (string _, Workflow workflow) =>
+            new Settings(unhandledExceptionHandler.Catch),
+            r =>
             {
-                var message = await workflow.Message<string>(s => s.Length > 5);
-                return message;
+                registration = r.RegisterFunc(
+                    nameof(WorkflowMessageWithFilterReturnsMatchingMessage),
+                    async Task<string> (string _, Workflow workflow) =>
+                    {
+                        var message = await workflow.Message<string>(s => s.Length > 5);
+                        return message;
+                    }
+                );
             }
         );
 
@@ -249,17 +270,20 @@ public abstract class WorkflowMessageTests
     {
         var store = await functionStoreTask;
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
+        FuncRegistration<string, string> registration = null!;
         using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             store,
-            new Settings(unhandledExceptionHandler.Catch)
-        );
-
-        var registration = functionsRegistry.RegisterFunc(
-            nameof(WorkflowMessageWithFilterIgnoresNonMatchingMessages),
-            async Task<string> (string _, Workflow workflow) =>
+            new Settings(unhandledExceptionHandler.Catch),
+            r =>
             {
-                var message = await workflow.Message<string>(s => s.StartsWith("hello"));
-                return message;
+                registration = r.RegisterFunc(
+                    nameof(WorkflowMessageWithFilterIgnoresNonMatchingMessages),
+                    async Task<string> (string _, Workflow workflow) =>
+                    {
+                        var message = await workflow.Message<string>(s => s.StartsWith("hello"));
+                        return message;
+                    }
+                );
             }
         );
 
@@ -282,17 +306,20 @@ public abstract class WorkflowMessageTests
     {
         var store = await functionStoreTask;
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
+        FuncRegistration<string, string?> registration = null!;
         using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             store,
-            new Settings(unhandledExceptionHandler.Catch)
-        );
-
-        var registration = functionsRegistry.RegisterFunc(
-            nameof(WorkflowMessageWithFilterAndDateTimeReturnsMatchingMessageBeforeTimeout),
-            async Task<string?> (string _, Workflow workflow) =>
+            new Settings(unhandledExceptionHandler.Catch),
+            r =>
             {
-                string? message = await workflow.Message<string>(s => s.Length > 5, DateTime.UtcNow.AddSeconds(10));
-                return message;
+                registration = r.RegisterFunc(
+                    nameof(WorkflowMessageWithFilterAndDateTimeReturnsMatchingMessageBeforeTimeout),
+                    async Task<string?> (string _, Workflow workflow) =>
+                    {
+                        string? message = await workflow.Message<string>(s => s.Length > 5, DateTime.UtcNow.AddSeconds(10));
+                        return message;
+                    }
+                );
             }
         );
 
@@ -314,17 +341,20 @@ public abstract class WorkflowMessageTests
     {
         var store = await functionStoreTask;
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
+        FuncRegistration<string, string?> registration = null!;
         using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             store,
-            new Settings(unhandledExceptionHandler.Catch)
-        );
-
-        var registration = functionsRegistry.RegisterFunc(
-            nameof(WorkflowMessageWithFilterAndDateTimeReturnsNullOnTimeout),
-            async Task<string?> (string _, Workflow workflow) =>
+            new Settings(unhandledExceptionHandler.Catch),
+            r =>
             {
-                var message = await workflow.Message<string>(s => s.Length > 5, DateTime.UtcNow.AddMilliseconds(100));
-                return message;
+                registration = r.RegisterFunc(
+                    nameof(WorkflowMessageWithFilterAndDateTimeReturnsNullOnTimeout),
+                    async Task<string?> (string _, Workflow workflow) =>
+                    {
+                        var message = await workflow.Message<string>(s => s.Length > 5, DateTime.UtcNow.AddMilliseconds(100));
+                        return message;
+                    }
+                );
             }
         );
 
@@ -351,17 +381,20 @@ public abstract class WorkflowMessageTests
     {
         var store = await functionStoreTask;
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
+        FuncRegistration<string, string?> registration = null!;
         using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             store,
-            new Settings(unhandledExceptionHandler.Catch)
-        );
-
-        var registration = functionsRegistry.RegisterFunc(
-            nameof(WorkflowMessageWithFilterAndTimeSpanReturnsMatchingMessageBeforeTimeout),
-            async Task<string?> (string _, Workflow workflow) =>
+            new Settings(unhandledExceptionHandler.Catch),
+            r =>
             {
-                var message = await workflow.Message<string>(s => s.Length > 5, TimeSpan.FromSeconds(10));
-                return message;
+                registration = r.RegisterFunc(
+                    nameof(WorkflowMessageWithFilterAndTimeSpanReturnsMatchingMessageBeforeTimeout),
+                    async Task<string?> (string _, Workflow workflow) =>
+                    {
+                        var message = await workflow.Message<string>(s => s.Length > 5, TimeSpan.FromSeconds(10));
+                        return message;
+                    }
+                );
             }
         );
 
@@ -383,17 +416,20 @@ public abstract class WorkflowMessageTests
     {
         var store = await functionStoreTask;
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
+        FuncRegistration<string, string?> registration = null!;
         using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             store,
-            new Settings(unhandledExceptionHandler.Catch)
-        );
-
-        var registration = functionsRegistry.RegisterFunc(
-            nameof(WorkflowMessageWithFilterAndTimeSpanReturnsNullOnTimeout),
-            async Task<string?> (string _, Workflow workflow) =>
+            new Settings(unhandledExceptionHandler.Catch),
+            r =>
             {
-                var message = await workflow.Message<string>(s => s.Length > 5, TimeSpan.FromMilliseconds(100));
-                return message;
+                registration = r.RegisterFunc(
+                    nameof(WorkflowMessageWithFilterAndTimeSpanReturnsNullOnTimeout),
+                    async Task<string?> (string _, Workflow workflow) =>
+                    {
+                        var message = await workflow.Message<string>(s => s.Length > 5, TimeSpan.FromMilliseconds(100));
+                        return message;
+                    }
+                );
             }
         );
 
@@ -420,24 +456,27 @@ public abstract class WorkflowMessageTests
     {
         var store = await functionStoreTask;
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
-        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
-            store,
-            new Settings(unhandledExceptionHandler.Catch)
-        );
-
         // Count deliveries rather than invocations: an invocation may suspend before the message arrives and be
         // restarted by the watchdog, so the invocation count is delivery-timing dependent - the delivery count
         // is not.
         var deliveredCount = 0;
-        var registration = functionsRegistry.RegisterFunc(
-            nameof(WorkflowMessageIsIdempotentAcrossRestarts),
-            async Task<string> (string _, Workflow workflow) =>
+        FuncRegistration<string, string> registration = null!;
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
+            store,
+            new Settings(unhandledExceptionHandler.Catch),
+            r =>
             {
-                var message = await workflow.Message<string>();
-                deliveredCount++;
-                if (deliveredCount == 1)
-                    throw new Exception("Simulated failure");
-                return message;
+                registration = r.RegisterFunc(
+                    nameof(WorkflowMessageIsIdempotentAcrossRestarts),
+                    async Task<string> (string _, Workflow workflow) =>
+                    {
+                        var message = await workflow.Message<string>();
+                        deliveredCount++;
+                        if (deliveredCount == 1)
+                            throw new Exception("Simulated failure");
+                        return message;
+                    }
+                );
             }
         );
 
@@ -476,18 +515,21 @@ public abstract class WorkflowMessageTests
     {
         var store = await functionStoreTask;
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
+        FuncRegistration<string, string> registration = null!;
         using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             store,
-            new Settings(unhandledExceptionHandler.Catch)
-        );
-
-        var registration = functionsRegistry.RegisterFunc(
-            nameof(MultipleSequentialMessageCallsReturnDifferentMessages),
-            async Task<string> (string _, Workflow workflow) =>
+            new Settings(unhandledExceptionHandler.Catch),
+            r =>
             {
-                var first = await workflow.Message<string>();
-                var second = await workflow.Message<string>();
-                return first + " " + second;
+                registration = r.RegisterFunc(
+                    nameof(MultipleSequentialMessageCallsReturnDifferentMessages),
+                    async Task<string> (string _, Workflow workflow) =>
+                    {
+                        var first = await workflow.Message<string>();
+                        var second = await workflow.Message<string>();
+                        return first + " " + second;
+                    }
+                );
             }
         );
 
@@ -510,18 +552,21 @@ public abstract class WorkflowMessageTests
     {
         var store = await functionStoreTask;
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
+        FuncRegistration<string, string> registration = null!;
         using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             store,
-            new Settings(unhandledExceptionHandler.Catch)
-        );
-
-        var registration = functionsRegistry.RegisterFunc(
-            nameof(WorkflowMessageCanPullDifferentMessageTypes),
-            async Task<string> (string _, Workflow workflow) =>
+            new Settings(unhandledExceptionHandler.Catch),
+            r =>
             {
-                var stringMessage = await workflow.Message<string>();
-                var secondMessage = await workflow.Message<string>();
-                return $"{stringMessage}:{secondMessage}";
+                registration = r.RegisterFunc(
+                    nameof(WorkflowMessageCanPullDifferentMessageTypes),
+                    async Task<string> (string _, Workflow workflow) =>
+                    {
+                        var stringMessage = await workflow.Message<string>();
+                        var secondMessage = await workflow.Message<string>();
+                        return $"{stringMessage}:{secondMessage}";
+                    }
+                );
             }
         );
 
@@ -544,20 +589,23 @@ public abstract class WorkflowMessageTests
     {
         var store = await functionStoreTask;
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
+        FuncRegistration<string, string> registration = null!;
         using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             store,
-            new Settings(unhandledExceptionHandler.Catch)
-        );
-
-        var registration = functionsRegistry.RegisterFunc(
-            nameof(WorkflowMessagePullAsObjectReturnsCorrectDeserializedType),
-            async Task<string> (string _, Workflow workflow) =>
+            new Settings(unhandledExceptionHandler.Catch),
+            r =>
             {
-                var message = await workflow.Message<object>();
-                message.ShouldBeOfType<TestMessage>();
-                var typedMessage = (TestMessage)message;
-                await workflow.Delay(TimeSpan.FromMilliseconds(10));
-                return $"{typedMessage.Value}:{typedMessage.Count}";
+                registration = r.RegisterFunc(
+                    nameof(WorkflowMessagePullAsObjectReturnsCorrectDeserializedType),
+                    async Task<string> (string _, Workflow workflow) =>
+                    {
+                        var message = await workflow.Message<object>();
+                        message.ShouldBeOfType<TestMessage>();
+                        var typedMessage = (TestMessage)message;
+                        await workflow.Delay(TimeSpan.FromMilliseconds(10));
+                        return $"{typedMessage.Value}:{typedMessage.Count}";
+                    }
+                );
             }
         );
 
@@ -579,17 +627,20 @@ public abstract class WorkflowMessageTests
     {
         var store = await functionStoreTask;
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
+        FuncRegistration<string, string> registration = null!;
         using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             store,
-            new Settings(unhandledExceptionHandler.Catch)
-        );
-
-        var registration = functionsRegistry.RegisterFunc(
-            nameof(WorkflowMessageWithMaxWaitSuspendsFlowWhenExpired),
-            async Task<string> (string _, Workflow workflow) =>
+            new Settings(unhandledExceptionHandler.Catch),
+            r =>
             {
-                var message = await workflow.Message<string>();
-                return message;
+                registration = r.RegisterFunc(
+                    nameof(WorkflowMessageWithMaxWaitSuspendsFlowWhenExpired),
+                    async Task<string> (string _, Workflow workflow) =>
+                    {
+                        var message = await workflow.Message<string>();
+                        return message;
+                    }
+                );
             }
         );
 

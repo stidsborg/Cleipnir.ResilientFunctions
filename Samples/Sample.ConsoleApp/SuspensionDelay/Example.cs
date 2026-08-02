@@ -12,11 +12,13 @@ public class Example
     public static async Task Perform()
     {
         var store = new InMemoryFunctionStore();
-        var functions = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionHandler: Console.WriteLine));
-
-        var rFunc = functions.RegisterAction<string>(
-            flowType: "DelaySuspension",
-            inner: SuspensionDelayWorkflow
+        var (functions, rFunc) = await FunctionsRegistry.CreateAndStart(
+            store,
+            new Settings(unhandledExceptionHandler: Console.WriteLine),
+            registry => registry.RegisterAction<string>(
+                flowType: "DelaySuspension",
+                inner: SuspensionDelayWorkflow
+            )
         );
 
         await rFunc.Schedule("instanceId", "hello world");

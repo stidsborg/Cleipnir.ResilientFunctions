@@ -28,38 +28,41 @@ public class IdempotencyKeyDeliveryStressTests
         {
             var functionStore = await Utils.CreateInMemoryFunctionStoreTask();
             var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-            using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
-                functionStore,
-                new Settings(unhandledExceptionCatcher.Catch, watchdogCheckFrequency: TimeSpan.FromMilliseconds(20))
-            );
-
             StoredId? storedId = null;
             var invocations = new SyncedList<string>();
-            var rFunc = functionsRegistry.RegisterFunc(
-                $"StressRound{round}",
-                inner: async Task<string> (string _, Workflow workflow) =>
+            FuncRegistration<string, string> rFunc = null!;
+            using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
+                functionStore,
+                new Settings(unhandledExceptionCatcher.Catch, watchdogCheckFrequency: TimeSpan.FromMilliseconds(20)),
+                r =>
                 {
-                    storedId = workflow.StoredId;
-                    var invocationLog = $"inv@{DateTime.UtcNow:HH:mm:ss.fff}";
-                    var receivedMessages = new List<string>();
-                    var message = "";
-                    while (message != "stop")
-                    {
-                        message = await workflow.Message<string>(TimeSpan.FromMilliseconds(30));
-                        invocations.Add($"{invocationLog} got:{message ?? "<null>"}");
-
-                        if (message is null)
-                            await workflow.Effect.Flush();
-                        else if (message is "10" or "20" or "30" or "40")
+                    rFunc = r.RegisterFunc(
+                        $"StressRound{round}",
+                        inner: async Task<string> (string _, Workflow workflow) =>
                         {
-                            await workflow.Delay(TimeSpan.FromMilliseconds(30));
-                            receivedMessages.Add(message);
-                        }
-                        else if (message != "stop")
-                            receivedMessages.Add(message);
-                    }
+                            storedId = workflow.StoredId;
+                            var invocationLog = $"inv@{DateTime.UtcNow:HH:mm:ss.fff}";
+                            var receivedMessages = new List<string>();
+                            var message = "";
+                            while (message != "stop")
+                            {
+                                message = await workflow.Message<string>(TimeSpan.FromMilliseconds(30));
+                                invocations.Add($"{invocationLog} got:{message ?? "<null>"}");
 
-                    return string.Join(",", receivedMessages);
+                                if (message is null)
+                                    await workflow.Effect.Flush();
+                                else if (message is "10" or "20" or "30" or "40")
+                                {
+                                    await workflow.Delay(TimeSpan.FromMilliseconds(30));
+                                    receivedMessages.Add(message);
+                                }
+                                else if (message != "stop")
+                                    receivedMessages.Add(message);
+                            }
+
+                            return string.Join(",", receivedMessages);
+                        }
+                    );
                 }
             );
 

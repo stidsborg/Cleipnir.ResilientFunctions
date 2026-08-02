@@ -15,14 +15,17 @@ public class RActionRegistrationTests
     [TestMethod]
     public async Task ConstructedFuncInvokeCanBeCreatedAndInvoked()
     {
-        using var rFunctions = await CreateRFunctions();
-        var rAction = rFunctions
-            .RegisterAction<string>(_flowType, InnerAction)
-            .Run;
+        ActionRegistration<string> registration = null!;
+        using var rFunctions = await CreateRFunctions(
+            r => registration = r.RegisterAction<string>(_flowType, InnerAction)
+        );
+        var rAction = registration.Run;
 
         await rAction(flowInstance, "hello world");
     }
-    
+
     private Task InnerAction(string param) => Task.CompletedTask;
-    private Task<FunctionsRegistry> CreateRFunctions() => FunctionsRegistry.CreateAndStart(new InMemoryFunctionStore());
+
+    private Task<FunctionsRegistry> CreateRFunctions(Action<FunctionsRegistry> setup)
+        => FunctionsRegistry.CreateAndStart(new InMemoryFunctionStore(), setup);
 }

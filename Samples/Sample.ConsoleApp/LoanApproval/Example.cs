@@ -13,16 +13,16 @@ public static class Example
     {
         var store = new InMemoryFunctionStore();
         
-        var functions = await FunctionsRegistry.CreateAndStart(
+        var (functions, registration) = await FunctionsRegistry.CreateAndStart(
             store,
-            new Settings(unhandledExceptionHandler: Console.WriteLine)
-        );
-
-        var approveLoanFunc = functions
-            .RegisterFunc<LoanApplication, bool>(
+            new Settings(unhandledExceptionHandler: Console.WriteLine),
+            registry => registry.RegisterFunc<LoanApplication, bool>(
                 "LoanApproval",
                 RpcApproach.PerformLoan.Execute
-            ).Run;
+            )
+        );
+
+        var approveLoanFunc = registration.Run;
 
         var transaction = new LoanApplication(
             Id: "someId",
@@ -47,16 +47,14 @@ public static class Example
         
         var store = new InMemoryFunctionStore();
         
-        var functions = await FunctionsRegistry.CreateAndStart(
+        var (functions, registration) = await FunctionsRegistry.CreateAndStart(
             store,
-            new Settings(unhandledExceptionHandler: Console.WriteLine)
-        );
-
-        var registration = functions
-            .RegisterAction<LoanApplication>(
+            new Settings(unhandledExceptionHandler: Console.WriteLine),
+            registry => registry.RegisterAction<LoanApplication>(
                 flowType: "LoanApproval",
                 ApproveLoan.Execute
-            );
+            )
+        );
         var rFunc = registration.Run;
 
         MessageBroker.Subscribe(async @event =>

@@ -31,6 +31,7 @@ public class FunctionsRegistry : IDisposable
     public DlqManager DeadLetterQueue { get; }
     
     private volatile bool _disposed;
+    private bool _started;
     private readonly Lock _sync = new();
     private readonly ReplicaWatchdog _replicaWatchdog;
     private readonly MessageWatchdog _messageWatchdog;
@@ -119,25 +120,40 @@ public class FunctionsRegistry : IDisposable
     }
 
     /// <summary>
-    /// Creates a <see cref="FunctionsRegistry"/> and starts its background processing - cluster membership,
-    /// message delivery and crash/postponed recovery. All flow types must be registered at creation time (before
-    /// their messages are fetched) - prefer the setup-overload, which guarantees this. Messages fetched for types
-    /// not registered on this replica are held for <see cref="Settings"/>' UnregisteredFlowTypesGracePeriod and
-    /// then moved to the dead letter queue.
+    /// Creates a <see cref="FunctionsRegistry"/>, invokes <paramref name="setup"/> to register the application's
+    /// flow types and only then starts background processing - cluster membership, message delivery and
+    /// crash/postponed recovery. The registry is sealed once started: registering a flow type afterwards throws.
+    /// Messages fetched for types not registered on this replica are held for <see cref="Settings"/>'
+    /// UnregisteredFlowTypesGracePeriod and then moved to the dead letter queue.
     /// </summary>
-    public static async Task<FunctionsRegistry> CreateAndStart(IFunctionStore functionStore, Settings? settings = null)
+    public static Task<FunctionsRegistry> CreateAndStart(
+        IFunctionStore functionStore,
+        Action<FunctionsRegistry> setup)
+        => CreateAndStart(functionStore, settings: null, setup);
+
+    /// <inheritdoc cref="CreateAndStart(IFunctionStore,Action{FunctionsRegistry})"/>
+    public static async Task<FunctionsRegistry> CreateAndStart(
+        IFunctionStore functionStore,
+        Settings? settings,
+        Action<FunctionsRegistry> setup)
     {
         var registry = new FunctionsRegistry(functionStore, settings);
+        setup(registry);
         await registry.Start();
         return registry;
     }
 
     /// <summary>
-    /// Creates a <see cref="FunctionsRegistry"/>, invokes <paramref name="setup"/> to register the application's
-    /// flow types and only then starts background processing - guaranteeing that no message delivery or restart
-    /// occurs before all the types registered in <paramref name="setup"/> are known. Returns the registry together
-    /// with <paramref name="setup"/>'s return value, so the typed registrations escape to the caller.
+    /// Value-returning counterpart to <see cref="CreateAndStart(IFunctionStore,Action{FunctionsRegistry})"/>:
+    /// returns the registry together with <paramref name="setup"/>'s return value, so the typed registrations
+    /// escape to the caller without having to be assigned to captured locals.
     /// </summary>
+    public static Task<(FunctionsRegistry Registry, T Flows)> CreateAndStart<T>(
+        IFunctionStore functionStore,
+        Func<FunctionsRegistry, T> setup)
+        => CreateAndStart(functionStore, settings: null, setup);
+
+    /// <inheritdoc cref="CreateAndStart{T}(IFunctionStore,Func{FunctionsRegistry,T})"/>
     public static async Task<(FunctionsRegistry Registry, T Flows)> CreateAndStart<T>(
         IFunctionStore functionStore,
         Settings? settings,
@@ -151,11 +167,29 @@ public class FunctionsRegistry : IDisposable
 
     private async Task Start()
     {
+        // Seal before any background loop runs. Registration takes the same lock, so every registration made in
+        // the setup delegate happens-before this write - and therefore before the loops started below observe the
+        // registered flow types. This is what lets FlowsManagers read its dictionary without synchronization.
+        lock (_sync)
+            _started = true;
+
         // The replica must join the cluster (replica insert + offset calculation) before any loop that shards
         // by cluster offset or claims flows for this replica is allowed to run.
         await _replicaWatchdog.Start();
         _postponedWatchdog.Start();
         _ = Task.Run(_messageWatchdog.Start);
+    }
+
+    /// <summary>
+    /// Guards the registration entry points. Must be called while holding <see cref="_sync"/>.
+    /// </summary>
+    private void ThrowIfStarted()
+    {
+        if (_started)
+            throw new InvalidOperationException(
+                $"Flow types cannot be registered after the {nameof(FunctionsRegistry)} has been started - " +
+                $"register all flow types in the setup delegate passed to {nameof(CreateAndStart)}"
+            );
     }
 
     #region Func overloads
@@ -291,6 +325,8 @@ public class FunctionsRegistry : IDisposable
 
         lock (_sync)
         {
+            ThrowIfStarted();
+
             if (_functions.ContainsKey(flowType))
                 return (FuncRegistration<TParam, TReturn>)_functions[flowType];
             
@@ -370,6 +406,8 @@ public class FunctionsRegistry : IDisposable
         
         lock (_sync)
         {
+            ThrowIfStarted();
+
             if (_functions.ContainsKey(flowType))
                 return (ParamlessRegistration)_functions[flowType];
             
@@ -449,6 +487,8 @@ public class FunctionsRegistry : IDisposable
         
         lock (_sync)
         {
+            ThrowIfStarted();
+
             if (_functions.ContainsKey(flowType))
                 return (ActionRegistration<TParam>)_functions[flowType];
 

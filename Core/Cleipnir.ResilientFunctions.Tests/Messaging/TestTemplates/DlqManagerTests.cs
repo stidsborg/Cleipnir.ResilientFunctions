@@ -24,15 +24,18 @@ public abstract class DlqManagerTests
     {
         var functionStore = await functionStoreTask;
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
+        var flowType = nameof(DeadLetteredMessagesCanBeRedriven).ToFlowType();
+        FuncRegistration<string, string> rFunc = null!;
         using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             functionStore,
-            new Settings(unhandledExceptionCatcher.Catch)
-        );
-
-        var flowType = nameof(DeadLetteredMessagesCanBeRedriven).ToFlowType();
-        var rFunc = functionsRegistry.RegisterFunc(
-            flowType,
-            inner: async Task<string> (string _, Workflow workflow) => await workflow.Message<string>()
+            new Settings(unhandledExceptionCatcher.Catch),
+            r =>
+            {
+                rFunc = r.RegisterFunc(
+                    flowType,
+                    inner: async Task<string> (string _, Workflow workflow) => await workflow.Message<string>()
+                );
+            }
         );
 
         var scheduledByPosition = await rFunc.Schedule("byPosition", "");
@@ -74,18 +77,21 @@ public abstract class DlqManagerTests
     {
         var functionStore = await functionStoreTask;
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
+        FuncRegistration<string, string> rFunc = null!;
         using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             functionStore,
-            new Settings(unhandledExceptionCatcher.Catch)
-        );
-
-        var rFunc = functionsRegistry.RegisterFunc(
-            nameof(AllDeadLetteredMessagesForFlowAreRedriven),
-            inner: async Task<string> (string _, Workflow workflow) =>
+            new Settings(unhandledExceptionCatcher.Catch),
+            r =>
             {
-                var first = await workflow.Message<string>();
-                var second = await workflow.Message<string>();
-                return $"{first}|{second}";
+                rFunc = r.RegisterFunc(
+                    nameof(AllDeadLetteredMessagesForFlowAreRedriven),
+                    inner: async Task<string> (string _, Workflow workflow) =>
+                    {
+                        var first = await workflow.Message<string>();
+                        var second = await workflow.Message<string>();
+                        return $"{first}|{second}";
+                    }
+                );
             }
         );
 
@@ -115,7 +121,8 @@ public abstract class DlqManagerTests
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             functionStore,
-            new Settings(unhandledExceptionCatcher.Catch)
+            new Settings(unhandledExceptionCatcher.Catch),
+            _ => { }
         );
 
         // The flow type is not registered on this replica, so the redriven message is held by the message
@@ -148,14 +155,17 @@ public abstract class DlqManagerTests
     {
         var functionStore = await functionStoreTask;
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
+        FuncRegistration<string, string> rFunc = null!;
         using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             functionStore,
-            new Settings(unhandledExceptionCatcher.Catch)
-        );
-
-        var rFunc = functionsRegistry.RegisterFunc(
-            nameof(DeletedDeadLetteredMessagesAreNotRedelivered),
-            inner: async Task<string> (string _, Workflow workflow) => await workflow.Message<string>()
+            new Settings(unhandledExceptionCatcher.Catch),
+            r =>
+            {
+                rFunc = r.RegisterFunc(
+                    nameof(DeletedDeadLetteredMessagesAreNotRedelivered),
+                    inner: async Task<string> (string _, Workflow workflow) => await workflow.Message<string>()
+                );
+            }
         );
 
         var scheduled = await rFunc.Schedule("instanceId", "");
@@ -187,7 +197,8 @@ public abstract class DlqManagerTests
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             functionStore,
-            new Settings(unhandledExceptionCatcher.Catch)
+            new Settings(unhandledExceptionCatcher.Catch),
+            _ => { }
         );
 
         var storedId = TestStoredId.Create();
@@ -228,7 +239,8 @@ public abstract class DlqManagerTests
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             functionStore,
-            new Settings(unhandledExceptionCatcher.Catch)
+            new Settings(unhandledExceptionCatcher.Catch),
+            _ => { }
         );
 
         var storedId = TestStoredId.Create();

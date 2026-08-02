@@ -23,17 +23,22 @@ public abstract class PostponedTests
         {
             var unhandledExceptionHandler = new UnhandledExceptionCatcher();
             var crashableStore = new CrashableFunctionStore(store);
+            FuncRegistration<string, string> registration = null!;
             using var functionsRegistry = await FunctionsRegistry.CreateAndStart
                 (
                     crashableStore,
                     new Settings(
                         unhandledExceptionHandler.Catch
-                    )
+                    ),
+                    r =>
+                    {
+                        registration = r.RegisterFunc<string, string>(
+                            flowType,
+                            (string _) => Postpone.Until(DateTime.UtcNow.AddMilliseconds(1_000)).ToResult<string>().ToTask()
+                        );
+                    }
                 );
-            var rFunc = functionsRegistry.RegisterFunc<string, string>(
-                flowType,
-                (string _) => Postpone.Until(DateTime.UtcNow.AddMilliseconds(1_000)).ToResult<string>().ToTask()
-            ).Run;
+            var rFunc = registration.Run;
 
             await Should.ThrowAsync<InvocationPostponedException>(() =>
                 rFunc(param, param)
@@ -45,19 +50,21 @@ public abstract class PostponedTests
         }
         {
             var unhandledExceptionHandler = new UnhandledExceptionCatcher();
+            FuncRegistration<string, string> rFunc = null!;
             using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
                 store,
                 new Settings(
                     unhandledExceptionHandler.Catch,
                     watchdogCheckFrequency: TimeSpan.FromMilliseconds(1_000)
-                )
+                ),
+                r =>
+                {
+                    rFunc = r.RegisterFunc(
+                        flowType,
+                        (string s) => s.ToUpper().ToTask()
+                    );
+                }
             );
-
-            var rFunc = functionsRegistry
-                .RegisterFunc(
-                    flowType,
-                    (string s) => s.ToUpper().ToTask()
-                );
 
             var functionId = new FlowId(flowType, param.ToFlowInstance());
             await BusyWait.Until(async () => (await store.GetFunction(rFunc.MapToStoredId(functionId.Instance)))!.Status == Status.Succeeded);
@@ -75,36 +82,43 @@ public abstract class PostponedTests
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         const string param = "test";
         {
+            ActionRegistration<string> registration = null!;
             using var functionsRegistry = await FunctionsRegistry.CreateAndStart
             (
                 store,
                 new Settings(
                     unhandledExceptionHandler.Catch
-                )
+                ),
+                r =>
+                {
+                    registration = r.RegisterAction(
+                        flowType,
+                        Task<Result<Unit>> (string _) => Postpone.Until(DateTime.UtcNow.AddMilliseconds(1_000)).ToUnitResult.ToTask()
+                    );
+                }
             );
-            var rAction = functionsRegistry.RegisterAction(
-                flowType, 
-                Task<Result<Unit>> (string _) => Postpone.Until(DateTime.UtcNow.AddMilliseconds(1_000)).ToUnitResult.ToTask()
-            ).Run;
+            var rAction = registration.Run;
 
             await Should.ThrowAsync<InvocationPostponedException>(() => rAction(flowInstance.Value, param));
             unhandledExceptionHandler.ShouldNotHaveExceptions();
         }
         {
+            FuncRegistration<string, string> rFunc = null!;
             using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
                 store,
                 new Settings(
                     unhandledExceptionHandler.Catch,
                     watchdogCheckFrequency: TimeSpan.FromMilliseconds(1_000)
-                )
+                ),
+                r =>
+                {
+                    rFunc = r.RegisterFunc(
+                        flowType,
+                        (string s) => s.ToUpper().ToTask()
+                    );
+                }
             );
 
-            var rFunc = functionsRegistry
-                .RegisterFunc(
-                    flowType,
-                    (string s) => s.ToUpper().ToTask()
-                );
-            
             await BusyWait.Until(async () => (await store.GetFunction(rFunc.MapToStoredId(functionId.Instance)))!.Status == Status.Succeeded);
             await rFunc.Run(flowInstance.Value, param);
             unhandledExceptionHandler.ShouldNotHaveExceptions();
@@ -119,14 +133,17 @@ public abstract class PostponedTests
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         {
             var crashableStore = new CrashableFunctionStore(store);
+            ActionRegistration<string> registration = null!;
             using var functionsRegistry = await FunctionsRegistry.CreateAndStart
             (
                 crashableStore,
-                new Settings()
+                new Settings(),
+                r =>
+                {
+                    registration = r.RegisterAction(functionId.Type, Task<Result<Unit>> (string _) => Postpone.Until(DateTime.UtcNow.AddMilliseconds(1_000)).ToUnitResult.ToTask());
+                }
             );
-            var rFunc = functionsRegistry
-                .RegisterAction(functionId.Type, Task<Result<Unit>> (string _) => Postpone.Until(DateTime.UtcNow.AddMilliseconds(1_000)).ToUnitResult.ToTask())
-                .Run;
+            var rFunc = registration.Run;
 
             var instanceId = functionId.Instance.ToString();
             await Should.ThrowAsync<InvocationPostponedException>(() => _ = rFunc(instanceId, "param"));
@@ -134,16 +151,20 @@ public abstract class PostponedTests
         }
         {
             var crashableStore = new CrashableFunctionStore(store);
+            ActionRegistration<string> registration = null!;
             using var functionsRegistry = await FunctionsRegistry.CreateAndStart
             (
                 crashableStore,
                 new Settings(
                     unhandledExceptionHandler.Catch,
                     watchdogCheckFrequency: TimeSpan.FromMilliseconds(1_000)
-                )
+                ),
+                r =>
+                {
+                    registration = r.RegisterAction(functionId.Type, (string _) => Task.CompletedTask);
+                }
             );
-            var registration = functionsRegistry.RegisterAction(functionId.Type, (string _) => Task.CompletedTask);
-            
+
             await BusyWait.Until(() => store.GetFunction(registration.MapToStoredId(functionId.Instance)).Map(sf => sf?.Status == Status.Succeeded));
             unhandledExceptionHandler.ShouldNotHaveExceptions();
         }
@@ -155,14 +176,18 @@ public abstract class PostponedTests
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         var store = await storeTask;
         var flowType = nameof(ThrownPostponeExceptionResultsInPostponedAction);
+        ActionRegistration<string> rAction = null!;
         using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             store,
-            new Settings(unhandledExceptionHandler: unhandledExceptionCatcher.Catch)
-        );
-        var rAction = functionsRegistry.RegisterAction(
-            flowType, 
-            inner: async Task (string _, Workflow workflow) =>
-                await workflow.Delay(TimeSpan.FromSeconds(10))
+            new Settings(unhandledExceptionHandler: unhandledExceptionCatcher.Catch),
+            r =>
+            {
+                rAction = r.RegisterAction(
+                    flowType,
+                    inner: async Task (string _, Workflow workflow) =>
+                        await workflow.Delay(TimeSpan.FromSeconds(10))
+                );
+            }
         );
 
         //invoke
@@ -248,12 +273,16 @@ public abstract class PostponedTests
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         var store = await storeTask;
         var flowType = nameof(ThrownPostponeExceptionResultsInPostponedActionWithState);
+        ActionRegistration<string> rAction = null!;
         using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             store,
-            new Settings(unhandledExceptionHandler: unhandledExceptionCatcher.Catch)
+            new Settings(unhandledExceptionHandler: unhandledExceptionCatcher.Catch),
+            r =>
+            {
+                rAction = r.RegisterAction(
+                    flowType, Task (string _, Workflow workflow) => workflow.Delay(TimeSpan.FromSeconds(10)));
+            }
         );
-        var rAction = functionsRegistry.RegisterAction(
-            flowType, Task (string _, Workflow workflow) => workflow.Delay(TimeSpan.FromSeconds(10)));
 
         //invoke
         {
@@ -338,16 +367,20 @@ public abstract class PostponedTests
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         var store = await storeTask;
         var flowType = TestFlowId.Create().Type;
+        FuncRegistration<string, string> rFunc = null!;
         using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             store,
-            new Settings(unhandledExceptionHandler: unhandledExceptionCatcher.Catch)
-        );
-        var rFunc = functionsRegistry.RegisterFunc(
-            flowType,
-            async Task<string> (string _, Workflow workflow) =>
+            new Settings(unhandledExceptionHandler: unhandledExceptionCatcher.Catch),
+            r =>
             {
-                await workflow.Delay(TimeSpan.FromSeconds(10));
-                return "OK";
+                rFunc = r.RegisterFunc(
+                    flowType,
+                    async Task<string> (string _, Workflow workflow) =>
+                    {
+                        await workflow.Delay(TimeSpan.FromSeconds(10));
+                        return "OK";
+                    }
+                );
             }
         );
 
@@ -437,17 +470,21 @@ public abstract class PostponedTests
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
         var store = await storeTask;
         var flowType = TestFlowId.Create().Type;
+        FuncRegistration<string, string> rFunc = null!;
         using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             store,
-            new Settings(unhandledExceptionHandler: unhandledExceptionCatcher.Catch)
-        );
-        var rFunc = functionsRegistry.RegisterFunc(
-            flowType,
-            async Task<string> (string _, Workflow workflow) =>
+            new Settings(unhandledExceptionHandler: unhandledExceptionCatcher.Catch),
+            r =>
             {
-                await workflow.Delay(TimeSpan.FromSeconds(10));
-                return "OK";
-            });
+                rFunc = r.RegisterFunc(
+                    flowType,
+                    async Task<string> (string _, Workflow workflow) =>
+                    {
+                        await workflow.Delay(TimeSpan.FromSeconds(10));
+                        return "OK";
+                    });
+            }
+        );
 
         //invoke
         {
@@ -561,24 +598,27 @@ public abstract class PostponedTests
             storageSession: null
         ).ShouldBeTrueAsync();
         
+        var syncedParam = new Synced<string>();
+        var invokedFlag = new SyncedFlag();
+        ActionRegistration<string> registration = null!;
         using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
             store,
             new Settings(
                 unhandledExceptionHandler: unhandledExceptionCatcher.Catch,
                 watchdogCheckFrequency: TimeSpan.FromMilliseconds(10)
-            )
-        );
-
-        var syncedParam = new Synced<string>();
-        var invokedFlag = new SyncedFlag();
-        var registration = functionsRegistry.RegisterAction(
-            flowType,
-            Task (string param) =>
+            ),
+            r =>
             {
-                syncedParam.Value = param; 
-                invokedFlag.Raise();
-                return Task.CompletedTask;
-            });
+                registration = r.RegisterAction(
+                    flowType,
+                    Task (string param) =>
+                    {
+                        syncedParam.Value = param;
+                        invokedFlag.Raise();
+                        return Task.CompletedTask;
+                    });
+            }
+        );
         
         await BusyWait.Until(() => invokedFlag.IsRaised, maxWait: TimeSpan.FromSeconds(10));
         syncedParam.Value.ShouldBe("hello");
@@ -593,19 +633,22 @@ public abstract class PostponedTests
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         var flag = new SyncedFlag();
 
+        ActionRegistration<string> rAction = null!;
         using var functionsRegistry = await FunctionsRegistry.CreateAndStart
         (
             store,
-            new Settings(unhandledExceptionHandler.Catch)
+            new Settings(unhandledExceptionHandler.Catch),
+            r =>
+            {
+                rAction = r.RegisterAction(
+                    functionId.Type,
+                    (string _) =>
+                    {
+                        flag.Raise();
+                        return Task.CompletedTask;
+                    });
+            }
         );
-        var rAction = functionsRegistry
-            .RegisterAction(
-                functionId.Type,
-                (string _) =>
-                {
-                    flag.Raise();
-                    return Task.CompletedTask;
-                });
 
         await rAction.ScheduleAt(
             functionId.Instance.ToString(),
@@ -637,22 +680,25 @@ public abstract class PostponedTests
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
         var flag = new SyncedFlag();
 
+        FuncRegistration<string, string> rFunc = null!;
         using var functionsRegistry = await FunctionsRegistry.CreateAndStart
         (
             store,
             new Settings(
                 unhandledExceptionHandler.Catch,
                 watchdogCheckFrequency: TimeSpan.FromSeconds(1)
-            )
+            ),
+            r =>
+            {
+                rFunc = r.RegisterFunc(
+                    functionId.Type,
+                    (string _) =>
+                    {
+                        flag.Raise();
+                        return "ok".ToTask();
+                    });
+            }
         );
-        var rFunc = functionsRegistry
-            .RegisterFunc(
-                functionId.Type,
-                (string _) =>
-                {
-                    flag.Raise();
-                    return "ok".ToTask();
-                });
 
         await rFunc.ScheduleAt(
             functionId.Instance.ToString(),
@@ -682,19 +728,22 @@ public abstract class PostponedTests
         var functionId = TestFlowId.Create();
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
 
+        ActionRegistration<string> rFunc = null!;
         using var functionsRegistry = await FunctionsRegistry.CreateAndStart
         (
             store,
             new Settings(
                 unhandledExceptionHandler.Catch,
                 watchdogCheckFrequency: TimeSpan.FromMilliseconds(100)
-            )
+            ),
+            r =>
+            {
+                rFunc = r.RegisterAction(
+                    functionId.Type,
+                    (string _, Workflow workflow) => workflow.Delay(TimeSpan.FromDays(1))
+                );
+            }
         );
-        var rFunc = functionsRegistry
-            .RegisterAction(
-                functionId.Type,
-                (string _, Workflow workflow) => workflow.Delay(TimeSpan.FromDays(1))
-            );
 
         await Should.ThrowAsync<InvocationPostponedException>(
             () => rFunc.Run(functionId.Instance.Value, "test")
@@ -710,20 +759,23 @@ public abstract class PostponedTests
         var functionId = TestFlowId.Create();
         var unhandledExceptionHandler = new UnhandledExceptionCatcher();
 
+        var tomorrow = DateTime.UtcNow.Add(TimeSpan.FromDays(1));
+        ActionRegistration<string> registration = null!;
         using var functionsRegistry = await FunctionsRegistry.CreateAndStart
         (
             store,
             new Settings(
                 unhandledExceptionHandler.Catch,
                 watchdogCheckFrequency: TimeSpan.FromMilliseconds(250)
-            )
+            ),
+            r =>
+            {
+                registration = r.RegisterAction(
+                    functionId.Type,
+                    (string _, Workflow workflow) => workflow.Delay(tomorrow)
+                );
+            }
         );
-        var tomorrow = DateTime.UtcNow.Add(TimeSpan.FromDays(1));
-        var registration = functionsRegistry
-            .RegisterAction(
-                functionId.Type,
-                (string _, Workflow workflow) => workflow.Delay(tomorrow)
-            );
 
         await Should.ThrowAsync<InvocationPostponedException>(
             () => registration.Run(functionId.Instance.Value, "test")

@@ -12,16 +12,14 @@ public static class Example
     {
         var store = new InMemoryFunctionStore();
         
-        var functions = await FunctionsRegistry.CreateAndStart(
+        var (functions, registration) = await FunctionsRegistry.CreateAndStart(
             store,
-            new Settings(unhandledExceptionHandler: Console.WriteLine)
-        );
-
-        var registration = functions
-            .RegisterAction<string>(
-             "CustomerSignupFlow",
+            new Settings(unhandledExceptionHandler: Console.WriteLine),
+            registry => registry.RegisterAction<string>(
+                "CustomerSignupFlow",
                 SignupFlow.Start
-            );
+            )
+        );
 
         var offerDate = new DateOnly(2022, 1, 1);
         await registration.Run(

@@ -18,13 +18,20 @@ public abstract class ScheduledInvocationTests
         var functionId = new FlowId(flowType, flowInstance);
         
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionCatcher.Catch));
-        var reg = functionsRegistry.RegisterFunc(
-            flowType,
-            (string _) => NeverCompletingTask.OfType<Result<string>>()
+        FuncRegistration<string, string> reg = null!;
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
+            store,
+            new Settings(unhandledExceptionCatcher.Catch),
+            r =>
+            {
+                reg = r.RegisterFunc(
+                    flowType,
+                    (string _) => NeverCompletingTask.OfType<Result<string>>()
+                );
+            }
         );
         var schedule = reg.Schedule;
-        
+
         await schedule(flowInstance, flowInstance);
 
         var storedFunction = await store.GetFunction(reg.MapToStoredId(functionId.Instance));
@@ -44,11 +51,18 @@ public abstract class ScheduledInvocationTests
         var functionId = new FlowId(flowType, flowInstance);
         
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionCatcher.Catch));
-        var reg = functionsRegistry.RegisterFunc(
-                flowType,
-                (string _) => NeverCompletingTask.OfType<Result<string>>()
-            );
+        FuncRegistration<string, string> reg = null!;
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
+            store,
+            new Settings(unhandledExceptionCatcher.Catch),
+            r =>
+            {
+                reg = r.RegisterFunc(
+                        flowType,
+                        (string _) => NeverCompletingTask.OfType<Result<string>>()
+                    );
+            }
+        );
         var schedule = reg.Schedule;
 
         await schedule(flowInstance, flowInstance);
@@ -70,10 +84,17 @@ public abstract class ScheduledInvocationTests
         var functionId = new FlowId(flowType, flowInstance);
         
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionCatcher.Catch));
-        var reg = functionsRegistry.RegisterAction(
-            flowType,
-            (string _) => NeverCompletingTask.OfType<Result<Unit>>()
+        ActionRegistration<string> reg = null!;
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
+            store,
+            new Settings(unhandledExceptionCatcher.Catch),
+            r =>
+            {
+                reg = r.RegisterAction(
+                    flowType,
+                    (string _) => NeverCompletingTask.OfType<Result<Unit>>()
+                );
+            }
         );
         var schedule = reg.Schedule;
 
@@ -96,10 +117,17 @@ public abstract class ScheduledInvocationTests
         var functionId = new FlowId(flowType, flowInstance);
         
         var unhandledExceptionCatcher = new UnhandledExceptionCatcher();
-        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionCatcher.Catch));
-        var reg = functionsRegistry.RegisterFunc(
-            flowType,
-            (string _) => NeverCompletingTask.OfType<Result<Unit>>()
+        FuncRegistration<string, Unit> reg = null!;
+        using var functionsRegistry = await FunctionsRegistry.CreateAndStart(
+            store,
+            new Settings(unhandledExceptionCatcher.Catch),
+            r =>
+            {
+                reg = r.RegisterFunc(
+                    flowType,
+                    (string _) => NeverCompletingTask.OfType<Result<Unit>>()
+                );
+            }
         );
         var schedule = reg.Schedule;
 
