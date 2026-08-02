@@ -85,7 +85,7 @@ internal class PostponedWatchdog
                         // responsibility; any pending messages are pushed to the restarted flow by its poll.
                         await scheduleRestart(
                             id,
-                            new RestartedFunction(storedFlow, effects, StoredMessages: [], session),
+                            new RestartedFunction(storedFlow, effects, Messages: [], session),
                             onCompletion: () =>
                             {
                                 takenLock.Dispose();

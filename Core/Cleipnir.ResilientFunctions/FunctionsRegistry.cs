@@ -11,6 +11,7 @@ using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.InnerAdapters;
 using Cleipnir.ResilientFunctions.Messaging;
+using Cleipnir.ResilientFunctions.Queuing;
 using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions;
@@ -36,6 +37,7 @@ public class FunctionsRegistry : IDisposable
     private readonly MessageSender _messageSender;
     private readonly MessageClearer _messageClearer;
     private readonly FlowsManagers _flowsManagers;
+    private readonly MessageDeserializer _messageDeserializer;
 
     private FunctionsRegistry(IFunctionStore functionStore, Settings? settings = null)
     {
@@ -51,7 +53,7 @@ public class FunctionsRegistry : IDisposable
         );
         ClusterInfo = new ClusterInfo(ReplicaId.NewId());
         // The message-sender resolves lazily: it is created after the DlqManager, which the MessageWatchdog it
-        // notifies transitively depends on (watchdog -> FlowsManagers -> DlqManager).
+        // notifies depends on (watchdog -> DlqManager).
         DeadLetterQueue = new DlqManager(
             _functionStore.DlqStore,
             () => _messageSender!,
@@ -64,8 +66,16 @@ public class FunctionsRegistry : IDisposable
         _flowsManagers = new FlowsManagers(
             _functionStore,
             _messageClearer,
-            ClusterInfo,
-            DeadLetterQueue
+            ClusterInfo
+        );
+
+        // A single deserializer for the whole registry: the serializer is registry-global (per-registration
+        // settings cannot override it), so nothing about deserialization is type-specific.
+        _messageDeserializer = new MessageDeserializer(
+            _settings.Serializer.DecorateWithErrorHandling(),
+            _functionStore.DlqStore,
+            _messageClearer,
+            _settings.UnhandledExceptionHandler
         );
 
         _postponedWatchdog = new PostponedWatchdog(
@@ -90,6 +100,8 @@ public class FunctionsRegistry : IDisposable
         _messageWatchdog = new MessageWatchdog(
             _functionStore.MessageStore,
             _flowsManagers,
+            _messageDeserializer,
+            DeadLetterQueue,
             _messageClearer,
             ClusterInfo,
             _shutdownCoordinator,
@@ -300,7 +312,8 @@ public class FunctionsRegistry : IDisposable
                 _settings.UtcNow,
                 settings?.ClearChildrenAfterCapture ?? true,
                 _messageClearer,
-                _messageSender
+                _messageSender,
+                _messageDeserializer
             );
             var flowsManager = _flowsManagers.GetOrCreate(storedType);
             var invoker = new Invoker<TParam, TReturn>(
@@ -377,7 +390,8 @@ public class FunctionsRegistry : IDisposable
                 _settings.UtcNow,
                 settings?.ClearChildrenAfterCapture ?? true,
                 _messageClearer,
-                _messageSender
+                _messageSender,
+                _messageDeserializer
             );
             var flowsManager = _flowsManagers.GetOrCreate(storedType);
             var invoker = new Invoker<Unit, Unit>(
@@ -455,7 +469,8 @@ public class FunctionsRegistry : IDisposable
                 _settings.UtcNow,
                 settings?.ClearChildrenAfterCapture ?? true,
                 _messageClearer,
-                _messageSender
+                _messageSender,
+                _messageDeserializer
             );
             var flowsManager = _flowsManagers.GetOrCreate(storedType);
             var rActionInvoker = new Invoker<TParam, Unit>(

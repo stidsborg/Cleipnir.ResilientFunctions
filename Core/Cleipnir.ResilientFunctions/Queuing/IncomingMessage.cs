@@ -1,50 +1,35 @@
-using Cleipnir.ResilientFunctions.Domain;
-using Cleipnir.ResilientFunctions.Messaging;
+using System.Diagnostics.CodeAnalysis;
 using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.Queuing;
 
 /// <summary>
-/// A message arriving at the queue manager's delivery pipeline - the slice of <see cref="StoredMessage"/> the
-/// pipeline and the durable message carriers use. Incoming is pre-admission: the QueueManager's gate
-/// (fetched-position dedup and idempotency-key claim) decides whether the message becomes a
-/// <see cref="QueueManager.StagedMessage"/> waiting for a subscription or is dropped. A message re-staged from its
-/// own child effect has already passed the gate and is staged directly at initialization. The store row's replica
-/// and target flow are deliberately absent: by the time a message reaches the QueueManager it has already been
-/// fetched (and messages living purely in effect state never had a replica to begin with), and the pipeline
-/// belongs to a single flow, so its id is supplied by the caller when converting back.
+/// The object-form counterpart of <see cref="Messaging.StoredMessage"/>: a message past the fetch-boundary
+/// deserialization (<see cref="MessageDeserializer"/>), carrying its target flow and payload object. Flows flat
+/// from the MessageWatchdog until <see cref="CoreRuntime.FlowsManager"/> groups per flow; the byte form exists
+/// only at the storage boundaries (store rows and the <see cref="PendingMessages"/>-encoded effect carriers),
+/// and the durable carriers serialize the payload at staging. A message that failed deserialization was dead
+/// lettered at the boundary and is simply absent.
 ///
-/// A null <see cref="Position"/> marks a message without a backing message-store row (e.g. appended via the control
-/// panel directly into the flow's effect state). Such a message has no store identity, so the QueueManager assigns
-/// it a synthetic negative position at staging and it never participates in row clearing or push dedup.
+/// A null <see cref="Content"/> marks an empty restart-poke: it carries no payload and is never delivered -
+/// both hand-over routes strip empties before the queue manager, so the delivery pipeline only ever sees
+/// payload-carrying messages. A null <see cref="Position"/> marks a message without a backing message-store row
+/// (e.g. appended via the control panel directly into the flow's effect state): it has no store identity, so the
+/// QueueManager assigns it a synthetic negative position at staging and it never participates in row clearing or
+/// push dedup.
 /// </summary>
 internal record IncomingMessage(
-    byte[] MessageContent,
-    byte[] MessageType,
+    StoredId StoredId,
+    object? Content,
     long? Position,
     string? IdempotencyKey = null,
     string? Sender = null,
     string? Receiver = null)
 {
-    public static IncomingMessage From(StoredMessage message)
-        => new(
-            message.MessageContent,
-            message.MessageType,
-            message.RowBacked ? message.Position : null,
-            message.IdempotencyKey,
-            message.Sender,
-            message.Receiver
-        );
+    [MemberNotNullWhen(false, nameof(Content))]
+    public bool IsEmpty => Content is null;
 
-    public StoredMessage ToStoredMessage(StoredId storedId)
-        => new(
-            storedId,
-            MessageContent,
-            MessageType,
-            Position ?? 0,
-            ReplicaId.Empty,
-            IdempotencyKey,
-            Sender,
-            Receiver
-        ) { RowBacked = Position is not null };
+    // An empty restart-poke always addresses a store row - its position is all there is to it.
+    public static IncomingMessage CreateEmpty(StoredId storedId, long position)
+        => new(storedId, Content: null, position);
 }

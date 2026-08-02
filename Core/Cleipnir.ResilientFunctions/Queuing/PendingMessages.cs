@@ -23,37 +23,59 @@ internal static class PendingMessages
     /// <summary>Reserved effect id (same -1 prefix as the QueueManager's other reserved ids).</summary>
     public static readonly EffectId EffectId = new([-1, 1]);
 
-    public static byte[] Encode(IReadOnlyCollection<IncomingMessage> messages)
+    public static byte[] Encode(IReadOnlyCollection<StoredMessage> messages)
         => BinaryPacker.Pack(messages.Select(EncodeMessage).ToArray());
 
-    public static List<IncomingMessage> Decode(byte[] bytes)
+    public static List<StoredMessage> Decode(byte[] bytes, StoredId storedId)
         => BinaryPacker
             .Split(bytes)
-            .Select(messageBytes => DecodeMessage(messageBytes!))
+            .Select(messageBytes => DecodeMessage(messageBytes!, storedId))
             .ToList();
+
+    // The store row's replica is deliberately not encoded: by the time a message reaches an effect carrier it
+    // has already been fetched, and row-less messages never had a replica to begin with.
+    public static byte[] EncodeMessage(StoredMessage message)
+        => EncodeMessage(
+            message.MessageContent,
+            message.MessageType,
+            message.RowBacked ? message.Position : null,
+            message.IdempotencyKey,
+            message.Sender,
+            message.Receiver
+        );
 
     // A message without a backing store row (e.g. appended via the control panel directly into the flow's effect
     // state) encodes a null position piece - it has no store identity to clear or dedup against.
-    public static byte[] EncodeMessage(IncomingMessage message)
+    public static byte[] EncodeMessage(
+        byte[] messageContent,
+        byte[] messageType,
+        long? position,
+        string? idempotencyKey = null,
+        string? sender = null,
+        string? receiver = null)
         => BinaryPacker.Pack(
-            message.MessageContent,
-            message.MessageType,
-            message.Position is { } position ? BitConverter.GetBytes(position) : null,
-            message.IdempotencyKey?.ToUtf8Bytes(),
-            message.Sender?.ToUtf8Bytes(),
-            message.Receiver?.ToUtf8Bytes()
+            messageContent,
+            messageType,
+            position is { } storePosition ? BitConverter.GetBytes(storePosition) : null,
+            idempotencyKey?.ToUtf8Bytes(),
+            sender?.ToUtf8Bytes(),
+            receiver?.ToUtf8Bytes()
         );
 
-    public static IncomingMessage DecodeMessage(byte[] bytes)
+    // The target flow is not encoded - an effect carrier lives inside its flow's own effect state, so the id is
+    // supplied by the caller when decoding.
+    public static StoredMessage DecodeMessage(byte[] bytes, StoredId storedId)
     {
         var parts = BinaryPacker.Split(bytes, expectedPieces: 6);
-        return new IncomingMessage(
+        return new StoredMessage(
+            storedId,
             MessageContent: parts[0]!,
             MessageType: parts[1]!,
-            Position: parts[2] == null ? null : BitConverter.ToInt64(parts[2]!),
+            Position: parts[2] == null ? 0 : BitConverter.ToInt64(parts[2]!),
+            Replica: ReplicaId.Empty,
             IdempotencyKey: parts[3]?.ToStringFromUtf8Bytes(),
             Sender: parts[4]?.ToStringFromUtf8Bytes(),
             Receiver: parts[5]?.ToStringFromUtf8Bytes()
-        );
+        ) { RowBacked = parts[2] != null };
     }
 }

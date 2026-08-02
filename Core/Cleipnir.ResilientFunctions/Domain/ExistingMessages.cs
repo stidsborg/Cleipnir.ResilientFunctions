@@ -94,7 +94,7 @@ public class ExistingMessages
     {
         var entry = effects.FirstOrDefault(e => e.EffectId == PendingMessages.EffectId);
         return entry?.Result is { Length: > 0 } bytes
-            ? PendingMessages.Decode(bytes).Select(m => m.ToStoredMessage(_storedId)).ToList()
+            ? PendingMessages.Decode(bytes, _storedId)
             : [];
     }
 
@@ -107,7 +107,7 @@ public class ExistingMessages
                 continue;
 
             var encoded = (byte[]) _serializer.Deserialize(effect.Result, typeof(byte[]));
-            var message = PendingMessages.DecodeMessage(encoded).ToStoredMessage(_storedId);
+            var message = PendingMessages.DecodeMessage(encoded, _storedId);
             // Same synthetic-position formula as the QueueManager's staging - keeps the view, delivery order and
             // Remove addressing consistent.
             if (!message.RowBacked)
@@ -221,8 +221,7 @@ public class ExistingMessages
     {
         var json = _serializer.Serialize(message, message.GetType());
         var type = _serializer.SerializeType(message.GetType());
-        var incomingMessage = new IncomingMessage(json, type, Position: null, IdempotencyKey: idempotencyKey);
-        return PendingMessages.EncodeMessage(incomingMessage);
+        return PendingMessages.EncodeMessage(json, type, position: null, idempotencyKey: idempotencyKey);
     }
 
     private async Task WriteStagedMessageChild(byte[] encodedMessage, Func<IReadOnlyList<StoredEffect>, EffectId> chooseChildId)
@@ -295,7 +294,7 @@ public class ExistingMessages
 
         var entry = StoredEffect.CreateCompleted(
             PendingMessages.EffectId,
-            PendingMessages.Encode(messages.Select(IncomingMessage.From).ToList()),
+            PendingMessages.Encode(messages),
             alias: null
         );
         await _functionStore.SetEffectResult(
