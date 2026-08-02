@@ -44,10 +44,10 @@ public abstract class DlqManagerTests
         var untouchedId = rFunc.MapToStoredId("untouched".ToFlowInstance());
 
         await functionStore.DlqStore.Append([
-            CreateMessage("byPositionMsg").ToStoredIdAndMessage(byPositionId),
-            CreateMessage("byStoredIdMsg").ToStoredIdAndMessage(byStoredIdId),
-            CreateMessage("byFlowIdMsg").ToStoredIdAndMessage(byFlowIdId),
-            CreateMessage("untouchedMsg").ToStoredIdAndMessage(untouchedId)
+            CreateMessage(byPositionId, "byPositionMsg"),
+            CreateMessage(byStoredIdId, "byStoredIdMsg"),
+            CreateMessage(byFlowIdId, "byFlowIdMsg"),
+            CreateMessage(untouchedId, "untouchedMsg")
         ]);
 
         var dlq = functionsRegistry.DeadLetterQueue;
@@ -93,8 +93,8 @@ public abstract class DlqManagerTests
         var storedId = rFunc.MapToStoredId("instanceId".ToFlowInstance());
 
         await functionStore.DlqStore.Append([
-            CreateMessage("first").ToStoredIdAndMessage(storedId),
-            CreateMessage("second").ToStoredIdAndMessage(storedId)
+            CreateMessage(storedId, "first"),
+            CreateMessage(storedId, "second")
         ]);
 
         var dlq = functionsRegistry.DeadLetterQueue;
@@ -123,8 +123,7 @@ public abstract class DlqManagerTests
         // leaves the appended row in place for inspection.
         var storedId = TestStoredId.Create();
         await functionStore.DlqStore.Append([
-            CreateMessage("hello world", idempotencyKey: "idempotencyKey1", sender: "sender1", receiver: "receiver1")
-                .ToStoredIdAndMessage(storedId)
+            CreateMessage(storedId, "hello world", idempotencyKey: "idempotencyKey1", sender: "sender1", receiver: "receiver1")
         ]);
 
         var dlq = functionsRegistry.DeadLetterQueue;
@@ -164,8 +163,8 @@ public abstract class DlqManagerTests
         var otherId = rFunc.MapToStoredId("otherInstance".ToFlowInstance());
 
         await functionStore.DlqStore.Append([
-            CreateMessage("deleted").ToStoredIdAndMessage(storedId),
-            CreateMessage("kept").ToStoredIdAndMessage(otherId)
+            CreateMessage(storedId, "deleted"),
+            CreateMessage(otherId, "kept")
         ]);
 
         var dlq = functionsRegistry.DeadLetterQueue;
@@ -195,7 +194,7 @@ public abstract class DlqManagerTests
         await functionStore.DlqStore.Append(
             Enumerable
                 .Range(0, 5)
-                .Select(i => CreateMessage($"msg{i}").ToStoredIdAndMessage(storedId))
+                .Select(i => CreateMessage(storedId, $"msg{i}"))
                 .ToList()
         );
 
@@ -233,7 +232,7 @@ public abstract class DlqManagerTests
         );
 
         var storedId = TestStoredId.Create();
-        await functionStore.DlqStore.Append([CreateMessage("untouched").ToStoredIdAndMessage(storedId)]);
+        await functionStore.DlqStore.Append([CreateMessage(storedId, "untouched")]);
 
         var dlq = functionsRegistry.DeadLetterQueue;
 
@@ -252,8 +251,9 @@ public abstract class DlqManagerTests
         unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
 
-    private static StoredMessage CreateMessage(string content, string? idempotencyKey = null, string? sender = null, string? receiver = null)
+    private static StoredMessage CreateMessage(StoredId storedId, string content, string? idempotencyKey = null, string? sender = null, string? receiver = null)
         => new(
+            storedId,
             content.ToJson().ToUtf8Bytes(),
             typeof(string).SimpleQualifiedName().ToUtf8Bytes(),
             Position: 0,

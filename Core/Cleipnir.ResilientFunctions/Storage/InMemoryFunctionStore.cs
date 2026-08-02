@@ -491,6 +491,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
                 var flowOwner = _states.TryGetValue(storedId, out var state) ? state.Owner : null;
                 var replica = flowOwner ?? replicaId;
                 flowMessages[_nextMessagePosition++] = new StoredMessage(
+                    storedId,
                     message.Content,
                     message.Type,
                     Position: 0,
@@ -554,16 +555,16 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         return dict;
     }
 
-    public Task<List<StoredIdAndMessage>> GetMessagesForReplica(ReplicaId replicaId, IReadOnlyList<long> ignorePositions)
+    public Task<List<StoredMessage>> GetMessagesForReplica(ReplicaId replicaId, IReadOnlyList<long> ignorePositions)
     {
         lock (_sync)
         {
             var ignore = ignorePositions.ToHashSet();
-            var result = new List<StoredIdAndMessage>();
-            foreach (var (storedId, messages) in _messages)
+            var result = new List<StoredMessage>();
+            foreach (var (_, messages) in _messages)
                 foreach (var (position, message) in messages.OrderBy(kv => kv.Key))
                     if (message.Replica == replicaId && !ignore.Contains(position))
-                        result.Add(new StoredIdAndMessage(storedId, message with { Position = position }));
+                        result.Add(message with { Position = position });
 
             return result.ToTask();
         }

@@ -41,7 +41,7 @@ public class MariaDbDlqStore : IDlqStore
         await command.ExecuteNonQueryAsync();
     }
 
-    public async Task Append(IReadOnlyList<StoredIdAndMessage> messages)
+    public async Task Append(IReadOnlyList<StoredMessage> messages)
     {
         if (messages.Count == 0)
             return;
@@ -52,7 +52,7 @@ public class MariaDbDlqStore : IDlqStore
 
         await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
         await using var command = new MySqlCommand(sql, conn);
-        foreach (var (storedId, storedMessage) in messages)
+        foreach (var storedMessage in messages)
         {
             var content = BinaryPacker.Pack(
                 storedMessage.MessageContent,
@@ -61,7 +61,7 @@ public class MariaDbDlqStore : IDlqStore
                 storedMessage.Sender?.ToUtf8Bytes(),
                 storedMessage.Receiver?.ToUtf8Bytes()
             );
-            command.Parameters.Add(new() { Value = storedId.AsGuid.ToString("N") });
+            command.Parameters.Add(new() { Value = storedMessage.StoredId.AsGuid.ToString("N") });
             command.Parameters.Add(new() { Value = content });
         }
         await command.ExecuteNonQueryAsync();

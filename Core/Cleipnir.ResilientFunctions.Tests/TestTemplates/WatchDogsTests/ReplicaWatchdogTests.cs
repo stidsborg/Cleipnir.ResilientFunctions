@@ -495,8 +495,7 @@ public abstract class ReplicaWatchdogTests
         // fetched again since GetMessagesForReplica only returns messages assigned to the fetching replica.
         var flowId = TestStoredId.Create();
         await messageStore.AppendMessage(
-            flowId,
-            new StoredMessage("orphan".ToJson().ToUtf8Bytes(), stringType, Position: 0, Replica: crashedReplica)
+            new StoredMessage(flowId, "orphan".ToJson().ToUtf8Bytes(), stringType, Position: 0, Replica: crashedReplica)
         );
 
         var liveReplica = new ClusterInfo(ReplicaId.NewId());

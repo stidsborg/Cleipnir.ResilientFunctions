@@ -77,7 +77,7 @@ internal class MessageWatchdog(
         var messages = await messageStore.GetMessagesForReplica(clusterInfo.ReplicaId, nonClearedPositions);
         if (messages.Count > 0)
         {
-            messageClearer.MarkPushed(messages.Select(message => message.StoredMessage.Position));
+            messageClearer.MarkPushed(messages.Select(message => message.Position));
             await flowsManagers.Push(messages);
         }
     }

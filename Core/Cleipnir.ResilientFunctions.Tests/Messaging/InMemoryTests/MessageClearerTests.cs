@@ -121,9 +121,9 @@ public class MessageClearerTests
         var storedId = TestStoredId.Create();
 
         await messageStore.AppendMessages([
-            Message().ToSerializedMessage(storedId),
-            Message().ToSerializedMessage(storedId),
-            Message().ToSerializedMessage(storedId)
+            Message(storedId).ToSerializedMessage(),
+            Message(storedId).ToSerializedMessage(),
+            Message(storedId).ToSerializedMessage()
         ]);
         var positions = (await messageStore.GetMessages(storedId)).Select(m => m.Position).ToList();
         positions.Count.ShouldBe(3);
@@ -136,8 +136,8 @@ public class MessageClearerTests
         remaining.ShouldBe(new[] { positions[2] });
     }
 
-    private static StoredMessage Message()
-        => new(MessageContent: new byte[] { 1 }, MessageType: new byte[] { 2 }, Position: 0, Replica: ReplicaId.Empty);
+    private static StoredMessage Message(StoredId storedId)
+        => new(storedId, MessageContent: new byte[] { 1 }, MessageType: new byte[] { 2 }, Position: 0, Replica: ReplicaId.Empty);
 
     private static MessageClearer CreateClearer(
         IMessageStore messageStore,
@@ -172,7 +172,7 @@ public class MessageClearerTests
         public Task<IReadOnlyList<StoredMessage>> GetMessages(StoredId storedId) => throw new NotSupportedException();
         public Task<IReadOnlyList<StoredMessage>> GetMessages(StoredId storedId, IReadOnlyList<long> skipPositions) => throw new NotSupportedException();
         public Task<Dictionary<StoredId, List<StoredMessage>>> GetMessages(IEnumerable<StoredId> storedIds) => throw new NotSupportedException();
-        public Task<List<StoredIdAndMessage>> GetMessagesForReplica(ReplicaId replicaId, IReadOnlyList<long> ignorePositions) => throw new NotSupportedException();
+        public Task<List<StoredMessage>> GetMessagesForReplica(ReplicaId replicaId, IReadOnlyList<long> ignorePositions) => throw new NotSupportedException();
         public Task<List<StoredIdAndPosition>> GetCrashedReplicaMessages(IReadOnlySet<ReplicaId> liveReplicas) => throw new NotSupportedException();
         public Task SetReplica(IEnumerable<long> positions, ReplicaId newReplica, ReplicaId expectedReplica) => throw new NotSupportedException();
     }

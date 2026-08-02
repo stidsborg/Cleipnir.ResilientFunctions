@@ -36,13 +36,11 @@ public abstract class MessageStoreTests
         const string msg2 = "";
 
         await messageStore.AppendMessage(
-            functionId,
-            new StoredMessage(msg1.ToJsonByteArray(), msg1.GetType().SimpleQualifiedName().ToUtf8Bytes(), Replica: ReplicaId.Empty, Position: 0)
+            new StoredMessage(functionId, msg1.ToJsonByteArray(), msg1.GetType().SimpleQualifiedName().ToUtf8Bytes(), Replica: ReplicaId.Empty, Position: 0)
         );
 
         await messageStore.AppendMessage(
-            functionId,
-            new StoredMessage(msg2.ToJsonByteArray(), msg2.GetType().SimpleQualifiedName().ToUtf8Bytes(), Replica: ReplicaId.Empty, Position: 0)
+            new StoredMessage(functionId, msg2.ToJsonByteArray(), msg2.GetType().SimpleQualifiedName().ToUtf8Bytes(), Replica: ReplicaId.Empty, Position: 0)
         );
 
         var events = (await messageStore.GetMessages(functionId)).ToList();
@@ -74,15 +72,15 @@ public abstract class MessageStoreTests
         const string msg3 = "hello universe";
         const string msg4 = "hello multiverse";
         
-        var storedEvent1 = new StoredMessage(msg1.ToJson().ToUtf8Bytes(), msg1.GetType().SimpleQualifiedName().ToUtf8Bytes(), Replica: ReplicaId.Empty, Position: 0, IdempotencyKey: "1");
-        var storedEvent2 = new StoredMessage(msg2.ToJson().ToUtf8Bytes(), msg2.GetType().SimpleQualifiedName().ToUtf8Bytes(), Replica: ReplicaId.Empty, Position: 0, IdempotencyKey: "2");
-        await messageStore.AppendMessage(functionId, storedEvent1);
-        await messageStore.AppendMessage(functionId, storedEvent2);
+        var storedEvent1 = new StoredMessage(functionId, msg1.ToJson().ToUtf8Bytes(), msg1.GetType().SimpleQualifiedName().ToUtf8Bytes(), Replica: ReplicaId.Empty, Position: 0, IdempotencyKey: "1");
+        var storedEvent2 = new StoredMessage(functionId, msg2.ToJson().ToUtf8Bytes(), msg2.GetType().SimpleQualifiedName().ToUtf8Bytes(), Replica: ReplicaId.Empty, Position: 0, IdempotencyKey: "2");
+        await messageStore.AppendMessage(storedEvent1);
+        await messageStore.AppendMessage(storedEvent2);
 
-        var storedEvent3 = new StoredMessage(msg3.ToJson().ToUtf8Bytes(), msg3.GetType().SimpleQualifiedName().ToUtf8Bytes(), Replica: ReplicaId.Empty, Position: 0, IdempotencyKey: "3");
-        var storedEvent4 = new StoredMessage(msg4.ToJson().ToUtf8Bytes(), msg4.GetType().SimpleQualifiedName().ToUtf8Bytes(), Replica: ReplicaId.Empty, Position: 0, IdempotencyKey: null);
-        await messageStore.AppendMessage(functionId, storedEvent3);
-        await messageStore.AppendMessage(functionId, storedEvent4);
+        var storedEvent3 = new StoredMessage(functionId, msg3.ToJson().ToUtf8Bytes(), msg3.GetType().SimpleQualifiedName().ToUtf8Bytes(), Replica: ReplicaId.Empty, Position: 0, IdempotencyKey: "3");
+        var storedEvent4 = new StoredMessage(functionId, msg4.ToJson().ToUtf8Bytes(), msg4.GetType().SimpleQualifiedName().ToUtf8Bytes(), Replica: ReplicaId.Empty, Position: 0, IdempotencyKey: null);
+        await messageStore.AppendMessage(storedEvent3);
+        await messageStore.AppendMessage(storedEvent4);
         
         var events = (await messageStore.GetMessages(functionId)).ToList();
         events.Count.ShouldBe(4);
@@ -115,8 +113,8 @@ public abstract class MessageStoreTests
         const string msg1 = "hello world";
         const string msg2 = "hello universe";
 
-        await messageStore.AppendMessage(functionId, new StoredMessage(msg1.ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Replica: ReplicaId.Empty, Position: 0));
-        await messageStore.AppendMessage(functionId, new StoredMessage(msg2.ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Replica: ReplicaId.Empty, Position: 0));
+        await messageStore.AppendMessage(new StoredMessage(functionId, msg1.ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Replica: ReplicaId.Empty, Position: 0));
+        await messageStore.AppendMessage(new StoredMessage(functionId, msg2.ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Replica: ReplicaId.Empty, Position: 0));
 
         var events = (await messageStore.GetMessages(functionId)).Skip(1).ToList();
         events.Count.ShouldBe(1);
@@ -143,10 +141,10 @@ public abstract class MessageStoreTests
         const string msg1 = "hello here";
         const string msg2 = "hello world";
 
-        var storedEvent1 = new StoredMessage(msg1.ToJson().ToUtf8Bytes(), msg1.GetType().SimpleQualifiedName().ToUtf8Bytes(), Replica: ReplicaId.Empty, Position: 0, IdempotencyKey: "1");
-        var storedEvent2 = new StoredMessage(msg2.ToJson().ToUtf8Bytes(), msg2.GetType().SimpleQualifiedName().ToUtf8Bytes(), Replica: ReplicaId.Empty, Position: 0, IdempotencyKey: "2");
-        await messageStore.AppendMessage(functionId, storedEvent1);
-        await messageStore.AppendMessage(functionId, storedEvent2);
+        var storedEvent1 = new StoredMessage(functionId, msg1.ToJson().ToUtf8Bytes(), msg1.GetType().SimpleQualifiedName().ToUtf8Bytes(), Replica: ReplicaId.Empty, Position: 0, IdempotencyKey: "1");
+        var storedEvent2 = new StoredMessage(functionId, msg2.ToJson().ToUtf8Bytes(), msg2.GetType().SimpleQualifiedName().ToUtf8Bytes(), Replica: ReplicaId.Empty, Position: 0, IdempotencyKey: "2");
+        await messageStore.AppendMessage(storedEvent1);
+        await messageStore.AppendMessage(storedEvent2);
 
         await messageStore.Truncate(functionId);
         var events = await messageStore.GetMessages(functionId);
@@ -191,18 +189,16 @@ public abstract class MessageStoreTests
         var messageStore = functionStore.MessageStore;
 
         await messageStore.AppendMessage(
-            functionId,
-            new StoredMessage("hello world".ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Replica: ReplicaId.Empty, Position: 0)
+            new StoredMessage(functionId, "hello world".ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Replica: ReplicaId.Empty, Position: 0)
         );
 
         await messageStore.AppendMessage(
-            functionId,
-            new StoredMessage("hello universe".ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Replica: ReplicaId.Empty, Position: 0)
+            new StoredMessage(functionId, "hello universe".ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Replica: ReplicaId.Empty, Position: 0)
         );
 
         await messageStore.Truncate(functionId);
-        await messageStore.AppendMessage(functionId, new StoredMessage("hello to you".ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Replica: ReplicaId.Empty, Position: 0));
-        await messageStore.AppendMessage(functionId, new StoredMessage("hello from me".ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Replica: ReplicaId.Empty, Position: 0));
+        await messageStore.AppendMessage(new StoredMessage(functionId, "hello to you".ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Replica: ReplicaId.Empty, Position: 0));
+        await messageStore.AppendMessage(new StoredMessage(functionId, "hello from me".ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Replica: ReplicaId.Empty, Position: 0));
 
         var events = (await messageStore.GetMessages(functionId)).ToList();
         events.Count.ShouldBe(2);
@@ -230,8 +226,8 @@ public abstract class MessageStoreTests
         var messageStore = functionStore.MessageStore;
 
         await messageStore.Truncate(functionId);
-        await messageStore.AppendMessage(functionId, new StoredMessage("hello to you".ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Replica: ReplicaId.Empty, Position: 0));
-        await messageStore.AppendMessage(functionId, new StoredMessage("hello from me".ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Replica: ReplicaId.Empty, Position: 0));
+        await messageStore.AppendMessage(new StoredMessage(functionId, "hello to you".ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Replica: ReplicaId.Empty, Position: 0));
+        await messageStore.AppendMessage(new StoredMessage(functionId, "hello from me".ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Replica: ReplicaId.Empty, Position: 0));
 
         var events = (await messageStore.GetMessages(functionId)).ToList();
         events.Count.ShouldBe(2);
@@ -245,7 +241,9 @@ public abstract class MessageStoreTests
     public abstract Task EventWithExistingIdempotencyKeyIsNotInsertedIntoMessages();
     protected async Task EventWithExistingIdempotencyKeyIsNotInsertedIntoMessages(Task<IFunctionStore> functionStoreTask)
     {
+        var functionId = TestStoredId.Create();
         var event1 = new StoredMessage(
+            functionId,
             JsonExtensions.ToJson("hello world").ToUtf8Bytes(),
             typeof(string).SimpleQualifiedName().ToUtf8Bytes(),
             Position: 0,
@@ -253,6 +251,7 @@ public abstract class MessageStoreTests
             IdempotencyKey: "idempotency_key"
         );
         var event2 = new StoredMessage(
+            functionId,
             "hello universe".ToJson().ToUtf8Bytes(),
             typeof(string).SimpleQualifiedName().ToUtf8Bytes(),
             Position: 0,
@@ -260,7 +259,6 @@ public abstract class MessageStoreTests
             IdempotencyKey: "idempotency_key"
         );
         
-        var functionId = TestStoredId.Create();
         var functionStore = await functionStoreTask;
         await functionStore.CreateFunction(
             functionId,  
@@ -273,8 +271,8 @@ public abstract class MessageStoreTests
         );
         var messageStore = functionStore.MessageStore;
 
-        await messageStore.AppendMessage(functionId, event1);
-        await messageStore.AppendMessage(functionId, event2);
+        await messageStore.AppendMessage(event1);
+        await messageStore.AppendMessage(event2);
 
         var events = await messageStore.GetMessages(functionId);
         events.Count.ShouldBe(2);
@@ -287,7 +285,9 @@ public abstract class MessageStoreTests
     public abstract Task EventWithExistingIdempotencyKeyIsNotInsertedIntoMessagesUsingBulkInsertion();
     protected async Task EventWithExistingIdempotencyKeyIsNotInsertedIntoMessagesUsingBulkInsertion(Task<IFunctionStore> functionStoreTask)
     {
+        var functionId = TestStoredId.Create();
         var event1 = new StoredMessage(
+            functionId,
             "hello world".ToJson().ToUtf8Bytes(),
             typeof(string).SimpleQualifiedName().ToUtf8Bytes(),
             Position: 0,
@@ -295,6 +295,7 @@ public abstract class MessageStoreTests
             IdempotencyKey: "idempotency_key"
         );
         var event2 = new StoredMessage(
+            functionId,
             "hello universe".ToJson().ToUtf8Bytes(),
             typeof(string).SimpleQualifiedName().ToUtf8Bytes(),
             Position: 0,
@@ -302,7 +303,6 @@ public abstract class MessageStoreTests
             IdempotencyKey: "idempotency_key"
         );
         
-        var functionId = TestStoredId.Create();
         var functionStore = await functionStoreTask;
         await functionStore.CreateFunction(
             functionId,  
@@ -315,8 +315,8 @@ public abstract class MessageStoreTests
         );
         var messageStore = functionStore.MessageStore;
 
-        await messageStore.AppendMessage(functionId, event1);
-        await messageStore.AppendMessage(functionId, event2);
+        await messageStore.AppendMessage(event1);
+        await messageStore.AppendMessage(event2);
 
         var events = await messageStore.GetMessages(functionId);
         events.Count.ShouldBe(2);
@@ -362,13 +362,14 @@ public abstract class MessageStoreTests
         var messageStore = functionStore.MessageStore;
         
         var event1 = new StoredMessage(
+            functionId,
             "hello world".ToJson().ToUtf8Bytes(),
             typeof(string).SimpleQualifiedName().ToUtf8Bytes(),
             Position: 0,
             Replica: ReplicaId.Empty,
             IdempotencyKey: "idempotency_key_1"
         );
-        await messageStore.AppendMessage(functionId, event1);
+        await messageStore.AppendMessage(event1);
 
         long skipPosition = -1;
         var allEvents = await messageStore.GetMessages(functionId);
@@ -381,13 +382,14 @@ public abstract class MessageStoreTests
         skipPosition = storedEvent.Position;
 
         var event2 = new StoredMessage(
+            functionId,
             "hello universe".ToJson().ToUtf8Bytes(),
             typeof(string).SimpleQualifiedName().ToUtf8Bytes(),
             Position: 0,
             Replica: ReplicaId.Empty,
             IdempotencyKey: "idempotency_key_2"
         );
-        await messageStore.AppendMessage(functionId, event2);
+        await messageStore.AppendMessage(event2);
 
         allEvents = await messageStore.GetMessages(functionId);
         newEvents = allEvents.Where(e => e.Position > skipPosition).ToList();
@@ -420,13 +422,14 @@ public abstract class MessageStoreTests
         var messageStore = functionStore.MessageStore;
         
         var event1 = new StoredMessage(
+            functionId,
             "hello world".ToJson().ToUtf8Bytes(),
             typeof(string).SimpleQualifiedName().ToUtf8Bytes(),
             Position: 0,
             Replica: ReplicaId.Empty,
             IdempotencyKey: "idempotency_key_1"
         );
-        await messageStore.AppendMessage(functionId, event1);
+        await messageStore.AppendMessage(event1);
 
         long skipPosition = -1;
         var allEvents = await messageStore.GetMessages(functionId);
@@ -439,13 +442,14 @@ public abstract class MessageStoreTests
         skipPosition = storedEvent.Position;
 
         var event2 = new StoredMessage(
+            functionId,
             "hello universe".ToJson().ToUtf8Bytes(),
             typeof(string).SimpleQualifiedName().ToUtf8Bytes(),
             Position: 0,
             Replica: ReplicaId.Empty,
             IdempotencyKey: "idempotency_key_1"
         );
-        await messageStore.AppendMessage(functionId, event2);
+        await messageStore.AppendMessage(event2);
 
         allEvents = await messageStore.GetMessages(functionId);
         newEvents = allEvents.Where(e => e.Position > skipPosition).ToList();
@@ -490,10 +494,10 @@ public abstract class MessageStoreTests
         var msg1 = "Hello";
         var msg2 = "World";
         var stringType = typeof(string).SimpleQualifiedName().ToUtf8Bytes();
-        await messageStore.AppendMessage(id1, new StoredMessage("ignore".ToJsonByteArray(), stringType, Replica: ReplicaId.Empty, Position: 0));
-        var storedMsg1 = new StoredMessage(msg1.ToJsonByteArray(), stringType, Replica: ReplicaId.Empty, Position: 0, IdempotencyKey: "1").ToSerializedMessage(id1);
-        var storedMsg2 = new StoredMessage(msg2.ToJsonByteArray(), stringType, Replica: ReplicaId.Empty, Position: 0, IdempotencyKey: "2").ToSerializedMessage(id1);
-        var storedMsg3 = new StoredMessage(msg1.ToJsonByteArray(), stringType, Replica: ReplicaId.Empty, Position: 0, IdempotencyKey: "3").ToSerializedMessage(id2);
+        await messageStore.AppendMessage(new StoredMessage(id1, "ignore".ToJsonByteArray(), stringType, Replica: ReplicaId.Empty, Position: 0));
+        var storedMsg1 = new StoredMessage(id1, msg1.ToJsonByteArray(), stringType, Replica: ReplicaId.Empty, Position: 0, IdempotencyKey: "1").ToSerializedMessage();
+        var storedMsg2 = new StoredMessage(id1, msg2.ToJsonByteArray(), stringType, Replica: ReplicaId.Empty, Position: 0, IdempotencyKey: "2").ToSerializedMessage();
+        var storedMsg3 = new StoredMessage(id2, msg1.ToJsonByteArray(), stringType, Replica: ReplicaId.Empty, Position: 0, IdempotencyKey: "3").ToSerializedMessage();
         await messageStore.AppendMessages([storedMsg1, storedMsg2, storedMsg3]);
 
         var id1Msgs = await messageStore.GetMessages(id1);
@@ -533,7 +537,7 @@ public abstract class MessageStoreTests
         var msg = "Hello World!";
         var stringType = typeof(string).SimpleQualifiedName().ToUtf8Bytes();
         await messageStore.AppendMessages(
-            [new StoredMessage(msg.ToJsonByteArray(), stringType, Replica: ReplicaId.Empty, Position: 0, IdempotencyKey: "1").ToSerializedMessage(id)]
+            [new StoredMessage(id, msg.ToJsonByteArray(), stringType, Replica: ReplicaId.Empty, Position: 0, IdempotencyKey: "1").ToSerializedMessage()]
         );
 
         var messages = await messageStore.GetMessages(id);
@@ -575,14 +579,14 @@ public abstract class MessageStoreTests
         var stringType = typeof(string).SimpleQualifiedName().ToUtf8Bytes();
         var msg1String = "Hello";
         var msg2String = "World!";
-        var msg1 = new StoredMessage(msg1String.ToUtf8Bytes(), stringType, Replica: ReplicaId.Empty, Position: 0, IdempotencyKey: "1");
-        var msg2 = new StoredMessage(msg2String.ToUtf8Bytes(), stringType, Replica: ReplicaId.Empty, Position: 0);
+        var msg1 = new StoredMessage(id1, msg1String.ToUtf8Bytes(), stringType, Replica: ReplicaId.Empty, Position: 0, IdempotencyKey: "1");
+        var msg2 = new StoredMessage(id1, msg2String.ToUtf8Bytes(), stringType, Replica: ReplicaId.Empty, Position: 0);
         
         await messageStore.AppendMessages(
             [
-                msg1.ToSerializedMessage(id1),
-                msg1.ToSerializedMessage(id2),
-                msg2.ToSerializedMessage(id1),
+                msg1.ToSerializedMessage(),
+                (msg1 with { StoredId = id2 }).ToSerializedMessage(),
+                msg2.ToSerializedMessage(),
             ]
         );
 
@@ -603,7 +607,7 @@ public abstract class MessageStoreTests
 
         await messageStore.AppendMessages(
             [
-                msg2.ToSerializedMessage(id2)
+                (msg2 with { StoredId = id2 }).ToSerializedMessage()
             ]
         );
         
@@ -649,10 +653,10 @@ public abstract class MessageStoreTests
         var msg1 = "Hello";
         var msg2 = "World!";
         var stringType = typeof(string).SimpleQualifiedName().ToUtf8Bytes();
-        await messageStore.AppendMessage(id1, new StoredMessage(msg1.ToJsonByteArray(), stringType, Replica: ReplicaId.Empty, Position: 0));
-        await messageStore.AppendMessage(id1, new StoredMessage(msg2.ToJsonByteArray(), stringType, Replica: ReplicaId.Empty, Position: 0));
-        await messageStore.AppendMessage(id2, new StoredMessage(msg1.ToJsonByteArray(), stringType, Replica: ReplicaId.Empty, Position: 0));
-        await messageStore.AppendMessage(id2, new StoredMessage(msg2.ToJsonByteArray(), stringType, Replica: ReplicaId.Empty, Position: 0));
+        await messageStore.AppendMessage(new StoredMessage(id1, msg1.ToJsonByteArray(), stringType, Replica: ReplicaId.Empty, Position: 0));
+        await messageStore.AppendMessage(new StoredMessage(id1, msg2.ToJsonByteArray(), stringType, Replica: ReplicaId.Empty, Position: 0));
+        await messageStore.AppendMessage(new StoredMessage(id2, msg1.ToJsonByteArray(), stringType, Replica: ReplicaId.Empty, Position: 0));
+        await messageStore.AppendMessage(new StoredMessage(id2, msg2.ToJsonByteArray(), stringType, Replica: ReplicaId.Empty, Position: 0));
         
         var messages = await messageStore.GetMessages([id1, id2]);
         messages.Count.ShouldBe(2);
@@ -688,10 +692,10 @@ public abstract class MessageStoreTests
         const string msg3 = "message3";
         const string msg4 = "message4";
 
-        await messageStore.AppendMessage(functionId, new StoredMessage(msg1.ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Replica: ReplicaId.Empty, Position: 0));
-        await messageStore.AppendMessage(functionId, new StoredMessage(msg2.ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Replica: ReplicaId.Empty, Position: 0));
-        await messageStore.AppendMessage(functionId, new StoredMessage(msg3.ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Replica: ReplicaId.Empty, Position: 0));
-        await messageStore.AppendMessage(functionId, new StoredMessage(msg4.ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Replica: ReplicaId.Empty, Position: 0));
+        await messageStore.AppendMessage(new StoredMessage(functionId, msg1.ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Replica: ReplicaId.Empty, Position: 0));
+        await messageStore.AppendMessage(new StoredMessage(functionId, msg2.ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Replica: ReplicaId.Empty, Position: 0));
+        await messageStore.AppendMessage(new StoredMessage(functionId, msg3.ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Replica: ReplicaId.Empty, Position: 0));
+        await messageStore.AppendMessage(new StoredMessage(functionId, msg4.ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Replica: ReplicaId.Empty, Position: 0));
 
         var messages = (await messageStore.GetMessages(functionId)).ToList();
         messages.Count.ShouldBe(4);
@@ -724,8 +728,8 @@ public abstract class MessageStoreTests
         const string msg1 = "message1";
         const string msg2 = "message2";
 
-        await messageStore.AppendMessage(functionId, new StoredMessage(msg1.ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Replica: ReplicaId.Empty, Position: 0));
-        await messageStore.AppendMessage(functionId, new StoredMessage(msg2.ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Replica: ReplicaId.Empty, Position: 0));
+        await messageStore.AppendMessage(new StoredMessage(functionId, msg1.ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Replica: ReplicaId.Empty, Position: 0));
+        await messageStore.AppendMessage(new StoredMessage(functionId, msg2.ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Replica: ReplicaId.Empty, Position: 0));
 
         var messages = (await messageStore.GetMessages(functionId)).ToList();
         messages.Count.ShouldBe(2);
@@ -756,8 +760,8 @@ public abstract class MessageStoreTests
         const string msg1 = "message1";
         const string msg2 = "message2";
 
-        await messageStore.AppendMessage(functionId, new StoredMessage(msg1.ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Replica: ReplicaId.Empty, Position: 0));
-        await messageStore.AppendMessage(functionId, new StoredMessage(msg2.ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Replica: ReplicaId.Empty, Position: 0));
+        await messageStore.AppendMessage(new StoredMessage(functionId, msg1.ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Replica: ReplicaId.Empty, Position: 0));
+        await messageStore.AppendMessage(new StoredMessage(functionId, msg2.ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Replica: ReplicaId.Empty, Position: 0));
 
         var messages = (await messageStore.GetMessages(functionId)).ToList();
         messages.Count.ShouldBe(2);
@@ -826,10 +830,10 @@ public abstract class MessageStoreTests
         const string msg2 = "message2";
 
         // Add messages to both functions
-        await messageStore.AppendMessage(id1, new StoredMessage(msg1.ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Replica: ReplicaId.Empty, Position: 0));
-        await messageStore.AppendMessage(id1, new StoredMessage(msg2.ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Replica: ReplicaId.Empty, Position: 0));
-        await messageStore.AppendMessage(id2, new StoredMessage(msg1.ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Replica: ReplicaId.Empty, Position: 0));
-        await messageStore.AppendMessage(id2, new StoredMessage(msg2.ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Replica: ReplicaId.Empty, Position: 0));
+        await messageStore.AppendMessage(new StoredMessage(id1, msg1.ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Replica: ReplicaId.Empty, Position: 0));
+        await messageStore.AppendMessage(new StoredMessage(id1, msg2.ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Replica: ReplicaId.Empty, Position: 0));
+        await messageStore.AppendMessage(new StoredMessage(id2, msg1.ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Replica: ReplicaId.Empty, Position: 0));
+        await messageStore.AppendMessage(new StoredMessage(id2, msg2.ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Replica: ReplicaId.Empty, Position: 0));
 
         var messages1 = (await messageStore.GetMessages(id1)).ToList();
         messages1.Count.ShouldBe(2);
@@ -870,6 +874,7 @@ public abstract class MessageStoreTests
         const string msg2 = "hello universe";
 
         var storedMessage1 = new StoredMessage(
+            functionId,
             msg1.ToJson().ToUtf8Bytes(),
             msg1.GetType().SimpleQualifiedName().ToUtf8Bytes(),
             Position: 0,
@@ -879,6 +884,7 @@ public abstract class MessageStoreTests
             Receiver: "receiver_1"
         );
         var storedMessage2 = new StoredMessage(
+            functionId,
             msg2.ToJson().ToUtf8Bytes(),
             msg2.GetType().SimpleQualifiedName().ToUtf8Bytes(),
             Position: 0,
@@ -888,6 +894,7 @@ public abstract class MessageStoreTests
             Receiver: null
         );
         var storedMessage3 = new StoredMessage(
+            functionId,
             msg1.ToJson().ToUtf8Bytes(),
             msg1.GetType().SimpleQualifiedName().ToUtf8Bytes(),
             Position: 0,
@@ -897,9 +904,9 @@ public abstract class MessageStoreTests
             Receiver: "receiver_3"
         );
 
-        await messageStore.AppendMessage(functionId, storedMessage1);
-        await messageStore.AppendMessage(functionId, storedMessage2);
-        await messageStore.AppendMessage(functionId, storedMessage3);
+        await messageStore.AppendMessage(storedMessage1);
+        await messageStore.AppendMessage(storedMessage2);
+        await messageStore.AppendMessage(storedMessage3);
 
         var messages = (await messageStore.GetMessages(functionId)).ToList();
         messages.Count.ShouldBe(3);
@@ -946,6 +953,7 @@ public abstract class MessageStoreTests
             {
                 var messages = Enumerable.Range(0, messagesPerBatch)
                     .Select(msgIndex => new StoredMessage(
+                        functionId,
                         $"batch{batchIndex}_msg{msgIndex}".ToJsonByteArray(),
                         stringType,
                         Position: 0,
@@ -955,7 +963,7 @@ public abstract class MessageStoreTests
                     .ToList();
 
                 foreach (var message in messages)
-                    await messageStore.AppendMessage(functionId, message);
+                    await messageStore.AppendMessage(message);
             })
         ).ToArray();
 
@@ -1019,16 +1027,16 @@ public abstract class MessageStoreTests
         var publisher = ReplicaId.NewId(); // the publishing replica - used as fallback when the target is idle
 
         // executing target -> the target flow's owner wins, the publisher fallback is ignored
-        await messageStore.AppendMessage(executingFlow, new StoredMessage("a".ToJson().ToUtf8Bytes(), stringType, Position: 0, Replica: publisher));
+        await messageStore.AppendMessage(new StoredMessage(executingFlow, "a".ToJson().ToUtf8Bytes(), stringType, Position: 0, Replica: publisher));
         // idle target -> falls back to the publishing replica
-        await messageStore.AppendMessage(idleFlow, new StoredMessage("b".ToJson().ToUtf8Bytes(), stringType, Position: 0, Replica: publisher));
+        await messageStore.AppendMessage(new StoredMessage(idleFlow, "b".ToJson().ToUtf8Bytes(), stringType, Position: 0, Replica: publisher));
         // idle target with empty publisher replica -> empty
-        await messageStore.AppendMessage(idleFlow, new StoredMessage("c".ToJson().ToUtf8Bytes(), stringType, Position: 0, Replica: ReplicaId.Empty));
+        await messageStore.AppendMessage(new StoredMessage(idleFlow, "c".ToJson().ToUtf8Bytes(), stringType, Position: 0, Replica: ReplicaId.Empty));
 
         // bulk append resolves per target flow
         await messageStore.AppendMessages([
-            new StoredMessage("d".ToJson().ToUtf8Bytes(), stringType, Position: 0, Replica: publisher).ToSerializedMessage(executingFlow),
-            new StoredMessage("e".ToJson().ToUtf8Bytes(), stringType, Position: 0, Replica: publisher).ToSerializedMessage(idleFlow),
+            new StoredMessage(executingFlow, "d".ToJson().ToUtf8Bytes(), stringType, Position: 0, Replica: publisher).ToSerializedMessage(),
+            new StoredMessage(idleFlow, "e".ToJson().ToUtf8Bytes(), stringType, Position: 0, Replica: publisher).ToSerializedMessage(),
         ]);
 
         var executingMessages = (await messageStore.GetMessages(executingFlow)).ToList();
@@ -1061,10 +1069,10 @@ public abstract class MessageStoreTests
         var flow2 = TestStoredId.Create();
 
         // owned by a live replica -> not crashed
-        await messageStore.AppendMessage(flow1, new StoredMessage("a".ToJson().ToUtf8Bytes(), stringType, Position: 0, Replica: liveReplica));
+        await messageStore.AppendMessage(new StoredMessage(flow1, "a".ToJson().ToUtf8Bytes(), stringType, Position: 0, Replica: liveReplica));
         // owned by crashed replicas -> crashed
-        await messageStore.AppendMessage(flow1, new StoredMessage("b".ToJson().ToUtf8Bytes(), stringType, Position: 0, Replica: crashedReplica1));
-        await messageStore.AppendMessage(flow2, new StoredMessage("c".ToJson().ToUtf8Bytes(), stringType, Position: 0, Replica: crashedReplica2));
+        await messageStore.AppendMessage(new StoredMessage(flow1, "b".ToJson().ToUtf8Bytes(), stringType, Position: 0, Replica: crashedReplica1));
+        await messageStore.AppendMessage(new StoredMessage(flow2, "c".ToJson().ToUtf8Bytes(), stringType, Position: 0, Replica: crashedReplica2));
 
         var flow1Messages = await messageStore.GetMessages(flow1);
         var flow2Messages = await messageStore.GetMessages(flow2);
@@ -1092,10 +1100,10 @@ public abstract class MessageStoreTests
         var flow1 = TestStoredId.Create();
         var flow2 = TestStoredId.Create();
 
-        await messageStore.AppendMessage(flow1, new StoredMessage("a".ToJson().ToUtf8Bytes(), stringType, Position: 0, Replica: crashedReplica));
-        await messageStore.AppendMessage(flow2, new StoredMessage("b".ToJson().ToUtf8Bytes(), stringType, Position: 0, Replica: crashedReplica));
+        await messageStore.AppendMessage(new StoredMessage(flow1, "a".ToJson().ToUtf8Bytes(), stringType, Position: 0, Replica: crashedReplica));
+        await messageStore.AppendMessage(new StoredMessage(flow2, "b".ToJson().ToUtf8Bytes(), stringType, Position: 0, Replica: crashedReplica));
         // owned by a different replica -> must not be reassigned even though its position is included
-        await messageStore.AppendMessage(flow2, new StoredMessage("c".ToJson().ToUtf8Bytes(), stringType, Position: 0, Replica: otherReplica));
+        await messageStore.AppendMessage(new StoredMessage(flow2, "c".ToJson().ToUtf8Bytes(), stringType, Position: 0, Replica: otherReplica));
 
         var aPosition = (await messageStore.GetMessages(flow1)).Single().Position;
         var flow2Messages = await messageStore.GetMessages(flow2);
@@ -1126,13 +1134,13 @@ public abstract class MessageStoreTests
         var flow2 = TestStoredId.Create();
 
         // idle flows -> the stored replica falls back to the publishing replica we provide
-        await messageStore.AppendMessage(flow1, new StoredMessage("a".ToJson().ToUtf8Bytes(), stringType, Position: 0, Replica: replica));
-        await messageStore.AppendMessage(flow1, new StoredMessage("b".ToJson().ToUtf8Bytes(), stringType, Position: 0, Replica: replica));
-        await messageStore.AppendMessage(flow2, new StoredMessage("c".ToJson().ToUtf8Bytes(), stringType, Position: 0, Replica: replica));
+        await messageStore.AppendMessage(new StoredMessage(flow1, "a".ToJson().ToUtf8Bytes(), stringType, Position: 0, Replica: replica));
+        await messageStore.AppendMessage(new StoredMessage(flow1, "b".ToJson().ToUtf8Bytes(), stringType, Position: 0, Replica: replica));
+        await messageStore.AppendMessage(new StoredMessage(flow2, "c".ToJson().ToUtf8Bytes(), stringType, Position: 0, Replica: replica));
         // owned by a different replica -> must never be returned
-        await messageStore.AppendMessage(flow2, new StoredMessage("d".ToJson().ToUtf8Bytes(), stringType, Position: 0, Replica: otherReplica));
+        await messageStore.AppendMessage(new StoredMessage(flow2, "d".ToJson().ToUtf8Bytes(), stringType, Position: 0, Replica: otherReplica));
 
-        // no positions ignored -> all of the replica's messages, each paired with its flow and ordered by position
+        // no positions ignored -> all of the replica's messages, each carrying its flow and ordered by position
         var all = await messageStore.GetMessagesForReplica(replica, ignorePositions: []);
         all.Count.ShouldBe(3);
         MessagesOf(all, flow1).ShouldBe(["a", "b"]);
@@ -1152,15 +1160,15 @@ public abstract class MessageStoreTests
         MessagesOf(ignoredFlow1, flow2).ShouldBe(["c"]);
         return;
 
-        static List<string> MessagesOf(IEnumerable<StoredIdAndMessage> messages, StoredId storedId)
+        static List<string> MessagesOf(IEnumerable<StoredMessage> messages, StoredId storedId)
             => messages
                 .Where(m => m.StoredId == storedId)
-                .Select(m => (string) m.StoredMessage.DefaultDeserialize())
+                .Select(m => (string) m.DefaultDeserialize())
                 .ToList();
 
-        static long PositionOf(IEnumerable<StoredIdAndMessage> messages, StoredId storedId, string content)
+        static long PositionOf(IEnumerable<StoredMessage> messages, StoredId storedId, string content)
             => messages
-                .Single(m => m.StoredId == storedId && (string) m.StoredMessage.DefaultDeserialize() == content)
-                .StoredMessage.Position;
+                .Single(m => m.StoredId == storedId && (string) m.DefaultDeserialize() == content)
+                .Position;
     }
 }

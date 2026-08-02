@@ -76,7 +76,7 @@ internal class MessageDeserializer(
     private async Task MoveToDlq(List<IncomingMessage> messages)
     {
         await dlqStore.Append(
-            messages.Select(message => new StoredIdAndMessage(storedId, message.ToStoredMessage())).ToList()
+            messages.Select(message => message.ToStoredMessage(storedId)).ToList()
         );
 
         // Row deletes come after the dlq append has landed - a crash in between re-fetches and re-dead-letters

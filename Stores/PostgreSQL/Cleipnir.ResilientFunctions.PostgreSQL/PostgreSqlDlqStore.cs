@@ -53,7 +53,7 @@ public class PostgreSqlDlqStore : IDlqStore
     }
 
     private string? _appendSql;
-    public async Task Append(IReadOnlyList<StoredIdAndMessage> messages)
+    public async Task Append(IReadOnlyList<StoredMessage> messages)
     {
         if (messages.Count == 0)
             return;
@@ -68,11 +68,11 @@ public class PostgreSqlDlqStore : IDlqStore
         var ids = messages.Select(m => m.StoredId.AsGuid).ToArray();
         var contents = messages
             .Select(m => BinaryPacker.Pack(
-                m.StoredMessage.MessageContent,
-                m.StoredMessage.MessageType,
-                m.StoredMessage.IdempotencyKey?.ToUtf8Bytes(),
-                m.StoredMessage.Sender?.ToUtf8Bytes(),
-                m.StoredMessage.Receiver?.ToUtf8Bytes()
+                m.MessageContent,
+                m.MessageType,
+                m.IdempotencyKey?.ToUtf8Bytes(),
+                m.Sender?.ToUtf8Bytes(),
+                m.Receiver?.ToUtf8Bytes()
             ))
             .ToArray();
 

@@ -155,8 +155,8 @@ public abstract class MessagingTests
         var storedId2 = registration.MapToStoredId("instance2".ToFlowInstance());
         var replicaId = functionsRegistry.ClusterInfo.ReplicaId;
         await store.MessageStore.AppendMessages([
-            StoredMessage.CreateEmpty(replicaId).ToSerializedMessage(storedId1),
-            StoredMessage.CreateEmpty(replicaId).ToSerializedMessage(storedId2)
+            StoredMessage.CreateEmpty(storedId1, replicaId).ToSerializedMessage(),
+            StoredMessage.CreateEmpty(storedId2, replicaId).ToSerializedMessage()
         ]);
 
         // The empty messages restart both flows without being delivered...
@@ -203,13 +203,14 @@ public abstract class MessagingTests
         var replicaId = functionsRegistry.ClusterInfo.ReplicaId;
         var serializer = DefaultSerializer.Instance;
         await store.MessageStore.AppendMessages([
-            StoredMessage.CreateEmpty(replicaId).ToSerializedMessage(storedId),
+            StoredMessage.CreateEmpty(storedId, replicaId).ToSerializedMessage(),
             new StoredMessage(
+                storedId,
                 serializer.Serialize("hello world", typeof(string)),
                 serializer.SerializeType(typeof(string)),
                 Position: 0,
                 Replica: replicaId
-            ).ToSerializedMessage(storedId)
+            ).ToSerializedMessage()
         ]);
 
         // The batch restarts the flow with only the non-empty message delivered.
@@ -250,13 +251,14 @@ public abstract class MessagingTests
         var replicaId = functionsRegistry.ClusterInfo.ReplicaId;
         var serializer = DefaultSerializer.Instance;
         await store.MessageStore.AppendMessages([
-            StoredMessage.CreateEmpty(replicaId).ToSerializedMessage(storedId),
+            StoredMessage.CreateEmpty(storedId, replicaId).ToSerializedMessage(),
             new StoredMessage(
+                storedId,
                 serializer.Serialize("hello world", typeof(string)),
                 serializer.SerializeType(typeof(string)),
                 Position: 0,
                 Replica: replicaId
-            ).ToSerializedMessage(storedId)
+            ).ToSerializedMessage()
         ]);
 
         // The pending messages must not resurrect the completed flow.
@@ -313,11 +315,12 @@ public abstract class MessagingTests
         var serializer = DefaultSerializer.Instance;
         await store.MessageStore.AppendMessages([
             new StoredMessage(
+                storedId,
                 serializer.Serialize("hello world", typeof(string)),
                 serializer.SerializeType(typeof(string)),
                 Position: 0,
                 Replica: replicaId
-            ).ToSerializedMessage(storedId)
+            ).ToSerializedMessage()
         ]);
 
         // The message is inlined into the completed flow's effect state and its row deleted.
@@ -367,11 +370,12 @@ public abstract class MessagingTests
         var serializer = DefaultSerializer.Instance;
         await store.MessageStore.AppendMessages([
             new StoredMessage(
+                storedId,
                 serializer.Serialize("hello world", typeof(string)),
                 serializer.SerializeType(typeof(string)),
                 Position: 0,
                 Replica: publisherRegistry.ClusterInfo.ReplicaId
-            ).ToSerializedMessage(storedId)
+            ).ToSerializedMessage()
         ]);
         await BusyWait.Until(async () => (await store.MessageStore.GetMessages(storedId)).Count == 0);
 

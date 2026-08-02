@@ -538,13 +538,14 @@ public abstract class StoreTests
         session.ShouldBeNull();
 
         var message1 = new StoredMessage(
+            functionId,
             "hello everyone".ToJson().ToUtf8Bytes(),
             MessageType: typeof(string).SimpleQualifiedName().ToUtf8Bytes(),
             Position: 0,
             Replica: ReplicaId.Empty,
             IdempotencyKey: "idempotency_key_1"
         );
-        await messages.AppendMessage(functionId, message1);
+        await messages.AppendMessage(message1);
 
         await store.SetFunctionState(
             functionId,
@@ -608,8 +609,7 @@ public abstract class StoreTests
         await Task.Delay(500);
 
         await store.MessageStore.AppendMessage(
-            functionId,
-            new StoredMessage("hello world".ToJson().ToUtf8Bytes(), MessageType: typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Replica: ReplicaId.Empty, Position: 0)
+            new StoredMessage(functionId, "hello world".ToJson().ToUtf8Bytes(), MessageType: typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Replica: ReplicaId.Empty, Position: 0)
         );
     }
     
@@ -620,8 +620,7 @@ public abstract class StoreTests
         var functionId = TestStoredId.Create();
         
         await store.MessageStore.AppendMessage(
-            functionId,
-            new StoredMessage("hello world".ToJson().ToUtf8Bytes(), MessageType: typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Replica: ReplicaId.Empty, Position: 0)
+            new StoredMessage(functionId, "hello world".ToJson().ToUtf8Bytes(), MessageType: typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Replica: ReplicaId.Empty, Position: 0)
         );
     }
     
@@ -671,8 +670,8 @@ public abstract class StoreTests
         );
         session.ShouldBeNull();
 
-        await store.MessageStore.AppendMessage(functionId, new StoredMessage("Hello".ToJson().ToUtf8Bytes(), MessageType: typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Replica: ReplicaId.Empty, Position: 0));
-        await store.MessageStore.AppendMessage(functionId, new StoredMessage("World".ToJson().ToUtf8Bytes(), MessageType: typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Replica: ReplicaId.Empty, Position: 0));
+        await store.MessageStore.AppendMessage(new StoredMessage(functionId, "Hello".ToJson().ToUtf8Bytes(), MessageType: typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Replica: ReplicaId.Empty, Position: 0));
+        await store.MessageStore.AppendMessage(new StoredMessage(functionId, "World".ToJson().ToUtf8Bytes(), MessageType: typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Replica: ReplicaId.Empty, Position: 0));
         
         var messages = await store.MessageStore.GetMessages(functionId);
         messages.Count.ShouldBe(2);
@@ -1185,6 +1184,7 @@ public abstract class StoreTests
         );
 
         var message1 = new StoredMessage(
+            storedId,
             MessageContent: "hallo world".ToUtf8Bytes(),
             MessageType: "some type".ToUtf8Bytes(),
             Position: 0,
@@ -1192,6 +1192,7 @@ public abstract class StoreTests
             IdempotencyKey: "some idempotency key"
         );
         var message2 = new StoredMessage(
+            storedId,
             MessageContent: "hallo universe".ToUtf8Bytes(),
             MessageType: "some type".ToUtf8Bytes(),
             Position: 0,
@@ -1211,8 +1212,8 @@ public abstract class StoreTests
         );
         session.ShouldBeNull();
         await store.MessageStore.AppendMessages([
-            message1.ToSerializedMessage(storedId),
-            message2.ToSerializedMessage(storedId)
+            message1.ToSerializedMessage(),
+            message2.ToSerializedMessage()
         ]);
 
         var effectResults = await store.GetEffectResults(storedId);
@@ -1258,6 +1259,7 @@ public abstract class StoreTests
         var paramJson = PARAM.ToJson();
 
         var message1 = new StoredMessage(
+            storedId,
             MessageContent: "hallo world".ToUtf8Bytes(),
             MessageType: "some type".ToUtf8Bytes(),
             Position: 0,
@@ -1265,6 +1267,7 @@ public abstract class StoreTests
             IdempotencyKey: "some idempotency key"
         );
         var message2 = new StoredMessage(
+            storedId,
             MessageContent: "hallo universe".ToUtf8Bytes(),
             MessageType: "some type".ToUtf8Bytes(),
             Position: 0,
@@ -1284,8 +1287,8 @@ public abstract class StoreTests
         );
         session.ShouldBeNull();
         await store.MessageStore.AppendMessages([
-            message1.ToSerializedMessage(storedId),
-            message2.ToSerializedMessage(storedId)
+            message1.ToSerializedMessage(),
+            message2.ToSerializedMessage()
         ]);
 
         var effectResults = await store.GetEffectResults(storedId);
@@ -1398,8 +1401,8 @@ public abstract class StoreTests
         session.ShouldBeNull();
 
         await store.MessageStore.AppendMessage(
-            functionId,
             new StoredMessage(
+                functionId,
                 "hallo message".ToUtf8Bytes(),
                 typeof(string).SimpleQualifiedName().ToUtf8Bytes(),
                 Position: 0,

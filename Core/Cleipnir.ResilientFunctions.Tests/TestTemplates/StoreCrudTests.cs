@@ -180,7 +180,7 @@ public abstract class StoreCrudTests
             new StoredEffect(2.ToEffectId(), WorkStatus.Completed, Result: null, StoredException: null, Alias: null).ToStoredChange(storedId, Insert),
             owner: null, session: null
         );
-        await store.MessageStore.AppendMessage(storedId, new StoredMessage("SomeJson".ToUtf8Bytes(), "SomeType".ToUtf8Bytes(), Replica: ReplicaId.Empty, Position: 0));
+        await store.MessageStore.AppendMessage(new StoredMessage(storedId, "SomeJson".ToUtf8Bytes(), "SomeType".ToUtf8Bytes(), Replica: ReplicaId.Empty, Position: 0));
 
         await store.DeleteFunction(storedId);
 
@@ -537,6 +537,7 @@ public abstract class StoreCrudTests
 
         // Create messages - these must NOT be fetched by RestartExecutions
         var message1 = new StoredMessage(
+            storedId1,
             MessageContent: "message1".ToUtf8Bytes(),
             MessageType: "Type1".ToUtf8Bytes(),
             Position: 0,
@@ -544,6 +545,7 @@ public abstract class StoreCrudTests
             IdempotencyKey: null
         );
         var message2 = new StoredMessage(
+            storedId2,
             MessageContent: "message2".ToUtf8Bytes(),
             MessageType: "Type2".ToUtf8Bytes(),
             Position: 1,
@@ -562,7 +564,7 @@ public abstract class StoreCrudTests
             owner: null,
             effects: [effect1]
         );
-        await store.MessageStore.AppendMessages([message1.ToSerializedMessage(storedId1)]);
+        await store.MessageStore.AppendMessages([message1.ToSerializedMessage()]);
         await store.CreateFunction(
             storedId2,
             "instance2",
@@ -573,7 +575,7 @@ public abstract class StoreCrudTests
             owner: null,
             effects: [effect2]
         );
-        await store.MessageStore.AppendMessages([message2.ToSerializedMessage(storedId2)]);
+        await store.MessageStore.AppendMessages([message2.ToSerializedMessage()]);
 
         // Restart both
         var result = await store.RestartExecutions([storedId1, storedId2], owner);

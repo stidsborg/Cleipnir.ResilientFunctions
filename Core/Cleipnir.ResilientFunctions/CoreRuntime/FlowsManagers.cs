@@ -57,10 +57,10 @@ public class FlowsManagers
             return _managers.GetValueOrDefault(storedType);
     }
 
-    public Task Push(IReadOnlyList<StoredIdAndMessage> messages)
+    public Task Push(IReadOnlyList<StoredMessage> messages)
     {
         List<Task> messageDeliveries;
-        List<StoredIdAndMessage> unregistered;
+        List<StoredMessage> unregistered;
         lock (_lock)
         {
             unregistered = messages
