@@ -67,18 +67,18 @@ internal class MessageWatchdog(
 
     /// <summary>
     /// One fetch-and-push cycle: fetches this replica's not-yet-pushed messages (replica = COALESCE(owner, publisher)),
-    /// marks them pushed so the next poll skips them, and routes each group to its flow type's manager - delivering
+    /// marks them pushed so the next poll skips them, and routes each message to its flow type's manager - delivering
     /// to live flows and claiming/restarting the rest.
     /// </summary>
     public async Task PushOnce()
     {
         var nonClearedPositions = messageClearer.NonClearedPositions();
 
-        var messageGroups = await messageStore.GetMessagesForReplica(clusterInfo.ReplicaId, nonClearedPositions);
-        if (messageGroups.Count > 0)
+        var messages = await messageStore.GetMessagesForReplica(clusterInfo.ReplicaId, nonClearedPositions);
+        if (messages.Count > 0)
         {
-            messageClearer.MarkPushed(messageGroups.SelectMany(group => group.Messages).Select(message => message.Position));
-            await flowsManagers.Push(messageGroups);
+            messageClearer.MarkPushed(messages.Select(message => message.StoredMessage.Position));
+            await flowsManagers.Push(messages);
         }
     }
 }

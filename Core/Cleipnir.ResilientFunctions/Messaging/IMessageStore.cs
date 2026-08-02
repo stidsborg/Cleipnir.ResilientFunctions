@@ -32,12 +32,13 @@ public interface IMessageStore
     Task<Dictionary<StoredId, List<StoredMessage>>> GetMessages(IEnumerable<StoredId> storedIds);
 
     /// <summary>
-    /// Returns the undelivered messages whose replica equals the provided replica, grouped by target flow.
+    /// Returns the undelivered messages whose replica equals the provided replica, each paired with its target
+    /// flow and ordered by position within that flow.
     /// Messages at any of the <paramref name="ignorePositions"/> are excluded - the MessageWatchdog passes the
     /// positions it has already pushed so they are not re-delivered on subsequent ticks.
     /// Used by the MessageWatchdog to push messages to live flows owned by this replica.
     /// </summary>
-    Task<List<StoredMessages>> GetMessagesForReplica(ReplicaId replicaId, IReadOnlyList<long> ignorePositions);
+    Task<List<StoredIdAndMessage>> GetMessagesForReplica(ReplicaId replicaId, IReadOnlyList<long> ignorePositions);
 
     /// <summary>
     /// Returns the (flow, position) identifiers of the undelivered messages owned by a replica that is no

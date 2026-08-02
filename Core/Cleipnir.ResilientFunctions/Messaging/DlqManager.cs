@@ -114,10 +114,10 @@ public class DlqManager
     /// after which the messages are re-assigned to a replica that may have the type registered. Empty
     /// restart-pokes carry nothing to redrive and are simply deleted.
     /// </summary>
-    internal void MoveToDlqAfterGracePeriod(IReadOnlyList<StoredMessages> undeliverable)
+    internal void MoveToDlqAfterGracePeriod(IReadOnlyList<StoredIdAndMessage> undeliverable)
         => _ = HoldThenMove(undeliverable);
 
-    private async Task HoldThenMove(IReadOnlyList<StoredMessages> undeliverable)
+    private async Task HoldThenMove(IReadOnlyList<StoredIdAndMessage> undeliverable)
     {
         await Task.Delay(_unregisteredFlowTypesGracePeriod);
 
@@ -144,10 +144,10 @@ public class DlqManager
     // Dlq append before row delete, so a crash in between dead letters the messages a second time rather than
     // losing them. The final Clear covers every held position: it deletes the rows and trims the positions from
     // the watchdog's ignore-set.
-    private async Task Move(IReadOnlyList<StoredMessages> undeliverable)
+    private async Task Move(IReadOnlyList<StoredIdAndMessage> undeliverable)
     {
         var nonEmpty = undeliverable
-            .SelectMany(sm => sm.Messages.Where(m => !m.IsEmpty).Select(m => new StoredIdAndMessage(sm.StoredId, m)))
+            .Where(m => !m.StoredMessage.IsEmpty)
             .ToList();
 
         if (nonEmpty.Count > 0)
@@ -162,7 +162,7 @@ public class DlqManager
         }
 
         await _messageClearer.Clear(
-            undeliverable.SelectMany(sm => sm.Messages).Select(m => m.Position).ToList()
+            undeliverable.Select(m => m.StoredMessage.Position).ToList()
         );
     }
 }

@@ -1132,25 +1132,35 @@ public abstract class MessageStoreTests
         // owned by a different replica -> must never be returned
         await messageStore.AppendMessage(flow2, new StoredMessage("d".ToJson().ToUtf8Bytes(), stringType, Position: 0, Replica: otherReplica));
 
-        // no positions ignored -> all of the replica's messages, grouped by flow and ordered by position
+        // no positions ignored -> all of the replica's messages, each paired with its flow and ordered by position
         var all = await messageStore.GetMessagesForReplica(replica, ignorePositions: []);
-        all.Count.ShouldBe(2);
-        var flow1Group = all.Single(g => g.StoredId == flow1);
-        var flow2Group = all.Single(g => g.StoredId == flow2);
-        flow1Group.Messages.Select(m => (string) m.DefaultDeserialize()).ShouldBe(["a", "b"]);
-        flow2Group.Messages.Select(m => (string) m.DefaultDeserialize()).ShouldBe(["c"]); // "d" belongs to otherReplica
+        all.Count.ShouldBe(3);
+        MessagesOf(all, flow1).ShouldBe(["a", "b"]);
+        MessagesOf(all, flow2).ShouldBe(["c"]); // "d" belongs to otherReplica
 
-        var aPosition = flow1Group.Messages.Single(m => (string) m.DefaultDeserialize() == "a").Position;
-        var bPosition = flow1Group.Messages.Single(m => (string) m.DefaultDeserialize() == "b").Position;
+        var aPosition = PositionOf(all, flow1, "a");
+        var bPosition = PositionOf(all, flow1, "b");
 
         // ignoring "b" leaves only "a" in flow1; flow2 is unaffected
         var ignoredB = await messageStore.GetMessagesForReplica(replica, ignorePositions: [bPosition]);
-        ignoredB.Single(g => g.StoredId == flow1).Messages.Select(m => (string) m.DefaultDeserialize()).ShouldBe(["a"]);
-        ignoredB.Single(g => g.StoredId == flow2).Messages.Select(m => (string) m.DefaultDeserialize()).ShouldBe(["c"]);
+        MessagesOf(ignoredB, flow1).ShouldBe(["a"]);
+        MessagesOf(ignoredB, flow2).ShouldBe(["c"]);
 
-        // ignoring every position of a flow drops the whole group
+        // ignoring every position of a flow drops all of its messages
         var ignoredFlow1 = await messageStore.GetMessagesForReplica(replica, ignorePositions: [aPosition, bPosition]);
-        ignoredFlow1.ShouldAllBe(g => g.StoredId != flow1);
-        ignoredFlow1.Single(g => g.StoredId == flow2).Messages.Single().DefaultDeserialize().ShouldBe("c");
+        ignoredFlow1.ShouldAllBe(m => m.StoredId != flow1);
+        MessagesOf(ignoredFlow1, flow2).ShouldBe(["c"]);
+        return;
+
+        static List<string> MessagesOf(IEnumerable<StoredIdAndMessage> messages, StoredId storedId)
+            => messages
+                .Where(m => m.StoredId == storedId)
+                .Select(m => (string) m.StoredMessage.DefaultDeserialize())
+                .ToList();
+
+        static long PositionOf(IEnumerable<StoredIdAndMessage> messages, StoredId storedId, string content)
+            => messages
+                .Single(m => m.StoredId == storedId && (string) m.StoredMessage.DefaultDeserialize() == content)
+                .StoredMessage.Position;
     }
 }
