@@ -155,21 +155,18 @@ public class SqlServerMessageStore : IMessageStore
         return storedMessages;
     }
 
-    public async Task<List<StoredMessages>> GetMessagesForReplica(ReplicaId replicaId, IReadOnlyList<long> ignorePositions)
+    public async Task<List<StoredIdAndMessage>> GetMessagesForReplica(ReplicaId replicaId, IReadOnlyList<long> ignorePositions)
     {
         await using var conn = await CreateConnection();
         await using var cmd = _sqlGenerator.GetMessagesForReplica(replicaId, ignorePositions).ToSqlCommand(conn);
         await using var reader = await cmd.ExecuteReaderAsync();
 
         var messages = await _sqlGenerator.ReadStoredIdsMessages(reader);
-        var storedMessages = new List<StoredMessages>();
-        foreach (var id in messages.Keys)
-            storedMessages.Add(new StoredMessages(
-                id,
-                messages[id].Select(m => ConvertToStoredMessage(m.content, m.position, m.replica)).ToList()
-            ));
 
-        return storedMessages;
+        return messages
+            .SelectMany(kv => kv.Value.Select(m =>
+                new StoredIdAndMessage(kv.Key, ConvertToStoredMessage(m.content, m.position, m.replica))))
+            .ToList();
     }
 
     public async Task<List<StoredIdAndPosition>> GetCrashedReplicaMessages(IReadOnlySet<ReplicaId> liveReplicas)

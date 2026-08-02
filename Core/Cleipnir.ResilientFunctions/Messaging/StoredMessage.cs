@@ -28,7 +28,6 @@ public record StoredMessage(byte[] MessageContent, byte[] MessageType, long Posi
 }
 
 public record StoredIdAndMessage(StoredId StoredId, StoredMessage StoredMessage);
-public record StoredMessages(StoredId StoredId, List<StoredMessage> Messages);
 
 /// <summary>
 /// A message parked on the dead letter queue. <paramref name="Position"/> is the message's identity in the
