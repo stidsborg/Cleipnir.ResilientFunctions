@@ -9,13 +9,13 @@ namespace Cleipnir.ResilientFunctions.Storage;
 
 public class InMemoryDlqStore : IDlqStore
 {
-    private readonly Dictionary<long, StoredIdAndMessage> _messages = new();
+    private readonly Dictionary<long, StoredMessage> _messages = new();
     private long _nextPosition;
     private readonly Lock _sync = new();
 
     public Task Initialize() => Task.CompletedTask;
 
-    public Task Append(IReadOnlyList<StoredIdAndMessage> messages)
+    public Task Append(IReadOnlyList<StoredMessage> messages)
     {
         lock (_sync)
             foreach (var message in messages)
@@ -63,11 +63,10 @@ public class InMemoryDlqStore : IDlqStore
                 .ToTask();
     }
 
-    private static StoredDlqMessage ToDlqMessage(long position, StoredIdAndMessage stored)
+    private static StoredDlqMessage ToDlqMessage(long position, StoredMessage message)
     {
-        var (storedId, message) = stored;
         return new StoredDlqMessage(
-            storedId,
+            message.StoredId,
             position,
             message.MessageContent,
             message.MessageType,

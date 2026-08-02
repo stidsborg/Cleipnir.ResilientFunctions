@@ -1,5 +1,6 @@
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Messaging;
+using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.Queuing;
 
@@ -9,8 +10,9 @@ namespace Cleipnir.ResilientFunctions.Queuing;
 /// (fetched-position dedup and idempotency-key claim) decides whether the message becomes a
 /// <see cref="QueueManager.StagedMessage"/> waiting for a subscription or is dropped. A message re-staged from its
 /// own child effect has already passed the gate and is staged directly at initialization. The store row's replica
-/// is deliberately absent: by the time a message reaches the QueueManager it has already been fetched, and
-/// messages living purely in effect state never had a replica to begin with.
+/// and target flow are deliberately absent: by the time a message reaches the QueueManager it has already been
+/// fetched (and messages living purely in effect state never had a replica to begin with), and the pipeline
+/// belongs to a single flow, so its id is supplied by the caller when converting back.
 ///
 /// A null <see cref="Position"/> marks a message without a backing message-store row (e.g. appended via the control
 /// panel directly into the flow's effect state). Such a message has no store identity, so the QueueManager assigns
@@ -34,8 +36,9 @@ internal record IncomingMessage(
             message.Receiver
         );
 
-    public StoredMessage ToStoredMessage()
+    public StoredMessage ToStoredMessage(StoredId storedId)
         => new(
+            storedId,
             MessageContent,
             MessageType,
             Position ?? 0,

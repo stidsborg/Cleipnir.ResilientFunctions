@@ -43,8 +43,7 @@ public abstract class MessagesSubscriptionTests
         events.ShouldBeEmpty();
 
         await messageStore.AppendMessage(
-            functionId,
-            new StoredMessage("hello world". ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Replica: ReplicaId.Empty, Position: 0)
+            new StoredMessage(functionId, "hello world". ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Replica: ReplicaId.Empty, Position: 0)
         );
 
         events = await messageStore.GetMessages(functionId);
@@ -59,8 +58,7 @@ public abstract class MessagesSubscriptionTests
         filteredEvents.ShouldBeEmpty();
 
         await messageStore.AppendMessage(
-            functionId,
-            new StoredMessage("hello universe".ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Replica: ReplicaId.Empty, Position: 0)
+            new StoredMessage(functionId, "hello universe".ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Replica: ReplicaId.Empty, Position: 0)
         );
 
         filteredEvents = (await messageStore.GetMessages(functionId)).Where(e => e.Position > skipPosition).ToList();
@@ -666,12 +664,13 @@ public abstract Task PullEnvelopeReturnsEnvelopeWithReceiverAndSender();
             .InsertOrGet(nameof(MessageForUnregisteredFlowTypeIsDeadLetteredAfterGracePeriod));
         var storedId = StoredId.Create(storedType, "instanceId");
         var storedMessage = new StoredMessage(
+            storedId,
             "hello world".ToJson().ToUtf8Bytes(),
             typeof(string).SimpleQualifiedName().ToUtf8Bytes(),
             Position: 0,
             Replica: functionsRegistry.ClusterInfo.ReplicaId
         );
-        await functionStore.MessageStore.AppendMessages([storedMessage.ToSerializedMessage(storedId)]);
+        await functionStore.MessageStore.AppendMessages([storedMessage.ToSerializedMessage()]);
 
         // Once the grace period expires the message must be dead lettered: appended to the dlq store and deleted
         // from the message store.
@@ -703,12 +702,13 @@ public abstract Task PullEnvelopeReturnsEnvelopeWithReceiverAndSender();
         var storedType = await new StoredTypes(functionStore.TypeStore).InsertOrGet(flowType);
         var storedId = StoredId.Create(storedType, "instanceId");
         var storedMessage = new StoredMessage(
+            storedId,
             "hello world".ToJson().ToUtf8Bytes(),
             typeof(string).SimpleQualifiedName().ToUtf8Bytes(),
             Position: 0,
             Replica: registryWithoutType.ClusterInfo.ReplicaId
         );
-        await functionStore.MessageStore.AppendMessages([storedMessage.ToSerializedMessage(storedId)]);
+        await functionStore.MessageStore.AppendMessages([storedMessage.ToSerializedMessage()]);
 
         // Give the replica several poll cycles to fetch and hold the message - it must not be dead lettered.
         await Task.Delay(1_000);

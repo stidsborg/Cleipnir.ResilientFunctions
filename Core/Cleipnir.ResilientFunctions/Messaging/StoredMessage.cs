@@ -7,7 +7,7 @@ using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.Messaging;
 
-public record StoredMessage(byte[] MessageContent, byte[] MessageType, long Position, ReplicaId Replica, string? IdempotencyKey = null, string? Sender = null, string? Receiver = null)
+public record StoredMessage(StoredId StoredId, byte[] MessageContent, byte[] MessageType, long Position, ReplicaId Replica, string? IdempotencyKey = null, string? Sender = null, string? Receiver = null)
 {
     /// <summary>
     /// False for messages without a backing message-store row (e.g. appended via the control panel directly
@@ -24,10 +24,8 @@ public record StoredMessage(byte[] MessageContent, byte[] MessageType, long Posi
     /// </summary>
     public bool IsEmpty => MessageContent.Length == 0 && MessageType.Length == 0;
 
-    public static StoredMessage CreateEmpty(ReplicaId replica) => new(MessageContent: [], MessageType: [], Position: 0, Replica: replica);
+    public static StoredMessage CreateEmpty(StoredId storedId, ReplicaId replica) => new(storedId, MessageContent: [], MessageType: [], Position: 0, Replica: replica);
 }
-
-public record StoredIdAndMessage(StoredId StoredId, StoredMessage StoredMessage);
 
 /// <summary>
 /// A message parked on the dead letter queue. <paramref name="Position"/> is the message's identity in the
@@ -44,10 +42,4 @@ public record StoredDlqMessage(
     string? Receiver)
 {
     public object DefaultDeserialize() => JsonSerializer.Deserialize(MessageContent, Type.GetType(MessageType.ToStringFromUtf8Bytes(), throwOnError: true)!)!; //todo remove
-}
-
-public static class StoredIdAndMessageExtensions
-{
-    public static StoredIdAndMessage ToStoredIdAndMessage(this StoredMessage storedMessage, StoredId storedId) 
-        => new(storedId, storedMessage);
 }

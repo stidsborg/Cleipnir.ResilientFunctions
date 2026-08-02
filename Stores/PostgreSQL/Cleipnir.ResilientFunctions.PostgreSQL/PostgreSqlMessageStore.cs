@@ -118,7 +118,7 @@ public class PostgreSqlMessageStore : IMessageStore
 
         await using var reader = await command.ExecuteReaderAsync();
         var messages = await sqlGenerator.ReadMessages(reader);
-        return messages.Select(m => ConvertToStoredMessage(m.content, m.position, m.replica)).ToList();
+        return messages.Select(m => ConvertToStoredMessage(storedId, m.content, m.position, m.replica)).ToList();
     }
 
     public async Task<IReadOnlyList<StoredMessage>> GetMessages(StoredId storedId, IReadOnlyList<long> skipPositions)
@@ -128,7 +128,7 @@ public class PostgreSqlMessageStore : IMessageStore
 
         await using var reader = await command.ExecuteReaderAsync();
         var messages = await sqlGenerator.ReadMessages(reader);
-        return messages.Select(m => ConvertToStoredMessage(m.content, m.position, m.replica)).ToList();
+        return messages.Select(m => ConvertToStoredMessage(storedId, m.content, m.position, m.replica)).ToList();
     }
 
     public async Task<Dictionary<StoredId, List<StoredMessage>>> GetMessages(IEnumerable<StoredId> storedIds)
@@ -142,12 +142,12 @@ public class PostgreSqlMessageStore : IMessageStore
         var storedMessages = storedIds.ToDictionary(id => id, _ => new List<StoredMessage>());
         foreach (var id in messages.Keys)
             foreach (var (content, position, replica) in messages[id])
-                storedMessages[id].Add(ConvertToStoredMessage(content, position, replica));
+                storedMessages[id].Add(ConvertToStoredMessage(id, content, position, replica));
 
         return storedMessages;
     }
 
-    public async Task<List<StoredIdAndMessage>> GetMessagesForReplica(ReplicaId replicaId, IReadOnlyList<long> ignorePositions)
+    public async Task<List<StoredMessage>> GetMessagesForReplica(ReplicaId replicaId, IReadOnlyList<long> ignorePositions)
     {
         await using var conn = await CreateConnection();
         await using var command = sqlGenerator.GetMessagesForReplica(replicaId, ignorePositions).ToNpgsqlCommand(conn);
@@ -157,7 +157,7 @@ public class PostgreSqlMessageStore : IMessageStore
 
         return messages
             .SelectMany(kv => kv.Value.Select(m =>
-                new StoredIdAndMessage(kv.Key, ConvertToStoredMessage(m.content, m.position, m.replica))))
+                ConvertToStoredMessage(kv.Key, m.content, m.position, m.replica)))
             .ToList();
     }
 
@@ -181,7 +181,7 @@ public class PostgreSqlMessageStore : IMessageStore
         await command.ExecuteNonQueryAsync();
     }
 
-    public static StoredMessage ConvertToStoredMessage(byte[] content, long position, Guid? replica)
+    public static StoredMessage ConvertToStoredMessage(StoredId storedId, byte[] content, long position, Guid? replica)
     {
         var arrs = BinaryPacker.Split(content, expectedPieces: 5);
         var message = arrs[0]!;
@@ -190,6 +190,7 @@ public class PostgreSqlMessageStore : IMessageStore
         var sender = arrs[3];
         var receiver = arrs[4];
         var storedMessage = new StoredMessage(
+            storedId,
             message,
             type,
             position,

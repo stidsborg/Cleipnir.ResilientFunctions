@@ -90,11 +90,11 @@ public class ExistingMessages
         return DecodePendingInlinedMessages(effects);
     }
 
-    private static List<StoredMessage> DecodePendingInlinedMessages(IReadOnlyList<StoredEffect> effects)
+    private List<StoredMessage> DecodePendingInlinedMessages(IReadOnlyList<StoredEffect> effects)
     {
         var entry = effects.FirstOrDefault(e => e.EffectId == PendingMessages.EffectId);
         return entry?.Result is { Length: > 0 } bytes
-            ? PendingMessages.Decode(bytes).Select(m => m.ToStoredMessage()).ToList()
+            ? PendingMessages.Decode(bytes).Select(m => m.ToStoredMessage(_storedId)).ToList()
             : [];
     }
 
@@ -107,7 +107,7 @@ public class ExistingMessages
                 continue;
 
             var encoded = (byte[]) _serializer.Deserialize(effect.Result, typeof(byte[]));
-            var message = PendingMessages.DecodeMessage(encoded).ToStoredMessage();
+            var message = PendingMessages.DecodeMessage(encoded).ToStoredMessage(_storedId);
             // Same synthetic-position formula as the QueueManager's staging - keeps the view, delivery order and
             // Remove addressing consistent.
             if (!message.RowBacked)

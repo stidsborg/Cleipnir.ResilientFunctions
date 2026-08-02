@@ -50,7 +50,7 @@ public class SqlServerDlqStore : IDlqStore
         await command.ExecuteNonQueryAsync();
     }
 
-    public async Task Append(IReadOnlyList<StoredIdAndMessage> messages)
+    public async Task Append(IReadOnlyList<StoredMessage> messages)
     {
         if (messages.Count == 0)
             return;
@@ -62,7 +62,7 @@ public class SqlServerDlqStore : IDlqStore
         var table = new DataTable();
         table.Columns.Add("Id", typeof(Guid));
         table.Columns.Add("Content", typeof(byte[]));
-        foreach (var (storedId, (messageContent, messageType, _, _, idempotencyKey, sender, receiver)) in messages)
+        foreach (var (storedId, messageContent, messageType, _, _, idempotencyKey, sender, receiver) in messages)
         {
             var content = BinaryPacker.Pack(messageContent, messageType, idempotencyKey?.ToUtf8Bytes(), sender?.ToUtf8Bytes(), receiver?.ToUtf8Bytes());
             table.Rows.Add(storedId.AsGuid, content);

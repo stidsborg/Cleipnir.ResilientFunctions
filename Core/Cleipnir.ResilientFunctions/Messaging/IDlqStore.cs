@@ -13,7 +13,7 @@ public interface IDlqStore
     /// (identity value) in caller order; the messages' incoming <see cref="StoredMessage.Position"/> values are
     /// not persisted - fetched messages carry their dlq position in <see cref="StoredDlqMessage.Position"/>.
     /// </summary>
-    Task Append(IReadOnlyList<StoredIdAndMessage> messages);
+    Task Append(IReadOnlyList<StoredMessage> messages);
 
     /// <summary>
     /// Fetches at most <paramref name="limit"/> dead lettered messages ordered by dlq position, starting after

@@ -32,7 +32,7 @@ public class MessageBatcherTests
             }
         );
 
-        var message = CreateMessage("test");
+        var message = CreateMessage(storedId, "test");
 
         // Act
         await batcher.Handle(storedId, [message]);
@@ -65,14 +65,14 @@ public class MessageBatcherTests
         );
 
         // Act
-        var task1 = Task.Run(() => batcher.Handle(storedId, [CreateMessage("msg1")]));
+        var task1 = Task.Run(() => batcher.Handle(storedId, [CreateMessage(storedId, "msg1")]));
 
         // Wait for first write to start
         await firstWriteStartedFlag.WaitForRaised();
 
         // Now queue up more messages while first write is in progress
-        var task2 = Task.Run(() => batcher.Handle(storedId, [CreateMessage("msg2")]));
-        var task3 = Task.Run(() => batcher.Handle(storedId, [CreateMessage("msg3")]));
+        var task2 = Task.Run(() => batcher.Handle(storedId, [CreateMessage(storedId, "msg2")]));
+        var task3 = Task.Run(() => batcher.Handle(storedId, [CreateMessage(storedId, "msg3")]));
 
         // Give tasks time to queue
         await Task.Delay(50);
@@ -108,7 +108,7 @@ public class MessageBatcherTests
             }
         );
 
-        var messages = new[] { CreateMessage("msg1"), CreateMessage("msg2"), CreateMessage("msg3") };
+        var messages = new[] { CreateMessage(storedId, "msg1"), CreateMessage(storedId, "msg2"), CreateMessage(storedId, "msg3") };
 
         // Act
         await batcher.Handle(storedId, messages);
@@ -138,12 +138,12 @@ public class MessageBatcherTests
         );
 
         // Act
-        var task1 = Task.Run(() => batcher.Handle(storedId, [CreateMessage("msg1")]));
+        var task1 = Task.Run(() => batcher.Handle(storedId, [CreateMessage(storedId, "msg1")]));
 
         await writeStartedFlag.WaitForRaised();
 
-        var task2 = Task.Run(() => batcher.Handle(storedId, [CreateMessage("msg2")]));
-        var task3 = Task.Run(() => batcher.Handle(storedId, [CreateMessage("msg3")]));
+        var task2 = Task.Run(() => batcher.Handle(storedId, [CreateMessage(storedId, "msg2")]));
+        var task3 = Task.Run(() => batcher.Handle(storedId, [CreateMessage(storedId, "msg3")]));
 
         await Task.Delay(50);
         allowWriteToCompleteFlag.Raise();
@@ -182,11 +182,11 @@ public class MessageBatcherTests
 
         // Act
         await Should.ThrowAsync<InvalidOperationException>(
-            async () => await batcher.Handle(storedId, [CreateMessage("msg1")])
+            async () => await batcher.Handle(storedId, [CreateMessage(storedId, "msg1")])
         );
 
         // Next call should succeed
-        await batcher.Handle(storedId, [CreateMessage("msg2")]);
+        await batcher.Handle(storedId, [CreateMessage(storedId, "msg2")]);
 
         // Assert
         writeCount.ShouldBe(2);
@@ -219,11 +219,11 @@ public class MessageBatcherTests
         );
 
         // Act - Start first write
-        var task1 = Task.Run(() => batcher.Handle(storedId, [CreateMessage("msg1")]));
+        var task1 = Task.Run(() => batcher.Handle(storedId, [CreateMessage(storedId, "msg1")]));
         await Task.Delay(50);
 
         // Queue more messages
-        var task2 = Task.Run(() => batcher.Handle(storedId, [CreateMessage("msg2")]));
+        var task2 = Task.Run(() => batcher.Handle(storedId, [CreateMessage(storedId, "msg2")]));
         await Task.Delay(50);
 
         // Complete first write - this should start draining msg2
@@ -231,7 +231,7 @@ public class MessageBatcherTests
         await Task.Delay(50);
 
         // Queue another while msg2 is being written
-        var task3 = Task.Run(() => batcher.Handle(storedId, [CreateMessage("msg3")]));
+        var task3 = Task.Run(() => batcher.Handle(storedId, [CreateMessage(storedId, "msg3")]));
         await Task.Delay(50);
 
         // Complete remaining writes
@@ -273,7 +273,7 @@ public class MessageBatcherTests
 
         // Act - Fire 100 concurrent appends
         var tasks = Enumerable.Range(0, messageCount)
-            .Select(i => Task.Run(() => batcher.Handle(storedId, [CreateMessage($"msg{i}")])))
+            .Select(i => Task.Run(() => batcher.Handle(storedId, [CreateMessage(storedId, $"msg{i}")])))
             .ToArray();
 
         await Task.WhenAll(tasks);
@@ -307,7 +307,7 @@ public class MessageBatcherTests
         );
 
         // Act
-        await batcher.Handle(storedId, [CreateMessage("msg1")]);
+        await batcher.Handle(storedId, [CreateMessage(storedId, "msg1")]);
 
         // Give time for any potential extra writes
         await Task.Delay(100);
@@ -316,7 +316,8 @@ public class MessageBatcherTests
         writeCount.ShouldBe(1); // Only one write for the single message
     }
     
-    private static StoredMessage CreateMessage(string content) => new(
+    private static StoredMessage CreateMessage(StoredId storedId, string content) => new(
+        storedId,
         Encoding.UTF8.GetBytes(content),
         Encoding.UTF8.GetBytes("System.String"),
         Position: 0,
