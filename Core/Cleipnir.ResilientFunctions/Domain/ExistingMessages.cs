@@ -13,100 +13,61 @@ using Cleipnir.ResilientFunctions.Storage.Session;
 namespace Cleipnir.ResilientFunctions.Domain;
 
 /// <summary>
-/// A flow's not-yet-delivered messages live in three carriers: rows in the message store, per-message
-/// staged-message children under the queue manager's reserved root, and - for messages that arrived while the
-/// flow was completed - the flow's rows in the dead letter queue. This type surfaces the union of all three, so
-/// control-panel tooling sees the messages that are still around for the flow. Note that dead lettered messages
-/// are NOT delivered to a restarted flow unless they are explicitly redriven (see DlqManager).
+/// Control-panel view over a flow's admitted-but-undelivered messages: the staged-message children in the
+/// flow's effect state. Effect state is the single carrier the view reads and edits - messages still in transit
+/// (store rows the QueueManager has not admitted yet) and dead lettered messages (see DlqManager) are
+/// deliberately not surfaced here.
 ///
-/// Edits are effect-state-only: appended messages are written directly as row-less staged-message children
-/// (never as store rows), so they cannot race the MessageWatchdog's fetch-and-push cycle. Effect writes are
-/// version-guarded, serializing them against claims. Consequently edits require the flow to be unowned -
-/// editing a currently-executing flow fails with a concurrent-modification error.
+/// Appended messages are written directly as row-less staged-message children (never as store rows), so they
+/// cannot race the MessageWatchdog's fetch-and-push cycle. Effect writes are version-guarded, serializing them
+/// against claims. Consequently edits require the flow to be unowned - editing a currently-executing flow fails
+/// with a concurrent-modification error. Removing or clearing a row-backed staged message also deletes its
+/// backing store row, so a later fetch cannot re-admit the removed message.
 /// </summary>
 public class ExistingMessages
 {
     private readonly StoredId _storedId;
-    private List<StoredMessage>? _pendingMessages;
+    private List<StagedMessageChild>? _stagedMessages;
     private readonly IMessageStore _messageStore;
     private readonly IFunctionStore _functionStore;
     private readonly ISerializer _serializer;
 
-    public Task<IReadOnlyList<MessageAndIdempotencyKey>> MessagesWithIdempotencyKeys => GetPendingMessages()
+    public Task<IReadOnlyList<MessageAndIdempotencyKey>> MessagesWithIdempotencyKeys => GetDeserializedMessages()
         .ContinueWith(t => (IReadOnlyList<MessageAndIdempotencyKey>) t.Result.ToList());
-    public Task<IReadOnlyList<object>> AsObjects => GetPendingMessages()
+    public Task<IReadOnlyList<object>> AsObjects => GetDeserializedMessages()
         .ContinueWith(t => (IReadOnlyList<object>) t.Result.Select(m => m.Message).ToList());
-    public Task<int> Count => GetPendingMessages().SelectAsync(messages => messages.Count);
+    public Task<int> Count => GetStagedMessages().SelectAsync(messages => messages.Count);
 
-    public ExistingMessages(StoredId storedId, IMessageStore messageStore, IFunctionStore functionStore, ISerializer serializer)
+    public ExistingMessages(StoredId storedId, IFunctionStore functionStore, ISerializer serializer)
     {
         _storedId = storedId;
-        _messageStore = messageStore;
+        _messageStore = functionStore.MessageStore;
         _functionStore = functionStore;
         _serializer = serializer;
     }
 
-    private async Task<List<MessageAndIdempotencyKey>> GetPendingMessages()
+    private async Task<List<MessageAndIdempotencyKey>> GetDeserializedMessages()
     {
-        if (_pendingMessages is not null)
-            return _pendingMessages.Select(m =>
-                new MessageAndIdempotencyKey(
-                    _serializer.Deserialize(m.MessageContent, _serializer.ResolveType(m.MessageType)!),
-                    m.IdempotencyKey
-                )
-            ).ToList();
-
-        _pendingMessages = await GetMergedMessages();
-        return await GetPendingMessages();
+        var stagedMessages = await GetStagedMessages();
+        return stagedMessages.Select(staged =>
+            new MessageAndIdempotencyKey(
+                _serializer.Deserialize(staged.Message.MessageContent, _serializer.ResolveType(staged.Message.MessageType)!),
+                staged.Message.IdempotencyKey
+            )
+        ).ToList();
     }
 
-    // The union of all carriers, ordered by position. Row-less children carry the same synthetic negative
-    // positions the QueueManager assigns at staging, so control-panel appended messages come first (in child
-    // order), then the position-addressed carriers. Dead lettered messages are keyed by their dlq position,
-    // which lives in its own sequence - their order relative to still-live store rows is therefore approximate,
-    // and on a cross-sequence position clash the store row wins.
-    private async Task<List<StoredMessage>> GetMergedMessages()
+    // The flow's staged-message children ordered by position: row-less children carry the same synthetic
+    // negative positions the QueueManager assigns at staging, so control-panel appended messages come first
+    // (in child order), then the store-addressed messages by their row position - matching delivery order.
+    private async Task<List<StagedMessageChild>> GetStagedMessages()
     {
+        if (_stagedMessages is not null)
+            return _stagedMessages;
+
         var effects = (await _functionStore.GetFunction(_storedId))?.Effects ?? [];
 
-        var byPosition = new Dictionary<long, StoredMessage>();
-        foreach (var deadLettered in await GetDeadLetteredMessages())
-            byPosition[deadLettered.Position] = deadLettered;
-
-        foreach (var message in DecodeStagedMessageChildren(effects))
-            byPosition.TryAdd(message.Position, message);
-
-        // Empty messages are restart-pokes without payload - they are never delivered to the flow, so they are
-        // not surfaced here either (and they have no content to deserialize).
-        var storedMessages = await _messageStore.GetMessages(_storedId);
-        foreach (var storedMessage in storedMessages.Where(m => !m.IsEmpty))
-            byPosition[storedMessage.Position] = storedMessage;
-
-        return byPosition.Values.OrderBy(m => m.Position).ToList();
-    }
-
-    // The flow's dead lettered messages, mapped onto the store-message shape the merged view is built from -
-    // their Position is the dlq position (the dlq row's identity), which Remove and Clear address them by.
-    private async Task<List<StoredMessage>> GetDeadLetteredMessages()
-    {
-        var dlqMessages = await _functionStore.DlqStore.GetMessages([_storedId]);
-        return dlqMessages
-            .Select(m => new StoredMessage(
-                _storedId,
-                m.MessageContent,
-                m.MessageType,
-                m.Position,
-                Replica: ReplicaId.Empty,
-                m.IdempotencyKey,
-                m.Sender,
-                m.Receiver
-            ))
-            .ToList();
-    }
-
-    private List<StoredMessage> DecodeStagedMessageChildren(IReadOnlyList<StoredEffect> effects)
-    {
-        var messages = new List<StoredMessage>();
+        var messages = new List<StagedMessageChild>();
         foreach (var effect in effects)
         {
             if (!QueueManager.StagedMessagesRoot.IsChild(effect.EffectId) || effect.Result == null)
@@ -118,26 +79,24 @@ public class ExistingMessages
             // Remove addressing consistent.
             if (!message.RowBacked)
                 message = message with { Position = long.MinValue + effect.EffectId.Id };
-            messages.Add(message);
+            messages.Add(new StagedMessageChild(effect.EffectId, message));
         }
 
-        return messages;
+        _stagedMessages = messages.OrderBy(m => m.Message.Position).ToList();
+        return _stagedMessages;
     }
 
     public async Task Clear()
     {
-        // Deleting the carriers is not atomic, and a MessageWatchdog holding rows fetched before the truncate
-        // may concurrently move them into the dead letter queue - delete, then verify after a grace period
-        // and repeat until all carriers are observed empty. Besides the message carriers the flow's message
-        // bookkeeping (delivered positions and idempotency keys) is wiped too, so messages re-appended with a
-        // previously used idempotency key are not silently deduped away.
-        for (var attempt = 0; attempt < 5; attempt++)
+        // Rows before effects: dying in between leaves the staged children visible and a retried Clear starts
+        // over, whereas effects-first would leave the row-backed messages' store rows behind to be re-fetched
+        // and re-admitted. Truncate rather than per-position deletes, so delivered-but-not-yet-cleared rows
+        // cannot resurrect once the delivered-positions bookkeeping is wiped below. Besides the staged children
+        // the flow's message bookkeeping (delivered positions and idempotency keys) is wiped too, so messages
+        // re-appended with a previously used idempotency key are not silently deduped away.
+        for (var attempt = 0; ; attempt++)
         {
             await _messageStore.Truncate(_storedId);
-
-            var dlqMessages = await _functionStore.DlqStore.GetMessages([_storedId]);
-            if (dlqMessages.Count > 0)
-                await _functionStore.DlqStore.Delete(dlqMessages.Select(m => m.Position).ToList());
 
             var storedFlow = await _functionStore.GetFunction(_storedId);
             if (storedFlow == null)
@@ -148,29 +107,25 @@ public class ExistingMessages
                 .Where(e => IsMessageStateEffect(e.EffectId))
                 .Select(e => StoredEffectChange.CreateDelete(_storedId, e.EffectId))
                 .ToList();
-
-            if (deletes.Count > 0)
-            {
-                var session = new SnapshotStorageSession { Version = storedFlow.Version };
-                foreach (var effect in effects)
-                    session.Effects[effect.EffectId] = effect;
-                try
-                {
-                    await _functionStore.SetEffectResults(_storedId, deletes, owner: null, session);
-                }
-                catch (UnexpectedStateException)
-                {
-                    // Version or owner guard failed - another writer or a claim got in between; retry from a
-                    // fresh read.
-                }
-            }
-
-            await Task.Delay(100);
-            if ((await GetMergedMessages()).Count == 0)
+            if (deletes.Count == 0)
                 break;
+
+            var session = new SnapshotStorageSession { Version = storedFlow.Version };
+            foreach (var effect in effects)
+                session.Effects[effect.EffectId] = effect;
+            try
+            {
+                await _functionStore.SetEffectResults(_storedId, deletes, owner: null, session);
+                break;
+            }
+            catch (UnexpectedStateException) when (attempt < 5)
+            {
+                // Version or owner guard failed - another writer or a claim got in between; retry from a
+                // fresh read.
+            }
         }
 
-        _pendingMessages = null;
+        _stagedMessages = null;
     }
 
     private static bool IsMessageStateEffect(EffectId effectId)
@@ -180,7 +135,7 @@ public class ExistingMessages
 
     public Task Append<T>(T message, string? idempotencyKey = null) where T : notnull
         => WriteStagedMessageChild(
-            EncodeRowlessMessage(message, idempotencyKey),
+            EncodeMessage(message, idempotencyKey, position: null),
             chooseChildId: effects =>
             {
                 var nextIndex = 0;
@@ -192,45 +147,40 @@ public class ExistingMessages
         );
 
     /// <summary>
-    /// Replaces the message at the provided position in the merged view. Only messages appended directly into
-    /// the flow's effect state can be replaced - they have no store row a concurrent inliner could resurrect
-    /// stale content from, and replacing the child in place preserves the message's delivery order. Row-backed
-    /// messages must be removed and re-appended instead.
+    /// Replaces the message at the provided position in the view by overwriting its staged-message child effect
+    /// in place, preserving the message's delivery order. A row-backed message's replacement keeps the original
+    /// store position, so the still-present store row stays deduped against re-admission and is deleted as usual
+    /// once the replacement is delivered.
     /// </summary>
-    /// <param name="position">Index of the message in the merged view</param>
+    /// <param name="position">Index of the message in the view</param>
     /// <param name="message">Replacement message</param>
     /// <param name="idempotencyKey">Replacement idempotency key</param>
     public async Task Replace<T>(int position, T message, string? idempotencyKey = null) where T : notnull
     {
-        if (_pendingMessages is null)
-            await GetPendingMessages();
+        var stagedMessages = await GetStagedMessages();
+        var target = stagedMessages.Skip(position).FirstOrDefault();
+        if (target == null)
+            throw new ArgumentException($"Cannot replace non-existing message. Position '{position}' is larger than or equal to length '{stagedMessages.Count}'", nameof(position));
 
-        var storedMessage = _pendingMessages!.OrderBy(m => m.Position).Skip(position).FirstOrDefault();
-        if (storedMessage == null)
-            throw new ArgumentException($"Cannot replace non-existing message. Position '{position}' is larger than or equal to length '{_pendingMessages!.Count}'", nameof(position));
-        if (storedMessage.RowBacked)
-            throw new InvalidOperationException(
-                "Only messages appended directly into the flow's effect state can be replaced - remove and re-append the message instead"
-            );
-
-        var childId = QueueManager.StagedMessagesRoot.CreateChild((int) (storedMessage.Position - long.MinValue));
+        var childId = target.ChildId;
         await WriteStagedMessageChild(
-            EncodeRowlessMessage(message, idempotencyKey),
+            EncodeMessage(message, idempotencyKey, target.Message.RowBacked ? target.Message.Position : null),
             chooseChildId: effects => effects.Any(e => e.EffectId == childId)
                 ? childId
-                // The child disappeared since the merged view was read (delivered by a concurrent incarnation or
+                // The child disappeared since the view was read (delivered by a concurrent incarnation or
                 // removed by other tooling) - recreating it would resurrect a consumed message.
                 : throw UnexpectedStateException.ConcurrentModification(_storedId)
         );
     }
 
-    // Row-less: the message is written directly into the flow's effect state as a staged-message child and
-    // never touches the message store - the QueueManager assigns it a synthetic position at staging.
-    private byte[] EncodeRowlessMessage<T>(T message, string? idempotencyKey) where T : notnull
+    // Appended messages are row-less (position null): written directly into the flow's effect state as a
+    // staged-message child, never touching the message store - the QueueManager assigns a synthetic position at
+    // staging. A replacement for a row-backed message carries the original store position instead.
+    private byte[] EncodeMessage<T>(T message, string? idempotencyKey, long? position) where T : notnull
     {
         var json = _serializer.Serialize(message, message.GetType());
         var type = _serializer.SerializeType(message.GetType());
-        return PendingMessages.EncodeMessage(json, type, position: null, idempotencyKey: idempotencyKey);
+        return PendingMessages.EncodeMessage(json, type, position, idempotencyKey: idempotencyKey);
     }
 
     private async Task WriteStagedMessageChild(byte[] encodedMessage, Func<IReadOnlyList<StoredEffect>, EffectId> chooseChildId)
@@ -257,7 +207,7 @@ public class ExistingMessages
                     session
                 );
 
-                _pendingMessages = null;
+                _stagedMessages = null;
                 return;
             }
             catch (UnexpectedStateException) when (attempt < 5)
@@ -274,27 +224,20 @@ public class ExistingMessages
     /// <param name="position">Message position</param>
     public async Task Remove(long position)
     {
-        if (position < 0)
-        {
-            // A synthetic position addresses a row-less staged-message child - delete the child effect itself.
-            var childId = QueueManager.StagedMessagesRoot.CreateChild((int) (position - long.MinValue));
-            await _functionStore.DeleteEffectResult(_storedId, childId, owner: null, storageSession: null);
-        }
-        else
-        {
+        var stagedMessages = await GetStagedMessages();
+        var target = stagedMessages.FirstOrDefault(staged => staged.Message.Position == position);
+        _stagedMessages = null;
+        if (target == null)
+            return;
+
+        // Row before child: dying in between leaves the child visible and Remove retryable, whereas child-first
+        // would leave the row behind to be re-fetched and re-admitted as a fresh staged message.
+        if (target.Message.RowBacked)
             await _messageStore.DeleteMessages(positions: [position]);
 
-            // The position may address a dead lettered message rather than a store row - dlq positions live in
-            // their own sequence, so only rows provably belonging to this flow are deleted from the dlq.
-            var dlqPositions = (await _functionStore.DlqStore.GetMessages([_storedId]))
-                .Where(m => m.Position == position)
-                .Select(m => m.Position)
-                .ToList();
-            if (dlqPositions.Count > 0)
-                await _functionStore.DlqStore.Delete(dlqPositions);
-        }
-
-        // Invalidate cache so it will be re-fetched with correct data
-        _pendingMessages = null;
+        await _functionStore.DeleteEffectResult(_storedId, target.ChildId, owner: null, storageSession: null);
     }
+
+    // A staged-message child paired with the id it lives under - Remove and Replace address the child by it.
+    private record StagedMessageChild(EffectId ChildId, StoredMessage Message);
 }
