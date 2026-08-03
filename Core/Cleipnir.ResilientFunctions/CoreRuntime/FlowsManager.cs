@@ -56,7 +56,6 @@ public class FlowsManager
     {
         List<Task> tasks = new();
         List<IncomingMessage> notLive = new();
-        List<long> emptyPositionsForLiveFlows = new();
         lock (_lock)
             // The first point that genuinely needs per-flow batches - the pipeline is flat until here.
             foreach (var flowGroup in messages.GroupBy(message => message.StoredId))
@@ -68,28 +67,8 @@ public class FlowsManager
                     continue;
                 }
 
-                var flowMessages = flowGroup.ToList();
-
-                // Empty messages exist only to force a restart and carry nothing to deliver. The flow is live,
-                // so no restart is needed now - but the message may not be deleted either: the flow could be
-                // suspending concurrently, and the append's restart guarantee must survive that race. Reopen
-                // the positions instead, so the empty message is re-fetched and only consumed by an actual
-                // restart once the flow leaves the live set.
-                if (!flowState.Suspended && flowMessages.Any(message => message.IsEmpty))
-                {
-                    emptyPositionsForLiveFlows.AddRange(
-                        flowMessages.Where(message => message.IsEmpty).Select(message => message.Position!.Value)
-                    );
-                    var deliverable = flowMessages.Where(message => !message.IsEmpty).ToList();
-                    if (deliverable.Count > 0)
-                        tasks.Add(DeliverToFlow(flowState, deliverable));
-                }
-                else
-                    tasks.Add(DeliverToFlow(flowState, flowMessages));
+                tasks.Add(DeliverToFlow(flowState, flowGroup.ToList()));
             }
-
-        if (emptyPositionsForLiveFlows.Count > 0)
-            _messageClearer.ReopenPositions(emptyPositionsForLiveFlows);
 
         if (notLive.Count > 0)
             tasks.Add(RestartExecutions(notLive));
@@ -100,9 +79,9 @@ public class FlowsManager
     // Delivers to the live flow - unless it no longer accepts pushes (it has decided to suspend or its
     // invocation is ending), in which case the delivery waits for the invocation to complete (the final status
     // is persisted by then) and restarts the flow with the messages still in hand, instead of bouncing them
-    // through a position-reopen and a later watchdog poll. A suspended flow's batch may still contain empty
-    // messages: the refusal happens at the push's entry, so they never reach the queue manager and ride to the
-    // restart, which consumes them.
+    // through a position-reopen and a later watchdog poll. The batch may contain empty (restart-poke) messages:
+    // on a refused push they ride to the restart, which consumes them, while on an accepted push the queue
+    // manager reopens them, so they are re-fetched and consumed by a restart once the flow leaves the live set.
     private async Task DeliverToFlow(FlowExecutionState flowState, IReadOnlyList<IncomingMessage> messages)
     {
         var undelivered = await flowState.Push(messages);
@@ -137,15 +116,14 @@ public class FlowsManager
         foreach (var (storedId, flowMessages) in groups.Where(kv => !results.ContainsKey(kv.Key)))
         {
             // Fetched messages always address a store row, so every position is present.
-            var deliverablePositions = flowMessages.Where(m => !m.IsEmpty).Select(m => m.Position!.Value).ToList();
-            var allPositions = flowMessages.Select(m => m.Position!.Value).ToList();
+            var positions = flowMessages.Select(m => m.Position!.Value).ToList();
 
             var storedFlow = await _functionStore.GetFunction(storedId);
             if (storedFlow != null && storedFlow.Status is Status.Succeeded or Status.Failed)
-                if (await TryDeadLetterMessages(storedId, deliverablePositions, allPositions))
+                if (await TryDeadLetterMessages(storedId, positions))
                     continue;
 
-            _messageClearer.ReopenPositions(allPositions);
+            _messageClearer.ReopenPositions(positions);
         }
 
         // Resume each restarted flow, supplying the messages we already hold so it does not re-fetch them. Empty
@@ -186,7 +164,7 @@ public class FlowsManager
     /// them. Returns true when the messages were dead lettered and their rows deleted; on a store failure false
     /// is returned so the caller reopens the positions and a later poll retries.
     /// </summary>
-    private async Task<bool> TryDeadLetterMessages(StoredId storedId, IReadOnlyList<long> deliverablePositions, IReadOnlyList<long> allPositions)
+    private async Task<bool> TryDeadLetterMessages(StoredId storedId, IReadOnlyList<long> positions)
     {
         try
         {
@@ -195,14 +173,14 @@ public class FlowsManager
             // deleted and a replaced row must be dead lettered with its fresh content. In-hand positions whose
             // rows are gone are still cleared below, which trims them from the ignore-set (the row delete is a
             // no-op).
-            var inHandPositions = deliverablePositions.ToHashSet();
+            var inHandPositions = positions.ToHashSet();
             var currentRows = await _functionStore.MessageStore.GetMessages(storedId);
             var deliverable = currentRows.Where(m => !m.IsEmpty && inHandPositions.Contains(m.Position)).ToList();
 
             if (deliverable.Count > 0)
                 await _functionStore.DlqStore.Append(deliverable);
 
-            await _messageClearer.Clear(allPositions);
+            await _messageClearer.Clear(positions);
             return true;
         }
         catch

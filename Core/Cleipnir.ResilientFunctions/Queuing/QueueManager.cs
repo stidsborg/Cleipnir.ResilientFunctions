@@ -168,7 +168,8 @@ internal class QueueManager
     /// Pushes messages fetched elsewhere (the MessageWatchdog, or the in-hand messages handed over on restart)
     /// straight into the delivery pipeline, avoiding a per-flow re-fetch. The messages were deserialized - and
     /// the undeserializable ones dead lettered - at the fetch boundary (MessageWatchdog), so every message here
-    /// is deliverable; empty (restart-poke) messages are stripped by both routes before handing over.
+    /// is deliverable - except empty (restart-poke) messages, whose positions are reopened for a later restart
+    /// to consume (see ProcessMessages).
     ///
     /// Invariant on return: every handled message has been added to the flow's effect state - in memory only,
     /// deliberately unflushed for performance; it is persisted with the flow's next flush, after which the store
@@ -277,10 +278,16 @@ internal class QueueManager
         foreach (var message in messages)
         {
             var (_, content, position, idempotencyKey, sender, receiver) = message;
-            // Empty restart-pokes are stripped by both hand-over routes before reaching the queue manager -
-            // there is nothing to deliver, so one slipping through is simply skipped.
+            // Empty restart-pokes carry nothing to deliver and may only be consumed by an actual restart. This
+            // flow is live (it accepted the push), so no restart happens now - and the row may not be deleted
+            // either: the flow could suspend right after, and the append's restart guarantee must survive that.
+            // Reopen the position instead, so the poke is re-fetched and consumed by a restart once the flow
+            // leaves the live set. (Restart in-hand batches contain no pokes - the restart itself consumed them.)
             if (content is null)
+            {
+                _messageClearer.ReopenPositions([position!.Value]);
                 continue;
+            }
 
             // Push dedup is store-row dedup: only a message addressing a store row can be pushed twice, so a
             // row-less message has nothing to dedup against here.
