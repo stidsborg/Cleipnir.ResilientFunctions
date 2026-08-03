@@ -330,6 +330,24 @@ public class SqlGenerator(string tablePrefix)
         return command;
     }
 
+    public StoreCommand ReassignToOwner(IReadOnlyList<long> positions, ReplicaId expectedReplica)
+    {
+        // The owner is looked up as part of the update, mirroring the COALESCE in AppendMessages: the message
+        // follows the target flow's ownership as it is at write time, so no separately-read owner can go stale in
+        // between. An unowned - or not-yet-created - target yields NULL and the message keeps its current replica.
+        var sql = @$"
+            UPDATE m
+            SET Replica = COALESCE((SELECT f.Owner FROM {tablePrefix} f WHERE f.Id = m.Id), m.Replica)
+            FROM {tablePrefix}_Messages AS m
+            WHERE m.Position IN (SELECT CAST(value AS BIGINT) FROM STRING_SPLIT(@Positions, ',')) AND m.Replica = @ExpectedReplica";
+
+        var command = StoreCommand.Create(sql);
+        command.AddParameter("@Positions", string.Join(",", positions));
+        command.AddParameter("@ExpectedReplica", expectedReplica.AsGuid);
+
+        return command;
+    }
+
     public async Task<Dictionary<StoredId, List<(byte[] content, long position, Guid? replica)>>> ReadStoredIdsMessages(SqlDataReader reader)
     {
         var messages = new Dictionary<StoredId, List<(byte[] content, long position, Guid? replica)>>();

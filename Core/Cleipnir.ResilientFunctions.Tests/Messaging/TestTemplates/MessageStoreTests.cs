@@ -1120,6 +1120,80 @@ public abstract class MessageStoreTests
         afterFlow2.Single(m => m.Position == cPosition).Replica.ShouldBe(otherReplica);
     }
 
+    public abstract Task MessagesAreReassignedToTheirTargetFlowsOwner();
+    protected async Task MessagesAreReassignedToTheirTargetFlowsOwner(Task<IFunctionStore> functionStoreTask)
+    {
+        var functionStore = await functionStoreTask;
+        var messageStore = functionStore.MessageStore;
+        var stringType = typeof(string).SimpleQualifiedName().ToUtf8Bytes();
+
+        var caller = ReplicaId.NewId();
+        var owner = ReplicaId.NewId();
+        var otherReplica = ReplicaId.NewId();
+
+        var executingFlow = TestStoredId.Create();
+        await functionStore.CreateFunction(
+            executingFlow,
+            "executing",
+            Test.SimpleStoredParameter,
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks,
+            parent: null,
+            owner: owner
+        );
+
+        var idleFlow = TestStoredId.Create();
+        await functionStore.CreateFunction(
+            idleFlow,
+            "idle",
+            Test.SimpleStoredParameter,
+            postponeUntil: null,
+            timestamp: DateTime.UtcNow.Ticks,
+            parent: null,
+            owner: null
+        );
+
+        // no flow row at all - the message precedes its target flow
+        var missingFlow = TestStoredId.Create();
+
+        // appended with an explicit fallback replica, which the executing flow's owner overrides on insert - so
+        // the message is first re-assigned to the caller to set up the state the FlowsManager would be in.
+        await messageStore.AppendMessage(new StoredMessage(executingFlow, "a".ToJson().ToUtf8Bytes(), stringType, Position: 0, Replica: caller));
+        await messageStore.AppendMessage(new StoredMessage(idleFlow, "b".ToJson().ToUtf8Bytes(), stringType, Position: 0, Replica: caller));
+        await messageStore.AppendMessage(new StoredMessage(missingFlow, "c".ToJson().ToUtf8Bytes(), stringType, Position: 0, Replica: caller));
+        // assigned to a different replica -> untouched even though its position is included
+        await messageStore.AppendMessage(new StoredMessage(executingFlow, "d".ToJson().ToUtf8Bytes(), stringType, Position: 0, Replica: otherReplica));
+
+        var executingMessages = await messageStore.GetMessages(executingFlow);
+        var aPosition = executingMessages[0].Position;
+        var dPosition = executingMessages[1].Position;
+        var bPosition = (await messageStore.GetMessages(idleFlow)).Single().Position;
+        var cPosition = (await messageStore.GetMessages(missingFlow)).Single().Position;
+
+        // "a" was stamped with the executing flow's owner on insert - put it back on the caller
+        await messageStore.SetReplica([aPosition], newReplica: caller, expectedReplica: owner);
+        await messageStore.SetReplica([dPosition], newReplica: otherReplica, expectedReplica: owner);
+
+        await messageStore.ReassignToOwner([aPosition, bPosition, cPosition, dPosition], expectedReplica: caller);
+
+        var afterExecuting = await messageStore.GetMessages(executingFlow);
+        // owned target -> handed to the owner
+        afterExecuting.Single(m => m.Position == aPosition).Replica.ShouldBe(owner);
+        // assigned elsewhere -> the expected-replica guard leaves it alone
+        afterExecuting.Single(m => m.Position == dPosition).Replica.ShouldBe(otherReplica);
+        // unowned target -> stays with the caller, to be retried later
+        (await messageStore.GetMessages(idleFlow)).Single().Replica.ShouldBe(caller);
+        // no target flow row -> stays with the caller, to be retried later
+        (await messageStore.GetMessages(missingFlow)).Single().Replica.ShouldBe(caller);
+    }
+
+    public abstract Task ReassignToOwnerWithEmptyPositionsDoesNotThrow();
+    protected async Task ReassignToOwnerWithEmptyPositionsDoesNotThrow(Task<IFunctionStore> functionStoreTask)
+    {
+        var functionStore = await functionStoreTask;
+        await functionStore.MessageStore.ReassignToOwner([], expectedReplica: ReplicaId.NewId());
+    }
+
     public abstract Task GetMessagesForReplicaExcludesIgnoredPositions();
     protected async Task GetMessagesForReplicaExcludesIgnoredPositions(Task<IFunctionStore> functionStoreTask)
     {
