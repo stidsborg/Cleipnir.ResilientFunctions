@@ -37,15 +37,37 @@ Outstanding work items, roughly prioritized.
    Only `QueueManager` may write `DeliveredPositionsId` / `StagedMessagesRoot` / `IdempotencyKeysRoot` children
    (control-panel `ExistingMessages` excepted). Nothing enforces it.
 
+7. **Store failures should be handled inside the store, not by compensating catch blocks at the call sites.**
+   Because store calls throw on any transient failure, callers are pushed towards `try/catch` blocks that undo
+   bookkeeping and rethrow — a shape we do not want, since correctness then depends on catch blocks performing
+   state fixups:
+
+   ```csharp
+   try { results = await _functionStore.RestartExecutions(...); }
+   catch { _messageClearer.ReopenPositions(...); throw; }
+   ```
+
+   Those blocks have been removed from `FlowsManager.RestartExecutions` — both the claim and the follow-up
+   `GetFunction` status lookup now stand on their own — at the cost of leaving the in-hand positions marked
+   pushed when a store call throws, so they are not re-fetched until the process restarts (see item 3). The one
+   remaining catch in the file is the same problem in other clothes: `TryDeadLetterMessages`, whose whole `bool`
+   return exists to convert a store throw into "caller, reopen the positions".
+
+   The fix is to give the store operations a total contract: handle (and retry/report) failures inside the store
+   implementation and express the outcome as data — e.g. `RestartExecutions` returning which ids were claimed,
+   which are owned elsewhere and which could not be reached — so the delivery path reads linearly, stranding is
+   impossible, and an escaping exception means a framework bug rather than an expected condition. Same treatment
+   for the other store-touching paths in the watchdogs.
+
 ## Tests
 
-7. **Re-enable the `[Ignore]`d control-panel message tests** in the SqlServer and MariaDB suites
+8. **Re-enable the `[Ignore]`d control-panel message tests** in the SqlServer and MariaDB suites
    (`ControlPanelsExistingMessagesContainsPreviouslyAddedMessages` and related) once their flakiness is
    understood and fixed.
 
 ## Existing inline TODOs
 
-8. `Invoker.PrepareForReInvocation` — `param! //todo implement param null case`
-9. `FlowsManagers.cs:74` — `// todo log a warning here`
-10. `InvocationHelper.cs:352` — `//todo should flush be true`
-11. `StoredMessage.DefaultDeserialize` — `//todo remove`
+9. `Invoker.PrepareForReInvocation` — `param! //todo implement param null case`
+10. `FlowsManagers.cs:74` — `// todo log a warning here`
+11. `InvocationHelper.cs:352` — `//todo should flush be true`
+12. `StoredMessage.DefaultDeserialize` — `//todo remove`

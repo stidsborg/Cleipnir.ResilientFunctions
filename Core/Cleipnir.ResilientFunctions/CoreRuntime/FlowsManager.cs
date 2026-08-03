@@ -17,24 +17,20 @@ public class FlowsManager
     private readonly IFunctionStore _functionStore;
     private readonly IMessageClearer _messageClearer;
     private readonly ClusterInfo _clusterInfo;
-    private IFlowRestarter? _restarter;
+    private readonly IFlowRestarter _restarter;
     private readonly Lock _lock = new();
 
     internal FlowsManager(
         IFunctionStore functionStore,
         IMessageClearer messageClearer,
-        ClusterInfo clusterInfo)
+        ClusterInfo clusterInfo,
+        IFlowRestarter restarter)
     {
         _functionStore = functionStore;
         _messageClearer = messageClearer;
         _clusterInfo = clusterInfo;
+        _restarter = restarter;
     }
-
-    /// <summary>
-    /// Supplies the per-type flow restarter (the Invoker). Late-bound because the Invoker is constructed after this
-    /// manager during registration.
-    /// </summary>
-    internal void SetRestarter(IFlowRestarter restarter) => _restarter = restarter;
 
     public FlowExecutionState CreateFlowState(StoredId id, FlowTimeouts timeouts, Task completed, TimeSpan maxWait)
         => new(id, subflows: 1, waitingSubflows: 0, timeouts, completed, maxWait);
@@ -129,19 +125,8 @@ public class FlowsManager
             .GroupBy(m => m.StoredId)
             .ToDictionary(g => g.Key, g => g.ToList());
 
-        Dictionary<StoredId, StoredFlowWithEffects> results;
-        try
-        {
-            results = await _functionStore
-                .RestartExecutions(groups.Keys.ToList(), _clusterInfo.ReplicaId);
-        }
-        catch
-        {
-            // The claim never happened, but the MessageWatchdog already marked the positions as pushed - reopen
-            // them all so the messages are re-fetched and delivery is retried on a later poll.
-            _messageClearer.ReopenPositions(messages.Select(m => m.Position!.Value));
-            throw;
-        }
+        var results = await _functionStore
+            .RestartExecutions(groups.Keys.ToList(), _clusterInfo.ReplicaId);
 
         // Flows that could not be claimed were never delivered to, yet the MessageWatchdog optimistically marked
         // their positions as pushed. Completed flows can never consume their messages - dead letter them (and
@@ -155,17 +140,7 @@ public class FlowsManager
             var deliverablePositions = flowMessages.Where(m => !m.IsEmpty).Select(m => m.Position!.Value).ToList();
             var allPositions = flowMessages.Select(m => m.Position!.Value).ToList();
 
-            StoredFlow? storedFlow;
-            try
-            {
-                storedFlow = await _functionStore.GetFunction(storedId);
-            }
-            catch
-            {
-                // Status unknown - reopen below so delivery is retried rather than the positions being stranded.
-                storedFlow = null;
-            }
-
+            var storedFlow = await _functionStore.GetFunction(storedId);
             if (storedFlow != null && storedFlow.Status is Status.Succeeded or Status.Failed)
                 if (await TryDeadLetterMessages(storedId, deliverablePositions, allPositions))
                     continue;
@@ -190,7 +165,7 @@ public class FlowsManager
                 storedFlowWithEffects.StorageSession
             );
 
-            await _restarter!.ScheduleRestart(storedId, restartedFunction, onCompletion: () => { });
+            await _restarter.ScheduleRestart(storedId, restartedFunction, onCompletion: () => { });
         }
 
         // The restarts the batch's empty messages were appended to force have now happened - delete them from

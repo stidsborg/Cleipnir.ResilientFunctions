@@ -351,7 +351,6 @@ public class FunctionsRegistry : IDisposable
                 _messageSender,
                 _messageDeserializer
             );
-            var flowsManager = _flowsManagers.GetOrCreate(storedType);
             var invoker = new Invoker<TParam, TReturn>(
                 flowType,
                 storedType,
@@ -359,9 +358,9 @@ public class FunctionsRegistry : IDisposable
                 invocationHelper,
                 settingsWithDefaults.UnhandledExceptionHandler,
                 ClusterInfo.ReplicaId,
-                flowsManager
+                _flowsManagers
             );
-            flowsManager.SetRestarter(invoker);
+            _flowsManagers.Create(storedType, invoker);
 
             WatchDogsFactory.CreateAndStart(
                 flowType,
@@ -431,7 +430,6 @@ public class FunctionsRegistry : IDisposable
                 _messageSender,
                 _messageDeserializer
             );
-            var flowsManager = _flowsManagers.GetOrCreate(storedType);
             var invoker = new Invoker<Unit, Unit>(
                 flowType,
                 storedType,
@@ -439,9 +437,9 @@ public class FunctionsRegistry : IDisposable
                 invocationHelper,
                 settingsWithDefaults.UnhandledExceptionHandler,
                 ClusterInfo.ReplicaId,
-                flowsManager
+                _flowsManagers
             );
-            flowsManager.SetRestarter(invoker);
+            _flowsManagers.Create(storedType, invoker);
 
             WatchDogsFactory.CreateAndStart(
                 flowType,
@@ -512,7 +510,6 @@ public class FunctionsRegistry : IDisposable
                 _messageSender,
                 _messageDeserializer
             );
-            var flowsManager = _flowsManagers.GetOrCreate(storedType);
             var rActionInvoker = new Invoker<TParam, Unit>(
                 flowType,
                 storedType,
@@ -520,9 +517,9 @@ public class FunctionsRegistry : IDisposable
                 invocationHelper,
                 settingsWithDefaults.UnhandledExceptionHandler,
                 ClusterInfo.ReplicaId,
-                flowsManager
+                _flowsManagers
             );
-            flowsManager.SetRestarter(rActionInvoker);
+            _flowsManagers.Create(storedType, rActionInvoker);
 
             WatchDogsFactory.CreateAndStart(
                 flowType,

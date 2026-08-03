@@ -20,7 +20,11 @@ public class Invoker<TParam, TReturn> : IFlowRestarter
     
     private readonly InvocationHelper<TParam, TReturn> _invocationHelper;
     private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
-    private readonly FlowsManager _flowsManager;
+    private readonly FlowsManagers _flowsManagers;
+
+    // The manager this invoker's flows are registered with. Looked up rather than injected: the manager takes this
+    // invoker as its restarter, so it is constructed immediately after - and before any invocation can occur.
+    private FlowsManager FlowsManager => _flowsManagers.Get(_storedType);
 
     internal Invoker(
         FlowType flowType, StoredType storedType,
@@ -28,7 +32,7 @@ public class Invoker<TParam, TReturn> : IFlowRestarter
         InvocationHelper<TParam, TReturn> invocationHelper,
         UnhandledExceptionHandler unhandledExceptionHandler,
         ReplicaId replicaId,
-        FlowsManager flowsManager
+        FlowsManagers flowsManagers
     )
     {
         _flowType = flowType;
@@ -37,7 +41,7 @@ public class Invoker<TParam, TReturn> : IFlowRestarter
         _inner = inner;
         _invocationHelper = invocationHelper;
         _unhandledExceptionHandler = unhandledExceptionHandler;
-        _flowsManager = flowsManager;
+        _flowsManagers = flowsManagers;
     }
 
     public async Task<InnerScheduled<TReturn>> ScheduleInvoke(FlowInstance flowInstance, TParam param, bool? detach, InitialState? initialState)
@@ -122,7 +126,7 @@ public class Invoker<TParam, TReturn> : IFlowRestarter
             }
             finally
             {
-                _flowsManager.RemoveFlow(storedId, flowState);
+                FlowsManager.RemoveFlow(storedId, flowState);
             }
         });
 
@@ -193,7 +197,7 @@ public class Invoker<TParam, TReturn> : IFlowRestarter
                     tcs.TrySetCanceled();
             }
             catch (Exception exception) { _unhandledExceptionHandler.Invoke(_flowType, exception); tcs.TrySetException(exception); }
-            finally{ _flowsManager.RemoveFlow(storedId, flowState); onCompletion(); }
+            finally{ FlowsManager.RemoveFlow(storedId, flowState); onCompletion(); }
         });
     }
 
@@ -233,7 +237,7 @@ public class Invoker<TParam, TReturn> : IFlowRestarter
                 );
 
             var flowTimeouts = new FlowTimeouts();
-            var flowState = _flowsManager.CreateFlowState(storedId, flowTimeouts, completed, _invocationHelper.MessagesDefaultMaxWaitForCompletion);
+            var flowState = FlowsManager.CreateFlowState(storedId, flowTimeouts, completed, _invocationHelper.MessagesDefaultMaxWaitForCompletion);
 
             var effect = _invocationHelper.CreateEffect(
                 storedId,
@@ -250,7 +254,7 @@ public class Invoker<TParam, TReturn> : IFlowRestarter
 
             // Registered last: a flow reachable through the FlowsManager always has its queue manager attached,
             // and a failed preparation leaves nothing behind.
-            _flowsManager.AddFlow(flowState);
+            FlowsManager.AddFlow(flowState);
 
             return new PreparedInvocation(
                 persisted,
@@ -285,7 +289,7 @@ public class Invoker<TParam, TReturn> : IFlowRestarter
             disposables.Add(isWorkflowRunningDisposable);
             
             var flowTimeouts = new FlowTimeouts();
-            var flowState = _flowsManager.CreateFlowState(storedId, flowTimeouts, completed, _invocationHelper.MessagesDefaultMaxWaitForCompletion);
+            var flowState = FlowsManager.CreateFlowState(storedId, flowTimeouts, completed, _invocationHelper.MessagesDefaultMaxWaitForCompletion);
 
             var effect = _invocationHelper.CreateEffect(storedId, flowId, effects, flowTimeouts, storageSession, flowState);
 
@@ -309,7 +313,7 @@ public class Invoker<TParam, TReturn> : IFlowRestarter
 
             // Registered last: a flow reachable through the FlowsManager always has its queue manager attached,
             // and a failed preparation leaves nothing behind.
-            _flowsManager.AddFlow(flowState);
+            FlowsManager.AddFlow(flowState);
 
             return new PreparedReInvocation(
                 _inner,
