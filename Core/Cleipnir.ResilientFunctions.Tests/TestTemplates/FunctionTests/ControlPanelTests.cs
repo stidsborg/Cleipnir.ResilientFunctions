@@ -612,20 +612,26 @@ public abstract class ControlPanelTests
         {
             rAction = r.RegisterAction(
                 flowType,
-                async Task(string param, Workflow workflow) =>
+                async Task (string param, Workflow workflow) =>
                 {
-                    await workflow.AppendMessage(param);
+                    await workflow.Message<string>();
                 }
             );
         });
 
-        await rAction.Run(flowInstance.Value, param: "param");
+        await rAction.Schedule(flowInstance.Value, param: "param");
+
+        // The flow awaits a string, so the int delivered from the outside is admitted and staged but never
+        // matches - once the flow has suspended again the message sits durably in effect state, visible to the
+        // control panel.
+        await rAction.SendMessage(flowInstance, new NonStringMessage(42));
+        await WaitUntilSuspendedWithMessageCount(rAction, flowInstance, messageCount: 1);
 
         var controlPanel = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
         var existingMessages = controlPanel.Messages;
         var messages = await existingMessages.AsObjects;
         messages.Count.ShouldBe(1);
-        messages[0].ShouldBe("param");
+        messages[0].ShouldBe(new NonStringMessage(42));
         await existingMessages.Clear();
         await existingMessages.Append("hello");
 
@@ -648,8 +654,6 @@ public abstract class ControlPanelTests
         var store = await storeTask;
         var functionId = TestFlowId.Create();
         var (flowType, flowInstance) = functionId;
-        var first = true;
-        var invocationCount = new SyncedCounter();
         var syncedList = new SyncedList<string>();
         ActionRegistration<string> rAction = null!;
         using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionCatcher.Catch), r =>
@@ -658,55 +662,49 @@ public abstract class ControlPanelTests
                 flowType,
                 async Task(string param, Workflow workflow) =>
                 {
-                    if (first)
+                    // Collect locally and publish at the end: a legal mid-flow suspend/replay must not leave a
+                    // partial incarnation's messages behind in the asserted list.
+                    var received = new List<string>();
+                    for (var i = 0; i < 2; i++)
                     {
-                        invocationCount.Increment();
-                        first = false;
-                        await workflow.AppendMessage("hello world", idempotencyKey: "1");
-                        await workflow.AppendMessage("hello universe", idempotencyKey: "2");
+                        var msg = await workflow.Message<string>();
+                        received.Add(msg);
                     }
-                    else
-                    {
-                        // Collect locally and publish at the end: a legal mid-flow suspend/replay must not leave a
-                        // partial incarnation's messages behind in the asserted list.
-                        var received = new List<string>();
-                        for (var i = 0; i < 2; i++)
-                        {
-                            var msg = await workflow.Message<string>();
-                            received.Add(msg);
-                        }
 
-                        syncedList.Clear();
-                        syncedList.AddRange(received);
-                    }
+                    syncedList.Clear();
+                    syncedList.AddRange(received);
                 }
             );
         });
 
-        await rAction.Run(flowInstance.Value, param: "param");
+        await rAction.Schedule(flowInstance.Value, param: "param");
+
+        // The flow awaits strings, so the ints delivered from the outside are admitted and staged but never
+        // delivered - the control panel replaces them in place with the strings the flow is waiting for, and the
+        // restarted flow consumes those and runs to completion.
+        await rAction.SendMessage(flowInstance, new NonStringMessage(1), idempotencyKey: "1");
+        await rAction.SendMessage(flowInstance, new NonStringMessage(2), idempotencyKey: "2");
+        await WaitUntilSuspendedWithMessageCount(rAction, flowInstance, messageCount: 2);
 
         var controlPanel = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
-        controlPanel.Status.ShouldBe(Status.Succeeded);
         var existingMessages = controlPanel.Messages;
-        await existingMessages.Count.ShouldBeAsync(2);
-        await existingMessages.Clear();
+        await existingMessages.Replace(0, "hello to you", "1");
+        await existingMessages.Replace(1, "hello from me", "2");
 
-        await existingMessages.Append("hello to you", "1");
-        await existingMessages.Append("hello from me", "2");
-        
-        await controlPanel.SaveChanges();
-        await controlPanel.Refresh();
         await controlPanel.ScheduleRestart().Completion();
 
         syncedList.ShouldNotBeNull();
         if (syncedList.Count != 2)
             throw new Exception(
-                $"Excepted only 2 messages (invocation count: {invocationCount.Current}) - there was: " + string.Join(", ", syncedList.Select(e => "'" + e.ToJson() + "'"))
+                "Excepted only 2 messages - there was: " + string.Join(", ", syncedList.Select(e => "'" + e.ToJson() + "'"))
             );
-        
+
         syncedList.Count.ShouldBe(2);
         syncedList[0].ShouldBe("hello to you");
         syncedList[1].ShouldBe("hello from me");
+
+        await controlPanel.Refresh();
+        controlPanel.Status.ShouldBe(Status.Succeeded);
 
         unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
@@ -776,25 +774,25 @@ public abstract class ControlPanelTests
         var store = await storeTask;
         var functionId = TestFlowId.Create();
         var (flowType, flowInstance) = functionId;
-        var first = true;
         ActionRegistration<string> rAction = null!;
         using var functionsRegistry = await FunctionsRegistry.CreateAndStart(store, new Settings(unhandledExceptionCatcher.Catch), r =>
         {
             rAction = r.RegisterAction(
                 flowType,
-                async Task(string param, Workflow workflow) =>
+                async Task (string param, Workflow workflow) =>
                 {
-                    if (first)
-                    {
-                        first = false;
-                        await workflow.AppendMessage("hello world", idempotencyKey: "1");
-                        await workflow.AppendMessage("hello universe", idempotencyKey: "2");
-                    }
+                    await workflow.Message<string>();
                 }
             );
         });
 
-        await rAction.Run(flowInstance.Value, param: "param");
+        await rAction.Schedule(flowInstance.Value, param: "param");
+
+        // The flow awaits a string, so the ints delivered from the outside are admitted and staged but never
+        // match - they sit durably in effect state once the flow has suspended again.
+        await rAction.SendMessage(flowInstance, new NonStringMessage(42), idempotencyKey: "1");
+        await rAction.SendMessage(flowInstance, new NonStringMessage(43), idempotencyKey: "2");
+        await WaitUntilSuspendedWithMessageCount(rAction, flowInstance, messageCount: 2);
 
         var controlPanel = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
         controlPanel.Param = "test";
@@ -803,9 +801,9 @@ public abstract class ControlPanelTests
 
         var messages = await controlPanel.Messages.MessagesWithIdempotencyKeys;
         messages.Count.ShouldBe(2);
-        messages[0].Message.ShouldBe("hello world");
+        messages[0].Message.ShouldBe(new NonStringMessage(42));
         messages[0].IdempotencyKey.ShouldBe("1");
-        messages[1].Message.ShouldBe("hello universe");
+        messages[1].Message.ShouldBe(new NonStringMessage(43));
         messages[1].IdempotencyKey.ShouldBe("2");
         
         unhandledExceptionCatcher.ShouldNotHaveExceptions();
@@ -829,22 +827,21 @@ public abstract class ControlPanelTests
         });
 
         await rAction.Run(flowInstance.Value, param: "param");
-        await store.MessageStore.AppendMessage(
-            new StoredMessage(rAction.MapToStoredId(functionId.Instance), "hello world".ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Replica: ReplicaId.Empty, Position: 0)
-        );
+
+        var concurrentControlPanel = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
+        await concurrentControlPanel.Messages.Append("hello world");
 
         var controlPanel = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
         var existingMessages = controlPanel.Messages;
         await existingMessages.Count.ShouldBeAsync(1);
 
-        await store.MessageStore.AppendMessage(
-            new StoredMessage(rAction.MapToStoredId(functionId.Instance), "hello universe".ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Replica: ReplicaId.Empty, Position: 0)
-        );
-        
+        await concurrentControlPanel.Messages.Append("hello universe");
+
         await existingMessages.Clear();
         await existingMessages.Append("hej verden");
         await existingMessages.Append("hej univers");
-        
+        await existingMessages.Count.ShouldBeAsync(2);
+
         unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
     
@@ -861,20 +858,25 @@ public abstract class ControlPanelTests
         {
             rAction = r.RegisterAction(
                 flowType,
-                Task(string param, Workflow workflow) => Task.Delay(1)
+                async Task (string param, Workflow workflow) =>
+                {
+                    await workflow.Message<string>();
+                }
             );
         });
 
-        await rAction.Run(flowInstance.Value, param: "param");
-        await store.MessageStore.AppendMessage(
-            new StoredMessage(rAction.MapToStoredId(functionId.Instance), "hello world".ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Replica: ReplicaId.Empty, Position: 0)
-        );
+        await rAction.Schedule(flowInstance.Value, param: "param");
+
+        // The first int delivered from the outside is admitted and staged but never matches the string
+        // subscription - the control panel is created against that settled, suspended state.
+        await rAction.SendMessage(flowInstance, new NonStringMessage(42));
+        await WaitUntilSuspendedWithMessageCount(rAction, flowInstance, messageCount: 1);
 
         var controlPanel = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
 
-        await store.MessageStore.AppendMessage(
-            new StoredMessage(rAction.MapToStoredId(functionId.Instance), "hello universe".ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Replica: ReplicaId.Empty, Position: 0)
-        );
+        // The second arrival restarts and re-suspends the flow behind the control panel's back.
+        await rAction.SendMessage(flowInstance, new NonStringMessage(43));
+        await WaitUntilSuspendedWithMessageCount(rAction, flowInstance, messageCount: 2);
 
         controlPanel.Param = "PARAM";
         await controlPanel.SaveChanges();
@@ -884,8 +886,8 @@ public abstract class ControlPanelTests
 
         var messages = await controlPanel.Messages.AsObjects;
         messages.Count.ShouldBe(2);
-        messages[0].ShouldBe("hello world");
-        messages[1].ShouldBe("hello universe");
+        messages[0].ShouldBe(new NonStringMessage(42));
+        messages[1].ShouldBe(new NonStringMessage(43));
         
         unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
@@ -908,22 +910,21 @@ public abstract class ControlPanelTests
         });
 
         await rAction.Run(flowInstance.Value, param: "param");
-        await store.MessageStore.AppendMessage(
-            new StoredMessage(rAction.MapToStoredId(functionId.Instance), "hello world".ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Replica: ReplicaId.Empty, Position: 0)
-        );
+
+        var concurrentControlPanel = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
+        await concurrentControlPanel.Messages.Append("hello world");
 
         var controlPanel = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
         var existingMessages = controlPanel.Messages;
         await existingMessages.Count.ShouldBeAsync(1);
 
-        await store.MessageStore.AppendMessage(
-            new StoredMessage(rAction.MapToStoredId(functionId.Instance), "hello universe".ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Replica: ReplicaId.Empty, Position: 0)
-        );
-        
+        await concurrentControlPanel.Messages.Append("hello universe");
+
         await existingMessages.Clear();
         await existingMessages.Append("hej verden");
         await existingMessages.Append("hej univers");
-        
+        await existingMessages.Count.ShouldBeAsync(2);
+
         unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
     
@@ -940,20 +941,25 @@ public abstract class ControlPanelTests
         {
             rAction = r.RegisterAction(
                 flowType,
-                Task(string param, Workflow workflow) => Task.Delay(1)
+                async Task (string param, Workflow workflow) =>
+                {
+                    await workflow.Message<string>();
+                }
             );
         });
 
-        await rAction.Run(flowInstance.Value, param: "param");
-        await store.MessageStore.AppendMessage(
-            new StoredMessage(rAction.MapToStoredId(functionId.Instance), "hello world".ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Replica: ReplicaId.Empty, Position: 0)
-        );
+        await rAction.Schedule(flowInstance.Value, param: "param");
+
+        // The first int delivered from the outside is admitted and staged but never matches the string
+        // subscription - the control panel is created against that settled, suspended state.
+        await rAction.SendMessage(flowInstance, new NonStringMessage(42));
+        await WaitUntilSuspendedWithMessageCount(rAction, flowInstance, messageCount: 1);
 
         var controlPanel = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
 
-        await store.MessageStore.AppendMessage(
-            new StoredMessage(rAction.MapToStoredId(functionId.Instance), "hello universe".ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Replica: ReplicaId.Empty, Position: 0)
-        );
+        // The second arrival restarts and re-suspends the flow behind the control panel's back.
+        await rAction.SendMessage(flowInstance, new NonStringMessage(43));
+        await WaitUntilSuspendedWithMessageCount(rAction, flowInstance, messageCount: 2);
 
         controlPanel.Param = "PARAM";
         await controlPanel.Succeed();
@@ -963,8 +969,8 @@ public abstract class ControlPanelTests
 
         var messages = await controlPanel.Messages.AsObjects;
         messages.Count.ShouldBe(2);
-        messages[0].ShouldBe("hello world");
-        messages[1].ShouldBe("hello universe");
+        messages[0].ShouldBe(new NonStringMessage(42));
+        messages[1].ShouldBe(new NonStringMessage(43));
         
         unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
@@ -987,10 +993,10 @@ public abstract class ControlPanelTests
         });
 
         await rAction.Run(flowInstance.Value, param: "param");
-        await rAction.SendMessage(flowInstance, "hello world", idempotencyKey: "first");
-            
+
         var controlPanel = await rAction.ControlPanel(flowInstance).ShouldNotBeNullAsync();
         var existingMessages = controlPanel.Messages;
+        await existingMessages.Append("hello world", idempotencyKey: "first");
         var (message, idempotencyKey) = (await existingMessages.MessagesWithIdempotencyKeys).Single();
         message.ShouldBe("hello world");
         idempotencyKey.ShouldBe("first");
@@ -1462,4 +1468,22 @@ public abstract class ControlPanelTests
             fwe.ErrorType.ShouldBe(typeof(TimeoutException));
         }
     }
+
+    // Reference type deliberately distinct from string: delivered to a flow awaiting Message<string> it is
+    // admitted and staged but never matches, parking it durably in effect state for the control panel.
+    private record NonStringMessage(int Value);
+
+    // Waits until the flow has settled suspended with the expected number of staged messages. Order matters: the
+    // count is read before the status, so an observed Suspended is the suspension AFTER the last admission - a
+    // status read first could be the previous suspension's, with the flow still owned by the admitting restart,
+    // making a control panel created afterwards capture the wrong owner.
+    private static Task WaitUntilSuspendedWithMessageCount(ActionRegistration<string> registration, FlowInstance flowInstance, int messageCount)
+        => BusyWait.Until(async () =>
+        {
+            var controlPanel = await registration.ControlPanel(flowInstance);
+            if (await controlPanel!.Messages.Count != messageCount)
+                return false;
+            await controlPanel.Refresh();
+            return controlPanel.Status == Status.Suspended;
+        });
 }
