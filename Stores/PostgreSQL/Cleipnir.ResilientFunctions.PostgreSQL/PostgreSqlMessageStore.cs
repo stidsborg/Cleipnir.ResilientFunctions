@@ -181,6 +181,16 @@ public class PostgreSqlMessageStore : IMessageStore
         await command.ExecuteNonQueryAsync();
     }
 
+    public async Task ReassignToOwner(IReadOnlyList<long> positions, ReplicaId expectedReplica)
+    {
+        if (positions.Count == 0)
+            return;
+
+        await using var conn = await CreateConnection();
+        await using var command = sqlGenerator.ReassignToOwner(positions, expectedReplica).ToNpgsqlCommand(conn);
+        await command.ExecuteNonQueryAsync();
+    }
+
     public static StoredMessage ConvertToStoredMessage(StoredId storedId, byte[] content, long position, Guid? replica)
     {
         var arrs = BinaryPacker.Split(content, expectedPieces: 5);

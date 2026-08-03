@@ -115,6 +115,14 @@ public class MessageStoreTests :  TestTemplates.MessageStoreTests
         => MessageReplicaCanBeReassigned(FunctionStoreFactory.Create());
 
     [TestMethod]
+    public override Task MessagesAreReassignedToTheirTargetFlowsOwner()
+        => MessagesAreReassignedToTheirTargetFlowsOwner(FunctionStoreFactory.Create());
+
+    [TestMethod]
+    public override Task ReassignToOwnerWithEmptyPositionsDoesNotThrow()
+        => ReassignToOwnerWithEmptyPositionsDoesNotThrow(FunctionStoreFactory.Create());
+
+    [TestMethod]
     public override Task GetMessagesForReplicaExcludesIgnoredPositions()
         => GetMessagesForReplicaExcludesIgnoredPositions(FunctionStoreFactory.Create());
 }

@@ -52,4 +52,16 @@ public interface IMessageStore
     /// but only those still owned by <paramref name="expectedReplica"/>.
     /// </summary>
     Task SetReplica(IEnumerable<long> positions, ReplicaId newReplica, ReplicaId expectedReplica);
+
+    /// <summary>
+    /// Re-assigns the messages at the provided positions to the current owner of the flow each one targets -
+    /// the owner is resolved inside the update itself, so the message follows ownership as it is at write time
+    /// rather than as it was at some earlier read. A message whose target flow is unowned - or does not exist
+    /// yet - keeps its current replica, so it stays with the caller to be retried later. Only messages still
+    /// assigned to <paramref name="expectedReplica"/> are affected, so a concurrent crashed-replica handover
+    /// (<see cref="SetReplica"/>) is never overwritten. Positions may span any number of flows.
+    /// Used by the FlowsManager to hand messages whose target flow it could not restart-claim to the replica
+    /// actually executing that flow, instead of re-fetching them until the flow parks.
+    /// </summary>
+    Task ReassignToOwner(IReadOnlyList<long> positions, ReplicaId expectedReplica);
 }

@@ -113,19 +113,29 @@ public class FlowsManager
         // forever. All other flows may become claimable later (executing elsewhere, a lost claim race, or a flow
         // that has not been created yet - messages may legally precede their flow): reopen their positions so
         // the messages are re-fetched.
-        foreach (var (storedId, flowMessages) in groups.Where(kv => !results.ContainsKey(kv.Key)))
+        var unclaimed = groups.Where(kv => !results.ContainsKey(kv.Key)).ToList();
+        if (unclaimed.Count > 0)
         {
-            // Fetched messages always address a store row, so every position is present.
-            var positions = flowMessages.Select(m => m.Position!.Value).ToList();
+            // A single batched status read for all unclaimed flows - flows without a row are simply absent from
+            // the result (they may be created later), which is the not-completed case anyway.
+            var completed = (await _functionStore.GetFunctionsStatus(unclaimed.Select(kv => kv.Key)))
+                .Where(s => s.Status is Status.Succeeded or Status.Failed)
+                .Select(s => s.StoredId)
+                .ToHashSet();
 
-            var storedFlow = await _functionStore.GetFunction(storedId);
-            if (storedFlow != null && storedFlow.Status is Status.Succeeded or Status.Failed)
+            foreach (var (storedId, flowMessages) in unclaimed)
             {
-                await DeadLetterMessages(storedId, positions);
-                continue;
-            }
+                // Fetched messages always address a store row, so every position is present.
+                var positions = flowMessages.Select(m => m.Position!.Value).ToList();
 
-            _messageClearer.ReopenPositions(positions);
+                if (completed.Contains(storedId))
+                {
+                    await DeadLetterMessages(storedId, positions);
+                    continue;
+                }
+
+                _messageClearer.ReopenPositions(positions);
+            }
         }
 
         // Resume each restarted flow, supplying the messages we already hold so it does not re-fetch them. Empty

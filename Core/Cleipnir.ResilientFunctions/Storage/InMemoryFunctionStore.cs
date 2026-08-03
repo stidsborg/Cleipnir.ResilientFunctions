@@ -597,5 +597,26 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
         }
     }
 
+    public Task ReassignToOwner(IReadOnlyList<long> positions, ReplicaId expectedReplica)
+    {
+        lock (_sync)
+        {
+            var toReassign = positions.ToHashSet();
+            foreach (var (storedId, messages) in _messages)
+            {
+                // A flow that does not exist has no owner - like an unowned one, its messages keep their replica.
+                var owner = _states.TryGetValue(storedId, out var state) ? state.Owner : null;
+                if (owner is null)
+                    continue;
+
+                foreach (var position in toReassign)
+                    if (messages.TryGetValue(position, out var message) && message.Replica == expectedReplica)
+                        messages[position] = message with { Replica = owner };
+            }
+
+            return Task.CompletedTask;
+        }
+    }
+
     #endregion
 }

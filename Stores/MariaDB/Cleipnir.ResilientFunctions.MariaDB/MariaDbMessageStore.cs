@@ -194,6 +194,18 @@ public class MariaDbMessageStore : IMessageStore
         await command.ExecuteNonQueryAsync();
     }
 
+    public async Task ReassignToOwner(IReadOnlyList<long> positions, ReplicaId expectedReplica)
+    {
+        if (positions.Count == 0)
+            return;
+
+        await using var conn = await DatabaseHelper.CreateOpenConnection(_connectionString);
+        await using var command = _sqlGenerator
+            .ReassignToOwner(positions, expectedReplica)
+            .ToSqlCommand(conn);
+        await command.ExecuteNonQueryAsync();
+    }
+
     public static StoredMessage ConvertToStoredMessage(StoredId storedId, byte[] content, long position, string? replica)
     {
         var arrs = BinaryPacker.Split(content, expectedPieces: 5);

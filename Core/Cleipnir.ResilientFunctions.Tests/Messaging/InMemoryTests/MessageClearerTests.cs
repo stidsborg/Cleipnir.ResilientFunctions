@@ -175,5 +175,6 @@ public class MessageClearerTests
         public Task<List<StoredMessage>> GetMessagesForReplica(ReplicaId replicaId, IReadOnlyList<long> ignorePositions) => throw new NotSupportedException();
         public Task<List<StoredIdAndPosition>> GetCrashedReplicaMessages(IReadOnlySet<ReplicaId> liveReplicas) => throw new NotSupportedException();
         public Task SetReplica(IEnumerable<long> positions, ReplicaId newReplica, ReplicaId expectedReplica) => throw new NotSupportedException();
+        public Task ReassignToOwner(IReadOnlyList<long> positions, ReplicaId expectedReplica) => throw new NotSupportedException();
     }
 }

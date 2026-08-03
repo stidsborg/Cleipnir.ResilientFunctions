@@ -338,6 +338,24 @@ public class SqlGenerator(string tablePrefix)
         return command;
     }
 
+    public StoreCommand ReassignToOwner(IReadOnlyList<long> positions, ReplicaId expectedReplica)
+    {
+        // The owner is looked up as part of the update, mirroring the COALESCE in AppendMessages: the message
+        // follows the target flow's ownership as it is at write time, so no separately-read owner can go stale in
+        // between. An unowned - or not-yet-created - target yields NULL and the message keeps its current replica.
+        var sql = @$"
+                UPDATE {tablePrefix}_messages AS m
+                SET replica = COALESCE((SELECT f.owner FROM {tablePrefix} f WHERE f.id = m.id), m.replica)
+                WHERE m.position IN ({string.Join(", ", positions.Select(_ => "?"))}) AND m.replica = ?";
+
+        var command = StoreCommand.Create(sql);
+        foreach (var position in positions)
+            command.AddParameter(position);
+        command.AddParameter(expectedReplica.AsGuid.ToString("N"));
+
+        return command;
+    }
+
     public StoreCommand GetMessages(IEnumerable<StoredId> storedIds)
     {
         var sql = @$"
