@@ -120,8 +120,10 @@ public class FlowsManager
 
             var storedFlow = await _functionStore.GetFunction(storedId);
             if (storedFlow != null && storedFlow.Status is Status.Succeeded or Status.Failed)
-                if (await TryDeadLetterMessages(storedId, positions))
-                    continue;
+            {
+                await DeadLetterMessages(storedId, positions);
+                continue;
+            }
 
             _messageClearer.ReopenPositions(positions);
         }
@@ -161,33 +163,23 @@ public class FlowsManager
     /// Moves a completed flow's in-hand messages to the dead letter queue and deletes them from the message
     /// store - empty restart-pokes are just deleted (a completed flow needs no restart). The dlq append happens
     /// before the row delete, so a crash in between dead letters the messages a second time rather than losing
-    /// them. Returns true when the messages were dead lettered and their rows deleted; on a store failure false
-    /// is returned so the caller reopens the positions and a later poll retries.
+    /// them. A store failure simply propagates - the watchdog reports it and retries the poll, at worst dead
+    /// lettering a batch whose append had already landed a second time rather than losing it.
     /// </summary>
-    private async Task<bool> TryDeadLetterMessages(StoredId storedId, IReadOnlyList<long> positions)
+    private async Task DeadLetterMessages(StoredId storedId, IReadOnlyList<long> positions)
     {
-        try
-        {
-            // Dead letter the store's CURRENT rows, not the in-hand copies: control-panel tooling may have
-            // replaced (stale content) or deleted (Clear/Remove) rows since the fetch - a deleted row must stay
-            // deleted and a replaced row must be dead lettered with its fresh content. In-hand positions whose
-            // rows are gone are still cleared below, which trims them from the ignore-set (the row delete is a
-            // no-op).
-            var inHandPositions = positions.ToHashSet();
-            var currentRows = await _functionStore.MessageStore.GetMessages(storedId);
-            var deliverable = currentRows.Where(m => !m.IsEmpty && inHandPositions.Contains(m.Position)).ToList();
+        // Dead letter the store's CURRENT rows, not the in-hand copies: control-panel tooling may have
+        // replaced (stale content) or deleted (Clear/Remove) rows since the fetch - a deleted row must stay
+        // deleted and a replaced row must be dead lettered with its fresh content. In-hand positions whose
+        // rows are gone are still cleared below, which trims them from the ignore-set (the row delete is a
+        // no-op).
+        var inHandPositions = positions.ToHashSet();
+        var currentRows = await _functionStore.MessageStore.GetMessages(storedId);
+        var deliverable = currentRows.Where(m => !m.IsEmpty && inHandPositions.Contains(m.Position)).ToList();
 
-            if (deliverable.Count > 0)
-                await _functionStore.DlqStore.Append(deliverable);
+        if (deliverable.Count > 0)
+            await _functionStore.DlqStore.Append(deliverable);
 
-            await _messageClearer.Clear(positions);
-            return true;
-        }
-        catch
-        {
-            // The caller reopens the positions and the next poll retries - at worst a batch whose dlq append
-            // landed before the failure is dead lettered a second time rather than lost.
-            return false;
-        }
+        await _messageClearer.Clear(positions);
     }
 }
