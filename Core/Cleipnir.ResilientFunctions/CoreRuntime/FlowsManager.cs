@@ -94,7 +94,7 @@ public class FlowsManager
 
     /// <summary>
     /// Restarts (claims for this replica) the targeted flows that are not already owned, then hands each restarted
-    /// flow - together with the in-hand messages - to the <see cref="ScheduleRestartFromWatchdog"/> delegate so it
+    /// flow - together with the in-hand messages - to the <see cref="IFlowRestarter"/> so it
     /// resumes executing. Flows that could not be claimed have their positions reopened in the message clearer
     /// (dropped from the ignore-set without deleting them from the store, since their actual owner still needs them).
     /// </summary>

@@ -90,7 +90,7 @@ internal class MessageWatchdog(
         messageClearer.MarkPushed(messages.Select(message => message.Position));
 
         var unregistered = ImmutableList<StoredMessage>.Empty;
-        var incoming = new List<IncomingMessage>();
+        var incoming = new List<IncomingMessage>(messages.Count);
         foreach (var storedMessage in messages)
         {
             if (!flowsManagers.IsRegistered(storedMessage.StoredId.Type))

@@ -25,10 +25,6 @@ internal class QueueManager
     // Parent of the per-message staged-message children (admitted-but-undelivered messages).
     // [ReservedIdPrefix, 1] is retired (the removed completed-flow pending-messages blob) - do not reuse it.
     internal static readonly EffectId StagedMessagesRoot  = new([ReservedIdPrefix, 2]);
-    // The value written whenever the delivered-positions entry is emptied. Shared rather than allocated per write:
-    // the upsert serializes it eagerly and never retains the instance, and TryGet always hands back a freshly
-    // deserialized list - so no caller can reach this one. Never add to it.
-    private static readonly List<long> NoDeliveredPositions = new();
 
     private readonly FlowId _flowId;
     private readonly StoredId _storedId;
@@ -90,34 +86,40 @@ internal class QueueManager
 
     /// <summary>
     /// Loads the persisted queue state - the delivered positions and staged-message children a prior
-    /// incarnation left behind - into the delivery pipeline. Called exactly once, by the creating
-    /// invoker, immediately after construction and before the flow is made reachable or handed any messages: no
-    /// other member has to guard against an uninitialized instance.
+    /// incarnation left behind - into the delivery pipeline, and reconciles the restart's in-hand messages
+    /// against it: an in-hand copy of a message the prior incarnation already delivered or staged is deduped
+    /// by store position, the rest are staged as new arrivals. Called exactly once, by the creating invoker,
+    /// immediately after construction and before the flow is made reachable: no other member has to guard
+    /// against an uninitialized instance, and the in-hand staging needs no fetch-semaphore or delivery attempt
+    /// (no push can race it, no subscription can exist yet).
     /// </summary>
-    public async Task Initialize()
+    public async Task Initialize(IReadOnlyList<IncomingMessage> inHandMessages)
     {
         _idempotencyKeys.Initialize();
 
         if (_effect.TryGet<List<long>>(DeliveredPositionsId, out var positions) && positions is { Count: > 0 })
         {
-            // Remember the positions a previous incarnation already delivered, so a message fetched before its
-            // Clear deletes it from the store (e.g. the restart's in-hand messages) is skipped by
-            // ProcessMessages rather than delivered a second time.
+            // Remember the positions a previous incarnation already delivered, so an in-hand copy of such a
+            // message (fetched before its store row was deleted) is deduped below rather than delivered a
+            // second time. The positions also re-enter the delivered set: their still-live store rows are
+            // deleted by the normal flush cycle (BeforeFlush/AfterFlush) - the delivered-marking was made
+            // durable by the incarnation that wrote it, which is exactly the deletion precondition, and a row
+            // already gone makes the delete a no-op. The persisted list shrinks again with the next delivery's
+            // rewrite; it must not be emptied here, before the rows are provably gone.
             lock (_lock)
                 foreach (var position in positions)
+                {
                     _fetchedPositions.Add(position);
-
-            await _messageClearer.Clear(positions);
-
-            _effect.FlushlessUpsert(DeliveredPositionsId, NoDeliveredPositions, alias: null);
+                    _deliveredPositions.Add(position);
+                }
         }
 
         // Re-stage the staged-message children a prior incarnation left behind: each message it had staged
         // but not yet delivered persists as its own child effect. A child whose position was already
-        // delivered (replayed above) is pruned rather than re-delivered - the analogue of the delivered-
-        // positions store-row clear above. A child message has already passed the admission gate (it was
-        // written in the same upsert as the key that admitted it), so it is staged directly rather than via
-        // ProcessMessages - re-checking its idempotency key would only dedup it against its own entry.
+        // delivered (replayed above) is pruned rather than re-delivered - its delivery simply outlived the
+        // prune's flush. A child message has already passed the admission gate (it was written in the same
+        // upsert as the key that admitted it), so it is staged directly rather than via ProcessMessages -
+        // re-checking its idempotency key would only dedup it against its own entry.
         foreach (var childId in _effect.GetChildren(StagedMessagesRoot))
         {
             var message = PendingMessages.DecodeMessage(_effect.Get<byte[]>(childId), _storedId);
@@ -159,15 +161,22 @@ internal class QueueManager
                 Stage(stagedMessage);
         }
 
+        // Reconcile the restart's in-hand messages - fetched from the store before this incarnation was
+        // claimed - against the resurrected state above: a message whose position was already delivered or is
+        // carried by a re-staged child is dropped by ProcessMessages' position dedup, the rest are staged as
+        // new arrivals. (The batch never contains empty restart-pokes - the restart itself consumed them.)
+        ProcessMessages(inHandMessages);
+
         _effect.RegisterQueueManager(this);
     }
 
     public QueueClient CreateQueueClient() => new(this, _serializer, _utcNow);
 
     /// <summary>
-    /// Pushes messages fetched elsewhere (the MessageWatchdog, or the in-hand messages handed over on restart)
-    /// straight into the delivery pipeline, avoiding a per-flow re-fetch. The messages were deserialized - and
-    /// the undeserializable ones dead lettered - at the fetch boundary (MessageWatchdog), so every message here
+    /// Pushes messages fetched by the MessageWatchdog straight into the delivery pipeline, avoiding a per-flow
+    /// re-fetch. (The restart's in-hand messages enter through <see cref="Initialize"/> instead, which
+    /// reconciles them against the prior incarnation's queue state.) The messages were deserialized - and the
+    /// undeserializable ones dead lettered - at the fetch boundary (MessageWatchdog), so every message here
     /// is deliverable - except empty (restart-poke) messages, whose positions are reopened for a later restart
     /// to consume (see ProcessMessages).
     ///
@@ -178,8 +187,10 @@ internal class QueueManager
     /// (FlowExecutionState.ResumeResolvedSubflow), so the waiting-subflow accounting reflects the deliveries
     /// synchronously, with no waiting required here. The flow cannot suspend while the push is running: a
     /// suspension falling due mid-push is deferred to the push's drain (FlowExecutionState.TrySuspend), so an
-    /// accepted push always completes against a live flow. Idempotent: positions already processed are skipped
-    /// by ProcessMessages.
+    /// accepted push always completes against a live flow. Within a replica the watchdog's ignore-set makes
+    /// each position reach here at most once; the one duplicate source left - a crashed replica's taken-over
+    /// row racing a message-less restart that re-staged the same message from its child effect - is absorbed
+    /// by ProcessMessages' position dedup.
     /// </summary>
     public async Task Push(IReadOnlyList<IncomingMessage> messages)
     {
@@ -268,11 +279,12 @@ internal class QueueManager
         }
     }
 
-    // Caller must hold _fetchSemaphore. Dedups by idempotency-key and by already-fetched position (so pushes are
-    // idempotent), and stages messages for delivery. Deserialization already happened at the pipeline boundary
-    // (MessageDeserializer), which dead lettered the messages that failed it - and the serializer is trusted not
-    // to throw on serialization (shielded via decoration, see ErrorHandlingDecorator), so staging is in-memory
-    // bookkeeping that cannot fail; an exception escaping here is a framework bug and propagates to the caller.
+    // Caller must hold _fetchSemaphore (Initialize runs before the flow is reachable, which is vacuously
+    // exclusive). Dedups by idempotency-key and by already-fetched position, and stages messages for delivery.
+    // Deserialization already happened at the pipeline boundary (MessageDeserializer), which dead lettered the
+    // messages that failed it - and the serializer is trusted not to throw on serialization (shielded via
+    // decoration, see ErrorHandlingDecorator), so staging is in-memory bookkeeping that cannot fail; an
+    // exception escaping here is a framework bug and propagates to the caller.
     private void ProcessMessages(IReadOnlyList<IncomingMessage> messages)
     {
         foreach (var message in messages)
@@ -289,8 +301,11 @@ internal class QueueManager
                 continue;
             }
 
-            // Push dedup is store-row dedup: only a message addressing a store row can be pushed twice, so a
-            // row-less message has nothing to dedup against here.
+            // Store-position dedup, for the two places a store row can meet a durable record of the same
+            // message: the in-hand reconciliation (Initialize) - the restart's batch may contain rows the prior
+            // incarnation already delivered or staged - and, on the push path, a crashed replica's taken-over
+            // row racing a message-less restart (PostponedWatchdog) that re-staged the same message from its
+            // child effect. A row-less message addresses no store row, so it has nothing to dedup against here.
             if (position is { } pushedPosition)
             {
                 bool alreadyFetched;
