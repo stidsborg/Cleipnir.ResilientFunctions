@@ -71,3 +71,18 @@ Outstanding work items, roughly prioritized.
 10. `FlowsManagers.cs:74` — `// todo log a warning here`
 11. `InvocationHelper.cs:352` — `//todo should flush be true`
 12. `StoredMessage.DefaultDeserialize` — `//todo remove`
+
+## Follow-ups from restart-via-message-path (PR #246)
+
+13. **Reintroduce the restart-concurrency throttle — in `FlowsManager` or similar.**
+    `MaxParallelRetryInvocations` is currently a dead setting: its only consumer — the per-type `AsyncSemaphore`
+    around the PostponedWatchdog's direct claims — was deleted when restarts moved onto the message path. Wire
+    the setting back up around the message path's restart dispatch (`FlowsManager.RestartExecutions`'
+    per-flow `ScheduleRestart` calls), so mass expiry cannot schedule an unbounded number of parallel
+    re-invocations. Do not delete the setting.
+
+14. **Make `ReplicaWatchdog.CheckForCrashedFunctions` takeover-first.**
+    It still reschedules crashed-owner flows without taking over their message rows — the one remaining window
+    in which a message-blind restart can race a taken-over row, and the reason the `ProcessMessages`
+    store-position dedup is retained (its comment names the dependency). Once this path is takeover-first too,
+    the dedup can be demoted to an assertion or removed.
