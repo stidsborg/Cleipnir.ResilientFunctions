@@ -198,20 +198,20 @@ public class FlowExecutionState
     }
 
     /// <summary>
-    /// Routes the pushed messages to the attached queue manager. Returns null when the flow accepted the push.
+    /// Routes the pushed messages to the attached queue manager. Returns true when the flow accepted the push.
     /// Otherwise the flow does not accept it - it has decided to suspend (observable only at entry: a suspension
     /// due mid-push is deferred to the push's drain, so an accepted push always runs to completion on a live
-    /// flow) or its invocation is ending (<see cref="ClosePushes"/>) - and the returned messages are the ones
-    /// the caller must hand to the restart path (awaiting <see cref="Completed"/> first). Safe to re-hand
-    /// wholesale: dead lettering happened at the fetch boundary, before the pipeline, and every handling in the
-    /// pipeline itself is idempotent under the restart's re-push.
+    /// flow) or its invocation is ending (<see cref="ClosePushes"/>) - and the caller must hand the messages to
+    /// the restart path (awaiting <see cref="Completed"/> first). Safe to re-hand wholesale: dead lettering
+    /// happened at the fetch boundary, before the pipeline, and every handling in the pipeline itself is
+    /// idempotent under the restart's re-push.
     /// </summary>
-    internal async Task<IReadOnlyList<IncomingMessage>?> Push(IReadOnlyList<IncomingMessage> messages)
+    internal async Task<bool> Push(IReadOnlyList<IncomingMessage> messages)
     {
         lock (_lock)
         {
             if (Suspended || _pushesClosed)
-                return messages;
+                return false;
             _activePushes++;
         }
 
@@ -245,7 +245,7 @@ public class FlowExecutionState
                 TrySuspend();
         }
 
-        return accepted ? null : messages;
+        return accepted;
     }
 
     /// <summary>
