@@ -18,10 +18,11 @@ namespace Cleipnir.ResilientFunctions.Messaging;
 internal class MessageSender(
     IFunctionStore functionStore,
     ISerializer serializer,
-    ClusterInfo clusterInfo,
-    MessageWatchdog? messageWatchdog
+    ClusterInfo clusterInfo
 )
 {
+    public MessageWatchdog? MessageWatchdog { get; set; }
+    
     public SerializedMessage Serialize(StoredId storedId, object message, string? idempotencyKey = null, string? sender = null, string? receiver = null)
     {
         var content = serializer.Serialize(message, message.GetType());
@@ -81,6 +82,6 @@ internal class MessageSender(
 
         // Wake this replica's MessageWatchdog so messages it is responsible for (or whose target flows it
         // owns) are delivered now rather than on the next poll - other replicas' messages await their polls.
-        messageWatchdog?.Notify();
+        MessageWatchdog?.Notify();
     }
 }

@@ -53,11 +53,16 @@ public class FunctionsRegistry : IDisposable
             _settings.WatchdogCheckFrequency
         );
         ClusterInfo = new ClusterInfo(ReplicaId.NewId());
-        // The message-sender resolves lazily: it is created after the DlqManager, which the MessageWatchdog it
-        // notifies depends on (watchdog -> DlqManager).
+
+        _messageSender = new MessageSender(
+            _functionStore,
+            _settings.Serializer.DecorateWithErrorHandling(),
+            ClusterInfo
+        );
+
         DeadLetterQueue = new DlqManager(
             _functionStore.DlqStore,
-            () => _messageSender!,
+            _messageSender,
             _storedTypes,
             _messageClearer,
             _settings.UnhandledExceptionHandler,
@@ -79,10 +84,9 @@ public class FunctionsRegistry : IDisposable
             _settings.UnhandledExceptionHandler
         );
 
-        // The message-sender resolves lazily: it is created after the MessageWatchdog it notifies.
         _postponedWatchdog = new PostponedWatchdog(
             _functionStore,
-            () => _messageSender!,
+            _messageSender,
             _shutdownCoordinator,
             _settings.UnhandledExceptionHandler,
             _settings.WatchdogCheckFrequency,
@@ -113,12 +117,9 @@ public class FunctionsRegistry : IDisposable
             utcNow
         );
 
-        _messageSender = new MessageSender(
-            _functionStore,
-            _settings.Serializer.DecorateWithErrorHandling(),
-            ClusterInfo,
-            _messageWatchdog
-        );
+        // Property-injected last: the sender notifies the watchdog while the watchdog's collaborators send
+        // through the sender - wiring the notify target after construction is what breaks the cycle.
+        _messageSender.MessageWatchdog = _messageWatchdog;
     }
 
     /// <summary>

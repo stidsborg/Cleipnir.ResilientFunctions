@@ -22,8 +22,7 @@ namespace Cleipnir.ResilientFunctions.CoreRuntime.Watchdogs;
 internal class PostponedWatchdog
 {
     private readonly IFunctionStore _functionStore;
-    // Lazy: the sender is constructed after the watchdogs (it notifies the MessageWatchdog); resolved on first use.
-    private readonly Func<MessageSender> _messageSender;
+    private readonly MessageSender _messageSender;
     private readonly ShutdownCoordinator _shutdownCoordinator;
     private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
 
@@ -36,7 +35,7 @@ internal class PostponedWatchdog
 
     public PostponedWatchdog(
         IFunctionStore functionStore,
-        Func<MessageSender> messageSender,
+        MessageSender messageSender,
         ShutdownCoordinator shutdownCoordinator, UnhandledExceptionHandler unhandledExceptionHandler,
         TimeSpan checkFrequency,
         ClusterInfo clusterInfo,
@@ -77,7 +76,7 @@ internal class PostponedWatchdog
                     .ToList();
 
                 if (ownedFunctions.Count > 0)
-                    await _messageSender().SendRestartPokes(ownedFunctions);
+                    await _messageSender.SendRestartPokes(ownedFunctions);
 
                 var timeElapsed = _utcNow() - now;
                 var delay = (_checkFrequency - timeElapsed).RoundUpToZero();

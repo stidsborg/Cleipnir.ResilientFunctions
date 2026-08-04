@@ -18,7 +18,7 @@ namespace Cleipnir.ResilientFunctions.Messaging;
 public class DlqManager
 {
     private readonly IDlqStore _dlqStore;
-    private readonly Func<MessageSender> _messageSender;
+    private readonly MessageSender _messageSender;
     private readonly StoredTypes _storedTypes;
     private readonly IMessageClearer _messageClearer;
     private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
@@ -26,7 +26,7 @@ public class DlqManager
 
     internal DlqManager(
         IDlqStore dlqStore,
-        Func<MessageSender> messageSender,
+        MessageSender messageSender,
         StoredTypes storedTypes,
         IMessageClearer messageClearer,
         UnhandledExceptionHandler unhandledExceptionHandler,
@@ -89,7 +89,7 @@ public class DlqManager
         if (dlqMessages.Count == 0)
             return;
 
-        await _messageSender().SendMessages(
+        await _messageSender.SendMessages(
             dlqMessages
                 .Select(m => new SerializedMessage(
                     m.StoredId,
