@@ -9,7 +9,6 @@ using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Queuing;
-using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.CoreRuntime.Watchdogs;
 
@@ -27,10 +26,6 @@ internal class MessageWatchdog(
 {
     private volatile TaskCompletionSource _wakeSignal = NewWakeSignal();
 
-    // Flows the PostponedWatchdog has asked to be restarted by the next fetch-and-push cycle (RequestRestarts).
-    private readonly Lock _restartRequestsLock = new();
-    private HashSet<StoredId> _restartRequests = new();
-
     private static TaskCompletionSource NewWakeSignal() => new(TaskCreationOptions.RunContinuationsAsynchronously);
 
     /// <summary>
@@ -39,39 +34,6 @@ internal class MessageWatchdog(
     /// signal - the fetch-and-push itself always runs on the watchdog's own loop.
     /// </summary>
     public void Notify() => _wakeSignal.TrySetResult();
-
-    /// <summary>
-    /// Requests the given flows be restarted by the next fetch-and-push cycle - the PostponedWatchdog's
-    /// hand-over. Routing expired-flow restarts through the message path pairs every restart with a fetch of
-    /// this replica's pending messages, so a restarted flow receives its rows in-hand (reconciled at queue
-    /// initialization) instead of racing them as live-pushes. A request is consumed by its cycle whatever the
-    /// outcome - a flow that could not be claimed, or a cycle that failed outright, is simply re-detected as
-    /// expired by the PostponedWatchdog's next poll.
-    /// </summary>
-    public void RequestRestarts(IReadOnlyList<StoredId> storedIds)
-    {
-        if (storedIds.Count == 0)
-            return;
-
-        lock (_restartRequestsLock)
-            foreach (var storedId in storedIds)
-                _restartRequests.Add(storedId);
-
-        Notify();
-    }
-
-    private IReadOnlyCollection<StoredId> DrainRestartRequests()
-    {
-        lock (_restartRequestsLock)
-        {
-            if (_restartRequests.Count == 0)
-                return [];
-
-            var drained = _restartRequests;
-            _restartRequests = new HashSet<StoredId>();
-            return drained;
-        }
-    }
 
     public async Task Start()
     {
@@ -116,27 +78,19 @@ internal class MessageWatchdog(
     /// lettered by the deserializer and drop out of the batch, empty restart-pokes carry no payload and travel
     /// as bare store positions, and messages for flow types not registered on this replica have no manager to
     /// deliver to - they stay byte-form and are held by the DlqManager for the grace period, then dead lettered.
-    /// Pending restart requests ride the cycle as synthetic row-less pokes, restarting their flows with the
-    /// batch's rows in hand.
     /// </summary>
     public async Task PushOnce()
     {
-        // Drained before the fetch: a request exists only once its flow is claimable, which is only after the
-        // flow's message rows became fetchable by this replica (the ReplicaWatchdog completes message takeover
-        // before making a crashed replica's flows claimable) - so the batch paired with the request below
-        // contains every pending row of the requested flow, and restart and rows always travel together.
-        var restartRequests = DrainRestartRequests();
-
         var nonClearedPositions = messageClearer.NonClearedPositions();
 
         var messages = await messageStore.GetMessagesForReplica(clusterInfo.ReplicaId, nonClearedPositions);
-        if (messages.Count == 0 && restartRequests.Count == 0)
+        if (messages.Count == 0)
             return;
 
         messageClearer.MarkPushed(messages.Select(message => message.Position));
 
         var unregistered = ImmutableList<StoredMessage>.Empty;
-        var incoming = new List<IncomingMessage>(messages.Count + restartRequests.Count);
+        var incoming = new List<IncomingMessage>(messages.Count);
         foreach (var storedMessage in messages)
         {
             if (!flowsManagers.IsRegistered(storedMessage.StoredId.Type))
@@ -158,13 +112,6 @@ internal class MessageWatchdog(
 
         if (unregistered.Count > 0)
             dlqManager.MoveToDlqAfterGracePeriod(unregistered);
-
-        // The restart requests join the same dispatch as the fetched messages, as synthetic row-less pokes
-        // (always for registered types - the PostponedWatchdog only requests types registered with it): grouped
-        // with their flow's fetched rows they restart the flow with those rows in hand, while a request whose
-        // flow is already live dissolves into a no-op in the queue manager.
-        foreach (var storedId in restartRequests)
-            incoming.Add(IncomingMessage.CreateSyntheticPoke(storedId));
 
         if (incoming.Count > 0)
             await flowsManagers.Push(incoming);

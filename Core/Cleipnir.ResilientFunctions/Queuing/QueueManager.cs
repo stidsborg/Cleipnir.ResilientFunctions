@@ -291,16 +291,13 @@ internal class QueueManager
         {
             var (_, content, position, idempotencyKey, sender, receiver) = message;
             // Empty restart-pokes carry nothing to deliver and may only be consumed by an actual restart. This
-            // flow is live (it accepted the push), so no restart happens now - and a row-backed poke's row may
-            // not be deleted either: the flow could suspend right after, and the append's restart guarantee must
-            // survive that. Reopen the position instead, so the poke is re-fetched and consumed by a restart
-            // once the flow leaves the live set. A synthetic restart-request poke (no store row) simply
-            // dissolves: the restart it requested is moot - the flow is running. (Restart in-hand batches
-            // contain no pokes - the restart itself consumed them.)
+            // flow is live (it accepted the push), so no restart happens now - and the row may not be deleted
+            // either: the flow could suspend right after, and the append's restart guarantee must survive that.
+            // Reopen the position instead, so the poke is re-fetched and consumed by a restart once the flow
+            // leaves the live set. (Restart in-hand batches contain no pokes - the restart itself consumed them.)
             if (content is null)
             {
-                if (position is not null)
-                    _messageClearer.ReopenPositions([position.Value]);
+                _messageClearer.ReopenPositions([position!.Value]);
                 continue;
             }
 

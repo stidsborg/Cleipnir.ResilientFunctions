@@ -5,22 +5,25 @@ using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.Helpers;
+using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.CoreRuntime.Watchdogs;
 
 /// <summary>
-/// Detects expired (postponed/suspended-due and rescheduled-after-crash) flows and hands them to the
-/// <see cref="MessageWatchdog"/> for restart (<see cref="MessageWatchdog.RequestRestarts"/>) rather than
-/// claiming them itself. Routing every restart through the message path pairs it with a fetch of the flow's
-/// pending message rows, which then arrive in-hand at queue initialization - a message-blind restart racing its
-/// flow's rows cannot happen. This watchdog therefore only detects: a hand-over whose restart does not come to
-/// pass (claimed elsewhere, cycle failure) is simply re-detected on a later poll.
+/// Detects expired (postponed/suspended-due and rescheduled-after-crash) flows and appends an empty restart-poke
+/// for each (<see cref="MessageSender.SendRestartPokes"/>) rather than claiming them itself. Every restart thereby
+/// goes through the message path: the poke is fetched by this replica's MessageWatchdog together with any pending
+/// message rows of the flow, so the restart receives the rows in-hand at queue initialization - a message-blind
+/// restart racing its flow's rows cannot happen. This watchdog therefore only detects: a poke whose restart does
+/// not come to pass is retried by the poke's own store residency (reopened/re-fetched), and a flow still expired
+/// on a later poll is simply poked again - duplicate pokes are consumed together by the restart they trigger.
 /// </summary>
 internal class PostponedWatchdog
 {
     private readonly IFunctionStore _functionStore;
-    private readonly MessageWatchdog _messageWatchdog;
+    // Lazy: the sender is constructed after the watchdogs (it notifies the MessageWatchdog); resolved on first use.
+    private readonly Func<MessageSender> _messageSender;
     private readonly ShutdownCoordinator _shutdownCoordinator;
     private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
 
@@ -33,14 +36,14 @@ internal class PostponedWatchdog
 
     public PostponedWatchdog(
         IFunctionStore functionStore,
-        MessageWatchdog messageWatchdog,
+        Func<MessageSender> messageSender,
         ShutdownCoordinator shutdownCoordinator, UnhandledExceptionHandler unhandledExceptionHandler,
         TimeSpan checkFrequency,
         ClusterInfo clusterInfo,
         UtcNow utcNow)
     {
         _functionStore = functionStore;
-        _messageWatchdog = messageWatchdog;
+        _messageSender = messageSender;
         _shutdownCoordinator = shutdownCoordinator;
         _unhandledExceptionHandler = unhandledExceptionHandler;
         _checkFrequency = checkFrequency;
@@ -53,7 +56,7 @@ internal class PostponedWatchdog
 
     /// <summary>
     /// Started by the FunctionsRegistry once - never at registration time: the loop shards by cluster offset and
-    /// restarts flows for this replica, both of which require the replica to have joined the cluster first.
+    /// pokes flows for this replica, both of which require the replica to have joined the cluster first.
     /// </summary>
     public void Start() => Task.Run(Run);
 
@@ -74,7 +77,7 @@ internal class PostponedWatchdog
                     .ToList();
 
                 if (ownedFunctions.Count > 0)
-                    _messageWatchdog.RequestRestarts(ownedFunctions);
+                    await _messageSender().SendRestartPokes(ownedFunctions);
 
                 var timeElapsed = _utcNow() - now;
                 var delay = (_checkFrequency - timeElapsed).RoundUpToZero();

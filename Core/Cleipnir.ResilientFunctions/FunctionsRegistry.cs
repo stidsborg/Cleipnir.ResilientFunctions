@@ -79,24 +79,10 @@ public class FunctionsRegistry : IDisposable
             _settings.UnhandledExceptionHandler
         );
 
-        // The MessageWatchdog is the message-delivery loop, so it runs at the message-pull frequency - the
-        // (slower) watchdog check frequency would make every push-restarted exchange poll-bound.
-        _messageWatchdog = new MessageWatchdog(
-            _functionStore.MessageStore,
-            _flowsManagers,
-            _messageDeserializer,
-            DeadLetterQueue,
-            _messageClearer,
-            ClusterInfo,
-            _shutdownCoordinator,
-            _settings.UnhandledExceptionHandler,
-            _settings.MessagesPullFrequency,
-            utcNow
-        );
-
+        // The message-sender resolves lazily: it is created after the MessageWatchdog it notifies.
         _postponedWatchdog = new PostponedWatchdog(
             _functionStore,
-            _messageWatchdog,
+            () => _messageSender!,
             _shutdownCoordinator,
             _settings.UnhandledExceptionHandler,
             _settings.WatchdogCheckFrequency,
@@ -110,6 +96,21 @@ public class FunctionsRegistry : IDisposable
             heartbeatFrequency: _settings.ReplicaHeartbeatFrequency,
             utcNow,
             _settings.UnhandledExceptionHandler
+        );
+
+        // The MessageWatchdog is the message-delivery loop, so it runs at the message-pull frequency - the
+        // (slower) watchdog check frequency would make every push-restarted exchange poll-bound.
+        _messageWatchdog = new MessageWatchdog(
+            _functionStore.MessageStore,
+            _flowsManagers,
+            _messageDeserializer,
+            DeadLetterQueue,
+            _messageClearer,
+            ClusterInfo,
+            _shutdownCoordinator,
+            _settings.UnhandledExceptionHandler,
+            _settings.MessagesPullFrequency,
+            utcNow
         );
 
         _messageSender = new MessageSender(

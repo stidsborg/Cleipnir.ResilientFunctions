@@ -56,6 +56,22 @@ internal class MessageSender(
                 .ToList()
         );
 
+    /// <summary>
+    /// Appends an empty restart-poke per flow, stamped with this node's own replica id: fetched by this
+    /// replica's own MessageWatchdog (woken by the notify below), the poke forces the flow's restart - with any
+    /// pending messages of the flow arriving in the same fetch batch, handed to the restart in-hand. The poke
+    /// carries no payload and is never delivered; the restart that consumes it deletes its row.
+    /// </summary>
+    public async Task SendRestartPokes(IReadOnlyList<StoredId> storedIds)
+        => await SendMessages(
+            storedIds
+                .Select(storedId => new SerializedMessageWithReplicaId(
+                    new SerializedMessage(storedId, Content: [], Type: [], IdempotencyKey: null, Sender: null, Receiver: null),
+                    clusterInfo.ReplicaId
+                ))
+                .ToList()
+        );
+
     public async Task SendMessages(IReadOnlyList<SerializedMessageWithReplicaId> messages)
     {
         if (messages.Count == 0)
