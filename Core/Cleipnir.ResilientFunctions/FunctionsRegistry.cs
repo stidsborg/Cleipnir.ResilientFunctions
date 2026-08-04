@@ -79,23 +79,6 @@ public class FunctionsRegistry : IDisposable
             _settings.UnhandledExceptionHandler
         );
 
-        _postponedWatchdog = new PostponedWatchdog(
-            _functionStore,
-            _shutdownCoordinator,
-            _settings.UnhandledExceptionHandler,
-            _settings.WatchdogCheckFrequency,
-            ClusterInfo,
-            utcNow
-        );
-        
-        _replicaWatchdog = new ReplicaWatchdog(
-            ClusterInfo, 
-            functionStore, 
-            heartbeatFrequency: _settings.ReplicaHeartbeatFrequency, 
-            utcNow,
-            _settings.UnhandledExceptionHandler
-        );
-
         // The MessageWatchdog is the message-delivery loop, so it runs at the message-pull frequency - the
         // (slower) watchdog check frequency would make every push-restarted exchange poll-bound.
         _messageWatchdog = new MessageWatchdog(
@@ -109,6 +92,24 @@ public class FunctionsRegistry : IDisposable
             _settings.UnhandledExceptionHandler,
             _settings.MessagesPullFrequency,
             utcNow
+        );
+
+        _postponedWatchdog = new PostponedWatchdog(
+            _functionStore,
+            _messageWatchdog,
+            _shutdownCoordinator,
+            _settings.UnhandledExceptionHandler,
+            _settings.WatchdogCheckFrequency,
+            ClusterInfo,
+            utcNow
+        );
+
+        _replicaWatchdog = new ReplicaWatchdog(
+            ClusterInfo,
+            functionStore,
+            heartbeatFrequency: _settings.ReplicaHeartbeatFrequency,
+            utcNow,
+            _settings.UnhandledExceptionHandler
         );
 
         _messageSender = new MessageSender(
@@ -367,7 +368,6 @@ public class FunctionsRegistry : IDisposable
                 storedType,
                 _functionStore,
                 _postponedWatchdog,
-                invoker.ScheduleRestart,
                 settingsWithDefaults,
                 _shutdownCoordinator,
                 _settings.UtcNow
@@ -446,7 +446,6 @@ public class FunctionsRegistry : IDisposable
                 storedType,
                 _functionStore,
                 _postponedWatchdog,
-                invoker.ScheduleRestart,
                 settingsWithDefaults,
                 _shutdownCoordinator,
                 _settings.UtcNow
@@ -526,7 +525,6 @@ public class FunctionsRegistry : IDisposable
                 storedType,
                 _functionStore,
                 _postponedWatchdog,
-                rActionInvoker.ScheduleRestart,
                 settingsWithDefaults,
                 _shutdownCoordinator,
                 _settings.UtcNow

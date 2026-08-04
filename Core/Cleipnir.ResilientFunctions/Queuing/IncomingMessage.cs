@@ -16,7 +16,7 @@ namespace Cleipnir.ResilientFunctions.Queuing;
 /// payload-carrying messages. A null <see cref="Position"/> marks a message without a backing message-store row
 /// (e.g. appended via the control panel directly into the flow's effect state): it has no store identity, so the
 /// QueueManager assigns it a synthetic negative position at staging and it never participates in row clearing or
-/// push dedup.
+/// push dedup. Null in both marks a synthetic restart-poke (<see cref="CreateSyntheticPoke"/>).
 /// </summary>
 internal record IncomingMessage(
     StoredId StoredId,
@@ -29,7 +29,13 @@ internal record IncomingMessage(
     [MemberNotNullWhen(false, nameof(Content))]
     public bool IsEmpty => Content is null;
 
-    // An empty restart-poke always addresses a store row - its position is all there is to it.
+    // An appended (store-resident) restart-poke: it addresses a store row - its position is all there is to it.
     public static IncomingMessage CreateEmpty(StoredId storedId, long position)
         => new(storedId, Content: null, position);
+
+    // A synthetic restart-poke - the PostponedWatchdog's in-process restart request: no payload and no store
+    // row, it exists only to make its flow part of the MessageWatchdog's batch dispatch, so the flow is
+    // restarted together with (and handed) the batch's rows. Leaves nothing behind on any outcome.
+    public static IncomingMessage CreateSyntheticPoke(StoredId storedId)
+        => new(storedId, Content: null, Position: null);
 }

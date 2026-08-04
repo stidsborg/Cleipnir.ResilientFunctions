@@ -90,8 +90,12 @@ internal class ReplicaWatchdog(
                 continue;                
             }
 
-            await functionStore.RescheduleCrashedFunctions(crashedReplica.ReplicaId);
+            // Messages are taken over before the crashed replica's flows are made claimable: a fetch batch that
+            // can claim one of the flows (the MessageWatchdog's restart trigger) is then guaranteed to have been
+            // fetched after the takeover, so it carries the flow's rows and the restart receives them in-hand -
+            // a message-blind restart can never race rows still assigned to the dead replica.
             await TakeOverMessages(crashedReplica.ReplicaId, storedReplicas, threshold);
+            await functionStore.RescheduleCrashedFunctions(crashedReplica.ReplicaId);
             await ReplicaStore.Delete(crashedReplica.ReplicaId);
             storedReplicas = await ReplicaStore.GetAll();
             offset = CalculateOffset(storedReplicas.Select(sr => sr.ReplicaId), clusterInfo.ReplicaId);

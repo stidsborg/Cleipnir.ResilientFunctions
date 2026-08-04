@@ -81,7 +81,8 @@ public class FlowsManager
     // is persisted by then) and restarts the flow with the messages still in hand, instead of bouncing them
     // through a position-reopen and a later watchdog poll. The batch may contain empty (restart-poke) messages:
     // on a refused push they ride to the restart, which consumes them, while on an accepted push the queue
-    // manager reopens them, so they are re-fetched and consumed by a restart once the flow leaves the live set.
+    // manager reopens the row-backed ones - so they are re-fetched and consumed by a restart once the flow
+    // leaves the live set - and drops the synthetic (row-less) ones, whose requested restart is moot.
     private async Task DeliverToFlow(FlowExecutionState flowState, IReadOnlyList<IncomingMessage> messages)
     {
         var accepted = await flowState.Push(messages);
@@ -94,7 +95,7 @@ public class FlowsManager
 
     /// <summary>
     /// Restarts (claims for this replica) the targeted flows that are not already owned, then hands each restarted
-    /// flow - together with the in-hand messages - to the <see cref="ScheduleRestartFromWatchdog"/> delegate so it
+    /// flow - together with the in-hand messages - to the <see cref="IFlowRestarter"/> so it
     /// resumes executing. Flows that could not be claimed have their positions reopened in the message clearer
     /// (dropped from the ignore-set without deleting them from the store, since their actual owner still needs them).
     /// </summary>
@@ -125,8 +126,14 @@ public class FlowsManager
 
             foreach (var (storedId, flowMessages) in unclaimed)
             {
-                // Fetched messages always address a store row, so every position is present.
-                var positions = flowMessages.Select(m => m.Position!.Value).ToList();
+                // Only fetched messages address a store row; a synthetic restart-request poke has none and
+                // leaves nothing behind - its flow is simply re-detected as expired by a later poll.
+                var positions = flowMessages
+                    .Where(m => m.Position is not null)
+                    .Select(m => m.Position!.Value)
+                    .ToList();
+                if (positions.Count == 0)
+                    continue;
 
                 if (completed.Contains(storedId))
                 {
@@ -159,10 +166,11 @@ public class FlowsManager
         }
 
         // The restarts the batch's empty messages were appended to force have now happened - delete them from
-        // the store so they are not fetched and acted on again.
+        // the store so they are not fetched and acted on again. (Synthetic restart-request pokes have no row
+        // to delete.)
         var restartedEmptyPositions = results.Keys
             .SelectMany(storedId => groups[storedId])
-            .Where(message => message.IsEmpty)
+            .Where(message => message.IsEmpty && message.Position is not null)
             .Select(message => message.Position!.Value)
             .ToList();
         if (restartedEmptyPositions.Count > 0)
