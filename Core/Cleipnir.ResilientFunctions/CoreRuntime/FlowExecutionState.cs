@@ -203,8 +203,9 @@ public class FlowExecutionState
     /// due mid-push is deferred to the push's drain, so an accepted push always runs to completion on a live
     /// flow) or its invocation is ending (<see cref="ClosePushes"/>) - and the caller must hand the messages to
     /// the restart path (awaiting <see cref="Completed"/> first). Safe to re-hand wholesale: dead lettering
-    /// happened at the fetch boundary, before the pipeline, and every handling in the pipeline itself is
-    /// idempotent under the restart's re-push.
+    /// happened at the fetch boundary, before the pipeline, and the restarted incarnation reconciles the batch
+    /// against the queue state it resurrects (QueueManager.Initialize) - whatever a completed-but-refused push
+    /// already staged was persisted by this incarnation's final flush and is deduped there, not staged twice.
     /// </summary>
     internal async Task<bool> Push(IReadOnlyList<IncomingMessage> messages)
     {

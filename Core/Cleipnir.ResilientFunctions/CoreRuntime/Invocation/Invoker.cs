@@ -249,7 +249,7 @@ public class Invoker<TParam, TReturn> : IFlowRestarter
             );
 
             var queueManager = _invocationHelper.CreateQueueManager(flowId, storedId, effect, flowState, flowTimeouts, _unhandledExceptionHandler);
-            await queueManager.Initialize();
+            await queueManager.Initialize(inHandMessages: []);
             var workflow = new Workflow(flowId, storedId, effect, queueManager, _invocationHelper.UtcNow, _invocationHelper.MessageSender);
 
             // Registered last: a flow reachable through the FlowsManager always has its queue manager attached,
@@ -294,13 +294,13 @@ public class Invoker<TParam, TReturn> : IFlowRestarter
             var effect = _invocationHelper.CreateEffect(storedId, flowId, effects, flowTimeouts, storageSession, flowState);
 
             var queueManager = _invocationHelper.CreateQueueManager(flowId, storedId, effect, flowState, flowTimeouts, _unhandledExceptionHandler);
-            await queueManager.Initialize();
 
-            // Deliver the in-hand messages handed over by the restart straight into the queue manager's pipeline so
-            // the flow does not have to re-fetch them from the store. Initialization above has loaded the
-            // idempotency-key state, so these messages are deduped against it. The messages were deserialized -
-            // and failures dead lettered - at the fetch boundary, so the hand-over is delivery-ready.
-            await queueManager.Push(storedMessages);
+            // The in-hand messages handed over by the restart enter through initialization, which reconciles
+            // them against the prior incarnation's queue state - already-delivered or already-staged positions
+            // and repeated idempotency keys are deduped, the rest staged - so the flow does not have to re-fetch
+            // them from the store. The messages were deserialized - and failures dead lettered - at the fetch
+            // boundary, so the hand-over is delivery-ready.
+            await queueManager.Initialize(storedMessages);
 
             var workflow = new Workflow(
                 flowId,
