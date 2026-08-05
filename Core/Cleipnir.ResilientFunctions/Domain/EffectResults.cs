@@ -167,18 +167,31 @@ internal class EffectResults
     internal void FlushlessSet(StoredEffect storedEffect)
         => AddToPending(storedEffect.EffectId, storedEffect, delete: false, clearChildren: false);
 
+    // The batch enters the pending set under a single lock acquisition, so a concurrent flush snapshot sees
+    // either none or all of its entries - upserts and clears (EffectResult.Delete) can never be persisted
+    // torn across two flushes.
     internal void FlushlessUpserts(IEnumerable<EffectResult> values)
     {
-        var storedEffects = values
-            .Select(t =>
+        var changes = values
+            .Select(t => new
             {
-                var bytes = _serializer.Serialize(t.Value!, t.Value?.GetType() ?? typeof(object));
-                return new { Id = t.Id, Bytes = bytes, Alias = t.Alias };
+                Id = t.Id,
+                StoredEffect = t.Delete
+                    ? null
+                    : StoredEffect.CreateCompleted(t.Id, _serializer.Serialize(t.Value!, t.Value?.GetType() ?? typeof(object)), t.Alias),
+                Delete = t.Delete
             })
-            .Select(a => StoredEffect.CreateCompleted(a.Id, a.Bytes, a.Alias))
             .ToList();
 
-        AddToPending(storedEffects);
+        lock (_sync)
+            foreach (var change in changes)
+                if (change.Delete)
+                {
+                    if (_effectResults.ContainsKey(change.Id))
+                        AddToPending(change.Id, storedEffect: null, delete: true, clearChildren: true);
+                }
+                else
+                    AddToPending(change.Id, change.StoredEffect, delete: false, clearChildren: false);
     }
     
     public bool TryGet<T>(EffectId effectId, out T? value)
@@ -232,25 +245,6 @@ internal class EffectResults
                 .Keys
                 .Where(id => id.IsDescendant(parentId))
                 .ToList();
-    }
-
-    public EffectId FlushlessCreateNextChild<T>(EffectId parentId, T value, string? alias)
-    {
-        lock (_sync)
-        {
-            // Highest existing direct-child index + 1 (append). Index-selection and reservation
-            // happen under a single lock so concurrent callers cannot pick the same index.
-            var nextIndex = 0;
-            foreach (var id in _effectResults.Keys)
-                if (parentId.IsChild(id) && id.Id >= nextIndex)
-                    nextIndex = id.Id + 1;
-
-            var childId = parentId.CreateChild(nextIndex);
-            var serializedValue = _serializer.Serialize(value!, typeof(T));
-            var storedEffect = StoredEffect.CreateCompleted(childId, serializedValue, alias);
-            AddToPendingCore(childId, storedEffect, delete: false, clearChildren: false);
-            return childId;
-        }
     }
 
     public async Task InnerCapture(EffectId effectId, string? alias, Func<Task> work, ResiliencyLevel resiliency, EffectContext effectContext)
@@ -420,22 +414,9 @@ internal class EffectResults
                 );
     }
 
-    private void AddToPending(IEnumerable<StoredEffect> storedEffects)
-    {
-        lock (_sync)
-            foreach (var storedEffect in storedEffects)
-                AddToPending(storedEffect.EffectId, storedEffect, delete: false, clearChildren: false);
-    }
-
     private void AddToPending(EffectId effectId, StoredEffect? storedEffect, bool delete, bool clearChildren)
     {
         lock (_sync)
-            AddToPendingCore(effectId, storedEffect, delete, clearChildren);
-    }
-
-    // Assumes _sync is already held by the caller.
-    private void AddToPendingCore(EffectId effectId, StoredEffect? storedEffect, bool delete, bool clearChildren)
-    {
         {
             if (_effectResults.ContainsKey(effectId))
             {
@@ -443,7 +424,7 @@ internal class EffectResults
                 _effectResults[effectId] = existing with
                 {
                     StoredEffect = storedEffect,
-                    Operation = delete 
+                    Operation = delete
                         ? CrudOperation.Delete
                         : (existing.Existing ? CrudOperation.Update : CrudOperation.Insert),
                     Alias = storedEffect?.Alias,
@@ -459,12 +440,12 @@ internal class EffectResults
                     storedEffect?.Alias
                 );
             }
-            
+
             if (clearChildren)
             {
                 var children = _effectResults.Keys.Where(id => id.IsDescendant(effectId));
                 foreach (var child in children)
-                    _effectResults[child] = 
+                    _effectResults[child] =
                         _effectResults[child] with { Operation = CrudOperation.Delete };
             }
         }

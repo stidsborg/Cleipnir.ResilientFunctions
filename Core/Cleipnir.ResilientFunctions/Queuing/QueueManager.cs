@@ -115,28 +115,15 @@ internal class QueueManager
         }
 
         // Re-stage the staged-message children a prior incarnation left behind: each message it had staged
-        // but not yet delivered persists as its own child effect. A child whose position was already
-        // delivered (replayed above) is pruned rather than re-delivered - its delivery simply outlived the
-        // prune's flush. A child message has already passed the admission gate (it was written in the same
-        // upsert as the key that admitted it), so it is staged directly rather than via ProcessMessages -
-        // re-checking its idempotency key would only dedup it against its own entry.
+        // but not yet delivered persists as its own child effect. A delivered message can never appear here:
+        // the delivery commit clears the child in the same pending-change batch as the delivered-position
+        // marking, so no flush can persist one without the other. A child message has already passed the
+        // admission gate (it was written in the same upsert as the key that admitted it), so it is staged
+        // directly rather than via ProcessMessages - re-checking its idempotency key would only dedup it
+        // against its own entry.
         foreach (var childId in _effect.GetChildren(StagedMessagesRoot))
         {
             var message = PendingMessages.DecodeMessage(_effect.Get<byte[]>(childId), _storedId);
-
-            // Only a store-addressed child can have been delivered by a prior incarnation - the replayed
-            // delivered positions are store positions, so a row-less message can never match one.
-            if (message.RowBacked)
-            {
-                bool alreadyDelivered;
-                lock (_lock)
-                    alreadyDelivered = _fetchedPositions.Contains(message.Position);
-                if (alreadyDelivered)
-                {
-                    _effect.FlushlessClear(childId);
-                    continue;
-                }
-            }
 
             // Dead lettered on deserialization failure like any other arrival; the child carrier is cleared
             // alongside the dlq move so the message is not re-staged - and re-dead-lettered - on every restart.
@@ -335,9 +322,9 @@ internal class QueueManager
             lock (_lock)
             {
                 // Durably capture the message as its own child effect the moment it is staged; it is
-                // deleted again when the message is delivered or idempotency-deduped (PruneDeliveredMessage).
-                // Flushless, so it costs no I/O and dies with an equally-unflushed delivery - recovery then stays
-                // store-backed and at-least-once.
+                // deleted again when the message is delivered (the delivery commit clears it in the same batch
+                // as the delivered-position marking). Flushless, so it costs no I/O and dies with an
+                // equally-unflushed delivery - recovery then stays store-backed and at-least-once.
                 var childId = NextStagedMessageChildId();
                 var encodedMessage = PendingMessages.EncodeMessage(
                     messageContent, messageType, position, idempotencyKey, sender, receiver
@@ -487,13 +474,17 @@ internal class QueueManager
                                 _deliveredPositions.Add(deliveredPosition);
                             _subscriptions.RemoveAt(subscriptionIndex);
 
+                            // One batch, entering the pending changes atomically: the captured message, the
+                            // delivered position and the clear of the message's child carrier can never be
+                            // persisted torn by a concurrent flush snapshot - so a durable child's position is
+                            // never in the durable delivered list (the invariant Initialize's re-staging relies
+                            // on). Flushless on purpose: dying with all three unflushed replays the message -
+                            // at-least-once, exactly like a store-resident message.
                             _effect.FlushlessUpserts(
                                 subscription.CaptureMessage(msg)
                                     .Append(EffectResult.Create(DeliveredPositionsId, _deliveredPositions.ToList()))
+                                    .Append(EffectResult.Clear(msg.ChildId))
                             );
-                            // Same pending-change batch as the capture above - the prune, the captured message and
-                            // the delivered position land in one atomic effect write at the next flush.
-                            PruneDeliveredMessage(msg.ChildId);
 
                             // The commit performs the resume accounting on the parked owner's behalf - a
                             // subscription resolved before its owner entered the waiting state has nothing to
@@ -515,12 +506,6 @@ internal class QueueManager
             }
         }
     }
-
-    // Caller must hold _lock. Removes a delivered message's durable carrier - its per-message child effect - so a
-    // later incarnation does not re-stage it after the delivered-positions dedup state has been cleared. Flushless
-    // on purpose: dying with an unflushed prune replays the message together with the equally unflushed delivery -
-    // at-least-once, exactly like a store-resident message.
-    private void PruneDeliveredMessage(EffectId childId) => _effect.FlushlessClear(childId);
 
     /// <summary>
     /// A message past the admission gate (fetched-position dedup and idempotency-key claim), staged for delivery
@@ -562,8 +547,8 @@ internal class QueueManager
         _effect.FlushlessUpsert(DeliveredPositionsId, _deliveredPositions.ToList(), alias: null);
     }
 
-    // The id FlushlessCreateNextChild would append at, without writing - the message is instead written together
-    // with the idempotency entry that admitted it, in a single upsert.
+    // The next free child slot (highest existing direct-child index + 1), computed without writing - the message
+    // is written together with the idempotency entry that admitted it, in a single upsert.
     private EffectId NextStagedMessageChildId()
     {
         var nextIndex = 0;
