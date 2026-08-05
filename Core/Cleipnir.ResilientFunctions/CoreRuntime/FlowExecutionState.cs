@@ -207,7 +207,7 @@ public class FlowExecutionState
     /// against the queue state it resurrects (QueueManager.Initialize) - whatever a completed-but-refused push
     /// already staged was persisted by this incarnation's final flush and is deduped there, not staged twice.
     /// </summary>
-    internal async Task<bool> Push(IReadOnlyList<IncomingMessage> messages)
+    internal bool Push(IReadOnlyList<IncomingMessage> messages)
     {
         lock (_lock)
         {
@@ -220,7 +220,7 @@ public class FlowExecutionState
         try
         {
             //never null: the flow only becomes reachable (FlowsManager.AddFlow) after the queue manager is attached
-            await QueueManager!.Push(messages);
+            QueueManager!.Push(messages);
         }
         finally
         {
