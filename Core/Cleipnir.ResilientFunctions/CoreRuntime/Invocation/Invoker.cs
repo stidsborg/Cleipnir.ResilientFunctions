@@ -77,6 +77,8 @@ public class Invoker<TParam, TReturn> : IFlowRestarter
                     {
                         // *** USER FUNCTION INVOCATION ***
                         result = await _inner(param, workflow);
+                        if (result.Succeed)
+                            flowState.EnsureNoExecutingSubflows(flowId);
                     }
                     finally
                     {
@@ -183,7 +185,12 @@ public class Invoker<TParam, TReturn> : IFlowRestarter
                     // *** USER FUNCTION INVOCATION ***
                     // Pushes are refused and drained (ClosePushes) before the final persistence - whatever a
                     // push staged is thereby always included in the incarnation's last flush.
-                    try { result = await inner(param, workflow); }
+                    try
+                    {
+                        result = await inner(param, workflow);
+                        if (result.Succeed)
+                            flowState.EnsureNoExecutingSubflows(flowId);
+                    }
                     finally { await flowState.ClosePushes(); }
                 }
                 catch (FatalWorkflowException exception) { await PersistFailure(storedId, flowId, exception, param, parent); tcs.TrySetCanceled(); throw; }
