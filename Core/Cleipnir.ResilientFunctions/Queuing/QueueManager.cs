@@ -547,8 +547,8 @@ internal class QueueManager
         _effect.FlushlessUpsert(DeliveredPositionsId, _deliveredPositions.ToList(), alias: null);
     }
 
-    // The id FlushlessCreateNextChild would append at, without writing - the message is instead written together
-    // with the idempotency entry that admitted it, in a single upsert.
+    // The next free child slot (highest existing direct-child index + 1), computed without writing - the message
+    // is written together with the idempotency entry that admitted it, in a single upsert.
     private EffectId NextStagedMessageChildId()
     {
         var nextIndex = 0;
