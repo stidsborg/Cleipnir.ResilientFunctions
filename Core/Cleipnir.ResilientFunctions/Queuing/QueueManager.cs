@@ -40,7 +40,6 @@ internal class QueueManager
     private static readonly TimeSpan MaxDelayStep = TimeSpan.FromMilliseconds(int.MaxValue);
     private readonly IdempotencyKeys _idempotencyKeys;
 
-    private readonly SemaphoreSlim _fetchSemaphore = new(1);
     private readonly Lock _lock = new();
     private readonly List<StagedMessage> _toDeliver = new();
     private readonly List<Subscription> _subscriptions = new();
@@ -90,8 +89,8 @@ internal class QueueManager
     /// against it: an in-hand copy of a message the prior incarnation already delivered or staged is deduped
     /// by store position, the rest are staged as new arrivals. Called exactly once, by the creating invoker,
     /// immediately after construction and before the flow is made reachable: no other member has to guard
-    /// against an uninitialized instance, and the in-hand staging needs no fetch-semaphore or delivery attempt
-    /// (no push can race it, no subscription can exist yet).
+    /// against an uninitialized instance, and the in-hand staging needs no whole-batch lock or delivery
+    /// attempt (no push can race it, no subscription can exist yet).
     /// </summary>
     public async Task Initialize(IReadOnlyList<IncomingMessage> inHandMessages)
     {
@@ -179,21 +178,24 @@ internal class QueueManager
     /// row racing a message-less restart that re-staged the same message from its child effect - is absorbed
     /// by ProcessMessages' position dedup.
     /// </summary>
-    public async Task Push(IReadOnlyList<IncomingMessage> messages)
+    public void Push(IReadOnlyList<IncomingMessage> messages)
     {
         if (messages.Count == 0)
             return;
 
-        await _fetchSemaphore.WaitAsync();
-        try
-        {
-            ProcessMessages(messages);
-        }
-        finally
-        {
-            DeliverMessages();
-            _fetchSemaphore.Release();
-        }
+        // The whole batch - admission and delivery - runs under _lock, serializing batches against each other
+        // and against delivery, subscription changes and flush snapshots. A plain lock held for the duration
+        // suffices: the entire pipeline is synchronous, in-memory work - staging cannot fail and delivery
+        // commits are CPU-bound - so the lock is never held across I/O.
+        lock (_lock)
+            try
+            {
+                ProcessMessages(messages);
+            }
+            finally
+            {
+                DeliverMessages();
+            }
     }
 
     public async Task<Envelope?> Subscribe(
@@ -266,8 +268,9 @@ internal class QueueManager
         }
     }
 
-    // Caller must hold _fetchSemaphore (Initialize runs before the flow is reachable, which is vacuously
-    // exclusive). Dedups by idempotency-key and by already-fetched position, and stages messages for delivery.
+    // Caller must exclude concurrent pushes - Push holds _lock for the whole batch; Initialize runs before
+    // the flow is reachable, which is vacuously exclusive. Dedups by idempotency-key and by already-fetched
+    // position, and stages messages for delivery.
     // Deserialization already happened at the pipeline boundary (MessageDeserializer), which dead lettered the
     // messages that failed it - and the serializer is trusted not to throw on serialization (shielded via
     // decoration, see ErrorHandlingDecorator), so staging is in-memory bookkeeping that cannot fail; an

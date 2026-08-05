@@ -84,7 +84,7 @@ public class FlowsManager
     // manager reopens them, so they are re-fetched and consumed by a restart once the flow leaves the live set.
     private async Task DeliverToFlow(FlowExecutionState flowState, IReadOnlyList<IncomingMessage> messages)
     {
-        var accepted = await flowState.Push(messages);
+        var accepted = flowState.Push(messages);
         if (accepted)
             return;
 
