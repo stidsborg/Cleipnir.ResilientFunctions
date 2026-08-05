@@ -216,35 +216,31 @@ public class FlowExecutionState
             _activePushes++;
         }
 
-        var accepted = false;
-        try
+        //never null: the flow only becomes reachable (FlowsManager.AddFlow) after the queue manager is attached
+        QueueManager!.Push(messages);
+
+        bool accepted;
+        bool retryDeferredSuspend;
+        lock (_lock)
         {
-            //never null: the flow only becomes reachable (FlowsManager.AddFlow) after the queue manager is attached
-            QueueManager!.Push(messages);
-        }
-        finally
-        {
-            bool retryDeferredSuspend;
-            lock (_lock)
-            {
-                _activePushes--;
-                if (_pushesClosed && _activePushes == 0)
-                    _pushesDrainedTcs.TrySetResult();
+            _activePushes--;
+            if (_pushesClosed && _activePushes == 0)
+                _pushesDrainedTcs.TrySetResult();
 
-                // Decided atomically with the drain: a suspension deferred to this push can only commit after
-                // the lock is released, i.e. after the push has already been accepted - and such a suspension
-                // strands nothing, since the completed push's deliveries have already marked their subflows
-                // running and its staged messages are persisted (as child effects) by the suspension's own flush.
-                accepted = !Suspended && !_pushesClosed;
+            // A suspension falling due mid-push is deferred (TrySuspend's push invariant) and can only commit
+            // after this lock is released - so only teardown can refuse a completed push, never suspension.
+            // Decided atomically with the drain, and refusal strands nothing: the completed push's deliveries
+            // have already marked their subflows running and its staged messages are persisted (as child
+            // effects) by the ending invocation's final flush.
+            accepted = !_pushesClosed;
 
-                retryDeferredSuspend = _suspendDeferredByPush && _activePushes == 0;
-                if (retryDeferredSuspend)
-                    _suspendDeferredByPush = false;
-            }
-
+            retryDeferredSuspend = _suspendDeferredByPush && _activePushes == 0;
             if (retryDeferredSuspend)
-                TrySuspend();
+                _suspendDeferredByPush = false;
         }
+
+        if (retryDeferredSuspend)
+            TrySuspend();
 
         return accepted;
     }
