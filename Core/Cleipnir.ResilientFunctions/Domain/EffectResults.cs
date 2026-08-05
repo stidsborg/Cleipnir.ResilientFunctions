@@ -167,18 +167,31 @@ internal class EffectResults
     internal void FlushlessSet(StoredEffect storedEffect)
         => AddToPending(storedEffect.EffectId, storedEffect, delete: false, clearChildren: false);
 
+    // The batch enters the pending set under a single lock acquisition, so a concurrent flush snapshot sees
+    // either none or all of its entries - upserts and clears (EffectResult.Delete) can never be persisted
+    // torn across two flushes.
     internal void FlushlessUpserts(IEnumerable<EffectResult> values)
     {
-        var storedEffects = values
-            .Select(t =>
+        var changes = values
+            .Select(t => new
             {
-                var bytes = _serializer.Serialize(t.Value!, t.Value?.GetType() ?? typeof(object));
-                return new { Id = t.Id, Bytes = bytes, Alias = t.Alias };
+                Id = t.Id,
+                StoredEffect = t.Delete
+                    ? null
+                    : StoredEffect.CreateCompleted(t.Id, _serializer.Serialize(t.Value!, t.Value?.GetType() ?? typeof(object)), t.Alias),
+                Delete = t.Delete
             })
-            .Select(a => StoredEffect.CreateCompleted(a.Id, a.Bytes, a.Alias))
             .ToList();
 
-        AddToPending(storedEffects);
+        lock (_sync)
+            foreach (var change in changes)
+                if (change.Delete)
+                {
+                    if (_effectResults.ContainsKey(change.Id))
+                        AddToPending(change.Id, storedEffect: null, delete: true, clearChildren: true);
+                }
+                else
+                    AddToPending(change.Id, change.StoredEffect, delete: false, clearChildren: false);
     }
     
     public bool TryGet<T>(EffectId effectId, out T? value)
@@ -418,13 +431,6 @@ internal class EffectResults
                     delete: true,
                     clearChildren: true
                 );
-    }
-
-    private void AddToPending(IEnumerable<StoredEffect> storedEffects)
-    {
-        lock (_sync)
-            foreach (var storedEffect in storedEffects)
-                AddToPending(storedEffect.EffectId, storedEffect, delete: false, clearChildren: false);
     }
 
     private void AddToPending(EffectId effectId, StoredEffect? storedEffect, bool delete, bool clearChildren)
