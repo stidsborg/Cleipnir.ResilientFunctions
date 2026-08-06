@@ -490,8 +490,9 @@ internal class InvocationHelper<TParam, TReturn>
                 byte[]? resultTypeBytes = null;
                 if (e.Value != null)
                 {
-                    resultBytes = Serializer.Serialize(e.Value, e.Value.GetType());
-                    resultTypeBytes = Serializer.SerializeType(e.Value.GetType());
+                    var (value, valueType) = EffectValue.ForSerialization(e.Value, typeof(object));
+                    resultBytes = Serializer.Serialize(value!, valueType);
+                    resultTypeBytes = Serializer.SerializeType(valueType);
                 }
                 return new StoredEffect(
                     e.Id,

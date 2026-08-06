@@ -124,8 +124,8 @@ public class ExistingEffects(StoredId storedId, FlowId flowId, IFunctionStore fu
     public Task SetSucceeded<TResult>(int effectId, TResult result) => SetSucceeded(effectId.ToEffectId(), result);
     public Task SetSucceeded<TResult>(EffectId effectId, TResult result)
     {
-        var resultType = result?.GetType() ?? typeof(TResult);
-        var serializedResult = serializer.Serialize(result!, resultType);
+        var (resultToSerialize, resultType) = EffectValue.ForSerialization(result, typeof(TResult));
+        var serializedResult = serializer.Serialize(resultToSerialize!, resultType);
         return Set(
             new StoredEffect(
                 effectId,

@@ -131,8 +131,8 @@ internal class EffectResults
                 throw FatalWorkflowException.Create(_flowId, existing.StoredEffect.StoredException!);
         }
 
-        var valueType = value?.GetType() ?? typeof(T);
-        var serializedValue = _serializer.Serialize(value!, valueType);
+        var (valueToSerialize, valueType) = EffectValue.ForSerialization(value, typeof(T));
+        var serializedValue = _serializer.Serialize(valueToSerialize!, valueType);
         var storedEffect = StoredEffect.CreateCompleted(effectId, serializedValue, _serializer.SerializeType(valueType), alias);
         await FlushOrAddToPending(
             storedEffect.EffectId,
@@ -155,8 +155,8 @@ internal class EffectResults
 
     internal void FlushlessUpsert<T>(EffectId effectId, string? alias, T value)
     {
-        var valueType = value?.GetType() ?? typeof(T);
-        var serializedValue = _serializer.Serialize(value!, valueType);
+        var (valueToSerialize, valueType) = EffectValue.ForSerialization(value, typeof(T));
+        var serializedValue = _serializer.Serialize(valueToSerialize!, valueType);
         var storedEffect = StoredEffect.CreateCompleted(effectId, serializedValue, _serializer.SerializeType(valueType), alias);
         AddToPending(storedEffect.EffectId, storedEffect, delete: false, clearChildren: false);
     }
@@ -180,7 +180,7 @@ internal class EffectResults
         var changes = values
             .Select(t =>
             {
-                var valueType = t.Value?.GetType() ?? typeof(object);
+                var (value, valueType) = EffectValue.ForSerialization(t.Value, typeof(object));
                 return new
                 {
                     Id = t.Id,
@@ -188,7 +188,7 @@ internal class EffectResults
                         ? null
                         : StoredEffect.CreateCompleted(
                             t.Id,
-                            _serializer.Serialize(t.Value!, valueType),
+                            _serializer.Serialize(value!, valueType),
                             _serializer.SerializeType(valueType),
                             t.Alias
                         ),
@@ -405,8 +405,8 @@ internal class EffectResults
         }
 
         {
-            var resultType = result?.GetType() ?? typeof(T);
-            var serializedResult = _serializer.Serialize(result!, resultType);
+            var (resultToSerialize, resultType) = EffectValue.ForSerialization(result, typeof(T));
+            var serializedResult = _serializer.Serialize(resultToSerialize!, resultType);
             var storedEffect = StoredEffect.CreateCompleted(effectId, serializedResult, _serializer.SerializeType(resultType), alias);
             await FlushOrAddToPending(
                 storedEffect.EffectId,

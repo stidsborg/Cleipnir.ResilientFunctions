@@ -118,6 +118,95 @@ public class EffectResultTypeTests
     }
 
     [TestMethod]
+    public async Task LazilyTypedSequenceIsMaterializedBeforeItIsPersisted()
+    {
+        var store = new InMemoryFunctionStore();
+        var storedId = TestStoredId.Create();
+        await store.CreateFunction(storedId, "humanInstanceId", param: null, postponeUntil: null, timestamp: DateTime.UtcNow.Ticks, parent: null, owner: null);
+
+        var names = new List<string> { "Peter", "Ole", "Paul" };
+
+        EffectContext.Reset();
+        var effect = CreateEffect(storedId, store);
+        // The runtime type here is a compiler-generated LINQ iterator - it must not be what gets persisted.
+        await effect.Capture<IEnumerable<string>>(() => Task.FromResult(names.Where(n => n.Length == 5)));
+
+        var storedEffect = await GetSingleStoredEffect(store, storedId);
+        DefaultSerializer.Instance.ResolveType(storedEffect.ResultType!).ShouldBe(typeof(List<string>));
+
+        EffectContext.Reset();
+        var restarted = CreateEffect(storedId, store, existingEffects: [storedEffect]);
+        var replayed = await restarted.Capture<IEnumerable<string>>(
+            () => Task.FromException<IEnumerable<string>>(new InvalidOperationException("Work should not be invoked on replay"))
+        );
+        replayed.ShouldBe(new[] { "Peter" });
+    }
+
+    [TestMethod]
+    public async Task LazilyTypedSequenceCapturedAsObjectIsMaterializedBeforeItIsPersisted()
+    {
+        var store = new InMemoryFunctionStore();
+        var storedId = TestStoredId.Create();
+        await store.CreateFunction(storedId, "humanInstanceId", param: null, postponeUntil: null, timestamp: DateTime.UtcNow.Ticks, parent: null, owner: null);
+
+        var numbers = new List<int> { 1, 2, 3 };
+
+        EffectContext.Reset();
+        var effect = CreateEffect(storedId, store);
+        await effect.Capture<object>(() => Task.FromResult<object>(numbers.Select(n => n * 2)));
+
+        var storedEffect = await GetSingleStoredEffect(store, storedId);
+        DefaultSerializer.Instance.ResolveType(storedEffect.ResultType!).ShouldBe(typeof(List<int>));
+
+        // Without the materialized type the declared type is all there is to go on, and object yields a
+        // JsonElement rather than the captured sequence.
+        EffectContext.Reset();
+        var restarted = CreateEffect(storedId, store, existingEffects: [storedEffect]);
+        var replayed = await restarted.Capture<object>(
+            () => Task.FromException<object>(new InvalidOperationException("Work should not be invoked on replay"))
+        );
+        replayed.ShouldBe(new List<int> { 2, 4, 6 });
+    }
+
+    [TestMethod]
+    public async Task PubliclyNamedCollectionIsPersistedAsIs()
+    {
+        var store = new InMemoryFunctionStore();
+        var storedId = TestStoredId.Create();
+        await store.CreateFunction(storedId, "humanInstanceId", param: null, postponeUntil: null, timestamp: DateTime.UtcNow.Ticks, parent: null, owner: null);
+
+        EffectContext.Reset();
+        var effect = CreateEffect(storedId, store);
+        await effect.Capture<IEnumerable<string>>(() => Task.FromResult<IEnumerable<string>>(new[] { "Peter", "Ole" }));
+
+        var storedEffect = await GetSingleStoredEffect(store, storedId);
+        DefaultSerializer.Instance.ResolveType(storedEffect.ResultType!).ShouldBe(typeof(string[]));
+    }
+
+    [TestMethod]
+    public async Task DictionaryIsPersistedAsIs()
+    {
+        var store = new InMemoryFunctionStore();
+        var storedId = TestStoredId.Create();
+        await store.CreateFunction(storedId, "humanInstanceId", param: null, postponeUntil: null, timestamp: DateTime.UtcNow.Ticks, parent: null, owner: null);
+
+        EffectContext.Reset();
+        var effect = CreateEffect(storedId, store);
+        var dictionary = new Dictionary<string, int> { { "Peter", 32 } };
+        await effect.Capture<IDictionary<string, int>>(() => Task.FromResult<IDictionary<string, int>>(dictionary));
+
+        var storedEffect = await GetSingleStoredEffect(store, storedId);
+        DefaultSerializer.Instance.ResolveType(storedEffect.ResultType!).ShouldBe(typeof(Dictionary<string, int>));
+
+        EffectContext.Reset();
+        var restarted = CreateEffect(storedId, store, existingEffects: [storedEffect]);
+        var replayed = await restarted.Capture<IDictionary<string, int>>(
+            () => Task.FromException<IDictionary<string, int>>(new InvalidOperationException("Work should not be invoked on replay"))
+        );
+        replayed.ShouldBe(dictionary);
+    }
+
+    [TestMethod]
     public async Task EffectWithoutResultHasNoResultType()
     {
         var store = new InMemoryFunctionStore();
