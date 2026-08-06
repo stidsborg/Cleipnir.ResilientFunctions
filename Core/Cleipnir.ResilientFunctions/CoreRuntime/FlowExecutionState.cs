@@ -109,11 +109,12 @@ public class FlowExecutionState
     public Task ResumeSubflow()
     {
         lock (_lock)
-            // Parks once the invocation has ended for the same reason as on suspension: this is the only
-            // transition out of the waiting state that no other party arbitrates (a timer fires it), so leaving
-            // it open would let a subflow start executing again behind a satisfied
+            // A subflow may only leave the waiting state while the flow is still running - it parks both once
+            // the flow has decided to suspend and once the invocation has ended. This is the only transition out
+            // of the waiting state that no other party arbitrates (a timer fires it), so leaving it open past
+            // either point would let a subflow start executing again behind a satisfied
             // WaitUntilNoSubflowsAreExecuting.
-            if (Suspended || _status == FlowStatus.Completed)
+            if (_status != FlowStatus.Running)
                 return ForeverTask.Instance;
             else
                 WaitingSubflows--;
@@ -285,7 +286,8 @@ public class FlowExecutionState
     {
         lock (_lock)
         {
-            if (Subflows != WaitingSubflows || Suspended || _status == FlowStatus.Completed)
+            //only a running flow can decide to suspend - it has already suspended or the invocation has ended
+            if (Subflows != WaitingSubflows || _status != FlowStatus.Running)
                 return;
 
             // The push invariant: while messages are being pushed and the subscriptions they resolve resumed,
