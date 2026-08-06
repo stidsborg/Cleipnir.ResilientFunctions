@@ -172,7 +172,7 @@ public abstract class StoreCrudTests
 
         await store.SetEffectResult(
             storedId,
-            StoredEffect.CreateCompleted(1.ToEffectId(), "SomeStateJson".ToUtf8Bytes(), alias: null).ToStoredChange(storedId, Insert),
+            StoredEffect.CreateCompleted(1.ToEffectId(), "SomeStateJson".ToUtf8Bytes(), resultType: null, alias: null).ToStoredChange(storedId, Insert),
             owner: null, session: null
         );
         await store.SetEffectResult(
@@ -220,7 +220,7 @@ public abstract class StoreCrudTests
 
         await store.SetEffectResult(
             storedId,
-            StoredEffect.CreateCompleted(1.ToEffectId(), "SomeStateJson".ToUtf8Bytes(), alias: null).ToStoredChange(storedId, Insert),
+            StoredEffect.CreateCompleted(1.ToEffectId(), "SomeStateJson".ToUtf8Bytes(), resultType: null, alias: null).ToStoredChange(storedId, Insert),
             owner: null, session: null
         );
         await store.SetEffectResult(

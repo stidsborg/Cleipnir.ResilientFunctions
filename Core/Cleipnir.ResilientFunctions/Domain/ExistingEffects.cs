@@ -48,7 +48,10 @@ public class ExistingEffects(StoredId storedId, FlowId flowId, IFunctionStore fu
 
         return storedEffect.Result == null
             ? default
-            : (TResult)serializer.Deserialize(storedEffects[effectId].Result!, typeof(TResult));
+            : (TResult)serializer.Deserialize(
+                storedEffect.Result,
+                storedEffect.ResolveResultType(serializer, typeof(TResult))
+            );
     }
 
     public Task<byte[]?> GetResultBytes(int effectId) => GetResultBytes(effectId.ToEffectId());
@@ -121,8 +124,18 @@ public class ExistingEffects(StoredId storedId, FlowId flowId, IFunctionStore fu
     public Task SetSucceeded<TResult>(int effectId, TResult result) => SetSucceeded(effectId.ToEffectId(), result);
     public Task SetSucceeded<TResult>(EffectId effectId, TResult result)
     {
-        var serializedResult = serializer.Serialize(result!, typeof(TResult));
-        return Set(new StoredEffect(effectId, WorkStatus.Completed, Result: serializedResult, StoredException: null, Alias: null));
+        var resultType = result?.GetType() ?? typeof(TResult);
+        var serializedResult = serializer.Serialize(result!, resultType);
+        return Set(
+            new StoredEffect(
+                effectId,
+                WorkStatus.Completed,
+                Result: serializedResult,
+                StoredException: null,
+                Alias: null,
+                ResultType: serializer.SerializeType(resultType)
+            )
+        );
     }
 
     public Task SetFailed(int effectId, Exception exception) => SetFailed(effectId.ToEffectId(), exception);

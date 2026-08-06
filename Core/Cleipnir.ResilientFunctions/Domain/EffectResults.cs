@@ -122,14 +122,18 @@ internal class EffectResults
         lock (_sync)
         {
             if (_effectResults.TryGetValue(effectId, out var existing) && existing.StoredEffect?.WorkStatus == WorkStatus.Completed)
-                return (T)_serializer.Deserialize(existing.StoredEffect.Result!, typeof(T));
+                return (T)_serializer.Deserialize(
+                    existing.StoredEffect.Result!,
+                    existing.StoredEffect.ResolveResultType(_serializer, typeof(T))
+                );
 
             if (existing?.StoredEffect?.StoredException != null)
                 throw FatalWorkflowException.Create(_flowId, existing.StoredEffect.StoredException!);
         }
 
-        var serializedValue = _serializer.Serialize(value!, typeof(T));
-        var storedEffect = StoredEffect.CreateCompleted(effectId, serializedValue, alias);
+        var valueType = value?.GetType() ?? typeof(T);
+        var serializedValue = _serializer.Serialize(value!, valueType);
+        var storedEffect = StoredEffect.CreateCompleted(effectId, serializedValue, _serializer.SerializeType(valueType), alias);
         await FlushOrAddToPending(
             storedEffect.EffectId,
             storedEffect,
@@ -151,8 +155,9 @@ internal class EffectResults
 
     internal void FlushlessUpsert<T>(EffectId effectId, string? alias, T value)
     {
-        var serializedValue = _serializer.Serialize(value!, typeof(T));
-        var storedEffect = StoredEffect.CreateCompleted(effectId, serializedValue, alias);
+        var valueType = value?.GetType() ?? typeof(T);
+        var serializedValue = _serializer.Serialize(value!, valueType);
+        var storedEffect = StoredEffect.CreateCompleted(effectId, serializedValue, _serializer.SerializeType(valueType), alias);
         AddToPending(storedEffect.EffectId, storedEffect, delete: false, clearChildren: false);
     }
 
@@ -173,13 +178,22 @@ internal class EffectResults
     internal void FlushlessUpserts(IEnumerable<EffectResult> values)
     {
         var changes = values
-            .Select(t => new
+            .Select(t =>
             {
-                Id = t.Id,
-                StoredEffect = t.Delete
-                    ? null
-                    : StoredEffect.CreateCompleted(t.Id, _serializer.Serialize(t.Value!, t.Value?.GetType() ?? typeof(object)), t.Alias),
-                Delete = t.Delete
+                var valueType = t.Value?.GetType() ?? typeof(object);
+                return new
+                {
+                    Id = t.Id,
+                    StoredEffect = t.Delete
+                        ? null
+                        : StoredEffect.CreateCompleted(
+                            t.Id,
+                            _serializer.Serialize(t.Value!, valueType),
+                            _serializer.SerializeType(valueType),
+                            t.Alias
+                        ),
+                    Delete = t.Delete
+                };
             })
             .ToList();
 
@@ -203,7 +217,10 @@ internal class EffectResults
                 var storedEffect = change.StoredEffect;
                 if (storedEffect?.WorkStatus == WorkStatus.Completed)
                 {
-                    value = (T?)_serializer.Deserialize(storedEffect.Result!, typeof(T));
+                    value = (T?)_serializer.Deserialize(
+                        storedEffect.Result!,
+                        storedEffect.ResolveResultType(_serializer, typeof(T))
+                    );
                     return true;
                 }
 
@@ -225,7 +242,10 @@ internal class EffectResults
                 var storedEffect = change.StoredEffect;
                 if (storedEffect?.WorkStatus == WorkStatus.Completed)
                 {
-                    value = _serializer.Deserialize(storedEffect.Result!, type)!;
+                    value = _serializer.Deserialize(
+                        storedEffect.Result!,
+                        storedEffect.ResolveResultType(_serializer, type)
+                    )!;
                     return true;
                 }
 
@@ -324,7 +344,12 @@ internal class EffectResults
         {
             var success = _effectResults.TryGetValue(effectId, out var storedEffect);
             if (success && storedEffect!.StoredEffect?.WorkStatus == WorkStatus.Completed)
-                return (storedEffect.StoredEffect?.Result == null ? default : (T) _serializer.Deserialize(storedEffect.StoredEffect?.Result!, typeof(T)))!;
+                return (storedEffect.StoredEffect?.Result == null
+                    ? default
+                    : (T) _serializer.Deserialize(
+                        storedEffect.StoredEffect.Result!,
+                        storedEffect.StoredEffect.ResolveResultType(_serializer, typeof(T))
+                    ))!;
             if (success && storedEffect!.StoredEffect?.WorkStatus == WorkStatus.Failed)
                 throw FatalWorkflowException.Create(_flowId, storedEffect.StoredEffect?.StoredException!);
             if (success && resiliency == ResiliencyLevel.AtMostOnce)
@@ -380,8 +405,9 @@ internal class EffectResults
         }
 
         {
-            var serializedResult = _serializer.Serialize(result!, typeof(T));
-            var storedEffect = StoredEffect.CreateCompleted(effectId, serializedResult, alias);
+            var resultType = result?.GetType() ?? typeof(T);
+            var serializedResult = _serializer.Serialize(result!, resultType);
+            var storedEffect = StoredEffect.CreateCompleted(effectId, serializedResult, _serializer.SerializeType(resultType), alias);
             await FlushOrAddToPending(
                 storedEffect.EffectId,
                 storedEffect,

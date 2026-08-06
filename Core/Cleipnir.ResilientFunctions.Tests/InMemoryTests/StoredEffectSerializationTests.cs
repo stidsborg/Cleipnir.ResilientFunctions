@@ -1,6 +1,9 @@
 using System;
+using Cleipnir.ResilientFunctions.CoreRuntime.Serialization;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Storage;
+using Cleipnir.ResilientFunctions.Storage.Utils;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Shouldly;
 
@@ -14,7 +17,7 @@ public class StoredEffectSerializationTests
     {
         var effectId = new EffectId([1]);
         var result = "SomeResult"u8.ToArray();
-        var storedEffect = StoredEffect.CreateCompleted(effectId, result, alias: null);
+        var storedEffect = StoredEffect.CreateCompleted(effectId, result, resultType: null, alias: null);
 
         var serialized = storedEffect.Serialize();
         var deserialized = StoredEffect.Deserialize(serialized);
@@ -83,7 +86,7 @@ public class StoredEffectSerializationTests
     {
         var effectId = new EffectId([1]);
         var result = "{\"key\":\"value\"}"u8.ToArray();
-        var storedEffect = StoredEffect.CreateCompleted(effectId, result, alias: null);
+        var storedEffect = StoredEffect.CreateCompleted(effectId, result, resultType: null, alias: null);
 
         var serialized = storedEffect.Serialize();
         var deserialized = StoredEffect.Deserialize(serialized);
@@ -99,7 +102,7 @@ public class StoredEffectSerializationTests
         var parentEffect = new EffectId([1]);
         var effectId = new EffectId([parentEffect.Id, 2]);
         var result = "SomeData"u8.ToArray();
-        var storedEffect = StoredEffect.CreateCompleted(effectId, result, alias: null);
+        var storedEffect = StoredEffect.CreateCompleted(effectId, result, resultType: null, alias: null);
 
         var serialized = storedEffect.Serialize();
         var deserialized = StoredEffect.Deserialize(serialized);
@@ -157,7 +160,7 @@ public class StoredEffectSerializationTests
         for (int i = 0; i < largeResult.Length; i++)
             largeResult[i] = (byte)(i % 256);
 
-        var storedEffect = StoredEffect.CreateCompleted(effectId, largeResult, alias: null);
+        var storedEffect = StoredEffect.CreateCompleted(effectId, largeResult, resultType: null, alias: null);
 
         var serialized = storedEffect.Serialize();
         var deserialized = StoredEffect.Deserialize(serialized);
@@ -172,7 +175,7 @@ public class StoredEffectSerializationTests
     {
         var effectId = new EffectId([12345]);
         var result = "Data"u8.ToArray();
-        var storedEffect = StoredEffect.CreateCompleted(effectId, result, alias: null);
+        var storedEffect = StoredEffect.CreateCompleted(effectId, result, resultType: null, alias: null);
 
         var serialized = storedEffect.Serialize();
         var deserialized = StoredEffect.Deserialize(serialized);
@@ -195,6 +198,51 @@ public class StoredEffectSerializationTests
         deserialized.EffectId.ShouldBe(effectId);
         deserialized.EffectId.Id.ShouldBe(0);
         deserialized.WorkStatus.ShouldBe(WorkStatus.Completed);
+    }
+
+    [TestMethod]
+    public void ResultTypeIsSerializedAndDeserializedAlongsideResult()
+    {
+        var effectId = new EffectId([1]);
+        var result = DefaultSerializer.Instance.Serialize("SomeResult", typeof(string));
+        var resultType = DefaultSerializer.Instance.SerializeType(typeof(string));
+        var storedEffect = StoredEffect.CreateCompleted(effectId, result, resultType, alias: null);
+
+        var serialized = storedEffect.Serialize();
+        var deserialized = StoredEffect.Deserialize(serialized);
+
+        deserialized.Result.ShouldBe(result);
+        deserialized.ResultType.ShouldBe(resultType);
+        DefaultSerializer.Instance
+            .Deserialize(deserialized.Result!, DefaultSerializer.Instance.ResolveType(deserialized.ResultType!)!)
+            .ShouldBe("SomeResult");
+    }
+
+    [TestMethod]
+    public void EffectSerializedBeforeResultTypeExistedIsDeserializedWithoutResultType()
+    {
+        var effectId = new EffectId([1]);
+        var result = "SomeResult"u8.ToArray();
+
+        // The pre-result-type encoding: effect id, status, result, exception, alias - and nothing more.
+        var serializedEffectId = effectId.Serialize().Value;
+        var effectIdBytes = new byte[serializedEffectId.Length * sizeof(int)];
+        Buffer.BlockCopy(serializedEffectId, 0, effectIdBytes, 0, effectIdBytes.Length);
+        var legacyBytes = BinaryPacker.Pack(
+            effectIdBytes,
+            [(byte)WorkStatus.Completed],
+            result,
+            null,
+            "some-alias".ToUtf8Bytes()
+        );
+
+        var deserialized = StoredEffect.Deserialize(legacyBytes);
+
+        deserialized.EffectId.ShouldBe(effectId);
+        deserialized.WorkStatus.ShouldBe(WorkStatus.Completed);
+        deserialized.Result.ShouldBe(result);
+        deserialized.Alias.ShouldBe("some-alias");
+        deserialized.ResultType.ShouldBeNull();
     }
 
     [TestMethod]
