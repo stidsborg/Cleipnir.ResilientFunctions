@@ -298,14 +298,24 @@ public class Effect
 
     internal string ExecutionTree() => EffectPrinter.Print(effectResults);
 
+    // Not async: Capture allocates the implicit effect id through an AsyncLocal that may be lazily
+    // assigned on first access, so it must run on the flow body's execution context - an async frame
+    // here would isolate that assignment from the caller.
     public Task<T> RunParallelle<T>(Func<Task<T>> work)
     {
         _flowExecutionState.SubflowStarted();
-        var task = Capture(() => Task.Run(work));
-        return task.ContinueWith(t =>
+        return CompleteSubflowWhenFinished(Capture(() => Task.Run(work)));
+    }
+
+    private async Task<T> CompleteSubflowWhenFinished<T>(Task<T> capture)
+    {
+        try
+        {
+            return await capture;
+        }
+        finally
         {
             _flowExecutionState.SubflowCompleted();
-            return t.GetAwaiter().GetResult();
-        });
+        }
     }
 }
