@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -207,6 +208,30 @@ public class EffectResultTypeTests
     }
 
     [TestMethod]
+    public async Task NonVisibleReadOnlyDictionaryIsMaterializedIntoADictionaryBeforeItIsPersisted()
+    {
+        var store = new InMemoryFunctionStore();
+        var storedId = TestStoredId.Create();
+        await store.CreateFunction(storedId, "humanInstanceId", param: null, postponeUntil: null, timestamp: DateTime.UtcNow.Ticks, parent: null, owner: null);
+
+        EffectContext.Reset();
+        var effect = CreateEffect(storedId, store);
+        IReadOnlyDictionary<string, int> wrapper = new ReadOnlyDictionaryWrapper(new Dictionary<string, int> { { "Peter", 32 } });
+        await effect.Capture(() => Task.FromResult(wrapper));
+
+        // Materialized as a dictionary - not a list of pairs - so the payload keeps its JSON-object shape.
+        var storedEffect = await GetSingleStoredEffect(store, storedId);
+        DefaultSerializer.Instance.ResolveType(storedEffect.ResultType!).ShouldBe(typeof(Dictionary<string, int>));
+
+        EffectContext.Reset();
+        var restarted = CreateEffect(storedId, store, existingEffects: [storedEffect]);
+        var replayed = await restarted.Capture<IReadOnlyDictionary<string, int>>(
+            () => Task.FromException<IReadOnlyDictionary<string, int>>(new InvalidOperationException("Work should not be invoked on replay"))
+        );
+        replayed.ShouldBe(new Dictionary<string, int> { { "Peter", 32 } });
+    }
+
+    [TestMethod]
     public async Task EffectWithoutResultHasNoResultType()
     {
         var store = new InMemoryFunctionStore();
@@ -225,4 +250,16 @@ public class EffectResultTypeTests
 
     private abstract record Animal(string Name);
     private record Dog(string Name, string Breed) : Animal(Name);
+
+    private class ReadOnlyDictionaryWrapper(Dictionary<string, int> inner) : IReadOnlyDictionary<string, int>
+    {
+        public IEnumerator<KeyValuePair<string, int>> GetEnumerator() => inner.GetEnumerator();
+        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+        public int Count => inner.Count;
+        public bool ContainsKey(string key) => inner.ContainsKey(key);
+        public bool TryGetValue(string key, out int value) => inner.TryGetValue(key, out value);
+        public int this[string key] => inner[key];
+        public IEnumerable<string> Keys => inner.Keys;
+        public IEnumerable<int> Values => inner.Values;
+    }
 }
