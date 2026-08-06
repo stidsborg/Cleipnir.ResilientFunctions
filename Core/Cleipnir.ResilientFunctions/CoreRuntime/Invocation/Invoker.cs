@@ -82,8 +82,11 @@ public class Invoker<TParam, TReturn> : IFlowRestarter
                     {
                         // Refuse further pushes and drain the in-flight ones before the invocation's final
                         // persistence (result, failure or suspension) - whatever a push staged is thereby
-                        // always included in the incarnation's last flush.
+                        // always included in the incarnation's last flush. Executing subflows are drained
+                        // next - pushes first, so no delivery can put a waiting one back into execution - and
+                        // the flow is quiescent from there on.
                         await flowState.ClosePushes();
+                        await flowState.WaitUntilNoSubflowsAreExecuting();
                     }
                 }
                 catch (FatalWorkflowException exception)
@@ -182,9 +185,10 @@ public class Invoker<TParam, TReturn> : IFlowRestarter
                 {
                     // *** USER FUNCTION INVOCATION ***
                     // Pushes are refused and drained (ClosePushes) before the final persistence - whatever a
-                    // push staged is thereby always included in the incarnation's last flush.
+                    // push staged is thereby always included in the incarnation's last flush. Executing
+                    // subflows are waited out next, leaving the flow quiescent before its outcome is written.
                     try { result = await inner(param, workflow); }
-                    finally { await flowState.ClosePushes(); }
+                    finally { await flowState.ClosePushes(); await flowState.WaitUntilNoSubflowsAreExecuting(); }
                 }
                 catch (FatalWorkflowException exception) { await PersistFailure(storedId, flowId, exception, param, parent); tcs.TrySetCanceled(); throw; }
                 catch (Exception exception) { var fwe = FatalWorkflowException.CreateNonGeneric(flowId, exception); await PersistFailure(storedId, flowId, fwe, param, parent); tcs.TrySetCanceled(); throw fwe; }

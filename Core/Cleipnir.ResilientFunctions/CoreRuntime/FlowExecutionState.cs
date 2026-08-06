@@ -109,7 +109,12 @@ public class FlowExecutionState
     public Task ResumeSubflow()
     {
         lock (_lock)
-            if (Suspended)
+            // A subflow may only leave the waiting state while the flow is still running - it parks both once
+            // the flow has decided to suspend and once the invocation has ended. This is the only transition out
+            // of the waiting state that no other party arbitrates (a timer fires it), so leaving it open past
+            // either point would let a subflow start executing again behind a satisfied
+            // WaitUntilNoSubflowsAreExecuting.
+            if (_status != FlowStatus.Running)
                 return ForeverTask.Instance;
             else
                 WaitingSubflows--;
@@ -281,7 +286,8 @@ public class FlowExecutionState
     {
         lock (_lock)
         {
-            if (Subflows != WaitingSubflows || Suspended || _status == FlowStatus.Completed)
+            //only a running flow can decide to suspend - it has already suspended or the invocation has ended
+            if (Subflows != WaitingSubflows || _status != FlowStatus.Running)
                 return;
 
             // The push invariant: while messages are being pushed and the subscriptions they resolve resumed,
@@ -299,4 +305,39 @@ public class FlowExecutionState
 
         _suspendedTcs.TrySetResult();
     }
+
+    /// <summary>
+    /// Ends the invocation and completes once none of its parallel subflows are executing anymore. Awaited by
+    /// the ending invocation - after <see cref="ClosePushes"/> - before its final persistence, so the flow is
+    /// quiescent by the time its outcome is written: no straggler can still be capturing an effect, and the
+    /// final flush has the effect results to itself.
+    ///
+    /// This is what keeps a straggler from writing into the next incarnation. A late write cannot be rejected
+    /// downstream - the store's guard is on ownership, not on incarnation, so a flow re-claimed by the same
+    /// replica (one ReplicaId per registry) accepts it, and since effects are persisted as a whole column
+    /// rebuilt from the writer's snapshot, accepting it means overwriting everything the new incarnation wrote.
+    /// Draining removes the possibility instead of testing for it: checking at the capture would be racy either
+    /// way, since the flow can end between the check and the store write.
+    ///
+    /// Only executing subflows are waited for. Waiting ones (parked on a message or a timeout) are exactly what
+    /// suspension and postponement leave behind for the next incarnation to replay, and both transitions that
+    /// could put one back into execution are sealed off first: message deliveries by <see cref="ClosePushes"/>,
+    /// and timer wake-ups by <see cref="ResumeSubflow"/> once the status below is set.
+    ///
+    /// Polled rather than signalled: a flow that awaited its Parallelle-tasks - the sunshine scenario - is
+    /// already quiescent and returns on the first check, so only a body that left work behind ever sleeps here.
+    /// That keeps the subflow accounting free of teardown-specific signalling.
+    /// </summary>
+    public async Task WaitUntilNoSubflowsAreExecuting()
+    {
+        lock (_lock)
+            _status = FlowStatus.Completed;
+
+        await BusyWait.ForeverUntilAsync(() => { lock (_lock) return NoSubflowsExecuting; });
+    }
+
+    // The invocation holds a subflow slot of its own, so what is awaited is "every slot but mine parked".
+    // Unless it suspended: then its slot is parked in the waiting count like any other (suspension is decided
+    // precisely when every slot is), and there is no slot left to discount.
+    private bool NoSubflowsExecuting => Subflows - WaitingSubflows == (Suspended ? 0 : 1);
 }
