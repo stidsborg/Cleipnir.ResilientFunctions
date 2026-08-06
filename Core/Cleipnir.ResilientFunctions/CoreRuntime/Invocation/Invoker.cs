@@ -88,7 +88,7 @@ public class Invoker<TParam, TReturn> : IFlowRestarter
                         // next - pushes first, so no delivery can put a waiting one back into execution - and
                         // the flow is quiescent from there on.
                         await flowState.ClosePushes();
-                        await flowState.DrainExecutingSubflows();
+                        await flowState.WaitUntilNoSubflowsAreExecuting();
                     }
                 }
                 catch (FatalWorkflowException exception)
@@ -194,7 +194,7 @@ public class Invoker<TParam, TReturn> : IFlowRestarter
                         if (result.Succeed)
                             flowState.EnsureNoExecutingSubflows(flowId);
                     }
-                    finally { await flowState.ClosePushes(); await flowState.DrainExecutingSubflows(); }
+                    finally { await flowState.ClosePushes(); await flowState.WaitUntilNoSubflowsAreExecuting(); }
                 }
                 catch (FatalWorkflowException exception) { await PersistFailure(storedId, flowId, exception, param, parent); tcs.TrySetCanceled(); throw; }
                 catch (Exception exception) { var fwe = FatalWorkflowException.CreateNonGeneric(flowId, exception); await PersistFailure(storedId, flowId, fwe, param, parent); tcs.TrySetCanceled(); throw fwe; }
