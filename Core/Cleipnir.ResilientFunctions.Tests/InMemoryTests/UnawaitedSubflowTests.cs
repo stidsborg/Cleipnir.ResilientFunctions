@@ -32,7 +32,7 @@ public class UnawaitedSubflowTests
                     {
                         _ = workflow.Effect.RunParallelle(async () =>
                         {
-                            await Task.Delay(5_000);
+                            await Task.Delay(100);
                             return 1;
                         });
 
