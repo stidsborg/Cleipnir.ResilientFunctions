@@ -35,6 +35,9 @@ public class FlowExecutionState
     // retries it, since no waiting-state transition (the normal re-arm trigger) may ever come.
     private bool _suspendDeferredByPush;
     private readonly TaskCompletionSource _pushesDrainedTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    // Set once the invocation's body has ended and it is waiting for its parallel subflows to stop executing.
+    private bool _drainingSubflows;
+    private readonly TaskCompletionSource _subflowsDrainedTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
     public StoredId Id { get; }
     public int Subflows { get; private set; }
@@ -96,6 +99,7 @@ public class FlowExecutionState
         // Subflows == WaitingSubflows (a subflow completing or starting to wait) each check afterwards,
         // so every entry into the fully-waiting state is observed by whoever caused it.
         ArmSuspensionTimerIfFullyWaiting();
+        SignalSubflowsDrainedIfNoneExecuting();
     }
 
     public void SubflowWaiting()
@@ -104,12 +108,16 @@ public class FlowExecutionState
             WaitingSubflows++;
 
         ArmSuspensionTimerIfFullyWaiting();
+        SignalSubflowsDrainedIfNoneExecuting();
     }
 
     public Task ResumeSubflow()
     {
         lock (_lock)
-            if (Suspended)
+            // Parks once the invocation has ended for the same reason as on suspension: this is the only
+            // transition out of the waiting state that no other party arbitrates (a timer fires it), so leaving
+            // it open would let a subflow start executing again behind a completed DrainExecutingSubflows.
+            if (Suspended || _status == FlowStatus.Completed)
                 return ForeverTask.Instance;
             else
                 WaitingSubflows--;
@@ -159,6 +167,7 @@ public class FlowExecutionState
         }
 
         ArmSuspensionTimerIfFullyWaiting();
+        SignalSubflowsDrainedIfNoneExecuting();
         return true;
     }
 
@@ -322,5 +331,48 @@ public class FlowExecutionState
                     $"Flow returned its result while {executingSubflows} parallel subflow(s) were still executing - await all Parallelle-tasks before returning"
                 )
             );
+    }
+
+    /// <summary>
+    /// Ends the invocation and completes once none of its parallel subflows are executing anymore. Awaited by
+    /// the ending invocation - after <see cref="ClosePushes"/> - before its final persistence, so the flow is
+    /// quiescent by the time its outcome is written: no straggler can still be capturing an effect, and the
+    /// final flush has the effect results to itself.
+    ///
+    /// This is what keeps a straggler from writing into the next incarnation. A late write cannot be rejected
+    /// downstream - the store's guard is on ownership, not on incarnation, so a flow re-claimed by the same
+    /// replica (one ReplicaId per registry) accepts it, and since effects are persisted as a whole column
+    /// rebuilt from the writer's snapshot, accepting it means overwriting everything the new incarnation wrote.
+    /// Draining removes the possibility instead of testing for it: checking at the capture would be racy either
+    /// way, since the flow can end between the check and the store write.
+    ///
+    /// Only executing subflows are drained. Waiting ones (parked on a message or a timeout) are exactly what
+    /// suspension and postponement leave behind for the next incarnation to replay, and both transitions that
+    /// could put one back into execution are sealed off first: message deliveries by <see cref="ClosePushes"/>,
+    /// and timer wake-ups by <see cref="ResumeSubflow"/> once the status below is set.
+    /// </summary>
+    public Task DrainExecutingSubflows()
+    {
+        lock (_lock)
+        {
+            _status = FlowStatus.Completed;
+            _drainingSubflows = true;
+            if (NoSubflowsExecuting)
+                _subflowsDrainedTcs.TrySetResult();
+        }
+
+        return _subflowsDrainedTcs.Task;
+    }
+
+    // The invocation holds a subflow slot of its own, so what is drained is "every slot but mine parked".
+    // Unless it suspended: then its slot is parked in the waiting count like any other (suspension is decided
+    // precisely when every slot is), and there is no slot left to discount.
+    private bool NoSubflowsExecuting => Subflows - WaitingSubflows == (Suspended ? 0 : 1);
+
+    private void SignalSubflowsDrainedIfNoneExecuting()
+    {
+        lock (_lock)
+            if (_drainingSubflows && NoSubflowsExecuting)
+                _subflowsDrainedTcs.TrySetResult();
     }
 }

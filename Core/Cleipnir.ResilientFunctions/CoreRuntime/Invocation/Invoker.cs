@@ -84,8 +84,11 @@ public class Invoker<TParam, TReturn> : IFlowRestarter
                     {
                         // Refuse further pushes and drain the in-flight ones before the invocation's final
                         // persistence (result, failure or suspension) - whatever a push staged is thereby
-                        // always included in the incarnation's last flush.
+                        // always included in the incarnation's last flush. Executing subflows are drained
+                        // next - pushes first, so no delivery can put a waiting one back into execution - and
+                        // the flow is quiescent from there on.
                         await flowState.ClosePushes();
+                        await flowState.DrainExecutingSubflows();
                     }
                 }
                 catch (FatalWorkflowException exception)
@@ -191,7 +194,7 @@ public class Invoker<TParam, TReturn> : IFlowRestarter
                         if (result.Succeed)
                             flowState.EnsureNoExecutingSubflows(flowId);
                     }
-                    finally { await flowState.ClosePushes(); }
+                    finally { await flowState.ClosePushes(); await flowState.DrainExecutingSubflows(); }
                 }
                 catch (FatalWorkflowException exception) { await PersistFailure(storedId, flowId, exception, param, parent); tcs.TrySetCanceled(); throw; }
                 catch (Exception exception) { var fwe = FatalWorkflowException.CreateNonGeneric(flowId, exception); await PersistFailure(storedId, flowId, fwe, param, parent); tcs.TrySetCanceled(); throw fwe; }
