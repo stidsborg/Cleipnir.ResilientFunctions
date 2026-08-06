@@ -14,7 +14,7 @@ namespace Cleipnir.ResilientFunctions.Tests.InMemoryTests;
 public class UnawaitedSubflowTests
 {
     [TestMethod]
-    public async Task FlowReturningSuccessWithExecutingSubflowFailsFast()
+    public async Task FlowReturningSuccessWithExecutingSubflowWaitsForItBeforeSucceeding()
     {
         var store = new InMemoryFunctionStore();
         await store.Initialize();
@@ -45,12 +45,12 @@ public class UnawaitedSubflowTests
 
         var storedId = rAction.MapToStoredId(flowId.Instance);
         await BusyWait.Until(() =>
-            store.GetFunction(storedId).SelectAsync(sf => sf?.Status == Status.Failed)
+            store.GetFunction(storedId).SelectAsync(sf => sf?.Status == Status.Succeeded)
         );
 
+        //the un-awaited subflow was waited out, so its effect is part of the succeeded flow
         var storedFlow = await store.GetFunction(storedId);
-        storedFlow!.Exception.ShouldNotBeNull();
-        storedFlow.Exception.ExceptionMessage.ShouldContain("subflow");
+        storedFlow!.Effects!.Count.ShouldBe(1);
     }
 
     [TestMethod]
@@ -95,7 +95,7 @@ public class UnawaitedSubflowTests
         releaseSubflow.SetResult();
 
         await BusyWait.Until(() =>
-            store.GetFunction(storedId).SelectAsync(sf => sf?.Status == Status.Failed)
+            store.GetFunction(storedId).SelectAsync(sf => sf?.Status == Status.Succeeded)
         );
 
         //the drained subflow got to persist its effect before the outcome was written

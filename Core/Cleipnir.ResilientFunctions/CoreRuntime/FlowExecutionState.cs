@@ -305,30 +305,6 @@ public class FlowExecutionState
     }
 
     /// <summary>
-    /// Guards completion: called when the invocation has produced a successful result, before it is persisted.
-    /// Returning success while parallel subflows are still executing is a user bug (an un-awaited Parallelle
-    /// task): a succeeded flow never replays, so the stragglers' outstanding work would be silently lost or
-    /// half-persisted. Failing loudly converges instead - the failed flow restarts, the stragglers'
-    /// already-persisted effects replay, and the retry completes them. Only success is guarded: suspension and
-    /// postponement legitimately leave waiting subflows behind (the next incarnation replays them), and a
-    /// failure already propagates on its own.
-    /// </summary>
-    public void EnsureNoExecutingSubflows(FlowId flowId)
-    {
-        int executingSubflows;
-        lock (_lock)
-            executingSubflows = Subflows - 1; //the root invocation itself occupies one subflow slot
-
-        if (executingSubflows > 0)
-            throw FatalWorkflowException.Create(
-                flowId,
-                new InvalidOperationException(
-                    $"Flow returned its result while {executingSubflows} parallel subflow(s) were still executing - await all Parallelle-tasks before returning"
-                )
-            );
-    }
-
-    /// <summary>
     /// Ends the invocation and completes once none of its parallel subflows are executing anymore. Awaited by
     /// the ending invocation - after <see cref="ClosePushes"/> - before its final persistence, so the flow is
     /// quiescent by the time its outcome is written: no straggler can still be capturing an effect, and the
