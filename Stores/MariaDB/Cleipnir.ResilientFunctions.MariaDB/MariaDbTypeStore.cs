@@ -13,7 +13,7 @@ public class MariaDbTypeStore(string connectionString, string tablePrefix = "") 
     {
         await using var conn = await CreateConnection();
         _initializeSql ??= @$"
-            CREATE TABLE IF NOT EXISTS {_tablePrefix}_dotnet_types (
+            CREATE TABLE IF NOT EXISTS {_tablePrefix}_types (
                 id BIGINT PRIMARY KEY,
                 type BLOB NOT NULL
             )";
@@ -25,7 +25,7 @@ public class MariaDbTypeStore(string connectionString, string tablePrefix = "") 
     public async Task Truncate()
     {
         await using var conn = await CreateConnection();
-        _truncateSql ??= $"TRUNCATE TABLE {_tablePrefix}_dotnet_types";
+        _truncateSql ??= $"TRUNCATE TABLE {_tablePrefix}_types";
         var command = new MySqlCommand(_truncateSql, conn);
         await command.ExecuteNonQueryAsync();
     }
@@ -37,7 +37,7 @@ public class MariaDbTypeStore(string connectionString, string tablePrefix = "") 
 
         await using var conn = await CreateConnection();
         var sql = @$"
-            INSERT IGNORE INTO {_tablePrefix}_dotnet_types
+            INSERT IGNORE INTO {_tablePrefix}_types
                 (id, type)
             VALUES
                 {"(?, ?)".Replicate(types.Count).StringJoin(", ")};";
@@ -55,7 +55,7 @@ public class MariaDbTypeStore(string connectionString, string tablePrefix = "") 
     public async Task<IReadOnlyDictionary<TypeId, byte[]>> GetAllTypes()
     {
         await using var conn = await CreateConnection();
-        var sql = $"SELECT id, type FROM {_tablePrefix}_dotnet_types";
+        var sql = $"SELECT id, type FROM {_tablePrefix}_types";
 
         await using var command = new MySqlCommand(sql, conn);
         var dict = new Dictionary<TypeId, byte[]>();

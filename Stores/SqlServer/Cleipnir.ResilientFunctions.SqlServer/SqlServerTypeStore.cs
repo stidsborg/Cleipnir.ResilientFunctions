@@ -14,7 +14,7 @@ public class SqlServerTypeStore(string connectionString, string tablePrefix = ""
         await using var conn = await CreateConnection();
 
         var sql = @$"
-            CREATE TABLE {tablePrefix}_DotnetTypes (
+            CREATE TABLE {tablePrefix}_Types (
                 Id BIGINT PRIMARY KEY,
                 Type VARBINARY(MAX) NOT NULL
             );";
@@ -28,7 +28,7 @@ public class SqlServerTypeStore(string connectionString, string tablePrefix = ""
     public async Task Truncate()
     {
         await using var conn = await CreateConnection();
-        var sql = $"TRUNCATE TABLE {tablePrefix}_DotnetTypes";
+        var sql = $"TRUNCATE TABLE {tablePrefix}_Types";
         var command = new SqlCommand(sql, conn);
         await command.ExecuteNonQueryAsync();
     }
@@ -40,11 +40,11 @@ public class SqlServerTypeStore(string connectionString, string tablePrefix = ""
 
         await using var conn = await CreateConnection();
         var sql = @$"
-            INSERT INTO {tablePrefix}_DotnetTypes
+            INSERT INTO {tablePrefix}_Types
                 (Id, Type)
             SELECT Id, Type
             FROM (VALUES {types.Select((_, i) => $"(@Id{i}, @Type{i})").StringJoin(", ")}) AS V(Id, Type)
-            WHERE NOT EXISTS (SELECT 1 FROM {tablePrefix}_DotnetTypes T WHERE T.Id = V.Id);";
+            WHERE NOT EXISTS (SELECT 1 FROM {tablePrefix}_Types T WHERE T.Id = V.Id);";
 
         await using var command = new SqlCommand(sql, conn);
         var i = 0;
@@ -69,7 +69,7 @@ public class SqlServerTypeStore(string connectionString, string tablePrefix = ""
         await using var conn = await CreateConnection();
         var sql = @$"
             SELECT Id, Type
-            FROM {tablePrefix}_DotnetTypes";
+            FROM {tablePrefix}_Types";
 
         await using var command = new SqlCommand(sql, conn);
         var dict = new Dictionary<TypeId, byte[]>();

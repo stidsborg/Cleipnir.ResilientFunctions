@@ -15,7 +15,7 @@ public class PostgreSqlTypeStore(string connectionString, string tablePrefix = "
     {
         await using var conn = await CreateConnection();
         _initializeSql ??= @$"
-            CREATE TABLE IF NOT EXISTS {_tablePrefix}_dotnet_types (
+            CREATE TABLE IF NOT EXISTS {_tablePrefix}_types (
                 id BIGINT PRIMARY KEY,
                 type BYTEA NOT NULL
             );";
@@ -27,7 +27,7 @@ public class PostgreSqlTypeStore(string connectionString, string tablePrefix = "
     public async Task Truncate()
     {
         await using var conn = await CreateConnection();
-        _truncateSql ??= $"TRUNCATE TABLE {_tablePrefix}_dotnet_types";
+        _truncateSql ??= $"TRUNCATE TABLE {_tablePrefix}_types";
         var command = new NpgsqlCommand(_truncateSql, conn);
         await command.ExecuteNonQueryAsync();
     }
@@ -40,7 +40,7 @@ public class PostgreSqlTypeStore(string connectionString, string tablePrefix = "
 
         await using var conn = await CreateConnection();
         _insertTypesSql ??= @$"
-            INSERT INTO {_tablePrefix}_dotnet_types (id, type)
+            INSERT INTO {_tablePrefix}_types (id, type)
             SELECT id, type
             FROM unnest($1::bigint[], $2::bytea[]) AS t(id, type)
             ON CONFLICT DO NOTHING;";
@@ -60,7 +60,7 @@ public class PostgreSqlTypeStore(string connectionString, string tablePrefix = "
     public async Task<IReadOnlyDictionary<TypeId, byte[]>> GetAllTypes()
     {
         await using var conn = await CreateConnection();
-        var sql = $"SELECT id, type FROM {_tablePrefix}_dotnet_types";
+        var sql = $"SELECT id, type FROM {_tablePrefix}_types";
 
         await using var command = new NpgsqlCommand(sql, conn);
         var dict = new Dictionary<TypeId, byte[]>();
