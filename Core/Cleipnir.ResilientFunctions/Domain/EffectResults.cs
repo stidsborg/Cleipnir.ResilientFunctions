@@ -124,7 +124,7 @@ internal class EffectResults
             if (_effectResults.TryGetValue(effectId, out var existing) && existing.StoredEffect?.WorkStatus == WorkStatus.Completed)
                 return (T)_serializer.Deserialize(
                     existing.StoredEffect.Result!,
-                    existing.StoredEffect.ResolveResultType(_serializer, typeof(T))
+                    existing.StoredEffect.ResolveResultType(_serializer)
                 );
 
             if (existing?.StoredEffect?.StoredException != null)
@@ -219,7 +219,7 @@ internal class EffectResults
                 {
                     value = (T?)_serializer.Deserialize(
                         storedEffect.Result!,
-                        storedEffect.ResolveResultType(_serializer, typeof(T))
+                        storedEffect.ResolveResultType(_serializer)
                     );
                     return true;
                 }
@@ -233,31 +233,6 @@ internal class EffectResults
         return false;
     }
     
-    public bool TryGet(EffectId effectId, Type type, out object? value)
-    {
-        lock (_sync)
-        {
-            if (_effectResults.TryGetValue(effectId, out var change))
-            {
-                var storedEffect = change.StoredEffect;
-                if (storedEffect?.WorkStatus == WorkStatus.Completed)
-                {
-                    value = _serializer.Deserialize(
-                        storedEffect.Result!,
-                        storedEffect.ResolveResultType(_serializer, type)
-                    )!;
-                    return true;
-                }
-
-                if (storedEffect?.StoredException != null)
-                    throw FatalWorkflowException.Create(_flowId, storedEffect.StoredException!);
-            }
-        }
-
-        value = default;
-        return false;
-    }
-
     public IReadOnlyList<EffectId> GetChildren(EffectId parentId)
     {
         lock (_sync)
@@ -348,7 +323,7 @@ internal class EffectResults
                     ? default
                     : (T) _serializer.Deserialize(
                         storedEffect.StoredEffect.Result!,
-                        storedEffect.StoredEffect.ResolveResultType(_serializer, typeof(T))
+                        storedEffect.StoredEffect.ResolveResultType(_serializer)
                     ))!;
             if (success && storedEffect!.StoredEffect?.WorkStatus == WorkStatus.Failed)
                 throw FatalWorkflowException.Create(_flowId, storedEffect.StoredEffect?.StoredException!);

@@ -1,9 +1,7 @@
 using System;
 using Cleipnir.ResilientFunctions.CoreRuntime.Serialization;
 using Cleipnir.ResilientFunctions.Domain;
-using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Storage;
-using Cleipnir.ResilientFunctions.Storage.Utils;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Shouldly;
 
@@ -216,33 +214,6 @@ public class StoredEffectSerializationTests
         DefaultSerializer.Instance
             .Deserialize(deserialized.Result!, DefaultSerializer.Instance.ResolveType(deserialized.ResultType!)!)
             .ShouldBe("SomeResult");
-    }
-
-    [TestMethod]
-    public void EffectSerializedBeforeResultTypeExistedIsDeserializedWithoutResultType()
-    {
-        var effectId = new EffectId([1]);
-        var result = "SomeResult"u8.ToArray();
-
-        // The pre-result-type encoding: effect id, status, result, exception, alias - and nothing more.
-        var serializedEffectId = effectId.Serialize().Value;
-        var effectIdBytes = new byte[serializedEffectId.Length * sizeof(int)];
-        Buffer.BlockCopy(serializedEffectId, 0, effectIdBytes, 0, effectIdBytes.Length);
-        var legacyBytes = BinaryPacker.Pack(
-            effectIdBytes,
-            [(byte)WorkStatus.Completed],
-            result,
-            null,
-            "some-alias".ToUtf8Bytes()
-        );
-
-        var deserialized = StoredEffect.Deserialize(legacyBytes);
-
-        deserialized.EffectId.ShouldBe(effectId);
-        deserialized.WorkStatus.ShouldBe(WorkStatus.Completed);
-        deserialized.Result.ShouldBe(result);
-        deserialized.Alias.ShouldBe("some-alias");
-        deserialized.ResultType.ShouldBeNull();
     }
 
     [TestMethod]

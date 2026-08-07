@@ -164,12 +164,9 @@ public record StoredEffect(
         var effect = EffectId.Deserialize(effectInts);
         var status = (WorkStatus)parts[1]![0];
         var result = parts[2];
-        var exception = parts.Count > 3
-            ? parts[3] == null ? null : StoredException.Deserialize(parts[3]!)
-            : null;
-        var alias = parts.Count > 3 ? parts[4]?.ToStringFromUtf8Bytes() : null;
-        // Appended after alias, so effects persisted before the result type existed still deserialize.
-        var resultType = parts.Count > 5 ? parts[5] : null;
+        var exception = parts[3] == null ? null : StoredException.Deserialize(parts[3]!);
+        var alias = parts[4]?.ToStringFromUtf8Bytes();
+        var resultType = parts[5];
 
         return new StoredEffect(effect, status, result, exception, alias, resultType);
     }
@@ -189,22 +186,15 @@ public static class StoredEffectExtensions
         => new(storedId, effect.EffectId, operation, effect);
 
     /// <summary>
-    /// The type <see cref="StoredEffect.Result"/> should be deserialized as. A result is serialized as the runtime
-    /// type of the captured instance, so an effect captured through a base type - Capture&lt;object&gt;(...) - is
-    /// read back as the instance it was rather than as the base type. Falls back to the requested type for effects
-    /// stored before the result type was persisted and for stored types that no longer resolve or no longer fit
-    /// what the caller asked for.
+    /// The type <see cref="StoredEffect.Result"/> was serialized as. A result is serialized as the runtime type of
+    /// the captured instance, so an effect captured through a base type - Capture&lt;object&gt;(...) - is read back
+    /// as the instance it was rather than as the base type.
     /// </summary>
-    public static Type ResolveResultType(this StoredEffect effect, ISerializer serializer, Type requestedType)
-    {
-        if (effect.ResultType == null)
-            return requestedType;
-
-        var storedType = serializer.ResolveType(effect.ResultType);
-        return storedType != null && requestedType.IsAssignableFrom(storedType)
-            ? storedType
-            : requestedType;
-    }
+    public static Type ResolveResultType(this StoredEffect effect, ISerializer serializer)
+        => serializer.ResolveType(effect.ResultType!)
+           ?? throw new TypeLoadException(
+               $"Result type '{Convert.ToBase64String(effect.ResultType!)}' of effect '{effect.EffectId}' could not be resolved"
+           );
 }
 
 public record StoredReplica(ReplicaId ReplicaId, long LatestHeartbeat);

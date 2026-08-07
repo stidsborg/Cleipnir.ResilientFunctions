@@ -50,7 +50,7 @@ public class ExistingEffects(StoredId storedId, FlowId flowId, IFunctionStore fu
             ? default
             : (TResult)serializer.Deserialize(
                 storedEffect.Result,
-                storedEffect.ResolveResultType(serializer, typeof(TResult))
+                storedEffect.ResolveResultType(serializer)
             );
     }
 
