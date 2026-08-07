@@ -18,7 +18,7 @@ public static class BulkInsertionTest
         var store = await helper.CreateFunctionStore();
         
         var flowType = new FlowType("BulkInsertionTest");
-        var storedType = await store.TypeStore.InsertOrGetStoredType(flowType);
+        var storedType = await store.FlowTypeStore.InsertOrGetStoredType(flowType);
         
         var bag = new ConcurrentBag<int>();
         

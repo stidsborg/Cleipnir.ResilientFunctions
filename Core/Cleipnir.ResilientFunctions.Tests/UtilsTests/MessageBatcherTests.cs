@@ -319,7 +319,7 @@ public class MessageBatcherTests
     private static StoredMessage CreateMessage(StoredId storedId, string content) => new(
         storedId,
         Encoding.UTF8.GetBytes(content),
-        Encoding.UTF8.GetBytes("System.String"),
+        new TypeId(42),
         Position: 0,
         Replica: ReplicaId.Empty
     );

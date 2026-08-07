@@ -31,14 +31,16 @@ internal class InvocationHelper<TParam, TReturn>
     public UtcNow UtcNow { get; }
 
     private ISerializer Serializer { get; }
+    private readonly TypeMapper _typeMapper;
 
-    public InvocationHelper(FlowType flowType, StoredType storedType, ReplicaId replicaId, bool isParamlessFunction, SettingsWithDefaults settings, IFunctionStore functionStore, ShutdownCoordinator shutdownCoordinator, ISerializer serializer, UtcNow utcNow, bool clearChildren, IMessageClearer messageClearer, MessageSender messageSender, MessageDeserializer messageDeserializer)
+    public InvocationHelper(FlowType flowType, StoredType storedType, ReplicaId replicaId, bool isParamlessFunction, SettingsWithDefaults settings, IFunctionStore functionStore, ShutdownCoordinator shutdownCoordinator, ISerializer serializer, TypeMapper typeMapper, UtcNow utcNow, bool clearChildren, IMessageClearer messageClearer, MessageSender messageSender, MessageDeserializer messageDeserializer)
     {
         _flowType = flowType;
         _isParamlessFunction = isParamlessFunction;
         _settings = settings;
 
         Serializer = serializer;
+        _typeMapper = typeMapper;
         UtcNow = utcNow;
         _shutdownCoordinator = shutdownCoordinator;
         _clearChildren = clearChildren;
@@ -82,6 +84,11 @@ internal class InvocationHelper<TParam, TReturn>
             IReadOnlyList<StoredEffect>? effects = initialState == null
                 ? null
                 : MapInitialEffectsAndMessages(initialState, flowId);
+
+            // The initial effects' and messages' types must exist in the type store before the flow is persisted -
+            // see EffectResults.Flush.
+            if (effects != null)
+                await _typeMapper.EnsurePersisted();
 
             var storageState = await _functionStore.CreateFunction(
                 storedId,
@@ -388,6 +395,7 @@ internal class InvocationHelper<TParam, TReturn>
             storedEffects,
             _functionStore,
             Serializer,
+            _typeMapper,
             owner: _replicaId,
             storageSession,
             _clearChildren
@@ -401,15 +409,16 @@ internal class InvocationHelper<TParam, TReturn>
     {
         var storedId = MapToStoredId(flowId);
         var storedEffects = (await _functionStore.GetFunction(storedId))?.Effects ?? [];
-        return new ExistingEffects(storedId, flowId, _functionStore, Serializer, storedEffects);
+        return new ExistingEffects(storedId, flowId, _functionStore, Serializer, _typeMapper, storedEffects);
     }
-    public ExistingMessages CreateExistingMessages(FlowId flowId) => new(MapToStoredId(flowId), _functionStore, Serializer);
+    public ExistingMessages CreateExistingMessages(FlowId flowId) => new(MapToStoredId(flowId), _functionStore, Serializer, _typeMapper);
 
     public QueueManager CreateQueueManager(FlowId flowId, StoredId storedId, Effect effect, FlowExecutionState flowExecutionState, FlowTimeouts timeouts, UnhandledExceptionHandler unhandledExceptionHandler)
         => new(
             flowId,
             storedId,
             Serializer,
+            _typeMapper,
             effect,
             flowExecutionState,
             unhandledExceptionHandler,
@@ -487,12 +496,12 @@ internal class InvocationHelper<TParam, TReturn>
             if (e.Exception == null)
             {
                 byte[]? resultBytes = null;
-                byte[]? resultTypeBytes = null;
+                TypeId? resultType = null;
                 if (e.Value != null)
                 {
                     var (value, valueType) = EffectValue.ForSerialization(e.Value, typeof(object));
                     resultBytes = Serializer.Serialize(value!, valueType);
-                    resultTypeBytes = Serializer.SerializeType(valueType);
+                    resultType = _typeMapper.GetTypeId(valueType);
                 }
                 return new StoredEffect(
                     e.Id,
@@ -500,7 +509,7 @@ internal class InvocationHelper<TParam, TReturn>
                     Result: resultBytes,
                     StoredException: null,
                     Alias: e.Alias ?? e.Id.Serialize().ToStringValue(),
-                    ResultType: resultTypeBytes);
+                    ResultType: resultType);
             }
             return new StoredEffect(
                 e.Id,
@@ -533,7 +542,7 @@ internal class InvocationHelper<TParam, TReturn>
                 continue;
 
             var content = Serializer.Serialize(message.Message, message.Message.GetType());
-            var type = Serializer.SerializeType(message.Message.GetType());
+            var type = _typeMapper.GetTypeId(message.Message.GetType());
             var encodedMessage = PendingMessages.EncodeMessage(
                 content, type, position: null, idempotencyKey: message.IdempotencyKey
             );
@@ -542,7 +551,7 @@ internal class InvocationHelper<TParam, TReturn>
                 StoredEffect.CreateCompleted(
                     QueueManager.StagedMessagesRoot.CreateChild(effects.Count),
                     Serializer.Serialize(encodedMessage, typeof(byte[])),
-                    Serializer.SerializeType(typeof(byte[])),
+                    _typeMapper.GetTypeId(typeof(byte[])),
                     alias: null
                 )
             );

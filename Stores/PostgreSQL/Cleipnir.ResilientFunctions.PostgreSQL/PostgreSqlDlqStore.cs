@@ -69,7 +69,7 @@ public class PostgreSqlDlqStore : IDlqStore
         var contents = messages
             .Select(m => BinaryPacker.Pack(
                 m.MessageContent,
-                m.MessageType,
+                m.MessageType!.Value.Serialize(),
                 m.IdempotencyKey?.ToUtf8Bytes(),
                 m.Sender?.ToUtf8Bytes(),
                 m.Receiver?.ToUtf8Bytes()
@@ -170,7 +170,7 @@ public class PostgreSqlDlqStore : IDlqStore
                 storedId,
                 position,
                 MessageContent: arrs[0]!,
-                MessageType: arrs[1]!,
+                MessageType: TypeId.Deserialize(arrs[1]!),
                 IdempotencyKey: arrs[2]?.ToStringFromUtf8Bytes(),
                 Sender: arrs[3]?.ToStringFromUtf8Bytes(),
                 Receiver: arrs[4]?.ToStringFromUtf8Bytes()

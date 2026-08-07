@@ -7,7 +7,7 @@ using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.Messaging;
 
-public record StoredMessage(StoredId StoredId, byte[] MessageContent, byte[] MessageType, long Position, ReplicaId Replica, string? IdempotencyKey = null, string? Sender = null, string? Receiver = null)
+public record StoredMessage(StoredId StoredId, byte[] MessageContent, TypeId? MessageType, long Position, ReplicaId Replica, string? IdempotencyKey = null, string? Sender = null, string? Receiver = null)
 {
     /// <summary>
     /// False for messages without a backing message-store row (e.g. appended via the control panel directly
@@ -16,15 +16,15 @@ public record StoredMessage(StoredId StoredId, byte[] MessageContent, byte[] Mes
     /// </summary>
     public bool RowBacked { get; init; } = true;
 
-    public object DefaultDeserialize() => JsonSerializer.Deserialize(MessageContent, Type.GetType(MessageType.ToStringFromUtf8Bytes(), throwOnError: true)!)!; //todo remove
+    public object DefaultDeserialize(TypeMapper typeMapper) => JsonSerializer.Deserialize(MessageContent, typeMapper.ResolveType(MessageType!.Value))!; //todo remove
 
     /// <summary>
     /// An empty message carries no payload - appending one only forces a restart of the receiving flow. It is
     /// never delivered to the flow and is deleted from the store once the restart has happened.
     /// </summary>
-    public bool IsEmpty => MessageContent.Length == 0 && MessageType.Length == 0;
+    public bool IsEmpty => MessageType == null;
 
-    public static StoredMessage CreateEmpty(StoredId storedId, ReplicaId replica) => new(storedId, MessageContent: [], MessageType: [], Position: 0, Replica: replica);
+    public static StoredMessage CreateEmpty(StoredId storedId, ReplicaId replica) => new(storedId, MessageContent: [], MessageType: null, Position: 0, Replica: replica);
 }
 
 /// <summary>
@@ -36,10 +36,10 @@ public record StoredDlqMessage(
     StoredId StoredId,
     long Position,
     byte[] MessageContent,
-    byte[] MessageType,
+    TypeId MessageType,
     string? IdempotencyKey,
     string? Sender,
     string? Receiver)
 {
-    public object DefaultDeserialize() => JsonSerializer.Deserialize(MessageContent, Type.GetType(MessageType.ToStringFromUtf8Bytes(), throwOnError: true)!)!; //todo remove
+    public object DefaultDeserialize(TypeMapper typeMapper) => JsonSerializer.Deserialize(MessageContent, typeMapper.ResolveType(MessageType))!; //todo remove
 }

@@ -8,7 +8,8 @@ namespace Cleipnir.ResilientFunctions.Storage;
 
 public interface IFunctionStore
 {
-    public IFlowTypeStore TypeStore { get; }
+    public IFlowTypeStore FlowTypeStore { get; }
+    public ITypeStore TypeStore { get; }
     public IMessageStore MessageStore { get; }
     public IDlqStore DlqStore { get; }
     public IReplicaStore ReplicaStore { get; }

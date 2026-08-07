@@ -385,7 +385,7 @@ public abstract class MessagesTests
 
         var replicaId = ReplicaId.NewId();
         var clusterInfo = new ClusterInfo(replicaId) { Replicas = [replicaId] };
-        var messagesSender = new MessageSender(functionStore, serializer, clusterInfo);
+        var messagesSender = new MessageSender(functionStore, serializer, functionStore.CreateTypeMapper(), clusterInfo);
         await messagesSender.SendMessage(storedId, "hello world", idempotencyKey: "key1", sender: "TestSender");
 
         var messages = await messageStore.GetMessages(storedId);

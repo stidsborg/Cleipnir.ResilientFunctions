@@ -21,6 +21,14 @@ public static class TypeHelper
     /// "System.Collections.Generic.List`1[[System.String, System.Private.CoreLib]], System.Private.CoreLib"
     /// instead of the full assembly qualified name with version/culture/token.
     /// </example>
+    /// <summary>
+    /// The framework's encoding of a .NET type - the UTF-8 bytes of its <see cref="SimpleQualifiedName"/>.
+    /// Used both for message types (persisted inline) and effect result types (persisted via the type store).
+    /// </summary>
+    public static byte[] SerializeType(this Type type) => type.SimpleQualifiedName().ToUtf8Bytes();
+
+    public static Type? ResolveType(this byte[] serializedType) => Type.GetType(serializedType.ToStringFromUtf8Bytes());
+
     public static string SimpleQualifiedName(this Type type)
         => SimpleQualifiedNameCache.GetOrAdd(type, static t =>
         {

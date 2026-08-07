@@ -78,7 +78,7 @@ public class SqlServerMessageStore : IMessageStore
         for (var i = 0; i < messages.Count; i++)
         {
             var ((storedId, messageContent, messageType, idempotencyKey, sender, receiver), replicaId) = messages[i];
-            var content = BinaryPacker.Pack(messageContent, messageType, idempotencyKey?.ToUtf8Bytes(), sender?.ToUtf8Bytes(), receiver?.ToUtf8Bytes());
+            var content = BinaryPacker.Pack(messageContent, messageType?.Serialize(), idempotencyKey?.ToUtf8Bytes(), sender?.ToUtf8Bytes(), receiver?.ToUtf8Bytes());
             command.Parameters.AddWithValue($"@Id{i}", storedId.AsGuid);
             command.Parameters.AddWithValue($"@Replica{i}", replicaId.AsGuid);
             command.Parameters.AddWithValue($"@Content{i}", content);
@@ -203,7 +203,7 @@ public class SqlServerMessageStore : IMessageStore
     {
         var arrs = BinaryPacker.Split(content, expectedPieces: 5);
         var message = arrs[0]!;
-        var type = arrs[1]!;
+        var type = arrs[1] == null ? default(TypeId?) : TypeId.Deserialize(arrs[1]!);
         var idempotencyKey = arrs[2];
         var sender = arrs[3];
         var receiver = arrs[4];

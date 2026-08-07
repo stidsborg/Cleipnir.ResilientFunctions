@@ -17,7 +17,7 @@ public static class PostponedTest
         var store = await helper.CreateFunctionStore();
         
         var flowType = new FlowType(nameof(PostponedTest));
-        var storedType = await store.TypeStore.InsertOrGetStoredType(flowType);
+        var storedType = await store.FlowTypeStore.InsertOrGetStoredType(flowType);
         
         var start = DateTime.UtcNow.AddSeconds(8);
         Console.WriteLine("POSTPONED_TEST: Expected start: " + start);

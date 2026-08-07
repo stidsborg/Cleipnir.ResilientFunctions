@@ -228,7 +228,7 @@ public abstract class MessagingTests
             new StoredMessage(
                 storedId,
                 serializer.Serialize("hello world", typeof(string)),
-                serializer.SerializeType(typeof(string)),
+                store.GetTypeId(typeof(string)),
                 Position: 0,
                 Replica: replicaId
             ).ToSerializedMessage()
@@ -279,7 +279,7 @@ public abstract class MessagingTests
             new StoredMessage(
                 storedId,
                 serializer.Serialize("hello world", typeof(string)),
-                serializer.SerializeType(typeof(string)),
+                store.GetTypeId(typeof(string)),
                 Position: 0,
                 Replica: replicaId
             ).ToSerializedMessage()
@@ -348,7 +348,7 @@ public abstract class MessagingTests
             new StoredMessage(
                 storedId,
                 serializer.Serialize("hello world", typeof(string)),
-                serializer.SerializeType(typeof(string)),
+                store.GetTypeId(typeof(string)),
                 Position: 0,
                 Replica: replicaId
             ).ToSerializedMessage()
@@ -406,7 +406,7 @@ public abstract class MessagingTests
             new StoredMessage(
                 storedId,
                 serializer.Serialize("hello world", typeof(string)),
-                serializer.SerializeType(typeof(string)),
+                store.GetTypeId(typeof(string)),
                 Position: 0,
                 Replica: publisherRegistry.ClusterInfo.ReplicaId
             ).ToSerializedMessage()

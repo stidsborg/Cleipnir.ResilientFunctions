@@ -69,7 +69,8 @@ public class InMemoryDlqStore : IDlqStore
             message.StoredId,
             position,
             message.MessageContent,
-            message.MessageType,
+            // Dead lettered messages always carry a payload - empty restart-pokes are filtered out before append.
+            message.MessageType!.Value,
             message.IdempotencyKey,
             message.Sender,
             message.Receiver
