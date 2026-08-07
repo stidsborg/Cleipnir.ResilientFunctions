@@ -19,8 +19,8 @@ public class PostgreSqlFunctionStore : IFunctionStore
     private readonly string _connectionString;
     private readonly string _tableName;
 
-    public ITypeStore TypeStore => _typeStore;
-    private readonly PostgreSqlTypeStore _typeStore;
+    public IFlowTypeStore TypeStore => _typeStore;
+    private readonly PostgreSqlFlowTypeStore _typeStore;
     
     private readonly PostgreSqlMessageStore _messageStore;
     public IMessageStore MessageStore => _messageStore;
@@ -44,7 +44,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
         _messageStore = new PostgreSqlMessageStore(connectionString, _sqlGenerator, _tableName);
         _dlqStore = new PostgreSqlDlqStore(connectionString, _tableName);
         _commandExecutor = new PostgresCommandExecutor(connectionString);
-        _typeStore = new PostgreSqlTypeStore(connectionString, _tableName);
+        _typeStore = new PostgreSqlFlowTypeStore(connectionString, _tableName);
         _replicaStore = new PostgreSqlDbReplicaStore(connectionString, _tableName);
     }
 

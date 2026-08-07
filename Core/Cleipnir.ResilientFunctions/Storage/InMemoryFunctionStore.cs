@@ -19,7 +19,7 @@ public class InMemoryFunctionStore : IFunctionStore, IMessageStore
     private long _nextMessagePosition;
     private readonly Lock _sync = new();
 
-    public ITypeStore TypeStore { get; } = new InMemoryTypeStore();
+    public IFlowTypeStore TypeStore { get; } = new InMemoryFlowTypeStore();
     public IMessageStore MessageStore => this;
     public IDlqStore DlqStore { get; } = new InMemoryDlqStore();
     public IReplicaStore ReplicaStore { get; } = new InMemoryReplicaStore();

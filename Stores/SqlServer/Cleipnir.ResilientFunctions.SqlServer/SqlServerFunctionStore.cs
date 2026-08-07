@@ -25,9 +25,9 @@ public class SqlServerFunctionStore : IFunctionStore
     
     private readonly SqlServerCommandExecutor _commandExecutor;
     private readonly SqlServerMessageStore _messageStore;
-    private readonly SqlServerTypeStore _typeStore;
+    private readonly SqlServerFlowTypeStore _typeStore;
 
-    public ITypeStore TypeStore => _typeStore;
+    public IFlowTypeStore TypeStore => _typeStore;
     public IMessageStore MessageStore => _messageStore;
     private readonly SqlServerDlqStore _dlqStore;
     public IDlqStore DlqStore => _dlqStore;
@@ -46,7 +46,7 @@ public class SqlServerFunctionStore : IFunctionStore
         _messageStore = new SqlServerMessageStore(connectionString, _sqlGenerator, _tableName);
         _dlqStore = new SqlServerDlqStore(connectionString, _tableName);
         _commandExecutor = new SqlServerCommandExecutor(connectionString);
-        _typeStore = new SqlServerTypeStore(connectionString, _tableName);
+        _typeStore = new SqlServerFlowTypeStore(connectionString, _tableName);
         _replicaStore = new SqlServerReplicaStore(connectionString, _tableName);
     }
     

@@ -26,8 +26,8 @@ public class MariaDbFunctionStore : IFunctionStore
 
     private readonly MariaDbCommandExecutor _commandExecutor;
 
-    private readonly MariaDbTypeStore _typeStore;
-    public ITypeStore TypeStore => _typeStore;
+    private readonly MariaDbFlowTypeStore _typeStore;
+    public IFlowTypeStore TypeStore => _typeStore;
 
     private readonly MariaDbReplicaStore _replicaStore;
     public IReplicaStore ReplicaStore => _replicaStore;
@@ -45,7 +45,7 @@ public class MariaDbFunctionStore : IFunctionStore
         _messageStore = new MariaDbMessageStore(connectionString, _sqlGenerator, tablePrefix);
         _dlqStore = new MariaDbDlqStore(connectionString, tablePrefix);
         _commandExecutor = new MariaDbCommandExecutor(connectionString);
-        _typeStore = new MariaDbTypeStore(connectionString, tablePrefix);
+        _typeStore = new MariaDbFlowTypeStore(connectionString, tablePrefix);
         _replicaStore = new MariaDbReplicaStore(connectionString, tablePrefix);
     }
 

@@ -8,7 +8,7 @@ using Microsoft.Data.SqlClient;
 
 namespace Cleipnir.ResilientFunctions.SqlServer;
 
-public class SqlServerTypeStore(string connectionString, string tablePrefix = "") : ITypeStore
+public class SqlServerFlowTypeStore(string connectionString, string tablePrefix = "") : IFlowTypeStore
 {
     public async Task Initialize()
     {
