@@ -4,7 +4,7 @@ using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.Domain;
 
-public class StoredTypes(ITypeStore typeStore)
+public class StoredTypes(IFlowTypeStore typeStore)
 {
     private volatile IReadOnlyDictionary<FlowType, StoredType> _cache = new Dictionary<FlowType, StoredType>();
     

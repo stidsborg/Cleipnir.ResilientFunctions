@@ -15,7 +15,7 @@ public class CrashableFunctionStore : IFunctionStore
     private volatile bool _crashed;
     
     public SyncedFlag AfterPostponeFunctionFlag { get; } = new();
-    public ITypeStore TypeStore => _crashed ? throw new TimeoutException() : _inner.TypeStore;
+    public IFlowTypeStore TypeStore => _crashed ? throw new TimeoutException() : _inner.TypeStore;
     public IMessageStore MessageStore => _crashed ? throw new TimeoutException() : _inner.MessageStore;
     public IDlqStore DlqStore => _crashed ? throw new TimeoutException() : _inner.DlqStore;
 

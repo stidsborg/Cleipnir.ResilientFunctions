@@ -1,10 +1,13 @@
-﻿using Cleipnir.ResilientFunctions.Domain;
+﻿using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Storage;
-using MySqlConnector;
+using Npgsql;
 
-namespace Cleipnir.ResilientFunctions.MariaDb;
+namespace Cleipnir.ResilientFunctions.PostgreSQL;
 
-public class MariaDbTypeStore(string connectionString, string tablePrefix = "") : ITypeStore
+public class PostgreSqlFlowTypeStore(string connectionString, string tablePrefix = "") : IFlowTypeStore
 {
     private readonly string _tablePrefix = tablePrefix.ToLower();
 
@@ -14,11 +17,10 @@ public class MariaDbTypeStore(string connectionString, string tablePrefix = "") 
         await using var conn = await CreateConnection();
         _initializeSql ??= @$"
             CREATE TABLE IF NOT EXISTS {_tablePrefix}_types (
-                ref INT AUTO_INCREMENT PRIMARY KEY,
-                type VARCHAR(255),
-                UNIQUE INDEX (type)
-            )";
-        var command = new MySqlCommand(_initializeSql, conn);
+                type VARCHAR(255) PRIMARY KEY,
+                ref INT GENERATED ALWAYS AS IDENTITY
+            );";
+        var command = new NpgsqlCommand(_initializeSql, conn);
         await command.ExecuteNonQueryAsync();
     }
 
@@ -27,24 +29,33 @@ public class MariaDbTypeStore(string connectionString, string tablePrefix = "") 
     {
         await using var conn = await CreateConnection();
         _truncateSql ??= $"TRUNCATE TABLE {_tablePrefix}_types";
-        var command = new MySqlCommand(_truncateSql, conn);
+        var command = new NpgsqlCommand(_truncateSql, conn);
         await command.ExecuteNonQueryAsync();
     }
-
+    
+    private async Task<NpgsqlConnection> CreateConnection()
+    {
+        var conn = new NpgsqlConnection(connectionString);
+        await conn.OpenAsync();
+        return conn;
+    }
+    
     public async Task<StoredType> InsertOrGetStoredType(FlowType flowType)
     {
         await using var conn = await CreateConnection();
+     
         var sql = @$"
-                INSERT IGNORE INTO {_tablePrefix}_types 
-                    (type)
-                VALUES
-                    (?)";
+            INSERT INTO {_tablePrefix}_types 
+                (type)
+            VALUES
+                ($1) 
+            ON CONFLICT DO NOTHING";
         
-        await using var command = new MySqlCommand(sql, conn)
+        await using var command = new NpgsqlCommand(sql, conn)
         {
             Parameters =
             {
-                new() {Value = flowType.Value}
+                new() { Value = flowType.Value }
             }
         };
 
@@ -52,20 +63,20 @@ public class MariaDbTypeStore(string connectionString, string tablePrefix = "") 
 
         return await GetRef(flowType);
     }
-
+    
     private async Task<StoredType> GetRef(FlowType flowType)
     {
-        await using var conn = await DatabaseHelper.CreateOpenConnection(connectionString);;
+        await using var conn = await CreateConnection();
         var sql = @$"    
             SELECT ref
             FROM {_tablePrefix}_types
-            WHERE type = ?";
+            WHERE type = $1";
         
-        await using var command = new MySqlCommand(sql, conn)
+        await using var command = new NpgsqlCommand(sql, conn)
         {
             Parameters =
             {
-                new() {Value = flowType.Value},
+                new() { Value = flowType.Value }
             }
         };
         
@@ -74,25 +85,23 @@ public class MariaDbTypeStore(string connectionString, string tablePrefix = "") 
             throw new InvalidOperationException($"Unexpected missing reference for type: '{flowType.Value}'");
 
         return new StoredType((ushort) value.Value);
-    }
-    
+    } 
+
     public async Task<IReadOnlyDictionary<FlowType, StoredType>> GetAllFlowTypes()
     {
-        await using var conn = await DatabaseHelper.CreateOpenConnection(connectionString);;
+        await using var conn = await CreateConnection();
         var sql = $"SELECT type, ref FROM {_tablePrefix}_types";
 
-        await using var command = new MySqlCommand(sql, conn);
+        await using var command = new NpgsqlCommand(sql, conn);
         var dict = new Dictionary<FlowType, StoredType>();
         await using var reader = await command.ExecuteReaderAsync();
         while (await reader.ReadAsync())
         {
             var flowType = reader.GetString(0);
-            var value = new StoredType((ushort) reader.GetInt32(1));
-            dict[flowType] = value;
+            var value = reader.GetInt32(1);
+            dict[flowType] = new StoredType((ushort) value);
         }
 
         return dict;
     }
-
-    private Task<MySqlConnection> CreateConnection() => DatabaseHelper.CreateOpenConnection(connectionString);
 }

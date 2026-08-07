@@ -8,7 +8,7 @@ using Cleipnir.ResilientFunctions.Helpers;
 
 namespace Cleipnir.ResilientFunctions.Storage;
 
-public class InMemoryTypeStore : ITypeStore
+public class InMemoryFlowTypeStore : IFlowTypeStore
 {
     private ImmutableDictionary<FlowType, ushort> _flowTypes = ImmutableDictionary<FlowType, ushort>.Empty;
     private readonly Lock _sync = new();
