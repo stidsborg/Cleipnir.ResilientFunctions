@@ -193,7 +193,12 @@ public class ExistingMessages
 
             var effects = storedFlow.Effects ?? [];
             var childId = chooseChildId(effects);
-            var entry = StoredEffect.CreateCompleted(childId, _serializer.Serialize(encodedMessage, typeof(byte[])), alias: null);
+            var entry = StoredEffect.CreateCompleted(
+                childId,
+                _serializer.Serialize(encodedMessage, typeof(byte[])),
+                _serializer.SerializeType(typeof(byte[])),
+                alias: null
+            );
             var session = new SnapshotStorageSession { Version = storedFlow.Version };
             foreach (var effect in effects)
                 session.Effects[effect.EffectId] = effect;

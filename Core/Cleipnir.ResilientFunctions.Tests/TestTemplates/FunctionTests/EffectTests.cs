@@ -416,7 +416,8 @@ public abstract class EffectTests
             WorkStatus.Completed,
             Result: serializedResult,
             StoredException: null,
-            Alias: "test_alias"
+            Alias: "test_alias",
+            ResultType: DefaultSerializer.Instance.SerializeType(typeof(int))
         );
 
         // Pass existing effects to constructor - they should be eagerly loaded

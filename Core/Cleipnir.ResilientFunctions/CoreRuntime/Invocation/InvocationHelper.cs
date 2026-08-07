@@ -487,14 +487,20 @@ internal class InvocationHelper<TParam, TReturn>
             if (e.Exception == null)
             {
                 byte[]? resultBytes = null;
+                byte[]? resultTypeBytes = null;
                 if (e.Value != null)
-                    resultBytes = Serializer.Serialize(e.Value, e.Value.GetType());
+                {
+                    var (value, valueType) = EffectValue.ForSerialization(e.Value, typeof(object));
+                    resultBytes = Serializer.Serialize(value!, valueType);
+                    resultTypeBytes = Serializer.SerializeType(valueType);
+                }
                 return new StoredEffect(
                     e.Id,
                     e.Status ?? WorkStatus.Completed,
                     Result: resultBytes,
                     StoredException: null,
-                    Alias: e.Alias ?? e.Id.Serialize().ToStringValue());
+                    Alias: e.Alias ?? e.Id.Serialize().ToStringValue(),
+                    ResultType: resultTypeBytes);
             }
             return new StoredEffect(
                 e.Id,
@@ -536,6 +542,7 @@ internal class InvocationHelper<TParam, TReturn>
                 StoredEffect.CreateCompleted(
                     QueueManager.StagedMessagesRoot.CreateChild(effects.Count),
                     Serializer.Serialize(encodedMessage, typeof(byte[])),
+                    Serializer.SerializeType(typeof(byte[])),
                     alias: null
                 )
             );

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using Cleipnir.ResilientFunctions.CoreRuntime.Serialization;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
@@ -125,11 +126,14 @@ public record StoredEffect(
     WorkStatus WorkStatus,
     byte[]? Result,
     StoredException? StoredException,
-    string? Alias
+    string? Alias,
+    // The serializer-encoded type Result was serialized as (ISerializer.SerializeType) - null when there is no
+    // result. Persisted alongside the result so it can be deserialized without the caller stating the type.
+    byte[]? ResultType = null
 )
 {
-    public static StoredEffect CreateCompleted(EffectId effectId, byte[]? result, string? alias)
-        => new(effectId, WorkStatus.Completed, result, StoredException: null, alias);
+    public static StoredEffect CreateCompleted(EffectId effectId, byte[]? result, byte[]? resultType, string? alias)
+        => new(effectId, WorkStatus.Completed, result, StoredException: null, alias, resultType);
     public static StoredEffect CreateCompleted(EffectId effectId, string? alias)
         => new(effectId, WorkStatus.Completed, Result: null, StoredException: null, alias);
     public static StoredEffect CreateStarted(EffectId effectId, string? alias)
@@ -146,8 +150,9 @@ public record StoredEffect(
         var result = Result;
         var exception = StoredException?.Serialize();
         var alias = Alias?.ToUtf8Bytes();
+        var resultType = ResultType;
 
-        return BinaryPacker.Pack(effect, [status], result, exception, alias);
+        return BinaryPacker.Pack(effect, [status], result, exception, alias, resultType);
     }
 
     public static StoredEffect Deserialize(byte[] bytes)
@@ -159,12 +164,11 @@ public record StoredEffect(
         var effect = EffectId.Deserialize(effectInts);
         var status = (WorkStatus)parts[1]![0];
         var result = parts[2];
-        var exception = parts.Count > 3
-            ? parts[3] == null ? null : StoredException.Deserialize(parts[3]!)
-            : null;
-        var alias = parts.Count > 3 ? parts[4]?.ToStringFromUtf8Bytes() : null;
+        var exception = parts[3] == null ? null : StoredException.Deserialize(parts[3]!);
+        var alias = parts[4]?.ToStringFromUtf8Bytes();
+        var resultType = parts[5];
 
-        return new StoredEffect(effect, status, result, exception, alias);
+        return new StoredEffect(effect, status, result, exception, alias, resultType);
     }
 };
 
@@ -180,6 +184,17 @@ public static class StoredEffectExtensions
 {
     public static StoredEffectChange ToStoredChange(this StoredEffect effect, StoredId storedId, CrudOperation operation)
         => new(storedId, effect.EffectId, operation, effect);
+
+    /// <summary>
+    /// The type <see cref="StoredEffect.Result"/> was serialized as. A result is serialized as the runtime type of
+    /// the captured instance, so an effect captured through a base type - Capture&lt;object&gt;(...) - is read back
+    /// as the instance it was rather than as the base type.
+    /// </summary>
+    public static Type ResolveResultType(this StoredEffect effect, ISerializer serializer)
+        => serializer.ResolveType(effect.ResultType!)
+           ?? throw new TypeLoadException(
+               $"Result type '{Convert.ToBase64String(effect.ResultType!)}' of effect '{effect.EffectId}' could not be resolved"
+           );
 }
 
 public record StoredReplica(ReplicaId ReplicaId, long LatestHeartbeat);
