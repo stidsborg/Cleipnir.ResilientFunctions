@@ -17,6 +17,7 @@ internal class EffectResults
     private readonly IReadOnlyList<StoredEffect> _existingEffects;
     private readonly IFunctionStore _functionStore;
     private readonly ISerializer _serializer;
+    private readonly TypeMapper _typeMapper;
     private readonly ReplicaId? _owner;
     private readonly IStorageSession? _storageSession;
     private readonly bool _clearChildren;
@@ -37,12 +38,13 @@ internal class EffectResults
 
     public QueueManager? QueueManager { get; set; }
     
-    public EffectResults( 
+    public EffectResults(
         FlowId flowId,
         StoredId storedId,
         IReadOnlyList<StoredEffect> existingEffects,
         IFunctionStore functionStore,
         ISerializer serializer,
+        TypeMapper typeMapper,
         ReplicaId? owner,
         IStorageSession? storageSession,
         bool clearChildren)
@@ -52,6 +54,7 @@ internal class EffectResults
         _existingEffects = existingEffects;
         _functionStore = functionStore;
         _serializer = serializer;
+        _typeMapper = typeMapper;
         _owner = owner;
         _storageSession = storageSession;
         _clearChildren = clearChildren;
@@ -124,7 +127,7 @@ internal class EffectResults
             if (_effectResults.TryGetValue(effectId, out var existing) && existing.StoredEffect?.WorkStatus == WorkStatus.Completed)
                 return (T)_serializer.Deserialize(
                     existing.StoredEffect.Result!,
-                    existing.StoredEffect.ResolveResultType(_serializer)
+                    existing.StoredEffect.ResolveResultType(_typeMapper)
                 );
 
             if (existing?.StoredEffect?.StoredException != null)
@@ -133,7 +136,7 @@ internal class EffectResults
 
         var (valueToSerialize, valueType) = EffectValue.ForSerialization(value, typeof(T));
         var serializedValue = _serializer.Serialize(valueToSerialize!, valueType);
-        var storedEffect = StoredEffect.CreateCompleted(effectId, serializedValue, _serializer.SerializeType(valueType), alias);
+        var storedEffect = StoredEffect.CreateCompleted(effectId, serializedValue, _typeMapper.GetTypeId(valueType), alias);
         await FlushOrAddToPending(
             storedEffect.EffectId,
             storedEffect,
@@ -157,7 +160,7 @@ internal class EffectResults
     {
         var (valueToSerialize, valueType) = EffectValue.ForSerialization(value, typeof(T));
         var serializedValue = _serializer.Serialize(valueToSerialize!, valueType);
-        var storedEffect = StoredEffect.CreateCompleted(effectId, serializedValue, _serializer.SerializeType(valueType), alias);
+        var storedEffect = StoredEffect.CreateCompleted(effectId, serializedValue, _typeMapper.GetTypeId(valueType), alias);
         AddToPending(storedEffect.EffectId, storedEffect, delete: false, clearChildren: false);
     }
 
@@ -189,7 +192,7 @@ internal class EffectResults
                         : StoredEffect.CreateCompleted(
                             t.Id,
                             _serializer.Serialize(value!, valueType),
-                            _serializer.SerializeType(valueType),
+                            _typeMapper.GetTypeId(valueType),
                             t.Alias
                         ),
                     Delete = t.Delete
@@ -219,7 +222,7 @@ internal class EffectResults
                 {
                     value = (T?)_serializer.Deserialize(
                         storedEffect.Result!,
-                        storedEffect.ResolveResultType(_serializer)
+                        storedEffect.ResolveResultType(_typeMapper)
                     );
                     return true;
                 }
@@ -323,7 +326,7 @@ internal class EffectResults
                     ? default
                     : (T) _serializer.Deserialize(
                         storedEffect.StoredEffect.Result!,
-                        storedEffect.StoredEffect.ResolveResultType(_serializer)
+                        storedEffect.StoredEffect.ResolveResultType(_typeMapper)
                     ))!;
             if (success && storedEffect!.StoredEffect?.WorkStatus == WorkStatus.Failed)
                 throw FatalWorkflowException.Create(_flowId, storedEffect.StoredEffect?.StoredException!);
@@ -382,7 +385,7 @@ internal class EffectResults
         {
             var (resultToSerialize, resultType) = EffectValue.ForSerialization(result, typeof(T));
             var serializedResult = _serializer.Serialize(resultToSerialize!, resultType);
-            var storedEffect = StoredEffect.CreateCompleted(effectId, serializedResult, _serializer.SerializeType(resultType), alias);
+            var storedEffect = StoredEffect.CreateCompleted(effectId, serializedResult, _typeMapper.GetTypeId(resultType), alias);
             await FlushOrAddToPending(
                 storedEffect.EffectId,
                 storedEffect,
@@ -487,7 +490,17 @@ internal class EffectResults
                         p.StoredEffect
                     )
                 ).ToList();
-            
+
+            // The result types referenced by the batch must exist in the type store before the effects do -
+            // otherwise a crash between the two writes would leave effects whose results can never be
+            // deserialized. Completes synchronously when the batch introduces no new types.
+            await _typeMapper.EnsurePersisted(
+                changes
+                    .Where(c => c.StoredEffect?.ResultType != null)
+                    .Select(c => c.StoredEffect!.ResultType!.Value)
+                    .ToList()
+            );
+
             await _functionStore.SetEffectResults(_storedId, changes, _owner, _storageSession);
 
             lock (_sync)

@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Serialization;
 using Cleipnir.ResilientFunctions.CoreRuntime.Watchdogs;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.Messaging;
@@ -26,7 +27,7 @@ internal class MessageSender(
     public SerializedMessage Serialize(StoredId storedId, object message, string? idempotencyKey = null, string? sender = null, string? receiver = null)
     {
         var content = serializer.Serialize(message, message.GetType());
-        var type = serializer.SerializeType(message.GetType());
+        var type = message.GetType().SerializeType();
         return new SerializedMessage(storedId, content, type, idempotencyKey, sender, receiver);
     }
 

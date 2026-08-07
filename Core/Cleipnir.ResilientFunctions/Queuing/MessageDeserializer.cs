@@ -6,6 +6,7 @@ using Cleipnir.ResilientFunctions.CoreRuntime;
 using Cleipnir.ResilientFunctions.CoreRuntime.Serialization;
 using Cleipnir.ResilientFunctions.CoreRuntime.Watchdogs;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
+using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Storage;
 
@@ -36,7 +37,7 @@ internal class MessageDeserializer(
     {
         try
         {
-            var payload = serializer.Deserialize(message.MessageContent, serializer.ResolveType(message.MessageType)!);
+            var payload = serializer.Deserialize(message.MessageContent, message.MessageType.ResolveType()!);
             return ToIncomingMessage(payload, message);
         }
         catch (Exception exception)

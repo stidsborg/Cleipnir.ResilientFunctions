@@ -319,7 +319,7 @@ internal class QueueManager
             // The pipeline is object-form - this is the single point where the payload is serialized, for the
             // durable carriers (the staged-message child and the delivered-message capture).
             var messageContent = _serializer.Serialize(content, content.GetType());
-            var messageType = _serializer.SerializeType(content.GetType());
+            var messageType = content.GetType().SerializeType();
 
             var envelope = new Envelope(content, receiver, sender);
             lock (_lock)

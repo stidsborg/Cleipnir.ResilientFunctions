@@ -19,9 +19,12 @@ public class PostgreSqlFunctionStore : IFunctionStore
     private readonly string _connectionString;
     private readonly string _tableName;
 
-    public IFlowTypeStore TypeStore => _typeStore;
-    private readonly PostgreSqlFlowTypeStore _typeStore;
-    
+    public IFlowTypeStore FlowTypeStore => _flowTypeStore;
+    private readonly PostgreSqlFlowTypeStore _flowTypeStore;
+
+    public ITypeStore TypeStore => _typeStore;
+    private readonly PostgreSqlTypeStore _typeStore;
+
     private readonly PostgreSqlMessageStore _messageStore;
     public IMessageStore MessageStore => _messageStore;
 
@@ -44,7 +47,8 @@ public class PostgreSqlFunctionStore : IFunctionStore
         _messageStore = new PostgreSqlMessageStore(connectionString, _sqlGenerator, _tableName);
         _dlqStore = new PostgreSqlDlqStore(connectionString, _tableName);
         _commandExecutor = new PostgresCommandExecutor(connectionString);
-        _typeStore = new PostgreSqlFlowTypeStore(connectionString, _tableName);
+        _flowTypeStore = new PostgreSqlFlowTypeStore(connectionString, _tableName);
+        _typeStore = new PostgreSqlTypeStore(connectionString, _tableName);
         _replicaStore = new PostgreSqlDbReplicaStore(connectionString, _tableName);
     }
 
@@ -63,6 +67,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
 
         await _messageStore.Initialize();
         await _dlqStore.Initialize();
+        await _flowTypeStore.Initialize();
         await _typeStore.Initialize();
         await _replicaStore.Initialize();
         await using var conn = await CreateConnection();
@@ -95,6 +100,7 @@ public class PostgreSqlFunctionStore : IFunctionStore
     {
         await _messageStore.TruncateTable();
         await _dlqStore.TruncateTable();
+        await _flowTypeStore.Truncate();
         await _typeStore.Truncate();
         await _replicaStore.Truncate();
 

@@ -26,6 +26,7 @@ public class FunctionsRegistry : IDisposable
     
     private readonly PostponedWatchdog _postponedWatchdog;
     private readonly StoredTypes _storedTypes;
+    private readonly TypeMapper _typeMapper;
     
     public ClusterInfo ClusterInfo { get; }
     public DlqManager DeadLetterQueue { get; }
@@ -43,9 +44,12 @@ public class FunctionsRegistry : IDisposable
     private FunctionsRegistry(IFunctionStore functionStore, Settings? settings = null)
     {
         _functionStore = functionStore;
-        _storedTypes = new StoredTypes(functionStore.TypeStore);
+        _storedTypes = new StoredTypes(functionStore.FlowTypeStore);
         _shutdownCoordinator = new ShutdownCoordinator();
         _settings = SettingsWithDefaults.Default.Merge(settings);
+        // One mapper for the whole registry: types are encoded by simple qualified name (serializer-independent),
+        // so type ids and their persisted encodings are registry-wide facts.
+        _typeMapper = new TypeMapper(functionStore.TypeStore);
         var utcNow = _settings.UtcNow;
         _messageClearer = new MessageClearer(
             _functionStore.MessageStore,
@@ -348,6 +352,7 @@ public class FunctionsRegistry : IDisposable
                 _functionStore,
                 _shutdownCoordinator,
                 serializer,
+                _typeMapper,
                 _settings.UtcNow,
                 settings?.ClearChildrenAfterCapture ?? true,
                 _messageClearer,
@@ -426,6 +431,7 @@ public class FunctionsRegistry : IDisposable
                 _functionStore,
                 _shutdownCoordinator,
                 serializer,
+                _typeMapper,
                 _settings.UtcNow,
                 settings?.ClearChildrenAfterCapture ?? true,
                 _messageClearer,
@@ -505,6 +511,7 @@ public class FunctionsRegistry : IDisposable
                 _functionStore,
                 _shutdownCoordinator,
                 serializer,
+                _typeMapper,
                 _settings.UtcNow,
                 settings?.ClearChildrenAfterCapture ?? true,
                 _messageClearer,

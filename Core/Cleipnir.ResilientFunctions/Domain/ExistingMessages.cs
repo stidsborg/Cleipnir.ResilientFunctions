@@ -31,6 +31,7 @@ public class ExistingMessages
     private readonly IMessageStore _messageStore;
     private readonly IFunctionStore _functionStore;
     private readonly ISerializer _serializer;
+    private readonly TypeMapper _typeMapper;
 
     public Task<IReadOnlyList<MessageAndIdempotencyKey>> MessagesWithIdempotencyKeys => GetDeserializedMessages()
         .ContinueWith(t => (IReadOnlyList<MessageAndIdempotencyKey>) t.Result.ToList());
@@ -38,12 +39,13 @@ public class ExistingMessages
         .ContinueWith(t => (IReadOnlyList<object>) t.Result.Select(m => m.Message).ToList());
     public Task<int> Count => GetStagedMessages().SelectAsync(messages => messages.Count);
 
-    public ExistingMessages(StoredId storedId, IFunctionStore functionStore, ISerializer serializer)
+    public ExistingMessages(StoredId storedId, IFunctionStore functionStore, ISerializer serializer, TypeMapper typeMapper)
     {
         _storedId = storedId;
         _messageStore = functionStore.MessageStore;
         _functionStore = functionStore;
         _serializer = serializer;
+        _typeMapper = typeMapper;
     }
 
     private async Task<List<MessageAndIdempotencyKey>> GetDeserializedMessages()
@@ -51,7 +53,7 @@ public class ExistingMessages
         var stagedMessages = await GetStagedMessages();
         return stagedMessages.Select(staged =>
             new MessageAndIdempotencyKey(
-                _serializer.Deserialize(staged.Message.MessageContent, _serializer.ResolveType(staged.Message.MessageType)!),
+                _serializer.Deserialize(staged.Message.MessageContent, staged.Message.MessageType.ResolveType()!),
                 staged.Message.IdempotencyKey
             )
         ).ToList();
@@ -179,7 +181,7 @@ public class ExistingMessages
     private byte[] EncodeMessage<T>(T message, string? idempotencyKey, long? position) where T : notnull
     {
         var json = _serializer.Serialize(message, message.GetType());
-        var type = _serializer.SerializeType(message.GetType());
+        var type = message.GetType().SerializeType();
         return PendingMessages.EncodeMessage(json, type, position, idempotencyKey: idempotencyKey);
     }
 
@@ -196,7 +198,7 @@ public class ExistingMessages
             var entry = StoredEffect.CreateCompleted(
                 childId,
                 _serializer.Serialize(encodedMessage, typeof(byte[])),
-                _serializer.SerializeType(typeof(byte[])),
+                _typeMapper.GetTypeId(typeof(byte[])),
                 alias: null
             );
             var session = new SnapshotStorageSession { Version = storedFlow.Version };
@@ -205,6 +207,7 @@ public class ExistingMessages
 
             try
             {
+                await _typeMapper.EnsurePersisted([entry.ResultType!.Value]);
                 await _functionStore.SetEffectResult(
                     _storedId,
                     new StoredEffectChange(_storedId, childId, CrudOperation.Insert, entry),

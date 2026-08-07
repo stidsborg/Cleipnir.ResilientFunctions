@@ -7,7 +7,7 @@ using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.Domain;
 
-public class ExistingEffects(StoredId storedId, FlowId flowId, IFunctionStore functionStore, ISerializer serializer, IReadOnlyList<StoredEffect> initialStoredEffects)
+public class ExistingEffects(StoredId storedId, FlowId flowId, IFunctionStore functionStore, ISerializer serializer, TypeMapper typeMapper, IReadOnlyList<StoredEffect> initialStoredEffects)
 {
     private readonly Dictionary<EffectId, StoredEffect> _storedEffectsDict = 
         initialStoredEffects.ToDictionary(s => s.EffectId, s => s);
@@ -50,7 +50,7 @@ public class ExistingEffects(StoredId storedId, FlowId flowId, IFunctionStore fu
             ? default
             : (TResult)serializer.Deserialize(
                 storedEffect.Result,
-                storedEffect.ResolveResultType(serializer)
+                storedEffect.ResolveResultType(typeMapper)
             );
     }
 
@@ -106,6 +106,8 @@ public class ExistingEffects(StoredId storedId, FlowId flowId, IFunctionStore fu
             ? CrudOperation.Update
             : CrudOperation.Insert;
         var change = new StoredEffectChange(storedId, storedEffect.EffectId, crudOperation, storedEffect);
+        if (storedEffect.ResultType != null)
+            await typeMapper.EnsurePersisted([storedEffect.ResultType.Value]);
         await functionStore.SetEffectResult(storedId, change, owner: null, session: null);
         storedEffects[storedEffect.EffectId] = storedEffect;
     }
@@ -133,7 +135,7 @@ public class ExistingEffects(StoredId storedId, FlowId flowId, IFunctionStore fu
                 Result: serializedResult,
                 StoredException: null,
                 Alias: null,
-                ResultType: serializer.SerializeType(resultType)
+                ResultType: typeMapper.GetTypeId(resultType)
             )
         );
     }

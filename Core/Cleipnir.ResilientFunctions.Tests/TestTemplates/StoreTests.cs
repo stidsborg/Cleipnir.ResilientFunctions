@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Serialization;
@@ -566,7 +567,7 @@ public abstract class StoreTests
 
         var storedMessages = await store.MessageStore.GetMessages(functionId);
         storedMessages.Count.ShouldBe(1);
-        var deserializedMessage = (string) DefaultSerializer.Instance.Deserialize(storedMessages[0].MessageContent, DefaultSerializer.Instance.ResolveType(storedMessages[0].MessageType)!);
+        var deserializedMessage = (string) DefaultSerializer.Instance.Deserialize(storedMessages[0].MessageContent, storedMessages[0].MessageType.ResolveType()!);
         deserializedMessage.ShouldBe("hello everyone");
     }
     
@@ -1045,10 +1046,10 @@ public abstract class StoreTests
         flowIds.Contains(flowId2).ShouldBeTrue();
     }
     
-    public abstract Task TypeStoreSunshineScenarioTest();
-    protected async Task TypeStoreSunshineScenarioTest(Task<IFunctionStore> storeTask)
+    public abstract Task FlowTypeStoreSunshineScenarioTest();
+    protected async Task FlowTypeStoreSunshineScenarioTest(Task<IFunctionStore> storeTask)
     {
-        var store = await storeTask.SelectAsync(store => store.TypeStore);
+        var store = await storeTask.SelectAsync(store => store.FlowTypeStore);
 
         var types = await store.GetAllFlowTypes();
         types.Count.ShouldBe(0);
@@ -1072,7 +1073,39 @@ public abstract class StoreTests
         types.TryGetValue("TestFlow2", out dictValue).ShouldBeTrue();
         dictValue.ShouldBe(flow2Value);
     }
-    
+
+    public abstract Task TypeStoreSunshineScenarioTest();
+    protected async Task TypeStoreSunshineScenarioTest(Task<IFunctionStore> storeTask)
+    {
+        var store = await storeTask.SelectAsync(store => store.TypeStore);
+
+        var types = await store.GetAllTypes();
+        types.Count.ShouldBe(0);
+
+        var stringType = "SomeNamespace.SomeType, SomeAssembly".ToUtf8Bytes();
+        var stringTypeId = TypeMapper.CalculateTypeId(stringType);
+        await store.InsertTypes(new Dictionary<long, byte[]> { { stringTypeId, stringType } });
+
+        types = await store.GetAllTypes();
+        types.Count.ShouldBe(1);
+        types[stringTypeId].ShouldBe(stringType);
+
+        // Re-inserting an existing mapping alongside a new one must be a no-op for the former
+        var otherType = "SomeNamespace.SomeOtherType, SomeAssembly".ToUtf8Bytes();
+        var otherTypeId = TypeMapper.CalculateTypeId(otherType);
+        await store.InsertTypes(
+            new Dictionary<long, byte[]> { { stringTypeId, stringType }, { otherTypeId, otherType } }
+        );
+
+        types = await store.GetAllTypes();
+        types.Count.ShouldBe(2);
+        types[stringTypeId].ShouldBe(stringType);
+        types[otherTypeId].ShouldBe(otherType);
+
+        await store.InsertTypes(new Dictionary<long, byte[]>());
+        (await store.GetAllTypes()).Count.ShouldBe(2);
+    }
+
     public abstract Task FlowWithParentIsReturnedInSubsequentGetTest();
     protected async Task FlowWithParentIsReturnedInSubsequentGetTest(Task<IFunctionStore> storeTask)
     {

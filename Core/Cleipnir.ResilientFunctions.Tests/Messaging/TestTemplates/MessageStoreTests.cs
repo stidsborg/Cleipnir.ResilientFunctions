@@ -376,7 +376,7 @@ public abstract class MessageStoreTests
         var newEvents = allEvents.Where(e => e.Position > skipPosition).ToList();
         newEvents.Count.ShouldBe(1);
         var storedEvent = newEvents[0];
-        var @event = DefaultSerializer.Instance.Deserialize(storedEvent.MessageContent, DefaultSerializer.Instance.ResolveType(storedEvent.MessageType)!);
+        var @event = DefaultSerializer.Instance.Deserialize(storedEvent.MessageContent, storedEvent.MessageType.ResolveType()!);
         @event.ShouldBe("hello world");
         storedEvent.IdempotencyKey.ShouldBe("idempotency_key_1");
         skipPosition = storedEvent.Position;
@@ -395,7 +395,7 @@ public abstract class MessageStoreTests
         newEvents = allEvents.Where(e => e.Position > skipPosition).ToList();
         newEvents.Count.ShouldBe(1);
         storedEvent = newEvents[0];
-        @event = DefaultSerializer.Instance.Deserialize(storedEvent.MessageContent, DefaultSerializer.Instance.ResolveType(storedEvent.MessageType)!);
+        @event = DefaultSerializer.Instance.Deserialize(storedEvent.MessageContent, storedEvent.MessageType.ResolveType()!);
         @event.ShouldBe("hello universe");
         storedEvent.IdempotencyKey.ShouldBe("idempotency_key_2");
         skipPosition = storedEvent.Position;
@@ -436,7 +436,7 @@ public abstract class MessageStoreTests
         var newEvents = allEvents.Where(e => e.Position > skipPosition).ToList();
         newEvents.Count.ShouldBe(1);
         var storedEvent = newEvents[0];
-        var @event = DefaultSerializer.Instance.Deserialize(storedEvent.MessageContent, DefaultSerializer.Instance.ResolveType(storedEvent.MessageType)!);
+        var @event = DefaultSerializer.Instance.Deserialize(storedEvent.MessageContent, storedEvent.MessageType.ResolveType()!);
         @event.ShouldBe("hello world");
         storedEvent.IdempotencyKey.ShouldBe("idempotency_key_1");
         skipPosition = storedEvent.Position;

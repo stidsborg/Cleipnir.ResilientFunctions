@@ -21,7 +21,7 @@ public static class CrashedTest
         stopWatch.Start();
 
         var flowType = new FlowType("CrashedTest");
-        var storedType = await store.TypeStore.InsertOrGetStoredType(flowType);
+        var storedType = await store.FlowTypeStore.InsertOrGetStoredType(flowType);
         
         Console.WriteLine("CRASHED_TEST: Initializing");
         for (var i = 0; i < testSize; i++)

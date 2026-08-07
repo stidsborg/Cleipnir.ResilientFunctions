@@ -50,7 +50,7 @@ public abstract class MessagesSubscriptionTests
         events.Count.ShouldBe(1);
         DefaultSerializer
             .Instance
-            .Deserialize(events[0].MessageContent, DefaultSerializer.Instance.ResolveType(events[0].MessageType)!)
+            .Deserialize(events[0].MessageContent, events[0].MessageType.ResolveType()!)
             .ShouldBe("hello world");
 
         var skipPosition = events[0].Position;
@@ -66,7 +66,7 @@ public abstract class MessagesSubscriptionTests
 
         DefaultSerializer
             .Instance
-            .Deserialize(filteredEvents[0].MessageContent, DefaultSerializer.Instance.ResolveType(filteredEvents[0].MessageType)!)
+            .Deserialize(filteredEvents[0].MessageContent, filteredEvents[0].MessageType.ResolveType()!)
             .ShouldBe("hello universe");
     }
 
@@ -699,7 +699,7 @@ public abstract Task PullEnvelopeReturnsEnvelopeWithReceiverAndSender();
         );
 
         // A message assigned to this replica whose flow type is never registered on it.
-        var storedType = await new StoredTypes(functionStore.TypeStore)
+        var storedType = await new StoredTypes(functionStore.FlowTypeStore)
             .InsertOrGet(nameof(MessageForUnregisteredFlowTypeIsDeadLetteredAfterGracePeriod));
         var storedId = StoredId.Create(storedType, "instanceId");
         var storedMessage = new StoredMessage(
@@ -739,7 +739,7 @@ public abstract Task PullEnvelopeReturnsEnvelopeWithReceiverAndSender();
             _ => { }
         );
 
-        var storedType = await new StoredTypes(functionStore.TypeStore).InsertOrGet(flowType);
+        var storedType = await new StoredTypes(functionStore.FlowTypeStore).InsertOrGet(flowType);
         var storedId = StoredId.Create(storedType, "instanceId");
         var storedMessage = new StoredMessage(
             storedId,

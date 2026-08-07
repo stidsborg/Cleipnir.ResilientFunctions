@@ -135,6 +135,10 @@ public class StoreTests : ResilientFunctions.Tests.TestTemplates.StoreTests
         => DifferentTypesAreFetchedByGetExpiredFunctionsCall(FunctionStoreFactory.Create());
 
     [TestMethod]
+    public override Task FlowTypeStoreSunshineScenarioTest()
+        => FlowTypeStoreSunshineScenarioTest(FunctionStoreFactory.Create());
+
+    [TestMethod]
     public override Task TypeStoreSunshineScenarioTest()
         => TypeStoreSunshineScenarioTest(FunctionStoreFactory.Create());
     

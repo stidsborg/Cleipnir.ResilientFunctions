@@ -203,7 +203,8 @@ public class StoredEffectSerializationTests
     {
         var effectId = new EffectId([1]);
         var result = DefaultSerializer.Instance.Serialize("SomeResult", typeof(string));
-        var resultType = DefaultSerializer.Instance.SerializeType(typeof(string));
+        var typeMapper = new TypeMapper(new InMemoryTypeStore());
+        var resultType = typeMapper.GetTypeId(typeof(string));
         var storedEffect = StoredEffect.CreateCompleted(effectId, result, resultType, alias: null);
 
         var serialized = storedEffect.Serialize();
@@ -212,7 +213,7 @@ public class StoredEffectSerializationTests
         deserialized.Result.ShouldBe(result);
         deserialized.ResultType.ShouldBe(resultType);
         DefaultSerializer.Instance
-            .Deserialize(deserialized.Result!, DefaultSerializer.Instance.ResolveType(deserialized.ResultType!)!)
+            .Deserialize(deserialized.Result!, typeMapper.ResolveType(deserialized.ResultType!.Value))
             .ShouldBe("SomeResult");
     }
 

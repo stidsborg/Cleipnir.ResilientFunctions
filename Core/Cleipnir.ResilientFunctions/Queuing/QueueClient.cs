@@ -4,6 +4,7 @@ using Cleipnir.ResilientFunctions.CoreRuntime;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.CoreRuntime.Serialization;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
 
 namespace Cleipnir.ResilientFunctions.Queuing;
@@ -73,7 +74,7 @@ internal class QueueClient(QueueManager queueManager, ISerializer serializer, Ut
         if (!effect.TryGet<byte[]>(messageTypeId, out var typeNameBytes))
             return null; // timeout case - no message was received
 
-        var type = serializer.ResolveType(typeNameBytes!)
+        var type = typeNameBytes!.ResolveType()
                    ?? throw new TypeLoadException($"Type '{Convert.ToBase64String(typeNameBytes!)}' could not be resolved");
         if (!effect.TryGet<byte[]>(messageId, out var messageBytes))
             throw new InvalidOperationException("Effect did not contain message");
