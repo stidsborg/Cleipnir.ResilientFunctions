@@ -28,6 +28,9 @@ public class TypeMapper(ITypeStore typeStore)
     // completed (or from a store refresh) - never before. Concurrent EnsurePersisted calls may therefore insert
     // the same mapping more than once; inserts are idempotent, so no queuing is needed.
     private readonly ConcurrentDictionary<TypeId, byte[]> _serializedTypes = new();
+    // Minted-but-not-yet-persisted mappings: GetTypeId adds, EnsurePersisted drains once the insert has
+    // completed - so its fast path is an emptiness check rather than a sweep over every minted type.
+    private readonly ConcurrentDictionary<TypeId, byte[]> _unpersisted = new();
 
     public TypeId GetTypeId(Type type)
     {
@@ -37,32 +40,34 @@ public class TypeMapper(ITypeStore typeStore)
         var serializedType = type.SerializeType();
         var typeId = CalculateTypeId(serializedType);
 
-        if (_serializedTypes.TryGetValue(typeId, out var existing) && !existing.SequenceEqual(serializedType))
-            throw new InvalidOperationException(
-                $"Type id '{typeId}' of type '{serializedType.ToStringFromUtf8Bytes()}' collides with already-registered type '{existing.ToStringFromUtf8Bytes()}'"
-            );
+        if (_serializedTypes.TryGetValue(typeId, out var existing))
+        {
+            if (!existing.SequenceEqual(serializedType))
+                throw new InvalidOperationException(
+                    $"Type id '{typeId}' of type '{serializedType.ToStringFromUtf8Bytes()}' collides with already-registered type '{existing.ToStringFromUtf8Bytes()}'"
+                );
+        }
+        else
+            _unpersisted.TryAdd(typeId, serializedType);
 
         _typeIds.TryAdd(type, typeId);
         return typeId;
     }
 
     public Task EnsurePersisted()
-    {
-        Dictionary<TypeId, byte[]>? missing = null;
-        foreach (var (type, typeId) in _typeIds)
-            if (!_serializedTypes.ContainsKey(typeId))
-                (missing ??= new Dictionary<TypeId, byte[]>())[typeId] = type.SerializeType();
-
-        return missing == null
+        => _unpersisted.IsEmpty
             ? Task.CompletedTask
-            : PersistMissing(missing);
-    }
+            : PersistMissing();
 
-    private async Task PersistMissing(Dictionary<TypeId, byte[]> missing)
+    private async Task PersistMissing()
     {
+        var missing = _unpersisted.ToDictionary(kv => kv.Key, kv => kv.Value);
         await typeStore.InsertTypes(missing);
         foreach (var (typeId, serializedType) in missing)
+        {
             _serializedTypes.TryAdd(typeId, serializedType);
+            _unpersisted.TryRemove(typeId, out _);
+        }
     }
 
     public Type ResolveType(TypeId typeId)
@@ -81,8 +86,8 @@ public class TypeMapper(ITypeStore typeStore)
 
         // A minted-but-not-yet-persisted id occurs when a payload created in this process is read back before
         // its first durable write.
-        if (FindMintedSerializedType(typeId) is { } mintedSerializedType)
-            return mintedSerializedType;
+        if (_unpersisted.TryGetValue(typeId, out var unpersistedType))
+            return unpersistedType;
 
         // An unknown id belongs to a payload persisted by a process whose type mappings were stored before the
         // payload was, so a refresh is guaranteed to surface it. Blocking is accepted here: resolution happens
@@ -93,17 +98,6 @@ public class TypeMapper(ITypeStore typeStore)
             return serializedType;
 
         throw new TypeLoadException($"Type with id '{typeId}' was not found in the type store");
-    }
-
-    // Reverse lookup over the ids minted by GetTypeId - a handful of entries, and only consulted until the
-    // mapping in question has been persisted.
-    private byte[]? FindMintedSerializedType(TypeId typeId)
-    {
-        foreach (var (type, id) in _typeIds)
-            if (id == typeId)
-                return type.SerializeType();
-
-        return null;
     }
 
     private async Task RefreshFromStore()
