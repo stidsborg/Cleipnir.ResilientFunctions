@@ -33,7 +33,7 @@ public class SqlServerTypeStore(string connectionString, string tablePrefix = ""
         await command.ExecuteNonQueryAsync();
     }
 
-    public async Task InsertTypes(IReadOnlyDictionary<long, byte[]> types)
+    public async Task InsertTypes(IReadOnlyDictionary<TypeId, byte[]> types)
     {
         if (types.Count == 0)
             return;
@@ -50,7 +50,7 @@ public class SqlServerTypeStore(string connectionString, string tablePrefix = ""
         var i = 0;
         foreach (var (id, type) in types)
         {
-            command.Parameters.AddWithValue($"@Id{i}", id);
+            command.Parameters.AddWithValue($"@Id{i}", id.Value);
             command.Parameters.AddWithValue($"@Type{i}", type);
             i++;
         }
@@ -64,7 +64,7 @@ public class SqlServerTypeStore(string connectionString, string tablePrefix = ""
         catch (SqlException exception) when (exception.Number == 2627) {}
     }
 
-    public async Task<IReadOnlyDictionary<long, byte[]>> GetAllTypes()
+    public async Task<IReadOnlyDictionary<TypeId, byte[]>> GetAllTypes()
     {
         await using var conn = await CreateConnection();
         var sql = @$"
@@ -72,12 +72,12 @@ public class SqlServerTypeStore(string connectionString, string tablePrefix = ""
             FROM {tablePrefix}_DotnetTypes";
 
         await using var command = new SqlCommand(sql, conn);
-        var dict = new Dictionary<long, byte[]>();
+        var dict = new Dictionary<TypeId, byte[]>();
 
         await using var reader = await command.ExecuteReaderAsync();
         while (await reader.ReadAsync())
         {
-            var id = reader.GetInt64(0);
+            var id = new TypeId(reader.GetInt64(0));
             var type = (byte[]) reader.GetValue(1);
             dict[id] = type;
         }

@@ -33,7 +33,7 @@ public class PostgreSqlTypeStore(string connectionString, string tablePrefix = "
     }
 
     private string? _insertTypesSql;
-    public async Task InsertTypes(IReadOnlyDictionary<long, byte[]> types)
+    public async Task InsertTypes(IReadOnlyDictionary<TypeId, byte[]> types)
     {
         if (types.Count == 0)
             return;
@@ -49,7 +49,7 @@ public class PostgreSqlTypeStore(string connectionString, string tablePrefix = "
         {
             Parameters =
             {
-                new() { Value = types.Keys.ToArray() },
+                new() { Value = types.Keys.Select(id => id.Value).ToArray() },
                 new() { Value = types.Values.ToArray() }
             }
         };
@@ -57,17 +57,17 @@ public class PostgreSqlTypeStore(string connectionString, string tablePrefix = "
         await command.ExecuteNonQueryAsync();
     }
 
-    public async Task<IReadOnlyDictionary<long, byte[]>> GetAllTypes()
+    public async Task<IReadOnlyDictionary<TypeId, byte[]>> GetAllTypes()
     {
         await using var conn = await CreateConnection();
         var sql = $"SELECT id, type FROM {_tablePrefix}_dotnet_types";
 
         await using var command = new NpgsqlCommand(sql, conn);
-        var dict = new Dictionary<long, byte[]>();
+        var dict = new Dictionary<TypeId, byte[]>();
         await using var reader = await command.ExecuteReaderAsync();
         while (await reader.ReadAsync())
         {
-            var id = reader.GetInt64(0);
+            var id = new TypeId(reader.GetInt64(0));
             var type = reader.GetFieldValue<byte[]>(1);
             dict[id] = type;
         }

@@ -106,8 +106,7 @@ public class ExistingEffects(StoredId storedId, FlowId flowId, IFunctionStore fu
             ? CrudOperation.Update
             : CrudOperation.Insert;
         var change = new StoredEffectChange(storedId, storedEffect.EffectId, crudOperation, storedEffect);
-        if (storedEffect.ResultType != null)
-            await typeMapper.EnsurePersisted([storedEffect.ResultType.Value]);
+        await typeMapper.EnsurePersisted();
         await functionStore.SetEffectResult(storedId, change, owner: null, session: null);
         storedEffects[storedEffect.EffectId] = storedEffect;
     }

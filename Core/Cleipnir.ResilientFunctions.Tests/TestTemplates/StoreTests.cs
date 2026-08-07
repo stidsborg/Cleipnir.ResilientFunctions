@@ -541,7 +541,7 @@ public abstract class StoreTests
         var message1 = new StoredMessage(
             functionId,
             "hello everyone".ToJson().ToUtf8Bytes(),
-            MessageType: typeof(string).SimpleQualifiedName().ToUtf8Bytes(),
+            MessageType: store.GetTypeId(typeof(string)),
             Position: 0,
             Replica: ReplicaId.Empty,
             IdempotencyKey: "idempotency_key_1"
@@ -567,7 +567,7 @@ public abstract class StoreTests
 
         var storedMessages = await store.MessageStore.GetMessages(functionId);
         storedMessages.Count.ShouldBe(1);
-        var deserializedMessage = (string) DefaultSerializer.Instance.Deserialize(storedMessages[0].MessageContent, storedMessages[0].MessageType.ResolveType()!);
+        var deserializedMessage = (string) DefaultSerializer.Instance.Deserialize(storedMessages[0].MessageContent, store.CreateTypeMapper().ResolveType(storedMessages[0].MessageType!.Value));
         deserializedMessage.ShouldBe("hello everyone");
     }
     
@@ -610,7 +610,7 @@ public abstract class StoreTests
         await Task.Delay(500);
 
         await store.MessageStore.AppendMessage(
-            new StoredMessage(functionId, "hello world".ToJson().ToUtf8Bytes(), MessageType: typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Replica: ReplicaId.Empty, Position: 0)
+            new StoredMessage(functionId, "hello world".ToJson().ToUtf8Bytes(), MessageType: store.GetTypeId(typeof(string)), Replica: ReplicaId.Empty, Position: 0)
         );
     }
     
@@ -621,7 +621,7 @@ public abstract class StoreTests
         var functionId = TestStoredId.Create();
         
         await store.MessageStore.AppendMessage(
-            new StoredMessage(functionId, "hello world".ToJson().ToUtf8Bytes(), MessageType: typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Replica: ReplicaId.Empty, Position: 0)
+            new StoredMessage(functionId, "hello world".ToJson().ToUtf8Bytes(), MessageType: store.GetTypeId(typeof(string)), Replica: ReplicaId.Empty, Position: 0)
         );
     }
     
@@ -671,13 +671,13 @@ public abstract class StoreTests
         );
         session.ShouldBeNull();
 
-        await store.MessageStore.AppendMessage(new StoredMessage(functionId, "Hello".ToJson().ToUtf8Bytes(), MessageType: typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Replica: ReplicaId.Empty, Position: 0));
-        await store.MessageStore.AppendMessage(new StoredMessage(functionId, "World".ToJson().ToUtf8Bytes(), MessageType: typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Replica: ReplicaId.Empty, Position: 0));
+        await store.MessageStore.AppendMessage(new StoredMessage(functionId, "Hello".ToJson().ToUtf8Bytes(), MessageType: store.GetTypeId(typeof(string)), Replica: ReplicaId.Empty, Position: 0));
+        await store.MessageStore.AppendMessage(new StoredMessage(functionId, "World".ToJson().ToUtf8Bytes(), MessageType: store.GetTypeId(typeof(string)), Replica: ReplicaId.Empty, Position: 0));
         
         var messages = await store.MessageStore.GetMessages(functionId);
         messages.Count.ShouldBe(2);
-        messages[0].DefaultDeserialize().ShouldBe("Hello");
-        messages[1].DefaultDeserialize().ShouldBe("World");
+        messages[0].DefaultDeserialize(store).ShouldBe("Hello");
+        messages[1].DefaultDeserialize(store).ShouldBe("World");
     }
     
     public abstract Task FunctionStatusAndEpochCanBeSuccessfullyFetched();
@@ -1084,7 +1084,7 @@ public abstract class StoreTests
 
         var stringType = "SomeNamespace.SomeType, SomeAssembly".ToUtf8Bytes();
         var stringTypeId = TypeMapper.CalculateTypeId(stringType);
-        await store.InsertTypes(new Dictionary<long, byte[]> { { stringTypeId, stringType } });
+        await store.InsertTypes(new Dictionary<TypeId, byte[]> { { stringTypeId, stringType } });
 
         types = await store.GetAllTypes();
         types.Count.ShouldBe(1);
@@ -1094,7 +1094,7 @@ public abstract class StoreTests
         var otherType = "SomeNamespace.SomeOtherType, SomeAssembly".ToUtf8Bytes();
         var otherTypeId = TypeMapper.CalculateTypeId(otherType);
         await store.InsertTypes(
-            new Dictionary<long, byte[]> { { stringTypeId, stringType }, { otherTypeId, otherType } }
+            new Dictionary<TypeId, byte[]> { { stringTypeId, stringType }, { otherTypeId, otherType } }
         );
 
         types = await store.GetAllTypes();
@@ -1102,7 +1102,7 @@ public abstract class StoreTests
         types[stringTypeId].ShouldBe(stringType);
         types[otherTypeId].ShouldBe(otherType);
 
-        await store.InsertTypes(new Dictionary<long, byte[]>());
+        await store.InsertTypes(new Dictionary<TypeId, byte[]>());
         (await store.GetAllTypes()).Count.ShouldBe(2);
     }
 
@@ -1219,7 +1219,7 @@ public abstract class StoreTests
         var message1 = new StoredMessage(
             storedId,
             MessageContent: "hallo world".ToUtf8Bytes(),
-            MessageType: "some type".ToUtf8Bytes(),
+            MessageType: new TypeId(11),
             Position: 0,
             Replica: ReplicaId.Empty,
             IdempotencyKey: "some idempotency key"
@@ -1227,7 +1227,7 @@ public abstract class StoreTests
         var message2 = new StoredMessage(
             storedId,
             MessageContent: "hallo universe".ToUtf8Bytes(),
-            MessageType: "some type".ToUtf8Bytes(),
+            MessageType: new TypeId(11),
             Position: 0,
             Replica: ReplicaId.Empty,
             IdempotencyKey: "some idempotency key"
@@ -1261,12 +1261,12 @@ public abstract class StoreTests
         var messages = await store.MessageStore.GetMessages(storedId);
         messages.Count.ShouldBe(2);
         var fetchedMessage1 = messages[0];
-        fetchedMessage1.MessageType.ToStringFromUtf8Bytes().ShouldBe("some type");
+        fetchedMessage1.MessageType.ShouldBe(new TypeId(11));
         fetchedMessage1.MessageContent.ToStringFromUtf8Bytes().ShouldBe("hallo world");
         fetchedMessage1.IdempotencyKey.ShouldBe("some idempotency key");
 
         var fetchedMessage2 = messages[1];
-        fetchedMessage2.MessageType.ToStringFromUtf8Bytes().ShouldBe("some type");
+        fetchedMessage2.MessageType.ShouldBe(new TypeId(11));
         fetchedMessage2.MessageContent.ToStringFromUtf8Bytes().ShouldBe("hallo universe");
         fetchedMessage2.IdempotencyKey.ShouldBe("some idempotency key");
         
@@ -1294,7 +1294,7 @@ public abstract class StoreTests
         var message1 = new StoredMessage(
             storedId,
             MessageContent: "hallo world".ToUtf8Bytes(),
-            MessageType: "some type".ToUtf8Bytes(),
+            MessageType: new TypeId(11),
             Position: 0,
             Replica: ReplicaId.Empty,
             IdempotencyKey: "some idempotency key"
@@ -1302,7 +1302,7 @@ public abstract class StoreTests
         var message2 = new StoredMessage(
             storedId,
             MessageContent: "hallo universe".ToUtf8Bytes(),
-            MessageType: "some type".ToUtf8Bytes(),
+            MessageType: new TypeId(11),
             Position: 0,
             Replica: ReplicaId.Empty,
             IdempotencyKey: "some idempotency key"
@@ -1330,12 +1330,12 @@ public abstract class StoreTests
         var messages = await store.MessageStore.GetMessages(storedId);
         messages.Count.ShouldBe(2);
         var fetchedMessage1 = messages[0];
-        fetchedMessage1.MessageType.ToStringFromUtf8Bytes().ShouldBe("some type");
+        fetchedMessage1.MessageType.ShouldBe(new TypeId(11));
         fetchedMessage1.MessageContent.ToStringFromUtf8Bytes().ShouldBe("hallo world");
         fetchedMessage1.IdempotencyKey.ShouldBe("some idempotency key");
 
         var fetchedMessage2 = messages[1];
-        fetchedMessage2.MessageType.ToStringFromUtf8Bytes().ShouldBe("some type");
+        fetchedMessage2.MessageType.ShouldBe(new TypeId(11));
         fetchedMessage2.MessageContent.ToStringFromUtf8Bytes().ShouldBe("hallo universe");
         fetchedMessage2.IdempotencyKey.ShouldBe("some idempotency key");
         
@@ -1437,7 +1437,7 @@ public abstract class StoreTests
             new StoredMessage(
                 functionId,
                 "hallo message".ToUtf8Bytes(),
-                typeof(string).SimpleQualifiedName().ToUtf8Bytes(),
+                store.GetTypeId(typeof(string)),
                 Position: 0,
                 Replica: ReplicaId.Empty
             )

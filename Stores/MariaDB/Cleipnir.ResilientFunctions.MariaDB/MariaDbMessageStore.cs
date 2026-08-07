@@ -210,7 +210,7 @@ public class MariaDbMessageStore : IMessageStore
     {
         var arrs = BinaryPacker.Split(content, expectedPieces: 5);
         var message = arrs[0]!;
-        var type = arrs[1]!;
+        var type = arrs[1] == null ? default(TypeId?) : TypeId.Deserialize(arrs[1]!);
         var idempotencyKey = arrs[2];
         var sender = arrs[3];
         var receiver = arrs[4];

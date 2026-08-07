@@ -19,15 +19,16 @@ namespace Cleipnir.ResilientFunctions.Messaging;
 internal class MessageSender(
     IFunctionStore functionStore,
     ISerializer serializer,
+    TypeMapper typeMapper,
     ClusterInfo clusterInfo
 )
 {
     public MessageWatchdog? MessageWatchdog { get; set; }
-    
+
     public SerializedMessage Serialize(StoredId storedId, object message, string? idempotencyKey = null, string? sender = null, string? receiver = null)
     {
         var content = serializer.Serialize(message, message.GetType());
-        var type = message.GetType().SerializeType();
+        var type = typeMapper.GetTypeId(message.GetType());
         return new SerializedMessage(storedId, content, type, idempotencyKey, sender, receiver);
     }
 
@@ -68,7 +69,7 @@ internal class MessageSender(
         => await SendMessages(
             storedIds
                 .Select(storedId => new SerializedMessageWithReplicaId(
-                    new SerializedMessage(storedId, Content: [], Type: [], IdempotencyKey: null, Sender: null, Receiver: null),
+                    new SerializedMessage(storedId, Content: [], Type: null, IdempotencyKey: null, Sender: null, Receiver: null),
                     clusterInfo.ReplicaId
                 ))
                 .ToList()
@@ -78,6 +79,10 @@ internal class MessageSender(
     {
         if (messages.Count == 0)
             return;
+
+        // The messages' types must exist in the type store before the message rows do - otherwise a crash
+        // between the two writes would leave messages that can never be deserialized.
+        await typeMapper.EnsurePersisted();
 
         await functionStore.MessageStore.AppendMessages(messages);
 

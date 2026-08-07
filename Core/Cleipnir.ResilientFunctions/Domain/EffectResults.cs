@@ -491,15 +491,11 @@ internal class EffectResults
                     )
                 ).ToList();
 
-            // The result types referenced by the batch must exist in the type store before the effects do -
-            // otherwise a crash between the two writes would leave effects whose results can never be
-            // deserialized. Completes synchronously when the batch introduces no new types.
-            await _typeMapper.EnsurePersisted(
-                changes
-                    .Where(c => c.StoredEffect?.ResultType != null)
-                    .Select(c => c.StoredEffect!.ResultType!.Value)
-                    .ToList()
-            );
+            // The types referenced by the batch must exist in the type store before the effects do - otherwise
+            // a crash between the two writes would leave payloads that can never be deserialized. Persisting all
+            // minted types also covers ids buried inside already-encoded payloads (staged-message children).
+            // Completes synchronously when the batch introduces no new types.
+            await _typeMapper.EnsurePersisted();
 
             await _functionStore.SetEffectResults(_storedId, changes, _owner, _storageSession);
 

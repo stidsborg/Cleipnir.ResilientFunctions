@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime;
 using Cleipnir.ResilientFunctions.CoreRuntime.Serialization;
 using Cleipnir.ResilientFunctions.CoreRuntime.Watchdogs;
+using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Domain.Exceptions;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
@@ -24,6 +25,7 @@ namespace Cleipnir.ResilientFunctions.Queuing;
 /// </summary>
 internal class MessageDeserializer(
     ISerializer serializer,
+    TypeMapper typeMapper,
     IDlqStore dlqStore,
     IMessageClearer messageClearer,
     UnhandledExceptionHandler unhandledExceptionHandler)
@@ -37,7 +39,7 @@ internal class MessageDeserializer(
     {
         try
         {
-            var payload = serializer.Deserialize(message.MessageContent, message.MessageType.ResolveType()!);
+            var payload = serializer.Deserialize(message.MessageContent, typeMapper.ResolveType(message.MessageType!.Value));
             return ToIncomingMessage(payload, message);
         }
         catch (Exception exception)

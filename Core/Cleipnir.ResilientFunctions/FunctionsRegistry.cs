@@ -61,6 +61,7 @@ public class FunctionsRegistry : IDisposable
         _messageSender = new MessageSender(
             _functionStore,
             _settings.Serializer.DecorateWithErrorHandling(),
+            _typeMapper,
             ClusterInfo
         );
 
@@ -83,6 +84,7 @@ public class FunctionsRegistry : IDisposable
         // settings cannot override it), so nothing about deserialization is type-specific.
         _messageDeserializer = new MessageDeserializer(
             _settings.Serializer.DecorateWithErrorHandling(),
+            _typeMapper,
             _functionStore.DlqStore,
             _messageClearer,
             _settings.UnhandledExceptionHandler

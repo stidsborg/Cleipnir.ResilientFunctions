@@ -85,12 +85,10 @@ internal class InvocationHelper<TParam, TReturn>
                 ? null
                 : MapInitialEffectsAndMessages(initialState, flowId);
 
-            // The initial effects' result types must exist in the type store before the effects are persisted -
+            // The initial effects' and messages' types must exist in the type store before the flow is persisted -
             // see EffectResults.Flush.
             if (effects != null)
-                await _typeMapper.EnsurePersisted(
-                    effects.Where(e => e.ResultType != null).Select(e => e.ResultType!.Value).ToList()
-                );
+                await _typeMapper.EnsurePersisted();
 
             var storageState = await _functionStore.CreateFunction(
                 storedId,
@@ -420,6 +418,7 @@ internal class InvocationHelper<TParam, TReturn>
             flowId,
             storedId,
             Serializer,
+            _typeMapper,
             effect,
             flowExecutionState,
             unhandledExceptionHandler,
@@ -497,7 +496,7 @@ internal class InvocationHelper<TParam, TReturn>
             if (e.Exception == null)
             {
                 byte[]? resultBytes = null;
-                long? resultType = null;
+                TypeId? resultType = null;
                 if (e.Value != null)
                 {
                     var (value, valueType) = EffectValue.ForSerialization(e.Value, typeof(object));
@@ -543,7 +542,7 @@ internal class InvocationHelper<TParam, TReturn>
                 continue;
 
             var content = Serializer.Serialize(message.Message, message.Message.GetType());
-            var type = message.Message.GetType().SerializeType();
+            var type = _typeMapper.GetTypeId(message.Message.GetType());
             var encodedMessage = PendingMessages.EncodeMessage(
                 content, type, position: null, idempotencyKey: message.IdempotencyKey
             );

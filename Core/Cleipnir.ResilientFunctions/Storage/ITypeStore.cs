@@ -12,6 +12,6 @@ namespace Cleipnir.ResilientFunctions.Storage;
 /// </summary>
 public interface ITypeStore
 {
-    public Task InsertTypes(IReadOnlyDictionary<long, byte[]> types);
-    public Task<IReadOnlyDictionary<long, byte[]>> GetAllTypes();
+    public Task InsertTypes(IReadOnlyDictionary<TypeId, byte[]> types);
+    public Task<IReadOnlyDictionary<TypeId, byte[]>> GetAllTypes();
 }

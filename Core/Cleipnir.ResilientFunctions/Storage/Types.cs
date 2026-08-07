@@ -130,10 +130,10 @@ public record StoredEffect(
     // The id of the type Result was serialized as (see TypeMapper) - null when there is no result. Persisted
     // alongside the result so it can be deserialized without the caller stating the type; the id -> type mapping
     // is persisted to the type store before any effect referencing it.
-    long? ResultType = null
+    TypeId? ResultType = null
 )
 {
-    public static StoredEffect CreateCompleted(EffectId effectId, byte[]? result, long? resultType, string? alias)
+    public static StoredEffect CreateCompleted(EffectId effectId, byte[]? result, TypeId? resultType, string? alias)
         => new(effectId, WorkStatus.Completed, result, StoredException: null, alias, resultType);
     public static StoredEffect CreateCompleted(EffectId effectId, string? alias)
         => new(effectId, WorkStatus.Completed, Result: null, StoredException: null, alias);
@@ -151,12 +151,7 @@ public record StoredEffect(
         var result = Result;
         var exception = StoredException?.Serialize();
         var alias = Alias?.ToUtf8Bytes();
-        byte[]? resultType = null;
-        if (ResultType != null)
-        {
-            resultType = new byte[sizeof(long)];
-            BinaryPrimitives.WriteInt64LittleEndian(resultType, ResultType.Value);
-        }
+        var resultType = ResultType?.Serialize();
 
         return BinaryPacker.Pack(effect, [status], result, exception, alias, resultType);
     }
@@ -173,8 +168,8 @@ public record StoredEffect(
         var exception = parts[3] == null ? null : StoredException.Deserialize(parts[3]!);
         var alias = parts[4]?.ToStringFromUtf8Bytes();
         var resultType = parts[5] == null
-            ? default(long?)
-            : BinaryPrimitives.ReadInt64LittleEndian(parts[5]);
+            ? default(TypeId?)
+            : TypeId.Deserialize(parts[5]);
 
         return new StoredEffect(effect, status, result, exception, alias, resultType);
     }

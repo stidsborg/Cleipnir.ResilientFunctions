@@ -8,10 +8,10 @@ namespace Cleipnir.ResilientFunctions.Storage;
 
 public class InMemoryTypeStore : ITypeStore
 {
-    private ImmutableDictionary<long, byte[]> _types = ImmutableDictionary<long, byte[]>.Empty;
+    private ImmutableDictionary<TypeId, byte[]> _types = ImmutableDictionary<TypeId, byte[]>.Empty;
     private readonly Lock _sync = new();
 
-    public Task InsertTypes(IReadOnlyDictionary<long, byte[]> types)
+    public Task InsertTypes(IReadOnlyDictionary<TypeId, byte[]> types)
     {
         lock (_sync)
             _types = _types.SetItems(types);
@@ -19,6 +19,6 @@ public class InMemoryTypeStore : ITypeStore
         return Task.CompletedTask;
     }
 
-    public Task<IReadOnlyDictionary<long, byte[]>> GetAllTypes()
-        => ((IReadOnlyDictionary<long, byte[]>) _types).ToTask();
+    public Task<IReadOnlyDictionary<TypeId, byte[]>> GetAllTypes()
+        => ((IReadOnlyDictionary<TypeId, byte[]>) _types).ToTask();
 }

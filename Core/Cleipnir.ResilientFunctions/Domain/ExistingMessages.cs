@@ -53,7 +53,7 @@ public class ExistingMessages
         var stagedMessages = await GetStagedMessages();
         return stagedMessages.Select(staged =>
             new MessageAndIdempotencyKey(
-                _serializer.Deserialize(staged.Message.MessageContent, staged.Message.MessageType.ResolveType()!),
+                _serializer.Deserialize(staged.Message.MessageContent, _typeMapper.ResolveType(staged.Message.MessageType!.Value)),
                 staged.Message.IdempotencyKey
             )
         ).ToList();
@@ -181,7 +181,7 @@ public class ExistingMessages
     private byte[] EncodeMessage<T>(T message, string? idempotencyKey, long? position) where T : notnull
     {
         var json = _serializer.Serialize(message, message.GetType());
-        var type = message.GetType().SerializeType();
+        var type = _typeMapper.GetTypeId(message.GetType());
         return PendingMessages.EncodeMessage(json, type, position, idempotencyKey: idempotencyKey);
     }
 
@@ -207,7 +207,7 @@ public class ExistingMessages
 
             try
             {
-                await _typeMapper.EnsurePersisted([entry.ResultType!.Value]);
+                await _typeMapper.EnsurePersisted();
                 await _functionStore.SetEffectResult(
                     _storedId,
                     new StoredEffectChange(_storedId, childId, CrudOperation.Insert, entry),

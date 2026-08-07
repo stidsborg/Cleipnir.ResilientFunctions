@@ -6,10 +6,11 @@ using Cleipnir.ResilientFunctions.CoreRuntime.Serialization;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
+using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.Queuing;
 
-internal class QueueClient(QueueManager queueManager, ISerializer serializer, UtcNow utcNow)
+internal class QueueClient(QueueManager queueManager, ISerializer serializer, TypeMapper typeMapper, UtcNow utcNow)
 {
     public Task<T> Pull<T>(Workflow workflow, EffectId parentId, Func<T, bool>? filter = null)  where T : class
         => Pull(filter, workflow, parentId, timeout: null)!;
@@ -64,18 +65,17 @@ internal class QueueClient(QueueManager queueManager, ISerializer serializer, Ut
                         :
                         [
                             EffectResult.Create(messageId, msg.MessageContentBytes),
-                            EffectResult.Create(messageTypeId, msg.MessageTypeBytes),
+                            EffectResult.Create(messageTypeId, msg.MessageType),
                             EffectResult.Create(receiverId, msg.Receiver),
                             EffectResult.Create(senderId, msg.Sender),
                         ]
             );
         }
 
-        if (!effect.TryGet<byte[]>(messageTypeId, out var typeNameBytes))
+        if (!effect.TryGet<TypeId>(messageTypeId, out var messageType))
             return null; // timeout case - no message was received
 
-        var type = typeNameBytes!.ResolveType()
-                   ?? throw new TypeLoadException($"Type '{Convert.ToBase64String(typeNameBytes!)}' could not be resolved");
+        var type = typeMapper.ResolveType(messageType);
         if (!effect.TryGet<byte[]>(messageId, out var messageBytes))
             throw new InvalidOperationException("Effect did not contain message");
 

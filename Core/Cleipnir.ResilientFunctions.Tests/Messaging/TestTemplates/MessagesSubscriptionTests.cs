@@ -43,14 +43,14 @@ public abstract class MessagesSubscriptionTests
         events.ShouldBeEmpty();
 
         await messageStore.AppendMessage(
-            new StoredMessage(functionId, "hello world". ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Replica: ReplicaId.Empty, Position: 0)
+            new StoredMessage(functionId, "hello world". ToJson().ToUtf8Bytes(), functionStore.GetTypeId(typeof(string)), Replica: ReplicaId.Empty, Position: 0)
         );
 
         events = await messageStore.GetMessages(functionId);
         events.Count.ShouldBe(1);
         DefaultSerializer
             .Instance
-            .Deserialize(events[0].MessageContent, events[0].MessageType.ResolveType()!)
+            .Deserialize(events[0].MessageContent, functionStore.CreateTypeMapper().ResolveType(events[0].MessageType!.Value))
             .ShouldBe("hello world");
 
         var skipPosition = events[0].Position;
@@ -58,7 +58,7 @@ public abstract class MessagesSubscriptionTests
         filteredEvents.ShouldBeEmpty();
 
         await messageStore.AppendMessage(
-            new StoredMessage(functionId, "hello universe".ToJson().ToUtf8Bytes(), typeof(string).SimpleQualifiedName().ToUtf8Bytes(), Replica: ReplicaId.Empty, Position: 0)
+            new StoredMessage(functionId, "hello universe".ToJson().ToUtf8Bytes(), functionStore.GetTypeId(typeof(string)), Replica: ReplicaId.Empty, Position: 0)
         );
 
         filteredEvents = (await messageStore.GetMessages(functionId)).Where(e => e.Position > skipPosition).ToList();
@@ -66,7 +66,7 @@ public abstract class MessagesSubscriptionTests
 
         DefaultSerializer
             .Instance
-            .Deserialize(filteredEvents[0].MessageContent, filteredEvents[0].MessageType.ResolveType()!)
+            .Deserialize(filteredEvents[0].MessageContent, functionStore.CreateTypeMapper().ResolveType(filteredEvents[0].MessageType!.Value))
             .ShouldBe("hello universe");
     }
 
@@ -705,7 +705,7 @@ public abstract Task PullEnvelopeReturnsEnvelopeWithReceiverAndSender();
         var storedMessage = new StoredMessage(
             storedId,
             "hello world".ToJson().ToUtf8Bytes(),
-            typeof(string).SimpleQualifiedName().ToUtf8Bytes(),
+            functionStore.GetTypeId(typeof(string)),
             Position: 0,
             Replica: functionsRegistry.ClusterInfo.ReplicaId
         );
@@ -717,7 +717,7 @@ public abstract Task PullEnvelopeReturnsEnvelopeWithReceiverAndSender();
         await BusyWait.Until(async () => await functionStore.MessageStore.GetMessages(storedId).SelectAsync(m => m.Count) == 0);
 
         var dlqMessages = await functionStore.DlqStore.GetMessages([storedId]);
-        dlqMessages.Single().DefaultDeserialize().ShouldBe("hello world");
+        dlqMessages.Single().DefaultDeserialize(functionStore).ShouldBe("hello world");
 
         unhandledExceptionCatcher.ThrownExceptions
             .Any(e => e.Message.Contains("dead letter queue"))
@@ -744,7 +744,7 @@ public abstract Task PullEnvelopeReturnsEnvelopeWithReceiverAndSender();
         var storedMessage = new StoredMessage(
             storedId,
             "hello world".ToJson().ToUtf8Bytes(),
-            typeof(string).SimpleQualifiedName().ToUtf8Bytes(),
+            functionStore.GetTypeId(typeof(string)),
             Position: 0,
             Replica: registryWithoutType.ClusterInfo.ReplicaId
         );

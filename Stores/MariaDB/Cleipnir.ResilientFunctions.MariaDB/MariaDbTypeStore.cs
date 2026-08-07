@@ -30,7 +30,7 @@ public class MariaDbTypeStore(string connectionString, string tablePrefix = "") 
         await command.ExecuteNonQueryAsync();
     }
 
-    public async Task InsertTypes(IReadOnlyDictionary<long, byte[]> types)
+    public async Task InsertTypes(IReadOnlyDictionary<TypeId, byte[]> types)
     {
         if (types.Count == 0)
             return;
@@ -45,24 +45,24 @@ public class MariaDbTypeStore(string connectionString, string tablePrefix = "") 
         await using var command = new MySqlCommand(sql, conn);
         foreach (var (id, type) in types)
         {
-            command.Parameters.Add(new MySqlParameter { Value = id });
+            command.Parameters.Add(new MySqlParameter { Value = id.Value });
             command.Parameters.Add(new MySqlParameter { Value = type });
         }
 
         await command.ExecuteNonQueryAsync();
     }
 
-    public async Task<IReadOnlyDictionary<long, byte[]>> GetAllTypes()
+    public async Task<IReadOnlyDictionary<TypeId, byte[]>> GetAllTypes()
     {
         await using var conn = await CreateConnection();
         var sql = $"SELECT id, type FROM {_tablePrefix}_dotnet_types";
 
         await using var command = new MySqlCommand(sql, conn);
-        var dict = new Dictionary<long, byte[]>();
+        var dict = new Dictionary<TypeId, byte[]>();
         await using var reader = await command.ExecuteReaderAsync();
         while (await reader.ReadAsync())
         {
-            var id = reader.GetInt64(0);
+            var id = new TypeId(reader.GetInt64(0));
             var type = (byte[]) reader.GetValue(1);
             dict[id] = type;
         }
