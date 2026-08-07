@@ -31,6 +31,9 @@ public class TypeMapper(ITypeStore typeStore)
     // Minted-but-not-yet-persisted mappings: GetTypeId adds, EnsurePersisted drains once the insert has
     // completed - so its fast path is an emptiness check rather than a sweep over every minted type.
     private readonly ConcurrentDictionary<TypeId, byte[]> _unpersisted = new();
+    // Resolved id -> Type cache: populated by GetTypeId (the Type is in hand when minting) and by the first
+    // resolution of a foreign id, so repeated resolves skip the Type.GetType round-trip.
+    private readonly ConcurrentDictionary<TypeId, Type> _resolvedTypes = new();
 
     public TypeId GetTypeId(Type type)
     {
@@ -50,6 +53,7 @@ public class TypeMapper(ITypeStore typeStore)
         else
             _unpersisted.TryAdd(typeId, serializedType);
 
+        _resolvedTypes.TryAdd(typeId, type);
         _typeIds.TryAdd(type, typeId);
         return typeId;
     }
@@ -72,11 +76,17 @@ public class TypeMapper(ITypeStore typeStore)
 
     public Type ResolveType(TypeId typeId)
     {
+        if (_resolvedTypes.TryGetValue(typeId, out var resolvedType))
+            return resolvedType;
+
         var serializedType = GetSerializedType(typeId);
-        return serializedType.ResolveType()
+        var type = serializedType.ResolveType()
             ?? throw new TypeLoadException(
                 $"Type '{serializedType.ToStringFromUtf8Bytes()}' with id '{typeId}' could not be resolved"
             );
+
+        _resolvedTypes.TryAdd(typeId, type);
+        return type;
     }
 
     private byte[] GetSerializedType(TypeId typeId)
