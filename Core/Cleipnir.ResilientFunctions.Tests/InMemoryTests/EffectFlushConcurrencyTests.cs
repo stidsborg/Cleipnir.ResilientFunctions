@@ -26,6 +26,7 @@ public class EffectFlushConcurrencyTests
             existingEffects: new List<StoredEffect>(),
             functionStore,
             DefaultSerializer.Instance,
+            new TypeMapper(functionStore.TypeStore),
             owner: null,
             storageSession: null,
             clearChildren: true
@@ -133,7 +134,8 @@ public class EffectFlushConcurrencyTests
             await inner.SetEffectResults(storedId, changes, owner, session);
         }
 
-        public IFlowTypeStore TypeStore => inner.TypeStore;
+        public IFlowTypeStore FlowTypeStore => inner.FlowTypeStore;
+        public ITypeStore TypeStore => inner.TypeStore;
         public IMessageStore MessageStore => inner.MessageStore;
         public IDlqStore DlqStore => inner.DlqStore;
         public IReplicaStore ReplicaStore => inner.ReplicaStore;

@@ -336,7 +336,7 @@ public abstract class FailedTests
         fwe.ErrorType.ShouldBe(typeof(InvalidOperationException));
         if (throwUnhandledException)
         {
-            var key = (await store.TypeStore.GetAllFlowTypes()).Values.First();
+            var key = (await store.FlowTypeStore.GetAllFlowTypes()).Values.First();
             await store
                 .GetFunction(StoredId.Create(key, functionId.Instance.Value))
                 .Map(f => f?.Exception)

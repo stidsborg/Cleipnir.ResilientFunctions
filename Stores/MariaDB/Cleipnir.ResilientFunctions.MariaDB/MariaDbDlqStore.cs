@@ -56,7 +56,7 @@ public class MariaDbDlqStore : IDlqStore
         {
             var content = BinaryPacker.Pack(
                 storedMessage.MessageContent,
-                storedMessage.MessageType,
+                storedMessage.MessageType!.Value.Serialize(),
                 storedMessage.IdempotencyKey?.ToUtf8Bytes(),
                 storedMessage.Sender?.ToUtf8Bytes(),
                 storedMessage.Receiver?.ToUtf8Bytes()
@@ -136,7 +136,7 @@ public class MariaDbDlqStore : IDlqStore
                 storedId,
                 position,
                 MessageContent: arrs[0]!,
-                MessageType: arrs[1]!,
+                MessageType: TypeId.Deserialize(arrs[1]!),
                 IdempotencyKey: arrs[2]?.ToStringFromUtf8Bytes(),
                 Sender: arrs[3]?.ToStringFromUtf8Bytes(),
                 Receiver: arrs[4]?.ToStringFromUtf8Bytes()

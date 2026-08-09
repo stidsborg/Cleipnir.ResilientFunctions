@@ -47,10 +47,10 @@ public abstract class DlqManagerTests
         var untouchedId = rFunc.MapToStoredId("untouched".ToFlowInstance());
 
         await functionStore.DlqStore.Append([
-            CreateMessage(byPositionId, "byPositionMsg"),
-            CreateMessage(byStoredIdId, "byStoredIdMsg"),
-            CreateMessage(byFlowIdId, "byFlowIdMsg"),
-            CreateMessage(untouchedId, "untouchedMsg")
+            CreateMessage(functionStore, byPositionId, "byPositionMsg"),
+            CreateMessage(functionStore, byStoredIdId, "byStoredIdMsg"),
+            CreateMessage(functionStore, byFlowIdId, "byFlowIdMsg"),
+            CreateMessage(functionStore, untouchedId, "untouchedMsg")
         ]);
 
         var dlq = functionsRegistry.DeadLetterQueue;
@@ -67,7 +67,7 @@ public abstract class DlqManagerTests
 
         // Only the redriven messages leave the dead letter queue.
         (await dlq.GetMessages([byPositionId, byStoredIdId, byFlowIdId])).ShouldBeEmpty();
-        (await dlq.GetMessages([untouchedId])).Single().DefaultDeserialize().ShouldBe("untouchedMsg");
+        (await dlq.GetMessages([untouchedId])).Single().DefaultDeserialize(functionStore).ShouldBe("untouchedMsg");
 
         unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
@@ -99,8 +99,8 @@ public abstract class DlqManagerTests
         var storedId = rFunc.MapToStoredId("instanceId".ToFlowInstance());
 
         await functionStore.DlqStore.Append([
-            CreateMessage(storedId, "first"),
-            CreateMessage(storedId, "second")
+            CreateMessage(functionStore, storedId, "first"),
+            CreateMessage(functionStore, storedId, "second")
         ]);
 
         var dlq = functionsRegistry.DeadLetterQueue;
@@ -130,7 +130,7 @@ public abstract class DlqManagerTests
         // leaves the appended row in place for inspection.
         var storedId = TestStoredId.Create();
         await functionStore.DlqStore.Append([
-            CreateMessage(storedId, "hello world", idempotencyKey: "idempotencyKey1", sender: "sender1", receiver: "receiver1")
+            CreateMessage(functionStore, storedId, "hello world", idempotencyKey: "idempotencyKey1", sender: "sender1", receiver: "receiver1")
         ]);
 
         var dlq = functionsRegistry.DeadLetterQueue;
@@ -139,7 +139,7 @@ public abstract class DlqManagerTests
         var messages = await functionStore.MessageStore.GetMessages(storedId);
         messages.Count.ShouldBe(1);
         var message = messages.Single();
-        message.DefaultDeserialize().ShouldBe("hello world");
+        message.DefaultDeserialize(functionStore).ShouldBe("hello world");
         message.IdempotencyKey.ShouldBe("idempotencyKey1");
         message.Sender.ShouldBe("sender1");
         message.Receiver.ShouldBe("receiver1");
@@ -173,8 +173,8 @@ public abstract class DlqManagerTests
         var otherId = rFunc.MapToStoredId("otherInstance".ToFlowInstance());
 
         await functionStore.DlqStore.Append([
-            CreateMessage(storedId, "deleted"),
-            CreateMessage(otherId, "kept")
+            CreateMessage(functionStore, storedId, "deleted"),
+            CreateMessage(functionStore, otherId, "kept")
         ]);
 
         var dlq = functionsRegistry.DeadLetterQueue;
@@ -183,7 +183,7 @@ public abstract class DlqManagerTests
 
         // Unlike redrive, delete must not put the message back into the message store - the flow stays waiting.
         (await dlq.GetMessages([storedId])).ShouldBeEmpty();
-        (await dlq.GetMessages([otherId])).Single().DefaultDeserialize().ShouldBe("kept");
+        (await dlq.GetMessages([otherId])).Single().DefaultDeserialize(functionStore).ShouldBe("kept");
         (await functionStore.MessageStore.GetMessages(storedId)).ShouldBeEmpty();
         await Should.ThrowAsync<TimeoutException>(() => scheduled.Completion(timeout: TimeSpan.FromSeconds(1)));
 
@@ -205,7 +205,7 @@ public abstract class DlqManagerTests
         await functionStore.DlqStore.Append(
             Enumerable
                 .Range(0, 5)
-                .Select(i => CreateMessage(storedId, $"msg{i}"))
+                .Select(i => CreateMessage(functionStore, storedId, $"msg{i}"))
                 .ToList()
         );
 
@@ -214,18 +214,18 @@ public abstract class DlqManagerTests
 
         var firstPage = await dlq.GetMessages(limit: 2);
         firstPage.Count.ShouldBe(2);
-        firstPage[0].DefaultDeserialize().ShouldBe("msg0");
-        firstPage[1].DefaultDeserialize().ShouldBe("msg1");
+        firstPage[0].DefaultDeserialize(functionStore).ShouldBe("msg0");
+        firstPage[1].DefaultDeserialize(functionStore).ShouldBe("msg1");
 
         //the offset is exclusive - paging is done by passing the last returned position as the next offset
         var secondPage = await dlq.GetMessages(offset: firstPage[1].Position, limit: 2);
         secondPage.Count.ShouldBe(2);
-        secondPage[0].DefaultDeserialize().ShouldBe("msg2");
-        secondPage[1].DefaultDeserialize().ShouldBe("msg3");
+        secondPage[0].DefaultDeserialize(functionStore).ShouldBe("msg2");
+        secondPage[1].DefaultDeserialize(functionStore).ShouldBe("msg3");
 
         var thirdPage = await dlq.GetMessages(offset: secondPage[1].Position, limit: 2);
         thirdPage.Count.ShouldBe(1);
-        thirdPage[0].DefaultDeserialize().ShouldBe("msg4");
+        thirdPage[0].DefaultDeserialize(functionStore).ShouldBe("msg4");
 
         (await dlq.GetMessages(offset: thirdPage[0].Position)).ShouldBeEmpty();
 
@@ -244,7 +244,7 @@ public abstract class DlqManagerTests
         );
 
         var storedId = TestStoredId.Create();
-        await functionStore.DlqStore.Append([CreateMessage(storedId, "untouched")]);
+        await functionStore.DlqStore.Append([CreateMessage(functionStore, storedId, "untouched")]);
 
         var dlq = functionsRegistry.DeadLetterQueue;
 
@@ -258,16 +258,16 @@ public abstract class DlqManagerTests
         await dlq.Delete(new List<long>());
         await dlq.Delete([999_999L]);
 
-        (await dlq.GetMessages()).Single().DefaultDeserialize().ShouldBe("untouched");
+        (await dlq.GetMessages()).Single().DefaultDeserialize(functionStore).ShouldBe("untouched");
 
         unhandledExceptionCatcher.ShouldNotHaveExceptions();
     }
 
-    private static StoredMessage CreateMessage(StoredId storedId, string content, string? idempotencyKey = null, string? sender = null, string? receiver = null)
+    private static StoredMessage CreateMessage(IFunctionStore functionStore, StoredId storedId, string content, string? idempotencyKey = null, string? sender = null, string? receiver = null)
         => new(
             storedId,
             content.ToJson().ToUtf8Bytes(),
-            typeof(string).SimpleQualifiedName().ToUtf8Bytes(),
+            functionStore.GetTypeId(typeof(string)),
             Position: 0,
             Replica: ReplicaId.Empty,
             idempotencyKey,

@@ -202,7 +202,7 @@ public class SqlGenerator(string tablePrefix)
             var ((storedId, messageContent, messageType, idempotencyKey, sender, receiver), replicaId) = messages[i];
             var content = BinaryPacker.Pack(
                 messageContent,
-                messageType,
+                messageType?.Serialize(),
                 idempotencyKey?.ToUtf8Bytes(),
                 sender?.ToUtf8Bytes(),
                 receiver?.ToUtf8Bytes()

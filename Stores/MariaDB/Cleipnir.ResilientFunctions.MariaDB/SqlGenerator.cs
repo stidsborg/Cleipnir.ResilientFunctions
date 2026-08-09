@@ -225,7 +225,7 @@ public class SqlGenerator(string tablePrefix)
             command.AddParameter(replicaId.AsGuid.ToString("N"));
             var content = BinaryPacker.Pack(
                 messageContent,
-                messageType,
+                messageType?.Serialize(),
                 idempotencyKey?.ToUtf8Bytes(),
                 sender?.ToUtf8Bytes(),
                 receiver?.ToUtf8Bytes()

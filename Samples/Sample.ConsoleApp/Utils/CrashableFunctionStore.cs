@@ -13,7 +13,8 @@ public class CrashableFunctionStore : IFunctionStore
     private readonly IFunctionStore _inner;
     private volatile bool _crashed;
     
-    public IFlowTypeStore TypeStore => _inner.TypeStore;
+    public IFlowTypeStore FlowTypeStore => _inner.FlowTypeStore;
+    public ITypeStore TypeStore => _inner.TypeStore;
     public IMessageStore MessageStore => _inner.MessageStore;
     public IDlqStore DlqStore => _inner.DlqStore;
     public IReplicaStore ReplicaStore => _inner.ReplicaStore;

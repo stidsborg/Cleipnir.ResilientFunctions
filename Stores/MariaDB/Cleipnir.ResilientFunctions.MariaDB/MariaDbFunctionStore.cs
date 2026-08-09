@@ -26,8 +26,11 @@ public class MariaDbFunctionStore : IFunctionStore
 
     private readonly MariaDbCommandExecutor _commandExecutor;
 
-    private readonly MariaDbFlowTypeStore _typeStore;
-    public IFlowTypeStore TypeStore => _typeStore;
+    private readonly MariaDbFlowTypeStore _flowTypeStore;
+    public IFlowTypeStore FlowTypeStore => _flowTypeStore;
+
+    private readonly MariaDbTypeStore _typeStore;
+    public ITypeStore TypeStore => _typeStore;
 
     private readonly MariaDbReplicaStore _replicaStore;
     public IReplicaStore ReplicaStore => _replicaStore;
@@ -45,7 +48,8 @@ public class MariaDbFunctionStore : IFunctionStore
         _messageStore = new MariaDbMessageStore(connectionString, _sqlGenerator, tablePrefix);
         _dlqStore = new MariaDbDlqStore(connectionString, tablePrefix);
         _commandExecutor = new MariaDbCommandExecutor(connectionString);
-        _typeStore = new MariaDbFlowTypeStore(connectionString, tablePrefix);
+        _flowTypeStore = new MariaDbFlowTypeStore(connectionString, tablePrefix);
+        _typeStore = new MariaDbTypeStore(connectionString, tablePrefix);
         _replicaStore = new MariaDbReplicaStore(connectionString, tablePrefix);
     }
 
@@ -57,6 +61,7 @@ public class MariaDbFunctionStore : IFunctionStore
 
         await MessageStore.Initialize();
         await _dlqStore.Initialize();
+        await _flowTypeStore.Initialize();
         await _typeStore.Initialize();
         await _replicaStore.Initialize();
         await using var conn = await CreateOpenConnection(_connectionString);
@@ -86,6 +91,7 @@ public class MariaDbFunctionStore : IFunctionStore
     {
         await _messageStore.TruncateTable();
         await _dlqStore.TruncateTable();
+        await _flowTypeStore.Truncate();
         await _typeStore.Truncate();
         await _replicaStore.Truncate();
         

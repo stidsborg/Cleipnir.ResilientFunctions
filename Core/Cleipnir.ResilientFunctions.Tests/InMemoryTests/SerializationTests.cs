@@ -18,8 +18,8 @@ public class SerializationTests
         var serializer = DefaultSerializer.Instance;
         Parent @event = new Child("Hello World");
         var content = serializer.Serialize(@event, @event.GetType());
-        var type = serializer.SerializeType(@event.GetType());
-        var deserialized = serializer.Deserialize(content, serializer.ResolveType(type)!);
+        var type = @event.GetType().SerializeType();
+        var deserialized = serializer.Deserialize(content, type.ResolveType()!);
         if (deserialized is not Child child)
             throw new Exception("Expected event to be of child-type");
 
@@ -65,30 +65,4 @@ public class SerializationTests
     
     public record Parent;
     public record Child(string Value) : Parent;
-    
-    [TestMethod]
-    public void ImplementingClassCanOverrideResolveTypeDefaultMethod()
-    {
-        ISerializer defaultSerializer = DefaultSerializer.Instance;
-        ISerializer customSerializer = new CustomResolveTypeSerializer();
-
-        // Default implementation uses Type.GetType
-        defaultSerializer.ResolveType(typeof(string).SimpleQualifiedName().ToUtf8Bytes()).ShouldBe(typeof(string));
-
-        // Custom implementation always returns typeof(int) regardless of input
-        customSerializer.ResolveType(typeof(string).SimpleQualifiedName().ToUtf8Bytes()).ShouldBe(typeof(int));
-        customSerializer.ResolveType("anything".ToUtf8Bytes()).ShouldBe(typeof(int));
-    }
-
-    private class CustomResolveTypeSerializer : ISerializer
-    {
-        public byte[] Serialize(object value, Type type)
-            => throw new NotImplementedException();
-
-        public object Deserialize(byte[] bytes, Type type)
-            => throw new NotImplementedException();
-
-        // Override the default interface method
-        public Type? ResolveType(byte[] type) => typeof(int);
-    }
 }

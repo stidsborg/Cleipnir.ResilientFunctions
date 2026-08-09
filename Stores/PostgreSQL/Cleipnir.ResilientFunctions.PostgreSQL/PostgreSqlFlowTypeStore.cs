@@ -16,7 +16,7 @@ public class PostgreSqlFlowTypeStore(string connectionString, string tablePrefix
     {
         await using var conn = await CreateConnection();
         _initializeSql ??= @$"
-            CREATE TABLE IF NOT EXISTS {_tablePrefix}_types (
+            CREATE TABLE IF NOT EXISTS {_tablePrefix}_flowtypes (
                 type VARCHAR(255) PRIMARY KEY,
                 ref INT GENERATED ALWAYS AS IDENTITY
             );";
@@ -28,7 +28,7 @@ public class PostgreSqlFlowTypeStore(string connectionString, string tablePrefix
     public async Task Truncate()
     {
         await using var conn = await CreateConnection();
-        _truncateSql ??= $"TRUNCATE TABLE {_tablePrefix}_types";
+        _truncateSql ??= $"TRUNCATE TABLE {_tablePrefix}_flowtypes";
         var command = new NpgsqlCommand(_truncateSql, conn);
         await command.ExecuteNonQueryAsync();
     }
@@ -45,7 +45,7 @@ public class PostgreSqlFlowTypeStore(string connectionString, string tablePrefix
         await using var conn = await CreateConnection();
      
         var sql = @$"
-            INSERT INTO {_tablePrefix}_types 
+            INSERT INTO {_tablePrefix}_flowtypes 
                 (type)
             VALUES
                 ($1) 
@@ -69,7 +69,7 @@ public class PostgreSqlFlowTypeStore(string connectionString, string tablePrefix
         await using var conn = await CreateConnection();
         var sql = @$"    
             SELECT ref
-            FROM {_tablePrefix}_types
+            FROM {_tablePrefix}_flowtypes
             WHERE type = $1";
         
         await using var command = new NpgsqlCommand(sql, conn)
@@ -90,7 +90,7 @@ public class PostgreSqlFlowTypeStore(string connectionString, string tablePrefix
     public async Task<IReadOnlyDictionary<FlowType, StoredType>> GetAllFlowTypes()
     {
         await using var conn = await CreateConnection();
-        var sql = $"SELECT type, ref FROM {_tablePrefix}_types";
+        var sql = $"SELECT type, ref FROM {_tablePrefix}_flowtypes";
 
         await using var command = new NpgsqlCommand(sql, conn);
         var dict = new Dictionary<FlowType, StoredType>();

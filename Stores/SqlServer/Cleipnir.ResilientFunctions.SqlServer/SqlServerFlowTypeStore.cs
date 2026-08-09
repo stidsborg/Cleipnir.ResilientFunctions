@@ -15,7 +15,7 @@ public class SqlServerFlowTypeStore(string connectionString, string tablePrefix 
         await using var conn = await CreateConnection();
         
         var sql = @$"            
-            CREATE TABLE {tablePrefix}_Types (
+            CREATE TABLE {tablePrefix}_FlowTypes (
                 Type NVARCHAR(255) PRIMARY KEY,
                 Ref INT IDENTITY(1, 1)                                            
             );";
@@ -29,7 +29,7 @@ public class SqlServerFlowTypeStore(string connectionString, string tablePrefix 
     public async Task Truncate()
     {
         await using var conn = await CreateConnection();
-        var sql = $"TRUNCATE TABLE {tablePrefix}_Types";
+        var sql = $"TRUNCATE TABLE {tablePrefix}_FlowTypes";
         var command = new SqlCommand(sql, conn);
         await command.ExecuteNonQueryAsync();
     }
@@ -39,9 +39,9 @@ public class SqlServerFlowTypeStore(string connectionString, string tablePrefix 
         await using var conn = await CreateConnection();
         var sql = @$"
                     BEGIN
-                        IF NOT EXISTS (SELECT * FROM {tablePrefix}_Types WHERE Type = @Type) 
+                        IF NOT EXISTS (SELECT * FROM {tablePrefix}_FlowTypes WHERE Type = @Type) 
                         BEGIN
-                            INSERT INTO {tablePrefix}_Types VALUES (@Type)
+                            INSERT INTO {tablePrefix}_FlowTypes VALUES (@Type)
                         END
                     END";
         
@@ -57,7 +57,7 @@ public class SqlServerFlowTypeStore(string connectionString, string tablePrefix 
         await using var conn = await CreateConnection();
         var sql = @$"    
             SELECT Ref
-            FROM {tablePrefix}_Types
+            FROM {tablePrefix}_FlowTypes
             WHERE type = @FlowType";
 
         await using var command = new SqlCommand(sql, conn);
@@ -75,7 +75,7 @@ public class SqlServerFlowTypeStore(string connectionString, string tablePrefix 
         await using var conn = await CreateConnection();
         var sql = @$"    
             SELECT Ref, Type
-            FROM {tablePrefix}_Types";
+            FROM {tablePrefix}_FlowTypes";
         
         await using var command = new SqlCommand(sql, conn);
         var dict = new Dictionary<FlowType, StoredType>();

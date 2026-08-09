@@ -4,11 +4,13 @@ using Cleipnir.ResilientFunctions.CoreRuntime;
 using Cleipnir.ResilientFunctions.CoreRuntime.Invocation;
 using Cleipnir.ResilientFunctions.CoreRuntime.Serialization;
 using Cleipnir.ResilientFunctions.Domain;
+using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
+using Cleipnir.ResilientFunctions.Storage;
 
 namespace Cleipnir.ResilientFunctions.Queuing;
 
-internal class QueueClient(QueueManager queueManager, ISerializer serializer, UtcNow utcNow)
+internal class QueueClient(QueueManager queueManager, ISerializer serializer, TypeMapper typeMapper, UtcNow utcNow)
 {
     public Task<T> Pull<T>(Workflow workflow, EffectId parentId, Func<T, bool>? filter = null)  where T : class
         => Pull(filter, workflow, parentId, timeout: null)!;
@@ -63,25 +65,26 @@ internal class QueueClient(QueueManager queueManager, ISerializer serializer, Ut
                         :
                         [
                             EffectResult.Create(messageId, msg.MessageContentBytes),
-                            EffectResult.Create(messageTypeId, msg.MessageTypeBytes),
+                            EffectResult.Create(messageTypeId, msg.MessageType),
                             EffectResult.Create(receiverId, msg.Receiver),
                             EffectResult.Create(senderId, msg.Sender),
                         ]
             );
         }
 
-        if (!effect.TryGet<byte[]>(messageTypeId, out var typeNameBytes))
+        var (hasMessageType, messageType) = await effect.TryGet<TypeId>(messageTypeId);
+        if (!hasMessageType)
             return null; // timeout case - no message was received
 
-        var type = serializer.ResolveType(typeNameBytes!)
-                   ?? throw new TypeLoadException($"Type '{Convert.ToBase64String(typeNameBytes!)}' could not be resolved");
-        if (!effect.TryGet<byte[]>(messageId, out var messageBytes))
+        var type = await typeMapper.ResolveType(messageType);
+        var (hasMessage, messageBytes) = await effect.TryGet<byte[]>(messageId);
+        if (!hasMessage)
             throw new InvalidOperationException("Effect did not contain message");
 
         var message = serializer.Deserialize(messageBytes!, type);
 
-        effect.TryGet<string?>(receiverId, out var receiver);
-        effect.TryGet<string?>(senderId, out var sender);
+        var (_, receiver) = await effect.TryGet<string?>(receiverId);
+        var (_, sender) = await effect.TryGet<string?>(senderId);
 
         return new Envelope(message, receiver, sender);
     }

@@ -206,7 +206,7 @@ public class SqlGenerator(string tablePrefix)
         var contents = materialized
             .Select(m => BinaryPacker.Pack(
                 m.Message.Content,
-                m.Message.Type,
+                m.Message.Type?.Serialize(),
                 m.Message.IdempotencyKey?.ToUtf8Bytes(),
                 m.Message.Sender?.ToUtf8Bytes(),
                 m.Message.Receiver?.ToUtf8Bytes()
@@ -252,7 +252,7 @@ public class SqlGenerator(string tablePrefix)
             command.AddParameter(replicaId.AsGuid);
             var content = BinaryPacker.Pack(
                 messageContent,
-                messageType,
+                messageType?.Serialize(),
                 idempotencyKey?.ToUtf8Bytes(),
                 sender?.ToUtf8Bytes(),
                 receiver?.ToUtf8Bytes()

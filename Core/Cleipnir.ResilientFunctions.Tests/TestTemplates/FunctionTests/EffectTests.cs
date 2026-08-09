@@ -377,13 +377,14 @@ public abstract class EffectTests
             await store.GetEffectResults(storedId),
             store,
             DefaultSerializer.Instance,
+            new TypeMapper(store.TypeStore),
             owner,
             session,
             clearChildren: true
         );
         var effect = new Effect(effectResults, utcNow: () => DateTime.UtcNow, new FlowTimeouts(), new FlowExecutionState(storedId, subflows: 1, waitingSubflows: 0, new FlowTimeouts(), completed: ForeverTask.Instance));
 
-        effect.TryGet<int>("alias", out _).ShouldBeFalse();
+        (await effect.TryGet<int>("alias")).Success.ShouldBeFalse();
 
         Should.Throw<InvalidOperationException>(() => effect.Get<int>("nonexistent"));
 
@@ -392,12 +393,13 @@ public abstract class EffectTests
         result = await effect.CreateOrGet("alias", 100);
         result.ShouldBe(32);
 
-        effect.TryGet<int>("alias", out var value2).ShouldBeTrue();
+        var (success2, value2) = await effect.TryGet<int>("alias");
+        success2.ShouldBeTrue();
         value2.ShouldBe(32);
-        effect.Get<int>("alias").ShouldBe(32);
+        (await effect.Get<int>("alias")).ShouldBe(32);
 
         await effect.Upsert("alias", 100);
-        effect.Get<int>("alias").ShouldBe(100);
+        (await effect.Get<int>("alias")).ShouldBe(100);
         effect.GetStatus(0).ShouldBe(WorkStatus.Completed);
         effect.Contains(0).ShouldBeTrue();
     }
@@ -411,13 +413,14 @@ public abstract class EffectTests
         // Create an existing effect
         var effectId = new EffectId([1]);
         var serializedResult = DefaultSerializer.Instance.Serialize(42, typeof(int));
+        var typeMapper = new TypeMapper(store.TypeStore);
         var existingEffect = new StoredEffect(
             effectId,
             WorkStatus.Completed,
             Result: serializedResult,
             StoredException: null,
             Alias: "test_alias",
-            ResultType: DefaultSerializer.Instance.SerializeType(typeof(int))
+            ResultType: typeMapper.GetTypeId(typeof(int))
         );
 
         // Pass existing effects to constructor - they should be eagerly loaded
@@ -427,6 +430,7 @@ public abstract class EffectTests
             new List<StoredEffect> { existingEffect },
             store,
             DefaultSerializer.Instance,
+            typeMapper,
             owner: null,
             storageSession: null,
             clearChildren: true
@@ -434,11 +438,13 @@ public abstract class EffectTests
         var effect = new Effect(effectResults, utcNow: () => DateTime.UtcNow, new FlowTimeouts(), new FlowExecutionState(storedId, subflows: 1, waitingSubflows: 0, new FlowTimeouts(), completed: ForeverTask.Instance));
 
         // Verify the effect is immediately available (eager loading)
-        effect.TryGet<int>("test_alias", out var result).ShouldBeTrue();
+        var (success, result) = await effect.TryGet<int>("test_alias");
+        success.ShouldBeTrue();
         result.ShouldBe(42);
 
         // Verify we can retrieve it again
-        effect.TryGet<int>("test_alias", out result).ShouldBeTrue();
+        (success, result) = await effect.TryGet<int>("test_alias");
+        success.ShouldBeTrue();
         result.ShouldBe(42);
     }
     
@@ -727,6 +733,7 @@ public abstract class EffectTests
             new List<StoredEffect>(),
             effectStore,
             DefaultSerializer.Instance,
+            new TypeMapper(store.TypeStore),
             owner,
             session,
             clearChildren: true
@@ -793,6 +800,7 @@ public abstract class EffectTests
             new List<StoredEffect>(),
             effectStore,
             DefaultSerializer.Instance,
+            new TypeMapper(store.TypeStore),
             owner,
             session,
             clearChildren: true
@@ -883,6 +891,7 @@ public abstract class EffectTests
             await effectStore.GetEffectResults(storedId),
             effectStore,
             DefaultSerializer.Instance,
+            new TypeMapper(store.TypeStore),
             owner,
             session,
             clearChildren: true
@@ -1531,6 +1540,7 @@ public abstract class EffectTests
             await store.GetEffectResults(storedId),
             store,
             DefaultSerializer.Instance,
+            new TypeMapper(store.TypeStore),
             owner,
             session,
             clearChildren: true
@@ -1549,7 +1559,8 @@ public abstract class EffectTests
         var children = new List<string>();
         foreach (var childId in childIds)
         {
-            if (effectResults.TryGet<string>(childId, out var child))
+            var (success, child) = await effectResults.TryGet<string>(childId);
+            if (success)
                 children.Add(child!);
         }
 
@@ -1580,6 +1591,7 @@ public abstract class EffectTests
             await store.GetEffectResults(storedId),
             store,
             DefaultSerializer.Instance,
+            new TypeMapper(store.TypeStore),
             owner,
             session,
             clearChildren: true
@@ -1613,6 +1625,7 @@ public abstract class EffectTests
             await store.GetEffectResults(storedId),
             store,
             DefaultSerializer.Instance,
+            new TypeMapper(store.TypeStore),
             owner,
             session,
             clearChildren: true
@@ -1633,7 +1646,8 @@ public abstract class EffectTests
         var children = new List<int>();
         foreach (var childId in childIds)
         {
-            if (effectResults.TryGet<int>(childId, out var child))
+            var (success, child) = await effectResults.TryGet<int>(childId);
+            if (success)
                 children.Add(child);
         }
 
@@ -1757,6 +1771,7 @@ public abstract class EffectTests
             new List<StoredEffect>(),
             effectStore,
             DefaultSerializer.Instance,
+            new TypeMapper(store.TypeStore),
             owner,
             session,
             clearChildren: true
@@ -1801,6 +1816,7 @@ public abstract class EffectTests
             new List<StoredEffect>(),
             effectStore,
             DefaultSerializer.Instance,
+            new TypeMapper(store.TypeStore),
             owner,
             session,
             clearChildren: true

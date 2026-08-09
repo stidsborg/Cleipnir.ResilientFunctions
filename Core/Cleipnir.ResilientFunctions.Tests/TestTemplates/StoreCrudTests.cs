@@ -180,7 +180,7 @@ public abstract class StoreCrudTests
             new StoredEffect(2.ToEffectId(), WorkStatus.Completed, Result: null, StoredException: null, Alias: null).ToStoredChange(storedId, Insert),
             owner: null, session: null
         );
-        await store.MessageStore.AppendMessage(new StoredMessage(storedId, "SomeJson".ToUtf8Bytes(), "SomeType".ToUtf8Bytes(), Replica: ReplicaId.Empty, Position: 0));
+        await store.MessageStore.AppendMessage(new StoredMessage(storedId, "SomeJson".ToUtf8Bytes(), new TypeId(123), Replica: ReplicaId.Empty, Position: 0));
 
         await store.DeleteFunction(storedId);
 
@@ -539,7 +539,7 @@ public abstract class StoreCrudTests
         var message1 = new StoredMessage(
             storedId1,
             MessageContent: "message1".ToUtf8Bytes(),
-            MessageType: "Type1".ToUtf8Bytes(),
+            MessageType: new TypeId(1),
             Position: 0,
             Replica: ReplicaId.Empty,
             IdempotencyKey: null
@@ -547,7 +547,7 @@ public abstract class StoreCrudTests
         var message2 = new StoredMessage(
             storedId2,
             MessageContent: "message2".ToUtf8Bytes(),
-            MessageType: "Type2".ToUtf8Bytes(),
+            MessageType: new TypeId(2),
             Position: 1,
             Replica: ReplicaId.Empty,
             IdempotencyKey: null

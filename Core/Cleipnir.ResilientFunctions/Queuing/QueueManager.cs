@@ -29,6 +29,7 @@ internal class QueueManager
     private readonly FlowId _flowId;
     private readonly StoredId _storedId;
     private readonly ISerializer _serializer;
+    private readonly TypeMapper _typeMapper;
     private readonly Effect _effect;
     private readonly FlowExecutionState _flowExecutionState;
     private readonly UnhandledExceptionHandler _unhandledExceptionHandler;
@@ -55,6 +56,7 @@ internal class QueueManager
         FlowId flowId,
         StoredId storedId,
         ISerializer serializer,
+        TypeMapper typeMapper,
         Effect effect,
         FlowExecutionState flowExecutionState,
         UnhandledExceptionHandler unhandledExceptionHandler,
@@ -69,6 +71,7 @@ internal class QueueManager
         _flowId = flowId;
         _storedId = storedId;
         _serializer = serializer;
+        _typeMapper = typeMapper;
         _effect = effect;
         _flowExecutionState = flowExecutionState;
         _unhandledExceptionHandler = unhandledExceptionHandler;
@@ -94,9 +97,10 @@ internal class QueueManager
     /// </summary>
     public async Task Initialize(IReadOnlyList<IncomingMessage> inHandMessages)
     {
-        _idempotencyKeys.Initialize();
+        await _idempotencyKeys.Initialize();
 
-        if (_effect.TryGet<List<long>>(DeliveredPositionsId, out var positions) && positions is { Count: > 0 })
+        var (_, positions) = await _effect.TryGet<List<long>>(DeliveredPositionsId);
+        if (positions is { Count: > 0 })
         {
             // Remember the positions a previous incarnation already delivered, so an in-hand copy of such a
             // message (fetched before its store row was deleted) is deduped below rather than delivered a
@@ -122,7 +126,7 @@ internal class QueueManager
         // against its own entry.
         foreach (var childId in _effect.GetChildren(StagedMessagesRoot))
         {
-            var message = PendingMessages.DecodeMessage(_effect.Get<byte[]>(childId), _storedId);
+            var message = PendingMessages.DecodeMessage(await _effect.Get<byte[]>(childId), _storedId);
 
             // Dead lettered on deserialization failure like any other arrival; the child carrier is cleared
             // alongside the dlq move so the message is not re-staged - and re-dead-lettered - on every restart.
@@ -139,7 +143,7 @@ internal class QueueManager
                 incomingMessage.Position,
                 childId,
                 message.MessageContent,
-                message.MessageType,
+                message.MessageType!.Value,
                 message.Receiver,
                 message.Sender
             );
@@ -156,7 +160,7 @@ internal class QueueManager
         _effect.RegisterQueueManager(this);
     }
 
-    public QueueClient CreateQueueClient() => new(this, _serializer, _utcNow);
+    public QueueClient CreateQueueClient() => new(this, _serializer, _typeMapper, _utcNow);
 
     /// <summary>
     /// Pushes messages fetched by the MessageWatchdog straight into the delivery pipeline, avoiding a per-flow
@@ -319,7 +323,7 @@ internal class QueueManager
             // The pipeline is object-form - this is the single point where the payload is serialized, for the
             // durable carriers (the staged-message child and the delivered-message capture).
             var messageContent = _serializer.Serialize(content, content.GetType());
-            var messageType = _serializer.SerializeType(content.GetType());
+            var messageType = _typeMapper.GetTypeId(content.GetType());
 
             var envelope = new Envelope(content, receiver, sender);
             lock (_lock)
@@ -521,7 +525,7 @@ internal class QueueManager
         long? Position,
         EffectId ChildId,
         byte[] MessageContentBytes,
-        byte[] MessageTypeBytes,
+        TypeId MessageType,
         string? Receiver,
         string? Sender
     );

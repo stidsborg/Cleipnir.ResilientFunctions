@@ -13,7 +13,7 @@ public class MariaDbFlowTypeStore(string connectionString, string tablePrefix = 
     {
         await using var conn = await CreateConnection();
         _initializeSql ??= @$"
-            CREATE TABLE IF NOT EXISTS {_tablePrefix}_types (
+            CREATE TABLE IF NOT EXISTS {_tablePrefix}_flowtypes (
                 ref INT AUTO_INCREMENT PRIMARY KEY,
                 type VARCHAR(255),
                 UNIQUE INDEX (type)
@@ -26,7 +26,7 @@ public class MariaDbFlowTypeStore(string connectionString, string tablePrefix = 
     public async Task Truncate()
     {
         await using var conn = await CreateConnection();
-        _truncateSql ??= $"TRUNCATE TABLE {_tablePrefix}_types";
+        _truncateSql ??= $"TRUNCATE TABLE {_tablePrefix}_flowtypes";
         var command = new MySqlCommand(_truncateSql, conn);
         await command.ExecuteNonQueryAsync();
     }
@@ -35,7 +35,7 @@ public class MariaDbFlowTypeStore(string connectionString, string tablePrefix = 
     {
         await using var conn = await CreateConnection();
         var sql = @$"
-                INSERT IGNORE INTO {_tablePrefix}_types 
+                INSERT IGNORE INTO {_tablePrefix}_flowtypes 
                     (type)
                 VALUES
                     (?)";
@@ -58,7 +58,7 @@ public class MariaDbFlowTypeStore(string connectionString, string tablePrefix = 
         await using var conn = await DatabaseHelper.CreateOpenConnection(connectionString);;
         var sql = @$"    
             SELECT ref
-            FROM {_tablePrefix}_types
+            FROM {_tablePrefix}_flowtypes
             WHERE type = ?";
         
         await using var command = new MySqlCommand(sql, conn)
@@ -79,7 +79,7 @@ public class MariaDbFlowTypeStore(string connectionString, string tablePrefix = 
     public async Task<IReadOnlyDictionary<FlowType, StoredType>> GetAllFlowTypes()
     {
         await using var conn = await DatabaseHelper.CreateOpenConnection(connectionString);;
-        var sql = $"SELECT type, ref FROM {_tablePrefix}_types";
+        var sql = $"SELECT type, ref FROM {_tablePrefix}_flowtypes";
 
         await using var command = new MySqlCommand(sql, conn);
         var dict = new Dictionary<FlowType, StoredType>();

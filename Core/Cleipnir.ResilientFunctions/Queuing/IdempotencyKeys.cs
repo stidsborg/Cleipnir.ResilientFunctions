@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime;
 using Cleipnir.ResilientFunctions.Domain;
 
@@ -20,13 +21,13 @@ internal class IdempotencyKeys(EffectId rootId, Effect effect, int maxCount, Tim
     private readonly Dictionary<int, Entry> _dictionary = new();
     private readonly Lock _lock = new();
 
-    public void Initialize()
+    public async Task Initialize()
     {
         var children = effect.GetChildren(rootId);
 
         foreach (var childId in children)
         {
-            var value = effect.Get<Tuple<string, long?>>(childId);
+            var value = await effect.Get<Tuple<string, long?>>(childId);
             _dictionary[childId.Id] = Entry.FromTuple(value);
             _nextId = Math.Max(_nextId, childId.Id + 1);
         }

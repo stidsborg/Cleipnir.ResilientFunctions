@@ -23,17 +23,18 @@ namespace Cleipnir.ResilientFunctions.Queuing;
 internal static class PendingMessages
 {
     // A message without a backing store row (e.g. appended via the control panel directly into the flow's effect
-    // state) encodes a null position piece - it has no store identity to clear or dedup against.
+    // state) encodes a null position piece - it has no store identity to clear or dedup against. A staged message
+    // always carries a payload, so the type id is never null here.
     public static byte[] EncodeMessage(
         byte[] messageContent,
-        byte[] messageType,
+        TypeId messageType,
         long? position,
         string? idempotencyKey = null,
         string? sender = null,
         string? receiver = null)
         => BinaryPacker.Pack(
             messageContent,
-            messageType,
+            messageType.Serialize(),
             position is { } storePosition ? BitConverter.GetBytes(storePosition) : null,
             idempotencyKey?.ToUtf8Bytes(),
             sender?.ToUtf8Bytes(),
@@ -48,7 +49,7 @@ internal static class PendingMessages
         return new StoredMessage(
             storedId,
             MessageContent: parts[0]!,
-            MessageType: parts[1]!,
+            MessageType: TypeId.Deserialize(parts[1]!),
             Position: parts[2] == null ? 0 : BitConverter.ToInt64(parts[2]!),
             Replica: ReplicaId.Empty,
             IdempotencyKey: parts[3]?.ToStringFromUtf8Bytes(),

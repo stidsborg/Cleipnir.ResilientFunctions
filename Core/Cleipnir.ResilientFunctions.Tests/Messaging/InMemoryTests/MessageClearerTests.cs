@@ -137,7 +137,7 @@ public class MessageClearerTests
     }
 
     private static StoredMessage Message(StoredId storedId)
-        => new(storedId, MessageContent: new byte[] { 1 }, MessageType: new byte[] { 2 }, Position: 0, Replica: ReplicaId.Empty);
+        => new(storedId, MessageContent: new byte[] { 1 }, MessageType: new TypeId(2), Position: 0, Replica: ReplicaId.Empty);
 
     private static MessageClearer CreateClearer(
         IMessageStore messageStore,

@@ -497,7 +497,7 @@ public abstract class ReplicaWatchdogTests
     {
         var functionStore = await WithRandomPrefix(storeTask);
         var messageStore = functionStore.MessageStore;
-        var stringType = typeof(string).SimpleQualifiedName().ToUtf8Bytes();
+        var stringType = functionStore.GetTypeId(typeof(string));
 
         var crashedReplica = ReplicaId.NewId();
         await functionStore.ReplicaStore.Insert(crashedReplica, timeStamp: 0);

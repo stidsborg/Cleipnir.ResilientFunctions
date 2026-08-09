@@ -402,7 +402,7 @@ public abstract class SunshineTests
                     flowId.Type,
                     async (string s, Workflow workflow) =>
                     {
-                        initialEffectValue = workflow.Effect.Get<string>("InitialEffectId");
+                        initialEffectValue = await workflow.Effect.Get<string>("InitialEffectId");
                         initialMessageValue = await workflow.Message<string>();
                         return s;
                     });
@@ -450,7 +450,7 @@ public abstract class SunshineTests
                     flowId.Type,
                     async (string _, Workflow workflow) =>
                     {
-                        initialEffectValue = workflow.Effect.Get<string>("InitialEffectId");
+                        initialEffectValue = await workflow.Effect.Get<string>("InitialEffectId");
                         initialMessageValue = await workflow.Message<string>();
                     });
             }
@@ -497,7 +497,7 @@ public abstract class SunshineTests
                     flowId.Type,
                     async (Workflow workflow) =>
                     {
-                        initialEffectValue = workflow.Effect.Get<string>("InitialEffectId");
+                        initialEffectValue = await workflow.Effect.Get<string>("InitialEffectId");
                         initialMessageValue = await workflow.Message<string>();
                     });
             }

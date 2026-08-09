@@ -64,7 +64,7 @@ public class SqlServerDlqStore : IDlqStore
         table.Columns.Add("Content", typeof(byte[]));
         foreach (var (storedId, messageContent, messageType, _, _, idempotencyKey, sender, receiver) in messages)
         {
-            var content = BinaryPacker.Pack(messageContent, messageType, idempotencyKey?.ToUtf8Bytes(), sender?.ToUtf8Bytes(), receiver?.ToUtf8Bytes());
+            var content = BinaryPacker.Pack(messageContent, messageType!.Value.Serialize(), idempotencyKey?.ToUtf8Bytes(), sender?.ToUtf8Bytes(), receiver?.ToUtf8Bytes());
             table.Rows.Add(storedId.AsGuid, content);
         }
 
@@ -144,7 +144,7 @@ public class SqlServerDlqStore : IDlqStore
                 storedId,
                 position,
                 MessageContent: arrs[0]!,
-                MessageType: arrs[1]!,
+                MessageType: TypeId.Deserialize(arrs[1]!),
                 IdempotencyKey: arrs[2]?.ToStringFromUtf8Bytes(),
                 Sender: arrs[3]?.ToStringFromUtf8Bytes(),
                 Receiver: arrs[4]?.ToStringFromUtf8Bytes()
