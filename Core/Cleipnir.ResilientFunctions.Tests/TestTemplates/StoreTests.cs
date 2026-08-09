@@ -856,7 +856,7 @@ public abstract class StoreTests
         );
         session.ShouldBeNull();
 
-        await effectsStore.SetEffectResult(functionId, new StoredEffect(0.ToEffectId(), WorkStatus.Completed, "some default state".ToUtf8Bytes(), StoredException: null, Alias: null).ToStoredChange(functionId, Insert), owner: null, session: null);
+        await effectsStore.SetEffectResult(functionId, new StoredEffect(0.ToEffectId(), WorkStatus.Completed, "some default state".ToUtf8Bytes(), ResultType: null, StoredException: null, Alias: null).ToStoredChange(functionId, Insert), owner: null, session: null);
 
         var storedEffects = await effectsStore.GetEffectResults(functionId);
         storedEffects.Count.ShouldBe(1);
@@ -1204,6 +1204,7 @@ public abstract class StoreTests
             effectId1,
             WorkStatus.Completed,
             Result: "hello world".ToUtf8Bytes(),
+            ResultType: null,
             StoredException: null,
             Alias: null
         );
@@ -1212,6 +1213,7 @@ public abstract class StoreTests
             effectId2,
             WorkStatus.Completed,
             Result: "hello universe".ToUtf8Bytes(),
+            ResultType: null,
             StoredException: null,
             Alias: null
         );
@@ -1365,6 +1367,7 @@ public abstract class StoreTests
             effectId1,
             WorkStatus.Completed,
             Result: "hello world".ToUtf8Bytes(),
+            ResultType: null,
             StoredException: null,
             Alias: null
         );
@@ -1373,6 +1376,7 @@ public abstract class StoreTests
             effectId2,
             WorkStatus.Completed,
             Result: "hello universe".ToUtf8Bytes(),
+            ResultType: null,
             StoredException: null,
             Alias: null
         );
@@ -1449,6 +1453,7 @@ public abstract class StoreTests
                 "Test".GetHashCode().ToEffectId(),
                 WorkStatus.Completed,
                 "hallo effect".ToUtf8Bytes(),
+                ResultType: null,
                 StoredException: null,
                 Alias: null
                 ).ToStoredChange(functionId, Insert),

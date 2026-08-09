@@ -418,9 +418,9 @@ public abstract class EffectTests
             effectId,
             WorkStatus.Completed,
             Result: serializedResult,
+            ResultType: typeMapper.GetTypeId(typeof(int)),
             StoredException: null,
-            Alias: "test_alias",
-            ResultType: typeMapper.GetTypeId(typeof(int))
+            Alias: "test_alias"
         );
 
         // Pass existing effects to constructor - they should be eagerly loaded
@@ -744,6 +744,7 @@ public abstract class EffectTests
             effectId1,
             WorkStatus.Completed,
             Result: "hello world".ToUtf8Bytes(),
+            ResultType: null,
             StoredException: null,
             Alias: null
         );
@@ -758,6 +759,7 @@ public abstract class EffectTests
             effectId2,
             WorkStatus.Completed,
             Result: "hello universe".ToUtf8Bytes(),
+            ResultType: null,
             StoredException: null,
             Alias: null
         );

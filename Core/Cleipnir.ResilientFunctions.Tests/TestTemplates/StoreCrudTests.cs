@@ -177,7 +177,7 @@ public abstract class StoreCrudTests
         );
         await store.SetEffectResult(
             storedId,
-            new StoredEffect(2.ToEffectId(), WorkStatus.Completed, Result: null, StoredException: null, Alias: null).ToStoredChange(storedId, Insert),
+            new StoredEffect(2.ToEffectId(), WorkStatus.Completed, Result: null, ResultType: null, StoredException: null, Alias: null).ToStoredChange(storedId, Insert),
             owner: null, session: null
         );
         await store.MessageStore.AppendMessage(new StoredMessage(storedId, "SomeJson".ToUtf8Bytes(), new TypeId(123), Replica: ReplicaId.Empty, Position: 0));
@@ -524,6 +524,7 @@ public abstract class StoreCrudTests
             EffectId: "effect1".GetHashCode().ToEffectId(),
             WorkStatus: WorkStatus.Completed,
             Result: "result1".ToUtf8Bytes(),
+            ResultType: null,
             StoredException: null,
             Alias: null
         );
@@ -531,6 +532,7 @@ public abstract class StoreCrudTests
             EffectId: "effect2".GetHashCode().ToEffectId(),
             WorkStatus: WorkStatus.Completed,
             Result: "result2".ToUtf8Bytes(),
+            ResultType: null,
             StoredException: null,
             Alias: null
         );

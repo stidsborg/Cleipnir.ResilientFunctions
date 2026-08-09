@@ -507,14 +507,15 @@ internal class InvocationHelper<TParam, TReturn>
                     e.Id,
                     e.Status ?? WorkStatus.Completed,
                     Result: resultBytes,
+                    ResultType: resultType,
                     StoredException: null,
-                    Alias: e.Alias ?? e.Id.Serialize().ToStringValue(),
-                    ResultType: resultType);
+                    Alias: e.Alias ?? e.Id.Serialize().ToStringValue());
             }
             return new StoredEffect(
                 e.Id,
                 WorkStatus.Failed,
                 Result: null,
+                ResultType: null,
                 StoredException: FatalWorkflowException.CreateNonGeneric(flowId, e.Exception).ToStoredException(),
                 Alias: e.Alias
             );

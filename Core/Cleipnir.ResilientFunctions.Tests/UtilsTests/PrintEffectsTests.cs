@@ -29,6 +29,7 @@ public class PrintEffectsTests
                 new EffectId([1]),
                 WorkStatus.Completed,
                 Result: null,
+                ResultType: null,
                 StoredException: null,
                 Alias: null
             )
@@ -63,6 +64,7 @@ public class PrintEffectsTests
                 new EffectId([1]),
                 WorkStatus.Completed,
                 Result: null,
+                ResultType: null,
                 StoredException: null,
                 Alias: "my-effect"
             )
@@ -97,6 +99,7 @@ public class PrintEffectsTests
                 new EffectId([1]),
                 WorkStatus.Failed,
                 Result: null,
+                ResultType: null,
                 StoredException: new StoredException(
                     "Something went wrong",
                     "Stack trace here",
@@ -135,6 +138,7 @@ public class PrintEffectsTests
                 new EffectId([1]),
                 WorkStatus.Started,
                 Result: null,
+                ResultType: null,
                 StoredException: null,
                 Alias: "in-progress"
             )
@@ -169,6 +173,7 @@ public class PrintEffectsTests
                 new EffectId([1]),
                 WorkStatus.Completed,
                 Result: null,
+                ResultType: null,
                 StoredException: null,
                 Alias: "parent"
             ),
@@ -176,6 +181,7 @@ public class PrintEffectsTests
                 new EffectId([1, 1]),
                 WorkStatus.Completed,
                 Result: null,
+                ResultType: null,
                 StoredException: null,
                 Alias: "child-1"
             ),
@@ -183,6 +189,7 @@ public class PrintEffectsTests
                 new EffectId([1, 2]),
                 WorkStatus.Completed,
                 Result: null,
+                ResultType: null,
                 StoredException: null,
                 Alias: "child-2"
             )
@@ -220,6 +227,7 @@ public class PrintEffectsTests
                 new EffectId([1]),
                 WorkStatus.Completed,
                 Result: null,
+                ResultType: null,
                 StoredException: null,
                 Alias: "root"
             ),
@@ -227,6 +235,7 @@ public class PrintEffectsTests
                 new EffectId([1, 1]),
                 WorkStatus.Completed,
                 Result: null,
+                ResultType: null,
                 StoredException: null,
                 Alias: "level-1"
             ),
@@ -234,6 +243,7 @@ public class PrintEffectsTests
                 new EffectId([1, 1, 1]),
                 WorkStatus.Completed,
                 Result: null,
+                ResultType: null,
                 StoredException: null,
                 Alias: "level-2"
             ),
@@ -241,6 +251,7 @@ public class PrintEffectsTests
                 new EffectId([1, 1, 1, 1]),
                 WorkStatus.Failed,
                 Result: null,
+                ResultType: null,
                 StoredException: new StoredException("Deep error", null, "System.Exception"),
                 Alias: "level-3-failed"
             )
@@ -279,6 +290,7 @@ public class PrintEffectsTests
                 new EffectId([1]),
                 WorkStatus.Completed,
                 Result: null,
+                ResultType: null,
                 StoredException: null,
                 Alias: "first-root"
             ),
@@ -286,6 +298,7 @@ public class PrintEffectsTests
                 new EffectId([2]),
                 WorkStatus.Started,
                 Result: null,
+                ResultType: null,
                 StoredException: null,
                 Alias: "second-root"
             ),
@@ -293,6 +306,7 @@ public class PrintEffectsTests
                 new EffectId([3]),
                 WorkStatus.Failed,
                 Result: null,
+                ResultType: null,
                 StoredException: new StoredException("Error", null, "System.Exception"),
                 Alias: "third-root"
             )
@@ -326,13 +340,13 @@ public class PrintEffectsTests
         var storedId = TestStoredId.Create();
         var existingEffects = new List<StoredEffect>
         {
-            new StoredEffect(new EffectId([1]), WorkStatus.Completed, null, null, "root-1"),
-            new StoredEffect(new EffectId([1, 1]), WorkStatus.Completed, null, null, "root-1-child-1"),
-            new StoredEffect(new EffectId([1, 2]), WorkStatus.Completed, null, null, "root-1-child-2"),
-            new StoredEffect(new EffectId([1, 2, 1]), WorkStatus.Failed, null,
+            new StoredEffect(new EffectId([1]), WorkStatus.Completed, null, null, null, "root-1"),
+            new StoredEffect(new EffectId([1, 1]), WorkStatus.Completed, null, null, null, "root-1-child-1"),
+            new StoredEffect(new EffectId([1, 2]), WorkStatus.Completed, null, null, null, "root-1-child-2"),
+            new StoredEffect(new EffectId([1, 2, 1]), WorkStatus.Failed, null, null,
                 new StoredException("Error", null, "TestException"), "root-1-child-2-grandchild"),
-            new StoredEffect(new EffectId([2]), WorkStatus.Started, null, null, "root-2"),
-            new StoredEffect(new EffectId([2, 1]), WorkStatus.Completed, null, null, "root-2-child-1")
+            new StoredEffect(new EffectId([2]), WorkStatus.Started, null, null, null, "root-2"),
+            new StoredEffect(new EffectId([2, 1]), WorkStatus.Completed, null, null, null, "root-2-child-1")
         };
 
         var effectResults = new EffectResults(
@@ -367,9 +381,9 @@ public class PrintEffectsTests
         var storedId = TestStoredId.Create();
         var existingEffects = new List<StoredEffect>
         {
-            new StoredEffect(new EffectId([1]), WorkStatus.Completed, null, null, "root"),
+            new StoredEffect(new EffectId([1]), WorkStatus.Completed, null, null, null, "root"),
             // Missing [1, 2] - this should be automatically added
-            new StoredEffect(new EffectId([1, 2, 1]), WorkStatus.Completed, null, null, "grandchild")
+            new StoredEffect(new EffectId([1, 2, 1]), WorkStatus.Completed, null, null, null, "grandchild")
         };
 
         var effectResults = new EffectResults(
@@ -401,9 +415,9 @@ public class PrintEffectsTests
         var storedId = TestStoredId.Create();
         var existingEffects = new List<StoredEffect>
         {
-            new StoredEffect(new EffectId([1]), WorkStatus.Completed, null, null, "root"),
+            new StoredEffect(new EffectId([1]), WorkStatus.Completed, null, null, null, "root"),
             // Missing [1, 2] and [1, 2, 3] - both should be automatically added
-            new StoredEffect(new EffectId([1, 2, 3, 4]), WorkStatus.Failed, null,
+            new StoredEffect(new EffectId([1, 2, 3, 4]), WorkStatus.Failed, null, null,
                 new StoredException("Deep error", null, "System.Exception"), "deep-failed")
         };
 
