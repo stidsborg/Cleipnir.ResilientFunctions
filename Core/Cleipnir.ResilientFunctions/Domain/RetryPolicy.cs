@@ -105,7 +105,7 @@ public class RetryPolicy(TimeSpan initialInterval, double backoffCoefficient, Ti
     public async Task<T> Invoke<T>(Func<Task<T>> work, Effect effect, UtcNow utcNow, FlowTimeouts flowTimeouts)
     {
         var delayUntilId = effect.CreateEffectId(0);
-        var hasDelayUntil = effect.TryGet<long>(delayUntilId, out var delayUntilValue);
+        var (hasDelayUntil, delayUntilValue) = await effect.TryGet<long>(delayUntilId);
         var delayUntil = hasDelayUntil ? delayUntilValue.ToDateTime() : DateTime.MinValue;
         if (hasDelayUntil && delayUntil > utcNow())
             //waits until the persisted retry-delay expires - or parks forever if the flow suspends first

@@ -50,7 +50,7 @@ public abstract class MessagesSubscriptionTests
         events.Count.ShouldBe(1);
         DefaultSerializer
             .Instance
-            .Deserialize(events[0].MessageContent, functionStore.CreateTypeMapper().ResolveType(events[0].MessageType!.Value))
+            .Deserialize(events[0].MessageContent, await functionStore.CreateTypeMapper().ResolveType(events[0].MessageType!.Value))
             .ShouldBe("hello world");
 
         var skipPosition = events[0].Position;
@@ -66,7 +66,7 @@ public abstract class MessagesSubscriptionTests
 
         DefaultSerializer
             .Instance
-            .Deserialize(filteredEvents[0].MessageContent, functionStore.CreateTypeMapper().ResolveType(filteredEvents[0].MessageType!.Value))
+            .Deserialize(filteredEvents[0].MessageContent, await functionStore.CreateTypeMapper().ResolveType(filteredEvents[0].MessageType!.Value))
             .ShouldBe("hello universe");
     }
 

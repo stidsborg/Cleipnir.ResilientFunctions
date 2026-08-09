@@ -97,9 +97,10 @@ internal class QueueManager
     /// </summary>
     public async Task Initialize(IReadOnlyList<IncomingMessage> inHandMessages)
     {
-        _idempotencyKeys.Initialize();
+        await _idempotencyKeys.Initialize();
 
-        if (_effect.TryGet<List<long>>(DeliveredPositionsId, out var positions) && positions is { Count: > 0 })
+        var (_, positions) = await _effect.TryGet<List<long>>(DeliveredPositionsId);
+        if (positions is { Count: > 0 })
         {
             // Remember the positions a previous incarnation already delivered, so an in-hand copy of such a
             // message (fetched before its store row was deleted) is deduped below rather than delivered a
@@ -125,7 +126,7 @@ internal class QueueManager
         // against its own entry.
         foreach (var childId in _effect.GetChildren(StagedMessagesRoot))
         {
-            var message = PendingMessages.DecodeMessage(_effect.Get<byte[]>(childId), _storedId);
+            var message = PendingMessages.DecodeMessage(await _effect.Get<byte[]>(childId), _storedId);
 
             // Dead lettered on deserialization failure like any other arrival; the child carrier is cleared
             // alongside the dlq move so the message is not re-staged - and re-dead-lettered - on every restart.

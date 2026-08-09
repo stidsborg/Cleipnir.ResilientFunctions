@@ -72,17 +72,19 @@ internal class QueueClient(QueueManager queueManager, ISerializer serializer, Ty
             );
         }
 
-        if (!effect.TryGet<TypeId>(messageTypeId, out var messageType))
+        var (hasMessageType, messageType) = await effect.TryGet<TypeId>(messageTypeId);
+        if (!hasMessageType)
             return null; // timeout case - no message was received
 
-        var type = typeMapper.ResolveType(messageType);
-        if (!effect.TryGet<byte[]>(messageId, out var messageBytes))
+        var type = await typeMapper.ResolveType(messageType);
+        var (hasMessage, messageBytes) = await effect.TryGet<byte[]>(messageId);
+        if (!hasMessage)
             throw new InvalidOperationException("Effect did not contain message");
 
         var message = serializer.Deserialize(messageBytes!, type);
 
-        effect.TryGet<string?>(receiverId, out var receiver);
-        effect.TryGet<string?>(senderId, out var sender);
+        var (_, receiver) = await effect.TryGet<string?>(receiverId);
+        var (_, sender) = await effect.TryGet<string?>(senderId);
 
         return new Envelope(message, receiver, sender);
     }

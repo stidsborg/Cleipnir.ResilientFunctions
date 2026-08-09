@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
@@ -193,7 +194,7 @@ public static class StoredEffectExtensions
     /// the captured instance, so an effect captured through a base type - Capture&lt;object&gt;(...) - is read back
     /// as the instance it was rather than as the base type.
     /// </summary>
-    public static Type ResolveResultType(this StoredEffect effect, TypeMapper typeMapper)
+    public static Task<Type> ResolveResultType(this StoredEffect effect, TypeMapper typeMapper)
         => typeMapper.ResolveType(effect.ResultType!.Value);
 }
 

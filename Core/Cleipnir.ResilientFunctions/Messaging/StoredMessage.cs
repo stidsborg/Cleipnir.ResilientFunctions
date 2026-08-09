@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text.Json;
+using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Storage;
@@ -16,7 +17,11 @@ public record StoredMessage(StoredId StoredId, byte[] MessageContent, TypeId? Me
     /// </summary>
     public bool RowBacked { get; init; } = true;
 
-    public object DefaultDeserialize(TypeMapper typeMapper) => JsonSerializer.Deserialize(MessageContent, typeMapper.ResolveType(MessageType!.Value))!; //todo remove
+    public async Task<object> DefaultDeserialize(TypeMapper typeMapper) //todo remove
+    {
+        var type = await typeMapper.ResolveType(MessageType!.Value);
+        return JsonSerializer.Deserialize(MessageContent, type)!;
+    }
 
     /// <summary>
     /// An empty message carries no payload - appending one only forces a restart of the receiving flow. It is
@@ -41,5 +46,9 @@ public record StoredDlqMessage(
     string? Sender,
     string? Receiver)
 {
-    public object DefaultDeserialize(TypeMapper typeMapper) => JsonSerializer.Deserialize(MessageContent, typeMapper.ResolveType(MessageType))!; //todo remove
+    public async Task<object> DefaultDeserialize(TypeMapper typeMapper) //todo remove
+    {
+        var type = await typeMapper.ResolveType(MessageType);
+        return JsonSerializer.Deserialize(MessageContent, type)!;
+    }
 }

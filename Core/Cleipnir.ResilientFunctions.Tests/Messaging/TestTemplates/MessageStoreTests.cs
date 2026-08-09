@@ -202,8 +202,11 @@ public abstract class MessageStoreTests
 
         var events = (await messageStore.GetMessages(functionId)).ToList();
         events.Count.ShouldBe(2);
-        var event1 = (string) JsonSerializer.Deserialize(events[0].MessageContent, functionStore.CreateTypeMapper().ResolveType(events[0].MessageType!.Value))!;
-        var event2 = (string) JsonSerializer.Deserialize(events[1].MessageContent, functionStore.CreateTypeMapper().ResolveType(events[1].MessageType!.Value))!;
+        var typeMapper = functionStore.CreateTypeMapper();
+        var event1Type = await typeMapper.ResolveType(events[0].MessageType!.Value);
+        var event2Type = await typeMapper.ResolveType(events[1].MessageType!.Value);
+        var event1 = (string) JsonSerializer.Deserialize(events[0].MessageContent, event1Type)!;
+        var event2 = (string) JsonSerializer.Deserialize(events[1].MessageContent, event2Type)!;
         
         event1.ShouldBe("hello to you");
         event2.ShouldBe("hello from me");
@@ -231,8 +234,11 @@ public abstract class MessageStoreTests
 
         var events = (await messageStore.GetMessages(functionId)).ToList();
         events.Count.ShouldBe(2);
-        var event1 = (string) JsonSerializer.Deserialize(events[0].MessageContent, functionStore.CreateTypeMapper().ResolveType(events[0].MessageType!.Value))!;
-        var event2 = (string) JsonSerializer.Deserialize(events[1].MessageContent, functionStore.CreateTypeMapper().ResolveType(events[1].MessageType!.Value))!;
+        var typeMapper = functionStore.CreateTypeMapper();
+        var event1Type = await typeMapper.ResolveType(events[0].MessageType!.Value);
+        var event2Type = await typeMapper.ResolveType(events[1].MessageType!.Value);
+        var event1 = (string) JsonSerializer.Deserialize(events[0].MessageContent, event1Type)!;
+        var event2 = (string) JsonSerializer.Deserialize(events[1].MessageContent, event2Type)!;
         
         event1.ShouldBe("hello to you");
         event2.ShouldBe("hello from me");
@@ -376,7 +382,7 @@ public abstract class MessageStoreTests
         var newEvents = allEvents.Where(e => e.Position > skipPosition).ToList();
         newEvents.Count.ShouldBe(1);
         var storedEvent = newEvents[0];
-        var @event = DefaultSerializer.Instance.Deserialize(storedEvent.MessageContent, functionStore.CreateTypeMapper().ResolveType(storedEvent.MessageType!.Value));
+        var @event = DefaultSerializer.Instance.Deserialize(storedEvent.MessageContent, await functionStore.CreateTypeMapper().ResolveType(storedEvent.MessageType!.Value));
         @event.ShouldBe("hello world");
         storedEvent.IdempotencyKey.ShouldBe("idempotency_key_1");
         skipPosition = storedEvent.Position;
@@ -395,7 +401,7 @@ public abstract class MessageStoreTests
         newEvents = allEvents.Where(e => e.Position > skipPosition).ToList();
         newEvents.Count.ShouldBe(1);
         storedEvent = newEvents[0];
-        @event = DefaultSerializer.Instance.Deserialize(storedEvent.MessageContent, functionStore.CreateTypeMapper().ResolveType(storedEvent.MessageType!.Value));
+        @event = DefaultSerializer.Instance.Deserialize(storedEvent.MessageContent, await functionStore.CreateTypeMapper().ResolveType(storedEvent.MessageType!.Value));
         @event.ShouldBe("hello universe");
         storedEvent.IdempotencyKey.ShouldBe("idempotency_key_2");
         skipPosition = storedEvent.Position;
@@ -436,7 +442,7 @@ public abstract class MessageStoreTests
         var newEvents = allEvents.Where(e => e.Position > skipPosition).ToList();
         newEvents.Count.ShouldBe(1);
         var storedEvent = newEvents[0];
-        var @event = DefaultSerializer.Instance.Deserialize(storedEvent.MessageContent, functionStore.CreateTypeMapper().ResolveType(storedEvent.MessageType!.Value));
+        var @event = DefaultSerializer.Instance.Deserialize(storedEvent.MessageContent, await functionStore.CreateTypeMapper().ResolveType(storedEvent.MessageType!.Value));
         @event.ShouldBe("hello world");
         storedEvent.IdempotencyKey.ShouldBe("idempotency_key_1");
         skipPosition = storedEvent.Position;

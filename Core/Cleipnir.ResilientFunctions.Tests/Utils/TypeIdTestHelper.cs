@@ -1,4 +1,5 @@
 using System;
+using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Messaging;
 using Cleipnir.ResilientFunctions.Storage;
@@ -23,9 +24,18 @@ public static class TypeIdTestHelper
     public static TypeMapper CreateTypeMapper(this IFunctionStore functionStore)
         => new(functionStore.TypeStore);
 
+    // Blocking, like GetTypeId above: assertion sites read a fetched message inline - often inside a LINQ
+    // predicate - and a test thread parked on the type store costs nothing.
     public static object DefaultDeserialize(this StoredMessage message, IFunctionStore functionStore)
-        => message.DefaultDeserialize(functionStore.CreateTypeMapper());
+        => message.DefaultDeserialize(functionStore.CreateTypeMapper()).GetAwaiter().GetResult();
 
     public static object DefaultDeserialize(this StoredDlqMessage message, IFunctionStore functionStore)
-        => message.DefaultDeserialize(functionStore.CreateTypeMapper());
+        => message.DefaultDeserialize(functionStore.CreateTypeMapper()).GetAwaiter().GetResult();
+
+    /// <summary>
+    /// The .NET type an effect's result was serialized as, resolved through a fresh mapper: the lookup goes via
+    /// the type store, verifying the id -> type mapping was actually persisted alongside the effect.
+    /// </summary>
+    public static Task<Type> ResolveResultType(this StoredEffect storedEffect, IFunctionStore functionStore)
+        => storedEffect.ResolveResultType(functionStore.CreateTypeMapper());
 }

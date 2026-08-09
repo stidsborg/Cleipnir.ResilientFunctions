@@ -74,12 +74,19 @@ public class TypeMapper(ITypeStore typeStore)
         }
     }
 
-    public Type ResolveType(TypeId typeId)
-    {
-        if (_resolvedTypes.TryGetValue(typeId, out var resolvedType))
-            return resolvedType;
+    /// <summary>
+    /// The .NET type the id was minted for. Completes synchronously for an already-resolved id - which every id
+    /// this process minted is, and every foreign id becomes after its first resolution - so only the first
+    /// resolution of a type persisted by another process reaches the store.
+    /// </summary>
+    public Task<Type> ResolveType(TypeId typeId)
+        => _resolvedTypes.TryGetValue(typeId, out var resolvedType)
+            ? resolvedType.ToTask()
+            : ResolveUncachedType(typeId);
 
-        var serializedType = GetSerializedType(typeId);
+    private async Task<Type> ResolveUncachedType(TypeId typeId)
+    {
+        var serializedType = await GetSerializedType(typeId);
         var type = serializedType.ResolveType()
             ?? throw new TypeLoadException(
                 $"Type '{serializedType.ToStringFromUtf8Bytes()}' with id '{typeId}' could not be resolved"
@@ -89,7 +96,7 @@ public class TypeMapper(ITypeStore typeStore)
         return type;
     }
 
-    private byte[] GetSerializedType(TypeId typeId)
+    private async Task<byte[]> GetSerializedType(TypeId typeId)
     {
         if (_serializedTypes.TryGetValue(typeId, out var serializedType))
             return serializedType;
@@ -100,9 +107,8 @@ public class TypeMapper(ITypeStore typeStore)
             return unpersistedType;
 
         // An unknown id belongs to a payload persisted by a process whose type mappings were stored before the
-        // payload was, so a refresh is guaranteed to surface it. Blocking is accepted here: resolution happens
-        // inside synchronous deserialization paths and a given type is only ever fetched once per process.
-        RefreshFromStore().GetAwaiter().GetResult();
+        // payload was, so a refresh is guaranteed to surface it.
+        await RefreshFromStore();
 
         if (_serializedTypes.TryGetValue(typeId, out serializedType))
             return serializedType;

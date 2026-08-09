@@ -51,12 +51,16 @@ public class ExistingMessages
     private async Task<List<MessageAndIdempotencyKey>> GetDeserializedMessages()
     {
         var stagedMessages = await GetStagedMessages();
-        return stagedMessages.Select(staged =>
-            new MessageAndIdempotencyKey(
-                _serializer.Deserialize(staged.Message.MessageContent, _typeMapper.ResolveType(staged.Message.MessageType!.Value)),
-                staged.Message.IdempotencyKey
-            )
-        ).ToList();
+        var deserialized = new List<MessageAndIdempotencyKey>(stagedMessages.Count);
+        foreach (var staged in stagedMessages)
+            deserialized.Add(
+                new MessageAndIdempotencyKey(
+                    _serializer.Deserialize(staged.Message.MessageContent, await _typeMapper.ResolveType(staged.Message.MessageType!.Value)),
+                    staged.Message.IdempotencyKey
+                )
+            );
+
+        return deserialized;
     }
 
     // The flow's staged-message children ordered by position: row-less children carry the same synthetic

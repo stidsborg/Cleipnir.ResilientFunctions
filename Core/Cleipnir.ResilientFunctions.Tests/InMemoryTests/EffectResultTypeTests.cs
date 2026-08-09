@@ -44,7 +44,7 @@ public class EffectResultTypeTests
     private static TypeMapper CreateTypeMapper(IFunctionStore functionStore)
         => new(functionStore.TypeStore);
 
-    private static Type ResolveResultType(IFunctionStore store, StoredEffect storedEffect)
+    private static Task<Type> ResolveResultType(IFunctionStore store, StoredEffect storedEffect)
         => storedEffect.ResolveResultType(CreateTypeMapper(store));
 
     private static async Task<StoredEffect> GetStoredEffect(IFunctionStore store, StoredId storedId, EffectId effectId)
@@ -64,7 +64,7 @@ public class EffectResultTypeTests
         await effect.Capture(() => "SomeResult".ToTask());
 
         var storedEffect = await GetSingleStoredEffect(store, storedId);
-        var resultType = ResolveResultType(store, storedEffect);
+        var resultType = await ResolveResultType(store, storedEffect);
         resultType.ShouldBe(typeof(string));
         DefaultSerializer.Instance.Deserialize(storedEffect.Result!, resultType!).ShouldBe("SomeResult");
     }
@@ -81,7 +81,7 @@ public class EffectResultTypeTests
         await effect.Upsert(effectId, value: 42, alias: null, flush: true);
 
         var storedEffect = await GetStoredEffect(store, storedId, effectId);
-        var resultType = ResolveResultType(store, storedEffect);
+        var resultType = await ResolveResultType(store, storedEffect);
         resultType.ShouldBe(typeof(int));
         DefaultSerializer.Instance.Deserialize(storedEffect.Result!, resultType!).ShouldBe(42);
     }
@@ -98,7 +98,7 @@ public class EffectResultTypeTests
         await effect.CreateOrGet(effectId, value: new Person("Peter", 32), alias: null, flush: true);
 
         var storedEffect = await GetStoredEffect(store, storedId, effectId);
-        var resultType = ResolveResultType(store, storedEffect);
+        var resultType = await ResolveResultType(store, storedEffect);
         resultType.ShouldBe(typeof(Person));
         DefaultSerializer.Instance.Deserialize(storedEffect.Result!, resultType!).ShouldBe(new Person("Peter", 32));
     }
@@ -115,7 +115,7 @@ public class EffectResultTypeTests
         await effect.Capture<Animal>(() => Task.FromResult<Animal>(new Dog("Fido", Breed: "Beagle")));
 
         var storedEffect = await GetSingleStoredEffect(store, storedId);
-        ResolveResultType(store, storedEffect).ShouldBe(typeof(Dog));
+        (await ResolveResultType(store, storedEffect)).ShouldBe(typeof(Dog));
 
         // Replaying the same capture against the persisted effect returns the instance that was captured -
         // not an Animal-shaped shell of it.
@@ -142,7 +142,7 @@ public class EffectResultTypeTests
         await effect.Capture<IEnumerable<string>>(() => Task.FromResult(names.Where(n => n.Length == 5)));
 
         var storedEffect = await GetSingleStoredEffect(store, storedId);
-        ResolveResultType(store, storedEffect).ShouldBe(typeof(List<string>));
+        (await ResolveResultType(store, storedEffect)).ShouldBe(typeof(List<string>));
 
         EffectContext.Reset();
         var restarted = CreateEffect(storedId, store, existingEffects: [storedEffect]);
@@ -166,7 +166,7 @@ public class EffectResultTypeTests
         await effect.Capture<object>(() => Task.FromResult<object>(numbers.Select(n => n * 2)));
 
         var storedEffect = await GetSingleStoredEffect(store, storedId);
-        ResolveResultType(store, storedEffect).ShouldBe(typeof(List<int>));
+        (await ResolveResultType(store, storedEffect)).ShouldBe(typeof(List<int>));
 
         // Without the materialized type the declared type is all there is to go on, and object yields a
         // JsonElement rather than the captured sequence.
@@ -190,7 +190,7 @@ public class EffectResultTypeTests
         await effect.Capture<IEnumerable<string>>(() => Task.FromResult<IEnumerable<string>>(new[] { "Peter", "Ole" }));
 
         var storedEffect = await GetSingleStoredEffect(store, storedId);
-        ResolveResultType(store, storedEffect).ShouldBe(typeof(string[]));
+        (await ResolveResultType(store, storedEffect)).ShouldBe(typeof(string[]));
     }
 
     [TestMethod]
@@ -206,7 +206,7 @@ public class EffectResultTypeTests
         await effect.Capture<IDictionary<string, int>>(() => Task.FromResult<IDictionary<string, int>>(dictionary));
 
         var storedEffect = await GetSingleStoredEffect(store, storedId);
-        ResolveResultType(store, storedEffect).ShouldBe(typeof(Dictionary<string, int>));
+        (await ResolveResultType(store, storedEffect)).ShouldBe(typeof(Dictionary<string, int>));
 
         EffectContext.Reset();
         var restarted = CreateEffect(storedId, store, existingEffects: [storedEffect]);
@@ -230,7 +230,7 @@ public class EffectResultTypeTests
 
         // Materialized as a dictionary - not a list of pairs - so the payload keeps its JSON-object shape.
         var storedEffect = await GetSingleStoredEffect(store, storedId);
-        ResolveResultType(store, storedEffect).ShouldBe(typeof(Dictionary<string, int>));
+        (await ResolveResultType(store, storedEffect)).ShouldBe(typeof(Dictionary<string, int>));
 
         EffectContext.Reset();
         var restarted = CreateEffect(storedId, store, existingEffects: [storedEffect]);

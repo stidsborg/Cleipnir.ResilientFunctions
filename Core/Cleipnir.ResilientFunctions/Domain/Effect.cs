@@ -87,29 +87,26 @@ public class Effect
     internal void FlushlessUpserts(IEnumerable<EffectResult> values)
         => effectResults.FlushlessUpserts(values);
 
-    internal bool TryGet<T>(string alias, out T? value)
+    internal Task<(bool Success, T? Value)> TryGet<T>(string alias)
     {
         var effectId = effectResults.GetEffectId(alias);
-        if (effectId == null)
-        {
-            value = default;
-            return false;
-        }
-
-        return effectResults.TryGet(effectId, out value);
+        return effectId == null
+            ? Task.FromResult<(bool Success, T? Value)>((false, default))
+            : effectResults.TryGet<T>(effectId);
     }
 
-    internal bool TryGet<T>(EffectId effectId, out T? value) => effectResults.TryGet(effectId, out value);
+    internal Task<(bool Success, T? Value)> TryGet<T>(EffectId effectId) => effectResults.TryGet<T>(effectId);
 
     // Raw StoredEffect access - for reserved entries with serializer-independent encodings (pending messages).
     internal StoredEffect? GetStoredEffect(EffectId effectId) => effectResults.GetOrValueDefault(effectId);
     internal void FlushlessSet(StoredEffect storedEffect) => effectResults.FlushlessSet(storedEffect);
-    internal T Get<T>(string alias) => Get<T>(
+    internal Task<T> Get<T>(string alias) => Get<T>(
         effectResults.GetEffectId(alias) ?? throw new InvalidOperationException($"Unknown alias: '{alias}'")
     );
-    internal T Get<T>(EffectId effectId)
+    internal async Task<T> Get<T>(EffectId effectId)
     {
-        if (!TryGet<T>(effectId, out var value))
+        var (success, value) = await TryGet<T>(effectId);
+        if (!success)
             throw new InvalidOperationException($"No value exists for id: '{effectId}'");
 
         return value!;

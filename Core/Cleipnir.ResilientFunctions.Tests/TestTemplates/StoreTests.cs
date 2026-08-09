@@ -567,7 +567,7 @@ public abstract class StoreTests
 
         var storedMessages = await store.MessageStore.GetMessages(functionId);
         storedMessages.Count.ShouldBe(1);
-        var deserializedMessage = (string) DefaultSerializer.Instance.Deserialize(storedMessages[0].MessageContent, store.CreateTypeMapper().ResolveType(storedMessages[0].MessageType!.Value));
+        var deserializedMessage = (string) DefaultSerializer.Instance.Deserialize(storedMessages[0].MessageContent, await store.CreateTypeMapper().ResolveType(storedMessages[0].MessageType!.Value));
         deserializedMessage.ShouldBe("hello everyone");
     }
     

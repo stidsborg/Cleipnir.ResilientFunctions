@@ -122,17 +122,21 @@ internal class EffectResults
 
     public async Task<T> CreateOrGet<T>(EffectId effectId, T value, string? alias, bool flush)
     {
+        // The snapshot is taken under the lock but read outside it: resolving the result type may reach the type
+        // store, and no store round-trip may happen while the effect state is locked. Both the pending change
+        // and the stored effect are immutable records, so the snapshot cannot be invalidated underneath us.
+        StoredEffect? existing;
         lock (_sync)
-        {
-            if (_effectResults.TryGetValue(effectId, out var existing) && existing.StoredEffect?.WorkStatus == WorkStatus.Completed)
-                return (T)_serializer.Deserialize(
-                    existing.StoredEffect.Result!,
-                    existing.StoredEffect.ResolveResultType(_typeMapper)
-                );
+            existing = _effectResults.GetValueOrDefault(effectId)?.StoredEffect;
 
-            if (existing?.StoredEffect?.StoredException != null)
-                throw FatalWorkflowException.Create(_flowId, existing.StoredEffect.StoredException!);
-        }
+        if (existing?.WorkStatus == WorkStatus.Completed)
+            return (T)_serializer.Deserialize(
+                existing.Result!,
+                await existing.ResolveResultType(_typeMapper)
+            );
+
+        if (existing?.StoredException != null)
+            throw FatalWorkflowException.Create(_flowId, existing.StoredException!);
 
         var (valueToSerialize, valueType) = EffectValue.ForSerialization(value, typeof(T));
         var serializedValue = _serializer.Serialize(valueToSerialize!, valueType);
@@ -211,29 +215,23 @@ internal class EffectResults
                     AddToPending(change.Id, change.StoredEffect, delete: false, clearChildren: false);
     }
     
-    public bool TryGet<T>(EffectId effectId, out T? value)
+    public async Task<(bool Success, T? Value)> TryGet<T>(EffectId effectId)
     {
+        // See CreateOrGet: snapshot under the lock, resolve and deserialize outside it.
+        StoredEffect? storedEffect;
         lock (_sync)
-        {
-            if (_effectResults.TryGetValue(effectId, out var change))
-            {
-                var storedEffect = change.StoredEffect;
-                if (storedEffect?.WorkStatus == WorkStatus.Completed)
-                {
-                    value = (T?)_serializer.Deserialize(
-                        storedEffect.Result!,
-                        storedEffect.ResolveResultType(_typeMapper)
-                    );
-                    return true;
-                }
+            storedEffect = _effectResults.GetValueOrDefault(effectId)?.StoredEffect;
 
-                if (storedEffect?.StoredException != null)
-                    throw FatalWorkflowException.Create(_flowId, storedEffect.StoredException!);
-            }
-        }
+        if (storedEffect?.WorkStatus == WorkStatus.Completed)
+            return (true, (T?)_serializer.Deserialize(
+                storedEffect.Result!,
+                await storedEffect.ResolveResultType(_typeMapper)
+            ));
 
-        value = default;
-        return false;
+        if (storedEffect?.StoredException != null)
+            throw FatalWorkflowException.Create(_flowId, storedEffect.StoredException!);
+
+        return (false, default);
     }
     
     public IReadOnlyList<EffectId> GetChildren(EffectId parentId)
@@ -318,19 +316,24 @@ internal class EffectResults
     {
         EffectContext.SetParent(effectId);
 
+        // See CreateOrGet: snapshot under the lock, resolve and deserialize outside it.
+        PendingEffectChange? pendingChange;
         lock (_sync)
+            pendingChange = _effectResults.GetValueOrDefault(effectId);
+
+        if (pendingChange != null)
         {
-            var success = _effectResults.TryGetValue(effectId, out var storedEffect);
-            if (success && storedEffect!.StoredEffect?.WorkStatus == WorkStatus.Completed)
-                return (storedEffect.StoredEffect?.Result == null
+            var storedEffect = pendingChange.StoredEffect;
+            if (storedEffect?.WorkStatus == WorkStatus.Completed)
+                return (storedEffect.Result == null
                     ? default
                     : (T) _serializer.Deserialize(
-                        storedEffect.StoredEffect.Result!,
-                        storedEffect.StoredEffect.ResolveResultType(_typeMapper)
+                        storedEffect.Result,
+                        await storedEffect.ResolveResultType(_typeMapper)
                     ))!;
-            if (success && storedEffect!.StoredEffect?.WorkStatus == WorkStatus.Failed)
-                throw FatalWorkflowException.Create(_flowId, storedEffect.StoredEffect?.StoredException!);
-            if (success && resiliency == ResiliencyLevel.AtMostOnce)
+            if (storedEffect?.WorkStatus == WorkStatus.Failed)
+                throw FatalWorkflowException.Create(_flowId, storedEffect.StoredException!);
+            if (resiliency == ResiliencyLevel.AtMostOnce)
                 throw new InvalidOperationException($"Effect '{effectId}' started but did not complete previously");
         }
 

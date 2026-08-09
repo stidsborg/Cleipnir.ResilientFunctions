@@ -1,4 +1,5 @@
 using System;
+using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.CoreRuntime.Serialization;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Storage;
@@ -199,7 +200,7 @@ public class StoredEffectSerializationTests
     }
 
     [TestMethod]
-    public void ResultTypeIsSerializedAndDeserializedAlongsideResult()
+    public async Task ResultTypeIsSerializedAndDeserializedAlongsideResult()
     {
         var effectId = new EffectId([1]);
         var result = DefaultSerializer.Instance.Serialize("SomeResult", typeof(string));
@@ -213,7 +214,7 @@ public class StoredEffectSerializationTests
         deserialized.Result.ShouldBe(result);
         deserialized.ResultType.ShouldBe(resultType);
         DefaultSerializer.Instance
-            .Deserialize(deserialized.Result!, typeMapper.ResolveType(deserialized.ResultType!.Value))
+            .Deserialize(deserialized.Result!, await typeMapper.ResolveType(deserialized.ResultType!.Value))
             .ShouldBe("SomeResult");
     }
 

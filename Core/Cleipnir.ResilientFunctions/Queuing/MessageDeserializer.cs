@@ -39,7 +39,7 @@ internal class MessageDeserializer(
     {
         try
         {
-            var payload = serializer.Deserialize(message.MessageContent, typeMapper.ResolveType(message.MessageType!.Value));
+            var payload = serializer.Deserialize(message.MessageContent, await typeMapper.ResolveType(message.MessageType!.Value));
             return ToIncomingMessage(payload, message);
         }
         catch (Exception exception)
