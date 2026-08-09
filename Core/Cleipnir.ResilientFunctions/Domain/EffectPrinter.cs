@@ -113,6 +113,7 @@ internal static class EffectPrinter
                 parentId,
                 WorkStatus.Started,
                 Result: null,
+                ResultType: null,
                 StoredException: null,
                 Alias: null
             );

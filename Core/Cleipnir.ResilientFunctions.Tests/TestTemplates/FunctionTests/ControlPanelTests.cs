@@ -1211,6 +1211,7 @@ public abstract class ControlPanelTests
                 "SomeId".GetHashCode().ToEffectId(),
                 WorkStatus.Completed,
                 Result: "SomeResult".ToJson().ToUtf8Bytes(),
+                ResultType: null,
                 StoredException: null,
                 Alias: null
             ).ToStoredChange(rAction.MapToStoredId(functionId.Instance), Insert),
@@ -1251,6 +1252,7 @@ public abstract class ControlPanelTests
                 "SomeId".GetHashCode().ToEffectId(),
                 WorkStatus.Completed,
                 Result: "SomeResult".ToJson().ToUtf8Bytes(),
+                ResultType: null,
                 StoredException: null,
                 Alias: null
             ).ToStoredChange(rAction.MapToStoredId(functionId.Instance), Insert),

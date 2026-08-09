@@ -126,22 +126,22 @@ public record StoredEffect(
     EffectId EffectId,
     WorkStatus WorkStatus,
     byte[]? Result,
-    StoredException? StoredException,
-    string? Alias,
     // The id of the type Result was serialized as (see TypeMapper) - null when there is no result. Persisted
     // alongside the result so it can be deserialized without the caller stating the type; the id -> type mapping
     // is persisted to the type store before any effect referencing it.
-    TypeId? ResultType = null
+    TypeId? ResultType,
+    StoredException? StoredException,
+    string? Alias
 )
 {
     public static StoredEffect CreateCompleted(EffectId effectId, byte[]? result, TypeId? resultType, string? alias)
-        => new(effectId, WorkStatus.Completed, result, StoredException: null, alias, resultType);
+        => new(effectId, WorkStatus.Completed, result, resultType, StoredException: null, alias);
     public static StoredEffect CreateCompleted(EffectId effectId, string? alias)
-        => new(effectId, WorkStatus.Completed, Result: null, StoredException: null, alias);
+        => new(effectId, WorkStatus.Completed, Result: null, ResultType: null, StoredException: null, alias);
     public static StoredEffect CreateStarted(EffectId effectId, string? alias)
-        => new(effectId, WorkStatus.Started, Result: null, StoredException: null, alias);
+        => new(effectId, WorkStatus.Started, Result: null, ResultType: null, StoredException: null, alias);
     public static StoredEffect CreateFailed(EffectId effectId, StoredException storedException, string? alias)
-        => new(effectId, WorkStatus.Failed, Result: null, storedException, alias);
+        => new(effectId, WorkStatus.Failed, Result: null, ResultType: null, storedException, alias);
 
     public byte[] Serialize()
     {
@@ -172,7 +172,7 @@ public record StoredEffect(
             ? default(TypeId?)
             : TypeId.Deserialize(parts[5]);
 
-        return new StoredEffect(effect, status, result, exception, alias, resultType);
+        return new StoredEffect(effect, status, result, resultType, exception, alias);
     }
 };
 

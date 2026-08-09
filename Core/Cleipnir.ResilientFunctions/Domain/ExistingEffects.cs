@@ -116,11 +116,11 @@ public class ExistingEffects(StoredId storedId, FlowId flowId, IFunctionStore fu
 
     public Task SetStarted(int effectId) => SetStarted(effectId.ToEffectId());
     public Task SetStarted(EffectId effectId)
-        => Set(new StoredEffect(effectId, WorkStatus.Started, Result: null, StoredException: null, Alias: null));
+        => Set(new StoredEffect(effectId, WorkStatus.Started, Result: null, ResultType: null, StoredException: null, Alias: null));
 
     public Task SetSucceeded(int effectId) => SetSucceeded(effectId.ToEffectId());
     public Task SetSucceeded(EffectId effectId)
-        => Set(new StoredEffect(effectId, WorkStatus.Completed, Result: null, StoredException: null, Alias: null));
+        => Set(new StoredEffect(effectId, WorkStatus.Completed, Result: null, ResultType: null, StoredException: null, Alias: null));
 
     public Task SetSucceeded<TResult>(int effectId, TResult result) => SetSucceeded(effectId.ToEffectId(), result);
     public Task SetSucceeded<TResult>(EffectId effectId, TResult result)
@@ -132,16 +132,16 @@ public class ExistingEffects(StoredId storedId, FlowId flowId, IFunctionStore fu
                 effectId,
                 WorkStatus.Completed,
                 Result: serializedResult,
+                ResultType: typeMapper.GetTypeId(resultType),
                 StoredException: null,
-                Alias: null,
-                ResultType: typeMapper.GetTypeId(resultType)
+                Alias: null
             )
         );
     }
 
     public Task SetFailed(int effectId, Exception exception) => SetFailed(effectId.ToEffectId(), exception);
     public Task SetFailed(EffectId effectId, Exception exception)
-        => Set(new StoredEffect(effectId, WorkStatus.Failed, Result: null, StoredException: FatalWorkflowException.CreateNonGeneric(flowId, exception).ToStoredException(), Alias: null));
+        => Set(new StoredEffect(effectId, WorkStatus.Failed, Result: null, ResultType: null, StoredException: FatalWorkflowException.CreateNonGeneric(flowId, exception).ToStoredException(), Alias: null));
 
     public string EffectTree()
     {
