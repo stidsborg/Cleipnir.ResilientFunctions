@@ -4,6 +4,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Cryptography;
+using System.Threading;
 using System.Threading.Tasks;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Storage;
@@ -34,6 +35,8 @@ public class TypeMapper(ITypeStore typeStore)
     // Resolved id -> Type cache: populated by GetTypeId (the Type is in hand when minting) and by the first
     // resolution of a foreign id, so repeated resolves skip the Type.GetType round-trip.
     private readonly ConcurrentDictionary<TypeId, Type> _resolvedTypes = new();
+    // Admits one store refresh at a time - see GetSerializedType for why waiters rarely need one of their own.
+    private readonly SemaphoreSlim _refreshSync = new(initialCount: 1, maxCount: 1);
 
     public TypeId GetTypeId(Type type)
     {
@@ -107,13 +110,27 @@ public class TypeMapper(ITypeStore typeStore)
             return unpersistedType;
 
         // An unknown id belongs to a payload persisted by a process whose type mappings were stored before the
-        // payload was, so a refresh is guaranteed to surface it.
-        await RefreshFromStore();
+        // payload was, so a refresh is guaranteed to surface it. Refreshes are admitted one at a time: a restart
+        // reading back a batch of foreign payloads misses on many distinct ids at once, and since a refresh
+        // fetches every type, the first one to run resolves them all.
+        await _refreshSync.WaitAsync();
+        try
+        {
+            // Re-checked under the semaphore: whoever we queued behind has already brought the id in, unless it
+            // genuinely is not in the store - only then is another round-trip worth making.
+            if (!_serializedTypes.TryGetValue(typeId, out serializedType))
+            {
+                await RefreshFromStore();
+                _serializedTypes.TryGetValue(typeId, out serializedType);
+            }
+        }
+        finally
+        {
+            _refreshSync.Release();
+        }
 
-        if (_serializedTypes.TryGetValue(typeId, out serializedType))
-            return serializedType;
-
-        throw new TypeLoadException($"Type with id '{typeId}' was not found in the type store");
+        return serializedType
+            ?? throw new TypeLoadException($"Type with id '{typeId}' was not found in the type store");
     }
 
     private async Task RefreshFromStore()
