@@ -17,35 +17,6 @@ namespace Cleipnir.ResilientFunctions.PostgreSQL;
 
 public class SqlGenerator(string tablePrefix)
 {
-    public async Task<StoredInputOutput?> ReadStoredFunction(NpgsqlDataReader reader)
-    {
-        /*
-           0  id
-           1  param
-           2  result
-           3  exception
-           4  human_instance_id
-           5  parent
-         */
-        while (await reader.ReadAsync())
-        {
-            var id = reader.GetGuid(0).ToStoredId();
-            var hasParam = !await reader.IsDBNullAsync(1);
-            var hasResult = !await reader.IsDBNullAsync(2);
-            var hasException = !await reader.IsDBNullAsync(3);
-            var hasParent = !await reader.IsDBNullAsync(5);
-
-            var paramJson = hasParam ? (byte[])reader.GetValue(1) : null;
-            var resultJson = hasResult ? (byte[])reader.GetValue(2) : null;
-            var exceptionJson = hasException ? reader.GetString(3) : null;
-            var humanInstanceId = reader.GetString(4);
-            var parent = hasParent ? reader.GetGuid(5).ToStoredId() : null;
-
-            return new StoredInputOutput(id, paramJson, resultJson, exceptionJson, humanInstanceId, parent);
-        }
-
-        return null;
-    }
     public StoreCommand InsertEffects(StoredId storedId, IReadOnlyList<StoredEffectChange> changes, SnapshotStorageSession session)
     {
         foreach (var change in changes)
