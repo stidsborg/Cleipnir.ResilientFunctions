@@ -126,9 +126,6 @@ public record StoredEffect(
     EffectId EffectId,
     WorkStatus WorkStatus,
     byte[]? Result,
-    // The id of the type Result was serialized as (see TypeMapper) - null when there is no result. Persisted
-    // alongside the result so it can be deserialized without the caller stating the type; the id -> type mapping
-    // is persisted to the type store before any effect referencing it.
     TypeId? ResultType,
     StoredException? StoredException,
     string? Alias
