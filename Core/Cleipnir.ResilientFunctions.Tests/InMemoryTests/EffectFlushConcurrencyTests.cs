@@ -23,7 +23,7 @@ public class EffectFlushConcurrencyTests
         var effectResults = new EffectResults(
             TestFlowId.Create(),
             storedId,
-            existingEffects: new List<StoredEffect>(),
+            existingEffects: [],
             functionStore,
             DefaultSerializer.Instance,
             new TypeMapper(functionStore.TypeStore),

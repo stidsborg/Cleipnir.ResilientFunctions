@@ -145,9 +145,17 @@ public class ExistingEffects(StoredId storedId, FlowId flowId, IFunctionStore fu
 
     public string EffectTree()
     {
+        // The printer only reads status, alias and exception, so the payload is left serialized (Result: null).
         var pendingChanges = _storedEffectsDict.ToDictionary(
             kvp => kvp.Key,
-            kvp => new PendingEffectChange(kvp.Key, kvp.Value, Operation: null, Existing: true, kvp.Value.Alias)
+            kvp => new PendingEffectChange(
+                kvp.Key,
+                new DeserializedEffect(kvp.Key, kvp.Value.WorkStatus, Result: null, kvp.Value.StoredException, kvp.Value.Alias),
+                StoredEffect: null,
+                Operation: null,
+                Existing: true,
+                kvp.Value.Alias
+            )
         );
         return EffectPrinter.Print(pendingChanges);
     }

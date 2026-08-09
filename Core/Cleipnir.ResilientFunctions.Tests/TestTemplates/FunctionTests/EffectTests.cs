@@ -374,7 +374,7 @@ public abstract class EffectTests
         var effectResults = new EffectResults(
             TestFlowId.Create(),
             storedId,
-            await store.GetEffectResults(storedId),
+            await store.GetDeserializedEffects(storedId),
             store,
             DefaultSerializer.Instance,
             new TypeMapper(store.TypeStore),
@@ -427,7 +427,7 @@ public abstract class EffectTests
         var effectResults = new EffectResults(
             TestFlowId.Create(),
             storedId,
-            new List<StoredEffect> { existingEffect },
+            [await existingEffect.Deserialize(DefaultSerializer.Instance, typeMapper)],
             store,
             DefaultSerializer.Instance,
             typeMapper,
@@ -730,7 +730,7 @@ public abstract class EffectTests
         var effectResults = new EffectResults(
             TestFlowId.Create(),
             storedId,
-            new List<StoredEffect>(),
+            [],
             effectStore,
             DefaultSerializer.Instance,
             new TypeMapper(store.TypeStore),
@@ -740,43 +740,26 @@ public abstract class EffectTests
         );
 
         var effectId1 = new EffectId([1]);
-        var storedEffect1 = new StoredEffect(
-            effectId1,
-            WorkStatus.Completed,
-            Result: "hello world".ToUtf8Bytes(),
-            ResultType: null,
-            StoredException: null,
-            Alias: null
-        );
-        await effectResults.Set(storedEffect1, flush: false);
+        await effectResults.Set(effectId1, alias: "first", flush: false);
         await effectStore
             .GetEffectResults(storedId)
             .SelectAsync(r => r.Count == 0)
             .ShouldBeTrueAsync();
-        
+
         var effectId2 = new EffectId([2]);
-        var storedEffect2 = new StoredEffect(
-            effectId2,
-            WorkStatus.Completed,
-            Result: "hello universe".ToUtf8Bytes(),
-            ResultType: null,
-            StoredException: null,
-            Alias: null
-        );
-        await effectResults.Set(storedEffect2, flush: true);
-        
+        await effectResults.Set(effectId2, alias: "second", flush: true);
+
         var fetchedResults = await effectStore.GetEffectResults(storedId);
         fetchedResults.Count.ShouldBe(2);
         fetchedResults
             .Single(r => r.EffectId == effectId1)
-            .Result!
-            .ToStringFromUtf8Bytes()
-            .ShouldBe("hello world");
+            .Alias
+            .ShouldBe("first");
         fetchedResults
             .Single(r => r.EffectId == effectId2)
-            .Result!
-            .ToStringFromUtf8Bytes()
-            .ShouldBe("hello universe");
+            .Alias
+            .ShouldBe("second");
+        fetchedResults.All(r => r.WorkStatus == WorkStatus.Completed).ShouldBeTrue();
     }
     
     public abstract Task CaptureUsingAtLeastOnceWithoutFlushResiliencyDelaysFlush();
@@ -799,7 +782,7 @@ public abstract class EffectTests
         var effectResults = new EffectResults(
             TestFlowId.Create(),
             storedId,
-            new List<StoredEffect>(),
+            [],
             effectStore,
             DefaultSerializer.Instance,
             new TypeMapper(store.TypeStore),
@@ -890,7 +873,7 @@ public abstract class EffectTests
         var effectResults = new EffectResults(
             TestFlowId.Create(),
             storedId,
-            await effectStore.GetEffectResults(storedId),
+            await effectStore.GetDeserializedEffects(storedId),
             effectStore,
             DefaultSerializer.Instance,
             new TypeMapper(store.TypeStore),
@@ -1539,7 +1522,7 @@ public abstract class EffectTests
         var effectResults = new EffectResults(
             TestFlowId.Create(),
             storedId,
-            await store.GetEffectResults(storedId),
+            await store.GetDeserializedEffects(storedId),
             store,
             DefaultSerializer.Instance,
             new TypeMapper(store.TypeStore),
@@ -1561,7 +1544,7 @@ public abstract class EffectTests
         var children = new List<string>();
         foreach (var childId in childIds)
         {
-            var (success, child) = await effectResults.TryGet<string>(childId);
+            var (success, child) = effectResults.TryGet<string>(childId);
             if (success)
                 children.Add(child!);
         }
@@ -1590,7 +1573,7 @@ public abstract class EffectTests
         var effectResults = new EffectResults(
             TestFlowId.Create(),
             storedId,
-            await store.GetEffectResults(storedId),
+            await store.GetDeserializedEffects(storedId),
             store,
             DefaultSerializer.Instance,
             new TypeMapper(store.TypeStore),
@@ -1624,7 +1607,7 @@ public abstract class EffectTests
         var effectResults = new EffectResults(
             TestFlowId.Create(),
             storedId,
-            await store.GetEffectResults(storedId),
+            await store.GetDeserializedEffects(storedId),
             store,
             DefaultSerializer.Instance,
             new TypeMapper(store.TypeStore),
@@ -1648,7 +1631,7 @@ public abstract class EffectTests
         var children = new List<int>();
         foreach (var childId in childIds)
         {
-            var (success, child) = await effectResults.TryGet<int>(childId);
+            var (success, child) = effectResults.TryGet<int>(childId);
             if (success)
                 children.Add(child);
         }
@@ -1770,7 +1753,7 @@ public abstract class EffectTests
         var effectResults = new EffectResults(
             TestFlowId.Create(),
             storedId,
-            new List<StoredEffect>(),
+            [],
             effectStore,
             DefaultSerializer.Instance,
             new TypeMapper(store.TypeStore),
@@ -1815,7 +1798,7 @@ public abstract class EffectTests
         var effectResults = new EffectResults(
             TestFlowId.Create(),
             storedId,
-            new List<StoredEffect>(),
+            [],
             effectStore,
             DefaultSerializer.Instance,
             new TypeMapper(store.TypeStore),

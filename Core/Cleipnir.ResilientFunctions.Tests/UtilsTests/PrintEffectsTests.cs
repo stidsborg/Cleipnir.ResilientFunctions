@@ -23,13 +23,12 @@ public class PrintEffectsTests
     public void PrintSingleCompletedEffect()
     {
         var storedId = TestStoredId.Create();
-        var existingEffects = new List<StoredEffect>
+        var existingEffects = new List<DeserializedEffect>
         {
-            new StoredEffect(
+            new DeserializedEffect(
                 new EffectId([1]),
                 WorkStatus.Completed,
                 Result: null,
-                ResultType: null,
                 StoredException: null,
                 Alias: null
             )
@@ -58,13 +57,12 @@ public class PrintEffectsTests
     public void PrintEffectWithAlias()
     {
         var storedId = TestStoredId.Create();
-        var existingEffects = new List<StoredEffect>
+        var existingEffects = new List<DeserializedEffect>
         {
-            new StoredEffect(
+            new DeserializedEffect(
                 new EffectId([1]),
                 WorkStatus.Completed,
                 Result: null,
-                ResultType: null,
                 StoredException: null,
                 Alias: "my-effect"
             )
@@ -93,13 +91,12 @@ public class PrintEffectsTests
     public void PrintFailedEffect()
     {
         var storedId = TestStoredId.Create();
-        var existingEffects = new List<StoredEffect>
+        var existingEffects = new List<DeserializedEffect>
         {
-            new StoredEffect(
+            new DeserializedEffect(
                 new EffectId([1]),
                 WorkStatus.Failed,
                 Result: null,
-                ResultType: null,
                 StoredException: new StoredException(
                     "Something went wrong",
                     "Stack trace here",
@@ -132,13 +129,12 @@ public class PrintEffectsTests
     public void PrintStartedEffect()
     {
         var storedId = TestStoredId.Create();
-        var existingEffects = new List<StoredEffect>
+        var existingEffects = new List<DeserializedEffect>
         {
-            new StoredEffect(
+            new DeserializedEffect(
                 new EffectId([1]),
                 WorkStatus.Started,
                 Result: null,
-                ResultType: null,
                 StoredException: null,
                 Alias: "in-progress"
             )
@@ -167,29 +163,26 @@ public class PrintEffectsTests
     public void PrintEffectHierarchy()
     {
         var storedId = TestStoredId.Create();
-        var existingEffects = new List<StoredEffect>
+        var existingEffects = new List<DeserializedEffect>
         {
-            new StoredEffect(
+            new DeserializedEffect(
                 new EffectId([1]),
                 WorkStatus.Completed,
                 Result: null,
-                ResultType: null,
                 StoredException: null,
                 Alias: "parent"
             ),
-            new StoredEffect(
+            new DeserializedEffect(
                 new EffectId([1, 1]),
                 WorkStatus.Completed,
                 Result: null,
-                ResultType: null,
                 StoredException: null,
                 Alias: "child-1"
             ),
-            new StoredEffect(
+            new DeserializedEffect(
                 new EffectId([1, 2]),
                 WorkStatus.Completed,
                 Result: null,
-                ResultType: null,
                 StoredException: null,
                 Alias: "child-2"
             )
@@ -221,37 +214,33 @@ public class PrintEffectsTests
     public void PrintDeepEffectHierarchy()
     {
         var storedId = TestStoredId.Create();
-        var existingEffects = new List<StoredEffect>
+        var existingEffects = new List<DeserializedEffect>
         {
-            new StoredEffect(
+            new DeserializedEffect(
                 new EffectId([1]),
                 WorkStatus.Completed,
                 Result: null,
-                ResultType: null,
                 StoredException: null,
                 Alias: "root"
             ),
-            new StoredEffect(
+            new DeserializedEffect(
                 new EffectId([1, 1]),
                 WorkStatus.Completed,
                 Result: null,
-                ResultType: null,
                 StoredException: null,
                 Alias: "level-1"
             ),
-            new StoredEffect(
+            new DeserializedEffect(
                 new EffectId([1, 1, 1]),
                 WorkStatus.Completed,
                 Result: null,
-                ResultType: null,
                 StoredException: null,
                 Alias: "level-2"
             ),
-            new StoredEffect(
+            new DeserializedEffect(
                 new EffectId([1, 1, 1, 1]),
                 WorkStatus.Failed,
                 Result: null,
-                ResultType: null,
                 StoredException: new StoredException("Deep error", null, "System.Exception"),
                 Alias: "level-3-failed"
             )
@@ -284,29 +273,26 @@ public class PrintEffectsTests
     public void PrintMultipleRootEffects()
     {
         var storedId = TestStoredId.Create();
-        var existingEffects = new List<StoredEffect>
+        var existingEffects = new List<DeserializedEffect>
         {
-            new StoredEffect(
+            new DeserializedEffect(
                 new EffectId([1]),
                 WorkStatus.Completed,
                 Result: null,
-                ResultType: null,
                 StoredException: null,
                 Alias: "first-root"
             ),
-            new StoredEffect(
+            new DeserializedEffect(
                 new EffectId([2]),
                 WorkStatus.Started,
                 Result: null,
-                ResultType: null,
                 StoredException: null,
                 Alias: "second-root"
             ),
-            new StoredEffect(
+            new DeserializedEffect(
                 new EffectId([3]),
                 WorkStatus.Failed,
                 Result: null,
-                ResultType: null,
                 StoredException: new StoredException("Error", null, "System.Exception"),
                 Alias: "third-root"
             )
@@ -338,15 +324,15 @@ public class PrintEffectsTests
     public void PrintComplexEffectTree()
     {
         var storedId = TestStoredId.Create();
-        var existingEffects = new List<StoredEffect>
+        var existingEffects = new List<DeserializedEffect>
         {
-            new StoredEffect(new EffectId([1]), WorkStatus.Completed, null, null, null, "root-1"),
-            new StoredEffect(new EffectId([1, 1]), WorkStatus.Completed, null, null, null, "root-1-child-1"),
-            new StoredEffect(new EffectId([1, 2]), WorkStatus.Completed, null, null, null, "root-1-child-2"),
-            new StoredEffect(new EffectId([1, 2, 1]), WorkStatus.Failed, null, null,
+            new DeserializedEffect(new EffectId([1]), WorkStatus.Completed, null, null, "root-1"),
+            new DeserializedEffect(new EffectId([1, 1]), WorkStatus.Completed, null, null, "root-1-child-1"),
+            new DeserializedEffect(new EffectId([1, 2]), WorkStatus.Completed, null, null, "root-1-child-2"),
+            new DeserializedEffect(new EffectId([1, 2, 1]), WorkStatus.Failed, null,
                 new StoredException("Error", null, "TestException"), "root-1-child-2-grandchild"),
-            new StoredEffect(new EffectId([2]), WorkStatus.Started, null, null, null, "root-2"),
-            new StoredEffect(new EffectId([2, 1]), WorkStatus.Completed, null, null, null, "root-2-child-1")
+            new DeserializedEffect(new EffectId([2]), WorkStatus.Started, null, null, "root-2"),
+            new DeserializedEffect(new EffectId([2, 1]), WorkStatus.Completed, null, null, "root-2-child-1")
         };
 
         var effectResults = new EffectResults(
@@ -379,11 +365,11 @@ public class PrintEffectsTests
     {
         // This test verifies that missing intermediate effects are automatically added with Started status
         var storedId = TestStoredId.Create();
-        var existingEffects = new List<StoredEffect>
+        var existingEffects = new List<DeserializedEffect>
         {
-            new StoredEffect(new EffectId([1]), WorkStatus.Completed, null, null, null, "root"),
+            new DeserializedEffect(new EffectId([1]), WorkStatus.Completed, null, null, "root"),
             // Missing [1, 2] - this should be automatically added
-            new StoredEffect(new EffectId([1, 2, 1]), WorkStatus.Completed, null, null, null, "grandchild")
+            new DeserializedEffect(new EffectId([1, 2, 1]), WorkStatus.Completed, null, null, "grandchild")
         };
 
         var effectResults = new EffectResults(
@@ -413,11 +399,11 @@ public class PrintEffectsTests
     {
         // Verifies that multiple missing ancestors are added when a deep descendant exists
         var storedId = TestStoredId.Create();
-        var existingEffects = new List<StoredEffect>
+        var existingEffects = new List<DeserializedEffect>
         {
-            new StoredEffect(new EffectId([1]), WorkStatus.Completed, null, null, null, "root"),
+            new DeserializedEffect(new EffectId([1]), WorkStatus.Completed, null, null, "root"),
             // Missing [1, 2] and [1, 2, 3] - both should be automatically added
-            new StoredEffect(new EffectId([1, 2, 3, 4]), WorkStatus.Failed, null, null,
+            new DeserializedEffect(new EffectId([1, 2, 3, 4]), WorkStatus.Failed, null,
                 new StoredException("Deep error", null, "System.Exception"), "deep-failed")
         };
 

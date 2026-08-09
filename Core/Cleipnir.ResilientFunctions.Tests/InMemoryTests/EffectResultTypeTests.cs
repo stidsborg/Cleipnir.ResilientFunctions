@@ -17,12 +17,12 @@ namespace Cleipnir.ResilientFunctions.Tests.InMemoryTests;
 [TestClass]
 public class EffectResultTypeTests
 {
-    private static Effect CreateEffect(StoredId storedId, IFunctionStore functionStore, IReadOnlyList<StoredEffect>? existingEffects = null)
+    private static Effect CreateEffect(StoredId storedId, IFunctionStore functionStore, IReadOnlyList<DeserializedEffect>? existingEffects = null)
     {
         var effectResults = new EffectResults(
             TestFlowId.Create(),
             storedId,
-            existingEffects ?? new List<StoredEffect>(),
+            existingEffects ?? [],
             functionStore,
             DefaultSerializer.Instance,
             CreateTypeMapper(functionStore),
@@ -120,7 +120,7 @@ public class EffectResultTypeTests
         // Replaying the same capture against the persisted effect returns the instance that was captured -
         // not an Animal-shaped shell of it.
         EffectContext.Reset();
-        var restarted = CreateEffect(storedId, store, existingEffects: [storedEffect]);
+        var restarted = CreateEffect(storedId, store, existingEffects: [await storedEffect.Deserialize(DefaultSerializer.Instance, CreateTypeMapper(store))]);
         var replayed = await restarted.Capture<Animal>(
             () => Task.FromException<Animal>(new InvalidOperationException("Work should not be invoked on replay"))
         );
@@ -145,7 +145,7 @@ public class EffectResultTypeTests
         (await ResolveResultType(store, storedEffect)).ShouldBe(typeof(List<string>));
 
         EffectContext.Reset();
-        var restarted = CreateEffect(storedId, store, existingEffects: [storedEffect]);
+        var restarted = CreateEffect(storedId, store, existingEffects: [await storedEffect.Deserialize(DefaultSerializer.Instance, CreateTypeMapper(store))]);
         var replayed = await restarted.Capture<IEnumerable<string>>(
             () => Task.FromException<IEnumerable<string>>(new InvalidOperationException("Work should not be invoked on replay"))
         );
@@ -171,7 +171,7 @@ public class EffectResultTypeTests
         // Without the materialized type the declared type is all there is to go on, and object yields a
         // JsonElement rather than the captured sequence.
         EffectContext.Reset();
-        var restarted = CreateEffect(storedId, store, existingEffects: [storedEffect]);
+        var restarted = CreateEffect(storedId, store, existingEffects: [await storedEffect.Deserialize(DefaultSerializer.Instance, CreateTypeMapper(store))]);
         var replayed = await restarted.Capture<object>(
             () => Task.FromException<object>(new InvalidOperationException("Work should not be invoked on replay"))
         );
@@ -209,7 +209,7 @@ public class EffectResultTypeTests
         (await ResolveResultType(store, storedEffect)).ShouldBe(typeof(Dictionary<string, int>));
 
         EffectContext.Reset();
-        var restarted = CreateEffect(storedId, store, existingEffects: [storedEffect]);
+        var restarted = CreateEffect(storedId, store, existingEffects: [await storedEffect.Deserialize(DefaultSerializer.Instance, CreateTypeMapper(store))]);
         var replayed = await restarted.Capture<IDictionary<string, int>>(
             () => Task.FromException<IDictionary<string, int>>(new InvalidOperationException("Work should not be invoked on replay"))
         );
@@ -233,7 +233,7 @@ public class EffectResultTypeTests
         (await ResolveResultType(store, storedEffect)).ShouldBe(typeof(Dictionary<string, int>));
 
         EffectContext.Reset();
-        var restarted = CreateEffect(storedId, store, existingEffects: [storedEffect]);
+        var restarted = CreateEffect(storedId, store, existingEffects: [await storedEffect.Deserialize(DefaultSerializer.Instance, CreateTypeMapper(store))]);
         var replayed = await restarted.Capture<IReadOnlyDictionary<string, int>>(
             () => Task.FromException<IReadOnlyDictionary<string, int>>(new InvalidOperationException("Work should not be invoked on replay"))
         );
