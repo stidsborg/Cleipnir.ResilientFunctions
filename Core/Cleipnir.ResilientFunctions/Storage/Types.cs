@@ -167,7 +167,7 @@ public record StoredEffect(
         var alias = parts[4]?.ToStringFromUtf8Bytes();
         var resultType = parts[5] == null
             ? default(TypeId?)
-            : TypeId.Deserialize(parts[5]);
+            : TypeId.Deserialize(parts[5]!);
 
         return new StoredEffect(effect, status, result, resultType, exception, alias);
     }
