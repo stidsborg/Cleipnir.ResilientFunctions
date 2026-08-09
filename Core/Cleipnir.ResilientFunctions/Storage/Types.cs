@@ -196,29 +196,3 @@ public static class StoredEffectExtensions
 }
 
 public record StoredReplica(ReplicaId ReplicaId, long LatestHeartbeat);
-
-public record StoredInputOutput(
-    StoredId Id,
-    byte[]? ParamJson,
-    byte[]? ResultJson,
-    string? ExceptionJson,
-    string HumanInstanceId,
-    StoredId? Parent
-)
-{
-    public StoredFlow ToStoredFlow(Status status, long expires, long timestamp, ReplicaId owner)
-    {
-        return new StoredFlow(
-            Id,
-            HumanInstanceId,
-            ParamJson,
-            status,
-            ExceptionJson != null ? StoredException.Deserialize(ExceptionJson) : null,
-            expires,
-            timestamp,
-            Parent,
-            owner,
-            Id.Type
-        );
-    }
-};
