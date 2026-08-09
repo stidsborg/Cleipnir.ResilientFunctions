@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Cleipnir.ResilientFunctions.CoreRuntime.Serialization;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Storage;
 
@@ -15,6 +16,10 @@ public static class FunctionStoreEffectTestExtensions
 {
     public static async Task<IReadOnlyList<StoredEffect>> GetEffectResults(this IFunctionStore store, StoredId storedId)
         => (await store.GetFunction(storedId))?.Effects ?? [];
+
+    public static async Task<IReadOnlyList<DeserializedEffect>> GetDeserializedEffects(this IFunctionStore store, StoredId storedId)
+        => await (await store.GetEffectResults(storedId))
+            .Deserialize(DefaultSerializer.Instance, new TypeMapper(store.TypeStore));
 
     public static async Task<Dictionary<StoredId, List<StoredEffect>>> GetEffectResults(this IFunctionStore store, IEnumerable<StoredId> storedIds)
     {

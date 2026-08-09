@@ -387,12 +387,12 @@ internal class InvocationHelper<TParam, TReturn>
     
     public MessageSender MessageSender => _messageSender;
 
-    public Effect CreateEffect(StoredId storedId, FlowId flowId, IReadOnlyList<StoredEffect> storedEffects, FlowTimeouts flowTimeouts, IStorageSession? storageSession, FlowExecutionState flowExecutionState)
+    public async Task<Effect> CreateEffect(StoredId storedId, FlowId flowId, IReadOnlyList<StoredEffect> storedEffects, FlowTimeouts flowTimeouts, IStorageSession? storageSession, FlowExecutionState flowExecutionState)
     {
         var effectResults = new EffectResults(
             flowId,
             storedId,
-            storedEffects,
+            await storedEffects.Deserialize(Serializer, _typeMapper),
             _functionStore,
             Serializer,
             _typeMapper,

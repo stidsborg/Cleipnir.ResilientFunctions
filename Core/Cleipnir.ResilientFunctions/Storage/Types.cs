@@ -5,6 +5,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
+using Cleipnir.ResilientFunctions.CoreRuntime.Serialization;
 using Cleipnir.ResilientFunctions.Domain;
 using Cleipnir.ResilientFunctions.Helpers;
 using Cleipnir.ResilientFunctions.Messaging;
@@ -122,6 +123,14 @@ public enum CrudOperation
     Delete
 }
 
+public record DeserializedEffect(
+    EffectId EffectId,
+    WorkStatus WorkStatus,
+    object? Result,
+    StoredException? StoredException,
+    string? Alias
+);
+
 public record StoredEffect(
     EffectId EffectId,
     WorkStatus WorkStatus,
@@ -193,6 +202,26 @@ public static class StoredEffectExtensions
     /// </summary>
     public static Task<Type> ResolveResultType(this StoredEffect effect, TypeMapper typeMapper)
         => typeMapper.ResolveType(effect.ResultType!.Value);
+
+    public static async Task<DeserializedEffect> Deserialize(this StoredEffect effect, ISerializer serializer, TypeMapper typeMapper)
+        => new(
+            effect.EffectId,
+            effect.WorkStatus,
+            effect.Result == null
+                ? null
+                : serializer.Deserialize(effect.Result, await effect.ResolveResultType(typeMapper)),
+            effect.StoredException,
+            effect.Alias
+        );
+
+    public static async Task<IReadOnlyList<DeserializedEffect>> Deserialize(this IReadOnlyList<StoredEffect> effects, ISerializer serializer, TypeMapper typeMapper)
+    {
+        var deserializedEffects = new List<DeserializedEffect>(effects.Count);
+        foreach (var effect in effects)
+            deserializedEffects.Add(await effect.Deserialize(serializer, typeMapper));
+
+        return deserializedEffects;
+    }
 }
 
 public record StoredReplica(ReplicaId ReplicaId, long LatestHeartbeat);

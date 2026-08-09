@@ -34,7 +34,7 @@ internal static class EffectPrinter
     private static void PrintEffect(Dictionary<EffectId, PendingEffectChange> effectResults, EffectId effectId, string prefix, bool isLast, StringBuilder sb)
     {
         var pendingChange = effectResults[effectId];
-        var storedEffect = pendingChange.StoredEffect;
+        var effect = pendingChange.Effect;
         var isDirty = pendingChange.Operation != null;
 
         // Tree branch characters
@@ -47,7 +47,7 @@ internal static class EffectPrinter
             sb.Append("\x1b[33m");
 
         // Status symbol
-        var statusSymbol = storedEffect?.WorkStatus switch
+        var statusSymbol = effect?.WorkStatus switch
         {
             WorkStatus.Completed => "✓",
             WorkStatus.Failed => "✗",
@@ -61,15 +61,15 @@ internal static class EffectPrinter
         sb.Append($"[{effectId.Id}]");
 
         // Alias if present
-        if (!string.IsNullOrEmpty(storedEffect?.Alias))
+        if (!string.IsNullOrEmpty(effect?.Alias))
         {
-            sb.Append($" {storedEffect.Alias}");
+            sb.Append($" {effect.Alias}");
         }
 
         // Additional info for failed effects
-        if (storedEffect?.StoredException != null)
+        if (effect?.StoredException != null)
         {
-            sb.Append($" ({storedEffect.StoredException.ExceptionType})");
+            sb.Append($" ({effect.StoredException.ExceptionType})");
         }
 
         // Reset color
@@ -109,11 +109,10 @@ internal static class EffectPrinter
         if (!effectResults.ContainsKey(parentId))
         {
             // Create a missing parent with Started status
-            var missingEffect = new StoredEffect(
+            var missingEffect = new DeserializedEffect(
                 parentId,
                 WorkStatus.Started,
                 Result: null,
-                ResultType: null,
                 StoredException: null,
                 Alias: null
             );
@@ -121,6 +120,7 @@ internal static class EffectPrinter
             effectResults[parentId] = new PendingEffectChange(
                 parentId,
                 missingEffect,
+                StoredEffect: null,
                 Operation: CrudOperation.Insert,
                 Existing: false,
                 Alias: null

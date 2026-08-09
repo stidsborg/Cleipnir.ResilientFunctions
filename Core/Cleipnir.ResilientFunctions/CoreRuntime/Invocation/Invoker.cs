@@ -243,7 +243,7 @@ public class Invoker<TParam, TReturn> : IFlowRestarter
             var flowTimeouts = new FlowTimeouts();
             var flowState = FlowsManager.CreateFlowState(storedId, flowTimeouts, completed, _invocationHelper.MessagesDefaultMaxWaitForCompletion);
 
-            var effect = _invocationHelper.CreateEffect(
+            var effect = await _invocationHelper.CreateEffect(
                 storedId,
                 flowId,
                 initialState == null ? [] : _invocationHelper.MapInitialEffectsAndMessages(initialState, flowId),
@@ -295,7 +295,7 @@ public class Invoker<TParam, TReturn> : IFlowRestarter
             var flowTimeouts = new FlowTimeouts();
             var flowState = FlowsManager.CreateFlowState(storedId, flowTimeouts, completed, _invocationHelper.MessagesDefaultMaxWaitForCompletion);
 
-            var effect = _invocationHelper.CreateEffect(storedId, flowId, effects, flowTimeouts, storageSession, flowState);
+            var effect = await _invocationHelper.CreateEffect(storedId, flowId, effects, flowTimeouts, storageSession, flowState);
 
             var queueManager = _invocationHelper.CreateQueueManager(flowId, storedId, effect, flowState, flowTimeouts, _unhandledExceptionHandler);
 

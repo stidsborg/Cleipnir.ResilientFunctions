@@ -42,8 +42,8 @@ public class Effect
     internal WorkStatus? GetStatus(int id)
     {
         var effectId = CreateEffectId(id);
-        var storedEffect = effectResults.GetOrValueDefault(effectId);
-        return storedEffect?.WorkStatus;
+        var effect = effectResults.GetOrValueDefault(effectId);
+        return effect?.WorkStatus;
     }
 
     internal async Task<bool> Mark(bool flush) => await Mark(EffectContext.CurrentContext.NextEffectId(), flush);
@@ -52,8 +52,7 @@ public class Effect
         if (effectResults.Contains(effectId))
             return false;
 
-        var storedEffect = StoredEffect.CreateCompleted(effectId, alias: null);
-        await effectResults.Set(storedEffect, flush);
+        await effectResults.Set(effectId, alias: null, flush);
         return true;
     }
 
@@ -90,16 +89,13 @@ public class Effect
     internal Task<(bool Success, T? Value)> TryGet<T>(string alias)
     {
         var effectId = effectResults.GetEffectId(alias);
-        return effectId == null
-            ? Task.FromResult<(bool Success, T? Value)>((false, default))
-            : effectResults.TryGet<T>(effectId);
+        return Task.FromResult(effectId == null
+            ? (false, default)
+            : effectResults.TryGet<T>(effectId));
     }
 
-    internal Task<(bool Success, T? Value)> TryGet<T>(EffectId effectId) => effectResults.TryGet<T>(effectId);
+    internal Task<(bool Success, T? Value)> TryGet<T>(EffectId effectId) => Task.FromResult(effectResults.TryGet<T>(effectId));
 
-    // Raw StoredEffect access - for reserved entries with serializer-independent encodings (pending messages).
-    internal StoredEffect? GetStoredEffect(EffectId effectId) => effectResults.GetOrValueDefault(effectId);
-    internal void FlushlessSet(StoredEffect storedEffect) => effectResults.FlushlessSet(storedEffect);
     internal Task<T> Get<T>(string alias) => Get<T>(
         effectResults.GetEffectId(alias) ?? throw new InvalidOperationException($"Unknown alias: '{alias}'")
     );
